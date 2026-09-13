@@ -65,9 +65,24 @@ XLANG3_NOINLINE bool xlang_vm_load_attr_cached(
         return true;
       }
     }
-    if (value_as_dict(instance_attribute_storage(*instance)) != nullptr) {
-      if (mapping_get_item(instance_attribute_storage(*instance), Value::string(name), out, error)) {
+    if (auto* attributes = value_as_dict(instance_attribute_storage(*instance))) {
+      if (cache.kind == AttrSiteKind::InstanceDict &&
+          cache.owner == &attributes->header && klass != nullptr &&
+          cache.version == klass->version && cache.index < attributes->entries.size()) {
+        const auto& entry = attributes->entries[cache.index];
+        auto* key = value_as_string(entry.first);
+        if (key != nullptr && string_object_view(*key) == name) {
+          value_assign_fast(out, entry.second);
+          return true;
+        }
+      }
+      size_t attribute_index = 0;
+      if (mapping_get_string_item(
+              instance_attribute_storage(*instance), name, out, error, &attribute_index)) {
         cache.kind = AttrSiteKind::InstanceDict;
+        cache.owner = &attributes->header;
+        cache.version = klass == nullptr ? 0 : klass->version;
+        cache.index = static_cast<uint32_t>(attribute_index);
         return true;
       }
       error.clear();

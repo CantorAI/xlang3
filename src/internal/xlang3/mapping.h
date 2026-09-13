@@ -19,6 +19,7 @@ limitations under the License.
 
 #include <cstdint>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -26,6 +27,7 @@ limitations under the License.
 namespace xlang3 {
 
 class Runtime;
+struct ModuleObject;
 
 enum class DictIterationKind : uint8_t {
   Keys,
@@ -36,9 +38,14 @@ enum class DictIterationKind : uint8_t {
 struct DictObject {
   Object header;
   std::vector<std::pair<Value, Value>> entries;
+  // Module namespaces are exact dict objects while module slots remain the
+  // fast execution storage. This non-owning link keeps mutations coherent.
+  ModuleObject* backing_module = nullptr;
   mutable std::unordered_map<int64_t, size_t> integer_index;
+  mutable std::unordered_map<std::string, size_t> string_index;
   mutable size_t indexed_entry_count = static_cast<size_t>(-1);
   mutable bool index_has_other_keys = false;
+  mutable bool index_has_non_string_keys = false;
 };
 
 struct MappingProxyObject {
@@ -105,6 +112,11 @@ bool mapping_truthy(const Value& value);
 bool mapping_is_mapping(const Value& value);
 
 bool mapping_get_item(const Value& object, const Value& key, Value& out, std::string& error);
+// Fast path for the common exact-string lookup. It retains full dict key
+// semantics by falling back to mapping_get_item when non-string keys exist.
+bool mapping_get_string_item(
+    const Value& object, std::string_view key, Value& out, std::string& error,
+    size_t* found_index = nullptr);
 bool mapping_get_item_runtime(Runtime& runtime, const Value& object, const Value& key, Value& out, std::string& error);
 bool mapping_set_item(Value& object, const Value& key, const Value& item, std::string& error);
 bool mapping_delete_item(Value& object, const Value& key, std::string& error);

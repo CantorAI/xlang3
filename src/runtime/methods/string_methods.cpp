@@ -21,6 +21,7 @@ limitations under the License.
 #include "xlang3/object_model.h"
 #include "xlang3/runtime.h"
 #include "xlang3/sequence.h"
+#include "xlang3/unicode_data.h"
 
 #include "runtime/memory/x3_string_ref.h"
 
@@ -171,46 +172,29 @@ uint32_t decode_utf8_codepoint(std::string_view text, size_t width) {
   return codepoint;
 }
 
+bool unicode_codepoint_at(std::string_view text, size_t offset, uint32_t& codepoint, size_t& width) {
+  if (offset >= text.size()) return false;
+  width = utf8_codepoint_width(static_cast<unsigned char>(text[offset]));
+  if (width == 0 || offset + width > text.size()) return false;
+  codepoint = decode_utf8_codepoint(text.substr(offset), width);
+  return true;
+}
+
+size_t previous_utf8_offset(std::string_view text, size_t end) {
+  size_t start = end - 1;
+  while (start > 0 && (static_cast<unsigned char>(text[start]) & 0xc0u) == 0x80u) --start;
+  return start;
+}
+
+bool unicode_space_at(std::string_view text, size_t offset, size_t& width) {
+  uint32_t codepoint = 0;
+  return unicode_codepoint_at(text, offset, codepoint, width) &&
+      (unicode_data_record(codepoint).flags & kUnicodeSpace) != 0;
+}
+
 bool unicode_identifier_codepoint(uint32_t codepoint, bool first) {
-  if (codepoint == '_') return true;
-  if (codepoint < 0x80u) {
-    return std::isalpha(static_cast<unsigned char>(codepoint)) != 0 ||
-        (!first && std::isdigit(static_cast<unsigned char>(codepoint)) != 0);
-  }
-  if (codepoint > 0x10ffffu || (codepoint >= 0xd800u && codepoint <= 0xdfffu)) return false;
-#ifdef _WIN32
-  wchar_t units[2]{};
-  int count = 1;
-  if (codepoint <= 0xffffu) {
-    units[0] = static_cast<wchar_t>(codepoint);
-  } else {
-    const uint32_t adjusted = codepoint - 0x10000u;
-    units[0] = static_cast<wchar_t>(0xd800u + (adjusted >> 10u));
-    units[1] = static_cast<wchar_t>(0xdc00u + (adjusted & 0x3ffu));
-    count = 2;
-  }
-  WORD type1[2]{};
-  WORD type3[2]{};
-  if (GetStringTypeW(CT_CTYPE1, units, count, type1) == 0 ||
-      GetStringTypeW(CT_CTYPE3, units, count, type3) == 0) {
-    return false;
-  }
-  const WORD combined_type1 = static_cast<WORD>(type1[0] | type1[1]);
-  const WORD combined_type3 = static_cast<WORD>(type3[0] | type3[1]);
-  const bool alphabetic = (combined_type1 & C1_ALPHA) != 0 ||
-      (codepoint >= 0x1d400u && codepoint <= 0x1d7cbu);
-  if (first) {
-    return alphabetic || codepoint == 0x1885u || codepoint == 0x1886u ||
-        codepoint == 0x2118u || codepoint == 0x212eu ||
-        codepoint == 0x309bu || codepoint == 0x309cu;
-  }
-  return alphabetic || (combined_type1 & C1_DIGIT) != 0 ||
-      (combined_type3 & (C3_NONSPACING | C3_DIACRITIC)) != 0 ||
-      codepoint == 0x00b7u || codepoint == 0x0387u ||
-      (codepoint >= 0x1369u && codepoint <= 0x1371u) || codepoint == 0x19dau;
-#else
-  return false;
-#endif
+  const uint16_t flags = unicode_data_record(codepoint).flags;
+  return (flags & (first ? kUnicodeIdentifierStart : kUnicodeIdentifierContinue)) != 0;
 }
 
 void append_ascii_backslash_escape(uint32_t codepoint, std::string& out) {
@@ -578,6 +562,28 @@ bool collect_join_iterable(Runtime& runtime, const Value& iterable, std::vector<
   }
 }
 
+std::string unicode_lower_at(const std::vector<uint32_t>& characters, size_t index) {
+  const uint32_t codepoint = characters[index];
+  if (codepoint == 0x03a3) {
+    bool before_cased = false;
+    for (size_t scan = index; scan > 0;) {
+      const uint16_t flags = unicode_data_record(characters[--scan]).flags;
+      if ((flags & kUnicodeCaseIgnorable) != 0) continue;
+      before_cased = (flags & kUnicodeCased) != 0;
+      break;
+    }
+    bool after_cased = false;
+    for (size_t scan = index + 1; scan < characters.size(); ++scan) {
+      const uint16_t flags = unicode_data_record(characters[scan]).flags;
+      if ((flags & kUnicodeCaseIgnorable) != 0) continue;
+      after_cased = (flags & kUnicodeCased) != 0;
+      break;
+    }
+    if (before_cased && !after_cased) return "\xcf\x82";
+  }
+  return unicode_data_case(codepoint, UnicodeCaseMapping::Lower);
+}
+
 bool transform_ascii_case(
     const Value& value,
     const char* target_name,
@@ -589,81 +595,25 @@ bool transform_ascii_case(
     return false;
   }
   const auto view = as_view(text);
-#ifdef _WIN32
-  if (std::any_of(view.begin(), view.end(), [](char ch) {
-        return static_cast<unsigned char>(ch) >= 0x80u;
-      })) {
-    const int wide_size = MultiByteToWideChar(
-        CP_UTF8, MB_ERR_INVALID_CHARS, view.data(), static_cast<int>(view.size()), nullptr, 0);
-    if (wide_size > 0) {
-      std::wstring wide(static_cast<size_t>(wide_size), L'\0');
-      if (MultiByteToWideChar(
-              CP_UTF8, MB_ERR_INVALID_CHARS, view.data(), static_cast<int>(view.size()),
-              wide.data(), wide_size) == wide_size) {
-        const DWORD flags = upper ? LCMAP_UPPERCASE : LCMAP_LOWERCASE;
-        std::wstring mapped;
-        mapped.reserve(wide.size());
-        bool mapping_ok = true;
-        for (size_t i = 0; i < wide.size();) {
-          const size_t source_count =
-              wide[i] >= 0xd800 && wide[i] <= 0xdbff && i + 1 < wide.size() &&
-                  wide[i + 1] >= 0xdc00 && wide[i + 1] <= 0xdfff
-              ? 2u : 1u;
-          const wchar_t code_unit = wide[i];
-          if (!upper && code_unit == 0x212a) {
-            mapped.push_back(L'k');
-          } else if (!upper && code_unit == 0x0130) {
-            mapped.push_back(L'i');
-            mapped.push_back(static_cast<wchar_t>(0x0307));
-          } else if (upper && code_unit == 0x017f) {
-            mapped.push_back(L'S');
-          } else if (upper && code_unit == 0x1c80) {
-            mapped.push_back(static_cast<wchar_t>(0x0412));
-          } else if (upper && (code_unit == 0xfb05 || code_unit == 0xfb06)) {
-            mapped += L"ST";
-          } else {
-            wchar_t piece[4]{};
-            const int piece_size = LCMapStringEx(
-                LOCALE_NAME_INVARIANT, flags, wide.data() + i,
-                static_cast<int>(source_count), piece, static_cast<int>(std::size(piece)),
-                nullptr, nullptr, 0);
-            if (piece_size <= 0) {
-              mapping_ok = false;
-              break;
-            }
-            mapped.append(piece, piece + piece_size);
-          }
-          i += source_count;
-        }
-        if (mapping_ok) {
-          const int mapped_size = static_cast<int>(mapped.size());
-            const int utf8_size = WideCharToMultiByte(
-                CP_UTF8, WC_ERR_INVALID_CHARS, mapped.data(), mapped_size,
-                nullptr, 0, nullptr, nullptr);
-            if (utf8_size > 0) {
-              std::string utf8(static_cast<size_t>(utf8_size), '\0');
-              if (WideCharToMultiByte(
-                      CP_UTF8, WC_ERR_INVALID_CHARS, mapped.data(), mapped_size,
-                      utf8.data(), utf8_size, nullptr, nullptr) == utf8_size) {
-                out = Value::string(std::move(utf8));
-                return true;
-              }
-            }
-        }
-      }
+  std::vector<uint32_t> characters;
+  for (size_t offset = 0; offset < view.size();) {
+    const size_t width = utf8_codepoint_width(static_cast<unsigned char>(view[offset]));
+    if (width == 0 || offset + width > view.size()) {
+      error = "invalid UTF-8 string storage";
+      return false;
     }
+    characters.push_back(decode_utf8_codepoint(view.substr(offset), width));
+    offset += width;
   }
-#endif
-  char* result = nullptr;
-  Value result_value = make_uninitialized_string_value(view.size(), result);
-  if (result == nullptr) {
-    return false;
+  std::string result;
+  result.reserve(view.size());
+  for (size_t index = 0; index < characters.size(); ++index) {
+    result += upper
+        ? unicode_data_case(characters[index], UnicodeCaseMapping::Upper)
+        : unicode_lower_at(characters, index);
   }
-  for (size_t i = 0; i < view.size(); ++i) {
-    const auto ch = static_cast<unsigned char>(view[i]);
-    result[i] = static_cast<char>(upper ? std::toupper(ch) : std::tolower(ch));
-  }
-  return publish_string_result(out, result_value);
+  out = Value::string(std::move(result));
+  return true;
 }
 
 bool string_upper_body(const Value& value, Value& out, std::string& error) {
@@ -674,49 +624,56 @@ bool string_lower_body(const Value& value, Value& out, std::string& error) {
   return transform_ascii_case(value, "str.lower target", false, out, error);
 }
 
-bool trim_char_set_contains(memory::X3StringView chars, char ch);
+bool trim_char_set_contains(std::string_view chars, uint32_t wanted) {
+  for (size_t offset = 0; offset < chars.size();) {
+    uint32_t codepoint = 0;
+    size_t width = 0;
+    if (!unicode_codepoint_at(chars, offset, codepoint, width)) return false;
+    if (codepoint == wanted) return true;
+    offset += width;
+  }
+  return false;
+}
 
 bool string_strip_body(const Value& value, const Value* chars_value, Value& out, std::string& error) {
   memory::X3StringView text;
   if (!get_string_view_checked(value, "str.strip target", text, error)) {
     return false;
   }
-  uint32_t start = 0;
-  uint32_t end = text.size;
-  if (chars_value == nullptr) {
-    while (start < end && memory::x3_is_ascii_space(text.data[start])) {
-      ++start;
-    }
-    while (end > start && memory::x3_is_ascii_space(text.data[end - 1])) {
-      --end;
-    }
-  } else {
-    memory::X3StringView chars;
-    if (!get_string_view_checked(*chars_value, "str.strip chars", chars, error)) {
-      return false;
-    }
-    while (start < end && trim_char_set_contains(chars, text.data[start])) {
-      ++start;
-    }
-    while (end > start && trim_char_set_contains(chars, text.data[end - 1])) {
-      --end;
-    }
+  const auto view = as_view(text);
+  std::string_view chars;
+  if (chars_value != nullptr) {
+    memory::X3StringView raw_chars;
+    if (!get_string_view_checked(*chars_value, "str.strip chars", raw_chars, error)) return false;
+    chars = as_view(raw_chars);
+  }
+  size_t start = 0;
+  size_t end = view.size();
+  while (start < end) {
+    uint32_t codepoint = 0; size_t width = 0;
+    if (!unicode_codepoint_at(view, start, codepoint, width)) break;
+    const bool trim = chars_value == nullptr
+        ? (unicode_data_record(codepoint).flags & kUnicodeSpace) != 0
+        : trim_char_set_contains(chars, codepoint);
+    if (!trim) break;
+    start += width;
+  }
+  while (end > start) {
+    const size_t cp_start = previous_utf8_offset(view, end);
+    uint32_t codepoint = 0; size_t width = 0;
+    if (!unicode_codepoint_at(view, cp_start, codepoint, width)) break;
+    const bool trim = chars_value == nullptr
+        ? (unicode_data_record(codepoint).flags & kUnicodeSpace) != 0
+        : trim_char_set_contains(chars, codepoint);
+    if (!trim) break;
+    end = cp_start;
   }
   if (start == 0 && end == text.size) {
     value_assign_fast(out, value);
     return true;
   }
-  out = make_string_from_view(memory::X3StringView{text.data + start, end - start});
+  out = make_string_from_view(memory::X3StringView{text.data + start, static_cast<uint32_t>(end - start)});
   return true;
-}
-
-bool trim_char_set_contains(memory::X3StringView chars, char ch) {
-  for (uint32_t i = 0; i < chars.size; ++i) {
-    if (chars.data[i] == ch) {
-      return true;
-    }
-  }
-  return false;
 }
 
 bool string_rstrip_body(const Value& value, const Value* chars_value, Value& out, std::string& error) {
@@ -725,26 +682,30 @@ bool string_rstrip_body(const Value& value, const Value* chars_value, Value& out
     return false;
   }
 
-  uint32_t end = text.size;
-  if (chars_value == nullptr) {
-    while (end > 0 && memory::x3_is_ascii_space(text.data[end - 1])) {
-      --end;
-    }
-  } else {
-    memory::X3StringView chars;
-    if (!get_string_view_checked(*chars_value, "str.rstrip chars", chars, error)) {
-      return false;
-    }
-    while (end > 0 && trim_char_set_contains(chars, text.data[end - 1])) {
-      --end;
-    }
+  const auto view = as_view(text);
+  std::string_view chars;
+  if (chars_value != nullptr) {
+    memory::X3StringView raw_chars;
+    if (!get_string_view_checked(*chars_value, "str.rstrip chars", raw_chars, error)) return false;
+    chars = as_view(raw_chars);
+  }
+  size_t end = view.size();
+  while (end > 0) {
+    const size_t start = previous_utf8_offset(view, end);
+    uint32_t codepoint = 0; size_t width = 0;
+    if (!unicode_codepoint_at(view, start, codepoint, width)) break;
+    const bool trim = chars_value == nullptr
+        ? (unicode_data_record(codepoint).flags & kUnicodeSpace) != 0
+        : trim_char_set_contains(chars, codepoint);
+    if (!trim) break;
+    end = start;
   }
 
   if (end == text.size) {
     value_assign_fast(out, value);
     return true;
   }
-  out = make_string_from_view(memory::X3StringView{text.data, end});
+  out = make_string_from_view(memory::X3StringView{text.data, static_cast<uint32_t>(end)});
   return true;
 }
 
@@ -754,26 +715,29 @@ bool string_lstrip_body(const Value& value, const Value* chars_value, Value& out
     return false;
   }
 
-  uint32_t start = 0;
-  if (chars_value == nullptr) {
-    while (start < text.size && memory::x3_is_ascii_space(text.data[start])) {
-      ++start;
-    }
-  } else {
-    memory::X3StringView chars;
-    if (!get_string_view_checked(*chars_value, "str.lstrip chars", chars, error)) {
-      return false;
-    }
-    while (start < text.size && trim_char_set_contains(chars, text.data[start])) {
-      ++start;
-    }
+  const auto view = as_view(text);
+  std::string_view chars;
+  if (chars_value != nullptr) {
+    memory::X3StringView raw_chars;
+    if (!get_string_view_checked(*chars_value, "str.lstrip chars", raw_chars, error)) return false;
+    chars = as_view(raw_chars);
+  }
+  size_t start = 0;
+  while (start < view.size()) {
+    uint32_t codepoint = 0; size_t width = 0;
+    if (!unicode_codepoint_at(view, start, codepoint, width)) break;
+    const bool trim = chars_value == nullptr
+        ? (unicode_data_record(codepoint).flags & kUnicodeSpace) != 0
+        : trim_char_set_contains(chars, codepoint);
+    if (!trim) break;
+    start += width;
   }
 
   if (start == 0) {
     value_assign_fast(out, value);
     return true;
   }
-  out = make_string_from_view(memory::X3StringView{text.data + start, text.size - start});
+  out = make_string_from_view(memory::X3StringView{text.data + start, static_cast<uint32_t>(text.size - start)});
   return true;
 }
 
@@ -998,7 +962,7 @@ bool string_count_body(
   auto text_view = as_view(text).substr(start_bound, end_bound - start_bound);
   auto needle_view = as_view(needle);
   if (needle_view.empty()) {
-    value_set_int64(out, static_cast<int64_t>(text_view.size() + 1));
+    value_set_int64(out, static_cast<int64_t>(utf8_codepoint_count(text_view) + 1));
     return true;
   }
   if (needle.size == 1) {
@@ -2374,40 +2338,33 @@ bool string_encode_method_kw(
 
 Value split_whitespace(memory::X3StringView text, int64_t maxsplit = -1) {
   auto text_view = as_view(text);
-  size_t count = 0;
-  bool in_word = false;
-  if (maxsplit < 0) {
-    for (const unsigned char ch : text_view) {
-      const bool space = string_ascii_isspace(ch);
-      if (!space && !in_word) {
-        ++count;
-      }
-      in_word = !space;
-    }
-  } else {
-    count = static_cast<size_t>(maxsplit) + 1;
-  }
-  Value out = Value::list_reserved(count);
+  Value out = Value::list_reserved(maxsplit >= 0 ? static_cast<size_t>(maxsplit) + 1 : 0);
   auto* list = value_as_list(out);
   size_t i = 0;
   int64_t splits = 0;
   while (i < text_view.size()) {
-    while (i < text_view.size() && string_ascii_isspace(static_cast<unsigned char>(text_view[i]))) {
-      ++i;
+    size_t width = 0;
+    while (i < text_view.size() && unicode_space_at(text_view, i, width)) {
+      i += width;
     }
     const size_t start = i;
     if (maxsplit >= 0 && splits >= maxsplit) {
       size_t end = text_view.size();
-      while (end > start && string_ascii_isspace(static_cast<unsigned char>(text_view[end - 1]))) {
-        --end;
+      while (end > start) {
+        const size_t cp_start = previous_utf8_offset(text_view, end);
+        if (!unicode_space_at(text_view, cp_start, width)) break;
+        end = cp_start;
       }
       if (end > start) {
         list->items.push_back(make_string_range_unchecked(text, start, end - start));
       }
       return out;
     }
-    while (i < text_view.size() && !string_ascii_isspace(static_cast<unsigned char>(text_view[i]))) {
-      ++i;
+    while (i < text_view.size()) {
+      if (unicode_space_at(text_view, i, width)) break;
+      uint32_t codepoint = 0;
+      if (!unicode_codepoint_at(text_view, i, codepoint, width)) { i = text_view.size(); break; }
+      i += width;
     }
     if (i > start) {
       list->items.push_back(make_string_range_unchecked(text, start, i - start));
@@ -2563,25 +2520,24 @@ Value rsplit_whitespace(memory::X3StringView text, int64_t maxsplit = -1) {
   size_t end = text_view.size();
   int64_t splits = 0;
   while (end > 0) {
-    while (end > 0 && string_ascii_isspace(static_cast<unsigned char>(text_view[end - 1]))) {
-      --end;
+    size_t width = 0;
+    while (end > 0) {
+      const size_t start = previous_utf8_offset(text_view, end);
+      if (!unicode_space_at(text_view, start, width)) break;
+      end = start;
     }
     if (end == 0) {
       break;
     }
     if (maxsplit >= 0 && splits >= maxsplit) {
-      size_t start = 0;
-      while (start < end && string_ascii_isspace(static_cast<unsigned char>(text_view[start]))) {
-        ++start;
-      }
-      if (end > start) {
-        items.push_back(make_string_range_unchecked(text, start, end - start));
-      }
+      items.push_back(make_string_range_unchecked(text, 0, end));
       break;
     }
     size_t start = end;
-    while (start > 0 && !string_ascii_isspace(static_cast<unsigned char>(text_view[start - 1]))) {
-      --start;
+    while (start > 0) {
+      const size_t cp_start = previous_utf8_offset(text_view, start);
+      if (unicode_space_at(text_view, cp_start, width)) break;
+      start = cp_start;
     }
     items.push_back(make_string_range_unchecked(text, start, end - start));
     end = start;
@@ -2793,9 +2749,44 @@ enum class StringCharClassKind {
   Upper,
   Alpha,
   Digit,
+  Decimal,
+  Numeric,
   Alnum,
   Space,
+  Printable,
 };
+
+constexpr uint16_t kCharUpper = 0x0001;
+constexpr uint16_t kCharLower = 0x0002;
+constexpr uint16_t kCharDigit = 0x0004;
+constexpr uint16_t kCharSpace = 0x0008;
+constexpr uint16_t kCharAlpha = 0x0100;
+
+bool unicode_decimal_codepoint(uint32_t codepoint) {
+  return (unicode_data_record(codepoint).flags & kUnicodeDecimal) != 0;
+}
+
+bool unicode_character_flags(uint32_t codepoint, uint16_t& type1) {
+  if (codepoint > 0x10ffffu) return false;
+  const uint16_t flags = unicode_data_record(codepoint).flags;
+  type1 = static_cast<uint16_t>(
+      ((flags & kUnicodeAlpha) ? kCharAlpha : 0) |
+      ((flags & kUnicodeDigit) ? kCharDigit : 0) |
+      ((flags & kUnicodeSpace) ? kCharSpace : 0) |
+      ((flags & kUnicodeLower) ? kCharLower : 0) |
+      ((flags & kUnicodeUpper) ? kCharUpper : 0));
+  return true;
+}
+
+bool unicode_numeric_codepoint(uint32_t codepoint, uint16_t type1) {
+  (void)type1;
+  return (unicode_data_record(codepoint).flags & kUnicodeNumeric) != 0;
+}
+
+bool unicode_letter_number_codepoint(uint32_t codepoint) {
+  (void)codepoint;
+  return false;
+}
 
 bool string_char_class_method(
     const Value* args,
@@ -2820,36 +2811,55 @@ bool string_char_class_method(
   bool has_cased = false;
   bool result = true;
   const std::string_view view = as_view(text);
-  for (unsigned char ch : view) {
+  for (size_t offset = 0; offset < view.size();) {
+    const size_t width = utf8_codepoint_width(static_cast<unsigned char>(view[offset]));
+    if (width == 0 || offset + width > view.size()) { result = false; break; }
+    const uint32_t codepoint = decode_utf8_codepoint(view.substr(offset), width);
+    uint16_t type1 = 0;
+    if (!unicode_character_flags(codepoint, type1)) { result = false; break; }
+    // Windows does not expose the Unicode Uppercase/Lowercase derived
+    // properties for the cased Roman numeral Letter_Number characters.
+    if (codepoint >= 0x2160 && codepoint <= 0x216f) type1 |= kCharUpper;
+    if (codepoint >= 0x2170 && codepoint <= 0x217f) type1 |= kCharLower;
     switch (kind) {
       case StringCharClassKind::Lower:
-        if (std::isalpha(ch)) {
+        if ((type1 & (kCharLower | kCharUpper)) != 0) {
           has_cased = true;
-          if (!std::islower(ch)) result = false;
+          if ((type1 & kCharLower) == 0) result = false;
         }
         break;
       case StringCharClassKind::Upper:
-        if (std::isalpha(ch)) {
+        if ((type1 & (kCharLower | kCharUpper)) != 0) {
           has_cased = true;
-          if (!std::isupper(ch)) result = false;
+          if ((type1 & kCharUpper) == 0) result = false;
         }
         break;
       case StringCharClassKind::Alpha:
-        if (!std::isalpha(ch)) result = false;
+        if ((type1 & kCharAlpha) == 0 || unicode_letter_number_codepoint(codepoint)) result = false;
         break;
       case StringCharClassKind::Digit:
-        if (!std::isdigit(ch)) result = false;
+        if ((type1 & kCharDigit) == 0) result = false;
+        break;
+      case StringCharClassKind::Decimal:
+        if (!unicode_decimal_codepoint(codepoint)) result = false;
+        break;
+      case StringCharClassKind::Numeric:
+        if (!unicode_numeric_codepoint(codepoint, type1)) result = false;
         break;
       case StringCharClassKind::Alnum:
-        if (!std::isalnum(ch)) result = false;
+        if ((type1 & kCharAlpha) == 0 && !unicode_numeric_codepoint(codepoint, type1)) result = false;
         break;
       case StringCharClassKind::Space:
-        if (!string_ascii_isspace(ch)) result = false;
+        if ((type1 & kCharSpace) == 0) result = false;
+        break;
+      case StringCharClassKind::Printable:
+        if ((unicode_data_record(codepoint).flags & kUnicodePrintable) == 0) result = false;
         break;
     }
     if (!result) {
       break;
     }
+    offset += width;
   }
 
   if (kind == StringCharClassKind::Lower || kind == StringCharClassKind::Upper) {
@@ -2881,6 +2891,15 @@ bool string_isalnum_method(Runtime&, const Value* args, uint32_t argc, Value& ou
 
 bool string_isspace_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   return string_char_class_method(args, argc, out, error, "str.isspace", StringCharClassKind::Space);
+}
+
+bool string_isprintable_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc == 1) {
+    memory::X3StringView text;
+    if (!get_string_view_checked(args[0], "str.isprintable", text, error)) return false;
+    if (text.size == 0) { value_set_bool(out, true); return true; }
+  }
+  return string_char_class_method(args, argc, out, error, "str.isprintable", StringCharClassKind::Printable);
 }
 
 bool string_isascii_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -2936,11 +2955,11 @@ bool string_isidentifier_method(Runtime&, const Value* args, uint32_t argc, Valu
 }
 
 bool string_isdecimal_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  return string_char_class_method(args, argc, out, error, "str.isdecimal", StringCharClassKind::Digit);
+  return string_char_class_method(args, argc, out, error, "str.isdecimal", StringCharClassKind::Decimal);
 }
 
 bool string_isnumeric_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  return string_char_class_method(args, argc, out, error, "str.isnumeric", StringCharClassKind::Digit);
+  return string_char_class_method(args, argc, out, error, "str.isnumeric", StringCharClassKind::Numeric);
 }
 
 bool string_casefold_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -2948,7 +2967,23 @@ bool string_casefold_method(Runtime& runtime, const Value* args, uint32_t argc, 
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  return string_lower_body(args[0], out, error);
+  memory::X3StringView input;
+  if (!get_string_view_checked(args[0], "str.casefold target", input, error)) return false;
+  const std::string_view text = as_view(input);
+  std::string folded;
+  folded.reserve(text.size());
+  for (size_t offset = 0; offset < text.size();) {
+    const size_t width = utf8_codepoint_width(static_cast<unsigned char>(text[offset]));
+    if (width == 0 || offset + width > text.size()) {
+      folded.append(text.substr(offset));
+      break;
+    }
+    const uint32_t codepoint = decode_utf8_codepoint(text.substr(offset), width);
+    folded += unicode_data_case(codepoint, UnicodeCaseMapping::Fold);
+    offset += width;
+  }
+  out = Value::string(std::move(folded));
+  return true;
 }
 
 bool string_capitalize_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -2959,17 +2994,21 @@ bool string_capitalize_method(Runtime&, const Value* args, uint32_t argc, Value&
   if (!get_string_view_checked(args[0], "str.capitalize target", text, error)) {
     return false;
   }
-  auto view = as_view(text);
-  char* result = nullptr;
-  Value result_value = make_uninitialized_string_value(view.size(), result);
-  if (result == nullptr) {
-    return false;
+  const auto view = as_view(text);
+  if (view.empty()) { value_assign_fast(out, args[0]); return true; }
+  std::vector<uint32_t> characters;
+  for (size_t offset = 0; offset < view.size();) {
+    const size_t width = utf8_codepoint_width(static_cast<unsigned char>(view[offset]));
+    if (width == 0 || offset + width > view.size()) return false;
+    characters.push_back(decode_utf8_codepoint(view.substr(offset), width));
+    offset += width;
   }
-  for (size_t i = 0; i < view.size(); ++i) {
-    const auto ch = static_cast<unsigned char>(view[i]);
-    result[i] = static_cast<char>(i == 0 ? std::toupper(ch) : std::tolower(ch));
+  std::string result = unicode_data_case(characters[0], UnicodeCaseMapping::Title);
+  for (size_t index = 1; index < characters.size(); ++index) {
+    result += unicode_lower_at(characters, index);
   }
-  return publish_string_result(out, result_value);
+  out = Value::string(std::move(result));
+  return true;
 }
 
 bool string_swapcase_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -2980,17 +3019,25 @@ bool string_swapcase_method(Runtime&, const Value* args, uint32_t argc, Value& o
   if (!get_string_view_checked(args[0], "str.swapcase target", text, error)) {
     return false;
   }
-  auto view = as_view(text);
-  char* result = nullptr;
-  Value result_value = make_uninitialized_string_value(view.size(), result);
-  if (result == nullptr) {
-    return false;
+  const auto view = as_view(text);
+  std::vector<uint32_t> characters;
+  for (size_t offset = 0; offset < view.size();) {
+    const size_t width = utf8_codepoint_width(static_cast<unsigned char>(view[offset]));
+    if (width == 0 || offset + width > view.size()) return false;
+    characters.push_back(decode_utf8_codepoint(view.substr(offset), width));
+    offset += width;
   }
-  for (size_t i = 0; i < view.size(); ++i) {
-    const auto ch = static_cast<unsigned char>(view[i]);
-    result[i] = static_cast<char>(std::islower(ch) ? std::toupper(ch) : std::tolower(ch));
+  std::string result;
+  result.reserve(view.size());
+  for (size_t index = 0; index < characters.size(); ++index) {
+    const uint32_t cp = characters[index];
+    const uint16_t flags = unicode_data_record(cp).flags;
+    if (flags & kUnicodeLower) result += unicode_data_case(cp, UnicodeCaseMapping::Upper);
+    else if (flags & (kUnicodeUpper | kUnicodeTitle)) result += unicode_lower_at(characters, index);
+    else result += unicode_data_case(cp, UnicodeCaseMapping::Lower);
   }
-  return publish_string_result(out, result_value);
+  out = Value::string(std::move(result));
+  return true;
 }
 
 bool string_title_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -3001,19 +3048,26 @@ bool string_title_method(Runtime&, const Value* args, uint32_t argc, Value& out,
   if (!get_string_view_checked(args[0], "str.title target", text, error)) {
     return false;
   }
-  auto view = as_view(text);
-  char* result = nullptr;
-  Value result_value = make_uninitialized_string_value(view.size(), result);
-  if (result == nullptr) {
-    return false;
+  const auto view = as_view(text);
+  std::vector<uint32_t> characters;
+  for (size_t offset = 0; offset < view.size();) {
+    const size_t width = utf8_codepoint_width(static_cast<unsigned char>(view[offset]));
+    if (width == 0 || offset + width > view.size()) return false;
+    characters.push_back(decode_utf8_codepoint(view.substr(offset), width));
+    offset += width;
   }
-  bool new_word = true;
-  for (size_t i = 0; i < view.size(); ++i) {
-    const auto ch = static_cast<unsigned char>(view[i]);
-    result[i] = static_cast<char>(new_word ? std::toupper(ch) : std::tolower(ch));
-    new_word = std::isalnum(ch) == 0;
+  std::string result;
+  result.reserve(view.size());
+  bool previous_cased = false;
+  for (size_t index = 0; index < characters.size(); ++index) {
+    const uint32_t cp = characters[index];
+    const uint16_t flags = unicode_data_record(cp).flags;
+    result += previous_cased ? unicode_lower_at(characters, index) :
+        unicode_data_case(cp, UnicodeCaseMapping::Title);
+    previous_cased = (flags & kUnicodeCased) != 0;
   }
-  return publish_string_result(out, result_value);
+  out = Value::string(std::move(result));
+  return true;
 }
 
 bool string_istitle_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -3024,25 +3078,27 @@ bool string_istitle_method(Runtime&, const Value* args, uint32_t argc, Value& ou
   if (!get_string_view_checked(args[0], "str.istitle target", text, error)) {
     return false;
   }
-  bool new_word = true;
+  bool previous_cased = false;
   bool seen_cased = false;
   bool ok = true;
-  for (unsigned char ch : as_view(text)) {
-    if (std::isalpha(ch)) {
-      seen_cased = true;
-      if (new_word) {
-        if (!std::isupper(ch)) {
-          ok = false;
-          break;
-        }
-      } else if (!std::islower(ch)) {
-        ok = false;
-        break;
-      }
-      new_word = false;
+  const auto view = as_view(text);
+  for (size_t offset = 0; offset < view.size();) {
+    const size_t width = utf8_codepoint_width(static_cast<unsigned char>(view[offset]));
+    if (width == 0 || offset + width > view.size()) { ok = false; break; }
+    const uint16_t flags = unicode_data_record(decode_utf8_codepoint(view.substr(offset), width)).flags;
+    if (flags & kUnicodeUpper) {
+      if (previous_cased) { ok = false; break; }
+      previous_cased = seen_cased = true;
+    } else if (flags & kUnicodeTitle) {
+      if (previous_cased) { ok = false; break; }
+      previous_cased = seen_cased = true;
+    } else if (flags & kUnicodeLower) {
+      if (!previous_cased) { ok = false; break; }
+      previous_cased = seen_cased = true;
     } else {
-      new_word = std::isalnum(ch) == 0;
+      previous_cased = false;
     }
+    offset += width;
   }
   value_set_bool(out, ok && seen_cased);
   return true;
@@ -3054,7 +3110,7 @@ bool parse_fill_width_args(
     const char* name,
     memory::X3StringView& text,
     int64_t& width,
-    char& fill,
+    std::string& fill,
     std::string& error) {
   if (argc < 2 || argc > 3) {
     error = std::string(name) + " expected width and optional fillchar";
@@ -3068,29 +3124,33 @@ bool parse_fill_width_args(
     return false;
   }
   width = args[1].as.i64;
-  fill = ' ';
+  fill = " ";
   if (argc == 3) {
     memory::X3StringView fill_text;
     if (!get_string_view_checked(args[2], "fillchar", fill_text, error)) {
       return false;
     }
-    if (fill_text.size != 1) {
+    if (utf8_codepoint_count(as_view(fill_text)) != 1) {
       error = "fill character must be exactly one character long";
       return false;
     }
-    fill = fill_text.data[0];
+    fill.assign(fill_text.data, fill_text.size);
   }
   return true;
 }
 
-bool make_padded_string(std::string_view text, int64_t width, char fill, size_t left_pad, Value& out) {
-  if (width <= static_cast<int64_t>(text.size())) {
+bool make_padded_string(std::string_view text, int64_t width, std::string_view fill, size_t left_pad, Value& out) {
+  const size_t text_length = utf8_codepoint_count(text);
+  if (width <= static_cast<int64_t>(text_length)) {
     out = Value::string_view(text);
     return true;
   }
-  const size_t total = static_cast<size_t>(width);
-  std::string result(total, fill);
-  std::memcpy(result.data() + left_pad, text.data(), text.size());
+  const size_t padding = static_cast<size_t>(width) - text_length;
+  std::string result;
+  result.reserve(text.size() + padding * fill.size());
+  for (size_t i = 0; i < left_pad; ++i) result.append(fill);
+  result.append(text);
+  for (size_t i = left_pad; i < padding; ++i) result.append(fill);
   out = Value::string(std::move(result));
   return true;
 }
@@ -3098,19 +3158,21 @@ bool make_padded_string(std::string_view text, int64_t width, char fill, size_t 
 bool string_center_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   memory::X3StringView text;
   int64_t width = 0;
-  char fill = ' ';
+  std::string fill;
   if (!parse_fill_width_args(args, argc, "str.center", text, width, fill, error)) {
     return false;
   }
   auto view = as_view(text);
-  const size_t pad = width > static_cast<int64_t>(view.size()) ? static_cast<size_t>(width - view.size()) : 0;
-  return make_padded_string(view, width, fill, pad / 2, out);
+  const size_t length = utf8_codepoint_count(view);
+  const size_t pad = width > static_cast<int64_t>(length) ? static_cast<size_t>(width - length) : 0;
+  const size_t left = pad / 2 + ((pad & static_cast<size_t>(width) & 1u) != 0 ? 1u : 0u);
+  return make_padded_string(view, width, fill, left, out);
 }
 
 bool string_ljust_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   memory::X3StringView text;
   int64_t width = 0;
-  char fill = ' ';
+  std::string fill;
   if (!parse_fill_width_args(args, argc, "str.ljust", text, width, fill, error)) {
     return false;
   }
@@ -3120,12 +3182,13 @@ bool string_ljust_method(Runtime&, const Value* args, uint32_t argc, Value& out,
 bool string_rjust_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   memory::X3StringView text;
   int64_t width = 0;
-  char fill = ' ';
+  std::string fill;
   if (!parse_fill_width_args(args, argc, "str.rjust", text, width, fill, error)) {
     return false;
   }
   auto view = as_view(text);
-  const size_t pad = width > static_cast<int64_t>(view.size()) ? static_cast<size_t>(width - view.size()) : 0;
+  const size_t length = utf8_codepoint_count(view);
+  const size_t pad = width > static_cast<int64_t>(length) ? static_cast<size_t>(width - length) : 0;
   return make_padded_string(view, width, fill, pad, out);
 }
 
@@ -3143,12 +3206,13 @@ bool string_zfill_method(Runtime&, const Value* args, uint32_t argc, Value& out,
   }
   auto view = as_view(text);
   const int64_t width = args[1].as.i64;
-  if (width <= static_cast<int64_t>(view.size())) {
+  const size_t text_length = utf8_codepoint_count(view);
+  if (width <= static_cast<int64_t>(text_length)) {
     out = Value::string_view(view);
     return true;
   }
-  const size_t total = static_cast<size_t>(width);
-  std::string result(total, '0');
+  const size_t padding = static_cast<size_t>(width) - text_length;
+  std::string result(view.size() + padding, '0');
   size_t source = 0;
   size_t dest = 0;
   if (!view.empty() && (view[0] == '+' || view[0] == '-')) {
@@ -3156,7 +3220,7 @@ bool string_zfill_method(Runtime&, const Value* args, uint32_t argc, Value& out,
     source = 1;
     dest = 1;
   }
-  std::memcpy(result.data() + (total - (view.size() - source)), view.data() + source, view.size() - source);
+  std::memcpy(result.data() + source + padding, view.data() + source, view.size() - source);
   (void)dest;
   out = Value::string(std::move(result));
   return true;
@@ -3344,7 +3408,7 @@ bool string_expandtabs_method(Runtime&, const Value* args, uint32_t argc, Value&
 
 } // namespace
 
-static constexpr BuiltinMethodSpec kStringMethods[] = {
+static BuiltinMethodSpec kStringMethods[] = {
     {"__eq__", "str.__eq__", string_eq_method},
     {"__getitem__", "str.__getitem__", string_getitem_method},
     {"__repr__", "str.__repr__", string_repr_method},
@@ -3357,7 +3421,8 @@ static constexpr BuiltinMethodSpec kStringMethods[] = {
     {"endswith", "str.endswith", string_endswith_method, string_endswith_fast_method},
     {"expandtabs", "str.expandtabs", string_expandtabs_method},
     {"find", "str.find", string_find_method, string_find_fast_method},
-    {"format", "str.format", string_format_method, nullptr, false, string_format_method_kw},
+    {"format", "str.format", string_format_method,
+     builtin_variadic_fast_adapter<string_format_method, 8>, true, string_format_method_kw},
     {"format_map", "str.format_map", string_format_map_method},
     {"index", "str.index", string_index_method},
     {"isalnum", "str.isalnum", string_isalnum_method},
@@ -3368,6 +3433,7 @@ static constexpr BuiltinMethodSpec kStringMethods[] = {
     {"isidentifier", "str.isidentifier", string_isidentifier_method},
     {"islower", "str.islower", string_islower_method},
     {"isnumeric", "str.isnumeric", string_isnumeric_method},
+    {"isprintable", "str.isprintable", string_isprintable_method},
     {"isspace", "str.isspace", string_isspace_method},
     {"istitle", "str.istitle", string_istitle_method},
     {"isupper", "str.isupper", string_isupper_method},

@@ -32,6 +32,7 @@ struct ModuleObject {
   std::unordered_map<std::string, uint32_t> name_to_slot;
   std::vector<Value> slots;
   std::vector<std::pair<Value, Value>> extra_globals;
+  Value namespace_dict;
 };
 
 XLANG3_HOT_INLINE ModuleObject* value_as_module(const Value& value) {
@@ -46,6 +47,9 @@ std::string module_to_string(const Value& value);
 
 bool module_get_attr(const Value& object, const std::string& name, Value& out, std::string& error);
 bool module_set_attr(Value& object, const std::string& name, const Value& value, std::string& error);
+bool module_delete_attr(Value& object, const std::string& name, std::string& error);
+Value module_namespace_dict(const Value& object);
+void module_sync_namespace_dict(ModuleObject& module);
 bool module_find_attr_slot(const Value& object, const std::string& name, uint32_t& slot, std::string& error);
 bool module_ensure_attr_slots(Value& object, const std::vector<std::string>& names, std::string& error);
 

@@ -657,36 +657,53 @@ Value make_dict_fromkeys_classmethod() {
   return Value::class_method(std::move(function));
 }
 
-static constexpr BuiltinMethodSpec kDictMethods[] = {
-    {"__contains__", "dict.__contains__", dict_contains_method},
+static BuiltinMethodSpec kDictMethods[] = {
+    {"__contains__", "dict.__contains__", dict_contains_method,
+     builtin_method_fast_adapter<dict_contains_method, 2>},
     {"__delitem__", "dict.__delitem__", dict_delitem_method},
     {"__eq__", "dict.__eq__", dict_eq_method},
-    {"__getitem__", "dict.__getitem__", dict_getitem_method},
+    {"__getitem__", "dict.__getitem__", dict_getitem_method,
+     builtin_method_fast_adapter<dict_getitem_method, 2>},
     {"__iter__", "dict.__iter__", dict_iter_method},
-    {"__len__", "dict.__len__", dict_len_method},
-    {"__setitem__", "dict.__setitem__", dict_setitem_method},
+    {"__len__", "dict.__len__", dict_len_method,
+     builtin_method_fast_adapter<dict_len_method, 1>},
+    {"__setitem__", "dict.__setitem__", dict_setitem_method,
+     builtin_method_fast_adapter<dict_setitem_method, 3>},
     {"clear", "dict.clear", dict_clear_method},
     {"copy", "dict.copy", dict_copy_method},
-    {"get", "dict.get", dict_get_method_impl},
-    {"items", "dict.items", dict_items_method},
-    {"keys", "dict.keys", dict_keys_method},
+    {"get", "dict.get", dict_get_method_impl,
+     builtin_method_fast_adapter<dict_get_method_impl, 3>},
+    {"items", "dict.items", dict_items_method,
+     builtin_method_fast_adapter<dict_items_method, 1>},
+    {"keys", "dict.keys", dict_keys_method,
+     builtin_method_fast_adapter<dict_keys_method, 1>},
     {"pop", "dict.pop", dict_pop_method},
     {"popitem", "dict.popitem", dict_popitem_method},
-    {"setdefault", "dict.setdefault", dict_setdefault_method},
-    {"update", "dict.update", dict_update_method, nullptr, false, dict_update_method_kw},
-    {"values", "dict.values", dict_values_method},
+    {"setdefault", "dict.setdefault", dict_setdefault_method,
+     builtin_method_fast_adapter<dict_setdefault_method, 3>},
+    {"update", "dict.update", dict_update_method,
+     builtin_method_fast_adapter<dict_update_method, 2>, false, dict_update_method_kw},
+    {"values", "dict.values", dict_values_method,
+     builtin_method_fast_adapter<dict_values_method, 1>},
 };
 
-static constexpr BuiltinMethodSpec kMappingProxyMethods[] = {
-    {"__contains__", "mappingproxy.__contains__", dict_contains_method},
-    {"__getitem__", "mappingproxy.__getitem__", dict_getitem_method},
+static BuiltinMethodSpec kMappingProxyMethods[] = {
+    {"__contains__", "mappingproxy.__contains__", dict_contains_method,
+     builtin_method_fast_adapter<dict_contains_method, 2>},
+    {"__getitem__", "mappingproxy.__getitem__", dict_getitem_method,
+     builtin_method_fast_adapter<dict_getitem_method, 2>},
     {"__iter__", "mappingproxy.__iter__", dict_iter_method},
-    {"__len__", "mappingproxy.__len__", dict_len_method},
+    {"__len__", "mappingproxy.__len__", dict_len_method,
+     builtin_method_fast_adapter<dict_len_method, 1>},
     {"copy", "mappingproxy.copy", dict_copy_method},
-    {"get", "mappingproxy.get", dict_get_method_impl},
-    {"items", "mappingproxy.items", dict_items_method},
-    {"keys", "mappingproxy.keys", dict_keys_method},
-    {"values", "mappingproxy.values", dict_values_method},
+    {"get", "mappingproxy.get", dict_get_method_impl,
+     builtin_method_fast_adapter<dict_get_method_impl, 3>},
+    {"items", "mappingproxy.items", dict_items_method,
+     builtin_method_fast_adapter<dict_items_method, 1>},
+    {"keys", "mappingproxy.keys", dict_keys_method,
+     builtin_method_fast_adapter<dict_keys_method, 1>},
+    {"values", "mappingproxy.values", dict_values_method,
+     builtin_method_fast_adapter<dict_values_method, 1>},
 };
 
 bool dict_get_method(const Value& object, const std::string& name, Value& out) {
@@ -707,7 +724,7 @@ bool dict_install_class_methods(Runtime& runtime, ClassObject& dict_class) {
             method.callback,
             nullptr,
             nullptr,
-            nullptr,
+            method.fast_callback,
             method.fast_releases_vm_lock,
             method.keyword_callback);
   }

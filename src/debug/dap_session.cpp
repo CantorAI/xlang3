@@ -1126,6 +1126,7 @@ std::string DapSession::variable_ref_body(int64_t variables_reference) const {
     variables.push_back(value_to_dap_variable("__self__", method->self, register_variable_ref(method->self)));
     variables.push_back(value_to_dap_variable("__func__", method->function, register_variable_ref(method->function)));
   } else if (auto* frame = value_as_frame(value)) {
+    frame_materialize_locals(*frame);
     variables.push_back(value_to_dap_variable("f_locals", frame->locals, register_variable_ref(frame->locals)));
     variables.push_back(value_to_dap_variable("f_globals", frame->globals_module, register_variable_ref(frame->globals_module)));
     variables.push_back(value_to_dap_variable("f_back", frame->back, register_variable_ref(frame->back)));

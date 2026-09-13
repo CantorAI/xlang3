@@ -1,619 +1,199 @@
 /*
 Copyright (C) 2026 CantorAI Inc. and The XLang Foundation
 Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
 */
 #include "xlang3/builtins.h"
 
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
+#include "xlang3/unicode_data.h"
 #include "xlang3/value.h"
 
-#include <algorithm>
-#include <cctype>
 #include <cstdint>
 #include <string>
 #include <string_view>
 
-#if defined(_WIN32)
-#define NOMINMAX
-#include <windows.h>
-#endif
-
 namespace xlang3 {
-
 namespace {
 
-struct UnicodeRecord {
-  uint32_t codepoint;
-  const char* name;
-  const char* category;
-  const char* bidirectional;
-  int combining;
-  const char* east_asian_width;
-  int mirrored;
-  int decimal;
-  int digit;
-  double numeric;
-};
-
-constexpr int kNoNumber = -1;
-constexpr double kNoNumeric = -1.0;
-
-constexpr UnicodeRecord kUnicodeRecords[] = {
-    {0x000a, nullptr, "Cc", "B", 0, "N", 0, kNoNumber, kNoNumber, kNoNumeric},
-    {0x0020, "SPACE", "Zs", "WS", 0, "Na", 0, kNoNumber, kNoNumber, kNoNumeric},
-    {0x0030, "DIGIT ZERO", "Nd", "EN", 0, "Na", 0, 0, 0, 0.0},
-    {0x0031, "DIGIT ONE", "Nd", "EN", 0, "Na", 0, 1, 1, 1.0},
-    {0x0032, "DIGIT TWO", "Nd", "EN", 0, "Na", 0, 2, 2, 2.0},
-    {0x0033, "DIGIT THREE", "Nd", "EN", 0, "Na", 0, 3, 3, 3.0},
-    {0x0034, "DIGIT FOUR", "Nd", "EN", 0, "Na", 0, 4, 4, 4.0},
-    {0x0035, "DIGIT FIVE", "Nd", "EN", 0, "Na", 0, 5, 5, 5.0},
-    {0x0036, "DIGIT SIX", "Nd", "EN", 0, "Na", 0, 6, 6, 6.0},
-    {0x0037, "DIGIT SEVEN", "Nd", "EN", 0, "Na", 0, 7, 7, 7.0},
-    {0x0038, "DIGIT EIGHT", "Nd", "EN", 0, "Na", 0, 8, 8, 8.0},
-    {0x0039, "DIGIT NINE", "Nd", "EN", 0, "Na", 0, 9, 9, 9.0},
-    {0x003c, "LESS-THAN SIGN", "Sm", "ON", 0, "Na", 1, kNoNumber, kNoNumber, kNoNumeric},
-    {0x003e, "GREATER-THAN SIGN", "Sm", "ON", 0, "Na", 1, kNoNumber, kNoNumber, kNoNumeric},
-    {0x0041, "LATIN CAPITAL LETTER A", "Lu", "L", 0, "Na", 0, kNoNumber, kNoNumber, kNoNumeric},
-    {0x0061, "LATIN SMALL LETTER A", "Ll", "L", 0, "Na", 0, kNoNumber, kNoNumber, kNoNumeric},
-    {0x00a0, "NO-BREAK SPACE", "Zs", "CS", 0, "N", 0, kNoNumber, kNoNumber, kNoNumeric},
-    {0x00b2, "SUPERSCRIPT TWO", "No", "EN", 0, "A", 0, kNoNumber, 2, 2.0},
-    {0x00be, "VULGAR FRACTION THREE QUARTERS", "No", "ON", 0, "A", 0, kNoNumber, kNoNumber, 0.75},
-    {0x00c4, "LATIN CAPITAL LETTER A WITH DIAERESIS", "Lu", "L", 0, "N", 0, kNoNumber, kNoNumber, kNoNumeric},
-    {0x00c5, "LATIN CAPITAL LETTER A WITH RING ABOVE", "Lu", "L", 0, "N", 0, kNoNumber, kNoNumber, kNoNumeric},
-    {0x00e9, "LATIN SMALL LETTER E WITH ACUTE", "Ll", "L", 0, "A", 0, kNoNumber, kNoNumber, kNoNumeric},
-    {0x0301, "COMBINING ACUTE ACCENT", "Mn", "NSM", 230, "A", 0, kNoNumber, kNoNumber, kNoNumeric},
-    {0x030a, "COMBINING RING ABOVE", "Mn", "NSM", 230, "A", 0, kNoNumber, kNoNumber, kNoNumeric},
-    {0x202f, "NARROW NO-BREAK SPACE", "Zs", "CS", 0, "N", 0, kNoNumber, kNoNumber, kNoNumeric},
-    {0x2044, "FRACTION SLASH", "Sm", "CS", 0, "N", 0, kNoNumber, kNoNumber, kNoNumeric},
-    {0x212b, "ANGSTROM SIGN", "Lu", "L", 0, "A", 0, kNoNumber, kNoNumber, kNoNumeric},
-    {0x2163, "ROMAN NUMERAL FOUR", "Nl", "L", 0, "A", 0, kNoNumber, kNoNumber, 4.0},
-    {0x4e2d, "CJK UNIFIED IDEOGRAPH-4E2D", "Lo", "L", 0, "W", 0, kNoNumber, kNoNumber, kNoNumeric},
-    {0xfbf9, "ARABIC LIGATURE UIGHUR KIRGHIZ YEH WITH HAMZA ABOVE WITH ALEF MAKSURA ISOLATED FORM", "Lo", "AL", 0, "N", 0, kNoNumber, kNoNumber, kNoNumeric},
-    {0x1f40d, "SNAKE", "So", "ON", 0, "W", 0, kNoNumber, kNoNumber, kNoNumeric},
-    {0x1f642, "SLIGHTLY SMILING FACE", "So", "ON", 0, "W", 0, kNoNumber, kNoNumber, kNoNumeric},
-};
-
-bool decode_first_utf8(std::string_view text, uint32_t& codepoint, size_t& width) {
-  if (text.empty()) {
-    return false;
+bool decode_single(std::string_view text, uint32_t& codepoint) {
+  if (text.empty()) return false;
+  const size_t width = utf8_codepoint_width(static_cast<unsigned char>(text[0]));
+  if (width == 0 || width != text.size()) return false;
+  if (width == 1) { codepoint = static_cast<unsigned char>(text[0]); return true; }
+  codepoint = static_cast<unsigned char>(text[0]) & ((1u << (7 - width)) - 1u);
+  for (size_t index = 1; index < width; ++index) {
+    const unsigned char byte = static_cast<unsigned char>(text[index]);
+    if ((byte & 0xc0u) != 0x80u) return false;
+    codepoint = (codepoint << 6) | (byte & 0x3fu);
   }
-  const unsigned char lead = static_cast<unsigned char>(text[0]);
-  width = utf8_codepoint_width(lead);
-  if (width == 0 || width > text.size()) {
-    return false;
-  }
-  if (width == 1) {
-    codepoint = lead;
-    return true;
-  }
-  codepoint = lead & ((1u << (7 - width)) - 1u);
-  for (size_t i = 1; i < width; ++i) {
-    const unsigned char ch = static_cast<unsigned char>(text[i]);
-    if ((ch & 0xc0u) != 0x80u) {
-      return false;
-    }
-    codepoint = (codepoint << 6) | (ch & 0x3fu);
-  }
-  return true;
+  return codepoint <= 0x10ffff;
 }
 
-bool append_utf8(uint32_t codepoint, std::string& out) {
-  if (codepoint <= 0x7f) {
-    out.push_back(static_cast<char>(codepoint));
-  } else if (codepoint <= 0x7ff) {
-    out.push_back(static_cast<char>(0xc0 | (codepoint >> 6)));
-    out.push_back(static_cast<char>(0x80 | (codepoint & 0x3f)));
-  } else if (codepoint <= 0xffff) {
-    out.push_back(static_cast<char>(0xe0 | (codepoint >> 12)));
-    out.push_back(static_cast<char>(0x80 | ((codepoint >> 6) & 0x3f)));
-    out.push_back(static_cast<char>(0x80 | (codepoint & 0x3f)));
-  } else if (codepoint <= 0x10ffff) {
-    out.push_back(static_cast<char>(0xf0 | (codepoint >> 18)));
-    out.push_back(static_cast<char>(0x80 | ((codepoint >> 12) & 0x3f)));
-    out.push_back(static_cast<char>(0x80 | ((codepoint >> 6) & 0x3f)));
-    out.push_back(static_cast<char>(0x80 | (codepoint & 0x3f)));
-  } else {
-    return false;
-  }
-  return true;
-}
-
-const UnicodeRecord* find_record(uint32_t codepoint) {
-  for (const auto& record : kUnicodeRecords) {
-    if (record.codepoint == codepoint) {
-      return &record;
-    }
-  }
-  return nullptr;
-}
-
-const UnicodeRecord* find_record_by_name(std::string name) {
-  uint32_t codepoint = 0;
-  return unicodedata_lookup_codepoint(name, codepoint) ? find_record(codepoint) : nullptr;
-}
-
-std::string decomposition_mapping(uint32_t codepoint) {
-  switch (codepoint) {
-    case 0x00b2:
-      return "<super> 0032";
-    case 0x00be:
-      return "<fraction> 0033 2044 0034";
-    case 0x00c5:
-      return "0041 030A";
-    case 0x00e9:
-      return "0065 0301";
-    case 0x212b:
-      return "00C5";
-    case 0x2163:
-      return "<compat> 0049 0056";
-    default:
-      return "";
-  }
-}
-
-bool get_single_codepoint(Runtime& runtime, const Value& value, const char* function_name, uint32_t& codepoint, std::string& error) {
+bool get_character(Runtime& runtime, const Value& value, const char* function,
+                   uint32_t& codepoint, std::string& error) {
   auto* string = value_as_string(value);
   if (string == nullptr) {
-    error = std::string(function_name) + "() argument must be a unicode character";
+    error = std::string(function) + "() argument must be a unicode character";
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  const std::string_view text = string_object_view(*string);
-  size_t width = 0;
-  if (!decode_first_utf8(text, codepoint, width) || width != text.size()) {
-    error = std::string(function_name) + "() argument must be a unicode character, not str";
+  if (!decode_single(string_object_view(*string), codepoint)) {
+    error = std::string(function) + "() argument must be a unicode character, not str";
     runtime.raise_class_error("TypeError", error);
     return false;
   }
   return true;
 }
 
-std::string canonical_form(std::string form) {
-  std::transform(form.begin(), form.end(), form.begin(), [](unsigned char ch) {
-    return static_cast<char>(std::toupper(ch));
-  });
-  return form;
+bool check_count(Runtime& runtime, uint32_t argc, uint32_t low, uint32_t high,
+                 const char* function, std::string& error) {
+  if (argc >= low && argc <= high) return true;
+  error = std::string("unicodedata.") + function + "() expected " +
+      (low == high ? std::to_string(low) : "one or two") + " argument(s)";
+  runtime.raise_class_error("TypeError", error);
+  return false;
 }
 
-std::string decompose_canonical(std::string_view text) {
-  std::string out;
-  for (size_t i = 0; i < text.size();) {
-    uint32_t codepoint = 0;
-    size_t width = 0;
-    if (!decode_first_utf8(text.substr(i), codepoint, width)) {
-      out.append(text.substr(i));
-      break;
-    }
-    if (codepoint == 0x00e9) {
-      out.push_back('e');
-      append_utf8(0x0301, out);
-    } else if (codepoint == 0x00c5 || codepoint == 0x212b) {
-      out.push_back('A');
-      append_utf8(0x030a, out);
-    } else {
-      out.append(text.substr(i, width));
-    }
-    i += width;
-  }
-  return out;
-}
-
-std::string compose_canonical(std::string_view text) {
-  std::string out;
-  for (size_t i = 0; i < text.size();) {
-    uint32_t first = 0;
-    size_t first_width = 0;
-    if (!decode_first_utf8(text.substr(i), first, first_width)) {
-      out.append(text.substr(i));
-      break;
-    }
-    uint32_t second = 0;
-    size_t second_width = 0;
-    const bool has_second = i + first_width < text.size() &&
-                            decode_first_utf8(text.substr(i + first_width), second, second_width);
-    if (first == 'e' && has_second && second == 0x0301) {
-      append_utf8(0x00e9, out);
-      i += first_width + second_width;
-      continue;
-    }
-    if (first == 'A' && has_second && second == 0x030a) {
-      append_utf8(0x00c5, out);
-      i += first_width + second_width;
-      continue;
-    }
-    out.append(text.substr(i, first_width));
-    i += first_width;
-  }
-  return out;
-}
-
-std::string normalize_text(const std::string& form, std::string_view text) {
-#if defined(_WIN32)
-  if (!text.empty()) {
-    const int wide_size = MultiByteToWideChar(
-        CP_UTF8, MB_ERR_INVALID_CHARS, text.data(), static_cast<int>(text.size()), nullptr, 0);
-    if (wide_size > 0) {
-      std::wstring wide(static_cast<size_t>(wide_size), L'\0');
-      if (MultiByteToWideChar(
-              CP_UTF8, MB_ERR_INVALID_CHARS, text.data(), static_cast<int>(text.size()),
-              wide.data(), wide_size) == wide_size) {
-        const NORM_FORM norm = form == "NFC" ? NormalizationC :
-            form == "NFD" ? NormalizationD :
-            form == "NFKC" ? NormalizationKC : NormalizationKD;
-        const int normalized_size = NormalizeString(
-            norm, wide.data(), wide_size, nullptr, 0);
-        if (normalized_size > 0) {
-          std::wstring normalized(static_cast<size_t>(normalized_size), L'\0');
-          const int written = NormalizeString(
-              norm, wide.data(), wide_size, normalized.data(), normalized_size);
-          if (written > 0) {
-            normalized.resize(static_cast<size_t>(written));
-            const int utf8_size = WideCharToMultiByte(
-                CP_UTF8, WC_ERR_INVALID_CHARS, normalized.data(), written,
-                nullptr, 0, nullptr, nullptr);
-            if (utf8_size > 0) {
-              std::string utf8(static_cast<size_t>(utf8_size), '\0');
-              if (WideCharToMultiByte(
-                      CP_UTF8, WC_ERR_INVALID_CHARS, normalized.data(), written,
-                      utf8.data(), utf8_size, nullptr, nullptr) == utf8_size) {
-                return utf8;
-              }
-            }
-          }
-        }
-      }
-    }
-  } else {
-    return {};
-  }
-#endif
-  if (form == "NFD") {
-    return decompose_canonical(text);
-  }
-  if (form == "NFC") {
-    return compose_canonical(decompose_canonical(text));
-  }
-  if (form == "NFKD") {
-    std::string decomposed = decompose_canonical(text);
-    std::string out;
-    for (size_t i = 0; i < decomposed.size();) {
-      uint32_t codepoint = 0;
-      size_t width = 0;
-      if (!decode_first_utf8(std::string_view(decomposed).substr(i), codepoint, width)) {
-        out.append(std::string_view(decomposed).substr(i));
-        break;
-      }
-      if (codepoint == 0x00b2) {
-        out.push_back('2');
-      } else if (codepoint == 0x00be) {
-        out.push_back('3');
-        append_utf8(0x2044, out);
-        out.push_back('4');
-      } else if (codepoint == 0x2163) {
-        out.append("IV");
-      } else {
-        out.append(std::string_view(decomposed).substr(i, width));
-      }
-      i += width;
-    }
-    return out;
-  }
-  if (form == "NFKC") {
-    return compose_canonical(normalize_text("NFKD", text));
-  }
-  return std::string(text);
-}
-
-bool get_string_arg(Runtime& runtime, const Value& value, const char* name, std::string& out, std::string& error) {
-  auto* string = value_as_string(value);
-  if (string == nullptr) {
-    error = std::string(name) + " must be str";
+template <bool Legacy>
+bool lookup(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
+            std::string& error, void*) {
+  if (!check_count(runtime, argc, 1, 1, "lookup", error)) return false;
+  auto* name = value_as_string(args[0]);
+  if (name == nullptr) {
+    error = "unicodedata.lookup() argument must be str";
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  out = string_object_to_string(*string);
-  return true;
-}
-
-bool unicode_lookup(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 1) {
-    error = "unicodedata.lookup() expected name";
-    runtime.raise_class_error("TypeError", error);
-    return false;
-  }
-  std::string name;
-  if (!get_string_arg(runtime, args[0], "unicodedata.lookup() name", name, error)) {
-    return false;
-  }
-  const UnicodeRecord* record = find_record_by_name(name);
-  if (record == nullptr) {
-    error = "undefined character name '" + name + "'";
+  std::string value;
+  const std::string requested = string_object_to_string(*name);
+  if (!(Legacy ? unicode_legacy_data_lookup(requested, value) : unicode_data_lookup(requested, value))) {
+    error = "undefined character name '" + requested + "'";
     runtime.raise_class_error("KeyError", error);
     return false;
   }
-  std::string text;
-  append_utf8(record->codepoint, text);
-  out = Value::string(std::move(text));
+  out = Value::string(std::move(value));
   return true;
 }
 
-bool unicode_name(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc < 1 || argc > 2) {
-    error = "unicodedata.name() expected character and optional default";
-    runtime.raise_class_error("TypeError", error);
-    return false;
-  }
+template <bool Legacy>
+bool name(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
+          std::string& error, void*) {
+  if (!check_count(runtime, argc, 1, 2, "name", error)) return false;
   uint32_t codepoint = 0;
-  if (!get_single_codepoint(runtime, args[0], "name", codepoint, error)) {
-    return false;
-  }
-  const UnicodeRecord* record = find_record(codepoint);
-  if (record != nullptr && record->name != nullptr) {
-    out = Value::string(record->name);
-    return true;
-  }
-  if (argc == 2) {
-    out = args[1];
-    return true;
-  }
+  if (!get_character(runtime, args[0], "name", codepoint, error)) return false;
+  std::string result = Legacy ? unicode_legacy_data_name(codepoint) : unicode_data_name(codepoint);
+  if (!result.empty()) { out = Value::string(std::move(result)); return true; }
+  if (argc == 2) { out = args[1]; return true; }
   error = "no such name";
   runtime.raise_class_error("ValueError", error);
   return false;
 }
 
-bool unicode_property_string(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, const char* function_name, const char* UnicodeRecord::*field, const char* default_value) {
-  if (argc != 1) {
-    error = std::string("unicodedata.") + function_name + "() expected character";
-    runtime.raise_class_error("TypeError", error);
-    return false;
-  }
+enum class StringProperty { Category, Bidirectional, EastAsianWidth };
+template <bool Legacy>
+bool string_property(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
+                     std::string& error, const char* function, StringProperty property) {
+  if (!check_count(runtime, argc, 1, 1, function, error)) return false;
   uint32_t codepoint = 0;
-  if (!get_single_codepoint(runtime, args[0], function_name, codepoint, error)) {
-    return false;
-  }
-  const UnicodeRecord* record = find_record(codepoint);
-  out = Value::string(record == nullptr ? default_value : record->*field);
+  if (!get_character(runtime, args[0], function, codepoint, error)) return false;
+  const auto record = Legacy ? unicode_legacy_data_record(codepoint) : unicode_data_record(codepoint);
+  const std::string_view result = property == StringProperty::Category ? record.category :
+      property == StringProperty::Bidirectional ? record.bidirectional : record.east_asian_width;
+  out = Value::string(std::string(result));
   return true;
 }
 
-bool unicode_category(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 1) {
-    error = "unicodedata.category() expected character";
-    runtime.raise_class_error("TypeError", error);
-    return false;
-  }
-  uint32_t codepoint = 0;
-  if (!get_single_codepoint(runtime, args[0], "category", codepoint, error)) return false;
-  if (const UnicodeRecord* record = find_record(codepoint)) {
-    out = Value::string(record->category);
-  } else if (codepoint < 0x20 || (codepoint >= 0x7f && codepoint <= 0x9f)) {
-    out = Value::string("Cc");
-  } else if (codepoint == 0x1680 || (codepoint >= 0x2000 && codepoint <= 0x200a) ||
-             codepoint == 0x205f || codepoint == 0x3000) {
-    out = Value::string("Zs");
-  } else if ((codepoint >= 0xe000 && codepoint <= 0xf8ff) ||
-             (codepoint >= 0xf0000 && codepoint <= 0xffffd) ||
-             (codepoint >= 0x100000 && codepoint <= 0x10fffd)) {
-    out = Value::string("Co");
-  } else if (codepoint >= 0xd800 && codepoint <= 0xdfff) {
-    out = Value::string("Cs");
-  } else {
-    out = Value::string("Cn");
-  }
+template <bool L> bool category(Runtime& r,const Value* a,uint32_t n,Value& o,std::string& e,void*) { return string_property<L>(r,a,n,o,e,"category",StringProperty::Category); }
+template <bool L> bool bidirectional(Runtime& r,const Value* a,uint32_t n,Value& o,std::string& e,void*) { return string_property<L>(r,a,n,o,e,"bidirectional",StringProperty::Bidirectional); }
+template <bool L> bool east_asian_width(Runtime& r,const Value* a,uint32_t n,Value& o,std::string& e,void*) { return string_property<L>(r,a,n,o,e,"east_asian_width",StringProperty::EastAsianWidth); }
+
+template <bool Legacy> bool combining(Runtime& runtime,const Value* args,uint32_t argc,Value& out,std::string& error,void*) {
+  if (!check_count(runtime,argc,1,1,"combining",error)) return false;
+  uint32_t cp=0; if(!get_character(runtime,args[0],"combining",cp,error)) return false;
+  out=Value::int64((Legacy ? unicode_legacy_data_record(cp) : unicode_data_record(cp)).combining); return true;
+}
+template <bool Legacy> bool mirrored(Runtime& runtime,const Value* args,uint32_t argc,Value& out,std::string& error,void*) {
+  if (!check_count(runtime,argc,1,1,"mirrored",error)) return false;
+  uint32_t cp=0; if(!get_character(runtime,args[0],"mirrored",cp,error)) return false;
+  out=Value::int64((Legacy ? unicode_legacy_data_record(cp) : unicode_data_record(cp)).mirrored ? 1 : 0); return true;
+}
+
+template <bool Decimal, bool Legacy>
+bool integer_numeric(Runtime& runtime,const Value* args,uint32_t argc,Value& out,std::string& error,void*) {
+  const char* function = Decimal ? "decimal" : "digit";
+  if (!check_count(runtime,argc,1,2,function,error)) return false;
+  uint32_t cp=0; if(!get_character(runtime,args[0],function,cp,error)) return false;
+  const auto record=Legacy ? unicode_legacy_data_record(cp) : unicode_data_record(cp);
+  const int value=Decimal ? record.decimal : record.digit;
+  if(value>=0) { out=Value::int64(value); return true; }
+  if(argc==2) { out=args[1]; return true; }
+  error="not a " + std::string(function) + " character";
+  runtime.raise_class_error("ValueError",error); return false;
+}
+
+template <bool Legacy> bool numeric(Runtime& runtime,const Value* args,uint32_t argc,Value& out,std::string& error,void*) {
+  if (!check_count(runtime,argc,1,2,"numeric",error)) return false;
+  uint32_t cp=0; if(!get_character(runtime,args[0],"numeric",cp,error)) return false;
+  double value=0; if(Legacy ? unicode_legacy_data_numeric(cp,value) : unicode_data_numeric(cp,value)) { out=Value::number(value); return true; }
+  if(argc==2) { out=args[1]; return true; }
+  error="not a numeric character"; runtime.raise_class_error("ValueError",error); return false;
+}
+
+template <bool Legacy> bool decomposition(Runtime& runtime,const Value* args,uint32_t argc,Value& out,std::string& error,void*) {
+  if (!check_count(runtime,argc,1,1,"decomposition",error)) return false;
+  uint32_t cp=0; if(!get_character(runtime,args[0],"decomposition",cp,error)) return false;
+  out=Value::string(std::string(Legacy ? unicode_legacy_data_decomposition(cp) : unicode_data_decomposition(cp))); return true;
+}
+
+template <bool Legacy> bool normalize(Runtime& runtime,const Value* args,uint32_t argc,Value& out,std::string& error,void*) {
+  if (!check_count(runtime,argc,2,2,"normalize",error)) return false;
+  auto* form_value=value_as_string(args[0]); auto* text_value=value_as_string(args[1]);
+  if(!form_value || !text_value) { error="normalize() argument 1 and 2 must be str"; runtime.raise_class_error("TypeError",error); return false; }
+  const std::string form=string_object_to_string(*form_value);
+  if(form!="NFC"&&form!="NFD"&&form!="NFKC"&&form!="NFKD") { error="invalid normalization form"; runtime.raise_class_error("ValueError",error); return false; }
+  std::string result;
+  if(!(Legacy ? unicode_legacy_data_normalize(form,string_object_view(*text_value),result) : unicode_data_normalize(form,string_object_view(*text_value),result))) { error="normalization failed"; runtime.raise_class_error("ValueError",error); return false; }
+  out=Value::string(std::move(result)); return true;
+}
+
+template <bool Legacy> bool is_normalized(Runtime& runtime,const Value* args,uint32_t argc,Value& out,std::string& error,void*) {
+  Value normalized; if(!normalize<Legacy>(runtime,args,argc,normalized,error,nullptr)) return false;
+  out=Value::boolean(string_object_view(*value_as_string(args[1]))==string_object_view(*value_as_string(normalized)));
   return true;
 }
 
-bool unicode_bidirectional(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 1) {
-    error = "unicodedata.bidirectional() expected character";
-    runtime.raise_class_error("TypeError", error);
-    return false;
-  }
-  uint32_t codepoint = 0;
-  if (!get_single_codepoint(runtime, args[0], "bidirectional", codepoint, error)) return false;
-  if (const UnicodeRecord* record = find_record(codepoint)) {
-    out = Value::string(record->bidirectional);
-    return true;
-  }
-#if defined(_WIN32)
-  if (codepoint <= 0xffff) {
-    const wchar_t character = static_cast<wchar_t>(codepoint);
-    WORD direction = 0;
-    if (GetStringTypeW(CT_CTYPE2, &character, 1, &direction)) {
-      const char* value = direction == C2_RIGHTTOLEFT ? "R" :
-          direction == C2_LEFTTORIGHT ? "L" :
-          direction == C2_EUROPENUMBER ? "EN" :
-          direction == C2_ARABICNUMBER ? "AN" :
-          direction == C2_WHITESPACE ? "WS" : "";
-      if (direction == C2_RIGHTTOLEFT &&
-          ((codepoint >= 0x0600 && codepoint <= 0x08ff) ||
-           (codepoint >= 0xfb50 && codepoint <= 0xfdff) ||
-           (codepoint >= 0xfe70 && codepoint <= 0xfeff))) {
-        value = "AL";
-      }
-      out = Value::string(value);
-      return true;
-    }
-  }
-#endif
-  out = Value::string("");
-  return true;
-}
-
-bool unicode_east_asian_width(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  return unicode_property_string(runtime, args, argc, out, error, "east_asian_width", &UnicodeRecord::east_asian_width, "N");
-}
-
-bool unicode_int_property(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, const char* function_name, int UnicodeRecord::*field, int default_value) {
-  if (argc != 1) {
-    error = std::string("unicodedata.") + function_name + "() expected character";
-    runtime.raise_class_error("TypeError", error);
-    return false;
-  }
-  uint32_t codepoint = 0;
-  if (!get_single_codepoint(runtime, args[0], function_name, codepoint, error)) {
-    return false;
-  }
-  const UnicodeRecord* record = find_record(codepoint);
-  out = Value::int64(record == nullptr ? default_value : record->*field);
-  return true;
-}
-
-bool unicode_combining(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  return unicode_int_property(runtime, args, argc, out, error, "combining", &UnicodeRecord::combining, 0);
-}
-
-bool unicode_mirrored(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  return unicode_int_property(runtime, args, argc, out, error, "mirrored", &UnicodeRecord::mirrored, 0);
-}
-
-bool unicode_number(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, const char* function_name, int UnicodeRecord::*field) {
-  if (argc < 1 || argc > 2) {
-    error = std::string("unicodedata.") + function_name + "() expected character and optional default";
-    runtime.raise_class_error("TypeError", error);
-    return false;
-  }
-  uint32_t codepoint = 0;
-  if (!get_single_codepoint(runtime, args[0], function_name, codepoint, error)) {
-    return false;
-  }
-  const UnicodeRecord* record = find_record(codepoint);
-  if (record != nullptr && record->*field != kNoNumber) {
-    out = Value::int64(record->*field);
-    return true;
-  }
-  if (argc == 2) {
-    out = args[1];
-    return true;
-  }
-  error = "not a numeric character";
-  runtime.raise_class_error("ValueError", error);
-  return false;
-}
-
-bool unicode_decimal(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  return unicode_number(runtime, args, argc, out, error, "decimal", &UnicodeRecord::decimal);
-}
-
-bool unicode_digit(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  return unicode_number(runtime, args, argc, out, error, "digit", &UnicodeRecord::digit);
-}
-
-bool unicode_numeric(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc < 1 || argc > 2) {
-    error = "unicodedata.numeric() expected character and optional default";
-    runtime.raise_class_error("TypeError", error);
-    return false;
-  }
-  uint32_t codepoint = 0;
-  if (!get_single_codepoint(runtime, args[0], "numeric", codepoint, error)) {
-    return false;
-  }
-  const UnicodeRecord* record = find_record(codepoint);
-  if (record != nullptr && record->numeric != kNoNumeric) {
-    out = Value::number(record->numeric);
-    return true;
-  }
-  if (argc == 2) {
-    out = args[1];
-    return true;
-  }
-  error = "not a numeric character";
-  runtime.raise_class_error("ValueError", error);
-  return false;
-}
-
-bool unicode_decomposition(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 1) {
-    error = "unicodedata.decomposition() expected character";
-    runtime.raise_class_error("TypeError", error);
-    return false;
-  }
-  uint32_t codepoint = 0;
-  if (!get_single_codepoint(runtime, args[0], "decomposition", codepoint, error)) {
-    return false;
-  }
-  out = Value::string(decomposition_mapping(codepoint));
-  return true;
-}
-
-bool unicode_normalize(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 2) {
-    error = "unicodedata.normalize() expected form and unistr";
-    runtime.raise_class_error("TypeError", error);
-    return false;
-  }
-  std::string form;
-  std::string text;
-  if (!get_string_arg(runtime, args[0], "unicodedata.normalize() form", form, error) ||
-      !get_string_arg(runtime, args[1], "unicodedata.normalize() unistr", text, error)) {
-    return false;
-  }
-  form = canonical_form(std::move(form));
-  if (form != "NFC" && form != "NFD" && form != "NFKC" && form != "NFKD") {
-    error = "invalid normalization form";
-    runtime.raise_class_error("ValueError", error);
-    return false;
-  }
-  out = Value::string(normalize_text(form, text));
-  return true;
-}
-
-bool unicode_is_normalized(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  Value normalized;
-  if (!unicode_normalize(runtime, args, argc, normalized, error, nullptr)) {
-    return false;
-  }
-  auto* original = value_as_string(args[1]);
-  auto* normalized_string = value_as_string(normalized);
-  out = Value::boolean(original != nullptr && normalized_string != nullptr &&
-                       string_object_view(*original) == string_object_view(*normalized_string));
-  return true;
-}
-
-} // namespace
+}  // namespace
 
 void register_unicodedata_module(Runtime& runtime) {
-  NativeModuleBuilder builder(runtime, "unicodedata");
-  builder.function("lookup", unicode_lookup)
-      .function("name", unicode_name)
-      .function("category", unicode_category)
-      .function("bidirectional", unicode_bidirectional)
-      .function("combining", unicode_combining)
-      .function("east_asian_width", unicode_east_asian_width)
-      .function("mirrored", unicode_mirrored)
-      .function("decimal", unicode_decimal)
-      .function("digit", unicode_digit)
-      .function("numeric", unicode_numeric)
-      .function("decomposition", unicode_decomposition)
-      .function("normalize", unicode_normalize)
-      .function("is_normalized", unicode_is_normalized)
-      .value("unidata_version", Value::string("17.0.0"));
-  Value module = builder.finish();
+  NativeModuleBuilder builder(runtime,"unicodedata");
+  builder.function("lookup",lookup<false>).function("name",name<false>).function("category",category<false>)
+      .function("bidirectional",bidirectional<false>).function("combining",combining<false>)
+      .function("east_asian_width",east_asian_width<false>).function("mirrored",mirrored<false>)
+      .function("decimal",integer_numeric<true,false>).function("digit",integer_numeric<false,false>)
+      .function("numeric",numeric<false>).function("decomposition",decomposition<false>)
+      .function("normalize",normalize<false>).function("is_normalized",is_normalized<false>)
+      .value("unidata_version",Value::string(unicode_data_version()));
+  Value module=builder.finish();
+  NativeModuleBuilder legacy_builder(runtime,std::string("unicodedata") + ".ucd_3_2_0");
+  legacy_builder.function("lookup",lookup<true>).function("name",name<true>).function("category",category<true>)
+      .function("bidirectional",bidirectional<true>).function("combining",combining<true>)
+      .function("east_asian_width",east_asian_width<true>).function("mirrored",mirrored<true>)
+      .function("decimal",integer_numeric<true,true>).function("digit",integer_numeric<false,true>)
+      .function("numeric",numeric<true>).function("decomposition",decomposition<true>)
+      .function("normalize",normalize<true>).function("is_normalized",is_normalized<true>)
+      .value("unidata_version",Value::string("3.2.0"));
+  Value legacy_module=legacy_builder.finish();
   std::string ignored;
-  std::vector<std::pair<std::string, Value>> ucd_attrs;
-  for (const char* name : {"lookup", "name", "category", "bidirectional", "combining",
-                           "east_asian_width", "mirrored", "decimal", "digit", "numeric",
-                           "decomposition", "normalize", "is_normalized"}) {
-    Value value;
-    if (module_get_attr(module, name, value, ignored)) ucd_attrs.push_back({name, std::move(value)});
+  std::vector<std::pair<std::string,Value>> attrs;
+  for(const char* member:{"lookup","name","category","bidirectional","combining","east_asian_width","mirrored","decimal","digit","numeric","decomposition","normalize","is_normalized"}) {
+    Value value; if(module_get_attr(legacy_module,member,value,ignored)) attrs.push_back({member,std::move(value)});
   }
-  ucd_attrs.push_back({"unidata_version", Value::string("3.2.0")});
-  Value ucd_3_2_0 = Value::instance(Value::class_object("UCD", std::move(ucd_attrs)));
-  module_ensure_attr_slots(module, {"ucd_3_2_0"}, ignored);
-  module_set_attr(module, "ucd_3_2_0", ucd_3_2_0, ignored);
-  runtime.register_module("unicodedata", std::move(module));
+  attrs.push_back({"unidata_version",Value::string("3.2.0")});
+  Value legacy=Value::instance(Value::class_object("UCD",std::move(attrs)));
+  module_ensure_attr_slots(module,{"ucd_3_2_0"},ignored);
+  module_set_attr(module,"ucd_3_2_0",legacy,ignored);
+  runtime.register_module("unicodedata",std::move(module));
 }
 
-} // namespace xlang3
+}  // namespace xlang3

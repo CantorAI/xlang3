@@ -14,6 +14,7 @@ limitations under the License.
 */
 #include "test_harness.h"
 #include <atomic>
+#include <chrono>
 #include <thread>
 
 #include "xlang3/module_object.h"
@@ -174,6 +175,42 @@ int main() {
     for (auto& worker : workers) worker.join();
     xlang3::test::expect_true(result, failures == 0 && runtime.last_error().empty(),
         "native error state must belong to the calling thread");
+  }
+
+  {
+    std::ostringstream output;
+    xlang3::Runtime runtime(output);
+    runtime.acquire_import_lock();
+    runtime.acquire_import_lock();
+    xlang3::test::expect_true(result, runtime.import_lock_held(),
+        "the runtime import lock must support recursive acquisition");
+
+    std::atomic<bool> attempting{false};
+    std::atomic<bool> acquired{false};
+    std::thread contender([&] {
+      attempting.store(true, std::memory_order_release);
+      runtime.acquire_import_lock();
+      acquired.store(true, std::memory_order_release);
+      runtime.release_import_lock();
+    });
+    while (!attempting.load(std::memory_order_acquire)) std::this_thread::yield();
+    std::this_thread::sleep_for(std::chrono::milliseconds(25));
+    xlang3::test::expect_true(result, !acquired.load(std::memory_order_acquire),
+        "the runtime import lock must block another thread");
+
+    xlang3::test::expect_true(result, runtime.release_import_lock(),
+        "the owning thread must release one recursive import-lock level");
+    std::this_thread::sleep_for(std::chrono::milliseconds(25));
+    xlang3::test::expect_true(result, !acquired.load(std::memory_order_acquire),
+        "one recursive import-lock level must remain held");
+    xlang3::test::expect_true(result, runtime.release_import_lock(),
+        "the owning thread must release the final import-lock level");
+    contender.join();
+    xlang3::test::expect_true(result,
+        acquired.load(std::memory_order_acquire) && !runtime.import_lock_held(),
+        "the waiting thread must acquire the fully released import lock");
+    xlang3::test::expect_true(result, !runtime.release_import_lock(),
+        "releasing an unowned import lock must fail");
   }
 
   return xlang3::test::finish(result);

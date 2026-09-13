@@ -73,6 +73,127 @@ XLANG3_HOT_INLINE XlangVMOpFlow jump_if_false(
   return XlangVMOpFlow::Next;
 }
 
+template <typename EmitMonitoringEvent, typename RaiseRuntimeError, typename RaiseExceptionValue>
+XLANG3_HOT_INLINE XlangVMOpFlow move_jump_if_false(
+    const ir::Instr& in,
+    Runtime& runtime,
+    XlangVMSmallRegisterBuffer& regs,
+    size_t& ip,
+    EmitMonitoringEvent&& emit_monitoring_event,
+    RaiseRuntimeError&& raise_runtime_error,
+    RaiseExceptionValue&& raise_exception_value) {
+  value_assign_fast(regs[in.dst], regs[in.a]);
+  bool condition = false;
+  std::string error;
+  if (!runtime_truthy(runtime, regs[in.a], condition, error)) {
+    Value pending;
+    if (runtime.take_pending_exception(pending)) {
+      return raise_exception_value(std::move(pending))
+          ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    }
+    return raise_runtime_error(error)
+        ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+  }
+  const uint32_t destination_offset = condition ? static_cast<uint32_t>(ip + 1) : in.b;
+  Value destination = Value::int64(static_cast<int64_t>(destination_offset));
+  if (!emit_monitoring_event(
+          condition ? kSysMonitoringEventBranchLeft : kSysMonitoringEventBranchRight,
+          &destination)) {
+    return XlangVMOpFlow::ReturnResult;
+  }
+  if (!condition) {
+    ip = in.b;
+    return XlangVMOpFlow::ContinueLoop;
+  }
+  return XlangVMOpFlow::Next;
+}
+
+template <typename EmitMonitoringEvent, typename RaiseRuntimeError, typename RaiseExceptionValue>
+XLANG3_HOT_INLINE XlangVMOpFlow move_jump_if_true(
+    const ir::Instr& in,
+    Runtime& runtime,
+    XlangVMSmallRegisterBuffer& regs,
+    size_t& ip,
+    EmitMonitoringEvent&& emit_monitoring_event,
+    RaiseRuntimeError&& raise_runtime_error,
+    RaiseExceptionValue&& raise_exception_value) {
+  value_assign_fast(regs[in.dst], regs[in.a]);
+  bool condition = false;
+  std::string error;
+  if (!runtime_truthy(runtime, regs[in.a], condition, error)) {
+    Value pending;
+    if (runtime.take_pending_exception(pending)) {
+      return raise_exception_value(std::move(pending))
+          ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    }
+    return raise_runtime_error(error)
+        ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+  }
+  const uint32_t destination_offset = condition ? in.b : static_cast<uint32_t>(ip + 1);
+  Value destination = Value::int64(static_cast<int64_t>(destination_offset));
+  if (!emit_monitoring_event(
+          condition ? kSysMonitoringEventBranchLeft : kSysMonitoringEventBranchRight,
+          &destination)) {
+    return XlangVMOpFlow::ReturnResult;
+  }
+  if (!condition) return XlangVMOpFlow::Next;
+  if (!emit_monitoring_event(kSysMonitoringEventJump, &destination)) {
+    return XlangVMOpFlow::ReturnResult;
+  }
+  ip = in.b;
+  return XlangVMOpFlow::ContinueLoop;
+}
+
+template <typename EmitMonitoringEvent, typename RaiseRuntimeError,
+          typename RaiseExceptionValue, typename RaiseUnboundLocalError>
+XLANG3_HOT_INLINE XlangVMOpFlow jump_if_false_load_local(
+    const ir::Instr& in,
+    const ir::Function& fn,
+    Runtime& runtime,
+    XlangVMSmallRegisterBuffer& regs,
+    XlangVMSmallValueBuffer& locals,
+    size_t& ip,
+    RuntimeResult& result,
+    EmitMonitoringEvent&& emit_monitoring_event,
+    RaiseRuntimeError&& raise_runtime_error,
+    RaiseExceptionValue&& raise_exception_value,
+    RaiseUnboundLocalError&& raise_unbound_local_error) {
+  bool condition = false;
+  std::string error;
+  if (!runtime_truthy(runtime, regs[in.a], condition, error)) {
+    Value pending;
+    if (runtime.take_pending_exception(pending)) {
+      return raise_exception_value(std::move(pending))
+          ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    }
+    return raise_runtime_error(error)
+        ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+  }
+  const uint32_t destination_offset = condition ? static_cast<uint32_t>(ip + 1) : in.b;
+  Value destination = Value::int64(static_cast<int64_t>(destination_offset));
+  if (!emit_monitoring_event(
+          condition ? kSysMonitoringEventBranchLeft : kSysMonitoringEventBranchRight,
+          &destination)) {
+    return XlangVMOpFlow::ReturnResult;
+  }
+  if (!condition) {
+    ip = in.b;
+    return XlangVMOpFlow::ContinueLoop;
+  }
+  if (in.c >= locals.size()) {
+    result.errors.push_back("invalid local slot in conditional load");
+    return XlangVMOpFlow::ReturnResult;
+  }
+  if (locals[in.c].tag == ValueTag::Invalid) {
+    const std::string name = in.c < fn.locals.size() ? fn.locals[in.c] : "?";
+    return raise_unbound_local_error(
+               "cannot access local variable '" + name + "' where it is not associated with a value")
+        ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+  }
+  value_borrow_assign_fast(regs[in.dst], locals[in.c]);
+  return XlangVMOpFlow::Next;
+}
+
 template <typename RaiseRuntimeError, typename EmitMonitoringEvent>
 XLANG3_HOT_INLINE XlangVMOpFlow jump_if_local_const_false(
     const ir::Instr& in,
@@ -257,7 +378,7 @@ XLANG3_HOT_INLINE void match_exception(
   value_set_bool(regs[in.dst], exception_matches(regs[in.a]));
 }
 
-template <typename EmitMonitoringEvent, typename RaiseRuntimeError>
+template <typename EmitMonitoringEvent, typename EmitTraceEvent, typename EmitProfileEvent, typename RaiseRuntimeError>
 XLANG3_HOT_INLINE XlangVMOpFlow yield_op(
     const ir::Instr& in,
     XlangVMSmallRegisterBuffer& regs,
@@ -268,6 +389,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow yield_op(
     GeneratorObject* generator,
     RuntimeResult& result,
     EmitMonitoringEvent&& emit_monitoring_event,
+    EmitTraceEvent&& emit_trace_event,
+    EmitProfileEvent&& emit_profile_event,
     RaiseRuntimeError&& raise_runtime_error) {
   if (generator == nullptr) {
     return raise_runtime_error("yield used outside generator") ? XlangVMOpFlow::ContinueLoop
@@ -277,6 +400,10 @@ XLANG3_HOT_INLINE XlangVMOpFlow yield_op(
   Value yielded_value;
   value_assign_fast(yielded_value, regs[in.a]);
   if (!emit_monitoring_event(frame, kSysMonitoringEventPyYield, &yielded_value)) {
+    return XlangVMOpFlow::ReturnResult;
+  }
+  if (!emit_trace_event(frame, "return", yielded_value) ||
+      !emit_profile_event(frame, "return", yielded_value)) {
     return XlangVMOpFlow::ReturnResult;
   }
   ++ip;
@@ -296,14 +423,13 @@ XLANG3_HOT_INLINE XlangVMOpFlow yield_op(
 }
 
 template <typename FinishFrame>
-XLANG3_HOT_INLINE XlangVMOpFlow return_op(
-    const ir::Instr& in,
-    XlangVMSmallRegisterBuffer& regs,
+XLANG3_HOT_INLINE XlangVMOpFlow return_value(
+    const Value& source,
     GeneratorObject* generator,
     RuntimeResult& result,
     FinishFrame&& finish_frame) {
   Value return_value;
-  value_assign_fast(return_value, regs[in.a]);
+  value_assign_fast(return_value, source);
   if (!finish_frame(return_value)) {
     if (generator != nullptr) {
       generator->done = true;
@@ -313,6 +439,52 @@ XLANG3_HOT_INLINE XlangVMOpFlow return_op(
     return XlangVMOpFlow::ReturnResult;
   }
   return XlangVMOpFlow::SwitchFrame;
+}
+
+template <typename FinishFrame>
+XLANG3_HOT_INLINE XlangVMOpFlow return_op(
+    const ir::Instr& in,
+    XlangVMSmallRegisterBuffer& regs,
+    GeneratorObject* generator,
+    RuntimeResult& result,
+    FinishFrame&& finish_frame) {
+  return return_value(regs[in.a], generator, result, std::forward<FinishFrame>(finish_frame));
+}
+
+template <typename FinishFrame>
+XLANG3_HOT_INLINE XlangVMOpFlow return_const(
+    const ir::Instr& in,
+    const ir::Function& fn,
+    GeneratorObject* generator,
+    RuntimeResult& result,
+    FinishFrame&& finish_frame) {
+  if (in.a >= fn.constants.size()) {
+    result.errors.push_back("invalid return constant");
+    return XlangVMOpFlow::ReturnResult;
+  }
+  return return_value(fn.constants[in.a], generator, result, std::forward<FinishFrame>(finish_frame));
+}
+
+template <typename FinishFrame, typename RaiseUnboundLocalError>
+XLANG3_HOT_INLINE XlangVMOpFlow return_local(
+    const ir::Instr& in,
+    const ir::Function& fn,
+    XlangVMSmallValueBuffer& locals,
+    GeneratorObject* generator,
+    RuntimeResult& result,
+    FinishFrame&& finish_frame,
+    RaiseUnboundLocalError&& raise_unbound_local_error) {
+  if (in.a >= locals.size()) {
+    result.errors.push_back("invalid return local");
+    return XlangVMOpFlow::ReturnResult;
+  }
+  if (locals[in.a].tag == ValueTag::Invalid) {
+    const std::string name = in.a < fn.locals.size() ? fn.locals[in.a] : "?";
+    return raise_unbound_local_error(
+               "cannot access local variable '" + name + "' where it is not associated with a value")
+        ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+  }
+  return return_value(locals[in.a], generator, result, std::forward<FinishFrame>(finish_frame));
 }
 
 } // namespace xlang3::xlang_vm::ops

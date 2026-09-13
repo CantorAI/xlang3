@@ -17,13 +17,9 @@ limitations under the License.
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
 
-#include <atomic>
-
 namespace xlang3 {
 
 namespace {
-
-std::atomic_uint32_t g_import_lock_depth{0};
 
 bool get_string_arg(const Value& value, const char* name, std::string& out, std::string& error) {
   if (auto* str = value_as_string(value)) {
@@ -42,35 +38,33 @@ bool no_args(uint32_t argc, const char* name, std::string& error) {
   return false;
 }
 
-bool imp_acquire_lock(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+bool imp_acquire_lock(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (!no_args(argc, "_imp.acquire_lock", error)) {
     return false;
   }
-  g_import_lock_depth.fetch_add(1, std::memory_order_acq_rel);
+  runtime.acquire_import_lock();
   value_set_none(out);
   return true;
 }
 
-bool imp_release_lock(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+bool imp_release_lock(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (!no_args(argc, "_imp.release_lock", error)) {
     return false;
   }
-  uint32_t depth = g_import_lock_depth.load(std::memory_order_acquire);
-  while (depth != 0) {
-    if (g_import_lock_depth.compare_exchange_weak(depth, depth - 1, std::memory_order_acq_rel)) {
-      value_set_none(out);
-      return true;
-    }
+  if (!runtime.release_import_lock()) {
+    error = "not holding the import lock";
+    runtime.raise_class_error("RuntimeError", error);
+    return false;
   }
-  error = "not holding the import lock";
-  return false;
+  value_set_none(out);
+  return true;
 }
 
-bool imp_lock_held(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+bool imp_lock_held(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (!no_args(argc, "_imp.lock_held", error)) {
     return false;
   }
-  out = Value::boolean(g_import_lock_depth.load(std::memory_order_acquire) != 0);
+  out = Value::boolean(runtime.import_lock_held());
   return true;
 }
 

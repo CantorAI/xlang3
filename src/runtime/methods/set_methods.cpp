@@ -519,9 +519,11 @@ bool set_issuperset_method(Runtime& runtime, const Value* args, uint32_t argc, V
   return true;
 }
 
-static constexpr BuiltinMethodSpec kSetMethods[] = {
-    {"__contains__", "set.__contains__", set_contains_method},
-    {"add", "set.add", set_add_method},
+static BuiltinMethodSpec kSetMethods[] = {
+    {"__contains__", "set.__contains__", set_contains_method,
+     builtin_method_fast_adapter<set_contains_method, 2>},
+    {"add", "set.add", set_add_method,
+     builtin_method_fast_adapter<set_add_method, 2>},
     {"clear", "set.clear", set_clear_method},
     {"copy", "set.copy", set_copy_method},
     {"difference", "set.difference", set_difference_method},

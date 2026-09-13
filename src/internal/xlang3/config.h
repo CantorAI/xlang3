@@ -50,8 +50,13 @@ struct RunConfig {
   bool no_site = false;
   bool ignore_environment = false;
   bool isolated = false;
+  bool safe_path = false;
   bool verbose = false;
+  bool quiet = false;
   int bytes_warning = 0;
+  int optimize = 0;
+  std::filesystem::path pycache_prefix;
+  std::vector<std::string> warn_options;
   bool pth_mode = false;
   std::vector<std::filesystem::path> pth_paths;
 };

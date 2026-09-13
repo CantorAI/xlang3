@@ -39,7 +39,8 @@ assert isinstance(server.StaticIndexFile, str)
 try:
     server.StaticIndexFile = "bridge.html"
 except AttributeError as error:
-    assert "can't set attribute" in str(error)
+    assert "property 'StaticIndexFile'" in str(error)
+    assert "has no setter" in str(error)
 else:
     raise AssertionError("native read-only properties must reject writes")
 for operation, error in (

@@ -1,0 +1,9 @@
+numeric-iadd 3.5
+custom-iadd ('custom', 7, 1)
+conditional-iadd ('custom', 2, 1) 3
+mutable-iadd ([1, 2], True)
+ascii-cache True
+ascii-intern True
+cached-attribute 1
+mutated-attribute 2
+descriptor-invalidation 9

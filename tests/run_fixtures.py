@@ -8,24 +8,24 @@ import sys
 
 
 CORE_CASES = """
-scalar_loop functions nested_function_no_closure if_else syntax_logical_lines
+scalar_loop functions nested_function_no_closure if_else syntax_logical_lines docstring_suite_execution runtime_specialization_semantics
 syntax_simple_suites statement_syntax module_statement_partials structural_pattern_matching
 expression_operators chained_comparisons function_class_syntax future_annotations function_metadata
 object_type_model object_attribute_hooks descriptor_protocol default_object_repr code_traceback_model mro_model
-property_descriptor chained_object_methods builtin_alias builtin_function_batch dynamic_execution_builtins
+property_descriptor chained_object_methods builtin_alias builtin_function_batch dynamic_execution_builtins globals_locals_identity
 abc_runtime
 iterator_protocol tuples tuple_methods dict_views slices slots_model raw_strings string_compat
-binary_buffers starred_expressions dict_set_comprehensions nested_comprehensions generator_expressions
+binary_buffers builtin_types_edges starred_expressions dict_set_comprehensions nested_comprehensions generator_expressions
 walrus_operator unpacking annotated_assignment augmented_assignment lists_for sequences_index dict_set
 raw_blocks native_import json_module math_module time_module native_sys_time_audit os_process_windows atexit_module io_os_modules io_module_streams
 imp_stat_modules collections_queue_modules types_module traceback_module linecache_module runpy_module
 pickle_module marshal_module
 importlib_module zlib_module zipfile_module zipimport_module weakref_module inspect_module inspect_currentframe
-debug_frame_metadata debug_breakpoint_step logging_pathlib_modules socket_select_modules file_import
-global_from_import package_import import_system_model vfs_file_io file_context_open file_io_compat
+debug_frame_metadata debug_frame_source_edges debug_breakpoint_step logging_pathlib_modules socket_select_modules file_import
+global_from_import package_import import_system_model vfs_file_io file_context_open file_io_compat filesystem_io_edges
 exceptions runtime_error_exceptions exception_unwind_with typed_exceptions exception_chaining_sys
-finally_blocks classes class_dynamic_attrs context_managers builtin_methods trace_events
-trace_local_and_exception sys_startup_config task_async async_syntax closures nonlocal_counter
+finally_blocks classes class_dynamic_attrs context_managers builtin_methods trace_hooks trace_events
+trace_local_and_exception debug_trace_profile_edges sys_command_path sys_startup_config task_async async_syntax threading_runtime_edges asyncio_runtime_edges closures nonlocal_counter
 """.split()
 
 SECTION_CASES = """
@@ -50,7 +50,7 @@ def run_case(executable, source, expected_path, root):
     actual = normalize(result.stdout).replace(str(root), "tests")
     actual = actual.replace("tests\\fixtures\\core\\", "tests/fixtures/core/")
     expected = normalize(expected_path.read_text(encoding="utf-8")).replace("tests\\fixtures\\core\\", "tests/fixtures/core/")
-    if source.stem == "standard_modules":
+    if source.stem == "standard_modules" and sys.platform != "win32":
         expected = "\n".join(line for line in expected.splitlines() if not NON_WINDOWS_STANDARD.match(line))
     if actual != expected:
         raise RuntimeError(f"{source.stem} output mismatch\n--- expected ---\n{expected}\n--- actual ---\n{actual}")

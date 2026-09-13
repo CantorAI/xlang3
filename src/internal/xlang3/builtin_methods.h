@@ -19,12 +19,31 @@ limitations under the License.
 #include "xlang3/value.h"
 
 #include <cstddef>
+#include <mutex>
 #include <string>
 #include <utility>
+#include <vector>
 
 namespace xlang3 {
 
 struct ClassObject;
+
+XLANG3_HOT_INLINE const Value* builtin_fast_arg_at(
+    const Value* leading,
+    uint32_t leading_count,
+    const Value* registers,
+    const uint32_t* register_args,
+    uint32_t register_arg_count,
+    uint32_t index) {
+  if (index < leading_count) {
+    return leading == nullptr ? nullptr : &leading[index];
+  }
+  const uint32_t register_index = index - leading_count;
+  if (register_index >= register_arg_count || registers == nullptr || register_args == nullptr) {
+    return nullptr;
+  }
+  return &registers[register_args[register_index]];
+}
 
 XLANG3_HOT_INLINE bool method_check_argc(uint32_t argc, uint32_t expected, const char* name, std::string& error) {
   if (argc == expected) {
@@ -58,6 +77,73 @@ XLANG3_HOT_INLINE bool builtin_method_fast_adapter(
   return Callback(runtime, args, register_arg_count + 1, out, error, user_data);
 }
 
+// Stack-backed positional-call adapter for ordinary native builtins.  This is
+// the runtime equivalent of CPython's vectorcall convention: arguments stay in
+// the VM register array instead of being copied through a heap vector first.
+template <NativeFunctionCallback Callback, uint32_t MaxArgc>
+XLANG3_HOT_INLINE bool builtin_fast_adapter(
+    Runtime& runtime,
+    const Value* leading,
+    uint32_t leading_count,
+    const Value* registers,
+    const uint32_t* register_args,
+    uint32_t register_arg_count,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  const uint32_t argc = leading_count + register_arg_count;
+  if (argc > MaxArgc || (leading_count != 0 && leading == nullptr) ||
+      (register_arg_count != 0 && (registers == nullptr || register_args == nullptr))) {
+    error = "invalid builtin fast call";
+    return false;
+  }
+  Value args[MaxArgc];
+  uint32_t next = 0;
+  for (uint32_t i = 0; i < leading_count; ++i) {
+    value_assign_fast(args[next++], leading[i]);
+  }
+  for (uint32_t i = 0; i < register_arg_count; ++i) {
+    value_assign_fast(args[next++], registers[register_args[i]]);
+  }
+  return Callback(runtime, args, argc, out, error, user_data);
+}
+
+// Vectorcall adapter for variadic builtins. Common calls stay in a small stack
+// buffer, while larger valid argument lists retain their ordinary semantics.
+template <NativeFunctionCallback Callback, uint32_t InlineArgc>
+XLANG3_HOT_INLINE bool builtin_variadic_fast_adapter(
+    Runtime& runtime,
+    const Value* leading,
+    uint32_t leading_count,
+    const Value* registers,
+    const uint32_t* register_args,
+    uint32_t register_arg_count,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  const uint32_t argc = leading_count + register_arg_count;
+  if ((leading_count != 0 && leading == nullptr) ||
+      (register_arg_count != 0 && (registers == nullptr || register_args == nullptr))) {
+    error = "invalid variadic builtin fast call";
+    return false;
+  }
+  Value inline_args[InlineArgc];
+  std::vector<Value> overflow_args;
+  Value* args = inline_args;
+  if (argc > InlineArgc) {
+    overflow_args.resize(argc);
+    args = overflow_args.data();
+  }
+  uint32_t next = 0;
+  for (uint32_t i = 0; i < leading_count; ++i) {
+    value_assign_fast(args[next++], leading[i]);
+  }
+  for (uint32_t i = 0; i < register_arg_count; ++i) {
+    value_assign_fast(args[next++], registers[register_args[i]]);
+  }
+  return Callback(runtime, args, argc, out, error, user_data);
+}
+
 struct BuiltinMethodSpec {
   const char* name;
   const char* full_name;
@@ -66,6 +152,8 @@ struct BuiltinMethodSpec {
   bool fast_releases_vm_lock = false;
   NativeKeywordFunctionCallback keyword_callback = nullptr;
   const char* text_signature = nullptr;
+  mutable std::once_flag function_once;
+  mutable Value function = Value::invalid();
 };
 
 XLANG3_HOT_INLINE void builtin_method_set_text_signature(Value& function, const char* text_signature) {
@@ -85,6 +173,22 @@ XLANG3_HOT_INLINE void builtin_method_set_text_signature(Value& function, const 
       Value::string("__text_signature__"),
       Value::string(text_signature),
       ignored);
+}
+
+XLANG3_HOT_INLINE const Value& builtin_method_function(const BuiltinMethodSpec& spec) {
+  std::call_once(spec.function_once, [&]() {
+    spec.function = Value::native_function(
+        0,
+        spec.full_name,
+        spec.callback,
+        nullptr,
+        nullptr,
+        spec.fast_callback,
+        spec.fast_releases_vm_lock,
+        spec.keyword_callback);
+    builtin_method_set_text_signature(spec.function, spec.text_signature);
+  });
+  return spec.function;
 }
 
 XLANG3_HOT_INLINE bool bind_builtin_method(
@@ -140,15 +244,8 @@ XLANG3_HOT_INLINE bool bind_builtin_method_from_table(
     Value& out) {
   for (size_t i = 0; i < method_count; ++i) {
     if (name == methods[i].name) {
-      return bind_builtin_method(
-          object,
-          methods[i].full_name,
-          methods[i].callback,
-          methods[i].fast_callback,
-          methods[i].fast_releases_vm_lock,
-          methods[i].keyword_callback,
-          methods[i].text_signature,
-          out);
+      out = Value::bound_method(object, builtin_method_function(methods[i]));
+      return true;
     }
   }
   return false;

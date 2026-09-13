@@ -256,17 +256,34 @@ bool runtime_call_callable(
     if (native->callback == nullptr) {
       return raise_type_error(runtime, "native callable does not support this call path", error);
     }
-    Value callable_name = Value::string(native->name);
     Value code = Value::none();
-    if (!sys_monitoring_dispatch_event(runtime, kSysMonitoringEventCall, code, -1, &callable_name, error)) {
-      return false;
+    constexpr int64_t native_monitoring_mask =
+        kSysMonitoringEventCall | kSysMonitoringEventCRaise | kSysMonitoringEventCReturn;
+    const bool monitoring_possible = sys_monitoring_event_may_dispatch(native_monitoring_mask);
+    const bool monitor_call = monitoring_possible &&
+        sys_monitoring_global_event_may_dispatch(kSysMonitoringEventCall);
+    const bool monitor_raise = monitoring_possible &&
+        sys_monitoring_global_event_may_dispatch(kSysMonitoringEventCRaise);
+    const bool monitor_return = monitoring_possible &&
+        sys_monitoring_global_event_may_dispatch(kSysMonitoringEventCReturn);
+    Value callable_name = monitor_call || monitor_raise || monitor_return
+        ? Value::string(native->name) : Value::none();
+    if (monitor_call) {
+      if (!sys_monitoring_dispatch_event(runtime, kSysMonitoringEventCall, code, -1, &callable_name, error)) {
+        return false;
+      }
     }
     if (!native->callback(runtime, args, argc, out, error, native->user_data)) {
-      std::string monitoring_error;
-      (void)sys_monitoring_dispatch_event(runtime, kSysMonitoringEventCRaise, code, -1, &callable_name, monitoring_error);
+      if (monitor_raise) {
+        std::string monitoring_error;
+        (void)sys_monitoring_dispatch_event(
+            runtime, kSysMonitoringEventCRaise, code, -1, &callable_name, monitoring_error);
+      }
       return false;
     }
-    return sys_monitoring_dispatch_event(runtime, kSysMonitoringEventCReturn, code, -1, &callable_name, error);
+    return !monitor_return ||
+        sys_monitoring_dispatch_event(
+            runtime, kSysMonitoringEventCReturn, code, -1, &callable_name, error);
   }
 
   if (auto* function = value_as_function(callable)) {

@@ -25,6 +25,7 @@ limitations under the License.
 namespace xlang3 {
 
 constexpr uint32_t xlang_perf_object_kind_count = static_cast<uint32_t>(ObjectKind::TypeParam) + 1;
+constexpr uint32_t xlang_perf_monitoring_event_count = 18;
 
 struct XlangPerfCounters {
   std::atomic_bool enabled{false};
@@ -37,16 +38,24 @@ struct XlangPerfCounters {
   std::atomic_uint64_t native_cached_fast_calls{0};
   std::atomic_uint64_t store_local_moves{0};
   std::atomic_uint64_t store_local_copies{0};
+  std::array<std::atomic_uint64_t, xlang_perf_monitoring_event_count> monitoring_dispatches{};
+  std::array<std::atomic_uint64_t, xlang_perf_monitoring_event_count> monitoring_callbacks{};
+  std::atomic_uint64_t frame_snapshot_calls{0};
+  std::atomic_uint64_t frame_snapshot_frames{0};
+  std::atomic_uint64_t frame_locals_materializations{0};
+  std::atomic_uint64_t frame_refresh_calls{0};
+  std::atomic_uint64_t frame_refresh_items{0};
 };
 
 XlangPerfCounters& xlang_perf_counters();
 void xlang_perf_set_enabled(bool enabled);
 void xlang_perf_reset();
 std::string xlang_perf_report();
+void xlang_perf_count_native_name(const std::string& name, bool fast);
 const char* xlang_perf_object_kind_name(ObjectKind kind);
 
 XLANG3_HOT_INLINE bool xlang_perf_enabled() {
-  return xlang_perf_counters().enabled.load(std::memory_order_relaxed);
+  return g_xlang_perf_enabled.load(std::memory_order_relaxed);
 }
 
 XLANG3_HOT_INLINE uint32_t xlang_perf_kind_index(ObjectKind kind) {
@@ -113,5 +122,41 @@ XLANG3_HOT_INLINE void xlang_perf_count_store_local(bool moved) {
     counters.store_local_copies.fetch_add(1, std::memory_order_relaxed);
   }
 }
+
+XLANG3_HOT_INLINE void xlang_perf_count_monitoring_event(int64_t event, bool callback) {
+  if (!xlang_perf_enabled() || event <= 0) return;
+  uint32_t index = 0;
+  uint64_t bits = static_cast<uint64_t>(event);
+  while ((bits & 1u) == 0u && index < xlang_perf_monitoring_event_count) {
+    bits >>= 1u;
+    ++index;
+  }
+  if (index >= xlang_perf_monitoring_event_count) return;
+  auto& counters = callback
+      ? xlang_perf_counters().monitoring_callbacks
+      : xlang_perf_counters().monitoring_dispatches;
+  counters[index].fetch_add(1, std::memory_order_relaxed);
+}
+
+XLANG3_HOT_INLINE void xlang_perf_count_frame_snapshot(uint64_t frames) {
+  if (!xlang_perf_enabled()) return;
+  auto& counters = xlang_perf_counters();
+  counters.frame_snapshot_calls.fetch_add(1, std::memory_order_relaxed);
+  counters.frame_snapshot_frames.fetch_add(frames, std::memory_order_relaxed);
+}
+
+XLANG3_HOT_INLINE void xlang_perf_count_frame_locals_materialization() {
+  if (xlang_perf_enabled()) {
+    xlang_perf_counters().frame_locals_materializations.fetch_add(1, std::memory_order_relaxed);
+  }
+}
+
+XLANG3_HOT_INLINE void xlang_perf_count_frame_refresh(uint64_t items) {
+  if (!xlang_perf_enabled()) return;
+  auto& counters = xlang_perf_counters();
+  counters.frame_refresh_calls.fetch_add(1, std::memory_order_relaxed);
+  counters.frame_refresh_items.fetch_add(items, std::memory_order_relaxed);
+}
+
 
 } // namespace xlang3

@@ -13,6 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 #include "xlang3/builtins.h"
+#include "xlang3/builtin_methods.h"
 
 #include "xlang3/functional_iterators.h"
 #include "xlang3/mapping.h"
@@ -4388,11 +4389,11 @@ Value make_pattern_type(Runtime& runtime) {
   attrs.push_back({"__copy__", runtime.make_native_function("_sre.Pattern.__copy__", pattern_copy)});
   attrs.push_back({"__deepcopy__", runtime.make_native_function("_sre.Pattern.__deepcopy__", pattern_copy)});
   attrs.push_back({"match", runtime.make_native_function("_sre.Pattern.match", pattern_match,
-      nullptr, nullptr, nullptr, false, pattern_match_kw)});
+      nullptr, nullptr, builtin_method_fast_adapter<pattern_match, 4>, false, pattern_match_kw)});
   attrs.push_back({"search", runtime.make_native_function("_sre.Pattern.search", pattern_search,
-      reinterpret_cast<void*>(1), nullptr, nullptr, false, pattern_match_kw)});
+      reinterpret_cast<void*>(1), nullptr, builtin_method_fast_adapter<pattern_search, 4>, false, pattern_match_kw)});
   attrs.push_back({"fullmatch", runtime.make_native_function("_sre.Pattern.fullmatch", pattern_fullmatch,
-      reinterpret_cast<void*>(2), nullptr, nullptr, false, pattern_match_kw)});
+      reinterpret_cast<void*>(2), nullptr, builtin_method_fast_adapter<pattern_fullmatch, 4>, false, pattern_match_kw)});
   attrs.push_back({"finditer", runtime.make_native_function("_sre.Pattern.finditer", pattern_finditer,
       nullptr, nullptr, nullptr, false, pattern_finditer_kw)});
   attrs.push_back({"scanner", runtime.make_native_function("_sre.Pattern.scanner", pattern_scanner,

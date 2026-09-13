@@ -162,6 +162,23 @@ and accept XLang3 callbacks, including callbacks made by Python worker threads.
 The native package borrows its hosting XLang3 runtime, rather than creating a
 second runtime. C++ SDK calls use the same C ABI path.
 
+ABI-heavy packages such as NumPy must be imported with
+`cpython.importModule(...)`. Their compiled extensions execute in the matching
+CPython 3.14 interpreter, and their values remain live CPython objects behind
+XLang3 proxies. Contiguous exporters can cross as explicit zero-copy buffers;
+other objects cross through proxy operations or trusted snapshots when they
+have a supported reducer. XLang3 deliberately does not load `PyInit_*` modules
+into its own object model or reinterpret an `X3Value` as a `PyObject*`.
+
+This boundary avoids an unsafe partial ABI simulation. A direct compatibility
+layer would need CPython's exact object/type layouts, reference counting, GC
+tracking, allocator domains, GIL and thread-state rules, exception state,
+buffer protocol, vectorcall, module state, and process-global C API symbols.
+Implementing only part of that contract can corrupt memory even when a simple
+extension appears to import. Hosted extensions must match the configured
+CPython 3.14 architecture and ABI; subinterpreters and stable-ABI emulation in
+the XLang3 runtime remain unsupported by design.
+
 `cpython.buffer(value)`, `cpython.dumps(value)`, and `cpython.loads(data, True)`
 use the same buffer and trusted snapshot implementations as the CPython module.
 

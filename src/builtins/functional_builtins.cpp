@@ -15,6 +15,7 @@ limitations under the License.
 #include "xlang3/builtins.h"
 
 #include "xlang3/attribute.h"
+#include "xlang3/builtin_methods.h"
 #include "xlang3/functional_iterators.h"
 #include "xlang3/ir.h"
 #include "xlang3/mapping.h"
@@ -968,6 +969,11 @@ bool builtin_inplace_or(
   return binary_or_impl(runtime, args[0], args[1], out, error);
 }
 
+XLANG3_HOT_INLINE bool is_builtin_number(const Value& value) {
+  return value.tag == ValueTag::Bool || value.tag == ValueTag::Int64 ||
+      value.tag == ValueTag::Double || value_as_bigint(value) != nullptr;
+}
+
 bool builtin_inplace_add(
     Runtime& runtime,
     const Value* args,
@@ -977,6 +983,9 @@ bool builtin_inplace_add(
     void*) {
   if (argc != 2) {
     return raise_type_error(runtime, "in-place + expects two operands", error);
+  }
+  if (is_builtin_number(args[0]) && is_builtin_number(args[1])) {
+    return value_add(args[0], args[1], out, error);
   }
   bool implemented = false;
   if (!call_binary_method_if_implemented(
@@ -1866,6 +1875,36 @@ bool builtin_inplace_floor_div(
   return raise_type_error(runtime, error, error);
 }
 
+bool builtin_inplace_add_fast(
+    Runtime& runtime,
+    const Value* leading,
+    uint32_t leading_count,
+    const Value* registers,
+    const uint32_t* register_args,
+    uint32_t register_arg_count,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  const uint32_t argc = leading_count + register_arg_count;
+  if (argc != 2) {
+    return raise_type_error(runtime, "in-place + expects two operands", error);
+  }
+  if ((leading_count != 0 && leading == nullptr) ||
+      (register_arg_count != 0 && (registers == nullptr || register_args == nullptr))) {
+    return raise_type_error(runtime, "invalid in-place + call arguments", error);
+  }
+  const auto arg_at = [&](uint32_t index) -> const Value& {
+    return index < leading_count ? leading[index] : registers[register_args[index - leading_count]];
+  };
+  const Value& lhs = arg_at(0);
+  const Value& rhs = arg_at(1);
+  if (is_builtin_number(lhs) && is_builtin_number(rhs)) {
+    return value_add(lhs, rhs, out, error);
+  }
+  Value args[2] = {lhs, rhs};
+  return builtin_inplace_add(runtime, args, 2, out, error, user_data);
+}
+
 bool builtin_inplace_matmul(
     Runtime& runtime,
     const Value* args,
@@ -1929,7 +1968,10 @@ bool builtin_setattr(
     }
   }
   if (!attribute_set(target, string_object_to_string(*name), args[2], error)) {
-    runtime.raise_class_error("AttributeError", error);
+    const char* exception_type = error.rfind("tb_next must be", 0) == 0
+        ? "TypeError"
+        : error == "traceback loop detected" ? "ValueError" : "AttributeError";
+    runtime.raise_class_error(exception_type, error);
     return false;
   }
   value_set_none(out);
@@ -2185,12 +2227,16 @@ bool builtin_vars(
     Value& out,
     std::string& error,
     void*) {
+  if (argc == 0) {
+    out = runtime.current_locals_snapshot();
+    return true;
+  }
   if (argc != 1) {
-    return raise_type_error(runtime, "vars() expected 1 argument", error);
+    return raise_type_error(runtime, "vars() expected at most 1 argument", error);
   }
   std::vector<std::pair<Value, Value>> entries;
   if (auto* module = value_as_module(args[0])) {
-    out = module_attrs_to_dict(*module);
+    out = module_namespace_dict(args[0]);
     return true;
   }
   if (auto* klass = value_as_class(args[0])) {
@@ -2235,7 +2281,7 @@ bool builtin_globals(
     runtime.raise_class_error("RuntimeError", error);
     return false;
   }
-  value_assign_fast(out, runtime.current_globals_module());
+  out = module_namespace_dict(runtime.current_globals_module());
   return true;
 }
 
@@ -2596,6 +2642,30 @@ bool builtin_repr(
   return true;
 }
 
+bool builtin_callable_fast(
+    Runtime& runtime,
+    const Value* leading,
+    uint32_t leading_count,
+    const Value* registers,
+    const uint32_t* register_args,
+    uint32_t register_arg_count,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (leading_count + register_arg_count != 1) {
+    error = "callable() expected 1 argument";
+    return false;
+  }
+  const Value* argument = builtin_fast_arg_at(
+      leading, leading_count, registers, register_args, register_arg_count, 0);
+  if (argument == nullptr) {
+    error = "invalid callable fast call";
+    return false;
+  }
+  value_set_bool(out, value_is_callable(runtime, *argument));
+  return true;
+}
+
 bool builtin_ascii(
     Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!builtin_repr(runtime, args, argc, out, error, nullptr)) return false;
@@ -2930,7 +3000,9 @@ bool builtin_hash(Runtime& runtime, const Value* args, uint32_t argc, Value& out
   }
   size_t hash = 0;
   if (!runtime_hash_value(runtime, args[0], hash, error)) {
-    runtime.raise_class_error("TypeError", error);
+    runtime.raise_class_error(
+        error == "operation forbidden on released memoryview object" ? "ValueError" : "TypeError",
+        error);
     return false;
   }
   out = Value::int64(static_cast<int64_t>(hash));
@@ -3356,14 +3428,20 @@ void register_functional_builtins(Runtime& runtime) {
   }
   runtime.register_native_builtin("__xlang3_template_interpolation__", builtin_template_interpolation);
   runtime.register_native_builtin("__xlang3_template_literal__", builtin_template_literal);
-  runtime.register_native_builtin("__xlang3_binary_or__", builtin_binary_or);
-  runtime.register_native_builtin("__xlang3_inplace_or__", builtin_inplace_or);
-  runtime.register_native_builtin("__xlang3_inplace_add__", builtin_inplace_add);
+  runtime.register_native_builtin(
+      "__xlang3_binary_or__", builtin_binary_or,
+      builtin_fast_adapter<builtin_binary_or, 2>, true);
+  runtime.register_native_builtin(
+      "__xlang3_inplace_or__", builtin_inplace_or,
+      builtin_fast_adapter<builtin_inplace_or, 2>, true);
+  runtime.register_native_builtin("__xlang3_inplace_add__", builtin_inplace_add, builtin_inplace_add_fast);
   runtime.register_native_builtin("__xlang3_inplace_floor_div__", builtin_inplace_floor_div);
   runtime.register_native_builtin("__xlang3_inplace_matmul__", builtin_inplace_matmul);
   runtime.register_native_builtin("_identity", builtin_identity);
-  runtime.register_native_builtin("super", builtin_super);
-  runtime.register_native_builtin("callable", builtin_callable);
+  runtime.register_native_builtin(
+      "super", builtin_super, builtin_fast_adapter<builtin_super, 2>);
+  runtime.register_native_builtin(
+      "callable", builtin_callable, builtin_callable_fast);
   runtime.register_native_builtin("enumerate", builtin_enumerate, nullptr, false, builtin_enumerate_kw);
   runtime.register_native_builtin("zip", builtin_zip, nullptr, false, builtin_zip_kw);
   runtime.register_native_builtin("reversed", builtin_reversed);
@@ -3371,8 +3449,10 @@ void register_functional_builtins(Runtime& runtime) {
   runtime.register_native_builtin("filter", builtin_filter);
   runtime.register_native_builtin("sum", builtin_sum);
   runtime.register_native_builtin("sorted", builtin_sorted, nullptr, false, builtin_sorted_kw);
-  runtime.register_native_builtin("min", builtin_min, nullptr, false, builtin_min_kw);
-  runtime.register_native_builtin("max", builtin_max, nullptr, false, builtin_max_kw);
+  runtime.register_native_builtin(
+      "min", builtin_min, builtin_variadic_fast_adapter<builtin_min, 4>, true, builtin_min_kw);
+  runtime.register_native_builtin(
+      "max", builtin_max, builtin_variadic_fast_adapter<builtin_max, 4>, true, builtin_max_kw);
   runtime.register_native_builtin("abs", builtin_abs);
   runtime.register_native_builtin("round", builtin_round);
   runtime.register_native_builtin("repr", builtin_repr);
@@ -3381,7 +3461,7 @@ void register_functional_builtins(Runtime& runtime) {
   runtime.register_native_builtin("format", builtin_format);
   runtime.register_native_builtin("__xlang3_fstring_format__", builtin_format);
   runtime.register_native_builtin("hash", builtin_hash);
-  runtime.register_native_builtin("chr", builtin_chr);
+  runtime.register_native_builtin("chr", builtin_chr, builtin_fast_adapter<builtin_chr, 1>);
   runtime.register_native_builtin("bin", builtin_bin);
   runtime.register_native_builtin("oct", builtin_oct);
   runtime.register_native_builtin("hex", builtin_hex);
@@ -3390,10 +3470,14 @@ void register_functional_builtins(Runtime& runtime) {
   runtime.register_native_builtin("all", builtin_all);
   runtime.register_native_builtin("any", builtin_any);
   runtime.register_native_builtin("__import__", builtin_import, nullptr, false, builtin_import_kw);
-  runtime.register_native_builtin("getattr", builtin_getattr);
-  runtime.register_native_builtin("setattr", builtin_setattr);
-  runtime.register_native_builtin("delattr", builtin_delattr);
-  runtime.register_native_builtin("hasattr", builtin_hasattr);
+  runtime.register_native_builtin(
+      "getattr", builtin_getattr, builtin_fast_adapter<builtin_getattr, 3>, true);
+  runtime.register_native_builtin(
+      "setattr", builtin_setattr, builtin_fast_adapter<builtin_setattr, 3>, true);
+  runtime.register_native_builtin(
+      "delattr", builtin_delattr, builtin_fast_adapter<builtin_delattr, 2>, true);
+  runtime.register_native_builtin(
+      "hasattr", builtin_hasattr, builtin_fast_adapter<builtin_hasattr, 2>, true);
   runtime.register_native_builtin("dir", builtin_dir);
   runtime.register_native_builtin("vars", builtin_vars);
   runtime.register_native_builtin("globals", builtin_globals);

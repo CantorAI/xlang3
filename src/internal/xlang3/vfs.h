@@ -52,6 +52,12 @@ public:
   virtual bool make_dirs(const std::string& path, bool exist_ok, std::string& error) = 0;
   virtual bool list_dir(const std::string& path, std::vector<std::string>& out, std::string& error) = 0;
   virtual bool stat(const std::string& path, VfsStat& out, std::string& error) = 0;
+  virtual bool kind(const std::string& path, VfsNodeKind& out, std::string& error) {
+    VfsStat info;
+    if (!stat(path, info, error)) return false;
+    out = info.kind;
+    return true;
+  }
   virtual bool read_link(const std::string&, std::string&, std::string& error) {
     error = "filesystem does not support symbolic links";
     return false;
@@ -69,6 +75,8 @@ public:
   ~Vfs();
 
   void set_root(std::unique_ptr<FileSystem> root);
+  void mount(std::string prefix, std::shared_ptr<FileSystem> filesystem);
+  bool is_mounted_path(const std::string& path) const;
   bool resolve(const std::string& path, ResolvedPath& out, std::string& error);
   bool read_file(const std::string& path, std::vector<uint8_t>& out, std::string& error);
   bool write_file(const std::string& path, const uint8_t* data, std::size_t size, std::string& error);
@@ -77,13 +85,22 @@ public:
   bool make_dirs(const std::string& path, bool exist_ok, std::string& error);
   bool list_dir(const std::string& path, std::vector<std::string>& out, std::string& error);
   bool stat(const std::string& path, VfsStat& out, std::string& error);
+  bool kind(const std::string& path, VfsNodeKind& out, std::string& error);
   bool read_link(const std::string& path, std::string& out, std::string& error);
   const std::string& cwd() const { return current_directory_; }
+  bool uses_host_paths() const { return host_paths_; }
   bool chdir(const std::string& path, std::string& error);
 
 private:
+  struct Mount {
+    std::string prefix;
+    std::shared_ptr<FileSystem> filesystem;
+  };
+
   std::unique_ptr<FileSystem> root_;
+  std::vector<Mount> mounts_;
   std::string current_directory_;
+  bool host_paths_ = false;
 };
 
 } // namespace xlang3

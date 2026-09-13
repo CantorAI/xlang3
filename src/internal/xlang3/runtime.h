@@ -167,10 +167,16 @@ public:
       const std::string& body,
       std::string& error);
   bool import_module(const std::string& name, Value& out, std::string& error, bool* module_not_found = nullptr);
+  void acquire_import_lock();
+  bool release_import_lock();
+  bool import_lock_held() const;
   bool has_registered_module(const std::string& name) const;
+  bool may_have_python_import_miss(const std::string& name) const;
   bool has_python_import_miss(const std::string& key) const;
-  void remember_python_import_miss(std::string key);
+  void remember_python_import_miss(const std::string& name, std::string key);
   void clear_python_import_misses();
+  std::shared_ptr<const std::unordered_set<std::string>> python_import_directory_entries(
+      const std::string& path, std::string& error);
   bool import_from(const std::string& module_name, const std::string& attr_name, Value& out, std::string& error, bool* module_not_found = nullptr);
   bool import_star(const std::string& module_name, Value& target_module, std::string& error, bool* module_not_found = nullptr);
   Vfs& vfs() { return *vfs_; }
@@ -190,12 +196,18 @@ public:
   bool decode_python_source(std::string_view bytes, std::string& source, std::string& error) const;
   void set_trace_function(Value trace_function);
   const Value& trace_function() const;
+  bool trace_event_may_dispatch() const {
+    return trace_possible_.load(std::memory_order_relaxed);
+  }
   bool trace_dispatch_active() const;
   void set_trace_dispatch_active(bool active);
   void set_thread_trace_function(Value trace_function);
   const Value& thread_trace_function() const { return thread_trace_function_; }
   void set_profile_function(Value profile_function);
   const Value& profile_function() const;
+  bool profile_event_may_dispatch() const {
+    return profile_possible_.load(std::memory_order_relaxed);
+  }
   bool profile_dispatch_active() const;
   void set_profile_dispatch_active(bool active);
   bool emit_profile_event(const char* event_name, const Value& arg, std::string& error);
@@ -210,17 +222,22 @@ public:
   void push_current_frame_state();
   void pop_current_frame_state();
   void set_current_frame_stack(const RuntimeFrameView* frames, size_t count);
+  void publish_current_frame_for_thread_inspection();
   void release_dead_frame_registers();
   void clear_current_frame();
   Value current_frame_snapshot() const;
   void track_live_frame_snapshot(const Value& frame);
   void refresh_live_frame_snapshots(bool refresh_traceback_locals = false);
+  void retire_live_frame_snapshot(
+      uint64_t activation_id, uint32_t instruction_index,
+      const Value* local_values, size_t local_count);
   uint64_t allocate_frame_activation_id();
   uint32_t current_frame_function_id() const;
   const std::shared_ptr<const ir::Module>* current_frame_module_owner() const;
   void set_current_frame_locals(const std::vector<std::string>* names, const Value* values, size_t count);
   void clear_current_frame_locals();
   Value current_locals_snapshot() const;
+  Value code_object(std::shared_ptr<const ir::Module> module, uint32_t function_id);
   Value current_frame_snapshots(const std::vector<int64_t>& live_thread_ids) const;
   Value current_exception_snapshots(const std::vector<int64_t>& live_thread_ids) const;
   void set_debug_hook(Value hook);
@@ -265,8 +282,10 @@ private:
   Value current_globals_module_;
   Value trace_function_;
   Value thread_trace_function_;
+  std::atomic_bool trace_possible_{false};
   Value profile_function_;
   Value thread_profile_function_;
+  std::atomic_bool profile_possible_{false};
   Value debug_hook_;
   bool debug_dispatch_active_ = false;
   bool debug_poll_needed_ = false;
@@ -281,6 +300,9 @@ private:
   std::vector<RuntimeDebugBreakpoint> debug_breakpoints_;
   mutable std::mutex live_frame_snapshots_mutex_;
   mutable std::vector<Value> live_frame_snapshots_;
+  mutable std::unordered_map<uint64_t, FrameObject*> live_frame_snapshot_index_;
+  mutable std::atomic<bool> has_live_frame_snapshots_{false};
+  mutable uint32_t live_frame_prune_ticks_ = 0;
   const std::shared_ptr<const ir::Module>* current_frame_module_owner_ = nullptr;
   const Value* current_frame_globals_module_ = nullptr;
   uint32_t current_frame_function_id_ = 0;
@@ -295,12 +317,24 @@ private:
   std::unordered_map<std::string, Value> builtins_;
   std::unordered_map<std::string, Value> modules_;
   mutable std::recursive_mutex import_mutex_;
+  mutable std::mutex import_lock_state_mutex_;
+  std::thread::id import_lock_owner_;
+  uint32_t import_lock_depth_ = 0;
   mutable std::mutex python_import_misses_mutex_;
+  std::unordered_set<std::string> python_import_miss_names_;
   std::unordered_set<std::string> python_import_misses_;
+  struct PythonImportDirectoryCacheEntry {
+    int64_t mtime_ns = 0;
+    std::shared_ptr<const std::unordered_set<std::string>> entries;
+  };
+  mutable std::mutex python_import_directory_cache_mutex_;
+  std::unordered_map<std::string, PythonImportDirectoryCacheEntry> python_import_directory_cache_;
   Value modules_dict_;
   std::vector<std::pair<void*, void (*)(void*)>> native_package_cleanups_;
   std::vector<Value> serialized_objects_;
   std::unordered_map<std::string, Value> native_symbols_;
+  std::mutex code_objects_mutex_;
+  std::unordered_map<const ir::Module*, std::vector<Value>> code_objects_;
   std::unordered_map<std::string, std::shared_ptr<NativeSerializationCodec>> native_codecs_;
   std::vector<std::vector<std::string>> native_codec_registrations_;
   std::unordered_map<std::string, RawBlockHandler> raw_block_handlers_;

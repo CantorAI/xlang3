@@ -68,7 +68,14 @@ XLANG3_HOT_INLINE bool analyze_const_method(const ir::Module& current_module, co
     return false;
   }
   const auto& function = fn_module->functions[fn_obj.function_id];
-  if (function.params.size() != 1 || function.free_vars.size() != 0 || function.cell_slots.size() != 0 ||
+  if (!function.is_generator && function.params.size() == 1 &&
+      function.free_vars.empty() && function.cell_slots.empty() &&
+      !function.code.empty() && function.code[0].op == ir::Op::ReturnConst &&
+      function.code[0].a < function.constants.size()) {
+    value_assign_fast(out, function.constants[function.code[0].a]);
+    return true;
+  }
+  if (function.is_generator || function.params.size() != 1 || function.free_vars.size() != 0 || function.cell_slots.size() != 0 ||
       function.code.size() < 2) {
     return false;
   }
@@ -95,7 +102,7 @@ XLANG3_HOT_INLINE bool execute_inline_small_self_method(
     return false;
   }
   const auto& function = fn_module->functions[fn_obj.function_id];
-  if (function.params.size() != 1 || function.free_vars.size() != 0 || function.cell_slots.size() != 0 ||
+  if (function.is_generator || function.params.size() != 1 || function.free_vars.size() != 0 || function.cell_slots.size() != 0 ||
       function.register_count > 16 || function.code.size() > 16) {
     return false;
   }
@@ -120,6 +127,31 @@ XLANG3_HOT_INLINE bool execute_inline_small_self_method(
         }
         value_assign_fast(temp_regs[op.dst], self);
         break;
+      case ir::Op::LoadLocalPair:
+        if (op.a != 0 || op.c != 0 || op.b >= temp_regs.size()) {
+          supported = false;
+          return false;
+        }
+        value_assign_fast(temp_regs[op.dst], self);
+        value_assign_fast(temp_regs[op.b], self);
+        break;
+      case ir::Op::LoadLocalConst:
+        if (op.a != 0 || op.b >= temp_regs.size() || op.c >= function.constants.size()) {
+          supported = false;
+          return false;
+        }
+        value_assign_fast(temp_regs[op.dst], self);
+        value_assign_fast(temp_regs[op.b], function.constants[op.c]);
+        break;
+      case ir::Op::LoadConstPair:
+        if (op.a >= function.constants.size() || op.b >= temp_regs.size() ||
+            op.c >= function.constants.size()) {
+          supported = false;
+          return false;
+        }
+        value_assign_fast(temp_regs[op.dst], function.constants[op.a]);
+        value_assign_fast(temp_regs[op.b], function.constants[op.c]);
+        break;
       case ir::Op::LoadConst:
         if (op.a >= function.constants.size()) {
           supported = false;
@@ -133,6 +165,24 @@ XLANG3_HOT_INLINE bool execute_inline_small_self_method(
           return false;
         }
         auto* instance = value_as_instance(temp_regs[op.a]);
+        if (instance == nullptr || op.b >= instance_slot_count(instance)) {
+          error = "invalid instance slot load";
+          return false;
+        }
+        const auto& slot = instance_slot_at(instance, op.b);
+        if (slot.tag == ValueTag::Invalid) {
+          error = "object has no attribute";
+          return false;
+        }
+        value_assign_fast(temp_regs[op.dst], slot);
+        break;
+      }
+      case ir::Op::LoadLocalInstanceSlot: {
+        if (op.a != 0) {
+          supported = false;
+          return false;
+        }
+        auto* instance = value_as_instance(self);
         if (instance == nullptr || op.b >= instance_slot_count(instance)) {
           error = "invalid instance slot load";
           return false;
@@ -217,6 +267,15 @@ XLANG3_HOT_INLINE bool execute_inline_small_self_method(
           return false;
         }
         break;
+      case ir::Op::Len:
+        if (op.a >= temp_regs.size() ||
+            !sequence_len(temp_regs[op.a], temp_regs[op.dst], error)) {
+          // User-defined __len__ needs a normal frame and may be observable.
+          supported = false;
+          error.clear();
+          return false;
+        }
+        break;
       case ir::Op::Mod:
         // Percent formatting may invoke Python __str__ and __repr__. Execute
         // it in the normal VM path, which has the Runtime needed for dispatch.
@@ -228,6 +287,20 @@ XLANG3_HOT_INLINE bool execute_inline_small_self_method(
           return false;
         }
         value_assign_fast(out, temp_regs[op.a]);
+        return true;
+      case ir::Op::ReturnConst:
+        if (op.a >= function.constants.size()) {
+          supported = false;
+          return false;
+        }
+        value_assign_fast(out, function.constants[op.a]);
+        return true;
+      case ir::Op::ReturnLocal:
+        if (op.a != 0) {
+          supported = false;
+          return false;
+        }
+        value_assign_fast(out, self);
         return true;
       default:
         supported = false;
@@ -250,7 +323,7 @@ XLANG3_HOT_INLINE bool analyze_self_slot_const_sum_method(
     return false;
   }
   const auto& function = fn_module->functions[fn_obj.function_id];
-  if (function.params.size() != 1 || function.free_vars.size() != 0 || function.cell_slots.size() != 0 ||
+  if (function.is_generator || function.params.size() != 1 || function.free_vars.size() != 0 || function.cell_slots.size() != 0 ||
       function.register_count > 16 || function.code.size() > 16) {
     return false;
   }
@@ -279,8 +352,40 @@ XLANG3_HOT_INLINE bool analyze_self_slot_const_sum_method(
         }
         values[instr.dst].kind = Kind::Self;
         break;
+      case ir::Op::LoadLocalPair:
+        if (instr.a != 0 || instr.c != 0 || instr.b >= values.size()) {
+          return false;
+        }
+        values[instr.dst].kind = Kind::Self;
+        values[instr.b].kind = Kind::Self;
+        break;
+      case ir::Op::LoadLocalConst:
+        if (instr.a != 0 || instr.b >= values.size() || instr.c >= function.constants.size()) {
+          return false;
+        }
+        values[instr.dst].kind = Kind::Self;
+        values[instr.b].kind = Kind::Const;
+        value_assign_fast(values[instr.b].constant, function.constants[instr.c]);
+        break;
+      case ir::Op::LoadConstPair:
+        if (instr.a >= function.constants.size() || instr.b >= values.size() ||
+            instr.c >= function.constants.size()) {
+          return false;
+        }
+        values[instr.dst].kind = Kind::Const;
+        value_assign_fast(values[instr.dst].constant, function.constants[instr.a]);
+        values[instr.b].kind = Kind::Const;
+        value_assign_fast(values[instr.b].constant, function.constants[instr.c]);
+        break;
       case ir::Op::LoadInstanceSlot:
         if (instr.a >= values.size() || values[instr.a].kind != Kind::Self) {
+          return false;
+        }
+        values[instr.dst].kind = Kind::Slot;
+        values[instr.dst].slot = instr.b;
+        break;
+      case ir::Op::LoadLocalInstanceSlot:
+        if (instr.a != 0) {
           return false;
         }
         values[instr.dst].kind = Kind::Slot;
@@ -388,7 +493,15 @@ XLANG3_HOT_INLINE bool analyze_self_slot_method(
     return false;
   }
   const auto& function = fn_module->functions[fn_obj.function_id];
-  if (function.params.size() != 1 || function.free_vars.size() != 0 || function.cell_slots.size() != 0 ||
+  if (!function.is_generator && function.params.size() == 1 &&
+      function.free_vars.empty() && function.cell_slots.empty() &&
+      function.code.size() >= 2 &&
+      function.code[0].op == ir::Op::LoadLocalInstanceSlot && function.code[0].a == 0 &&
+      function.code[1].op == ir::Op::Return && function.code[1].a == function.code[0].dst) {
+    slot = function.code[0].b;
+    return true;
+  }
+  if (function.is_generator || function.params.size() != 1 || function.free_vars.size() != 0 || function.cell_slots.size() != 0 ||
       function.code.size() < 3) {
     return false;
   }

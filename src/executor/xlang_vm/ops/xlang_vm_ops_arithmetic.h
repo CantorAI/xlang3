@@ -61,6 +61,37 @@ XLANG3_HOT_INLINE XlangVMOpFlow add(const ir::Instr& in, XlangVMSmallRegisterBuf
   return binary_arithmetic(in, regs, fast_add, value_add, std::forward<RaiseRuntimeError>(raise_runtime_error));
 }
 
+template <typename RaiseRuntimeError, typename RaiseExceptionValue>
+XLANG3_HOT_INLINE XlangVMOpFlow inplace_add(
+    const ir::Instr& in,
+    Runtime& runtime,
+    XlangVMSmallRegisterBuffer& regs,
+    RaiseRuntimeError&& raise_runtime_error,
+    RaiseExceptionValue&& raise_exception_value) {
+  const Value& lhs = regs[in.a];
+  const Value& rhs = regs[in.b];
+  if (fast_add(lhs, rhs, regs[in.dst])) {
+    return XlangVMOpFlow::Next;
+  }
+  const Value* callable = runtime.find_builtin("__xlang3_inplace_add__");
+  if (callable == nullptr) {
+    return raise_runtime_error("in-place addition is unavailable")
+        ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+  }
+  Value args[2] = {lhs, rhs};
+  std::string error;
+  if (runtime_call_callable(runtime, *callable, args, 2, regs[in.dst], error)) {
+    return XlangVMOpFlow::Next;
+  }
+  Value pending;
+  if (runtime.take_pending_exception(pending)) {
+    return raise_exception_value(std::move(pending))
+        ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+  }
+  return raise_runtime_error(error)
+      ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+}
+
 template <typename RaiseRuntimeError>
 XLANG3_HOT_INLINE XlangVMOpFlow sub(const ir::Instr& in, XlangVMSmallRegisterBuffer& regs, RaiseRuntimeError&& raise_runtime_error) {
   return binary_arithmetic(in, regs, fast_sub, value_sub, std::forward<RaiseRuntimeError>(raise_runtime_error));
@@ -717,18 +748,17 @@ XLANG3_HOT_INLINE bool try_rich_compare(
 }
 
 template <typename RaiseRuntimeError, typename RaiseExceptionValue>
-XLANG3_HOT_INLINE XlangVMOpFlow compare(
-    const ir::Instr& in,
+XLANG3_HOT_INLINE XlangVMOpFlow compare_values(
+    ir::CompareOp op,
+    const Value& lhs,
+    const Value& rhs,
+    Value& out,
     Runtime& runtime,
-    XlangVMSmallRegisterBuffer& regs,
     RaiseRuntimeError&& raise_runtime_error,
     RaiseExceptionValue&& raise_exception_value) {
-  const auto& lhs = regs[in.a];
-  const auto& rhs = regs[in.b];
-  const auto op = static_cast<ir::CompareOp>(in.c);
-  if (!fast_compare(op, lhs, rhs, regs[in.dst])) {
+  if (!fast_compare(op, lhs, rhs, out)) {
     std::string error;
-    if (!runtime_value_compare(runtime, compare_name(op), lhs, rhs, regs[in.dst], error)) {
+    if (!runtime_value_compare(runtime, compare_name(op), lhs, rhs, out, error)) {
       Value pending;
       if (runtime.take_pending_exception(pending)) {
         return raise_exception_value(std::move(pending))
@@ -749,8 +779,83 @@ XLANG3_HOT_INLINE XlangVMOpFlow compare(
   return XlangVMOpFlow::Next;
 }
 
+template <typename RaiseRuntimeError, typename RaiseExceptionValue>
+XLANG3_HOT_INLINE XlangVMOpFlow compare(
+    const ir::Instr& in,
+    Runtime& runtime,
+    XlangVMSmallRegisterBuffer& regs,
+    RaiseRuntimeError&& raise_runtime_error,
+    RaiseExceptionValue&& raise_exception_value) {
+  return compare_values(
+      static_cast<ir::CompareOp>(in.c), regs[in.a], regs[in.b], regs[in.dst], runtime,
+      std::forward<RaiseRuntimeError>(raise_runtime_error),
+      std::forward<RaiseExceptionValue>(raise_exception_value));
+}
+
+template <typename EmitMonitoringEvent, typename RaiseRuntimeError, typename RaiseExceptionValue>
+XLANG3_HOT_INLINE XlangVMOpFlow compare_jump_if_false(
+    const ir::Instr& in,
+    Runtime& runtime,
+    XlangVMSmallRegisterBuffer& regs,
+    size_t& ip,
+    EmitMonitoringEvent&& emit_monitoring_event,
+    RaiseRuntimeError&& raise_runtime_error,
+    RaiseExceptionValue&& raise_exception_value) {
+  Value comparison;
+  const auto flow = compare_values(
+      static_cast<ir::CompareOp>(in.c), regs[in.a], regs[in.b], comparison, runtime,
+      std::forward<RaiseRuntimeError>(raise_runtime_error),
+      std::forward<RaiseExceptionValue>(raise_exception_value));
+  if (flow != XlangVMOpFlow::Next) return flow;
+
+  bool condition = false;
+  std::string error;
+  if (!runtime_truthy(runtime, comparison, condition, error)) {
+    Value pending;
+    if (runtime.take_pending_exception(pending)) {
+      return raise_exception_value(std::move(pending))
+          ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    }
+    return raise_runtime_error(error)
+        ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+  }
+  const uint32_t destination_offset = condition ? static_cast<uint32_t>(ip + 1) : in.dst;
+  Value destination = Value::int64(static_cast<int64_t>(destination_offset));
+  if (!emit_monitoring_event(
+          condition ? kSysMonitoringEventBranchLeft : kSysMonitoringEventBranchRight,
+          &destination)) {
+    return XlangVMOpFlow::ReturnResult;
+  }
+  if (!condition) {
+    ip = in.dst;
+    return XlangVMOpFlow::ContinueLoop;
+  }
+  return XlangVMOpFlow::Next;
+}
+
 XLANG3_HOT_INLINE void is_op(const ir::Instr& in, XlangVMSmallRegisterBuffer& regs) {
   value_set_bool(regs[in.dst], value_is(regs[in.a], regs[in.b]) != (in.c != 0));
+}
+
+template <typename EmitMonitoringEvent>
+XLANG3_HOT_INLINE XlangVMOpFlow is_jump_if_false(
+    const ir::Instr& in,
+    XlangVMSmallRegisterBuffer& regs,
+    size_t& ip,
+    EmitMonitoringEvent&& emit_monitoring_event) {
+  const bool condition = value_is(regs[in.a], regs[in.b]) != (in.c != 0);
+  const uint32_t destination_offset = condition ? static_cast<uint32_t>(ip + 1) : in.dst;
+  Value destination = Value::int64(static_cast<int64_t>(destination_offset));
+  if (!emit_monitoring_event(
+          condition ? kSysMonitoringEventBranchLeft : kSysMonitoringEventBranchRight,
+          &destination)) {
+    return XlangVMOpFlow::ReturnResult;
+  }
+  if (!condition) {
+    ip = in.dst;
+    return XlangVMOpFlow::ContinueLoop;
+  }
+  return XlangVMOpFlow::Next;
 }
 
 template <typename RaiseRuntimeError>

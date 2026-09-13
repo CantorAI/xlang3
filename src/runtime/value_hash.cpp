@@ -201,6 +201,18 @@ bool value_key_equal(const Value& lhs, const Value& rhs) {
               value_is(left->function, right->function);
         }
       }
+      if (auto* left_code = value_as_code(lhs)) {
+        auto* right_code = value_as_code(rhs);
+        return right_code != nullptr &&
+            left_code->module.get() == right_code->module.get() &&
+            left_code->function_id == right_code->function_id &&
+            left_code->mode == right_code->mode &&
+            left_code->filename_override == right_code->filename_override &&
+            left_code->name_override == right_code->name_override &&
+            left_code->qualname_override == right_code->qualname_override &&
+            left_code->first_line_override == right_code->first_line_override &&
+            left_code->flags_override == right_code->flags_override;
+      }
       if (auto* left_instance = value_as_instance(lhs)) {
         auto* left_class = value_as_class(left_instance->klass);
         auto* right_instance = value_as_instance(rhs);
@@ -300,6 +312,21 @@ bool value_hash_key(const Value& value, size_t& out, std::string& error) {
           hash ^= tuple->items.size();
         }
         out = hash == static_cast<size_t>(-1) ? static_cast<size_t>(-2) : hash;
+        return true;
+      }
+      if (auto* code = value_as_code(value)) {
+        auto combine = [](size_t seed, size_t item) {
+          return seed ^ (item + static_cast<size_t>(0x9e3779b9u) + (seed << 6) + (seed >> 2));
+        };
+        size_t hash = std::hash<const void*>{}(code->module.get());
+        hash = combine(hash, std::hash<uint32_t>{}(code->function_id));
+        hash = combine(hash, std::hash<std::string>{}(code->mode));
+        hash = combine(hash, std::hash<std::string>{}(code->filename_override));
+        hash = combine(hash, std::hash<std::string>{}(code->name_override));
+        hash = combine(hash, std::hash<std::string>{}(code->qualname_override));
+        hash = combine(hash, std::hash<int64_t>{}(code->first_line_override));
+        hash = combine(hash, std::hash<int64_t>{}(code->flags_override));
+        out = hash;
         return true;
       }
       if (value.as.obj != nullptr) {

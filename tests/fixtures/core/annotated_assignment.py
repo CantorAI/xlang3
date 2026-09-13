@@ -27,5 +27,15 @@ def f():
     later: "int"
     print(local)
 
+class AnnotationCapture:
+    Alias = int
+    direct: Alias
+    if True:
+        nested: Alias
+
 print(x, items[0], box.value)
 f()
+print(
+    AnnotationCapture.__annotations__["direct"] is int,
+    AnnotationCapture.__annotations__["nested"] is int,
+)

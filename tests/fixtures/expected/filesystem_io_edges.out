@@ -1,0 +1,23 @@
+os-open-missing True True True True
+os-open-exclusive True True True True
+os-open-directory True True True True
+lseek-invalid-how True True True True
+close-invalid True True True True
+read-invalid True True True True
+write-invalid True True True True
+lseek-invalid True True True True
+dup-invalid True True True True
+get-inherit-invalid True True True True
+set-inherit-invalid True True True True
+fstat-invalid True True True True
+fd-wrapper True True
+closefd-false True
+custom-opener-write True
+custom-opener-call True True
+buffer-newline True
+read-size-index True
+lseek-index True
+fstat-index True
+dup-index True True
+inherit-index True
+fd-overflow True

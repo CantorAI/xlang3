@@ -1244,14 +1244,21 @@ bool code_lines_method(
   }
   const auto& fn = code->module->functions[code->function_id];
   std::vector<Value> ranges;
-  ranges.reserve(fn.source_lines.size());
-  for (size_t i = 0; i < fn.source_lines.size(); ++i) {
-    const int64_t line = fn.source_lines[i] == 0 ? -1 : static_cast<int64_t>(fn.source_lines[i]);
+  ranges.reserve(fn.source_lines.size() / 2 + 1);
+  size_t range_start = 0;
+  while (range_start < fn.source_lines.size()) {
+    const uint32_t source_line = fn.source_lines[range_start];
+    size_t range_end = range_start + 1;
+    while (range_end < fn.source_lines.size() && fn.source_lines[range_end] == source_line) {
+      ++range_end;
+    }
+    const int64_t line = source_line == 0 ? -1 : static_cast<int64_t>(source_line);
     ranges.push_back(Value::tuple({
-        Value::int64(static_cast<int64_t>(i * 2)),
-        Value::int64(static_cast<int64_t>((i + 1) * 2)),
+        Value::int64(static_cast<int64_t>(range_start * 2)),
+        Value::int64(static_cast<int64_t>(range_end * 2)),
         line < 0 ? Value::none() : Value::int64(line),
     }));
+    range_start = range_end;
   }
   out = Value::sequence_iterator(Value::tuple(std::move(ranges)), 0);
   return true;
@@ -1310,6 +1317,29 @@ bool code_positions_method(
   return true;
 }
 
+bool code_branches_method(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 1) {
+    error = "code.co_branches expected no arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (value_as_code(args[0]) == nullptr) {
+    error = "invalid code object";
+    runtime.raise_class_error("RuntimeError", error);
+    return false;
+  }
+  // XLang IR has no CPython bytecode branch offsets. Preserve the Python 3.14
+  // inspection protocol without exposing invented instruction locations.
+  out = Value::sequence_iterator(Value::tuple({}), 0);
+  return true;
+}
+
 bool code_varname_from_oparg_method(
     Runtime& runtime,
     const Value* args,
@@ -1361,6 +1391,8 @@ bool code_replace_method(
   auto* replaced = value_as_code(out);
   if (replaced != nullptr) {
     replaced->filename_override = code->filename_override;
+    replaced->name_override = code->name_override;
+    replaced->qualname_override = code->qualname_override;
     replaced->first_line_override = code->first_line_override;
     replaced->flags_override = code->flags_override;
   }
@@ -1391,6 +1423,8 @@ bool frame_clear_method(
     return false;
   }
   frame->locals = Value::dict({});
+  frame->local_snapshot.clear();
+  frame->has_lazy_locals = false;
   value_set_none(out);
   return true;
 }
@@ -1424,6 +1458,18 @@ bool code_replace_method_kw(
         return false;
       }
       replaced->filename_override = string_object_to_string(*filename);
+    } else if (name == "co_name" || name == "co_qualname") {
+      auto* text = value_as_string(value);
+      if (text == nullptr) {
+        error = name + " must be str";
+        runtime.raise_class_error("TypeError", error);
+        return false;
+      }
+      if (name == "co_name") {
+        replaced->name_override = string_object_to_string(*text);
+      } else {
+        replaced->qualname_override = string_object_to_string(*text);
+      }
     } else if (name == "co_firstlineno") {
       if (value.tag != ValueTag::Int64) {
         error = "co_firstlineno must be int";
@@ -1461,7 +1507,7 @@ bool code_replace_method_kw(
         name == "co_nlocals" || name == "co_stacksize" ||
         name == "co_code" || name == "co_names" ||
         name == "co_varnames" || name == "co_freevars" || name == "co_cellvars" ||
-        name == "co_name" || name == "co_qualname" || name == "co_linetable" ||
+        name == "co_linetable" ||
         name == "co_exceptiontable") {
       continue;
     } else {
@@ -1553,6 +1599,8 @@ Value Value::class_object(
   v.tag = ValueTag::Object;
   auto* obj = allocate_object_model<ClassObject>(ObjectKind::Class);
   obj->name = std::move(name);
+  obj->attrs.reserve(attrs.size() + instance_slots.size() + 1);
+  obj->definition_attr_order.reserve(attrs.size());
   obj->base = std::move(base);
   obj->metaclass = std::move(metaclass);
   obj->globals_module = std::move(globals_module);
@@ -1588,10 +1636,13 @@ Value Value::class_object(
       collect_slot_names_from_value(attr.second, obj->instance_slot_names, obj->allow_instance_dict, obj->allow_weakref);
     }
     update_special_attr_flags(*obj, attr.first);
-    if (obj->attrs.find(attr.first) == obj->attrs.end()) {
-      obj->definition_attr_order.push_back(attr.first);
+    std::string attr_name = std::move(attr.first);
+    auto [position, inserted] = obj->attrs.try_emplace(attr_name, std::move(attr.second));
+    if (inserted) {
+      obj->definition_attr_order.push_back(std::move(attr_name));
+    } else {
+      position->second = std::move(attr.second);
     }
-    obj->attrs[std::move(attr.first)] = std::move(attr.second);
   }
   if (obj->attrs.find("__qualname__") == obj->attrs.end()) {
     obj->attrs.emplace("__qualname__", Value::string(obj->name));
@@ -2610,45 +2661,45 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       return true;
     }
     if (name == "__get__") {
+      static const Value get_function = Value::native_function(
+          0,
+          "member_descriptor.__get__",
+          slot_descriptor_get_method,
+          const_cast<char*>("__get__"),
+          nullptr,
+          builtin_fast_adapter<slot_descriptor_get_method, 3>,
+          false,
+          slot_descriptor_no_keyword_method);
       out = Value::bound_method(
-          object,
-          Value::native_function(
-              0,
-              "member_descriptor.__get__",
-              slot_descriptor_get_method,
-              const_cast<char*>("__get__"),
-              nullptr,
-              nullptr,
-              false,
-              slot_descriptor_no_keyword_method));
+          object, get_function);
       return true;
     }
     if (name == "__set__") {
+      static const Value set_function = Value::native_function(
+          0,
+          "member_descriptor.__set__",
+          slot_descriptor_set_method,
+          const_cast<char*>("__set__"),
+          nullptr,
+          builtin_fast_adapter<slot_descriptor_set_method, 3>,
+          false,
+          slot_descriptor_no_keyword_method);
       out = Value::bound_method(
-          object,
-          Value::native_function(
-              0,
-              "member_descriptor.__set__",
-              slot_descriptor_set_method,
-              const_cast<char*>("__set__"),
-              nullptr,
-              nullptr,
-              false,
-              slot_descriptor_no_keyword_method));
+          object, set_function);
       return true;
     }
     if (name == "__delete__") {
+      static const Value delete_function = Value::native_function(
+          0,
+          "member_descriptor.__delete__",
+          slot_descriptor_delete_method,
+          const_cast<char*>("__delete__"),
+          nullptr,
+          builtin_fast_adapter<slot_descriptor_delete_method, 2>,
+          false,
+          slot_descriptor_no_keyword_method);
       out = Value::bound_method(
-          object,
-          Value::native_function(
-              0,
-              "member_descriptor.__delete__",
-              slot_descriptor_delete_method,
-              const_cast<char*>("__delete__"),
-              nullptr,
-              nullptr,
-              false,
-              slot_descriptor_no_keyword_method));
+          object, delete_function);
       return true;
     }
     error = "member descriptor has no attribute '" + name + "'";
@@ -2771,15 +2822,21 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       return true;
     }
     if (name == "ndim") {
-      value_set_int64(out, 1);
+      value_set_int64(out, static_cast<int64_t>(view->shape.empty() ? 1 : view->shape.size()));
       return true;
     }
     if (name == "shape") {
-      out = Value::tuple({Value::int64(static_cast<int64_t>(memoryview_item_count(*view)))});
+      std::vector<Value> dimensions;
+      if (view->shape.empty()) dimensions.push_back(Value::int64(static_cast<int64_t>(memoryview_item_count(*view))));
+      else for (const auto dimension : view->shape) dimensions.push_back(Value::int64(dimension));
+      out = Value::tuple(std::move(dimensions));
       return true;
     }
     if (name == "strides") {
-      out = Value::tuple({Value::int64(static_cast<int64_t>(memoryview_format_itemsize(view->format)))});
+      std::vector<Value> strides;
+      if (view->strides.empty()) strides.push_back(Value::int64(static_cast<int64_t>(memoryview_format_itemsize(view->format))));
+      else for (const auto stride : view->strides) strides.push_back(Value::int64(stride));
+      out = Value::tuple(std::move(strides));
       return true;
     }
     if (name == "suboffsets") {
@@ -2917,7 +2974,7 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       if (function->globals_dict.tag != ValueTag::Invalid) {
         value_assign_fast(out, function->globals_dict);
       } else {
-        value_assign_fast(out, function->globals_module);
+        out = module_namespace_dict(function->globals_module);
       }
       return true;
     }
@@ -2958,11 +3015,14 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
     }
     const auto& fn = code->module->functions[code->function_id];
     if (name == "co_name") {
-      out = Value::string(fn.name);
+      out = Value::string(code->name_override.empty() ? fn.name : code->name_override);
       return true;
     }
     if (name == "co_qualname") {
-      out = Value::string(fn.qualname.empty() ? fn.name : fn.qualname);
+      out = Value::string(
+          code->qualname_override.empty()
+              ? (fn.qualname.empty() ? fn.name : fn.qualname)
+              : code->qualname_override);
       return true;
     }
     if (name == "co_filename") {
@@ -3129,7 +3189,7 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       out = Value::bytes(code_object_compat_bytecode(*code->module, fn));
       return true;
     }
-    if (name == "co_linetable" || name == "co_exceptiontable") {
+    if (name == "co_linetable" || name == "co_lnotab" || name == "co_exceptiontable") {
       out = Value::bytes({});
       return true;
     }
@@ -3139,6 +3199,10 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
     }
     if (name == "co_positions") {
       out = Value::bound_method(object, Value::native_function(0, "code.co_positions", code_positions_method));
+      return true;
+    }
+    if (name == "co_branches") {
+      out = Value::bound_method(object, Value::native_function(0, "code.co_branches", code_branches_method));
       return true;
     }
     if (name == "_varname_from_oparg") {
@@ -3168,7 +3232,7 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       return true;
     }
     if (name == "f_globals") {
-      value_assign_fast(out, frame->globals_module);
+      out = module_namespace_dict(frame->globals_module);
       return true;
     }
     if (name == "f_builtins") {
@@ -3196,6 +3260,7 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       return true;
     }
     if (name == "f_locals") {
+      frame_materialize_locals(*frame);
       if (frame->locals.tag == ValueTag::Invalid) {
         out = Value::dict({});
       } else {
@@ -3203,16 +3268,24 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       }
       return true;
     }
-    if (name == "f_trace") {
+    if (name == "f_generator") {
       value_set_none(out);
       return true;
     }
+    if (name == "f_trace") {
+      if (frame->trace.tag == ValueTag::Invalid) {
+        value_set_none(out);
+      } else {
+        value_assign_fast(out, frame->trace);
+      }
+      return true;
+    }
     if (name == "f_trace_lines") {
-      value_set_bool(out, true);
+      value_set_bool(out, frame->trace_lines);
       return true;
     }
     if (name == "f_trace_opcodes") {
-      value_set_bool(out, false);
+      value_set_bool(out, frame->trace_opcodes);
       return true;
     }
     if (name == "clear") {
@@ -4213,6 +4286,10 @@ bool object_set_attr(Value& object, const std::string& name, const Value& value,
         error = "f_lineno must be an integer";
         return false;
       }
+      if (!frame->allow_line_jump) {
+        error = "f_lineno can only be set in a trace function";
+        return false;
+      }
       if (frame->module != nullptr && frame->function_id < frame->module->functions.size()) {
         const auto& fn = frame->module->functions[frame->function_id];
         for (size_t i = 0; i < fn.source_lines.size(); ++i) {
@@ -4225,7 +4302,16 @@ bool object_set_attr(Value& object, const std::string& name, const Value& value,
       error = "line is not in current frame";
       return false;
     }
-    if (name == "f_trace" || name == "f_trace_lines" || name == "f_trace_opcodes") {
+    if (name == "f_trace") {
+      value_assign_fast(frame->trace, value);
+      return true;
+    }
+    if (name == "f_trace_lines") {
+      frame->trace_lines = value_truthy(value);
+      return true;
+    }
+    if (name == "f_trace_opcodes") {
+      frame->trace_opcodes = value_truthy(value);
       return true;
     }
     error = "frame attribute '" + name + "' is read-only";
@@ -4237,16 +4323,18 @@ bool object_set_attr(Value& object, const std::string& name, const Value& value,
         error = "tb_next must be a traceback or None";
         return false;
       }
+      for (Value cursor = value; auto* next = value_as_traceback(cursor); cursor = next->next) {
+        if (&next->header == &traceback->header) {
+          error = "traceback loop detected";
+          return false;
+        }
+      }
       value_assign_fast(traceback->next, value);
       return true;
     }
     if (name == "tb_lineno") {
-      if (value.tag != ValueTag::Int64) {
-        error = "tb_lineno must be an integer";
-        return false;
-      }
-      traceback->line = value.as.i64;
-      return true;
+      error = "traceback attribute 'tb_lineno' is read-only";
+      return false;
     }
     error = "traceback attribute '" + name + "' is read-only";
     return false;

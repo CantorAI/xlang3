@@ -178,7 +178,7 @@ bool iterator_setstate_method(Runtime& runtime, const Value* args, uint32_t argc
   return true;
 }
 
-static constexpr BuiltinMethodSpec kIteratorMethods[] = {
+static BuiltinMethodSpec kIteratorMethods[] = {
     {"__iter__", "iterator.__iter__", iterator_iter_method},
     {"__next__", "iterator.__next__", iterator_next_method},
     {"__reduce__", "iterator.__reduce__", iterator_reduce_method},

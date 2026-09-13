@@ -26,6 +26,24 @@ namespace xlang3 {
 
 namespace {
 
+bool is_thread_callable(const Value& value) {
+  if (value_as_function(value) != nullptr ||
+      value_as_native_function(value) != nullptr ||
+      value_as_bound_method(value) != nullptr ||
+      value_as_static_method(value) != nullptr ||
+      value_as_class(value) != nullptr ||
+      value_as_event(value) != nullptr ||
+      value_as_generic_alias(value) != nullptr) {
+    return true;
+  }
+  if (value_as_instance(value) != nullptr) {
+    Value call_attr;
+    std::string ignored;
+    return object_get_class_attr_for_instance(value, "__call__", call_attr, ignored);
+  }
+  return false;
+}
+
 bool thread_start_new_thread(
     Runtime& runtime,
     const Value* args,
@@ -38,8 +56,7 @@ bool thread_start_new_thread(
     error = "_thread.start_new_thread() expected function, args, and optional kwargs";
     return false;
   }
-  if (value_as_function(args[0]) == nullptr && value_as_native_function(args[0]) == nullptr &&
-      value_as_bound_method(args[0]) == nullptr) {
+  if (!is_thread_callable(args[0])) {
     error = "_thread.start_new_thread() first argument must be callable";
     return false;
   }
@@ -66,12 +83,6 @@ bool thread_start_new_thread(
   }
   value_set_int64(out, ident);
   return true;
-}
-
-bool is_thread_callable(const Value& value) {
-  return value_as_function(value) != nullptr ||
-      value_as_native_function(value) != nullptr ||
-      value_as_bound_method(value) != nullptr;
 }
 
 const Value* find_keyword(const NativeKeywordArg* kwargs, uint32_t kwargc, const char* name) {
@@ -188,7 +199,15 @@ bool thread_get_main_thread_ident(
     Value& out,
     std::string& error,
     void* user_data) {
-  return thread_get_ident(runtime, args, argc, out, error, user_data);
+  (void)runtime;
+  (void)args;
+  (void)user_data;
+  if (argc != 0) {
+    error = "_thread._get_main_thread_ident() expected no arguments";
+    return false;
+  }
+  value_set_int64(out, xlang_thread_main_ident());
+  return true;
 }
 
 bool thread_count(
@@ -486,6 +505,9 @@ bool thread_excepthook(
 } // namespace
 
 Value register_low_level_thread_module(Runtime& runtime) {
+  // Capture the runtime creator as the main interpreter thread.  Calls to
+  // sys._current_frames() may later originate on a debugger worker.
+  (void)xlang_thread_main_ident();
   NativeModuleBuilder builder(runtime, "_thread");
   builder.function("start_new_thread", thread_start_new_thread)
       .function("start_new", thread_start_new_thread)

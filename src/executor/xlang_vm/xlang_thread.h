@@ -62,7 +62,7 @@ struct XlangVMWaitState {
 class XlangVMThread {
 public:
   explicit XlangVMThread(uint64_t id) : id_(id) {
-    frames_.reserve(64);
+    frames_.reserve(8);
   }
 
   uint64_t id() const {

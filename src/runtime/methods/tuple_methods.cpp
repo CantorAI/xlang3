@@ -211,7 +211,7 @@ XLANG3_TUPLE_COMPARE_METHOD(tuple_ge_method, ">=", "tuple.__ge__")
 
 #undef XLANG3_TUPLE_COMPARE_METHOD
 
-static constexpr BuiltinMethodSpec kTupleMethods[] = {
+static BuiltinMethodSpec kTupleMethods[] = {
     {"__getitem__", "tuple.__getitem__", tuple_getitem_method},
     {"__iter__", "tuple.__iter__", tuple_iter_method},
     {"__eq__", "tuple.__eq__", tuple_eq_method},

@@ -489,3 +489,29 @@ batches.
   archives are not required to contain explicit directory entries.
 - `itertools.filterfalse` must be lazy. Eagerly returning a list breaks stdlib
   consumers such as implicit caller inference in `importlib.resources`.
+
+# Filesystem compatibility lessons
+
+- Resolve virtual mount prefixes before applying host `std::filesystem`
+  normalization. On Windows, normalizing `/flash` as a host path changes its
+  namespace and prevents source imports from reaching an embedded filesystem.
+- A text-mode opener callback must still create a binary raw descriptor when
+  the runtime's file object owns encoding and newline translation. Passing
+  `_O_TEXT` causes the CRT and the Python text layer to translate `\n` twice.
+- File-descriptor APIs use the index protocol. Preserve the platform errno
+  immediately after each CRT call, bound converted values before narrowing to
+  `int`, and retain Windows-specific details such as invalid-handle
+  `fstat().winerror`.
+
+# Async and thread compatibility lessons
+
+- An `Await` destination register can contain an older value before its first
+  suspension. Start a newly created await iterator with `None`; only forward
+  the destination's resume value after that iterator has started.
+- Buffer exports held only by expression temporaries must end at their last IR
+  use. CPython `asyncio.StreamReader` depends on
+  `bytes(memoryview(buffer)[:n])` releasing both temporary views before it
+  resizes the bytearray.
+- Windows proactor process coverage must exercise all three pipe directions.
+  A process that only exits validates handle waiting, while stdout/stderr reads
+  and a separate stdin round trip validate native overlapped file operations.

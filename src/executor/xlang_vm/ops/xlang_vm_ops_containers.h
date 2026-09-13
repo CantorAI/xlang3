@@ -85,24 +85,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow make_dict(
     return XlangVMOpFlow::ReturnResult;
   }
   regs[in.dst] = Value::dict_reserved(fn.dict_items[in.a].size());
-  auto* dict = value_as_dict(regs[in.dst]);
   auto assign_entry = [&](const Value& key, const Value& value, std::string& error) -> bool {
-    size_t ignored_hash = 0;
-    if (!value_hash_key(key, ignored_hash, error)) {
-      return false;
-    }
-    bool replaced = false;
-    for (auto& entry : dict->entries) {
-      if (value_key_equal(entry.first, key)) {
-        value_assign_fast(entry.second, value);
-        replaced = true;
-        break;
-      }
-    }
-    if (!replaced) {
-      dict->entries.emplace_back(key, value);
-    }
-    return true;
+    return mapping_set_item(regs[in.dst], key, value, error);
   };
   for (const auto& pair : fn.dict_items[in.a]) {
     if (pair.second >= regs.size() || (pair.first != UINT32_MAX && pair.first >= regs.size())) {
@@ -384,7 +368,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow tuple_from_list(
 }
 
 template <typename RaiseRuntimeError, typename RaiseExceptionValue>
-XLANG3_HOT_INLINE XlangVMOpFlow len(
+XLANG3_HOT_INLINE XlangVMOpFlow len_unprofiled(
     const ir::Instr& in,
     Runtime& runtime,
     XlangVMSmallRegisterBuffer& regs,
@@ -407,21 +391,22 @@ XLANG3_HOT_INLINE XlangVMOpFlow len(
           xlang_vm_cache_note_hit(cache);
           return XlangVMOpFlow::Next;
         case ObjectKind::String:
+          {
+          auto* string = reinterpret_cast<StringObject*>(regs[in.a].as.obj);
           value_set_int64(
               regs[in.dst],
-              static_cast<int64_t>(utf8_codepoint_count(string_object_view(*reinterpret_cast<StringObject*>(regs[in.a].as.obj)))));
+              static_cast<int64_t>(string_object_is_ascii(*string)
+                  ? string_object_view(*string).size()
+                  : utf8_codepoint_count(string_object_view(*string))));
           xlang_vm_cache_note_hit(cache);
           return XlangVMOpFlow::Next;
+          }
         case ObjectKind::Bytes:
           value_set_int64(regs[in.dst], static_cast<int64_t>(reinterpret_cast<BytesObject*>(regs[in.a].as.obj)->size));
           xlang_vm_cache_note_hit(cache);
           return XlangVMOpFlow::Next;
         case ObjectKind::ByteArray:
           value_set_int64(regs[in.dst], static_cast<int64_t>(reinterpret_cast<ByteArrayObject*>(regs[in.a].as.obj)->value.size()));
-          xlang_vm_cache_note_hit(cache);
-          return XlangVMOpFlow::Next;
-        case ObjectKind::MemoryView:
-          value_set_int64(regs[in.dst], static_cast<int64_t>(memoryview_item_count(*reinterpret_cast<MemoryViewObject*>(regs[in.a].as.obj))));
           xlang_vm_cache_note_hit(cache);
           return XlangVMOpFlow::Next;
         case ObjectKind::Dict:
@@ -455,12 +440,17 @@ XLANG3_HOT_INLINE XlangVMOpFlow len(
         }
         return XlangVMOpFlow::Next;
       case ObjectKind::String:
-        value_set_int64(regs[in.dst], static_cast<int64_t>(utf8_codepoint_count(string_object_view(*value_as_string(regs[in.a])))));
+        {
+        auto* string = value_as_string(regs[in.a]);
+        value_set_int64(regs[in.dst], static_cast<int64_t>(string_object_is_ascii(*string)
+            ? string_object_view(*string).size()
+            : utf8_codepoint_count(string_object_view(*string))));
         xlang_vm_cache_note_hit(cache);
         if (cache.state == XlangVMCacheState::Adaptive && cache.hit_count >= 8 && cache.miss_count == 0) {
           xlang_vm_cache_specialize(cache, XlangVMSpecializationId::LenObjectKind, kind);
         }
         return XlangVMOpFlow::Next;
+        }
       case ObjectKind::Bytes:
         value_set_int64(regs[in.dst], static_cast<int64_t>(value_as_bytes(regs[in.a])->size));
         xlang_vm_cache_note_hit(cache);
@@ -470,13 +460,6 @@ XLANG3_HOT_INLINE XlangVMOpFlow len(
         return XlangVMOpFlow::Next;
       case ObjectKind::ByteArray:
         value_set_int64(regs[in.dst], static_cast<int64_t>(value_as_bytearray(regs[in.a])->value.size()));
-        xlang_vm_cache_note_hit(cache);
-        if (cache.state == XlangVMCacheState::Adaptive && cache.hit_count >= 8 && cache.miss_count == 0) {
-          xlang_vm_cache_specialize(cache, XlangVMSpecializationId::LenObjectKind, kind);
-        }
-        return XlangVMOpFlow::Next;
-      case ObjectKind::MemoryView:
-        value_set_int64(regs[in.dst], static_cast<int64_t>(memoryview_item_count(*value_as_memoryview(regs[in.a]))));
         xlang_vm_cache_note_hit(cache);
         if (cache.state == XlangVMCacheState::Adaptive && cache.hit_count >= 8 && cache.miss_count == 0) {
           xlang_vm_cache_specialize(cache, XlangVMSpecializationId::LenObjectKind, kind);
@@ -502,6 +485,10 @@ XLANG3_HOT_INLINE XlangVMOpFlow len(
   }
   std::string error;
   if (!sequence_len(regs[in.a], regs[in.dst], error)) {
+    if (error == "operation forbidden on released memoryview object") {
+      return raise_exception_value(runtime.make_exception("ValueError", error))
+          ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    }
     Value len_method;
     std::string attr_error;
     if (attribute_get(regs[in.a], "__len__", len_method, attr_error)) {
@@ -522,6 +509,40 @@ XLANG3_HOT_INLINE XlangVMOpFlow len(
   }
   xlang_vm_cache_note_hit(cache);
   return XlangVMOpFlow::Next;
+}
+
+template <typename RaiseRuntimeError, typename RaiseExceptionValue>
+XLANG3_HOT_INLINE XlangVMOpFlow len(
+    const ir::Instr& in,
+    Runtime& runtime,
+    XlangVMSmallRegisterBuffer& regs,
+    XlangVMInstrCache& cache,
+    RaiseRuntimeError&& raise_runtime_error,
+    RaiseExceptionValue&& raise_exception_value) {
+  const Value* callable = runtime.find_builtin("len");
+  const bool profiling = callable != nullptr &&
+      runtime.profile_function().tag != ValueTag::Invalid &&
+      runtime.profile_function().tag != ValueTag::None &&
+      !runtime.profile_dispatch_active();
+  Value profile_frame;
+  std::string profile_error;
+  if (profiling) {
+    profile_frame = runtime.current_frame_snapshot();
+    if (!runtime.emit_profile_event_for_frame(profile_frame, "c_call", *callable, profile_error)) {
+      return raise_runtime_error(profile_error.empty() ? "profile callback failed" : profile_error)
+          ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    }
+  }
+  const XlangVMOpFlow flow = len_unprofiled(
+      in, runtime, regs, cache, raise_runtime_error, raise_exception_value);
+  if (profiling) {
+    const char* event_name = flow == XlangVMOpFlow::Next ? "c_return" : "c_exception";
+    if (!runtime.emit_profile_event_for_frame(profile_frame, event_name, *callable, profile_error)) {
+      return raise_runtime_error(profile_error.empty() ? "profile callback failed" : profile_error)
+          ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    }
+  }
+  return flow;
 }
 
 XLANG3_HOT_INLINE void maybe_specialize_get_item_int(
@@ -591,10 +612,14 @@ XLANG3_HOT_INLINE XlangVMOpFlow get_item(
         case XlangVMSpecializationId::GetItemStringInt: {
           auto* string = reinterpret_cast<StringObject*>(object);
           const auto view = string_object_view(*string);
-          const auto codepoint_count = utf8_codepoint_count(view);
+          const auto codepoint_count = string_object_is_ascii(*string)
+              ? view.size() : utf8_codepoint_count(view);
           int64_t index = raw_index < 0 ? raw_index + static_cast<int64_t>(codepoint_count) : raw_index;
           if (index >= 0 && index < static_cast<int64_t>(codepoint_count)) {
-            regs[in.dst] = Value::string_view(utf8_codepoint_at(view, static_cast<size_t>(index)));
+            const auto item = string_object_is_ascii(*string)
+                ? view.substr(static_cast<size_t>(index), 1)
+                : utf8_codepoint_at(view, static_cast<size_t>(index));
+            regs[in.dst] = Value::string_view(item);
             xlang_vm_cache_note_hit(cache);
             return XlangVMOpFlow::Next;
           }
@@ -648,10 +673,14 @@ XLANG3_HOT_INLINE XlangVMOpFlow get_item(
     } else if (object->kind == ObjectKind::String) {
       auto* string = value_as_string(regs[in.a]);
       const auto view = string_object_view(*string);
-      const auto codepoint_count = utf8_codepoint_count(view);
+      const auto codepoint_count = string_object_is_ascii(*string)
+          ? view.size() : utf8_codepoint_count(view);
       int64_t index = raw_index < 0 ? raw_index + static_cast<int64_t>(codepoint_count) : raw_index;
       if (index >= 0 && index < static_cast<int64_t>(codepoint_count)) {
-        regs[in.dst] = Value::string_view(utf8_codepoint_at(view, static_cast<size_t>(index)));
+        const auto item = string_object_is_ascii(*string)
+            ? view.substr(static_cast<size_t>(index), 1)
+            : utf8_codepoint_at(view, static_cast<size_t>(index));
+        regs[in.dst] = Value::string_view(item);
         xlang_vm_cache_note_hit(cache);
         maybe_specialize_get_item_int(cache, object->kind);
         return XlangVMOpFlow::Next;
@@ -821,6 +850,10 @@ XLANG3_HOT_INLINE XlangVMOpFlow get_item(
       return raise_exception_value(runtime.make_exception("TypeError", error)) ? XlangVMOpFlow::ContinueLoop
                                                                                : XlangVMOpFlow::ReturnResult;
     }
+    if (error == "operation forbidden on released memoryview object") {
+      return raise_exception_value(runtime.make_exception("ValueError", error))
+          ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    }
     return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
   }
   if (runtime_mapping) {
@@ -851,6 +884,10 @@ XLANG3_HOT_INLINE XlangVMOpFlow set_item(
   error.clear();
   auto raise_set_item_error = [&]() -> XlangVMOpFlow {
     const std::string& mapped_error = error;
+    if (mapped_error == "operation forbidden on released memoryview object") {
+      return raise_exception_value(runtime.make_exception("ValueError", mapped_error))
+          ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    }
     if (mapped_error == "Existing exports of data: object cannot be re-sized") {
       return raise_exception_value(runtime.make_exception("BufferError", mapped_error))
           ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
@@ -1028,31 +1065,17 @@ XLANG3_HOT_INLINE XlangVMOpFlow unpack_sequence(
   }
   std::string error;
   Value iterator;
-  if (!sequence_get_iter(regs[source], iterator, error)) {
+  // Tuple/list subclasses may override __iter__.  Use the runtime protocol
+  // entry point so destructuring observes that override just like for-loops
+  // and tuple(iterable) do.
+  if (!runtime_get_iter(runtime, regs[source], iterator, error)) {
     Value pending;
     if (runtime.take_pending_exception(pending)) {
       return raise_exception_value(std::move(pending)) ? XlangVMOpFlow::ContinueLoop
                                                        : XlangVMOpFlow::ReturnResult;
     }
-    Value iter_method;
-    std::string attr_error;
-    if (!object_get_attr(regs[source], "__iter__", iter_method, attr_error)) {
-      return raise_exception_value(runtime.make_exception("TypeError", "cannot unpack non-iterable object"))
-          ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
-    }
-    Value iter_result;
-    if (!runtime_call_callable(runtime, iter_method, nullptr, 0, iter_result, error)) {
-      Value pending;
-      if (runtime.take_pending_exception(pending)) {
-        return raise_exception_value(std::move(pending)) ? XlangVMOpFlow::ContinueLoop
-                                                         : XlangVMOpFlow::ReturnResult;
-      }
-      return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
-    }
-    if (!sequence_get_iter(iter_result, iterator, error)) {
-      return raise_exception_value(runtime.make_exception("TypeError", "cannot unpack non-iterable object"))
-          ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
-    }
+    return raise_exception_value(runtime.make_exception("TypeError", "cannot unpack non-iterable object"))
+        ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
   }
   std::vector<Value> values;
   for (;;) {

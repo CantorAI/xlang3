@@ -57,6 +57,7 @@ limitations under the License.
 #endif
 #if !defined(XLANG3_EMBEDDED)
 #include <sstream>
+#include <unordered_map>
 #endif
 
 namespace xlang3 {
@@ -156,14 +157,32 @@ StringObject* allocate_string_object(size_t size) {
 
 void string_object_set_bytes(StringObject* object, const char* source, size_t size);
 
-std::vector<Value>& interned_string_table() {
-  static auto* table = new std::vector<Value>();
+using InternedStringTable = std::unordered_map<std::string, Value>;
+
+InternedStringTable& interned_string_table() {
+  static auto* table = new InternedStringTable();
   return *table;
 }
 
 std::mutex& interned_string_mutex() {
   static auto* mutex = new std::mutex();
   return *mutex;
+}
+
+Value make_plain_string(std::string_view value);
+
+Value ascii_character_value(unsigned char character) {
+  static auto* values = [] {
+    auto* cache = new std::array<Value, 128>();
+    for (size_t i = 0; i < cache->size(); ++i) {
+      const char byte = static_cast<char>(i);
+      (*cache)[i] = make_plain_string(std::string_view(&byte, 1));
+      reinterpret_cast<StringObject*>((*cache)[i].as.obj)->immortal.store(
+          true, std::memory_order_relaxed);
+    }
+    return cache;
+  }();
+  return (*values)[character];
 }
 
 bool is_auto_internable_string(std::string_view value) {
@@ -194,11 +213,6 @@ bool is_auto_immortal_string(std::string_view value) {
     }
   }
   return true;
-}
-
-bool interned_string_equal(const Value& interned, std::string_view value) {
-  auto* string = value_as_string(interned);
-  return string != nullptr && string_object_view(*string) == value;
 }
 
 Value make_plain_string(std::string_view value) {
@@ -293,23 +307,24 @@ std::string format_double_text(double value) {
 #endif
 
 Value intern_string_view(std::string_view value, bool immortal = true) {
+  if (value.size() == 1 && static_cast<unsigned char>(value[0]) < 128) {
+    return ascii_character_value(static_cast<unsigned char>(value[0]));
+  }
   std::lock_guard<std::mutex> lock(interned_string_mutex());
   auto& table = interned_string_table();
-  for (const auto& item : table) {
-    if (interned_string_equal(item, value)) {
-      if (immortal) {
-        if (auto* string = value_as_string(item)) {
-          string->immortal = true;
-        }
+  if (auto found = table.find(std::string(value)); found != table.end()) {
+    if (immortal) {
+      if (auto* string = value_as_string(found->second)) {
+        string->immortal.store(true, std::memory_order_release);
       }
-      return item;
     }
+    return found->second;
   }
   Value interned = make_plain_string(value);
   if (auto* string = value_as_string(interned)) {
-    string->immortal = immortal;
+    string->immortal.store(immortal, std::memory_order_relaxed);
   }
-  table.push_back(interned);
+  table.emplace(std::string(value), interned);
   return interned;
 }
 
@@ -415,6 +430,13 @@ void recycle_tuple_object(TupleObject* object) {
 }
 
 void string_object_set_bytes(StringObject* object, const char* source, size_t size) {
+  object->ascii = true;
+  for (size_t i = 0; i < size; ++i) {
+    if ((static_cast<unsigned char>(source[i]) & 0x80u) != 0) {
+      object->ascii = false;
+      break;
+    }
+  }
   if (object->size != 0) {
     std::memcpy(string_object_mutable_data(*object), source, object->size);
   }
@@ -862,44 +884,6 @@ std::string format_f64(double value) {
 
 } // namespace
 
-Value::Value(const Value& other) : tag(other.tag), flags(other.flags & ~kXlangValueBorrowedRefFlag), as(other.as) {
-  retain(*this);
-}
-
-Value::Value(Value&& other) noexcept : tag(other.tag), flags(other.flags), as(other.as) {
-  other.tag = ValueTag::Invalid;
-  other.as.obj = nullptr;
-}
-
-Value& Value::operator=(const Value& other) {
-  if (this == &other) {
-    return *this;
-  }
-  release(*this);
-  tag = other.tag;
-  flags = other.flags & ~kXlangValueBorrowedRefFlag;
-  as = other.as;
-  retain(*this);
-  return *this;
-}
-
-Value& Value::operator=(Value&& other) noexcept {
-  if (this == &other) {
-    return *this;
-  }
-  release(*this);
-  tag = other.tag;
-  flags = other.flags;
-  as = other.as;
-  other.tag = ValueTag::Invalid;
-  other.as.obj = nullptr;
-  return *this;
-}
-
-Value::~Value() {
-  release(*this);
-}
-
 Value Value::complex(double real, double imag) {
   Value value;
   value.tag = ValueTag::Object;
@@ -915,6 +899,9 @@ Value Value::string(std::string value) {
 }
 
 Value Value::string_view(std::string_view value) {
+  if (value.size() == 1 && static_cast<unsigned char>(value[0]) < 128) {
+    return ascii_character_value(static_cast<unsigned char>(value[0]));
+  }
   if (is_auto_internable_string(value)) {
     return intern_string_view(value, is_auto_immortal_string(value));
   }
@@ -939,34 +926,39 @@ Value intern_string_value(const Value& value) {
     return Value::invalid();
   }
   const std::string_view text = string_object_view(*string);
+  if (text.size() == 1 && static_cast<unsigned char>(text[0]) < 128) {
+    return ascii_character_value(static_cast<unsigned char>(text[0]));
+  }
   std::lock_guard<std::mutex> lock(interned_string_mutex());
   auto& table = interned_string_table();
-  for (const auto& item : table) {
-    if (interned_string_equal(item, text)) return item;
-  }
-  string->immortal = false;
-  table.push_back(value);
+  if (auto found = table.find(std::string(text)); found != table.end()) return found->second;
+  string->immortal.store(false, std::memory_order_relaxed);
+  table.emplace(std::string(text), value);
   return value;
 }
 
 bool string_value_is_interned(const Value& value) {
-  std::lock_guard<std::mutex> lock(interned_string_mutex());
-  for (const auto& item : interned_string_table()) {
-    if (value_is(item, value)) {
-      return true;
-    }
+  auto* string = value_as_string(value);
+  if (string == nullptr) return false;
+  const auto text = string_object_view(*string);
+  if (text.size() == 1 && static_cast<unsigned char>(text[0]) < 128) {
+    return value_is(ascii_character_value(static_cast<unsigned char>(text[0])), value);
   }
-  return false;
+  std::lock_guard<std::mutex> lock(interned_string_mutex());
+  auto found = interned_string_table().find(std::string(text));
+  return found != interned_string_table().end() && value_is(found->second, value);
 }
 
 bool string_value_is_immortal_interned(const Value& value) {
-  std::lock_guard<std::mutex> lock(interned_string_mutex());
   auto* string = value_as_string(value);
-  if (!string || !string->immortal) return false;
-  for (const auto& item : interned_string_table()) {
-    if (value_is(item, value)) return true;
+  if (!string || !string->immortal.load(std::memory_order_acquire)) return false;
+  const auto text = string_object_view(*string);
+  if (text.size() == 1 && static_cast<unsigned char>(text[0]) < 128) {
+    return value_is(ascii_character_value(static_cast<unsigned char>(text[0])), value);
   }
-  return false;
+  std::lock_guard<std::mutex> lock(interned_string_mutex());
+  auto found = interned_string_table().find(std::string(text));
+  return found != interned_string_table().end() && value_is(found->second, value);
 }
 
 int64_t interned_string_count() {
@@ -978,8 +970,8 @@ int64_t immortal_interned_string_count() {
   std::lock_guard<std::mutex> lock(interned_string_mutex());
   int64_t count = 0;
   for (const auto& item : interned_string_table()) {
-    auto* string = value_as_string(item);
-    if (string != nullptr && string->immortal) {
+    auto* string = value_as_string(item.second);
+    if (string != nullptr && string->immortal.load(std::memory_order_relaxed)) {
       ++count;
     }
   }
@@ -1014,6 +1006,8 @@ Value Value::memoryview(Value owner, size_t offset, size_t size, bool readonly) 
   obj->offset = offset;
   obj->size = size;
   obj->format = "B";
+  obj->shape = {static_cast<int64_t>(size)};
+  obj->strides = {1};
   obj->readonly = readonly;
   obj->contiguous = true;
   obj->released = false;
@@ -1024,6 +1018,9 @@ Value Value::memoryview(Value owner, size_t offset, size_t size, bool readonly) 
     }
     obj->external = source->external;
     obj->offset += source->offset;
+    obj->format = source->format;
+    obj->shape = source->shape;
+    obj->strides = source->strides;
     obj->readonly = readonly || source->readonly;
     obj->contiguous = source->contiguous;
     // Retain the underlying owner before dropping the source view reference.
@@ -1217,6 +1214,35 @@ Value Value::traceback(Value frame, Value next, int64_t line, int64_t lasti) {
   return v;
 }
 
+void frame_materialize_locals(FrameObject& frame) {
+  if (!frame.has_lazy_locals) return;
+  std::vector<std::pair<Value, Value>> entries;
+  if (frame.module != nullptr && frame.function_id < frame.module->functions.size()) {
+    const auto& fn = frame.module->functions[frame.function_id];
+    entries.reserve(frame.local_snapshot.size());
+    const size_t local_count = std::min(fn.locals.size(), frame.local_snapshot.size());
+    for (size_t index = 0; index < local_count; ++index) {
+      const auto& name = fn.locals[index];
+      const auto& value = frame.local_snapshot[index];
+      if (!name.empty() && name[0] != '#' && value.tag != ValueTag::Invalid) {
+        entries.push_back({Value::string(name), value});
+      }
+    }
+    for (size_t index = 0; index < fn.free_vars.size(); ++index) {
+      const size_t snapshot_index = fn.locals.size() + index;
+      if (snapshot_index >= frame.local_snapshot.size()) break;
+      const auto& name = fn.free_vars[index];
+      const auto& value = frame.local_snapshot[snapshot_index];
+      if (!name.empty() && name[0] != '#' && value.tag != ValueTag::Invalid) {
+        entries.push_back({Value::string(name), value});
+      }
+    }
+  }
+  frame.locals = Value::dict(std::move(entries));
+  frame.local_snapshot.clear();
+  frame.has_lazy_locals = false;
+}
+
 Value Value::native_function(
     uint32_t native_id,
     std::string name,
@@ -1348,16 +1374,6 @@ Value Value::fd_file(int fd, std::string name, std::string mode, bool readable, 
   return v;
 }
 
-void retain(const Value& value) {
-  if (value.tag == ValueTag::Object && value.as.obj != nullptr) {
-    if ((value.flags & kXlangValueBorrowedRefFlag) != 0) {
-      return;
-    }
-    xlang_perf_count_value_incref(value.as.obj->kind);
-    value.as.obj->refcnt.fetch_add(1, std::memory_order_relaxed);
-  }
-}
-
 bool value_finalize_temporary_instance(Runtime& runtime, const Value& value) {
   if (value.tag != ValueTag::Object || value.as.obj == nullptr ||
       value.as.obj->kind != ObjectKind::Instance ||
@@ -1398,17 +1414,7 @@ bool value_finalize_temporary_instance(Runtime& runtime, const Value& value) {
   return true;
 }
 
-void release(const Value& value) {
-  if (value.tag != ValueTag::Object || value.as.obj == nullptr) {
-    return;
-  }
-  if ((value.flags & kXlangValueBorrowedRefFlag) != 0) {
-    return;
-  }
-  xlang_perf_count_value_decref(value.as.obj->kind);
-  if (value.as.obj->refcnt.fetch_sub(1, std::memory_order_acq_rel) != 1) {
-    return;
-  }
+void release_last_reference(const Value& value) {
   if (value.as.obj->kind == ObjectKind::Instance) {
     auto* instance = reinterpret_cast<InstanceObject*>(value.as.obj);
     Runtime* runtime = runtime_for_object_finalization();
@@ -3707,6 +3713,8 @@ bool value_is(const Value& lhs, const Value& rhs) {
             left_code->function_id == right_code->function_id &&
             left_code->mode == right_code->mode &&
             left_code->filename_override == right_code->filename_override &&
+            left_code->name_override == right_code->name_override &&
+            left_code->qualname_override == right_code->qualname_override &&
             left_code->first_line_override == right_code->first_line_override &&
             left_code->flags_override == right_code->flags_override;
       }
@@ -3771,23 +3779,12 @@ bool value_contains(const Value& container, const Value& item, bool& out, std::s
     return false;
   }
   if (auto* dict = value_as_dict(container)) {
-    for (const auto& entry : dict->entries) {
-      if (value_key_equal(entry.first, item)) {
-        out = true;
-        return true;
-      }
-    }
-    return true;
+    (void)dict;
+    return mapping_contains(container, item, out, error);
   }
   if (auto* instance = value_as_instance(container)) {
-    if (auto* dict = value_as_dict(instance->mapping_storage)) {
-      for (const auto& entry : dict->entries) {
-        if (value_key_equal(entry.first, item)) {
-          out = true;
-          return true;
-        }
-      }
-      return true;
+    if (value_as_dict(instance->mapping_storage) != nullptr) {
+      return mapping_contains(instance->mapping_storage, item, out, error);
     }
   }
   if (value_as_mapping_proxy(container) != nullptr || value_as_dict_view(container) != nullptr || value_as_module(container) != nullptr) {

@@ -25,3 +25,4 @@ True
 1 // 0 ZeroDivisionError True
 1 % 0 ZeroDivisionError True
 True FileNotFoundError 2 missing name.txt PermissionError 2 True
+True True True

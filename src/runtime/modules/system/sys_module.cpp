@@ -16,9 +16,11 @@ limitations under the License.
 
 #include "xlang3/attribute.h"
 #include "xlang3/functional_iterators.h"
+#include "xlang3/ir.h"
 #include "xlang3/mapping.h"
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
+#include "xlang3/perf_counters.h"
 #include "xlang3/runtime.h"
 #include "xlang3/sequence.h"
 #include "xlang3/set_object.h"
@@ -39,6 +41,7 @@ limitations under the License.
 #include <sstream>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -117,14 +120,38 @@ struct MonitoringCodeKeyHash {
   }
 };
 
+struct MonitoringDisabledLocation {
+  MonitoringCodeKey code;
+  int64_t event = 0;
+  int64_t instruction_offset = 0;
+
+  bool operator==(const MonitoringDisabledLocation& other) const {
+    return code == other.code && event == other.event && instruction_offset == other.instruction_offset;
+  }
+};
+
+struct MonitoringDisabledLocationHash {
+  size_t operator()(const MonitoringDisabledLocation& location) const {
+    size_t result = MonitoringCodeKeyHash{}(location.code);
+    result ^= std::hash<int64_t>{}(location.event) + 0x9e3779b9u + (result << 6) + (result >> 2);
+    result ^= std::hash<int64_t>{}(location.instruction_offset) + 0x9e3779b9u + (result << 6) + (result >> 2);
+    return result;
+  }
+};
+
 struct MonitoringToolState {
   Value name = Value::none();
   int64_t events = 0;
   std::unordered_map<MonitoringCodeKey, int64_t, MonitoringCodeKeyHash> local_events;
   std::unordered_map<int64_t, Value> callbacks;
+  std::unordered_set<MonitoringDisabledLocation, MonitoringDisabledLocationHash> disabled_locations;
 };
 
 std::array<MonitoringToolState, kMonitoringToolCount> g_monitoring_tools;
+std::atomic<int64_t> g_monitoring_possible_events{0};
+std::atomic<uint64_t> g_monitoring_configuration_generation{1};
+std::unordered_set<MonitoringDisabledLocation, MonitoringDisabledLocationHash>
+    g_monitoring_fully_disabled_locations;
 thread_local bool g_monitoring_dispatch_active = false;
 Value g_monitoring_missing = Value::none();
 Value g_monitoring_disable = Value::none();
@@ -1863,6 +1890,27 @@ bool sys_stdio_close(Runtime& runtime, const Value* args, uint32_t argc, Value& 
   }
   value_set_none(out);
   return true;
+}
+
+void refresh_monitoring_possible_events() {
+  int64_t possible = 0;
+  for (const auto& tool : g_monitoring_tools) {
+    if (tool.name.tag == ValueTag::None) continue;
+    int64_t enabled = tool.events;
+    for (const auto& local : tool.local_events) enabled |= local.second;
+    for (const auto& callback : tool.callbacks) {
+      if (callback.second.tag == ValueTag::None) continue;
+      const int64_t event = callback.first;
+      if ((enabled & event) != 0 ||
+          ((event == kMonitoringEventCReturn || event == kMonitoringEventCRaise) &&
+           (enabled & kMonitoringEventCall) != 0)) {
+        possible |= event;
+      }
+    }
+  }
+  g_monitoring_fully_disabled_locations.clear();
+  g_monitoring_possible_events.store(possible, std::memory_order_relaxed);
+  g_monitoring_configuration_generation.fetch_add(1, std::memory_order_release);
 }
 
 bool sys_stdio_readlines(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -3789,6 +3837,8 @@ bool sys_monitoring_free_tool_id(Runtime& runtime, const Value* args, uint32_t a
   tool.events = 0;
   tool.local_events.clear();
   tool.callbacks.clear();
+  tool.disabled_locations.clear();
+  refresh_monitoring_possible_events();
   value_set_none(out);
   return true;
 }
@@ -3805,6 +3855,8 @@ bool sys_monitoring_clear_tool_id(Runtime& runtime, const Value* args, uint32_t 
   tool.events = 0;
   tool.local_events.clear();
   tool.callbacks.clear();
+  tool.disabled_locations.clear();
+  refresh_monitoring_possible_events();
   value_set_none(out);
   return true;
 }
@@ -3840,6 +3892,7 @@ bool sys_monitoring_set_events(Runtime& runtime, const Value* args, uint32_t arg
     return false;
   }
   tool.events = events;
+  refresh_monitoring_possible_events();
   value_set_none(out);
   return true;
 }
@@ -3889,6 +3942,7 @@ bool sys_monitoring_set_local_events(Runtime& runtime, const Value* args, uint32
   } else {
     local_events[key] = events;
   }
+  refresh_monitoring_possible_events();
   value_set_none(out);
   return true;
 }
@@ -3939,6 +3993,7 @@ bool sys_monitoring_register_callback(Runtime& runtime, const Value* args, uint3
   } else {
     callbacks[event] = args[2];
   }
+  refresh_monitoring_possible_events();
   return true;
 }
 
@@ -3946,6 +4001,11 @@ bool sys_monitoring_restart_events(Runtime& runtime, const Value*, uint32_t argc
   if (argc != 0) {
     return raise_sys_no_args_type_error(runtime, error, "sys.monitoring.restart_events", argc);
   }
+  for (auto& tool : g_monitoring_tools) {
+    tool.disabled_locations.clear();
+  }
+  g_monitoring_fully_disabled_locations.clear();
+  g_monitoring_configuration_generation.fetch_add(1, std::memory_order_release);
   value_set_none(out);
   return true;
 }
@@ -4009,14 +4069,25 @@ bool sys_monitoring_dispatch_event(
   if (g_monitoring_dispatch_active) {
     return true;
   }
+  xlang_perf_count_monitoring_event(event, false);
   g_monitoring_dispatch_active = true;
   struct DispatchGuard {
     ~DispatchGuard() { g_monitoring_dispatch_active = false; }
   } guard;
 
+  auto* code_object = value_as_code(code);
+  const MonitoringDisabledLocation location{
+      code_object != nullptr ? monitoring_code_key(*code_object) : MonitoringCodeKey{},
+      event,
+      instruction_offset,
+  };
+  const uint64_t configuration_generation =
+      g_monitoring_configuration_generation.load(std::memory_order_acquire);
+  bool location_remains_active = false;
+
   for (auto& tool : g_monitoring_tools) {
     int64_t enabled_events = tool.events;
-    if (auto* code_object = value_as_code(code)) {
+    if (code_object != nullptr) {
       const auto local_it = tool.local_events.find(monitoring_code_key(*code_object));
       if (local_it != tool.local_events.end()) {
         enabled_events |= local_it->second;
@@ -4026,24 +4097,44 @@ bool sys_monitoring_dispatch_event(
     if (tool.name.tag == ValueTag::None || ((enabled_events & event) == 0 && !(c_call_result_event && (enabled_events & kMonitoringEventCall) != 0))) {
       continue;
     }
+    if (code_object != nullptr && tool.disabled_locations.find(location) != tool.disabled_locations.end()) {
+      continue;
+    }
     auto callback_it = tool.callbacks.find(event);
     if (callback_it == tool.callbacks.end() || callback_it->second.tag == ValueTag::None) {
       continue;
     }
+    // A monitoring callback can enter a blocking native operation, which
+    // temporarily releases the VM execution lock.  Another debugger thread
+    // may replace or unregister this callback while it is running.  Keep an
+    // owned reference for the duration of the call instead of retaining a
+    // reference into the callbacks map across that lock release.
+    Value callback = callback_it->second;
+    xlang_perf_count_monitoring_event(event, true);
     Value callback_args_storage[4] = {
         code,
         Value::int64(instruction_offset),
         arg != nullptr ? *arg : Value::none(),
         g_monitoring_missing,
     };
-    Value ignored;
+    Value callback_result;
     const bool call_event = event == kMonitoringEventCall ||
                             event == kMonitoringEventCReturn ||
                             event == kMonitoringEventCRaise;
     const uint32_t callback_argc = call_event ? 4u : (arg != nullptr ? 3u : 2u);
-    if (!runtime_call_callable(runtime, callback_it->second, callback_args_storage, callback_argc, ignored, error)) {
+    if (!runtime_call_callable(runtime, callback, callback_args_storage, callback_argc, callback_result, error)) {
       return false;
     }
+    if (code_object != nullptr && value_is(callback_result, g_monitoring_disable)) {
+      tool.disabled_locations.insert(location);
+    } else {
+      location_remains_active = true;
+    }
+  }
+  if (code_object != nullptr && !location_remains_active &&
+      configuration_generation ==
+          g_monitoring_configuration_generation.load(std::memory_order_acquire)) {
+    g_monitoring_fully_disabled_locations.insert(location);
   }
   return true;
 }
@@ -4052,22 +4143,124 @@ bool sys_monitoring_event_may_dispatch(int64_t event) {
   if (g_monitoring_dispatch_active) {
     return false;
   }
-  const bool c_call_result_event = event == kMonitoringEventCReturn || event == kMonitoringEventCRaise;
+  return (g_monitoring_possible_events.load(std::memory_order_relaxed) & event) != 0;
+}
+
+bool sys_monitoring_global_event_may_dispatch(int64_t event) {
+  if (!sys_monitoring_event_may_dispatch(event)) {
+    return false;
+  }
+  const MonitoringDisabledLocation location{
+      MonitoringCodeKey{}, event, -1};
+  if (g_monitoring_fully_disabled_locations.find(location) !=
+      g_monitoring_fully_disabled_locations.end()) {
+    return false;
+  }
   for (const auto& tool : g_monitoring_tools) {
-    if (tool.name.tag == ValueTag::None) {
+    if (tool.name.tag == ValueTag::None ||
+        tool.disabled_locations.find(location) != tool.disabled_locations.end()) {
       continue;
     }
-    const auto callback_it = tool.callbacks.find(event);
-    if (callback_it == tool.callbacks.end() || callback_it->second.tag == ValueTag::None) {
-      continue;
-    }
-    if ((tool.events & event) != 0 || (c_call_result_event && (tool.events & kMonitoringEventCall) != 0)) {
+    const bool enabled = (tool.events & event) != 0 ||
+        ((event == kMonitoringEventCReturn || event == kMonitoringEventCRaise) &&
+         (tool.events & kMonitoringEventCall) != 0);
+    if (!enabled) continue;
+    const auto callback = tool.callbacks.find(event);
+    if (callback != tool.callbacks.end() && callback->second.tag != ValueTag::None) {
       return true;
     }
-    for (const auto& local : tool.local_events) {
-      if ((local.second & event) != 0 || (c_call_result_event && (local.second & kMonitoringEventCall) != 0)) {
-        return true;
+  }
+  return false;
+}
+
+int64_t sys_monitoring_code_events(const ir::Module* module, uint32_t function_id) {
+  if (g_monitoring_dispatch_active || module == nullptr) return 0;
+  const MonitoringCodeKey key{module, function_id};
+  int64_t events = 0;
+  for (const auto& tool : g_monitoring_tools) {
+    if (tool.name.tag == ValueTag::None) continue;
+    events |= tool.events;
+    const auto local = tool.local_events.find(key);
+    if (local != tool.local_events.end()) events |= local->second;
+  }
+  events &= g_monitoring_possible_events.load(std::memory_order_relaxed);
+  if ((events & kMonitoringEventPyStart) != 0 &&
+      !sys_monitoring_location_may_dispatch(
+          module, function_id, kMonitoringEventPyStart, 0)) {
+    events &= ~kMonitoringEventPyStart;
+  }
+  return events;
+}
+
+uint64_t sys_monitoring_configuration_generation() {
+  return g_monitoring_configuration_generation.load(std::memory_order_acquire);
+}
+
+bool sys_monitoring_location_may_dispatch(
+    const ir::Module* module,
+    uint32_t function_id,
+    int64_t event,
+    int64_t instruction_offset) {
+  if (!sys_monitoring_event_may_dispatch(event)) return false;
+  const MonitoringDisabledLocation location{
+      MonitoringCodeKey{module, function_id}, event, instruction_offset};
+  if (g_monitoring_fully_disabled_locations.find(location) !=
+      g_monitoring_fully_disabled_locations.end()) {
+    return false;
+  }
+  const MonitoringCodeKey key{module, function_id};
+  for (const auto& tool : g_monitoring_tools) {
+    if (tool.name.tag == ValueTag::None ||
+        tool.disabled_locations.find(location) != tool.disabled_locations.end()) {
+      continue;
+    }
+    int64_t enabled = tool.events;
+    const auto local = tool.local_events.find(key);
+    if (local != tool.local_events.end()) enabled |= local->second;
+    const bool event_enabled = (enabled & event) != 0 ||
+        ((event == kMonitoringEventCReturn || event == kMonitoringEventCRaise) &&
+         (enabled & kMonitoringEventCall) != 0);
+    if (!event_enabled) continue;
+    const auto callback = tool.callbacks.find(event);
+    if (callback != tool.callbacks.end() && callback->second.tag != ValueTag::None) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool sys_monitoring_function_may_dispatch(
+    const ir::Module* module,
+    uint32_t function_id) {
+  if (g_monitoring_dispatch_active || module == nullptr ||
+      g_monitoring_possible_events.load(std::memory_order_relaxed) == 0) {
+    return false;
+  }
+  const MonitoringCodeKey key{module, function_id};
+  for (const auto& tool : g_monitoring_tools) {
+    if (tool.name.tag == ValueTag::None) continue;
+    int64_t enabled = tool.events;
+    const auto local = tool.local_events.find(key);
+    if (local != tool.local_events.end()) enabled |= local->second;
+    if (enabled == 0) continue;
+    for (const auto& callback : tool.callbacks) {
+      const int64_t event = callback.first;
+      if (callback.second.tag == ValueTag::None) continue;
+      const bool event_enabled = (enabled & event) != 0 ||
+          ((event == kMonitoringEventCReturn || event == kMonitoringEventCRaise) &&
+           (enabled & kMonitoringEventCall) != 0);
+      if (!event_enabled) continue;
+      // PY_START is emitted at offset zero. Once every tool has disabled that
+      // location, a small-function specialization is observationally
+      // equivalent to entering the ordinary frame. Other events can occur at
+      // several offsets, so keep the conservative execution path for them.
+      if (event == kMonitoringEventPyStart) {
+        const MonitoringDisabledLocation location{key, event, 0};
+        if (tool.disabled_locations.find(location) != tool.disabled_locations.end()) {
+          continue;
+        }
       }
+      return true;
     }
   }
   return false;
@@ -4441,6 +4634,10 @@ bool sys_int_string_exceeds_limit(std::string_view text, int base) {
     if (ch >= '0' && ch <= '9') ++digits;
   }
   return digits > static_cast<size_t>(g_int_max_str_digits);
+}
+
+int64_t sys_coroutine_origin_tracking_depth() {
+  return g_coroutine_origin_tracking_depth;
 }
 
 void register_sys_module(Runtime& runtime) {

@@ -17,8 +17,10 @@ limitations under the License.
 #include "xlang3/perf_counters.h"
 #include "xlang3/runtime.h"
 #include "xlang3/functional_iterators.h"
+#include "xlang3/mapping.h"
 #include "xlang3/sequence.h"
 
+#include <algorithm>
 #include <cstdlib>
 #include <iostream>
 #include <set>
@@ -142,9 +144,81 @@ Value Value::module(std::string name) {
   return v;
 }
 
+void module_sync_namespace_dict(ModuleObject& module) {
+  auto* dict = value_as_dict(module.namespace_dict);
+  if (dict == nullptr) return;
+  for (auto& entry : dict->entries) {
+    value_set_invalid(entry.first);
+    value_set_invalid(entry.second);
+  }
+  dict->entries.clear();
+  dict->entries.reserve(module.name_to_slot.size() + module.extra_globals.size() + 1);
+  dict->entries.push_back({Value::string("__name__"), Value::string(module.name)});
+  std::vector<std::pair<std::string, uint32_t>> names;
+  names.reserve(module.name_to_slot.size());
+  for (const auto& item : module.name_to_slot) {
+    if (item.first != "__name__" && !item.first.empty() && item.first[0] != '#' &&
+        item.second < module.slots.size() && module.slots[item.second].tag != ValueTag::Invalid) {
+      names.push_back(item);
+    }
+  }
+  std::sort(names.begin(), names.end(), [](const auto& lhs, const auto& rhs) { return lhs.second < rhs.second; });
+  for (const auto& item : names) {
+    dict->entries.push_back({Value::string(item.first), module.slots[item.second]});
+  }
+  for (const auto& entry : module.extra_globals) dict->entries.push_back(entry);
+  dict->integer_index.clear();
+  dict->string_index.clear();
+  dict->indexed_entry_count = static_cast<size_t>(-1);
+  dict->index_has_other_keys = false;
+  dict->index_has_non_string_keys = false;
+}
+
+Value module_namespace_dict(const Value& object) {
+  auto* module = value_as_module(object);
+  if (module == nullptr) return Value::dict({});
+  if (value_as_dict(module->namespace_dict) == nullptr) {
+    module->namespace_dict = Value::dict({});
+    value_as_dict(module->namespace_dict)->backing_module = module;
+    module_sync_namespace_dict(*module);
+  }
+  Value result;
+  value_assign_fast(result, module->namespace_dict);
+  return result;
+}
+
+namespace {
+
+void module_update_namespace_entry(
+    ModuleObject& module,
+    const std::string& name,
+    const Value& value) {
+  auto* dict = value_as_dict(module.namespace_dict);
+  if (dict == nullptr) return;
+  dict->backing_module = nullptr;
+  Value key = Value::string(name);
+  std::string ignored;
+  (void)mapping_set_item(module.namespace_dict, key, value, ignored);
+  dict->backing_module = &module;
+}
+
+void module_delete_namespace_entry(ModuleObject& module, const std::string& name) {
+  auto* dict = value_as_dict(module.namespace_dict);
+  if (dict == nullptr) return;
+  dict->backing_module = nullptr;
+  Value key = Value::string(name);
+  std::string ignored;
+  (void)mapping_delete_item(module.namespace_dict, key, ignored);
+  dict->backing_module = &module;
+}
+
+} // namespace
+
 void module_release_object(Object* object) {
   if (object->kind == ObjectKind::Module) {
-    delete reinterpret_cast<ModuleObject*>(object);
+    auto* module = reinterpret_cast<ModuleObject*>(object);
+    if (auto* dict = value_as_dict(module->namespace_dict)) dict->backing_module = nullptr;
+    delete module;
   }
 }
 
@@ -180,7 +254,7 @@ bool module_get_attr(const Value& object, const std::string& name, Value& out, s
     return true;
   }
   if (name == "__dict__") {
-    value_assign_fast(out, object);
+    out = module_namespace_dict(object);
     return true;
   }
   if (name == "__dir__") {
@@ -258,6 +332,38 @@ bool module_set_attr(Value& object, const std::string& name, const Value& value,
     }
   }
   ++module->version;
+  module_update_namespace_entry(*module, name, value);
+  return true;
+}
+
+bool module_delete_attr(Value& object, const std::string& name, std::string& error) {
+  auto* module = value_as_module(object);
+  if (module == nullptr) {
+    error = "object does not support attribute deletion";
+    return false;
+  }
+  auto it = module->name_to_slot.find(name);
+  if (name == "__name__") {
+    module->name.clear();
+    if (it != module->name_to_slot.end() && it->second < module->slots.size()) {
+      value_set_invalid(module->slots[it->second]);
+    }
+    module->name_to_slot.erase(name);
+  } else {
+    if (it == module->name_to_slot.end() || it->second >= module->slots.size() ||
+        module->slots[it->second].tag == ValueTag::Invalid) {
+      error = "module '" + module->name + "' has no attribute '" + name + "'";
+      return false;
+    }
+    if (auto* property = value_as_property(module->slots[it->second]); property && property->native_module_runtime) {
+      error = "native module property cannot be deleted: " + name;
+      return false;
+    }
+    value_set_invalid(module->slots[it->second]);
+    module->name_to_slot.erase(it);
+  }
+  ++module->version;
+  module_delete_namespace_entry(*module, name);
   return true;
 }
 

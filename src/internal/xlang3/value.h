@@ -164,7 +164,8 @@ struct StringObject {
   uint32_t size = 0;
   uint32_t alloc_size = 0;
   memory::X3BucketAllocator* allocator = nullptr;
-  bool immortal = false;
+  std::atomic_bool immortal{false};
+  bool ascii = false;
   // Immutable string bytes follow this object in the same allocation block.
 };
 
@@ -520,6 +521,8 @@ struct CodeObject {
   uint32_t function_id = 0;
   std::string mode;
   std::string filename_override;
+  std::string name_override;
+  std::string qualname_override;
   int64_t first_line_override = 0;
   int64_t flags_override = -1;
 };
@@ -531,9 +534,18 @@ struct FrameObject {
   uint32_t instruction_index = 0;
   Value globals_module;
   Value locals;
+  // Traceback frames retain local values compactly and construct the Python
+  // f_locals dict only if code actually asks for it.
+  std::vector<Value> local_snapshot;
+  bool has_lazy_locals = false;
   Value back;
   Value builtins;
+  Value trace;
   uint64_t activation_id = 0;
+  int64_t owner_thread_ident = 0;
+  bool trace_lines = true;
+  bool trace_opcodes = false;
+  bool allow_line_jump = false;
   bool live = false;
   bool refresh_instruction = true;
 };
@@ -553,11 +565,15 @@ struct MemoryViewObject {
   size_t offset = 0;
   size_t size = 0;
   std::string format = "B";
+  std::vector<int64_t> shape;
+  std::vector<int64_t> strides;
   bool readonly = true;
   bool contiguous = true;
   bool released = false;
   bool owns_bytearray_export = false;
 };
+
+void frame_materialize_locals(FrameObject& frame);
 
 std::string_view memoryview_object_view(const MemoryViewObject& view);
 char* memoryview_object_writable_data(const MemoryViewObject& view);
@@ -570,6 +586,7 @@ XLANG3_HOT_INLINE size_t memoryview_format_itemsize(std::string_view format) {
     case 'B':
     case 'b':
     case 'c':
+    case '?':
       return 1;
     case 'H':
     case 'h':
@@ -583,6 +600,8 @@ XLANG3_HOT_INLINE size_t memoryview_format_itemsize(std::string_view format) {
     case 'Q':
     case 'q':
     case 'd':
+    case 'N':
+    case 'n':
       return 8;
     default:
       return 0;
@@ -646,6 +665,10 @@ XLANG3_HOT_INLINE std::string_view string_object_view(const StringObject& value)
 
 XLANG3_HOT_INLINE const char* string_object_c_str(const StringObject& value) {
   return reinterpret_cast<const char*>(&value + 1);
+}
+
+XLANG3_HOT_INLINE bool string_object_is_ascii(const StringObject& value) {
+  return value.ascii;
 }
 
 XLANG3_HOT_INLINE char* string_object_mutable_data(StringObject& value) {
@@ -850,8 +873,80 @@ XLANG3_HOT_INLINE CellObject* value_as_cell(const Value& value) {
   return reinterpret_cast<CellObject*>(value.as.obj);
 }
 
-void retain(const Value& value);
-void release(const Value& value);
+inline std::atomic_bool g_xlang_perf_enabled{false};
+void xlang_perf_note_value_incref(ObjectKind kind);
+void xlang_perf_note_value_decref(ObjectKind kind);
+void release_last_reference(const Value& value);
+
+XLANG3_HOT_INLINE void retain(const Value& value) {
+  if (value.tag != ValueTag::Object || value.as.obj == nullptr ||
+      (value.flags & kXlangValueBorrowedRefFlag) != 0) {
+    return;
+  }
+  if (value.as.obj->kind == ObjectKind::String &&
+      reinterpret_cast<StringObject*>(value.as.obj)->immortal.load(std::memory_order_relaxed)) {
+    return;
+  }
+  if (g_xlang_perf_enabled.load(std::memory_order_relaxed)) {
+    xlang_perf_note_value_incref(value.as.obj->kind);
+  }
+  value.as.obj->refcnt.fetch_add(1, std::memory_order_relaxed);
+}
+
+XLANG3_HOT_INLINE void release(const Value& value) {
+  if (value.tag != ValueTag::Object || value.as.obj == nullptr ||
+      (value.flags & kXlangValueBorrowedRefFlag) != 0) {
+    return;
+  }
+  if (value.as.obj->kind == ObjectKind::String &&
+      reinterpret_cast<StringObject*>(value.as.obj)->immortal.load(std::memory_order_relaxed)) {
+    return;
+  }
+  if (g_xlang_perf_enabled.load(std::memory_order_relaxed)) {
+    xlang_perf_note_value_decref(value.as.obj->kind);
+  }
+  if (value.as.obj->refcnt.fetch_sub(1, std::memory_order_acq_rel) == 1) {
+    release_last_reference(value);
+  }
+}
+
+XLANG3_HOT_INLINE Value::Value(const Value& other)
+    : tag(other.tag), flags(other.flags & ~kXlangValueBorrowedRefFlag), as(other.as) {
+  retain(*this);
+}
+
+XLANG3_HOT_INLINE Value::Value(Value&& other) noexcept
+    : tag(other.tag), flags(other.flags), as(other.as) {
+  other.tag = ValueTag::Invalid;
+  other.flags = 0;
+  other.as.obj = nullptr;
+}
+
+XLANG3_HOT_INLINE Value& Value::operator=(const Value& other) {
+  if (this == &other) return *this;
+  release(*this);
+  tag = other.tag;
+  flags = other.flags & ~kXlangValueBorrowedRefFlag;
+  as = other.as;
+  retain(*this);
+  return *this;
+}
+
+XLANG3_HOT_INLINE Value& Value::operator=(Value&& other) noexcept {
+  if (this == &other) return *this;
+  release(*this);
+  tag = other.tag;
+  flags = other.flags;
+  as = other.as;
+  other.tag = ValueTag::Invalid;
+  other.flags = 0;
+  other.as.obj = nullptr;
+  return *this;
+}
+
+XLANG3_HOT_INLINE Value::~Value() {
+  release(*this);
+}
 
 XLANG3_HOT_INLINE void value_release_if_object(Value& value) {
   if (value.tag == ValueTag::Object && value.as.obj != nullptr &&

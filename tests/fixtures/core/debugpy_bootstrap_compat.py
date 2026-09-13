@@ -45,7 +45,9 @@ import debugpy.server.api
 import debugpy.server.cli
 from _pydevd_bundle import pydevd_utils
 from _pydevd_bundle.pydevd_breakpoints import ExceptionBreakpoint
+import threading
 
 print(debugpy.__version__ != "")
-print(pydevd_utils.get_non_pydevd_threads())
-print(ExceptionBreakpoint)
+debugger_threads = pydevd_utils.get_non_pydevd_threads()
+print(len(debugger_threads) >= 1, threading.main_thread() in debugger_threads)
+print(ExceptionBreakpoint.__name__, ExceptionBreakpoint.__module__)

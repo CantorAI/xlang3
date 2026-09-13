@@ -15,6 +15,7 @@ limitations under the License.
 #include "xlang3/runtime.h"
 #include "source_encoding.h"
 #include "ipc/ipc_runtime.h"
+#include "modules/thread/runtime_lock.h"
 
 #include "xlang3/attribute.h"
 #include "xlang3/builtins.h"
@@ -25,6 +26,7 @@ limitations under the License.
 #include "xlang3/native_package_loader.h"
 #endif
 #include "xlang3/module_object.h"
+#include "xlang3/perf_counters.h"
 #include "xlang3/mapping.h"
 #include "xlang3/object_model.h"
 #include "xlang3/sequence.h"
@@ -119,8 +121,26 @@ ActiveExceptionMap& active_exceptions() { return g_runtime_active_exceptions; }
 PendingExceptionMap& pending_exceptions() { return g_runtime_pending_exceptions; }
 #endif
 
+thread_local const Runtime* g_cached_current_frame_runtime = nullptr;
+thread_local RuntimeCurrentFrameState* g_cached_current_frame_state = nullptr;
+thread_local const Runtime* g_cached_current_frame_stack_runtime = nullptr;
+thread_local std::vector<RuntimeCurrentFrameState>* g_cached_current_frame_stack = nullptr;
+
 std::mutex g_runtime_frame_registry_mutex;
-std::unordered_map<const Runtime*, std::unordered_map<int64_t, RuntimeCurrentFrameState>> g_runtime_frame_registry;
+struct PublishedRuntimeFrameView {
+  std::shared_ptr<const ir::Module> module_owner;
+  Value globals_module;
+  std::vector<Value> local_values;
+  size_t instruction_index = 0;
+  uint32_t function_id = 0;
+  uint64_t activation_id = 0;
+};
+struct PublishedRuntimeFrameState {
+  RuntimeCurrentFrameState state;
+  std::vector<PublishedRuntimeFrameView> owned_frames;
+  std::vector<RuntimeFrameView> frame_stack;
+};
+std::unordered_map<const Runtime*, std::unordered_map<int64_t, PublishedRuntimeFrameState>> g_runtime_frame_registry;
 std::mutex g_runtime_exception_registry_mutex;
 std::unordered_map<const Runtime*, std::unordered_map<int64_t, Value>> g_runtime_exception_registry;
 
@@ -129,12 +149,77 @@ int64_t runtime_current_thread_ident() {
 }
 
 RuntimeCurrentFrameState& current_frame_state(const Runtime& runtime) {
-  return current_frames()[&runtime];
+  if (g_cached_current_frame_runtime == &runtime && g_cached_current_frame_state != nullptr) {
+    return *g_cached_current_frame_state;
+  }
+  // All insertions into the thread-local map pass through this function. If
+  // an insertion rehashes it, the cache is immediately replaced with the
+  // newly requested entry; switching back to another Runtime performs a new
+  // lookup. The common single-Runtime VM path therefore avoids a hash lookup
+  // on every opcode without weakening per-thread frame isolation.
+  auto& state = current_frames()[&runtime];
+  g_cached_current_frame_runtime = &runtime;
+  g_cached_current_frame_state = &state;
+  return state;
+}
+
+std::vector<RuntimeCurrentFrameState>& current_frame_stack(const Runtime& runtime) {
+  if (g_cached_current_frame_stack_runtime == &runtime &&
+      g_cached_current_frame_stack != nullptr) {
+    return *g_cached_current_frame_stack;
+  }
+  auto& stack = current_frame_stacks()[&runtime];
+  g_cached_current_frame_stack_runtime = &runtime;
+  g_cached_current_frame_stack = &stack;
+  return stack;
 }
 
 void publish_current_frame_state(const Runtime& runtime) {
   std::lock_guard<std::mutex> lock(g_runtime_frame_registry_mutex);
-  g_runtime_frame_registry[&runtime][runtime_current_thread_ident()] = current_frame_state(runtime);
+  const auto& source = current_frame_state(runtime);
+  auto& published = g_runtime_frame_registry[&runtime][runtime_current_thread_ident()];
+  published.state = source;
+  published.owned_frames.clear();
+  published.frame_stack.clear();
+  if (source.frame_stack != nullptr && source.frame_stack_count != 0) {
+    published.owned_frames.resize(source.frame_stack_count);
+    for (size_t i = 0; i < source.frame_stack_count; ++i) {
+      const auto& frame = source.frame_stack[i];
+      auto& owned = published.owned_frames[i];
+      if (frame.module_owner != nullptr) owned.module_owner = *frame.module_owner;
+      if (frame.globals_module != nullptr) value_assign_fast(owned.globals_module, *frame.globals_module);
+      // Cross-thread snapshots are used to identify live stacks. Exact locals
+      // for a stopped thread come from the debugger's live frame callback;
+      // retaining arbitrary local objects here changes their finalization time.
+      owned.local_values.clear();
+      if (frame.instruction_index != nullptr) owned.instruction_index = *frame.instruction_index;
+      owned.function_id = frame.function_id;
+      owned.activation_id = frame.activation_id;
+    }
+    published.frame_stack.reserve(published.owned_frames.size());
+    for (auto& owned : published.owned_frames) {
+      const std::vector<std::string>* local_names = nullptr;
+      if (owned.module_owner != nullptr && owned.function_id < owned.module_owner->functions.size()) {
+        local_names = &owned.module_owner->functions[owned.function_id].locals;
+      }
+      published.frame_stack.push_back(RuntimeFrameView{
+          &owned.module_owner,
+          &owned.globals_module,
+          local_names,
+          owned.local_values.data(),
+          &owned.instruction_index,
+          owned.local_values.size(),
+          owned.function_id,
+          owned.activation_id,
+          nullptr,
+          nullptr,
+          0,
+          nullptr,
+      });
+    }
+  }
+  published.state.frame_stack = published.frame_stack.empty() ? nullptr : published.frame_stack.data();
+  published.state.frame_stack_count = published.frame_stack.size();
 }
 
 void clear_current_frame_state(const Runtime& runtime) {
@@ -246,7 +331,14 @@ void add_default_python_lib_roots(Runtime& runtime) {
 #endif
 }
 
-std::filesystem::path normalize_import_root(std::filesystem::path root) {
+std::filesystem::path normalize_import_root(
+    std::filesystem::path root,
+    bool host_paths) {
+  if (!host_paths) {
+    if (root.empty()) root = "/";
+    const auto normalized = root.lexically_normal();
+    return normalized.empty() ? root : normalized;
+  }
   if (root.empty()) {
     root = std::filesystem::current_path();
   }
@@ -768,6 +860,15 @@ Runtime::~Runtime() {
   if (!threading_shutdown_completed) {
     xlang_thread_join_runtime_threads(this);
   }
+  clear_current_frame();
+  clear_runtime_frame_states(*this);
+  runtime_clear_exception_states(*this);
+  {
+    std::lock_guard<std::mutex> lock(live_frame_snapshots_mutex_);
+    live_frame_snapshots_.clear();
+    live_frame_snapshot_index_.clear();
+    has_live_frame_snapshots_.store(false, std::memory_order_release);
+  }
   ignored.clear();
   if (!run_exit_functions(ignored) && !ignored.empty()) {
     std::cerr << ignored << '\n';
@@ -804,7 +905,9 @@ Runtime::~Runtime() {
       (void)take_pending_exception(pending);
     }
   }
-  xlang_thread_join_runtime_threads(this);
+  if (!threading_shutdown_completed) {
+    xlang_thread_join_runtime_threads(this);
+  }
   xlang_thread_detach_runtime_daemon_threads(this);
   ipc_detach_runtime(*this);
   value_set_invalid(pending_exception_);
@@ -817,13 +920,6 @@ Runtime::~Runtime() {
   value_set_invalid(profile_function_);
   value_set_invalid(thread_profile_function_);
   value_set_invalid(debug_hook_);
-  clear_current_frame();
-  clear_runtime_frame_states(*this);
-  runtime_clear_exception_states(*this);
-  {
-    std::lock_guard<std::mutex> lock(live_frame_snapshots_mutex_);
-    live_frame_snapshots_.clear();
-  }
   collect_serialized_objects(true);
   native_codecs_.clear();
   // Module/function and sys.modules cycles must not retain native instances
@@ -832,7 +928,9 @@ Runtime::~Runtime() {
     if (auto* module = value_as_module(entry.second)) {
       module->slots.clear();
       module->name_to_slot.clear();
+      module->extra_globals.clear();
       ++module->version;
+      module_sync_namespace_dict(*module);
     }
   }
   native_symbols_.clear();
@@ -894,9 +992,14 @@ const Value* Runtime::find_builtin(const std::string& name) const {
 }
 
 void Runtime::set_current_globals_module(const Value& globals_module) {
+  auto& state = current_frame_state(*this);
+  if (state.current_globals_module.tag == ValueTag::Object &&
+      globals_module.tag == ValueTag::Object &&
+      state.current_globals_module.as.obj == globals_module.as.obj) {
+    return;
+  }
   Value next;
   value_assign_fast(next, globals_module);
-  auto& state = current_frame_state(*this);
   value_set_invalid(state.current_globals_module);
   state.current_globals_module = next;
 }
@@ -935,6 +1038,9 @@ bool Runtime::publish_sys_path(std::string& error) {
 #endif
 
 void Runtime::set_trace_function(Value trace_function) {
+  if (trace_function.tag != ValueTag::Invalid && trace_function.tag != ValueTag::None) {
+    trace_possible_.store(true, std::memory_order_relaxed);
+  }
   Value next;
   value_assign_fast(next, trace_function);
   auto& state = current_frame_state(*this);
@@ -956,6 +1062,9 @@ void Runtime::set_trace_dispatch_active(bool active) {
 }
 
 void Runtime::set_thread_trace_function(Value trace_function) {
+  if (trace_function.tag != ValueTag::Invalid && trace_function.tag != ValueTag::None) {
+    trace_possible_.store(true, std::memory_order_relaxed);
+  }
   Value next;
   value_assign_fast(next, trace_function);
   value_set_invalid(thread_trace_function_);
@@ -963,6 +1072,9 @@ void Runtime::set_thread_trace_function(Value trace_function) {
 }
 
 void Runtime::set_profile_function(Value profile_function) {
+  if (profile_function.tag != ValueTag::Invalid && profile_function.tag != ValueTag::None) {
+    profile_possible_.store(true, std::memory_order_relaxed);
+  }
   Value next;
   value_assign_fast(next, profile_function);
   auto& state = current_frame_state(*this);
@@ -1010,6 +1122,9 @@ bool Runtime::emit_profile_event_for_frame(const Value& frame, const char* event
 }
 
 void Runtime::set_thread_profile_function(Value profile_function) {
+  if (profile_function.tag != ValueTag::Invalid && profile_function.tag != ValueTag::None) {
+    profile_possible_.store(true, std::memory_order_relaxed);
+  }
   Value next;
   value_assign_fast(next, profile_function);
   value_set_invalid(thread_profile_function_);
@@ -1161,26 +1276,23 @@ void Runtime::set_current_frame(
 }
 
 void Runtime::push_current_frame_state() {
-  current_frame_stacks()[this].push_back(current_frame_state(*this));
+  current_frame_stack(*this).push_back(current_frame_state(*this));
 }
 
 void Runtime::pop_current_frame_state() {
-  auto& stacks = current_frame_stacks();
-  auto stack_it = stacks.find(this);
-  if (stack_it == stacks.end() || stack_it->second.empty()) {
+  auto& stack = current_frame_stack(*this);
+  if (stack.empty()) {
     clear_current_frame();
     return;
   }
-  current_frame_state(*this) = std::move(stack_it->second.back());
-  stack_it->second.pop_back();
-  if (stack_it->second.empty()) {
-    stacks.erase(stack_it);
-  }
+  current_frame_state(*this) = std::move(stack.back());
+  stack.pop_back();
+  // Nested Python callbacks, including PEP 669 handlers, enter this path very
+  // frequently. Retain the empty vector's capacity for the next callback
+  // instead of allocating and freeing one state record for every invocation.
   const auto& state = current_frame_state(*this);
   if (state.module_owner == nullptr && state.globals_module == nullptr && state.frame_stack == nullptr) {
     clear_current_frame_state(*this);
-  } else {
-    publish_current_frame_state(*this);
   }
 }
 
@@ -1188,7 +1300,9 @@ void Runtime::set_current_frame_stack(const RuntimeFrameView* frames, size_t cou
   auto& state = current_frame_state(*this);
   state.frame_stack = frames;
   state.frame_stack_count = count;
-  refresh_live_frame_snapshots();
+}
+
+void Runtime::publish_current_frame_for_thread_inspection() {
   publish_current_frame_state(*this);
 }
 
@@ -1244,6 +1358,7 @@ void Runtime::clear_current_frame() {
 namespace {
 
 Value locals_snapshot_from_view(const RuntimeFrameView& view) {
+  xlang_perf_count_frame_locals_materialization();
   if (view.local_names == nullptr || view.local_values == nullptr) {
     return Value::dict({});
   }
@@ -1263,19 +1378,31 @@ Value locals_snapshot_from_view(const RuntimeFrameView& view) {
   return Value::dict(std::move(entries));
 }
 
-Value module_attrs_snapshot(const Value& module_value) {
-  const auto* module = value_as_module(module_value);
-  if (module == nullptr) {
-    return Value::dict({});
+Value frame_locals_from_view(const RuntimeFrameView& view) {
+  if (view.module_owner != nullptr && view.module_owner->get() != nullptr &&
+      view.globals_module != nullptr && view.function_id == view.module_owner->get()->entry) {
+    return module_namespace_dict(*view.globals_module);
   }
-  std::vector<std::pair<Value, Value>> entries;
-  entries.reserve(module->name_to_slot.size());
-  for (const auto& entry : module->name_to_slot) {
-    if (entry.second < module->slots.size() && module->slots[entry.second].tag != ValueTag::Invalid) {
-      entries.push_back({Value::string(entry.first), module->slots[entry.second]});
-    }
+  return locals_snapshot_from_view(view);
+}
+
+void initialize_lazy_frame_locals(Value& frame_value, const RuntimeFrameView& view) {
+  auto* frame = value_as_frame(frame_value);
+  if (frame == nullptr) return;
+  if (view.module_owner != nullptr && view.module_owner->get() != nullptr &&
+      view.globals_module != nullptr && view.function_id == view.module_owner->get()->entry) {
+    frame->locals = module_namespace_dict(*view.globals_module);
+    frame->local_snapshot.clear();
+    frame->has_lazy_locals = false;
+    return;
   }
-  return Value::dict(std::move(entries));
+  value_set_invalid(frame->locals);
+  if (view.local_values == nullptr || view.local_count == 0) {
+    frame->local_snapshot.clear();
+  } else {
+    frame->local_snapshot.assign(view.local_values, view.local_values + view.local_count);
+  }
+  frame->has_lazy_locals = true;
 }
 
 Value materialize_frame_from_stack(
@@ -1292,16 +1419,16 @@ Value materialize_frame_from_stack(
   if (index != 0) {
     back = materialize_frame_from_stack(frames, index - 1, builtins, base_back);
   }
-  Value locals = locals_snapshot_from_view(view);
   Value physical = Value::frame(
       *view.module_owner,
       view.function_id,
       *view.globals_module,
       static_cast<uint32_t>(*view.instruction_index),
-      locals,
+      Value::invalid(),
       std::move(back),
       builtins,
       view.activation_id);
+  initialize_lazy_frame_locals(physical, view);
   const auto& module = **view.module_owner;
   if (view.function_id >= module.functions.size()) {
     return physical;
@@ -1322,15 +1449,17 @@ Value materialize_frame_from_stack(
   if (active_range == nullptr) {
     return physical;
   }
-  return Value::frame(
+  Value logical = Value::frame(
       *view.module_owner,
       active_range->function_id,
       *view.globals_module,
       instruction,
-      std::move(locals),
+      Value::invalid(),
       std::move(physical),
       builtins,
       view.activation_id ^ (uint64_t{1} << 63));
+  initialize_lazy_frame_locals(logical, view);
+  return logical;
 }
 
 Value materialize_frame_state(
@@ -1347,25 +1476,28 @@ Value materialize_frame_state(
   view.local_names = state.local_names;
   view.local_values = state.local_values;
   view.local_count = state.local_count;
-  return Value::frame(
+  Value frame = Value::frame(
       *state.module_owner,
       state.function_id,
       *state.globals_module,
       state.instruction_index,
-      locals_snapshot_from_view(view),
+      Value::invalid(),
       base_back,
       builtins);
+  initialize_lazy_frame_locals(frame, view);
+  return frame;
 }
 
 } // namespace
 
 Value Runtime::current_frame_snapshot() const {
+  const auto& state = current_frame_state(*this);
+  xlang_perf_count_frame_snapshot(state.frame_stack_count);
   Value builtins = Value::dict({});
   auto builtins_it = modules_.find("builtins");
   if (builtins_it != modules_.end()) {
-    builtins = module_attrs_snapshot(builtins_it->second);
+    builtins = module_namespace_dict(builtins_it->second);
   }
-  const auto& state = current_frame_state(*this);
   Value saved_back = Value::none();
   auto saved_it = current_frame_stacks().find(this);
   if (saved_it != current_frame_stacks().end()) {
@@ -1388,38 +1520,50 @@ Value Runtime::current_frame_snapshot() const {
     Value canonical_back = Value::none();
     for (size_t index = materialized.size(); index > 0; --index) {
       auto* fresh = value_as_frame(materialized[index - 1]);
+      fresh->owner_thread_ident = runtime_current_thread_ident();
       Value canonical = materialized[index - 1];
-      for (auto& tracked_value : live_frame_snapshots_) {
-        auto* tracked = value_as_frame(tracked_value);
-        if (tracked == nullptr || !tracked->live || tracked->activation_id != fresh->activation_id ||
-            tracked->module.get() != fresh->module.get() || tracked->function_id != fresh->function_id) {
-          continue;
+      auto tracked_it = live_frame_snapshot_index_.find(fresh->activation_id);
+      if (tracked_it != live_frame_snapshot_index_.end()) {
+        auto* tracked = tracked_it->second;
+        if (tracked != nullptr && tracked->live &&
+            tracked->module.get() == fresh->module.get() &&
+            tracked->function_id == fresh->function_id) {
+          const bool same_globals =
+              tracked->globals_module.tag == fresh->globals_module.tag &&
+              (tracked->globals_module.tag != ValueTag::Object ||
+               tracked->globals_module.as.obj == fresh->globals_module.as.obj);
+          const bool same_back =
+              tracked->back.tag == canonical_back.tag &&
+              (tracked->back.tag != ValueTag::Object ||
+               tracked->back.as.obj == canonical_back.as.obj);
+          if (same_globals && same_back) {
+            tracked->instruction_index = fresh->instruction_index;
+            tracked->owner_thread_ident = fresh->owner_thread_ident;
+            tracked->locals = fresh->locals;
+            tracked->local_snapshot = fresh->local_snapshot;
+            tracked->has_lazy_locals = fresh->has_lazy_locals;
+            tracked->back = canonical_back;
+            tracked->builtins = fresh->builtins;
+            for (const auto& tracked_value : live_frame_snapshots_) {
+              if (tracked_value.as.obj == &tracked->header) {
+                canonical = tracked_value;
+                break;
+              }
+            }
+          }
         }
-        const bool same_globals =
-            tracked->globals_module.tag == fresh->globals_module.tag &&
-            (tracked->globals_module.tag != ValueTag::Object ||
-             tracked->globals_module.as.obj == fresh->globals_module.as.obj);
-        const bool same_back =
-            tracked->back.tag == canonical_back.tag &&
-            (tracked->back.tag != ValueTag::Object || tracked->back.as.obj == canonical_back.as.obj);
-        if (!same_globals || !same_back) {
-          continue;
-        }
-        tracked->instruction_index = fresh->instruction_index;
-        tracked->locals = fresh->locals;
-        tracked->back = canonical_back;
-        tracked->builtins = fresh->builtins;
-        canonical = tracked_value;
-        break;
       }
       if (canonical.tag == ValueTag::Object && canonical.as.obj == materialized[index - 1].as.obj) {
         fresh->back = canonical_back;
         fresh->live = true;
         live_frame_snapshots_.push_back(canonical);
+        live_frame_snapshot_index_[fresh->activation_id] = fresh;
       }
       canonical_back = canonical;
     }
     snapshot = canonical_back;
+    has_live_frame_snapshots_.store(
+        !live_frame_snapshots_.empty(), std::memory_order_release);
   }
   return snapshot;
 }
@@ -1433,40 +1577,33 @@ void Runtime::track_live_frame_snapshot(const Value& frame_value) {
   // captured.  The referenced frame itself remains live, so f_lineno and
   // f_locals continue to follow the running activation.
   frame->refresh_instruction = true;
+  frame->owner_thread_ident = runtime_current_thread_ident();
   std::lock_guard<std::mutex> lock(live_frame_snapshots_mutex_);
-  for (const auto& tracked_value : live_frame_snapshots_) {
-    if (tracked_value.tag == ValueTag::Object &&
-        tracked_value.as.obj == frame_value.as.obj) {
+  if (const auto found = live_frame_snapshot_index_.find(frame->activation_id);
+      found != live_frame_snapshot_index_.end() && found->second == frame) {
       frame->live = true;
       return;
-    }
   }
   frame->live = true;
   live_frame_snapshots_.push_back(frame_value);
+  live_frame_snapshot_index_[frame->activation_id] = frame;
+  has_live_frame_snapshots_.store(true, std::memory_order_release);
 }
 
 void Runtime::refresh_live_frame_snapshots(bool refresh_traceback_locals) {
-  const auto& state = current_frame_state(*this);
-  std::vector<RuntimeCurrentFrameState> registered_states;
-  const int64_t current_thread_ident = runtime_current_thread_ident();
-  {
-    std::lock_guard<std::mutex> registry_lock(g_runtime_frame_registry_mutex);
-    auto runtime_it = g_runtime_frame_registry.find(this);
-    if (runtime_it != g_runtime_frame_registry.end()) {
-      registered_states.reserve(runtime_it->second.size());
-      for (const auto& entry : runtime_it->second) {
-        // The current thread's registry entry can still point at the previous
-        // capacity of its frame-view vector while set_current_frame_stack()
-        // is publishing a freshly rebuilt view. The live state above and the
-        // saved nested-call states below already cover this thread.
-        if (entry.first != current_thread_ident) registered_states.push_back(entry.second);
-      }
-    }
+  if (!has_live_frame_snapshots_.load(std::memory_order_acquire)) {
+    return;
   }
+  const auto& state = current_frame_state(*this);
+  const int64_t current_thread_ident = runtime_current_thread_ident();
   std::lock_guard<std::mutex> lock(live_frame_snapshots_mutex_);
+  if (live_frame_snapshots_.empty()) return;
+  xlang_perf_count_frame_refresh(live_frame_snapshots_.size());
   for (auto& tracked_value : live_frame_snapshots_) {
     if (auto* tracked = value_as_frame(tracked_value)) {
-      tracked->live = false;
+      if (tracked->owner_thread_ident == current_thread_ident) {
+        tracked->live = false;
+      }
     }
   }
   for (auto& tracked_value : live_frame_snapshots_) {
@@ -1490,9 +1627,6 @@ void Runtime::refresh_live_frame_snapshots(bool refresh_traceback_locals) {
       }
     };
     match_frame_view(state);
-    for (const auto& registered_state : registered_states) {
-      match_frame_view(registered_state);
-    }
     auto saved_states = current_frame_stacks().find(this);
     if (saved_states != current_frame_stacks().end()) {
       for (const auto& saved_state : saved_states->second) {
@@ -1500,8 +1634,10 @@ void Runtime::refresh_live_frame_snapshots(bool refresh_traceback_locals) {
       }
     }
     if (matching_view != nullptr) {
-      if (tracked->refresh_instruction || refresh_traceback_locals) {
-        tracked->locals = locals_snapshot_from_view(*matching_view);
+      if (refresh_traceback_locals) {
+        tracked->locals = frame_locals_from_view(*matching_view);
+        tracked->local_snapshot.clear();
+        tracked->has_lazy_locals = false;
       }
       tracked->live = true;
       if (tracked->refresh_instruction && matching_view->instruction_index != nullptr) {
@@ -1512,11 +1648,16 @@ void Runtime::refresh_live_frame_snapshots(bool refresh_traceback_locals) {
     if (state.module_owner != nullptr && state.module_owner->get() == tracked->module.get() &&
         state.function_id == tracked->function_id) {
       RuntimeFrameView current_view;
+      current_view.module_owner = state.module_owner;
+      current_view.globals_module = state.globals_module;
+      current_view.function_id = state.function_id;
       current_view.local_names = state.local_names;
       current_view.local_values = state.local_values;
       current_view.local_count = state.local_count;
-      if (tracked->refresh_instruction || refresh_traceback_locals) {
-        tracked->locals = locals_snapshot_from_view(current_view);
+      if (refresh_traceback_locals) {
+        tracked->locals = frame_locals_from_view(current_view);
+        tracked->local_snapshot.clear();
+        tracked->has_lazy_locals = false;
       }
       if (tracked->refresh_instruction) {
         tracked->instruction_index = state.instruction_index;
@@ -1530,9 +1671,25 @@ void Runtime::refresh_live_frame_snapshots(bool refresh_traceback_locals) {
           live_frame_snapshots_.end(),
           [](const Value& value) {
             const auto* frame = value_as_frame(value);
-            return frame == nullptr || !frame->live;
+            return frame == nullptr ||
+                (!frame->live && frame->owner_thread_ident == runtime_current_thread_ident());
           }),
       live_frame_snapshots_.end());
+  live_frame_snapshot_index_.clear();
+  for (const auto& value : live_frame_snapshots_) {
+    if (auto* frame = value_as_frame(value); frame != nullptr && frame->activation_id != 0) {
+      live_frame_snapshot_index_[frame->activation_id] = frame;
+    }
+  }
+  has_live_frame_snapshots_.store(
+      !live_frame_snapshots_.empty(), std::memory_order_release);
+
+  // Reference-graph pruning prevents the registry from retaining a live frame
+  // after Python drops its last reference. It does not need to rebuild two
+  // hash tables on every nested call and return.
+  if (!refresh_traceback_locals && (++live_frame_prune_ticks_ & 0xffu) != 0) {
+    return;
+  }
 
   // The registry must retain frame objects only while Python code holds a
   // live snapshot. Keeping every frame ever returned by sys._getframe() made
@@ -1576,6 +1733,43 @@ void Runtime::refresh_live_frame_snapshots(bool refresh_traceback_locals) {
                 retained_objects.find(value.as.obj) == retained_objects.end();
           }),
       live_frame_snapshots_.end());
+  live_frame_snapshot_index_.clear();
+  for (const auto& value : live_frame_snapshots_) {
+    if (auto* frame = value_as_frame(value); frame != nullptr && frame->activation_id != 0) {
+      live_frame_snapshot_index_[frame->activation_id] = frame;
+    }
+  }
+  has_live_frame_snapshots_.store(
+      !live_frame_snapshots_.empty(), std::memory_order_release);
+}
+
+void Runtime::retire_live_frame_snapshot(
+    uint64_t activation_id,
+    uint32_t instruction_index,
+    const Value* local_values,
+    size_t local_count) {
+  if (activation_id == 0 || !has_live_frame_snapshots_.load(std::memory_order_acquire)) return;
+  std::lock_guard<std::mutex> lock(live_frame_snapshots_mutex_);
+  const auto found = live_frame_snapshot_index_.find(activation_id);
+  if (found == live_frame_snapshot_index_.end()) return;
+  FrameObject* retired = found->second;
+  if (retired != nullptr) {
+    retired->instruction_index = instruction_index;
+    if (retired->has_lazy_locals && local_values != nullptr) {
+      retired->local_snapshot.assign(local_values, local_values + local_count);
+    }
+    retired->live = false;
+  }
+  Object* retired_object = retired != nullptr ? &retired->header : nullptr;
+  live_frame_snapshot_index_.erase(found);
+  live_frame_snapshots_.erase(
+      std::remove_if(
+          live_frame_snapshots_.begin(), live_frame_snapshots_.end(),
+          [&](const Value& value) {
+            return value.tag == ValueTag::Object && value.as.obj == retired_object;
+          }),
+      live_frame_snapshots_.end());
+  has_live_frame_snapshots_.store(!live_frame_snapshots_.empty(), std::memory_order_release);
 }
 
 uint64_t Runtime::allocate_frame_activation_id() {
@@ -1601,7 +1795,7 @@ Value Runtime::current_locals_snapshot() const {
   if (state.module_owner != nullptr && state.module_owner->get() != nullptr &&
       state.globals_module != nullptr &&
       state.function_id == state.module_owner->get()->entry) {
-    return module_attrs_snapshot(*state.globals_module);
+    return module_namespace_dict(*state.globals_module);
   }
   if (state.local_names == nullptr || state.local_values == nullptr) {
     return Value::dict({});
@@ -1639,7 +1833,7 @@ Value frame_snapshot_from_state(const RuntimeCurrentFrameState& state, const Val
       *state.globals_module,
       state.instruction_index,
       state.function_id == state.module_owner->get()->entry
-          ? module_attrs_snapshot(*state.globals_module)
+          ? module_namespace_dict(*state.globals_module)
           : locals_snapshot_from_view(RuntimeFrameView{
                 state.module_owner,
                 state.globals_module,
@@ -1659,7 +1853,7 @@ Value Runtime::current_frame_snapshots(const std::vector<int64_t>& live_thread_i
   Value builtins = Value::dict({});
   auto builtins_it = modules_.find("builtins");
   if (builtins_it != modules_.end()) {
-    builtins = module_attrs_snapshot(builtins_it->second);
+    builtins = module_namespace_dict(builtins_it->second);
   }
   std::vector<std::pair<Value, Value>> entries;
   std::lock_guard<std::mutex> lock(g_runtime_frame_registry_mutex);
@@ -1672,7 +1866,7 @@ Value Runtime::current_frame_snapshots(const std::vector<int64_t>& live_thread_i
     } else if (runtime_it != g_runtime_frame_registry.end()) {
       auto frame_it = runtime_it->second.find(ident);
       if (frame_it != runtime_it->second.end()) {
-        frame = frame_snapshot_from_state(frame_it->second, builtins);
+        frame = frame_snapshot_from_state(frame_it->second.state, builtins);
       }
     }
     entries.push_back({Value::int64(ident), std::move(frame)});
@@ -1681,6 +1875,19 @@ Value Runtime::current_frame_snapshots(const std::vector<int64_t>& live_thread_i
     entries.push_back({Value::int64(runtime_current_thread_ident()), current_frame_snapshot()});
   }
   return Value::dict(std::move(entries));
+}
+
+Value Runtime::code_object(std::shared_ptr<const ir::Module> module, uint32_t function_id) {
+  if (module == nullptr || function_id >= module->functions.size()) return Value::none();
+  std::lock_guard<std::mutex> lock(code_objects_mutex_);
+  auto& objects = code_objects_[module.get()];
+  if (objects.size() < module->functions.size()) {
+    objects.resize(module->functions.size(), Value::invalid());
+  }
+  if (objects[function_id].tag == ValueTag::Invalid) {
+    objects[function_id] = Value::code(std::move(module), function_id);
+  }
+  return objects[function_id];
 }
 
 Value Runtime::current_exception_snapshots(const std::vector<int64_t>& live_thread_ids) const {
@@ -1709,11 +1916,19 @@ Value Runtime::current_exception_snapshots(const std::vector<int64_t>& live_thre
 }
 
 uint32_t Runtime::current_frame_function_id() const {
-  return current_frame_state(*this).function_id;
+  const auto& state = current_frame_state(*this);
+  if (state.frame_stack != nullptr && state.frame_stack_count != 0) {
+    return state.frame_stack[state.frame_stack_count - 1].function_id;
+  }
+  return state.function_id;
 }
 
 const std::shared_ptr<const ir::Module>* Runtime::current_frame_module_owner() const {
-  return current_frame_state(*this).module_owner;
+  const auto& state = current_frame_state(*this);
+  if (state.frame_stack != nullptr && state.frame_stack_count != 0) {
+    return state.frame_stack[state.frame_stack_count - 1].module_owner;
+  }
+  return state.module_owner;
 }
 
 void Runtime::register_exit_function(
@@ -1848,8 +2063,53 @@ bool Runtime::execute_raw_block(
   return it->second(*this, context, language, provider, body, error);
 }
 
+void Runtime::acquire_import_lock() {
+  const auto current_thread = std::this_thread::get_id();
+  bool recursively_owned = false;
+  {
+    std::lock_guard<std::mutex> state_lock(import_lock_state_mutex_);
+    recursively_owned = import_lock_depth_ != 0 && import_lock_owner_ == current_thread;
+  }
+  if (recursively_owned) {
+    import_mutex_.lock();
+  } else {
+    // Match CPython's fast import path: retain the VM execution token when the
+    // import lock is immediately available, and expose the thread only when
+    // another importer actually makes this acquisition block.
+    if (!import_mutex_.try_lock()) {
+      XlangRuntimeExecutionSuspension execution_suspension;
+      import_mutex_.lock();
+    }
+  }
+  std::lock_guard<std::mutex> state_lock(import_lock_state_mutex_);
+  if (import_lock_depth_ == 0) import_lock_owner_ = current_thread;
+  ++import_lock_depth_;
+}
+
+bool Runtime::release_import_lock() {
+  {
+    std::lock_guard<std::mutex> state_lock(import_lock_state_mutex_);
+    if (import_lock_depth_ == 0 || import_lock_owner_ != std::this_thread::get_id()) {
+      return false;
+    }
+    --import_lock_depth_;
+    if (import_lock_depth_ == 0) import_lock_owner_ = std::thread::id{};
+  }
+  import_mutex_.unlock();
+  return true;
+}
+
+bool Runtime::import_lock_held() const {
+  std::lock_guard<std::mutex> state_lock(import_lock_state_mutex_);
+  return import_lock_depth_ != 0;
+}
+
 bool Runtime::import_module(const std::string& name, Value& out, std::string& error, bool* module_not_found) {
-  std::lock_guard<std::recursive_mutex> import_lock(import_mutex_);
+  acquire_import_lock();
+  struct ImportLockGuard {
+    Runtime& runtime;
+    ~ImportLockGuard() { runtime.release_import_lock(); }
+  } import_lock{*this};
   if (module_not_found != nullptr) { *module_not_found = false; }
   static const bool trace_imports = std::getenv("XLANG3_TRACE_IMPORTS") != nullptr;
   static const bool diag_missing_imports = std::getenv("XLANG3_DIAG_MISSING_IMPORTS") != nullptr;
@@ -1866,7 +2126,7 @@ bool Runtime::import_module(const std::string& name, Value& out, std::string& er
   if (modules_dict_.tag != ValueTag::Invalid) {
     Value registry_module;
     std::string registry_error;
-    if (mapping_get_item(modules_dict_, Value::string(name), registry_module, registry_error)) {
+    if (mapping_get_string_item(modules_dict_, name, registry_module, registry_error)) {
       if (registry_module.tag == ValueTag::None) {
         error = "import of " + name + " halted; None in sys.modules";
         if (module_not_found != nullptr) {
@@ -1913,7 +2173,7 @@ bool Runtime::import_module(const std::string& name, Value& out, std::string& er
     if (modules_dict_.tag != ValueTag::Invalid) {
       Value registry_module;
       std::string registry_error;
-      if (mapping_get_item(modules_dict_, Value::string(name), registry_module, registry_error) &&
+      if (mapping_get_string_item(modules_dict_, name, registry_module, registry_error) &&
           value_as_module(registry_module) != nullptr) {
         modules_[name] = registry_module;
         value_assign_fast(out, registry_module);
@@ -1951,7 +2211,7 @@ bool Runtime::import_module(const std::string& name, Value& out, std::string& er
         if (modules_dict_.tag != ValueTag::Invalid) {
           Value registry_module;
           std::string registry_error;
-          if (mapping_get_item(modules_dict_, Value::string(name), registry_module, registry_error) &&
+          if (mapping_get_string_item(modules_dict_, name, registry_module, registry_error) &&
               value_as_module(registry_module) != nullptr) {
             modules_[name] = registry_module;
             value_assign_fast(out, registry_module);
@@ -2087,19 +2347,58 @@ bool Runtime::has_registered_module(const std::string& name) const {
   return modules_.find(name) != modules_.end();
 }
 
+bool Runtime::may_have_python_import_miss(const std::string& name) const {
+  std::lock_guard<std::mutex> lock(python_import_misses_mutex_);
+  return python_import_miss_names_.find(name) != python_import_miss_names_.end();
+}
+
 bool Runtime::has_python_import_miss(const std::string& key) const {
   std::lock_guard<std::mutex> lock(python_import_misses_mutex_);
   return python_import_misses_.find(key) != python_import_misses_.end();
 }
 
-void Runtime::remember_python_import_miss(std::string key) {
+void Runtime::remember_python_import_miss(const std::string& name, std::string key) {
   std::lock_guard<std::mutex> lock(python_import_misses_mutex_);
+  python_import_miss_names_.insert(name);
   python_import_misses_.insert(std::move(key));
 }
 
 void Runtime::clear_python_import_misses() {
-  std::lock_guard<std::mutex> lock(python_import_misses_mutex_);
-  python_import_misses_.clear();
+  {
+    std::lock_guard<std::mutex> lock(python_import_misses_mutex_);
+    python_import_miss_names_.clear();
+    python_import_misses_.clear();
+  }
+  {
+    std::lock_guard<std::mutex> lock(python_import_directory_cache_mutex_);
+    python_import_directory_cache_.clear();
+  }
+}
+
+std::shared_ptr<const std::unordered_set<std::string>>
+Runtime::python_import_directory_entries(const std::string& path, std::string& error) {
+  VfsStat info;
+  if (!vfs_->stat(path, info, error) || info.kind != VfsNodeKind::Directory) {
+    return {};
+  }
+  {
+    std::lock_guard<std::mutex> lock(python_import_directory_cache_mutex_);
+    const auto cached = python_import_directory_cache_.find(path);
+    if (cached != python_import_directory_cache_.end() &&
+        cached->second.mtime_ns == info.mtime_ns) {
+      return cached->second.entries;
+    }
+  }
+  std::vector<std::string> names;
+  if (!vfs_->list_dir(path, names, error)) return {};
+  auto entries = std::make_shared<std::unordered_set<std::string>>();
+  entries->reserve(names.size());
+  for (auto& name : names) entries->insert(std::move(name));
+  {
+    std::lock_guard<std::mutex> lock(python_import_directory_cache_mutex_);
+    python_import_directory_cache_[path] = PythonImportDirectoryCacheEntry{info.mtime_ns, entries};
+  }
+  return entries;
 }
 
 bool Runtime::import_from(const std::string& module_name, const std::string& attr_name, Value& out, std::string& error, bool* module_not_found) {
@@ -2245,7 +2544,9 @@ bool Runtime::import_star(const std::string& module_name, Value& target_module, 
 
 #if !defined(XLANG3_EMBEDDED)
 void Runtime::add_import_root(std::filesystem::path root) {
-  root = normalize_import_root(std::move(root));
+  const bool host_path =
+      vfs_->uses_host_paths() && !vfs_->is_mounted_path(root.generic_string());
+  root = normalize_import_root(std::move(root), host_path);
   if (has_import_root(import_roots_, root)) {
     return;
   }
@@ -2253,7 +2554,9 @@ void Runtime::add_import_root(std::filesystem::path root) {
 }
 
 void Runtime::prepend_import_root(std::filesystem::path root) {
-  root = normalize_import_root(std::move(root));
+  const bool host_path =
+      vfs_->uses_host_paths() && !vfs_->is_mounted_path(root.generic_string());
+  root = normalize_import_root(std::move(root), host_path);
   if (has_import_root(import_roots_, root)) {
     return;
   }

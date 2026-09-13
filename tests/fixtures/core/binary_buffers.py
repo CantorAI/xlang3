@@ -48,7 +48,7 @@ with memoryview(b"ok") as ctx:
     print(ctx.tobytes(), ctx.readonly)
 try:
     ctx.tobytes()
-except RuntimeError:
+except ValueError:
     print("released")
 print(type(b) is bytes, type(ba) is bytearray, type(mv) is memoryview)
 print(bytes(mv), bytearray(mv))

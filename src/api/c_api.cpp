@@ -30,6 +30,7 @@ limitations under the License.
 #include "serialize/block_stream.h"
 #include "xlang3/runtime.h"
 #include "xlang3/sema.h"
+#include "xlang3/vfs.h"
 #include "runtime_lock.h"
 #include "stream_internal.h"
 #include "serialize/value_graph.h"
@@ -59,18 +60,6 @@ X3Status fail(xlang3::Runtime* runtime, std::string error) {
     runtime->set_last_error(std::move(error));
   }
   return X3_STATUS_ERROR;
-}
-
-bool read_file(const char* path, std::string& source, std::string& error) {
-  std::ifstream file(path, std::ios::binary);
-  if (!file) {
-    error = std::string("cannot open ") + path;
-    return false;
-  }
-  std::ostringstream buffer;
-  buffer << file.rdbuf();
-  source = buffer.str();
-  return true;
 }
 
 bool call_native_function(
@@ -226,9 +215,15 @@ X3Status x3_runtime_eval_file(X3Runtime* runtime, const char* path, X3Value* res
     return fail(rt, "runtime/path/result is null");
   }
 
+  std::vector<uint8_t> source_bytes;
   std::string source;
   std::string error;
-  if (!read_file(path, source, error)) {
+  if (!rt->vfs().read_file(path, source_bytes, error)) {
+    return fail(rt, error);
+  }
+  const std::string encoded_source(
+      reinterpret_cast<const char*>(source_bytes.data()), source_bytes.size());
+  if (!rt->decode_python_source(encoded_source, source, error)) {
     return fail(rt, error);
   }
 

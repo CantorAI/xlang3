@@ -216,6 +216,49 @@ public:
     size_ = size;
   }
 
+  // Re-size storage whose existing elements have already been cleared.  VM
+  // frame slots use this when a returned frame is reused at the same stack
+  // depth.  Keeping the Cell objects alive avoids destroying and placement-
+  // constructing every local and register on each Python function call.
+  void reset_after_clear(size_t size, const Value& fill) {
+    if (size <= InlineCount) {
+      if (!uses_inline_) {
+        heap_.clear();
+        data_ = inline_data();
+        uses_inline_ = true;
+        for (size_t i = 0; i < size; ++i) {
+          new (data_ + i) Cell(fill);
+        }
+        size_ = size;
+        return;
+      }
+      for (size_t i = size_; i < size; ++i) {
+        new (data_ + i) Cell(fill);
+      }
+      for (size_t i = size; i < size_; ++i) {
+        data_[i].~Cell();
+      }
+      size_ = size;
+      return;
+    }
+
+    if (uses_inline_) {
+      destroy_inline();
+      uses_inline_ = false;
+      heap_.assign(size, fill);
+    } else {
+      heap_.resize(size, fill);
+    }
+    data_ = heap_.data();
+    size_ = size;
+  }
+
+  void clear_values() {
+    for (size_t i = 0; i < size_; ++i) {
+      value_set_invalid(data_[i]);
+    }
+  }
+
   XLANG3_HOT_INLINE size_t size() const {
     return size_;
   }

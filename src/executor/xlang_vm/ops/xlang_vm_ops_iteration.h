@@ -54,12 +54,13 @@ XLANG3_HOT_INLINE XlangVMOpFlow get_iter(
   return XlangVMOpFlow::Next;
 }
 
-template <typename RaiseRuntimeError, typename RaiseExceptionValue>
+template <typename EmitMonitoringEvent, typename RaiseRuntimeError, typename RaiseExceptionValue>
 XLANG3_HOT_INLINE XlangVMOpFlow iter_next(
     const ir::Instr& in,
     Runtime& runtime,
     XlangVMSmallRegisterBuffer& regs,
     size_t& ip,
+    EmitMonitoringEvent&& emit_monitoring_event,
     RaiseRuntimeError&& raise_runtime_error,
     RaiseExceptionValue&& raise_exception_value) {
   bool done = false;
@@ -101,6 +102,10 @@ XLANG3_HOT_INLINE XlangVMOpFlow iter_next(
     return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
   }
   if (done) {
+    Value stop = runtime.make_exception("StopIteration", "");
+    if (!emit_monitoring_event(kSysMonitoringEventStopIteration, &stop)) {
+      return XlangVMOpFlow::ReturnResult;
+    }
     ip = in.b;
     return XlangVMOpFlow::ContinueLoop;
   }

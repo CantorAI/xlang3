@@ -53,6 +53,7 @@ struct XlangRLockState {
 };
 
 int64_t xlang_thread_current_ident();
+int64_t xlang_thread_main_ident();
 size_t xlang_thread_active_count();
 std::vector<int64_t> xlang_thread_active_idents();
 bool xlang_thread_tuple_to_args(const Value& value, std::vector<Value>& out, std::string& error);

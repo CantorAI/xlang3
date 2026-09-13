@@ -1385,6 +1385,50 @@ bool codecs_code_page_decode(Runtime& runtime, const Value* args, uint32_t argc,
       Value::int64(static_cast<int64_t>(bytes.size()))});
   return true;
 }
+
+bool codecs_mbcs_encode(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1 || argc > 2) {
+    error = "mbcs_encode() expected str and optional errors";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  std::vector<Value> forwarded = {Value::int64(CP_ACP), args[0]};
+  if (argc == 2) forwarded.push_back(args[1]);
+  return codecs_code_page_encode(runtime, forwarded.data(), static_cast<uint32_t>(forwarded.size()), out, error, nullptr);
+}
+
+bool codecs_mbcs_decode(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1 || argc > 3) {
+    error = "mbcs_decode() expected bytes, optional errors and final";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  std::vector<Value> forwarded = {Value::int64(CP_ACP), args[0]};
+  for (uint32_t index = 1; index < argc; ++index) forwarded.push_back(args[index]);
+  return codecs_code_page_decode(runtime, forwarded.data(), static_cast<uint32_t>(forwarded.size()), out, error, nullptr);
+}
+
+bool codecs_oem_encode(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1 || argc > 2) {
+    error = "oem_encode() expected str and optional errors";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  std::vector<Value> forwarded = {Value::int64(CP_OEMCP), args[0]};
+  if (argc == 2) forwarded.push_back(args[1]);
+  return codecs_code_page_encode(runtime, forwarded.data(), static_cast<uint32_t>(forwarded.size()), out, error, nullptr);
+}
+
+bool codecs_oem_decode(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1 || argc > 3) {
+    error = "oem_decode() expected bytes, optional errors and final";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  std::vector<Value> forwarded = {Value::int64(CP_OEMCP), args[0]};
+  for (uint32_t index = 1; index < argc; ++index) forwarded.push_back(args[index]);
+  return codecs_code_page_decode(runtime, forwarded.data(), static_cast<uint32_t>(forwarded.size()), out, error, nullptr);
+}
 #endif
 
 std::vector<Value>& codec_search_registry() {
@@ -2343,6 +2387,10 @@ void register_codecs_module(Runtime& runtime) {
 #if defined(_WIN32)
       .function("code_page_encode", codecs_code_page_encode)
       .function("code_page_decode", codecs_code_page_decode)
+      .function("mbcs_encode", codecs_mbcs_encode)
+      .function("mbcs_decode", codecs_mbcs_decode)
+      .function("oem_encode", codecs_oem_encode)
+      .function("oem_decode", codecs_oem_decode)
 #endif
       .value("BOM_UTF8", Value::bytes(std::string("\xEF\xBB\xBF", 3)))
       .value("BOM", Value::bytes({}));
