@@ -1914,6 +1914,26 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
       }
       return true;
     }
+    if (constructor_args.size() == 1) {
+      Value convert_method;
+      std::string call_error;
+      if (object_get_attr(value, "__float__", convert_method, call_error)) {
+        Value converted;
+        if (!runtime_call_callable(runtime, convert_method, nullptr, 0, converted, call_error)) {
+          error = call_error;
+          return false;
+        }
+        if (converted.tag != ValueTag::Double) {
+          error = "__float__ returned non-float";
+          return false;
+        }
+        if (!finish_float(converted.as.f64)) {
+          error = "float subclass construction failed";
+          return false;
+        }
+        return true;
+      }
+    }
     if (auto* text = value_as_string(value)) {
       const std::string owned_text = string_object_to_string(*text);
       char* end = nullptr;

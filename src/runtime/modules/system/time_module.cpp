@@ -15,6 +15,7 @@ limitations under the License.
 #include "xlang3/builtins.h"
 
 #include "xlang3/attribute.h"
+#include "xlang3/builtin_methods.h"
 #include "xlang3/functional_iterators.h"
 #include "xlang3/mapping.h"
 #include "xlang3/module_object.h"
@@ -73,9 +74,10 @@ Value time_native_function(
     void* user_data = nullptr,
     NativeKeywordFunctionCallback keyword_callback = nullptr,
     const std::string& qualname_override = "",
-    const std::string& text_signature = "") {
+    const std::string& text_signature = "",
+    NativeFastCallCallback fast_callback = nullptr) {
   Value function = runtime.make_native_function(
-      qualified_name, callback, user_data, nullptr, nullptr, false,
+      qualified_name, callback, user_data, nullptr, fast_callback, false,
       keyword_callback, false);
   if (auto* native = value_as_native_function(function)) {
     std::vector<std::pair<Value, Value>> attrs = {
@@ -3097,37 +3099,37 @@ void register_time_module(Runtime& runtime) {
                          "Return the current time in seconds since the Epoch.\n"
                          "Fractions of a second may be present if the system clock provides them.",
                          const_cast<char*>("time.time"), time_reject_keywords_kw,
-                         "", "($self, /)"))
+                         "", "($self, /)", builtin_fast_adapter<time_time, 1>))
       .value("time_ns", time_native_function(
                             runtime, "time.time_ns", "time_ns", time_time_ns,
                             "time_ns() -> int\n\n"
                             "Return the current time in nanoseconds since the Epoch.",
                             const_cast<char*>("time.time_ns"), time_reject_keywords_kw,
-                            "", "($self, /)"))
+                            "", "($self, /)", builtin_fast_adapter<time_time_ns, 1>))
       .value("monotonic", time_native_function(
                               runtime, "time.monotonic", "monotonic", time_monotonic,
                               "monotonic() -> float\n\n"
                               "Monotonic clock, cannot go backward.",
                               const_cast<char*>("time.monotonic"), time_reject_keywords_kw,
-                              "", "($self, /)"))
+                              "", "($self, /)", builtin_fast_adapter<time_monotonic, 1>))
       .value("monotonic_ns", time_native_function(
                                  runtime, "time.monotonic_ns", "monotonic_ns", time_monotonic_ns,
                                  "monotonic_ns() -> int\n\n"
                                  "Monotonic clock, cannot go backward, as nanoseconds.",
                                  const_cast<char*>("time.monotonic_ns"), time_reject_keywords_kw,
-                                 "", "($self, /)"))
+                                 "", "($self, /)", builtin_fast_adapter<time_monotonic_ns, 1>))
       .value("perf_counter", time_native_function(
                                  runtime, "time.perf_counter", "perf_counter", time_perf_counter,
                                  "perf_counter() -> float\n\n"
                                  "Performance counter for benchmarking.",
                                  const_cast<char*>("time.perf_counter"), time_reject_keywords_kw,
-                                 "", "($self, /)"))
+                                 "", "($self, /)", builtin_fast_adapter<time_perf_counter, 1>))
       .value("perf_counter_ns", time_native_function(
                                     runtime, "time.perf_counter_ns", "perf_counter_ns", time_perf_counter_ns,
                                     "perf_counter_ns() -> int\n\n"
                                     "Performance counter for benchmarking as nanoseconds.",
                                     const_cast<char*>("time.perf_counter_ns"), time_reject_keywords_kw,
-                                    "", "($self, /)"))
+                                    "", "($self, /)", builtin_fast_adapter<time_perf_counter_ns, 1>))
       .value("process_time", time_native_function(
                                  runtime, "time.process_time", "process_time", time_process_time,
                                  "process_time() -> float\n\n"

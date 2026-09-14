@@ -1424,15 +1424,15 @@ Value make_deque_class(Runtime& runtime, DequeIteratorClasses* iterator_classes)
   attrs.push_back({"maxlen", Value::property(
       runtime.make_native_function("_collections.deque.maxlen", deque_maxlen),
       Value::none(), Value::none(), Value::none())});
-  attrs.push_back({"append", runtime.make_native_function("_collections.deque.append", deque_append)});
-  attrs.push_back({"appendleft", runtime.make_native_function("_collections.deque.appendleft", deque_appendleft)});
-  attrs.push_back({"pop", runtime.make_native_function("_collections.deque.pop", deque_pop)});
-  attrs.push_back({"popleft", runtime.make_native_function("_collections.deque.popleft", deque_popleft)});
+  attrs.push_back({"append", runtime.make_native_function("_collections.deque.append", deque_append, nullptr, nullptr, builtin_method_fast_adapter<deque_append, 2>)});
+  attrs.push_back({"appendleft", runtime.make_native_function("_collections.deque.appendleft", deque_appendleft, nullptr, nullptr, builtin_method_fast_adapter<deque_appendleft, 2>)});
+  attrs.push_back({"pop", runtime.make_native_function("_collections.deque.pop", deque_pop, nullptr, nullptr, builtin_method_fast_adapter<deque_pop, 1>)});
+  attrs.push_back({"popleft", runtime.make_native_function("_collections.deque.popleft", deque_popleft, nullptr, nullptr, builtin_method_fast_adapter<deque_popleft, 1>)});
   attrs.push_back({"clear", runtime.make_native_function("_collections.deque.clear", deque_clear)});
   attrs.push_back({"extend", runtime.make_native_function("_collections.deque.extend", deque_extend)});
   attrs.push_back({"extendleft", runtime.make_native_function("_collections.deque.extendleft", deque_extendleft)});
   attrs.push_back({"count", runtime.make_native_function("_collections.deque.count", deque_count)});
-  attrs.push_back({"remove", runtime.make_native_function("_collections.deque.remove", deque_remove)});
+  attrs.push_back({"remove", runtime.make_native_function("_collections.deque.remove", deque_remove, nullptr, nullptr, builtin_method_fast_adapter<deque_remove, 2>)});
   attrs.push_back({"copy", runtime.make_native_function("_collections.deque.copy", deque_copy)});
   attrs.push_back({"__copy__", runtime.make_native_function("_collections.deque.__copy__", deque_copy)});
   attrs.push_back({"__reduce__", runtime.make_native_function("_collections.deque.__reduce__", deque_reduce, iterator_classes)});

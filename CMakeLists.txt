@@ -19,9 +19,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 if(MSVC)
+  string(REPLACE "/Ob2" "/Ob3" CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
   # CMake's Release defaults already contain /Ob2. Replace it so MSVC sees a
   # single inline policy instead of an overriding pair on every compilation.
-  string(REPLACE "/Ob2" "/Ob3" CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
 endif()
 
 option(XLANG3_EMBEDDED "Build the static embedded runtime subset" OFF)
@@ -154,7 +154,9 @@ set(XLANG3_SYSTEM_RUNTIME_SOURCES
   src/runtime/modules/system/ast_module.cpp
   src/runtime/modules/system/atexit_module.cpp
   src/runtime/modules/system/binascii_module.cpp
+  src/runtime/modules/system/bisect_module.cpp
   src/runtime/modules/system/bz2_module.cpp
+  src/runtime/modules/system/cmath_module.cpp
   src/runtime/modules/system/codecs_module.cpp
   src/runtime/modules/system/locale_module.cpp
   src/runtime/modules/system/multibytecodec_module.cpp
@@ -249,6 +251,7 @@ add_library(xlang3_runtime_static STATIC ${XLANG3_RUNTIME_SOURCES})
 add_library(xlang3_thread_runtime STATIC ${XLANG3_THREAD_RUNTIME_SOURCES})
 add_library(xlang3_task_runtime STATIC ${XLANG3_TASK_RUNTIME_SOURCES})
 add_library(xlang3_system_runtime STATIC ${XLANG3_SYSTEM_RUNTIME_SOURCES})
+
 set(XLANG3_MULTIARCH "${CMAKE_LIBRARY_ARCHITECTURE}")
 if(APPLE AND NOT XLANG3_MULTIARCH)
   set(XLANG3_MULTIARCH "darwin")
@@ -288,6 +291,12 @@ if(MSVC)
   target_compile_options(${xlang3_runtime_target} PRIVATE /MP)
 endif()
 endforeach()
+
+# CMake's WINDOWS_EXPORT_ALL_SYMBOLS scanner cannot inspect MSVC /GL objects,
+# so keep the shared runtime on ordinary /O2 and apply whole-program
+# optimization to the native component libraries that feed it.
+set_property(TARGET xlang3_thread_runtime xlang3_task_runtime xlang3_system_runtime
+  PROPERTY INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE)
 
 target_include_directories(xlang3_runtime PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/third_party/nlohmann_json)
 target_include_directories(xlang3_runtime_static PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/third_party/nlohmann_json)

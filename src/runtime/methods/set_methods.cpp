@@ -544,6 +544,19 @@ static BuiltinMethodSpec kSetMethods[] = {
 
 } // namespace
 
+const BuiltinMethodSpec* set_find_method_spec(const Value& object, const std::string& name) {
+  auto* set = value_as_set(object);
+  if (set == nullptr) return nullptr;
+  if (set->frozen &&
+      (name == "add" || name == "clear" || name == "difference_update" || name == "discard" ||
+       name == "intersection_update" || name == "pop" || name == "remove" ||
+       name == "symmetric_difference_update" || name == "update")) return nullptr;
+  for (const auto& method : kSetMethods) {
+    if (name == method.name) return &method;
+  }
+  return nullptr;
+}
+
 bool set_get_method(const Value& object, const std::string& name, Value& out) {
   auto* set = value_as_set(object);
   if (set == nullptr) {

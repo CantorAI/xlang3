@@ -858,6 +858,43 @@ XLANG3_HOT_INLINE XlangVMOpFlow is_jump_if_false(
   return XlangVMOpFlow::Next;
 }
 
+template <typename RaiseUnboundLocalError, typename EmitMonitoringEvent>
+XLANG3_HOT_INLINE XlangVMOpFlow is_local_const_jump_if_false(
+    const ir::Instr& in,
+    const ir::Function& fn,
+    XlangVMSmallValueBuffer& locals,
+    size_t& ip,
+    RuntimeResult& result,
+    RaiseUnboundLocalError&& raise_unbound_local_error,
+    EmitMonitoringEvent&& emit_monitoring_event) {
+  if (in.a >= locals.size() || in.b >= fn.constants.size()) {
+    result.errors.push_back("invalid local const identity jump");
+    return XlangVMOpFlow::ReturnResult;
+  }
+  if (locals[in.a].tag == ValueTag::Invalid) {
+    const std::string name = in.a < fn.locals.size() ? fn.locals[in.a] : "?";
+    return raise_unbound_local_error(
+               "cannot access local variable '" + name +
+               "' where it is not associated with a value")
+        ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+  }
+  const bool condition =
+      value_is(locals[in.a], fn.constants[in.b]) != (in.c != 0);
+  const uint32_t destination_offset =
+      condition ? static_cast<uint32_t>(ip + 1) : in.dst;
+  Value destination = Value::int64(static_cast<int64_t>(destination_offset));
+  if (!emit_monitoring_event(
+          condition ? kSysMonitoringEventBranchLeft : kSysMonitoringEventBranchRight,
+          &destination)) {
+    return XlangVMOpFlow::ReturnResult;
+  }
+  if (!condition) {
+    ip = in.dst;
+    return XlangVMOpFlow::ContinueLoop;
+  }
+  return XlangVMOpFlow::Next;
+}
+
 template <typename RaiseRuntimeError>
 XLANG3_HOT_INLINE XlangVMOpFlow contains(const ir::Instr& in, XlangVMSmallRegisterBuffer& regs, RaiseRuntimeError&& raise_runtime_error) {
   bool contains_value = false;

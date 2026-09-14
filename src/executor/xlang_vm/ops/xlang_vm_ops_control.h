@@ -18,6 +18,7 @@ limitations under the License.
 #include "../xlang_vm_arithmetic.h"
 #include "../xlang_vm_inline_support.h"
 #include "../xlang_vm_op_switch.h"
+#include "xlang_vm_ops_iteration.h"
 
 #include "xlang3/builtins.h"
 #include "xlang3/object_model.h"
@@ -29,16 +30,62 @@ limitations under the License.
 
 namespace xlang3::xlang_vm::ops {
 
-template <typename EmitMonitoringEvent>
+template <typename EmitMonitoringEvent, typename RaiseRuntimeError,
+          typename RaiseExceptionValue>
 XLANG3_HOT_INLINE XlangVMOpFlow jump(
     const ir::Instr& in,
+    const ir::Function& fn,
+    Runtime& runtime,
+    XlangVMSmallRegisterBuffer& regs,
+    XlangVMSmallValueBuffer& locals,
     size_t& ip,
-    EmitMonitoringEvent&& emit_monitoring_event) {
-  Value destination = Value::int64(static_cast<int64_t>(in.dst));
+    bool collapse_unobservable_chain,
+    EmitMonitoringEvent&& emit_monitoring_event,
+    RaiseRuntimeError&& raise_runtime_error,
+    RaiseExceptionValue&& raise_exception_value) {
+  uint32_t target = in.dst;
+  if (collapse_unobservable_chain) {
+    size_t remaining = fn.code.size();
+    while (target < fn.code.size() && remaining-- != 0) {
+      const auto& target_instruction = fn.code[target];
+      if (target_instruction.op != ir::Op::Jump ||
+          target_instruction.dst == target) {
+        break;
+      }
+      target = target_instruction.dst;
+    }
+  }
+  if (collapse_unobservable_chain && target < fn.code.size()) {
+    const auto& target_instruction = fn.code[target];
+    XlangVMOpFlow flow = XlangVMOpFlow::ContinueLoop;
+    if (target_instruction.op == ir::Op::IterNext) {
+      ip = target;
+      flow = iter_next(
+          target_instruction, runtime, regs, ip,
+          std::forward<EmitMonitoringEvent>(emit_monitoring_event),
+          std::forward<RaiseRuntimeError>(raise_runtime_error),
+          std::forward<RaiseExceptionValue>(raise_exception_value));
+    } else if (target_instruction.op == ir::Op::IterNextLocal) {
+      ip = target;
+      flow = iter_next_local(
+          target_instruction, runtime, regs, locals, ip,
+          std::forward<EmitMonitoringEvent>(emit_monitoring_event),
+          std::forward<RaiseRuntimeError>(raise_runtime_error),
+          std::forward<RaiseExceptionValue>(raise_exception_value));
+    } else {
+      flow = XlangVMOpFlow::ContinueLoop;
+    }
+    if (target_instruction.op == ir::Op::IterNext ||
+        target_instruction.op == ir::Op::IterNextLocal) {
+      if (flow == XlangVMOpFlow::Next) ip = target + 1;
+      return flow == XlangVMOpFlow::Next ? XlangVMOpFlow::ContinueLoop : flow;
+    }
+  }
+  Value destination = Value::int64(static_cast<int64_t>(target));
   if (!emit_monitoring_event(kSysMonitoringEventJump, &destination)) {
     return XlangVMOpFlow::ReturnResult;
   }
-  ip = in.dst;
+  ip = target;
   return XlangVMOpFlow::ContinueLoop;
 }
 
@@ -59,6 +106,41 @@ XLANG3_HOT_INLINE XlangVMOpFlow jump_if_false(
       return raise_exception_value(std::move(pending)) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
     return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
   }
+  const uint32_t destination_offset = condition ? static_cast<uint32_t>(ip + 1) : in.dst;
+  Value destination = Value::int64(static_cast<int64_t>(destination_offset));
+  if (!emit_monitoring_event(
+          condition ? kSysMonitoringEventBranchLeft : kSysMonitoringEventBranchRight,
+          &destination)) {
+    return XlangVMOpFlow::ReturnResult;
+  }
+  if (!condition) {
+    ip = in.dst;
+    return XlangVMOpFlow::ContinueLoop;
+  }
+  return XlangVMOpFlow::Next;
+}
+
+template <typename EmitMonitoringEvent, typename RaiseRuntimeError, typename RaiseExceptionValue>
+XLANG3_HOT_INLINE XlangVMOpFlow not_jump_if_false(
+    const ir::Instr& in,
+    Runtime& runtime,
+    XlangVMSmallRegisterBuffer& regs,
+    size_t& ip,
+    EmitMonitoringEvent&& emit_monitoring_event,
+    RaiseRuntimeError&& raise_runtime_error,
+    RaiseExceptionValue&& raise_exception_value) {
+  bool operand = false;
+  std::string error;
+  if (!runtime_truthy(runtime, regs[in.a], operand, error)) {
+    Value pending;
+    if (runtime.take_pending_exception(pending)) {
+      return raise_exception_value(std::move(pending))
+          ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    }
+    return raise_runtime_error(error)
+        ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+  }
+  const bool condition = !operand;
   const uint32_t destination_offset = condition ? static_cast<uint32_t>(ip + 1) : in.dst;
   Value destination = Value::int64(static_cast<int64_t>(destination_offset));
   if (!emit_monitoring_event(
@@ -439,6 +521,51 @@ XLANG3_HOT_INLINE XlangVMOpFlow return_value(
     return XlangVMOpFlow::ReturnResult;
   }
   return XlangVMOpFlow::SwitchFrame;
+}
+
+template <typename RaiseUnboundLocalError, typename RaiseRuntimeError, typename EmitMonitoringEvent>
+XLANG3_HOT_INLINE XlangVMOpFlow jump_if_local_local_false(
+    const ir::Instr& in,
+    const ir::Function& fn,
+    XlangVMSmallValueBuffer& locals,
+    size_t& ip,
+    RuntimeResult& result,
+    RaiseUnboundLocalError&& raise_unbound_local_error,
+    RaiseRuntimeError&& raise_runtime_error,
+    EmitMonitoringEvent&& emit_monitoring_event) {
+  if (in.a >= locals.size() || in.b >= locals.size()) {
+    result.errors.push_back("invalid local local jump");
+    return XlangVMOpFlow::ReturnResult;
+  }
+  if (locals[in.a].tag == ValueTag::Invalid || locals[in.b].tag == ValueTag::Invalid) {
+    const uint32_t slot = locals[in.a].tag == ValueTag::Invalid ? in.a : in.b;
+    const std::string name = slot < fn.locals.size() ? fn.locals[slot] : "?";
+    return raise_unbound_local_error(
+               "cannot access local variable '" + name +
+               "' where it is not associated with a value")
+        ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+  }
+  Value compare_result;
+  const auto op = static_cast<ir::CompareOp>(in.c);
+  if (!fast_compare(op, locals[in.a], locals[in.b], compare_result)) {
+    std::string error;
+    if (!value_compare(compare_name(op), locals[in.a], locals[in.b], compare_result, error)) {
+      return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    }
+  }
+  const bool condition = value_truthy(compare_result);
+  const uint32_t destination_offset = condition ? static_cast<uint32_t>(ip + 1) : in.dst;
+  Value destination = Value::int64(static_cast<int64_t>(destination_offset));
+  if (!emit_monitoring_event(
+          condition ? kSysMonitoringEventBranchLeft : kSysMonitoringEventBranchRight,
+          &destination)) {
+    return XlangVMOpFlow::ReturnResult;
+  }
+  if (!condition) {
+    ip = in.dst;
+    return XlangVMOpFlow::ContinueLoop;
+  }
+  return XlangVMOpFlow::Next;
 }
 
 template <typename FinishFrame>

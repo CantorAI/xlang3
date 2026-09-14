@@ -85,6 +85,7 @@ public:
   bool make_dirs(const std::string& path, bool exist_ok, std::string& error);
   bool list_dir(const std::string& path, std::vector<std::string>& out, std::string& error);
   bool stat(const std::string& path, VfsStat& out, std::string& error);
+  bool directory_mtime(const std::string& path, int64_t& mtime_ns, std::string& error);
   bool kind(const std::string& path, VfsNodeKind& out, std::string& error);
   bool read_link(const std::string& path, std::string& out, std::string& error);
   const std::string& cwd() const { return current_directory_; }

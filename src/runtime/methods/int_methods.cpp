@@ -54,6 +54,24 @@ bool int_index_method(Runtime&, const Value* args, uint32_t argc, Value& out, st
   return true;
 }
 
+bool int_float_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1 || (args[0].tag != ValueTag::Int64 && value_as_bigint(args[0]) == nullptr)) {
+    error = "int.__float__ expected an int target";
+    return false;
+  }
+  if (args[0].tag == ValueTag::Int64) {
+    out = Value::number(static_cast<double>(args[0].as.i64));
+    return true;
+  }
+  try {
+    out = Value::number(std::stod(value_bigint_to_string(args[0])));
+    return true;
+  } catch (...) {
+    error = "int too large to convert to float";
+    return false;
+  }
+}
+
 bool int_compare_method(
     Runtime& runtime,
     const Value* args,
@@ -357,6 +375,7 @@ bool int_from_bytes_kw_method(
 
 static BuiltinMethodSpec kIntMethods[] = {
     {"__index__", "int.__index__", int_index_method},
+    {"__float__", "int.__float__", int_float_method},
     {"__add__", "int.__add__", int_add_method},
     {"__pow__", "int.__pow__", int_pow_method, nullptr, false, nullptr, "($self, value, mod=None, /)"},
     {"__lt__", "int.__lt__", int_lt_method},
@@ -368,6 +387,14 @@ static BuiltinMethodSpec kIntMethods[] = {
 };
 
 } // namespace
+
+const BuiltinMethodSpec* int_find_method_spec(const Value& object, const std::string& name) {
+  if (object.tag != ValueTag::Int64 && value_as_bigint(object) == nullptr) return nullptr;
+  for (const auto& method : kIntMethods) {
+    if (name == method.name) return &method;
+  }
+  return nullptr;
+}
 
 bool int_get_method(const Value& object, const std::string& name, Value& out) {
   if (object.tag != ValueTag::Int64 && value_as_bigint(object) == nullptr) {

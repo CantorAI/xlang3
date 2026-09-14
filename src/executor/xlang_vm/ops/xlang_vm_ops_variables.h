@@ -695,6 +695,59 @@ XLANG3_HOT_INLINE XlangVMOpFlow inplace_add_local_const(
       ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
 }
 
+template <typename RaiseUnboundLocalError, typename RaiseRuntimeError, typename RaiseExceptionValue>
+XLANG3_HOT_INLINE XlangVMOpFlow inplace_add_local_local(
+    const ir::Instr& in,
+    const ir::Function& fn,
+    Runtime& runtime,
+    XlangVMSmallValueBuffer& locals,
+    RuntimeResult& result,
+    RaiseUnboundLocalError&& raise_unbound_local_error,
+    RaiseRuntimeError&& raise_runtime_error,
+    RaiseExceptionValue&& raise_exception_value) {
+  if (in.dst >= locals.size() || in.a >= locals.size() || in.b >= locals.size()) {
+    result.errors.push_back("invalid local local in-place add");
+    return XlangVMOpFlow::ReturnResult;
+  }
+  const auto raise_unbound = [&](uint32_t slot) {
+    const std::string name = slot < fn.locals.size() ? fn.locals[slot] : "?";
+    return raise_unbound_local_error(
+        "cannot access local variable '" + name +
+        "' where it is not associated with a value");
+  };
+  if (locals[in.a].tag == ValueTag::Invalid) {
+    return raise_unbound(in.a) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+  }
+  if (locals[in.b].tag == ValueTag::Invalid) {
+    return raise_unbound(in.b) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+  }
+  const Value& lhs = locals[in.a];
+  const Value& rhs = locals[in.b];
+  Value output;
+  if (fast_add(lhs, rhs, output)) {
+    value_move_assign_fast(locals[in.dst], output);
+    return XlangVMOpFlow::Next;
+  }
+  const Value* callable = runtime.find_builtin("__xlang3_inplace_add__");
+  if (callable == nullptr) {
+    return raise_runtime_error("in-place addition is unavailable")
+        ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+  }
+  Value args[2] = {lhs, rhs};
+  std::string error;
+  if (runtime_call_callable(runtime, *callable, args, 2, output, error)) {
+    value_move_assign_fast(locals[in.dst], output);
+    return XlangVMOpFlow::Next;
+  }
+  Value pending;
+  if (runtime.take_pending_exception(pending)) {
+    return raise_exception_value(std::move(pending))
+        ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+  }
+  return raise_runtime_error(error)
+      ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+}
+
 template <typename RaiseRuntimeError>
 XLANG3_HOT_INLINE XlangVMOpFlow add_local_local(
     const ir::Instr& in,

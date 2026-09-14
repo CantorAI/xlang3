@@ -653,6 +653,33 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
   call_args.registers = regs.value_data();
   call_args.register_args = &call_arg_regs;
 
+  // dict.get() is one of the most frequent operations in source-backed
+  // protocol and import code. For keys whose hash/equality cannot invoke
+  // Python, perform the same native mapping lookup directly and avoid
+  // constructing a bound method or adapting arguments through a callback.
+  constexpr int64_t kObservableNativeCallEvents =
+      kSysMonitoringEventCall | kSysMonitoringEventCReturn | kSysMonitoringEventCRaise;
+  if (!runtime.profile_event_may_dispatch() &&
+      !sys_monitoring_event_may_dispatch(kObservableNativeCallEvents) &&
+      name == "get" && value_as_dict(regs[in.a]) != nullptr &&
+      (call_arg_regs.size() == 1 || call_arg_regs.size() == 2)) {
+    const Value& key = regs[call_arg_regs[0]];
+    if (key.tag == ValueTag::Int64 || value_as_string(key) != nullptr) {
+      std::string error;
+      if (mapping_get_item(regs[in.a], key, regs[in.dst], error)) {
+        return XlangVMOpFlow::Next;
+      }
+      if (error == "key not found") {
+        if (call_arg_regs.size() == 2) {
+          value_assign_fast(regs[in.dst], regs[call_arg_regs[1]]);
+        } else {
+          value_set_none(regs[in.dst]);
+        }
+        return XlangVMOpFlow::Next;
+      }
+    }
+  }
+
   bool pushed_frame = false;
   const bool allow_inline_calls = inline_calls_allowed(runtime);
 
@@ -3607,6 +3634,47 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_local(
         ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
   }
   value_borrow_assign_fast(regs[in.dst], locals[in.a]);
+  const ir::Instr call_in{ir::Op::Call, in.dst, in.dst, in.b, 0};
+  return call(
+      call_in, fn, module, module_owner, runtime, regs, instr_cache,
+      native_call_args, ip, result, execution_lock,
+      std::forward<MakeGeneratorIfNeeded>(make_generator_if_needed),
+      std::forward<PushFrame>(push_frame),
+      std::forward<CallBuiltinTypeConstructor>(call_builtin_type_constructor),
+      std::forward<AnalyzeArgBinaryFunction>(analyze_arg_binary_function),
+      std::forward<ExecuteArgBinaryFunction>(execute_arg_binary_function),
+      std::forward<AnalyzeSlotConstructor>(analyze_slot_constructor),
+      std::forward<ExecuteSlotConstructor>(execute_slot_constructor),
+      std::forward<RaiseRuntimeError>(raise_runtime_error),
+      std::forward<RaiseExceptionValue>(raise_exception_value));
+}
+
+template <
+    typename MakeGeneratorIfNeeded, typename PushFrame,
+    typename CallBuiltinTypeConstructor, typename AnalyzeArgBinaryFunction,
+    typename ExecuteArgBinaryFunction, typename AnalyzeSlotConstructor,
+    typename ExecuteSlotConstructor, typename RaiseRuntimeError,
+    typename RaiseExceptionValue, typename RaiseNameError>
+XLANG3_HOT_INLINE XlangVMOpFlow call_global(
+    const ir::Instr& in, const ir::Function& fn, const ir::Module& module,
+    const std::shared_ptr<const ir::Module>& module_owner, Runtime& runtime,
+    XlangVMSmallRegisterBuffer& regs, Value& globals_module,
+    std::unordered_map<std::string, Value>& globals, uint64_t& globals_version,
+    std::vector<XlangVMInstrCache>& instr_cache, std::vector<Value>& native_call_args,
+    size_t& ip, RuntimeResult& result, XlangRuntimeExecutionGuard& execution_lock,
+    MakeGeneratorIfNeeded&& make_generator_if_needed, PushFrame&& push_frame,
+    CallBuiltinTypeConstructor&& call_builtin_type_constructor,
+    AnalyzeArgBinaryFunction&& analyze_arg_binary_function,
+    ExecuteArgBinaryFunction&& execute_arg_binary_function,
+    AnalyzeSlotConstructor&& analyze_slot_constructor,
+    ExecuteSlotConstructor&& execute_slot_constructor,
+    RaiseRuntimeError&& raise_runtime_error, RaiseExceptionValue&& raise_exception_value,
+    RaiseNameError&& raise_name_error) {
+  const ir::Instr load_in{ir::Op::LoadGlobal, in.dst, in.a, 0, 0};
+  const auto load_flow = load_global(
+      load_in, fn, runtime, regs, globals_module, globals, globals_version,
+      instr_cache[ip], result, raise_name_error, raise_exception_value);
+  if (load_flow != XlangVMOpFlow::Next) return load_flow;
   const ir::Instr call_in{ir::Op::Call, in.dst, in.dst, in.b, 0};
   return call(
       call_in, fn, module, module_owner, runtime, regs, instr_cache,

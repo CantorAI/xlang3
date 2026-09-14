@@ -527,10 +527,24 @@ bool dict_integer_key(const Value& key, int64_t& out) {
   return value_int_like_to_i64(key, out);
 }
 
+size_t dict_string_slot(size_t hash, size_t mask) {
+  if constexpr (sizeof(size_t) > 4) hash ^= hash >> 32;
+  return hash & mask;
+}
+
+void dict_string_index_insert_raw(const DictObject& dict, size_t hash, size_t entry_index) {
+  const size_t mask = dict.string_index.size() - 1;
+  size_t slot = dict_string_slot(hash, mask);
+  while (dict.string_index[slot] != 0) slot = (slot + 1) & mask;
+  dict.string_index[slot] = entry_index + 1;
+}
+
 void ensure_key_indexes(const DictObject& dict) {
   if (dict.indexed_entry_count == dict.entries.size()) return;
   dict.integer_index.clear();
-  dict.string_index.clear();
+  size_t string_capacity = 8;
+  while (string_capacity < dict.entries.size() * 2) string_capacity *= 2;
+  dict.string_index.assign(string_capacity, 0);
   dict.index_has_other_keys = false;
   dict.index_has_non_string_keys = false;
   for (size_t i = 0; i < dict.entries.size(); ++i) {
@@ -541,12 +555,44 @@ void ensure_key_indexes(const DictObject& dict) {
       dict.index_has_other_keys = true;
     }
     if (auto* string_key = value_as_string(dict.entries[i].first)) {
-      dict.string_index.emplace(string_object_to_string(*string_key), i);
+      dict_string_index_insert_raw(dict, string_object_hash(*string_key), i);
     } else {
       dict.index_has_non_string_keys = true;
     }
   }
   dict.indexed_entry_count = dict.entries.size();
+}
+
+void dict_string_index_insert(DictObject& dict, size_t hash, size_t entry_index) {
+  if (dict.string_index.empty() || dict.entries.size() * 2 > dict.string_index.size()) {
+    dict.indexed_entry_count = static_cast<size_t>(-1);
+    ensure_key_indexes(dict);
+    return;
+  }
+  dict_string_index_insert_raw(dict, hash, entry_index);
+}
+
+bool dict_find_string_index(
+    const DictObject& dict, std::string_view key, size_t key_hash,
+    size_t& index) {
+  ensure_key_indexes(dict);
+  const size_t mask = dict.string_index.size() - 1;
+  size_t slot = dict_string_slot(key_hash, mask);
+  for (size_t probes = 0; probes < dict.string_index.size(); ++probes) {
+    const size_t encoded = dict.string_index[slot];
+    if (encoded == 0) return false;
+    const size_t candidate = encoded - 1;
+    if (candidate < dict.entries.size()) {
+      auto* stored = value_as_string(dict.entries[candidate].first);
+      if (stored != nullptr && string_object_hash(*stored) == key_hash &&
+          string_object_view(*stored) == key) {
+        index = candidate;
+        return true;
+      }
+    }
+    slot = (slot + 1) & mask;
+  }
+  return false;
 }
 
 void erase_dict_entry(DictObject& dict, size_t index) {
@@ -561,6 +607,29 @@ bool mapping_get_item(const Value& object, const Value& key, Value& out, std::st
     return mapping_get_item(*source, key, out, error);
   }
   auto* dict = dict_storage_from_value(object);
+  if (dict != nullptr) {
+    if (auto* string_key = value_as_string(key)) {
+      size_t found = 0;
+      if (dict_find_string_index(
+              *dict, string_object_view(*string_key),
+              string_object_hash(*string_key), found)) {
+        value_assign_fast(out, dict->entries[found].second);
+        return true;
+      }
+      if (!dict->index_has_non_string_keys) {
+        error = "key not found";
+        return false;
+      }
+      for (const auto& entry : dict->entries) {
+        if (value_as_string(entry.first) == nullptr && value_key_equal(entry.first, key)) {
+          value_assign_fast(out, entry.second);
+          return true;
+        }
+      }
+      error = "key not found";
+      return false;
+    }
+  }
   if (!ensure_hashable(key, error)) {
     return false;
   }
@@ -573,18 +642,6 @@ bool mapping_get_item(const Value& object, const Value& key, Value& out, std::st
         return true;
       }
       if (!dict->index_has_other_keys) {
-        error = "key not found";
-        return false;
-      }
-    }
-    if (auto* string_key = value_as_string(key)) {
-      ensure_key_indexes(*dict);
-      const auto found = dict->string_index.find(string_object_to_string(*string_key));
-      if (found != dict->string_index.end()) {
-        value_assign_fast(out, dict->entries[found->second].second);
-        return true;
-      }
-      if (!dict->index_has_non_string_keys) {
         error = "key not found";
         return false;
       }
@@ -649,11 +706,11 @@ bool mapping_get_string_item(
     return mapping_get_string_item(*source, key, out, error, found_index);
   }
   if (auto* dict = dict_storage_from_value(object)) {
-    ensure_key_indexes(*dict);
-    const auto found = dict->string_index.find(std::string(key));
-    if (found != dict->string_index.end()) {
-      if (found_index != nullptr) *found_index = found->second;
-      value_assign_fast(out, dict->entries[found->second].second);
+    size_t found = 0;
+    if (dict_find_string_index(
+            *dict, key, string_view_hash(key), found)) {
+      if (found_index != nullptr) *found_index = found;
+      value_assign_fast(out, dict->entries[found].second);
       return true;
     }
     if (!dict->index_has_non_string_keys) {
@@ -689,10 +746,11 @@ bool mapping_get_item_runtime(
   }
   if (!ensure_hashable(key, error)) return false;
   if (auto* string_key = value_as_string(key)) {
-    ensure_key_indexes(*dict);
-    const auto found = dict->string_index.find(string_object_to_string(*string_key));
-    if (found != dict->string_index.end()) {
-      value_assign_fast(out, dict->entries[found->second].second);
+    size_t found = 0;
+    if (dict_find_string_index(
+            *dict, string_object_view(*string_key),
+            string_object_hash(*string_key), found)) {
+      value_assign_fast(out, dict->entries[found].second);
       return true;
     }
     if (!dict->index_has_non_string_keys) {
@@ -780,10 +838,11 @@ bool mapping_delete_item_runtime(Runtime& runtime, Value& object, const Value& k
   if (dict == nullptr) return mapping_delete_item(object, key, error);
   if (!ensure_hashable(key, error)) return false;
   if (auto* string_key = value_as_string(key)) {
-    ensure_key_indexes(*dict);
-    const auto found = dict->string_index.find(string_object_to_string(*string_key));
-    if (found != dict->string_index.end()) {
-      erase_dict_entry(*dict, found->second);
+    size_t found = 0;
+    if (dict_find_string_index(
+            *dict, string_object_view(*string_key),
+            string_object_hash(*string_key), found)) {
+      erase_dict_entry(*dict, found);
       return true;
     }
     if (!dict->index_has_non_string_keys) {
@@ -851,9 +910,6 @@ bool mapping_set_item(Value& object, const Value& key, const Value& item, std::s
     return false;
   }
   auto* dict = dict_storage_from_value(object);
-  if (!ensure_hashable(key, error)) {
-    return false;
-  }
   if (dict != nullptr && dict->backing_module != nullptr) {
     Value module_value;
     module_value.tag = ValueTag::Object;
@@ -862,14 +918,16 @@ bool mapping_set_item(Value& object, const Value& key, const Value& item, std::s
     return mapping_set_item(module_value, key, item, error);
   }
   if (dict != nullptr) {
-    std::string indexed_string_key;
-    const bool has_indexed_string_key = value_as_string(key) != nullptr;
+    const auto* indexed_string = value_as_string(key);
+    const bool has_indexed_string_key = indexed_string != nullptr;
+    size_t indexed_string_hash = 0;
     if (has_indexed_string_key) {
-      indexed_string_key = string_object_to_string(*value_as_string(key));
-      ensure_key_indexes(*dict);
-      if (const auto found = dict->string_index.find(indexed_string_key);
-          found != dict->string_index.end()) {
-        value_assign_fast(dict->entries[found->second].second, item);
+      const auto indexed_string_key = string_object_view(*indexed_string);
+      indexed_string_hash = string_object_hash(*indexed_string);
+      size_t found = 0;
+      if (dict_find_string_index(
+              *dict, indexed_string_key, indexed_string_hash, found)) {
+        value_assign_fast(dict->entries[found].second, item);
         return true;
       }
       if (!dict->index_has_non_string_keys) {
@@ -878,7 +936,7 @@ bool mapping_set_item(Value& object, const Value& key, const Value& item, std::s
         value_assign_fast(owned_key, key);
         value_assign_fast(owned_item, item);
         dict->entries.push_back(std::make_pair(std::move(owned_key), std::move(owned_item)));
-        dict->string_index.emplace(std::move(indexed_string_key), dict->entries.size() - 1);
+        dict_string_index_insert(*dict, indexed_string_hash, dict->entries.size() - 1);
         dict->index_has_other_keys = true;
         dict->indexed_entry_count = dict->entries.size();
         return true;
@@ -904,6 +962,9 @@ bool mapping_set_item(Value& object, const Value& key, const Value& item, std::s
         return true;
       }
     }
+    if (!has_indexed_string_key && !indexed_numeric_key && !ensure_hashable(key, error)) {
+      return false;
+    }
     for (auto& entry : dict->entries) {
       if (value_key_equal(entry.first, key)) {
         value_assign_fast(entry.second, item);
@@ -922,13 +983,16 @@ bool mapping_set_item(Value& object, const Value& key, const Value& item, std::s
         dict->index_has_other_keys = true;
       }
       if (has_indexed_string_key) {
-        dict->string_index.emplace(std::move(indexed_string_key), dict->entries.size() - 1);
+        dict_string_index_insert(*dict, indexed_string_hash, dict->entries.size() - 1);
       } else {
         dict->index_has_non_string_keys = true;
       }
       dict->indexed_entry_count = dict->entries.size();
     }
     return true;
+  }
+  if (!ensure_hashable(key, error)) {
+    return false;
   }
   if (value_as_module(object) != nullptr) {
     auto* module = value_as_module(object);
@@ -975,10 +1039,11 @@ bool mapping_delete_item(Value& object, const Value& key, std::string& error) {
   }
   if (dict != nullptr) {
     if (auto* string_key = value_as_string(key)) {
-      ensure_key_indexes(*dict);
-      const auto found = dict->string_index.find(string_object_to_string(*string_key));
-      if (found != dict->string_index.end()) {
-        erase_dict_entry(*dict, found->second);
+      size_t found = 0;
+      if (dict_find_string_index(
+              *dict, string_object_view(*string_key),
+              string_object_hash(*string_key), found)) {
+        erase_dict_entry(*dict, found);
         return true;
       }
       if (!dict->index_has_non_string_keys) {
@@ -1171,8 +1236,10 @@ bool mapping_contains(const Value& container, const Value& item, bool& out, std:
   }
   if (dict != nullptr && kind == DictIterationKind::Keys) {
     if (auto* string_key = value_as_string(item)) {
-      ensure_key_indexes(*dict);
-      if (dict->string_index.find(string_object_to_string(*string_key)) != dict->string_index.end()) {
+      size_t found = 0;
+      if (dict_find_string_index(
+              *dict, string_object_view(*string_key),
+              string_object_hash(*string_key), found)) {
         out = true;
         return true;
       }

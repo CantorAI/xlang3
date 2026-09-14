@@ -267,15 +267,15 @@ bool value_hash_key(const Value& value, size_t& out, std::string& error) {
           out = std::hash<int64_t>{}(int_payload);
           return true;
         }
+        if (auto* string = value_as_string(value)) {
+          out = string_object_hash(*string);
+          return true;
+        }
         std::string_view string_payload;
         if (string_payload_view(value, string_payload)) {
           out = std::hash<std::string_view>{}(string_payload);
           return true;
         }
-      }
-      if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::String) {
-        out = std::hash<std::string_view>{}(string_object_view(*reinterpret_cast<StringObject*>(value.as.obj)));
-        return true;
       }
       if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Bytes) {
         out = std::hash<std::string_view>{}(bytes_object_view(*reinterpret_cast<BytesObject*>(value.as.obj)));

@@ -226,7 +226,7 @@ public:
   void release_dead_frame_registers();
   void clear_current_frame();
   Value current_frame_snapshot() const;
-  void track_live_frame_snapshot(const Value& frame);
+  Value track_live_frame_snapshot(Value frame);
   void refresh_live_frame_snapshots(bool refresh_traceback_locals = false);
   void retire_live_frame_snapshot(
       uint64_t activation_id, uint32_t instruction_index,

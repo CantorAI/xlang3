@@ -174,6 +174,16 @@ enum class Op : uint16_t {
   ReturnLocal,
   LoadLocalGlobal,
   LoadGlobalLocal,
+  CallGlobal,
+  DictSetConst,
+  LoadInstanceSlotLocal,
+  IterNextLocal,
+  NotJumpIfFalse,
+  LoadModuleAttr,
+  LoadLocalGetItem,
+  InplaceAddLocalLocal,
+  JumpIfLocalLocalFalse,
+  IsLocalConstJumpIfFalse,
 };
 
 enum class CompareOp : uint16_t {

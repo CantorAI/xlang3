@@ -652,7 +652,9 @@ bool dict_fromkeys_method(Runtime& runtime, const Value* args, uint32_t argc, Va
 } // namespace
 
 Value make_dict_fromkeys_classmethod() {
-  Value function = Value::native_function(0, "dict.fromkeys", dict_fromkeys_method);
+  Value function = Value::native_function(
+      0, "dict.fromkeys", dict_fromkeys_method, nullptr, nullptr,
+      builtin_method_fast_adapter<dict_fromkeys_method, 3>);
   builtin_method_set_text_signature(function, "($type, iterable, value=None, /)");
   return Value::class_method(std::move(function));
 }
@@ -677,7 +679,8 @@ static BuiltinMethodSpec kDictMethods[] = {
      builtin_method_fast_adapter<dict_items_method, 1>},
     {"keys", "dict.keys", dict_keys_method,
      builtin_method_fast_adapter<dict_keys_method, 1>},
-    {"pop", "dict.pop", dict_pop_method},
+    {"pop", "dict.pop", dict_pop_method,
+     builtin_method_fast_adapter<dict_pop_method, 3>},
     {"popitem", "dict.popitem", dict_popitem_method},
     {"setdefault", "dict.setdefault", dict_setdefault_method,
      builtin_method_fast_adapter<dict_setdefault_method, 3>},
@@ -705,6 +708,21 @@ static BuiltinMethodSpec kMappingProxyMethods[] = {
     {"values", "mappingproxy.values", dict_values_method,
      builtin_method_fast_adapter<dict_values_method, 1>},
 };
+
+const BuiltinMethodSpec* dict_find_method_spec(const Value& object, const std::string& name) {
+  const BuiltinMethodSpec* methods = kDictMethods;
+  size_t method_count = std::size(kDictMethods);
+  if (value_as_mapping_proxy(object) != nullptr) {
+    methods = kMappingProxyMethods;
+    method_count = std::size(kMappingProxyMethods);
+  } else if (value_as_dict(object) == nullptr) {
+    return nullptr;
+  }
+  for (size_t index = 0; index < method_count; ++index) {
+    if (name == methods[index].name) return &methods[index];
+  }
+  return nullptr;
+}
 
 bool dict_get_method(const Value& object, const std::string& name, Value& out) {
   if (value_as_mapping_proxy(object) != nullptr) {

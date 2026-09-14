@@ -14,6 +14,7 @@ limitations under the License.
 */
 #include "thread_objects.h"
 
+#include "xlang3/builtin_methods.h"
 #include "xlang3/functional_iterators.h"
 #include "xlang3/interpreter.h"
 #include "xlang3/mapping.h"
@@ -1674,13 +1675,13 @@ Value xlang_thread_make_lock_class(Runtime& runtime) {
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.push_back({"__module__", Value::string("_thread")});
   attrs.push_back({"__qualname__", Value::string("LockType")});
-  attrs.push_back({"__init__", runtime.make_native_function("_thread.LockType.__init__", lock_init)});
-  attrs.push_back({"__repr__", runtime.make_native_function("_thread.LockType.__repr__", lock_repr)});
-  attrs.push_back({"acquire", runtime.make_native_function("_thread.LockType.acquire", lock_acquire, nullptr, nullptr, nullptr, false, lock_acquire_kw)});
-  attrs.push_back({"release", runtime.make_native_function("_thread.LockType.release", lock_release)});
-  attrs.push_back({"locked", runtime.make_native_function("_thread.LockType.locked", lock_locked)});
-  attrs.push_back({"__enter__", runtime.make_native_function("_thread.LockType.__enter__", lock_enter)});
-  attrs.push_back({"__exit__", runtime.make_native_function("_thread.LockType.__exit__", lock_exit)});
+  attrs.push_back({"__init__", runtime.make_native_function("_thread.LockType.__init__", lock_init, nullptr, nullptr, builtin_method_fast_adapter<lock_init, 1>)});
+  attrs.push_back({"__repr__", runtime.make_native_function("_thread.LockType.__repr__", lock_repr, nullptr, nullptr, builtin_method_fast_adapter<lock_repr, 1>)});
+  attrs.push_back({"acquire", runtime.make_native_function("_thread.LockType.acquire", lock_acquire, nullptr, nullptr, builtin_method_fast_adapter<lock_acquire, 3>, false, lock_acquire_kw)});
+  attrs.push_back({"release", runtime.make_native_function("_thread.LockType.release", lock_release, nullptr, nullptr, builtin_method_fast_adapter<lock_release, 1>)});
+  attrs.push_back({"locked", runtime.make_native_function("_thread.LockType.locked", lock_locked, nullptr, nullptr, builtin_method_fast_adapter<lock_locked, 1>)});
+  attrs.push_back({"__enter__", runtime.make_native_function("_thread.LockType.__enter__", lock_enter, nullptr, nullptr, builtin_method_fast_adapter<lock_enter, 1>)});
+  attrs.push_back({"__exit__", runtime.make_native_function("_thread.LockType.__exit__", lock_exit, nullptr, nullptr, builtin_method_fast_adapter<lock_exit, 4>)});
   return Value::class_object("LockType", std::move(attrs));
 }
 
@@ -1688,29 +1689,29 @@ Value xlang_thread_make_rlock_class(Runtime& runtime) {
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.push_back({"__module__", Value::string("_thread")});
   attrs.push_back({"__qualname__", Value::string("RLock")});
-  attrs.push_back({"__init__", runtime.make_native_function("_thread.RLock.__init__", rlock_init, nullptr, nullptr, nullptr, false, rlock_init_kw)});
-  attrs.push_back({"__repr__", runtime.make_native_function("_thread.RLock.__repr__", rlock_repr)});
-  attrs.push_back({"acquire", runtime.make_native_function("_thread.RLock.acquire", rlock_acquire, nullptr, nullptr, nullptr, false, rlock_acquire_kw)});
-  attrs.push_back({"release", runtime.make_native_function("_thread.RLock.release", rlock_release)});
-  attrs.push_back({"locked", runtime.make_native_function("_thread.RLock.locked", rlock_locked)});
-  attrs.push_back({"_is_owned", runtime.make_native_function("_thread.RLock._is_owned", rlock_is_owned)});
-  attrs.push_back({"_release_save", runtime.make_native_function("_thread.RLock._release_save", rlock_release_save)});
-  attrs.push_back({"_acquire_restore", runtime.make_native_function("_thread.RLock._acquire_restore", rlock_acquire_restore)});
-  attrs.push_back({"_recursion_count", runtime.make_native_function("_thread.RLock._recursion_count", rlock_recursion_count)});
-  attrs.push_back({"_at_fork_reinit", runtime.make_native_function("_thread.RLock._at_fork_reinit", rlock_at_fork_reinit)});
-  attrs.push_back({"__enter__", runtime.make_native_function("_thread.RLock.__enter__", rlock_enter)});
-  attrs.push_back({"__exit__", runtime.make_native_function("_thread.RLock.__exit__", rlock_exit)});
+  attrs.push_back({"__init__", runtime.make_native_function("_thread.RLock.__init__", rlock_init, nullptr, nullptr, builtin_method_fast_adapter<rlock_init, 1>, false, rlock_init_kw)});
+  attrs.push_back({"__repr__", runtime.make_native_function("_thread.RLock.__repr__", rlock_repr, nullptr, nullptr, builtin_method_fast_adapter<rlock_repr, 1>)});
+  attrs.push_back({"acquire", runtime.make_native_function("_thread.RLock.acquire", rlock_acquire, nullptr, nullptr, builtin_method_fast_adapter<rlock_acquire, 3>, false, rlock_acquire_kw)});
+  attrs.push_back({"release", runtime.make_native_function("_thread.RLock.release", rlock_release, nullptr, nullptr, builtin_method_fast_adapter<rlock_release, 1>)});
+  attrs.push_back({"locked", runtime.make_native_function("_thread.RLock.locked", rlock_locked, nullptr, nullptr, builtin_method_fast_adapter<rlock_locked, 1>)});
+  attrs.push_back({"_is_owned", runtime.make_native_function("_thread.RLock._is_owned", rlock_is_owned, nullptr, nullptr, builtin_method_fast_adapter<rlock_is_owned, 1>)});
+  attrs.push_back({"_release_save", runtime.make_native_function("_thread.RLock._release_save", rlock_release_save, nullptr, nullptr, builtin_method_fast_adapter<rlock_release_save, 1>)});
+  attrs.push_back({"_acquire_restore", runtime.make_native_function("_thread.RLock._acquire_restore", rlock_acquire_restore, nullptr, nullptr, builtin_method_fast_adapter<rlock_acquire_restore, 2>)});
+  attrs.push_back({"_recursion_count", runtime.make_native_function("_thread.RLock._recursion_count", rlock_recursion_count, nullptr, nullptr, builtin_method_fast_adapter<rlock_recursion_count, 1>)});
+  attrs.push_back({"_at_fork_reinit", runtime.make_native_function("_thread.RLock._at_fork_reinit", rlock_at_fork_reinit, nullptr, nullptr, builtin_method_fast_adapter<rlock_at_fork_reinit, 1>)});
+  attrs.push_back({"__enter__", runtime.make_native_function("_thread.RLock.__enter__", rlock_enter, nullptr, nullptr, builtin_method_fast_adapter<rlock_enter, 1>)});
+  attrs.push_back({"__exit__", runtime.make_native_function("_thread.RLock.__exit__", rlock_exit, nullptr, nullptr, builtin_method_fast_adapter<rlock_exit, 4>)});
   return Value::class_object("RLock", std::move(attrs));
 }
 
 Value xlang_thread_make_handle_class(Runtime& runtime) {
   std::vector<std::pair<std::string, Value>> attrs;
-  Value ident_getter = runtime.make_native_function("_thread._ThreadHandle.ident", thread_handle_ident_get);
-  attrs.push_back({"__init__", runtime.make_native_function("_thread._ThreadHandle.__init__", thread_handle_init)});
+  Value ident_getter = runtime.make_native_function("_thread._ThreadHandle.ident", thread_handle_ident_get, nullptr, nullptr, builtin_method_fast_adapter<thread_handle_ident_get, 1>);
+  attrs.push_back({"__init__", runtime.make_native_function("_thread._ThreadHandle.__init__", thread_handle_init, nullptr, nullptr, builtin_method_fast_adapter<thread_handle_init, 1>)});
   attrs.push_back({"ident", Value::property(std::move(ident_getter), Value::none(), Value::none(), Value::none())});
-  attrs.push_back({"is_done", runtime.make_native_function("_thread._ThreadHandle.is_done", thread_handle_is_done)});
-  attrs.push_back({"join", runtime.make_native_function("_thread._ThreadHandle.join", thread_handle_join)});
-  attrs.push_back({"_set_done", runtime.make_native_function("_thread._ThreadHandle._set_done", thread_handle_set_done)});
+  attrs.push_back({"is_done", runtime.make_native_function("_thread._ThreadHandle.is_done", thread_handle_is_done, nullptr, nullptr, builtin_method_fast_adapter<thread_handle_is_done, 1>)});
+  attrs.push_back({"join", runtime.make_native_function("_thread._ThreadHandle.join", thread_handle_join, nullptr, nullptr, builtin_method_fast_adapter<thread_handle_join, 2>)});
+  attrs.push_back({"_set_done", runtime.make_native_function("_thread._ThreadHandle._set_done", thread_handle_set_done, nullptr, nullptr, builtin_method_fast_adapter<thread_handle_set_done, 1>)});
   return Value::class_object("_ThreadHandle", std::move(attrs));
 }
 

@@ -162,8 +162,6 @@ using VMUnwind = XlangVMUnwind;
 struct XlangVMPreparedFunctionState {
   std::shared_ptr<const ir::Module> module_owner;
   std::vector<XlangVMInstrCache> instr_cache;
-  std::vector<size_t> register_last_use;
-  std::vector<bool> register_loop_carried;
   uint64_t monitoring_configuration_generation = 0;
   int64_t monitoring_events = 0;
 };
@@ -200,8 +198,7 @@ struct XlangVMFrame {
 
   std::vector<ExceptionHandler> exception_handlers;
   std::vector<XlangVMInstrCache> instr_cache;
-  std::vector<size_t> register_last_use;
-  std::vector<bool> register_loop_carried;
+  std::shared_ptr<const ir::FunctionExecutionMetadata> execution_metadata;
   std::vector<uint32_t> memoryview_registers;
   std::vector<bool> memoryview_register_flags;
   std::vector<Value> native_call_args;
@@ -264,8 +261,6 @@ struct XlangVMFrame {
       }
       prepared->second.module_owner = module_owner;
       prepared->second.instr_cache = std::move(instr_cache);
-      prepared->second.register_last_use = std::move(register_last_use);
-      prepared->second.register_loop_carried = std::move(register_loop_carried);
       prepared->second.monitoring_configuration_generation = monitoring_configuration_generation;
       prepared->second.monitoring_events = monitoring_events;
     }
@@ -309,14 +304,12 @@ struct XlangVMFrame {
       auto prepared = prepared_functions.find(fn);
       if (prepared != prepared_functions.end()) {
         instr_cache = std::move(prepared->second.instr_cache);
-        register_last_use = std::move(prepared->second.register_last_use);
-        register_loop_carried = std::move(prepared->second.register_loop_carried);
         monitoring_configuration_generation = prepared->second.monitoring_configuration_generation;
         monitoring_events = prepared->second.monitoring_events;
       } else {
         instr_cache.assign(fn->code.size(), {});
-        compute_register_last_use();
       }
+      compute_register_last_use();
       reserve_call_args();
     }
 
@@ -336,7 +329,7 @@ struct XlangVMFrame {
     closure = nullptr;
     locals.clear_values();
     cells.clear_values();
-    regs.clear_values();
+    regs.clear_object_values();
     temps.clear();
     exception_handlers.clear();
     native_call_args.clear();
@@ -375,7 +368,9 @@ private:
       case ir::Op::CaptureExpressions:
       case ir::Op::GetIter:
       case ir::Op::IterNext:
+      case ir::Op::IterNextLocal:
       case ir::Op::Not:
+      case ir::Op::NotJumpIfFalse:
       case ir::Op::Neg:
       case ir::Op::Invert:
       case ir::Op::JumpIfFalse:
@@ -403,6 +398,16 @@ private:
         break;
       case ir::Op::LoadLocalAttr:
         one(instr.c);
+        break;
+      case ir::Op::LoadModuleAttr:
+        one(instr.c);
+        break;
+      case ir::Op::LoadLocalGetItem:
+        one(instr.b);
+        one(instr.c);
+        break;
+      case ir::Op::DictSetConst:
+        one(instr.a);
         break;
       case ir::Op::StoreLocalInstanceSlot:
         one(instr.b);
@@ -467,6 +472,7 @@ private:
         call_args(instr.b);
         break;
       case ir::Op::CallLocal:
+      case ir::Op::CallGlobal:
         call_args(instr.b);
         break;
       case ir::Op::CallMethod:
@@ -560,8 +566,7 @@ private:
     auto prepared = std::atomic_load_explicit(
         &fn->execution_metadata, std::memory_order_acquire);
     if (prepared != nullptr && prepared->owner == fn) {
-      register_last_use = prepared->register_last_use;
-      register_loop_carried = prepared->register_loop_carried;
+      execution_metadata = std::move(prepared);
       return;
     }
     auto computed = std::make_shared<ir::FunctionExecutionMetadata>();
@@ -606,20 +611,20 @@ private:
             std::memory_order_release,
             std::memory_order_acquire)) {
       if (expected != nullptr && expected->owner == fn) {
-        register_last_use = expected->register_last_use;
-        register_loop_carried = expected->register_loop_carried;
+        execution_metadata = std::move(expected);
       } else {
         compute_register_last_use();
       }
     } else {
-      register_last_use = immutable->register_last_use;
-      register_loop_carried = immutable->register_loop_carried;
+      execution_metadata = std::move(immutable);
     }
   }
 
 public:
   void release_memoryviews_last_used_at(size_t instruction_index) {
     if (memoryview_registers.empty()) return;
+    const auto& register_last_use = execution_metadata->register_last_use;
+    const auto& register_loop_carried = execution_metadata->register_loop_carried;
     for (size_t index = 0; index < memoryview_registers.size();) {
       const uint32_t reg = memoryview_registers[index];
       const bool release = reg >= regs.size() || value_as_memoryview(regs[reg]) == nullptr ||

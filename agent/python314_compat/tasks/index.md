@@ -16,6 +16,7 @@ Task files:
 - `builtin_types.md`
 - `builtin_functions.md`
 - `native_dependencies.md`
+- `native_module_parity.md`
 - `native_sys_time_audit.md`
 - `standard_modules.md`
 - `system_stdlib.md`

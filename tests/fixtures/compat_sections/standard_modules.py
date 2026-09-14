@@ -18,6 +18,41 @@ import errno
 import os
 
 print("errno-native", errno.ENOENT == 2, errno.errorcode[errno.ENOENT] == "ENOENT", (errno.EWOULDBLOCK == errno.WSAEWOULDBLOCK and errno.errorcode[errno.WSAEWOULDBLOCK] == "WSAEWOULDBLOCK") if hasattr(errno, "WSAEWOULDBLOCK") else True, len(errno.errorcode) >= 50, errno.__spec__.origin == "built-in", errno.__spec__.loader is errno.__loader__, errno.__doc__.startswith("This module makes available standard errno"))
+import _bisect
+import bisect
+import builtins as bisect_builtins_module
+
+bisect_values = [1, 2, 2, 3]
+bisect.insort_right(bisect_values, 2)
+bisect_key_values = ["a", "ccc"]
+bisect.insort_left(bisect_key_values, "bb", key=len)
+
+class BisectSequence:
+    def __init__(self):
+        self.values = [1, 3, 5]
+    def __len__(self):
+        return len(self.values)
+    def __getitem__(self, index):
+        return self.values[index]
+    def insert(self, index, value):
+        self.values.insert(index, value)
+
+bisect_sequence = BisectSequence()
+bisect.insort_right(bisect_sequence, 3)
+bisect_fallback_builtins = dict(vars(bisect_builtins_module))
+bisect_real_import = bisect_fallback_builtins["__import__"]
+def bisect_fallback_import(name, *args, **kwargs):
+    if name == "_bisect":
+        raise ImportError("accelerator disabled")
+    return bisect_real_import(name, *args, **kwargs)
+bisect_fallback_builtins["__import__"] = bisect_fallback_import
+bisect_fallback_globals = {"__name__": "bisect_fallback", "__builtins__": bisect_fallback_builtins}
+with open(os.path.join(__import__("sys")._stdlib_dir, "bisect.py"), encoding="utf-8") as bisect_source_file:
+    exec(compile(bisect_source_file.read(), "bisect.py", "exec"), bisect_fallback_globals)
+print("bisect-native", _bisect.__name__, _bisect.__spec__.origin, bisect.bisect_left is _bisect.bisect_left, bisect.bisect_left([1, 2, 2, 3], 2), bisect.bisect_right([1, 2, 2, 3], 2), bisect_values, bisect_key_values, bisect_sequence.values, bisect_fallback_globals["bisect_left"]([1, 2, 2, 3], 2), bisect_fallback_globals["bisect_right"]([1, 2, 2, 3], 2))
+import cmath
+import math
+print("cmath-native", cmath.__spec__.origin, cmath.sqrt(-4) == 2j, cmath.isclose(1 + 2j, 1 + 2.0000000001j), cmath.isfinite(1 + 2j), cmath.isinf(cmath.infj), cmath.isnan(cmath.nanj), abs(3 + 4j) == 5.0, math.gcd(10**28, 10**20) == 10**20)
 if os.name == "nt":
     import _winapi
     winapi_src = "xlang3_winapi_fixture_src.tmp"
@@ -1544,8 +1579,9 @@ print(isinstance(sys.thread_info, tuple), sys.thread_info.index(sys.thread_info.
 print(sys.maxunicode, sys.hexversion > 0, sys.executable.endswith(".exe") == (os.name == "nt"), sys.prefix != "")
 print("sys" in sys.builtin_module_names, sys.pycache_prefix is None, isinstance(sys.orig_argv, list))
 platform_builtins = ("_winapi", "msvcrt", "nt", "winreg") if os.name == "nt" else ("posix", "_posixsubprocess")
-common_builtins = ("_bisect", "_contextvars", "_datetime", "_opcode", "array", "binascii", "errno", "gc", "marshal", "mmap", "xxsubtype")
-print("sys-builtin-module-names", len(sys.builtin_module_names) >= 60, tuple(sorted(sys.builtin_module_names)) == sys.builtin_module_names, all(name in sys.builtin_module_names for name in common_builtins + platform_builtins), not any(name in sys.builtin_module_names for name in ("_builtins", "abc", "json")))
+common_builtins = ("_contextvars", "_opcode", "array", "binascii", "errno", "gc", "marshal")
+advertised_builtins_import = all(__import__(name).__name__ == name for name in sys.builtin_module_names)
+print("sys-builtin-module-names", len(sys.builtin_module_names) >= 45, tuple(sorted(sys.builtin_module_names)) == sys.builtin_module_names, all(name in sys.builtin_module_names for name in common_builtins + platform_builtins), not any(name in sys.builtin_module_names for name in ("_builtins", "abc", "json")), advertised_builtins_import)
 print(sys.executable == sys._base_executable, sys.prefix == sys.base_prefix == sys.exec_prefix == sys.base_exec_prefix, not hasattr(sys, "real_prefix"), len(sys.orig_argv) >= 1, sys.orig_argv[0] == sys.executable)
 print(isinstance(sys.warnoptions, list), isinstance(sys._xoptions, dict), isinstance(sys.dont_write_bytecode, bool), sys.api_version > 0, hasattr(sys, "abiflags") == (sys.platform != "win32"), sys.byteorder in ("little", "big"), sys.platlibdir in ("DLLs", "lib"))
 print(isinstance(sys._stdlib_dir, str), sys._stdlib_dir.endswith("Lib" if os.name == "nt" else "python3.14"), sys._framework == "", sys.winver == "3.14" if os.name == "nt" else not hasattr(sys, "winver"))

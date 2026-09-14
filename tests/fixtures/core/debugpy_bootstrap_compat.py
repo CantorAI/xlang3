@@ -46,8 +46,22 @@ import debugpy.server.cli
 from _pydevd_bundle import pydevd_utils
 from _pydevd_bundle.pydevd_breakpoints import ExceptionBreakpoint
 import threading
+import dis
+import _opcode
 
 print(debugpy.__version__ != "")
 debugger_threads = pydevd_utils.get_non_pydevd_threads()
 print(len(debugger_threads) >= 1, threading.main_thread() in debugger_threads)
 print(ExceptionBreakpoint.__name__, ExceptionBreakpoint.__module__)
+enumerate_loads = {
+    instruction.argrepr
+    for instruction in dis.get_instructions(threading.enumerate)
+    if instruction.opname in {"LOAD_GLOBAL", "LOAD_ATTR"}
+}
+print(
+    enumerate_loads == {
+        "_active_limbo_lock", "list + NULL", "_active",
+        "values + NULL|self", "_limbo",
+    },
+    _opcode.get_special_method_names()[:2] == ["__enter__", "__exit__"],
+)

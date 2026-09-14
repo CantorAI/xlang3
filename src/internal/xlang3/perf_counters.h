@@ -26,6 +26,7 @@ namespace xlang3 {
 
 constexpr uint32_t xlang_perf_object_kind_count = static_cast<uint32_t>(ObjectKind::TypeParam) + 1;
 constexpr uint32_t xlang_perf_monitoring_event_count = 18;
+constexpr uint32_t xlang_perf_opcode_count = 256;
 
 struct XlangPerfCounters {
   std::atomic_bool enabled{false};
@@ -45,6 +46,7 @@ struct XlangPerfCounters {
   std::atomic_uint64_t frame_locals_materializations{0};
   std::atomic_uint64_t frame_refresh_calls{0};
   std::atomic_uint64_t frame_refresh_items{0};
+  std::array<std::atomic_uint64_t, xlang_perf_opcode_count> opcode_dispatches{};
 };
 
 XlangPerfCounters& xlang_perf_counters();
@@ -138,6 +140,7 @@ XLANG3_HOT_INLINE void xlang_perf_count_monitoring_event(int64_t event, bool cal
   counters[index].fetch_add(1, std::memory_order_relaxed);
 }
 
+
 XLANG3_HOT_INLINE void xlang_perf_count_frame_snapshot(uint64_t frames) {
   if (!xlang_perf_enabled()) return;
   auto& counters = xlang_perf_counters();
@@ -157,6 +160,14 @@ XLANG3_HOT_INLINE void xlang_perf_count_frame_refresh(uint64_t items) {
   counters.frame_refresh_calls.fetch_add(1, std::memory_order_relaxed);
   counters.frame_refresh_items.fetch_add(items, std::memory_order_relaxed);
 }
+
+XLANG3_HOT_INLINE void xlang_perf_count_opcode(uint16_t opcode) {
+  if (!xlang_perf_enabled() || opcode >= xlang_perf_opcode_count) return;
+  auto& counters = xlang_perf_counters();
+  counters.opcode_dispatches[opcode].fetch_add(1, std::memory_order_relaxed);
+}
+
+
 
 
 } // namespace xlang3

@@ -371,6 +371,14 @@ bool math_log2_fast(Runtime& runtime, const Value* leading, uint32_t leading_cou
   return fast_unary_math("log2", std::log2, leading, leading_count, registers, register_args, register_arg_count, out, error);
 }
 
+bool math_log10(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return unary_math("log10", std::log10, args, argc, out, error);
+}
+
+bool math_log10_fast(Runtime&, const Value* leading, uint32_t leading_count, const Value* registers, const uint32_t* register_args, uint32_t register_arg_count, Value& out, std::string& error, void*) {
+  return fast_unary_math("log10", std::log10, leading, leading_count, registers, register_args, register_arg_count, out, error);
+}
+
 bool math_sqrt(
     Runtime& runtime,
     const Value* args,
@@ -570,6 +578,56 @@ bool math_isinf_fast(Runtime&, const Value* leading, uint32_t leading_count, con
   return fast_unary_math_bool("isinf", [](double value) { return std::isinf(value); }, leading, leading_count, registers, register_args, register_arg_count, out, error);
 }
 
+bool math_isclose_kw(Runtime& runtime, const Value* args, uint32_t argc,
+                     const NativeKeywordArg* kwargs, uint32_t kwargc,
+                     Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "isclose() expected 2 positional arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  double left = 0.0, right = 0.0, rel_tol = 1e-9, abs_tol = 0.0;
+  if (!require_number_arg(args[0], "isclose", left, error) ||
+      !require_number_arg(args[1], "isclose", right, error)) return false;
+  bool have_rel = false, have_abs = false;
+  for (uint32_t index = 0; index < kwargc; ++index) {
+    const std::string name = kwargs[index].name == nullptr ? "" : kwargs[index].name;
+    double* target = nullptr;
+    bool* present = nullptr;
+    if (name == "rel_tol") { target = &rel_tol; present = &have_rel; }
+    else if (name == "abs_tol") { target = &abs_tol; present = &have_abs; }
+    else {
+      error = "isclose() got an unexpected keyword argument '" + name + "'";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    if (*present || kwargs[index].value == nullptr ||
+        !require_number_arg(*kwargs[index].value, "isclose", *target, error)) {
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    *present = true;
+  }
+  if (rel_tol < 0.0 || abs_tol < 0.0) {
+    error = "tolerances must be non-negative";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
+  bool close = left == right;
+  if (!close && std::isfinite(left) && std::isfinite(right)) {
+    const double difference = std::fabs(left - right);
+    close = difference <= std::fabs(rel_tol * right) ||
+            difference <= std::fabs(rel_tol * left) || difference <= abs_tol;
+  }
+  value_set_bool(out, close);
+  return true;
+}
+
+bool math_isclose(Runtime& runtime, const Value* args, uint32_t argc,
+                  Value& out, std::string& error, void* data) {
+  return math_isclose_kw(runtime, args, argc, nullptr, 0, out, error, data);
+}
+
 bool math_copysign(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 2) {
     error = "copysign() expected 2 arguments";
@@ -597,24 +655,35 @@ bool math_ldexp(Runtime&, const Value* args, uint32_t argc, Value& out, std::str
 }
 
 bool math_gcd(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  uint64_t result = 0;
+  Value result = Value::int64(0);
+  auto absolute_integer = [&](const Value& value, Value& absolute) -> bool {
+    if (value.tag == ValueTag::Int64) {
+      if (value.as.i64 == std::numeric_limits<int64_t>::min()) absolute = value_bigint_from_u64(uint64_t{1} << 63u);
+      else absolute = Value::int64(value.as.i64 < 0 ? -value.as.i64 : value.as.i64);
+      return true;
+    }
+    bool negative = false;
+    const uint32_t* limbs = nullptr;
+    uint32_t count = 0;
+    if (!value_bigint_limb_view(value, negative, limbs, count)) return false;
+    if (!negative) { value_assign_fast(absolute, value); return true; }
+    return value_bigint_from_binary_limbs(limbs, static_cast<size_t>(count) * sizeof(uint32_t), false, absolute, error);
+  };
   for (uint32_t index = 0; index < argc; ++index) {
-    int64_t value = 0;
-    if (!value_int_like_to_i64(args[index], value)) {
+    Value divisor;
+    if (!absolute_integer(args[index], divisor)) {
       error = "math.gcd() arguments must be integers";
       runtime.raise_class_error("TypeError", error);
       return false;
     }
-    const uint64_t magnitude = value < 0
-        ? static_cast<uint64_t>(-(value + 1)) + 1u
-        : static_cast<uint64_t>(value);
-    result = std::gcd(result, magnitude);
+    while ((divisor.tag == ValueTag::Int64 && divisor.as.i64 != 0) || value_bigint_truthy(divisor)) {
+      Value remainder;
+      if (!value_mod(result, divisor, remainder, error)) return false;
+      result = std::move(divisor);
+      divisor = std::move(remainder);
+    }
   }
-  if (result > static_cast<uint64_t>(std::numeric_limits<int64_t>::max())) {
-    error = "math.gcd() result exceeds the compact integer range";
-    return false;
-  }
-  out = Value::int64(static_cast<int64_t>(result));
+  out = std::move(result);
   return true;
 }
 
@@ -625,6 +694,8 @@ void register_math_module(Runtime& runtime) {
   builder.value("pi", Value::number(3.14159265358979323846))
       .value("e", Value::number(2.71828182845904523536))
       .value("tau", Value::number(6.28318530717958647692))
+      .value("inf", Value::number(std::numeric_limits<double>::infinity()))
+      .value("nan", Value::number(std::numeric_limits<double>::quiet_NaN()))
       .function("log", math_log, math_log_fast)
       .function("exp", math_exp, math_exp_fast)
       .function("acos", math_acos, math_acos_fast)
@@ -633,11 +704,14 @@ void register_math_module(Runtime& runtime) {
       .function("isfinite", math_isfinite, math_isfinite_fast)
       .function("isnan", math_isnan, math_isnan_fast)
       .function("isinf", math_isinf, math_isinf_fast)
+      .value("isclose", runtime.make_native_function(
+          "math.isclose", math_isclose, nullptr, nullptr, nullptr, false, math_isclose_kw, false))
       .function("copysign", math_copysign)
       .function("ldexp", math_ldexp)
       .function("lgamma", math_lgamma, math_lgamma_fast)
       .function("fabs", math_fabs, math_fabs_fast)
       .function("log2", math_log2, math_log2_fast)
+      .function("log10", math_log10, math_log10_fast)
       .function("sqrt", math_sqrt, math_sqrt_fast)
       .function("hypot", math_hypot)
       .function("erfc", math_erfc)
@@ -649,7 +723,13 @@ void register_math_module(Runtime& runtime) {
       .function("sumprod", math_sumprod)
       .function("modf", math_modf)
       .function("sin", math_sin, math_sin_fast)
-      .function("cos", math_cos, math_cos_fast);
+      .function("cos", math_cos, math_cos_fast)
+      .function("sinh", [](Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+        return unary_math("sinh", std::sinh, args, argc, out, error);
+      })
+      .function("tanh", [](Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+        return unary_math("tanh", std::tanh, args, argc, out, error);
+      });
   builder.function("gcd", math_gcd);
   runtime.register_module("math", builder.finish());
 }

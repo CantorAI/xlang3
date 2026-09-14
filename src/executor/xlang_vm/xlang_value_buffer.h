@@ -259,6 +259,18 @@ public:
     }
   }
 
+  // VM expression registers are assigned before use by the lowered SSA-like
+  // IR.  When a frame slot is recycled, only object-bearing registers need
+  // work: release their ownership and mark those cells invalid. Scalar cells
+  // can be overwritten by the next activation without redundant stores.
+  void clear_object_values() {
+    for (size_t i = 0; i < size_; ++i) {
+      if (data_[i].tag == ValueTag::Object) {
+        value_set_invalid(data_[i]);
+      }
+    }
+  }
+
   XLANG3_HOT_INLINE size_t size() const {
     return size_;
   }
