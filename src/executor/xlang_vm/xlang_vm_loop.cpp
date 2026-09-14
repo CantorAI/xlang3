@@ -21,6 +21,7 @@ limitations under the License.
 #include "xlang_vm_inline_call.h"
 #include "xlang_vm_op_switch.h"
 #include "xlang_vm_property_inline.h"
+#include "ops/xlang_vm_ops_variables.h"
 #include "ops/xlang_vm_ops_arithmetic.h"
 #include "ops/xlang_vm_ops_async.h"
 #include "ops/xlang_vm_ops_attr.h"
@@ -30,7 +31,6 @@ limitations under the License.
 #include "ops/xlang_vm_ops_construct.h"
 #include "ops/xlang_vm_ops_import_raw.h"
 #include "ops/xlang_vm_ops_iteration.h"
-#include "ops/xlang_vm_ops_variables.h"
 #include "ops/xlang_vm_ops_fused.h"
 #include "runtime_lock.h"
 
