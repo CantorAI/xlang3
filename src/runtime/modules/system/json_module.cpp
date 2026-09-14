@@ -315,7 +315,7 @@ void register_json_module(Runtime& runtime) {
           json_encode_basestring_ascii,
           builtin_fast_adapter<json_encode_basestring_ascii, 1>,
           true)
-      .function("scanstring", json_scanstring, nullptr, false, json_scanstring_kw)
+      .function("scanstring", json_scanstring, builtin_fast_adapter<json_scanstring, 4>, false, json_scanstring_kw)
       .function("make_scanner", json_make_scanner)
       .function("make_encoder", json_make_encoder, nullptr, false, json_make_encoder_kw);
   runtime.register_module("_json", builder.finish());

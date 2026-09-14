@@ -1900,6 +1900,63 @@ private:
         previous.c = 0;
         return;
       }
+      if (op == ir::Op::LoadAttr && previous.op == ir::Op::LoadModuleSlot &&
+          a == previous.dst) {
+        const uint32_t receiver_reg = previous.dst;
+        const uint32_t module_slot = previous.a;
+        previous.op = ir::Op::LoadModuleAttr;
+        previous.dst = dst;
+        previous.a = module_slot;
+        previous.b = b;
+        previous.c = receiver_reg;
+        return;
+      }
+      if (op == ir::Op::GetItem && previous.op == ir::Op::LoadLocal &&
+          a == previous.dst) {
+        const uint32_t object_reg = previous.dst;
+        const uint32_t local_slot = previous.a;
+        previous.op = ir::Op::LoadLocalGetItem;
+        previous.dst = dst;
+        previous.a = local_slot;
+        previous.b = b;
+        previous.c = object_reg;
+        return;
+      }
+      if (op == ir::Op::StoreLocal && previous.op == ir::Op::IterNext &&
+          previous.dst == a) {
+        const uint32_t item_reg = previous.dst;
+        previous.op = ir::Op::IterNextLocal;
+        previous.dst = dst;
+        previous.c = item_reg;
+        return;
+      }
+      if (op == ir::Op::StoreLocal && previous.op == ir::Op::LoadLocalInstanceSlot &&
+          previous.dst == a) {
+        const uint32_t temporary_reg = previous.dst;
+        previous.op = ir::Op::LoadInstanceSlotLocal;
+        previous.dst = dst;
+        previous.c = temporary_reg;
+        return;
+      }
+      if (op == ir::Op::DictSet && previous.op == ir::Op::LoadConst &&
+          previous.dst == b) {
+        const uint32_t value_reg = previous.dst;
+        const uint32_t constant = previous.a;
+        previous.op = ir::Op::DictSetConst;
+        previous.dst = dst;
+        previous.a = a;
+        previous.b = constant;
+        previous.c = value_reg;
+        return;
+      }
+      if (op == ir::Op::Call && previous.op == ir::Op::LoadGlobal &&
+          a == previous.dst) {
+        previous.op = ir::Op::CallGlobal;
+        previous.dst = dst;
+        previous.b = b;
+        previous.c = 0;
+        return;
+      }
       if (op == ir::Op::CallMethod && previous.op == ir::Op::LoadLocal &&
           a == previous.dst) {
         const uint32_t local_slot = previous.a;
@@ -1920,11 +1977,79 @@ private:
     if (op == ir::Op::JumpIfFalse && !fn_.code.empty() && !fn_.source_lines.empty() &&
         fn_.source_lines.back() == current_source_line_) {
       auto& previous = fn_.code.back();
+      if (previous.op == ir::Op::Compare && previous.dst == cond &&
+          fn_.code.size() >= 2 && fn_.source_lines.size() >= 2 &&
+          fn_.source_lines[fn_.source_lines.size() - 2] == current_source_line_) {
+        auto& load = fn_.code[fn_.code.size() - 2];
+        if (load.op == ir::Op::LoadLocalConst &&
+            previous.a == load.dst && previous.b == load.b) {
+          const uint32_t local_slot = load.a;
+          const uint32_t constant = load.c;
+          const uint32_t compare_op = previous.c;
+          fn_.code.pop_back();
+          fn_.source_lines.pop_back();
+          fn_.source_positions.pop_back();
+          auto& fused = fn_.code.back();
+          fused.op = ir::Op::JumpIfLocalConstFalse;
+          fused.dst = 0;
+          fused.a = local_slot;
+          fused.b = constant;
+          fused.c = compare_op;
+          return fn_.code.size() - 1;
+        }
+      }
+      if (previous.op == ir::Op::Compare && previous.dst == cond &&
+          fn_.code.size() >= 2 && fn_.source_lines.size() >= 2 &&
+          fn_.source_lines[fn_.source_lines.size() - 2] == current_source_line_) {
+        auto& load = fn_.code[fn_.code.size() - 2];
+        if (load.op == ir::Op::LoadLocalPair &&
+            previous.a == load.dst && previous.b == load.b) {
+          const uint32_t lhs_slot = load.a;
+          const uint32_t rhs_slot = load.c;
+          const uint32_t compare_op = previous.c;
+          fn_.code.pop_back();
+          fn_.source_lines.pop_back();
+          fn_.source_positions.pop_back();
+          auto& fused = fn_.code.back();
+          fused.op = ir::Op::JumpIfLocalLocalFalse;
+          fused.dst = 0;
+          fused.a = lhs_slot;
+          fused.b = rhs_slot;
+          fused.c = compare_op;
+          return fn_.code.size() - 1;
+        }
+      }
+      if (previous.op == ir::Op::Is && previous.dst == cond &&
+          fn_.code.size() >= 2 && fn_.source_lines.size() >= 2 &&
+          fn_.source_lines[fn_.source_lines.size() - 2] == current_source_line_) {
+        auto& load = fn_.code[fn_.code.size() - 2];
+        if (load.op == ir::Op::LoadLocalConst &&
+            previous.a == load.dst && previous.b == load.b) {
+          const uint32_t local_slot = load.a;
+          const uint32_t constant = load.c;
+          const uint32_t negate = previous.c;
+          fn_.code.pop_back();
+          fn_.source_lines.pop_back();
+          fn_.source_positions.pop_back();
+          auto& fused = fn_.code.back();
+          fused.op = ir::Op::IsLocalConstJumpIfFalse;
+          fused.dst = 0;
+          fused.a = local_slot;
+          fused.b = constant;
+          fused.c = negate;
+          return fn_.code.size() - 1;
+        }
+      }
       if ((previous.op == ir::Op::Compare || previous.op == ir::Op::Is) &&
           previous.dst == cond) {
         previous.op = previous.op == ir::Op::Compare
             ? ir::Op::CompareJumpIfFalse
             : ir::Op::IsJumpIfFalse;
+        previous.dst = 0;
+        return fn_.code.size() - 1;
+      }
+      if (previous.op == ir::Op::Not && previous.dst == cond) {
+        previous.op = ir::Op::NotJumpIfFalse;
         previous.dst = 0;
         return fn_.code.size() - 1;
       }
@@ -3423,6 +3548,48 @@ private:
         const auto attr_reg = lower_expr(*assign->value);
         attrs.push_back(std::make_pair(mangle_private_identifier(assign->name), attr_reg));
         bind_class_attr_alias(assign->name, attr_reg);
+      } else if (auto* assign = dynamic_cast<const ast::UnpackAssignStmt*>(&stmt)) {
+        const auto value_reg = lower_expr(*assign->value);
+        auto assign_class_target = [&](auto&& self, const ast::Expr& target, uint32_t source_reg) -> void {
+          if (auto* name = dynamic_cast<const ast::NameExpr*>(&target)) {
+            attrs.push_back(std::make_pair(mangle_private_identifier(name->name), source_reg));
+            bind_class_attr_alias(name->name, source_reg);
+            return;
+          }
+          if (auto* starred = dynamic_cast<const ast::StarredExpr*>(&target)) {
+            self(self, *starred->expr, source_reg);
+            return;
+          }
+          std::vector<const ast::Expr*> items;
+          if (auto* tuple = dynamic_cast<const ast::TupleExpr*>(&target)) {
+            for (const auto& item : tuple->items) items.push_back(item.get());
+          } else if (auto* list = dynamic_cast<const ast::ListExpr*>(&target)) {
+            for (const auto& item : list->items) items.push_back(item.get());
+          } else {
+            lower_assign_target(target, source_reg);
+            return;
+          }
+          size_t star_index = items.size();
+          for (size_t index = 0; index < items.size(); ++index) {
+            if (dynamic_cast<const ast::StarredExpr*>(items[index]) != nullptr) { star_index = index; break; }
+          }
+          const bool has_star = star_index != items.size();
+          const uint32_t before_count = has_star ? static_cast<uint32_t>(star_index) : static_cast<uint32_t>(items.size());
+          const uint32_t after_count = has_star ? static_cast<uint32_t>(items.size() - star_index - 1) : 0;
+          const uint32_t output_count = before_count + after_count + (has_star ? 1u : 0u);
+          const uint32_t first_output = new_reg();
+          for (uint32_t index = 1; index < output_count; ++index) (void)new_reg();
+          emit(ir::Op::UnpackSequence, first_output, source_reg, before_count,
+               after_count | (has_star ? 0x80000000u : 0u));
+          for (uint32_t index = 0; index < before_count; ++index) self(self, *items[index], first_output + index);
+          if (has_star) {
+            self(self, *items[star_index], first_output + before_count);
+            for (uint32_t index = 0; index < after_count; ++index) {
+              self(self, *items[star_index + 1 + index], first_output + before_count + 1 + index);
+            }
+          }
+        };
+        assign_class_target(assign_class_target, *assign->target, value_reg);
       } else if (auto* assign = dynamic_cast<const ast::SubscriptAssignStmt*>(&stmt)) {
         const auto object = lower_expr(*assign->object);
         const auto index = lower_expr(*assign->index);
@@ -3769,6 +3936,14 @@ private:
           (literal->kind == ast::LiteralExpr::Kind::Int ||
            literal->kind == ast::LiteralExpr::Kind::Double)) {
         emit(ir::Op::InplaceAddLocalConst, local_slot, local_slot, add_const(literal_value(*literal)));
+        return;
+      }
+      auto* rhs_name = dynamic_cast<const ast::NameExpr*>(assign.value.get());
+      uint32_t rhs_slot = 0;
+      if (name != nullptr && rhs_name != nullptr &&
+          direct_local_slot(name->name, local_slot) &&
+          direct_local_slot(rhs_name->name, rhs_slot)) {
+        emit(ir::Op::InplaceAddLocalLocal, local_slot, local_slot, rhs_slot);
         return;
       }
     }

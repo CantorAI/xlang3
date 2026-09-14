@@ -124,6 +124,17 @@ std::wstring filesystem_wide_path(std::string_view text) {
   }
   return result;
 }
+
+int64_t filetime_to_unix_ns(const FILETIME& value) {
+  ULARGE_INTEGER ticks{};
+  ticks.LowPart = value.dwLowDateTime;
+  ticks.HighPart = value.dwHighDateTime;
+  constexpr uint64_t kUnixEpochTicks = 116444736000000000ULL;
+  if (ticks.QuadPart >= kUnixEpochTicks) {
+    return static_cast<int64_t>(ticks.QuadPart - kUnixEpochTicks) * 100LL;
+  }
+  return -static_cast<int64_t>(kUnixEpochTicks - ticks.QuadPart) * 100LL;
+}
 #endif
 
 std::filesystem::path filesystem_path(const std::string& path) {
@@ -186,6 +197,50 @@ public:
   }
   bool read_file(const std::string& path, std::vector<uint8_t>& out, std::string& error) override {
     const auto native = filesystem_path(path);
+#if defined(_WIN32)
+    HANDLE file = ::CreateFileW(
+        native.c_str(), GENERIC_READ,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+        nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,
+        nullptr);
+    if (file == INVALID_HANDLE_VALUE) {
+      const DWORD open_error = ::GetLastError();
+      if (open_error == ERROR_ACCESS_DENIED) {
+        const DWORD attributes = ::GetFileAttributesW(native.c_str());
+        if (attributes != INVALID_FILE_ATTRIBUTES &&
+            (attributes & FILE_ATTRIBUTE_DIRECTORY) != 0) {
+          error = "cannot open directory as file " + path;
+          return false;
+        }
+      }
+      error = "cannot open file " + path;
+      return false;
+    }
+    struct FileGuard {
+      HANDLE value;
+      ~FileGuard() { ::CloseHandle(value); }
+    } file_guard{file};
+    LARGE_INTEGER file_size{};
+    if (!::GetFileSizeEx(file, &file_size) || file_size.QuadPart < 0 ||
+        static_cast<uint64_t>(file_size.QuadPart) > out.max_size()) {
+      error = "file is too large " + path;
+      return false;
+    }
+    out.resize(static_cast<size_t>(file_size.QuadPart));
+    size_t offset = 0;
+    while (offset < out.size()) {
+      const DWORD requested = static_cast<DWORD>(std::min<size_t>(
+          out.size() - offset, static_cast<size_t>((std::numeric_limits<DWORD>::max)())));
+      DWORD received = 0;
+      if (!::ReadFile(file, out.data() + offset, requested, &received, nullptr) || received == 0) {
+        out.clear();
+        error = "cannot read file " + path;
+        return false;
+      }
+      offset += received;
+    }
+    return true;
+#else
     std::ifstream file(native, std::ios::binary);
     if (!file) {
       std::error_code ec;
@@ -232,6 +287,37 @@ public:
     const std::string text = buffer.str();
     out.assign(text.begin(), text.end());
     return true;
+#endif
+  }
+
+  bool directory_mtime(const std::string& path, int64_t& mtime_ns, std::string& error) {
+#if defined(_WIN32)
+    std::filesystem::path native_path;
+    try {
+      native_path = filesystem_path(path);
+    } catch (const std::exception&) {
+      return false;
+    }
+    WIN32_FILE_ATTRIBUTE_DATA file_data{};
+    if (::GetFileAttributesExW(native_path.c_str(), GetFileExInfoStandard, &file_data) == 0) {
+      const DWORD code = ::GetLastError();
+      if (code == ERROR_FILE_NOT_FOUND || code == ERROR_PATH_NOT_FOUND ||
+          code == ERROR_INVALID_NAME) {
+        return false;
+      }
+      error = "cannot inspect directory " + path + ": " +
+          std::error_code(static_cast<int>(code), std::system_category()).message();
+      return false;
+    }
+    if ((file_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0) return false;
+    mtime_ns = filetime_to_unix_ns(file_data.ftLastWriteTime);
+    return true;
+#else
+    VfsStat info;
+    if (!stat(path, info, error) || info.kind != VfsNodeKind::Directory) return false;
+    mtime_ns = info.mtime_ns;
+    return true;
+#endif
   }
 
   bool write_file(const std::string& path, const uint8_t* data, std::size_t size, std::string& error) override {
@@ -441,16 +527,6 @@ public:
       }
       CloseHandle(stat_handle);
     }
-    const auto filetime_to_unix_ns = [](const FILETIME& value) {
-      ULARGE_INTEGER ticks{};
-      ticks.LowPart = value.dwLowDateTime;
-      ticks.HighPart = value.dwHighDateTime;
-      constexpr uint64_t kUnixEpochTicks = 116444736000000000ULL;
-      if (ticks.QuadPart >= kUnixEpochTicks) {
-        return static_cast<int64_t>(ticks.QuadPart - kUnixEpochTicks) * 100LL;
-      }
-      return -static_cast<int64_t>(kUnixEpochTicks - ticks.QuadPart) * 100LL;
-    };
     if ((out.file_attributes & FILE_ATTRIBUTE_REPARSE_POINT) != 0) {
       HANDLE reparse_handle = CreateFileW(
           native_path.c_str(), 0,
@@ -680,6 +756,21 @@ bool Vfs::list_dir(const std::string& path, std::vector<std::string>& out, std::
 bool Vfs::stat(const std::string& path, VfsStat& out, std::string& error) {
   ResolvedPath resolved;
   return resolve(path, resolved, error) && resolved.fs->stat(resolved.path, out, error);
+}
+
+bool Vfs::directory_mtime(const std::string& path, int64_t& mtime_ns, std::string& error) {
+  ResolvedPath resolved;
+  if (!resolve(path, resolved, error)) return false;
+  if (auto* os = dynamic_cast<OsFileSystem*>(resolved.fs)) {
+    return os->directory_mtime(resolved.path, mtime_ns, error);
+  }
+  VfsStat info;
+  if (!resolved.fs->stat(resolved.path, info, error) ||
+      info.kind != VfsNodeKind::Directory) {
+    return false;
+  }
+  mtime_ns = info.mtime_ns;
+  return true;
 }
 
 bool Vfs::kind(const std::string& path, VfsNodeKind& out, std::string& error) {

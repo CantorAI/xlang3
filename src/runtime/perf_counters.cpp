@@ -49,6 +49,8 @@ void xlang_perf_count_native_name(const std::string& name, bool fast) {
   ++g_native_name_counts[name][fast ? 1u : 0u];
 }
 
+
+
 void xlang_perf_note_value_incref(ObjectKind kind) {
   g_perf_counters.value_incref[static_cast<uint32_t>(kind)].fetch_add(
       1, std::memory_order_relaxed);
@@ -84,6 +86,7 @@ void xlang_perf_reset() {
   g_perf_counters.frame_locals_materializations.store(0, std::memory_order_relaxed);
   g_perf_counters.frame_refresh_calls.store(0, std::memory_order_relaxed);
   g_perf_counters.frame_refresh_items.store(0, std::memory_order_relaxed);
+  for (auto& counter : g_perf_counters.opcode_dispatches) counter.store(0, std::memory_order_relaxed);
   {
     std::lock_guard<std::mutex> lock(g_native_name_mutex);
     g_native_name_counts.clear();
@@ -173,6 +176,10 @@ std::string xlang_perf_report() {
       << " locals=" << load_counter(g_perf_counters.frame_locals_materializations)
       << " refresh_calls=" << load_counter(g_perf_counters.frame_refresh_calls)
       << " refresh_items=" << load_counter(g_perf_counters.frame_refresh_items) << "\n";
+  for (uint32_t i = 0; i < xlang_perf_opcode_count; ++i) {
+    const uint64_t dispatches = load_counter(g_perf_counters.opcode_dispatches[i]);
+    if (dispatches != 0) out << "perf: opcode " << i << " " << dispatches << "\n";
+  }
   out << "perf: objects kind alloc final_release incref decref\n";
   for (uint32_t i = 1; i < xlang_perf_object_kind_count; ++i) {
     const auto kind = static_cast<ObjectKind>(i);

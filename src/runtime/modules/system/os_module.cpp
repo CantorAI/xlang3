@@ -4556,7 +4556,7 @@ void register_os_module(Runtime& runtime) {
       .value("P_OVERLAY", Value::int64(_P_OVERLAY))
       .value("P_DETACH", Value::int64(_P_DETACH))
       .function("_supports_virtual_terminal", os_supports_virtual_terminal)
-      .function("_getfullpathname", os_getfullpathname)
+      .function("_getfullpathname", os_getfullpathname, builtin_fast_adapter<os_getfullpathname, 1>, true)
       .function("_getfinalpathname", os_getfinalpathname)
       .function("_getvolumepathname", os_getvolumepathname)
       .function("_getdiskusage", os_getdiskusage)
@@ -4564,19 +4564,19 @@ void register_os_module(Runtime& runtime) {
       .function("listdrives", os_listdrives)
       .function("listmounts", os_listmounts)
       .function("device_encoding", os_device_encoding)
-      .function("_path_splitroot_ex", os_path_splitroot_ex)
+      .function("_path_splitroot_ex", os_path_splitroot_ex, builtin_fast_adapter<os_path_splitroot_ex, 1>)
       .function(
           "_path_normpath",
           os_path_normpath,
           builtin_fast_adapter<os_path_normpath, 1>,
           true)
       .function("_path_isdevdrive", os_path_isdevdrive)
-      .function("_path_isdir", os_path_isdir, nullptr, false, os_path_isdir_kw)
-      .function("_path_isfile", os_path_isfile, nullptr, false, os_path_isfile_kw)
-      .function("_path_islink", os_path_islink, nullptr, false, os_path_islink_kw)
-      .function("_path_isjunction", os_path_isjunction, nullptr, false, os_path_isjunction_kw)
-      .function("_path_exists", os_path_exists, nullptr, false, os_path_exists_kw)
-      .function("_path_lexists", os_path_exists, nullptr, false, os_path_exists_kw)
+      .function("_path_isdir", os_path_isdir, builtin_fast_adapter<os_path_isdir, 1>, true, os_path_isdir_kw)
+      .function("_path_isfile", os_path_isfile, builtin_fast_adapter<os_path_isfile, 1>, true, os_path_isfile_kw)
+      .function("_path_islink", os_path_islink, builtin_fast_adapter<os_path_islink, 1>, true, os_path_islink_kw)
+      .function("_path_isjunction", os_path_isjunction, builtin_fast_adapter<os_path_isjunction, 1>, true, os_path_isjunction_kw)
+      .function("_path_exists", os_path_exists, builtin_fast_adapter<os_path_exists, 1>, true, os_path_exists_kw)
+      .function("_path_lexists", os_path_exists, builtin_fast_adapter<os_path_exists, 1>, true, os_path_exists_kw)
 #endif
       .value("environ", env_dict)
       .value("F_OK", Value::int64(0))

@@ -1436,11 +1436,13 @@ bool builtin_complex_new(
   };
   double real = 0.0;
   double imaginary_from_real = 0.0;
+  bool first_is_complex = false;
   if (argc >= 2 && !numeric_part(args[1], real, imaginary_from_real)) {
     error = "complex() first argument must be a string or a number";
     runtime.raise_class_error("TypeError", error);
     return false;
   }
+  if (argc >= 2) first_is_complex = value_as_complex(args[1]) != nullptr;
   double imaginary_real = 0.0;
   double imaginary_imag = 0.0;
   if (argc >= 3 && !numeric_part(args[2], imaginary_real, imaginary_imag)) {
@@ -1448,7 +1450,13 @@ bool builtin_complex_new(
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  Value parsed = Value::complex(real - imaginary_imag, imaginary_from_real + imaginary_real);
+  double result_real = real;
+  double result_imag = imaginary_from_real;
+  if (argc >= 3) {
+    result_real -= imaginary_imag;
+    result_imag = first_is_complex ? imaginary_from_real + imaginary_real : imaginary_real;
+  }
+  Value parsed = Value::complex(result_real, result_imag);
   const Value* complex_class = runtime.find_builtin("complex");
   if (complex_class != nullptr && value_is(args[0], *complex_class)) {
     out = std::move(parsed);
@@ -3186,7 +3194,9 @@ void register_object_type_builtins(Runtime& runtime) {
   object_attrs.push_back({"__qualname__", Value::string("object")});
   object_attrs.push_back({"__type_params__", Value::tuple({})});
   object_attrs.push_back({"__text_signature__", Value::string("()")});
-  Value object_new = Value::native_function(0, "object.__new__", builtin_object_new);
+  Value object_new = Value::native_function(
+      0, "object.__new__", builtin_object_new, nullptr, nullptr,
+      builtin_variadic_fast_adapter<builtin_object_new, 4>);
   builtin_method_set_text_signature(object_new, "(*args, **kwargs)");
   object_attrs.push_back({"__new__", std::move(object_new)});
   Value object_init = runtime.make_native_function(
@@ -3243,7 +3253,7 @@ void register_object_type_builtins(Runtime& runtime) {
                           builtin_type_new,
                           nullptr,
                           nullptr,
-                          nullptr,
+                          builtin_fast_adapter<builtin_type_new, 4>,
                           false,
                           builtin_type_new_kw)},
           {"__init__", Value::native_function(
@@ -3325,8 +3335,12 @@ void register_object_type_builtins(Runtime& runtime) {
           true,
           builtin_int_new_kw));
       int_install_class_methods(runtime, *int_class);
-      int_class->attrs["__repr__"] = Value::native_function(0, "int.__repr__", builtin_numeric_repr);
-      int_class->attrs["__str__"] = Value::native_function(0, "int.__str__", builtin_numeric_repr);
+      int_class->attrs["__repr__"] = Value::native_function(
+          0, "int.__repr__", builtin_numeric_repr, nullptr, nullptr,
+          builtin_fast_adapter<builtin_numeric_repr, 1>);
+      int_class->attrs["__str__"] = Value::native_function(
+          0, "int.__str__", builtin_numeric_repr, nullptr, nullptr,
+          builtin_fast_adapter<builtin_numeric_repr, 1>);
       ++int_class->version;
     }
   }
@@ -3403,7 +3417,10 @@ void register_object_type_builtins(Runtime& runtime) {
   if (const auto* dict_value = runtime.find_builtin("dict")) {
     if (auto* dict_class = value_as_class(*dict_value)) {
       dict_class->attrs["__init__"] =
-          runtime.make_native_function("dict.__init__", builtin_dict_init, nullptr, nullptr, nullptr, false, builtin_dict_init_kw);
+          runtime.make_native_function(
+              "dict.__init__", builtin_dict_init, nullptr, nullptr,
+              builtin_variadic_fast_adapter<builtin_dict_init, 3>, false,
+              builtin_dict_init_kw);
       dict_class->attrs["fromkeys"] = make_dict_fromkeys_classmethod();
       dict_class->attrs["__hash__"] = Value::none();
       dict_install_class_methods(runtime, *dict_class);
@@ -3655,7 +3672,7 @@ void register_object_type_builtins(Runtime& runtime) {
     runtime.register_builtin("NotImplemented", std::move(not_implemented));
   }
 
-  runtime.register_native_builtin("id", builtin_id);
+  runtime.register_native_builtin("id", builtin_id, builtin_fast_adapter<builtin_id, 1>);
   runtime.register_native_builtin(
       "isinstance", builtin_isinstance, builtin_class_check_fast<false>);
   runtime.register_native_builtin(

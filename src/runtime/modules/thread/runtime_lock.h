@@ -30,18 +30,21 @@ namespace xlang3 {
 class XlangRuntimeExecutionMutex {
 public:
   void lock() {
-    const auto current = std::this_thread::get_id();
-    std::unique_lock<std::mutex> lock(state_mutex_);
-    if (owner_ == current) {
+    const uintptr_t current = current_thread_token();
+    if (owner_.load(std::memory_order_acquire) == current) {
       ++depth_;
       return;
     }
-    const uint64_t ticket = next_ticket_++;
-    const bool waiting = owner_ != std::thread::id() || ticket != serving_ticket_;
-    if (waiting) waiters_.fetch_add(1, std::memory_order_relaxed);
-    available_.wait(lock, [&]() { return owner_ == std::thread::id() && ticket == serving_ticket_; });
-    if (waiting) waiters_.fetch_sub(1, std::memory_order_relaxed);
-    owner_ = current;
+    const uint64_t ticket = next_ticket_.fetch_add(1, std::memory_order_relaxed);
+    if (serving_ticket_.load(std::memory_order_acquire) != ticket) {
+      waiters_.fetch_add(1, std::memory_order_relaxed);
+      std::unique_lock<std::mutex> wait_lock(wait_mutex_);
+      available_.wait(wait_lock, [&]() {
+        return serving_ticket_.load(std::memory_order_acquire) == ticket;
+      });
+      waiters_.fetch_sub(1, std::memory_order_relaxed);
+    }
+    owner_.store(current, std::memory_order_release);
     depth_ = 1;
   }
 
@@ -50,25 +53,39 @@ public:
   }
 
   void unlock() {
-    std::lock_guard<std::mutex> lock(state_mutex_);
-    if (owner_ != std::this_thread::get_id() || depth_ == 0) {
+    if (owner_.load(std::memory_order_acquire) != current_thread_token() || depth_ == 0) {
       return;
     }
     if (--depth_ != 0) {
       return;
     }
-    owner_ = std::thread::id();
-    ++serving_ticket_;
+    owner_.store(0, std::memory_order_release);
+    if (waiters_.load(std::memory_order_relaxed) == 0) {
+      serving_ticket_.fetch_add(1, std::memory_order_release);
+      return;
+    }
+    // Publish the predicate while holding the same mutex used by wait().
+    // This closes the check-to-sleep window without putting uncontended
+    // release/reacquire cycles through the host mutex.
+    {
+      std::lock_guard<std::mutex> wait_lock(wait_mutex_);
+      serving_ticket_.fetch_add(1, std::memory_order_release);
+    }
     available_.notify_all();
   }
 
 private:
-  std::mutex state_mutex_;
+  static uintptr_t current_thread_token() {
+    static thread_local const char token = 0;
+    return reinterpret_cast<uintptr_t>(&token);
+  }
+
+  std::mutex wait_mutex_;
   std::condition_variable available_;
-  std::thread::id owner_;
+  std::atomic_uintptr_t owner_{0};
   uint32_t depth_ = 0;
-  uint64_t next_ticket_ = 0;
-  uint64_t serving_ticket_ = 0;
+  std::atomic_uint64_t next_ticket_{0};
+  std::atomic_uint64_t serving_ticket_{0};
   std::atomic_uint32_t waiters_{0};
 };
 

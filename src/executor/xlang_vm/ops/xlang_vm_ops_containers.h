@@ -16,6 +16,7 @@ limitations under the License.
 
 #include "../xlang_frame.h"
 #include "../xlang_vm_op_switch.h"
+#include "xlang_vm_ops_variables.h"
 
 #include "xlang3/functional_iterators.h"
 #include "xlang3/mapping.h"
@@ -512,6 +513,27 @@ XLANG3_HOT_INLINE XlangVMOpFlow len_unprofiled(
 }
 
 template <typename RaiseRuntimeError, typename RaiseExceptionValue>
+XLANG3_HOT_INLINE XlangVMOpFlow dict_set_const(
+    const ir::Instr& in,
+    const ir::Function& fn,
+    XlangVMSmallRegisterBuffer& regs,
+    RuntimeResult& result,
+    Runtime& runtime,
+    RaiseRuntimeError&& raise_runtime_error,
+    RaiseExceptionValue&& raise_exception_value) {
+  if (in.b >= fn.constants.size() || in.c >= regs.size()) {
+    result.errors.push_back("invalid constant index");
+    return XlangVMOpFlow::ReturnResult;
+  }
+  value_assign_fast(regs[in.c], fn.constants[in.b]);
+  const ir::Instr set_in{ir::Op::DictSet, in.dst, in.a, in.c, 0};
+  return dict_set(
+      set_in, regs, runtime,
+      std::forward<RaiseRuntimeError>(raise_runtime_error),
+      std::forward<RaiseExceptionValue>(raise_exception_value));
+}
+
+template <typename RaiseRuntimeError, typename RaiseExceptionValue>
 XLANG3_HOT_INLINE XlangVMOpFlow len(
     const ir::Instr& in,
     Runtime& runtime,
@@ -584,6 +606,13 @@ XLANG3_HOT_INLINE XlangVMOpFlow get_item(
     RaiseRuntimeError&& raise_runtime_error,
     RaiseExceptionValue&& raise_exception_value) {
   xlang_vm_cache_touch(cache, XlangVMCacheDomain::GetItem);
+  if (value_as_dict(regs[in.a]) != nullptr && value_as_string(regs[in.b]) != nullptr) {
+    std::string error;
+    if (mapping_get_item(regs[in.a], regs[in.b], regs[in.dst], error)) {
+      xlang_vm_cache_note_hit(cache);
+      return XlangVMOpFlow::Next;
+    }
+  }
   if (regs[in.b].tag == ValueTag::Int64 && regs[in.a].tag == ValueTag::Object && regs[in.a].as.obj != nullptr) {
     const int64_t raw_index = regs[in.b].as.i64;
     Object* object = regs[in.a].as.obj;
@@ -805,7 +834,10 @@ XLANG3_HOT_INLINE XlangVMOpFlow get_item(
   const bool runtime_mapping = value_as_dict(regs[in.a]) != nullptr ||
       (value_as_instance(regs[in.a]) != nullptr &&
        value_as_dict(value_as_instance(regs[in.a])->mapping_storage) != nullptr);
-  if (runtime_mapping && mapping_get_item_runtime(runtime, regs[in.a], regs[in.b], regs[in.dst], error)) {
+  const bool mapping_found = value_as_dict(regs[in.a]) != nullptr
+      ? mapping_get_item(regs[in.a], regs[in.b], regs[in.dst], error)
+      : runtime_mapping && mapping_get_item_runtime(runtime, regs[in.a], regs[in.b], regs[in.dst], error);
+  if (mapping_found) {
     xlang_vm_cache_note_hit(cache);
     return XlangVMOpFlow::Next;
   }
@@ -847,6 +879,10 @@ XLANG3_HOT_INLINE XlangVMOpFlow get_item(
                                                                                   : XlangVMOpFlow::ReturnResult;
     }
     if (error == "sequence index must be int") {
+      return raise_exception_value(runtime.make_exception("TypeError", error)) ? XlangVMOpFlow::ContinueLoop
+                                                                               : XlangVMOpFlow::ReturnResult;
+    }
+    if (error == "object is not subscriptable") {
       return raise_exception_value(runtime.make_exception("TypeError", error)) ? XlangVMOpFlow::ContinueLoop
                                                                                : XlangVMOpFlow::ReturnResult;
     }
@@ -916,6 +952,13 @@ XLANG3_HOT_INLINE XlangVMOpFlow set_item(
     }
     return raise_runtime_error(mapped_error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
   };
+
+  if (value_as_dict(regs[in.dst]) != nullptr && value_as_instance(regs[in.a]) == nullptr) {
+    if (mapping_set_item(regs[in.dst], regs[in.a], regs[in.b], error)) {
+      return XlangVMOpFlow::Next;
+    }
+    return raise_set_item_error();
+  }
 
   if (regs[in.a].tag == ValueTag::Int64 && regs[in.b].tag == ValueTag::Int64 &&
       regs[in.b].as.i64 >= 0 && regs[in.b].as.i64 <= 255 &&
@@ -1063,6 +1106,55 @@ XLANG3_HOT_INLINE XlangVMOpFlow unpack_sequence(
     result.errors.push_back("invalid unpack registers");
     return XlangVMOpFlow::ReturnResult;
   }
+  // Exact built-in tuples and lists cannot override iteration.  Unpack them
+  // directly, as CPython's specialized UNPACK_SEQUENCE paths do, instead of
+  // constructing an iterator and a temporary vector for every assignment.
+  const Value* direct_values = nullptr;
+  size_t direct_size = 0;
+  bool has_direct_values = false;
+  if (auto* tuple = value_as_tuple(regs[source])) {
+    direct_values = tuple->items.begin();
+    direct_size = tuple->items.size();
+    has_direct_values = true;
+  } else if (auto* list = value_as_list(regs[source])) {
+    direct_values = list->items.data();
+    direct_size = list->items.size();
+    has_direct_values = true;
+  }
+  if (has_direct_values) {
+    const size_t fixed_count = static_cast<size_t>(before_count) + static_cast<size_t>(after_count);
+    if ((!has_star && direct_size != fixed_count) ||
+        (has_star && direct_size < fixed_count)) {
+      const std::string message = direct_size < fixed_count
+          ? (has_star
+              ? "not enough values to unpack (expected at least " + std::to_string(fixed_count) +
+                    ", got " + std::to_string(direct_size) + ")"
+              : "not enough values to unpack (expected " + std::to_string(fixed_count) +
+                    ", got " + std::to_string(direct_size) + ")")
+          : "too many values to unpack (expected " + std::to_string(fixed_count) + ")";
+      return raise_exception_value(runtime.make_exception("ValueError", message))
+          ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    }
+    for (uint32_t i = 0; i < before_count; ++i) {
+      value_assign_fast(regs[first_output + i], direct_values[i]);
+    }
+    if (has_star) {
+      std::vector<Value> rest;
+      const size_t rest_begin = before_count;
+      const size_t rest_end = direct_size - after_count;
+      rest.reserve(rest_end - rest_begin);
+      for (size_t i = rest_begin; i < rest_end; ++i) {
+        rest.push_back(direct_values[i]);
+      }
+      regs[first_output + before_count] = Value::list(std::move(rest));
+      for (uint32_t i = 0; i < after_count; ++i) {
+        value_assign_fast(
+            regs[first_output + before_count + 1 + i],
+            direct_values[direct_size - after_count + i]);
+      }
+    }
+    return XlangVMOpFlow::Next;
+  }
   std::string error;
   Value iterator;
   // Tuple/list subclasses may override __iter__.  Use the runtime protocol
@@ -1124,6 +1216,37 @@ XLANG3_HOT_INLINE XlangVMOpFlow unpack_sequence(
       value_assign_fast(regs[first_output + before_count + 1 + i], values[values.size() - after_count + i]);
     }
   }
+  return XlangVMOpFlow::Next;
+}
+
+template <typename RaiseRuntimeError, typename RaiseExceptionValue>
+XLANG3_HOT_INLINE XlangVMOpFlow unpack_sequence_or_local_pair(
+    const ir::Instr& in,
+    const ir::Function& fn,
+    XlangVMSmallRegisterBuffer& regs,
+    XlangVMSmallValueBuffer& locals,
+    Runtime& runtime,
+    RuntimeResult& result,
+    size_t& ip,
+    bool collapse_unobservable_pair,
+    const std::vector<size_t>& register_last_use,
+    RaiseRuntimeError&& raise_runtime_error,
+    RaiseExceptionValue&& raise_exception_value) {
+  const auto flow = unpack_sequence(
+      in, regs, runtime, result,
+      std::forward<RaiseRuntimeError>(raise_runtime_error),
+      std::forward<RaiseExceptionValue>(raise_exception_value));
+  if (flow != XlangVMOpFlow::Next || !collapse_unobservable_pair ||
+      ip + 1 >= fn.code.size()) {
+    return flow;
+  }
+  const auto& store = fn.code[ip + 1];
+  if (store.op != ir::Op::StoreLocalPair ||
+      store.a != in.dst || store.c != in.dst + 1) {
+    return flow;
+  }
+  store_local_pair(store, regs, locals, register_last_use, ip + 1);
+  ++ip;
   return XlangVMOpFlow::Next;
 }
 

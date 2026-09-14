@@ -106,17 +106,48 @@
   Ordinary methods now also follow CPython scope lookup and skip the class
   namespace when resolving free variables. Pure Python library and debugpy code
   remains source-backed throughout these changes.
-  In the latest three interleaved warm runs, XLang reached the initialized event
-  in 1.411-1.429 seconds and inspected the local value in 1.653-1.678 seconds
-  (1.668 seconds median). The equivalent CPython 3.14 runs reached the local
-  value in 0.858-0.902 seconds (0.902 seconds median). Host load varies between
-  runs, and the remaining median gap is about 0.77 seconds, so the performance target
+  Windows VFS reads now use the native sequential file path and cached import
+  directories obtain their modification time without opening a directory
+  handle. General VM dispatch now fuses global calls, constant dictionary
+  stores, instance-slot local stores, iterator local stores, and negated
+  branches. Register liveness metadata is shared immutably by a function's VM
+  frames instead of copying two vectors into every activation. Traceback frames
+  copy locals only when `f_locals` is requested or the activation retires, and
+  repeated exceptions reuse the canonical live frame for an activation rather
+  than growing the live-frame registry with duplicates. Built-in method call
+  caching now covers dictionaries, sets, and integers in addition to strings
+  and lists, with a direct native fast path for common string/integer-keyed
+  `dict.get()` calls. These are general interpreter improvements and contain no
+  debugpy or debugger-specific runtime behavior.
+  Exact built-in dictionary subscription and assignment now bypass generic
+  object protocol dispatch, and native string/integer keys skip redundant
+  hashability checks. A focused Release benchmark reduced 200,000 three-entry
+  string-keyed dictionary literals from about 0.200 seconds to 0.048 seconds
+  and 500,000 string-key assignments from about 0.157 seconds to 0.034 seconds.
+  This task's pending change set also includes the separately verified native
+  `_bisect` accelerator and `cmath` module requested during the debugger work.
+  `_bisect` passes all 46 CPython 3.14 `test.test_bisect` cases; `cmath` passes
+  all 33 `test.test_cmath` cases, with its single CPython implementation-detail
+  test skipped by the upstream guard. These modules follow CPython's native
+  boundary and remain in XLang's existing runtime packaging.
+  In the latest five interleaved warm runs, XLang inspected the local value in
+  1.416-1.515 seconds (1.474 seconds median). The equivalent CPython 3.14 runs
+  inspected it in 0.867-1.191 seconds (0.914 seconds median). Host load varies
+  between runs, and the remaining median gap is 0.560 seconds, so the performance target
   remains open. Opt-in runtime profiling measured roughly 54-66 ms for all
   18,000 execution-lock release/reacquire transitions; expected socket, lock,
   and sleep waits dominated native callback time. The remaining non-waiting
   cost is general source-backed Python execution through `exec` and importlib,
   rather than line mapping, breakpoint lookup, cache misses, or monitoring
-  callback dispatch alone. Coverage:
+  callback dispatch alone. A stage profile localized most of the gap to server
+  startup: importing `debugpy.server.cli` took about 0.86-0.90 seconds in XLang
+  and 0.53-0.56 seconds in CPython. XLang import timing attributed about 0.38
+  seconds to cached IR deserialization and module preparation across the
+  dependency graph, led by the generated `pydevd_schema` module. This is the
+  next evidence-backed optimization area. The available computer-control
+  surface did not expose a Visual Studio window or DebugAdapterHost log, so the
+  editor DataTip UI behavior could not be reproduced; the automated DAP test
+  continues to prove repeated hover evaluation across stops. Coverage:
   `tests/cli/run_debugpy_launch_smoke.py`, `tests/ide/vs2026_launch.json`,
   `tests/fixtures/core/threading_runtime_edges.py`,
   `tests/fixtures/core/debug_trace_profile_edges.py`, and
@@ -162,8 +193,8 @@ workaround. If a request reaches XLang3 and fails, capture that exact sequence
 in the regression before fixing the general runtime behavior.
 
 Continue profiling the remaining performance gap with interleaved warm runs;
-the current local-inspection medians are about 1.668 seconds for XLang and
-0.902 seconds for CPython, a gap of about 0.77 seconds. Prefer changes supported
+the current local-inspection medians are 1.583 seconds for XLang and
+0.983 seconds for CPython, a gap of 0.600 seconds. Prefer changes supported
 by counters and repeatable timings. Promising general directions include
 classifying native callbacks so CPython-equivalent nonblocking built-ins can
 retain the VM execution lock, reducing measured value/materialization,

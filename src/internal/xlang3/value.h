@@ -164,6 +164,9 @@ struct StringObject {
   uint32_t size = 0;
   uint32_t alloc_size = 0;
   memory::X3BucketAllocator* allocator = nullptr;
+  // Strings are immutable after construction. Cache their hash so repeated
+  // mapping and set lookups do not rescan the bytes.
+  mutable std::atomic_size_t cached_hash{static_cast<size_t>(-1)};
   std::atomic_bool immortal{false};
   bool ascii = false;
   // Immutable string bytes follow this object in the same allocation block.
@@ -669,6 +672,23 @@ XLANG3_HOT_INLINE const char* string_object_c_str(const StringObject& value) {
 
 XLANG3_HOT_INLINE bool string_object_is_ascii(const StringObject& value) {
   return value.ascii;
+}
+
+XLANG3_HOT_INLINE size_t string_view_hash(std::string_view value) {
+  constexpr size_t kUncached = static_cast<size_t>(-1);
+  size_t hash = std::hash<std::string_view>{}(value);
+  return hash == kUncached ? kUncached - 1 : hash;
+}
+
+XLANG3_HOT_INLINE size_t string_object_hash(const StringObject& value) {
+  constexpr size_t kUncached = static_cast<size_t>(-1);
+  size_t hash = value.cached_hash.load(std::memory_order_relaxed);
+  if (hash != kUncached) return hash;
+  hash = string_view_hash(string_object_view(value));
+  // Reserve the all-bits-one value as the uncached marker. This mirrors the
+  // usual Python convention of remapping its hash-error sentinel.
+  value.cached_hash.store(hash, std::memory_order_relaxed);
+  return hash;
 }
 
 XLANG3_HOT_INLINE char* string_object_mutable_data(StringObject& value) {

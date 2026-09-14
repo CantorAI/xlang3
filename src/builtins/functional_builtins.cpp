@@ -1541,6 +1541,16 @@ bool builtin_abs(
     out = Value::number(std::fabs(args[0].as.f64));
     return true;
   }
+  if (auto* complex = value_as_complex(args[0])) {
+    const double magnitude = std::hypot(complex->real, complex->imag);
+    if (std::isinf(magnitude) && std::isfinite(complex->real) && std::isfinite(complex->imag)) {
+      error = "absolute value too large";
+      runtime.raise_class_error("OverflowError", error);
+      return false;
+    }
+    out = Value::number(magnitude);
+    return true;
+  }
   return raise_type_error(runtime, "bad operand type for abs()", error);
 }
 
@@ -3442,33 +3452,33 @@ void register_functional_builtins(Runtime& runtime) {
       "super", builtin_super, builtin_fast_adapter<builtin_super, 2>);
   runtime.register_native_builtin(
       "callable", builtin_callable, builtin_callable_fast);
-  runtime.register_native_builtin("enumerate", builtin_enumerate, nullptr, false, builtin_enumerate_kw);
-  runtime.register_native_builtin("zip", builtin_zip, nullptr, false, builtin_zip_kw);
-  runtime.register_native_builtin("reversed", builtin_reversed);
-  runtime.register_native_builtin("map", builtin_map);
-  runtime.register_native_builtin("filter", builtin_filter);
-  runtime.register_native_builtin("sum", builtin_sum);
+  runtime.register_native_builtin("enumerate", builtin_enumerate, builtin_fast_adapter<builtin_enumerate, 2>, false, builtin_enumerate_kw);
+  runtime.register_native_builtin("zip", builtin_zip, builtin_variadic_fast_adapter<builtin_zip, 4>, false, builtin_zip_kw);
+  runtime.register_native_builtin("reversed", builtin_reversed, builtin_fast_adapter<builtin_reversed, 1>);
+  runtime.register_native_builtin("map", builtin_map, builtin_variadic_fast_adapter<builtin_map, 4>);
+  runtime.register_native_builtin("filter", builtin_filter, builtin_fast_adapter<builtin_filter, 2>);
+  runtime.register_native_builtin("sum", builtin_sum, builtin_fast_adapter<builtin_sum, 2>);
   runtime.register_native_builtin("sorted", builtin_sorted, nullptr, false, builtin_sorted_kw);
   runtime.register_native_builtin(
       "min", builtin_min, builtin_variadic_fast_adapter<builtin_min, 4>, true, builtin_min_kw);
   runtime.register_native_builtin(
       "max", builtin_max, builtin_variadic_fast_adapter<builtin_max, 4>, true, builtin_max_kw);
-  runtime.register_native_builtin("abs", builtin_abs);
-  runtime.register_native_builtin("round", builtin_round);
-  runtime.register_native_builtin("repr", builtin_repr);
-  runtime.register_native_builtin("ascii", builtin_ascii);
-  runtime.register_native_builtin("__xlang3_fstring_repr__", builtin_repr);
-  runtime.register_native_builtin("format", builtin_format);
-  runtime.register_native_builtin("__xlang3_fstring_format__", builtin_format);
-  runtime.register_native_builtin("hash", builtin_hash);
+  runtime.register_native_builtin("abs", builtin_abs, builtin_fast_adapter<builtin_abs, 1>);
+  runtime.register_native_builtin("round", builtin_round, builtin_fast_adapter<builtin_round, 2>);
+  runtime.register_native_builtin("repr", builtin_repr, builtin_fast_adapter<builtin_repr, 1>);
+  runtime.register_native_builtin("ascii", builtin_ascii, builtin_fast_adapter<builtin_ascii, 1>);
+  runtime.register_native_builtin("__xlang3_fstring_repr__", builtin_repr, builtin_fast_adapter<builtin_repr, 1>);
+  runtime.register_native_builtin("format", builtin_format, builtin_fast_adapter<builtin_format, 2>);
+  runtime.register_native_builtin("__xlang3_fstring_format__", builtin_format, builtin_fast_adapter<builtin_format, 2>);
+  runtime.register_native_builtin("hash", builtin_hash, builtin_fast_adapter<builtin_hash, 1>);
   runtime.register_native_builtin("chr", builtin_chr, builtin_fast_adapter<builtin_chr, 1>);
-  runtime.register_native_builtin("bin", builtin_bin);
-  runtime.register_native_builtin("oct", builtin_oct);
-  runtime.register_native_builtin("hex", builtin_hex);
-  runtime.register_native_builtin("pow", builtin_pow);
-  runtime.register_native_builtin("divmod", builtin_divmod);
-  runtime.register_native_builtin("all", builtin_all);
-  runtime.register_native_builtin("any", builtin_any);
+  runtime.register_native_builtin("bin", builtin_bin, builtin_fast_adapter<builtin_bin, 1>);
+  runtime.register_native_builtin("oct", builtin_oct, builtin_fast_adapter<builtin_oct, 1>);
+  runtime.register_native_builtin("hex", builtin_hex, builtin_fast_adapter<builtin_hex, 1>);
+  runtime.register_native_builtin("pow", builtin_pow, builtin_fast_adapter<builtin_pow, 3>);
+  runtime.register_native_builtin("divmod", builtin_divmod, builtin_fast_adapter<builtin_divmod, 2>);
+  runtime.register_native_builtin("all", builtin_all, builtin_fast_adapter<builtin_all, 1>);
+  runtime.register_native_builtin("any", builtin_any, builtin_fast_adapter<builtin_any, 1>);
   runtime.register_native_builtin("__import__", builtin_import, nullptr, false, builtin_import_kw);
   runtime.register_native_builtin(
       "getattr", builtin_getattr, builtin_fast_adapter<builtin_getattr, 3>, true);
@@ -3478,10 +3488,10 @@ void register_functional_builtins(Runtime& runtime) {
       "delattr", builtin_delattr, builtin_fast_adapter<builtin_delattr, 2>, true);
   runtime.register_native_builtin(
       "hasattr", builtin_hasattr, builtin_fast_adapter<builtin_hasattr, 2>, true);
-  runtime.register_native_builtin("dir", builtin_dir);
-  runtime.register_native_builtin("vars", builtin_vars);
-  runtime.register_native_builtin("globals", builtin_globals);
-  runtime.register_native_builtin("locals", builtin_locals);
+  runtime.register_native_builtin("dir", builtin_dir, builtin_fast_adapter<builtin_dir, 1>);
+  runtime.register_native_builtin("vars", builtin_vars, builtin_fast_adapter<builtin_vars, 1>);
+  runtime.register_native_builtin("globals", builtin_globals, builtin_fast_adapter<builtin_globals, 1>);
+  runtime.register_native_builtin("locals", builtin_locals, builtin_fast_adapter<builtin_locals, 1>);
   runtime.register_native_builtin("compile", builtin_compile, nullptr, false, builtin_compile_kw);
   runtime.register_native_builtin("eval", builtin_eval);
   runtime.register_native_builtin("exec", builtin_exec);

@@ -102,13 +102,40 @@ XLANG3_HOT_INLINE XlangVMOpFlow iter_next(
     return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
   }
   if (done) {
-    Value stop = runtime.make_exception("StopIteration", "");
-    if (!emit_monitoring_event(kSysMonitoringEventStopIteration, &stop)) {
-      return XlangVMOpFlow::ReturnResult;
+    if (sys_monitoring_event_may_dispatch(kSysMonitoringEventStopIteration)) {
+      Value stop = runtime.make_exception("StopIteration", "");
+      if (!emit_monitoring_event(kSysMonitoringEventStopIteration, &stop)) {
+        return XlangVMOpFlow::ReturnResult;
+      }
     }
     ip = in.b;
     return XlangVMOpFlow::ContinueLoop;
   }
+  return XlangVMOpFlow::Next;
+}
+
+template <typename EmitMonitoringEvent, typename RaiseRuntimeError, typename RaiseExceptionValue>
+XLANG3_HOT_INLINE XlangVMOpFlow iter_next_local(
+    const ir::Instr& in,
+    Runtime& runtime,
+    XlangVMSmallRegisterBuffer& regs,
+    XlangVMSmallValueBuffer& locals,
+    size_t& ip,
+    EmitMonitoringEvent&& emit_monitoring_event,
+    RaiseRuntimeError&& raise_runtime_error,
+    RaiseExceptionValue&& raise_exception_value) {
+  if (in.dst >= locals.size() || in.c >= regs.size()) {
+    return raise_runtime_error("invalid fused iterator local target")
+        ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+  }
+  const ir::Instr next_in{ir::Op::IterNext, in.c, in.a, in.b, 0};
+  const auto flow = iter_next(
+      next_in, runtime, regs, ip,
+      std::forward<EmitMonitoringEvent>(emit_monitoring_event),
+      std::forward<RaiseRuntimeError>(raise_runtime_error),
+      std::forward<RaiseExceptionValue>(raise_exception_value));
+  if (flow != XlangVMOpFlow::Next) return flow;
+  value_move_assign_fast(locals[in.dst], regs[in.c]);
   return XlangVMOpFlow::Next;
 }
 

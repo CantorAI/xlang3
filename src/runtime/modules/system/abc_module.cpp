@@ -15,6 +15,7 @@ limitations under the License.
 #include "xlang3/builtins.h"
 
 #include "xlang3/attribute.h"
+#include "xlang3/builtin_methods.h"
 #include "xlang3/functional_iterators.h"
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
@@ -439,8 +440,10 @@ Value abc_native_function(
     NativeKeywordFunctionCallback keyword_callback = nullptr,
     void* keyword_user_data = nullptr,
     const char* text_signature = nullptr,
-    bool is_abstract_descriptor = false) {
-  Value function = runtime.make_native_function(qualified_name, callback, keyword_user_data, nullptr, nullptr, false, keyword_callback);
+    bool is_abstract_descriptor = false,
+    NativeFastCallCallback fast_callback = nullptr) {
+  Value function = runtime.make_native_function(
+      qualified_name, callback, keyword_user_data, nullptr, fast_callback, false, keyword_callback);
   if (auto* native = value_as_native_function(function)) {
     std::vector<std::pair<Value, Value>> attrs = {
         {Value::string("__module__"), Value::string(module_name)},
@@ -657,7 +660,8 @@ void register_abc_module(Runtime& runtime) {
                  "Internal ABC helper for class set-up. Should be never used outside abc module.",
                  abc_no_keyword_args,
                  const_cast<char*>("_abc._abc_init"),
-                 "($module, self, /)"))
+                 "($module, self, /)", false,
+                 builtin_fast_adapter<abc_init, 1>))
       .value(
           "_abc_register",
           abc_native_function(
@@ -669,7 +673,8 @@ void register_abc_module(Runtime& runtime) {
               "Internal ABC helper for subclasss registration. Should be never used outside abc module.",
               abc_no_keyword_args,
               const_cast<char*>("_abc._abc_register"),
-              "($module, self, subclass, /)"))
+              "($module, self, subclass, /)", false,
+              builtin_fast_adapter<abc_register, 2>))
       .value(
           "_abc_instancecheck",
           abc_native_function(
@@ -681,7 +686,8 @@ void register_abc_module(Runtime& runtime) {
               "Internal ABC helper for instance checks. Should be never used outside abc module.",
               abc_no_keyword_args,
               const_cast<char*>("_abc._abc_instancecheck"),
-              "($module, self, instance, /)"))
+              "($module, self, instance, /)", false,
+              builtin_fast_adapter<abc_instancecheck, 2>))
       .value(
           "_abc_subclasscheck",
           abc_native_function(
@@ -693,7 +699,8 @@ void register_abc_module(Runtime& runtime) {
               "Internal ABC helper for subclasss checks. Should be never used outside abc module.",
               abc_no_keyword_args,
               const_cast<char*>("_abc._abc_subclasscheck"),
-              "($module, self, subclass, /)"))
+              "($module, self, subclass, /)", false,
+              builtin_fast_adapter<abc_subclasscheck, 2>))
       .value("_get_dump",
              abc_native_function(
                  runtime,

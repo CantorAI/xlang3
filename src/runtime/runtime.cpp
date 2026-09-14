@@ -1568,10 +1568,10 @@ Value Runtime::current_frame_snapshot() const {
   return snapshot;
 }
 
-void Runtime::track_live_frame_snapshot(const Value& frame_value) {
+Value Runtime::track_live_frame_snapshot(Value frame_value) {
   auto* frame = value_as_frame(frame_value);
   if (frame == nullptr || frame->activation_id == 0) {
-    return;
+    return frame_value;
   }
   // tb_lineno owns the instruction position at which the traceback was
   // captured.  The referenced frame itself remains live, so f_lineno and
@@ -1580,14 +1580,25 @@ void Runtime::track_live_frame_snapshot(const Value& frame_value) {
   frame->owner_thread_ident = runtime_current_thread_ident();
   std::lock_guard<std::mutex> lock(live_frame_snapshots_mutex_);
   if (const auto found = live_frame_snapshot_index_.find(frame->activation_id);
-      found != live_frame_snapshot_index_.end() && found->second == frame) {
-      frame->live = true;
-      return;
+      found != live_frame_snapshot_index_.end()) {
+    auto* tracked = found->second;
+    if (tracked != nullptr && tracked->live && tracked->module.get() == frame->module.get() &&
+        tracked->function_id == frame->function_id) {
+      tracked->instruction_index = frame->instruction_index;
+      tracked->refresh_instruction = true;
+      tracked->owner_thread_ident = frame->owner_thread_ident;
+      for (const auto& tracked_value : live_frame_snapshots_) {
+        if (tracked_value.tag == ValueTag::Object && tracked_value.as.obj == &tracked->header) {
+          return tracked_value;
+        }
+      }
+    }
   }
   frame->live = true;
   live_frame_snapshots_.push_back(frame_value);
   live_frame_snapshot_index_[frame->activation_id] = frame;
   has_live_frame_snapshots_.store(true, std::memory_order_release);
+  return frame_value;
 }
 
 void Runtime::refresh_live_frame_snapshots(bool refresh_traceback_locals) {
@@ -2377,15 +2388,15 @@ void Runtime::clear_python_import_misses() {
 
 std::shared_ptr<const std::unordered_set<std::string>>
 Runtime::python_import_directory_entries(const std::string& path, std::string& error) {
-  VfsStat info;
-  if (!vfs_->stat(path, info, error) || info.kind != VfsNodeKind::Directory) {
+  int64_t mtime_ns = 0;
+  if (!vfs_->directory_mtime(path, mtime_ns, error)) {
     return {};
   }
   {
     std::lock_guard<std::mutex> lock(python_import_directory_cache_mutex_);
     const auto cached = python_import_directory_cache_.find(path);
     if (cached != python_import_directory_cache_.end() &&
-        cached->second.mtime_ns == info.mtime_ns) {
+        cached->second.mtime_ns == mtime_ns) {
       return cached->second.entries;
     }
   }
@@ -2396,7 +2407,7 @@ Runtime::python_import_directory_entries(const std::string& path, std::string& e
   for (auto& name : names) entries->insert(std::move(name));
   {
     std::lock_guard<std::mutex> lock(python_import_directory_cache_mutex_);
-    python_import_directory_cache_[path] = PythonImportDirectoryCacheEntry{info.mtime_ns, entries};
+    python_import_directory_cache_[path] = PythonImportDirectoryCacheEntry{mtime_ns, entries};
   }
   return entries;
 }

@@ -54,9 +54,13 @@ struct ListObjectFreeList {
     for (auto* object : items) {
       delete object;
     }
+    for (auto* iterator : sequence_iterators) {
+      delete iterator;
+    }
   }
 
   std::vector<ListObject*> items;
+  std::vector<SequenceIteratorObject*> sequence_iterators;
 };
 
 thread_local ListObjectFreeList list_object_free_list;
@@ -80,6 +84,31 @@ void recycle_list_object(ListObject* object) {
   object->items.clear();
   if (memory::object_caches_alive && list_object_free_list.items.size() < 4096) {
     list_object_free_list.items.push_back(object);
+    return;
+  }
+  delete object;
+}
+
+SequenceIteratorObject* allocate_sequence_iterator_object() {
+  xlang_perf_count_object_alloc(ObjectKind::SequenceIterator);
+  if (memory::object_caches_alive && !list_object_free_list.sequence_iterators.empty()) {
+    auto* obj = list_object_free_list.sequence_iterators.back();
+    list_object_free_list.sequence_iterators.pop_back();
+    obj->header.kind = ObjectKind::SequenceIterator;
+    obj->header.refcnt = 1;
+    return obj;
+  }
+  auto* obj = new SequenceIteratorObject();
+  obj->header.kind = ObjectKind::SequenceIterator;
+  obj->header.refcnt = 1;
+  return obj;
+}
+
+void recycle_sequence_iterator_object(SequenceIteratorObject* object) {
+  value_set_invalid(object->source);
+  object->index = 0;
+  if (memory::object_caches_alive && list_object_free_list.sequence_iterators.size() < 1024) {
+    list_object_free_list.sequence_iterators.push_back(object);
     return;
   }
   delete object;
@@ -604,7 +633,7 @@ Value Value::range_iterator_values(Value current, Value stop, Value step) {
 Value Value::sequence_iterator(Value source, uint64_t index) {
   Value v;
   v.tag = ValueTag::Object;
-  auto* obj = allocate_sequence_object<SequenceIteratorObject>(ObjectKind::SequenceIterator);
+  auto* obj = allocate_sequence_iterator_object();
   obj->source = std::move(source);
   obj->index = index;
   v.as.obj = &obj->header;
@@ -623,7 +652,7 @@ void sequence_release_object(Object* object) {
       delete reinterpret_cast<RangeIteratorObject*>(object);
       break;
     case ObjectKind::SequenceIterator:
-      delete reinterpret_cast<SequenceIteratorObject*>(object);
+      recycle_sequence_iterator_object(reinterpret_cast<SequenceIteratorObject*>(object));
       break;
     default:
       break;

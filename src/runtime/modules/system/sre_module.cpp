@@ -27,10 +27,12 @@ limitations under the License.
 #include <cctype>
 #include <cstdio>
 #include <memory>
+#include <mutex>
 #include <regex>
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #if defined(_WIN32)
@@ -108,6 +110,8 @@ struct PatternState {
   bool requires_absolute_start = false;
   bool requires_absolute_end = false;
   size_t minimum_match_start = 0;
+  std::mutex replacement_cache_mutex;
+  std::unordered_set<std::string> validated_replacements;
 };
 
 bool regex_dot_repeat_lookbehind_width(std::string_view pattern, size_t& width, bool& positive) {
@@ -2513,6 +2517,70 @@ bool resolve_match_group_index(Runtime& runtime, const MatchState& state, const 
   return true;
 }
 
+bool match_group(
+    Runtime& runtime, const Value* args, uint32_t argc, Value& out,
+    std::string& error, void*) {
+  if (argc < 1) {
+    error = "Match.group() expected optional group indices";
+    return false;
+  }
+  auto* state = match_state(args[0], error);
+  if (state == nullptr) return false;
+  if (argc <= 2) {
+    int64_t index = 0;
+    if (!resolve_match_group_index(runtime, *state, args, argc, index, error)) return false;
+    out = match_group_value(*state, static_cast<size_t>(index));
+    return true;
+  }
+  std::vector<Value> groups;
+  groups.reserve(argc - 1);
+  for (uint32_t i = 1; i < argc; ++i) {
+    Value group_args[] = {args[0], args[i]};
+    int64_t index = 0;
+    if (!resolve_match_group_index(runtime, *state, group_args, 2, index, error)) return false;
+    groups.push_back(match_group_value(*state, static_cast<size_t>(index)));
+  }
+  out = Value::tuple(std::move(groups));
+  return true;
+}
+
+bool match_groups(
+    Runtime&, const Value* args, uint32_t argc, Value& out,
+    std::string& error, void*) {
+  if (argc < 1 || argc > 2) {
+    error = "Match.groups() expected optional default";
+    return false;
+  }
+  auto* state = match_state(args[0], error);
+  if (state == nullptr) return false;
+  std::vector<Value> groups;
+  groups.reserve(state->groups.size() > 0 ? state->groups.size() - 1 : 0);
+  for (size_t i = 1; i < state->groups.size(); ++i) {
+    groups.push_back(
+        state->groups[i].matched ? match_group_value(*state, i)
+                                 : (argc == 2 ? args[1] : Value::none()));
+  }
+  out = Value::tuple(std::move(groups));
+  return true;
+}
+
+bool match_end(
+    Runtime& runtime, const Value* args, uint32_t argc, Value& out,
+    std::string& error, void*) {
+  if (argc < 1 || argc > 2) {
+    error = "Match.end() expected optional group index";
+    return false;
+  }
+  auto* state = match_state(args[0], error);
+  if (state == nullptr) return false;
+  int64_t index = 0;
+  if (!resolve_match_group_index(runtime, *state, args, argc, index, error)) {
+    return false;
+  }
+  value_set_int64(out, state->groups[static_cast<size_t>(index)].end);
+  return true;
+}
+
 Value make_match_type(Runtime& runtime) {
   static Value match_type = Value::invalid();
   if (match_type.tag != ValueTag::Invalid) {
@@ -2546,36 +2614,9 @@ Value make_match_type(Runtime& runtime) {
     value_assign_fast(out, args[0]);
     return true;
   })});
-  attrs.push_back({"group", runtime.make_native_function("_sre.Match.group", [](Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-    if (argc < 1) {
-      error = "Match.group() expected optional group indices";
-      return false;
-    }
-    auto* state = match_state(args[0], error);
-    if (state == nullptr) {
-      return false;
-    }
-    if (argc <= 2) {
-      int64_t index = 0;
-      if (!resolve_match_group_index(runtime, *state, args, argc, index, error)) {
-        return false;
-      }
-      out = match_group_value(*state, static_cast<size_t>(index));
-      return true;
-    }
-    std::vector<Value> groups;
-    groups.reserve(argc - 1);
-    for (uint32_t i = 1; i < argc; ++i) {
-      Value group_args[] = {args[0], args[i]};
-      int64_t index = 0;
-      if (!resolve_match_group_index(runtime, *state, group_args, 2, index, error)) {
-        return false;
-      }
-      groups.push_back(match_group_value(*state, static_cast<size_t>(index)));
-    }
-    out = Value::tuple(std::move(groups));
-    return true;
-  })});
+  attrs.push_back({"group", runtime.make_native_function(
+      "_sre.Match.group", match_group, nullptr, nullptr,
+      builtin_variadic_fast_adapter<match_group, 4>)});
   attrs.push_back({"__getitem__", runtime.make_native_function("_sre.Match.__getitem__", [](Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
     if (argc != 2) {
       error = "Match.__getitem__() expected group index";
@@ -2592,22 +2633,9 @@ Value make_match_type(Runtime& runtime) {
     out = match_group_value(*state, static_cast<size_t>(index));
     return true;
   })});
-  attrs.push_back({"groups", runtime.make_native_function("_sre.Match.groups", [](Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-    if (argc < 1 || argc > 2) {
-      error = "Match.groups() expected optional default";
-      return false;
-    }
-    auto* state = match_state(args[0], error);
-    if (state == nullptr) {
-      return false;
-    }
-    std::vector<Value> groups;
-    for (size_t i = 1; i < state->groups.size(); ++i) {
-      groups.push_back(state->groups[i].matched ? match_group_value(*state, i) : (argc == 2 ? args[1] : Value::none()));
-    }
-    out = Value::tuple(std::move(groups));
-    return true;
-  })});
+  attrs.push_back({"groups", runtime.make_native_function(
+      "_sre.Match.groups", match_groups, nullptr, nullptr,
+      builtin_method_fast_adapter<match_groups, 2>)});
   attrs.push_back({"groupdict", runtime.make_native_function("_sre.Match.groupdict", [](Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
     if (argc < 1 || argc > 2) {
       error = "Match.groupdict() expected optional default";
@@ -2678,22 +2706,9 @@ Value make_match_type(Runtime& runtime) {
     value_set_int64(out, state->groups[static_cast<size_t>(index)].start);
     return true;
   })});
-  attrs.push_back({"end", runtime.make_native_function("_sre.Match.end", [](Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-    if (argc < 1 || argc > 2) {
-      error = "Match.end() expected optional group index";
-      return false;
-    }
-    auto* state = match_state(args[0], error);
-    if (state == nullptr) {
-      return false;
-    }
-    int64_t index = 0;
-    if (!resolve_match_group_index(runtime, *state, args, argc, index, error)) {
-      return false;
-    }
-    value_set_int64(out, state->groups[static_cast<size_t>(index)].end);
-    return true;
-  })});
+  attrs.push_back({"end", runtime.make_native_function(
+      "_sre.Match.end", match_end, nullptr, nullptr,
+      builtin_method_fast_adapter<match_end, 2>)});
   attrs.push_back({"span", runtime.make_native_function("_sre.Match.span", [](Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
     if (argc < 1 || argc > 2) {
       error = "Match.span() expected optional group index";
@@ -3935,31 +3950,46 @@ bool pattern_sub(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
   if (state == nullptr) {
     return false;
   }
-  if (!sre_value_is_callable(args[1])) {
-    Value parser_module;
-    if (!runtime.import_module("re._parser", parser_module, error)) {
-      return false;
-    }
-    Value parse_template;
-    if (!module_get_attr(parser_module, "parse_template", parse_template, error)) {
-      return false;
-    }
-    std::string validation_text;
-    bool validation_bytes = false;
-    if (!value_to_match_text(args[1], validation_text, validation_bytes)) {
+  const bool replacement_callable = sre_value_is_callable(args[1]);
+  std::string fixed_replacement;
+  bool replacement_bytes = false;
+  bool literal_replacement = false;
+  if (!replacement_callable) {
+    if (!value_to_match_text(args[1], fixed_replacement, replacement_bytes)) {
       error = "replacement must be matching string/bytes object";
       return false;
     }
-    Value validation_replacement = validation_bytes
-        ? Value::bytes(std::move(validation_text))
-        : Value::string(std::move(validation_text));
-    Value validation_args[] = {validation_replacement, args[0]};
-    Value validated;
-    error.clear();
-    if (!runtime_call_callable(runtime, parse_template, validation_args, 2, validated, error)) {
-      return false;
+    literal_replacement = fixed_replacement.find('\\') == std::string::npos;
+    if (!literal_replacement) {
+      bool already_validated = false;
+      {
+        std::lock_guard<std::mutex> lock(state->replacement_cache_mutex);
+        already_validated = state->validated_replacements.find(fixed_replacement) !=
+            state->validated_replacements.end();
+      }
+      if (!already_validated) {
+      Value parser_module;
+      if (!runtime.import_module("re._parser", parser_module, error)) {
+        return false;
+      }
+      Value parse_template;
+      if (!module_get_attr(parser_module, "parse_template", parse_template, error)) {
+        return false;
+      }
+      Value validation_replacement = replacement_bytes
+          ? Value::bytes(fixed_replacement)
+          : Value::string(fixed_replacement);
+      Value validation_args[] = {validation_replacement, args[0]};
+      Value validated;
+      error.clear();
+      if (!runtime_call_callable(runtime, parse_template, validation_args, 2, validated, error)) {
+        return false;
+      }
+      error.clear();
+        std::lock_guard<std::mutex> lock(state->replacement_cache_mutex);
+        state->validated_replacements.insert(fixed_replacement);
+      }
     }
-    error.clear();
   }
   if (pattern_anchored_literal_miss(*state, args[2])) {
     if (user_data != nullptr) {
@@ -3973,6 +4003,11 @@ bool pattern_sub(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
   bool bytes_text = false;
   if (!value_to_match_text(args[2], text, bytes_text) || bytes_text != state->bytes_pattern) {
     error = "expected matching string/bytes object";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (!replacement_callable && replacement_bytes != bytes_text) {
+    error = "replacement must be matching string/bytes object";
     runtime.raise_class_error("TypeError", error);
     return false;
   }
@@ -4023,7 +4058,7 @@ bool pattern_sub(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
       continue;
     }
     output.append(text, segment_start, start - segment_start);
-    if (sre_value_is_callable(args[1])) {
+    if (replacement_callable) {
       Value match_value = make_match(
           runtime, args[0], text, bytes_text, match, cursor, 0, text.size(),
           &args[2], shared_text, ascii_text);
@@ -4039,18 +4074,13 @@ bool pattern_sub(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
         return false;
       }
       output.append(replacement_text);
+    } else if (literal_replacement) {
+      output.append(fixed_replacement);
     } else {
-      std::string replacement_text;
-      bool replacement_bytes = false;
-      if (!value_to_match_text(args[1], replacement_text, replacement_bytes) || replacement_bytes != bytes_text) {
-        error = "replacement must be matching string/bytes object";
-        runtime.raise_class_error("TypeError", error);
-        return false;
-      }
       Value match_value = make_match(runtime, args[0], text, bytes_text, match, cursor, 0, text.size());
       auto* match_data = match_state(match_value, error);
       std::string expanded;
-      if (match_data == nullptr || !expand_match_template(*match_data, replacement_text, expanded, error)) {
+      if (match_data == nullptr || !expand_match_template(*match_data, fixed_replacement, expanded, error)) {
         return false;
       }
       output.append(expanded);
@@ -4400,8 +4430,12 @@ Value make_pattern_type(Runtime& runtime) {
       nullptr, nullptr, nullptr, false, pattern_scanner_kw)});
   attrs.push_back({"findall", runtime.make_native_function("_sre.Pattern.findall", pattern_findall,
       nullptr, nullptr, nullptr, false, pattern_findall_kw)});
-  attrs.push_back({"sub", runtime.make_native_function("_sre.Pattern.sub", pattern_sub)});
-  attrs.push_back({"subn", runtime.make_native_function("_sre.Pattern.subn", pattern_sub, reinterpret_cast<void*>(1))});
+  attrs.push_back({"sub", runtime.make_native_function(
+      "_sre.Pattern.sub", pattern_sub, nullptr, nullptr,
+      builtin_method_fast_adapter<pattern_sub, 4>)});
+  attrs.push_back({"subn", runtime.make_native_function(
+      "_sre.Pattern.subn", pattern_sub, reinterpret_cast<void*>(1), nullptr,
+      builtin_method_fast_adapter<pattern_sub, 4>)});
   attrs.push_back({"split", runtime.make_native_function("_sre.Pattern.split", pattern_split,
       nullptr, nullptr, nullptr, false, pattern_split_kw)});
   pattern_type = Value::class_object("SRE_Pattern", std::move(attrs));
@@ -4715,7 +4749,7 @@ void register_sre_module(Runtime& runtime) {
       .value("CODESIZE", Value::int64(kSreCodeSize))
       .value("MAXREPEAT", Value::int64(4294967295LL))
       .value("MAXGROUPS", Value::int64(1073741823))
-      .function("compile", sre_compile)
+      .function("compile", sre_compile, builtin_fast_adapter<sre_compile, 6>)
       .function("template", sre_template)
       .function("ascii_iscased", sre_ascii_iscased)
       .function("ascii_tolower", sre_ascii_tolower)

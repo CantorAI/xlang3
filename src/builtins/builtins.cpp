@@ -45,6 +45,7 @@ void register_core_builtins(Runtime& runtime) {
   register_ast_module(runtime);
   register_binascii_module(runtime);
   register_bz2_module(runtime);
+  register_cmath_module(runtime);
   register_json_module(runtime);
   register_os_module(runtime);
 #if !defined(_WIN32)
@@ -59,6 +60,7 @@ void register_core_builtins(Runtime& runtime) {
   register_faulthandler_module(runtime);
   register_gc_module(runtime);
   register_array_module(runtime);
+  register_bisect_module(runtime);
   register_itertools_module(runtime);
   register_codecs_module(runtime);
   register_locale_module(runtime);

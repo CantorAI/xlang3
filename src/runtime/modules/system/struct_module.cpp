@@ -13,6 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 #include "xlang3/builtins.h"
+#include "xlang3/builtin_methods.h"
 
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
@@ -969,7 +970,7 @@ void register_struct_module(Runtime& runtime) {
       });
   NativeModuleBuilder builder(runtime, "_struct");
   builder.value("__doc__", Value::string("Functions to convert between Python values and C structs."))
-      .function("calcsize", struct_calcsize)
+      .function("calcsize", struct_calcsize, builtin_fast_adapter<struct_calcsize, 1>)
       .function("pack", struct_pack)
       .function("pack_into", struct_pack_into)
       .function("unpack", struct_unpack)

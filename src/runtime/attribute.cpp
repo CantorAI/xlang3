@@ -225,6 +225,15 @@ bool range_reduce_method(
   return true;
 }
 
+bool float_float_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1 || args[0].tag != ValueTag::Double) {
+    error = "float.__float__ expected a float target";
+    return false;
+  }
+  value_assign_fast(out, args[0]);
+  return true;
+}
+
 bool get_builtin_method(const Value& object, const std::string& name, Value& out) {
   if (object.tag == ValueTag::None && name == "__new__") {
     static Value none_new = Value::native_function(0, "NoneType.__new__", none_new_method);
@@ -241,6 +250,14 @@ bool get_builtin_method(const Value& object, const std::string& name, Value& out
         false,
         name == "__reduce__" ? "($self, /)" : "($self, protocol, /)",
         out);
+  }
+  if (object.tag == ValueTag::Double) {
+    if (name == "real") { value_assign_fast(out, object); return true; }
+    if (name == "imag") { out = Value::number(0.0); return true; }
+    if (name == "__float__") {
+      return bind_builtin_method(object, "float.__float__", float_float_method, nullptr, false,
+                                 "($self, /)", out);
+    }
   }
   return list_get_method(object, name, out) ||
          tuple_get_method(object, name, out) ||

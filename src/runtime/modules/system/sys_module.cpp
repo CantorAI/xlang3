@@ -15,6 +15,7 @@ limitations under the License.
 #include "xlang3/builtins.h"
 
 #include "xlang3/attribute.h"
+#include "xlang3/builtin_methods.h"
 #include "xlang3/functional_iterators.h"
 #include "xlang3/ir.h"
 #include "xlang3/mapping.h"
@@ -239,9 +240,10 @@ Value sys_metadata_native_function(
     void* user_data,
     const std::string& doc,
     NativeKeywordFunctionCallback keyword_callback = nullptr,
-    const char* text_signature = nullptr) {
+    const char* text_signature = nullptr,
+    NativeFastCallCallback fast_callback = nullptr) {
   Value function = runtime.make_native_function(
-      qualified_name, callback, user_data, nullptr, nullptr, false, keyword_callback, false);
+      qualified_name, callback, user_data, nullptr, fast_callback, false, keyword_callback, false);
   if (auto* native = value_as_native_function(function)) {
     std::vector<std::pair<Value, Value>> attrs = {
         {Value::string("__module__"), Value::string(module_name)},
@@ -1379,7 +1381,6 @@ Value make_builtin_module_names() {
       Value::string("_abc"),
       Value::string("_ast"),
       Value::string("_bisect"),
-      Value::string("_blake2"),
       Value::string("_codecs"),
       Value::string("_codecs_cn"),
       Value::string("_codecs_hk"),
@@ -1389,20 +1390,10 @@ Value make_builtin_module_names() {
       Value::string("_codecs_tw"),
       Value::string("_collections"),
       Value::string("_contextvars"),
-      Value::string("_csv"),
-      Value::string("_datetime"),
-      Value::string("_functools"),
-      Value::string("_heapq"),
-      Value::string("_hmac"),
       Value::string("_imp"),
-      Value::string("_interpchannels"),
-      Value::string("_interpqueues"),
-      Value::string("_interpreters"),
       Value::string("_io"),
       Value::string("_json"),
       Value::string("_locale"),
-      Value::string("_lsprof"),
-      Value::string("_md5"),
       Value::string("_multibytecodec"),
       Value::string("_opcode"),
       Value::string("_operator"),
@@ -1411,22 +1402,15 @@ Value make_builtin_module_names() {
       Value::string("_posixsubprocess"),
 #endif
       Value::string("_random"),
-      Value::string("_sha1"),
       Value::string("_sha2"),
-      Value::string("_sha3"),
       Value::string("_signal"),
       Value::string("_sre"),
       Value::string("_stat"),
-      Value::string("_statistics"),
       Value::string("_string"),
       Value::string("_struct"),
-      Value::string("_suggestions"),
-      Value::string("_symtable"),
       Value::string("_sysconfig"),
       Value::string("_thread"),
       Value::string("_tokenize"),
-      Value::string("_tracemalloc"),
-      Value::string("_types"),
       Value::string("_typing"),
       Value::string("_warnings"),
       Value::string("_weakref"),
@@ -1437,14 +1421,12 @@ Value make_builtin_module_names() {
       Value::string("atexit"),
       Value::string("binascii"),
       Value::string("builtins"),
-      Value::string("cmath"),
       Value::string("errno"),
       Value::string("faulthandler"),
       Value::string("gc"),
       Value::string("itertools"),
       Value::string("marshal"),
       Value::string("math"),
-      Value::string("mmap"),
 #if defined(_WIN32)
       Value::string("msvcrt"),
       Value::string("nt"),
@@ -1456,7 +1438,6 @@ Value make_builtin_module_names() {
 #if defined(_WIN32)
       Value::string("winreg"),
 #endif
-      Value::string("xxsubtype"),
       Value::string("zlib"),
   });
 }
@@ -5099,7 +5080,8 @@ void register_sys_module(Runtime& runtime) {
           "purpose is to speed up dictionary lookups. Return the string itself or\n"
           "the previously interned string object with the same value.",
           sys_intern_kw,
-          "($module, string, /)"),
+          "($module, string, /)",
+          builtin_fast_adapter<sys_intern, 1>),
       error);
   module_set_attr(
       sys,
@@ -5639,7 +5621,8 @@ void register_sys_module(Runtime& runtime) {
           "This function should be used for internal and specialized purposes\n"
           "only.",
           sys_no_keyword_args,
-          "($module, depth=0, /)"),
+          "($module, depth=0, /)",
+          builtin_fast_adapter<sys_getframe, 1>),
       error);
   module_set_attr(
       sys,
@@ -5657,7 +5640,8 @@ void register_sys_module(Runtime& runtime) {
           "module rather than the library module.\n\n"
           "If no frame, module, or name can be found, returns None.",
           sys_getframemodulename_kw,
-          "($module, /, depth=0)"),
+          "($module, /, depth=0)",
+          builtin_fast_adapter<sys_getframemodulename, 1>),
       error);
   module_set_attr(
       sys,

@@ -79,6 +79,23 @@ bool opcode_empty_list(Runtime&, const Value*, uint32_t, Value& out, std::string
   return true;
 }
 
+bool opcode_special_method_names(
+    Runtime& runtime, const Value*, uint32_t argc, Value& out,
+    std::string& error, void*) {
+  if (argc != 0) {
+    error = "_opcode.get_special_method_names() takes no arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  out = Value::list({
+      Value::string("__enter__"),
+      Value::string("__exit__"),
+      Value::string("__aenter__"),
+      Value::string("__aexit__"),
+  });
+  return true;
+}
+
 bool opcode_get_executor(Runtime&, const Value*, uint32_t, Value& out, std::string&, void*) {
   value_set_none(out);
   return true;
@@ -100,7 +117,9 @@ void register_opcode_module(Runtime& runtime) {
       .function("has_exc", opcode_has_exc, builtin_fast_adapter<opcode_has_exc, 1>)
       .function("get_intrinsic1_descs", opcode_empty_list)
       .function("get_intrinsic2_descs", opcode_empty_list)
-      .function("get_special_method_names", opcode_empty_list)
+      .function(
+          "get_special_method_names", opcode_special_method_names,
+          builtin_fast_adapter<opcode_special_method_names, 1>)
       .function("get_nb_ops", opcode_empty_list)
       .function("get_executor", opcode_get_executor);
   runtime.register_module("_opcode", private_builder.finish());

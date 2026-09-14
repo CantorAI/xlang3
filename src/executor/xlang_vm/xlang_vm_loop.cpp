@@ -31,6 +31,7 @@ limitations under the License.
 #include "ops/xlang_vm_ops_import_raw.h"
 #include "ops/xlang_vm_ops_iteration.h"
 #include "ops/xlang_vm_ops_variables.h"
+#include "ops/xlang_vm_ops_fused.h"
 #include "runtime_lock.h"
 
 #include "xlang3/attribute.h"
@@ -753,7 +754,7 @@ RuntimeResult Interpreter::run_function(
           view_frame.function_id,
           view_frame.activation_id,
           view_frame.regs.value_data(),
-          &view_frame.register_last_use,
+          &view_frame.execution_metadata->register_last_use,
           view_frame.regs.size(),
           &view_frame.native_call_args,
       };
@@ -1096,6 +1097,7 @@ RuntimeResult Interpreter::run_function(
   std::vector<size_t> active_exception_handler_frames;
   Value pending_exception_cause;
   bool pending_exception_explicit_cause = false;
+  Value traceback_builtins;
 
   auto restore_active_exception_context = [&]() {
     if (!previous_exceptions.empty()) {
@@ -1170,12 +1172,13 @@ RuntimeResult Interpreter::run_function(
 
   auto make_traceback_from_frames = [&](bool track_live_frames = false,
                                         size_t lowest_frame = 0) -> Value {
-    Value builtins = Value::dict({});
-    Value builtins_module;
-    std::string builtins_error;
-    if (runtime_.import_module("builtins", builtins_module, builtins_error)) {
-      if (value_as_module(builtins_module) != nullptr) {
-        builtins = module_namespace_dict(builtins_module);
+    if (traceback_builtins.tag == ValueTag::Invalid) {
+      traceback_builtins = Value::dict({});
+      Value builtins_module;
+      std::string builtins_error;
+      if (runtime_.import_module("builtins", builtins_module, builtins_error) &&
+          value_as_module(builtins_module) != nullptr) {
+        traceback_builtins = module_namespace_dict(builtins_module);
       }
     }
     Value next = Value::none();
@@ -1188,43 +1191,6 @@ RuntimeResult Interpreter::run_function(
       const uint32_t traceback_ip = index < frame_count && captured.ip > 0
           ? captured.ip - 1
           : captured.ip;
-      std::vector<Value> local_snapshot;
-      if (captured.fn != nullptr) {
-        local_snapshot.resize(
-            captured.fn->locals.size() + captured.fn->free_vars.size(), Value::invalid());
-        for (size_t local_index = 0;
-             local_index < captured.fn->locals.size() && local_index < captured.locals.size();
-             ++local_index) {
-          const Value* local_value = &captured.locals[local_index];
-          for (size_t cell_index = 0;
-               cell_index < captured.fn->cell_slots.size() && cell_index < captured.cells.size();
-               ++cell_index) {
-            if (captured.fn->cell_slots[cell_index] == local_index) {
-              if (auto* cell = value_as_cell(captured.cells[cell_index])) {
-                local_value = &cell->value;
-              }
-              break;
-            }
-          }
-          if (local_value->tag != ValueTag::Invalid) {
-            value_assign_fast(local_snapshot[local_index], *local_value);
-          }
-        }
-        if (captured.closure != nullptr) {
-          for (size_t free_index = 0;
-               free_index < captured.fn->free_vars.size() && free_index < captured.closure->size();
-               ++free_index) {
-            const Value* free_value = &(*captured.closure)[free_index];
-            if (auto* cell = value_as_cell(*free_value)) {
-              free_value = &cell->value;
-            }
-            if (free_value->tag != ValueTag::Invalid) {
-              value_assign_fast(
-                  local_snapshot[captured.fn->locals.size() + free_index], *free_value);
-            }
-          }
-        }
-      }
       Value frame_object = Value::frame(
           captured.module_owner,
           captured.function_id,
@@ -1232,19 +1198,21 @@ RuntimeResult Interpreter::run_function(
           traceback_ip,
           Value::invalid(),
           Value::invalid(),
-          builtins,
+          traceback_builtins,
           captured.activation_id);
       if (auto* traceback_frame = value_as_frame(frame_object)) {
-        traceback_frame->local_snapshot = std::move(local_snapshot);
+        // The activation is still represented by the VM frame and the live
+        // frame registry. Copy locals only when f_locals is requested or when
+        // the activation retires, rather than for every caught exception.
         traceback_frame->has_lazy_locals = true;
+      }
+      if (track_live_frames) {
+        frame_object = runtime_.track_live_frame_snapshot(std::move(frame_object));
       }
       if (auto* inner = value_as_frame(inner_frame)) {
         value_assign_fast(inner->back, frame_object);
       }
       value_assign_fast(inner_frame, frame_object);
-      if (track_live_frames) {
-        runtime_.track_live_frame_snapshot(frame_object);
-      }
       int64_t source_line = static_cast<int64_t>(traceback_ip);
       if (captured.fn != nullptr && traceback_ip < captured.fn->source_lines.size() &&
           captured.fn->source_lines[traceback_ip] != 0) {
@@ -1689,6 +1657,7 @@ RuntimeResult Interpreter::run_function(
         }
       }
       const auto& in = fn.code[ip];
+      xlang_perf_count_opcode(static_cast<uint16_t>(in.op));
       if (!trace_dispatch_active &&
           XLANG3_UNLIKELY((frame.monitoring_events & kSysMonitoringEventInstruction) != 0)) {
         if (!emit_monitoring_event(frame, kSysMonitoringEventInstruction, nullptr)) {
@@ -1711,7 +1680,8 @@ RuntimeResult Interpreter::run_function(
       if (XLANG3_UNLIKELY(
               in.op == ir::Op::Call || in.op == ir::Op::CallEx ||
               in.op == ir::Op::CallMethod || in.op == ir::Op::CallModuleMethod ||
-              in.op == ir::Op::CallLocal || in.op == ir::Op::CallLocalMethod)) {
+              in.op == ir::Op::CallLocal || in.op == ir::Op::CallGlobal ||
+              in.op == ir::Op::CallLocalMethod)) {
         refresh_monitoring_configuration(frame);
       }
       frame.release_memoryviews_last_used_at(ip);

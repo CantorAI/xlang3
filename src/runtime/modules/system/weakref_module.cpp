@@ -15,6 +15,7 @@ limitations under the License.
 #include "xlang3/builtins.h"
 
 #include "xlang3/attribute.h"
+#include "xlang3/builtin_methods.h"
 #include "xlang3/functional_iterators.h"
 #include "xlang3/mapping.h"
 #include "xlang3/module_object.h"
@@ -369,7 +370,9 @@ Value weakref_reference_type(Runtime& runtime) {
           "weakref.ReferenceType.__new__", weakref_reference_new,
           nullptr, nullptr, nullptr, false, weakref_reference_new_kw))});
   attrs.push_back({"__init__", runtime.make_native_function("weakref.ReferenceType.__init__", weakref_reference_init)});
-  attrs.push_back({"__call__", runtime.make_native_function("weakref.ReferenceType.__call__", weakref_reference_call)});
+  attrs.push_back({"__call__", runtime.make_native_function(
+      "weakref.ReferenceType.__call__", weakref_reference_call, nullptr, nullptr,
+      builtin_method_fast_adapter<weakref_reference_call, 1>)});
   attrs.push_back({"__callback__", Value::property(
       runtime.make_native_function("weakref.ReferenceType.__callback__", weakref_reference_callback),
       Value::none(), Value::none(), Value::none())});

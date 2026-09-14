@@ -15,6 +15,7 @@ limitations under the License.
 #include "thread_objects.h"
 
 #include "xlang3/attribute.h"
+#include "xlang3/builtin_methods.h"
 #include "xlang3/builtins.h"
 #include "xlang3/functional_iterators.h"
 #include "xlang3/mapping.h"
@@ -512,13 +513,13 @@ Value register_low_level_thread_module(Runtime& runtime) {
   builder.function("start_new_thread", thread_start_new_thread)
       .function("start_new", thread_start_new_thread)
       .function("start_joinable_thread", nullptr, nullptr, false, thread_start_joinable_thread)
-      .function("allocate_lock", thread_allocate_lock)
-      .function("get_ident", thread_get_ident)
-      .function("get_native_id", thread_get_native_id)
-      .function("_get_main_thread_ident", thread_get_main_thread_ident)
-      .function("_count", thread_count)
-      .function("daemon_threads_allowed", thread_daemon_threads_allowed)
-      .function("_is_main_interpreter", thread_is_main_interpreter)
+      .function("allocate_lock", thread_allocate_lock, builtin_fast_adapter<thread_allocate_lock, 1>)
+      .function("get_ident", thread_get_ident, builtin_fast_adapter<thread_get_ident, 1>)
+      .function("get_native_id", thread_get_native_id, builtin_fast_adapter<thread_get_native_id, 1>)
+      .function("_get_main_thread_ident", thread_get_main_thread_ident, builtin_fast_adapter<thread_get_main_thread_ident, 1>)
+      .function("_count", thread_count, builtin_fast_adapter<thread_count, 1>)
+      .function("daemon_threads_allowed", thread_daemon_threads_allowed, builtin_fast_adapter<thread_daemon_threads_allowed, 1>)
+      .function("_is_main_interpreter", thread_is_main_interpreter, builtin_fast_adapter<thread_is_main_interpreter, 1>)
       .function("_shutdown", thread_shutdown)
       .function("_make_thread_handle", thread_make_thread_handle)
       .function("stack_size", thread_stack_size)

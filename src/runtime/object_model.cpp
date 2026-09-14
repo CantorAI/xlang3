@@ -61,6 +61,12 @@ std::vector<std::string> code_object_names(const ir::Module& module, const ir::F
 
 std::string code_object_compat_bytecode(const ir::Module& module, const ir::Function& function) {
   const auto names = code_object_names(module, function);
+  std::unordered_set<uint32_t> called_registers;
+  for (const auto& instruction : function.code) {
+    if (instruction.op == ir::Op::Call || instruction.op == ir::Op::CallEx) {
+      called_registers.insert(instruction.a);
+    }
+  }
   std::string bytes;
   auto emit = [&](uint8_t opcode, size_t argument, size_t cache_entries) {
     if (argument > 255) {
@@ -73,12 +79,19 @@ std::string code_object_compat_bytecode(const ir::Module& module, const ir::Func
   emit(128, 0, 0);  // RESUME in CPython 3.14.
   for (const auto& instruction : function.code) {
     if (instruction.op == ir::Op::LoadGlobal && instruction.a < function.names.size()) {
-      emit(92, static_cast<size_t>(instruction.a) << 1u, 4);  // LOAD_GLOBAL.
+      const size_t push_null = called_registers.count(instruction.dst) != 0 ? 1u : 0u;
+      emit(92, (static_cast<size_t>(instruction.a) << 1u) | push_null, 4);  // LOAD_GLOBAL.
       continue;
     }
     if ((instruction.op == ir::Op::LoadAttr || instruction.op == ir::Op::CallMethod) &&
         instruction.b < function.names.size()) {
-      emit(80, static_cast<size_t>(instruction.b) << 1u, 9);  // LOAD_ATTR.
+      const auto& name = function.names[instruction.b];
+      if (name == "__enter__" || name == "__exit__") {
+        emit(95, name == "__exit__" ? 1u : 0u, 0);  // LOAD_SPECIAL.
+      } else {
+        const size_t method_flag = instruction.op == ir::Op::CallMethod ? 1u : 0u;
+        emit(80, (static_cast<size_t>(instruction.b) << 1u) | method_flag, 9);  // LOAD_ATTR.
+      }
       continue;
     }
     if (instruction.op == ir::Op::LoadModuleSlot && instruction.a < module.global_slots.size()) {
@@ -108,9 +121,13 @@ struct InstanceFreeList {
     for (auto* instance : items) {
       delete instance;
     }
+    for (auto* method : bound_methods) {
+      delete method;
+    }
   }
 
   std::vector<InstanceObject*> items;
+  std::vector<BoundMethodObject*> bound_methods;
 };
 
 thread_local InstanceFreeList instance_free_list;
@@ -125,6 +142,18 @@ InstanceObject* allocate_instance_object() {
     return obj;
   }
   return allocate_object_model<InstanceObject>(ObjectKind::Instance);
+}
+
+BoundMethodObject* allocate_bound_method_object() {
+  if (memory::object_caches_alive && !instance_free_list.bound_methods.empty()) {
+    auto* obj = instance_free_list.bound_methods.back();
+    instance_free_list.bound_methods.pop_back();
+    obj->header.kind = ObjectKind::BoundMethod;
+    obj->header.refcnt = 1;
+    xlang_perf_count_object_alloc(ObjectKind::BoundMethod);
+    return obj;
+  }
+  return allocate_object_model<BoundMethodObject>(ObjectKind::BoundMethod);
 }
 
 bool function_descriptor_get_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -194,6 +223,16 @@ void recycle_instance_object(InstanceObject* instance) {
     return;
   }
   delete instance;
+}
+
+void recycle_bound_method_object(BoundMethodObject* method) {
+  value_set_invalid(method->self);
+  value_set_invalid(method->function);
+  if (memory::object_caches_alive && instance_free_list.bound_methods.size() < 1024) {
+    instance_free_list.bound_methods.push_back(method);
+    return;
+  }
+  delete method;
 }
 
 Value class_value(const ClassObject* klass) {
@@ -2254,7 +2293,7 @@ Value Value::instance(Value klass) {
 Value Value::bound_method(Value self, Value function) {
   Value v;
   v.tag = ValueTag::Object;
-  auto* obj = allocate_object_model<BoundMethodObject>(ObjectKind::BoundMethod);
+  auto* obj = allocate_bound_method_object();
   obj->self = std::move(self);
   obj->function = std::move(function);
   v.as.obj = &obj->header;
@@ -2321,7 +2360,7 @@ void object_model_release_object(Object* object) {
       recycle_instance_object(reinterpret_cast<InstanceObject*>(object));
       break;
     case ObjectKind::BoundMethod:
-      delete reinterpret_cast<BoundMethodObject*>(object);
+      recycle_bound_method_object(reinterpret_cast<BoundMethodObject*>(object));
       break;
     case ObjectKind::StaticMethod:
       delete reinterpret_cast<StaticMethodObject*>(object);
@@ -3194,7 +3233,9 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       return true;
     }
     if (name == "co_lines") {
-      out = Value::bound_method(object, Value::native_function(0, "code.co_lines", code_lines_method));
+      out = Value::bound_method(object, Value::native_function(
+          0, "code.co_lines", code_lines_method, nullptr, nullptr,
+          builtin_method_fast_adapter<code_lines_method, 1>));
       return true;
     }
     if (name == "co_positions") {

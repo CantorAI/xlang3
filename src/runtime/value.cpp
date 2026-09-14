@@ -157,11 +157,21 @@ StringObject* allocate_string_object(size_t size) {
 
 void string_object_set_bytes(StringObject* object, const char* source, size_t size);
 
-using InternedStringTable = std::unordered_map<std::string, Value>;
+using InternedStringTable = std::unordered_multimap<size_t, Value>;
 
 InternedStringTable& interned_string_table() {
   static auto* table = new InternedStringTable();
   return *table;
+}
+
+InternedStringTable::iterator find_interned_string(
+    InternedStringTable& table, std::string_view text) {
+  const auto range = table.equal_range(string_view_hash(text));
+  for (auto item = range.first; item != range.second; ++item) {
+    auto* string = value_as_string(item->second);
+    if (string != nullptr && string_object_view(*string) == text) return item;
+  }
+  return table.end();
 }
 
 std::mutex& interned_string_mutex() {
@@ -312,7 +322,7 @@ Value intern_string_view(std::string_view value, bool immortal = true) {
   }
   std::lock_guard<std::mutex> lock(interned_string_mutex());
   auto& table = interned_string_table();
-  if (auto found = table.find(std::string(value)); found != table.end()) {
+  if (auto found = find_interned_string(table, value); found != table.end()) {
     if (immortal) {
       if (auto* string = value_as_string(found->second)) {
         string->immortal.store(true, std::memory_order_release);
@@ -324,7 +334,7 @@ Value intern_string_view(std::string_view value, bool immortal = true) {
   if (auto* string = value_as_string(interned)) {
     string->immortal.store(immortal, std::memory_order_relaxed);
   }
-  table.emplace(std::string(value), interned);
+  table.emplace(string_object_hash(*value_as_string(interned)), interned);
   return interned;
 }
 
@@ -931,9 +941,9 @@ Value intern_string_value(const Value& value) {
   }
   std::lock_guard<std::mutex> lock(interned_string_mutex());
   auto& table = interned_string_table();
-  if (auto found = table.find(std::string(text)); found != table.end()) return found->second;
+  if (auto found = find_interned_string(table, text); found != table.end()) return found->second;
   string->immortal.store(false, std::memory_order_relaxed);
-  table.emplace(std::string(text), value);
+  table.emplace(string_object_hash(*string), value);
   return value;
 }
 
@@ -945,7 +955,7 @@ bool string_value_is_interned(const Value& value) {
     return value_is(ascii_character_value(static_cast<unsigned char>(text[0])), value);
   }
   std::lock_guard<std::mutex> lock(interned_string_mutex());
-  auto found = interned_string_table().find(std::string(text));
+  auto found = find_interned_string(interned_string_table(), text);
   return found != interned_string_table().end() && value_is(found->second, value);
 }
 
@@ -957,7 +967,7 @@ bool string_value_is_immortal_interned(const Value& value) {
     return value_is(ascii_character_value(static_cast<unsigned char>(text[0])), value);
   }
   std::lock_guard<std::mutex> lock(interned_string_mutex());
-  auto found = interned_string_table().find(std::string(text));
+  auto found = find_interned_string(interned_string_table(), text);
   return found != interned_string_table().end() && value_is(found->second, value);
 }
 
