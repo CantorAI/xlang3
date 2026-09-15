@@ -2019,7 +2019,9 @@ bool winapi_exit_process(Runtime& runtime, const Value* args, uint32_t argc, Val
   if (!winapi_int_arg(runtime, args[0], exit_code, 1, "ExitProcess", error)) {
     return false;
   }
+#if defined(_WIN32)
   ExitProcess(static_cast<UINT>(exit_code));
+#endif
   value_set_none(out);
   return true;
 }

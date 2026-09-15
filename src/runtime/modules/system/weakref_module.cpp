@@ -24,6 +24,7 @@ limitations under the License.
 #include "xlang3/value_hash.h"
 
 #include <algorithm>
+#include <cstring>
 #include <deque>
 #include <mutex>
 #include <unordered_map>

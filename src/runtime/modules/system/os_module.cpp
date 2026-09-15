@@ -357,11 +357,44 @@ bool raise_os_error_with_errno(
   return false;
 }
 
+const char* os_error_class_for_errno(int error_number) {
+  switch (error_number) {
+    case ENOENT:
+      return "FileNotFoundError";
+    case EACCES:
+      return "PermissionError";
+    case EEXIST:
+      return "FileExistsError";
+#if defined(EISDIR)
+    case EISDIR:
+      return "IsADirectoryError";
+#endif
+#if defined(ENOTDIR)
+    case ENOTDIR:
+      return "NotADirectoryError";
+#endif
+    default:
+      return "OSError";
+  }
+}
+
 bool raise_os_path_error_with_errno(
     Runtime& runtime,
     int error_number,
     const PathArg& path,
-    std::string& error);
+    std::string& error) {
+  const char* description = std::strerror(error_number);
+  error = description != nullptr ? description : "filesystem operation failed";
+  Value exception = runtime.make_exception(
+      os_error_class_for_errno(error_number), error);
+  std::string ignored;
+  object_set_attr(exception, "errno", Value::int64(error_number), ignored);
+  object_set_attr(exception, "strerror", Value::string(error), ignored);
+  object_set_attr(
+      exception, "filename", path_name_value(path.text, path.bytes), ignored);
+  runtime.set_pending_exception(std::move(exception));
+  return false;
+}
 
 bool os_index_i64(
     Runtime& runtime,
@@ -725,45 +758,6 @@ bool raise_fstat_error(
   }
 #endif
   object_set_attr(exception, "strerror", Value::string(message), ignored);
-  runtime.set_pending_exception(std::move(exception));
-  return false;
-}
-
-const char* os_error_class_for_errno(int error_number) {
-  switch (error_number) {
-    case ENOENT:
-      return "FileNotFoundError";
-    case EACCES:
-      return "PermissionError";
-    case EEXIST:
-      return "FileExistsError";
-#if defined(EISDIR)
-    case EISDIR:
-      return "IsADirectoryError";
-#endif
-#if defined(ENOTDIR)
-    case ENOTDIR:
-      return "NotADirectoryError";
-#endif
-    default:
-      return "OSError";
-  }
-}
-
-bool raise_os_path_error_with_errno(
-    Runtime& runtime,
-    int error_number,
-    const PathArg& path,
-    std::string& error) {
-  const char* description = std::strerror(error_number);
-  error = description != nullptr ? description : "filesystem operation failed";
-  Value exception = runtime.make_exception(
-      os_error_class_for_errno(error_number), error);
-  std::string ignored;
-  object_set_attr(exception, "errno", Value::int64(error_number), ignored);
-  object_set_attr(exception, "strerror", Value::string(error), ignored);
-  object_set_attr(
-      exception, "filename", path_name_value(path.text, path.bytes), ignored);
   runtime.set_pending_exception(std::move(exception));
   return false;
 }

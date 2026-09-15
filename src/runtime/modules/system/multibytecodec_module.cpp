@@ -8,10 +8,63 @@ Licensed under the Apache License, Version 2.0 (the "License");
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
 
+#ifdef _WIN32
 #include <windows.h>
+#else
+#include <cerrno>
+#include <iconv.h>
+#include <vector>
+#endif
 
 namespace xlang3 {
 namespace {
+
+#ifndef _WIN32
+const char* iconv_encoding_name(int code_page) {
+  switch (code_page) {
+    case 950: return "BIG5";
+    case 932: return "SHIFT_JIS";
+    case 20932: return "EUC-JP";
+    case 949: return "CP949";
+    case 1361: return "JOHAB";
+    case 936: return "GBK";
+    case 54936: return "GB18030";
+    case 52936: return "HZ";
+    case 50220: return "ISO-2022-JP";
+    case 50225: return "ISO-2022-KR";
+    default: return nullptr;
+  }
+}
+
+bool iconv_convert(const char* destination, const char* source,
+                   const std::string& input, std::string& output) {
+  iconv_t converter = iconv_open(destination, source);
+  if (converter == reinterpret_cast<iconv_t>(-1)) return false;
+
+  std::vector<char> buffer(input.size() * 4 + 32);
+  char* input_cursor = const_cast<char*>(input.data());
+  size_t input_left = input.size();
+  size_t used = 0;
+  bool success = true;
+  while (true) {
+    char* output_cursor = buffer.data() + used;
+    size_t output_left = buffer.size() - used;
+    const size_t result = iconv(converter, &input_cursor, &input_left,
+                                &output_cursor, &output_left);
+    used = buffer.size() - output_left;
+    if (result != static_cast<size_t>(-1)) break;
+    if (errno != E2BIG) {
+      success = false;
+      break;
+    }
+    buffer.resize(buffer.size() * 2);
+  }
+  iconv_close(converter);
+  if (!success || input_left != 0) return false;
+  output.assign(buffer.data(), used);
+  return true;
+}
+#endif
 
 bool tw_encode(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
                std::string& error, void* user_data) {
@@ -32,13 +85,14 @@ bool tw_encode(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
     out = Value::tuple({Value::bytes({}), Value::int64(0)});
     return true;
   }
+  const int code_page = user_data == nullptr ? 950 : *static_cast<int*>(user_data);
+#ifdef _WIN32
   const int wide_size = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, text.data(),
                                              static_cast<int>(text.size()), nullptr, 0);
   std::wstring wide(static_cast<size_t>(wide_size), L'\0');
   if (wide_size > 0) MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, text.data(),
                                          static_cast<int>(text.size()), wide.data(), wide_size);
   BOOL used_default = FALSE;
-  const int code_page = user_data == nullptr ? 950 : *static_cast<int*>(user_data);
   const bool strict_flags_supported = code_page != 54936 && code_page != 52936 &&
       code_page != 50220 && code_page != 50225;
   const DWORD flags = strict_flags_supported ? WC_NO_BEST_FIT_CHARS : 0;
@@ -53,6 +107,15 @@ bool tw_encode(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
   std::string bytes(static_cast<size_t>(byte_size), '\0');
   WideCharToMultiByte(code_page, flags, wide.data(), wide_size, bytes.data(), byte_size,
                       nullptr, used_default_ptr);
+#else
+  const char* encoding = iconv_encoding_name(code_page);
+  std::string bytes;
+  if (encoding == nullptr || !iconv_convert(encoding, "UTF-8", text, bytes)) {
+    error = "multibyte codec can't encode character";
+    runtime.raise_class_error("UnicodeEncodeError", error);
+    return false;
+  }
+#endif
   out = Value::tuple({Value::bytes(std::move(bytes)),
                       Value::int64(static_cast<int64_t>(utf8_codepoint_count(text)))});
   return true;
@@ -74,6 +137,7 @@ bool tw_decode(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
   }
   const std::string bytes(bytes_object_view(*input));
   const int code_page = user_data == nullptr ? 950 : *static_cast<int*>(user_data);
+#ifdef _WIN32
   const DWORD decode_flags = (code_page == 52936 || code_page == 50220 || code_page == 50225) ? 0 : MB_ERR_INVALID_CHARS;
   const int wide_size = MultiByteToWideChar(code_page, decode_flags, bytes.data(),
                                              static_cast<int>(bytes.size()), nullptr, 0);
@@ -89,6 +153,15 @@ bool tw_decode(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
   std::string text(static_cast<size_t>(text_size), '\0');
   if (text_size > 0) WideCharToMultiByte(CP_UTF8, 0, wide.data(), wide_size, text.data(), text_size,
                                          nullptr, nullptr);
+#else
+  const char* encoding = iconv_encoding_name(code_page);
+  std::string text;
+  if (encoding == nullptr || !iconv_convert("UTF-8", encoding, bytes, text)) {
+    error = "multibyte codec can't decode byte";
+    runtime.raise_class_error("UnicodeDecodeError", error);
+    return false;
+  }
+#endif
   out = Value::tuple({Value::string(std::move(text)), Value::int64(static_cast<int64_t>(bytes.size()))});
   return true;
 }
