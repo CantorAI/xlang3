@@ -167,6 +167,10 @@ bool materialize_wire_value(
     case serialize::IpcWireValueKind::Int64:
       out = Value::int64(wire.int_value);
       return true;
+    case serialize::IpcWireValueKind::UInt64:
+      out = wire.uint_value <= static_cast<uint64_t>(INT64_MAX)
+          ? Value::int64(static_cast<int64_t>(wire.uint_value)) : value_bigint_from_u64(wire.uint_value);
+      return true;
     case serialize::IpcWireValueKind::Double:
       out = Value::number(wire.double_value);
       return true;
@@ -423,7 +427,22 @@ bool write_response_value(Runtime& runtime, const Value& value, serialize::XLang
   return response_stream.MarshalToBytes(value, {}, error);
 }
 
+void clear_pending_ipc_exception(Runtime& runtime) {
+  Value ignored;
+  (void)runtime.take_pending_exception(ignored);
+}
+
+bool fail_ipc_runtime_call(Runtime& runtime, std::string& error) {
+  Value pending;
+  if (runtime.take_pending_exception(pending) && error.empty()) {
+    error = "remote call raised an exception";
+  }
+  return false;
+}
+
 bool server_dispatch(Runtime& runtime, serialize::XLangStream& stream, serialize::XLangStream& response, std::string& error) {
+  XlangRuntimeExecutionGuard execution_lock;
+  clear_pending_ipc_exception(runtime);
   stream.SetPos({0, 0});
   std::string op;
   stream >> op;
@@ -475,7 +494,7 @@ bool server_dispatch(Runtime& runtime, serialize::XLangStream& stream, serialize
     const auto* getter = runtime.find_builtin("getattr");
     Value attr_args[] = {target, Value::string(member)};
     if (getter == nullptr || !runtime_call_callable(runtime, *getter, attr_args, 2, callable, error)) {
-      return false;
+      return fail_ipc_runtime_call(runtime, error);
     }
   } else {
     value_assign_fast(callable, target);
@@ -511,7 +530,9 @@ bool server_dispatch(Runtime& runtime, serialize::XLangStream& stream, serialize
     Value result;
     std::vector<Value> arguments(positional->items.begin(), positional->items.end());
     if (!runtime_call_callable_kw(runtime, callable, arguments.data(),
-        static_cast<uint32_t>(arguments.size()), keywords, result, error)) return false;
+        static_cast<uint32_t>(arguments.size()), keywords, result, error)) {
+      return fail_ipc_runtime_call(runtime, error);
+    }
     return write_response_value(runtime, result, response, error);
   }
   uint32_t argc = 0;
@@ -560,7 +581,7 @@ bool server_dispatch(Runtime& runtime, serialize::XLangStream& stream, serialize
   }
   Value result;
   if (!runtime_call_callable_kw(runtime, callable, args.empty() ? nullptr : args.data(), argc, kwargs, result, error)) {
-    return false;
+    return fail_ipc_runtime_call(runtime, error);
   }
   return write_response_value(runtime, result, response, error);
 }

@@ -127,6 +127,12 @@ bool XLangStream::MarshalToBytesImpl(const Value& value, const std::string& call
         (*this) << kind;
         return true;
       }
+      // uint64 values above INT64_MAX are BigInt objects internally. They
+      // must cross IPC as numbers, not become RemoteObject references.
+      if (uint64_t integer = 0; value_as_bigint(value) && value_bigint_to_u64(value, integer)) {
+        (*this) << IpcWireValueKind::UInt64 << integer;
+        return true;
+      }
       if (value.as.obj->kind == ObjectKind::Expression) {
         std::string bytes;
         if (!encode_expression(value, bytes, error)) return false;
@@ -231,6 +237,8 @@ bool XLangStream::MarshalFromBytesImpl(IpcWireValue& value, std::string& error) 
       return fetch_pod(*this, value.bool_value);
     case IpcWireValueKind::Int64:
       return fetch_pod(*this, value.int_value);
+    case IpcWireValueKind::UInt64:
+      return fetch_pod(*this, value.uint_value);
     case IpcWireValueKind::Double:
       return fetch_pod(*this, value.double_value);
     case IpcWireValueKind::String:

@@ -36,6 +36,14 @@ class IpcSmokeServer:
     def add(self, left, right):
         return left + right
 
+    def integer_echo(self, value):
+        assert isinstance(value, int), "IPC integer became a remote object"
+        return value
+
+    def integer_fields(self, format5, format6):
+        assert isinstance(format5, int) and isinstance(format6, int), "IPC uint64 value became a remote object"
+        return {"format5": format5, "format6": format6}
+
     def invoke_callback(self, callback, value):
         return callback(value)
 

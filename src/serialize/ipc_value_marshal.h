@@ -31,6 +31,7 @@ enum class IpcWireValueKind : uint8_t {
   Expression = 13,
   ExpressionDecoratorRef = 14,
   ValueCallRef = 15,
+  UInt64 = 16,
 };
 
 struct RemoteObjectId {
@@ -44,6 +45,7 @@ struct IpcWireValue {
   IpcWireValueKind kind = IpcWireValueKind::Invalid;
   bool bool_value = false;
   int64_t int_value = 0;
+  uint64_t uint_value = 0;
   double double_value = 0.0;
   std::string bytes;
   std::vector<IpcWireValue> items;

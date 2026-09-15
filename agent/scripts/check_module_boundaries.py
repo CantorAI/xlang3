@@ -82,6 +82,7 @@ ALLOWED_PUBLIC_CPP_MODULES = {
     "atexit",
     "binascii",
     "builtins",
+    "cmath",
     "errno",
     "faulthandler",
     "gc",

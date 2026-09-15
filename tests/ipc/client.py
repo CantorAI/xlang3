@@ -17,7 +17,19 @@ print(srv.bytes_echo(b"\x00abc") == b"\x00abc")
 print(srv.Box(7).value())
 print(srv.get_len()("abcd"))
 
+for number in [-1, 0, 2**63 - 1, 2**63, 9798671420213284879, 2**64 - 1]:
+    for result in [srv.integer_echo(number), srv.integer_echo(value=number)]:
+        assert isinstance(result, int) and result == number, "IPC integer roundtrip changed type or value"
+fields = srv.integer_fields(format5=7201047369651079673, format6=9798671420213284879)
+assert isinstance(fields['format6'], int) and fields['format6'] == 9798671420213284879
+
 callback_values = []
+
+def integer_callback(value):
+    assert isinstance(value, int), "callback integer became a remote object"
+    return value
+
+assert srv.invoke_callback(integer_callback, 2**64 - 1) == 2**64 - 1
 def callback(value):
     callback_values.append(value)
     return srv.add(len(value), 1)

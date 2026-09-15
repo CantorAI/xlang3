@@ -1,7 +1,21 @@
 #pragma once
 
 #define PY_SSIZE_T_CLEAN
+#if defined(_WIN32) && defined(_DEBUG)
+// The installed Python import library is a release build. Keep the MSVC Debug
+// runtime for this module without enabling CPython's Py_DEBUG-only symbols.
+#pragma push_macro("_DEBUG")
+#undef _DEBUG
+#define XLANG3_RESTORE_MSVC_DEBUG
+#endif
+#ifndef Py_NO_LINK_LIB
+#define Py_NO_LINK_LIB
+#endif
 #include <Python.h>
+#ifdef XLANG3_RESTORE_MSVC_DEBUG
+#pragma pop_macro("_DEBUG")
+#undef XLANG3_RESTORE_MSVC_DEBUG
+#endif
 #include "xlang3/xlang3.h"
 #include <memory>
 #include <mutex>

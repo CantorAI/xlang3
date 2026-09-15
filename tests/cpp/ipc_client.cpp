@@ -17,6 +17,18 @@ int main(int argc, char** argv) {
     require(server["name"].ToString() == "ipc-smoke", "remote attribute failed");
     require(server["echo"]("native").ToString() == "echo:native", "remote string call failed");
     require(server["add"](20, 22).ToInt64() == 42, "remote integer call failed");
+    for (uint64_t number : {uint64_t(0), uint64_t(INT64_MAX), uint64_t(INT64_MAX) + 1,
+                           uint64_t(9798671420213284879ULL), uint64_t(UINT64_MAX)}) {
+      X::Value result;
+      require(server["integer_echo"].Call({X::Value(number)}, result), "uint64 positional IPC call failed");
+      require((result.IsInt64() || result.IsUInt64()) && result.ToUInt64() == number,
+          "uint64 IPC result became a proxy or lost bits");
+      require(server["integer_fields"].Call({}, {{"format5", X::Value(uint64_t(7201047369651079673ULL))},
+          {"format6", X::Value(number)}}, result), "uint64 keyword IPC call failed");
+      auto low = result["format6"];
+      require((low.IsInt64() || low.IsUInt64()) && low.ToUInt64() == number,
+          "nested uint64 IPC result became a proxy or lost bits");
+    }
     auto box = server["Box"](73);
     require(box["value"]().ToInt64() == 73, "remote returned object failed");
     require(server["get_len"]()("abcd").ToInt64() == 4, "remote returned callable failed");

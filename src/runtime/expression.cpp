@@ -94,6 +94,7 @@ bool read_node(serialize::BlockStream& stream, ExpressionNode& node, unsigned de
         return true;
       }
       case serialize::IpcWireValueKind::Int64: return stream.CopyTo(reinterpret_cast<char*>(&value.int_value), sizeof(int64_t));
+      case serialize::IpcWireValueKind::UInt64: return stream.CopyTo(reinterpret_cast<char*>(&value.uint_value), sizeof(uint64_t));
       case serialize::IpcWireValueKind::Double: return stream.CopyTo(reinterpret_cast<char*>(&value.double_value), sizeof(double));
       case serialize::IpcWireValueKind::String: {
         uint32_t size = 0;
@@ -112,6 +113,7 @@ bool read_node(serialize::BlockStream& stream, ExpressionNode& node, unsigned de
     case serialize::IpcWireValueKind::None: node.value = Value::none(); break;
     case serialize::IpcWireValueKind::Bool: node.value = Value::boolean(value.bool_value); break;
     case serialize::IpcWireValueKind::Int64: node.value = Value::int64(value.int_value); break;
+    case serialize::IpcWireValueKind::UInt64: node.value = value_bigint_from_u64(value.uint_value); break;
     case serialize::IpcWireValueKind::Double: node.value = Value::number(value.double_value); break;
     case serialize::IpcWireValueKind::String: node.value = Value::string(value.bytes); break;
     default: error = "invalid expression literal"; return false;
