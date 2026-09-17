@@ -10,6 +10,7 @@ Licensed under the Apache License, Version 2.0
 #include "runtime_lock.h"
 
 #include <limits>
+#include <cstdlib>
 #include <utility>
 #include <chrono>
 #include <thread>
@@ -29,6 +30,16 @@ uint64_t next_listener_session() {
     const auto next = std::max(now, old + 1);
     if (previous.compare_exchange_weak(old, next)) return next;
   }
+}
+
+uint32_t lrpc_request_timeout_ms() {
+  constexpr uint32_t default_timeout_ms = 30000;
+  const char* configured = std::getenv("XLANG3_LRPC_TIMEOUT_MS");
+  if (configured == nullptr || configured[0] == '\0') return default_timeout_ms;
+  char* end = nullptr;
+  const unsigned long parsed = std::strtoul(configured, &end, 10);
+  if (end == configured || *end != '\0') return default_timeout_ms;
+  return static_cast<uint32_t>(std::clamp<unsigned long>(parsed, 100, 300000));
 }
 
 bool lrpc_probe(const std::string& endpoint, uint32_t timeout_ms,

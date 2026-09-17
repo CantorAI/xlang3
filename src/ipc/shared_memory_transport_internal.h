@@ -42,6 +42,7 @@ extern LrpcDispatch g_dispatch;
 
 std::string strip_lrpc_prefix(const std::string& endpoint);
 uint64_t next_listener_session();
+uint32_t lrpc_request_timeout_ms();
 bool lrpc_probe_platform(const std::string& port, LrpcEndpointInfo& info, std::string& error);
 void make_error_response(const std::string& message, std::string& out);
 

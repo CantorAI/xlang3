@@ -483,6 +483,7 @@ bool lrpc_shared_memory_request_platform(
   const uint32_t server_pid = region->server_pid;
   pthread_cond_signal(&region->server_cond);
   int waited_seconds = 0;
+  const int timeout_seconds = static_cast<int>((lrpc_request_timeout_ms() + 999) / 1000);
   while (slot.state != SlotResponseReady) {
     if (!process_is_alive(server_pid)) {
       if (slot.owner_pid == static_cast<uint32_t>(getpid()) && slot.call_id == call_id) {
@@ -496,7 +497,7 @@ bool lrpc_shared_memory_request_platform(
     if (!wait_with_timeout(region->slot_conds[slot_index], region->mutex, 1, error)) {
       if (process_is_alive(server_pid)) {
         ++waited_seconds;
-        if (waited_seconds < 30) {
+        if (waited_seconds < timeout_seconds) {
           continue;
         }
         if (slot.owner_pid == static_cast<uint32_t>(getpid()) &&

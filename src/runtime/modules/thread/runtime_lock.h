@@ -14,7 +14,6 @@ limitations under the License.
 */
 #pragma once
 
-#include <condition_variable>
 #include <atomic>
 #include <functional>
 #include <mutex>
@@ -35,15 +34,13 @@ public:
       ++depth_;
       return;
     }
-    const uint64_t ticket = next_ticket_.fetch_add(1, std::memory_order_relaxed);
-    if (serving_ticket_.load(std::memory_order_acquire) != ticket) {
-      waiters_.fetch_add(1, std::memory_order_relaxed);
-      std::unique_lock<std::mutex> wait_lock(wait_mutex_);
-      available_.wait(wait_lock, [&]() {
-        return serving_ticket_.load(std::memory_order_acquire) == ticket;
-      });
-      waiters_.fetch_sub(1, std::memory_order_relaxed);
-    }
+    // Do not use a userspace ticket queue here. Native/LRPC worker threads can
+    // be cancelled while waiting during peer teardown. An abandoned ticket
+    // leaves owner_ clear but permanently prevents every later ticket from
+    // being served. The host mutex has no external queue state to orphan.
+    waiters_.fetch_add(1, std::memory_order_relaxed);
+    mutex_.lock();
+    waiters_.fetch_sub(1, std::memory_order_relaxed);
     owner_.store(current, std::memory_order_release);
     depth_ = 1;
   }
@@ -60,18 +57,7 @@ public:
       return;
     }
     owner_.store(0, std::memory_order_release);
-    if (waiters_.load(std::memory_order_relaxed) == 0) {
-      serving_ticket_.fetch_add(1, std::memory_order_release);
-      return;
-    }
-    // Publish the predicate while holding the same mutex used by wait().
-    // This closes the check-to-sleep window without putting uncontended
-    // release/reacquire cycles through the host mutex.
-    {
-      std::lock_guard<std::mutex> wait_lock(wait_mutex_);
-      serving_ticket_.fetch_add(1, std::memory_order_release);
-    }
-    available_.notify_all();
+    mutex_.unlock();
   }
 
 private:
@@ -80,12 +66,9 @@ private:
     return reinterpret_cast<uintptr_t>(&token);
   }
 
-  std::mutex wait_mutex_;
-  std::condition_variable available_;
+  std::mutex mutex_;
   std::atomic_uintptr_t owner_{0};
   uint32_t depth_ = 0;
-  std::atomic_uint64_t next_ticket_{0};
-  std::atomic_uint64_t serving_ticket_{0};
   std::atomic_uint32_t waiters_{0};
 };
 
