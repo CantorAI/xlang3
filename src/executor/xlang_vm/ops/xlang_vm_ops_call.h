@@ -20,6 +20,8 @@ limitations under the License.
 #include "../xlang_vm_names.h"
 #include "../xlang_vm_op_switch.h"
 
+#include "xlang_vm_ops_variables.h"
+
 #include "runtime_lock.h"
 
 #include "xlang3/attribute.h"

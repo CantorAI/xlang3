@@ -23,6 +23,7 @@ limitations under the License.
 
 #include <algorithm>
 #include <cctype>
+#include <cstring>
 #include <mutex>
 
 namespace xlang3 {

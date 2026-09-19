@@ -69,9 +69,11 @@ constexpr int64_t kSockDgram = 2;
 #ifdef _WIN32
 using NativeSocket = SOCKET;
 constexpr NativeSocket kInvalidSocket = INVALID_SOCKET;
+constexpr int kNotSocketError = WSAENOTSOCK;
 #else
 using NativeSocket = int;
 constexpr NativeSocket kInvalidSocket = -1;
+constexpr int kNotSocketError = ENOTSOCK;
 #endif
 
 Value g_default_socket_timeout;
@@ -830,7 +832,7 @@ bool socket_get_inheritable(Runtime& runtime, const Value* args, uint32_t argc, 
   auto* state = socket_state(args[0], error);
   if (state == nullptr || state->fd == kInvalidSocket) {
     error = "Bad file descriptor";
-    return raise_socket_code_error(runtime, "get_inheritable", WSAENOTSOCK, error);
+    return raise_socket_code_error(runtime, "get_inheritable", kNotSocketError, error);
   }
 #ifdef _WIN32
   DWORD flags = 0;
@@ -855,7 +857,7 @@ bool socket_set_inheritable(Runtime& runtime, const Value* args, uint32_t argc, 
   auto* state = socket_state(args[0], error);
   if (state == nullptr || state->fd == kInvalidSocket) {
     error = "Bad file descriptor";
-    return raise_socket_code_error(runtime, "set_inheritable", WSAENOTSOCK, error);
+    return raise_socket_code_error(runtime, "set_inheritable", kNotSocketError, error);
   }
   const bool inheritable = value_truthy(args[1]);
 #ifdef _WIN32
