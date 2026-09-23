@@ -38,6 +38,10 @@ if ($LASTEXITCODE -ne 0 -or $runtimeName -ne 'xlang3') {
 
 $previousPythonPath = $env:PYTHONPATH
 $previousCoverageFile = $env:COVERAGE_FILE
+$previousPycachePrefix = $env:PYTHONPYCACHEPREFIX
+$env:PYTHONPYCACHEPREFIX = Join-Path $ResultsDirectory (
+    'pycache-' + (Get-Date).ToUniversalTime().ToString('yyyyMMddTHHmmssfffffff') + '-' + $PID
+)
 $results = @()
 try {
     foreach ($entry in $matrix) {
@@ -79,7 +83,6 @@ try {
                 -n $Workers `
                 @deselectArgs `
                 --assert=plain `
-                -p no:logging `
                 "--timeout=$TimeoutSeconds" `
                 -W 'ignore:The anyio.abc.BlockingPortal alias is deprecated:DeprecationWarning' 2>&1 |
                 Tee-Object -LiteralPath $logPath
@@ -108,6 +111,7 @@ try {
 } finally {
     $env:PYTHONPATH = $previousPythonPath
     $env:COVERAGE_FILE = $previousCoverageFile
+    $env:PYTHONPYCACHEPREFIX = $previousPycachePrefix
 }
 
 $failed = @($results | Where-Object status -eq 'failed')

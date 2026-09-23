@@ -12503,18 +12503,170 @@ X3Status validate_value(PackageState* package, X3CallContext* context, X3Runtime
     }
     X3Value tag = x3_value_invalid();
     bool found_tag = false;
+    std::string discriminator_repr;
+    if (!render_with_builtin(package, runtime, "repr", discriminator_value,
+                             discriminator_repr)) {
+      package->host->value_release(discriminator_value);
+      package->host->value_release(choices);
+      return X3_STATUS_ERROR;
+    }
+    auto tagged_error = [&](const char* error_type, const std::string& message,
+                            const std::vector<std::pair<std::string, std::string>>& fields) {
+      X3Value error_context = package->host->value_dict(runtime);
+      for (const auto& field : fields) {
+        X3Value value = package->host->value_string_utf8(
+            runtime, field.second.data(), field.second.size());
+        const bool stored = dict_set_named(
+            package, runtime, error_context, field.first.c_str(), value);
+        package->host->value_release(value);
+        if (!stored) {
+          package->host->value_release(error_context);
+          return package->host->raise_class_error(
+              context, "RuntimeError", "failed to construct tagged-union error context");
+        }
+      }
+      const std::vector<std::string> empty;
+      const auto status = raise_validation_error(
+          package, context, runtime, error_type, message.c_str(), input,
+          location == nullptr ? empty : *location, nullptr,
+          x3_value_invalid(), error_context);
+      package->host->value_release(error_context);
+      return status;
+    };
     if (string_data(package, runtime, discriminator_value, discriminator)) {
       if (package->host->value_object_kind(input) != X3_OBJECT_KIND_DICT) {
+        X3Value from_attributes = x3_value_invalid();
+        const bool schema_attributes = dict_item(
+            package, runtime, schema, "from_attributes", from_attributes) &&
+            from_attributes.tag == X3_TAG_BOOL && from_attributes.as.b;
+        bool use_attributes = schema_attributes;
+        if (environment != nullptr && environment->from_attributes >= 0) {
+          use_attributes = environment->from_attributes != 0;
+        } else if (from_attributes.tag == X3_TAG_INVALID &&
+                   environment != nullptr) {
+          X3Value config_attributes = x3_value_invalid();
+          if (dict_find_string(package, runtime, environment->config,
+                               "from_attributes", config_attributes)) {
+            use_attributes = config_attributes.tag == X3_TAG_BOOL &&
+                             config_attributes.as.b;
+            package->host->value_release(config_attributes);
+          }
+        }
+        if (from_attributes.tag != X3_TAG_INVALID)
+          package->host->value_release(from_attributes);
+        if (use_attributes) {
+          found_tag = package->host->get_attr(
+              runtime, input, discriminator.c_str(), &tag) == X3_STATUS_OK;
+          if (!found_tag) package->host->clear_exception(context);
+        } else {
+          package->host->value_release(discriminator_value);
+          package->host->value_release(choices);
+          const std::vector<std::string> empty;
+          return raise_validation_error(
+              package, context, runtime, "dict_type",
+              "Input should be a valid dictionary", input,
+              location == nullptr ? empty : *location);
+        }
+      } else {
+        found_tag = dict_find_string(package, runtime, input, discriminator, tag);
+      }
+    } else if (package->host->value_object_kind(discriminator_value) ==
+                   X3_OBJECT_KIND_LIST ||
+               package->host->value_object_kind(discriminator_value) ==
+                   X3_OBJECT_KIND_TUPLE) {
+      discriminator_repr.clear();
+      uint64_t path_count = 0;
+      if (package->host->len(runtime, discriminator_value, &path_count) !=
+          X3_STATUS_OK) {
         package->host->value_release(discriminator_value);
         package->host->value_release(choices);
-        const std::vector<std::string> empty;
-        return raise_validation_error(
-            package, context, runtime, "model_attributes_type",
-            "Input should be a valid dictionary or object", input,
-            location == nullptr ? empty : *location);
+        return X3_STATUS_ERROR;
       }
-      found_tag = dict_find_string(package, runtime, input, discriminator, tag);
+      for (uint64_t path_index = 0; path_index < path_count; ++path_index) {
+        X3Value path = x3_value_invalid();
+        if (package->host->get_item(
+                runtime, discriminator_value,
+                x3_value_int64(static_cast<int64_t>(path_index)), &path) !=
+            X3_STATUS_OK) {
+          package->host->value_release(discriminator_value);
+          package->host->value_release(choices);
+          return X3_STATUS_ERROR;
+        }
+        uint64_t step_count = 0;
+        if (package->host->len(runtime, path, &step_count) != X3_STATUS_OK) {
+          package->host->value_release(path);
+          package->host->value_release(discriminator_value);
+          package->host->value_release(choices);
+          return X3_STATUS_ERROR;
+        }
+        std::string path_repr;
+        bool path_found = true;
+        X3Value current = input;
+        package->host->value_retain(current);
+        for (uint64_t step_index = 0; step_index < step_count; ++step_index) {
+          X3Value step = x3_value_invalid();
+          if (package->host->get_item(
+                  runtime, path,
+                  x3_value_int64(static_cast<int64_t>(step_index)), &step) !=
+              X3_STATUS_OK) {
+            package->host->value_release(current);
+            package->host->value_release(path);
+            package->host->value_release(discriminator_value);
+            package->host->value_release(choices);
+            return X3_STATUS_ERROR;
+          }
+          std::string step_repr;
+          if (!render_with_builtin(package, runtime, "repr", step, step_repr)) {
+            package->host->value_release(step);
+            package->host->value_release(current);
+            package->host->value_release(path);
+            package->host->value_release(discriminator_value);
+            package->host->value_release(choices);
+            return X3_STATUS_ERROR;
+          }
+          if (!path_repr.empty()) path_repr += ".";
+          path_repr += step_repr;
+          if (path_found) {
+            X3Value next = x3_value_invalid();
+            std::string step_name;
+            if (package->host->value_object_kind(current) ==
+                    X3_OBJECT_KIND_DICT &&
+                string_data(package, runtime, step, step_name)) {
+              path_found = dict_find_string(
+                  package, runtime, current, step_name, next);
+            } else {
+              path_found = package->host->get_item(
+                  runtime, current, step, &next) == X3_STATUS_OK;
+              if (!path_found) package->host->clear_exception(context);
+            }
+            package->host->value_release(current);
+            current = next;
+          }
+          package->host->value_release(step);
+        }
+        if (!discriminator_repr.empty()) discriminator_repr += " | ";
+        discriminator_repr += path_repr;
+        if (!found_tag && path_found && current.tag != X3_TAG_INVALID &&
+            current.tag != X3_TAG_NONE) {
+          tag = current;
+          current = x3_value_invalid();
+          found_tag = true;
+        }
+        if (current.tag != X3_TAG_INVALID)
+          package->host->value_release(current);
+        package->host->value_release(path);
+      }
     } else {
+      X3Value name = x3_value_invalid();
+      if (package->host->get_attr(
+              runtime, discriminator_value, "__name__", &name) == X3_STATUS_OK) {
+        std::string callable_name;
+        if (string_data(package, runtime, name, callable_name))
+          discriminator_repr = callable_name + "()";
+        package->host->value_release(name);
+      } else {
+        package->host->clear_exception(context);
+      }
       found_tag = package->host->call(
           runtime, discriminator_value, &input, 1, &tag) == X3_STATUS_OK;
       if (!found_tag) {
@@ -12522,14 +12674,18 @@ X3Status validate_value(PackageState* package, X3CallContext* context, X3Runtime
         package->host->value_release(choices);
         return X3_STATUS_ERROR;
       }
+      if (tag.tag == X3_TAG_NONE) {
+        package->host->value_release(tag);
+        tag = x3_value_invalid();
+        found_tag = false;
+      }
     }
     package->host->value_release(discriminator_value);
     if (!found_tag) {
       package->host->value_release(choices);
-      const std::vector<std::string> empty;
-      return raise_validation_error(package, context, runtime, "union_tag_not_found",
-          "Unable to extract tag using discriminator", input,
-          location == nullptr ? empty : *location);
+      return tagged_error("union_tag_not_found",
+          "Unable to extract tag using discriminator " + discriminator_repr,
+          {{"discriminator", discriminator_repr}});
     }
     uint64_t count = 0;
     if (package->host->len(runtime, choices, &count) != X3_STATUS_OK) {
@@ -12560,7 +12716,15 @@ X3Status validate_value(PackageState* package, X3CallContext* context, X3Runtime
         (void)string_data(package, runtime, choice_tag, tag_text);
         std::vector<std::string> choice_location = location == nullptr
             ? std::vector<std::string>{} : *location;
-        if (!tag_text.empty()) choice_location.push_back(tag_text);
+        if (choice_tag.tag == X3_TAG_INT64) {
+          choice_location.push_back(
+              std::string(kLocationIndexPrefix) + std::to_string(choice_tag.as.i64));
+        } else if (choice_tag.tag == X3_TAG_UINT64) {
+          choice_location.push_back(
+              std::string(kLocationIndexPrefix) + std::to_string(choice_tag.as.u64));
+        } else if (!tag_text.empty()) {
+          choice_location.push_back(tag_text);
+        }
         const auto status = validate_value(
             package, context, runtime, choice_schema, input, result, depth + 1,
             self_instance, definitions, &choice_location, environment);
@@ -12573,12 +12737,53 @@ X3Status validate_value(PackageState* package, X3CallContext* context, X3Runtime
       package->host->value_release(choice_schema);
       package->host->value_release(choice_tag);
     }
+    std::string tag_repr;
+    std::string tag_text;
+    if (!render_with_builtin(package, runtime, "str", tag, tag_text)) {
+      package->host->value_release(tag);
+      package->host->value_release(choices);
+      return X3_STATUS_ERROR;
+    }
+    X3Value tag_text_value = package->host->value_string_utf8(
+        runtime, tag_text.data(), tag_text.size());
+    const bool rendered_tag = render_with_builtin(
+        package, runtime, "repr", tag_text_value, tag_repr);
+    package->host->value_release(tag_text_value);
+    if (!rendered_tag) {
+      package->host->value_release(tag);
+      package->host->value_release(choices);
+      return X3_STATUS_ERROR;
+    }
+    std::string expected_tags;
+    for (uint64_t index = 0; index < count; ++index) {
+      X3Value choice_tag = x3_value_invalid();
+      X3Value choice_schema = x3_value_invalid();
+      if (package->host->dict_get_entry(runtime, choices, index,
+                                        &choice_tag, &choice_schema) != X3_STATUS_OK) {
+        package->host->value_release(tag);
+        package->host->value_release(choices);
+        return X3_STATUS_ERROR;
+      }
+      std::string choice_repr;
+      const bool rendered = render_with_builtin(
+          package, runtime, "repr", choice_tag, choice_repr);
+      package->host->value_release(choice_tag);
+      package->host->value_release(choice_schema);
+      if (!rendered) {
+        package->host->value_release(tag);
+        package->host->value_release(choices);
+        return X3_STATUS_ERROR;
+      }
+      if (!expected_tags.empty()) expected_tags += ", ";
+      expected_tags += choice_repr;
+    }
     package->host->value_release(tag);
     package->host->value_release(choices);
-    const std::vector<std::string> empty;
-    return raise_validation_error(package, context, runtime, "union_tag_invalid",
-        "Input tag does not match any expected tags", input,
-        location == nullptr ? empty : *location);
+    return tagged_error("union_tag_invalid",
+        "Input tag " + tag_repr + " found using " + discriminator_repr +
+            " does not match any of the expected tags: " + expected_tags,
+        {{"discriminator", discriminator_repr}, {"tag", tag_text},
+         {"expected_tags", expected_tags}});
   }
   if (type == "union") {
     X3Value choices = x3_value_invalid();

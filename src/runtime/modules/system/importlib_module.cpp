@@ -1669,7 +1669,7 @@ bool bootstrap_external_code_to_timestamp_pyc(
       ? static_cast<uint32_t>(args[1].as.i64) : 0;
   const uint32_t size = argc >= 3 && args[2].tag == ValueTag::Int64
       ? static_cast<uint32_t>(args[2].as.i64) : 0;
-  std::string data("\x3d\x58\x0d\x0a", 4);
+  std::string data("\x3e\x58\x0d\x0a", 4);
   append_uint32_le(data, 0);
   append_uint32_le(data, mtime);
   append_uint32_le(data, size);
@@ -1693,7 +1693,7 @@ bool bootstrap_external_code_to_hash_pyc(
     return false;
   }
   const bool checked = argc < 3 || value_truthy(args[2]);
-  std::string data("\x3d\x58\x0d\x0a", 4);
+  std::string data("\x3e\x58\x0d\x0a", 4);
   append_uint32_le(data, checked ? 3u : 1u);
   data.append(bytes_object_view(*hash));
   return append_marshaled_code(runtime, args[0], data, out, error);
@@ -1825,7 +1825,7 @@ void register_importlib_module(Runtime& runtime) {
       .value("DEBUG_BYTECODE_SUFFIXES", Value::list({Value::string(".pyc")}))
       .value("OPTIMIZED_BYTECODE_SUFFIXES", Value::list({Value::string(".pyc")}))
       .value("EXTENSION_SUFFIXES", Value::list({}))
-      .value("MAGIC_NUMBER", Value::bytes(std::string("\x3d\x58\x0d\x0a", 4)))
+      .value("MAGIC_NUMBER", Value::bytes(std::string("\x3e\x58\x0d\x0a", 4)))
       .function("cache_from_source", bootstrap_external_cache_from_source, nullptr, false, bootstrap_external_cache_from_source_kw)
       .function("source_from_cache", bootstrap_external_source_from_cache)
       .function("decode_source", bootstrap_external_decode_source)

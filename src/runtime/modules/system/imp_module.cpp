@@ -292,7 +292,7 @@ void register_imp_module(Runtime& runtime) {
       .function("_override_frozen_modules_for_tests", imp_override_frozen_modules_for_tests)
       .function("create_dynamic", imp_dynamic_not_available)
       .function("exec_dynamic", imp_dynamic_not_available)
-      .value("pyc_magic_number_token", Value::int64(0x0a0d583d))
+      .value("pyc_magic_number_token", Value::int64(0x0a0d583e))
       .value("check_hash_based_pycs", Value::string("default"));
   runtime.register_module("_imp", builder.finish());
 }

@@ -840,6 +840,20 @@ bool runtime_ast_to_statements(
     const std::string kind = runtime_ast_class_name(node);
     if (kind == "Pass") {
       out.push_back(std::make_unique<ast::PassStmt>());
+    } else if (kind == "Assert") {
+      Value test;
+      Value message;
+      if (!runtime_ast_attr(node, "test", test, error) ||
+          !runtime_ast_attr(node, "msg", message, error)) return false;
+      auto condition = runtime_ast_to_expr(test, error);
+      if (!condition) return false;
+      ast::ExprPtr detail;
+      if (message.tag != ValueTag::None) {
+        detail = runtime_ast_to_expr(message, error);
+        if (!detail) return false;
+      }
+      out.push_back(std::make_unique<ast::AssertStmt>(
+          std::move(condition), std::move(detail)));
     } else if (kind == "Expr") {
       Value value;
       if (!runtime_ast_attr(node, "value", value, error)) return false;

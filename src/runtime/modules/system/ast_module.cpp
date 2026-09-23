@@ -1181,6 +1181,16 @@ bool convert_parser_statements(
     } else if (auto* expression = dynamic_cast<const ast::ExprStmt*>(&statement)) {
       node = ast_instance(state, "Expr");
       object_set_attr(node, "value", convert_parser_expr(state, *expression->expr, false, error), error);
+    } else if (auto* assertion = dynamic_cast<const ast::AssertStmt*>(&statement)) {
+      node = ast_instance(state, "Assert");
+      Value test = convert_parser_expr(state, *assertion->condition, false, error);
+      if (test.tag == ValueTag::Invalid) return false;
+      Value message = assertion->message == nullptr
+          ? Value::none()
+          : convert_parser_expr(state, *assertion->message, false, error);
+      if (message.tag == ValueTag::Invalid) return false;
+      object_set_attr(node, "test", test, error);
+      object_set_attr(node, "msg", message, error);
     } else if (auto* conditional = dynamic_cast<const ast::IfStmt*>(&statement)) {
       std::vector<Value> body;
       std::vector<Value> otherwise;

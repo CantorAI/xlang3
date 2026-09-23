@@ -781,3 +781,23 @@ pass, including `signal.set_wakeup_fd`, socket constants, and Windows
 `OSError` constructor mapping. The direct Trio probe still fails at
 `RuntimeError: must be called from async context` in its generated Windows I/O
 module. Full Trio and untouched Starlette Trio coverage remains open.
+
+2026-09-23 merge checkpoint: the upstream pydantic-core validator dependency
+`pytest-run-parallel==0.10.0` is installed as a pure Python wheel in the
+isolated test target and pinned in `requirements-test.txt`. The unchanged
+validator directory collects 4470 tests; an initial broad run reached 1226
+passes, 115 upstream skips, and one failure before stopping. That failure was
+caused by a stale XLang bytecode cache for an unchanged archived source file,
+so the runtime's bytecode magic was bumped and the upstream matrix runner now
+uses an isolated cache prefix. With fresh bytecode, the untouched float and
+decimal validator files pass 691/691. The two new core fixtures verify stale
+bytecode invalidation and `_ast.Assert` round-trip behavior. Targeted
+untouched tagged-union validation now passes its first 46 cases, including
+path discriminators, callable discriminators, numeric choice locations, and
+`from_attributes` input. It next fails at the upstream custom-error contract;
+this and the broader validator matrix remain open. Three unchanged model
+validator tests also fail under `--assert=plain` on both XLang and CPython
+because they rely on pytest assertion rewriting; XLang's general `_ast`
+coverage for rewriting remains incomplete. The Release build, core fixtures,
+FastAPI local gate (including Uvicorn HTTP/HTTPS), and 53/53 CTest tests pass.
+These results are a checkpoint, not a full FastAPI compatibility claim.
