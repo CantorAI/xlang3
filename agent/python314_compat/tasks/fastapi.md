@@ -842,3 +842,33 @@ collection: `pydantic_core._pydantic_core.list_all_errors` is not exported.
 The pinned upstream API exposes 104 error definitions; this catalog and
 `PydanticKnownError` behavior require native implementation before the full
 suite can collect. Full FastAPI compatibility remains unverified.
+
+2026-09-23 error-catalog continuation (uncommitted on
+`fastapi-compatibility`): the native `list_all_errors` export now returns the
+complete 104-entry catalog for pinned pydantic-core 2.46.5. A canonical digest
+of every entry, field, and order matches CPython 3.14; the two unchanged
+upstream `test_all_errors*` cases pass on XLang3. The previously blocked
+`tests/test_errors.py` now collects, revealing a separate genuine gap:
+`PydanticCustomError` and `PydanticKnownError` are currently generic exception
+classes and lack their public `message()`, template, type, context, and
+rendering semantics. The first full-file attempt stopped at five such failures
+under `--maxfail=5`. This native exception behavior is the next boundary to
+implement; a passing catalog does not imply a passing error suite or full
+FastAPI compatibility.
+The focused FastAPI gate including the catalog oracle, Uvicorn HTTP/HTTPS,
+and all 53 CTest tests pass after this change.
+
+2026-09-23 error-contract checkpoint: native `PydanticCustomError` and
+`PydanticKnownError` now expose their public constructor, properties,
+`message()`, string/repr, context requirements, and validation-error
+conversion contracts. `ValidationError.from_exception_data` supports known
+and custom errors, JSON/Python message templates, input and URL options,
+and robust JSON serialization of otherwise unserializable inputs. The
+catalog and public FastAPI error-contract oracle fixtures match CPython
+3.14 with pinned pydantic-core 2.46.5. The untouched upstream
+`tests/test_errors.py` reports **191 passed, 1 skipped, 3 failed** under
+XLang3; the three open failures all require `validation_error_cause` and
+ExceptionGroup/traceback behavior. This checkpoint does not establish full
+FastAPI compatibility or completion of the seven-project matrix. The
+expanded local FastAPI gate, including Uvicorn HTTP/HTTPS, and all 53 CTest
+tests pass on the checkpoint build.
