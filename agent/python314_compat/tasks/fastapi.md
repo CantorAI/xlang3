@@ -31,9 +31,26 @@ for this goal on 2026-09-19.
   conceal failures. Every compatibility fix needs a regression fixture.
 - Run the deterministic build and fixture tools for each implementation batch;
   run the complete Release CTest suite before declaring the goal complete.
-- Do not commit or push until the user asks.
+- Commit and push only when the user asks. The user requested a checkpoint
+  merge and push to `main` on 2026-09-23.
 
-## Current evidence (2026-09-22)
+## Current evidence (2026-09-23)
+
+The checkpoint through `58b939d` was merged and pushed to `origin/main` at the
+user's request. This continuation on `fastapi-compatibility` implements
+`ast.Expression` compilation, parser-backed eval expressions,
+`ast.Interactive` compilation, dynamic `eval()` locals mapping lookup,
+exception-class constructor semantics for `raise`, keyword forwarding in
+`_contextvars.Context.run`, Python-sign modulo in the VM constant path, and
+`bytes.rjust`/`bytearray.rjust`. CPython 3.14 oracle fixtures cover each.
+The real Starlette session TestClient probe now persists a signed cookie;
+untouched Starlette asyncio session tests pass **10/10**, WSGI tests **6/6**,
+and body-limit tests **18/18**. The final Release build passed CTest **53/53**
+and all production FastAPI integration runner cases, including Uvicorn
+end-to-end. The untouched serial FastAPI and Starlette suites
+still expose a shared Trio Windows CFFI boundary:
+`CLibrary.CreateIoCompletionPort` is missing. Full pinned upstream
+compatibility remains unverified.
 
 Branch: `fastapi-compatibility`, created from synchronized main `c09174a`.
 Reference interpreter: CPython 3.14.7, used only for tests.

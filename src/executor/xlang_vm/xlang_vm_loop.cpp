@@ -1227,13 +1227,29 @@ RuntimeResult Interpreter::run_function(
 
   auto normalize_exception = [&](const Value& value) -> Value {
     if (auto* klass = value_as_class(value)) {
-      (void)klass;
-      return Value::instance(value);
+      const Value* base_value = runtime_.find_builtin("BaseException");
+      auto* base = base_value == nullptr ? nullptr : value_as_class(*base_value);
+      if (base == nullptr || !class_is_subclass(klass, base)) {
+        return runtime_.make_exception("TypeError", "exceptions must derive from BaseException");
+      }
+      Value instance;
+      std::string init_error;
+      if (runtime_call_callable(runtime_, value, nullptr, 0, instance, init_error)) {
+        return instance;
+      }
+      Value pending;
+      if (runtime_.take_pending_exception(pending)) return pending;
+      return runtime_.make_exception("RuntimeError", init_error);
     }
-    if (value_as_instance(value) != nullptr) {
-      return value;
+    if (auto* instance = value_as_instance(value)) {
+      auto* klass = value_as_class(instance->klass);
+      const Value* base_value = runtime_.find_builtin("BaseException");
+      auto* base = base_value == nullptr ? nullptr : value_as_class(*base_value);
+      if (klass != nullptr && base != nullptr && class_is_subclass(klass, base)) {
+        return value;
+      }
     }
-    return runtime_.make_exception("RuntimeError", value_to_string(value));
+    return runtime_.make_exception("TypeError", "exceptions must derive from BaseException");
   };
 
   auto dispatch_exception = [&](Value exception,

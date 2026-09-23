@@ -1299,6 +1299,21 @@ bool ast_parse_kw(
       value_assign_fast(out, expression);
       return true;
     }
+    error.clear();
+    auto parsed_expression = parse_expression_source(string_object_to_string(*source));
+    if (parsed_expression.errors.empty() && parsed_expression.expression != nullptr) {
+      parsed = convert_parser_expr(state, *parsed_expression.expression, false, error);
+      if (parsed.tag != ValueTag::Invalid) {
+        Value expression = ast_instance(state, "Expression");
+        if (expression.tag == ValueTag::Invalid) {
+          error = "missing _ast Expression class";
+          return false;
+        }
+        object_set_attr(expression, "body", parsed, error);
+        value_assign_fast(out, expression);
+        return true;
+      }
+    }
   }
   Value klass = mode == "eval" ? node_class(state, "Expression") : node_class(state, "Module");
   out = Value::instance(klass);

@@ -16,6 +16,7 @@ limitations under the License.
 
 #include "xlang3/attribute.h"
 #include "xlang3/builtin_methods.h"
+#include "xlang3/eval_locals.h"
 #include "xlang3/functional_iterators.h"
 #include "xlang3/ir.h"
 #include "xlang3/mapping.h"
@@ -38,10 +39,36 @@ limitations under the License.
 #include <set>
 #include <algorithm>
 #include <string>
+#include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
 namespace xlang3 {
+
+namespace {
+struct EvalLocalsContext {
+  Runtime* runtime;
+  const ir::Function* function;
+  Value locals;
+};
+thread_local std::vector<EvalLocalsContext> eval_locals_stack;
+} // namespace
+
+void push_eval_locals(Runtime& runtime, const ir::Function* function, const Value& locals) {
+  eval_locals_stack.push_back({&runtime, function, locals});
+}
+
+void pop_eval_locals(Runtime& runtime) {
+  if (!eval_locals_stack.empty() && eval_locals_stack.back().runtime == &runtime)
+    eval_locals_stack.pop_back();
+}
+
+const Value* current_eval_locals(Runtime& runtime, const ir::Function* function) {
+  for (auto it = eval_locals_stack.rbegin(); it != eval_locals_stack.rend(); ++it) {
+    if (it->runtime == &runtime && it->function == function) return &it->locals;
+  }
+  return nullptr;
+}
 
 namespace {
 
@@ -567,6 +594,112 @@ ast::ExprPtr runtime_ast_to_expr(const Value& node, std::string& error) {
     if (!runtime_ast_attr(node, "value", value, error)) return {};
     return runtime_ast_constant(value, error);
   }
+  if (kind == "UnaryOp") {
+    Value operation;
+    Value operand;
+    if (!runtime_ast_attr(node, "op", operation, error) ||
+        !runtime_ast_attr(node, "operand", operand, error)) return {};
+    const std::string op_kind = runtime_ast_class_name(operation);
+    std::string op;
+    if (op_kind == "Not") op = "not";
+    else if (op_kind == "UAdd") op = "+";
+    else if (op_kind == "USub") op = "-";
+    else if (op_kind == "Invert") op = "~";
+    else {
+      error = "unsupported AST unary operator: " + op_kind;
+      return {};
+    }
+    auto converted = runtime_ast_to_expr(operand, error);
+    if (!converted) return {};
+    return std::make_unique<ast::UnaryExpr>(std::move(op), std::move(converted));
+  }
+  if (kind == "BoolOp") {
+    Value operation;
+    Value values;
+    if (!runtime_ast_attr(node, "op", operation, error) ||
+        !runtime_ast_attr(node, "values", values, error) ||
+        value_as_list(values) == nullptr) return {};
+    const std::string op_kind = runtime_ast_class_name(operation);
+    if (op_kind != "And" && op_kind != "Or") {
+      error = "unsupported AST boolean operator: " + op_kind;
+      return {};
+    }
+    const auto& items = value_as_list(values)->items;
+    if (items.size() < 2) {
+      error = "BoolOp with less than 2 values";
+      return {};
+    }
+    auto result = runtime_ast_to_expr(items[0], error);
+    if (!result) return {};
+    for (size_t index = 1; index < items.size(); ++index) {
+      auto next = runtime_ast_to_expr(items[index], error);
+      if (!next) return {};
+      result = std::make_unique<ast::BinaryExpr>(
+          std::move(result), op_kind == "And" ? "and" : "or", std::move(next));
+    }
+    return result;
+  }
+  if (kind == "BinOp" || kind == "Compare") {
+    Value left;
+    if (!runtime_ast_attr(node, "left", left, error)) return {};
+    auto first = runtime_ast_to_expr(left, error);
+    if (!first) return {};
+    static const std::unordered_map<std::string, std::string> operators = {
+        {"Add", "+"}, {"Sub", "-"}, {"Mult", "*"}, {"MatMult", "@"},
+        {"Div", "/"}, {"FloorDiv", "//"}, {"Mod", "%"}, {"Pow", "**"},
+        {"LShift", "<<"}, {"RShift", ">>"}, {"BitOr", "|"},
+        {"BitXor", "^"}, {"BitAnd", "&"},
+        {"Eq", "=="}, {"NotEq", "!="}, {"Lt", "<"}, {"LtE", "<="},
+        {"Gt", ">"}, {"GtE", ">="}, {"Is", "is"}, {"IsNot", "is not"},
+        {"In", "in"}, {"NotIn", "not in"}};
+    if (kind == "BinOp") {
+      Value operation;
+      Value right;
+      if (!runtime_ast_attr(node, "op", operation, error) ||
+          !runtime_ast_attr(node, "right", right, error)) return {};
+      const std::string op_kind = runtime_ast_class_name(operation);
+      auto found = operators.find(op_kind);
+      if (found == operators.end()) {
+        error = "unsupported AST binary operator: " + op_kind;
+        return {};
+      }
+      auto second = runtime_ast_to_expr(right, error);
+      if (!second) return {};
+      return std::make_unique<ast::BinaryExpr>(
+          std::move(first), found->second, std::move(second));
+    }
+    Value operations;
+    Value comparators;
+    if (!runtime_ast_attr(node, "ops", operations, error) ||
+        !runtime_ast_attr(node, "comparators", comparators, error) ||
+        value_as_list(operations) == nullptr ||
+        value_as_list(comparators) == nullptr) return {};
+    const auto& op_items = value_as_list(operations)->items;
+    const auto& value_items = value_as_list(comparators)->items;
+    if (op_items.empty() || op_items.size() != value_items.size()) {
+      error = "Compare has invalid operators or comparators";
+      return {};
+    }
+    std::vector<std::pair<std::string, ast::ExprPtr>> pairs;
+    for (size_t index = 0; index < op_items.size(); ++index) {
+      const std::string op_kind = runtime_ast_class_name(op_items[index]);
+      auto found = operators.find(op_kind);
+      if (found == operators.end()) {
+        error = "unsupported AST comparison operator: " + op_kind;
+        return {};
+      }
+      auto converted = runtime_ast_to_expr(value_items[index], error);
+      if (!converted) return {};
+      pairs.emplace_back(found->second, std::move(converted));
+    }
+    if (pairs.size() == 1) {
+      auto pair = std::move(pairs.front());
+      return std::make_unique<ast::BinaryExpr>(
+          std::move(first), std::move(pair.first), std::move(pair.second));
+    }
+    return std::make_unique<ast::CompareChainExpr>(
+        std::move(first), std::move(pairs));
+  }
   if (kind == "Attribute") {
     Value owner;
     Value name;
@@ -821,13 +954,42 @@ bool runtime_ast_to_statements(
 bool compile_runtime_ast_to_code(
     Runtime& runtime, const Value& tree, const std::string& filename,
     const std::string& mode, Value& out, std::string& error) {
-  if (runtime_ast_class_name(tree) != "Module" || mode != "exec") {
-    return raise_type_error(runtime, "compile() AST root must be Module in exec mode", error);
+  const std::string root = runtime_ast_class_name(tree);
+  if (mode != "exec" && mode != "eval" && mode != "single") {
+    return raise_type_error(runtime,
+        "compile() mode must be 'exec', 'eval', or 'single'", error);
+  }
+  const std::string expected = mode == "eval" ? "Expression"
+      : mode == "single" ? "Interactive" : "Module";
+  if (root != expected) {
+    return raise_type_error(runtime, "expected " + expected + " node, got " + root, error);
   }
   Value body;
   if (!runtime_ast_attr(tree, "body", body, error)) return false;
   ast::Module module_ast;
-  if (!runtime_ast_to_statements(body, module_ast.body, error)) {
+  if (mode == "eval") {
+    auto expr = runtime_ast_to_expr(body, error);
+    if (expr) module_ast.body.push_back(std::make_unique<ast::ReturnStmt>(std::move(expr)));
+  } else if (!runtime_ast_to_statements(body, module_ast.body, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (mode == "single" && value_as_list(body) != nullptr &&
+      !value_as_list(body)->items.empty() &&
+      runtime_ast_class_name(value_as_list(body)->items.back()) == "Expr") {
+    Value expression;
+    if (!runtime_ast_attr(value_as_list(body)->items.back(), "value", expression, error)) {
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    auto converted = runtime_ast_to_expr(expression, error);
+    if (!converted) {
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    module_ast.body.back() = std::make_unique<ast::ReturnStmt>(std::move(converted));
+  }
+  if (!error.empty()) {
     runtime.raise_class_error("TypeError", error);
     return false;
   }
@@ -987,7 +1149,8 @@ bool eval_globals_from_args(
     const Value* args,
     uint32_t argc,
     Value& out,
-    std::string& error) {
+    std::string& error,
+    bool explicit_locals_are_dynamic = false) {
   Value globals;
   const bool globals_is_dict = argc >= 2 && namespace_dict_storage(args[1]) != nullptr;
   if (argc >= 2 && value_as_module(args[1]) != nullptr) {
@@ -1001,13 +1164,15 @@ bool eval_globals_from_args(
     return false;
   }
 
-  const bool has_distinct_locals = argc >= 3 && args[2].tag != ValueTag::None;
+  const bool has_distinct_locals = argc >= 3 && args[2].tag != ValueTag::None &&
+      !explicit_locals_are_dynamic;
   Value implicit_locals;
   const bool use_implicit_locals = argc < 2 || args[1].tag == ValueTag::None;
   if (use_implicit_locals) {
     implicit_locals = runtime.current_locals_snapshot();
   }
-  const bool has_implicit_locals = use_implicit_locals && value_as_dict(implicit_locals) != nullptr;
+  const bool has_implicit_locals = use_implicit_locals && !explicit_locals_are_dynamic &&
+      value_as_dict(implicit_locals) != nullptr;
   if (!globals_is_dict && !has_distinct_locals && !has_implicit_locals) {
     value_assign_fast(out, globals);
     return true;
@@ -2948,8 +3113,9 @@ bool builtin_eval(
     }
   }
 
+  const bool dynamic_locals = argc >= 3 && args[2].tag != ValueTag::None;
   Value globals_module;
-  if (!eval_globals_from_args(runtime, args, argc, globals_module, error)) {
+  if (!eval_globals_from_args(runtime, args, argc, globals_module, error, dynamic_locals)) {
     return raise_type_error(runtime, "eval() globals and locals must be dict or module", error);
   }
   if (value_as_module(globals_module) == nullptr) {
@@ -2964,6 +3130,20 @@ bool builtin_eval(
   if (code->mode != "eval") {
     return builtin_exec(runtime, args, argc, out, error, nullptr);
   }
+  if (!dynamic_locals) {
+    return run_code_object(runtime, *code, std::move(globals_module), out, error);
+  }
+  Value getitem;
+  std::string attribute_error;
+  if (namespace_dict_storage(args[2]) == nullptr &&
+      !object_get_attr(args[2], "__getitem__", getitem, attribute_error)) {
+    return raise_type_error(runtime, "locals must be a mapping", error);
+  }
+  struct EvalLocalsGuard {
+    Runtime& runtime;
+    ~EvalLocalsGuard() { pop_eval_locals(runtime); }
+  } guard{runtime};
+  push_eval_locals(runtime, &code->module->functions[code->function_id], args[2]);
   return run_code_object(runtime, *code, std::move(globals_module), out, error);
 }
 

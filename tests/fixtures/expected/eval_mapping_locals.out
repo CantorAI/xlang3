@@ -1,0 +1,4 @@
+3 ['x', 'x']
+9 ['x', 'x', 'y']
+7
+ValueError lookup failed

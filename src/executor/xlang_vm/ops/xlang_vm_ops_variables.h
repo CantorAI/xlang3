@@ -20,6 +20,7 @@ limitations under the License.
 
 #include "xlang3/module_object.h"
 #include "xlang3/expression.h"
+#include "xlang3/eval_locals.h"
 #include "xlang3/functional_iterators.h"
 #include "xlang3/perf_counters.h"
 #include "xlang3/runtime.h"
@@ -348,7 +349,32 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_global(
   auto* globals_module_obj = value_as_module(globals_module);
   const uint64_t current_globals_version = globals_module_obj != nullptr ? globals_module_obj->version : globals_version;
   auto& global_cache = instr_cache.global;
-  if (global_cache.kind != 0) {
+  Value eval_locals;
+  if (const Value* active_locals = current_eval_locals(runtime, &fn)) {
+    value_assign_fast(eval_locals, *active_locals);
+    Value key = Value::string(fn.names[in.a]);
+    std::string lookup_error;
+    if (mapping_get_item_runtime(runtime, eval_locals, key, regs[in.dst], lookup_error)) {
+      global_cache.kind = 0;
+      return XlangVMOpFlow::Next;
+    }
+    Value pending;
+    if (runtime.take_pending_exception(pending)) {
+      const Value* key_error_value = runtime.find_builtin("KeyError");
+      auto* expected = key_error_value == nullptr ? nullptr : value_as_class(*key_error_value);
+      auto* actual = value_as_class(runtime.exception_type(pending));
+      if (expected == nullptr || actual == nullptr ||
+          !class_is_subclass(actual, expected)) {
+        return raise_exception_value(std::move(pending))
+            ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+      }
+    } else if (lookup_error != "key not found") {
+      return raise_runtime_error(lookup_error)
+          ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    }
+    global_cache.kind = 0;
+  }
+  if (global_cache.kind != 0 && eval_locals.tag == ValueTag::Invalid) {
     if (globals_module_obj != nullptr && global_cache.kind == 1) {
       const auto slot = global_cache.slot;
       if (global_cache.version == current_globals_version &&

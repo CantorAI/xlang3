@@ -373,7 +373,9 @@ bool context_copy(Runtime&, const Value* args, uint32_t argc, Value& out, std::s
   return true;
 }
 
-bool context_run(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool context_run_kw(Runtime& runtime, const Value* args, uint32_t argc,
+                    const NativeKeywordArg* kwargs, uint32_t kwargc,
+                    Value& out, std::string& error, void*) {
   if (argc < 2) {
     error = "Context.run() expected callable and optional arguments";
     return false;
@@ -382,12 +384,27 @@ bool context_run(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
   if (state == nullptr) {
     return false;
   }
+  std::vector<std::pair<std::string, Value>> keyword_values;
+  keyword_values.reserve(kwargc);
+  for (uint32_t index = 0; index < kwargc; ++index) {
+    if (kwargs[index].name == nullptr || kwargs[index].value == nullptr) {
+      error = "Context.run() received invalid keyword argument";
+      return false;
+    }
+    keyword_values.emplace_back(kwargs[index].name, *kwargs[index].value);
+  }
   auto previous = g_context_values;
   g_context_values = state->values;
-  const bool ok = runtime_call_callable(runtime, args[1], args + 2, argc - 2, out, error);
+  const bool ok = runtime_call_callable_kw(
+      runtime, args[1], args + 2, argc - 2, keyword_values, out, error);
   state->values = g_context_values;
   g_context_values = std::move(previous);
   return ok;
+}
+
+bool context_run(Runtime& runtime, const Value* args, uint32_t argc,
+                 Value& out, std::string& error, void* user_data) {
+  return context_run_kw(runtime, args, argc, nullptr, 0, out, error, user_data);
 }
 
 bool copy_context(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
@@ -437,7 +454,9 @@ Value make_context_class(Runtime& runtime) {
   attrs.push_back({"__len__", runtime.make_native_function("_contextvars.Context.__len__", context_len)});
   attrs.push_back({"__iter__", runtime.make_native_function("_contextvars.Context.__iter__", context_iter)});
   attrs.push_back({"copy", runtime.make_native_function("_contextvars.Context.copy", context_copy)});
-  attrs.push_back({"run", runtime.make_native_function("_contextvars.Context.run", context_run)});
+  attrs.push_back({"run", runtime.make_native_function(
+      "_contextvars.Context.run", context_run, nullptr, nullptr, nullptr,
+      false, context_run_kw)});
   return Value::class_object("Context", std::move(attrs));
 }
 

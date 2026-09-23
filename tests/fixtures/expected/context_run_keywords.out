@@ -1,0 +1,4 @@
+(5, 'inside')
+outside inside
+ValueError boom
+outside after failure

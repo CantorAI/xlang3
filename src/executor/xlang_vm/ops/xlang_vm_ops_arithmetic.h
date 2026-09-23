@@ -340,13 +340,6 @@ XLANG3_HOT_INLINE XlangVMOpFlow mod_const(
   }
   const auto& lhs = regs[in.a];
   const auto& rhs = fn.constants[in.b];
-  if (lhs.tag == ValueTag::Int64 && rhs.tag == ValueTag::Int64) {
-    if (rhs.as.i64 == 0) {
-      return raise_zero_division(runtime, "integer modulo by zero", std::forward<RaiseExceptionValue>(raise_exception_value));
-    }
-    value_set_int64(regs[in.dst], lhs.as.i64 % rhs.as.i64);
-    return XlangVMOpFlow::Next;
-  }
   bool modulo_by_zero = false;
   if (!fast_mod(lhs, rhs, regs[in.dst], modulo_by_zero)) {
     if (modulo_by_zero) {

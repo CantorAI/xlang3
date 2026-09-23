@@ -1150,6 +1150,41 @@ bool bytes_ljust_method(Runtime& runtime, const Value* args, uint32_t argc, Valu
   return true;
 }
 
+bool bytes_rjust_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 2 || argc > 3) {
+    error = "bytes.rjust expected width and optional fill byte";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (args[1].tag != ValueTag::Int64) {
+    error = "integer argument expected";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  std::string_view text;
+  if (!get_bytes_like_view(args[0], "bytes.rjust target", text, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  char fill = ' ';
+  if (argc == 3) {
+    std::string_view fill_view;
+    if (!get_bytes_like_view(args[2], "bytes.rjust fill", fill_view, error) || fill_view.size() != 1) {
+      error = "rjust() argument 2 must be a byte string of length 1";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    fill = fill_view[0];
+  }
+  std::string result(text);
+  const int64_t width = args[1].as.i64;
+  if (width > static_cast<int64_t>(result.size())) {
+    result.insert(0, static_cast<size_t>(width - static_cast<int64_t>(result.size())), fill);
+  }
+  out = make_binary_like_result(args[0], std::move(result));
+  return true;
+}
+
 bool bytes_partition_common(const Value* args, uint32_t argc, Value& out, std::string& error, bool reverse) {
   if (!method_check_argc(argc, 2, reverse ? "bytes.rpartition" : "bytes.partition", error)) {
     return false;
@@ -2355,6 +2390,8 @@ bool bytes_splitlines_kw_method(
 bool bytes_install_class_methods(Runtime& runtime, ClassObject& bytes_class) {
   bytes_class.attrs["__getitem__"] = runtime.make_native_function("bytes.__getitem__", bytes_getitem_method);
   bytes_class.attrs["ljust"] = runtime.make_native_function("bytes.ljust", bytes_ljust_method);
+  bytes_class.attrs["rjust"] = runtime.make_native_function(
+      bytes_class.name == "bytearray" ? "bytearray.rjust" : "bytes.rjust", bytes_rjust_method);
   bytes_class.attrs["translate"] = runtime.make_native_function(
       "bytes.translate", bytes_translate_method, nullptr, nullptr, nullptr,
       false, bytes_translate_method_kw);
@@ -2430,6 +2467,7 @@ bool bytes_get_method(const Value& object, const std::string& name, Value& out) 
       {"rfind", "bytes.rfind", bytes_rfind_method},
       {"rindex", "bytes.rindex", bytes_rindex_method},
       {"rpartition", "bytes.rpartition", bytes_rpartition_method},
+      {"rjust", "bytes.rjust", bytes_rjust_method},
       {"rstrip", "bytes.rstrip", bytes_rstrip_method},
       {"rsplit", "bytes.rsplit", bytes_rsplit_method, nullptr, false, bytes_rsplit_kw_method},
       {"split", "bytes.split", bytes_split_method},
@@ -2483,6 +2521,7 @@ bool bytearray_get_method(const Value& object, const std::string& name, Value& o
       {"rfind", "bytearray.rfind", bytes_rfind_method},
       {"rindex", "bytearray.rindex", bytes_rindex_method},
       {"rpartition", "bytearray.rpartition", bytes_rpartition_method},
+      {"rjust", "bytearray.rjust", bytes_rjust_method},
       {"rstrip", "bytearray.rstrip", bytes_rstrip_method},
       {"rsplit", "bytearray.rsplit", bytes_rsplit_method, nullptr, false, bytes_rsplit_kw_method},
       {"split", "bytearray.split", bytes_split_method},

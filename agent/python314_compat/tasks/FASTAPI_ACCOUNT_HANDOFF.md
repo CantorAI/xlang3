@@ -1,11 +1,47 @@
 # XLang3 FastAPI compatibility account handoff
 
-Last updated: 2026-09-22 (America/Los_Angeles)
+Last updated: 2026-09-23 (America/Los_Angeles)
 
 This file transfers the active engineering goal to a new Codex account on the
 same Windows PC. The detailed chronological ledger is
 [`fastapi.md`](fastapi.md). Read both files before editing. The current working
 tree is authoritative.
+
+## Current checkpoint (2026-09-23)
+
+The user's requested checkpoint was committed as `58b939d`, fast-forwarded to
+`main`, and pushed to `origin/main`. `fastapi-compatibility`, `main`, and
+`origin/main` all pointed to that commit at the start of this continuation.
+The current checkout is `fastapi-compatibility`. Ignore unrelated generated
+and scratch files in `git status`.
+
+The production FastAPI integration runner passed after the 8 MB Windows stack
+reserve, `dict.pop` dispatch, and Pydantic mapping-input fixes. Release CTest
+passed **53/53** again on 2026-09-23 (35.39 seconds). The untouched serial
+FastAPI suite collected **3335 items / 10 skipped** and reached 5% before the
+checkpoint pause; `test_upload_file[trio]` failed because the native CFFI
+`CLibrary` has no `CreateIoCompletionPort` symbol. The untouched Starlette
+suite collected **1065 items**; its first five failures are the same Trio
+Windows CFFI boundary. Neither full upstream suite is green.
+
+This continuation adds `ast.Expression` compilation in eval mode, operator
+conversion, parser-backed `ast.parse(..., mode="eval")`, `ast.Interactive`
+compilation, dynamic `eval()` locals mapping lookup, exception-class
+constructor semantics for `raise`, `_contextvars.Context.run` keyword
+forwarding, Python-sign modulo in the VM's constant path, and
+`bytes.rjust`/`bytearray.rjust`. CPython 3.14 oracle fixtures cover these.
+`-k` selection now works. Untouched Starlette asyncio session tests pass
+10/10, WSGI tests 6/6, and body-limit tests 18/18. A real TestClient
+session cookie persists across requests and verifies with itsdangerous.
+The final Release build passed CTest 53/53 and all production FastAPI
+integration runner cases, including Uvicorn end-to-end. The complete
+upstream suites are still not green.
+
+The other major frontier is generated CFFI ABI support in
+`modules/cffi/cffi_backend_module.cpp`: callable DLL symbols, owned C data,
+arrays/structures, `ffi.new`, `ffi.from_buffer`, `ffi.sizeof`, and Win32 error
+state. Trio's unchanged `_generated_windows_ffi.py` supplies signatures and
+declarations. Do not substitute a Trio-specific function shim.
 
 ## First action in the new account
 
@@ -66,11 +102,10 @@ stash, commit, or discard the existing working tree.
 - Release executable: `D:\CantorAI\xlang3\build\Release\xlang3.exe`
 - CMake executable:
   `C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe`
-- The working tree contains a large set of intentional modified and untracked
-  files from this goal. Never run `git reset`, `git clean`, checkout-overwrite,
-  or any broad deletion. Inspect `git status --short` before work.
-- Nothing has been committed or pushed for this goal.
-- The most recent native pydantic-core Release package build succeeded.
+- Inspect `git status --short` before work. Preserve unrelated generated
+  files; do not run broad cleanup commands.
+- The first published checkpoint is `58b939d` on `origin/main`; inspect the
+  current branch and remote for subsequent checkpoints.
 
 Set Windows build temp directories before compiling:
 
@@ -110,8 +145,9 @@ Use pytest with:
 --assert=plain -c D:\CantorAI\xlang3\scratch\empty_pytest.ini
 ```
 
-Prefer exact node IDs or complete files. Do not use `-k`; a known XLang3
-evaluation-AST incompatibility can make `-k` selection misleading.
+Prefer exact node IDs or complete files for targeted diagnostics. `-k` now
+works after implementing eval AST compilation and dynamic custom locals
+mapping lookup.
 
 Pinned production dependencies are in `tests/fastapi/requirements.txt`:
 FastAPI 0.141.1, Starlette 1.6.0, Pydantic 2.13.5, pydantic-core 2.46.5,
@@ -183,7 +219,7 @@ Argon2, CFFI boundaries, Python semantics, debugpy, Coverage, Typer, Rich,
 SQLAlchemy, and fixture names, is recorded in `fastapi.md`. Do not infer that a
 missing item here is unfinished without checking that ledger.
 
-## Current frontier: remaining untouched pydantic-core validator sweep
+## Earlier frontier: remaining untouched pydantic-core validator sweep
 
 Active source file:
 

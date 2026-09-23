@@ -1,0 +1,6 @@
+b'   ab'
+b'000ab'
+b'ab'
+bytearray(b'00ab')
+1790149004
+TypeError
