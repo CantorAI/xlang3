@@ -18,6 +18,7 @@ limitations under the License.
 #include "xlang3/mapping.h"
 #include "xlang3/object_model.h"
 
+
 namespace xlang3 {
 
 XLANG3_NOINLINE bool xlang_vm_load_attr_cached(
@@ -32,11 +33,15 @@ XLANG3_NOINLINE bool xlang_vm_load_attr_cached(
       return attribute_get(object, name, out, error);
     }
     auto* klass = value_as_class(instance->klass);
+    const bool has_attribute_dict = value_as_dict(instance_attribute_storage(*instance)) != nullptr;
+    const bool compact_attribute_visible = !has_attribute_dict || name.rfind("__xlang3_", 0) == 0;
     if (klass != nullptr &&
         cache.kind == AttrSiteKind::InstanceSlot &&
         cache.owner == &klass->header &&
         cache.version == klass->version &&
-        cache.index < instance_slot_count(instance)) {
+        cache.index < instance_slot_count(instance) &&
+        cache.index < klass->instance_slot_names.size() &&
+        klass->instance_slot_names[cache.index] == name) {
       const auto& slot_value = instance_slot_at(instance, cache.index);
       if (slot_value.tag != ValueTag::Invalid) {
         value_assign_fast(out, slot_value);
@@ -87,7 +92,7 @@ XLANG3_NOINLINE bool xlang_vm_load_attr_cached(
       }
       error.clear();
     }
-    if (klass != nullptr &&
+    if (compact_attribute_visible && klass != nullptr &&
         cache.kind == AttrSiteKind::InstanceAttr &&
         cache.owner == &klass->header &&
         cache.version == klass->version &&
@@ -98,7 +103,10 @@ XLANG3_NOINLINE bool xlang_vm_load_attr_cached(
     }
     if (klass != nullptr) {
       auto slot_it = klass->instance_slot_indices.find(name);
-      if (slot_it != klass->instance_slot_indices.end() && slot_it->second < instance_slot_count(instance)) {
+      if (slot_it != klass->instance_slot_indices.end() &&
+          slot_it->second < instance_slot_count(instance) &&
+          slot_it->second < klass->instance_slot_names.size() &&
+          klass->instance_slot_names[slot_it->second] == name) {
         const auto& slot_value = instance_slot_at(instance, slot_it->second);
         if (slot_value.tag != ValueTag::Invalid) {
           cache.index = slot_it->second;
@@ -110,7 +118,7 @@ XLANG3_NOINLINE bool xlang_vm_load_attr_cached(
         }
       }
     }
-    for (size_t attr_i = 0; attr_i < instance->attrs.size(); ++attr_i) {
+    for (size_t attr_i = 0; compact_attribute_visible && attr_i < instance->attrs.size(); ++attr_i) {
       if (instance->attrs[attr_i].first == name) {
         cache.index = static_cast<uint32_t>(attr_i);
         cache.kind = AttrSiteKind::InstanceAttr;
@@ -133,7 +141,7 @@ XLANG3_NOINLINE bool xlang_vm_store_attr_cached(
     const Value& value,
     AttrSiteCache& cache,
     std::string& error) {
-  if (name == "__class__") {
+  if (name == "__class__" || name == "__dict__") {
     cache.kind = AttrSiteKind::Empty;
     return object_set_attr(object, name, value, error);
   }
@@ -147,12 +155,10 @@ XLANG3_NOINLINE bool xlang_vm_store_attr_cached(
         cache.kind == AttrSiteKind::InstanceSlot &&
         cache.owner == &klass->header &&
         cache.version == klass->version &&
-        cache.index < instance_slot_count(instance)) {
+        cache.index < instance_slot_count(instance) &&
+        cache.index < klass->instance_slot_names.size() &&
+        klass->instance_slot_names[cache.index] == name) {
       value_assign_fast(instance_slot_at(instance, cache.index), value);
-      if (value_as_dict(instance_attribute_storage(*instance)) != nullptr) {
-        std::string ignored;
-        mapping_set_item(instance_attribute_storage(*instance), Value::string(name), value, ignored);
-      }
       return true;
     }
     if (klass != nullptr &&
@@ -191,16 +197,15 @@ XLANG3_NOINLINE bool xlang_vm_store_attr_cached(
     }
     if (klass != nullptr) {
       auto slot_it = klass->instance_slot_indices.find(name);
-      if (slot_it != klass->instance_slot_indices.end() && slot_it->second < instance_slot_count(instance)) {
+      if (slot_it != klass->instance_slot_indices.end() &&
+          slot_it->second < instance_slot_count(instance) &&
+          slot_it->second < klass->instance_slot_names.size() &&
+          klass->instance_slot_names[slot_it->second] == name) {
         cache.index = slot_it->second;
         cache.kind = AttrSiteKind::InstanceSlot;
         cache.owner = &klass->header;
         cache.version = klass->version;
         value_assign_fast(instance_slot_at(instance, slot_it->second), value);
-        if (value_as_dict(instance_attribute_storage(*instance)) != nullptr) {
-          std::string ignored;
-          mapping_set_item(instance_attribute_storage(*instance), Value::string(name), value, ignored);
-        }
         return true;
       }
     }

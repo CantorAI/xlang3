@@ -1,0 +1,36 @@
+(1+0j) 1+0j
+(1.5+0j) 1.5+0j
+(1+2j) 1+2j
+(2+3j) 2+3j
+True
+ValueError
+len
+4 4
+4 word
+7 seven
+[1, 2]
+[3, 4]
+8 b'8'
+[{'type': 'positive_identifier', 'loc': (), 'msg': 'identifier 42 is invalid', 'input': 'wrong', 'ctx': {'identifier': 42}}]
+True
+missing_sentinel_error
+('4',) {'scale': '2.5'}
+((4,), {'scale': 2.5})
+10.0
+ValidatorIterator 0 []
+1 1 ['start']
+[2] 2 ['start', 'middle']
+SerializationIterator [3, 4] 2
+b'[5,6]'
+int_parsing (0,)
+is_instance_of
+json_invalid
+url_parsing {'error': 'relative URL without a base'}
+CustomInitModel 12 str
+AttributeModel 12 int
+ExcludeUnset {'first': 1}
+SmartUnion SpecificUnionChoice ['kind', 'location', 'name']
+ExtraAllow {'value': 7, 'note': 'kept'} {'note': 'kept'} kept
+ExtraForbid extra_forbidden ('note',) Extra inputs are not permitted rejected
+StringPattern password
+StringPatternError string_pattern_mismatch String should match pattern '^password$' {'pattern': '^password$'} client_credentials

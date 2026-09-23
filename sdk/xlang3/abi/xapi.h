@@ -178,6 +178,11 @@ X3_API X3Status x3_instance_set_native_cast(X3Value instance, X3NativeDataCast c
 /* On success, cleanup receives owner, not data. Ownership transfers only on success. */
 X3_API X3Status x3_instance_set_native_owner(X3Value instance, const char* type_name,
     void* data, void* owner, void (*cleanup)(void*));
+/* Describes strong X3Value references already retained by the native payload.
+   The runtime borrows this list for tracing. clear must release those references
+   and is called only when the cycle collector needs to break an unreachable cycle. */
+X3_API X3Status x3_instance_set_native_gc_references(X3Value instance,
+    const X3Value* references, uint32_t reference_count, void (*clear)(void*));
 X3_API X3Status x3_get_item(
     X3Runtime* runtime,
     X3Value object,

@@ -1,0 +1,7 @@
+identity = bytes(range(256))
+table = bytes.maketrans(b"abc", b"ABC")
+print(b"abracadabra".translate(table))
+print(b"abracadabra".translate(None, b"ab"))
+print(b"abracadabra".translate(table, delete=b"rc"))
+print(bytearray(b"abc").translate(None, b"b"))
+print(b"abc".translate(identity))

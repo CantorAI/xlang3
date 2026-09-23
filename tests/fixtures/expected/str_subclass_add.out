@@ -1,0 +1,5 @@
+left-plain str
+plain-right str
+left-subclass str
+slot slot-value 7 4
+TypeError

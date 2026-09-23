@@ -21,16 +21,6 @@ httplib::Headers dict_to_headers(const X::Value& value);
 bool is_text_type(const httplib::Headers& headers);
 std::string translate_route_pattern(const std::string& url);
 
-class InlineTaskQueue final : public httplib::TaskQueue {
-public:
-  bool enqueue(std::function<void()> fn) override;
-  void shutdown() override;
-
-private:
-  bool shutdown_ = false;
-};
-
-
 template <typename T>
 X::Value create_native_instance(X3PackageHost* host, const X::Value& klass, T* object) {
   if (host == nullptr || !klass.IsValid() || object == nullptr || host->value_instance == nullptr ||

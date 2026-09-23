@@ -434,7 +434,7 @@ bool struct_sequence_storage(const Value& value, Value& out) {
     return false;
   }
   std::string ignored;
-  if (!object_get_attr(value, "_tuple", out, ignored)) {
+  if (!object_get_attr(value, "__xlang3_tuple_value__", out, ignored)) {
     return false;
   }
   return value_as_tuple(out) != nullptr;
@@ -915,8 +915,101 @@ bool sequence_list_append(Value& list, const Value& item, std::string& error) {
   return true;
 }
 
-bool sequence_get_item(const Value& object, const Value& index, Value& out, std::string& error) {
+bool sequence_get_item(
+    const Value& object, const Value& index, Value& out, std::string& error,
+    Runtime* runtime) {
   if (auto* alias = value_as_generic_alias(object)) {
+    std::vector<Value> parameters;
+    auto is_type_parameter = [](const Value& value) {
+      if (value_as_type_param(value) != nullptr) return true;
+      auto* instance = value_as_instance(value);
+      auto* klass = instance == nullptr ? nullptr : value_as_class(instance->klass);
+      return klass != nullptr &&
+          (klass->name == "TypeVar" || klass->name == "ParamSpec" ||
+           klass->name == "TypeVarTuple");
+    };
+    auto collect_parameters = [&](auto&& self, const Value& value) -> void {
+      if (is_type_parameter(value)) {
+        for (const auto& existing : parameters) {
+          if (value_is(existing, value)) return;
+        }
+        parameters.push_back(value);
+        return;
+      }
+      if (auto* nested = value_as_generic_alias(value)) {
+        self(self, nested->args);
+        return;
+      }
+      if (auto* tuple = value_as_tuple(value)) {
+        for (const auto& item : tuple->items) self(self, item);
+        return;
+      }
+      if (runtime != nullptr && value_as_instance(value) != nullptr) {
+        Value nested_parameters;
+        std::string ignored;
+        if (object_get_attr(value, "__parameters__", nested_parameters,
+                            ignored)) {
+          if (auto* tuple = value_as_tuple(nested_parameters)) {
+            for (const auto& item : tuple->items) self(self, item);
+          }
+        }
+      }
+    };
+    collect_parameters(collect_parameters, alias->args);
+    if (!parameters.empty()) {
+      std::vector<Value> arguments;
+      if (auto* tuple = value_as_tuple(index)) arguments = tuple->items;
+      else arguments.push_back(index);
+      if (arguments.size() != parameters.size()) {
+        error = "generic type argument count does not match its parameters";
+        return false;
+      }
+      auto substitute = [&](auto&& self, const Value& value) -> Value {
+        for (size_t i = 0; i < parameters.size(); ++i) {
+          if (value_is(value, parameters[i])) return arguments[i];
+        }
+        if (auto* tuple = value_as_tuple(value)) {
+          std::vector<Value> items;
+          items.reserve(tuple->items.size());
+          for (const auto& item : tuple->items) items.push_back(self(self, item));
+          return Value::tuple(std::move(items));
+        }
+        if (auto* nested = value_as_generic_alias(value)) {
+          Value result = Value::generic_alias(nested->origin, self(self, nested->args));
+          auto* result_alias = value_as_generic_alias(result);
+          result_alias->is_union = nested->is_union;
+          value_assign_fast(result_alias->klass, nested->klass);
+          return result;
+        }
+        if (runtime != nullptr && value_as_instance(value) != nullptr) {
+          Value nested_parameters;
+          std::string ignored;
+          auto* parameter_tuple = object_get_attr(
+              value, "__parameters__", nested_parameters, ignored)
+              ? value_as_tuple(nested_parameters) : nullptr;
+          if (parameter_tuple != nullptr && !parameter_tuple->items.empty()) {
+            Value nested_args;
+            Value copy_with;
+            if (object_get_attr(value, "__args__", nested_args, ignored) &&
+                object_get_attr(value, "copy_with", copy_with, ignored)) {
+              Value replaced_args = self(self, nested_args);
+              Value result;
+              std::string call_error;
+              if (runtime_call_callable(
+                      *runtime, copy_with, &replaced_args, 1, result, call_error)) {
+                return result;
+              }
+            }
+          }
+        }
+        return value;
+      };
+      out = Value::generic_alias(alias->origin, substitute(substitute, alias->args));
+      auto* result_alias = value_as_generic_alias(out);
+      result_alias->is_union = alias->is_union;
+      value_assign_fast(result_alias->klass, alias->klass);
+      return true;
+    }
     if (alias->is_union) {
       error = "union type is not subscriptable";
       return false;
@@ -931,13 +1024,21 @@ bool sequence_get_item(const Value& object, const Value& index, Value& out, std:
     return true;
   }
   if (value_as_class(object) != nullptr) {
-    Value args;
-    if (value_as_tuple(index) != nullptr) {
-      value_assign_fast(args, index);
-    } else {
-      args = Value::tuple({index});
+    std::vector<Value> items;
+    if (auto* tuple = value_as_tuple(index)) items = tuple->items;
+    else items.push_back(index);
+    auto* klass = value_as_class(object);
+    const bool typing_union = klass != nullptr && klass->name == "Union";
+    if (typing_union) {
+      const Value* none_type = runtime == nullptr
+          ? nullptr : runtime->find_builtin("NoneType");
+      for (auto& item : items) {
+        if (item.tag == ValueTag::None && none_type != nullptr)
+          value_assign_fast(item, *none_type);
+      }
     }
-    out = Value::generic_alias(object, std::move(args));
+    out = Value::generic_alias(object, Value::tuple(std::move(items)));
+    if (typing_union) value_as_generic_alias(out)->is_union = true;
     return true;
   }
   if (auto* range = value_as_range(object)) {
@@ -1590,6 +1691,13 @@ bool sequence_len(const Value& value, Value& out, std::string& error) {
     }
     Value bytes_payload;
     std::string ignored;
+    Value string_payload;
+    if (object_get_attr(value, "__xlang3_string_value__", string_payload, ignored)) {
+      if (auto* string = value_as_string(string_payload)) {
+        value_set_int64(out, static_cast<int64_t>(utf8_codepoint_count(string_object_view(*string))));
+        return true;
+      }
+    }
     if (object_get_attr(value, "__xlang3_bytes_value__", bytes_payload, ignored)) {
       if (auto* bytes = value_as_bytes(bytes_payload)) {
         value_set_int64(out, static_cast<int64_t>(bytes->size));

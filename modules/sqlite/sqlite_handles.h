@@ -33,6 +33,9 @@ struct ConnectionHandle {
 struct CursorHandle {
   ConnectionHandle* connection = nullptr;
   sqlite3_stmt* stmt = nullptr;
+  sqlite3_int64 lastrowid = 0;
+  sqlite3_int64 rowcount = -1;
+  bool has_lastrowid = false;
 };
 
 struct StatementHandle {

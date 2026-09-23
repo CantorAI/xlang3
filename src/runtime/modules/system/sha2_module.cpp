@@ -32,11 +32,13 @@ constexpr const char* kSha2NativeType = "_sha2.HASH";
 
 struct Sha2State {
   std::string data;
-  bool sha224 = false;
+  enum class Variant { Sha224, Sha256, Sha384, Sha512 } variant = Variant::Sha256;
 };
 
 Value g_sha224_class;
 Value g_sha256_class;
+Value g_sha384_class;
+Value g_sha512_class;
 
 void sha2_cleanup(void* data) {
   delete static_cast<Sha2State*>(data);
@@ -174,6 +176,93 @@ std::string sha2_digest(std::string_view source, bool sha224) {
   return digest;
 }
 
+constexpr std::array<uint64_t, 80> kSha512RoundConstants = {
+    0x428a2f98d728ae22ull, 0x7137449123ef65cdull, 0xb5c0fbcfec4d3b2full, 0xe9b5dba58189dbbcull,
+    0x3956c25bf348b538ull, 0x59f111f1b605d019ull, 0x923f82a4af194f9bull, 0xab1c5ed5da6d8118ull,
+    0xd807aa98a3030242ull, 0x12835b0145706fbeull, 0x243185be4ee4b28cull, 0x550c7dc3d5ffb4e2ull,
+    0x72be5d74f27b896full, 0x80deb1fe3b1696b1ull, 0x9bdc06a725c71235ull, 0xc19bf174cf692694ull,
+    0xe49b69c19ef14ad2ull, 0xefbe4786384f25e3ull, 0x0fc19dc68b8cd5b5ull, 0x240ca1cc77ac9c65ull,
+    0x2de92c6f592b0275ull, 0x4a7484aa6ea6e483ull, 0x5cb0a9dcbd41fbd4ull, 0x76f988da831153b5ull,
+    0x983e5152ee66dfabull, 0xa831c66d2db43210ull, 0xb00327c898fb213full, 0xbf597fc7beef0ee4ull,
+    0xc6e00bf33da88fc2ull, 0xd5a79147930aa725ull, 0x06ca6351e003826full, 0x142929670a0e6e70ull,
+    0x27b70a8546d22ffCull, 0x2e1b21385c26c926ull, 0x4d2c6dfc5ac42aedull, 0x53380d139d95b3dfull,
+    0x650a73548baf63deull, 0x766a0abb3c77b2a8ull, 0x81c2c92e47edaee6ull, 0x92722c851482353bull,
+    0xa2bfe8a14cf10364ull, 0xa81a664bbc423001ull, 0xc24b8b70d0f89791ull, 0xc76c51a30654be30ull,
+    0xd192e819d6ef5218ull, 0xd69906245565a910ull, 0xf40e35855771202aull, 0x106aa07032bbd1b8ull,
+    0x19a4c116b8d2d0c8ull, 0x1e376c085141ab53ull, 0x2748774cdf8eeb99ull, 0x34b0bcb5e19b48a8ull,
+    0x391c0cb3c5c95a63ull, 0x4ed8aa4ae3418acbull, 0x5b9cca4f7763e373ull, 0x682e6ff3d6b2b8a3ull,
+    0x748f82ee5defb2fcull, 0x78a5636f43172f60ull, 0x84c87814a1f0ab72ull, 0x8cc702081a6439ecull,
+    0x90befffa23631e28ull, 0xa4506cebde82bde9ull, 0xbef9a3f7b2c67915ull, 0xc67178f2e372532bull,
+    0xca273eceea26619cull, 0xd186b8c721c0c207ull, 0xeada7dd6cde0eb1eull, 0xf57d4f7fee6ed178ull,
+    0x06f067aa72176fbaull, 0x0a637dc5a2c898a6ull, 0x113f9804bef90daeull, 0x1b710b35131c471bull,
+    0x28db77f523047d84ull, 0x32caab7b40c72493ull, 0x3c9ebe0a15c9bebcull, 0x431d67c49c100d4cull,
+    0x4cc5d4becb3e42b6ull, 0x597f299cfc657e2aull, 0x5fcb6fab3ad6faecull, 0x6c44198c4a475817ull,
+};
+
+uint64_t rotate_right64(uint64_t value, unsigned shift) {
+  return (value >> shift) | (value << (64u - shift));
+}
+
+std::string sha512_digest(std::string_view source, bool sha384) {
+  std::string padded(source);
+  const uint64_t bit_length = static_cast<uint64_t>(source.size()) * 8u;
+  padded.push_back(static_cast<char>(0x80));
+  while ((padded.size() % 128u) != 112u) padded.push_back('\0');
+  for (int shift = 56; shift >= 0; shift -= 8) padded.push_back('\0');
+  for (int shift = 56; shift >= 0; shift -= 8)
+    padded.push_back(static_cast<char>((bit_length >> shift) & 0xffu));
+
+  std::array<uint64_t, 8> hash = sha384
+      ? std::array<uint64_t, 8>{0xcbbb9d5dc1059ed8ull, 0x629a292a367cd507ull,
+          0x9159015a3070dd17ull, 0x152fecd8f70e5939ull, 0x67332667ffc00b31ull,
+          0x8eb44a8768581511ull, 0xdb0c2e0d64f98fa7ull, 0x47b5481dbefa4fa4ull}
+      : std::array<uint64_t, 8>{0x6a09e667f3bcc908ull, 0xbb67ae8584caa73bull,
+          0x3c6ef372fe94f82bull, 0xa54ff53a5f1d36f1ull, 0x510e527fade682d1ull,
+          0x9b05688c2b3e6c1full, 0x1f83d9abfb41bd6bull, 0x5be0cd19137e2179ull};
+  for (size_t block = 0; block < padded.size(); block += 128) {
+    std::array<uint64_t, 80> words{};
+    for (size_t index = 0; index < 16; ++index) {
+      const size_t offset = block + index * 8;
+      for (size_t byte = 0; byte < 8; ++byte)
+        words[index] = (words[index] << 8u) |
+            static_cast<unsigned char>(padded[offset + byte]);
+    }
+    for (size_t index = 16; index < words.size(); ++index) {
+      const uint64_t s0 = rotate_right64(words[index - 15], 1) ^
+          rotate_right64(words[index - 15], 8) ^ (words[index - 15] >> 7u);
+      const uint64_t s1 = rotate_right64(words[index - 2], 19) ^
+          rotate_right64(words[index - 2], 61) ^ (words[index - 2] >> 6u);
+      words[index] = words[index - 16] + s0 + words[index - 7] + s1;
+    }
+    uint64_t a=hash[0], b=hash[1], c=hash[2], d=hash[3];
+    uint64_t e=hash[4], f=hash[5], g=hash[6], h=hash[7];
+    for (size_t index = 0; index < words.size(); ++index) {
+      const uint64_t sum1 = rotate_right64(e,14)^rotate_right64(e,18)^rotate_right64(e,41);
+      const uint64_t choose = (e&f)^((~e)&g);
+      const uint64_t temp1 = h + sum1 + choose + kSha512RoundConstants[index] + words[index];
+      const uint64_t sum0 = rotate_right64(a,28)^rotate_right64(a,34)^rotate_right64(a,39);
+      const uint64_t majority = (a&b)^(a&c)^(b&c);
+      const uint64_t temp2 = sum0 + majority;
+      h=g; g=f; f=e; e=d+temp1; d=c; c=b; b=a; a=temp1+temp2;
+    }
+    hash[0]+=a; hash[1]+=b; hash[2]+=c; hash[3]+=d;
+    hash[4]+=e; hash[5]+=f; hash[6]+=g; hash[7]+=h;
+  }
+  const size_t digest_words = sha384 ? 6 : 8;
+  std::string digest;
+  digest.reserve(digest_words * 8);
+  for (size_t index = 0; index < digest_words; ++index)
+    for (int shift = 56; shift >= 0; shift -= 8)
+      digest.push_back(static_cast<char>((hash[index] >> shift) & 0xffu));
+  return digest;
+}
+
+std::string sha2_digest(std::string_view source, Sha2State::Variant variant) {
+  if (variant == Sha2State::Variant::Sha384 || variant == Sha2State::Variant::Sha512)
+    return sha512_digest(source, variant == Sha2State::Variant::Sha384);
+  return sha2_digest(source, variant == Sha2State::Variant::Sha224);
+}
+
 bool sha2_update(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 2) {
     error = "HASH.update() expected one argument";
@@ -199,7 +288,7 @@ bool sha2_digest_method(Runtime& runtime, const Value* args, uint32_t argc, Valu
   }
   auto* state = sha2_state(args[0], error);
   if (state == nullptr) return false;
-  out = Value::bytes(sha2_digest(state->data, state->sha224));
+  out = Value::bytes(sha2_digest(state->data, state->variant));
   return true;
 }
 
@@ -212,7 +301,7 @@ bool sha2_hexdigest(Runtime& runtime, const Value* args, uint32_t argc, Value& o
   auto* state = sha2_state(args[0], error);
   if (state == nullptr) return false;
   static constexpr char digits[] = "0123456789abcdef";
-  const std::string digest = sha2_digest(state->data, state->sha224);
+  const std::string digest = sha2_digest(state->data, state->variant);
   std::string hex;
   hex.reserve(digest.size() * 2);
   for (unsigned char byte : digest) {
@@ -223,15 +312,23 @@ bool sha2_hexdigest(Runtime& runtime, const Value* args, uint32_t argc, Value& o
   return true;
 }
 
-bool initialize_sha2_instance(Value instance, std::string data, bool sha224, Value& out, std::string& error) {
-  auto* state = new Sha2State{std::move(data), sha224};
+bool initialize_sha2_instance(Value instance, std::string data, Sha2State::Variant variant,
+                              Value& out, std::string& error) {
+  auto* state = new Sha2State{std::move(data), variant};
   if (!instance_set_native_data(instance, kSha2NativeType, state, sha2_cleanup, error)) {
     delete state;
     return false;
   }
-  if (!object_set_attr(instance, "name", Value::string(sha224 ? "sha224" : "sha256"), error) ||
-      !object_set_attr(instance, "digest_size", Value::int64(sha224 ? 28 : 32), error) ||
-      !object_set_attr(instance, "block_size", Value::int64(64), error)) {
+  const bool wide = variant == Sha2State::Variant::Sha384 || variant == Sha2State::Variant::Sha512;
+  const char* name = variant == Sha2State::Variant::Sha224 ? "sha224" :
+      variant == Sha2State::Variant::Sha256 ? "sha256" :
+      variant == Sha2State::Variant::Sha384 ? "sha384" : "sha512";
+  const int64_t digest_size = variant == Sha2State::Variant::Sha224 ? 28 :
+      variant == Sha2State::Variant::Sha256 ? 32 :
+      variant == Sha2State::Variant::Sha384 ? 48 : 64;
+  if (!object_set_attr(instance, "name", Value::string(name), error) ||
+      !object_set_attr(instance, "digest_size", Value::int64(digest_size), error) ||
+      !object_set_attr(instance, "block_size", Value::int64(wide ? 128 : 64), error)) {
     return false;
   }
   out = std::move(instance);
@@ -246,8 +343,11 @@ bool sha2_copy(Runtime& runtime, const Value* args, uint32_t argc, Value& out, s
   }
   auto* state = sha2_state(args[0], error);
   if (state == nullptr) return false;
-  Value instance = Value::instance(state->sha224 ? g_sha224_class : g_sha256_class);
-  return initialize_sha2_instance(std::move(instance), state->data, state->sha224, out, error);
+  const Value& klass = state->variant == Sha2State::Variant::Sha224 ? g_sha224_class :
+      state->variant == Sha2State::Variant::Sha256 ? g_sha256_class :
+      state->variant == Sha2State::Variant::Sha384 ? g_sha384_class : g_sha512_class;
+  Value instance = Value::instance(klass);
+  return initialize_sha2_instance(std::move(instance), state->data, state->variant, out, error);
 }
 
 bool sha2_constructor(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
@@ -256,7 +356,7 @@ bool sha2_constructor(Runtime& runtime, const Value* args, uint32_t argc, Value&
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  const bool sha224 = user_data != nullptr;
+  const auto variant = static_cast<Sha2State::Variant>(reinterpret_cast<uintptr_t>(user_data));
   std::string data;
   if (argc == 1) {
     std::string_view view;
@@ -266,8 +366,11 @@ bool sha2_constructor(Runtime& runtime, const Value* args, uint32_t argc, Value&
     }
     data.assign(view.data(), view.size());
   }
-  Value instance = Value::instance(sha224 ? g_sha224_class : g_sha256_class);
-  return initialize_sha2_instance(std::move(instance), std::move(data), sha224, out, error);
+  const Value& klass = variant == Sha2State::Variant::Sha224 ? g_sha224_class :
+      variant == Sha2State::Variant::Sha256 ? g_sha256_class :
+      variant == Sha2State::Variant::Sha384 ? g_sha384_class : g_sha512_class;
+  Value instance = Value::instance(klass);
+  return initialize_sha2_instance(std::move(instance), std::move(data), variant, out, error);
 }
 
 bool sha2_constructor_kw(
@@ -291,30 +394,49 @@ bool sha2_constructor_kw(
 }
 
 bool sha224_constructor(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  return sha2_constructor(runtime, args, argc, out, error, reinterpret_cast<void*>(1));
+  return sha2_constructor(runtime, args, argc, out, error,
+      reinterpret_cast<void*>(static_cast<uintptr_t>(Sha2State::Variant::Sha224)));
 }
 
 bool sha256_constructor(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  return sha2_constructor(runtime, args, argc, out, error, nullptr);
+  return sha2_constructor(runtime, args, argc, out, error,
+      reinterpret_cast<void*>(static_cast<uintptr_t>(Sha2State::Variant::Sha256)));
+}
+
+bool sha384_constructor(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return sha2_constructor(runtime, args, argc, out, error,
+      reinterpret_cast<void*>(static_cast<uintptr_t>(Sha2State::Variant::Sha384)));
+}
+
+bool sha512_constructor(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return sha2_constructor(runtime, args, argc, out, error,
+      reinterpret_cast<void*>(static_cast<uintptr_t>(Sha2State::Variant::Sha512)));
 }
 
 bool sha224_constructor_kw(
     Runtime& runtime, const Value* args, uint32_t argc, const NativeKeywordArg* kwargs,
     uint32_t kwargc, Value& out, std::string& error, void*) {
-  return sha2_constructor_kw(runtime, args, argc, kwargs, kwargc, out, error, reinterpret_cast<void*>(1));
+  return sha2_constructor_kw(runtime, args, argc, kwargs, kwargc, out, error,
+      reinterpret_cast<void*>(static_cast<uintptr_t>(Sha2State::Variant::Sha224)));
 }
 
 bool sha256_constructor_kw(
     Runtime& runtime, const Value* args, uint32_t argc, const NativeKeywordArg* kwargs,
     uint32_t kwargc, Value& out, std::string& error, void*) {
-  return sha2_constructor_kw(runtime, args, argc, kwargs, kwargc, out, error, nullptr);
+  return sha2_constructor_kw(runtime, args, argc, kwargs, kwargc, out, error,
+      reinterpret_cast<void*>(static_cast<uintptr_t>(Sha2State::Variant::Sha256)));
 }
 
-bool unsupported_sha2_constructor(
-    Runtime& runtime, const Value*, uint32_t, Value&, std::string& error, void*) {
-  error = "unsupported SHA-2 digest";
-  runtime.raise_class_error("ValueError", error);
-  return false;
+bool sha384_constructor_kw(Runtime& runtime, const Value* args, uint32_t argc,
+    const NativeKeywordArg* kwargs, uint32_t kwargc, Value& out, std::string& error, void*) {
+  return sha2_constructor_kw(runtime, args, argc, kwargs, kwargc, out, error,
+      reinterpret_cast<void*>(static_cast<uintptr_t>(Sha2State::Variant::Sha384)));
+}
+
+bool sha512_constructor_kw(Runtime& runtime, const Value* args, uint32_t argc,
+    const NativeKeywordArg* kwargs, uint32_t kwargc, Value& out, std::string& error, void*) {
+  return sha2_constructor_kw(runtime, args, argc, kwargs, kwargc, out, error,
+      reinterpret_cast<void*>(static_cast<uintptr_t>(Sha2State::Variant::Sha512)));
 }
 
 Value make_sha2_class(Runtime& runtime, const char* name) {
@@ -333,13 +455,17 @@ Value make_sha2_class(Runtime& runtime, const char* name) {
 void register_sha2_module(Runtime& runtime) {
   g_sha224_class = make_sha2_class(runtime, "SHA224Type");
   g_sha256_class = make_sha2_class(runtime, "SHA256Type");
+  g_sha384_class = make_sha2_class(runtime, "SHA384Type");
+  g_sha512_class = make_sha2_class(runtime, "SHA512Type");
   NativeModuleBuilder builder(runtime, "_sha2");
   builder.value("SHA224Type", g_sha224_class)
       .value("SHA256Type", g_sha256_class)
+      .value("SHA384Type", g_sha384_class)
+      .value("SHA512Type", g_sha512_class)
       .function("sha224", sha224_constructor, nullptr, false, sha224_constructor_kw)
       .function("sha256", sha256_constructor, nullptr, false, sha256_constructor_kw)
-      .function("sha384", unsupported_sha2_constructor)
-      .function("sha512", unsupported_sha2_constructor);
+      .function("sha384", sha384_constructor, nullptr, false, sha384_constructor_kw)
+      .function("sha512", sha512_constructor, nullptr, false, sha512_constructor_kw);
   runtime.register_module("_sha2", builder.finish());
 }
 

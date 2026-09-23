@@ -15,7 +15,9 @@ limitations under the License.
 #include "xlang3/value_hash.h"
 
 #include "xlang3/builtins.h"
+#include "xlang3/functional_iterators.h"
 #include "xlang3/object_model.h"
+#include "xlang3/runtime.h"
 #include "xlang3/set_object.h"
 
 #include <cmath>
@@ -241,18 +243,16 @@ bool value_hash_key(const Value& value, size_t& out, std::string& error) {
       out = 0x9e3779b97f4a7c15ull;
       return true;
     case ValueTag::Bool:
-      out = std::hash<int64_t>{}(value.as.b ? 1 : 0);
-      return true;
+      return value_int_like_hash(value, out);
     case ValueTag::Int64:
-      out = std::hash<int64_t>{}(value.as.i64);
-      return true;
+      return value_int_like_hash(value, out);
     case ValueTag::Double: {
       double integral = 0.0;
       if (std::isfinite(value.as.f64) && std::modf(value.as.f64, &integral) == 0.0 &&
           integral >= static_cast<double>(std::numeric_limits<int64_t>::min()) &&
           integral < 9223372036854775808.0) {
-        out = std::hash<int64_t>{}(static_cast<int64_t>(integral));
-        return true;
+        return value_int_like_hash(
+            Value::int64(static_cast<int64_t>(integral)), out);
       }
       out = std::hash<double>{}(value.as.f64);
       return true;
@@ -264,8 +264,7 @@ bool value_hash_key(const Value& value, size_t& out, std::string& error) {
         }
         int64_t int_payload = 0;
         if (int_payload_value(value, int_payload)) {
-          out = std::hash<int64_t>{}(int_payload);
-          return true;
+          return value_int_like_hash(Value::int64(int_payload), out);
         }
         if (auto* string = value_as_string(value)) {
           out = string_object_hash(*string);
@@ -379,6 +378,53 @@ bool value_hash_key(const Value& value, size_t& out, std::string& error) {
   }
   error = "value is not hashable";
   return false;
+}
+
+bool runtime_value_hash_key(Runtime& runtime, const Value& value, size_t& out, std::string& error) {
+  if (value_as_instance(value) != nullptr) {
+    Value hash_method;
+    std::string attr_error;
+    if (object_get_attr(value, "__hash__", hash_method, attr_error)) {
+      if (hash_method.tag == ValueTag::None) {
+        error = "unhashable type";
+        return false;
+      }
+      Value hash_value;
+      error.clear();
+      if (!runtime_call_callable(runtime, hash_method, nullptr, 0, hash_value, error)) return false;
+      if (hash_value.tag != ValueTag::Int64) {
+        error = "__hash__ method should return an integer";
+        return false;
+      }
+      out = static_cast<size_t>(hash_value.as.i64);
+      return true;
+    }
+  }
+  if (const auto* tuple = value_as_tuple(value)) {
+    size_t hash = 0x345678ul;
+    for (const auto& item : tuple->items) {
+      size_t item_hash = 0;
+      if (!runtime_value_hash_key(runtime, item, item_hash, error)) return false;
+      hash = (hash ^ item_hash) * 1000003ul;
+      hash ^= tuple->items.size();
+    }
+    out = hash == static_cast<size_t>(-1) ? static_cast<size_t>(-2) : hash;
+    return true;
+  }
+  if (const auto* set = value_as_set(value); set != nullptr && set->frozen) {
+    size_t hash = 0x2f4f0f1f0e0d0c0bull;
+    for (const auto& item : set->items) {
+      size_t item_hash = 0;
+      if (!runtime_value_hash_key(runtime, item, item_hash, error)) return false;
+      size_t shuffled = item_hash ^ (item_hash << 16) ^ static_cast<size_t>(89869747);
+      shuffled *= static_cast<size_t>(3644798167u);
+      hash ^= shuffled;
+    }
+    hash ^= set->items.size() * static_cast<size_t>(1927868237u);
+    out = hash == static_cast<size_t>(-1) ? static_cast<size_t>(-2) : hash;
+    return true;
+  }
+  return value_hash_key(value, out, error);
 }
 
 } // namespace xlang3

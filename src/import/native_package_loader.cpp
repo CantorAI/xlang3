@@ -230,12 +230,22 @@ bool native_keyword_function_bridge(
   catch (...) { error = "native callback threw an exception"; }
 
   if (status == X3_STATUS_OK && c_result.tag == X3_TAG_OBJECT) {
+    bool aliases_call_argument = false;
     for (const auto& value : c_args) {
       if (value.tag == X3_TAG_OBJECT && c_result.as.obj == value.as.obj) {
-        x3_value_retain(c_result);
+        aliases_call_argument = true;
         break;
       }
     }
+    if (!aliases_call_argument) {
+      for (const auto& keyword : c_kwargs) {
+        if (keyword.value.tag == X3_TAG_OBJECT && c_result.as.obj == keyword.value.as.obj) {
+          aliases_call_argument = true;
+          break;
+        }
+      }
+    }
+    if (aliases_call_argument) x3_value_retain(c_result);
   }
 
   for (auto& value : c_args) {
@@ -438,7 +448,22 @@ X3Status create_native_class(
         (method.flags & X3_NATIVE_IPC_ARGS_BY_VALUE) != 0;
   }
 
-  Value klass = Value::class_object(name, std::move(attrs));
+  Value base = Value::invalid();
+  Value metaclass = Value::invalid();
+  if (const Value* object_type = runtime->find_builtin("object")) {
+    value_assign_fast(base, *object_type);
+  }
+  if (const Value* type_type = runtime->find_builtin("type")) {
+    value_assign_fast(metaclass, *type_type);
+  }
+  Value klass = Value::class_object(
+      name, std::move(attrs), std::move(base), {}, std::move(metaclass));
+  // Native classes start with object only as the host-provided implicit base.
+  // The first base supplied by the package replaces it; later bases extend the
+  // class normally.
+  if (auto* class_object = value_as_class(klass)) {
+    class_object->has_explicit_bases = false;
+  }
   if (out_class != nullptr) {
     *out_class = to_c_value(klass);
   }
@@ -453,6 +478,11 @@ X3Status host_module_add_class(X3Module* module, const char* name,
   if (status != X3_STATUS_OK) return status;
   std::string error;
   auto klass = from_c_value(raw, error);
+  if (!error.empty() || !attribute_set(klass, "__module__", Value::string(module->name), error)) {
+    x3_value_release(raw);
+    module->runtime->set_last_error(error.empty() ? "failed to set native class module" : error);
+    return X3_STATUS_ERROR;
+  }
   if (!module_set_attr(module->value, name, klass, error)) {
     x3_value_release(raw);
     module->runtime->set_last_error(error);
@@ -665,7 +695,14 @@ X3Status host_raise_class_error(X3CallContext* context, const char* class_name, 
   } else {
     context->runtime->raise_class_error(class_name, text);
   }
-  return X3_STATUS_OK;
+  return X3_STATUS_ERROR;
+}
+
+X3Status host_instance_set_native_gc_references(X3Value instance,
+    const X3Value* references, uint32_t reference_count,
+    X3NativeDataCleanup clear) {
+  return x3_instance_set_native_gc_references(
+      instance, references, reference_count, clear);
 }
 
 X3Status host_raise_error(X3CallContext* context, X3Value exception_class, const char* message) {
@@ -686,6 +723,59 @@ X3Status host_raise_error(X3CallContext* context, X3Value exception_class, const
   } else {
     context->runtime->set_pending_exception(context->runtime->make_exception_from_class(std::move(klass), text));
   }
+  return X3_STATUS_ERROR;
+}
+
+X3Status host_raise_exception(X3CallContext* context, X3Value exception) {
+  if (context == nullptr || context->runtime == nullptr) {
+    return X3_STATUS_ERROR;
+  }
+  std::string error;
+  Value instance = from_c_value(exception, error);
+  if (!error.empty() || value_as_instance(instance) == nullptr) {
+    return X3_STATUS_ERROR;
+  }
+  if (context->error != nullptr) {
+    Value message;
+    std::string ignored;
+    if (object_get_attr(instance, "message", message, ignored)) {
+      if (auto* text = value_as_string(message)) {
+        *context->error = std::string(string_object_view(*text));
+      }
+    }
+  }
+  if (context->exception != nullptr) {
+    *context->exception = std::move(instance);
+  } else {
+    context->runtime->set_pending_exception(std::move(instance));
+  }
+  return X3_STATUS_OK;
+}
+
+X3Status host_clear_exception(X3CallContext* context) {
+  if (context == nullptr || context->runtime == nullptr) return X3_STATUS_ERROR;
+  if (context->error != nullptr) context->error->clear();
+  if (context->exception != nullptr) {
+    *context->exception = Value();
+  } else {
+    Value ignored;
+    (void)context->runtime->take_pending_exception(ignored);
+  }
+  return X3_STATUS_OK;
+}
+
+X3Status host_take_exception(X3CallContext* context, X3Value* out) {
+  if (context == nullptr || context->runtime == nullptr || out == nullptr)
+    return X3_STATUS_ERROR;
+  Value exception;
+  if (context->exception != nullptr && context->exception->tag != ValueTag::Invalid) {
+    exception = std::move(*context->exception);
+    *context->exception = Value();
+  } else if (!context->runtime->take_pending_exception(exception)) {
+    return X3_STATUS_ERROR;
+  }
+  if (context->error != nullptr) context->error->clear();
+  *out = to_c_value(exception);
   return X3_STATUS_OK;
 }
 
@@ -767,6 +857,10 @@ const X3PackageHost kPackageHostTemplate = {
     x3_value_string_data,
     x3_value_string_utf8,
     x3_event_fire_kw,
+    host_raise_exception,
+    host_clear_exception,
+    host_take_exception,
+    host_instance_set_native_gc_references,
 };
 
 std::vector<std::filesystem::path> collect_native_library_candidates(
@@ -849,7 +943,7 @@ std::string format_native_not_found(const std::string& name, const std::vector<s
 }
 
 void apply_sqlite3_compat_attrs(const std::string& package_name, Value& module) {
-  if (package_name != "_sqlite3" && package_name != "sqlite3") {
+  if (package_name != "sqlite3") {
     return;
   }
   std::string ignored;

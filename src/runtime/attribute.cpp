@@ -21,6 +21,7 @@ limitations under the License.
 #include "xlang3/sequence.h"
 
 #include <cstdlib>
+#include <cmath>
 #include <iostream>
 
 namespace xlang3 {
@@ -234,6 +235,59 @@ bool float_float_method(Runtime&, const Value* args, uint32_t argc, Value& out, 
   return true;
 }
 
+bool float_as_integer_ratio_method(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 1 || args[0].tag != ValueTag::Double) {
+    error = "float.as_integer_ratio expected a float target";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  const double value = args[0].as.f64;
+  if (std::isnan(value)) {
+    error = "cannot convert NaN to integer ratio";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
+  if (std::isinf(value)) {
+    error = "cannot convert Infinity to integer ratio";
+    runtime.raise_class_error("OverflowError", error);
+    return false;
+  }
+  if (value == 0.0) {
+    out = Value::tuple({Value::int64(0), Value::int64(1)});
+    return true;
+  }
+  int exponent = 0;
+  const double fraction = std::frexp(std::fabs(value), &exponent);
+  uint64_t mantissa = static_cast<uint64_t>(std::ldexp(fraction, 53));
+  exponent -= 53;
+  while ((mantissa & 1u) == 0u) {
+    mantissa >>= 1u;
+    ++exponent;
+  }
+  Value numerator = Value::int64(
+      value < 0.0 ? -static_cast<int64_t>(mantissa) : static_cast<int64_t>(mantissa));
+  Value denominator = Value::int64(1);
+  if (exponent >= 0) {
+    if (!value_int_like_shift_left(
+            numerator, Value::int64(exponent), numerator, error)) {
+      runtime.raise_class_error("OverflowError", error);
+      return false;
+    }
+  } else if (!value_int_like_shift_left(
+                 denominator, Value::int64(-exponent), denominator, error)) {
+    runtime.raise_class_error("OverflowError", error);
+    return false;
+  }
+  out = Value::tuple({std::move(numerator), std::move(denominator)});
+  return true;
+}
+
 bool get_builtin_method(const Value& object, const std::string& name, Value& out) {
   if (object.tag == ValueTag::None && name == "__new__") {
     static Value none_new = Value::native_function(0, "NoneType.__new__", none_new_method);
@@ -257,6 +311,11 @@ bool get_builtin_method(const Value& object, const std::string& name, Value& out
     if (name == "__float__") {
       return bind_builtin_method(object, "float.__float__", float_float_method, nullptr, false,
                                  "($self, /)", out);
+    }
+    if (name == "as_integer_ratio") {
+      return bind_builtin_method(
+          object, "float.as_integer_ratio", float_as_integer_ratio_method, nullptr, false,
+          "($self, /)", out);
     }
   }
   return list_get_method(object, name, out) ||

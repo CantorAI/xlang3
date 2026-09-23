@@ -51,7 +51,7 @@ try {
     if (Test-Path $serverErr) { Get-Content $serverErr | Write-Host }
     throw "Net HTTP client script failed."
   }
-  $expected = @("True", "200", "hello", "small", "True", "65536", "True", "4", "True", "True", "200", "hello", "True", "200")
+  $expected = @("True", "200", "hello", "small", "True", "65536", "True", "4", "True", "True", "True", "True", "200", "hello", "True", "200")
   $actual = @($output)
   if ($actual.Count -ne $expected.Count) {
     $actual | Write-Host

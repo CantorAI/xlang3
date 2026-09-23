@@ -295,6 +295,10 @@ bool value_to_match_text(const Value& value, std::string& out, bool& is_bytes) {
 
 bool pattern_anchored_literal_miss(const PatternState& state, const Value& subject) {
   if ((state.flags & kFlagIgnoreCase) != 0) return false;
+  // In verbose mode whitespace and comments outside character classes are not
+  // pattern literals.  This inexpensive rejection check examines the original
+  // source pattern, so it cannot safely infer the first literal in that mode.
+  if ((state.flags & kFlagVerbose) != 0) return false;
   size_t literal_offset = 0;
   if (state.pattern.rfind("\\A", 0) == 0) {
     literal_offset = 2;
@@ -589,6 +593,32 @@ bool regex_parse_terminal_conditional(
     std::string& yes_literal,
     std::string& no_literal);
 
+bool regex_is_single_character_class_lookbehind(
+    std::string_view pattern,
+    size_t open) {
+  const size_t body_start = open + 4;
+  if (body_start >= pattern.size() || pattern[body_start] != '[') return false;
+  bool escaped = false;
+  bool first_slot = true;
+  for (size_t i = body_start + 1; i < pattern.size(); ++i) {
+    const char ch = pattern[i];
+    if (escaped) {
+      escaped = false;
+      first_slot = false;
+      continue;
+    }
+    if (ch == '\\') {
+      escaped = true;
+      continue;
+    }
+    if (ch == ']' && !first_slot) {
+      return i + 1 < pattern.size() && pattern[i + 1] == ')';
+    }
+    if (ch != '^' || !first_slot) first_slot = false;
+  }
+  return false;
+}
+
 bool regex_has_unsupported_std_construct(std::string_view pattern) {
   bool in_class = false;
   bool escaped = false;
@@ -629,7 +659,8 @@ bool regex_has_unsupported_std_construct(std::string_view pattern) {
               pattern, i, close, captured_negative_literal) &&
           !regex_parse_conditional_literal_lookbehind(
               pattern, i, positive, close, conditional_group,
-              conditional_yes, conditional_no)) {
+              conditional_yes, conditional_no) &&
+          !regex_is_single_character_class_lookbehind(pattern, i)) {
         return true;
       }
     }
@@ -870,6 +901,14 @@ bool regex_parse_fixed_literal_lookbehind(
   literal.clear();
   category = '\0';
   group_ref = 0;
+  if (open + 10 < pattern.size() &&
+      pattern.substr(open + 4, 6) == std::string_view(R"([\\\w])") &&
+      pattern[open + 10] == ')') {
+    category = 'w';
+    literal = "\\";
+    close = open + 10;
+    return true;
+  }
   if (open + 6 < pattern.size() && pattern[open + 4] == '\\' &&
       (pattern[open + 5] == 'w' || pattern[open + 5] == 'W') &&
       pattern[open + 6] == ')') {
@@ -1302,7 +1341,27 @@ bool regex_atomic_commit_rejects(
     if (!suffix.empty() && regex_simple_atom_matches_char(body_atom, suffix.front())) return true;
   }
 
+  bool in_class = false;
+  bool escaped = false;
   for (size_t quantifier = 0; quantifier + 2 < pattern.size(); ++quantifier) {
+    const char scanned = pattern[quantifier];
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+    if (scanned == '\\') {
+      escaped = true;
+      continue;
+    }
+    if (scanned == '[' && !in_class) {
+      in_class = true;
+      continue;
+    }
+    if (scanned == ']' && in_class) {
+      in_class = false;
+      continue;
+    }
+    if (in_class) continue;
     const char quantifier_ch = pattern[quantifier];
     bool possessive = (quantifier_ch == '*' || quantifier_ch == '+' || quantifier_ch == '?') &&
         pattern[quantifier + 1] == '+';
@@ -1485,7 +1544,14 @@ std::string normalize_std_regex_pattern(
         if (requires_absolute_start != nullptr) *requires_absolute_start = true;
         out.push_back('^');
       } else if (ch == 'z' || ch == 'Z') {
-        out += "(?![\\s\\S])";
+        // ECMAScript's `$` also matches before a final newline and, in
+        // multiline mode, before every newline.  Constrain that candidate to
+        // a position with no following byte so an internal absolute-end
+        // assertion cannot be satisfied early and followed by more captures.
+        // Keeping `$` as the first filter avoids testing the lookahead at every
+        // input position for common suffix patterns.
+        if (requires_absolute_end != nullptr) *requires_absolute_end = true;
+        out += "$(?![\\s\\S])";
       } else if (ch == 'a' || ch == 'f' || ch == 'n' || ch == 'r' || ch == 't' || ch == 'v' || (ch == 'b' && in_class)) {
         unsigned char control = 0;
         switch (ch) {
@@ -1516,6 +1582,13 @@ std::string normalize_std_regex_pattern(
         const bool empty_only = (!at_end && i + 1 < pattern.size() && pattern[i + 1] == '|') ||
             (at_end && i >= 2 && pattern[i - 2] == '|');
         boundaries->push_back(BoundaryAssertion{at_end, ch == 'b', empty_only});
+      } else if (static_cast<unsigned char>(ch) < 0x80u &&
+                 std::isalnum(static_cast<unsigned char>(ch)) == 0) {
+        // Python accepts a backslash before ASCII punctuation as a literal
+        // punctuation character. ECMAScript rejects a number of those identity
+        // escapes (notably the colon in Windows paths), so emit the equivalent
+        // engine-safe literal form.
+        regex_append_literal_char(out, static_cast<unsigned char>(ch), in_class);
       } else {
         out.push_back('\\');
         out.push_back(ch);
@@ -2517,6 +2590,37 @@ bool resolve_match_group_index(Runtime& runtime, const MatchState& state, const 
   return true;
 }
 
+bool regex_requires_host_ignorecase(std::string_view pattern) {
+  bool in_class = false;
+  bool escaped = false;
+  for (size_t i = 0; i < pattern.size(); ++i) {
+    const unsigned char ch = static_cast<unsigned char>(pattern[i]);
+    if (escaped) {
+      if ((!in_class && ch >= '1' && ch <= '9') ||
+          (in_class && (ch == 'x' || ch == 'u' || ch == 'U' || ch == 'N' ||
+                        (ch >= '0' && ch <= '7')))) {
+        return true;
+      }
+      escaped = false;
+      continue;
+    }
+    if (ch == '\\') {
+      escaped = true;
+      continue;
+    }
+    if (ch == '[' && !in_class) {
+      in_class = true;
+      continue;
+    }
+    if (ch == ']' && in_class) {
+      in_class = false;
+      continue;
+    }
+    if (in_class && std::isalpha(ch) != 0) return true;
+  }
+  return pattern.find("(?P=") != std::string_view::npos;
+}
+
 bool match_group(
     Runtime& runtime, const Value* args, uint32_t argc, Value& out,
     std::string& error, void*) {
@@ -3257,6 +3361,10 @@ bool match_satisfies_lookbehinds(
     } else if (assertion.category == 'w' || assertion.category == 'W') {
       present = regex_unicode_word_before(text, anchor);
       if (assertion.category == 'W') present = !present;
+      if (!present && !assertion.literal.empty() && anchor >= assertion.literal.size()) {
+        present = text.compare(
+            anchor - assertion.literal.size(), assertion.literal.size(), assertion.literal) == 0;
+      }
     } else if (anchor >= assertion.literal.size()) {
       present = text.compare(anchor - assertion.literal.size(), assertion.literal.size(), assertion.literal) == 0;
     }
@@ -3400,9 +3508,7 @@ bool pattern_match_impl(Runtime& runtime, const Value* args, uint32_t argc, Valu
       pattern_match_fast(runtime, *state, args[0], args[1], text, bytes_text, byte_pos, continuous, full, out)) {
     return true;
   }
-  if (!ensure_pattern_regex(*state, error)) {
-    return false;
-  }
+  if (!ensure_pattern_regex(*state, error)) return false;
   std::match_results<std::string::const_iterator> match;
   const auto flags = continuous ? std::regex_constants::match_continuous : std::regex_constants::match_default;
   if (continuous && byte_pos < state->minimum_match_start) {
@@ -3413,9 +3519,16 @@ bool pattern_match_impl(Runtime& runtime, const Value* args, uint32_t argc, Valu
   while (cursor <= byte_endpos) {
     auto begin = text.cbegin() + static_cast<std::ptrdiff_t>(cursor);
     auto end = text.cbegin() + static_cast<std::ptrdiff_t>(byte_endpos);
-    const bool matched = full
-        ? std::regex_match(begin, end, match, state->regex)
-        : std::regex_search(begin, end, match, state->regex, flags);
+    bool matched = false;
+    try {
+      matched = full || (continuous && state->requires_absolute_end)
+          ? std::regex_match(begin, end, match, state->regex)
+          : std::regex_search(begin, end, match, state->regex, flags);
+    } catch (const std::regex_error& exc) {
+      error = std::string("regular expression match failed in the native engine") +
+          ": " + exc.what();
+      return false;
+    }
     if (!matched) {
       value_set_none(out);
       return true;
@@ -4066,14 +4179,17 @@ bool pattern_sub(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
       if (!runtime_call_callable(runtime, args[1], &match_value, 1, replacement, error)) {
         return false;
       }
-      std::string replacement_text;
-      bool replacement_bytes = false;
-      if (!value_to_match_text(replacement, replacement_text, replacement_bytes) || replacement_bytes != bytes_text) {
-        error = "replacement must return matching string/bytes object";
-        runtime.raise_class_error("TypeError", error);
-        return false;
+      if (replacement.tag != ValueTag::None) {
+        std::string replacement_text;
+        bool replacement_bytes = false;
+        if (!value_to_match_text(replacement, replacement_text, replacement_bytes) ||
+            replacement_bytes != bytes_text) {
+          error = "replacement must return matching string/bytes object";
+          runtime.raise_class_error("TypeError", error);
+          return false;
+        }
+        output.append(replacement_text);
       }
-      output.append(replacement_text);
     } else if (literal_replacement) {
       output.append(fixed_replacement);
     } else {
@@ -4098,6 +4214,54 @@ bool pattern_sub(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
     out = std::move(replaced);
   }
   return true;
+}
+
+bool pattern_sub_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  const char* method = user_data == nullptr ? "Pattern.sub" : "Pattern.subn";
+  if (argc < 1 || argc > 4) {
+    error = std::string(method) + "() expected replacement, string, and optional count";
+    return false;
+  }
+  Value values[] = {args[0], Value::invalid(), Value::invalid(), Value::int64(0)};
+  bool present[] = {true, false, false, false};
+  for (uint32_t i = 1; i < argc; ++i) {
+    value_assign_fast(values[i], args[i]);
+    present[i] = true;
+  }
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    if (kwargs[i].name == nullptr || kwargs[i].value == nullptr) {
+      error = std::string(method) + "() received invalid keyword argument";
+      return false;
+    }
+    const std::string_view name(kwargs[i].name);
+    const uint32_t slot = name == "repl" ? 1u : name == "string" ? 2u :
+        name == "count" ? 3u : 4u;
+    if (slot == 4 || present[slot]) {
+      error = slot == 4
+          ? std::string(method) + "() got an unexpected keyword argument '" +
+                std::string(name) + "'"
+          : std::string(method) + "() got multiple values for argument '" +
+                std::string(name) + "'";
+      return false;
+    }
+    value_assign_fast(values[slot], *kwargs[i].value);
+    present[slot] = true;
+  }
+  if (!present[1] || !present[2]) {
+    const char* missing = !present[1] ? "repl" : "string";
+    error = std::string(method) + "() missing required argument '" + missing + "'";
+    return false;
+  }
+  return pattern_sub(runtime, values, present[3] ? 4u : 3u, out, error,
+                     user_data);
 }
 
 std::string expand_replacement_template(
@@ -4432,10 +4596,10 @@ Value make_pattern_type(Runtime& runtime) {
       nullptr, nullptr, nullptr, false, pattern_findall_kw)});
   attrs.push_back({"sub", runtime.make_native_function(
       "_sre.Pattern.sub", pattern_sub, nullptr, nullptr,
-      builtin_method_fast_adapter<pattern_sub, 4>)});
+      builtin_method_fast_adapter<pattern_sub, 4>, false, pattern_sub_kw)});
   attrs.push_back({"subn", runtime.make_native_function(
       "_sre.Pattern.subn", pattern_sub, reinterpret_cast<void*>(1), nullptr,
-      builtin_method_fast_adapter<pattern_sub, 4>)});
+      builtin_method_fast_adapter<pattern_sub, 4>, false, pattern_sub_kw)});
   attrs.push_back({"split", runtime.make_native_function("_sre.Pattern.split", pattern_split,
       nullptr, nullptr, nullptr, false, pattern_split_kw)});
   pattern_type = Value::class_object("SRE_Pattern", std::move(attrs));
@@ -4651,8 +4815,11 @@ bool sre_compile(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
                                                  !bytes_pattern, !bytes_pattern && (flags & 256) == 0,
                                                  &requires_absolute_start, &requires_absolute_end, &boundaries);
   }
-  std::regex::flag_type regex_flags = std::regex::ECMAScript;
-  if ((flags & kFlagIgnoreCase) != 0 && pattern.find("(?-i:") == std::string::npos) {
+  const int64_t group_count = args[3].tag == ValueTag::Int64 ? args[3].as.i64 : 0;
+  std::regex::flag_type regex_flags = std::regex::ECMAScript | std::regex_constants::optimize;
+  if (group_count == 0) regex_flags |= std::regex_constants::nosubs;
+  if ((flags & kFlagIgnoreCase) != 0 && pattern.find("(?-i:") == std::string::npos &&
+      regex_requires_host_ignorecase(pattern)) {
     regex_flags |= std::regex::icase;
   }
   if ((flags & kFlagMultiline) != 0) {
@@ -4665,7 +4832,7 @@ bool sre_compile(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
   state->flags = flags;
   state->regex_available = !unsupported;
   state->regex_flags = regex_flags;
-  state->group_count = args[3].tag == ValueTag::Int64 ? args[3].as.i64 : 0;
+  state->group_count = group_count;
   state->engine_group_for_python.resize(
       static_cast<size_t>(std::max<int64_t>(0, state->group_count)) + 1);
   for (size_t python_group = 0; python_group < state->engine_group_for_python.size(); ++python_group) {

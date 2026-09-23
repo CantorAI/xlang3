@@ -56,6 +56,7 @@ struct AsyncGenAwaitableObject {
   AsyncGenAwaitableKind kind = AsyncGenAwaitableKind::ANext;
   Value generator;
   std::vector<Value> args;
+  bool started = false;
   bool consumed = false;
 };
 
@@ -86,5 +87,12 @@ bool generator_throw(Value& generator, const Value* args, uint32_t argc, Value& 
 bool generator_vm_frame_snapshot(const GeneratorObject& generator, Value& out);
 bool generator_get_method(const Value& object, const std::string& name, Value& out);
 bool async_generator_awaitable_await(Runtime& runtime, const Value& value, Value& out, std::string& error);
+bool async_generator_awaitable_send(
+    Runtime& runtime,
+    const Value& value,
+    Value send_value,
+    bool& done,
+    Value& out,
+    std::string& error);
 
 } // namespace xlang3

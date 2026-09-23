@@ -1,0 +1,3 @@
+ValueError worker failed
+True
+['async-enter', 'sync-enter', ('sync-exit', 'ValueError'), ('async-exit', 'ValueError')]

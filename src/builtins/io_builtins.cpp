@@ -803,6 +803,68 @@ bool builtin_print_kw(
   return true;
 }
 
+bool builtin_input(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc > 1) {
+    error = "input expected at most 1 argument, got " + std::to_string(argc);
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value sys;
+  Value stdin_stream;
+  Value stdout_stream;
+  if (!runtime.import_module("sys", sys, error) ||
+      !module_get_attr(sys, "stdin", stdin_stream, error) ||
+      !module_get_attr(sys, "stdout", stdout_stream, error)) {
+    return false;
+  }
+  if (stdin_stream.tag == ValueTag::None) {
+    error = "input(): lost sys.stdin";
+    runtime.raise_class_error("RuntimeError", error);
+    return false;
+  }
+  if (stdout_stream.tag == ValueTag::None) {
+    error = "input(): lost sys.stdout";
+    runtime.raise_class_error("RuntimeError", error);
+    return false;
+  }
+  if (argc == 1) {
+    std::string prompt;
+    if (!print_value_text(runtime, args[0], prompt, error) ||
+        !print_write_text(runtime, stdout_stream, prompt, error) ||
+        !print_flush_file(runtime, stdout_stream, error)) {
+      return false;
+    }
+  }
+  Value readline;
+  Value line;
+  if (!attribute_get(stdin_stream, "readline", readline, error) ||
+      !runtime_call_callable(runtime, readline, nullptr, 0, line, error)) {
+    return false;
+  }
+  auto* text = value_as_string(line);
+  if (text == nullptr) {
+    error = "input(): readline() returned non-string";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  std::string value = string_object_to_string(*text);
+  if (value.empty()) {
+    error.clear();
+    runtime.raise_class_error("EOFError", "EOF when reading a line");
+    return false;
+  }
+  if (!value.empty() && value.back() == '\n') value.pop_back();
+  if (!value.empty() && value.back() == '\r') value.pop_back();
+  out = Value::string(std::move(value));
+  return true;
+}
+
 bool builtin_open(
     Runtime& runtime,
     const Value* args,
@@ -1200,6 +1262,9 @@ void register_io_builtins(Runtime& runtime) {
           false,
           builtin_print_kw,
           false));
+  runtime.register_builtin(
+      "input",
+      runtime.make_native_function("input", builtin_input));
 }
 
 } // namespace xlang3

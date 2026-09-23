@@ -96,6 +96,33 @@ bool type_parameter_repr(Runtime&, const Value* args, uint32_t argc, Value& out,
   return true;
 }
 
+bool type_parameter_subst(Runtime& runtime, const Value* args, uint32_t argc,
+                          Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "type parameter __typing_subst__ expected one argument";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  value_assign_fast(out, args[1]);
+  return true;
+}
+
+bool type_parameter_has_default(Runtime& runtime, const Value* args, uint32_t argc,
+                                Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "type parameter has_default expected no arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value default_value;
+  if (!object_get_attr(args[0], "__default__", default_value, error)) {
+    return false;
+  }
+  const Value no_default = typing_no_default(runtime);
+  out = Value::boolean(!value_is(default_value, no_default));
+  return true;
+}
+
 bool typevar_init_kw(
     Runtime& runtime,
     const Value* args,
@@ -321,6 +348,10 @@ Value make_typing_class(Runtime& runtime,
   const std::string_view class_name(name);
   if (class_name == "TypeVar" || class_name == "ParamSpec" || class_name == "TypeVarTuple") {
     attrs.push_back({"__repr__", runtime.make_native_function(std::string("_typing.") + name + ".__repr__", type_parameter_repr)});
+    attrs.push_back({"__typing_subst__", runtime.make_native_function(
+        std::string("_typing.") + name + ".__typing_subst__", type_parameter_subst)});
+    attrs.push_back({"has_default", runtime.make_native_function(
+        std::string("_typing.") + name + ".has_default", type_parameter_has_default)});
   }
   return Value::class_object(name, std::move(attrs), std::move(base));
 }

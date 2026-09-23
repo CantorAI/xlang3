@@ -42,6 +42,8 @@ void register_builtin_modules(Runtime& runtime) {
   copy_builtin(runtime, builtins, "staticmethod");
   copy_builtin(runtime, builtins, "super");
   copy_builtin(runtime, builtins, "len");
+  copy_builtin(runtime, builtins, "aiter");
+  copy_builtin(runtime, builtins, "anext");
   copy_builtin(runtime, builtins, "callable");
   copy_builtin(runtime, builtins, "enumerate");
   copy_builtin(runtime, builtins, "zip");
@@ -59,6 +61,7 @@ void register_builtin_modules(Runtime& runtime) {
   copy_builtin(runtime, builtins, "ord");
   copy_builtin(runtime, builtins, "str");
   copy_builtin(runtime, builtins, "repr");
+  copy_builtin(runtime, builtins, "ascii");
   copy_builtin(runtime, builtins, "format");
   copy_builtin(runtime, builtins, "hash");
   copy_builtin(runtime, builtins, "chr");
@@ -91,6 +94,7 @@ void register_builtin_modules(Runtime& runtime) {
   copy_builtin(runtime, builtins, "bytes");
   copy_builtin(runtime, builtins, "bytearray");
   copy_builtin(runtime, builtins, "memoryview");
+  copy_builtin(runtime, builtins, "slice");
   copy_builtin(runtime, builtins, "property");
   copy_builtin(runtime, builtins, "tuple");
   copy_builtin(runtime, builtins, "list");
@@ -174,6 +178,7 @@ void register_builtin_modules(Runtime& runtime) {
   copy_builtin(runtime, builtins, "eval");
   copy_builtin(runtime, builtins, "exec");
   copy_builtin(runtime, builtins, "open");
+  copy_builtin(runtime, builtins, "input");
   copy_builtin(runtime, builtins, "register_remote_object");
   copy_builtin(runtime, builtins, "lrpc_listen");
   copy_builtin(runtime, builtins, "lrpc_probe");

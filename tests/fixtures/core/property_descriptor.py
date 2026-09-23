@@ -36,6 +36,26 @@ class Meter:
         self._reading = 0
 
 
+class DescriptorInInit:
+    def __init__(self, value):
+        self.value = value
+
+    @property
+    def value(self):
+        return self._value
+
+    @value.setter
+    def value(self, value):
+        self._value = value * 3
+
+
+class AssignedDescriptorInInit:
+    def __init__(self, value):
+        self.value = value
+
+    value = property(get_value, set_value)
+
+
 box = Box()
 print(box.value)
 box.value = 5
@@ -47,8 +67,25 @@ print(readonly.label)
 
 meter = Meter()
 print(meter.reading)
+
+initialized = DescriptorInInit(7)
+print(initialized.value, initialized.__dict__)
+assigned_initialized = AssignedDescriptorInInit(4)
+print(assigned_initialized.value, assigned_initialized.__dict__)
 meter.reading = 20
 print(meter.reading)
 print(Meter.reading.fdel != None)
 del meter.reading
 print(meter.reading)
+
+
+class SpoofedMissingDict:
+    @property
+    def __dict__(self):
+        raise TypeError("vars() argument must have __dict__ attribute")
+
+
+try:
+    vars(SpoofedMissingDict())
+except TypeError as error:
+    print(type(error).__name__, str(error))

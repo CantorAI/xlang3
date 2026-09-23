@@ -538,9 +538,11 @@ void remove_trailing_backslash(std::string& line) {
   }
 }
 
-void append_joined_line(std::string& logical_line, std::string_view line) {
+void append_joined_line(std::string& logical_line, std::string_view line, bool inside_triple_string) {
   logical_line.push_back('\n');
-  logical_line += std::string(trim_inline_comment_for_join(line));
+  logical_line += inside_triple_string
+      ? std::string(line)
+      : std::string(trim_inline_comment_for_join(line));
 }
 
 std::string_view append_triple_string_tail(std::string& logical_line,
@@ -737,7 +739,8 @@ LexResult Lexer::tokenize() {
           }
           const auto next_line = lines[++line_index];
           logical_end_line = next_line.line;
-          append_joined_line(logical_line, next_line.text);
+          append_joined_line(logical_line, next_line.text,
+                             continued_string && continued_triple);
           should_join = update_line_join_state(next_line.text, bracket_depth, explicit_continue,
                                                continued_string, continued_quote, continued_triple);
         }
@@ -767,7 +770,8 @@ LexResult Lexer::tokenize() {
       }
       const auto next_line = lines[++line_index];
       logical_end_line = next_line.line;
-      append_joined_line(logical_line, next_line.text);
+      append_joined_line(logical_line, next_line.text,
+                         continued_string && continued_triple);
       should_join = update_line_join_state(next_line.text, bracket_depth, explicit_continue,
                                            continued_string, continued_quote, continued_triple);
     }

@@ -26,6 +26,8 @@ limitations under the License.
 #endif
 
 #include <algorithm>
+#include <cstdint>
+#include <sstream>
 
 namespace xlang3 {
 
@@ -171,8 +173,29 @@ std::string generator_to_string(const Value& value) {
     }
     return "<async_generator_asend object>";
   }
-  if (auto* generator = value_as_generator(value); generator != nullptr && generator->is_coroutine) {
-    return "<coroutine object>";
+  if (auto* generator = value_as_generator(value); generator != nullptr) {
+    std::string name;
+    if (auto* function = value_as_function(generator->function)) {
+      name = function->qualname;
+      if (name.empty() && function->module != nullptr &&
+          function->function_id < function->module->functions.size()) {
+        const auto& metadata =
+            function->module->functions[function->function_id];
+        name = metadata.qualname.empty() ? metadata.name : metadata.qualname;
+      }
+    }
+    if (!name.empty()) {
+      std::ostringstream address;
+      address << std::hex
+              << reinterpret_cast<uintptr_t>(generator);
+      const char* kind = generator->is_coroutine
+          ? "coroutine"
+          : generator->is_async ? "async_generator" : "generator";
+      return "<" + std::string(kind) + " object " + name + " at 0x" +
+          address.str() + ">";
+    }
+    if (generator->is_coroutine) return "<coroutine object>";
+    if (generator->is_async) return "<async_generator object>";
   }
   return "<generator object>";
 }
@@ -334,20 +357,76 @@ bool generator_throw(Value& generator, const Value* args, uint32_t argc, Value& 
   } else {
     value_assign_fast(exception, args[0]);
   }
+  bool delegated_completed = false;
+  Value delegated_return;
   if (!obj->done && obj->awaiting.tag != ValueTag::Invalid) {
     Value awaiting = obj->awaiting;
     Value delegated_out;
     std::string delegated_error;
-    if (generator_throw(awaiting, args, argc, delegated_out, delegated_error)) {
-      value_assign_fast(out, delegated_out);
-      return true;
+    bool delegated_resumed = false;
+    if (auto* async_awaitable = value_as_async_generator_awaitable(awaiting)) {
+      if (async_awaitable->consumed) {
+        delegated_error = "cannot reuse already awaited async generator awaitable";
+      } else {
+        async_awaitable->started = true;
+        delegated_resumed = generator_throw(
+            async_awaitable->generator, args, argc, delegated_out, delegated_error);
+        if (delegated_resumed) {
+          auto* async_generator = value_as_generator(async_awaitable->generator);
+          if (async_generator != nullptr && async_generator->awaiting.tag != ValueTag::Invalid) {
+            value_assign_fast(out, delegated_out);
+            return true;
+          }
+          async_awaitable->consumed = true;
+          value_assign_fast(delegated_return, delegated_out);
+          delegated_completed = true;
+        } else {
+          async_awaitable->consumed = true;
+          auto* async_generator = value_as_generator(async_awaitable->generator);
+          if (async_generator != nullptr && async_generator->done) {
+            Value delegated_exception;
+            if (obj->runtime->take_pending_exception(delegated_exception)) {
+              if (exception_has_class_name(
+                      *obj->runtime, delegated_exception, "StopIteration")) {
+                obj->runtime->set_pending_exception(
+                    obj->runtime->make_exception("StopAsyncIteration", ""));
+              } else {
+                obj->runtime->set_pending_exception(
+                    std::move(delegated_exception));
+              }
+            }
+          }
+        }
+      }
+    } else {
+      delegated_resumed = generator_throw(awaiting, args, argc, delegated_out, delegated_error);
+      if (delegated_resumed) {
+        value_assign_fast(out, delegated_out);
+        return true;
+      }
     }
     Value delegated_exception;
-    if (obj->runtime->take_pending_exception(delegated_exception)) {
-      value_assign_fast(exception, delegated_exception);
-    } else if (value_as_instance(delegated_out) != nullptr) {
-      value_assign_fast(exception, delegated_out);
-    } else if (obj->runtime->active_exception().tag != ValueTag::Invalid) {
+    if (!delegated_completed && obj->runtime->take_pending_exception(delegated_exception)) {
+      if (exception_has_class_name(*obj->runtime, delegated_exception, "StopIteration")) {
+        std::string ignored;
+        if (!object_get_attr(delegated_exception, "value", delegated_return, ignored)) {
+          value_set_none(delegated_return);
+        }
+        delegated_completed = true;
+      } else {
+        value_assign_fast(exception, delegated_exception);
+      }
+    } else if (!delegated_completed && value_as_instance(delegated_out) != nullptr) {
+      if (exception_has_class_name(*obj->runtime, delegated_out, "StopIteration")) {
+        std::string ignored;
+        if (!object_get_attr(delegated_out, "value", delegated_return, ignored)) {
+          value_set_none(delegated_return);
+        }
+        delegated_completed = true;
+      } else {
+        value_assign_fast(exception, delegated_out);
+      }
+    } else if (!delegated_completed && obj->runtime->active_exception().tag != ValueTag::Invalid) {
       value_assign_fast(exception, obj->runtime->active_exception());
     }
     value_set_invalid(obj->awaiting);
@@ -362,11 +441,18 @@ bool generator_throw(Value& generator, const Value* args, uint32_t argc, Value& 
     error = value_to_string(exception);
     return false;
   }
-  if (!emit_generator_throw_monitoring_event(*obj, exception, error)) {
-    return false;
+  if (delegated_completed) {
+    value_assign_fast(obj->pending_send, delegated_return);
+    obj->has_pending_send = true;
+    value_set_invalid(obj->pending_throw);
+    obj->has_pending_throw = false;
+  } else {
+    if (!emit_generator_throw_monitoring_event(*obj, exception, error)) {
+      return false;
+    }
+    value_assign_fast(obj->pending_throw, exception);
+    obj->has_pending_throw = true;
   }
-  value_assign_fast(obj->pending_throw, exception);
-  obj->has_pending_throw = true;
   obj->started = true;
   Interpreter interpreter(*obj->runtime);
   bool done = false;
@@ -410,7 +496,13 @@ bool generator_throw(Value& generator, const Value* args, uint32_t argc, Value& 
   return true;
 }
 
-bool async_generator_awaitable_await(Runtime& runtime, const Value& value, Value& out, std::string& error) {
+bool async_generator_awaitable_send(
+    Runtime& runtime,
+    const Value& value,
+    Value send_value,
+    bool& done,
+    Value& out,
+    std::string& error) {
   auto* state = value_as_async_generator_awaitable(value);
   if (state == nullptr) {
     error.clear();
@@ -420,51 +512,94 @@ bool async_generator_awaitable_await(Runtime& runtime, const Value& value, Value
     error = "cannot reuse already awaited async generator awaitable";
     return false;
   }
-  state->consumed = true;
-
-  bool done = false;
-  switch (state->kind) {
-    case AsyncGenAwaitableKind::ANext:
-      if (!generator_send(state->generator, Value::none(), done, out, error)) {
-        return false;
-      }
-      break;
-    case AsyncGenAwaitableKind::ASend:
-      if (state->args.empty()) {
-        error = "async_generator.asend missing value";
-        return false;
-      }
-      if (!generator_send(state->generator, state->args[0], done, out, error)) {
-        return false;
-      }
-      break;
-    case AsyncGenAwaitableKind::AThrow:
-      if (!generator_throw(
-              state->generator,
-              state->args.data(),
-              static_cast<uint32_t>(state->args.size()),
-              out,
-              error)) {
-        if (value_as_instance(out) != nullptr) {
-          runtime.set_pending_exception(out);
-        }
-        if (error.empty()) {
-          error = "async generator throw failed";
-        }
-        return false;
-      }
-      return true;
-    case AsyncGenAwaitableKind::AClose:
-      return generator_close(state->generator, out, error);
+  auto* generator = value_as_generator(state->generator);
+  if (generator == nullptr) {
+    error = "async generator awaitable has invalid generator";
+    return false;
   }
 
-  if (done) {
-    if (state->kind == AsyncGenAwaitableKind::ANext && !state->args.empty()) {
-      value_assign_fast(out, state->args[0]);
-      return true;
+  bool generator_done = false;
+  bool resumed = false;
+  if (state->started) {
+    resumed = generator_send(
+        state->generator, std::move(send_value), generator_done, out, error);
+  } else {
+    state->started = true;
+    switch (state->kind) {
+      case AsyncGenAwaitableKind::ANext:
+        resumed = generator_send(
+            state->generator, Value::none(), generator_done, out, error);
+        break;
+      case AsyncGenAwaitableKind::ASend:
+        if (state->args.empty()) {
+          error = "async_generator.asend missing value";
+          return false;
+        }
+        resumed = generator_send(
+            state->generator, state->args[0], generator_done, out, error);
+        break;
+      case AsyncGenAwaitableKind::AThrow:
+        resumed = generator_throw(
+            state->generator,
+            state->args.data(),
+            static_cast<uint32_t>(state->args.size()),
+            out,
+            error);
+        break;
+      case AsyncGenAwaitableKind::AClose:
+        // aclose() is still handled by the established close path.  It does
+        // not participate in this resumable path until cleanup itself awaits.
+        resumed = generator_close(state->generator, out, error);
+        generator_done = resumed;
+        break;
     }
+  }
+
+  if (!resumed) {
+    state->consumed = true;
+    if (state->kind == AsyncGenAwaitableKind::AThrow && generator->done &&
+        exception_has_class_name(runtime, out, "StopIteration")) {
+      Value pending;
+      runtime.take_pending_exception(pending);
+      error = "async generator exhausted";
+      runtime.raise_class_error("StopAsyncIteration", error);
+      return false;
+    }
+    if (value_as_instance(out) != nullptr) {
+      runtime.set_pending_exception(out);
+    }
+    if (error.empty()) {
+      error = "async generator await failed";
+    }
+    return false;
+  }
+
+  if (generator->awaiting.tag != ValueTag::Invalid) {
+    done = false;
+    return true;
+  }
+
+  state->consumed = true;
+  done = true;
+  if (generator_done &&
+      (state->kind == AsyncGenAwaitableKind::ANext ||
+       state->kind == AsyncGenAwaitableKind::ASend ||
+       state->kind == AsyncGenAwaitableKind::AThrow)) {
     error = "async generator exhausted";
     runtime.raise_class_error("StopAsyncIteration", error);
+    return false;
+  }
+  return true;
+}
+
+bool async_generator_awaitable_await(Runtime& runtime, const Value& value, Value& out, std::string& error) {
+  bool done = false;
+  if (!async_generator_awaitable_send(
+          runtime, value, Value::none(), done, out, error)) {
+    return false;
+  }
+  if (!done) {
+    error = "async generator awaitable suspended without an event-loop scheduler";
     return false;
   }
   return true;
@@ -503,11 +638,16 @@ bool async_generator_awaitable_next_method(
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  if (!async_generator_awaitable_await(runtime, args[0], out, error)) {
+  bool done = false;
+  if (!async_generator_awaitable_send(
+          runtime, args[0], Value::none(), done, out, error)) {
     if (runtime.active_exception().tag == ValueTag::Invalid && error.empty()) {
       runtime.raise_class_error("RuntimeError", "async generator await failed");
     }
     return false;
+  }
+  if (!done) {
+    return true;
   }
   raise_stop_iteration_with_value(runtime, out);
   return false;
@@ -525,7 +665,15 @@ bool async_generator_awaitable_send_method(
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  return async_generator_awaitable_next_method(runtime, args, 1, out, error, nullptr);
+  bool done = false;
+  if (!async_generator_awaitable_send(runtime, args[0], args[1], done, out, error)) {
+    return false;
+  }
+  if (!done) {
+    return true;
+  }
+  raise_stop_iteration_with_value(runtime, out);
+  return false;
 }
 
 bool generator_send_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {

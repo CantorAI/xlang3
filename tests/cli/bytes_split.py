@@ -6,6 +6,11 @@ assert b"a:b:".split(b":", -1) == [b"a", b"b", b""]
 assert b"".split(b":", 2) == [b""]
 assert b"  ".split(None, 0) == []
 assert bytearray(b"a:b:c").split(b":", 1) == [bytearray(b"a"), bytearray(b"b:c")]
+assert b"a:b:c".rsplit(b":", 1) == [b"a:b", b"c"]
+assert b"  a  b  ".rsplit(None, 0) == [b"  a  b"]
+assert b"  a  b  ".rsplit(None, 1) == [b"  a", b"b"]
+assert b"a:b:".rsplit(sep=b":", maxsplit=1) == [b"a:b", b""]
+assert bytearray(b"a:b:c").rsplit(b":", 1) == [bytearray(b"a:b"), bytearray(b"c")]
 try:
     b"abc".split(b"", 0)
 except ValueError:

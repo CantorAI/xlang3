@@ -1,0 +1,8 @@
+(0, 1)
+(0, 1)
+(3602879701896397, 36028797018963968)
+(-5, 2)
+(3, 2)
+(1267650600228229401496703205376, 1)
+OverflowError cannot convert Infinity to integer ratio
+ValueError cannot convert NaN to integer ratio

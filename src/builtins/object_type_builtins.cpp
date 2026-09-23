@@ -28,6 +28,9 @@ limitations under the License.
 
 #include <cstdint>
 #include <algorithm>
+#include <cerrno>
+#include <cctype>
+#include <cstdlib>
 #include <exception>
 #include <set>
 #include <string>
@@ -142,7 +145,16 @@ bool dict_init_update_one(Runtime& runtime, Value& target, const Value& source, 
     return true;
   }
   if (auto* source_instance = value_as_instance(source)) {
-    if (auto* storage = value_as_dict(source_instance->mapping_storage)) {
+    const Value* dict_type = runtime.find_builtin("dict");
+    auto* source_class = value_as_class(source_instance->klass);
+    auto* dict_class = dict_type == nullptr ? nullptr : value_as_class(*dict_type);
+    if (source_class != nullptr && dict_class != nullptr &&
+        class_is_subclass(source_class, dict_class)) {
+      auto* storage = value_as_dict(source_instance->mapping_storage);
+      if (storage == nullptr) {
+        error = "dict subclass has no mapping storage";
+        return false;
+      }
       for (const auto& entry : storage->entries) {
         if (!mapping_set_item(target, entry.first, entry.second, error)) {
           return false;
@@ -154,13 +166,13 @@ bool dict_init_update_one(Runtime& runtime, Value& target, const Value& source, 
 
   Value keys_method;
   std::string attr_error;
-  if (object_get_attr(source, "keys", keys_method, attr_error)) {
+  if (attribute_get(source, "keys", keys_method, attr_error)) {
     Value keys_result;
     if (!runtime_call_callable(runtime, keys_method, nullptr, 0, keys_result, error)) {
       return false;
     }
     Value getitem_method;
-    if (!object_get_attr(source, "__getitem__", getitem_method, attr_error)) {
+    if (!attribute_get(source, "__getitem__", getitem_method, attr_error)) {
       error = "'" + builtin_value_type_name(runtime, source) + "' object is not a mapping";
       return false;
     }
@@ -180,7 +192,9 @@ bool dict_init_update_one(Runtime& runtime, Value& target, const Value& source, 
 
   Value iterator;
   if (!runtime_get_iter(runtime, source, iterator, error)) {
-    if (error == "object is not iterable") {
+    if (error.empty() || error == "object is not iterable") {
+      Value ignored_exception;
+      (void)runtime.take_pending_exception(ignored_exception);
       error = "'" + builtin_value_type_name(runtime, source) + "' object is not iterable";
     }
     return false;
@@ -338,6 +352,22 @@ bool collect_type_new_slots(const Value& value, std::vector<std::string>& slots)
   return false;
 }
 
+std::string mangle_type_slot_name(std::string_view class_name, const std::string& slot_name) {
+  if (slot_name.size() < 3 || slot_name[0] != '_' || slot_name[1] != '_' ||
+      (slot_name.size() >= 4 && slot_name[slot_name.size() - 1] == '_' &&
+       slot_name[slot_name.size() - 2] == '_')) {
+    return slot_name;
+  }
+  size_t class_start = 0;
+  while (class_start < class_name.size() && class_name[class_start] == '_') {
+    ++class_start;
+  }
+  if (class_start == class_name.size()) {
+    return slot_name;
+  }
+  return "_" + std::string(class_name.substr(class_start)) + slot_name;
+}
+
 DictObject* type_new_namespace_dict(const Value& value) {
   if (auto* dict = value_as_dict(value)) {
     return dict;
@@ -346,6 +376,55 @@ DictObject* type_new_namespace_dict(const Value& value) {
     return value_as_dict(instance->mapping_storage);
   }
   return nullptr;
+}
+
+bool apply_optimized_instance_slots(
+    Runtime& runtime,
+    Value& class_value,
+    const std::vector<std::string>& slots,
+    std::string& error) {
+  auto* klass = value_as_class(class_value);
+  if (klass == nullptr) {
+    return true;
+  }
+  auto incompatible_layout = [&]() {
+    std::string message = "metaclass produced an incompatible instance layout for '" + klass->name +
+        "' (expected:";
+    for (const auto& slot : slots) message += " " + slot;
+    message += "; actual:";
+    for (const auto& slot : klass->instance_slot_names) message += " " + slot;
+    message += ")";
+    return message;
+  };
+  if (klass->instance_slot_names.size() > slots.size()) {
+    error = incompatible_layout();
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  for (size_t i = 0; i < klass->instance_slot_names.size(); ++i) {
+    if (klass->instance_slot_names[i] != slots[i]) {
+      error = incompatible_layout();
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+  }
+  const size_t existing = klass->instance_slot_names.size();
+  for (size_t i = existing; i < slots.size(); ++i) {
+    klass->instance_slot_names.push_back(slots[i]);
+  }
+  klass->instance_slot_indices.clear();
+  for (size_t i = 0; i < klass->instance_slot_names.size(); ++i) {
+    const auto& name = klass->instance_slot_names[i];
+    klass->instance_slot_indices[name] = static_cast<uint32_t>(i);
+    if (i >= existing && klass->attrs.find(name) == klass->attrs.end()) {
+      Value descriptor = slot_descriptor(klass->name, name, static_cast<uint32_t>(i));
+      slot_descriptor_set_owner_class(descriptor, class_value);
+      klass->attrs.emplace(name, std::move(descriptor));
+      klass->has_descriptors = true;
+    }
+  }
+  ++klass->version;
+  return true;
 }
 
 bool value_has_abstract_marker(const Value& value) {
@@ -635,10 +714,37 @@ bool class_tuple_matches(
     out = false;
     return true;
   }
+  if (auto* alias = value_as_generic_alias(classinfo); alias != nullptr && alias->is_union) {
+    auto* members = value_as_tuple(alias->args);
+    if (members == nullptr) {
+      error = "invalid union type";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    for (const auto& item : members->items) {
+      bool item_match = false;
+      if (!class_tuple_matches(runtime, check_subject, actual_type, item, subclass_check, item_match, error)) {
+        return false;
+      }
+      if (item_match) {
+        out = true;
+        return true;
+      }
+    }
+    out = false;
+    return true;
+  }
 
   auto* expected = value_as_class(classinfo);
   auto* actual = value_as_class(actual_type);
   if (expected == nullptr || actual == nullptr) {
+    const char* hook_name = subclass_check ? "__subclasscheck__" : "__instancecheck__";
+    const Value& hook_arg = subclass_check ? actual_type : check_subject;
+    bool hook_applied = false;
+    if (!call_class_check_hook(runtime, classinfo, hook_name, hook_arg, hook_applied, out, error)) {
+      return false;
+    }
+    if (hook_applied) return true;
     error = subclass_check ? "issubclass() arg 2 must be a class or tuple of classes"
                            : "isinstance() arg 2 must be a class or tuple of classes";
     runtime.raise_class_error("TypeError", error);
@@ -684,6 +790,26 @@ bool class_tuple_matches_reported_type(
     std::string& error) {
   if (auto* tuple = value_as_tuple(classinfo)) {
     for (const auto& item : tuple->items) {
+      bool item_match = false;
+      if (!class_tuple_matches_reported_type(runtime, actual_type, item, item_match, error)) {
+        return false;
+      }
+      if (item_match) {
+        out = true;
+        return true;
+      }
+    }
+    out = false;
+    return true;
+  }
+  if (auto* alias = value_as_generic_alias(classinfo); alias != nullptr && alias->is_union) {
+    auto* members = value_as_tuple(alias->args);
+    if (members == nullptr) {
+      error = "invalid union type";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    for (const auto& item : members->items) {
       bool item_match = false;
       if (!class_tuple_matches_reported_type(runtime, actual_type, item, item_match, error)) {
         return false;
@@ -892,6 +1018,18 @@ bool builtin_object_new(
   return true;
 }
 
+bool builtin_object_new_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg*,
+    uint32_t,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  return builtin_object_new(runtime, args, argc, out, error, user_data);
+}
+
 bool builtin_module_new(
     Runtime& runtime,
     const Value* args,
@@ -916,6 +1054,8 @@ bool builtin_module_new(
     return false;
   }
   out = Value::module(string_object_to_string(*name));
+  value_assign_fast(value_as_module(out)->klass, args[0]);
+  value_as_module(out)->runtime = &runtime;
   std::string ignored;
   module_set_attr(out, "__doc__", argc == 3 ? args[2] : Value::none(), ignored);
   return true;
@@ -1180,7 +1320,23 @@ bool builtin_object_getstate(
   }
   Value dict_state;
   std::string ignored;
-  if (object_get_attr(args[0], "__dict__", dict_state, ignored)) {
+  const bool has_dict_state = object_get_attr(args[0], "__dict__", dict_state, ignored);
+  std::vector<std::pair<Value, Value>> slot_entries;
+  if (auto* instance = value_as_instance(args[0])) {
+    if (auto* klass = value_as_class(instance->klass)) {
+      for (size_t i = 0; i < klass->instance_slot_names.size() && i < instance_slot_count(instance); ++i) {
+        const auto& slot_name = klass->instance_slot_names[i];
+        const auto& slot_value = instance_slot_at(instance, static_cast<uint32_t>(i));
+        if (slot_name != "__dict__" && slot_name != "__weakref__" &&
+            slot_value.tag != ValueTag::Invalid) {
+          slot_entries.emplace_back(Value::string(slot_name), slot_value);
+        }
+      }
+    }
+  }
+  if (!slot_entries.empty()) {
+    out = Value::tuple({has_dict_state ? dict_state : Value::none(), Value::dict(std::move(slot_entries))});
+  } else if (has_dict_state) {
     value_assign_fast(out, dict_state);
   } else {
     value_set_none(out);
@@ -1279,8 +1435,7 @@ bool builtin_str_new(
       return true;
     }
     out = Value::instance(args[0]);
-    std::string ignored;
-    (void)object_set_attr(out, "__xlang3_string_value__", decoded, ignored);
+    value_as_instance(out)->attrs.emplace_back("__xlang3_string_value__", decoded);
     return true;
   }
   Value text = Value::string("");
@@ -1294,8 +1449,7 @@ bool builtin_str_new(
     return true;
   }
   out = Value::instance(args[0]);
-  std::string ignored;
-  (void)object_set_attr(out, "__xlang3_string_value__", text, ignored);
+  value_as_instance(out)->attrs.emplace_back("__xlang3_string_value__", text);
   return true;
 }
 
@@ -1374,7 +1528,7 @@ bool builtin_tuple_new(
     error = "tuple.__new__ could not allocate tuple subclass";
     return false;
   }
-  instance->attrs.push_back({"_tuple", Value::invalid()});
+  instance->attrs.push_back({"__xlang3_tuple_value__", Value::invalid()});
   value_assign_fast(instance->attrs.back().second, tuple_storage);
   return true;
 }
@@ -1412,6 +1566,50 @@ bool try_int_conversion_protocol(Runtime& runtime, const Value& value, Value& pa
   return false;
 }
 
+bool parse_complex_text(std::string_view input, double& real, double& imaginary) {
+  while (!input.empty() && std::isspace(static_cast<unsigned char>(input.front()))) input.remove_prefix(1);
+  while (!input.empty() && std::isspace(static_cast<unsigned char>(input.back()))) input.remove_suffix(1);
+  if (input.size() >= 2 && input.front() == '(' && input.back() == ')') {
+    input.remove_prefix(1);
+    input.remove_suffix(1);
+    while (!input.empty() && std::isspace(static_cast<unsigned char>(input.front()))) input.remove_prefix(1);
+    while (!input.empty() && std::isspace(static_cast<unsigned char>(input.back()))) input.remove_suffix(1);
+  }
+  if (input.empty()) return false;
+  for (char byte : input)
+    if (std::isspace(static_cast<unsigned char>(byte))) return false;
+  auto parse_number = [](std::string_view text, double& output) {
+    if (text.empty()) return false;
+    std::string owned(text);
+    char* end = nullptr;
+    errno = 0;
+    output = std::strtod(owned.c_str(), &end);
+    // CPython accepts both floating-point underflow (yielding signed zero) and
+    // overflow (yielding infinity) in complex string components.
+    return end == owned.c_str() + owned.size();
+  };
+  real = 0.0;
+  imaginary = 0.0;
+  if (input.back() != 'j' && input.back() != 'J')
+    return parse_number(input, real);
+  input.remove_suffix(1);
+  size_t split = std::string_view::npos;
+  for (size_t index = 1; index < input.size(); ++index) {
+    if ((input[index] == '+' || input[index] == '-') &&
+        input[index - 1] != 'e' && input[index - 1] != 'E')
+      split = index;
+  }
+  std::string_view imaginary_text = input;
+  if (split != std::string_view::npos) {
+    if (!parse_number(input.substr(0, split), real)) return false;
+    imaginary_text = input.substr(split);
+  }
+  if (imaginary_text.empty() || imaginary_text == "+") imaginary = 1.0;
+  else if (imaginary_text == "-") imaginary = -1.0;
+  else if (!parse_number(imaginary_text, imaginary)) return false;
+  return true;
+}
+
 bool builtin_complex_new(
     Runtime& runtime,
     const Value* args,
@@ -1424,28 +1622,114 @@ bool builtin_complex_new(
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  auto numeric_part = [&](const Value& value, double& real, double& imag) {
+  auto stored_numeric_part = [&](const Value& value, double& real, double& imag) {
     if (value.tag == ValueTag::Bool) real = value.as.b ? 1.0 : 0.0;
     else if (value.tag == ValueTag::Int64) real = static_cast<double>(value.as.i64);
     else if (value.tag == ValueTag::Double) real = value.as.f64;
     else if (auto* complex = value_as_complex(value)) {
       real = complex->real;
       imag = complex->imag;
-    } else return false;
+    } else {
+      Value stored;
+      std::string ignored;
+      if (object_get_attr(value, "__xlang3_complex_value__", stored, ignored)) {
+        if (auto* complex = value_as_complex(stored)) {
+          real = complex->real;
+          imag = complex->imag;
+          return true;
+        }
+      }
+      if (object_get_attr(value, "__xlang3_float_value__", stored, ignored) &&
+          stored.tag == ValueTag::Double) {
+        real = stored.as.f64;
+        return true;
+      }
+      if ((object_get_attr(value, "__xlang3_int_value__", stored, ignored) ||
+           object_get_attr(value, "_value_", stored, ignored)) &&
+          stored.tag == ValueTag::Int64) {
+        real = static_cast<double>(stored.as.i64);
+        return true;
+      }
+      return false;
+    }
     return true;
+  };
+  auto numeric_part = [&](const Value& value, double& real, double& imag,
+                          bool allow_complex_protocol) {
+    if (stored_numeric_part(value, real, imag)) return true;
+    const char* protocols[] = {"__complex__", "__float__", "__index__"};
+    for (const char* protocol : protocols) {
+      if (!allow_complex_protocol && std::string_view(protocol) == "__complex__")
+        continue;
+      Value method;
+      std::string lookup_error;
+      if (!object_get_attr(value, protocol, method, lookup_error)) continue;
+      Value converted;
+      std::string call_error;
+      if (!runtime_call_callable(runtime, method, nullptr, 0, converted, call_error)) {
+        error = call_error;
+        return false;
+      }
+      if (std::string_view(protocol) == "__complex__") {
+        double converted_real = 0.0;
+        double converted_imag = 0.0;
+        if (stored_numeric_part(converted, converted_real, converted_imag) &&
+            (value_as_complex(converted) != nullptr ||
+             [&]() {
+               Value stored;
+               std::string ignored;
+               return object_get_attr(converted, "__xlang3_complex_value__", stored, ignored) &&
+                   value_as_complex(stored) != nullptr;
+             }())) {
+          real = converted_real;
+          imag = converted_imag;
+          return true;
+        }
+        error = "__complex__ returned non-complex";
+      } else {
+        double converted_real = 0.0;
+        double converted_imag = 0.0;
+        if (stored_numeric_part(converted, converted_real, converted_imag) &&
+            converted_imag == 0.0) {
+          real = converted_real;
+          return true;
+        }
+        error = std::string(protocol) + " returned non-number";
+      }
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    return false;
   };
   double real = 0.0;
   double imaginary_from_real = 0.0;
   bool first_is_complex = false;
-  if (argc >= 2 && !numeric_part(args[1], real, imaginary_from_real)) {
-    error = "complex() first argument must be a string or a number";
-    runtime.raise_class_error("TypeError", error);
-    return false;
+  if (argc >= 2 &&
+      !numeric_part(args[1], real, imaginary_from_real, true)) {
+    if (!error.empty()) return false;
+    auto* text = value_as_string(args[1]);
+    if (text == nullptr) {
+      error = "complex() first argument must be a string or a number";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    if (argc >= 3) {
+      error = "complex() can't take second arg if first is a string";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    if (!parse_complex_text(string_object_view(*text), real, imaginary_from_real)) {
+      error = "complex() arg is a malformed string";
+      runtime.raise_class_error("ValueError", error);
+      return false;
+    }
   }
   if (argc >= 2) first_is_complex = value_as_complex(args[1]) != nullptr;
   double imaginary_real = 0.0;
   double imaginary_imag = 0.0;
-  if (argc >= 3 && !numeric_part(args[2], imaginary_real, imaginary_imag)) {
+  if (argc >= 3 &&
+      !numeric_part(args[2], imaginary_real, imaginary_imag, false)) {
+    if (!error.empty()) return false;
     error = "complex() second argument must be a number";
     runtime.raise_class_error("TypeError", error);
     return false;
@@ -1511,6 +1795,10 @@ bool builtin_int_new(
     if (argc != 3 && object_get_attr(args[1], "__xlang3_int_value__", stored, ignored) &&
         (stored.tag == ValueTag::Int64 || value_as_bigint(stored) != nullptr)) {
       value_assign_fast(parsed, stored);
+    } else if (argc != 3 &&
+               object_get_attr(args[1], "__xlang3_float_value__", stored, ignored) &&
+               stored.tag == ValueTag::Double) {
+      parsed = Value::int64(static_cast<int64_t>(stored.as.f64));
     } else if (argc != 3 && object_get_attr(args[1], "_value_", stored, ignored) &&
                (stored.tag == ValueTag::Int64 || value_as_bigint(stored) != nullptr)) {
       value_assign_fast(parsed, stored);
@@ -1608,8 +1896,8 @@ bool builtin_type_new_impl(
 
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.reserve(namespace_dict->entries.size());
+  const std::string class_name = string_object_to_string(*name);
   std::vector<std::string> explicit_slots;
-  std::vector<std::string> static_attributes;
   bool has_explicit_slots = false;
   for (const auto& entry : namespace_dict->entries) {
     auto* key = value_as_string(entry.first);
@@ -1626,9 +1914,9 @@ bool builtin_type_new_impl(
         runtime.raise_class_error("TypeError", error);
         return false;
       }
-    }
-    if (key_name == "__static_attributes__") {
-      (void)collect_type_new_slots(entry.second, static_attributes);
+      for (auto& slot : explicit_slots) {
+        slot = mangle_type_slot_name(class_name, slot);
+      }
     }
     attrs.push_back({key_name, entry.second});
   }
@@ -1660,7 +1948,6 @@ bool builtin_type_new_impl(
     value_assign_fast(base, resolved_bases[0]);
   }
 
-  std::string class_name = string_object_to_string(*name);
   Value final_marker;
   std::string final_error;
   if (base.tag != ValueTag::Invalid &&
@@ -1690,9 +1977,14 @@ bool builtin_type_new_impl(
       set_name_callbacks.emplace_back(attr.first, std::move(callback));
     }
   }
-  const std::vector<std::string> inferred_slots =
-      !has_explicit_slots && resolved_bases.empty() ? static_attributes : std::vector<std::string>{};
+  std::vector<std::string> inferred_slots;
+  // __static_attributes__ is introspection metadata in Python 3.14.  It must
+  // not create member descriptors or a slot layout for an ordinary class;
+  // only an explicit __slots__ declaration changes instance storage.
   out = Value::class_object(class_name, std::move(attrs), base, inferred_slots, args[0]);
+  if (auto* created_class = value_as_class(out); created_class != nullptr && !resolved_bases.empty()) {
+    created_class->has_explicit_bases = true;
+  }
   for (size_t i = 1; i < resolved_bases.size(); ++i) {
     if (!class_set_base(out, resolved_bases[i], error)) {
       runtime.raise_class_error("TypeError", error);
@@ -1758,8 +2050,17 @@ bool builtin_build_class_from_namespace_kw(
     Value& out,
     std::string& error,
     void* user_data) {
-  if (argc != 4) {
-    error = "__build_class__ expected metaclass, name, bases, and namespace";
+  if (argc != 5) {
+    error = "__build_class__ expected metaclass, name, bases, namespace, and instance layout";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+
+  std::vector<std::string> optimized_instance_slots;
+  const bool has_optimized_instance_slots = args[4].tag != ValueTag::None;
+  if (has_optimized_instance_slots &&
+      !collect_type_new_slots(args[4], optimized_instance_slots)) {
+    error = "__build_class__ instance layout must be a sequence of strings";
     runtime.raise_class_error("TypeError", error);
     return false;
   }
@@ -1812,7 +2113,8 @@ bool builtin_build_class_from_namespace_kw(
       runtime.raise_class_error("TypeError", error);
       return false;
     }
-    return true;
+    return !has_optimized_instance_slots ||
+        apply_optimized_instance_slots(runtime, out, optimized_instance_slots, error);
   }
 
   Value constructed;
@@ -1825,7 +2127,7 @@ bool builtin_build_class_from_namespace_kw(
       (native_new != nullptr && (native_new->name == "type.__new__" || native_new->name == "object.__new__"));
   if (use_default_type_new) {
     if (!builtin_type_new_impl(
-            runtime, build_args, argc, class_keywords, constructed, error,
+            runtime, build_args, 4, class_keywords, constructed, error,
             user_data, &resolved_bases)) {
       return false;
     }
@@ -1842,6 +2144,49 @@ bool builtin_build_class_from_namespace_kw(
   if (value_as_class(constructed) == nullptr) {
     value_assign_fast(out, constructed);
     return true;
+  }
+  if (has_optimized_instance_slots &&
+      !apply_optimized_instance_slots(runtime, constructed, optimized_instance_slots, error)) {
+    return false;
+  }
+
+  std::vector<Value> generic_parameters;
+  auto add_generic_parameter = [&](const Value& parameter) {
+    for (const auto& existing : generic_parameters) {
+      if (value_is(existing, parameter)) return;
+    }
+    generic_parameters.push_back(parameter);
+  };
+  auto collect_generic_parameters = [&](auto&& self, const Value& value) -> void {
+    if (value_as_type_param(value) != nullptr) {
+      add_generic_parameter(value);
+      return;
+    }
+    if (auto* instance = value_as_instance(value)) {
+      auto* parameter_class = value_as_class(instance->klass);
+      if (parameter_class != nullptr &&
+          (parameter_class->name == "TypeVar" || parameter_class->name == "ParamSpec" ||
+           parameter_class->name == "TypeVarTuple")) {
+        add_generic_parameter(value);
+        return;
+      }
+    }
+    if (auto* alias = value_as_generic_alias(value)) {
+      self(self, alias->args);
+      return;
+    }
+    if (auto* tuple = value_as_tuple(value)) {
+      for (const auto& item : tuple->items) self(self, item);
+    }
+  };
+  for (const auto& original_base : original_bases->items) {
+    collect_generic_parameters(collect_generic_parameters, original_base);
+  }
+  if (!generic_parameters.empty()) {
+    Value parameters = Value::tuple(std::move(generic_parameters));
+    if (!object_set_attr(constructed, "__parameters__", parameters, error)) {
+      return false;
+    }
   }
 
   Value init_value;
@@ -1888,12 +2233,30 @@ bool resolve_class_bases(Runtime& runtime, TupleObject* bases, std::vector<Value
     return true;
   }
   Value original_bases;
-  for (const auto& base : bases->items) {
+  for (size_t base_index = 0; base_index < bases->items.size(); ++base_index) {
+    const auto& base = bases->items[base_index];
     if (auto* alias = value_as_generic_alias(base)) {
       if (value_as_class(alias->origin) == nullptr) {
         error = "__mro_entries__ resolved base is not a class";
         runtime.raise_class_error("TypeError", error);
         return false;
+      }
+      // typing.Generic[T] contributes no base when a later parameterized
+      // base already supplies Generic.  This is the key redundancy rule in
+      // typing._GenericAlias.__mro_entries__ and prevents an impossible MRO
+      // such as (Generic, ObjectStream) when ObjectStream derives Generic.
+      if (auto* origin_class = value_as_class(alias->origin);
+          origin_class != nullptr && origin_class->name == "Generic") {
+        bool later_generic_alias = false;
+        for (size_t later = base_index + 1; later < bases->items.size(); ++later) {
+          if (value_as_generic_alias(bases->items[later]) != nullptr) {
+            later_generic_alias = true;
+            break;
+          }
+        }
+        if (later_generic_alias) {
+          continue;
+        }
       }
       resolved_bases.push_back(alias->origin);
     } else if (value_as_class(base) != nullptr) {
@@ -2107,7 +2470,25 @@ bool builtin_type_or(
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  if (!value_bit_or(args[0], args[1], out, error)) {
+  Value left;
+  Value right;
+  value_assign_fast(left, args[0]);
+  value_assign_fast(right, args[1]);
+  const Value* none_type = runtime.find_builtin("NoneType");
+  if (none_type != nullptr) {
+    if (left.tag == ValueTag::None) {
+      value_assign_fast(left, *none_type);
+    }
+    if (right.tag == ValueTag::None) {
+      value_assign_fast(right, *none_type);
+    }
+  }
+  if (!value_bit_or(left, right, out, error)) {
+    if (const Value* not_implemented = runtime.find_builtin("NotImplemented")) {
+      value_assign_fast(out, *not_implemented);
+      error.clear();
+      return true;
+    }
     runtime.raise_class_error("TypeError", error);
     return false;
   }
@@ -2126,7 +2507,37 @@ bool builtin_type_call(
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  return runtime_call_callable(runtime, args[0], args + 1, argc - 1, out, error);
+  static const std::vector<std::pair<std::string, Value>> no_keywords;
+  return runtime_construct_class_kw(
+      runtime, args[0], args + 1, argc - 1, no_keywords, out, error);
+}
+
+bool builtin_type_call_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc < 1 || value_as_class(args[0]) == nullptr) {
+    error = "type.__call__ expected a class";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  std::vector<std::pair<std::string, Value>> keyword_values;
+  keyword_values.reserve(kwargc);
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    if (kwargs[i].name == nullptr || kwargs[i].value == nullptr) {
+      error = "type.__call__ received an invalid keyword argument";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    keyword_values.emplace_back(kwargs[i].name, *kwargs[i].value);
+  }
+  return runtime_construct_class_kw(
+      runtime, args[0], args + 1, argc - 1, keyword_values, out, error);
 }
 
 bool builtin_type_annotations_get(
@@ -2458,21 +2869,6 @@ bool builtin_object_str(
   return true;
 }
 
-bool descriptor_callable_arg(const Value& value) {
-  if (value_as_function(value) != nullptr ||
-      value_as_native_function(value) != nullptr ||
-      value_as_bound_method(value) != nullptr ||
-      value_as_class(value) != nullptr) {
-    return true;
-  }
-  if (value_as_instance(value) != nullptr) {
-    Value call_attr;
-    std::string ignored;
-    return object_get_class_attr_for_instance(value, "__call__", call_attr, ignored);
-  }
-  return false;
-}
-
 bool descriptor_init_common(
     Runtime& runtime,
     const Value* args,
@@ -2482,11 +2878,6 @@ bool descriptor_init_common(
     const char* type_name) {
   if (argc != 2) {
     error = std::string(type_name) + ".__init__ expected 1 argument";
-    runtime.raise_class_error("TypeError", error);
-    return false;
-  }
-  if (!descriptor_callable_arg(args[1])) {
-    error = std::string(type_name) + "() argument must be callable";
     runtime.raise_class_error("TypeError", error);
     return false;
   }
@@ -2720,6 +3111,13 @@ bool builtin_object_dir(
       names.insert(attr.first);
     }
     add_class_names(value_as_class(instance->klass));
+    if (names.find("__text_signature__") != names.end()) {
+      Value text_signature;
+      std::string ignored;
+      if (!object_get_attr(args[0], "__text_signature__", text_signature, ignored)) {
+        names.erase("__text_signature__");
+      }
+    }
   } else if (auto* klass = value_as_class(args[0])) {
     add_class_names(klass);
   } else if (auto* module = value_as_module(args[0])) {
@@ -2767,7 +3165,51 @@ bool builtin_object_getattribute(
     runtime.raise_class_error("AttributeError", error);
     return false;
   }
+  // object.__getattribute__ is itself responsible for applying descriptors.
+  // The VM normally performs this step after a raw attribute lookup, but a
+  // Python override can call object.__getattribute__ (or a builtin base
+  // implementation such as tuple.__getattribute__) directly.
+  if (auto* property = value_as_property(out)) {
+    if (property->fget.tag == ValueTag::None ||
+        property->fget.tag == ValueTag::Invalid) {
+      error = "unreadable attribute";
+      runtime.raise_class_error("AttributeError", error);
+      return false;
+    }
+    Value descriptor_result;
+    if (!runtime_call_callable(
+            runtime, property->fget, args, 1, descriptor_result, error)) {
+      return false;
+    }
+    out = std::move(descriptor_result);
+  }
   return true;
+}
+
+bool builtin_object_init_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  if (kwargc == 0)
+    return builtin_object_init(runtime, args, argc, out, error, user_data);
+  if (argc == 0 || kwargs == nullptr || kwargs[0].value == nullptr) {
+    error = "object.__init__ expected self";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  std::vector<Value> effective_args;
+  effective_args.reserve(static_cast<size_t>(argc) + 1);
+  for (uint32_t index = 0; index < argc; ++index)
+    effective_args.push_back(args[index]);
+  effective_args.push_back(*kwargs[0].value);
+  return builtin_object_init(runtime, effective_args.data(),
+                             static_cast<uint32_t>(effective_args.size()), out,
+                             error, user_data);
 }
 
 bool builtin_object_setattr(
@@ -2936,6 +3378,24 @@ bool runtime_type_of_value(Runtime& runtime, const Value& value, Value& out) {
       if (auto* instance = value_as_instance(value)) {
         value_assign_fast(out, instance->klass);
         return true;
+      }
+      if (auto* module = value_as_module(value);
+          module != nullptr && value_as_class(module->klass) != nullptr) {
+        value_assign_fast(out, module->klass);
+        return true;
+      }
+      if (value.as.obj->kind == ObjectKind::File) {
+        auto* file = reinterpret_cast<FileObject*>(value.as.obj);
+        if (value_as_class(file->klass) != nullptr) {
+          value_assign_fast(out, file->klass);
+          return true;
+        }
+      }
+      if (auto* alias = value_as_generic_alias(value); alias != nullptr && alias->is_union) {
+        if (const auto* union_type = find_builtin_type(runtime, "Union")) {
+          value_assign_fast(out, *union_type);
+          return true;
+        }
       }
       if (auto* alias = value_as_generic_alias(value);
           alias != nullptr && value_as_class(alias->klass) != nullptr) {
@@ -3196,12 +3656,14 @@ void register_object_type_builtins(Runtime& runtime) {
   object_attrs.push_back({"__text_signature__", Value::string("()")});
   Value object_new = Value::native_function(
       0, "object.__new__", builtin_object_new, nullptr, nullptr,
-      builtin_variadic_fast_adapter<builtin_object_new, 4>);
+      builtin_variadic_fast_adapter<builtin_object_new, 4>, false,
+      builtin_object_new_kw);
   builtin_method_set_text_signature(object_new, "(*args, **kwargs)");
   object_attrs.push_back({"__new__", std::move(object_new)});
   Value object_init = runtime.make_native_function(
       "object.__init__", builtin_object_init, nullptr, nullptr,
-      builtin_variadic_fast_adapter<builtin_object_init, 4>);
+      builtin_variadic_fast_adapter<builtin_object_init, 4>, false,
+      builtin_object_init_kw);
   builtin_method_set_text_signature(object_init, "($self, /, *args, **kwargs)");
   object_attrs.push_back({"__init__", std::move(object_init)});
   object_attrs.push_back({"__init_subclass__", Value::class_method(runtime.make_native_function(
@@ -3291,7 +3753,11 @@ void register_object_type_builtins(Runtime& runtime) {
     Value type_or = Value::native_function(0, "type.__or__", builtin_type_or);
     builtin_method_set_text_signature(type_or, "($self, value, /)");
     type_class->attrs["__or__"] = std::move(type_or);
-    Value type_call = Value::native_function(0, "type.__call__", builtin_type_call);
+    Value type_ror = Value::native_function(0, "type.__ror__", builtin_type_or);
+    builtin_method_set_text_signature(type_ror, "($self, value, /)");
+    type_class->attrs["__ror__"] = std::move(type_ror);
+    Value type_call = Value::native_function(
+        0, "type.__call__", builtin_type_call, nullptr, nullptr, nullptr, false, builtin_type_call_kw);
     builtin_method_set_text_signature(type_call, "($self, /, *args, **kwargs)");
     type_class->attrs["__call__"] = std::move(type_call);
     builtin_method_set_text_signature(type_class->attrs["__subclasscheck__"], "($self, subclass, /)");
@@ -3308,7 +3774,7 @@ void register_object_type_builtins(Runtime& runtime) {
           builtin_build_class_from_namespace,
           nullptr,
           nullptr,
-          builtin_fast_adapter<builtin_build_class_from_namespace, 4>,
+          builtin_fast_adapter<builtin_build_class_from_namespace, 5>,
           true,
           builtin_build_class_from_namespace_kw));
   runtime.register_builtin(
@@ -3325,6 +3791,8 @@ void register_object_type_builtins(Runtime& runtime) {
   register_builtin_type(runtime, "int", object_type);
   if (const auto* int_value = runtime.find_builtin("int")) {
     if (auto* int_class = value_as_class(*int_value)) {
+      int_class->allow_instance_dict = false;
+      int_class->allow_weakref = false;
       int_class->attrs["__new__"] = Value::static_method(Value::native_function(
           0,
           "int.__new__",
@@ -3446,6 +3914,11 @@ void register_object_type_builtins(Runtime& runtime) {
     }
   }
   register_builtin_type(runtime, "frozenset", object_type);
+  if (const auto* frozenset_value = runtime.find_builtin("frozenset")) {
+    if (auto* frozenset_class = value_as_class(*frozenset_value)) {
+      frozenset_install_class_methods(runtime, *frozenset_class);
+    }
+  }
   const auto install_concrete_repr = [&](const char* type_name) {
     const Value* type_value = runtime.find_builtin(type_name);
     auto* type_class = type_value == nullptr ? nullptr : value_as_class(*type_value);

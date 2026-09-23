@@ -1,0 +1,8 @@
+200 {'endpoint': 'http://User:pw@example.com/api?q=hello+world&q=2#frag', 'upstream': 'ftp://example.com/file', 'database': 'postgres://u:p@db1:5432,db2:5433/app?ssl=1'}
+422 url_scheme ('body', 'endpoint')
+'https://www.xn--80ak6aa92e.com/search?q=hello+world' 'https://www.\u0430\u0440\u0440\u04cf\u0435.com/search?q=hello+world'
+[('q', 'hello world')] 21 [{'username': 'u', 'password': 'p', 'host': 'db1', 'port': 5432}, {'username': None, 'password': None, 'host': 'db2', 'port': 5433}]
+https://u:p@example.com:8443/x?a=1#f Url('https://u:p@example.com:8443/x?a=1#f') example.com 8443 [('a', '1')]
+postgres://u:p@a:1,b/db MultiHostUrl('postgres://u:p@a:1,b/db') [{'username': 'u', 'password': 'p', 'host': 'a', 'port': 1}, {'username': None, 'password': None, 'host': 'b', 'port': None}]
++05:30 TzInfo(19800) 5:30:00 +05:30 None True
+True 2026-01-02T03:04:00+05:30

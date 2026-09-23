@@ -37,12 +37,46 @@ struct CountState {
   int64_t step = 1;
 };
 
+struct RepeatState {
+  Value item = Value::invalid();
+  int64_t remaining = -1;
+};
+
 void cycle_state_cleanup(void* data) {
   delete static_cast<CycleState*>(data);
 }
 
 void count_state_cleanup(void* data) {
   delete static_cast<CountState*>(data);
+}
+
+void repeat_state_cleanup(void* data) {
+  auto* state = static_cast<RepeatState*>(data);
+  if (state != nullptr) value_set_invalid(state->item);
+  delete state;
+}
+
+bool repeat_next(
+    Runtime& runtime, const Value*, uint32_t argc, Value& out,
+    std::string& error, void* user_data) {
+  if (argc != 0) {
+    error = "itertools.repeat iterator expected no arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* state = static_cast<RepeatState*>(user_data);
+  if (state == nullptr) {
+    error = "invalid itertools.repeat iterator";
+    runtime.raise_class_error("RuntimeError", error);
+    return false;
+  }
+  if (state->remaining == 0) {
+    runtime.raise_class_error("StopIteration", "");
+    return false;
+  }
+  if (state->remaining > 0) --state->remaining;
+  value_assign_fast(out, state->item);
+  return true;
 }
 
 bool count_next(
@@ -91,10 +125,27 @@ bool cycle_next(
 }
 
 bool int_arg(const Value& value, int64_t& out) {
-  if (value.tag == ValueTag::Int64) {
-    out = value.as.i64;
+  return value_int_like_to_i64(value, out) || value_bigint_to_i64(value, out);
+}
+
+bool index_arg(Runtime& runtime, const Value& value, int64_t& out, std::string& error) {
+  if (int_arg(value, out)) {
     return true;
   }
+  Value method;
+  std::string lookup_error;
+  if (!object_get_attr(value, "__index__", method, lookup_error)) {
+    return false;
+  }
+  Value converted;
+  if (!runtime_call_callable(runtime, method, nullptr, 0, converted, error)) {
+    return false;
+  }
+  if (int_arg(converted, out)) {
+    return true;
+  }
+  error = "__index__ returned non-int";
+  runtime.raise_class_error("TypeError", error);
   return false;
 }
 
@@ -150,22 +201,24 @@ bool itertools_islice(Runtime& runtime, const Value* args, uint32_t argc, Value&
   if (argc == 2) {
     if (args[1].tag == ValueTag::None) {
       stop_is_unbounded = true;
-    } else if (!int_arg(args[1], stop)) {
+    } else if (!index_arg(runtime, args[1], stop, error)) {
       error = "islice stop must be int";
       return false;
     }
   } else {
-    if (!int_arg(args[1], start)) {
+    if (args[1].tag == ValueTag::None) {
+      start = 0;
+    } else if (!index_arg(runtime, args[1], start, error)) {
       error = "islice start/stop must be int";
       return false;
     }
     if (args[2].tag == ValueTag::None) {
       stop_is_unbounded = true;
-    } else if (!int_arg(args[2], stop)) {
+    } else if (!index_arg(runtime, args[2], stop, error)) {
       error = "islice start/stop must be int";
       return false;
     }
-    if (argc == 4 && (!int_arg(args[3], step) || step < 1)) {
+    if (argc == 4 && (!index_arg(runtime, args[3], step, error) || step < 1)) {
       error = "islice step must be a positive int";
       return false;
     }
@@ -435,29 +488,24 @@ bool itertools_compress(Runtime& runtime, const Value* args, uint32_t argc, Valu
   return true;
 }
 
-bool itertools_repeat(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool itertools_repeat(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 1 || argc > 2) {
     error = "itertools.repeat() expected object and optional times";
     return false;
   }
-  if (argc == 1) {
-    error = "infinite itertools.repeat() is not materialized by this foundation";
-    return false;
-  }
-  int64_t times = 0;
-  if (!int_arg(args[1], times)) {
+  int64_t times = -1;
+  if (argc == 2 && !index_arg(runtime, args[1], times, error)) {
     error = "repeat times must be int";
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
-  if (times < 0) {
-    times = 0;
-  }
-  std::vector<Value> values;
-  values.reserve(static_cast<size_t>(times));
-  for (int64_t i = 0; i < times; ++i) {
-    values.push_back(args[0]);
-  }
-  out = Value::list(std::move(values));
+  if (argc == 2 && times < 0) times = 0;
+  auto* state = new RepeatState();
+  value_assign_fast(state->item, args[0]);
+  state->remaining = times;
+  Value next = runtime.make_native_function(
+      "itertools.repeat.__next__", repeat_next, state, repeat_state_cleanup);
+  out = functional_callable_iterator(&runtime, std::move(next), Value::invalid());
   return true;
 }
 

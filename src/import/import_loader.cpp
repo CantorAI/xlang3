@@ -135,7 +135,7 @@ bool zip_pyc_matches_source(
     std::string_view bytecode,
     const ZipArchiveEntry* source_entry,
     std::string& error) {
-  if (bytecode.size() < 16 || bytecode.compare(0, 4, "\x33\x58\x0d\x0a", 4) != 0) {
+  if (bytecode.size() < 16 || bytecode.compare(0, 4, "\x3d\x58\x0d\x0a", 4) != 0) {
     return false;
   }
   const uint32_t flags = zip_pyc_u32(bytecode, 4);
@@ -465,7 +465,7 @@ bool find_module_file(Runtime& runtime, const std::string& name, ModuleFile& out
             return true;
           }
         }
-        if (!parent_is_namespace) {
+        if (!parent_is_namespace && namespace_dirs.empty()) {
           return false;
         }
       } else {
@@ -592,7 +592,7 @@ bool read_current_source_bytecode_cache(
   std::string ignored;
   const std::string cache_path = bytecode_cache_path(runtime, source_path);
   if (!read_file(runtime, cache_path, bytecode, ignored) || bytecode.size() < 16 ||
-      bytecode.compare(0, 4, "\x33\x58\x0d\x0a", 4) != 0 ||
+      bytecode.compare(0, 4, "\x3d\x58\x0d\x0a", 4) != 0 ||
       zip_pyc_u32(bytecode, 4) != 0) {
     return false;
   }
@@ -637,7 +637,7 @@ void write_source_bytecode_cache(
   if (!runtime.vfs().stat(module_file.path, stat, ignored)) {
     return;
   }
-  std::string pyc("\x33\x58\x0d\x0a", 4);
+  std::string pyc("\x3d\x58\x0d\x0a", 4);
   append_pyc_u32(pyc, 0);
   append_pyc_u32(pyc, static_cast<uint32_t>(stat.mtime_ns / 1000000000ll));
   append_pyc_u32(pyc, static_cast<uint32_t>(stat.size));
@@ -797,7 +797,7 @@ bool import_python_module(Runtime& runtime, const std::string& name, Value& out,
 
   std::shared_ptr<const ir::Module> module_ir;
   if (using_bytecode) {
-    if (source.size() < 16 || source.compare(0, 4, "\x33\x58\x0d\x0a", 4) != 0) {
+    if (source.size() < 16 || source.compare(0, 4, "\x3d\x58\x0d\x0a", 4) != 0) {
       error = "bad magic number in bytecode file '" + module_file.path + "'";
       if (module_file.is_zip_source) {
         raise_zipimport_bytecode_error(runtime, error);

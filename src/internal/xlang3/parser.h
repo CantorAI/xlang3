@@ -190,7 +190,7 @@ private:
   std::vector<std::string> consume_optional_type_params();
   bool is_simple_statement_end() const;
   ast::ExprPtr parse_with_manager_expr();
-  ast::ExprPtr parse_for_target();
+  ast::ExprPtr parse_for_target(bool grouped_target_is_complete = false);
   bool validate_match_pattern(const ast::Expr& pattern);
   bool is_match_statement_start() const;
   ast::ExprPtr parse_expression();
@@ -237,6 +237,7 @@ private:
   std::vector<std::unique_ptr<std::string>> owned_text_;
   size_t current_ = 0;
   std::vector<std::string> errors_;
+  bool parsing_match_pattern_ = false;
 };
 
 ParseResult parse_source(const std::string& source);

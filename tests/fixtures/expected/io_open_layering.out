@@ -1,0 +1,9 @@
+_io TextIOWrapper
+_io BufferedRandom
+False bytes
+_io BufferedReader b'alpha'
+_io FileIO b'al'
+_io TextIOWrapper
+_io BufferedReader
+bytes b'pha'
+partial-pipe-read True [b'x']

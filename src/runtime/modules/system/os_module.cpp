@@ -488,6 +488,69 @@ bool os_readlink(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
   return true;
 }
 
+bool os_symlink_impl(Runtime& runtime, const Value* args, uint32_t argc,
+                     bool target_is_directory, Value& out, std::string& error) {
+  if (argc != 2) {
+    error = "os.symlink() expected source and destination paths";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  PathArg source;
+  PathArg destination;
+  if (!get_path_arg(runtime, args[0], "os.symlink source", source, error) ||
+      !get_path_arg(runtime, args[1], "os.symlink destination", destination, error)) {
+    return false;
+  }
+  if (source.text.find('\0') != std::string::npos ||
+      destination.text.find('\0') != std::string::npos) {
+    error = "embedded null character in path";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
+  if (!runtime.vfs().create_link(
+          source.text, destination.text, target_is_directory, error)) {
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool os_symlink(Runtime& runtime, const Value* args, uint32_t argc,
+                Value& out, std::string& error, void*) {
+  bool target_is_directory = false;
+  if (argc == 3) {
+    target_is_directory = value_truthy(args[2]);
+    argc = 2;
+  }
+  return os_symlink_impl(
+      runtime, args, argc, target_is_directory, out, error);
+}
+
+bool os_symlink_kw(Runtime& runtime, const Value* args, uint32_t argc,
+                   const NativeKeywordArg* kwargs, uint32_t kwargc,
+                   Value& out, std::string& error, void*) {
+  bool target_is_directory = false;
+  if (argc == 3) {
+    target_is_directory = value_truthy(args[2]);
+    argc = 2;
+  }
+  for (uint32_t index = 0; index < kwargc; ++index) {
+    const std::string name = kwargs[index].name == nullptr ? "" : kwargs[index].name;
+    if (name == "target_is_directory") {
+      target_is_directory = value_truthy(*kwargs[index].value);
+    } else if (name == "dir_fd" && kwargs[index].value->tag == ValueTag::None) {
+      continue;
+    } else {
+      error = "os.symlink() got an unexpected keyword argument '" + name + "'";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+  }
+  return os_symlink_impl(
+      runtime, args, argc, target_is_directory, out, error);
+}
+
 bool os_getcwdb(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
     error = "os.getcwdb() expected no arguments";
@@ -1990,7 +2053,7 @@ bool os_stat_result_repr(Runtime& runtime, const Value* args, uint32_t argc, Val
   }
   Value tuple_value;
   TupleObject* tuple = nullptr;
-  if (!object_get_attr(args[0], "_tuple", tuple_value, ignored) || (tuple = value_as_tuple(tuple_value)) == nullptr) {
+  if (!object_get_attr(args[0], "__xlang3_tuple_value__", tuple_value, ignored) || (tuple = value_as_tuple(tuple_value)) == nullptr) {
     error = "descriptor '__repr__' requires a 'os.stat_result' object";
     runtime.raise_class_error("TypeError", error);
     return false;
@@ -2087,7 +2150,7 @@ bool os_stat_result_new(
     return false;
   }
   out = Value::instance(args[0]);
-  value_as_instance(out)->attrs.push_back({"_tuple", args[1]});
+  value_as_instance(out)->attrs.push_back({"__xlang3_tuple_value__", args[1]});
   return true;
 }
 
@@ -2106,7 +2169,7 @@ bool os_stat_result_reduce(
   Value klass;
   Value tuple;
   if (!object_get_attr(args[0], "__class__", klass, error) ||
-      !object_get_attr(args[0], "_tuple", tuple, error)) {
+      !object_get_attr(args[0], "__xlang3_tuple_value__", tuple, error)) {
     runtime.raise_class_error("TypeError", "invalid os.stat_result object");
     return false;
   }
@@ -2129,13 +2192,13 @@ bool os_stat_result_equal(
   Value left;
   Value right;
   std::string ignored;
-  if (!object_get_attr(args[0], "_tuple", left, ignored)) {
+  if (!object_get_attr(args[0], "__xlang3_tuple_value__", left, ignored)) {
     value_set_bool(out, false);
     return true;
   }
   if (value_as_tuple(args[1]) != nullptr) {
     value_assign_fast(right, args[1]);
-  } else if (!object_get_attr(args[1], "_tuple", right, ignored)) {
+  } else if (!object_get_attr(args[1], "__xlang3_tuple_value__", right, ignored)) {
     value_set_bool(out, reinterpret_cast<intptr_t>(user_data) != 0);
     return true;
   }
@@ -2222,7 +2285,7 @@ Value make_stat_result(const Value& klass, const VfsStat& stat) {
 
   Value instance = Value::instance(klass);
   auto* object = value_as_instance(instance);
-  object->attrs.push_back({"_tuple", Value::tuple(tuple_items)});
+  object->attrs.push_back({"__xlang3_tuple_value__", Value::tuple(tuple_items)});
   object->attrs.push_back({"st_atime", Value::number(atime)});
   object->attrs.push_back({"st_mtime", Value::number(mtime)});
   object->attrs.push_back({"st_ctime", Value::number(ctime)});
@@ -2274,7 +2337,7 @@ Value make_terminal_size_class(Runtime& runtime) {
 Value make_terminal_size(const Value& klass, int64_t columns, int64_t lines) {
   Value instance = Value::instance(klass);
   value_as_instance(instance)->attrs.push_back({
-      "_tuple", Value::tuple({Value::int64(columns), Value::int64(lines)})});
+      "__xlang3_tuple_value__", Value::tuple({Value::int64(columns), Value::int64(lines)})});
   return instance;
 }
 
@@ -2337,7 +2400,7 @@ bool os_times(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::st
 #endif
   out = Value::instance(state->times_result_class);
   value_as_instance(out)->attrs.push_back({
-      "_tuple",
+      "__xlang3_tuple_value__",
       Value::tuple({
           Value::number(user),
           Value::number(system),
@@ -4527,6 +4590,7 @@ void register_os_module(Runtime& runtime) {
 #endif
   builder.function("getcwd", os_getcwd)
       .function("readlink", os_readlink)
+      .function("symlink", os_symlink, nullptr, false, os_symlink_kw)
       .function("getcwdb", os_getcwdb)
       .function("chdir", os_chdir)
       .function("fsencode", os_fsencode)

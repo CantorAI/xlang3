@@ -15,11 +15,13 @@ limitations under the License.
 #include "xlang3/builtins.h"
 
 #include "xlang3/functional_iterators.h"
+#include "xlang3/ast.h"
 #include "xlang3/mapping.h"
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
 #include "xlang3/sequence.h"
 #include "xlang3/set_object.h"
+#include "xlang3/parser.h"
 
 #include <cctype>
 #include <deque>
@@ -32,6 +34,7 @@ namespace xlang3 {
 namespace {
 
 struct AstState {
+  Runtime* runtime = nullptr;
   Value ast_base;
   std::unordered_map<std::string, Value> classes;
 };
@@ -108,6 +111,14 @@ bool ast_node_init(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
 Value ast_class(Runtime& runtime, const char* name, const Value& base, std::initializer_list<const char*> fields = {}) {
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.push_back({"_fields", Value::tuple(field_tuple(fields))});
+  const std::string_view class_name(name);
+  if (class_name == "stmt" || class_name == "expr" || class_name == "excepthandler" ||
+      class_name == "pattern" || class_name == "type_param") {
+    attrs.push_back({"_attributes", Value::tuple(field_tuple(
+        {"lineno", "col_offset", "end_lineno", "end_col_offset"}))});
+  } else if (class_name == "AST") {
+    attrs.push_back({"_attributes", Value::tuple({})});
+  }
   attrs.push_back({"_field_types", Value::dict({})});
   attrs.push_back({"__match_args__", Value::tuple(field_tuple(fields))});
   if (std::string(name) == "AST") {
@@ -893,6 +904,329 @@ bool parse_simple_function_ast(Runtime&, AstState* state, std::string_view sourc
   return true;
 }
 
+Value convert_parser_expr(AstState* state, const ast::Expr& expr, bool store_context, std::string& error);
+
+Value parser_context(AstState* state, bool store) {
+  return ast_instance(state, store ? "Store" : "Load");
+}
+
+void set_parser_location(Value& node, const ast::Expr& expr, std::string& error) {
+  ast_set_location(node, expr.line, expr.end_line, expr.column, expr.end_column, error);
+}
+
+void set_parser_location(Value& node, const ast::Stmt& stmt, std::string& error) {
+  ast_set_location(node, stmt.line, stmt.end_line, stmt.column, stmt.end_column, error);
+}
+
+Value convert_parser_expr(AstState* state, const ast::Expr& expr, bool store_context, std::string& error) {
+  Value node;
+  if (auto* name = dynamic_cast<const ast::NameExpr*>(&expr)) {
+    node = ast_instance(state, "Name");
+    object_set_attr(node, "id", Value::string(name->name), error);
+    object_set_attr(node, "ctx", parser_context(state, store_context), error);
+  } else if (auto* literal = dynamic_cast<const ast::LiteralExpr*>(&expr)) {
+    Value literal_value;
+    switch (literal->kind) {
+      case ast::LiteralExpr::Kind::None: literal_value = Value::none(); break;
+      case ast::LiteralExpr::Kind::Bool: literal_value = Value::boolean(literal->bool_value); break;
+      case ast::LiteralExpr::Kind::Ellipsis: {
+        const Value* ellipsis = state->runtime == nullptr
+            ? nullptr : state->runtime->find_builtin("Ellipsis");
+        node = ast_make_constant(
+            state, ellipsis == nullptr ? Value::none() : *ellipsis, error);
+        break;
+      }
+      case ast::LiteralExpr::Kind::String:
+        node = ast_make_constant(state, Value::string(literal->text), error);
+        break;
+      case ast::LiteralExpr::Kind::Bytes:
+        node = ast_make_constant(state, Value::bytes(literal->text), error);
+        break;
+      default: {
+        node = ast_parse_simple_expr(state, literal->text, error, expr.line, expr.column);
+        break;
+      }
+    }
+    if (node.tag == ValueTag::Invalid &&
+        (literal->kind == ast::LiteralExpr::Kind::None || literal->kind == ast::LiteralExpr::Kind::Bool)) {
+      node = ast_make_constant(state, literal_value, error);
+    }
+  } else if (auto* attr = dynamic_cast<const ast::AttrExpr*>(&expr)) {
+    Value owner = convert_parser_expr(state, *attr->object, false, error);
+    node = ast_instance(state, "Attribute");
+    object_set_attr(node, "value", owner, error);
+    object_set_attr(node, "attr", Value::string(attr->name), error);
+    object_set_attr(node, "ctx", parser_context(state, store_context), error);
+  } else if (auto* call = dynamic_cast<const ast::CallExpr*>(&expr)) {
+    Value callee = convert_parser_expr(state, *call->callee, false, error);
+    std::vector<Value> args;
+    std::vector<Value> keywords;
+    if (!call->call_args.empty()) {
+      for (const auto& argument : call->call_args) {
+        Value value = convert_parser_expr(state, *argument.value, false, error);
+        if (argument.name.empty() && !argument.kw_star) {
+          if (argument.star) {
+            Value starred = ast_instance(state, "Starred");
+            object_set_attr(starred, "value", value, error);
+            object_set_attr(starred, "ctx", parser_context(state, false), error);
+            args.push_back(std::move(starred));
+          } else {
+            args.push_back(std::move(value));
+          }
+        } else {
+          Value keyword = ast_instance(state, "keyword");
+          object_set_attr(keyword, "arg", argument.kw_star ? Value::none() : Value::string(argument.name), error);
+          object_set_attr(keyword, "value", value, error);
+          keywords.push_back(std::move(keyword));
+        }
+      }
+    } else {
+      for (const auto& argument : call->args) {
+        args.push_back(convert_parser_expr(state, *argument, false, error));
+      }
+    }
+    node = ast_instance(state, "Call");
+    object_set_attr(node, "func", callee, error);
+    object_set_attr(node, "args", Value::list(std::move(args)), error);
+    object_set_attr(node, "keywords", Value::list(std::move(keywords)), error);
+  } else if (auto* conditional = dynamic_cast<const ast::ConditionalExpr*>(&expr)) {
+    node = ast_instance(state, "IfExp");
+    object_set_attr(node, "test", convert_parser_expr(state, *conditional->condition, false, error), error);
+    object_set_attr(node, "body", convert_parser_expr(state, *conditional->then_expr, false, error), error);
+    object_set_attr(node, "orelse", convert_parser_expr(state, *conditional->else_expr, false, error), error);
+  } else if (auto* unary = dynamic_cast<const ast::UnaryExpr*>(&expr)) {
+    static const std::unordered_map<std::string, const char*> operators = {
+        {"+", "UAdd"}, {"-", "USub"}, {"~", "Invert"}, {"not", "Not"}};
+    auto found = operators.find(unary->op);
+    if (found == operators.end()) return Value::invalid();
+    node = ast_instance(state, "UnaryOp");
+    object_set_attr(node, "op", ast_instance(state, found->second), error);
+    object_set_attr(node, "operand", convert_parser_expr(state, *unary->expr, false, error), error);
+  } else if (auto* comparison = dynamic_cast<const ast::CompareChainExpr*>(&expr)) {
+    static const std::unordered_map<std::string, const char*> operators = {
+        {"==", "Eq"}, {"!=", "NotEq"}, {"<", "Lt"}, {"<=", "LtE"},
+        {">", "Gt"}, {">=", "GtE"}, {"is", "Is"}, {"is not", "IsNot"},
+        {"in", "In"}, {"not in", "NotIn"}};
+    std::vector<Value> ops;
+    std::vector<Value> comparators;
+    for (const auto& [op, value] : comparison->comparisons) {
+      auto found = operators.find(op);
+      if (found == operators.end()) return Value::invalid();
+      ops.push_back(ast_instance(state, found->second));
+      comparators.push_back(convert_parser_expr(state, *value, false, error));
+    }
+    node = ast_instance(state, "Compare");
+    object_set_attr(node, "left", convert_parser_expr(state, *comparison->first, false, error), error);
+    object_set_attr(node, "ops", Value::list(std::move(ops)), error);
+    object_set_attr(node, "comparators", Value::list(std::move(comparators)), error);
+  } else if (auto* binary = dynamic_cast<const ast::BinaryExpr*>(&expr)) {
+    if (binary->op == "and" || binary->op == "or") {
+      node = ast_instance(state, "BoolOp");
+      object_set_attr(node, "op", ast_instance(state, binary->op == "and" ? "And" : "Or"), error);
+      object_set_attr(node, "values", Value::list({
+          convert_parser_expr(state, *binary->lhs, false, error),
+          convert_parser_expr(state, *binary->rhs, false, error)}), error);
+      set_parser_location(node, expr, error);
+      return node;
+    }
+    static const std::unordered_map<std::string, const char*> comparisons = {
+        {"==", "Eq"}, {"!=", "NotEq"}, {"<", "Lt"}, {"<=", "LtE"},
+        {">", "Gt"}, {">=", "GtE"}, {"is", "Is"}, {"is not", "IsNot"},
+        {"in", "In"}, {"not in", "NotIn"}};
+    if (auto comparison = comparisons.find(binary->op); comparison != comparisons.end()) {
+      node = ast_instance(state, "Compare");
+      object_set_attr(node, "left", convert_parser_expr(state, *binary->lhs, false, error), error);
+      object_set_attr(node, "ops", Value::list({ast_instance(state, comparison->second)}), error);
+      object_set_attr(node, "comparators", Value::list({
+          convert_parser_expr(state, *binary->rhs, false, error)}), error);
+      set_parser_location(node, expr, error);
+      return node;
+    }
+    static const std::unordered_map<std::string, const char*> operators = {
+        {"+", "Add"}, {"-", "Sub"}, {"*", "Mult"}, {"@", "MatMult"},
+        {"/", "Div"}, {"//", "FloorDiv"}, {"%", "Mod"}, {"**", "Pow"},
+        {"<<", "LShift"}, {">>", "RShift"}, {"|", "BitOr"},
+        {"^", "BitXor"}, {"&", "BitAnd"}};
+    auto found = operators.find(binary->op);
+    if (found == operators.end()) return Value::invalid();
+    node = ast_instance(state, "BinOp");
+    object_set_attr(node, "left", convert_parser_expr(state, *binary->lhs, false, error), error);
+    object_set_attr(node, "op", ast_instance(state, found->second), error);
+    object_set_attr(node, "right", convert_parser_expr(state, *binary->rhs, false, error), error);
+  } else if (auto* subscript = dynamic_cast<const ast::SubscriptExpr*>(&expr)) {
+    node = ast_instance(state, "Subscript");
+    object_set_attr(node, "value", convert_parser_expr(state, *subscript->object, false, error), error);
+    object_set_attr(node, "slice", convert_parser_expr(state, *subscript->index, false, error), error);
+    object_set_attr(node, "ctx", parser_context(state, store_context), error);
+  } else if (auto* tuple = dynamic_cast<const ast::TupleExpr*>(&expr)) {
+    std::vector<Value> elements;
+    for (const auto& item : tuple->items) {
+      elements.push_back(convert_parser_expr(state, *item, store_context, error));
+    }
+    node = ast_instance(state, "Tuple");
+    object_set_attr(node, "elts", Value::list(std::move(elements)), error);
+    object_set_attr(node, "ctx", parser_context(state, store_context), error);
+  } else if (auto* list = dynamic_cast<const ast::ListExpr*>(&expr)) {
+    std::vector<Value> elements;
+    for (const auto& item : list->items) {
+      elements.push_back(convert_parser_expr(state, *item, store_context, error));
+    }
+    node = ast_instance(state, "List");
+    object_set_attr(node, "elts", Value::list(std::move(elements)), error);
+    object_set_attr(node, "ctx", parser_context(state, store_context), error);
+  } else {
+    return Value::invalid();
+  }
+  if (node.tag != ValueTag::Invalid) set_parser_location(node, expr, error);
+  return node;
+}
+
+bool convert_parser_statements(
+    AstState* state, const std::vector<ast::StmtPtr>& statements,
+    std::vector<Value>& out, std::string& error) {
+  for (const auto& statement_ptr : statements) {
+    const ast::Stmt& statement = *statement_ptr;
+    Value node;
+    if (auto* function = dynamic_cast<const ast::FunctionDef*>(&statement)) {
+      node = ast_instance(state, function->is_async ? "AsyncFunctionDef" : "FunctionDef");
+      Value arguments = make_empty_arguments(state, error);
+      std::vector<Value> posonly;
+      std::vector<Value> regular;
+      std::vector<Value> kwonly;
+      std::vector<Value> kw_defaults;
+      std::vector<Value> defaults;
+      Value vararg = Value::none();
+      Value kwarg = Value::none();
+      for (const auto& parameter : function->signature) {
+        Value arg = ast_make_arg(state, parameter.name, error);
+        if (parameter.annotation != nullptr) {
+          object_set_attr(arg, "annotation",
+              convert_parser_expr(state, *parameter.annotation, false, error), error);
+        }
+        switch (parameter.kind) {
+          case ast::FunctionDef::Param::Kind::PosOnly:
+            posonly.push_back(arg);
+            if (parameter.default_value != nullptr) {
+              defaults.push_back(convert_parser_expr(state, *parameter.default_value, false, error));
+            }
+            break;
+          case ast::FunctionDef::Param::Kind::PosOrKeyword:
+            regular.push_back(arg);
+            if (parameter.default_value != nullptr) {
+              defaults.push_back(convert_parser_expr(state, *parameter.default_value, false, error));
+            }
+            break;
+          case ast::FunctionDef::Param::Kind::VarArgs: vararg = arg; break;
+          case ast::FunctionDef::Param::Kind::KeywordOnly:
+            kwonly.push_back(arg);
+            kw_defaults.push_back(parameter.default_value == nullptr
+                ? Value::none()
+                : convert_parser_expr(state, *parameter.default_value, false, error));
+            break;
+          case ast::FunctionDef::Param::Kind::KwArgs: kwarg = arg; break;
+        }
+      }
+      object_set_attr(arguments, "posonlyargs", Value::list(std::move(posonly)), error);
+      object_set_attr(arguments, "args", Value::list(std::move(regular)), error);
+      object_set_attr(arguments, "vararg", vararg, error);
+      object_set_attr(arguments, "kwonlyargs", Value::list(std::move(kwonly)), error);
+      object_set_attr(arguments, "kw_defaults", Value::list(std::move(kw_defaults)), error);
+      object_set_attr(arguments, "kwarg", kwarg, error);
+      object_set_attr(arguments, "defaults", Value::list(std::move(defaults)), error);
+      std::vector<Value> body;
+      if (!convert_parser_statements(state, function->body, body, error)) return false;
+      std::vector<Value> decorators;
+      for (const auto& decorator : function->decorators) {
+        decorators.push_back(convert_parser_expr(state, *decorator, false, error));
+      }
+      object_set_attr(node, "name", Value::string(function->name), error);
+      object_set_attr(node, "args", arguments, error);
+      object_set_attr(node, "body", Value::list(std::move(body)), error);
+      object_set_attr(node, "decorator_list", Value::list(std::move(decorators)), error);
+      object_set_attr(node, "returns", function->return_annotation == nullptr
+          ? Value::none()
+          : convert_parser_expr(state, *function->return_annotation, false, error), error);
+      object_set_attr(node, "type_comment", Value::none(), error);
+      object_set_attr(node, "type_params", Value::list({}), error);
+    } else if (auto* augmented = dynamic_cast<const ast::AugAssignStmt*>(&statement)) {
+      static const std::unordered_map<std::string, const char*> operators = {
+          {"+", "Add"}, {"-", "Sub"}, {"*", "Mult"}, {"@", "MatMult"},
+          {"/", "Div"}, {"//", "FloorDiv"}, {"%", "Mod"}, {"**", "Pow"},
+          {"<<", "LShift"}, {">>", "RShift"}, {"|", "BitOr"},
+          {"^", "BitXor"}, {"&", "BitAnd"}};
+      auto found = operators.find(augmented->op);
+      if (found == operators.end()) return false;
+      node = ast_instance(state, "AugAssign");
+      object_set_attr(node, "target", convert_parser_expr(state, *augmented->target, true, error), error);
+      object_set_attr(node, "op", ast_instance(state, found->second), error);
+      object_set_attr(node, "value", convert_parser_expr(state, *augmented->value, false, error), error);
+    } else if (auto* assign = dynamic_cast<const ast::AssignStmt*>(&statement)) {
+      Value target = ast_make_name(state, assign->name, error);
+      object_set_attr(target, "ctx", parser_context(state, true), error);
+      node = ast_instance(state, "Assign");
+      object_set_attr(node, "targets", Value::list({target}), error);
+      object_set_attr(node, "value", convert_parser_expr(state, *assign->value, false, error), error);
+      object_set_attr(node, "type_comment", Value::none(), error);
+    } else if (auto* assign = dynamic_cast<const ast::MultiAssignStmt*>(&statement)) {
+      std::vector<Value> targets;
+      for (const auto& target : assign->targets) {
+        Value converted = convert_parser_expr(state, *target, true, error);
+        if (converted.tag == ValueTag::Invalid) return false;
+        targets.push_back(std::move(converted));
+      }
+      node = ast_instance(state, "Assign");
+      object_set_attr(node, "targets", Value::list(std::move(targets)), error);
+      object_set_attr(node, "value", convert_parser_expr(state, *assign->value, false, error), error);
+      object_set_attr(node, "type_comment", Value::none(), error);
+    } else if (auto* expression = dynamic_cast<const ast::ExprStmt*>(&statement)) {
+      node = ast_instance(state, "Expr");
+      object_set_attr(node, "value", convert_parser_expr(state, *expression->expr, false, error), error);
+    } else if (auto* conditional = dynamic_cast<const ast::IfStmt*>(&statement)) {
+      std::vector<Value> body;
+      std::vector<Value> otherwise;
+      if (!convert_parser_statements(state, conditional->then_body, body, error) ||
+          !convert_parser_statements(state, conditional->else_body, otherwise, error)) return false;
+      node = ast_instance(state, "If");
+      object_set_attr(node, "test", convert_parser_expr(state, *conditional->condition, false, error), error);
+      object_set_attr(node, "body", Value::list(std::move(body)), error);
+      object_set_attr(node, "orelse", Value::list(std::move(otherwise)), error);
+    } else if (dynamic_cast<const ast::PassStmt*>(&statement) != nullptr) {
+      node = ast_instance(state, "Pass");
+    } else if (auto* returned = dynamic_cast<const ast::ReturnStmt*>(&statement)) {
+      node = ast_instance(state, "Return");
+      object_set_attr(node, "value", returned->value == nullptr
+          ? Value::none() : convert_parser_expr(state, *returned->value, false, error), error);
+    } else {
+      return false;
+    }
+    if (node.tag == ValueTag::Invalid) return false;
+    set_parser_location(node, statement, error);
+    if (auto* conditional = dynamic_cast<const ast::IfStmt*>(&statement)) {
+      const auto& ending_body = conditional->else_body.empty()
+          ? conditional->then_body : conditional->else_body;
+      if (!ending_body.empty()) {
+        object_set_attr(node, "end_lineno", Value::int64(ending_body.back()->end_line), error);
+        object_set_attr(node, "end_col_offset", Value::int64(ending_body.back()->end_column), error);
+      }
+    }
+    out.push_back(std::move(node));
+  }
+  return true;
+}
+
+bool parse_with_runtime_parser_ast(
+    AstState* state, const std::string& source, Value& out, std::string& error) {
+  auto parsed = parse_source(source);
+  if (!parsed.errors.empty()) return false;
+  std::vector<Value> body;
+  if (!convert_parser_statements(state, parsed.module.body, body, error)) return false;
+  Value module = ast_instance(state, "Module");
+  object_set_attr(module, "body", Value::list(std::move(body)), error);
+  object_set_attr(module, "type_ignores", Value::list({}), error);
+  value_assign_fast(out, module);
+  return true;
+}
+
 bool ast_parse_kw(
     Runtime& runtime,
     const Value* args,
@@ -932,6 +1266,11 @@ bool ast_parse_kw(
   }
   auto* state = static_cast<AstState*>(user_data);
   Value parsed;
+  if (mode == "exec" && parse_with_runtime_parser_ast(
+          state, string_object_to_string(*source), parsed, error)) {
+    value_assign_fast(out, parsed);
+    return true;
+  }
   if (mode == "exec" && parse_simple_function_ast(runtime, state, string_object_to_string(*source), parsed, error)) {
     value_assign_fast(out, parsed);
     return true;
@@ -1274,7 +1613,10 @@ void fill_ast_module(Runtime& runtime, NativeModuleBuilder& builder, AstState* s
   Value cmpop = ast_class(runtime, "cmpop", state->ast_base);
   Value boolop = ast_class(runtime, "boolop", state->ast_base);
   Value pattern = ast_class(runtime, "pattern", state->ast_base);
+  Value match_case = ast_class(runtime, "match_case", state->ast_base,
+                               {"pattern", "guard", "body"});
   Value type_ignore = ast_class(runtime, "type_ignore", state->ast_base);
+  Value type_param = ast_class(runtime, "type_param", state->ast_base);
   Value excepthandler = ast_class(runtime, "excepthandler", state->ast_base);
 
   add_class(builder, state, "AST", state->ast_base);
@@ -1287,16 +1629,18 @@ void fill_ast_module(Runtime& runtime, NativeModuleBuilder& builder, AstState* s
   add_class(builder, state, "cmpop", cmpop);
   add_class(builder, state, "boolop", boolop);
   add_class(builder, state, "pattern", pattern);
+  add_class(builder, state, "match_case", match_case);
   add_class(builder, state, "type_ignore", type_ignore);
+  add_class(builder, state, "type_param", type_param);
   add_class(builder, state, "excepthandler", excepthandler);
 
   add_class(builder, state, "Module", ast_class(runtime, "Module", mod, {"body", "type_ignores"}));
   add_class(builder, state, "Interactive", ast_class(runtime, "Interactive", mod, {"body"}));
   add_class(builder, state, "Expression", ast_class(runtime, "Expression", mod, {"body"}));
   add_class(builder, state, "FunctionType", ast_class(runtime, "FunctionType", mod, {"argtypes", "returns"}));
-  add_class(builder, state, "FunctionDef", ast_class(runtime, "FunctionDef", stmt, {"name", "args", "body", "decorator_list", "returns", "type_comment"}));
-  add_class(builder, state, "AsyncFunctionDef", ast_class(runtime, "AsyncFunctionDef", stmt, {"name", "args", "body", "decorator_list", "returns", "type_comment"}));
-  add_class(builder, state, "ClassDef", ast_class(runtime, "ClassDef", stmt, {"name", "bases", "keywords", "body", "decorator_list"}));
+  add_class(builder, state, "FunctionDef", ast_class(runtime, "FunctionDef", stmt, {"name", "args", "body", "decorator_list", "returns", "type_comment", "type_params"}));
+  add_class(builder, state, "AsyncFunctionDef", ast_class(runtime, "AsyncFunctionDef", stmt, {"name", "args", "body", "decorator_list", "returns", "type_comment", "type_params"}));
+  add_class(builder, state, "ClassDef", ast_class(runtime, "ClassDef", stmt, {"name", "bases", "keywords", "body", "decorator_list", "type_params"}));
   add_class(builder, state, "Return", ast_class(runtime, "Return", stmt, {"value"}));
   add_class(builder, state, "Delete", ast_class(runtime, "Delete", stmt, {"targets"}));
   add_class(builder, state, "Assign", ast_class(runtime, "Assign", stmt, {"targets", "value", "type_comment"}));
@@ -1324,7 +1668,16 @@ void fill_ast_module(Runtime& runtime, NativeModuleBuilder& builder, AstState* s
   add_class(builder, state, "Continue", ast_class(runtime, "Continue", stmt));
   add_class(builder, state, "BoolOp", ast_class(runtime, "BoolOp", expr, {"op", "values"}));
   add_class(builder, state, "NamedExpr", ast_class(runtime, "NamedExpr", expr, {"target", "value"}));
-  add_class(builder, state, "Constant", ast_class(runtime, "Constant", expr, {"value", "kind"}));
+  add_class(builder, state, "Lambda", ast_class(runtime, "Lambda", expr, {"args", "body"}));
+  add_class(builder, state, "IfExp", ast_class(runtime, "IfExp", expr, {"test", "body", "orelse"}));
+  Value constant_class = ast_class(runtime, "Constant", expr, {"value", "kind"});
+  if (auto* klass = value_as_class(constant_class)) {
+    // ``kind`` is an optional ASDL field.  CPython leaves it out of the
+    // instance dictionary when omitted, while its field descriptor returns
+    // None.  A class default gives XLang3 the same observable behavior.
+    klass->attrs["kind"] = Value::none();
+  }
+  add_class(builder, state, "Constant", std::move(constant_class));
   add_class(builder, state, "Name", ast_class(runtime, "Name", expr, {"id", "ctx"}));
   add_class(builder, state, "List", ast_class(runtime, "List", expr, {"elts", "ctx"}));
   add_class(builder, state, "Tuple", ast_class(runtime, "Tuple", expr, {"elts", "ctx"}));
@@ -1347,6 +1700,8 @@ void fill_ast_module(Runtime& runtime, NativeModuleBuilder& builder, AstState* s
   add_class(builder, state, "Subscript", ast_class(runtime, "Subscript", expr, {"value", "slice", "ctx"}));
   add_class(builder, state, "Starred", ast_class(runtime, "Starred", expr, {"value", "ctx"}));
   add_class(builder, state, "Slice", ast_class(runtime, "Slice", expr, {"lower", "upper", "step"}));
+  add_class(builder, state, "Index", ast_class(runtime, "Index", state->ast_base));
+  add_class(builder, state, "ExtSlice", ast_class(runtime, "ExtSlice", state->ast_base));
   add_class(builder, state, "comprehension", ast_class(runtime, "comprehension", state->ast_base, {"target", "iter", "ifs", "is_async"}));
   add_class(builder, state, "arguments", ast_class(runtime, "arguments", state->ast_base, {"posonlyargs", "args", "vararg", "kwonlyargs", "kw_defaults", "kwarg", "defaults"}));
   add_class(builder, state, "arg", ast_class(runtime, "arg", state->ast_base, {"arg", "annotation", "type_comment"}));
@@ -1395,6 +1750,9 @@ void fill_ast_module(Runtime& runtime, NativeModuleBuilder& builder, AstState* s
   add_class(builder, state, "MatchAs", ast_class(runtime, "MatchAs", pattern, {"pattern", "name"}));
   add_class(builder, state, "MatchOr", ast_class(runtime, "MatchOr", pattern, {"patterns"}));
   add_class(builder, state, "TypeIgnore", ast_class(runtime, "TypeIgnore", type_ignore, {"lineno", "tag"}));
+  add_class(builder, state, "TypeVar", ast_class(runtime, "TypeVar", type_param, {"name", "bound", "default_value"}));
+  add_class(builder, state, "ParamSpec", ast_class(runtime, "ParamSpec", type_param, {"name", "default_value"}));
+  add_class(builder, state, "TypeVarTuple", ast_class(runtime, "TypeVarTuple", type_param, {"name", "default_value"}));
 
   builder.value("PyCF_ONLY_AST", Value::int64(0x0400))
       .value("PyCF_TYPE_COMMENTS", Value::int64(0x1000))
@@ -1412,6 +1770,7 @@ void fill_ast_module(Runtime& runtime, NativeModuleBuilder& builder, AstState* s
 
 void register_ast_module(Runtime& runtime) {
   auto* private_state = new AstState();
+  private_state->runtime = &runtime;
   runtime.register_native_package_cleanup(private_state, [](void* data) { delete static_cast<AstState*>(data); });
   NativeModuleBuilder private_builder(runtime, "_ast");
   fill_ast_module(runtime, private_builder, private_state);

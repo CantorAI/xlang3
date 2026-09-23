@@ -276,14 +276,16 @@ XLANG3_HOT_INLINE XlangVMOpFlow jump_if_false_load_local(
   return XlangVMOpFlow::Next;
 }
 
-template <typename RaiseRuntimeError, typename EmitMonitoringEvent>
+template <typename RaiseRuntimeError, typename RaiseExceptionValue, typename EmitMonitoringEvent>
 XLANG3_HOT_INLINE XlangVMOpFlow jump_if_local_const_false(
     const ir::Instr& in,
     const ir::Function& fn,
+    Runtime& runtime,
     XlangVMSmallValueBuffer& locals,
     size_t& ip,
     RuntimeResult& result,
     RaiseRuntimeError&& raise_runtime_error,
+    RaiseExceptionValue&& raise_exception_value,
     EmitMonitoringEvent&& emit_monitoring_event) {
   if (in.a >= locals.size() || in.b >= fn.constants.size()) {
     result.errors.push_back("invalid local const jump");
@@ -291,13 +293,22 @@ XLANG3_HOT_INLINE XlangVMOpFlow jump_if_local_const_false(
   }
   Value compare_result;
   const auto op = static_cast<ir::CompareOp>(in.c);
-  if (!fast_compare(op, locals[in.a], fn.constants[in.b], compare_result)) {
-    std::string error;
-    if (!value_compare(compare_name(op), locals[in.a], fn.constants[in.b], compare_result, error)) {
-      return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+  const auto compare_flow = compare_values(
+      op, locals[in.a], fn.constants[in.b], compare_result, runtime,
+      std::forward<RaiseRuntimeError>(raise_runtime_error),
+      std::forward<RaiseExceptionValue>(raise_exception_value));
+  if (compare_flow != XlangVMOpFlow::Next) return compare_flow;
+  bool condition = false;
+  std::string error;
+  if (!runtime_truthy(runtime, compare_result, condition, error)) {
+    Value pending;
+    if (runtime.take_pending_exception(pending)) {
+      return raise_exception_value(std::move(pending))
+          ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
     }
+    return raise_runtime_error(error)
+        ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
   }
-  const bool condition = value_truthy(compare_result);
   const uint32_t destination_offset = condition ? static_cast<uint32_t>(ip + 1) : in.dst;
   Value destination = Value::int64(static_cast<int64_t>(destination_offset));
   if (!emit_monitoring_event(
@@ -354,11 +365,13 @@ XLANG3_HOT_INLINE XlangVMOpFlow raise_op(
     std::string ignored;
     if (pending_explicit_cause) {
       object_set_attr(exception, "__cause__", pending_cause, ignored);
-      if (current_exception.tag != ValueTag::Invalid) {
+      if (current_exception.tag != ValueTag::Invalid &&
+          !value_is(exception, current_exception)) {
         object_set_attr(exception, "__context__", current_exception, ignored);
       }
       object_set_attr(exception, "__suppress_context__", Value::boolean(true), ignored);
-    } else if (current_exception.tag != ValueTag::Invalid) {
+    } else if (current_exception.tag != ValueTag::Invalid &&
+               !value_is(exception, current_exception)) {
       object_set_attr(exception, "__context__", current_exception, ignored);
       object_set_attr(exception, "__suppress_context__", Value::boolean(false), ignored);
     }
@@ -523,15 +536,18 @@ XLANG3_HOT_INLINE XlangVMOpFlow return_value(
   return XlangVMOpFlow::SwitchFrame;
 }
 
-template <typename RaiseUnboundLocalError, typename RaiseRuntimeError, typename EmitMonitoringEvent>
+template <typename RaiseUnboundLocalError, typename RaiseRuntimeError,
+          typename RaiseExceptionValue, typename EmitMonitoringEvent>
 XLANG3_HOT_INLINE XlangVMOpFlow jump_if_local_local_false(
     const ir::Instr& in,
     const ir::Function& fn,
+    Runtime& runtime,
     XlangVMSmallValueBuffer& locals,
     size_t& ip,
     RuntimeResult& result,
     RaiseUnboundLocalError&& raise_unbound_local_error,
     RaiseRuntimeError&& raise_runtime_error,
+    RaiseExceptionValue&& raise_exception_value,
     EmitMonitoringEvent&& emit_monitoring_event) {
   if (in.a >= locals.size() || in.b >= locals.size()) {
     result.errors.push_back("invalid local local jump");
@@ -547,13 +563,22 @@ XLANG3_HOT_INLINE XlangVMOpFlow jump_if_local_local_false(
   }
   Value compare_result;
   const auto op = static_cast<ir::CompareOp>(in.c);
-  if (!fast_compare(op, locals[in.a], locals[in.b], compare_result)) {
-    std::string error;
-    if (!value_compare(compare_name(op), locals[in.a], locals[in.b], compare_result, error)) {
-      return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+  const auto compare_flow = compare_values(
+      op, locals[in.a], locals[in.b], compare_result, runtime,
+      std::forward<RaiseRuntimeError>(raise_runtime_error),
+      std::forward<RaiseExceptionValue>(raise_exception_value));
+  if (compare_flow != XlangVMOpFlow::Next) return compare_flow;
+  bool condition = false;
+  std::string error;
+  if (!runtime_truthy(runtime, compare_result, condition, error)) {
+    Value pending;
+    if (runtime.take_pending_exception(pending)) {
+      return raise_exception_value(std::move(pending))
+          ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
     }
+    return raise_runtime_error(error)
+        ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
   }
-  const bool condition = value_truthy(compare_result);
   const uint32_t destination_offset = condition ? static_cast<uint32_t>(ip + 1) : in.dst;
   Value destination = Value::int64(static_cast<int64_t>(destination_offset));
   if (!emit_monitoring_event(

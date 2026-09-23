@@ -128,6 +128,7 @@ public:
       bool fast_releases_vm_lock = false,
       NativeKeywordFunctionCallback keyword_callback = nullptr);
   const Value* find_builtin(const std::string& name) const;
+  bool resolve_builtin(const std::string& name, Value& out) const;
   const Value* find_native_symbol(const std::string& name) const;
   bool register_native_codec(std::shared_ptr<NativeSerializationCodec> codec);
   void begin_native_codec_registration();

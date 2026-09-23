@@ -1,0 +1,4 @@
+2|<class 'bool'>|typing.Literal['all', 'no_enums']
+2|typing.Literal['all', 'no_enums']|<class 'NoneType'>
+3|<class 'bool'>|typing.Literal['all', 'no_enums']|<class 'NoneType'>
+NotImplemented

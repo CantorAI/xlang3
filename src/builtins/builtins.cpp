@@ -47,6 +47,7 @@ void register_core_builtins(Runtime& runtime) {
   register_bz2_module(runtime);
   register_cmath_module(runtime);
   register_json_module(runtime);
+  register_csv_module(runtime);
   register_os_module(runtime);
 #if !defined(_WIN32)
   register_posix_process_module(runtime);
@@ -59,6 +60,7 @@ void register_core_builtins(Runtime& runtime) {
   register_errno_module(runtime);
   register_faulthandler_module(runtime);
   register_gc_module(runtime);
+  register_lsprof_module(runtime);
   register_array_module(runtime);
   register_bisect_module(runtime);
   register_itertools_module(runtime);
@@ -77,6 +79,7 @@ void register_core_builtins(Runtime& runtime) {
   register_typing_module(runtime);
   register_queue_module(runtime);
   register_importlib_module(runtime);
+  register_interpreter_modules(runtime);
   register_random_module(runtime);
   register_weakref_module(runtime);
   register_marshal_module(runtime);

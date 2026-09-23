@@ -153,6 +153,7 @@ private:
     host_.instance_set_native_data = x3_instance_set_native_data;
     host_.instance_set_native_owner = x3_instance_set_native_owner;
     host_.instance_set_native_cast = x3_instance_set_native_cast;
+    host_.instance_set_native_gc_references = x3_instance_set_native_gc_references;
     host_.expression_compile = x3_expression_compile;
     host_.value_memoryview = x3_value_memoryview;
     host_.value_instance = x3_value_instance;

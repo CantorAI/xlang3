@@ -3300,6 +3300,11 @@ class StandardIter:
         return value
 
 print(list(itertools.islice([0, 1, 2, 3, 4, 5], 1, 5, 2)))
+print(list(itertools.islice([0, 1, 2, 3], None, 2)))
+class SliceIndex:
+    def __index__(self):
+        return 3
+print(list(itertools.islice([0, 1, 2, 3], None, SliceIndex())))
 print(list(itertools.takewhile(less_than_four, [1, 2, 5, 3])))
 print(list(itertools.dropwhile(less_than_four, [1, 2, 5, 3])))
 print(list(itertools.filterfalse(is_even, [1, 2, 3, 4])))

@@ -1526,10 +1526,6 @@ void register_collections_module(Runtime& runtime) {
   iterator_classes->reverse = make_deque_iterator_class(runtime, true);
   Value deque_class = make_deque_class(runtime, iterator_classes);
   Value defaultdict_class = make_defaultdict_class(runtime);
-  Value ordered_dict_class = Value::class_object(
-      "OrderedDict",
-      {{"__module__", Value::string("collections")}},
-      runtime.find_builtin("dict") ? *runtime.find_builtin("dict") : Value::invalid());
   runtime.register_builtin("defaultdict", defaultdict_class);
 
   NativeModuleBuilder builder(runtime, "_collections");
@@ -1537,7 +1533,6 @@ void register_collections_module(Runtime& runtime) {
   builder.value("_deque_iterator", iterator_classes->forward);
   builder.value("_deque_reverse_iterator", iterator_classes->reverse);
   builder.value("defaultdict", defaultdict_class);
-  builder.value("OrderedDict", ordered_dict_class);
   builder.function(
       "_tuplegetter",
       collections_tuplegetter,

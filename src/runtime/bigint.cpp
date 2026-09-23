@@ -841,17 +841,24 @@ bool value_int_like_hash(const Value& value, size_t& out) {
   if (!value_to_payload(value, p)) {
     return false;
   }
-  int64_t small = 0;
-  if (payload_to_i64(p, small)) {
-    out = std::hash<int64_t>{}(small);
-    release_limbs(p);
-    return true;
+  // CPython's numeric hash is the value modulo 2**61-1 on 64-bit builds.
+  // Keeping this invariant is required whenever two numeric types compare
+  // equal (for example Decimal(1), 1, and 1.0) so dictionary lookup works.
+  constexpr uint64_t modulus = (uint64_t{1} << 61u) - 1u;
+  uint64_t magnitude_hash = 0;
+  for (uint32_t index = p.limb_count; index-- > 0;) {
+    // Multiply by the limb base (2**32) modulo the Mersenne prime without
+    // requiring a non-portable 128-bit integer type.
+    magnitude_hash = ((magnitude_hash << 32u) & modulus) |
+        (magnitude_hash >> 29u);
+    magnitude_hash += p.limbs[index];
+    if (magnitude_hash >= modulus) magnitude_hash -= modulus;
   }
-  size_t hash = p.sign < 0 ? 0x9e3779b97f4a7c15ull : 0xcbf29ce484222325ull;
-  for (uint32_t i = 0; i < p.limb_count; ++i) {
-    hash ^= p.limbs[i] + 0x9e3779b97f4a7c15ull + (hash << 6) + (hash >> 2);
-  }
-  out = hash == static_cast<size_t>(-1) ? static_cast<size_t>(-2) : hash;
+  int64_t signed_hash = p.sign < 0
+      ? -static_cast<int64_t>(magnitude_hash)
+      : static_cast<int64_t>(magnitude_hash);
+  if (signed_hash == -1) signed_hash = -2;
+  out = static_cast<size_t>(signed_hash);
   release_limbs(p);
   return true;
 }

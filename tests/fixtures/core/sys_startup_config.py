@@ -1,6 +1,7 @@
 import _sysconfig
 import os
 import sys
+import sysconfig
 
 
 modulus = sys.hash_info.modulus
@@ -14,6 +15,7 @@ print(
     "sys-stdlib-config",
     os.path.normcase(sys._stdlib_dir) == os.path.normcase(os.path.dirname(os.__file__)),
     os.path.basename(os.__file__) == "os.py",
+    os.path.normcase(sysconfig.get_path("stdlib")) == os.path.normcase(sys._stdlib_dir),
 )
 
 original_displayhook = sys.displayhook

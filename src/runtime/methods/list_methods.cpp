@@ -137,6 +137,31 @@ bool list_iter_method(Runtime& runtime, const Value* args, uint32_t argc, Value&
   return true;
 }
 
+bool list_contains_method(Runtime& runtime, const Value* args, uint32_t argc,
+                          Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 2, "list.__contains__", error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  const auto* list = value_as_list_storage(args[0]);
+  if (list == nullptr) {
+    error = "list.__contains__ target is not a list";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  for (const auto& item : list->items) {
+    Value equal;
+    if (!runtime_value_compare(runtime, "==", item, args[1], equal, error))
+      return false;
+    if (value_truthy(equal)) {
+      value_set_bool(out, true);
+      return true;
+    }
+  }
+  value_set_bool(out, false);
+  return true;
+}
+
 bool list_len_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 1, "list.__len__", error)) {
     runtime.raise_class_error("TypeError", error);
@@ -283,7 +308,7 @@ bool list_copy_method(Runtime&, const Value* args, uint32_t argc, Value& out, st
   return true;
 }
 
-bool list_count_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool list_count_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 2, "list.count", error)) {
     return false;
   }
@@ -294,7 +319,10 @@ bool list_count_method(Runtime&, const Value* args, uint32_t argc, Value& out, s
   }
   int64_t count = 0;
   for (const auto& item : list->items) {
-    if (value_key_equal(item, args[1])) {
+    Value equal;
+    if (!runtime_value_compare(runtime, "==", item, args[1], equal, error))
+      return false;
+    if (value_truthy(equal)) {
       ++count;
     }
   }
@@ -328,7 +356,11 @@ bool list_index_method(Runtime& runtime, const Value* args, uint32_t argc, Value
     start = stop;
   }
   for (size_t i = start; i < stop; ++i) {
-    if (value_key_equal(list->items[i], args[1])) {
+    Value equal;
+    if (!runtime_value_compare(
+            runtime, "==", list->items[i], args[1], equal, error))
+      return false;
+    if (value_truthy(equal)) {
       value_set_int64(out, static_cast<int64_t>(i));
       return true;
     }
@@ -350,7 +382,10 @@ bool list_remove_method(Runtime& runtime, const Value* args, uint32_t argc, Valu
     return false;
   }
   for (auto it = list->items.begin(); it != list->items.end(); ++it) {
-    if (value_key_equal(*it, args[1])) {
+    Value equal;
+    if (!runtime_value_compare(runtime, "==", *it, args[1], equal, error))
+      return false;
+    if (value_truthy(equal)) {
       list->items.erase(it);
       value_set_none(out);
       return true;
@@ -485,6 +520,7 @@ bool list_sort_method_kw(
 }
 
 static BuiltinMethodSpec kListMethods[] = {
+      {"__contains__", "list.__contains__", list_contains_method},
       {"__delitem__", "list.__delitem__", list_delitem_method},
       {"__getitem__", "list.__getitem__", list_getitem_method},
       {"__iter__", "list.__iter__", list_iter_method},

@@ -10,6 +10,18 @@ add_library(xlang_net_native_package SHARED
   smtp_module.cpp
 )
 
+add_library(xlang_ssl_native_package SHARED
+  ssl_module.cpp
+)
+
+set_target_properties(xlang_ssl_native_package PROPERTIES
+  OUTPUT_NAME "xlang__ssl.x3pkg"
+  PREFIX ""
+  RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/$<CONFIG>/modules"
+  LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/$<CONFIG>/modules"
+  ARCHIVE_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/$<CONFIG>/modules"
+)
+
 set_target_properties(xlang_net_native_package PROPERTIES
   OUTPUT_NAME "xlang_net.x3pkg"
   PREFIX ""
@@ -23,13 +35,22 @@ target_include_directories(xlang_net_native_package PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
+target_include_directories(xlang_ssl_native_package PRIVATE
+  ${PROJECT_SOURCE_DIR}/sdk
+  ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
 if(WIN32)
+  target_compile_definitions(xlang_ssl_native_package PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
   target_compile_definitions(xlang_net_native_package PRIVATE
     CPPHTTPLIB_OPENSSL_SUPPORT
     CURL_STATICLIB
     XLANG_NET_WITH_CURL
   )
   target_include_directories(xlang_net_native_package PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/depends/windows/include
+  )
+  target_include_directories(xlang_ssl_native_package PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/depends/windows/include
   )
 
@@ -72,8 +93,17 @@ if(WIN32)
     normaliz
     bcrypt
   )
+  target_link_libraries(xlang_ssl_native_package PRIVATE
+    "${XLANG_NET_WIN_LIB_DIR}/libssl_static.lib"
+    "${XLANG_NET_WIN_LIB_DIR}/libcrypto_static.lib"
+    ws2_32
+    crypt32
+    bcrypt
+  )
   # The bundled curl/OpenSSL/zlib archives use the static MSVC runtime.
   set_property(TARGET xlang_net_native_package PROPERTY
+    MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+  set_property(TARGET xlang_ssl_native_package PROPERTY
     MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 else()
   find_package(OpenSSL REQUIRED)
@@ -83,4 +113,6 @@ else()
     CPPHTTPLIB_OPENSSL_SUPPORT XLANG_NET_WITH_CURL)
   target_link_libraries(xlang_net_native_package PRIVATE
     OpenSSL::SSL OpenSSL::Crypto CURL::libcurl Threads::Threads)
+  target_link_libraries(xlang_ssl_native_package PRIVATE
+    OpenSSL::SSL OpenSSL::Crypto)
 endif()

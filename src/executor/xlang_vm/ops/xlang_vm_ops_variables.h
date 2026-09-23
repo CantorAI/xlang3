@@ -158,6 +158,14 @@ XLANG3_HOT_INLINE void delete_local(
     const std::vector<size_t>& register_last_use,
     const std::vector<bool>& register_loop_carried,
     size_t ip) {
+  const auto register_is_live = [&](size_t index) {
+    if (index < register_loop_carried.size() && register_loop_carried[index]) {
+      return true;
+    }
+    return index < register_last_use.size() &&
+        register_last_use[index] != std::numeric_limits<size_t>::max() &&
+        register_last_use[index] > ip;
+  };
   const Value& local = locals[in.dst];
   Value deleted_value;
   if (local.tag == ValueTag::Object && local.as.obj != nullptr) {
@@ -177,8 +185,9 @@ XLANG3_HOT_INLINE void delete_local(
     };
     for (size_t i = 0; i < regs.size(); ++i) {
       auto& reg = regs[i];
-      if ((reg.tag == ValueTag::Object && reg.as.obj == local.as.obj) ||
-          is_deleted_list_item(reg)) {
+      if (!register_is_live(i) &&
+          ((reg.tag == ValueTag::Object && reg.as.obj == local.as.obj) ||
+           is_deleted_list_item(reg))) {
         value_set_invalid(reg);
       }
     }
@@ -190,9 +199,7 @@ XLANG3_HOT_INLINE void delete_local(
     native_call_args.clear();
   }
   for (size_t i = 0; i < regs.size() && i < register_last_use.size(); ++i) {
-    const bool loop_carried = i < register_loop_carried.size() &&
-        register_loop_carried[i];
-    if (!loop_carried) {
+    if (!register_is_live(i)) {
       value_set_invalid(regs[i]);
     }
   }
@@ -260,11 +267,10 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_module_slot(
       global_cache.version = globals_module_obj->version;
       return XlangVMOpFlow::Next;
     }
-    if (const auto* builtin = runtime.find_builtin(name)) {
-      value_assign_fast(regs[in.dst], *builtin);
-      value_assign_fast(global_cache.value, *builtin);
-      global_cache.kind = 2;
-      global_cache.version = globals_module_obj->version;
+    Value builtin;
+    if (runtime.resolve_builtin(name, builtin)) {
+      value_move_assign_fast(regs[in.dst], builtin);
+      global_cache.kind = 0;
       return XlangVMOpFlow::Next;
     }
     return raise_runtime_error("name '" + name + "' is not defined") ? XlangVMOpFlow::ContinueLoop
@@ -286,8 +292,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_module_slot(
   }
   if (auto it = globals.find(name); it != globals.end()) {
     value_assign_fast(regs[in.dst], it->second);
-  } else if (const auto* builtin = runtime.find_builtin(name)) {
-    value_assign_fast(regs[in.dst], *builtin);
+  } else if (Value builtin; runtime.resolve_builtin(name, builtin)) {
+    value_move_assign_fast(regs[in.dst], builtin);
   } else {
     return raise_runtime_error("name '" + name + "' is not defined") ? XlangVMOpFlow::ContinueLoop
                                                                     : XlangVMOpFlow::ReturnResult;
@@ -369,11 +375,10 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_global(
       global_cache.kind = 1;
       return XlangVMOpFlow::Next;
     }
-    if (const auto* builtin = runtime.find_builtin(name)) {
-      value_assign_fast(regs[in.dst], *builtin);
-      value_assign_fast(global_cache.value, regs[in.dst]);
-      global_cache.version = globals_module_obj->version;
-      global_cache.kind = 2;
+    Value builtin;
+    if (runtime.resolve_builtin(name, builtin)) {
+      value_move_assign_fast(regs[in.dst], builtin);
+      global_cache.kind = 0;
     } else {
       return raise_runtime_error("name '" + name + "' is not defined") ? XlangVMOpFlow::ContinueLoop
                                                                       : XlangVMOpFlow::ReturnResult;
@@ -401,11 +406,9 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_global(
     value_assign_fast(global_cache.value, regs[in.dst]);
     global_cache.version = globals_version;
     global_cache.kind = 2;
-    } else if (const auto* builtin = runtime.find_builtin(name)) {
-      value_assign_fast(regs[in.dst], *builtin);
-      value_assign_fast(global_cache.value, regs[in.dst]);
-      global_cache.version = globals_version;
-      global_cache.kind = 2;
+    } else if (Value builtin; runtime.resolve_builtin(name, builtin)) {
+      value_move_assign_fast(regs[in.dst], builtin);
+      global_cache.kind = 0;
     } else {
       return raise_runtime_error("name '" + name + "' is not defined") ? XlangVMOpFlow::ContinueLoop
                                                                       : XlangVMOpFlow::ReturnResult;
@@ -823,10 +826,19 @@ XLANG3_HOT_INLINE XlangVMOpFlow store_cell(
   Value deleted_value;
   if (regs[in.a].tag == ValueTag::Invalid &&
       cell->value.tag == ValueTag::Object && cell->value.as.obj != nullptr) {
+    const auto register_is_live = [&](size_t index) {
+      if (index < register_loop_carried.size() && register_loop_carried[index]) {
+        return true;
+      }
+      return index < register_last_use.size() &&
+          register_last_use[index] != std::numeric_limits<size_t>::max() &&
+          register_last_use[index] > ip;
+    };
     deleted_value = cell->value;
     Object* deleted_object = cell->value.as.obj;
     for (size_t i = 0; i < regs.size(); ++i) {
-      if (regs[i].tag == ValueTag::Object && regs[i].as.obj == deleted_object) {
+      if (!register_is_live(i) && regs[i].tag == ValueTag::Object &&
+          regs[i].as.obj == deleted_object) {
         value_set_invalid(regs[i]);
       }
     }
@@ -837,9 +849,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow store_cell(
     }
     native_call_args.clear();
     for (size_t i = 0; i < regs.size() && i < register_last_use.size(); ++i) {
-      const bool loop_carried = i < register_loop_carried.size() &&
-          register_loop_carried[i];
-      if (!loop_carried) {
+      if (!register_is_live(i)) {
         value_set_invalid(regs[i]);
       }
     }

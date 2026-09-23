@@ -132,7 +132,7 @@ bool dict_get_method_impl(Runtime& runtime, const Value* args, uint32_t argc, Va
     value_set_none(out);
     return true;
   }
-  if (mapping_get_item(args[0], args[1], out, error)) {
+  if (mapping_get_item_runtime(runtime, args[0], args[1], out, error, false)) {
     return true;
   }
   if (!is_key_miss_error(error)) {
@@ -195,33 +195,7 @@ bool dict_getitem_method(Runtime& runtime, const Value* args, uint32_t argc, Val
   if (const Value* source = mappingproxy_protocol_source(args[0])) {
     return call_mapping_method(runtime, *source, "__getitem__", args + 1, 1, out, error);
   }
-  DictObject* storage = value_as_dict(args[0]);
-  if (storage == nullptr) {
-    if (auto* instance = value_as_instance(args[0])) {
-      storage = value_as_dict(instance->mapping_storage);
-    }
-  }
-  if (storage != nullptr) {
-    for (size_t index = 0; index < storage->entries.size(); ++index) {
-      Value candidate_key = storage->entries[index].first;
-      Value candidate_value = storage->entries[index].second;
-      if (value_is(candidate_key, args[1])) {
-        value_assign_fast(out, candidate_value);
-        return true;
-      }
-      Value equal;
-      if (!runtime_value_compare(runtime, "==", candidate_key, args[1], equal, error)) {
-        return false;
-      }
-      bool is_equal = false;
-      if (!runtime_truthy(runtime, equal, is_equal, error)) return false;
-      if (is_equal) {
-        value_assign_fast(out, candidate_value);
-        return true;
-      }
-    }
-    error = "key not found";
-  } else if (mapping_get_item(args[0], args[1], out, error)) {
+  if (mapping_get_item_runtime(runtime, args[0], args[1], out, error, false)) {
     return true;
   }
   if (!is_key_miss_error(error)) {
@@ -267,7 +241,7 @@ bool dict_contains_method(Runtime& runtime, const Value* args, uint32_t argc, Va
   }
   Value ignored;
   std::string get_error;
-  if (mapping_get_item(args[0], args[1], ignored, get_error)) {
+  if (mapping_get_item_runtime(runtime, args[0], args[1], ignored, get_error)) {
     value_set_bool(out, true);
     return true;
   }
@@ -349,9 +323,9 @@ bool dict_pop_method(Runtime& runtime, const Value* args, uint32_t argc, Value& 
     return false;
   }
   Value target = args[0];
-  if (mapping_get_item(target, args[1], out, error)) {
+  if (mapping_get_item_runtime(runtime, target, args[1], out, error)) {
     std::string delete_error;
-    mapping_delete_item(target, args[1], delete_error);
+    mapping_delete_item_runtime(runtime, target, args[1], delete_error);
     return true;
   }
   if (argc == 3) {
@@ -417,7 +391,7 @@ bool dict_setdefault_method(Runtime& runtime, const Value* args, uint32_t argc, 
     return raise_dict_type_error(runtime, error);
   }
   Value target = args[0];
-  if (mapping_get_item(target, args[1], out, error)) {
+  if (mapping_get_item_runtime(runtime, target, args[1], out, error)) {
     return true;
   }
   if (!is_key_miss_error(error)) {
@@ -425,7 +399,7 @@ bool dict_setdefault_method(Runtime& runtime, const Value* args, uint32_t argc, 
   }
   error.clear();
   const Value& default_value = argc == 3 ? args[2] : Value::none();
-  if (!mapping_set_item(target, args[1], default_value, error)) {
+  if (!mapping_set_item_runtime(runtime, target, args[1], default_value, error)) {
     return raise_dict_type_error(runtime, error);
   }
   value_assign_fast(out, default_value);
@@ -604,7 +578,7 @@ bool dict_setitem_method(Runtime& runtime, const Value* args, uint32_t argc, Val
       target = instance->mapping_storage;
     }
   }
-  if (!mapping_set_item(target, args[1], args[2], error)) {
+  if (!mapping_set_item_runtime(runtime, target, args[1], args[2], error)) {
     return raise_dict_type_error(runtime, error);
   }
   value_set_none(out);

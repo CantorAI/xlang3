@@ -82,6 +82,7 @@ bool call_native_function(
     xlang3::Value pending;
     if (runtime.take_pending_exception(pending)) {
       error = xlang3::value_to_string(pending);
+      runtime.set_pending_exception(std::move(pending));
     }
     if (error.empty()) {
       error = "native function failed";
@@ -449,6 +450,24 @@ X3Status x3_value_bytes_data(X3Runtime* runtime, X3Value value, const void** dat
       return X3_STATUS_OK;
     }
   }
+  if (auto* instance = xlang3::value_as_instance(internal)) {
+    for (const auto& attribute : instance->attrs) {
+      if (attribute.first != "__xlang3_bytes_value__" &&
+          attribute.first != "_value_")
+        continue;
+      if (auto* bytes = xlang3::value_as_bytes(attribute.second)) {
+        const auto view = xlang3::bytes_object_view(*bytes);
+        *data = view.data();
+        *size = static_cast<uint64_t>(view.size());
+        return X3_STATUS_OK;
+      }
+      if (auto* bytearray = xlang3::value_as_bytearray(attribute.second)) {
+        *data = bytearray->value.data();
+        *size = static_cast<uint64_t>(bytearray->value.size());
+        return X3_STATUS_OK;
+      }
+    }
+  }
   return fail(rt, "value is not bytes-like");
 }
 
@@ -649,7 +668,7 @@ X3Status x3_value_compare_op(
     return fail(rt, error);
   }
   xlang3::Value out;
-  if (!xlang3::value_compare(op_text, lhs, rhs, out, error)) {
+  if (!xlang3::runtime_value_compare(*rt, op_text, lhs, rhs, out, error)) {
     return fail(rt, error);
   }
   if (out.tag != xlang3::ValueTag::Bool) {
@@ -910,6 +929,22 @@ X3Status x3_call_kw(X3Runtime* runtime, X3Value callable, const X3Value* args,
           keywords,
           out,
           error)) {
+    const bool call_type_error =
+        error.find("positional argument") != std::string::npos ||
+        error.find("keyword argument") != std::string::npos ||
+        error.find("multiple values for argument") != std::string::npos ||
+        error.find("missing required argument") != std::string::npos ||
+        error.find("does not accept keyword arguments") != std::string::npos;
+    xlang3::Value pending_exception;
+    const bool had_pending = rt->take_pending_exception(pending_exception);
+    if (call_type_error) {
+      rt->raise_class_error("TypeError", error);
+    } else if (had_pending) {
+      rt->set_pending_exception(std::move(pending_exception));
+    } else {
+      rt->raise_class_error(call_type_error ? "TypeError" : "RuntimeError",
+                            error);
+    }
     return fail(rt, error);
   }
   *result = xlang3::to_c_value(out);
@@ -1067,6 +1102,21 @@ X3Status x3_instance_set_native_owner(X3Value instance, const char* type_name,
   std::string error;
   auto value = xlang3::from_c_value(instance, error);
   return error.empty() && xlang3::instance_set_native_owner(value, type_name, data, owner, cleanup, error)
+      ? X3_STATUS_OK : X3_STATUS_ERROR;
+}
+
+X3Status x3_instance_set_native_gc_references(X3Value instance,
+    const X3Value* references, uint32_t reference_count, void (*clear)(void*)) {
+  if (reference_count != 0 && references == nullptr) return X3_STATUS_ERROR;
+  std::string error;
+  auto value = xlang3::from_c_value(instance, error);
+  std::vector<xlang3::Value> internal_references;
+  internal_references.reserve(reference_count);
+  for (uint32_t index = 0; error.empty() && index < reference_count; ++index) {
+    internal_references.push_back(xlang3::from_c_value(references[index], error));
+  }
+  return error.empty() && xlang3::instance_set_native_gc_references(
+      value, internal_references.data(), reference_count, clear, error)
       ? X3_STATUS_OK : X3_STATUS_ERROR;
 }
 

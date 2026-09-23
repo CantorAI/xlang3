@@ -358,6 +358,42 @@ bool thread_exit(
   return false;
 }
 
+bool thread_interrupt_main(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc > 1) {
+    error = "_thread.interrupt_main() expected at most one argument";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  int64_t signum = 2;
+  if (argc == 1 && !value_int_like_to_i64(args[0], signum)) {
+    error = "signal number must be int";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (signum == 2) {
+    runtime.raise_class_error("KeyboardInterrupt", "");
+    return false;
+  }
+  Value signal_module;
+  Value raise_signal;
+  if (!runtime.import_module("signal", signal_module, error) ||
+      !module_get_attr(signal_module, "raise_signal", raise_signal, error)) {
+    return false;
+  }
+  Value signal_value = Value::int64(signum);
+  if (!runtime_call_callable(runtime, raise_signal, &signal_value, 1, out, error)) {
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
 bool thread_except_hook_args(
     Runtime& runtime,
     const Value* args,
@@ -395,7 +431,7 @@ bool thread_except_hook_args(
   object_set_attr(out, "exc_value", items[1], ignored);
   object_set_attr(out, "exc_traceback", items[2], ignored);
   object_set_attr(out, "thread", items[3], ignored);
-  object_set_attr(out, "_tuple", Value::tuple(std::move(items)), ignored);
+  object_set_attr(out, "__xlang3_tuple_value__", Value::tuple(std::move(items)), ignored);
   return true;
 }
 
@@ -524,6 +560,7 @@ Value register_low_level_thread_module(Runtime& runtime) {
       .function("_make_thread_handle", thread_make_thread_handle)
       .function("stack_size", thread_stack_size)
       .function("exit", thread_exit)
+      .function("interrupt_main", thread_interrupt_main)
       .function("_excepthook", thread_excepthook)
       .function("_ExceptHookArgs", thread_except_hook_args)
       .value("error", runtime.find_builtin("RuntimeError") ? *runtime.find_builtin("RuntimeError") : Value::class_object("error", {}))

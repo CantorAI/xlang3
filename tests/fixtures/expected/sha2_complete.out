@@ -1,0 +1,8 @@
+sha224 True 28 28 64
+True True
+sha256 True 32 32 64
+True True
+sha384 True 48 48 128
+True True
+sha512 True 64 64 128
+True True

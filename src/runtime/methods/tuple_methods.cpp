@@ -57,6 +57,32 @@ bool tuple_iter_method(Runtime& runtime, const Value* args, uint32_t argc, Value
   return true;
 }
 
+bool tuple_contains_method(Runtime& runtime, const Value* args, uint32_t argc,
+                           Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 2, "tuple.__contains__", error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value storage;
+  const auto* tuple = tuple_protocol_storage(args[0], storage);
+  if (tuple == nullptr) {
+    error = "tuple.__contains__ target is not a tuple";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  for (const auto& item : tuple->items) {
+    Value equal;
+    if (!runtime_value_compare(runtime, "==", item, args[1], equal, error))
+      return false;
+    if (value_truthy(equal)) {
+      value_set_bool(out, true);
+      return true;
+    }
+  }
+  value_set_bool(out, false);
+  return true;
+}
+
 bool normalize_bound(const Value& value, size_t size, size_t& out, std::string& error) {
   if (value.tag != ValueTag::Int64) {
     error = "tuple index bounds must be int";
@@ -76,7 +102,7 @@ bool normalize_bound(const Value& value, size_t size, size_t& out, std::string& 
   return true;
 }
 
-bool tuple_count_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool tuple_count_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 2, "tuple.count", error)) {
     return false;
   }
@@ -88,7 +114,10 @@ bool tuple_count_method(Runtime&, const Value* args, uint32_t argc, Value& out, 
   }
   int64_t count = 0;
   for (const auto& item : tuple->items) {
-    if (value_key_equal(item, args[1])) {
+    Value equal;
+    if (!runtime_value_compare(runtime, "==", item, args[1], equal, error))
+      return false;
+    if (value_truthy(equal)) {
       ++count;
     }
   }
@@ -123,7 +152,11 @@ bool tuple_index_method(Runtime& runtime, const Value* args, uint32_t argc, Valu
     start = stop;
   }
   for (size_t i = start; i < stop; ++i) {
-    if (value_key_equal(tuple->items[i], args[1])) {
+    Value equal;
+    if (!runtime_value_compare(
+            runtime, "==", tuple->items[i], args[1], equal, error))
+      return false;
+    if (value_truthy(equal)) {
       value_set_int64(out, static_cast<int64_t>(i));
       return true;
     }
@@ -141,7 +174,7 @@ const TupleObject* tuple_protocol_storage(const Value& value, Value& scratch) {
     return nullptr;
   }
   std::string ignored;
-  if (!object_get_attr(value, "_tuple", scratch, ignored)) {
+  if (!object_get_attr(value, "__xlang3_tuple_value__", scratch, ignored)) {
     return nullptr;
   }
   return value_as_tuple(scratch);
@@ -212,6 +245,7 @@ XLANG3_TUPLE_COMPARE_METHOD(tuple_ge_method, ">=", "tuple.__ge__")
 #undef XLANG3_TUPLE_COMPARE_METHOD
 
 static BuiltinMethodSpec kTupleMethods[] = {
+    {"__contains__", "tuple.__contains__", tuple_contains_method},
     {"__getitem__", "tuple.__getitem__", tuple_getitem_method},
     {"__iter__", "tuple.__iter__", tuple_iter_method},
     {"__eq__", "tuple.__eq__", tuple_eq_method},

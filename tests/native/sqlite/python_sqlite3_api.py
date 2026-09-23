@@ -16,6 +16,38 @@ if len(sys.argv) > 1:
     sys.path.insert(0, sys.argv[1])
 import sqlite3
 
+assert sqlite3.dbapi2.__name__ == "sqlite3.dbapi2"
+direct_connection = sqlite3.connect(":memory:")
+assert direct_connection.execute("SELECT 42").fetchone()[0] == 42
+direct_connection.execute("CREATE TABLE generated (id INTEGER PRIMARY KEY, value TEXT)")
+generated_cursor = direct_connection.execute(
+    "INSERT INTO generated (value) VALUES (?)", ("value",)
+)
+assert generated_cursor.lastrowid == 1
+assert generated_cursor.rowcount == 1
+script_cursor = direct_connection.executescript(
+    "CREATE TABLE scripted (value INTEGER);"
+    "INSERT INTO scripted VALUES (7);"
+    "INSERT INTO scripted VALUES (9);"
+)
+assert isinstance(script_cursor, sqlite3.Cursor)
+assert direct_connection.execute("SELECT sum(value) FROM scripted").fetchone()[0] == 16
+cursor_script = direct_connection.cursor()
+assert cursor_script.executescript(
+    "INSERT INTO scripted VALUES (11);"
+) is cursor_script
+assert direct_connection.execute("SELECT count(*) FROM scripted").fetchone()[0] == 3
+many_cursor = direct_connection.executemany(
+    "INSERT INTO scripted VALUES (?)", [(13,), (15,)]
+)
+assert isinstance(many_cursor, sqlite3.Cursor)
+assert many_cursor.rowcount == 2
+assert many_cursor.lastrowid is None
+assert direct_connection.execute("SELECT sum(value) FROM scripted").fetchone()[0] == 55
+iter_cursor = direct_connection.execute("SELECT value FROM scripted ORDER BY value")
+assert [row[0] for row in iter_cursor] == [7, 9, 11, 13, 15]
+direct_connection.close()
+
 blob_connection = sqlite3.connect(":memory:")
 blob_cursor = blob_connection.cursor()
 for payload in [b"", b"\x00\xff\x80binary\x00", b"\x00\xff" * 32768]:

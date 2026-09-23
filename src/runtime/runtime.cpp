@@ -673,7 +673,13 @@ Value make_runtime_module_spec(
   object_set_attr(spec, "origin", origin, ignored);
   object_set_attr(spec, "cached", Value::none(), ignored);
   const auto dot = name.rfind('.');
-  object_set_attr(spec, "parent", Value::string(dot == std::string::npos ? "" : name.substr(0, dot)), ignored);
+  object_set_attr(
+      spec,
+      "parent",
+      Value::string(submodule_search_locations.tag != ValueTag::None
+          ? name
+          : (dot == std::string::npos ? "" : name.substr(0, dot))),
+      ignored);
   const std::string origin_text = origin.tag == ValueTag::None ? "" : value_to_string(origin);
   object_set_attr(
       spec,
@@ -828,6 +834,7 @@ const std::string& Runtime::last_error() const {
 }
 
 Runtime::~Runtime() {
+  unregister_interpreter_runtime(*this);
   std::string ignored;
   bool threading_shutdown_completed = false;
   auto threading_it = modules_.find("threading");
@@ -920,6 +927,11 @@ Runtime::~Runtime() {
   value_set_invalid(profile_function_);
   value_set_invalid(thread_profile_function_);
   value_set_invalid(debug_hook_);
+  // Finalizer discovery temporarily retains module-level instances. Release
+  // those references before tearing down native package hosts because a native
+  // instance destructor may call back through the host while releasing values
+  // owned by its native payload.
+  retained_values.clear();
   collect_serialized_objects(true);
   native_codecs_.clear();
   // Module/function and sys.modules cycles must not retain native instances
@@ -989,6 +1001,19 @@ const Value* Runtime::find_builtin(const std::string& name) const {
     return nullptr;
   }
   return &it->second;
+}
+
+bool Runtime::resolve_builtin(const std::string& name, Value& out) const {
+  const auto module = modules_.find("builtins");
+  if (module != modules_.end()) {
+    std::string ignored;
+    if (module_get_attr(module->second, name, out, ignored)) return true;
+    if (name.rfind("__xlang3_", 0) != 0) return false;
+  }
+  const Value* builtin = find_builtin(name);
+  if (builtin == nullptr) return false;
+  value_assign_fast(out, *builtin);
+  return true;
 }
 
 void Runtime::set_current_globals_module(const Value& globals_module) {
@@ -2134,6 +2159,15 @@ bool Runtime::import_module(const std::string& name, Value& out, std::string& er
     }
     return false;
   }
+  auto bind_existing_submodule = [&](const Value& module) {
+    const auto dot = name.rfind('.');
+    if (dot == std::string::npos || dot == 0) return;
+    const auto parent = modules_.find(name.substr(0, dot));
+    if (parent == modules_.end()) return;
+    std::string ignored;
+    (void)module_set_attr(
+        parent->second, name.substr(dot + 1), module, ignored);
+  };
   if (modules_dict_.tag != ValueTag::Invalid) {
     Value registry_module;
     std::string registry_error;
@@ -2147,6 +2181,7 @@ bool Runtime::import_module(const std::string& name, Value& out, std::string& er
       }
       if (value_as_module(registry_module) != nullptr) {
         modules_[name] = registry_module;
+        bind_existing_submodule(registry_module);
       }
       value_assign_fast(out, registry_module);
       return true;
@@ -2569,6 +2604,11 @@ void Runtime::prepend_import_root(std::filesystem::path root) {
       vfs_->uses_host_paths() && !vfs_->is_mounted_path(root.generic_string());
   root = normalize_import_root(std::move(root), host_path);
   if (has_import_root(import_roots_, root)) {
+    auto found = std::find(import_roots_.begin(), import_roots_.end(), root);
+    if (found == import_roots_.begin()) return;
+    std::filesystem::path existing = std::move(*found);
+    import_roots_.erase(found);
+    import_roots_.insert(import_roots_.begin(), std::move(existing));
     return;
   }
   import_roots_.insert(import_roots_.begin(), std::move(root));

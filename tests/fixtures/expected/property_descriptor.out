@@ -3,6 +3,9 @@
 True
 ready
 10
+21 {'_value': 21}
+9 {'_value': 8}
 22
 True
 0
+TypeError vars() argument must have __dict__ attribute

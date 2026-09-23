@@ -465,7 +465,7 @@ void register_sequence_builtins(Runtime& runtime) {
   runtime.register_native_builtin("len", builtin_len, builtin_len_fast);
   runtime.register_native_builtin("iter", builtin_iter);
   runtime.register_native_builtin(
-      "next", builtin_next, builtin_fast_adapter<builtin_next, 2>, true);
+      "next", builtin_next, builtin_fast_adapter<builtin_next, 2>);
   runtime.register_native_builtin("aiter", builtin_aiter);
   runtime.register_native_builtin("anext", builtin_anext);
   runtime.register_native_builtin("ord", builtin_ord, builtin_fast_adapter<builtin_ord, 1>);

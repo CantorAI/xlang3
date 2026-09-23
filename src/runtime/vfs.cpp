@@ -195,6 +195,22 @@ public:
 #endif
     return true;
   }
+  bool create_link(const std::string& target, const std::string& link_path,
+                   bool target_is_directory, std::string& error) override {
+    std::error_code ec;
+    if (target_is_directory) {
+      std::filesystem::create_directory_symlink(
+          filesystem_path(target), filesystem_path(link_path), ec);
+    } else {
+      std::filesystem::create_symlink(
+          filesystem_path(target), filesystem_path(link_path), ec);
+    }
+    if (ec) {
+      error = "cannot create symbolic link " + link_path + ": " + ec.message();
+      return false;
+    }
+    return true;
+  }
   bool read_file(const std::string& path, std::vector<uint8_t>& out, std::string& error) override {
     const auto native = filesystem_path(path);
 #if defined(_WIN32)
@@ -756,6 +772,20 @@ bool Vfs::list_dir(const std::string& path, std::vector<std::string>& out, std::
 bool Vfs::stat(const std::string& path, VfsStat& out, std::string& error) {
   ResolvedPath resolved;
   return resolve(path, resolved, error) && resolved.fs->stat(resolved.path, out, error);
+}
+
+bool Vfs::create_link(const std::string& target, const std::string& link_path,
+                      bool target_is_directory, std::string& error) {
+  ResolvedPath target_resolved;
+  ResolvedPath link_resolved;
+  if (!resolve(target, target_resolved, error) ||
+      !resolve(link_path, link_resolved, error)) return false;
+  if (target_resolved.fs != link_resolved.fs) {
+    error = "cannot create symbolic link across mounted filesystems";
+    return false;
+  }
+  return link_resolved.fs->create_link(
+      target_resolved.path, link_resolved.path, target_is_directory, error);
 }
 
 bool Vfs::directory_mtime(const std::string& path, int64_t& mtime_ns, std::string& error) {

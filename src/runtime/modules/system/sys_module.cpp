@@ -314,7 +314,7 @@ void sys_structseq_constructor_data_cleanup(void* data) {
 bool sys_structseq_tuple_storage(const Value& self, const char* method, TupleObject*& out, std::string& error) {
   Value tuple_value;
   std::string ignored;
-  if (!object_get_attr(self, "_tuple", tuple_value, ignored) || (out = value_as_tuple(tuple_value)) == nullptr) {
+  if (!object_get_attr(self, "__xlang3_tuple_value__", tuple_value, ignored) || (out = value_as_tuple(tuple_value)) == nullptr) {
     error = std::string(method) + " target has no tuple storage";
     return false;
   }
@@ -641,7 +641,7 @@ void sys_structseq_set_instance_attrs(Value& self, const SysStructSeqConstructor
   object_set_attr(self, "n_sequence_fields", Value::int64(static_cast<int64_t>(data.sequence_fields)), ignored);
   object_set_attr(self, "n_fields", Value::int64(static_cast<int64_t>(data.field_names.size())), ignored);
   object_set_attr(self, "n_unnamed_fields", Value::int64(0), ignored);
-  object_set_attr(self, "_tuple", Value::tuple(items), ignored);
+  object_set_attr(self, "__xlang3_tuple_value__", Value::tuple(items), ignored);
   object_set_attr(self, "_field_names", Value::tuple(std::move(field_names)), ignored);
   object_set_attr(self, "_all_field_names", Value::tuple(std::move(all_field_names)), ignored);
   object_set_attr(self, "_repr_name", Value::string(data.owner_name), ignored);
@@ -1165,7 +1165,7 @@ Value make_structseq(
   object_set_attr(instance, "n_sequence_fields", Value::int64(static_cast<int64_t>(sequence_fields)), ignored);
   object_set_attr(instance, "n_fields", Value::int64(static_cast<int64_t>(fields.size())), ignored);
   object_set_attr(instance, "n_unnamed_fields", Value::int64(0), ignored);
-  object_set_attr(instance, "_tuple", Value::tuple(std::move(tuple_items)), ignored);
+  object_set_attr(instance, "__xlang3_tuple_value__", Value::tuple(std::move(tuple_items)), ignored);
   object_set_attr(instance, "_field_names", Value::tuple(std::move(field_names)), ignored);
   object_set_attr(instance, "_all_field_names", Value::tuple(std::move(all_field_names)), ignored);
   object_set_attr(instance, "_repr_name", Value::string(actual_repr_name), ignored);
@@ -1192,10 +1192,30 @@ std::string executable_path() {
 
 std::string runtime_prefix(const Runtime& runtime) {
   const auto& roots = runtime.import_roots();
+  std::error_code ec;
+  for (const auto& root : roots) {
+    // sys.prefix describes the installation that owns the active Python
+    // library, which can differ from the directory containing xlang3.exe.
+    // Reporting the executable directory makes sysconfig classify the real
+    // source-backed standard library as third-party code.
+    if (std::filesystem::is_regular_file(root / "os.py", ec)) {
+#ifdef _WIN32
+      if (root.filename() == "Lib") return root.parent_path().string();
+#else
+      if (root.filename() == "python3.14" && root.parent_path().filename() == "lib")
+        return root.parent_path().parent_path().string();
+#endif
+      return root.parent_path().string();
+    }
+    ec.clear();
+    if (std::filesystem::is_regular_file(root / "Lib" / "os.py", ec)) {
+      return root.string();
+    }
+    ec.clear();
+  }
   if (!roots.empty()) {
     return roots.front().string();
   }
-  std::error_code ec;
   return std::filesystem::current_path(ec).string();
 }
 
@@ -2166,14 +2186,27 @@ bool sys_stdio_get_own_attr(const Value& self, const std::string& name, Value& o
   return false;
 }
 
+void sys_stdio_set_own_attr(Value& self, const std::string& name, Value value) {
+  auto* instance = value_as_instance(self);
+  if (instance == nullptr) return;
+  for (auto& attr : instance->attrs) {
+    if (attr.first == name) {
+      value_assign_fast(attr.second, value);
+      return;
+    }
+  }
+  instance->attrs.push_back({name, std::move(value)});
+}
+
 Value make_sys_stdio_buffer(Runtime&, const Value& klass, const char* kind) {
   Value stream = Value::instance(klass);
   std::string ignored;
   instance_set_native_data(stream, kSysStdioNativeType, const_cast<char*>(kind), nullptr, ignored);
   instance_set_native_attr_hooks(stream, sys_stdio_get_own_attr, nullptr, nullptr, ignored);
-  object_set_attr(stream, "closed", Value::boolean(false), ignored);
-  object_set_attr(stream, "name", Value::string(std::string("<") + kind + ">"), ignored);
-  object_set_attr(stream, "mode", Value::string(std::string(kind) == "stdin" ? "rb" : "wb"), ignored);
+  sys_stdio_set_own_attr(stream, "closed", Value::boolean(false));
+  sys_stdio_set_own_attr(stream, "name", Value::string(std::string("<") + kind + ">"));
+  sys_stdio_set_own_attr(stream, "mode", Value::string(std::string(kind) == "stdin" ? "rb" : "wb"));
+  sys_stdio_set_own_attr(stream, "raw", Value::none());
   return stream;
 }
 
@@ -2198,16 +2231,16 @@ Value make_sys_stdio(Runtime& runtime, const Value& klass, const char* kind) {
       errors = configured_errors;
     }
   }
-  object_set_attr(stream, "encoding", Value::string(encoding), ignored);
-  object_set_attr(stream, "errors", Value::string(errors), ignored);
-  object_set_attr(stream, "name", Value::string(std::string("<") + kind + ">"), ignored);
-  object_set_attr(stream, "mode", Value::string(std::string(kind) == "stdin" ? "r" : "w"), ignored);
-  object_set_attr(stream, "newlines", Value::none(), ignored);
-  object_set_attr(stream, "write_through", Value::boolean(false), ignored);
-  object_set_attr(stream, "closed", Value::boolean(false), ignored);
+  sys_stdio_set_own_attr(stream, "encoding", Value::string(encoding));
+  sys_stdio_set_own_attr(stream, "errors", Value::string(errors));
+  sys_stdio_set_own_attr(stream, "name", Value::string(std::string("<") + kind + ">"));
+  sys_stdio_set_own_attr(stream, "mode", Value::string(std::string(kind) == "stdin" ? "r" : "w"));
+  sys_stdio_set_own_attr(stream, "newlines", Value::none());
+  sys_stdio_set_own_attr(stream, "write_through", Value::boolean(false));
+  sys_stdio_set_own_attr(stream, "closed", Value::boolean(false));
   const bool line_buffering = std::string(kind) != "stdout";
-  object_set_attr(stream, "line_buffering", Value::boolean(line_buffering), ignored);
-  object_set_attr(stream, "_line_buffering", Value::boolean(line_buffering), ignored);
+  sys_stdio_set_own_attr(stream, "line_buffering", Value::boolean(line_buffering));
+  sys_stdio_set_own_attr(stream, "_line_buffering", Value::boolean(line_buffering));
   return stream;
 }
 
@@ -3512,13 +3545,11 @@ bool sys_setprofileallthreads(Runtime& runtime, const Value* args, uint32_t argc
   return sys_setprofile(runtime, args, argc, out, error, user_data);
 }
 
-double g_switch_interval = 0.005;
-
 bool sys_getswitchinterval(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 0) {
     return raise_sys_no_args_type_error(runtime, error, "sys.getswitchinterval", argc);
   }
-  out = Value::number(g_switch_interval);
+  out = Value::number(xlang_runtime_switch_interval());
   return true;
 }
 
@@ -3537,7 +3568,7 @@ bool sys_setswitchinterval(Runtime& runtime, const Value* args, uint32_t argc, V
     runtime.raise_class_error("ValueError", error);
     return false;
   }
-  g_switch_interval = value;
+  xlang_runtime_set_switch_interval(value);
   value_set_none(out);
   return true;
 }
@@ -3580,7 +3611,7 @@ bool sys_set_int_max_str_digits(Runtime& runtime, const Value* args, uint32_t ar
     if (module_get_attr(sys, "flags", flags, ignored)) {
       object_set_attr(flags, "int_max_str_digits", Value::int64(g_int_max_str_digits), ignored);
       Value tuple_value;
-      if (object_get_attr(flags, "_tuple", tuple_value, ignored)) {
+      if (object_get_attr(flags, "__xlang3_tuple_value__", tuple_value, ignored)) {
         if (auto* tuple = value_as_tuple(tuple_value); tuple != nullptr && tuple->items.size() > 17) {
           tuple->items[17] = Value::int64(g_int_max_str_digits);
           sys_structseq_update_string_value(flags, ignored);
@@ -4801,8 +4832,8 @@ void register_sys_module(Runtime& runtime) {
   Value stdout_buffer = make_sys_stdio_buffer(runtime, stdout_buffer_class, "stdout");
   Value stderr_buffer = make_sys_stdio_buffer(runtime, stdout_buffer_class, "stderr");
   object_set_attr(stdin_stream, "buffer", stdin_buffer, error);
-  object_set_attr(stdout_stream, "buffer", stdout_buffer, error);
-  object_set_attr(stderr_stream, "buffer", stderr_buffer, error);
+  sys_stdio_set_own_attr(stdout_stream, "buffer", stdout_buffer);
+  sys_stdio_set_own_attr(stderr_stream, "buffer", stderr_buffer);
   module_set_attr(sys, "stdin", stdin_stream, error);
   module_set_attr(sys, "stdout", stdout_stream, error);
   module_set_attr(sys, "stderr", stderr_stream, error);
@@ -4836,8 +4867,17 @@ void register_sys_module(Runtime& runtime) {
   implementation_repr += ")";
   object_set_attr(implementation, "__xlang3_string_value__", Value::string(std::move(implementation_repr)), error);
   const std::string exe = executable_path();
-  const std::string prefix = runtime_prefix(runtime);
   const std::string stdlib_dir = runtime_stdlib_dir(runtime);
+  std::filesystem::path prefix_path = runtime_prefix(runtime);
+  const std::filesystem::path stdlib_path(stdlib_dir);
+#ifdef _WIN32
+  if (stdlib_path.filename() == "Lib") prefix_path = stdlib_path.parent_path();
+#else
+  if (stdlib_path.filename() == "python3.14" &&
+      stdlib_path.parent_path().filename() == "lib")
+    prefix_path = stdlib_path.parent_path().parent_path();
+#endif
+  const std::string prefix = prefix_path.string();
   module_set_attr(sys, "executable", Value::string(exe), error);
   module_set_attr(sys, "_base_executable", Value::string(exe), error);
   module_set_attr(sys, "prefix", Value::string(prefix), error);

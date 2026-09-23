@@ -13,6 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 #include "xlang3/builtin_methods.h"
+#include "xlang3/builtins.h"
 
 #include "xlang3/functional_iterators.h"
 #include "xlang3/object_model.h"
@@ -25,11 +26,33 @@ namespace xlang3 {
 
 namespace {
 
+const Value& set_method_target(const Value& value) {
+  if (auto* instance = value_as_instance(value);
+      instance != nullptr && value_as_set(instance->sequence_storage) != nullptr) {
+    return instance->sequence_storage;
+  }
+  return value;
+}
+
+bool set_iter_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 1, "set.__iter__", error)) {
+    return false;
+  }
+  return set_get_iter(set_method_target(args[0]), out, error);
+}
+
+bool set_len_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 1, "set.__len__", error)) {
+    return false;
+  }
+  return set_len(set_method_target(args[0]), out, error);
+}
+
 bool set_add_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 2, "set.add", error)) {
     return false;
   }
-  Value set = args[0];
+  Value set = set_method_target(args[0]);
   if (!set_add(set, args[1], error)) {
     return false;
   }
@@ -57,16 +80,58 @@ bool add_iterable_items(Runtime& runtime, Value& set, const Value& iterable, std
   }
 }
 
+bool set_runtime_hash(Runtime& runtime, const Value& value, int64_t& out, std::string& error) {
+  if (value_as_instance(value) != nullptr) {
+    Value method;
+    std::string ignored;
+    if (object_get_attr(value, "__hash__", method, ignored)) {
+      if (method.tag == ValueTag::None) {
+        error = "unhashable type";
+        runtime.raise_class_error("TypeError", error);
+        return false;
+      }
+      Value result;
+      if (!runtime_call_callable(runtime, method, nullptr, 0, result, error)) {
+        return false;
+      }
+      if (result.tag != ValueTag::Int64) {
+        error = "__hash__ method should return an integer";
+        runtime.raise_class_error("TypeError", error);
+        return false;
+      }
+      out = result.as.i64;
+      return true;
+    }
+  }
+  size_t raw = 0;
+  if (!value_hash_key(value, raw, error)) {
+    return false;
+  }
+  out = static_cast<int64_t>(raw);
+  return true;
+}
+
 bool set_contains_value(
     Runtime& runtime,
     const SetObject& set,
     const Value& value,
     bool& out,
     std::string& error) {
+  int64_t value_hash = 0;
+  if (!set_runtime_hash(runtime, value, value_hash, error)) {
+    return false;
+  }
   for (const auto& item : set.items) {
     if (value_is(item, value)) {
       out = true;
       return true;
+    }
+    int64_t item_hash = 0;
+    if (!set_runtime_hash(runtime, item, item_hash, error)) {
+      return false;
+    }
+    if (item_hash != value_hash) {
+      continue;
     }
     Value equal;
     if (!runtime_value_compare(runtime, "==", item, value, equal, error)) {
@@ -122,11 +187,22 @@ bool remove_set_item(
     error = "set method target is not a set";
     return false;
   }
-  size_t ignored = 0;
-  if (!value_hash_key(item, ignored, error)) {
+  int64_t item_hash = 0;
+  if (!set_runtime_hash(runtime, item, item_hash, error)) {
     return false;
   }
   for (auto it = set->items.begin(); it != set->items.end(); ++it) {
+    if (value_is(*it, item)) {
+      set->items.erase(it);
+      return true;
+    }
+    int64_t candidate_hash = 0;
+    if (!set_runtime_hash(runtime, *it, candidate_hash, error)) {
+      return false;
+    }
+    if (candidate_hash != item_hash) {
+      continue;
+    }
     Value equal;
     if (!runtime_value_compare(runtime, "==", *it, item, equal, error)) {
       return false;
@@ -151,7 +227,7 @@ bool set_clear_method(Runtime&, const Value* args, uint32_t argc, Value& out, st
   if (!method_check_argc(argc, 1, "set.clear", error)) {
     return false;
   }
-  auto* set = value_as_set(args[0]);
+  auto* set = value_as_set(set_method_target(args[0]));
   if (set == nullptr) {
     error = "set.clear target is not a set";
     return false;
@@ -165,7 +241,7 @@ bool set_contains_method(Runtime& runtime, const Value* args, uint32_t argc, Val
   if (!method_check_argc(argc, 2, "set.__contains__", error)) {
     return false;
   }
-  auto* set = value_as_set(args[0]);
+  auto* set = value_as_set(set_method_target(args[0]));
   if (set == nullptr) {
     error = "set.__contains__ target is not a set";
     return false;
@@ -182,12 +258,12 @@ bool set_copy_method(Runtime&, const Value* args, uint32_t argc, Value& out, std
   if (!method_check_argc(argc, 1, "set.copy", error)) {
     return false;
   }
-  auto* set = value_as_set(args[0]);
+  auto* set = value_as_set(set_method_target(args[0]));
   if (set == nullptr) {
     error = "set.copy target is not a set";
     return false;
   }
-  out = Value::set(set->items);
+  out = set->frozen ? Value::frozenset(set->items) : Value::set(set->items);
   return true;
 }
 
@@ -195,7 +271,7 @@ bool set_discard_method(Runtime& runtime, const Value* args, uint32_t argc, Valu
   if (!method_check_argc(argc, 2, "set.discard", error)) {
     return false;
   }
-  Value set = args[0];
+  Value set = set_method_target(args[0]);
   if (!remove_set_item(runtime, set, args[1], false, error)) {
     return false;
   }
@@ -208,7 +284,7 @@ bool set_pop_method(Runtime& runtime, const Value* args, uint32_t argc, Value& o
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  auto* set = value_as_set(args[0]);
+  auto* set = value_as_set(set_method_target(args[0]));
   if (set == nullptr) {
     error = "set.pop target is not a set";
     runtime.raise_class_error("TypeError", error);
@@ -228,7 +304,7 @@ bool set_remove_method(Runtime& runtime, const Value* args, uint32_t argc, Value
   if (!method_check_argc(argc, 2, "set.remove", error)) {
     return false;
   }
-  Value set = args[0];
+  Value set = set_method_target(args[0]);
   if (!remove_set_item(runtime, set, args[1], true, error)) {
     return false;
   }
@@ -241,7 +317,7 @@ bool set_update_method(Runtime& runtime, const Value* args, uint32_t argc, Value
     error = "set.update expected at least set self";
     return false;
   }
-  Value set = args[0];
+  Value set = set_method_target(args[0]);
   if (value_as_set(set) == nullptr) {
     error = "set.update target is not a set";
     return false;
@@ -256,7 +332,7 @@ bool set_update_method(Runtime& runtime, const Value* args, uint32_t argc, Value
 }
 
 bool set_union_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  auto* set = value_as_set(args[0]);
+  auto* set = value_as_set(set_method_target(args[0]));
   if (set == nullptr) {
     error = "set.union target is not a set";
     return false;
@@ -267,11 +343,12 @@ bool set_union_method(Runtime& runtime, const Value* args, uint32_t argc, Value&
       return false;
     }
   }
+  value_as_set(out)->frozen = set->frozen;
   return true;
 }
 
 bool set_intersection_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  auto* set = value_as_set(args[0]);
+  auto* set = value_as_set(set_method_target(args[0]));
   if (set == nullptr) {
     error = "set.intersection target is not a set";
     return false;
@@ -308,11 +385,12 @@ bool set_intersection_method(Runtime& runtime, const Value* args, uint32_t argc,
       }
     }
   }
+  result->frozen = set->frozen;
   return true;
 }
 
 bool set_difference_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  auto* set = value_as_set(args[0]);
+  auto* set = value_as_set(set_method_target(args[0]));
   if (set == nullptr) {
     error = "set.difference target is not a set";
     return false;
@@ -349,6 +427,7 @@ bool set_difference_method(Runtime& runtime, const Value* args, uint32_t argc, V
       }
     }
   }
+  result->frozen = set->frozen;
   return true;
 }
 
@@ -356,7 +435,7 @@ bool set_symmetric_difference_method(Runtime& runtime, const Value* args, uint32
   if (!method_check_argc(argc, 2, "set.symmetric_difference", error)) {
     return false;
   }
-  auto* set = value_as_set(args[0]);
+  auto* set = value_as_set(set_method_target(args[0]));
   if (set == nullptr) {
     error = "set.symmetric_difference target is not a set";
     return false;
@@ -374,6 +453,7 @@ bool set_symmetric_difference_method(Runtime& runtime, const Value* args, uint32
       return false;
     }
     if (done) {
+      result->frozen = set->frozen;
       return true;
     }
     bool removed = false;
@@ -403,7 +483,7 @@ bool set_intersection_update_method(Runtime& runtime, const Value* args, uint32_
   if (!set_intersection_method(runtime, args, argc, updated, error, user_data)) {
     return false;
   }
-  auto* target = value_as_set(args[0]);
+  auto* target = value_as_set(set_method_target(args[0]));
   auto* source = value_as_set(updated);
   if (target == nullptr || source == nullptr) {
     error = "set.intersection_update target is not a set";
@@ -419,7 +499,7 @@ bool set_difference_update_method(Runtime& runtime, const Value* args, uint32_t 
   if (!set_difference_method(runtime, args, argc, updated, error, user_data)) {
     return false;
   }
-  auto* target = value_as_set(args[0]);
+  auto* target = value_as_set(set_method_target(args[0]));
   auto* source = value_as_set(updated);
   if (target == nullptr || source == nullptr) {
     error = "set.difference_update target is not a set";
@@ -435,7 +515,7 @@ bool set_symmetric_difference_update_method(Runtime& runtime, const Value* args,
   if (!set_symmetric_difference_method(runtime, args, argc, updated, error, user_data)) {
     return false;
   }
-  auto* target = value_as_set(args[0]);
+  auto* target = value_as_set(set_method_target(args[0]));
   auto* source = value_as_set(updated);
   if (target == nullptr || source == nullptr) {
     error = "set.symmetric_difference_update target is not a set";
@@ -450,7 +530,7 @@ bool set_isdisjoint_method(Runtime& runtime, const Value* args, uint32_t argc, V
   if (!method_check_argc(argc, 2, "set.isdisjoint", error)) {
     return false;
   }
-  auto* set = value_as_set(args[0]);
+  auto* set = value_as_set(set_method_target(args[0]));
   if (set == nullptr) {
     error = "set.isdisjoint target is not a set";
     return false;
@@ -484,7 +564,7 @@ bool set_issubset_method(Runtime& runtime, const Value* args, uint32_t argc, Val
   if (!method_check_argc(argc, 2, "set.issubset", error)) {
     return false;
   }
-  auto* set = value_as_set(args[0]);
+  auto* set = value_as_set(set_method_target(args[0]));
   if (set == nullptr) {
     error = "set.issubset target is not a set";
     return false;
@@ -506,7 +586,7 @@ bool set_issuperset_method(Runtime& runtime, const Value* args, uint32_t argc, V
   if (!method_check_argc(argc, 2, "set.issuperset", error)) {
     return false;
   }
-  auto* set = value_as_set(args[0]);
+  auto* set = value_as_set(set_method_target(args[0]));
   if (set == nullptr) {
     error = "set.issuperset target is not a set";
     return false;
@@ -519,13 +599,42 @@ bool set_issuperset_method(Runtime& runtime, const Value* args, uint32_t argc, V
   return true;
 }
 
+bool set_reduce_method(Runtime& runtime, const Value* args, uint32_t argc,
+                       Value& out, std::string& error, void*) {
+  if (argc != 1 && argc != 2) {
+    error = "set.__reduce__ expected no arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* set = value_as_set(set_method_target(args[0]));
+  if (set == nullptr) {
+    error = "set.__reduce__ target is not a set";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value type;
+  if (!runtime_type_of_value(runtime, args[0], type)) {
+    error = "cannot resolve set type";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value items = Value::list(set->items);
+  Value constructor_args = Value::tuple({items});
+  out = Value::tuple({type, constructor_args, Value::none()});
+  return true;
+}
+
 static BuiltinMethodSpec kSetMethods[] = {
+    {"__iter__", "set.__iter__", set_iter_method},
+    {"__len__", "set.__len__", set_len_method},
     {"__contains__", "set.__contains__", set_contains_method,
      builtin_method_fast_adapter<set_contains_method, 2>},
     {"add", "set.add", set_add_method,
      builtin_method_fast_adapter<set_add_method, 2>},
     {"clear", "set.clear", set_clear_method},
     {"copy", "set.copy", set_copy_method},
+    {"__reduce__", "set.__reduce__", set_reduce_method},
+    {"__reduce_ex__", "set.__reduce_ex__", set_reduce_method},
     {"difference", "set.difference", set_difference_method},
     {"difference_update", "set.difference_update", set_difference_update_method},
     {"discard", "set.discard", set_discard_method},
@@ -578,6 +687,22 @@ bool set_install_class_methods(Runtime& runtime, ClassObject& set_class) {
         method.fast_callback, method.fast_releases_vm_lock, method.keyword_callback);
   }
   ++set_class.version;
+  return true;
+}
+
+bool frozenset_install_class_methods(Runtime& runtime, ClassObject& frozenset_class) {
+  for (const auto& method : kSetMethods) {
+    const std::string_view name(method.name);
+    if (name == "add" || name == "clear" || name == "difference_update" ||
+        name == "discard" || name == "intersection_update" || name == "pop" ||
+        name == "remove" || name == "symmetric_difference_update" || name == "update") {
+      continue;
+    }
+    frozenset_class.attrs[method.name] = runtime.make_native_function(
+        std::string("frozenset.") + method.name, method.callback, nullptr, nullptr,
+        method.fast_callback, method.fast_releases_vm_lock, method.keyword_callback);
+  }
+  ++frozenset_class.version;
   return true;
 }
 

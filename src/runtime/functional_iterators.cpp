@@ -334,6 +334,26 @@ bool runtime_call_callable(
   }
 
   if (auto* klass = value_as_class(callable)) {
+    if (argc == 1) {
+      Value enum_member;
+      if (class_try_enum_value_lookup(callable, args[0], enum_member)) {
+        value_assign_fast(out, enum_member);
+        return true;
+      }
+    }
+    const Value* builtin_type = runtime.find_builtin("type");
+    auto* metaclass = value_as_class(klass->metaclass);
+    const bool default_metaclass = metaclass != nullptr &&
+        (metaclass->name == "type" ||
+         (builtin_type != nullptr && value_is(klass->metaclass, *builtin_type)));
+    if (metaclass != nullptr && !default_metaclass) {
+      Value meta_call;
+      std::string meta_call_error;
+      if (class_get_bound_attr(
+              runtime, klass->metaclass, callable, "__call__", meta_call, meta_call_error)) {
+        return runtime_call_callable(runtime, meta_call, args, argc, out, error);
+      }
+    }
     bool handled = false;
     if (!runtime_call_builtin_constructor(runtime, *klass, args, argc, {}, handled, out, error)) return false;
     if (handled) return true;
@@ -443,37 +463,20 @@ bool runtime_call_callable_kw(
   }
 
   if (auto* klass = value_as_class(callable)) {
-    bool handled = false;
-    if (!runtime_call_builtin_constructor(runtime, *klass, args, argc, kwargs, handled, out, error)) return false;
-    if (handled) return true;
-    Value instance;
-    Value new_callable;
-    if (resolve_class_new_callable(callable, klass, new_callable)) {
-      std::vector<Value> new_args;
-      new_args.reserve(static_cast<size_t>(argc) + 1);
-      new_args.push_back(callable);
-      for (uint32_t i = 0; i < argc; ++i) new_args.push_back(args[i]);
-      if (!runtime_call_callable_kw(runtime, new_callable, new_args.data(),
-          static_cast<uint32_t>(new_args.size()), kwargs, instance, error)) return false;
-      auto* object = value_as_instance(instance);
-      auto* actual_class = object ? value_as_class(object->klass) : nullptr;
-      if (!actual_class || !class_is_subclass(actual_class, klass)) {
-        value_assign_fast(out, instance);
-        return true;
+    const Value* builtin_type = runtime.find_builtin("type");
+    auto* metaclass = value_as_class(klass->metaclass);
+    const bool default_metaclass = metaclass != nullptr &&
+        (metaclass->name == "type" ||
+         (builtin_type != nullptr && value_is(klass->metaclass, *builtin_type)));
+    if (metaclass != nullptr && !default_metaclass) {
+      Value meta_call;
+      std::string meta_call_error;
+      if (class_get_bound_attr(
+              runtime, klass->metaclass, callable, "__call__", meta_call, meta_call_error)) {
+        return runtime_call_callable_kw(runtime, meta_call, args, argc, kwargs, out, error);
       }
-    } else {
-      instance = Value::instance(callable);
     }
-    Value init;
-    std::string init_error;
-    if (!object_get_attr(instance, "__init__", init, init_error) || init.tag == ValueTag::Invalid)
-      return raise_type_error(runtime, "class construction does not accept keyword arguments", error);
-    Value ignored;
-    if (!runtime_call_callable_kw(runtime, init, args, argc, kwargs, ignored, error)) return false;
-    if (ignored.tag != ValueTag::None)
-      return raise_type_error(runtime, "__init__ must return None", error);
-    value_assign_fast(out, instance);
-    return true;
+    return runtime_construct_class_kw(runtime, callable, args, argc, kwargs, out, error);
   }
 
   if (auto* bound = value_as_bound_method(callable)) {
@@ -549,6 +552,53 @@ bool runtime_call_callable_kw(
 
   error = "object does not accept keyword arguments";
   return false;
+}
+
+bool runtime_construct_class_kw(
+    Runtime& runtime,
+    const Value& class_value,
+    const Value* args,
+    uint32_t argc,
+    const std::vector<std::pair<std::string, Value>>& kwargs,
+    Value& out,
+    std::string& error) {
+  auto* klass = value_as_class(class_value);
+  if (klass == nullptr) {
+    return raise_type_error(runtime, "type.__call__ expected a class", error);
+  }
+  bool handled = false;
+  if (!runtime_call_builtin_constructor(runtime, *klass, args, argc, kwargs, handled, out, error)) return false;
+  if (handled) return true;
+  Value instance;
+  Value new_callable;
+  if (resolve_class_new_callable(class_value, klass, new_callable)) {
+    std::vector<Value> new_args;
+    new_args.reserve(static_cast<size_t>(argc) + 1);
+    new_args.push_back(class_value);
+    for (uint32_t i = 0; i < argc; ++i) new_args.push_back(args[i]);
+    if (!runtime_call_callable_kw(runtime, new_callable, new_args.data(),
+        static_cast<uint32_t>(new_args.size()), kwargs, instance, error)) return false;
+    auto* object = value_as_instance(instance);
+    auto* actual_class = object ? value_as_class(object->klass) : nullptr;
+    if (!actual_class || !class_is_subclass(actual_class, klass)) {
+      value_assign_fast(out, instance);
+      return true;
+    }
+  } else {
+    instance = Value::instance(class_value);
+  }
+  Value init;
+  std::string init_error;
+  if (!object_get_attr(instance, "__init__", init, init_error) || init.tag == ValueTag::Invalid) {
+    return raise_type_error(runtime, "class construction does not accept keyword arguments", error);
+  }
+  Value ignored;
+  if (!runtime_call_callable_kw(runtime, init, args, argc, kwargs, ignored, error)) return false;
+  if (ignored.tag != ValueTag::None) {
+    return raise_type_error(runtime, "__init__ must return None", error);
+  }
+  value_assign_fast(out, instance);
+  return true;
 }
 
 bool runtime_get_iter(Runtime& runtime, const Value& iterable, Value& out, std::string& error) {

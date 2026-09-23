@@ -27,3 +27,33 @@ a = []
 b = a
 c = []
 print(a is b is not c)
+
+def local_chain(high=None, low=None):
+    if high is None:
+        high = 64 * 1024
+    if low is None:
+        low = high // 4
+    print(high >= low >= 0)
+    print(not high >= low >= 0)
+
+local_chain()
+
+
+class Ranked:
+    def __init__(self, value):
+        self.value = value
+
+    def __lt__(self, other):
+        return self.value < (other.value if isinstance(other, Ranked) else other)
+
+
+def local_rich_comparisons():
+    left = Ranked(1)
+    right = Ranked(2)
+    if left < right:
+        print("local-local-rich")
+    if left < 3:
+        print("local-const-rich")
+
+
+local_rich_comparisons()

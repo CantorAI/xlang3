@@ -502,7 +502,7 @@ bool zipimporter_get_code(Runtime& runtime, const Value* args, uint32_t argc, Va
     return false;
   }
   if (std::filesystem::path(member).extension() == ".pyc") {
-    if (source.size() < 16 || source.compare(0, 4, "\x33\x58\x0d\x0a", 4) != 0) {
+    if (source.size() < 16 || source.compare(0, 4, "\x3d\x58\x0d\x0a", 4) != 0) {
       return raise_zipimport_error(runtime, "bad magic number in '" + member + "'", error);
     }
     Value marshal_module;

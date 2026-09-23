@@ -30,10 +30,13 @@ limitations under the License.
 #include "xlang3/object_model.h"
 #include "xlang3/sequence.h"
 #include "xlang3/set_object.h"
+#include "xlang3/value_hash.h"
 
 #include <algorithm>
 #include <array>
 #include <cctype>
+#include <charconv>
+#include <cmath>
 #include <cstdlib>
 #include <string>
 #include <string_view>
@@ -1692,6 +1695,34 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
     auto finish_int = [&](int64_t parsed) -> bool {
       return finish_int_value(Value::int64(parsed));
     };
+    auto finish_double = [&](double number) -> bool {
+      if (!std::isfinite(number)) {
+        if (std::isnan(number)) {
+          constructor_error.set("ValueError", "cannot convert float NaN to integer");
+        } else {
+          constructor_error.set("OverflowError", "cannot convert float infinity to integer");
+        }
+        return false;
+      }
+      std::array<char, 512> buffer{};
+      const auto rendered = std::to_chars(
+          buffer.data(), buffer.data() + buffer.size(), std::trunc(number),
+          std::chars_format::fixed, 0);
+      if (rendered.ec != std::errc{}) {
+        error = "int() failed to convert float";
+        return false;
+      }
+      std::string parse_error;
+      const Value parsed = value_bigint_from_decimal(
+          std::string_view(buffer.data(), rendered.ptr - buffer.data()), 10,
+          parse_error);
+      if (parsed.tag == ValueTag::Invalid || !finish_int_value(parsed)) {
+        error = parse_error.empty() ? "int subclass construction failed" :
+            parse_error;
+        return false;
+      }
+      return true;
+    };
     if (constructor_args.size() == 0) {
       if (!finish_int(0)) {
         error = "int subclass construction failed";
@@ -1722,11 +1753,7 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
       return true;
     }
     if (value.tag == ValueTag::Double) {
-      if (!finish_int(static_cast<int64_t>(value.as.f64))) {
-        error = "int subclass construction failed";
-        return false;
-      }
-      return true;
+      return finish_double(value.as.f64);
     }
     Value stored;
     std::string stored_error;
@@ -1738,6 +1765,11 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
         return false;
       }
       return true;
+    }
+    if (constructor_args.size() == 1 &&
+        object_get_attr(value, "__xlang3_float_value__", stored, stored_error) &&
+        stored.tag == ValueTag::Double) {
+      return finish_double(stored.as.f64);
     }
     if (constructor_args.size() == 1 &&
         object_get_attr(value, "_value_", stored, stored_error) &&
@@ -1875,6 +1907,33 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
       std::string attr_error;
       return object_set_attr(out, "__xlang3_float_value__", Value::number(parsed), attr_error);
     };
+    auto parse_float_text = [](std::string_view text, double& parsed) -> bool {
+      size_t begin = 0;
+      size_t end = text.size();
+      while (begin < end &&
+             std::isspace(static_cast<unsigned char>(text[begin])))
+        ++begin;
+      while (end > begin &&
+             std::isspace(static_cast<unsigned char>(text[end - 1])))
+        --end;
+      std::string normalized;
+      normalized.reserve(end - begin);
+      for (size_t index = begin; index < end; ++index) {
+        const char ch = text[index];
+        if (ch == '_') {
+          if (index == begin || index + 1 >= end ||
+              !std::isdigit(static_cast<unsigned char>(text[index - 1])) ||
+              !std::isdigit(static_cast<unsigned char>(text[index + 1])))
+            return false;
+          continue;
+        }
+        normalized.push_back(ch);
+      }
+      if (normalized.empty()) return false;
+      char* parsed_end = nullptr;
+      parsed = std::strtod(normalized.c_str(), &parsed_end);
+      return parsed_end != normalized.c_str() && *parsed_end == '\0';
+    };
     if (constructor_args.size() == 0) {
       if (!finish_float(0.0)) {
         error = "float subclass construction failed";
@@ -1914,6 +1973,19 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
       }
       return true;
     }
+    if (value_as_bigint(value) != nullptr) {
+      double parsed = 0.0;
+      const std::string text = value_to_string(value);
+      if (!parse_float_text(text, parsed) || !std::isfinite(parsed)) {
+        constructor_error.set("OverflowError", "int too large to convert to float");
+        return false;
+      }
+      if (!finish_float(parsed)) {
+        error = "float subclass construction failed";
+        return false;
+      }
+      return true;
+    }
     if (constructor_args.size() == 1) {
       Value convert_method;
       std::string call_error;
@@ -1936,10 +2008,8 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
     }
     if (auto* text = value_as_string(value)) {
       const std::string owned_text = string_object_to_string(*text);
-      char* end = nullptr;
-      const char* start = owned_text.c_str();
-      const double parsed = std::strtod(start, &end);
-      if (end != start && *end == '\0') {
+      double parsed = 0.0;
+      if (parse_float_text(owned_text, parsed)) {
         if (!finish_float(parsed)) {
           error = "float subclass construction failed";
           return false;
@@ -1951,10 +2021,8 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
     }
     if (auto* bytes = value_as_bytes(value)) {
       const std::string owned_text = bytes_object_to_string(*bytes);
-      char* end = nullptr;
-      const char* start = owned_text.c_str();
-      const double parsed = std::strtod(start, &end);
-      if (end != start && *end == '\0') {
+      double parsed = 0.0;
+      if (parse_float_text(owned_text, parsed)) {
         if (!finish_float(parsed)) {
           error = "float subclass construction failed";
           return false;
@@ -1965,10 +2033,8 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
       return false;
     }
     if (auto* bytes = value_as_bytearray(value)) {
-      char* end = nullptr;
-      const char* start = bytes->value.c_str();
-      const double parsed = std::strtod(start, &end);
-      if (end != start && *end == '\0') {
+      double parsed = 0.0;
+      if (parse_float_text(bytes->value, parsed)) {
         if (!finish_float(parsed)) {
           error = "float subclass construction failed";
           return false;
@@ -2071,6 +2137,19 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
         return false;
       }
     }
+    if (constructor == XlangVMBuiltinConstructor::Set ||
+        constructor == XlangVMBuiltinConstructor::FrozenSet) {
+      for (const auto& item : items) {
+        size_t hash = 0;
+        if (!runtime_value_hash_key(runtime, item, hash, error)) {
+          error = "cannot use '" +
+              std::string(value_binary_type_name(item)) +
+              "' as a set element (" + error + ")";
+          runtime.raise_class_error("TypeError", error);
+          return false;
+        }
+      }
+    }
     if (constructor == XlangVMBuiltinConstructor::List) {
       if (exact_builtin_constructor) {
         out = Value::list(std::move(items));
@@ -2093,7 +2172,7 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
         retain(klass_value);
         out = Value::instance(std::move(klass_value));
         std::string attr_error;
-        if (!object_set_attr(out, "_tuple", tuple_storage, attr_error)) {
+        if (!object_set_attr(out, "__xlang3_tuple_value__", tuple_storage, attr_error)) {
           error = "tuple subclass construction failed";
           return false;
         }
@@ -2641,13 +2720,6 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
       return false;
     }
     const Value& function = constructor_args.get(0);
-    if (value_as_function(function) == nullptr &&
-        value_as_native_function(function) == nullptr &&
-        value_as_bound_method(function) == nullptr &&
-        value_as_class(function) == nullptr) {
-      error = klass.name + "() argument must be callable";
-      return false;
-    }
     out = constructor == XlangVMBuiltinConstructor::ClassMethod
         ? Value::class_method(function)
         : Value::static_method(function);

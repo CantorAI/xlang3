@@ -110,6 +110,9 @@ except ValueError as stdlib_context_error:
 else:
     raise AssertionError("generator context manager suppressed ValueError")
 import typing
+assert isinstance([], typing.Iterable)
+assert isinstance(iter(()), typing.Iterator)
+assert not isinstance(1, typing.Iterable)
 import types
 import weakref
 
@@ -565,12 +568,28 @@ assert re.split(r"(?<=:)", ":a:b::c") == [":", "a:", "b:", ":", "c"]
 assert re.split(r"\b|:+", "a::bc") == ["", "a", "", "", "bc", ""]
 assert re.split(r"(?<!\w)(?=\w)|:+", "a::bc") == ["", "a", "", "bc"]
 assert re.sub(r"\b|:+", "-", "a::bc") == "-a---bc-"
+keyword_sub_pattern = re.compile(r"[0-9]+")
+assert keyword_sub_pattern.sub(repl="#", string="a12b3", count=1) == "a#b3"
+assert keyword_sub_pattern.subn(repl="#", string="a12b3", count=1) == ("a#b3", 1)
 assert re.findall(r"\b|:+", "a::bc") == ["", "", "::", "", ""]
 assert [match.span() for match in re.finditer(r"\b|\w+", "a::bc")] == [
     (0, 0), (0, 1), (1, 1), (3, 3), (3, 5), (5, 5)
 ]
 assert re.fullmatch(br"a|ab", bytearray(b"ab")).span() == (0, 2)
 assert re.fullmatch(br"a|ab", memoryview(b"ab")).span() == (0, 2)
+assert re.fullmatch(br"[-!#$%&'*+.^_`|~0-9a-zA-Z]+", b"content-type") is not None
+assert b"content-type".title() == b"Content-Type"
+assert b"they're foo3bar".title() == b"They'Re Foo3Bar"
+assert bytearray(b"content-type").title() == bytearray(b"Content-Type")
+http_request_line = re.compile(
+    br"(?P<method>[-!#$%&'*+.^_`|~0-9a-zA-Z]+) "
+    br"(?P<target>[\x21-\x7e]+) HTTP/(?P<http_version>[0-9]\.[0-9])"
+)
+assert http_request_line.fullmatch(b"POST /double HTTP/1.1").groupdict() == {
+    "method": b"POST",
+    "target": b"/double",
+    "http_version": b"1.1",
+}
 live_regex_buffer = bytearray(b"abcdefgh")
 live_regex_match = re.search(br"[a-h]+", live_regex_buffer)
 live_regex_buffer[:] = b"xyz"

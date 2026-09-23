@@ -159,7 +159,7 @@ bool op_getitem(Runtime& runtime, const Value* args, uint32_t argc, Value& out, 
       return runtime_call_callable(runtime, getitem, &args[1], 1, out, error);
     }
   }
-  return sequence_get_item(args[0], args[1], out, error);
+  return sequence_get_item(args[0], args[1], out, error, &runtime);
 }
 
 bool op_setitem(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {

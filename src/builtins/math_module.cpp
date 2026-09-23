@@ -323,16 +323,69 @@ bool math_ceil_fast(Runtime& runtime, const Value* leading, uint32_t leading_cou
   return fast_unary_math_int("ceil", std::ceil, leading, leading_count, registers, register_args, register_arg_count, out, error);
 }
 
+bool unary_math_bool_protocol(Runtime& runtime, const char* name,
+                              bool (*fn)(double), const Value* args,
+                              uint32_t argc, Value& out, std::string& error) {
+  if (argc != 1) {
+    error = std::string(name) + "() expected 1 argument";
+    return false;
+  }
+  double value = 0.0;
+  if (!require_number_arg(args[0], name, value, error)) {
+    Value method;
+    std::string lookup_error;
+    if (!object_get_attr(args[0], "__float__", method, lookup_error)) return false;
+    Value converted;
+    error.clear();
+    if (!runtime_call_callable(runtime, method, nullptr, 0, converted, error))
+      return false;
+    if (!require_number_arg(converted, name, value, error)) {
+      error = "__float__ returned non-float";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+  }
+  out = Value::boolean(fn(value));
+  return true;
+}
+
+bool math_trunc(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "trunc() expected 1 argument";
+    return false;
+  }
+  if (args[0].tag == ValueTag::Int64 || value_as_bigint(args[0]) != nullptr) {
+    value_assign_fast(out, args[0]);
+    return true;
+  }
+  if (args[0].tag == ValueTag::Double) {
+    const Value* integer = runtime.find_builtin("int");
+    if (integer == nullptr) {
+      error = "int builtin is unavailable";
+      return false;
+    }
+    return runtime_call_callable(runtime, *integer, args, 1, out, error);
+  }
+  Value trunc_method;
+  std::string attr_error;
+  if (!object_get_attr(args[0], "__trunc__", trunc_method, attr_error)) {
+    error = "type doesn't define __trunc__ method";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  return runtime_call_callable(runtime, trunc_method, nullptr, 0, out, error);
+}
+
 bool math_isfinite(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
-  (void)runtime;
   (void)user_data;
-  return unary_math_bool("isfinite", [](double value) { return std::isfinite(value); }, args, argc, out, error);
+  return unary_math_bool_protocol(runtime, "isfinite", [](double value) { return std::isfinite(value); }, args, argc, out, error);
 }
 
 bool math_isfinite_fast(Runtime& runtime, const Value* leading, uint32_t leading_count, const Value* registers, const uint32_t* register_args, uint32_t register_arg_count, Value& out, std::string& error, void* user_data) {
-  (void)runtime;
   (void)user_data;
-  return fast_unary_math_bool("isfinite", [](double value) { return std::isfinite(value); }, leading, leading_count, registers, register_args, register_arg_count, out, error);
+  if (leading_count + register_arg_count != 1) { error = "isfinite() expected 1 argument"; return false; }
+  const Value& arg = fast_arg(leading, leading_count, registers, register_args, 0);
+  return unary_math_bool_protocol(runtime, "isfinite", [](double value) { return std::isfinite(value); }, &arg, 1, out, error);
 }
 
 bool math_lgamma(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
@@ -562,20 +615,24 @@ bool math_sumprod(Runtime& runtime, const Value* args, uint32_t argc, Value& out
   return true;
 }
 
-bool math_isnan(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  return unary_math_bool("isnan", [](double value) { return std::isnan(value); }, args, argc, out, error);
+bool math_isnan(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return unary_math_bool_protocol(runtime, "isnan", [](double value) { return std::isnan(value); }, args, argc, out, error);
 }
 
-bool math_isnan_fast(Runtime&, const Value* leading, uint32_t leading_count, const Value* registers, const uint32_t* register_args, uint32_t register_arg_count, Value& out, std::string& error, void*) {
-  return fast_unary_math_bool("isnan", [](double value) { return std::isnan(value); }, leading, leading_count, registers, register_args, register_arg_count, out, error);
+bool math_isnan_fast(Runtime& runtime, const Value* leading, uint32_t leading_count, const Value* registers, const uint32_t* register_args, uint32_t register_arg_count, Value& out, std::string& error, void*) {
+  if (leading_count + register_arg_count != 1) { error = "isnan() expected 1 argument"; return false; }
+  const Value& arg = fast_arg(leading, leading_count, registers, register_args, 0);
+  return unary_math_bool_protocol(runtime, "isnan", [](double value) { return std::isnan(value); }, &arg, 1, out, error);
 }
 
-bool math_isinf(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  return unary_math_bool("isinf", [](double value) { return std::isinf(value); }, args, argc, out, error);
+bool math_isinf(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return unary_math_bool_protocol(runtime, "isinf", [](double value) { return std::isinf(value); }, args, argc, out, error);
 }
 
-bool math_isinf_fast(Runtime&, const Value* leading, uint32_t leading_count, const Value* registers, const uint32_t* register_args, uint32_t register_arg_count, Value& out, std::string& error, void*) {
-  return fast_unary_math_bool("isinf", [](double value) { return std::isinf(value); }, leading, leading_count, registers, register_args, register_arg_count, out, error);
+bool math_isinf_fast(Runtime& runtime, const Value* leading, uint32_t leading_count, const Value* registers, const uint32_t* register_args, uint32_t register_arg_count, Value& out, std::string& error, void*) {
+  if (leading_count + register_arg_count != 1) { error = "isinf() expected 1 argument"; return false; }
+  const Value& arg = fast_arg(leading, leading_count, registers, register_args, 0);
+  return unary_math_bool_protocol(runtime, "isinf", [](double value) { return std::isinf(value); }, &arg, 1, out, error);
 }
 
 bool math_isclose_kw(Runtime& runtime, const Value* args, uint32_t argc,
@@ -701,6 +758,7 @@ void register_math_module(Runtime& runtime) {
       .function("acos", math_acos, math_acos_fast)
       .function("floor", math_floor, math_floor_fast)
       .function("ceil", math_ceil, math_ceil_fast)
+      .function("trunc", math_trunc)
       .function("isfinite", math_isfinite, math_isfinite_fast)
       .function("isnan", math_isnan, math_isnan_fast)
       .function("isinf", math_isinf, math_isinf_fast)

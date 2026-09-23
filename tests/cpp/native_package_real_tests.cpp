@@ -48,12 +48,13 @@ int main(int argc, char** argv) {
       return 1;
     }
 
-    X::Module sqlite3(runtime, "sqlite3");
-    if (sqlite3["__xlang3_package__"].ToString() != "xlang_sqlite3" ||
-        sqlite3["__xlang3_abi__"].ToString() != "10") {
+    X::Module sqlite_native(runtime, "_sqlite3");
+    if (sqlite_native["__xlang3_package__"].ToString() != "xlang_sqlite3" ||
+        sqlite_native["__xlang3_abi__"].ToString() != "10") {
       std::cerr << "bad sqlite package metadata\n";
       return 1;
     }
+    X::Module sqlite3(runtime, "sqlite3");
     if (sqlite3["OK"].ToInt64() != 0) {
       std::cerr << "bad sqlite fallback import\n";
       return 1;
@@ -65,7 +66,7 @@ int main(int argc, char** argv) {
     }
     auto conn = sqlite3.fn("connect")(":memory:");
     auto cursor = conn["cursor"]();
-    if (cursor.ToString() != "<Cursor object>") {
+    if (cursor.ToString() != "<sqlite3.Cursor object>") {
       std::cerr << "bad bound cursor method call\n";
       return 1;
     }

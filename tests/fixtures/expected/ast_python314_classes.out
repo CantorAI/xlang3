@@ -1,0 +1,10 @@
+('args', 'body')
+('test', 'body', 'orelse')
+('name', 'bound', 'default_value')
+('name', 'default_value')
+('name', 'default_value')
+('name', 'args', 'body', 'decorator_list', 'returns', 'type_comment', 'type_params')
+('name', 'bases', 'keywords', 'body', 'decorator_list', 'type_params')
+True
+('pattern', 'guard', 'body')
+()

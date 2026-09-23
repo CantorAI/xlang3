@@ -1,0 +1,4 @@
+('value',) value
+((1, 2), 'two') (1, 2) two
+(3, 4) (3, 4)
+closure

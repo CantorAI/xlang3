@@ -41,6 +41,118 @@ namespace xlang3 {
 
 namespace {
 
+bool exception_internal_attribute_name(std::string_view name) {
+  // CPython stores these fields in BaseException's native payload rather than
+  // in the instance dictionary.  XLang3 currently keeps the payload in the
+  // compact attribute vector, so exclude the same fields when materializing
+  // or synchronizing __dict__.
+  static constexpr std::string_view names[] = {
+      "message", "args", "__traceback__", "__cause__", "__context__",
+      "__suppress_context__", "errno", "strerror", "filename", "filename2",
+      "winerror", "name", "path", "msg", "lineno", "offset", "end_lineno",
+      "end_offset", "text", "print_file_and_line", "encoding", "object",
+      "start", "end", "reason", "value", "code", "exceptions"};
+  return std::find(std::begin(names), std::end(names), name) != std::end(names);
+}
+
+bool exception_instance_internal_attribute(
+    ClassObject* klass, std::string_view name) {
+  return klass != nullptr &&
+      (is_exception_class_name(klass->name) ||
+       class_has_builtin_base_name(klass, "BaseException")) &&
+      exception_internal_attribute_name(name);
+}
+
+bool generic_alias_mro_entries_method(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 2) {
+    error = "__mro_entries__ expected one argument";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* alias = value_as_generic_alias(args[0]);
+  if (alias == nullptr || value_as_class(alias->origin) == nullptr) {
+    error = "GenericAlias object has invalid origin";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  out = Value::tuple({alias->origin});
+  return true;
+}
+
+bool generic_alias_reduce_method(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc < 1 || argc > 2) {
+    error = "GenericAlias.__reduce__ expected no arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* alias = value_as_generic_alias(args[0]);
+  const Value* generic_alias_class = runtime.find_builtin("GenericAlias");
+  if (alias == nullptr || generic_alias_class == nullptr ||
+      value_as_class(*generic_alias_class) == nullptr) {
+    error = "GenericAlias object is invalid";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  out = Value::tuple(
+      {*generic_alias_class, Value::tuple({alias->origin, alias->args})});
+  return true;
+}
+
+bool generic_alias_union_impl(
+    Runtime& runtime,
+    const Value& left,
+    const Value& right,
+    Value& out,
+    std::string& error) {
+  Value normalized_left;
+  Value normalized_right;
+  value_assign_fast(normalized_left, left);
+  value_assign_fast(normalized_right, right);
+  if (const Value* none_type = runtime.find_builtin("NoneType")) {
+    if (normalized_left.tag == ValueTag::None)
+      value_assign_fast(normalized_left, *none_type);
+    if (normalized_right.tag == ValueTag::None)
+      value_assign_fast(normalized_right, *none_type);
+  }
+  if (value_bit_or(normalized_left, normalized_right, out, error)) return true;
+  runtime.raise_class_error("TypeError", error);
+  return false;
+}
+
+bool generic_alias_or_method(
+    Runtime& runtime, const Value* args, uint32_t argc, Value& out,
+    std::string& error, void*) {
+  if (argc != 2) {
+    error = "types.GenericAlias.__or__ expected one argument";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  return generic_alias_union_impl(runtime, args[0], args[1], out, error);
+}
+
+bool generic_alias_ror_method(
+    Runtime& runtime, const Value* args, uint32_t argc, Value& out,
+    std::string& error, void*) {
+  if (argc != 2) {
+    error = "types.GenericAlias.__ror__ expected one argument";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  return generic_alias_union_impl(runtime, args[1], args[0], out, error);
+}
+
 std::vector<std::string> code_object_names(const ir::Module& module, const ir::Function& function) {
   std::vector<std::string> names = function.names;
   for (const auto& instruction : function.code) {
@@ -86,6 +198,11 @@ std::string code_object_compat_bytecode(const ir::Module& module, const ir::Func
     if ((instruction.op == ir::Op::LoadAttr || instruction.op == ir::Op::CallMethod) &&
         instruction.b < function.names.size()) {
       const auto& name = function.names[instruction.b];
+      // Exception traceback loads emitted for context-manager unwinding are an
+      // XLang IR implementation detail and have no CPython bytecode analogue.
+      if (name == "__traceback__") {
+        continue;
+      }
       if (name == "__enter__" || name == "__exit__") {
         emit(95, name == "__exit__" ? 1u : 0u, 0);  // LOAD_SPECIAL.
       } else {
@@ -207,6 +324,8 @@ void recycle_instance_object(InstanceObject* instance) {
   instance->native_data_cast = nullptr;
   instance->native_owner = nullptr;
   instance->native_data_cleanup = nullptr;
+  instance->native_gc_references.clear();
+  instance->native_data_clear = nullptr;
   instance->native_data_truthy = nullptr;
   instance->native_get_attr = nullptr;
   instance->native_set_attr = nullptr;
@@ -492,6 +611,8 @@ bool finalize_enum_class(ClassObject& klass) {
     instance->attrs.push_back({"_value_", raw_value});
     if (enum_class_has_base_name(klass, "str")) {
       instance->attrs.push_back({"__xlang3_string_value__", raw_value});
+    } else if (enum_class_has_base_name(klass, "bytes")) {
+      instance->attrs.push_back({"__xlang3_bytes_value__", raw_value});
     } else {
       instance->attrs.push_back({"__xlang3_string_value__", Value::string(klass.name + "." + candidate.first)});
     }
@@ -897,11 +1018,28 @@ void add_unique_slot_name(std::vector<std::string>& slots, const std::string& na
   }
 }
 
+std::string mangle_instance_slot_name(std::string_view class_name, const std::string& slot_name) {
+  if (slot_name.size() < 3 || slot_name[0] != '_' || slot_name[1] != '_' ||
+      (slot_name.size() >= 4 && slot_name[slot_name.size() - 1] == '_' &&
+       slot_name[slot_name.size() - 2] == '_')) {
+    return slot_name;
+  }
+  size_t class_start = 0;
+  while (class_start < class_name.size() && class_name[class_start] == '_') {
+    ++class_start;
+  }
+  if (class_start == class_name.size()) {
+    return slot_name;
+  }
+  return "_" + std::string(class_name.substr(class_start)) + slot_name;
+}
+
 bool collect_slot_names_from_value(
     const Value& value,
     std::vector<std::string>& slots,
     bool& allow_instance_dict,
-    bool& allow_weakref) {
+    bool& allow_weakref,
+    std::string_view private_class_name = {}) {
   if (auto* string = value_as_string(value)) {
     const auto name = string_object_to_string(*string);
     if (name == "__dict__") {
@@ -909,13 +1047,15 @@ bool collect_slot_names_from_value(
     } else if (name == "__weakref__") {
       allow_weakref = true;
     } else {
-      add_unique_slot_name(slots, name);
+      add_unique_slot_name(
+          slots,
+          private_class_name.empty() ? name : mangle_instance_slot_name(private_class_name, name));
     }
     return true;
   }
   if (auto* tuple = value_as_tuple(value)) {
     for (const auto& item : tuple->items) {
-      if (!collect_slot_names_from_value(item, slots, allow_instance_dict, allow_weakref)) {
+      if (!collect_slot_names_from_value(item, slots, allow_instance_dict, allow_weakref, private_class_name)) {
         return false;
       }
     }
@@ -923,7 +1063,7 @@ bool collect_slot_names_from_value(
   }
   if (auto* list = value_as_list(value)) {
     for (const auto& item : list->items) {
-      if (!collect_slot_names_from_value(item, slots, allow_instance_dict, allow_weakref)) {
+      if (!collect_slot_names_from_value(item, slots, allow_instance_dict, allow_weakref, private_class_name)) {
         return false;
       }
     }
@@ -931,7 +1071,7 @@ bool collect_slot_names_from_value(
   }
   if (auto* set = value_as_set(value)) {
     for (const auto& item : set->items) {
-      if (!collect_slot_names_from_value(item, slots, allow_instance_dict, allow_weakref)) {
+      if (!collect_slot_names_from_value(item, slots, allow_instance_dict, allow_weakref, private_class_name)) {
         return false;
       }
     }
@@ -939,7 +1079,7 @@ bool collect_slot_names_from_value(
   }
   if (auto* dict = value_as_dict(value)) {
     for (const auto& entry : dict->entries) {
-      if (!collect_slot_names_from_value(entry.first, slots, allow_instance_dict, allow_weakref)) {
+      if (!collect_slot_names_from_value(entry.first, slots, allow_instance_dict, allow_weakref, private_class_name)) {
         return false;
       }
     }
@@ -1068,7 +1208,7 @@ std::string slot_descriptor_wrong_receiver_error(const SlotDescriptorObject& slo
 bool slot_descriptor_applies_to_tuple_backed_object(const SlotDescriptorObject& slot, const Value& receiver) {
   Value tuple_value;
   std::string ignored;
-  if (!object_get_attr(receiver, "_tuple", tuple_value, ignored)) {
+  if (!object_get_attr(receiver, "__xlang3_tuple_value__", tuple_value, ignored)) {
     return false;
   }
   auto* tuple = value_as_tuple(tuple_value);
@@ -1147,7 +1287,7 @@ bool slot_descriptor_get_method(
     }
     Value tuple_value;
     std::string tuple_error;
-    if (object_get_attr(args[1], "_tuple", tuple_value, tuple_error)) {
+    if (object_get_attr(args[1], "__xlang3_tuple_value__", tuple_value, tuple_error)) {
       if (auto* tuple = value_as_tuple(tuple_value); tuple != nullptr && slot->index < tuple->items.size()) {
         value_assign_fast(out, tuple->items[slot->index]);
         return true;
@@ -1161,7 +1301,7 @@ bool slot_descriptor_get_method(
   if (slot_value.tag == ValueTag::Invalid) {
     Value tuple_value;
     std::string tuple_error;
-    if (object_get_attr(args[1], "_tuple", tuple_value, tuple_error)) {
+    if (object_get_attr(args[1], "__xlang3_tuple_value__", tuple_value, tuple_error)) {
       if (auto* tuple = value_as_tuple(tuple_value); tuple != nullptr && slot->index < tuple->items.size()) {
         value_assign_fast(out, tuple->items[slot->index]);
         return true;
@@ -1641,6 +1781,7 @@ Value Value::class_object(
   obj->attrs.reserve(attrs.size() + instance_slots.size() + 1);
   obj->definition_attr_order.reserve(attrs.size());
   obj->base = std::move(base);
+  obj->has_explicit_bases = obj->base.tag != ValueTag::Invalid;
   obj->metaclass = std::move(metaclass);
   obj->globals_module = std::move(globals_module);
   if (obj->base.tag != ValueTag::Invalid) {
@@ -1659,6 +1800,7 @@ Value Value::class_object(
   const bool inherited_instance_dict = obj->allow_instance_dict;
   const bool inherited_weakref = obj->allow_weakref;
   bool has_explicit_slots = false;
+  bool inferred_storage_mutation = false;
   for (auto& attr : attrs) {
     if (attr.first == "__new__" &&
         (value_as_function(attr.second) != nullptr || value_as_native_function(attr.second) != nullptr)) {
@@ -1672,7 +1814,15 @@ Value Value::class_object(
       obj->restrict_instance_attrs = true;
       obj->allow_instance_dict = false;
       obj->allow_weakref = false;
-      collect_slot_names_from_value(attr.second, obj->instance_slot_names, obj->allow_instance_dict, obj->allow_weakref);
+      collect_slot_names_from_value(
+          attr.second, obj->instance_slot_names, obj->allow_instance_dict, obj->allow_weakref, obj->name);
+    }
+    if (attr.first == "__static_attributes__") {
+      std::vector<std::string> static_attributes;
+      bool ignored_dict = false;
+      bool ignored_weakref = false;
+      collect_slot_names_from_value(attr.second, static_attributes, ignored_dict, ignored_weakref);
+      inferred_storage_mutation = ignored_dict || ignored_weakref;
     }
     update_special_attr_flags(*obj, attr.first);
     std::string attr_name = std::move(attr.first);
@@ -1696,6 +1846,12 @@ Value Value::class_object(
   if (obj->name == "object") {
     obj->allow_instance_dict = false;
     obj->allow_weakref = false;
+  }
+  if (!has_explicit_slots &&
+      (inferred_storage_mutation ||
+       std::find(instance_slots.begin(), instance_slots.end(), "__dict__") != instance_slots.end() ||
+       std::find(instance_slots.begin(), instance_slots.end(), "__weakref__") != instance_slots.end())) {
+    instance_slots.clear();
   }
   for (auto& slot : instance_slots) {
     if (!obj->restrict_instance_attrs ||
@@ -1757,8 +1913,17 @@ bool runtime_value_compare(
       auto* metaclass = value_as_class(target_class->metaclass);
       if (metaclass == nullptr) return true;
       bool invert_result = false;
-      if (op == "!=" && metaclass->attrs.find("__ne__") == metaclass->attrs.end() &&
-          metaclass->attrs.find("__eq__") != metaclass->attrs.end()) {
+      Value overridden_eq;
+      Value overridden_ne;
+      std::string lookup_error;
+      const bool has_overridden_eq = object_lookup_class_attr_before_base(
+          target_class->metaclass, "__eq__", "type", overridden_eq,
+          lookup_error);
+      lookup_error.clear();
+      const bool has_overridden_ne = object_lookup_class_attr_before_base(
+          target_class->metaclass, "__ne__", "type", overridden_ne,
+          lookup_error);
+      if (op == "!=" && !has_overridden_ne && has_overridden_eq) {
         method_name = "__eq__";
         invert_result = true;
       }
@@ -1780,9 +1945,19 @@ bool runtime_value_compare(
     if (instance == nullptr || method_name == nullptr) return true;
     auto* klass = value_as_class(instance->klass);
     bool invert_result = false;
-    if (op == "!=" && klass != nullptr &&
-        klass->attrs.find("__ne__") == klass->attrs.end() &&
-        klass->attrs.find("__eq__") != klass->attrs.end()) {
+    Value overridden_eq;
+    Value overridden_ne;
+    std::string lookup_error;
+    const bool has_overridden_eq = klass != nullptr &&
+        object_lookup_class_attr_before_base(instance->klass, "__eq__",
+                                             "object", overridden_eq,
+                                             lookup_error);
+    lookup_error.clear();
+    const bool has_overridden_ne = klass != nullptr &&
+        object_lookup_class_attr_before_base(instance->klass, "__ne__",
+                                             "object", overridden_ne,
+                                             lookup_error);
+    if (op == "!=" && !has_overridden_ne && has_overridden_eq) {
       method_name = "__eq__";
       invert_result = true;
     }
@@ -2078,6 +2253,10 @@ bool runtime_value_compare(
     };
     if (auto* left_dict = mapping_storage(lhs)) {
       if (auto* right_dict = mapping_storage(rhs)) {
+        if (left_dict == right_dict) {
+          value_set_bool(out, equality);
+          return true;
+        }
         if (left_dict->entries.size() != right_dict->entries.size()) {
           value_set_bool(out, !equality);
           return true;
@@ -2138,6 +2317,10 @@ bool runtime_value_compare(
     }
     if (auto* left_list = value_as_list_storage(lhs)) {
       if (auto* right_list = value_as_list_storage(rhs)) {
+        if (left_list == right_list) {
+          value_set_bool(out, equality);
+          return true;
+        }
         if (left_list->items.size() != right_list->items.size()) {
           value_set_bool(out, !equality);
           return true;
@@ -2163,11 +2346,15 @@ bool runtime_value_compare(
       if (auto* tuple = value_as_tuple(value)) return tuple;
       if (value_as_instance(value) == nullptr) return nullptr;
       std::string ignored;
-      if (!object_get_attr(value, "_tuple", storage, ignored)) return nullptr;
+      if (!object_get_attr(value, "__xlang3_tuple_value__", storage, ignored)) return nullptr;
       return value_as_tuple(storage);
     };
     if (auto* left_tuple = tuple_storage(lhs, left_tuple_storage)) {
       if (auto* right_tuple = tuple_storage(rhs, right_tuple_storage)) {
+        if (left_tuple == right_tuple) {
+          value_set_bool(out, equality);
+          return true;
+        }
         if (left_tuple->items.size() != right_tuple->items.size()) {
           value_set_bool(out, !equality);
           return true;
@@ -2215,9 +2402,82 @@ bool runtime_value_contains(
     out = false;
     return true;
   };
+  auto* container_instance = value_as_instance(container);
+  auto* container_class = container_instance == nullptr
+      ? nullptr
+      : value_as_class(container_instance->klass);
+  const bool dict_subclass_payload =
+      container_instance != nullptr && container_class != nullptr &&
+      class_has_builtin_base_name(container_class, "dict") &&
+      value_as_dict(container_instance->mapping_storage) != nullptr;
+  if (value_as_dict(container) != nullptr || dict_subclass_payload) {
+    Value target = container;
+    if (dict_subclass_payload) {
+      target = container_instance->mapping_storage;
+    }
+    Value ignored;
+    if (mapping_get_item_runtime(runtime, target, item, ignored, error)) {
+      out = true;
+      return true;
+    }
+    if (error == "key not found") {
+      error.clear();
+      out = false;
+      return true;
+    }
+    return false;
+  }
   if (auto* list = value_as_list(container)) return contains_in(list->items);
   if (auto* tuple = value_as_tuple(container)) return contains_in(tuple->items);
-  if (auto* set = value_as_set(container)) return contains_in(set->items);
+  if (auto* set = value_as_set(container)) {
+    const auto runtime_hash = [&](const Value& value, int64_t& hash) -> bool {
+      if (value_as_instance(value) != nullptr) {
+        Value method;
+        std::string ignored;
+        if (object_get_attr(value, "__hash__", method, ignored)) {
+          if (method.tag == ValueTag::None) {
+            error = "unhashable type";
+            runtime.raise_class_error("TypeError", error);
+            return false;
+          }
+          Value result;
+          if (!runtime_call_callable(runtime, method, nullptr, 0, result, error)) return false;
+          if (result.tag != ValueTag::Int64) {
+            error = "__hash__ method should return an integer";
+            runtime.raise_class_error("TypeError", error);
+            return false;
+          }
+          hash = result.as.i64;
+          return true;
+        }
+      }
+      size_t raw = 0;
+      if (!value_hash_key(value, raw, error)) return false;
+      hash = static_cast<int64_t>(raw);
+      return true;
+    };
+    int64_t item_hash = 0;
+    if (!runtime_hash(item, item_hash)) return false;
+    for (const auto& candidate : set->items) {
+      if (value_is(candidate, item)) {
+        out = true;
+        return true;
+      }
+      int64_t candidate_hash = 0;
+      if (!runtime_hash(candidate, candidate_hash)) return false;
+      if (candidate_hash != item_hash) continue;
+      Value equal;
+      if (!runtime_value_compare(runtime, "==", candidate, item, equal, error)) return false;
+      bool is_equal = false;
+      if (!runtime_truthy(runtime, equal, is_equal, error)) return false;
+      if (is_equal) {
+        out = true;
+        return true;
+      }
+    }
+    out = false;
+    return true;
+  }
   Value contains_method;
   std::string ignored;
   if (object_get_attr(container, "__contains__", contains_method, ignored)) {
@@ -2534,7 +2794,7 @@ std::string object_model_to_string(const Value& value) {
         }
       }
       for (const auto& attr : instance->attrs) {
-        if (attr.first == "_tuple" && value_as_tuple(attr.second) != nullptr) {
+        if (attr.first == "__xlang3_tuple_value__" && value_as_tuple(attr.second) != nullptr) {
           return "<" + klass->name + " object>";
         }
       }
@@ -2788,8 +3048,75 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       }
       return true;
     }
+    if (name == "__mro_entries__") {
+      out = Value::bound_method(
+          object,
+          Value::native_function(
+              0,
+              "types.GenericAlias.__mro_entries__",
+              generic_alias_mro_entries_method));
+      return true;
+    }
+    if (name == "__or__" || name == "__ror__") {
+      out = Value::bound_method(
+          object,
+          Value::native_function(
+              0,
+              name == "__or__" ? "types.GenericAlias.__or__"
+                                 : "types.GenericAlias.__ror__",
+              name == "__or__" ? generic_alias_or_method
+                                 : generic_alias_ror_method));
+      return true;
+    }
+    if (name == "__reduce__" || name == "__reduce_ex__") {
+      out = Value::bound_method(
+          object,
+          Value::native_function(
+              0,
+              name == "__reduce__" ? "types.GenericAlias.__reduce__"
+                                     : "types.GenericAlias.__reduce_ex__",
+              generic_alias_reduce_method));
+      return true;
+    }
     if (name == "__parameters__") {
-      out = Value::tuple({});
+      std::vector<Value> parameters;
+      auto add_parameter = [&](const Value& candidate) {
+        for (const auto& existing : parameters) {
+          if (value_is(existing, candidate)) return;
+        }
+        parameters.push_back(candidate);
+      };
+      auto collect = [&](auto&& self, const Value& value) -> void {
+        if (const auto* tuple = value_as_tuple(value)) {
+          for (const auto& item : tuple->items) self(self, item);
+          return;
+        }
+        if (const auto* alias = value_as_generic_alias(value)) {
+          self(self, alias->args);
+          return;
+        }
+        if (value_as_instance(value) != nullptr) {
+          Value subst;
+          std::string ignored;
+          if (object_get_attr(value, "__typing_subst__", subst, ignored)) {
+            add_parameter(value);
+            return;
+          }
+          Value nested_parameters;
+          if (object_get_attr(value, "__parameters__", nested_parameters,
+                              ignored)) {
+            if (const auto* tuple = value_as_tuple(nested_parameters)) {
+              for (const auto& item : tuple->items) self(self, item);
+            }
+          }
+        }
+      };
+      collect(collect, generic_alias->args);
+      out = Value::tuple(std::move(parameters));
+      return true;
+    }
+    if (name == "__unpacked__") {
+      value_set_bool(out, false);
       return true;
     }
     if (name == "__name__" || name == "__qualname__" || name == "__module__" || name == "__dict__") {
@@ -3618,6 +3945,16 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       value_assign_fast(out, super->self);
       return true;
     }
+    if (name == "__self_class__") {
+      if (auto* instance = value_as_instance(super->self)) {
+        value_assign_fast(out, instance->klass);
+      } else if (value_as_class(super->self) != nullptr) {
+        value_assign_fast(out, super->self);
+      } else {
+        value_set_none(out);
+      }
+      return true;
+    }
     if (name == "__thisclass__") {
       value_assign_fast(out, super->klass);
       return true;
@@ -3700,16 +4037,24 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       error = "super object has no attribute '" + name + "'";
       return false;
     }
+    Value descriptor_owner;
+    if (auto* self_instance = value_as_instance(super->self)) {
+      value_assign_fast(descriptor_owner, self_instance->klass);
+    } else if (value_as_class(super->self) != nullptr) {
+      value_assign_fast(descriptor_owner, super->self);
+    } else {
+      value_assign_fast(descriptor_owner, super->klass);
+    }
     if (auto* method = value_as_static_method(attr)) {
       value_assign_fast(out, method->function);
     } else if (auto* method = value_as_class_method(attr)) {
       Value function;
       value_assign_fast(function, method->function);
-      out = Value::bound_method(super->klass, std::move(function));
+      out = Value::bound_method(descriptor_owner, std::move(function));
     } else if (Value function; descriptor_instance_payload(attr, "staticmethod", function)) {
       value_assign_fast(out, function);
     } else if (Value function; descriptor_instance_payload(attr, "classmethod", function)) {
-      out = Value::bound_method(super->klass, std::move(function));
+      out = Value::bound_method(descriptor_owner, std::move(function));
     } else if (value_as_function(attr) != nullptr ||
                (value_as_native_function(attr) != nullptr && value_as_native_function(attr)->bind_as_descriptor)) {
       if (name == "__new__") {
@@ -3797,6 +4142,18 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       } else {
         out = Value::dict({});
         klass->attrs["__annotations__"] = out;
+      }
+      return true;
+    }
+    if (name == "__annotate__") {
+      auto it = klass->attrs.find("__annotate__");
+      if (it == klass->attrs.end()) {
+        // Python 3.14 exposes __annotate__ as None on heap types even when
+        // the class namespace did not define an annotation function. TypedDict
+        // composition relies on that inherited type-level contract.
+        value_set_none(out);
+      } else {
+        value_assign_fast(out, it->second);
       }
       return true;
     }
@@ -3907,20 +4264,14 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
         mapping_set_item(instance_attribute_storage(*instance), Value::string(attr_name), attr_value, ignored);
       };
       if (created_attribute_dict) {
-        if (klass != nullptr) {
-          const uint32_t count = instance_slot_count(instance);
-          for (size_t i = 0; i < klass->instance_slot_names.size() && i < count; ++i) {
-            const auto& slot_value = instance_slot_at(instance, static_cast<uint32_t>(i));
-            if (slot_value.tag != ValueTag::Invalid) {
-              sync_dict_attr(klass->instance_slot_names[i], slot_value);
-            }
-          }
-        }
         for (const auto& attr : instance->attrs) {
           if (!attr.first.empty() && attr.first[0] == '#') {
             continue;
           }
           if (attr.first.rfind("__xlang3_", 0) == 0) {
+            continue;
+          }
+          if (exception_instance_internal_attribute(klass, attr.first)) {
             continue;
           }
           sync_dict_attr(attr.first, attr.second);
@@ -3953,7 +4304,8 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       // __dict__.  They remain in the compact attribute storage after a
       // __dict__ is created and must still be visible to native base-type
       // methods (for example methods inherited by a str subclass).
-      if (name.rfind("__xlang3_", 0) == 0) {
+      if (name.rfind("__xlang3_", 0) == 0 ||
+          exception_instance_internal_attribute(klass, name)) {
         for (const auto& attr : instance->attrs) {
           if (attr.first == name) {
             value_assign_fast(out, attr.second);
@@ -4029,7 +4381,26 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       if (value_as_set(instance->sequence_storage) != nullptr && set_get_method(instance->sequence_storage, name, out)) {
         return true;
       }
-      error = "object has no attribute '" + name + "'";
+      for (const auto& instance_attr : instance->attrs) {
+        if (instance_attr.first == "__xlang3_string_value__" &&
+            class_has_builtin_base_name(klass, "str") &&
+            string_get_method(instance_attr.second, name, out))
+          return true;
+        if (instance_attr.first == "__xlang3_bytes_value__" &&
+            (bytes_get_method(instance_attr.second, name, out) ||
+             bytearray_get_method(instance_attr.second, name, out)))
+          return true;
+        if (instance_attr.first == "_value_" &&
+            class_has_builtin_base_name(klass, "str") &&
+            string_get_method(instance_attr.second, name, out))
+          return true;
+        if (instance_attr.first == "_value_" &&
+            class_has_builtin_base_name(klass, "bytes") &&
+            (bytes_get_method(instance_attr.second, name, out) ||
+             bytearray_get_method(instance_attr.second, name, out)))
+          return true;
+      }
+      error = "'" + klass->name + "' object has no attribute '" + name + "'";
       return false;
     }
     if (auto* slot = value_as_slot_descriptor(class_attr)) {
@@ -4042,7 +4413,7 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
         }
         Value tuple_value;
         std::string tuple_error;
-        if (object_get_attr(object, "_tuple", tuple_value, tuple_error)) {
+        if (object_get_attr(object, "__xlang3_tuple_value__", tuple_value, tuple_error)) {
           if (auto* tuple = value_as_tuple(tuple_value); tuple != nullptr && slot->index < tuple->items.size()) {
             value_assign_fast(out, tuple->items[slot->index]);
             return true;
@@ -4059,7 +4430,7 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
         }
         Value tuple_value;
         std::string tuple_error;
-        if (object_get_attr(object, "_tuple", tuple_value, tuple_error)) {
+        if (object_get_attr(object, "__xlang3_tuple_value__", tuple_value, tuple_error)) {
           if (auto* tuple = value_as_tuple(tuple_value); tuple != nullptr && slot->index < tuple->items.size()) {
             value_assign_fast(out, tuple->items[slot->index]);
             return true;
@@ -4419,6 +4790,18 @@ bool object_set_attr(Value& object, const std::string& name, const Value& value,
       value_assign_fast(instance->klass, value);
       return true;
     }
+    if (name == "__dict__") {
+      if (klass == nullptr || (klass->restrict_instance_attrs && !klass->allow_instance_dict)) {
+        error = "object has no attribute '__dict__'";
+        return false;
+      }
+      if (value_as_dict(value) == nullptr) {
+        error = "__dict__ must be set to a dictionary";
+        return false;
+      }
+      value_assign_fast(instance_attribute_storage(*instance), value);
+      return true;
+    }
     if (instance->native_set_attr != nullptr && instance->native_set_attr(object, name, value, error)) {
       return true;
     }
@@ -4432,7 +4815,8 @@ bool object_set_attr(Value& object, const std::string& name, const Value& value,
     for (auto& attr : instance->attrs) {
       if (attr.first == name) {
         value_assign_fast(attr.second, value);
-        if (value_as_dict(instance_attribute_storage(*instance)) != nullptr) {
+        if (value_as_dict(instance_attribute_storage(*instance)) != nullptr &&
+            !exception_instance_internal_attribute(klass, name)) {
           std::string ignored;
           mapping_set_item(instance_attribute_storage(*instance), Value::string(name), value, ignored);
         }
@@ -4452,7 +4836,8 @@ bool object_set_attr(Value& object, const std::string& name, const Value& value,
       return false;
     }
     instance->attrs.push_back(std::make_pair(name, value));
-    if (value_as_dict(instance_attribute_storage(*instance)) != nullptr) {
+    if (value_as_dict(instance_attribute_storage(*instance)) != nullptr &&
+        !exception_instance_internal_attribute(klass, name)) {
       std::string ignored;
       mapping_set_item(instance_attribute_storage(*instance), Value::string(name), value, ignored);
     }
@@ -4709,6 +5094,17 @@ bool class_set_base(Value klass, Value base, std::string& error) {
             slot),
         klass_obj->instance_slot_names.end());
   }
+  // Native classes are initially created with the implicit `object` base.
+  // The first explicit base assignment replaces that placeholder, matching a
+  // Python class declaration, instead of creating the invalid order
+  // `(object, RequestedBase)`.
+  if (!klass_obj->has_explicit_bases) {
+    for (const auto& previous : klass_obj->bases) {
+      class_unregister_subclass(value_as_class(previous), klass_obj);
+    }
+    klass_obj->bases.clear();
+    klass_obj->base = Value::invalid();
+  }
   klass_obj->has_explicit_bases = true;
   klass_obj->bases.push_back(base);
   if (auto* base_class = added_base_class) {
@@ -4724,6 +5120,21 @@ bool class_set_base(Value klass, Value base, std::string& error) {
         klass_obj->instance_slot_names.push_back(slot);
       }
     }
+    // Some class construction paths materialize inferred member descriptors
+    // before their compact slot-name metadata is finalized.  A derived class
+    // must still reserve distinct storage for every inherited descriptor,
+    // especially for secondary bases in a multiple-inheritance layout.
+    for (const auto& attr : base_class->attrs) {
+      const auto* descriptor = value_as_slot_descriptor(attr.second);
+      if (descriptor == nullptr || descriptor->owner_name != base_class->name)
+        continue;
+      if (std::find(
+              klass_obj->instance_slot_names.begin(),
+              klass_obj->instance_slot_names.end(), descriptor->name) ==
+          klass_obj->instance_slot_names.end()) {
+        klass_obj->instance_slot_names.push_back(descriptor->name);
+      }
+    }
   }
   for (auto& slot : own_slots) {
     if (std::find(klass_obj->instance_slot_names.begin(), klass_obj->instance_slot_names.end(), slot) ==
@@ -4731,6 +5142,7 @@ bool class_set_base(Value klass, Value base, std::string& error) {
       klass_obj->instance_slot_names.push_back(slot);
     }
   }
+  klass_obj->instance_slot_indices.clear();
   for (size_t i = 0; i < klass_obj->instance_slot_names.size(); ++i) {
     klass_obj->instance_slot_indices[klass_obj->instance_slot_names[i]] = static_cast<uint32_t>(i);
   }
@@ -4860,6 +5272,19 @@ bool object_get_special_method(
     const std::string& name,
     Value& out,
     std::string& error) {
+  if (auto* klass = value_as_class(object)) {
+    auto* metaclass = value_as_class(klass->metaclass);
+    if (metaclass == nullptr) {
+      error = "class has no metaclass";
+      return false;
+    }
+    Value attr;
+    if (!class_lookup_attr(metaclass, name, attr, error)) {
+      error = "type object '" + klass->name + "' has no special method '" + name + "'";
+      return false;
+    }
+    return bind_metaclass_attr_for_class_access(object, std::move(attr), out);
+  }
   if (auto* instance = value_as_instance(object)) {
     if (value_as_class(instance->klass) != nullptr) {
       if (class_get_bound_attr(runtime, instance->klass, object, name, out, error)) {
@@ -5062,10 +5487,37 @@ bool instance_set_native_owner(Value instance, std::string native_type, void* na
   instance_obj->native_data_cast = nullptr;
   instance_obj->native_owner = owner;
   instance_obj->native_data_cleanup = native_data_cleanup;
+  instance_obj->native_gc_references.clear();
+  instance_obj->native_data_clear = nullptr;
   instance_obj->native_data_truthy = nullptr;
   instance_obj->native_get_attr = nullptr;
   instance_obj->native_set_attr = nullptr;
   instance_obj->native_delete_attr = nullptr;
+  return true;
+}
+
+bool instance_set_native_gc_references(Value instance, const Value* references,
+    uint32_t reference_count, void (*clear)(void*), std::string& error) {
+  auto* instance_obj = value_as_instance(instance);
+  if (instance_obj == nullptr) {
+    error = "object is not an instance";
+    return false;
+  }
+  if (reference_count != 0 && references == nullptr) {
+    error = "native GC references are null";
+    return false;
+  }
+  std::vector<Object*> objects;
+  objects.reserve(reference_count);
+  for (uint32_t index = 0; index < reference_count; ++index) {
+    if (references[index].tag == ValueTag::Object && references[index].as.obj != nullptr) {
+      // These are tracing edges for references already owned by the native
+      // payload. They deliberately do not increment the reference count.
+      objects.push_back(references[index].as.obj);
+    }
+  }
+  instance_obj->native_gc_references = std::move(objects);
+  instance_obj->native_data_clear = clear;
   return true;
 }
 

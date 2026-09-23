@@ -305,7 +305,14 @@ std::string format_double_text(double value) {
   }
 
   char buffer[128];
-  auto [ptr, ec] = std::to_chars(buffer, buffer + sizeof(buffer), value);
+  const double magnitude = std::abs(value);
+  const bool use_scientific = magnitude >= 1.0e16 ||
+      (magnitude != 0.0 && magnitude < 1.0e-4);
+  auto [ptr, ec] = use_scientific
+      ? std::to_chars(buffer, buffer + sizeof(buffer), value,
+                      std::chars_format::scientific)
+      : std::to_chars(buffer, buffer + sizeof(buffer), value,
+                      std::chars_format::general);
   if (ec == std::errc()) {
     return normalize_float_text(std::string(buffer, ptr));
   }
@@ -828,7 +835,10 @@ std::string string_repr(std::string_view value) {
   const char quote = has_single_quote && !has_double_quote ? '"' : '\'';
   std::string text;
   text.push_back(quote);
-  for (const char ch : value) {
+  constexpr char hex[] = "0123456789abcdef";
+  for (size_t index = 0; index < value.size(); ++index) {
+    const char ch = value[index];
+    const auto byte = static_cast<unsigned char>(ch);
     if (ch == '\\' || ch == quote) {
       text.push_back('\\');
       text.push_back(ch);
@@ -838,6 +848,25 @@ std::string string_repr(std::string_view value) {
       text += "\\r";
     } else if (ch == '\t') {
       text += "\\t";
+    } else if (byte < 0x20u || byte == 0x7fu) {
+      text += "\\x";
+      text.push_back(hex[byte >> 4u]);
+      text.push_back(hex[byte & 0x0fu]);
+    } else if (byte == 0xedu && index + 2 < value.size()) {
+      const auto second = static_cast<unsigned char>(value[index + 1]);
+      const auto third = static_cast<unsigned char>(value[index + 2]);
+      if (second >= 0xa0u && second <= 0xbfu &&
+          third >= 0x80u && third <= 0xbfu) {
+        const uint32_t codepoint =
+            ((byte & 0x0fu) << 12u) | ((second & 0x3fu) << 6u) |
+            (third & 0x3fu);
+        text += "\\u";
+        for (int shift = 12; shift >= 0; shift -= 4)
+          text.push_back(hex[(codepoint >> shift) & 0x0fu]);
+        index += 2;
+      } else {
+        text.push_back(ch);
+      }
     } else {
       text.push_back(ch);
     }
@@ -1763,7 +1792,15 @@ std::string value_to_string(const Value& value) {
         return "<cell>";
       }
       if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Function) {
-        return "<function>";
+        const auto* function = as_function(value.as.obj);
+        const std::string name = function->qualname.empty()
+            ? "<unknown>" : function->qualname;
+        char address[32]{};
+        std::snprintf(
+            address, sizeof(address), "0x%llx",
+            static_cast<unsigned long long>(
+                reinterpret_cast<uintptr_t>(value.as.obj)));
+        return "<function " + name + " at " + address + ">";
       }
       if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::NativeFunction) {
         return "<built-in function " + as_native_function(value.as.obj)->name + ">";
@@ -1985,13 +2022,18 @@ bool format_percent_character(const Value& value, std::string& out, std::string&
 const TupleObject* value_as_tuple_or_tuple_backed(const Value& value, Value& scratch);
 
 bool string_percent_arg(
+    Runtime* runtime,
     const Value& args,
     size_t& tuple_index,
     const std::string& mapping_key,
     Value& out,
     std::string& error) {
   if (!mapping_key.empty()) {
-    if (!mapping_get_item(args, Value::string(mapping_key), out, error)) {
+    const Value key = Value::string(mapping_key);
+    const bool found = runtime != nullptr
+        ? mapping_get_item_runtime(*runtime, args, key, out, error)
+        : mapping_get_item(args, key, out, error);
+    if (!found) {
       error = "format mapping key '" + mapping_key + "' not found";
       return false;
     }
@@ -2030,6 +2072,16 @@ bool string_percent_format(
     Value& out,
     std::string& error) {
   auto* format_object = value_as_string(lhs);
+  if (format_object == nullptr) {
+    if (auto* instance = value_as_instance(lhs)) {
+      for (const auto& attr : instance->attrs) {
+        if (attr.first == "__xlang3_string_value__") {
+          format_object = value_as_string(attr.second);
+          break;
+        }
+      }
+    }
+  }
   if (format_object == nullptr) {
     return false;
   }
@@ -2095,7 +2147,7 @@ bool string_percent_format(
     bool has_width = false;
     if (i < format.size() && format[i] == '*') {
       Value width_arg;
-      if (!string_percent_arg(rhs, tuple_index, std::string(), width_arg, error)) {
+      if (!string_percent_arg(runtime, rhs, tuple_index, std::string(), width_arg, error)) {
         return false;
       }
       if (width_arg.tag != ValueTag::Int64) {
@@ -2122,7 +2174,7 @@ bool string_percent_format(
       ++i;
       if (i < format.size() && format[i] == '*') {
         Value precision_arg;
-        if (!string_percent_arg(rhs, tuple_index, std::string(), precision_arg, error)) {
+        if (!string_percent_arg(runtime, rhs, tuple_index, std::string(), precision_arg, error)) {
           return false;
         }
         if (precision_arg.tag != ValueTag::Int64) {
@@ -2148,7 +2200,7 @@ bool string_percent_format(
     }
 
     Value arg;
-    if (!string_percent_arg(rhs, tuple_index, mapping_key, arg, error)) {
+    if (!string_percent_arg(runtime, rhs, tuple_index, mapping_key, arg, error)) {
       return false;
     }
 
@@ -2355,10 +2407,77 @@ bool bytes_percent_format(const Value& lhs, const Value& rhs, Value& out, std::s
       result.push_back('%');
       continue;
     }
-    Value argument;
-    if (!string_percent_arg(rhs, tuple_index, std::string(), argument, error)) {
+    bool alternate_form = false;
+    bool zero_pad = false;
+    bool left_align = false;
+    bool force_sign = false;
+    bool space_sign = false;
+    while (index < format.size()) {
+      if (format[index] == '#') alternate_form = true;
+      else if (format[index] == '0') zero_pad = true;
+      else if (format[index] == '-') left_align = true;
+      else if (format[index] == '+') force_sign = true;
+      else if (format[index] == ' ') space_sign = true;
+      else break;
+      ++index;
+    }
+    bool has_width = false;
+    int64_t width = 0;
+    if (index < format.size() && format[index] == '*') {
+      Value width_arg;
+      if (!string_percent_arg(nullptr, rhs, tuple_index, std::string(), width_arg, error)) return false;
+      if (width_arg.tag != ValueTag::Int64) {
+        error = "* wants int";
+        return false;
+      }
+      width = width_arg.as.i64;
+      if (width < 0) {
+        left_align = true;
+        width = -width;
+      }
+      has_width = true;
+      ++index;
+    }
+    while (index < format.size() && std::isdigit(static_cast<unsigned char>(format[index]))) {
+      has_width = true;
+      width = width * 10 + static_cast<int64_t>(format[index] - '0');
+      ++index;
+    }
+    bool has_precision = false;
+    int64_t precision = 0;
+    if (index < format.size() && format[index] == '.') {
+      has_precision = true;
+      ++index;
+      if (index < format.size() && format[index] == '*') {
+        Value precision_arg;
+        if (!string_percent_arg(nullptr, rhs, tuple_index, std::string(), precision_arg, error)) return false;
+        if (precision_arg.tag != ValueTag::Int64) {
+          error = "* wants int";
+          return false;
+        }
+        precision = precision_arg.as.i64;
+        if (precision < 0) has_precision = false;
+        ++index;
+      } else {
+        while (index < format.size() && std::isdigit(static_cast<unsigned char>(format[index]))) {
+          precision = precision * 10 + static_cast<int64_t>(format[index] - '0');
+          ++index;
+        }
+      }
+    }
+    if (index < format.size() &&
+        (format[index] == 'h' || format[index] == 'l' || format[index] == 'L')) {
+      ++index;
+    }
+    if (index >= format.size()) {
+      error = "incomplete format";
       return false;
     }
+    Value argument;
+    if (!string_percent_arg(nullptr, rhs, tuple_index, std::string(), argument, error)) {
+      return false;
+    }
+    std::string formatted;
     switch (format[index]) {
       case 'b':
       case 's': {
@@ -2367,12 +2486,14 @@ bool bytes_percent_format(const Value& lhs, const Value& rhs, Value& out, std::s
           error = "%b requires a bytes-like object";
           return false;
         }
-        result.append(bytes.data(), bytes.size());
+        const size_t size = has_precision && precision < static_cast<int64_t>(bytes.size())
+            ? static_cast<size_t>(precision) : bytes.size();
+        formatted.assign(bytes.data(), size);
         break;
       }
       case 'c': {
         if (argument.tag == ValueTag::Int64 && argument.as.i64 >= 0 && argument.as.i64 <= 255) {
-          result.push_back(static_cast<char>(argument.as.i64));
+          formatted.push_back(static_cast<char>(argument.as.i64));
           break;
         }
         std::string_view bytes;
@@ -2380,38 +2501,81 @@ bool bytes_percent_format(const Value& lhs, const Value& rhs, Value& out, std::s
           error = "%c requires an integer in range(256) or a single byte";
           return false;
         }
-        result.push_back(bytes[0]);
+        formatted.push_back(bytes[0]);
         break;
       }
       case 'd':
       case 'i':
-      case 'u':
-        if (argument.tag != ValueTag::Int64) {
+      case 'u': {
+        Value integer_storage;
+        const Value* integer = percent_integer_operand(argument, integer_storage);
+        if (integer != nullptr && integer->tag == ValueTag::Int64) {
+          formatted = std::to_string(integer->as.i64);
+        } else if (integer != nullptr && value_as_bigint(*integer) != nullptr) {
+          formatted = value_bigint_to_string(*integer);
+        } else {
           error = "%d format requires an integer";
           return false;
         }
-        result += std::to_string(argument.as.i64);
+        if (!formatted.empty() && formatted[0] != '-' && force_sign) formatted.insert(formatted.begin(), '+');
+        else if (!formatted.empty() && formatted[0] != '-' && space_sign) formatted.insert(formatted.begin(), ' ');
         break;
+      }
       case 'o':
       case 'x':
       case 'X': {
         Value integer_storage;
         const Value* integer = percent_integer_operand(argument, integer_storage);
-        if (integer == nullptr || integer->tag != ValueTag::Int64) {
+        if (integer != nullptr && integer->tag == ValueTag::Int64) {
+          formatted = format_percent_integer(
+              integer->as.i64, format[index] == 'o' ? 8u : 16u,
+              format[index] == 'X');
+        } else if (integer != nullptr && value_as_bigint(*integer) != nullptr) {
+          formatted = format_percent_bigint(
+              *integer, format[index] == 'o' ? 8u : 16u,
+              format[index] == 'X');
+        } else {
           error = "integer format requires an integer";
           return false;
         }
-        result += format_percent_integer(
-            integer->as.i64, format[index] == 'o' ? 8u : 16u, format[index] == 'X');
+        if (alternate_form && formatted != "0") {
+          formatted.insert(0, format[index] == 'o' ? "0o" : (format[index] == 'X' ? "0X" : "0x"));
+        }
+        if (!formatted.empty() && formatted[0] != '-' && force_sign) formatted.insert(formatted.begin(), '+');
+        else if (!formatted.empty() && formatted[0] != '-' && space_sign) formatted.insert(formatted.begin(), ' ');
         break;
       }
       case 'r':
       case 'a':
-        result += value_to_repr(argument);
+        formatted = value_to_repr(argument);
+        if (has_precision && precision < static_cast<int64_t>(formatted.size()))
+          formatted.resize(static_cast<size_t>(precision));
         break;
       default:
         error = "unsupported format character";
         return false;
+    }
+    if (has_width && width > static_cast<int64_t>(formatted.size())) {
+      const size_t padding = static_cast<size_t>(width - static_cast<int64_t>(formatted.size()));
+      if (left_align) {
+        result += formatted;
+        result.append(padding, ' ');
+      } else if (zero_pad) {
+        size_t prefix = 0;
+        if (!formatted.empty() &&
+            (formatted[0] == '+' || formatted[0] == '-' || formatted[0] == ' ')) prefix = 1;
+        if (formatted.size() >= prefix + 2 && formatted[prefix] == '0' &&
+            (formatted[prefix + 1] == 'x' || formatted[prefix + 1] == 'X' ||
+             formatted[prefix + 1] == 'o')) prefix += 2;
+        result.append(formatted.data(), prefix);
+        result.append(padding, '0');
+        result.append(formatted.data() + prefix, formatted.size() - prefix);
+      } else {
+        result.append(padding, ' ');
+        result += formatted;
+      }
+    } else {
+      result += formatted;
     }
   }
   Value tuple_scratch;
@@ -2546,7 +2710,7 @@ const TupleObject* value_as_tuple_or_tuple_backed(const Value& value, Value& scr
     return nullptr;
   }
   std::string ignored;
-  if (!object_get_attr(value, "_tuple", scratch, ignored)) {
+  if (!object_get_attr(value, "__xlang3_tuple_value__", scratch, ignored)) {
     return nullptr;
   }
   return value_as_tuple(scratch);
@@ -3042,8 +3206,9 @@ bool value_floor_div(const Value& lhs, const Value& rhs, Value& out, std::string
 }
 
 bool value_mod(const Value& lhs, const Value& rhs, Value& out, std::string& error) {
-  if (value_as_string(lhs) != nullptr) {
-    return string_percent_format(nullptr, lhs, rhs, out, error);
+  if (value_as_string(lhs) != nullptr || value_as_instance(lhs) != nullptr) {
+    if (string_percent_format(nullptr, lhs, rhs, out, error)) return true;
+    if (!error.empty()) return false;
   }
   if (value_as_bytes(lhs) != nullptr) {
     return bytes_percent_format(lhs, rhs, out, error);
@@ -3082,8 +3247,9 @@ bool value_mod(const Value& lhs, const Value& rhs, Value& out, std::string& erro
 }
 
 bool value_mod_runtime(Runtime& runtime, const Value& lhs, const Value& rhs, Value& out, std::string& error) {
-  if (value_as_string(lhs) != nullptr) {
-    return string_percent_format(&runtime, lhs, rhs, out, error);
+  if (value_as_string(lhs) != nullptr || value_as_instance(lhs) != nullptr) {
+    if (string_percent_format(&runtime, lhs, rhs, out, error)) return true;
+    if (!error.empty()) return false;
   }
   return value_mod(lhs, rhs, out, error);
 }
@@ -3260,6 +3426,14 @@ bool value_bit_or(const Value& lhs, const Value& rhs, Value& out, std::string& e
       return add_iterable_to_set(out, rhs, error);
     }
   }
+  if (auto* view = value_as_dict_view(rhs)) {
+    if (view->kind == DictIterationKind::Keys || view->kind == DictIterationKind::Items) {
+      if (!value_materialize_set_like(rhs, out, error)) {
+        return false;
+      }
+      return add_iterable_to_set(out, lhs, error);
+    }
+  }
   const auto type_like = [](const Value& value) {
     if (value.tag == ValueTag::None) {
       return true;
@@ -3269,6 +3443,15 @@ bool value_bit_or(const Value& lhs, const Value& rhs, Value& out, std::string& e
         value_as_native_function(value) != nullptr ||
         value_as_generic_alias(value) != nullptr ||
         instance_get_native_data(value, "typing._Alias") != nullptr) {
+      return true;
+    }
+    // Runtime type parameters expose the substitution protocol used by
+    // typing.py. They are valid operands of PEP 604 unions even though they
+    // are instances rather than classes.
+    Value substitution;
+    std::string ignored;
+    if (value_as_instance(value) != nullptr &&
+        object_get_attr(value, "__typing_subst__", substitution, ignored)) {
       return true;
     }
     return false;
@@ -3313,6 +3496,34 @@ bool value_bit_xor(const Value& lhs, const Value& rhs, Value& out, std::string& 
     if (value_int_like_bit_xor(lhs, rhs, out)) {
       return true;
     }
+  }
+  auto int_payload = [](const Value& value, int64_t& payload) {
+    if (value.tag == ValueTag::Int64) {
+      payload = value.as.i64;
+      return true;
+    }
+    if (value.tag == ValueTag::Bool) {
+      payload = value.as.b ? 1 : 0;
+      return true;
+    }
+    Value attr;
+    std::string ignored;
+    if (object_get_attr(value, "__xlang3_int_value__", attr, ignored) && attr.tag == ValueTag::Int64) {
+      payload = attr.as.i64;
+      return true;
+    }
+    if (object_get_attr(value, "_value_", attr, ignored) && attr.tag == ValueTag::Int64) {
+      payload = attr.as.i64;
+      return true;
+    }
+    return false;
+  };
+  int64_t left_payload = 0;
+  int64_t right_payload = 0;
+  if ((lhs.tag != ValueTag::Int64 || rhs.tag != ValueTag::Int64) &&
+      int_payload(lhs, left_payload) && int_payload(rhs, right_payload)) {
+    out = Value::int64(left_payload ^ right_payload);
+    return true;
   }
   if (value_is_set_like_operand(lhs)) {
     Value left_set;
@@ -3414,6 +3625,30 @@ bool value_invert(const Value& value, Value& out, std::string& error) {
 
 bool value_compare(const std::string& op, const Value& lhs, const Value& rhs, Value& out, std::string& error) {
   bool result = false;
+  const auto string_subclass_value = [](const Value& value, Value& text) {
+    auto* instance = value_as_instance(value);
+    auto* klass = instance == nullptr ? nullptr : value_as_class(instance->klass);
+    if (klass == nullptr || !class_has_builtin_base_name(klass, "str")) {
+      return false;
+    }
+    Value stored;
+    std::string ignored;
+    if (object_get_attr(value, "__xlang3_string_value__", stored, ignored) &&
+        value_as_string(stored) != nullptr) {
+      text = std::move(stored);
+      return true;
+    }
+    return false;
+  };
+  Value string_lhs;
+  Value string_rhs;
+  const bool lhs_is_string_subclass = string_subclass_value(lhs, string_lhs);
+  const bool rhs_is_string_subclass = string_subclass_value(rhs, string_rhs);
+  if (lhs_is_string_subclass || rhs_is_string_subclass) {
+    return value_compare(
+        op, lhs_is_string_subclass ? string_lhs : lhs,
+        rhs_is_string_subclass ? string_rhs : rhs, out, error);
+  }
   const auto numeric_subclass_value = [](const Value& value, Value& numeric) {
     auto* instance = value_as_instance(value);
     auto* klass = instance == nullptr ? nullptr : value_as_class(instance->klass);
@@ -3450,6 +3685,58 @@ bool value_compare(const std::string& op, const Value& lhs, const Value& rhs, Va
   }
   if (auto* right_proxy = value_as_mapping_proxy(rhs)) {
     return value_compare(op, lhs, right_proxy->source, out, error);
+  }
+  if ((value_as_bigint(lhs) != nullptr && rhs.tag == ValueTag::Double) ||
+      (lhs.tag == ValueTag::Double && value_as_bigint(rhs) != nullptr)) {
+    const bool bigint_on_left = value_as_bigint(lhs) != nullptr;
+    const Value& integer = bigint_on_left ? lhs : rhs;
+    const double number = bigint_on_left ? rhs.as.f64 : lhs.as.f64;
+    int comparison = 0;
+    if (std::isnan(number)) {
+      comparison = 2;
+    } else if (std::isinf(number)) {
+      comparison = number > 0.0 ? -1 : 1;
+    } else {
+      std::array<char, 512> buffer{};
+      const auto rendered = std::to_chars(
+          buffer.data(), buffer.data() + buffer.size(), std::trunc(number),
+          std::chars_format::fixed, 0);
+      std::string parse_error;
+      Value truncated = rendered.ec == std::errc{}
+          ? value_bigint_from_decimal(
+                std::string_view(buffer.data(), rendered.ptr - buffer.data()),
+                10, parse_error)
+          : Value::invalid();
+      Value comparison_value;
+      if (truncated.tag == ValueTag::Invalid ||
+          !value_int_like_compare("==", integer, truncated, comparison_value)) {
+        error = "failed to compare integer and float";
+        return false;
+      }
+      if (comparison_value.as.b) {
+        if (number == std::trunc(number)) comparison = 0;
+        else comparison = number > 0.0 ? -1 : 1;
+      } else if (value_int_like_compare(
+                     "<", integer, truncated, comparison_value)) {
+        comparison = comparison_value.as.b ? -1 : 1;
+      } else {
+        error = "failed to compare integer and float";
+        return false;
+      }
+    }
+    if (!bigint_on_left && comparison != 2) comparison = -comparison;
+    if (op == "==") result = comparison == 0;
+    else if (op == "!=") result = comparison != 0;
+    else if (op == "<") result = comparison != 2 && comparison < 0;
+    else if (op == "<=") result = comparison != 2 && comparison <= 0;
+    else if (op == ">") result = comparison != 2 && comparison > 0;
+    else if (op == ">=") result = comparison != 2 && comparison >= 0;
+    else {
+      error = "unsupported comparison";
+      return false;
+    }
+    value_set_bool(out, result);
+    return true;
   }
   if (value_as_bigint(lhs) != nullptr || value_as_bigint(rhs) != nullptr) {
     if (value_int_like_compare(op, lhs, rhs, out)) {
@@ -3714,7 +4001,8 @@ bool value_is(const Value& lhs, const Value& rhs) {
     case ValueTag::Int64:
       return lhs.as.i64 == rhs.as.i64;
     case ValueTag::Double:
-      return lhs.as.f64 == rhs.as.f64;
+      return lhs.as.f64 == rhs.as.f64 ||
+          (std::isnan(lhs.as.f64) && std::isnan(rhs.as.f64));
     case ValueTag::Object:
       if (auto* left_code = value_as_code(lhs)) {
         auto* right_code = value_as_code(rhs);

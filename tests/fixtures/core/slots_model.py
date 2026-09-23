@@ -68,3 +68,15 @@ d = WithDict()
 d.x = 1
 d.extra = 2
 print(d.x, d.extra)
+
+
+class DictBeforeSlot:
+    __slots__ = ("__dict__", "slot")
+
+    def __init__(self):
+        self.__dict__.update({"plain": 1})
+        self.slot = 2
+
+
+before = DictBeforeSlot()
+print(before.__dict__, before.slot)

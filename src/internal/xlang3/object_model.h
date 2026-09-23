@@ -64,6 +64,8 @@ struct InstanceObject {
   void* (*native_data_cast)(void*, const char*) = nullptr;
   void* native_owner = nullptr;
   void (*native_data_cleanup)(void*) = nullptr;
+  std::vector<Object*> native_gc_references;
+  void (*native_data_clear)(void*) = nullptr;
   bool (*native_data_truthy)(const void*) = nullptr;
   NativeInstanceGetAttr native_get_attr = nullptr;
   NativeInstanceSetAttr native_set_attr = nullptr;
@@ -225,6 +227,8 @@ bool instance_set_native_data(
     std::string& error);
 bool instance_set_native_owner(Value instance, std::string native_type, void* native_data,
     void* owner, void (*cleanup)(void*), std::string& error);
+bool instance_set_native_gc_references(Value instance, const Value* references,
+    uint32_t reference_count, void (*clear)(void*), std::string& error);
 void* instance_get_native_data(const Value& instance, const std::string& native_type);
 bool instance_set_native_truthy(Value instance, bool (*truthy)(const void*), std::string& error);
 bool instance_native_truthy(const Value& instance, bool& out);

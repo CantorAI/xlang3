@@ -103,9 +103,216 @@ void collect_pattern_captures(const ast::Expr& expr, std::vector<std::string>& n
     return;
   }
   if (auto* binary = dynamic_cast<const ast::BinaryExpr*>(&expr)) {
-    if (binary->op == "|") {
+    if (binary->op == "|" || binary->op == "as") {
       collect_pattern_captures(*binary->lhs, names, seen);
       collect_pattern_captures(*binary->rhs, names, seen);
+    }
+    return;
+  }
+  if (auto* call = dynamic_cast<const ast::CallExpr*>(&expr)) {
+    for (const auto& arg : call->args) {
+      collect_pattern_captures(*arg, names, seen);
+    }
+    for (const auto& arg : call->call_args) {
+      if (arg.value != nullptr) collect_pattern_captures(*arg.value, names, seen);
+    }
+  }
+}
+
+void collect_named_assignment_expr(
+    const ast::Expr& expr, std::vector<std::string>& names, NameSet& seen);
+
+void collect_named_assignment_clause(
+    const ast::CompClause& clause, std::vector<std::string>& names,
+    NameSet& seen) {
+  collect_named_assignment_expr(*clause.iterable, names, seen);
+  if (clause.filter != nullptr)
+    collect_named_assignment_expr(*clause.filter, names, seen);
+}
+
+void collect_named_assignment_expr(
+    const ast::Expr& expr, std::vector<std::string>& names, NameSet& seen) {
+  if (auto* named = dynamic_cast<const ast::NamedExpr*>(&expr)) {
+    add_unique(names, seen, named->name);
+    collect_named_assignment_expr(*named->value, names, seen);
+  } else if (auto* unary = dynamic_cast<const ast::UnaryExpr*>(&expr)) {
+    collect_named_assignment_expr(*unary->expr, names, seen);
+  } else if (auto* await = dynamic_cast<const ast::AwaitExpr*>(&expr)) {
+    collect_named_assignment_expr(*await->expr, names, seen);
+  } else if (auto* yield = dynamic_cast<const ast::YieldExpr*>(&expr)) {
+    if (yield->expr != nullptr)
+      collect_named_assignment_expr(*yield->expr, names, seen);
+  } else if (auto* binary = dynamic_cast<const ast::BinaryExpr*>(&expr)) {
+    collect_named_assignment_expr(*binary->lhs, names, seen);
+    collect_named_assignment_expr(*binary->rhs, names, seen);
+  } else if (auto* chain = dynamic_cast<const ast::CompareChainExpr*>(&expr)) {
+    collect_named_assignment_expr(*chain->first, names, seen);
+    for (const auto& comparison : chain->comparisons)
+      collect_named_assignment_expr(*comparison.second, names, seen);
+  } else if (auto* conditional = dynamic_cast<const ast::ConditionalExpr*>(&expr)) {
+    collect_named_assignment_expr(*conditional->then_expr, names, seen);
+    collect_named_assignment_expr(*conditional->condition, names, seen);
+    collect_named_assignment_expr(*conditional->else_expr, names, seen);
+  } else if (auto* starred = dynamic_cast<const ast::StarredExpr*>(&expr)) {
+    collect_named_assignment_expr(*starred->expr, names, seen);
+  } else if (auto* call = dynamic_cast<const ast::CallExpr*>(&expr)) {
+    collect_named_assignment_expr(*call->callee, names, seen);
+    for (const auto& arg : call->args)
+      collect_named_assignment_expr(*arg, names, seen);
+    for (const auto& arg : call->call_args)
+      collect_named_assignment_expr(*arg.value, names, seen);
+  } else if (auto* subscript = dynamic_cast<const ast::SubscriptExpr*>(&expr)) {
+    collect_named_assignment_expr(*subscript->object, names, seen);
+    collect_named_assignment_expr(*subscript->index, names, seen);
+  } else if (auto* slice = dynamic_cast<const ast::SliceExpr*>(&expr)) {
+    if (slice->start != nullptr)
+      collect_named_assignment_expr(*slice->start, names, seen);
+    if (slice->stop != nullptr)
+      collect_named_assignment_expr(*slice->stop, names, seen);
+    if (slice->step != nullptr)
+      collect_named_assignment_expr(*slice->step, names, seen);
+  } else if (auto* attr = dynamic_cast<const ast::AttrExpr*>(&expr)) {
+    collect_named_assignment_expr(*attr->object, names, seen);
+  } else if (auto* tuple = dynamic_cast<const ast::TupleExpr*>(&expr)) {
+    for (const auto& item : tuple->items)
+      collect_named_assignment_expr(*item, names, seen);
+  } else if (auto* list = dynamic_cast<const ast::ListExpr*>(&expr)) {
+    for (const auto& item : list->items)
+      collect_named_assignment_expr(*item, names, seen);
+  } else if (auto* dict = dynamic_cast<const ast::DictExpr*>(&expr)) {
+    for (const auto& entry : dict->entries) {
+      if (entry.first != nullptr)
+        collect_named_assignment_expr(*entry.first, names, seen);
+      collect_named_assignment_expr(*entry.second, names, seen);
+    }
+  } else if (auto* set = dynamic_cast<const ast::SetExpr*>(&expr)) {
+    for (const auto& item : set->items)
+      collect_named_assignment_expr(*item, names, seen);
+  } else if (auto* comp = dynamic_cast<const ast::ListCompExpr*>(&expr)) {
+    collect_named_assignment_expr(*comp->result, names, seen);
+    collect_named_assignment_expr(*comp->iterable, names, seen);
+    if (comp->filter != nullptr)
+      collect_named_assignment_expr(*comp->filter, names, seen);
+    for (const auto& clause : comp->extra_clauses)
+      collect_named_assignment_clause(clause, names, seen);
+  } else if (auto* comp = dynamic_cast<const ast::DictCompExpr*>(&expr)) {
+    collect_named_assignment_expr(*comp->key, names, seen);
+    collect_named_assignment_expr(*comp->value, names, seen);
+    collect_named_assignment_expr(*comp->iterable, names, seen);
+    if (comp->filter != nullptr)
+      collect_named_assignment_expr(*comp->filter, names, seen);
+    for (const auto& clause : comp->extra_clauses)
+      collect_named_assignment_clause(clause, names, seen);
+  } else if (auto* comp = dynamic_cast<const ast::SetCompExpr*>(&expr)) {
+    collect_named_assignment_expr(*comp->result, names, seen);
+    collect_named_assignment_expr(*comp->iterable, names, seen);
+    if (comp->filter != nullptr)
+      collect_named_assignment_expr(*comp->filter, names, seen);
+    for (const auto& clause : comp->extra_clauses)
+      collect_named_assignment_clause(clause, names, seen);
+  } else if (auto* comp = dynamic_cast<const ast::GeneratorExpr*>(&expr)) {
+    collect_named_assignment_expr(*comp->result, names, seen);
+    collect_named_assignment_expr(*comp->iterable, names, seen);
+    if (comp->filter != nullptr)
+      collect_named_assignment_expr(*comp->filter, names, seen);
+    for (const auto& clause : comp->extra_clauses)
+      collect_named_assignment_clause(clause, names, seen);
+  } else if (auto* lambda = dynamic_cast<const ast::LambdaExpr*>(&expr)) {
+    for (const auto& param : lambda->signature) {
+      if (param.default_value != nullptr)
+        collect_named_assignment_expr(*param.default_value, names, seen);
+    }
+  }
+}
+
+void collect_named_assignment_body(
+    const std::vector<ast::StmtPtr>& body, std::vector<std::string>& names,
+    NameSet& seen) {
+  for (const auto& statement : body) {
+    const ast::Stmt& stmt = *statement;
+    if (auto* expression = dynamic_cast<const ast::ExprStmt*>(&stmt)) {
+      collect_named_assignment_expr(*expression->expr, names, seen);
+    } else if (auto* assertion = dynamic_cast<const ast::AssertStmt*>(&stmt)) {
+      collect_named_assignment_expr(*assertion->condition, names, seen);
+      if (assertion->message != nullptr)
+        collect_named_assignment_expr(*assertion->message, names, seen);
+    } else if (auto* assign = dynamic_cast<const ast::AssignStmt*>(&stmt)) {
+      collect_named_assignment_expr(*assign->value, names, seen);
+    } else if (auto* assign = dynamic_cast<const ast::SubscriptAssignStmt*>(&stmt)) {
+      collect_named_assignment_expr(*assign->object, names, seen);
+      collect_named_assignment_expr(*assign->index, names, seen);
+      collect_named_assignment_expr(*assign->value, names, seen);
+    } else if (auto* assign = dynamic_cast<const ast::AttrAssignStmt*>(&stmt)) {
+      collect_named_assignment_expr(*assign->object, names, seen);
+      collect_named_assignment_expr(*assign->value, names, seen);
+    } else if (auto* assign = dynamic_cast<const ast::AnnotatedAssignStmt*>(&stmt)) {
+      collect_named_assignment_expr(*assign->annotation, names, seen);
+      if (assign->value != nullptr)
+        collect_named_assignment_expr(*assign->value, names, seen);
+    } else if (auto* assign = dynamic_cast<const ast::UnpackAssignStmt*>(&stmt)) {
+      collect_named_assignment_expr(*assign->value, names, seen);
+    } else if (auto* assign = dynamic_cast<const ast::MultiAssignStmt*>(&stmt)) {
+      collect_named_assignment_expr(*assign->value, names, seen);
+    } else if (auto* assign = dynamic_cast<const ast::AugAssignStmt*>(&stmt)) {
+      collect_named_assignment_expr(*assign->target, names, seen);
+      collect_named_assignment_expr(*assign->value, names, seen);
+    } else if (auto* returned = dynamic_cast<const ast::ReturnStmt*>(&stmt)) {
+      if (returned->value != nullptr)
+        collect_named_assignment_expr(*returned->value, names, seen);
+    } else if (auto* raised = dynamic_cast<const ast::RaiseStmt*>(&stmt)) {
+      if (raised->value != nullptr)
+        collect_named_assignment_expr(*raised->value, names, seen);
+      if (raised->cause != nullptr)
+        collect_named_assignment_expr(*raised->cause, names, seen);
+    } else if (auto* ifs = dynamic_cast<const ast::IfStmt*>(&stmt)) {
+      collect_named_assignment_expr(*ifs->condition, names, seen);
+      collect_named_assignment_body(ifs->then_body, names, seen);
+      collect_named_assignment_body(ifs->else_body, names, seen);
+    } else if (auto* tried = dynamic_cast<const ast::TryExceptStmt*>(&stmt)) {
+      collect_named_assignment_body(tried->try_body, names, seen);
+      for (const auto& handler : tried->handlers) {
+        if (handler.type != nullptr)
+          collect_named_assignment_expr(*handler.type, names, seen);
+        collect_named_assignment_body(handler.body, names, seen);
+      }
+      collect_named_assignment_body(tried->else_body, names, seen);
+      collect_named_assignment_body(tried->finally_body, names, seen);
+    } else if (auto* with = dynamic_cast<const ast::WithStmt*>(&stmt)) {
+      collect_named_assignment_expr(*with->manager, names, seen);
+      collect_named_assignment_body(with->body, names, seen);
+    } else if (auto* loop = dynamic_cast<const ast::WhileStmt*>(&stmt)) {
+      collect_named_assignment_expr(*loop->condition, names, seen);
+      collect_named_assignment_body(loop->body, names, seen);
+      collect_named_assignment_body(loop->else_body, names, seen);
+    } else if (auto* loop = dynamic_cast<const ast::ForStmt*>(&stmt)) {
+      collect_named_assignment_expr(*loop->iterable, names, seen);
+      collect_named_assignment_body(loop->body, names, seen);
+      collect_named_assignment_body(loop->else_body, names, seen);
+    } else if (auto* match = dynamic_cast<const ast::MatchStmt*>(&stmt)) {
+      collect_named_assignment_expr(*match->subject, names, seen);
+      for (const auto& match_case : match->cases) {
+        if (match_case.guard != nullptr)
+          collect_named_assignment_expr(*match_case.guard, names, seen);
+        collect_named_assignment_body(match_case.body, names, seen);
+      }
+    } else if (auto* fn = dynamic_cast<const ast::FunctionDef*>(&stmt)) {
+      for (const auto& decorator : fn->decorators)
+        collect_named_assignment_expr(*decorator, names, seen);
+      for (const auto& param : fn->signature) {
+        if (param.default_value != nullptr)
+          collect_named_assignment_expr(*param.default_value, names, seen);
+        if (param.annotation != nullptr)
+          collect_named_assignment_expr(*param.annotation, names, seen);
+      }
+      if (fn->return_annotation != nullptr)
+        collect_named_assignment_expr(*fn->return_annotation, names, seen);
+    } else if (auto* klass = dynamic_cast<const ast::ClassDef*>(&stmt)) {
+      for (const auto& base : klass->bases)
+        collect_named_assignment_expr(*base, names, seen);
+      for (const auto& keyword : klass->keywords)
+        collect_named_assignment_expr(*keyword.second, names, seen);
+      for (const auto& decorator : klass->decorators)
+        collect_named_assignment_expr(*decorator, names, seen);
     }
   }
 }
@@ -436,6 +643,41 @@ void collect_reads_expr(const ast::Expr& expr, std::vector<std::string>& names, 
   }
 }
 
+void collect_assignment_target_reads(
+    const ast::Expr& target,
+    std::vector<std::string>& names,
+    NameSet& seen) {
+  if (dynamic_cast<const ast::NameExpr*>(&target) != nullptr) {
+    return;
+  }
+  if (auto* tuple = dynamic_cast<const ast::TupleExpr*>(&target)) {
+    for (const auto& item : tuple->items) {
+      collect_assignment_target_reads(*item, names, seen);
+    }
+    return;
+  }
+  if (auto* list = dynamic_cast<const ast::ListExpr*>(&target)) {
+    for (const auto& item : list->items) {
+      collect_assignment_target_reads(*item, names, seen);
+    }
+    return;
+  }
+  if (auto* starred = dynamic_cast<const ast::StarredExpr*>(&target)) {
+    collect_assignment_target_reads(*starred->expr, names, seen);
+    return;
+  }
+  if (auto* attr = dynamic_cast<const ast::AttrExpr*>(&target)) {
+    collect_reads_expr(*attr->object, names, seen);
+    return;
+  }
+  if (auto* subscript = dynamic_cast<const ast::SubscriptExpr*>(&target)) {
+    collect_reads_expr(*subscript->object, names, seen);
+    collect_reads_expr(*subscript->index, names, seen);
+    return;
+  }
+  collect_reads_expr(target, names, seen);
+}
+
 void collect_pattern_reads(const ast::Expr& expr, std::vector<std::string>& names, NameSet& seen) {
   if (dynamic_cast<const ast::NameExpr*>(&expr) != nullptr) {
     return;
@@ -484,25 +726,16 @@ void collect_reads_body(const std::vector<ast::StmtPtr>& body, std::vector<std::
     if (auto* assign = dynamic_cast<const ast::AssignStmt*>(stmt.get())) {
       collect_reads_expr(*assign->value, names, seen);
     } else if (auto* assign = dynamic_cast<const ast::AnnotatedAssignStmt*>(stmt.get())) {
+      collect_assignment_target_reads(*assign->target, names, seen);
       if (assign->value != nullptr) {
-        if (auto* subscript = dynamic_cast<const ast::SubscriptExpr*>(assign->target.get())) {
-          collect_reads_expr(*subscript->object, names, seen);
-          collect_reads_expr(*subscript->index, names, seen);
-        } else if (auto* attr = dynamic_cast<const ast::AttrExpr*>(assign->target.get())) {
-          collect_reads_expr(*attr->object, names, seen);
-        }
         collect_reads_expr(*assign->value, names, seen);
       }
     } else if (auto* assign = dynamic_cast<const ast::UnpackAssignStmt*>(stmt.get())) {
+      collect_assignment_target_reads(*assign->target, names, seen);
       collect_reads_expr(*assign->value, names, seen);
     } else if (auto* assign = dynamic_cast<const ast::MultiAssignStmt*>(stmt.get())) {
       for (const auto& target : assign->targets) {
-        if (auto* subscript = dynamic_cast<const ast::SubscriptExpr*>(target.get())) {
-          collect_reads_expr(*subscript->object, names, seen);
-          collect_reads_expr(*subscript->index, names, seen);
-        } else if (auto* attr = dynamic_cast<const ast::AttrExpr*>(target.get())) {
-          collect_reads_expr(*attr->object, names, seen);
-        }
+        collect_assignment_target_reads(*target, names, seen);
       }
       collect_reads_expr(*assign->value, names, seen);
     } else if (auto* assign = dynamic_cast<const ast::AugAssignStmt*>(stmt.get())) {
@@ -628,6 +861,7 @@ std::vector<std::string> local_names_for(const std::vector<std::string>& params,
     }
   }
   collect_assigned_names(body, names, seen);
+  collect_named_assignment_body(body, names, seen);
   names.erase(
       std::remove_if(names.begin(), names.end(), [&](const std::string& name) {
         return contains(nonlocals, name) || contains(globals, name);

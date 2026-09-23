@@ -1420,7 +1420,11 @@ RuntimeResult Interpreter::run_function(
   };
 
   if (has_generator_resume_exception) {
-    if (!dispatch_exception(std::move(generator_resume_exception))) {
+    // ``throw()`` resumes a suspended generator with an exception that can
+    // already carry frames from the awaited operation (for example a Future
+    // completed by a worker thread).  Keep that traceback tail while adding
+    // the frames crossed by the resumed await chain.
+    if (!dispatch_exception(std::move(generator_resume_exception), true)) {
       if (generator != nullptr) {
         generator->done = true;
       }
@@ -1665,7 +1669,7 @@ RuntimeResult Interpreter::run_function(
         }
       }
       ++execution_lock_ticks;
-      if ((execution_lock_ticks & 0xfffu) == 0 && xlang_runtime_execution_contended()) {
+      if ((execution_lock_ticks & 0xfffu) == 0 && xlang_runtime_execution_should_yield()) {
         execution_lock.unlock();
         std::this_thread::yield();
         execution_lock.lock();

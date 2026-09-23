@@ -1101,13 +1101,19 @@ bool string_strip_fast_method(
     Value& out,
     std::string& error,
     void*) {
-  if (leading_count != 1 || register_arg_count > 1 || leading == nullptr) {
+  const bool bound_call = leading_count == 1 && leading != nullptr && register_arg_count <= 1;
+  const bool unbound_call = leading_count == 0 && registers != nullptr &&
+      register_args != nullptr && register_arg_count >= 1 && register_arg_count <= 2;
+  if (!bound_call && !unbound_call) {
     error = "str.strip expected 0 or 1 arguments";
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  const Value* chars_value = register_arg_count == 0 ? nullptr : &registers[register_args[0]];
-  if (!string_strip_body(leading[0], chars_value, out, error)) {
+  const Value& target = bound_call ? leading[0] : registers[register_args[0]];
+  const Value* chars_value = bound_call
+      ? (register_arg_count == 0 ? nullptr : &registers[register_args[0]])
+      : (register_arg_count == 1 ? nullptr : &registers[register_args[1]]);
+  if (!string_strip_body(target, chars_value, out, error)) {
     runtime.raise_class_error("TypeError", error);
     return false;
   }
@@ -1124,13 +1130,19 @@ bool string_rstrip_fast_method(
     Value& out,
     std::string& error,
     void*) {
-  if (leading_count != 1 || register_arg_count > 1 || leading == nullptr) {
+  const bool bound_call = leading_count == 1 && leading != nullptr && register_arg_count <= 1;
+  const bool unbound_call = leading_count == 0 && registers != nullptr &&
+      register_args != nullptr && register_arg_count >= 1 && register_arg_count <= 2;
+  if (!bound_call && !unbound_call) {
     error = "str.rstrip expected 0 or 1 arguments";
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  const Value* chars_value = register_arg_count == 0 ? nullptr : &registers[register_args[0]];
-  if (!string_rstrip_body(leading[0], chars_value, out, error)) {
+  const Value& target = bound_call ? leading[0] : registers[register_args[0]];
+  const Value* chars_value = bound_call
+      ? (register_arg_count == 0 ? nullptr : &registers[register_args[0]])
+      : (register_arg_count == 1 ? nullptr : &registers[register_args[1]]);
+  if (!string_rstrip_body(target, chars_value, out, error)) {
     runtime.raise_class_error("TypeError", error);
     return false;
   }
@@ -1147,13 +1159,19 @@ bool string_lstrip_fast_method(
     Value& out,
     std::string& error,
     void*) {
-  if (leading_count != 1 || register_arg_count > 1 || leading == nullptr) {
+  const bool bound_call = leading_count == 1 && leading != nullptr && register_arg_count <= 1;
+  const bool unbound_call = leading_count == 0 && registers != nullptr &&
+      register_args != nullptr && register_arg_count >= 1 && register_arg_count <= 2;
+  if (!bound_call && !unbound_call) {
     error = "str.lstrip expected 0 or 1 arguments";
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  const Value* chars_value = register_arg_count == 0 ? nullptr : &registers[register_args[0]];
-  if (!string_lstrip_body(leading[0], chars_value, out, error)) {
+  const Value& target = bound_call ? leading[0] : registers[register_args[0]];
+  const Value* chars_value = bound_call
+      ? (register_arg_count == 0 ? nullptr : &registers[register_args[0]])
+      : (register_arg_count == 1 ? nullptr : &registers[register_args[1]]);
+  if (!string_lstrip_body(target, chars_value, out, error)) {
     runtime.raise_class_error("TypeError", error);
     return false;
   }
@@ -1440,8 +1458,15 @@ bool string_join_method(Runtime& runtime, const Value* args, uint32_t argc, Valu
   }
   std::vector<Value> items;
   if (!collect_join_iterable(runtime, args[1], items, error)) {
-    error = "str.join argument must be iterable";
-    runtime.raise_class_error("TypeError", error);
+    Value pending;
+    if (runtime.take_pending_exception(pending)) {
+      runtime.set_pending_exception(std::move(pending));
+    } else {
+      if (error.empty() || error == "object is not iterable" ||
+          error == "invalid iterator")
+        error = "str.join argument must be iterable";
+      runtime.raise_class_error("TypeError", error);
+    }
     return false;
   }
   if (join_string_values(sep, items, out, error)) return true;
@@ -1482,8 +1507,15 @@ bool string_join_fast_method(
   }
   std::vector<Value> items;
   if (!collect_join_iterable(runtime, sequence, items, error)) {
-    error = "str.join argument must be iterable";
-    runtime.raise_class_error("TypeError", error);
+    Value pending;
+    if (runtime.take_pending_exception(pending)) {
+      runtime.set_pending_exception(std::move(pending));
+    } else {
+      if (error.empty() || error == "object is not iterable" ||
+          error == "invalid iterator")
+        error = "str.join argument must be iterable";
+      runtime.raise_class_error("TypeError", error);
+    }
     return false;
   }
   if (join_string_values(sep, items, out, error)) return true;
@@ -1601,6 +1633,48 @@ std::string format_replacement_value(
     std::string_view field,
     std::string& error);
 
+std::string_view format_field_name(std::string_view field);
+
+bool resolve_format_access(
+    Runtime& runtime, const Value& base, std::string_view suffix,
+    Value& out, std::string& error) {
+  value_assign_fast(out, base);
+  for (size_t cursor = 0; cursor < suffix.size();) {
+    if (suffix[cursor] == '.') {
+      const size_t start = ++cursor;
+      while (cursor < suffix.size() && suffix[cursor] != '.' && suffix[cursor] != '[') ++cursor;
+      if (cursor == start) {
+        error = "empty attribute in format string";
+        return false;
+      }
+      Value next;
+      if (!object_get_attr(out, std::string(suffix.substr(start, cursor - start)), next, error)) return false;
+      out = std::move(next);
+      continue;
+    }
+    if (suffix[cursor] == '[') {
+      const size_t close = suffix.find(']', cursor + 1);
+      if (close == std::string_view::npos) {
+        error = "missing ']' in format string";
+        return false;
+      }
+      const std::string token(suffix.substr(cursor + 1, close - cursor - 1));
+      char* end = nullptr;
+      const long long parsed = std::strtoll(token.c_str(), &end, 10);
+      Value key = end != token.c_str() && *end == '\0'
+          ? Value::int64(static_cast<int64_t>(parsed)) : Value::string(token);
+      Value next;
+      if (!mapping_get_item_runtime(runtime, out, key, next, error)) return false;
+      out = std::move(next);
+      cursor = close + 1;
+      continue;
+    }
+    error = "invalid field access in format string";
+    return false;
+  }
+  return true;
+}
+
 size_t format_field_close(std::string_view format, size_t open) {
   size_t nested = 0;
   for (size_t i = open + 1; i < format.size(); ++i) {
@@ -1662,24 +1736,35 @@ bool string_format_method(Runtime& runtime, const Value* args, uint32_t argc, Va
         error = "str.format unmatched '{'";
         return false;
       }
-      uint32_t arg_index = next_arg++;
       const auto raw_field = format.substr(i + 1, close - i - 1);
       std::string resolved_field = resolve_positional_nested_fields(raw_field, args, argc, next_arg, error);
       if (!error.empty()) return false;
       const std::string_view field(resolved_field);
-      if (!field.empty()) {
+      const std::string_view field_name = format_field_name(field);
+      const size_t access_start = field_name.find_first_of(".[");
+      const std::string_view root = field_name.substr(0, access_start);
+      uint32_t arg_index = next_arg++;
+      if (!root.empty()) {
         char* end = nullptr;
-        std::string field_text(field);
+        std::string field_text(root);
         const auto parsed = std::strtoul(field_text.c_str(), &end, 10);
-        if (end != field_text.c_str()) {
+        if (end != field_text.c_str() && *end == '\0') {
           arg_index = static_cast<uint32_t>(parsed + 1);
+          --next_arg;
+        } else {
+          error = "str.format positional field is not numeric";
+          return false;
         }
       }
       if (arg_index >= argc) {
         error = "str.format replacement index out of range";
         return false;
       }
-      result += format_replacement_value(runtime, args[arg_index], field, error);
+      Value replacement;
+      const std::string_view access = access_start == std::string_view::npos
+          ? std::string_view{} : field_name.substr(access_start);
+      if (!resolve_format_access(runtime, args[arg_index], access, replacement, error)) return false;
+      result += format_replacement_value(runtime, replacement, field, error);
       if (!error.empty()) {
         return false;
       }
@@ -1981,12 +2066,14 @@ bool string_format_method_kw(
       }
       const std::string_view field(resolved_field);
       const auto field_name = format_field_name(field);
+      const size_t access_start = field_name.find_first_of(".[");
+      const std::string_view root = field_name.substr(0, access_start);
       const Value* replacement = nullptr;
-      if (field_name.empty()) {
+      if (root.empty()) {
         replacement = &args[main_auto_index];
       } else {
         char* end = nullptr;
-        std::string field_text(field_name);
+        std::string field_text(root);
         const auto parsed = std::strtoul(field_text.c_str(), &end, 10);
         if (end != field_text.c_str() && *end == '\0') {
           const uint32_t arg_index = static_cast<uint32_t>(parsed + 1);
@@ -1996,15 +2083,19 @@ bool string_format_method_kw(
           }
           replacement = &args[arg_index];
         } else {
-          replacement = find_format_keyword(field_name, kwargs, kwargc);
+          replacement = find_format_keyword(root, kwargs, kwargc);
           if (replacement == nullptr) {
-            error = "str.format missing keyword '" + std::string(field_name) + "'";
-            runtime.raise_class_error("KeyError", std::string(field_name));
+            error = "str.format missing keyword '" + std::string(root) + "'";
+            runtime.raise_class_error("KeyError", std::string(root));
             return false;
           }
         }
       }
-      result += format_replacement_value(runtime, *replacement, field, error);
+      Value resolved_replacement;
+      const std::string_view access = access_start == std::string_view::npos
+          ? std::string_view{} : field_name.substr(access_start);
+      if (!resolve_format_access(runtime, *replacement, access, resolved_replacement, error)) return false;
+      result += format_replacement_value(runtime, resolved_replacement, field, error);
       if (!error.empty()) {
         return false;
       }
@@ -3355,6 +3446,40 @@ bool string_eq_method(Runtime& runtime, const Value* args, uint32_t argc, Value&
   return true;
 }
 
+bool string_add_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "str.__add__ expected one argument";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  memory::X3StringView left;
+  memory::X3StringView right;
+  std::string conversion_error;
+  if (!get_string_view_checked(args[0], "str.__add__ target", left, conversion_error) ||
+      !get_string_view_checked(args[1], "str.__add__ argument", right, conversion_error)) {
+    error = std::string("can only concatenate str (not \"") +
+        value_binary_type_name(args[1]) + "\") to str";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  std::string result;
+  result.reserve(left.size + right.size);
+  result.append(left.data == nullptr ? "" : left.data, left.size);
+  result.append(right.data == nullptr ? "" : right.data, right.size);
+  out = Value::string(std::move(result));
+  return true;
+}
+
+bool string_radd_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "str.__radd__ expected one argument";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value reordered[2] = {args[1], args[0]};
+  return string_add_method(runtime, reordered, 2, out, error, nullptr);
+}
+
 bool string_rsplit_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
   (void)runtime;
   (void)user_data;
@@ -3409,9 +3534,11 @@ bool string_expandtabs_method(Runtime&, const Value* args, uint32_t argc, Value&
 } // namespace
 
 static BuiltinMethodSpec kStringMethods[] = {
+    {"__add__", "str.__add__", string_add_method},
     {"__eq__", "str.__eq__", string_eq_method},
     {"__getitem__", "str.__getitem__", string_getitem_method},
     {"__repr__", "str.__repr__", string_repr_method},
+    {"__radd__", "str.__radd__", string_radd_method},
     {"__str__", "str.__str__", string_str_method},
     {"capitalize", "str.capitalize", string_capitalize_method},
     {"casefold", "str.casefold", string_casefold_method},

@@ -1,0 +1,6 @@
+^[a-z]+$ 4 False
+True
+shared
+42 False True
+TypeError
+AttributeError

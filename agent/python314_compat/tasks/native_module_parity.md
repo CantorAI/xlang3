@@ -87,16 +87,30 @@ well as the accelerated path.
   non-finite and signed-zero behavior, domain/range exceptions, and `isclose`.
 - [ ] `mmap`
 - [ ] `_lzma` (`import lzma` currently fails)
-- [ ] `_ssl` (`import ssl` currently fails)
+- [~] `_ssl`
+  Python 3.14's source `ssl.py` now imports over the separate
+  `xlang__ssl.x3pkg` module, which reuses the bundled OpenSSL library. Current
+  coverage includes constants and exceptions, randomness, OID lookup,
+  `MemoryBIO`, Windows certificate/CRL enumeration, context trust and
+  certificate loading, ALPN configuration, and a real TLS 1.3 client/server
+  handshake plus encrypted data transfer over paired memory BIOs. Remaining
+  parity includes socket wrapping, peer-certificate APIs, sessions, context
+  statistics/cipher inspection, callbacks, and the rest of CPython's `_ssl`
+  error and edge-case surface.
 - [ ] `_tkinter`
 - [ ] `_zstd`
 - [ ] `winsound`
 
-Also audit `_remote_debugging`, `_wmi`, `_interpchannels`, `_interpqueues`,
-`_interpreters`, `_suggestions`, `_types`, and `xxsubtype`. Classify each as a
+Also audit `_remote_debugging`, `_wmi`, `_interpchannels`, `_suggestions`,
+`_types`, and `xxsubtype`. Classify each as a
 required runtime module, optional platform/development module, test-only
 module, or intentionally unsupported module. Do not advertise unavailable
 modules as implemented.
+
+- [x] `_interpreters` and `_interpqueues`: runtime-owned VM isolation and
+  cross-runtime transport primitives. The real Python 3.14
+  `concurrent.interpreters` wrapper passes create/prepare/exec/call/close and
+  bounded queue coverage without CPython ABI/runtime dependencies.
 
 ## `_asyncio` design requirement
 

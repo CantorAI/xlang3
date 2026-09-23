@@ -1,0 +1,6 @@
+[2, 4]
+[('first', 0), ('second', 0), ('first', 1), ('first', 2), ('second', 2), ('first', 3), ('first', 4), ('second', 4)]
+(1, 2, 3)
+{1, 2, 3}
+{1: 2, 2: 4, 3: 6}
+True

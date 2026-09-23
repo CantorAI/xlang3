@@ -26,6 +26,7 @@ limitations under the License.
 #include <chrono>
 #include <cerrno>
 #include <cstring>
+#include <limits>
 #include <mutex>
 #include <string>
 #include <thread>
@@ -775,6 +776,120 @@ bool socket_init(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
   value_set_none(out);
   return true;
 }
+
+bool socket_init_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  if (argc < 1 || argc > 5) {
+    error = "socket.__init__() expected optional family, type, proto, fileno";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+
+  const char* parameter_names[] = {"family", "type", "proto", "fileno"};
+  Value bound[] = {
+      args[0], Value::int64(kAfInet), Value::int64(kSockStream),
+      Value::int64(0), Value::none()};
+  bool supplied[] = {true, false, false, false, false};
+  for (uint32_t index = 1; index < argc; ++index) {
+    value_assign_fast(bound[index], args[index]);
+    supplied[index] = true;
+  }
+  for (uint32_t index = 0; index < kwargc; ++index) {
+    const char* name = kwargs[index].name;
+    const Value* value = kwargs[index].value;
+    if (name == nullptr || value == nullptr) {
+      error = "socket.__init__() received an invalid keyword argument";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    uint32_t parameter = 0;
+    while (parameter < 4 && std::strcmp(name, parameter_names[parameter]) != 0) {
+      ++parameter;
+    }
+    if (parameter == 4) {
+      error = "socket.__init__() got an unexpected keyword argument '" +
+              std::string(name) + "'";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    const uint32_t bound_index = parameter + 1;
+    if (supplied[bound_index]) {
+      error = "socket.__init__() got multiple values for argument '" +
+              std::string(name) + "'";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    value_assign_fast(bound[bound_index], *value);
+    supplied[bound_index] = true;
+  }
+  return socket_init(runtime, bound, 5, out, error, user_data);
+}
+
+#ifdef _WIN32
+bool socket_share(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
+                  std::string& error, void*) {
+  if (argc != 2 || args[1].tag != ValueTag::Int64 || args[1].as.i64 < 0 ||
+      args[1].as.i64 > std::numeric_limits<DWORD>::max()) {
+    error = "socket.share() expected a process id";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* state = socket_state(args[0], error);
+  if (state == nullptr) return false;
+  WSAPROTOCOL_INFOW information{};
+  if (WSADuplicateSocketW(state->fd, static_cast<DWORD>(args[1].as.i64),
+                          &information) != 0) {
+    return raise_socket_os_error(runtime, "WSADuplicateSocket", error);
+  }
+  out = Value::bytes(std::string(
+      reinterpret_cast<const char*>(&information), sizeof(information)));
+  return true;
+}
+
+bool socket_fromshare(Runtime& runtime, const Value* args, uint32_t argc,
+                      Value& out, std::string& error, void* class_pointer) {
+  if (argc != 1) {
+    error = "fromshare() expected one bytes object";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* bytes = value_as_bytes(args[0]);
+  if (bytes == nullptr || bytes_object_view(*bytes).size() != sizeof(WSAPROTOCOL_INFOW)) {
+    error = "socket.fromshare() argument must be a bytes object from socket.share()";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
+  WSAPROTOCOL_INFOW information{};
+  std::memcpy(&information, bytes_object_view(*bytes).data(), sizeof(information));
+  const SOCKET descriptor = WSASocketW(
+      FROM_PROTOCOL_INFO, FROM_PROTOCOL_INFO, FROM_PROTOCOL_INFO,
+      &information, 0, WSA_FLAG_OVERLAPPED);
+  if (descriptor == INVALID_SOCKET) {
+    return raise_socket_os_error(runtime, "WSASocket", error);
+  }
+  out = Value::instance(*static_cast<Value*>(class_pointer));
+  Value init_args[] = {
+      out,
+      Value::int64(information.iAddressFamily == AF_INET6 ? kAfInet6 : kAfInet),
+      Value::int64(information.iSocketType == SOCK_DGRAM ? kSockDgram : kSockStream),
+      Value::int64(information.iProtocol),
+      Value::int64(static_cast<int64_t>(descriptor)),
+  };
+  Value ignored;
+  if (!socket_init(runtime, init_args, 5, ignored, error, nullptr)) {
+    closesocket(descriptor);
+    return false;
+  }
+  return true;
+}
+#endif
 
 bool socket_close(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
@@ -2576,7 +2691,9 @@ bool socket_getaddrinfo(Runtime& runtime, const Value* args, uint32_t argc, Valu
 Value make_socket_class(Runtime& runtime) {
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.push_back({"__module__", Value::string("_socket")});
-  attrs.push_back({"__init__", runtime.make_native_function("_socket.socket.__init__", socket_init)});
+  attrs.push_back({"__init__", runtime.make_native_function(
+      "_socket.socket.__init__", socket_init, nullptr, nullptr, nullptr, false,
+      socket_init_kw)});
   attrs.push_back({"__repr__", runtime.make_native_function("_socket.socket.__repr__", socket_repr)});
   attrs.push_back({"close", runtime.make_native_function("_socket.socket.close", socket_close)});
   attrs.push_back({"fileno", runtime.make_native_function("_socket.socket.fileno", socket_fileno)});
@@ -2608,7 +2725,14 @@ Value make_socket_class(Runtime& runtime) {
   attrs.push_back({"recvfrom_into", runtime.make_native_function("_socket.socket.recvfrom_into", socket_recvfrom_into)});
   attrs.push_back({"shutdown", runtime.make_native_function("_socket.socket.shutdown", socket_shutdown)});
   attrs.push_back({"ioctl", runtime.make_native_function("_socket.socket.ioctl", socket_ioctl)});
-  return Value::class_object("socket", std::move(attrs));
+#ifdef _WIN32
+  attrs.push_back({"share", runtime.make_native_function("_socket.socket.share", socket_share)});
+#endif
+  Value object_base = Value::invalid();
+  if (const Value* object_class = runtime.find_builtin("object")) {
+    value_assign_fast(object_base, *object_class);
+  }
+  return Value::class_object("socket", std::move(attrs), std::move(object_base));
 }
 
 void add_socket_exports(Runtime& runtime, NativeModuleBuilder& builder, const Value& socket_class) {
@@ -2747,6 +2871,11 @@ void add_socket_exports(Runtime& runtime, NativeModuleBuilder& builder, const Va
       .function("inet_pton", socket_inet_pton)
       .function("inet_ntop", socket_inet_ntop)
       .function("getaddrinfo", socket_getaddrinfo);
+#ifdef _WIN32
+  builder.value("fromshare", runtime.make_native_function(
+      "_socket.fromshare", socket_fromshare, new Value(socket_class),
+      [](void* value) { delete static_cast<Value*>(value); }));
+#endif
 }
 
 bool select_select(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {

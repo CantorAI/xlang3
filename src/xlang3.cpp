@@ -97,6 +97,14 @@ int system_exit_code_from_exception(xlang3::Runtime& runtime, const xlang3::Valu
   if (code.tag == xlang3::ValueTag::Int64) {
     return static_cast<int>(code.as.i64);
   }
+  if (auto* instance = xlang3::value_as_instance(code)) {
+    auto* klass = xlang3::value_as_class(instance->klass);
+    int64_t integer_code = 0;
+    if (klass != nullptr && xlang3::class_has_builtin_base_name(klass, "int") &&
+        xlang3::value_int_like_to_i64(code, integer_code)) {
+      return static_cast<int>(integer_code);
+    }
+  }
   if (xlang3::value_as_bigint(code) != nullptr) {
     int64_t integer_code = 0;
     if (xlang3::value_bigint_to_i64(code, integer_code)) {
@@ -511,7 +519,23 @@ bool publish_process_sys_attrs(
   if (!xlang3::module_set_attr(sys, "orig_argv", xlang3::Value::list(std::move(original_argv)), error)) {
     return false;
   }
-  const auto prefix = path_to_utf8(executable.parent_path());
+  std::filesystem::path prefix_path = executable.parent_path();
+  xlang3::Value stdlib_value;
+  std::string ignored;
+  if (xlang3::module_get_attr(sys, "_stdlib_dir", stdlib_value, ignored)) {
+    if (auto* stdlib_text = xlang3::value_as_string(stdlib_value)) {
+      const std::filesystem::path stdlib_path(
+          xlang3::string_object_to_string(*stdlib_text));
+#if defined(_WIN32)
+      if (stdlib_path.filename() == "Lib") prefix_path = stdlib_path.parent_path();
+#else
+      if (stdlib_path.filename() == "python3.14" &&
+          stdlib_path.parent_path().filename() == "lib")
+        prefix_path = stdlib_path.parent_path().parent_path();
+#endif
+    }
+  }
+  const auto prefix = path_to_utf8(prefix_path);
   if (!xlang3::module_set_attr(sys, "prefix", xlang3::Value::string(prefix), error)) {
     return false;
   }
@@ -1130,14 +1154,34 @@ int xlang3_main(int argc, char** argv) {
 #else
       constexpr char path_separator = ':';
 #endif
+      std::vector<std::filesystem::path> environment_roots;
       size_t start = 0;
       while (start <= paths.size()) {
         const size_t end = paths.find(path_separator, start);
         const std::string item = paths.substr(start, end == std::string::npos ? std::string::npos : end - start);
-        if (!item.empty()) runtime.prepend_import_root(std::filesystem::u8path(item));
+        if (!item.empty()) environment_roots.push_back(std::filesystem::u8path(item));
         if (end == std::string::npos) break;
         start = end + 1;
       }
+      // Each entry belongs ahead of the default roots, but repeated front
+      // insertion reverses PYTHONPATH.  Insert from the end so the user's
+      // declared left-to-right import precedence is preserved.
+      for (auto it = environment_roots.rbegin(); it != environment_roots.rend(); ++it) {
+        runtime.prepend_import_root(*it);
+      }
+    }
+  }
+  // The script directory (or current directory for -m) is always path[0]
+  // ahead of PYTHONPATH.  Re-promote it after adding environment roots in
+  // case the same directory also appeared in PYTHONPATH.
+  if (!config.pth_mode && !config.safe_path) {
+    if (!config.source_path.empty() &&
+        !std::filesystem::is_directory(config.source_path)) {
+      runtime.prepend_import_root(config.source_path.parent_path());
+    } else if (!config.source_path.empty()) {
+      runtime.prepend_import_root(config.source_path);
+    } else {
+      runtime.prepend_import_root(std::filesystem::current_path());
     }
   }
   std::string argv_error;

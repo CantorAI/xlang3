@@ -107,6 +107,18 @@ bool runtime_call_callable_kw(
     Value& out,
     std::string& error);
 
+// Invoke the construction protocol for a class after metaclass __call__ has
+// already been resolved.  This is also the implementation used by an explicit
+// type.__call__(cls, ...), which must not redispatch to cls's metaclass.
+bool runtime_construct_class_kw(
+    Runtime& runtime,
+    const Value& class_value,
+    const Value* args,
+    uint32_t argc,
+    const std::vector<std::pair<std::string, Value>>& kwargs,
+    Value& out,
+    std::string& error);
+
 bool runtime_get_iter(Runtime& runtime, const Value& iterable, Value& out, std::string& error);
 bool runtime_collect_iterable(Runtime& runtime, const Value& iterable, std::vector<Value>& out, std::string& error);
 

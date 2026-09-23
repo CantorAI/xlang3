@@ -87,7 +87,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow make_dict(
   }
   regs[in.dst] = Value::dict_reserved(fn.dict_items[in.a].size());
   auto assign_entry = [&](const Value& key, const Value& value, std::string& error) -> bool {
-    return mapping_set_item(regs[in.dst], key, value, error);
+    return mapping_set_item_runtime(runtime, regs[in.dst], key, value, error);
   };
   for (const auto& pair : fn.dict_items[in.a]) {
     if (pair.second >= regs.size() || (pair.first != UINT32_MAX && pair.first >= regs.size())) {
@@ -114,7 +114,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow make_dict(
           break;
         }
         Value value;
-        if (!mapping_get_item(regs[pair.second], key, value, error) ||
+        if (!mapping_get_item_runtime(runtime, regs[pair.second], key, value, error) ||
             !assign_entry(key, value, error)) {
           return raise_exception_value(runtime.make_exception("TypeError", error))
                      ? XlangVMOpFlow::ContinueLoop
@@ -198,20 +198,32 @@ XLANG3_HOT_INLINE XlangVMOpFlow list_append(
   return XlangVMOpFlow::Next;
 }
 
-template <typename RaiseRuntimeError>
+template <typename RaiseRuntimeError, typename RaiseExceptionValue>
 XLANG3_HOT_INLINE XlangVMOpFlow list_extend(
     const ir::Instr& in,
     XlangVMSmallRegisterBuffer& regs,
-    RaiseRuntimeError&& raise_runtime_error) {
+    Runtime& runtime,
+    RaiseRuntimeError&& raise_runtime_error,
+    RaiseExceptionValue&& raise_exception_value) {
   std::string error;
   Value iterator;
-  if (!sequence_get_iter(regs[in.a], iterator, error)) {
+  if (!runtime_get_iter(runtime, regs[in.a], iterator, error)) {
+    Value pending;
+    if (runtime.take_pending_exception(pending)) {
+      return raise_exception_value(std::move(pending)) ? XlangVMOpFlow::ContinueLoop
+                                                       : XlangVMOpFlow::ReturnResult;
+    }
     return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
   }
   for (;;) {
     bool done = false;
     Value item;
     if (!sequence_iter_next(iterator, done, item, error)) {
+      Value pending;
+      if (runtime.take_pending_exception(pending)) {
+        return raise_exception_value(std::move(pending)) ? XlangVMOpFlow::ContinueLoop
+                                                         : XlangVMOpFlow::ReturnResult;
+      }
       return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
     }
     if (done) {
@@ -273,7 +285,10 @@ XLANG3_HOT_INLINE XlangVMOpFlow dict_set(
     }
   }
   std::string error;
-  if (!sequence_set_item(regs[in.dst], regs[in.a], regs[in.b], error)) {
+  const bool set_ok = value_as_dict(regs[in.dst]) != nullptr
+      ? mapping_set_item_runtime(runtime, regs[in.dst], regs[in.a], regs[in.b], error)
+      : sequence_set_item(regs[in.dst], regs[in.a], regs[in.b], error);
+  if (!set_ok) {
     if (error.find("not hashable") != std::string::npos ||
         error.find("unhashable type") != std::string::npos ||
         error.find("does not support item assignment") != std::string::npos) {
@@ -324,20 +339,32 @@ XLANG3_HOT_INLINE XlangVMOpFlow set_add_op(
   return XlangVMOpFlow::Next;
 }
 
-template <typename RaiseRuntimeError>
+template <typename RaiseRuntimeError, typename RaiseExceptionValue>
 XLANG3_HOT_INLINE XlangVMOpFlow set_update(
     const ir::Instr& in,
     XlangVMSmallRegisterBuffer& regs,
-    RaiseRuntimeError&& raise_runtime_error) {
+    Runtime& runtime,
+    RaiseRuntimeError&& raise_runtime_error,
+    RaiseExceptionValue&& raise_exception_value) {
   std::string error;
   Value iterator;
-  if (!sequence_get_iter(regs[in.a], iterator, error)) {
+  if (!runtime_get_iter(runtime, regs[in.a], iterator, error)) {
+    Value pending;
+    if (runtime.take_pending_exception(pending)) {
+      return raise_exception_value(std::move(pending)) ? XlangVMOpFlow::ContinueLoop
+                                                       : XlangVMOpFlow::ReturnResult;
+    }
     return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
   }
   for (;;) {
     bool done = false;
     Value item;
     if (!sequence_iter_next(iterator, done, item, error)) {
+      Value pending;
+      if (runtime.take_pending_exception(pending)) {
+        return raise_exception_value(std::move(pending)) ? XlangVMOpFlow::ContinueLoop
+                                                         : XlangVMOpFlow::ReturnResult;
+      }
       return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
     }
     if (done) {
@@ -834,14 +861,13 @@ XLANG3_HOT_INLINE XlangVMOpFlow get_item(
   const bool runtime_mapping = value_as_dict(regs[in.a]) != nullptr ||
       (value_as_instance(regs[in.a]) != nullptr &&
        value_as_dict(value_as_instance(regs[in.a])->mapping_storage) != nullptr);
-  const bool mapping_found = value_as_dict(regs[in.a]) != nullptr
-      ? mapping_get_item(regs[in.a], regs[in.b], regs[in.dst], error)
-      : runtime_mapping && mapping_get_item_runtime(runtime, regs[in.a], regs[in.b], regs[in.dst], error);
+  const bool mapping_found = runtime_mapping &&
+      mapping_get_item_runtime(runtime, regs[in.a], regs[in.b], regs[in.dst], error);
   if (mapping_found) {
     xlang_vm_cache_note_hit(cache);
     return XlangVMOpFlow::Next;
   }
-  if (!runtime_mapping && !sequence_get_item(regs[in.a], regs[in.b], regs[in.dst], error)) {
+  if (!runtime_mapping && !sequence_get_item(regs[in.a], regs[in.b], regs[in.dst], error, &runtime)) {
     xlang_vm_cache_note_miss(cache);
     if (value_as_instance(regs[in.a]) != nullptr) {
       Value getitem;
@@ -895,6 +921,12 @@ XLANG3_HOT_INLINE XlangVMOpFlow get_item(
   if (runtime_mapping) {
     if (error == "key not found") {
       return raise_exception_value(runtime.make_exception("KeyError", value_to_string(regs[in.b])))
+                 ? XlangVMOpFlow::ContinueLoop
+                 : XlangVMOpFlow::ReturnResult;
+    }
+    if (error.find("not hashable") != std::string::npos ||
+        error.find("unhashable type") != std::string::npos) {
+      return raise_exception_value(runtime.make_exception("TypeError", error))
                  ? XlangVMOpFlow::ContinueLoop
                  : XlangVMOpFlow::ReturnResult;
     }
@@ -986,25 +1018,6 @@ XLANG3_HOT_INLINE XlangVMOpFlow set_item(
       }
     }
   }
-  if (value_as_dict(regs[in.dst]) != nullptr && value_as_instance(regs[in.a]) != nullptr) {
-    Value hash_method;
-    std::string hash_error;
-    if (object_get_attr(regs[in.a], "__hash__", hash_method, hash_error)) {
-      if (hash_method.tag == ValueTag::None) {
-        return raise_exception_value(runtime.make_exception("TypeError", "unhashable type"))
-            ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
-      }
-      Value hash_result;
-      if (!runtime_call_callable(runtime, hash_method, nullptr, 0, hash_result, hash_error)) {
-        Value pending;
-        if (runtime.take_pending_exception(pending)) {
-          return raise_exception_value(std::move(pending)) ? XlangVMOpFlow::ContinueLoop
-                                                           : XlangVMOpFlow::ReturnResult;
-        }
-        return raise_runtime_error(hash_error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
-      }
-    }
-  }
   if (value_as_instance(regs[in.dst]) != nullptr) {
     Value setitem;
     std::string attr_error;
@@ -1022,7 +1035,10 @@ XLANG3_HOT_INLINE XlangVMOpFlow set_item(
       return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
     }
   }
-  if (!sequence_set_item(regs[in.dst], regs[in.a], regs[in.b], error)) {
+  const bool set_ok = value_as_dict(regs[in.dst]) != nullptr
+      ? mapping_set_item_runtime(runtime, regs[in.dst], regs[in.a], regs[in.b], error)
+      : sequence_set_item(regs[in.dst], regs[in.a], regs[in.b], error);
+  if (!set_ok) {
     if (value_as_instance(regs[in.dst]) != nullptr) {
       Value setitem;
       std::string attr_error;
@@ -1053,6 +1069,28 @@ XLANG3_HOT_INLINE XlangVMOpFlow delete_item(
     RaiseExceptionValue&& raise_exception_value) {
   std::string error;
   Value target = regs[in.dst];
+  // Subscription deletion is special-method dispatch, including for subclasses
+  // that use native dict/list storage.  Dispatch before touching that storage so
+  // overrides such as collections.OrderedDict.__delitem__ can maintain their
+  // companion state.  An explicit dict.__delitem__(obj, key) still reaches the
+  // native dict method and intentionally bypasses the override.
+  if (value_as_instance(target) != nullptr) {
+    Value delitem;
+    std::string attr_error;
+    if (object_get_attr(target, "__delitem__", delitem, attr_error)) {
+      Value ignored;
+      if (runtime_call_callable(runtime, delitem, &regs[in.a], 1, ignored, error)) {
+        return XlangVMOpFlow::Next;
+      }
+      Value pending;
+      if (runtime.take_pending_exception(pending)) {
+        return raise_exception_value(std::move(pending)) ? XlangVMOpFlow::ContinueLoop
+                                                         : XlangVMOpFlow::ReturnResult;
+      }
+      return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop
+                                        : XlangVMOpFlow::ReturnResult;
+    }
+  }
   const bool runtime_mapping = value_as_dict(target) != nullptr ||
       (value_as_instance(target) != nullptr &&
        value_as_dict(value_as_instance(target)->mapping_storage) != nullptr);
@@ -1063,21 +1101,6 @@ XLANG3_HOT_INLINE XlangVMOpFlow delete_item(
     if (error == "Existing exports of data: object cannot be re-sized") {
       return raise_exception_value(runtime.make_exception("BufferError", error))
           ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
-    }
-    if (value_as_instance(regs[in.dst]) != nullptr) {
-      Value delitem;
-      std::string attr_error;
-      if (object_get_attr(regs[in.dst], "__delitem__", delitem, attr_error)) {
-        Value ignored;
-        if (runtime_call_callable(runtime, delitem, &regs[in.a], 1, ignored, error)) {
-          return XlangVMOpFlow::Next;
-        }
-        Value pending;
-        if (runtime.take_pending_exception(pending)) {
-          return raise_exception_value(std::move(pending)) ? XlangVMOpFlow::ContinueLoop
-                                                           : XlangVMOpFlow::ReturnResult;
-        }
-      }
     }
     if (error == "key not found") {
       return raise_exception_value(runtime.make_exception("KeyError", value_to_repr(regs[in.a])))

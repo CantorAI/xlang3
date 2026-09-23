@@ -29,6 +29,8 @@ struct ModuleObject {
   Object header;
   uint64_t version = 0;
   std::string name;
+  Value klass;
+  Runtime* runtime = nullptr;
   std::unordered_map<std::string, uint32_t> name_to_slot;
   std::vector<Value> slots;
   std::vector<std::pair<Value, Value>> extra_globals;

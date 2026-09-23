@@ -78,6 +78,7 @@ enum class AttrSiteKind : uint8_t {
 
 struct CallSiteCache {
   Object* callee_object = nullptr;
+  Value retained_callee;
   CallSiteKind kind = CallSiteKind::Empty;
   FunctionObject* function = nullptr;
   NativeFunctionObject* native = nullptr;
@@ -321,9 +322,13 @@ struct XlangVMFrame {
   void clear_for_pop() {
     value_set_invalid(globals_module);
     value_set_invalid(continuation_value);
-    // Retain immutable function preparation and inline caches in this stack
-    // slot. reset() reuses them when the next activation at this depth runs
-    // the same function, and replaces them when the function changes.
+    // Inline caches must not extend the lifetime of Python objects after the
+    // frame returns. CPython's adaptive caches are non-owning; XLang3 cache
+    // entries currently contain owning Values, so discard those entries while
+    // retaining the allocated cache vector for the next activation.
+    for (auto& cache : instr_cache) {
+      cache = XlangVMInstrCache{};
+    }
     value_set_invalid(trace_function);
     value_set_invalid(trace_frame_object);
     closure = nullptr;
@@ -590,9 +595,33 @@ private:
           instr.dst >= i) {
         continue;
       }
+      // Compiler temporaries produced by calls inside a loop are overwritten
+      // on every iteration. They are not loop-carried roots merely because
+      // the same virtual register is read again in the loop body. Keeping
+      // them for the frame lifetime can retain weakref results across an
+      // explicit gc.collect().
+      std::vector<bool> call_result_defined_in_loop(fn->register_count, false);
+      for (size_t loop_ip = instr.dst; loop_ip <= i; ++loop_ip) {
+        const auto& loop_instr = fn->code[loop_ip];
+        switch (loop_instr.op) {
+          case ir::Op::Call:
+          case ir::Op::CallEx:
+          case ir::Op::CallMethod:
+          case ir::Op::CallLocal:
+          case ir::Op::CallLocalMethod:
+          case ir::Op::CallModuleMethod:
+          case ir::Op::CallGlobal:
+            if (loop_instr.dst < call_result_defined_in_loop.size())
+              call_result_defined_in_loop[loop_instr.dst] = true;
+            break;
+          default:
+            break;
+        }
+      }
       for (size_t loop_ip = instr.dst; loop_ip <= i; ++loop_ip) {
         for_each_register_read(fn->code[loop_ip], [&](uint32_t reg) {
-          if (reg < computed->register_last_use.size()) {
+          if (reg < computed->register_last_use.size() &&
+              !call_result_defined_in_loop[reg]) {
             computed->register_loop_carried[reg] = true;
             computed->register_last_use[reg] = std::numeric_limits<size_t>::max();
           }

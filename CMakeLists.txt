@@ -52,9 +52,16 @@ add_subdirectory(modules/sqlite)
 add_subdirectory(modules/yaml)
 add_subdirectory(modules/device)
 add_subdirectory(modules/net)
+add_subdirectory(modules/hashlib)
+add_subdirectory(modules/pydantic_core)
+add_subdirectory(modules/argon2)
+add_subdirectory(modules/cffi)
 if(CMAKE_RUNTIME_OUTPUT_DIRECTORY)
   foreach(native_module xlang_json_native_package xlang_sqlite3_native_package
-      xlang_yaml_native_package xlang_device_native_package xlang_net_native_package)
+      xlang_yaml_native_package xlang_device_native_package xlang_net_native_package
+      xlang_ssl_native_package xlang_hashlib_native_package xlang_blake2_native_package
+      xlang_pydantic_core_native_package xlang_argon2_cffi_native_package
+      xlang_cffi_backend_native_package)
     set_target_properties(${native_module} PROPERTIES
       RUNTIME_OUTPUT_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/modules"
       LIBRARY_OUTPUT_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/modules")
@@ -162,13 +169,16 @@ set(XLANG3_SYSTEM_RUNTIME_SOURCES
   src/runtime/modules/system/multibytecodec_module.cpp
   src/runtime/modules/system/collections_module.cpp
   src/runtime/modules/system/contextvars_module.cpp
+  src/runtime/modules/system/csv_module.cpp
   src/runtime/modules/system/ctypes_module.cpp
   src/runtime/modules/system/errno_module.cpp
   src/runtime/modules/system/faulthandler_module.cpp
-  src/runtime/modules/system/gc_module.cpp
-  src/runtime/modules/system/array_module.cpp
+    src/runtime/modules/system/gc_module.cpp
+    src/runtime/modules/system/lsprof_module.cpp
+    src/runtime/modules/system/array_module.cpp
   src/runtime/modules/system/imp_module.cpp
   src/runtime/modules/system/importlib_module.cpp
+  src/runtime/modules/system/interpreters_module.cpp
   src/runtime/modules/system/itertools_module.cpp
   src/runtime/modules/system/io_module.cpp
   src/runtime/modules/system/json_module.cpp
@@ -319,8 +329,13 @@ target_include_directories(xlang3 PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/intern
 enable_testing()
 if(WIN32)
   find_program(XLANG3_POWERSHELL NAMES powershell pwsh REQUIRED)
+  find_program(XLANG3_PYTHON314_EXECUTABLE NAMES python.exe
+    PATHS "C:/Python/Python314" NO_DEFAULT_PATH)
 else()
   find_package(Python3 REQUIRED COMPONENTS Interpreter)
+  if(Python3_VERSION VERSION_GREATER_EQUAL "3.14")
+    set(XLANG3_PYTHON314_EXECUTABLE "${Python3_EXECUTABLE}")
+  endif()
 endif()
 add_test(NAME xlang3_import_errors
   COMMAND xlang3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/cli/import_errors.py)
@@ -534,6 +549,34 @@ add_test(
   NAME xlang3_cli_net_module_import
   COMMAND xlang3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/net/module.py $<TARGET_FILE_DIR:xlang_net_native_package>
 )
+
+if(XLANG3_PYTHON314_EXECUTABLE)
+  execute_process(
+    COMMAND ${XLANG3_PYTHON314_EXECUTABLE} -c "import sysconfig; print(sysconfig.get_path('stdlib'))"
+    OUTPUT_VARIABLE XLANG3_PYTHON314_STDLIB
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+  add_test(NAME xlang3_cli_ssl_module
+    COMMAND ${XLANG3_PYTHON314_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_expected.py
+      $<TARGET_FILE:xlang3>
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/ssl_module.py
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/ssl_module.out
+      $<TARGET_FILE_DIR:xlang_ssl_native_package>
+      ${XLANG3_PYTHON314_STDLIB})
+  add_test(NAME xlang3_cli_hashlib_module
+    COMMAND ${XLANG3_PYTHON314_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_expected.py
+      $<TARGET_FILE:xlang3>
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/hashlib_module.py
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/hashlib_module.out
+      $<TARGET_FILE_DIR:xlang_hashlib_native_package>
+      ${XLANG3_PYTHON314_STDLIB})
+  add_test(NAME xlang3_cli_argon2_module
+    COMMAND ${XLANG3_PYTHON314_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_expected.py
+      $<TARGET_FILE:xlang3>
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/argon2/argon2_module.py
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/argon2/argon2_module.out
+      $<TARGET_FILE_DIR:xlang_argon2_cffi_native_package>
+      ${XLANG3_PYTHON314_STDLIB})
+endif()
 
 if(WIN32)
   add_test(NAME xlang3_cli_real_native_imports COMMAND ${XLANG3_POWERSHELL} -NoProfile -ExecutionPolicy Bypass -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/run_real_native_import_tests.ps1 -XLang3 $<TARGET_FILE:xlang3>)

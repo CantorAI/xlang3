@@ -54,14 +54,34 @@ bool int_index_method(Runtime&, const Value* args, uint32_t argc, Value& out, st
   return true;
 }
 
+bool int_hash_method(Runtime&, const Value* args, uint32_t argc, Value& out,
+                     std::string& error, void*) {
+  if (argc != 1) {
+    error = "int.__hash__ expected no arguments";
+    return false;
+  }
+  size_t hash = 0;
+  if (!value_int_like_hash(args[0], hash)) {
+    error = "int.__hash__ target must be int";
+    return false;
+  }
+  out = Value::int64(static_cast<int64_t>(hash));
+  return true;
+}
+
 bool int_float_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 1 || (args[0].tag != ValueTag::Int64 && value_as_bigint(args[0]) == nullptr)) {
+  if (argc != 1) {
     error = "int.__float__ expected an int target";
     return false;
   }
-  if (args[0].tag == ValueTag::Int64) {
-    out = Value::number(static_cast<double>(args[0].as.i64));
+  int64_t integer = 0;
+  if (value_int_like_to_i64(args[0], integer)) {
+    out = Value::number(static_cast<double>(integer));
     return true;
+  }
+  if (value_as_bigint(args[0]) == nullptr) {
+    error = "int.__float__ expected an int target";
+    return false;
   }
   try {
     out = Value::number(std::stod(value_bigint_to_string(args[0])));
@@ -375,6 +395,7 @@ bool int_from_bytes_kw_method(
 
 static BuiltinMethodSpec kIntMethods[] = {
     {"__index__", "int.__index__", int_index_method},
+    {"__hash__", "int.__hash__", int_hash_method},
     {"__float__", "int.__float__", int_float_method},
     {"__add__", "int.__add__", int_add_method},
     {"__pow__", "int.__pow__", int_pow_method, nullptr, false, nullptr, "($self, value, mod=None, /)"},

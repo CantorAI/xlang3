@@ -101,6 +101,26 @@ bool text_io_wrapper_init_kw(
     Runtime& runtime, const Value* args, uint32_t argc,
     const NativeKeywordArg* kwargs, uint32_t kwargc, Value& out,
     std::string& error, void* user_data);
+
+// Stream wrappers accept arbitrary Python buffer objects. Attribute access on
+// those objects must include the normal __getattr__ fallback; tempfile's
+// _TemporaryFileWrapper relies on it for the complete file API.
+bool stream_buffer_get_attr(
+    Runtime& runtime, const Value& buffer, const std::string& name,
+    Value& out, std::string& error) {
+  if (attribute_get(buffer, name, out, error)) return true;
+  auto* instance = value_as_instance(buffer);
+  auto* klass = instance == nullptr ? nullptr : value_as_class(instance->klass);
+  if (klass == nullptr) return false;
+  Value hook;
+  std::string hook_error;
+  if (!object_get_class_attr_for_instance(
+          buffer, "__getattr__", hook, hook_error)) {
+    return false;
+  }
+  Value args[] = {buffer, Value::string(name)};
+  return runtime_call_callable(runtime, hook, args, 2, out, error);
+}
 bool io_open_alias(
     Runtime& runtime, const Value* args, uint32_t argc, Value& out,
     std::string& error, void* user_data);
@@ -798,7 +818,7 @@ bool text_io_wrapper_load_buffer(
   Value tell;
   Value position;
   std::string ignored;
-  if (attribute_get(buffer, "tell", tell, ignored)) {
+  if (stream_buffer_get_attr(runtime, buffer, "tell", tell, ignored)) {
     if (runtime_call_callable(runtime, tell, nullptr, 0, position, ignored)) {
       if (position.tag == ValueTag::Int64 && position.as.i64 > 0) {
         state->text_encoder_started = true;
@@ -810,7 +830,7 @@ bool text_io_wrapper_load_buffer(
     }
   }
   Value mode;
-  bool have_mode = attribute_get(buffer, "mode", mode, ignored);
+  bool have_mode = stream_buffer_get_attr(runtime, buffer, "mode", mode, ignored);
   if (!have_mode) {
     if (const Value* raw = buffered_raw_value(buffer)) {
       have_mode = attribute_get(*raw, "mode", mode, ignored);
@@ -1053,7 +1073,7 @@ bool buffered_stream_load_buffer(Runtime& runtime, const Value& self, const Valu
   Value mode;
   std::string ignored;
   if (!object_get_attr(buffer, "_mode", mode, ignored)) {
-    attribute_get(buffer, "mode", mode, ignored);
+    stream_buffer_get_attr(runtime, buffer, "mode", mode, ignored);
   }
   if (value_as_string(mode) != nullptr) {
     io_set_instance_attr(self, "mode", mode);
@@ -1067,7 +1087,7 @@ bool buffered_stream_load_buffer(Runtime& runtime, const Value& self, const Valu
         io_set_instance_attr(self, "name", descriptor);
       }
     }
-  } else if (attribute_get(buffer, "name", name, ignored) && value_as_property(name) == nullptr) {
+  } else if (stream_buffer_get_attr(runtime, buffer, "name", name, ignored) && value_as_property(name) == nullptr) {
     io_set_instance_attr(self, "name", name);
   }
   value_set_none(out);
@@ -1354,7 +1374,7 @@ bool stream_read(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
     if (!state->binary) state->text_decoded_read = true;
     Value readable_method;
     std::string capability_error;
-    if (attribute_get(state->wrapped_buffer, "readable", readable_method, capability_error)) {
+    if (stream_buffer_get_attr(runtime, state->wrapped_buffer, "readable", readable_method, capability_error)) {
       Value readable;
       if (!runtime_call_callable(
               runtime, readable_method, nullptr, 0, readable, error)) return false;
@@ -1401,9 +1421,9 @@ bool stream_read(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
     }
     Value read_method;
     std::string read_error;
-    if (!attribute_get(state->wrapped_buffer, "read", read_method, read_error)) {
+    if (!stream_buffer_get_attr(runtime, state->wrapped_buffer, "read", read_method, read_error)) {
       Value readinto_method;
-      if (!attribute_get(state->wrapped_buffer, "readinto", readinto_method, error)) {
+      if (!stream_buffer_get_attr(runtime, state->wrapped_buffer, "readinto", readinto_method, error)) {
         error = read_error.empty() ? error : read_error;
         return false;
       }
@@ -1536,7 +1556,7 @@ bool stream_read(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
           state->text_pending_cr = false;
         } else if (!lookahead_bytes.empty() && can_rewind) {
           Value seek_method;
-          if (attribute_get(state->wrapped_buffer, "seek", seek_method, error)) {
+          if (stream_buffer_get_attr(runtime, state->wrapped_buffer, "seek", seek_method, error)) {
             Value seek_args[] = {saved_position, Value::int64(0)};
             Value seek_result;
             if (!runtime_call_callable(
@@ -1849,7 +1869,7 @@ bool stream_readline(Runtime& runtime, const Value* args, uint32_t argc, Value& 
       out = Value::bytes(std::move(line));
       return true;
     }
-    if (!attribute_get(state->wrapped_buffer, "readline", read_method, readline_error)) {
+    if (!stream_buffer_get_attr(runtime, state->wrapped_buffer, "readline", read_method, readline_error)) {
       error = readline_error;
       return false;
     }
@@ -2086,13 +2106,13 @@ bool stream_write(Runtime& runtime, const Value* args, uint32_t argc, Value& out
       Value tell_method;
       Value position;
       std::string ignored;
-      if (attribute_get(state->wrapped_buffer, "seekable", seekable_method, ignored) &&
+      if (stream_buffer_get_attr(runtime, state->wrapped_buffer, "seekable", seekable_method, ignored) &&
           runtime_call_callable(
               runtime, seekable_method, nullptr, 0, seekable, ignored)) {
         position_is_meaningful = value_truthy(seekable);
       }
       if (position_is_meaningful &&
-          attribute_get(state->wrapped_buffer, "tell", tell_method, ignored) &&
+          stream_buffer_get_attr(runtime, state->wrapped_buffer, "tell", tell_method, ignored) &&
           runtime_call_callable(runtime, tell_method, nullptr, 0, position, ignored) &&
           position.tag == ValueTag::Int64 && position.as.i64 > 0) {
         state->text_encoder_started = true;
@@ -2175,7 +2195,7 @@ bool stream_write(Runtime& runtime, const Value* args, uint32_t argc, Value& out
       return false;
     }
     Value write_method;
-    if (!attribute_get(state->wrapped_buffer, "write", write_method, error)) {
+    if (!stream_buffer_get_attr(runtime, state->wrapped_buffer, "write", write_method, error)) {
       return false;
     }
     Value ignored;
@@ -2184,7 +2204,7 @@ bool stream_write(Runtime& runtime, const Value* args, uint32_t argc, Value& out
     }
     if (flush_line) {
       Value flush_method;
-      if (attribute_get(state->wrapped_buffer, "flush", flush_method, error)) {
+      if (stream_buffer_get_attr(runtime, state->wrapped_buffer, "flush", flush_method, error)) {
         Value flush_result;
         if (!runtime_call_callable(runtime, flush_method, nullptr, 0, flush_result, error)) {
           return false;
@@ -2371,7 +2391,7 @@ bool stream_seek(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
       return false;
     }
     Value seek_method;
-    if (!attribute_get(state->wrapped_buffer, "seek", seek_method, error)) return false;
+    if (!stream_buffer_get_attr(runtime, state->wrapped_buffer, "seek", seek_method, error)) return false;
     int64_t offset = args[1].as.i64;
     if (whence == 1) {
       const size_t pending = state->cursor >= state->buffer.size() ? 0 : state->buffer.size() - state->cursor;
@@ -2472,7 +2492,7 @@ bool stream_tell(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
   }
   if (state->wraps_buffer) {
     Value tell_method;
-    if (!attribute_get(state->wrapped_buffer, "tell", tell_method, error)) return false;
+    if (!stream_buffer_get_attr(runtime, state->wrapped_buffer, "tell", tell_method, error)) return false;
     if (!runtime_call_callable(runtime, tell_method, nullptr, 0, out, error)) return false;
     if (out.tag == ValueTag::Int64) {
       if (out.as.i64 < 0) {
@@ -2519,7 +2539,7 @@ bool stream_truncate(Runtime& runtime, const Value* args, uint32_t argc, Value& 
       }
     }
     Value truncate_method;
-    if (!attribute_get(state->wrapped_buffer, "truncate", truncate_method, error)) return false;
+    if (!stream_buffer_get_attr(runtime, state->wrapped_buffer, "truncate", truncate_method, error)) return false;
     return runtime_call_callable(runtime, truncate_method, args + 1, argc - 1, out, error);
   }
   memory_stream_sync_exported_buffer(*state);
@@ -2701,13 +2721,13 @@ bool stream_close(Runtime& runtime, const Value* args, uint32_t argc, Value& out
   if (state->wraps_buffer && !state->closed) {
     Value close_method;
     std::string ignored;
-    if (attribute_get(state->wrapped_buffer, "close", close_method, ignored)) {
+    if (stream_buffer_get_attr(runtime, state->wrapped_buffer, "close", close_method, ignored)) {
       Value close_result;
       if (!runtime_call_callable(runtime, close_method, nullptr, 0, close_result, error)) {
         Value close_exception;
         (void)runtime.take_pending_exception(close_exception);
         Value closed_value;
-        if (attribute_get(state->wrapped_buffer, "closed", closed_value, ignored)) {
+        if (stream_buffer_get_attr(runtime, state->wrapped_buffer, "closed", closed_value, ignored)) {
           state->closed = closed_value.tag == ValueTag::Bool && closed_value.as.b;
         } else {
           state->closed = false;
@@ -2739,7 +2759,7 @@ bool stream_close(Runtime& runtime, const Value* args, uint32_t argc, Value& out
       }
     }
     if (std::string_view(static_cast<const char*>(user_data)) == "_io.BufferedRWPair") {
-      if (attribute_get(state->wrapped_writer, "close", close_method, ignored)) {
+      if (stream_buffer_get_attr(runtime, state->wrapped_writer, "close", close_method, ignored)) {
         Value close_result;
         if (!runtime_call_callable(runtime, close_method, nullptr, 0, close_result, error)) return false;
       }
@@ -2900,14 +2920,14 @@ bool stream_flush(Runtime& runtime, const Value* args, uint32_t argc, Value& out
     }
     Value flush_method;
     std::string ignored;
-    if (attribute_get(state->wrapped_buffer, "flush", flush_method, ignored)) {
+    if (stream_buffer_get_attr(runtime, state->wrapped_buffer, "flush", flush_method, ignored)) {
       Value flush_result;
       if (!runtime_call_callable(runtime, flush_method, nullptr, 0, flush_result, error)) {
         return false;
       }
     }
     if (std::string_view(type) == "_io.BufferedRWPair" &&
-        attribute_get(state->wrapped_writer, "flush", flush_method, ignored)) {
+        stream_buffer_get_attr(runtime, state->wrapped_writer, "flush", flush_method, ignored)) {
       Value flush_result;
       if (!runtime_call_callable(runtime, flush_method, nullptr, 0, flush_result, error)) return false;
     }
@@ -3063,7 +3083,7 @@ bool stream_isatty(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
     for (const Value* endpoint : {&state->wrapped_buffer, &state->wrapped_writer}) {
       Value method;
       Value result;
-      if (!attribute_get(*endpoint, "isatty", method, error) ||
+      if (!stream_buffer_get_attr(runtime, *endpoint, "isatty", method, error) ||
           !runtime_call_callable(runtime, method, nullptr, 0, result, error)) {
         return false;
       }
@@ -3275,11 +3295,11 @@ bool stream_fileno(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
   auto* state = memory_stream_state(args[0], static_cast<const char*>(user_data), error);
   if (!state) return false;
   Value method;
-  if (!attribute_get(state->wrapped_buffer, "fileno", method, error)) return false;
+  if (!stream_buffer_get_attr(runtime, state->wrapped_buffer, "fileno", method, error)) return false;
   return runtime_call_callable(runtime, method, nullptr, 0, out, error);
 }
 
-bool buffered_wrapped_attr(Runtime&, const Value* args, uint32_t argc, Value& out,
+bool buffered_wrapped_attr(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
                            std::string& error, void* user_data, const char* attr_name) {
   if (argc != 1) {
     error = std::string(attr_name) + " getter expected self";
@@ -3291,7 +3311,7 @@ bool buffered_wrapped_attr(Runtime&, const Value* args, uint32_t argc, Value& ou
     error = "invalid buffered stream object";
     return false;
   }
-  return attribute_get(state->wrapped_buffer, attr_name, out, error);
+  return stream_buffer_get_attr(runtime, state->wrapped_buffer, attr_name, out, error);
 }
 
 bool buffered_name_get(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
@@ -3457,7 +3477,7 @@ bool text_io_name_get(Runtime& runtime, const Value* args, uint32_t argc, Value&
   }
   Value name;
   std::string ignored;
-  if (attribute_get(state->wrapped_buffer, "name", name, ignored) &&
+  if (stream_buffer_get_attr(runtime, state->wrapped_buffer, "name", name, ignored) &&
       value_as_property(name) == nullptr) {
     value_assign_fast(out, name);
     return true;
@@ -3487,7 +3507,7 @@ bool text_io_repr(Runtime& runtime, const Value* args, uint32_t argc, Value& out
   Value name;
   std::string ignored;
   bool have_name = state->wraps_buffer &&
-      attribute_get(state->wrapped_buffer, "name", name, ignored) &&
+      stream_buffer_get_attr(runtime, state->wrapped_buffer, "name", name, ignored) &&
       value_as_property(name) == nullptr;
   if (!have_name && state->wraps_buffer) {
     if (const Value* raw = buffered_raw_value(state->wrapped_buffer)) {
@@ -3649,7 +3669,7 @@ bool text_io_wrapper_reconfigure_kw(
   if (encoding_changed && !errors_changed) state->errors = "strict";
   Value flush_method;
   std::string ignored;
-  if (attribute_get(state->wrapped_buffer, "flush", flush_method, ignored)) {
+  if (stream_buffer_get_attr(runtime, state->wrapped_buffer, "flush", flush_method, ignored)) {
     Value flush_result;
     if (!runtime_call_callable(runtime, flush_method, nullptr, 0, flush_result, error)) return false;
   }
@@ -3657,13 +3677,13 @@ bool text_io_wrapper_reconfigure_kw(
     state->text_encoder_started = false;
     Value seekable_method;
     Value seekable;
-    if (attribute_get(state->wrapped_buffer, "seekable", seekable_method, ignored) &&
+    if (stream_buffer_get_attr(runtime, state->wrapped_buffer, "seekable", seekable_method, ignored) &&
         runtime_call_callable(
             runtime, seekable_method, nullptr, 0, seekable, ignored) &&
         value_truthy(seekable)) {
       Value tell_method;
       Value position;
-      if (attribute_get(state->wrapped_buffer, "tell", tell_method, ignored) &&
+      if (stream_buffer_get_attr(runtime, state->wrapped_buffer, "tell", tell_method, ignored) &&
           runtime_call_callable(
               runtime, tell_method, nullptr, 0, position, ignored) &&
           position.tag == ValueTag::Int64 && position.as.i64 > 0) {
@@ -3927,6 +3947,66 @@ bool io_base_init(Runtime&, const Value*, uint32_t argc, Value& out, std::string
   return true;
 }
 
+bool io_layer_opened_file(
+    Runtime& runtime, Value& opened, Value& out, std::string& error) {
+  auto* file = opened.tag == ValueTag::Object && opened.as.obj != nullptr &&
+          opened.as.obj->kind == ObjectKind::File
+      ? reinterpret_cast<FileObject*>(opened.as.obj)
+      : nullptr;
+  if (file == nullptr) {
+    out = std::move(opened);
+    return true;
+  }
+
+  const bool text_mode = !file->binary;
+  const int64_t requested_buffering = file->buffering;
+  const std::string encoding = file->encoding;
+  const std::string errors = file->errors;
+  const std::string newline = file->newline;
+  const bool newline_is_none = file->newline_is_none;
+
+  Value io_module;
+  if (!runtime.import_module("_io", io_module, error)) return false;
+  Value file_io_class;
+  if (!module_get_attr(io_module, "FileIO", file_io_class, error)) return false;
+  value_assign_fast(file->klass, file_io_class);
+  file->binary = true;
+  file->buffering = 0;
+
+  if (!text_mode && requested_buffering == 0) {
+    out = std::move(opened);
+    return true;
+  }
+
+  const char* buffered_name = file->readable && file->writable
+      ? "BufferedRandom"
+      : file->readable ? "BufferedReader" : "BufferedWriter";
+  Value buffered_class;
+  if (!module_get_attr(io_module, buffered_name, buffered_class, error)) return false;
+  const int64_t buffer_size = requested_buffering > 1 ? requested_buffering : 8192;
+  Value buffered_args[] = {opened, Value::int64(buffer_size)};
+  Value buffered;
+  if (!runtime_call_callable(
+          runtime, buffered_class, buffered_args, 2, buffered, error)) {
+    return false;
+  }
+  if (!text_mode) {
+    out = std::move(buffered);
+    return true;
+  }
+
+  Value text_class;
+  if (!module_get_attr(io_module, "TextIOWrapper", text_class, error)) return false;
+  Value text_args[] = {
+      buffered,
+      Value::string(encoding),
+      Value::string(errors),
+      newline_is_none ? Value::none() : Value::string(newline),
+      Value::boolean(requested_buffering == 1),
+      Value::boolean(false)};
+  return runtime_call_callable(runtime, text_class, text_args, 6, out, error);
+}
+
 bool io_open_alias(Runtime& runtime, const Value* args, uint32_t argc,
                    Value& out, std::string& error, void*) {
   const Value* builtin_open = runtime.find_builtin("open");
@@ -3934,7 +4014,10 @@ bool io_open_alias(Runtime& runtime, const Value* args, uint32_t argc,
     error = "builtin open is not available";
     return false;
   }
-  return runtime_call_callable(runtime, *builtin_open, args, argc, out, error);
+  Value opened;
+  if (!runtime_call_callable(
+          runtime, *builtin_open, args, argc, opened, error)) return false;
+  return io_layer_opened_file(runtime, opened, out, error);
 }
 
 bool io_open_alias_kw(
@@ -3953,8 +4036,12 @@ bool io_open_alias_kw(
       forwarded.emplace_back(kwargs[index].name, *kwargs[index].value);
     }
   }
-  return runtime_call_callable_kw(
-      runtime, *builtin_open, args, argc, forwarded, out, error);
+  Value opened;
+  if (!runtime_call_callable_kw(
+          runtime, *builtin_open, args, argc, forwarded, opened, error)) {
+    return false;
+  }
+  return io_layer_opened_file(runtime, opened, out, error);
 }
 
 bool io_base_del(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -4279,6 +4366,8 @@ void add_io_exports(NativeModuleBuilder& builder, Runtime& runtime, const Value&
                        nullptr, false, file_io_new)},
        {"readinto", runtime.make_native_function("_io.FileIO.readinto", file_io_readinto)}},
       raw_io_base);
+  Value windows_console_io = Value::class_object(
+      "_WindowsConsoleIO", {{"__module__", Value::string("_io")}}, raw_io_base);
   Value buffered_reader = make_buffered_stream_class(runtime, "BufferedReader", "_io.BufferedReader", buffered_reader_init);
   Value buffered_writer = make_buffered_stream_class(runtime, "BufferedWriter", "_io.BufferedWriter", buffered_writer_init);
   Value buffered_random = make_buffered_stream_class(runtime, "BufferedRandom", "_io.BufferedRandom", buffered_random_init);
@@ -4321,6 +4410,7 @@ void add_io_exports(NativeModuleBuilder& builder, Runtime& runtime, const Value&
       .value("TextIOBase", text_io_base)
       .value("BufferedIOBase", buffered_io_base)
       .value("FileIO", file_io)
+      .value("_WindowsConsoleIO", windows_console_io)
       .value("BufferedReader", buffered_reader)
       .value("BufferedWriter", buffered_writer)
       .value("BufferedRandom", buffered_random)

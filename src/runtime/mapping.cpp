@@ -192,6 +192,13 @@ bool ensure_hashable(const Value& key, std::string& error) {
   return value_hash_key(key, ignored, error);
 }
 
+bool runtime_mapping_hash(Runtime& runtime, const Value& value, int64_t& hash, std::string& error) {
+  size_t raw = 0;
+  if (!runtime_value_hash_key(runtime, value, raw, error)) return false;
+  hash = static_cast<int64_t>(raw);
+  return true;
+}
+
 ObjectKind dict_view_kind(DictIterationKind kind) {
   switch (kind) {
     case DictIterationKind::Keys:
@@ -731,10 +738,23 @@ bool mapping_get_item_runtime(
     const Value& object,
     const Value& key,
     Value& out,
-    std::string& error) {
+    std::string& error,
+    bool dispatch_override) {
   auto* dict = dict_storage_from_value(object);
   if (dict != nullptr && dict->backing_module != nullptr) {
     return mapping_get_item(object, key, out, error);
+  }
+  if (dispatch_override && value_as_instance(object) != nullptr) {
+    Value getitem;
+    std::string attr_error;
+    if (object_get_attr(object, "__getitem__", getitem, attr_error)) {
+      auto* bound = value_as_bound_method(getitem);
+      auto* native = bound == nullptr ? nullptr : value_as_native_function(bound->function);
+      const bool inherited_builtin = native != nullptr && native->name == "dict.__getitem__";
+      if (!inherited_builtin) {
+        return runtime_call_callable(runtime, getitem, &key, 1, out, error);
+      }
+    }
   }
   if (dict == nullptr) {
     Value getitem;
@@ -754,7 +774,7 @@ bool mapping_get_item_runtime(
       return true;
     }
     if (!dict->index_has_non_string_keys) {
-      if (value_as_instance(object) != nullptr) {
+      if (dispatch_override && value_as_instance(object) != nullptr) {
         Value missing;
         std::string attr_error;
         if (object_get_attr(object, "__missing__", missing, attr_error)) {
@@ -765,40 +785,8 @@ bool mapping_get_item_runtime(
       return false;
     }
   }
-  const auto runtime_hash = [&](const Value& value, int64_t& hash) -> bool {
-    if (value_as_instance(value) != nullptr) {
-      Value method;
-      std::string ignored;
-      if (object_get_attr(value, "__hash__", method, ignored)) {
-        if (method.tag == ValueTag::None) {
-          error = "unhashable type";
-          runtime.raise_class_error("TypeError", error);
-          return false;
-        }
-        Value result;
-        if (!runtime_call_callable(runtime, method, nullptr, 0, result, error)) return false;
-        if (result.tag != ValueTag::Int64) {
-          error = "__hash__ method should return an integer";
-          runtime.raise_class_error("TypeError", error);
-          return false;
-        }
-        hash = result.as.i64;
-        return true;
-      }
-    }
-    size_t raw = 0;
-    if (!value_hash_key(value, raw, error)) return false;
-    hash = static_cast<int64_t>(raw);
-    return true;
-  };
   int64_t key_hash = 0;
-  if (!runtime_hash(key, key_hash)) return false;
-  const auto is_weakref_key = [](const Value& value) {
-    auto* instance = value_as_instance(value);
-    auto* klass = instance == nullptr ? nullptr : value_as_class(instance->klass);
-    return klass != nullptr && (klass->name == "ReferenceType" ||
-        class_has_builtin_base_name(klass, "ReferenceType"));
-  };
+  if (!runtime_mapping_hash(runtime, key, key_hash, error)) return false;
   for (size_t index = 0; index < dict->entries.size(); ++index) {
     Value candidate_key = dict->entries[index].first;
     Value candidate_value = dict->entries[index].second;
@@ -807,9 +795,8 @@ bool mapping_get_item_runtime(
       return true;
     }
     int64_t candidate_hash = 0;
-    if (!runtime_hash(candidate_key, candidate_hash)) return false;
-    if (is_weakref_key(candidate_key) && is_weakref_key(key) &&
-        candidate_hash != key_hash) continue;
+    if (!runtime_mapping_hash(runtime, candidate_key, candidate_hash, error)) return false;
+    if (candidate_hash != key_hash) continue;
     Value equal;
     if (!runtime_value_compare(runtime, "==", candidate_key, key, equal, error)) return false;
     bool is_equal = false;
@@ -819,7 +806,7 @@ bool mapping_get_item_runtime(
       return true;
     }
   }
-  if (value_as_instance(object) != nullptr) {
+  if (dispatch_override && value_as_instance(object) != nullptr) {
     Value missing;
     std::string attr_error;
     if (object_get_attr(object, "__missing__", missing, attr_error)) {
@@ -850,48 +837,15 @@ bool mapping_delete_item_runtime(Runtime& runtime, Value& object, const Value& k
       return false;
     }
   }
-  const auto runtime_hash = [&](const Value& value, int64_t& hash) -> bool {
-    if (value_as_instance(value) != nullptr) {
-      Value method;
-      std::string ignored;
-      if (object_get_attr(value, "__hash__", method, ignored)) {
-        if (method.tag == ValueTag::None) {
-          error = "unhashable type";
-          runtime.raise_class_error("TypeError", error);
-          return false;
-        }
-        Value result;
-        if (!runtime_call_callable(runtime, method, nullptr, 0, result, error)) return false;
-        if (result.tag != ValueTag::Int64) {
-          error = "__hash__ method should return an integer";
-          runtime.raise_class_error("TypeError", error);
-          return false;
-        }
-        hash = result.as.i64;
-        return true;
-      }
-    }
-    size_t raw = 0;
-    if (!value_hash_key(value, raw, error)) return false;
-    hash = static_cast<int64_t>(raw);
-    return true;
-  };
   int64_t key_hash = 0;
-  if (!runtime_hash(key, key_hash)) return false;
-  const auto is_weakref_key = [](const Value& value) {
-    auto* instance = value_as_instance(value);
-    auto* klass = instance == nullptr ? nullptr : value_as_class(instance->klass);
-    return klass != nullptr && (klass->name == "ReferenceType" ||
-        class_has_builtin_base_name(klass, "ReferenceType"));
-  };
+  if (!runtime_mapping_hash(runtime, key, key_hash, error)) return false;
   for (size_t index = 0; index < dict->entries.size(); ++index) {
     Value candidate_key = dict->entries[index].first;
     bool matches = value_is(candidate_key, key);
     if (!matches) {
       int64_t candidate_hash = 0;
-      if (!runtime_hash(candidate_key, candidate_hash)) return false;
-      if (is_weakref_key(candidate_key) && is_weakref_key(key) &&
-          candidate_hash != key_hash) continue;
+      if (!runtime_mapping_hash(runtime, candidate_key, candidate_hash, error)) return false;
+      if (candidate_hash != key_hash) continue;
       Value equal;
       if (!runtime_value_compare(runtime, "==", candidate_key, key, equal, error)) return false;
       if (!runtime_truthy(runtime, equal, matches, error)) return false;
@@ -1019,6 +973,53 @@ bool mapping_set_item(Value& object, const Value& key, const Value& item, std::s
   }
   error = "object does not support item assignment";
   return false;
+}
+
+bool mapping_set_item_runtime(
+    Runtime& runtime,
+    Value& object,
+    const Value& key,
+    const Value& item,
+    std::string& error) {
+  if (value_as_instance(key) == nullptr) {
+    return mapping_set_item(object, key, item, error);
+  }
+  if (value_as_mapping_proxy(object) != nullptr) {
+    error = "'mappingproxy' object does not support item assignment";
+    return false;
+  }
+  auto* dict = dict_storage_from_value(object);
+  if (dict == nullptr || dict->backing_module != nullptr) {
+    return mapping_set_item(object, key, item, error);
+  }
+
+  int64_t key_hash = 0;
+  if (!runtime_mapping_hash(runtime, key, key_hash, error)) return false;
+  for (auto& entry : dict->entries) {
+    if (value_is(entry.first, key)) {
+      value_assign_fast(entry.second, item);
+      return true;
+    }
+    int64_t candidate_hash = 0;
+    if (!runtime_mapping_hash(runtime, entry.first, candidate_hash, error)) return false;
+    if (candidate_hash != key_hash) continue;
+    Value equal;
+    if (!runtime_value_compare(runtime, "==", entry.first, key, equal, error)) return false;
+    bool is_equal = false;
+    if (!runtime_truthy(runtime, equal, is_equal, error)) return false;
+    if (is_equal) {
+      value_assign_fast(entry.second, item);
+      return true;
+    }
+  }
+
+  Value owned_key;
+  Value owned_item;
+  value_assign_fast(owned_key, key);
+  value_assign_fast(owned_item, item);
+  dict->entries.push_back(std::make_pair(std::move(owned_key), std::move(owned_item)));
+  dict->indexed_entry_count = static_cast<size_t>(-1);
+  return true;
 }
 
 bool mapping_delete_item(Value& object, const Value& key, std::string& error) {

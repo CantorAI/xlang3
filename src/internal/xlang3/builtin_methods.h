@@ -64,24 +64,27 @@ XLANG3_HOT_INLINE bool builtin_method_fast_adapter(
     Value& out,
     std::string& error,
     void* user_data) {
-  if (leading_count != 1 || leading == nullptr ||
+  const uint32_t argc = leading_count + register_arg_count;
+  if (leading_count > 1 || (leading_count != 0 && leading == nullptr) || argc == 0 ||
       (register_arg_count != 0 && (registers == nullptr || register_args == nullptr))) {
-    error = "invalid builtin method fast call";
+    error = "invalid builtin method fast call (leading=" + std::to_string(leading_count) +
+        ", register_args=" + std::to_string(register_arg_count) + ")";
     return false;
   }
-  if (register_arg_count + 1 > MaxArgc) {
+  if (argc > MaxArgc) {
     std::vector<Value> args;
-    args.reserve(static_cast<size_t>(register_arg_count) + 1);
-    args.push_back(leading[0]);
+    args.reserve(argc);
+    if (leading_count == 1) args.push_back(leading[0]);
     for (uint32_t i = 0; i < register_arg_count; ++i) args.push_back(registers[register_args[i]]);
     return Callback(runtime, args.data(), static_cast<uint32_t>(args.size()), out, error, user_data);
   }
   Value args[MaxArgc];
-  value_borrow_assign_fast(args[0], leading[0]);
+  uint32_t next = 0;
+  if (leading_count == 1) value_borrow_assign_fast(args[next++], leading[0]);
   for (uint32_t i = 0; i < register_arg_count; ++i) {
-    value_borrow_assign_fast(args[i + 1], registers[register_args[i]]);
+    value_borrow_assign_fast(args[next++], registers[register_args[i]]);
   }
-  return Callback(runtime, args, register_arg_count + 1, out, error, user_data);
+  return Callback(runtime, args, argc, out, error, user_data);
 }
 
 // Stack-backed positional-call adapter for ordinary native builtins.  This is
@@ -280,6 +283,7 @@ bool int_install_class_methods(Runtime& runtime, ClassObject& int_class);
 bool set_get_method(const Value& object, const std::string& name, Value& out);
 const BuiltinMethodSpec* set_find_method_spec(const Value& object, const std::string& name);
 bool set_install_class_methods(Runtime& runtime, ClassObject& set_class);
+bool frozenset_install_class_methods(Runtime& runtime, ClassObject& frozenset_class);
 bool string_get_method(const Value& object, const std::string& name, Value& out);
 const BuiltinMethodSpec* string_find_method_spec(const Value& object, const std::string& name);
 bool string_install_class_methods(Runtime& runtime, ClassObject& string_class);

@@ -81,14 +81,4 @@ std::string translate_route_pattern(const std::string& url) {
   return "^" + std::regex_replace(url, placeholder, "([^/&?]*)") + "(?:\\?.*)?$";
 }
 
-bool InlineTaskQueue::enqueue(std::function<void()> fn) {
-  if (shutdown_) return false;
-  fn();
-  return true;
-}
-
-void InlineTaskQueue::shutdown() {
-  shutdown_ = true;
-}
-
 } // namespace xlang_net

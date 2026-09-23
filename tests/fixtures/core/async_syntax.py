@@ -26,5 +26,13 @@ async def lazy_value():
 
 main_coro = main()
 coro = lazy_value()
-print(str(main_coro))
-print(len(ran), str(coro))
+
+
+def stable_coroutine_repr(value):
+    text = str(value)
+    address = text.find(" at 0x")
+    return text if address < 0 else text[:address] + ">"
+
+
+print(stable_coroutine_repr(main_coro))
+print(len(ran), stable_coroutine_repr(coro))

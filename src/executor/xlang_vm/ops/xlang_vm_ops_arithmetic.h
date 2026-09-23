@@ -126,7 +126,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_binary_special_method(
     RaiseExceptionValue&& raise_exception_value) {
   Value method;
   std::string attr_error;
-  if (!attribute_get(lhs, method_name, method, attr_error)) {
+  if (!object_get_special_method(runtime, lhs, method_name, method, attr_error)) {
     return XlangVMOpFlow::Next;
   }
   auto* bound = value_as_bound_method(method);
@@ -158,6 +158,12 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_binary_special_method(
       return XlangVMOpFlow::ReturnResult;
     }
     return XlangVMOpFlow::ContinueLoop;
+  }
+  if (!pushed_frame) {
+    const Value* not_implemented = runtime.find_builtin("NotImplemented");
+    if (not_implemented != nullptr && value_is(out, *not_implemented)) {
+      return XlangVMOpFlow::Next;
+    }
   }
   if (!pushed_frame) ++ip;
   return pushed_frame ? XlangVMOpFlow::SwitchFrame : XlangVMOpFlow::ContinueLoop;

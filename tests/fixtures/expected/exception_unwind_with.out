@@ -3,13 +3,13 @@ caught from function
 enter suppress
 <class 'IndexError'>
 index out of range
-None
+<traceback object>
 exit suppress
 after suppress
 enter propagate
 before fail
 <class 'IndexError'>
 index out of range
-None
+<traceback object>
 exit propagate
 caught propagated

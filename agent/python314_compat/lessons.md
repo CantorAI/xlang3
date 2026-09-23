@@ -477,6 +477,11 @@ batches.
   looking up `__get__` on the same subclass instance recursively calls the proxy.
 # Import compatibility lessons
 
+- Comprehension assignment targets use the same recursive grammar as `for`
+  statements. Parentheses alone group a target; a comma creates a tuple,
+  including a singleton. Exercise nested tuple/list targets in list, dict,
+  set, generator, and async comprehensions against real library patterns.
+
 - Treat `type` as a soft keyword when parsing PEP 695 aliases. Evaluating a
   non-generic alias RHS as a normal assignment is sufficient for source-backed
   stdlib imports until full `TypeAliasType` metadata is implemented.

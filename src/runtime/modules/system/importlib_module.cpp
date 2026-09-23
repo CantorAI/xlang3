@@ -92,10 +92,12 @@ Value make_module_spec(const std::string& name, const Value& module) {
     if (module_get_attr(module, "__file__", file, ignored)) {
       object_set_attr(spec, "origin", file, ignored);
     }
+    Value path;
+    const bool is_package = module_get_attr(module, "__path__", path, ignored) && path.tag != ValueTag::None;
     const auto dot = module_object->name.rfind('.');
-    if (dot != std::string::npos) {
-      object_set_attr(spec, "parent", Value::string(module_object->name.substr(0, dot)), ignored);
-    }
+    object_set_attr(spec, "parent", Value::string(is_package
+        ? module_object->name
+        : (dot == std::string::npos ? "" : module_object->name.substr(0, dot))), ignored);
   }
   return spec;
 }
@@ -345,7 +347,7 @@ bool importlib_loader_get_code(Runtime& runtime, const Value* args, uint32_t arg
     return false;
   }
   if (std::filesystem::path(path).extension() == ".pyc") {
-    static constexpr unsigned char kMagic[] = {0x33, 0x58, 0x0d, 0x0a};
+    static constexpr unsigned char kMagic[] = {0x3a, 0x58, 0x0d, 0x0a};
     if (bytes.size() < 16 || !std::equal(std::begin(kMagic), std::end(kMagic), bytes.begin())) {
       error = "bad magic number in bytecode file '" + path + "'";
       return false;
@@ -1201,7 +1203,7 @@ bool importlib_resolve_name(Runtime&, const Value* args, uint32_t argc, Value& o
   return true;
 }
 
-bool importlib_spec_from_file_location(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool importlib_spec_from_file_location(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 2 || argc > 3) {
     error = "importlib.util.spec_from_file_location() expected name, location and optional loader";
     return false;
@@ -1211,7 +1213,11 @@ bool importlib_spec_from_file_location(Runtime&, const Value* args, uint32_t arg
   if (!get_string_arg(args[0], "spec name", name, error) || !get_string_arg(args[1], "spec location", path, error)) {
     return false;
   }
-  out = make_module_spec_for_file(name, path, argc == 3 ? args[2] : Value::none());
+  Value loader = argc == 3 ? args[2] : Value::none();
+  if (loader.tag == ValueTag::None || loader.tag == ValueTag::Invalid) {
+    loader = make_source_file_loader(runtime, name, Value::string(path));
+  }
+  out = make_module_spec_for_file(name, path, loader);
   return true;
 }
 
@@ -1663,7 +1669,7 @@ bool bootstrap_external_code_to_timestamp_pyc(
       ? static_cast<uint32_t>(args[1].as.i64) : 0;
   const uint32_t size = argc >= 3 && args[2].tag == ValueTag::Int64
       ? static_cast<uint32_t>(args[2].as.i64) : 0;
-  std::string data("\x33\x58\x0d\x0a", 4);
+  std::string data("\x3d\x58\x0d\x0a", 4);
   append_uint32_le(data, 0);
   append_uint32_le(data, mtime);
   append_uint32_le(data, size);
@@ -1687,7 +1693,7 @@ bool bootstrap_external_code_to_hash_pyc(
     return false;
   }
   const bool checked = argc < 3 || value_truthy(args[2]);
-  std::string data("\x33\x58\x0d\x0a", 4);
+  std::string data("\x3d\x58\x0d\x0a", 4);
   append_uint32_le(data, checked ? 3u : 1u);
   data.append(bytes_object_view(*hash));
   return append_marshaled_code(runtime, args[0], data, out, error);
@@ -1819,7 +1825,7 @@ void register_importlib_module(Runtime& runtime) {
       .value("DEBUG_BYTECODE_SUFFIXES", Value::list({Value::string(".pyc")}))
       .value("OPTIMIZED_BYTECODE_SUFFIXES", Value::list({Value::string(".pyc")}))
       .value("EXTENSION_SUFFIXES", Value::list({}))
-      .value("MAGIC_NUMBER", Value::bytes(std::string("\x33\x58\x0d\x0a", 4)))
+      .value("MAGIC_NUMBER", Value::bytes(std::string("\x3d\x58\x0d\x0a", 4)))
       .function("cache_from_source", bootstrap_external_cache_from_source, nullptr, false, bootstrap_external_cache_from_source_kw)
       .function("source_from_cache", bootstrap_external_source_from_cache)
       .function("decode_source", bootstrap_external_decode_source)

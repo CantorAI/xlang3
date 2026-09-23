@@ -21,7 +21,10 @@ limitations under the License.
 
 namespace xlang3 {
 
+class Runtime;
+
 bool value_key_equal(const Value& lhs, const Value& rhs);
 bool value_hash_key(const Value& value, size_t& out, std::string& error);
+bool runtime_value_hash_key(Runtime& runtime, const Value& value, size_t& out, std::string& error);
 
 } // namespace xlang3

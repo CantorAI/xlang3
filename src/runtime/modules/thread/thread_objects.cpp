@@ -792,6 +792,7 @@ bool xlang_lock_acquire_value(const Value& lock_value, bool blocking, std::strin
     }
     state->cv.wait(lock, [state]() { return state->depth == 0; });
     state->owner = current;
+    state->owner_ident = xlang_thread_current_ident();
     state->depth = 1;
     return true;
   }
@@ -1125,17 +1126,24 @@ void xlang_thread_join_runtime_threads(Runtime* runtime) {
     }
   }
 
+  std::vector<std::shared_ptr<XlangThreadState>> finished_threads;
   {
     std::lock_guard<std::mutex> registry_lock(g_thread_registry_mutex);
     auto it = g_thread_registry.begin();
     while (it != g_thread_registry.end()) {
       auto state = *it;
       if (!state || (state->runtime == runtime && !xlang_thread_is_alive_state(*state))) {
+        if (state && state->worker.joinable()) {
+          finished_threads.push_back(state);
+        }
         it = g_thread_registry.erase(it);
       } else {
         ++it;
       }
     }
+  }
+  for (auto& state : finished_threads) {
+    xlang_thread_join_state(*state);
   }
 }
 

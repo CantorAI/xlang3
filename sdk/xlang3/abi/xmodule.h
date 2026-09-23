@@ -22,7 +22,7 @@ limitations under the License.
 extern "C" {
 #endif
 
-#define X3_ABI_VERSION 21u
+#define X3_ABI_VERSION 24u
 #define X3_NATIVE_CAPTURE_EXPRESSIONS 1u
 /* Copy the complete argument graph across IPC; local calls are unchanged. */
 #define X3_NATIVE_IPC_ARGS_BY_VALUE 2u
@@ -158,6 +158,18 @@ typedef struct X3PackageHost {
   X3Value (*value_string_utf8)(X3Runtime*, const char*, uint64_t);
   X3Status (*event_fire_kw)(X3Runtime*, X3Value, const X3Value*, uint32_t,
       const X3KeywordArg*, uint32_t, X3Value*);
+  /* Raises an already constructed exception instance. */
+  X3Status (*raise_exception)(X3CallContext*, X3Value);
+  /* Discards the error and exception produced by a failed nested host call.
+     This is intended for native algorithms that speculatively try alternatives. */
+  X3Status (*clear_exception)(X3CallContext*);
+  /* Consumes the exception produced by a failed nested host call. The caller
+     owns the returned value and must release it. */
+  X3Status (*take_exception)(X3CallContext*, X3Value*);
+  /* Appended native-cycle support. references describes values already retained
+     by the payload; the host does not retain them a second time. */
+  X3Status (*instance_set_native_gc_references)(
+      X3Value, const X3Value*, uint32_t, X3NativeDataCleanup);
 } X3PackageHost;
 
 typedef X3Status (*X3PackageInitFn)(void* host, X3Value cur_module);

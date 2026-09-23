@@ -52,6 +52,26 @@ bool exception_is_import_error_family(const Value& self) {
       (klass->name == "ImportError" || class_has_builtin_base_name(klass, "ImportError"));
 }
 
+bool exception_is_name_error_family(const Value& self) {
+  auto* instance = value_as_instance(self);
+  if (instance == nullptr) {
+    return false;
+  }
+  auto* klass = value_as_class(instance->klass);
+  return klass != nullptr &&
+      (klass->name == "NameError" || class_has_builtin_base_name(klass, "NameError"));
+}
+
+bool exception_is_attribute_error_family(const Value& self) {
+  auto* instance = value_as_instance(self);
+  if (instance == nullptr) {
+    return false;
+  }
+  auto* klass = value_as_class(instance->klass);
+  return klass != nullptr &&
+      (klass->name == "AttributeError" || class_has_builtin_base_name(klass, "AttributeError"));
+}
+
 enum class UnicodeErrorKind { None, Decode, Encode, Translate };
 
 UnicodeErrorKind exception_unicode_error_kind(const Value& self) {
@@ -257,6 +277,13 @@ bool exception_init(
         object_set_attr(const_cast<Value&>(args[0]), "name", Value::none(), ignored);
         object_set_attr(const_cast<Value&>(args[0]), "path", Value::none(), ignored);
       }
+      if (exception_is_name_error_family(args[0])) {
+        object_set_attr(const_cast<Value&>(args[0]), "name", Value::none(), ignored);
+      }
+      if (exception_is_attribute_error_family(args[0])) {
+        object_set_attr(const_cast<Value&>(args[0]), "name", Value::none(), ignored);
+        object_set_attr(const_cast<Value&>(args[0]), "obj", Value::none(), ignored);
+      }
     }
   }
   if (is_os_error) {
@@ -354,22 +381,30 @@ bool exception_init_kw(
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  if (!exception_is_import_error_family(args[0]) && kwargc != 0) {
+  const bool is_import_error = exception_is_import_error_family(args[0]);
+  const bool is_name_error = exception_is_name_error_family(args[0]);
+  const bool is_attribute_error = exception_is_attribute_error_family(args[0]);
+  if (!is_import_error && !is_name_error && !is_attribute_error && kwargc != 0) {
     error = "Exception.__init__() takes no keyword arguments";
     runtime.raise_class_error("TypeError", error);
     return false;
   }
   Value name = Value::none();
   Value path = Value::none();
+  Value object = Value::none();
   for (uint32_t i = 0; i < kwargc; ++i) {
     const std::string_view keyword(kwargs[i].name == nullptr ? "" : kwargs[i].name);
-    if (keyword == "name") {
+    if (keyword == "name" && (is_import_error || is_name_error || is_attribute_error)) {
       value_assign_fast(name, *kwargs[i].value);
-    } else if (keyword == "path") {
+    } else if (keyword == "path" && is_import_error) {
       value_assign_fast(path, *kwargs[i].value);
+    } else if (keyword == "obj" && is_attribute_error) {
+      value_assign_fast(object, *kwargs[i].value);
     } else {
-      error = "ImportError() got an unexpected keyword argument '" +
-          std::string(keyword) + "'";
+      auto* instance = value_as_instance(args[0]);
+      auto* klass = instance == nullptr ? nullptr : value_as_class(instance->klass);
+      const std::string class_name = klass == nullptr ? "Exception" : klass->name;
+      error = class_name + "() got an unexpected keyword argument '" + std::string(keyword) + "'";
       runtime.raise_class_error("TypeError", error);
       return false;
     }
@@ -377,10 +412,15 @@ bool exception_init_kw(
   if (!exception_init(runtime, args, argc, out, error, user_data)) {
     return false;
   }
-  if (exception_is_import_error_family(args[0])) {
+  if (is_import_error || is_name_error || is_attribute_error) {
     std::string ignored;
     object_set_attr(const_cast<Value&>(args[0]), "name", name, ignored);
-    object_set_attr(const_cast<Value&>(args[0]), "path", path, ignored);
+    if (is_import_error) {
+      object_set_attr(const_cast<Value&>(args[0]), "path", path, ignored);
+    }
+    if (is_attribute_error) {
+      object_set_attr(const_cast<Value&>(args[0]), "obj", object, ignored);
+    }
   }
   return true;
 }
@@ -497,6 +537,209 @@ bool exception_str(
   return true;
 }
 
+bool copy_exception_group_metadata(const Value& source, Value& target) {
+  static constexpr std::string_view names[] = {
+      "__traceback__", "__cause__", "__context__", "__suppress_context__", "__notes__"};
+  std::string ignored;
+  for (const auto name : names) {
+    Value value;
+    if (object_get_attr(source, std::string(name), value, ignored) &&
+        !object_set_attr(target, std::string(name), value, ignored)) {
+      return false;
+    }
+    ignored.clear();
+  }
+  return true;
+}
+
+bool derive_exception_group(
+    Runtime& runtime,
+    const Value& group,
+    std::vector<Value> exceptions,
+    Value& out,
+    std::string& error) {
+  auto* instance = value_as_instance(group);
+  if (instance == nullptr) {
+    error = "BaseExceptionGroup operation expected an exception group";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value message;
+  std::string ignored;
+  if (!object_get_attr(group, "message", message, ignored)) {
+    error = "exception group has no message";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value constructor_args[2] = {message, Value::tuple(std::move(exceptions))};
+  if (!runtime_call_callable(runtime, instance->klass, constructor_args, 2, out, error)) {
+    return false;
+  }
+  copy_exception_group_metadata(group, out);
+  return true;
+}
+
+bool exception_group_condition_matches(
+    Runtime& runtime,
+    const Value& condition,
+    const Value& exception,
+    bool& matches,
+    std::string& error) {
+  Value result;
+  if (value_as_class(condition) != nullptr || value_as_tuple(condition) != nullptr) {
+    const Value* isinstance_function = runtime.find_builtin("isinstance");
+    if (isinstance_function == nullptr) {
+      error = "isinstance is unavailable";
+      runtime.raise_class_error("RuntimeError", error);
+      return false;
+    }
+    Value args[2] = {exception, condition};
+    if (!runtime_call_callable(runtime, *isinstance_function, args, 2, result, error)) {
+      return false;
+    }
+  } else if (!runtime_call_callable(runtime, condition, &exception, 1, result, error)) {
+    return false;
+  }
+  matches = value_truthy(result);
+  return true;
+}
+
+bool partition_exception_group(
+    Runtime& runtime,
+    const Value& group,
+    const Value& condition,
+    Value& matching,
+    Value& remaining,
+    std::string& error) {
+  bool whole_group_matches = false;
+  if (!exception_group_condition_matches(
+          runtime, condition, group, whole_group_matches, error)) {
+    return false;
+  }
+  if (whole_group_matches) {
+    value_assign_fast(matching, group);
+    remaining = Value::none();
+    return true;
+  }
+
+  Value exceptions;
+  std::string ignored;
+  if (!object_get_attr(group, "exceptions", exceptions, ignored)) {
+    error = "exception group has no exceptions";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  const auto* tuple = value_as_tuple(exceptions);
+  if (tuple == nullptr) {
+    error = "exception group exceptions must be a tuple";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+
+  std::vector<Value> matching_items;
+  std::vector<Value> remaining_items;
+  for (const auto& exception : tuple->items) {
+    bool exception_only = false;
+    if (exception_is_group_family(exception, exception_only)) {
+      Value nested_matching;
+      Value nested_remaining;
+      if (!partition_exception_group(
+              runtime, exception, condition, nested_matching, nested_remaining, error)) {
+        return false;
+      }
+      if (nested_matching.tag != ValueTag::None) {
+        matching_items.push_back(std::move(nested_matching));
+      }
+      if (nested_remaining.tag != ValueTag::None) {
+        remaining_items.push_back(std::move(nested_remaining));
+      }
+      continue;
+    }
+
+    bool item_matches = false;
+    if (!exception_group_condition_matches(
+            runtime, condition, exception, item_matches, error)) {
+      return false;
+    }
+    (item_matches ? matching_items : remaining_items).push_back(exception);
+  }
+
+  if (matching_items.empty()) {
+    matching = Value::none();
+  } else if (!derive_exception_group(
+                 runtime, group, std::move(matching_items), matching, error)) {
+    return false;
+  }
+  if (remaining_items.empty()) {
+    remaining = Value::none();
+  } else if (!derive_exception_group(
+                 runtime, group, std::move(remaining_items), remaining, error)) {
+    return false;
+  }
+  return true;
+}
+
+bool exception_group_derive(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  bool exception_only = false;
+  if (argc != 2 || !exception_is_group_family(args[0], exception_only)) {
+    error = "BaseExceptionGroup.derive() expected an exception group and a sequence";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  std::vector<Value> exceptions;
+  if (!runtime_collect_iterable(runtime, args[1], exceptions, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  return derive_exception_group(runtime, args[0], std::move(exceptions), out, error);
+}
+
+bool exception_group_subgroup(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  bool exception_only = false;
+  if (argc != 2 || !exception_is_group_family(args[0], exception_only)) {
+    error = "BaseExceptionGroup.subgroup() expected an exception group and a condition";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value remaining;
+  return partition_exception_group(runtime, args[0], args[1], out, remaining, error);
+}
+
+bool exception_group_split(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  bool exception_only = false;
+  if (argc != 2 || !exception_is_group_family(args[0], exception_only)) {
+    error = "BaseExceptionGroup.split() expected an exception group and a condition";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value matching;
+  Value remaining;
+  if (!partition_exception_group(
+          runtime, args[0], args[1], matching, remaining, error)) {
+    return false;
+  }
+  out = Value::tuple({std::move(matching), std::move(remaining)});
+  return true;
+}
+
 bool exception_reduce(
     Runtime& runtime,
     const Value* args,
@@ -570,6 +813,16 @@ void register_exception_class(Runtime& runtime, const char* name, Value base = V
     attrs.emplace_back(
         "__reduce__",
         runtime.make_native_function("BaseException.__reduce__", exception_reduce));
+  } else if (std::string_view(name) == "BaseExceptionGroup") {
+    attrs.emplace_back(
+        "derive",
+        runtime.make_native_function("BaseExceptionGroup.derive", exception_group_derive));
+    attrs.emplace_back(
+        "subgroup",
+        runtime.make_native_function("BaseExceptionGroup.subgroup", exception_group_subgroup));
+    attrs.emplace_back(
+        "split",
+        runtime.make_native_function("BaseExceptionGroup.split", exception_group_split));
   }
   runtime.register_builtin(name, Value::class_object(name, std::move(attrs), std::move(base)));
 }

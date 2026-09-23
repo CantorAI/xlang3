@@ -11,6 +11,7 @@ Use this status strictly:
 
 Task files:
 
+- `fastapi.md`
 - `syntax.md`
 - `runtime_core.md`
 - `builtin_types.md`

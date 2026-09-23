@@ -1453,7 +1453,7 @@ bool codec_lookup_via_registry(Runtime& runtime, const std::string& name, Value&
       Value tuple_storage;
       std::string ignored;
       if (result_tuple == nullptr &&
-          object_get_attr(search_result, "_tuple", tuple_storage, ignored)) {
+          object_get_attr(search_result, "__xlang3_tuple_value__", tuple_storage, ignored)) {
         result_tuple = value_as_tuple(tuple_storage);
       }
       if (result_tuple == nullptr || result_tuple->items.size() != 4) {

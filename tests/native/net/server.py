@@ -1,5 +1,6 @@
 import sys
 import threading
+import time
 if len(sys.argv) > 1:
     sys.path.insert(0, sys.argv[1])
 from xlang_net import http
@@ -16,6 +17,10 @@ def large(req, res):
 def binary(req, res):
     res.set_content(b"\x00\x01\x02\x03", "application/octet-stream")
 
+def slow(req, res):
+    time.sleep(0.5)
+    res.set_content("slow", "text/plain")
+
 def shutdown(req, res):
     res.set_content("bye", "text/plain")
     # Let the request handler return so the response is flushed before the
@@ -25,5 +30,6 @@ def shutdown(req, res):
 server.get("/small", small)
 server.get("/large", large)
 server.get("/binary", binary)
+server.get("/slow", slow)
 server.get("/shutdown", shutdown)
 server.listen("127.0.0.1", 18173, 128, 2)

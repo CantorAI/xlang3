@@ -688,22 +688,8 @@ bool fd_read_some(FileObject& file, size_t requested, std::string& out, std::str
 bool fd_read(FileObject& file, int64_t requested, std::string& out, std::string& error) {
   out.clear();
   if (requested >= 0) {
-    size_t remaining = static_cast<size_t>(requested);
-    while (remaining > 0) {
-      const size_t before = out.size();
-      if (!fd_read_some(file, remaining, out, error)) {
-        if (!out.empty() && (errno == EAGAIN || errno == EWOULDBLOCK)) {
-          return true;
-        }
-        return false;
-      }
-      const size_t got = out.size() - before;
-      if (got == 0) {
-        break;
-      }
-      remaining -= got;
-    }
-    return true;
+    if (requested == 0) return true;
+    return fd_read_some(file, static_cast<size_t>(requested), out, error);
   }
   for (;;) {
     const size_t before = out.size();

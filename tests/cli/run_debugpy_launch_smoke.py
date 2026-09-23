@@ -91,12 +91,14 @@ def main() -> int:
     incoming: queue.Queue[dict[str, object] | BaseException | None] = queue.Queue()
     backlog: list[dict[str, object]] = []
     perf_lines: list[str] = []
+    stderr_chunks: list[bytes] = []
     sequence = 0
 
     def read_messages() -> None:
         try:
             while True:
                 headers: dict[bytes, bytes] = {}
+                header_lines: list[bytes] = []
                 while True:
                     line = process.stdout.readline()
                     if not line:
@@ -105,9 +107,20 @@ def main() -> int:
                     line = line.rstrip(b"\r\n")
                     if not line:
                         break
+                    header_lines.append(line)
                     key, value = line.split(b":", 1)
                     headers[key.lower()] = value.strip()
-                message = json.loads(process.stdout.read(int(headers[b"content-length"])))
+                if b"content-length" not in headers:
+                    raise RuntimeError(f"DAP message omitted Content-Length: {header_lines!r}")
+                remaining = int(headers[b"content-length"])
+                body_chunks: list[bytes] = []
+                while remaining:
+                    chunk = process.stdout.read(remaining)
+                    if not chunk:
+                        raise EOFError(f"DAP body ended with {remaining} bytes remaining")
+                    body_chunks.append(chunk)
+                    remaining -= len(chunk)
+                message = json.loads(b"".join(body_chunks))
                 if message.get("type") == "event" and message.get("event") == "output":
                     output_text = str(message.get("body", {}).get("output", ""))
                     perf_lines.extend(line for line in output_text.splitlines() if line.startswith("perf:"))
@@ -115,7 +128,19 @@ def main() -> int:
         except BaseException as exc:
             incoming.put(exc)
 
+    def read_stderr() -> None:
+        assert process.stderr is not None
+        while True:
+            chunk = process.stderr.read(4096)
+            if not chunk:
+                return
+            stderr_chunks.append(chunk)
+
     threading.Thread(target=read_messages, daemon=True).start()
+    threading.Thread(target=read_stderr, daemon=True).start()
+
+    def adapter_stderr() -> str:
+        return b"".join(stderr_chunks).decode("utf-8", "replace")
 
     def send(command: str, arguments: dict[str, object]) -> int:
         nonlocal sequence
@@ -139,9 +164,16 @@ def main() -> int:
             if isinstance(message, BaseException):
                 raise message
             if message is None:
-                stderr = process.stderr.read().decode("utf-8", "replace") if process.stderr else ""
+                # Give a process that closed its DAP stdout a brief chance to
+                # publish its native exit status before reporting the failure.
+                try:
+                    return_code = process.wait(timeout=0.25)
+                except subprocess.TimeoutExpired:
+                    return_code = None
                 raise RuntimeError(
-                    f"debugpy closed while waiting for {description}: {stderr}; prior messages={backlog!r}"
+                    f"debugpy closed while waiting for {description} "
+                    f"(adapter return code={return_code}): {adapter_stderr()}; "
+                    f"prior messages={backlog!r}"
                 )
             if predicate(message):
                 return message
@@ -191,6 +223,7 @@ def main() -> int:
         "env": launch_env,
     })
     launch = send("launch", launch_arguments)
+    progress("launch request sent")
     wait_for(lambda item: item.get("type") == "event" and item.get("event") == "initialized", "initialized event")
     progress("initialized event")
     breakpoints = send("setBreakpoints", {
@@ -321,10 +354,11 @@ def main() -> int:
         subprocess.run(
             ["taskkill", "/PID", str(process.pid), "/T", "/F"],
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False,
+            timeout=10,
         )
         return_code = process.wait(timeout=10)
         progress("adapter stopped after completed DAP disconnect")
-    stderr = process.stderr.read().decode("utf-8", "replace") if process.stderr else ""
+    stderr = adapter_stderr()
     if os.environ.get("XLANG3_DEBUGPY_PERF_COUNTERS") == "1":
         for line in perf_lines:
             print(line)
@@ -343,4 +377,5 @@ if __name__ == "__main__":
             subprocess.run(
                 ["taskkill", "/PID", str(ADAPTER_PROCESS.pid), "/T", "/F"],
                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False,
+                timeout=10,
             )

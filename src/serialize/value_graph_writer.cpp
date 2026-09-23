@@ -146,10 +146,17 @@ private:
       const auto& code = function.module->functions[id];
       for (const auto& instruction : code.code) {
         const std::string* name = nullptr;
-        if (instruction.op == ir::Op::LoadGlobal) {
+        if (instruction.op == ir::Op::LoadGlobal ||
+            instruction.op == ir::Op::LoadGlobalLocal ||
+            instruction.op == ir::Op::CallGlobal) {
           IO::require(instruction.a < code.names.size(), "invalid global name");
           name = &code.names[instruction.a];
-        } else if (instruction.op == ir::Op::LoadModuleSlot || instruction.op == ir::Op::CallModuleMethod) {
+        } else if (instruction.op == ir::Op::LoadLocalGlobal) {
+          IO::require(instruction.c < code.names.size(), "invalid global name");
+          name = &code.names[instruction.c];
+        } else if (instruction.op == ir::Op::LoadModuleSlot ||
+                   instruction.op == ir::Op::LoadModuleAttr ||
+                   instruction.op == ir::Op::CallModuleMethod) {
           IO::require(instruction.a < function.module->global_slots.size(), "invalid global slot");
           name = &function.module->global_slots[instruction.a];
         } else if (instruction.op == ir::Op::MakeFunction) functions.push_back(instruction.a);

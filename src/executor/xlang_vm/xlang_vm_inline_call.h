@@ -50,6 +50,21 @@ struct XlangVMConditionalArgFunctionSpec {
   Value false_constant;
 };
 
+inline bool xlang_vm_has_direct_positional_signature(
+    const ir::Function& function,
+    uint32_t argc) {
+  if (function.params.size() != argc) return false;
+  if (function.signature.empty()) return true;
+  if (function.signature.size() != function.params.size()) return false;
+  for (const auto& parameter : function.signature) {
+    if (parameter.kind != ir::ParamKind::PosOnly &&
+        parameter.kind != ir::ParamKind::PosOrKeyword) {
+      return false;
+    }
+  }
+  return true;
+}
+
 inline bool xlang_vm_analyze_conditional_arg_function(
     const ir::Module& current_module,
     const FunctionObject& fn_obj,
@@ -60,7 +75,8 @@ inline bool xlang_vm_analyze_conditional_arg_function(
   if (fn_obj.function_id >= fn_module->functions.size()) return false;
   const auto& function = fn_module->functions[fn_obj.function_id];
   if (function.is_generator || function.free_vars.size() != 0 ||
-      function.cell_slots.size() != 0 || argc != function.params.size() ||
+      function.cell_slots.size() != 0 ||
+      !xlang_vm_has_direct_positional_signature(function, argc) ||
       function.code.size() < 8) {
     return false;
   }
@@ -138,7 +154,7 @@ inline bool xlang_vm_analyze_trivial_function(
       ? fn_obj.module.get() : &current_module;
   if (fn_obj.function_id >= function_module->functions.size()) return false;
   const auto& function = function_module->functions[fn_obj.function_id];
-  if (!function.is_generator && function.params.size() == argc &&
+  if (!function.is_generator && xlang_vm_has_direct_positional_signature(function, argc) &&
       function.free_vars.empty() && function.cell_slots.empty() &&
       !function.code.empty()) {
     const auto& direct = function.code[0];
@@ -155,7 +171,7 @@ inline bool xlang_vm_analyze_trivial_function(
       return true;
     }
   }
-  if (function.is_generator || function.params.size() != argc ||
+  if (function.is_generator || !xlang_vm_has_direct_positional_signature(function, argc) ||
       !function.free_vars.empty() || !function.cell_slots.empty() ||
       (function.code.size() != 2 && function.code.size() != 4)) {
     return false;
@@ -266,7 +282,7 @@ inline bool xlang_vm_analyze_arg_binary_function(
     return false;
   }
   const auto& function = function_module->functions[fn_obj.function_id];
-  if (!function.is_generator && function.params.size() == argc &&
+  if (!function.is_generator && xlang_vm_has_direct_positional_signature(function, argc) &&
       function.free_vars.empty() && function.cell_slots.empty() &&
       function.code.size() >= 4) {
     const auto& first = function.code[0];
@@ -290,7 +306,7 @@ inline bool xlang_vm_analyze_arg_binary_function(
       return true;
     }
   }
-  if (!function.is_generator && function.params.size() == argc && function.free_vars.empty() &&
+  if (!function.is_generator && xlang_vm_has_direct_positional_signature(function, argc) && function.free_vars.empty() &&
       function.cell_slots.empty() && function.code.size() >= 3 &&
       function.code[0].op == ir::Op::LoadLocalPair) {
     if (function.code[0].a >= argc || function.code[0].c >= argc ||
@@ -308,7 +324,7 @@ inline bool xlang_vm_analyze_arg_binary_function(
     spec.next_is_constant = false;
     return true;
   }
-  if (function.is_generator || function.params.size() != argc || function.free_vars.size() != 0 ||
+  if (function.is_generator || !xlang_vm_has_direct_positional_signature(function, argc) || function.free_vars.size() != 0 ||
       function.cell_slots.size() != 0 || function.code.size() < 4) {
     return false;
   }
@@ -362,6 +378,15 @@ inline bool xlang_vm_analyze_slot_constructor(
   const auto& function = function_module->functions[fn_obj.function_id];
   if (function.params.empty() || function.free_vars.size() != 0 || function.cell_slots.size() != 0) {
     return false;
+  }
+  if (!function.signature.empty()) {
+    if (function.signature.size() != function.params.size()) return false;
+    for (const auto& parameter : function.signature) {
+      if (parameter.kind != ir::ParamKind::PosOrKeyword ||
+          parameter.default_reg != UINT32_MAX) {
+        return false;
+      }
+    }
   }
   spec.clear();
   size_t ip = 0;

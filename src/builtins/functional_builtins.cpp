@@ -30,6 +30,7 @@ limitations under the License.
 
 #include "source_encoding.h"
 
+#include <array>
 #include <cctype>
 #include <cmath>
 #include <cstdio>
@@ -399,7 +400,47 @@ bool compile_source_to_code(
   // Reject a generator expression followed by another call argument before
   // entering the general parser.  Besides matching Python's diagnostic, this
   // prevents recovery from repeatedly reconsidering the same `for` token.
-  if (const size_t generator_for = source.find(" for "); generator_for != std::string::npos) {
+  // Preserve byte offsets while masking comments and string bodies so words
+  // such as "for" in non-code text cannot trigger the syntax precheck.
+  std::string syntax_source = source;
+  for (size_t index = 0; index < syntax_source.size();) {
+    if (syntax_source[index] == '#') {
+      while (index < syntax_source.size() && syntax_source[index] != '\n')
+        syntax_source[index++] = ' ';
+      continue;
+    }
+    if (syntax_source[index] != '\'' && syntax_source[index] != '"') {
+      ++index;
+      continue;
+    }
+    const char quote = syntax_source[index];
+    const bool triple = index + 2 < syntax_source.size() &&
+        syntax_source[index + 1] == quote && syntax_source[index + 2] == quote;
+    const size_t delimiter_size = triple ? 3u : 1u;
+    for (size_t count = 0; count < delimiter_size; ++count)
+      syntax_source[index++] = ' ';
+    while (index < syntax_source.size()) {
+      if (syntax_source[index] == '\\') {
+        syntax_source[index++] = ' ';
+        if (index < syntax_source.size() && syntax_source[index] != '\n')
+          syntax_source[index++] = ' ';
+        continue;
+      }
+      bool closes = syntax_source[index] == quote;
+      if (closes && triple) {
+        closes = index + 2 < syntax_source.size() &&
+            syntax_source[index + 1] == quote &&
+            syntax_source[index + 2] == quote;
+      }
+      if (closes) {
+        for (size_t count = 0; count < delimiter_size; ++count)
+          syntax_source[index++] = ' ';
+        break;
+      }
+      syntax_source[index++] = ' ';
+    }
+  }
+  if (const size_t generator_for = syntax_source.find(" for "); generator_for != std::string::npos) {
     const size_t call_open = source.rfind('(', generator_for);
     size_t following_comma = std::string::npos;
     if (call_open != std::string::npos) {
@@ -468,6 +509,340 @@ bool compile_source_to_ast(
   return runtime_call_callable(runtime, parse_func, parse_args, 3, out, error);
 }
 
+std::string runtime_ast_class_name(const Value& value) {
+  auto* instance = value_as_instance(value);
+  auto* klass = instance == nullptr ? nullptr : value_as_class(instance->klass);
+  return klass == nullptr ? std::string() : klass->name;
+}
+
+bool runtime_ast_attr(
+    const Value& node, const char* name, Value& out, std::string& error) {
+  if (!object_get_attr(node, name, out, error)) {
+    error = "AST node " + runtime_ast_class_name(node) +
+        " is missing field '" + name + "'";
+    return false;
+  }
+  return true;
+}
+
+ast::ExprPtr runtime_ast_to_expr(const Value& node, std::string& error);
+
+ast::ExprPtr runtime_ast_constant(const Value& value, std::string& error) {
+  if (value.tag == ValueTag::None) {
+    return std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::None);
+  }
+  if (value.tag == ValueTag::Bool) {
+    auto result = std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::Bool);
+    result->bool_value = value.as.b;
+    return result;
+  }
+  if (value.tag == ValueTag::Int64) {
+    return std::make_unique<ast::LiteralExpr>(
+        ast::LiteralExpr::Kind::Int, std::to_string(value.as.i64));
+  }
+  if (value.tag == ValueTag::Double) {
+    return std::make_unique<ast::LiteralExpr>(
+        ast::LiteralExpr::Kind::Double, value_to_string(value));
+  }
+  if (auto* text = value_as_string(value)) {
+    return std::make_unique<ast::LiteralExpr>(
+        ast::LiteralExpr::Kind::String, string_object_to_string(*text));
+  }
+  if (auto* bytes = value_as_bytes(value)) {
+    return std::make_unique<ast::LiteralExpr>(
+        ast::LiteralExpr::Kind::Bytes, bytes_object_to_string(*bytes));
+  }
+  error = "unsupported AST Constant value";
+  return {};
+}
+
+ast::ExprPtr runtime_ast_to_expr(const Value& node, std::string& error) {
+  const std::string kind = runtime_ast_class_name(node);
+  Value value;
+  if (kind == "Name") {
+    if (!runtime_ast_attr(node, "id", value, error) || value_as_string(value) == nullptr) return {};
+    return std::make_unique<ast::NameExpr>(string_object_to_string(*value_as_string(value)));
+  }
+  if (kind == "Constant") {
+    if (!runtime_ast_attr(node, "value", value, error)) return {};
+    return runtime_ast_constant(value, error);
+  }
+  if (kind == "Attribute") {
+    Value owner;
+    Value name;
+    if (!runtime_ast_attr(node, "value", owner, error) ||
+        !runtime_ast_attr(node, "attr", name, error) || value_as_string(name) == nullptr) return {};
+    auto owner_expr = runtime_ast_to_expr(owner, error);
+    if (!owner_expr) return {};
+    return std::make_unique<ast::AttrExpr>(
+        std::move(owner_expr), string_object_to_string(*value_as_string(name)));
+  }
+  if (kind == "Subscript") {
+    Value owner;
+    Value index;
+    if (!runtime_ast_attr(node, "value", owner, error) ||
+        !runtime_ast_attr(node, "slice", index, error)) return {};
+    auto owner_expr = runtime_ast_to_expr(owner, error);
+    auto index_expr = runtime_ast_to_expr(index, error);
+    if (!owner_expr || !index_expr) return {};
+    return std::make_unique<ast::SubscriptExpr>(std::move(owner_expr), std::move(index_expr));
+  }
+  if (kind == "Tuple" || kind == "List") {
+    if (!runtime_ast_attr(node, "elts", value, error) || value_as_list(value) == nullptr) return {};
+    std::vector<ast::ExprPtr> items;
+    for (const auto& item : value_as_list(value)->items) {
+      auto converted = runtime_ast_to_expr(item, error);
+      if (!converted) return {};
+      items.push_back(std::move(converted));
+    }
+    if (kind == "Tuple") return std::make_unique<ast::TupleExpr>(std::move(items));
+    return std::make_unique<ast::ListExpr>(std::move(items));
+  }
+  if (kind == "IfExp") {
+    Value test;
+    Value body;
+    Value otherwise;
+    if (!runtime_ast_attr(node, "test", test, error) ||
+        !runtime_ast_attr(node, "body", body, error) ||
+        !runtime_ast_attr(node, "orelse", otherwise, error)) return {};
+    auto test_expr = runtime_ast_to_expr(test, error);
+    auto body_expr = runtime_ast_to_expr(body, error);
+    auto else_expr = runtime_ast_to_expr(otherwise, error);
+    if (!test_expr || !body_expr || !else_expr) return {};
+    return std::make_unique<ast::ConditionalExpr>(
+        std::move(body_expr), std::move(test_expr), std::move(else_expr));
+  }
+  if (kind == "Call") {
+    Value callable;
+    Value args;
+    Value keywords;
+    if (!runtime_ast_attr(node, "func", callable, error) ||
+        !runtime_ast_attr(node, "args", args, error) || value_as_list(args) == nullptr ||
+        !runtime_ast_attr(node, "keywords", keywords, error) || value_as_list(keywords) == nullptr) return {};
+    auto callable_expr = runtime_ast_to_expr(callable, error);
+    if (!callable_expr) return {};
+    std::vector<ast::CallExpr::Arg> call_args;
+    for (const auto& item : value_as_list(args)->items) {
+      ast::CallExpr::Arg arg;
+      if (runtime_ast_class_name(item) == "Starred") {
+        Value starred_value;
+        if (!runtime_ast_attr(item, "value", starred_value, error)) return {};
+        arg.value = runtime_ast_to_expr(starred_value, error);
+        arg.star = true;
+      } else {
+        arg.value = runtime_ast_to_expr(item, error);
+      }
+      if (!arg.value) return {};
+      call_args.push_back(std::move(arg));
+    }
+    for (const auto& item : value_as_list(keywords)->items) {
+      Value name;
+      Value keyword_value;
+      if (!runtime_ast_attr(item, "arg", name, error) ||
+          !runtime_ast_attr(item, "value", keyword_value, error)) return {};
+      ast::CallExpr::Arg arg;
+      arg.value = runtime_ast_to_expr(keyword_value, error);
+      if (!arg.value) return {};
+      if (name.tag == ValueTag::None) arg.kw_star = true;
+      else if (auto* text = value_as_string(name)) arg.name = string_object_to_string(*text);
+      else return {};
+      call_args.push_back(std::move(arg));
+    }
+    return std::make_unique<ast::CallExpr>(std::move(callable_expr), std::move(call_args));
+  }
+  if (kind == "FormattedValue") {
+    Value formatted_value;
+    Value conversion;
+    Value format_spec;
+    if (!runtime_ast_attr(node, "value", formatted_value, error) ||
+        !runtime_ast_attr(node, "conversion", conversion, error) ||
+        !runtime_ast_attr(node, "format_spec", format_spec, error)) return {};
+    auto expression = runtime_ast_to_expr(formatted_value, error);
+    if (!expression) return {};
+    if (conversion.tag == ValueTag::Int64 && conversion.as.i64 != -1) {
+      const char* conversion_name = conversion.as.i64 == 'r' ? "repr" :
+          (conversion.as.i64 == 'a' ? "ascii" : "str");
+      std::vector<ast::CallExpr::Arg> conversion_args;
+      ast::CallExpr::Arg conversion_arg;
+      conversion_arg.value = std::move(expression);
+      conversion_args.push_back(std::move(conversion_arg));
+      expression = std::make_unique<ast::CallExpr>(
+          std::make_unique<ast::NameExpr>(conversion_name), std::move(conversion_args));
+    }
+    std::vector<ast::CallExpr::Arg> format_args;
+    ast::CallExpr::Arg format_value_arg;
+    format_value_arg.value = std::move(expression);
+    format_args.push_back(std::move(format_value_arg));
+    if (format_spec.tag != ValueTag::None) {
+      ast::CallExpr::Arg spec_arg;
+      spec_arg.value = runtime_ast_to_expr(format_spec, error);
+      if (!spec_arg.value) return {};
+      format_args.push_back(std::move(spec_arg));
+    }
+    return std::make_unique<ast::CallExpr>(
+        std::make_unique<ast::NameExpr>("format"), std::move(format_args));
+  }
+  if (kind == "JoinedStr") {
+    if (!runtime_ast_attr(node, "values", value, error) || value_as_list(value) == nullptr) return {};
+    ast::ExprPtr result = std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::String, "");
+    for (const auto& item : value_as_list(value)->items) {
+      auto part = runtime_ast_to_expr(item, error);
+      if (!part) return {};
+      result = std::make_unique<ast::BinaryExpr>(std::move(result), "+", std::move(part));
+    }
+    return result;
+  }
+  error = "unsupported AST expression node: " + kind;
+  return {};
+}
+
+bool runtime_ast_to_statements(
+    const Value& list_value, std::vector<ast::StmtPtr>& out, std::string& error) {
+  auto* list = value_as_list(list_value);
+  if (list == nullptr) {
+    error = "AST statement body must be a list";
+    return false;
+  }
+  for (const auto& node : list->items) {
+    const std::string kind = runtime_ast_class_name(node);
+    if (kind == "Pass") {
+      out.push_back(std::make_unique<ast::PassStmt>());
+    } else if (kind == "Expr") {
+      Value value;
+      if (!runtime_ast_attr(node, "value", value, error)) return false;
+      auto expr = runtime_ast_to_expr(value, error);
+      if (!expr) return false;
+      out.push_back(std::make_unique<ast::ExprStmt>(std::move(expr)));
+    } else if (kind == "Return") {
+      Value value;
+      if (!runtime_ast_attr(node, "value", value, error)) return false;
+      ast::ExprPtr expr;
+      if (value.tag != ValueTag::None) expr = runtime_ast_to_expr(value, error);
+      if (value.tag != ValueTag::None && !expr) return false;
+      out.push_back(std::make_unique<ast::ReturnStmt>(std::move(expr)));
+    } else if (kind == "Assign") {
+      Value targets_value;
+      Value assigned_value;
+      if (!runtime_ast_attr(node, "targets", targets_value, error) ||
+          !runtime_ast_attr(node, "value", assigned_value, error) ||
+          value_as_list(targets_value) == nullptr) return false;
+      auto rhs = runtime_ast_to_expr(assigned_value, error);
+      if (!rhs) return false;
+      std::vector<ast::ExprPtr> targets;
+      for (const auto& target : value_as_list(targets_value)->items) {
+        auto converted = runtime_ast_to_expr(target, error);
+        if (!converted) return false;
+        targets.push_back(std::move(converted));
+      }
+      if (targets.size() == 1) {
+        if (auto* name = dynamic_cast<ast::NameExpr*>(targets[0].get())) {
+          out.push_back(std::make_unique<ast::AssignStmt>(name->name, std::move(rhs)));
+        } else if (auto* attr = dynamic_cast<ast::AttrExpr*>(targets[0].get())) {
+          out.push_back(std::make_unique<ast::AttrAssignStmt>(
+              std::move(attr->object), attr->name, std::move(rhs)));
+        } else {
+          out.push_back(std::make_unique<ast::UnpackAssignStmt>(std::move(targets[0]), std::move(rhs)));
+        }
+      } else {
+        out.push_back(std::make_unique<ast::MultiAssignStmt>(std::move(targets), std::move(rhs)));
+      }
+    } else if (kind == "If") {
+      Value test;
+      Value body;
+      Value otherwise;
+      if (!runtime_ast_attr(node, "test", test, error) ||
+          !runtime_ast_attr(node, "body", body, error) ||
+          !runtime_ast_attr(node, "orelse", otherwise, error)) return false;
+      auto result = std::make_unique<ast::IfStmt>();
+      result->condition = runtime_ast_to_expr(test, error);
+      if (!result->condition ||
+          !runtime_ast_to_statements(body, result->then_body, error) ||
+          !runtime_ast_to_statements(otherwise, result->else_body, error)) return false;
+      out.push_back(std::move(result));
+    } else if (kind == "FunctionDef" || kind == "AsyncFunctionDef") {
+      Value name;
+      Value arguments;
+      Value body;
+      if (!runtime_ast_attr(node, "name", name, error) || value_as_string(name) == nullptr ||
+          !runtime_ast_attr(node, "args", arguments, error) ||
+          !runtime_ast_attr(node, "body", body, error)) return false;
+      auto function = std::make_unique<ast::FunctionDef>();
+      function->name = string_object_to_string(*value_as_string(name));
+      function->is_async = kind == "AsyncFunctionDef";
+      auto append_parameters = [&](const char* field, ast::FunctionDef::Param::Kind param_kind) {
+        Value params;
+        if (!runtime_ast_attr(arguments, field, params, error) || value_as_list(params) == nullptr) return false;
+        for (const auto& param_node : value_as_list(params)->items) {
+          Value param_name;
+          if (!runtime_ast_attr(param_node, "arg", param_name, error) || value_as_string(param_name) == nullptr) return false;
+          ast::FunctionDef::Param param;
+          param.name = string_object_to_string(*value_as_string(param_name));
+          param.kind = param_kind;
+          function->params.push_back(param.name);
+          function->signature.push_back(std::move(param));
+        }
+        return true;
+      };
+      if (!append_parameters("posonlyargs", ast::FunctionDef::Param::Kind::PosOnly) ||
+          !append_parameters("args", ast::FunctionDef::Param::Kind::PosOrKeyword) ||
+          !append_parameters("kwonlyargs", ast::FunctionDef::Param::Kind::KeywordOnly)) return false;
+      Value vararg;
+      if (!runtime_ast_attr(arguments, "vararg", vararg, error)) return false;
+      if (vararg.tag != ValueTag::None) {
+        Value param_name;
+        if (!runtime_ast_attr(vararg, "arg", param_name, error) || value_as_string(param_name) == nullptr) return false;
+        ast::FunctionDef::Param param;
+        param.name = string_object_to_string(*value_as_string(param_name));
+        param.kind = ast::FunctionDef::Param::Kind::VarArgs;
+        function->params.push_back(param.name);
+        function->signature.push_back(std::move(param));
+      }
+      Value kwarg;
+      if (!runtime_ast_attr(arguments, "kwarg", kwarg, error)) return false;
+      if (kwarg.tag != ValueTag::None) {
+        Value param_name;
+        if (!runtime_ast_attr(kwarg, "arg", param_name, error) || value_as_string(param_name) == nullptr) return false;
+        ast::FunctionDef::Param param;
+        param.name = string_object_to_string(*value_as_string(param_name));
+        param.kind = ast::FunctionDef::Param::Kind::KwArgs;
+        function->params.push_back(param.name);
+        function->signature.push_back(std::move(param));
+      }
+      if (!runtime_ast_to_statements(body, function->body, error)) return false;
+      out.push_back(std::move(function));
+    } else {
+      error = "unsupported AST statement node: " + kind;
+      return false;
+    }
+  }
+  return true;
+}
+
+bool compile_runtime_ast_to_code(
+    Runtime& runtime, const Value& tree, const std::string& filename,
+    const std::string& mode, Value& out, std::string& error) {
+  if (runtime_ast_class_name(tree) != "Module" || mode != "exec") {
+    return raise_type_error(runtime, "compile() AST root must be Module in exec mode", error);
+  }
+  Value body;
+  if (!runtime_ast_attr(tree, "body", body, error)) return false;
+  ast::Module module_ast;
+  if (!runtime_ast_to_statements(body, module_ast.body, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto lowered = lower_to_ir(module_ast);
+  if (!lowered.errors.empty()) {
+    error = lowered.errors.front();
+    runtime.raise_class_error("SyntaxError", error);
+    return false;
+  }
+  auto module = std::make_shared<ir::Module>(std::move(lowered.module));
+  module->source_file = filename;
+  out = Value::code(module, module->entry, mode);
+  return true;
+}
+
 bool run_code_object(Runtime& runtime, CodeObject& code, Value globals_module, Value& out, std::string& error) {
   if (code.module == nullptr || code.function_id >= code.module->functions.size()) {
     error = "invalid code object";
@@ -506,8 +881,20 @@ bool run_code_object(Runtime& runtime, CodeObject& code, Value globals_module, V
   return true;
 }
 
+const DictObject* namespace_dict_storage(const Value& value) {
+  if (const auto* dict = value_as_dict(value)) return dict;
+  if (const auto* instance = value_as_instance(value)) {
+    const auto* klass = value_as_class(instance->klass);
+    if (klass != nullptr &&
+        class_has_builtin_base_name(const_cast<ClassObject*>(klass), "dict")) {
+      return value_as_dict(instance->mapping_storage);
+    }
+  }
+  return nullptr;
+}
+
 bool copy_dict_to_module(const Value& dict_value, Value& module, std::string& error) {
-  auto* dict = value_as_dict(dict_value);
+  auto* dict = namespace_dict_storage(dict_value);
   if (dict == nullptr) {
     return false;
   }
@@ -517,6 +904,44 @@ bool copy_dict_to_module(const Value& dict_value, Value& module, std::string& er
       continue;
     }
     if (!module_set_attr(module, string_object_to_string(*key), entry.second, error)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool copy_module_to_module(const Value& source_value, Value& target_value, std::string& error);
+
+bool copy_mapping_to_module(
+    Runtime& runtime, const Value& mapping, Value& module, std::string& error) {
+  if (namespace_dict_storage(mapping) != nullptr) {
+    return copy_dict_to_module(mapping, module, error);
+  }
+  if (value_as_module(mapping) != nullptr) {
+    return copy_module_to_module(mapping, module, error);
+  }
+  Value items_method;
+  if (!object_get_attr(mapping, "items", items_method, error)) {
+    return false;
+  }
+  Value items_result;
+  if (!runtime_call_callable(runtime, items_method, nullptr, 0, items_result, error)) {
+    return false;
+  }
+  std::vector<Value> items;
+  if (!runtime_collect_iterable(runtime, items_result, items, error)) {
+    return false;
+  }
+  for (const auto& item : items) {
+    std::vector<Value> pair;
+    if (!runtime_collect_iterable(runtime, item, pair, error) || pair.size() != 2) {
+      error = "eval() locals mapping items must be key/value pairs";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    const auto* key = value_as_string(pair[0]);
+    if (key != nullptr &&
+        !module_set_attr(module, string_object_to_string(*key), pair[1], error)) {
       return false;
     }
   }
@@ -564,7 +989,7 @@ bool eval_globals_from_args(
     Value& out,
     std::string& error) {
   Value globals;
-  const bool globals_is_dict = argc >= 2 && value_as_dict(args[1]) != nullptr;
+  const bool globals_is_dict = argc >= 2 && namespace_dict_storage(args[1]) != nullptr;
   if (argc >= 2 && value_as_module(args[1]) != nullptr) {
     value_assign_fast(globals, args[1]);
   } else if (argc < 2 || args[1].tag == ValueTag::None) {
@@ -598,15 +1023,7 @@ bool eval_globals_from_args(
     return false;
   }
   if (has_distinct_locals) {
-    if (value_as_dict(args[2]) != nullptr) {
-      if (!copy_dict_to_module(args[2], out, error)) {
-        return false;
-      }
-    } else if (value_as_module(args[2]) != nullptr) {
-      if (!copy_module_to_module(args[2], out, error)) {
-        return false;
-      }
-    } else {
+    if (!copy_mapping_to_module(runtime, args[2], out, error)) {
       return false;
     }
   } else if (has_implicit_locals && !copy_dict_to_module(implicit_locals, out, error)) {
@@ -660,9 +1077,6 @@ bool builtin_classmethod(
   if (argc != 1) {
     return raise_type_error(runtime, "classmethod() expected 1 argument", error);
   }
-  if (!value_is_callable(runtime, args[0])) {
-    return raise_type_error(runtime, "classmethod() argument must be callable", error);
-  }
   out = Value::class_method(args[0]);
   return true;
 }
@@ -676,9 +1090,6 @@ bool builtin_staticmethod(
     void*) {
   if (argc != 1) {
     return raise_type_error(runtime, "staticmethod() expected 1 argument", error);
-  }
-  if (!value_is_callable(runtime, args[0])) {
-    return raise_type_error(runtime, "staticmethod() argument must be callable", error);
   }
   out = Value::static_method(args[0]);
   return true;
@@ -892,7 +1303,7 @@ bool call_binary_method_if_implemented(
   implemented = false;
   Value method;
   std::string attr_error;
-  if (!attribute_get(receiver, name, method, attr_error)) {
+  if (!object_get_special_method(runtime, receiver, name, method, attr_error)) {
     return true;
   }
   Value result;
@@ -932,6 +1343,27 @@ bool binary_or_impl(
   if (value_bit_or(left, right, out, error)) {
     return true;
   }
+  return raise_type_error(runtime, error, error);
+}
+
+bool binary_add_impl(
+    Runtime& runtime,
+    const Value& left,
+    const Value& right,
+    Value& out,
+    std::string& error) {
+  bool implemented = false;
+  if (!call_binary_method_if_implemented(
+          runtime, left, right, "__add__", implemented, out, error)) {
+    return false;
+  }
+  if (implemented) return true;
+  if (!call_binary_method_if_implemented(
+          runtime, right, left, "__radd__", implemented, out, error)) {
+    return false;
+  }
+  if (implemented) return true;
+  if (value_add(left, right, out, error)) return true;
   return raise_type_error(runtime, error, error);
 }
 
@@ -1276,8 +1708,7 @@ bool builtin_sum(
       return true;
     }
     Value next_total;
-    if (!value_add(total, item, next_total, error)) {
-      runtime.raise_class_error("TypeError", error);
+    if (!binary_add_impl(runtime, total, item, next_total, error)) {
       return false;
     }
     total = std::move(next_total);
@@ -1644,8 +2075,8 @@ bool builtin_getattr(
       Value pending;
       if (runtime.take_pending_exception(pending)) {
         if (exception_matches_builtin(runtime, pending, "AttributeError")) {
-          if (klass->has_getattr_hook &&
-              object_get_class_attr_for_instance(args[0], "__getattr__", hook, hook_error)) {
+          if (object_get_class_attr_for_instance(
+                  args[0], "__getattr__", hook, hook_error)) {
             if (runtime_call_callable(runtime, hook, args, 2, out, error)) return true;
             if (!runtime.take_pending_exception(pending)) return false;
           }
@@ -1662,10 +2093,38 @@ bool builtin_getattr(
     }
   }
   if (value_as_instance(args[0]) != nullptr) {
+    auto* native_instance = value_as_instance(args[0]);
+    if (native_instance->native_get_attr != nullptr &&
+        native_instance->native_get_attr(args[0], attr_name, out, error)) {
+      return true;
+    }
+    error.clear();
+    const auto has_direct_instance_attribute = [&]() {
+      auto* instance = value_as_instance(args[0]);
+      auto* klass = instance == nullptr ? nullptr : value_as_class(instance->klass);
+      if (instance == nullptr || klass == nullptr) return false;
+      auto slot = klass->instance_slot_indices.find(attr_name);
+      if (slot != klass->instance_slot_indices.end() &&
+          slot->second < instance_slot_count(instance) &&
+          instance_slot_at(instance, slot->second).tag != ValueTag::Invalid) {
+        return true;
+      }
+      Value direct;
+      std::string ignored;
+      if (value_as_dict(instance_attribute_storage(*instance)) != nullptr &&
+          mapping_get_string_item(instance_attribute_storage(*instance), attr_name, direct, ignored)) {
+        return true;
+      }
+      for (const auto& attr : instance->attrs) {
+        if (attr.first == attr_name) return true;
+      }
+      return false;
+    };
     Value descriptor;
     std::string descriptor_error;
     if (object_get_class_attr_for_instance(args[0], attr_name, descriptor, descriptor_error) &&
-        object_value_has_descriptor_get(descriptor)) {
+        object_value_has_descriptor_get(descriptor) &&
+        (object_value_is_data_descriptor(descriptor) || !has_direct_instance_attribute())) {
       Value get_method;
       std::string get_error;
       if (attribute_get(descriptor, "__get__", get_method, get_error)) {
@@ -1679,9 +2138,26 @@ bool builtin_getattr(
         Value pending;
         if (runtime.take_pending_exception(pending)) {
           if (exception_matches_builtin(runtime, pending, "AttributeError")) {
+            Value hook;
+            std::string hook_error;
+            if (object_get_class_attr_for_instance(
+                    args[0], "__getattr__", hook, hook_error)) {
+              Value hook_args[] = {args[0], args[1]};
+              if (runtime_call_callable(runtime, hook, hook_args, 2, out, error)) {
+                return true;
+              }
+              Value hook_pending;
+              if (runtime.take_pending_exception(hook_pending)) {
+                pending = std::move(hook_pending);
+              }
+              attach_attribute_error_context(runtime, pending, args[0], args[1]);
+            }
             if (argc == 3) {
-              value_assign_fast(out, args[2]);
-              return true;
+              if (exception_matches_builtin(runtime, pending, "AttributeError")) {
+                value_assign_fast(out, args[2]);
+                error.clear();
+                return true;
+              }
             }
           }
           runtime.set_pending_exception(std::move(pending));
@@ -1754,6 +2230,33 @@ bool builtin_getattr(
       }
     }
   }
+  if (auto* module_object = value_as_module(args[0]);
+      module_object != nullptr && value_as_class(module_object->klass) != nullptr) {
+    Value descriptor;
+    std::string descriptor_error;
+    if (object_lookup_class_attr(
+            module_object->klass, attr_name, descriptor, descriptor_error) &&
+        object_value_has_descriptor_get(descriptor)) {
+      Value get_method;
+      if (attribute_get(descriptor, "__get__", get_method, descriptor_error)) {
+        Value get_args[2] = {args[0], module_object->klass};
+        if (runtime_call_callable(runtime, get_method, get_args, 2, out, descriptor_error)) {
+          return true;
+        }
+        Value pending;
+        if (runtime.take_pending_exception(pending)) {
+          if (argc == 3 && exception_matches_builtin(runtime, pending, "AttributeError")) {
+            value_assign_fast(out, args[2]);
+            error.clear();
+            return true;
+          }
+          runtime.set_pending_exception(std::move(pending));
+        }
+        error = std::move(descriptor_error);
+        return false;
+      }
+    }
+  }
   std::string attr_error;
   if (attribute_get(args[0], attr_name, out, attr_error)) {
     return true;
@@ -1762,7 +2265,7 @@ bool builtin_getattr(
     auto* klass = value_as_class(instance->klass);
     Value hook;
     std::string hook_error;
-    if (klass != nullptr && klass->has_getattr_hook &&
+    if (klass != nullptr &&
         object_get_class_attr_for_instance(args[0], "__getattr__", hook, hook_error)) {
       Value hook_args[] = {args[0], args[1]};
       if (runtime_call_callable(runtime, hook, hook_args, 2, out, error)) {
@@ -2258,8 +2761,18 @@ bool builtin_vars(
     return true;
   }
   if (auto* instance = value_as_instance(args[0])) {
-    if (object_get_attr(args[0], "__dict__", out, error) && value_as_dict(out) != nullptr) {
+    Value dict_name = Value::string("__dict__");
+    Value getattr_args[] = {args[0], dict_name};
+    if (builtin_getattr(runtime, getattr_args, 2, out, error, nullptr) &&
+        value_as_dict(out) != nullptr) {
       return true;
+    }
+    Value pending;
+    if (runtime.take_pending_exception(pending)) {
+      if (!exception_matches_builtin(runtime, pending, "AttributeError")) {
+        runtime.set_pending_exception(std::move(pending));
+        return false;
+      }
     }
     runtime.raise_class_error("TypeError", error.empty() ? "vars() argument must have __dict__ attribute" : error);
     return false;
@@ -2319,16 +2832,20 @@ bool builtin_compile(
   if (argc < 3) {
     return raise_type_error(runtime, "compile() expected at least 3 arguments", error);
   }
-  std::string source;
-  if (!value_to_source_text(runtime, args[0], source, error)) {
-    return false;
-  }
   auto* mode = value_as_string(args[2]);
   if (mode == nullptr) {
     return raise_type_error(runtime, "compile() mode must be str", error);
   }
   auto* filename = value_as_string(args[1]);
   const std::string filename_text = filename == nullptr ? "<string>" : string_object_to_string(*filename);
+  if (!runtime_ast_class_name(args[0]).empty()) {
+    return compile_runtime_ast_to_code(
+        runtime, args[0], filename_text, string_object_to_string(*mode), out, error);
+  }
+  std::string source;
+  if (!value_to_source_text(runtime, args[0], source, error)) {
+    return false;
+  }
   if (argc >= 4 && args[3].tag == ValueTag::Int64 && (args[3].as.i64 & 0x0400) != 0) {
     return compile_source_to_ast(runtime, source, filename_text, string_object_to_string(*mode), out, error);
   }
@@ -2448,6 +2965,84 @@ bool builtin_eval(
     return builtin_exec(runtime, args, argc, out, error, nullptr);
   }
   return run_code_object(runtime, *code, std::move(globals_module), out, error);
+}
+
+bool builtin_inplace_mul(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 2) {
+    return raise_type_error(runtime, "in-place * expects two operands", error);
+  }
+  bool implemented = false;
+  if (!call_binary_method_if_implemented(
+          runtime, args[0], args[1], "__imul__", implemented, out, error)) {
+    return false;
+  }
+  if (implemented) return true;
+  if (!call_binary_method_if_implemented(
+          runtime, args[0], args[1], "__mul__", implemented, out, error)) {
+    return false;
+  }
+  if (implemented) return true;
+  if (!call_binary_method_if_implemented(
+          runtime, args[1], args[0], "__rmul__", implemented, out, error)) {
+    return false;
+  }
+  if (implemented) return true;
+  if (value_mul(args[0], args[1], out, error)) return true;
+  return raise_type_error(runtime, error, error);
+}
+
+bool builtin_eval_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void*) {
+  static constexpr const char* kArgNames[] = {"source", "globals", "locals"};
+  if (argc > 3) {
+    return raise_type_error(runtime, "eval() expected at most 3 arguments", error);
+  }
+  std::array<Value, 3> bound{Value::invalid(), Value::none(), Value::none()};
+  std::array<bool, 3> provided{false, false, false};
+  for (uint32_t i = 0; i < argc; ++i) {
+    value_assign_fast(bound[i], args[i]);
+    provided[i] = true;
+  }
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    if (kwargs[i].name == nullptr || kwargs[i].value == nullptr) {
+      return raise_type_error(runtime, "eval() received invalid keyword argument", error);
+    }
+    uint32_t index = 3;
+    for (uint32_t candidate = 0; candidate < 3; ++candidate) {
+      if (std::string_view(kwargs[i].name) == kArgNames[candidate]) {
+        index = candidate;
+        break;
+      }
+    }
+    if (index == 3) {
+      return raise_type_error(runtime,
+          "eval() got an unexpected keyword argument '" + std::string(kwargs[i].name) + "'", error);
+    }
+    if (provided[index]) {
+      return raise_type_error(runtime,
+          "eval() got multiple values for argument '" + std::string(kArgNames[index]) + "'", error);
+    }
+    value_assign_fast(bound[index], *kwargs[i].value);
+    provided[index] = true;
+  }
+  if (!provided[0]) {
+    return raise_type_error(runtime, "eval() missing required argument 'source'", error);
+  }
+  const uint32_t bound_argc = provided[2] ? 3u : (provided[1] ? 2u : 1u);
+  return builtin_eval(runtime, bound.data(), bound_argc, out, error, nullptr);
 }
 
 bool builtin_exec(
@@ -2591,6 +3186,99 @@ bool builtin_repr(
     error = "repr() expected 1 argument";
     return false;
   }
+  static thread_local std::unordered_set<const Object*> active_containers;
+  const auto append_repr = [&](const Value& value, std::string& text) -> bool {
+    Value rendered;
+    if (!builtin_repr(runtime, &value, 1, rendered, error, nullptr)) return false;
+    auto* string = value_as_string(rendered);
+    if (string == nullptr)
+      return raise_type_error(runtime, "__repr__ returned non-string", error);
+    text += string_object_to_string(*string);
+    return true;
+  };
+  const Object* container = args[0].tag == ValueTag::Object ? args[0].as.obj : nullptr;
+  if (auto* dict = value_as_dict(args[0])) {
+    if (active_containers.find(container) != active_containers.end()) {
+      out = Value::string("{...}");
+      return true;
+    }
+    active_containers.insert(container);
+    std::string text = "{";
+    for (size_t index = 0; index < dict->entries.size(); ++index) {
+      if (index != 0) text += ", ";
+      if (!append_repr(dict->entries[index].first, text)) {
+        active_containers.erase(container);
+        return false;
+      }
+      text += ": ";
+      if (!append_repr(dict->entries[index].second, text)) {
+        active_containers.erase(container);
+        return false;
+      }
+    }
+    active_containers.erase(container);
+    out = Value::string(text + "}");
+    return true;
+  }
+  if (auto* list = value_as_list(args[0])) {
+    if (active_containers.find(container) != active_containers.end()) {
+      out = Value::string("[...]");
+      return true;
+    }
+    active_containers.insert(container);
+    std::string text = "[";
+    for (size_t index = 0; index < list->items.size(); ++index) {
+      if (index != 0) text += ", ";
+      if (!append_repr(list->items[index], text)) {
+        active_containers.erase(container);
+        return false;
+      }
+    }
+    active_containers.erase(container);
+    out = Value::string(text + "]");
+    return true;
+  }
+  if (auto* tuple = value_as_tuple(args[0])) {
+    if (active_containers.find(container) != active_containers.end()) {
+      out = Value::string("(...)");
+      return true;
+    }
+    active_containers.insert(container);
+    std::string text = "(";
+    for (size_t index = 0; index < tuple->items.size(); ++index) {
+      if (index != 0) text += ", ";
+      if (!append_repr(tuple->items[index], text)) {
+        active_containers.erase(container);
+        return false;
+      }
+    }
+    active_containers.erase(container);
+    if (tuple->items.size() == 1) text += ',';
+    out = Value::string(text + ")");
+    return true;
+  }
+  if (auto* set = value_as_set(args[0])) {
+    if (active_containers.find(container) != active_containers.end()) {
+      out = Value::string(set->frozen ? "frozenset({...})" : "set(...)");
+      return true;
+    }
+    if (set->items.empty()) {
+      out = Value::string(set->frozen ? "frozenset()" : "set()");
+      return true;
+    }
+    active_containers.insert(container);
+    std::string text = set->frozen ? "frozenset({" : "{";
+    for (size_t index = 0; index < set->items.size(); ++index) {
+      if (index != 0) text += ", ";
+      if (!append_repr(set->items[index], text)) {
+        active_containers.erase(container);
+        return false;
+      }
+    }
+    active_containers.erase(container);
+    out = Value::string(text + (set->frozen ? "})" : "}"));
+    return true;
+  }
   if (auto* alias = value_as_generic_alias(args[0])) {
     auto* origin_class = value_as_class(alias->origin);
     auto* alias_args = value_as_tuple(alias->args);
@@ -2718,6 +3406,7 @@ struct ParsedFormatSpec {
   char sign = '-';
   bool alternate = false;
   bool zero = false;
+  char grouping = '\0';
   int width = 0;
   int precision = -1;
   char type = '\0';
@@ -2753,6 +3442,9 @@ bool parse_format_spec(std::string_view spec, ParsedFormatSpec& parsed, std::str
   }
   while (i < spec.size() && std::isdigit(static_cast<unsigned char>(spec[i]))) {
     parsed.width = parsed.width * 10 + (spec[i++] - '0');
+  }
+  if (i < spec.size() && (spec[i] == '_' || spec[i] == ',')) {
+    parsed.grouping = spec[i++];
   }
   if (i < spec.size() && spec[i] == '.') {
     ++i;
@@ -2805,6 +3497,21 @@ std::string unsigned_to_base(uint64_t value, uint32_t base, bool uppercase) {
   return std::string(buffer + pos, buffer + sizeof(buffer));
 }
 
+std::string apply_integer_grouping(
+    std::string digits, char grouping, uint32_t base, std::string& error) {
+  if (grouping == '\0') return digits;
+  if (grouping == ',' && base != 10) {
+    error = "Cannot specify ',' with integer format specifier";
+    return {};
+  }
+  const size_t group_size = base == 10 ? 3u : 4u;
+  for (size_t position = digits.size(); position > group_size;
+       position -= group_size) {
+    digits.insert(position - group_size, 1, grouping);
+  }
+  return digits;
+}
+
 bool format_int_value(int64_t value, const ParsedFormatSpec& spec, Value& out, std::string& error) {
   const char type = spec.type == '\0' ? 'd' : spec.type;
   uint32_t base = 10;
@@ -2834,7 +3541,10 @@ bool format_int_value(int64_t value, const ParsedFormatSpec& spec, Value& out, s
   } else if (spec.sign == ' ') {
     sign = " ";
   }
-  std::string digits = unsigned_to_base(magnitude, base, uppercase);
+  std::string digits = apply_integer_grouping(
+      unsigned_to_base(magnitude, base, uppercase), spec.grouping, base,
+      error);
+  if (!error.empty()) return false;
   std::string text;
   if (spec.zero && (spec.align == '>' || spec.align == '\0') && spec.width > 0) {
     const size_t reserved = sign.size() + prefix.size() + digits.size();
@@ -2902,6 +3612,7 @@ bool builtin_format(
     void*) {
   if (argc < 1 || argc > 2) {
     error = "format() expected 1 or 2 arguments";
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
   std::string spec;
@@ -2909,6 +3620,7 @@ bool builtin_format(
     auto* spec_object = value_as_string(args[1]);
     if (spec_object == nullptr) {
       error = "format() argument 2 must be str";
+      runtime.raise_class_error("TypeError", error);
       return false;
     }
     spec = string_object_to_string(*spec_object);
@@ -2936,72 +3648,39 @@ bool builtin_format(
 
   ParsedFormatSpec parsed;
   if (!parse_format_spec(spec, parsed, error)) {
+    runtime.raise_class_error("ValueError", error);
     return false;
   }
   if (args[0].tag == ValueTag::Int64) {
     if (parsed.type == 'f' || parsed.type == 'F' || parsed.type == 'g' || parsed.type == 'e' ||
         parsed.type == 'E' || parsed.type == '%') {
-      return format_double_value(static_cast<double>(args[0].as.i64), parsed, out, error);
+      const bool ok = format_double_value(
+          static_cast<double>(args[0].as.i64), parsed, out, error);
+      if (!ok) runtime.raise_class_error("ValueError", error);
+      return ok;
     }
-    return format_int_value(args[0].as.i64, parsed, out, error);
+    const bool ok = format_int_value(args[0].as.i64, parsed, out, error);
+    if (!ok) runtime.raise_class_error("ValueError", error);
+    return ok;
   }
   if (args[0].tag == ValueTag::Double) {
-    return format_double_value(args[0].as.f64, parsed, out, error);
+    const bool ok = format_double_value(args[0].as.f64, parsed, out, error);
+    if (!ok) runtime.raise_class_error("ValueError", error);
+    return ok;
   }
-  return format_string_value(args[0], parsed, out, error);
+  if (value_as_string(args[0]) != nullptr) {
+    const bool ok = format_string_value(args[0], parsed, out, error);
+    if (!ok) runtime.raise_class_error("ValueError", error);
+    return ok;
+  }
+  error = "unsupported format string passed to " +
+      std::string(value_binary_type_name(args[0])) + ".__format__";
+  runtime.raise_class_error("TypeError", error);
+  return false;
 }
 
 bool runtime_hash_value(Runtime& runtime, const Value& value, size_t& out, std::string& error) {
-  if (value_as_instance(value) != nullptr) {
-    Value hash_method;
-    std::string attr_error;
-    if (object_get_attr(value, "__hash__", hash_method, attr_error)) {
-      if (hash_method.tag == ValueTag::None) {
-        error = "unhashable type";
-        return false;
-      }
-      Value hash_value;
-      error.clear();
-      if (!runtime_call_callable(runtime, hash_method, nullptr, 0, hash_value, error)) {
-        return false;
-      }
-      if (hash_value.tag != ValueTag::Int64) {
-        error = "__hash__ method should return an integer";
-        return false;
-      }
-      out = static_cast<size_t>(hash_value.as.i64);
-      return true;
-    }
-  }
-  if (const auto* tuple = value_as_tuple(value)) {
-    size_t hash = 0x345678ul;
-    for (const auto& item : tuple->items) {
-      size_t item_hash = 0;
-      if (!runtime_hash_value(runtime, item, item_hash, error)) {
-        return false;
-      }
-      hash = (hash ^ item_hash) * 1000003ul;
-      hash ^= tuple->items.size();
-    }
-    out = hash == static_cast<size_t>(-1) ? static_cast<size_t>(-2) : hash;
-    return true;
-  }
-  if (const auto* set = value_as_set(value); set != nullptr && set->frozen) {
-    size_t hash = 0x2f4f0f1f0e0d0c0bull;
-    for (const auto& item : set->items) {
-      size_t item_hash = 0;
-      if (!runtime_hash_value(runtime, item, item_hash, error)) {
-        return false;
-      }
-      size_t shuffled = item_hash ^ (item_hash << 16) ^ static_cast<size_t>(89869747);
-      shuffled *= static_cast<size_t>(3644798167u);
-      hash ^= shuffled;
-    }
-    hash ^= set->items.size() * static_cast<size_t>(1927868237u);
-    out = hash == static_cast<size_t>(-1) ? static_cast<size_t>(-2) : hash;
-    return true;
-  }
-  return value_hash_key(value, out, error);
+  return runtime_value_hash_key(runtime, value, out, error);
 }
 
 bool builtin_hash(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -3445,6 +4124,7 @@ void register_functional_builtins(Runtime& runtime) {
       "__xlang3_inplace_or__", builtin_inplace_or,
       builtin_fast_adapter<builtin_inplace_or, 2>, true);
   runtime.register_native_builtin("__xlang3_inplace_add__", builtin_inplace_add, builtin_inplace_add_fast);
+  runtime.register_native_builtin("__xlang3_inplace_mul__", builtin_inplace_mul);
   runtime.register_native_builtin("__xlang3_inplace_floor_div__", builtin_inplace_floor_div);
   runtime.register_native_builtin("__xlang3_inplace_matmul__", builtin_inplace_matmul);
   runtime.register_native_builtin("_identity", builtin_identity);
@@ -3493,7 +4173,7 @@ void register_functional_builtins(Runtime& runtime) {
   runtime.register_native_builtin("globals", builtin_globals, builtin_fast_adapter<builtin_globals, 1>);
   runtime.register_native_builtin("locals", builtin_locals, builtin_fast_adapter<builtin_locals, 1>);
   runtime.register_native_builtin("compile", builtin_compile, nullptr, false, builtin_compile_kw);
-  runtime.register_native_builtin("eval", builtin_eval);
+  runtime.register_native_builtin("eval", builtin_eval, nullptr, false, builtin_eval_kw);
   runtime.register_native_builtin("exec", builtin_exec);
 }
 

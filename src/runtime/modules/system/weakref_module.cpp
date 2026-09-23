@@ -29,6 +29,7 @@ limitations under the License.
 #include <mutex>
 #include <unordered_map>
 #include <unordered_set>
+#include <vector>
 
 namespace xlang3 {
 
@@ -940,6 +941,264 @@ void weakref_dispatch_callbacks(Runtime& runtime) {
   }
 }
 
+template <class Visit>
+void visit_strong_object_edges(Object* object, Object* cycle_root, Visit visit) {
+  if (object == nullptr) return;
+  Value borrowed;
+  borrowed.tag = ValueTag::Object;
+  borrowed.flags = kXlangValueBorrowedRefFlag;
+  borrowed.as.obj = object;
+  auto edge = [&](const Value& value) {
+    if (value.tag == ValueTag::Object && value.as.obj != nullptr &&
+        (value.flags & kXlangValueBorrowedRefFlag) == 0)
+      visit(value.as.obj);
+  };
+  if (auto* value = value_as_list(borrowed)) {
+    for (const auto& item : value->items) edge(item);
+  } else if (auto* value = value_as_tuple(borrowed)) {
+    for (const auto& item : value->items) edge(item);
+  } else if (auto* value = value_as_dict(borrowed)) {
+    for (const auto& item : value->entries) {
+      edge(item.first);
+      edge(item.second);
+    }
+  } else if (auto* value = value_as_cell(borrowed)) {
+    edge(value->value);
+  } else if (auto* value = value_as_module(borrowed)) {
+    for (const auto& item : value->slots) edge(item);
+  } else if (auto* value = value_as_function(borrowed)) {
+    edge(value->annotations);
+    edge(value->doc);
+    edge(value->attrs_dict);
+    for (const auto& item : value->closure) edge(item);
+    for (const auto& item : value->defaults) edge(item);
+    for (const auto& item : value->positional_defaults) edge(item);
+    for (const auto& item : value->kwdefaults) edge(item.second);
+  } else if (auto* value = value_as_class(borrowed)) {
+    for (const auto& item : value->attrs) edge(item.second);
+  } else if (auto* value = value_as_instance(borrowed)) {
+    if (value->klass.tag == ValueTag::Object &&
+        value->klass.as.obj == cycle_root)
+      edge(value->klass);
+    edge(value->mapping_storage);
+    edge(value->sequence_storage);
+    for (uint32_t index = 0; index < value->slot_count; ++index)
+      edge(instance_slot_at(value, index));
+    for (const auto& item : value->attrs) edge(item.second);
+    for (auto* target : value->native_gc_references) {
+      if (target != nullptr) visit(target);
+    }
+  } else if (auto* value = value_as_bound_method(borrowed)) {
+    edge(value->self);
+    edge(value->function);
+  } else if (auto* value = value_as_static_method(borrowed)) {
+    edge(value->function);
+    edge(value->attrs_dict);
+  } else if (auto* value = value_as_class_method(borrowed)) {
+    edge(value->function);
+    edge(value->attrs_dict);
+  } else if (auto* value = value_as_slot_descriptor(borrowed)) {
+    edge(value->owner_class);
+  } else if (auto* value = value_as_property(borrowed)) {
+    edge(value->fget);
+    edge(value->fset);
+    edge(value->fdel);
+    edge(value->doc);
+    edge(value->name);
+  }
+}
+
+uint64_t collect_isolated_class_component(ClassObject* klass) {
+  constexpr size_t kMaximumCandidateObjects = 50000;
+  std::vector<Object*> nodes{&klass->header};
+  std::unordered_map<Object*, size_t> indices{{&klass->header, 0}};
+  std::vector<std::vector<size_t>> adjacency;
+  for (size_t index = 0; index < nodes.size(); ++index) {
+    if (nodes.size() > kMaximumCandidateObjects) return 0;
+    adjacency.emplace_back();
+    visit_strong_object_edges(nodes[index], &klass->header, [&](Object* target) {
+      auto [position, inserted] = indices.emplace(target, nodes.size());
+      if (inserted) nodes.push_back(target);
+      adjacency[index].push_back(position->second);
+    });
+  }
+  std::vector<std::vector<size_t>> reverse(nodes.size());
+  for (size_t source = 0; source < adjacency.size(); ++source)
+    for (size_t target : adjacency[source]) reverse[target].push_back(source);
+  std::vector<bool> reaches_class(nodes.size(), false);
+  std::vector<size_t> pending{0};
+  reaches_class[0] = true;
+  for (size_t index = 0; index < pending.size(); ++index) {
+    for (size_t predecessor : reverse[pending[index]]) {
+      if (!reaches_class[predecessor]) {
+        reaches_class[predecessor] = true;
+        pending.push_back(predecessor);
+      }
+    }
+  }
+  if (pending.size() <= 1) return 0;
+  std::vector<uint64_t> internal_references(nodes.size(), 0);
+  for (size_t source = 0; source < adjacency.size(); ++source) {
+    if (!reaches_class[source]) continue;
+    for (size_t target : adjacency[source])
+      if (reaches_class[target]) ++internal_references[target];
+  }
+  for (size_t index = 0; index < nodes.size(); ++index) {
+    if (reaches_class[index] &&
+        nodes[index]->refcnt.load(std::memory_order_relaxed) !=
+            internal_references[index]) {
+      return 0;
+    }
+  }
+
+  std::vector<std::string> cyclic_attributes;
+  for (const auto& item : klass->attrs) {
+    if (item.second.tag != ValueTag::Object) continue;
+    const auto found = indices.find(item.second.as.obj);
+    if (found != indices.end() && reaches_class[found->second])
+      cyclic_attributes.push_back(item.first);
+  }
+  if (cyclic_attributes.empty()) return 0;
+  Value borrowed;
+  borrowed.tag = ValueTag::Object;
+  borrowed.flags = kXlangValueBorrowedRefFlag;
+  borrowed.as.obj = &klass->header;
+  Value keep_alive;
+  value_assign_fast(keep_alive, borrowed);
+  for (const auto& name : cyclic_attributes) {
+    const auto found = klass->attrs.find(name);
+    if (found != klass->attrs.end()) value_set_invalid(found->second);
+  }
+  const uint64_t collected = static_cast<uint64_t>(pending.size());
+  value_set_invalid(keep_alive);
+  return collected;
+}
+
+uint64_t collect_isolated_function_component(FunctionObject* function) {
+  constexpr size_t kMaximumCandidateObjects = 4096;
+  auto* root = &function->header;
+  // Function attribute cycles normally leave the function with one strong
+  // reference from the cycle.  This fast rejection matters because test and
+  // framework registries can hold weak references to thousands of live
+  // functions, none of which are collection candidates.
+  const auto root_refcount = root->refcnt.load(std::memory_order_relaxed);
+  if (root_refcount != 1 ||
+      function->attrs_dict.tag != ValueTag::Object) {
+    return 0;
+  }
+  const auto* attrs_dict = value_as_dict(function->attrs_dict);
+  if (attrs_dict == nullptr) return 0;
+  bool has_path_to_function = false;
+  for (const auto& entry : attrs_dict->entries) {
+    if (entry.second.tag != ValueTag::Object || entry.second.as.obj == nullptr)
+      continue;
+    if (entry.second.as.obj == root) {
+      has_path_to_function = true;
+      break;
+    }
+    const auto* instance = value_as_instance(entry.second);
+    if (instance == nullptr || instance->native_gc_references.empty()) continue;
+
+    // Most native-backed attributes do not point back to their owner.  Check
+    // reachability before constructing the complete reference graph so a
+    // gc.collect() remains proportional to actual cycle candidates.
+    constexpr size_t kMaximumReachabilityObjects = 2048;
+    std::vector<Object*> pending(instance->native_gc_references.begin(),
+                                 instance->native_gc_references.end());
+    std::unordered_set<Object*> visited;
+    while (!pending.empty() && visited.size() < kMaximumReachabilityObjects) {
+      auto* candidate = pending.back();
+      pending.pop_back();
+      if (candidate == root) {
+        has_path_to_function = true;
+        break;
+      }
+      if (candidate == nullptr || !visited.insert(candidate).second) continue;
+      visit_strong_object_edges(candidate, root, [&](Object* target) {
+        if (target != nullptr && visited.find(target) == visited.end())
+          pending.push_back(target);
+      });
+    }
+    if (has_path_to_function) break;
+  }
+  if (!has_path_to_function) return 0;
+  std::vector<Object*> nodes{root};
+  std::unordered_map<Object*, size_t> indices{{root, 0}};
+  std::vector<std::vector<size_t>> adjacency;
+  bool graph_too_large = false;
+  for (size_t index = 0; index < nodes.size(); ++index) {
+    adjacency.emplace_back();
+    const auto add_edge = [&](Object* target) {
+      if (graph_too_large) return;
+      const auto found = indices.find(target);
+      if (found != indices.end()) {
+        adjacency[index].push_back(found->second);
+        return;
+      }
+      if (nodes.size() >= kMaximumCandidateObjects) {
+        graph_too_large = true;
+        return;
+      }
+      auto [position, inserted] = indices.emplace(target, nodes.size());
+      if (inserted) nodes.push_back(target);
+      adjacency[index].push_back(position->second);
+    };
+    if (index == 0) {
+      add_edge(function->attrs_dict.as.obj);
+    } else {
+      visit_strong_object_edges(nodes[index], root, add_edge);
+    }
+    if (graph_too_large) return 0;
+  }
+
+  std::vector<std::vector<size_t>> reverse(nodes.size());
+  for (size_t source = 0; source < adjacency.size(); ++source)
+    for (size_t target : adjacency[source]) reverse[target].push_back(source);
+  std::vector<bool> reaches_function(nodes.size(), false);
+  std::vector<size_t> pending{0};
+  reaches_function[0] = true;
+  for (size_t index = 0; index < pending.size(); ++index) {
+    for (size_t predecessor : reverse[pending[index]]) {
+      if (!reaches_function[predecessor]) {
+        reaches_function[predecessor] = true;
+        pending.push_back(predecessor);
+      }
+    }
+  }
+  if (pending.size() <= 1) return 0;
+
+  std::vector<uint64_t> internal_references(nodes.size(), 0);
+  for (size_t source = 0; source < adjacency.size(); ++source) {
+    if (!reaches_function[source]) continue;
+    for (size_t target : adjacency[source])
+      if (reaches_function[target]) ++internal_references[target];
+  }
+  for (size_t index = 0; index < nodes.size(); ++index) {
+    if (reaches_function[index] &&
+        nodes[index]->refcnt.load(std::memory_order_relaxed) !=
+            internal_references[index]) {
+      return 0;
+    }
+  }
+
+  const auto attrs = indices.find(
+      function->attrs_dict.tag == ValueTag::Object
+          ? function->attrs_dict.as.obj
+          : nullptr);
+  if (attrs == indices.end() || !reaches_function[attrs->second]) return 0;
+
+  Value borrowed;
+  borrowed.tag = ValueTag::Object;
+  borrowed.flags = kXlangValueBorrowedRefFlag;
+  borrowed.as.obj = root;
+  Value keep_alive;
+  value_assign_fast(keep_alive, borrowed);
+  value_set_invalid(function->attrs_dict);
+  const uint64_t collected = static_cast<uint64_t>(pending.size());
+  value_set_invalid(keep_alive);
+  return collected;
+}
+
 uint64_t weakref_collect_cycles() {
   std::vector<ClassObject*> candidates;
   std::unordered_set<ClassObject*> seen;
@@ -973,6 +1232,7 @@ uint64_t weakref_collect_cycles() {
     }
     if (instance_attr_refs.empty() ||
         klass->header.refcnt.load(std::memory_order_relaxed) != instance_attr_refs.size()) {
+      collected += collect_isolated_class_component(klass);
       continue;
     }
     bool isolated = true;
@@ -983,6 +1243,7 @@ uint64_t weakref_collect_cycles() {
       }
     }
     if (!isolated) {
+      collected += collect_isolated_class_component(klass);
       continue;
     }
 
@@ -1000,6 +1261,21 @@ uint64_t weakref_collect_cycles() {
     }
     collected += 1 + instance_attr_refs.size();
     value_set_invalid(keep_alive);
+  }
+  std::vector<FunctionObject*> function_candidates;
+  std::unordered_set<FunctionObject*> seen_functions;
+  for (const auto& entry : weakref_registry()) {
+    if (entry.target != nullptr && entry.target->kind == ObjectKind::Function) {
+      auto* function = reinterpret_cast<FunctionObject*>(entry.target);
+      if (seen_functions.insert(function).second) function_candidates.push_back(function);
+    }
+  }
+  for (auto* function : function_candidates) {
+    const Object* candidate_object = &function->header;
+    const bool still_registered = std::any_of(
+        weakref_registry().begin(), weakref_registry().end(),
+        [&](const WeakrefEntry& entry) { return entry.target == candidate_object; });
+    if (still_registered) collected += collect_isolated_function_component(function);
   }
   std::vector<FileObject*> file_candidates;
   std::unordered_set<FileObject*> file_candidate_set;
@@ -1108,20 +1384,20 @@ uint64_t weakref_collect_cycles() {
   }
   if (!instance_candidates.empty()) {
     std::unordered_map<Object*, uint32_t> internal_refs;
+    std::unordered_map<Object*, std::vector<Object*>> candidate_edges;
     for (auto* candidate : instance_candidates) {
       internal_refs[candidate] = 0;
     }
-    const auto count_candidate_ref = [&](const Value& value) {
+    const auto count_candidate_ref = [&](Object* source, const Value& value) {
+      Object* target = nullptr;
       if (auto* instance = value_as_instance(value)) {
-        if (instance_candidate_set.find(reinterpret_cast<Object*>(instance)) != instance_candidate_set.end()) {
-          ++internal_refs[reinterpret_cast<Object*>(instance)];
-        }
-        return;
+        target = reinterpret_cast<Object*>(instance);
+      } else if (auto* instance = unwrap_protocol_iterator_instance(value)) {
+        target = reinterpret_cast<Object*>(instance);
       }
-      if (auto* instance = unwrap_protocol_iterator_instance(value)) {
-        if (instance_candidate_set.find(reinterpret_cast<Object*>(instance)) != instance_candidate_set.end()) {
-          ++internal_refs[reinterpret_cast<Object*>(instance)];
-        }
+      if (target != nullptr && instance_candidate_set.find(target) != instance_candidate_set.end()) {
+        ++internal_refs[target];
+        candidate_edges[source].push_back(target);
       }
     };
     const auto add_native_instance_ref = [&](InstanceObject* candidate) {
@@ -1131,25 +1407,25 @@ uint64_t weakref_collect_cycles() {
       candidate_value.as.obj = reinterpret_cast<Object*>(candidate);
       if (auto* deque = static_cast<DequeState*>(instance_get_native_data(candidate_value, kDequeNativeType))) {
         for (const auto& item : deque->items) {
-          count_candidate_ref(item);
+          count_candidate_ref(reinterpret_cast<Object*>(candidate), item);
         }
       }
       if (auto* iterator = static_cast<DequeIteratorState*>(
               instance_get_native_data(candidate_value, kDequeIteratorNativeType))) {
-        count_candidate_ref(iterator->deque);
+        count_candidate_ref(reinterpret_cast<Object*>(candidate), iterator->deque);
       }
     };
     for (auto* candidate : instance_candidates) {
       auto* instance = reinterpret_cast<InstanceObject*>(candidate);
-      count_candidate_ref(instance->klass);
-      count_candidate_ref(instance->mapping_storage);
-      count_candidate_ref(instance->sequence_storage);
+      count_candidate_ref(candidate, instance->klass);
+      count_candidate_ref(candidate, instance->mapping_storage);
+      count_candidate_ref(candidate, instance->sequence_storage);
       for (const auto& attr : instance->attrs) {
-        count_candidate_ref(attr.second);
+        count_candidate_ref(candidate, attr.second);
       }
       add_native_instance_ref(instance);
       for (uint32_t index = 0; index < instance_slot_count(instance); ++index) {
-        count_candidate_ref(instance_slot_at(instance, index));
+        count_candidate_ref(candidate, instance_slot_at(instance, index));
       }
     }
     bool has_internal_callback_edge = false;
@@ -1190,20 +1466,17 @@ uint64_t weakref_collect_cycles() {
       if (entry.ref == nullptr) {
         continue;
       }
-      bool reference_is_internal = false;
+      std::vector<Object*> reference_owners;
       for (auto* candidate : instance_candidates) {
         const auto* instance = reinterpret_cast<const InstanceObject*>(candidate);
         for (const auto& attr : instance->attrs) {
           if (attr.second.tag == ValueTag::Object && attr.second.as.obj == entry.ref) {
-            reference_is_internal = true;
+            reference_owners.push_back(candidate);
             break;
           }
         }
-        if (reference_is_internal) {
-          break;
-        }
       }
-      if (!reference_is_internal) {
+      if (reference_owners.empty()) {
         continue;
       }
       Value ref;
@@ -1220,26 +1493,94 @@ uint64_t weakref_collect_cycles() {
           auto* self_object = reinterpret_cast<Object*>(self);
           if (instance_candidate_set.find(self_object) != instance_candidate_set.end()) {
             ++internal_refs[self_object];
+            for (auto* owner : reference_owners) {
+              candidate_edges[owner].push_back(self_object);
+            }
             has_internal_callback_edge = true;
           }
         } else if (auto* self = unwrap_protocol_iterator_instance(method->self)) {
           auto* self_object = reinterpret_cast<Object*>(self);
           if (instance_candidate_set.find(self_object) != instance_candidate_set.end()) {
             ++internal_refs[self_object];
+            for (auto* owner : reference_owners) {
+              candidate_edges[owner].push_back(self_object);
+            }
             has_internal_callback_edge = true;
           }
         }
       }
     }
-    std::vector<Object*> collectible;
+    // Start with objects whose references are all internal to the candidate
+    // graph.  Only cyclic components of that subgraph need explicit breaking:
+    // an acyclic tail is released naturally when its owning cycle is broken.
+    // This also prevents a rooted object from losing an acyclic child merely
+    // because that child's only reference is the edge from its live owner.
+    std::unordered_set<Object*> internally_owned;
     for (auto* candidate : instance_candidates) {
       if (internal_refs[candidate] != 0 &&
           candidate->refcnt.load(std::memory_order_relaxed) == internal_refs[candidate]) {
-        collectible.push_back(candidate);
+        internally_owned.insert(candidate);
+      }
+    }
+    std::vector<Object*> collectible;
+    for (auto* candidate : internally_owned) {
+      std::unordered_set<Object*> visited;
+      std::vector<Object*> pending{candidate};
+      bool cyclic = false;
+      while (!pending.empty() && !cyclic) {
+        auto* source = pending.back();
+        pending.pop_back();
+        if (!visited.insert(source).second) continue;
+        auto edge_it = candidate_edges.find(source);
+        if (edge_it == candidate_edges.end()) continue;
+        for (auto* target : edge_it->second) {
+          if (internally_owned.find(target) == internally_owned.end()) continue;
+          if (target == candidate) {
+            cyclic = true;
+            break;
+          }
+          if (visited.find(target) == visited.end()) pending.push_back(target);
+        }
+      }
+      if (cyclic) {
+        const auto reaches_candidate = [&](Object* origin) {
+          std::unordered_set<Object*> seen;
+          std::vector<Object*> work{origin};
+          while (!work.empty()) {
+            auto* source = work.back();
+            work.pop_back();
+            if (!seen.insert(source).second) continue;
+            if (source == candidate) return true;
+            auto edge_it = candidate_edges.find(source);
+            if (edge_it == candidate_edges.end()) continue;
+            for (auto* target : edge_it->second) {
+              if (internally_owned.find(target) != internally_owned.end()) work.push_back(target);
+            }
+          }
+          return false;
+        };
+        std::unordered_set<Object*> component;
+        component.insert(candidate);
+        for (auto* member : visited) {
+          if (reaches_candidate(member)) component.insert(member);
+        }
+        bool rooted_from_outside = false;
+        for (const auto& edges : candidate_edges) {
+          if (component.find(edges.first) != component.end()) continue;
+          for (auto* target : edges.second) {
+            if (component.find(target) != component.end()) {
+              rooted_from_outside = true;
+              break;
+            }
+          }
+          if (rooted_from_outside) break;
+        }
+        if (!rooted_from_outside) collectible.push_back(candidate);
       }
     }
     for (auto* candidate : deque_iterator_cycles) {
-      if (std::find(collectible.begin(), collectible.end(), candidate) == collectible.end()) {
+      if (internally_owned.find(candidate) != internally_owned.end() &&
+          std::find(collectible.begin(), collectible.end(), candidate) == collectible.end()) {
         collectible.push_back(candidate);
       }
     }
@@ -1261,6 +1602,12 @@ uint64_t weakref_collect_cycles() {
         candidate_value.tag = ValueTag::Object;
         candidate_value.flags = kXlangValueBorrowedRefFlag;
         candidate_value.as.obj = candidate;
+        if (instance->native_data_clear != nullptr && instance->native_owner != nullptr) {
+          auto clear = instance->native_data_clear;
+          instance->native_data_clear = nullptr;
+          clear(instance->native_owner);
+          instance->native_gc_references.clear();
+        }
         if (auto* deque = static_cast<DequeState*>(instance_get_native_data(candidate_value, kDequeNativeType))) {
           for (auto& item : deque->items) {
             value_set_invalid(item);
@@ -1282,7 +1629,9 @@ uint64_t weakref_collect_cycles() {
         }
       }
       for (auto* candidate : deque_iterator_cycles) {
-        weakref_invalidate_target(candidate);
+        if (internally_owned.find(candidate) != internally_owned.end()) {
+          weakref_invalidate_target(candidate);
+        }
       }
       collected += collectible.size();
     }

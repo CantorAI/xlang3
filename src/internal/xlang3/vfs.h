@@ -62,6 +62,10 @@ public:
     error = "filesystem does not support symbolic links";
     return false;
   }
+  virtual bool create_link(const std::string&, const std::string&, bool, std::string& error) {
+    error = "filesystem does not support symbolic links";
+    return false;
+  }
 };
 
 struct ResolvedPath {
@@ -88,6 +92,8 @@ public:
   bool directory_mtime(const std::string& path, int64_t& mtime_ns, std::string& error);
   bool kind(const std::string& path, VfsNodeKind& out, std::string& error);
   bool read_link(const std::string& path, std::string& out, std::string& error);
+  bool create_link(const std::string& target, const std::string& link_path,
+                   bool target_is_directory, std::string& error);
   const std::string& cwd() const { return current_directory_; }
   bool uses_host_paths() const { return host_paths_; }
   bool chdir(const std::string& path, std::string& error);

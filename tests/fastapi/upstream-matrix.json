@@ -1,0 +1,58 @@
+[
+  {
+    "name": "fastapi",
+    "version": "0.141.1",
+    "checkout": "fastapi",
+    "commit": "95f8322ee1dcda7ceace7b1c4f6c9915b36d748f",
+    "source": ".",
+    "tests": "tests"
+  },
+  {
+    "name": "starlette",
+    "version": "1.6.0",
+    "checkout": "starlette",
+    "commit": "4f250d6b814587e20c5365f0a5f0c4d42bcb929f",
+    "source": ".",
+    "tests": "tests"
+  },
+  {
+    "name": "pydantic",
+    "version": "2.13.5",
+    "checkout": "pydantic",
+    "commit": "001dea020e0809844e5b17666432c9135a976f46",
+    "source": ".",
+    "tests": "tests"
+  },
+  {
+    "name": "pydantic-core",
+    "version": "2.46.5",
+    "checkout": "pydantic_core-2.46.5",
+    "commit": null,
+    "source": "python",
+    "tests": "tests"
+  },
+  {
+    "name": "anyio",
+    "version": "4.15.1",
+    "checkout": "anyio",
+    "commit": "ffcd1542cd6d127980205f90a0100078849dd703",
+    "source": "src",
+    "tests": "tests"
+  },
+  {
+    "name": "uvicorn",
+    "version": "0.53.0",
+    "checkout": "uvicorn",
+    "commit": "421708fbc1a704dac8bd4053a7c4c0bf4d3704ee",
+    "source": ".",
+    "tests": "tests"
+  },
+  {
+    "name": "httpx",
+    "version": "0.28.1",
+    "checkout": "httpx",
+    "commit": "26d48e0634e6ee9cdc0533996db289ce4b430177",
+    "source": ".",
+    "tests": "tests"
+  }
+]

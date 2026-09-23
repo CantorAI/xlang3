@@ -14,6 +14,7 @@ limitations under the License.
 */
 #include "xlang3/builtins.h"
 
+#include "xlang3/mapping.h"
 #include "xlang3/module_object.h"
 
 #include <array>
@@ -92,6 +93,27 @@ bool gc_is_tracked(Runtime&, const Value* args, uint32_t argc, Value& out, std::
   return true;
 }
 
+bool gc_get_referrers(Runtime& runtime, const Value* args, uint32_t argc,
+                      Value& out, std::string&, void*) {
+  std::vector<Value> referrers;
+  Value locals = runtime.current_locals_snapshot();
+  if (auto* mapping = value_as_dict(locals)) {
+    bool found = false;
+    for (const auto& entry : mapping->entries) {
+      for (uint32_t index = 0; index < argc; ++index) {
+        if (value_is(entry.second, args[index])) {
+          found = true;
+          break;
+        }
+      }
+      if (found) break;
+    }
+    if (found) referrers.push_back(std::move(locals));
+  }
+  out = Value::list(std::move(referrers));
+  return true;
+}
+
 bool gc_get_threshold(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void* data) {
   if (argc != 0) {
     error = "gc.get_threshold() takes no arguments";
@@ -130,6 +152,7 @@ void register_gc_module(Runtime& runtime) {
       .value("isenabled", runtime.make_native_function("gc.isenabled", gc_isenabled, state))
       .function("collect", gc_collect)
       .function("is_tracked", gc_is_tracked)
+      .function("get_referrers", gc_get_referrers)
       .function("get_count", gc_get_count)
       .value("get_threshold", runtime.make_native_function("gc.get_threshold", gc_get_threshold, state))
       .value("set_threshold", runtime.make_native_function("gc.set_threshold", gc_set_threshold, state))

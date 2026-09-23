@@ -191,6 +191,12 @@ bool collect_pattern_capture_names(const ast::Expr& pattern, std::vector<std::st
       }
       return true;
     }
+    if (binary->op == "as") {
+      auto* capture = dynamic_cast<const ast::NameExpr*>(binary->rhs.get());
+      return capture != nullptr &&
+          collect_pattern_capture_names(*binary->lhs, names) &&
+          append_pattern_capture_name(names, capture->name);
+    }
     return true;
   }
   if (auto* name = dynamic_cast<const ast::NameExpr*>(&pattern)) {
@@ -337,7 +343,8 @@ std::vector<ast::FStringExpr::Part> parse_fstring_parts(std::string_view text, b
         } else if ((field_ch == ')' || field_ch == ']' || field_ch == '}') && nested_depth > 0) {
           --nested_depth;
         } else if (nested_depth == 0 && field_ch == '!' && conversion_pos == std::string_view::npos &&
-                   spec_pos == std::string_view::npos) {
+                   spec_pos == std::string_view::npos &&
+                   (j + 1 >= field.size() || field[j + 1] != '=')) {
           conversion_pos = j;
         } else if (nested_depth == 0 && field_ch == ':' && spec_pos == std::string_view::npos) {
           spec_pos = j;
@@ -869,7 +876,7 @@ ast::ExprPtr Parser::parse_with_manager_expr() {
   return parse_conditional();
 }
 
-ast::ExprPtr Parser::parse_for_target() {
+ast::ExprPtr Parser::parse_for_target(bool grouped_target_is_complete) {
   auto skip_target_layout = [&]() {
     while (match(TokenKind::Newline) || match(TokenKind::Indent) || match(TokenKind::Dedent)) {
     }
@@ -886,15 +893,23 @@ ast::ExprPtr Parser::parse_for_target() {
     }
     if (match(TokenKind::LParen)) {
       std::vector<ast::ExprPtr> items;
+      bool has_comma = false;
       skip_target_layout();
       if (!check(TokenKind::RParen)) {
-        do {
+        while (true) {
           skip_target_layout();
           items.push_back(parse_one());
           skip_target_layout();
-        } while (match(TokenKind::Comma) && (skip_target_layout(), !check(TokenKind::RParen)));
+          if (!match(TokenKind::Comma)) break;
+          has_comma = true;
+          skip_target_layout();
+          if (check(TokenKind::RParen)) break;
+        }
       }
       consume(TokenKind::RParen, "expected ')' after loop target");
+      if (items.size() == 1 && !has_comma) {
+        return std::move(items.front());
+      }
       return std::make_unique<ast::TupleExpr>(std::move(items));
     }
     if (match(TokenKind::LBracket)) {
@@ -943,11 +958,20 @@ ast::ExprPtr Parser::parse_for_target() {
   skip_target_layout();
   items.push_back(parse_one());
   skip_target_layout();
-  while (match(TokenKind::Comma) && (skip_target_layout(), !check(TokenKind::KwIn) && !check(TokenKind::RParen) && !check(TokenKind::RBracket))) {
+  // In a with-item, a top-level comma separates context managers. Grouped
+  // tuple and list targets have already consumed their internal commas.
+  if (grouped_target_is_complete) {
+    return std::move(items.front());
+  }
+  bool has_comma = false;
+  while (match(TokenKind::Comma)) {
+    has_comma = true;
+    skip_target_layout();
+    if (check(TokenKind::KwIn) || check(TokenKind::RParen) || check(TokenKind::RBracket)) break;
     items.push_back(parse_one());
     skip_target_layout();
   }
-  if (items.size() == 1) {
+  if (items.size() == 1 && !has_comma) {
     return std::move(items.front());
   }
   return std::make_unique<ast::TupleExpr>(std::move(items));
@@ -990,13 +1014,7 @@ ast::StmtPtr Parser::parse_with_statement(bool is_async) {
     WithItem item;
     item.manager = parse_with_manager_expr();
     if (match(TokenKind::KwAs)) {
-      if (check(TokenKind::LParen) || check(TokenKind::LBracket) || check(TokenKind::Star)) {
-        item.target_expr = parse_for_target();
-      } else {
-        const Token target = peek();
-        if (!consume(TokenKind::Identifier, "expected assignment target after as")) return nullptr;
-        item.target = std::string(target.text);
-      }
+      item.target_expr = parse_for_target(true);
     }
     items.push_back(std::move(item));
   } while (match(TokenKind::Comma) && !(parenthesized && check(TokenKind::RParen)));
@@ -1028,6 +1046,11 @@ bool Parser::validate_match_pattern(const ast::Expr& pattern) {
 
 bool Parser::is_match_statement_start() const {
   if (!check(TokenKind::KwMatch)) {
+    return false;
+  }
+  // ``match`` is a soft keyword.  A leading annotation such as
+  // ``match: str = value`` is an ordinary assignment, not a match statement.
+  if (current_ + 1 < tokens_.size() && tokens_[current_ + 1].kind == TokenKind::Colon) {
     return false;
   }
 
@@ -1079,7 +1102,9 @@ ast::StmtPtr Parser::parse_match_statement() {
       advance();
       match_case.wildcard = true;
     } else {
+      parsing_match_pattern_ = true;
       match_case.pattern = parse_expression();
+      parsing_match_pattern_ = false;
       if (match_case.pattern != nullptr) {
         validate_match_pattern(*match_case.pattern);
       }
@@ -1364,8 +1389,16 @@ ast::StmtPtr Parser::parse_raw_block_statement() {
 bool Parser::parse_dotted_name(std::string& out, const std::string& message, bool allow_leading_dots) {
   out.clear();
   if (allow_leading_dots) {
-    while (match(TokenKind::Dot)) {
-      out += ".";
+    for (;;) {
+      if (match(TokenKind::Dot)) {
+        out += ".";
+        continue;
+      }
+      if (match(TokenKind::Ellipsis)) {
+        out += "...";
+        continue;
+      }
+      break;
     }
   }
   if (check(TokenKind::KwImport) && !out.empty()) {
@@ -1478,6 +1511,14 @@ ast::ExprPtr Parser::parse_named_expression() {
 
 ast::ExprPtr Parser::parse_assignment_expression() {
   auto expr = parse_conditional();
+  if (parsing_match_pattern_ && match(TokenKind::KwAs)) {
+    const Token capture = peek();
+    if (!consume(TokenKind::Identifier, "expected capture name after as in pattern")) {
+      return expr;
+    }
+    return std::make_unique<ast::BinaryExpr>(
+        std::move(expr), "as", std::make_unique<ast::NameExpr>(std::string(capture.text)));
+  }
   if (match(TokenKind::ColonEqual)) {
     auto* name = dynamic_cast<ast::NameExpr*>(expr.get());
     if (name == nullptr) {
@@ -1485,7 +1526,12 @@ ast::ExprPtr Parser::parse_assignment_expression() {
       return expr;
     }
     const auto target = name->name;
-    return std::make_unique<ast::NamedExpr>(target, parse_expression());
+    // The comma following an assignment expression belongs to the enclosing
+    // expression list (for example, a call argument list).  Parsing a full
+    // tuple here incorrectly turns ``func(value := make(),)`` into a call with
+    // ``(make(),)`` as its argument.  Parentheses still permit a tuple on the
+    // right hand side through parse_primary().
+    return std::make_unique<ast::NamedExpr>(target, parse_conditional());
   }
   return expr;
 }
@@ -1545,9 +1591,6 @@ ast::ExprPtr Parser::parse_not() {
 }
 
 ast::ExprPtr Parser::parse_await() {
-  if (match(TokenKind::KwAwait)) {
-    return std::make_unique<ast::AwaitExpr>(parse_await());
-  }
   if (match(TokenKind::KwYield)) {
     const bool from = match(TokenKind::KwFrom);
     if (is_simple_statement_end() || check(TokenKind::RParen) || check(TokenKind::RBracket) || check(TokenKind::RBrace)) {
@@ -1729,7 +1772,12 @@ ast::ExprPtr Parser::parse_factor() {
 }
 
 ast::ExprPtr Parser::parse_power() {
-  auto expr = parse_call();
+  ast::ExprPtr expr;
+  if (match(TokenKind::KwAwait)) {
+    expr = std::make_unique<ast::AwaitExpr>(parse_call());
+  } else {
+    expr = parse_call();
+  }
   if (match(TokenKind::DoubleStar)) {
     expr = std::make_unique<ast::BinaryExpr>(std::move(expr), "**", parse_unary());
   }
@@ -1880,10 +1928,13 @@ ast::ExprPtr Parser::finish_generator_expression(ast::ExprPtr first, bool is_asy
   std::string target;
   auto target_expr = parse_comprehension_target(target);
   consume(TokenKind::KwIn, "expected 'in' after comprehension target");
-  auto iterable = parse_expression();
+  auto iterable = parse_or();
   ast::ExprPtr filter;
-  if (match(TokenKind::KwIf)) {
-    filter = parse_expression();
+  while (match(TokenKind::KwIf)) {
+    auto next_filter = parse_or();
+    filter = filter == nullptr
+        ? std::move(next_filter)
+        : std::make_unique<ast::BinaryExpr>(std::move(filter), "and", std::move(next_filter));
   }
   auto extra_clauses = parse_extra_comp_clauses();
   auto gen = std::make_unique<ast::GeneratorExpr>(
@@ -1894,52 +1945,13 @@ ast::ExprPtr Parser::finish_generator_expression(ast::ExprPtr first, bool is_asy
 }
 
 ast::ExprPtr Parser::parse_comprehension_target(std::string& first_name) {
-  std::vector<ast::ExprPtr> items;
-  bool parenthesized = false;
-  if (match(TokenKind::LParen)) {
-    parenthesized = true;
+  // Comprehensions use the same recursive assignment targets as for statements.
+  auto target = parse_for_target();
+  first_name.clear();
+  if (const auto* name = dynamic_cast<const ast::NameExpr*>(target.get())) {
+    first_name = name->name;
   }
-
-  auto parse_target_item = [this](std::string& name) -> ast::ExprPtr {
-    const bool starred = match(TokenKind::Star);
-    const Token item = peek();
-    if (!is_identifier_like_token(item.kind)) {
-      return nullptr;
-    }
-    advance();
-    name = std::string(item.text);
-    auto result = std::make_unique<ast::NameExpr>(name);
-    if (starred) {
-      return std::make_unique<ast::StarredExpr>(std::move(result));
-    }
-    return result;
-  };
-
-  auto first_item = parse_target_item(first_name);
-  if (!first_item) {
-    error_here("expected comprehension target after for");
-    first_name.clear();
-    return std::make_unique<ast::NameExpr>("");
-  }
-  items.push_back(std::move(first_item));
-
-  while (match(TokenKind::Comma) && !(parenthesized && check(TokenKind::RParen)) && !check(TokenKind::KwIn)) {
-    std::string item_name;
-    auto item = parse_target_item(item_name);
-    if (!item) {
-      error_here("expected comprehension target after ','");
-      item = std::make_unique<ast::NameExpr>("");
-    }
-    items.push_back(std::move(item));
-  }
-
-  if (parenthesized) {
-    consume(TokenKind::RParen, "expected ')' after comprehension target");
-  }
-  if (items.size() == 1 && !parenthesized) {
-    return std::move(items.front());
-  }
-  return std::make_unique<ast::TupleExpr>(std::move(items));
+  return target;
 }
 
 std::vector<ast::CompClause> Parser::parse_extra_comp_clauses() {
@@ -1950,9 +1962,12 @@ std::vector<ast::CompClause> Parser::parse_extra_comp_clauses() {
     consume(TokenKind::KwFor, "expected 'for' after 'async' in comprehension");
     clause.target_expr = parse_comprehension_target(clause.target);
     consume(TokenKind::KwIn, "expected 'in' after comprehension target");
-    clause.iterable = parse_expression();
-    if (match(TokenKind::KwIf)) {
-      clause.filter = parse_expression();
+    clause.iterable = parse_or();
+    while (match(TokenKind::KwIf)) {
+      auto next_filter = parse_or();
+      clause.filter = clause.filter == nullptr
+          ? std::move(next_filter)
+          : std::make_unique<ast::BinaryExpr>(std::move(clause.filter), "and", std::move(next_filter));
     }
     clauses.push_back(std::move(clause));
   }
@@ -2045,17 +2060,20 @@ ast::ExprPtr Parser::parse_primary() {
     if (match(TokenKind::RBracket)) {
       return std::make_unique<ast::ListExpr>(std::vector<ast::ExprPtr>{});
     }
-    auto first = parse_conditional();
+    auto first = parsing_match_pattern_ ? parse_assignment_expression() : parse_conditional();
     if (check(TokenKind::KwFor) || check(TokenKind::KwAsync)) {
       const bool is_async = match(TokenKind::KwAsync);
       consume(TokenKind::KwFor, "expected 'for' after 'async' in list comprehension");
       std::string target;
       auto target_expr = parse_comprehension_target(target);
       consume(TokenKind::KwIn, "expected 'in' after comprehension target");
-      auto iterable = parse_expression();
+      auto iterable = parse_or();
       ast::ExprPtr filter;
-      if (match(TokenKind::KwIf)) {
-        filter = parse_expression();
+      while (match(TokenKind::KwIf)) {
+        auto next_filter = parse_or();
+        filter = filter == nullptr
+            ? std::move(next_filter)
+            : std::make_unique<ast::BinaryExpr>(std::move(filter), "and", std::move(next_filter));
       }
       auto extra_clauses = parse_extra_comp_clauses();
       consume(TokenKind::RBracket, "expected ']' after list comprehension");
@@ -2068,7 +2086,7 @@ ast::ExprPtr Parser::parse_primary() {
     std::vector<ast::ExprPtr> items;
     items.push_back(std::move(first));
     while (match(TokenKind::Comma) && !check(TokenKind::RBracket)) {
-      items.push_back(parse_conditional());
+      items.push_back(parsing_match_pattern_ ? parse_assignment_expression() : parse_conditional());
     }
     consume(TokenKind::RBracket, "expected ']' after list literal");
     return std::make_unique<ast::ListExpr>(std::move(items));
@@ -2094,17 +2112,20 @@ ast::ExprPtr Parser::parse_primary() {
     }
     auto first = parse_conditional();
     if (match(TokenKind::Colon)) {
-      auto value = parse_conditional();
+      auto value = parsing_match_pattern_ ? parse_assignment_expression() : parse_conditional();
       if (check(TokenKind::KwFor) || check(TokenKind::KwAsync)) {
         const bool is_async = match(TokenKind::KwAsync);
         consume(TokenKind::KwFor, "expected 'for' after 'async' in dict comprehension");
         std::string target;
         auto target_expr = parse_comprehension_target(target);
         consume(TokenKind::KwIn, "expected 'in' after comprehension target");
-        auto iterable = parse_expression();
+        auto iterable = parse_or();
         ast::ExprPtr filter;
-        if (match(TokenKind::KwIf)) {
-          filter = parse_expression();
+        while (match(TokenKind::KwIf)) {
+          auto next_filter = parse_or();
+          filter = filter == nullptr
+              ? std::move(next_filter)
+              : std::make_unique<ast::BinaryExpr>(std::move(filter), "and", std::move(next_filter));
         }
         auto extra_clauses = parse_extra_comp_clauses();
         consume(TokenKind::RBrace, "expected '}' after dict comprehension");
@@ -2123,7 +2144,9 @@ ast::ExprPtr Parser::parse_primary() {
         }
         auto key = parse_conditional();
         consume(TokenKind::Colon, "expected ':' after dict key");
-        entries.push_back(std::make_pair(std::move(key), parse_conditional()));
+        entries.push_back(std::make_pair(
+            std::move(key),
+            parsing_match_pattern_ ? parse_assignment_expression() : parse_conditional()));
       }
       consume(TokenKind::RBrace, "expected '}' after dict literal");
       return std::make_unique<ast::DictExpr>(std::move(entries));
@@ -2134,10 +2157,13 @@ ast::ExprPtr Parser::parse_primary() {
       std::string target;
       auto target_expr = parse_comprehension_target(target);
       consume(TokenKind::KwIn, "expected 'in' after comprehension target");
-      auto iterable = parse_expression();
+      auto iterable = parse_or();
       ast::ExprPtr filter;
-      if (match(TokenKind::KwIf)) {
-        filter = parse_expression();
+      while (match(TokenKind::KwIf)) {
+        auto next_filter = parse_or();
+        filter = filter == nullptr
+            ? std::move(next_filter)
+            : std::make_unique<ast::BinaryExpr>(std::move(filter), "and", std::move(next_filter));
       }
       auto extra_clauses = parse_extra_comp_clauses();
       consume(TokenKind::RBrace, "expected '}' after set comprehension");

@@ -1314,7 +1314,7 @@ void set_struct_time_metadata(Value& instance, std::vector<Value> tuple_items, c
   object_set_attr(instance, "n_unnamed_fields", Value::int64(0), ignored);
   object_set_attr(instance, "tm_zone", zone, ignored);
   object_set_attr(instance, "tm_gmtoff", gmtoff, ignored);
-  object_set_attr(instance, "_tuple", Value::tuple(std::move(tuple_items)), ignored);
+  object_set_attr(instance, "__xlang3_tuple_value__", Value::tuple(std::move(tuple_items)), ignored);
 }
 
 int64_t local_offset_seconds(std::time_t timestamp) {
@@ -1455,7 +1455,7 @@ bool int_from_value(const Value& value, const char* name, int& out, std::string&
 bool struct_time_tuple_storage(const Value& self, const char* method, TupleObject*& out, std::string& error) {
   Value tuple_value;
   std::string ignored;
-  if (!object_get_attr(self, "_tuple", tuple_value, ignored) || (out = value_as_tuple(tuple_value)) == nullptr) {
+  if (!object_get_attr(self, "__xlang3_tuple_value__", tuple_value, ignored) || (out = value_as_tuple(tuple_value)) == nullptr) {
     error = "descriptor '" + std::string(method) + "' for 'tuple' objects doesn't apply to a '" + time_type_name(self) + "' object";
     return false;
   }

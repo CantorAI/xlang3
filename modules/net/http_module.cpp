@@ -282,7 +282,6 @@ X::Value HttpServer::StaticRoots() const {
 
 void HttpServer::Init() {
   server_ = std::make_unique<httplib::Server>();
-  server_->new_task_queue = []() { return new InlineTaskQueue(); };
   server_->set_routing_handler([this](const httplib::Request& req, httplib::Response& res) {
     for (auto& route : routes_) {
       std::smatch matches;

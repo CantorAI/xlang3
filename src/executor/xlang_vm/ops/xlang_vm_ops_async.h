@@ -48,7 +48,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow await_op(
     RaiseExceptionValue&& raise_exception_value) {
 #ifndef XLANG3_EMBEDDED
   auto* awaited_generator = value_as_generator(regs[in.a]);
-  if (awaited_generator == nullptr && value_as_async_generator_awaitable(regs[in.a]) == nullptr) {
+  auto* awaited_async_generator = value_as_async_generator_awaitable(regs[in.a]);
+  if (awaited_generator == nullptr && awaited_async_generator == nullptr) {
     Value await_method;
     std::string method_error;
     if (attribute_get(regs[in.a], "__await__", await_method, method_error)) {
@@ -122,6 +123,52 @@ XLANG3_HOT_INLINE XlangVMOpFlow await_op(
       return XlangVMOpFlow::ReturnResult;
     }
     if (!emit_trace_event(frame, "return", yielded_or_returned) ||
+        !emit_profile_event(frame, "return", yielded_or_returned)) {
+      return XlangVMOpFlow::ReturnResult;
+    }
+    auto* state = new GeneratorVMState();
+    state->frames = std::move(frames);
+    state->frame_count = frame_count;
+    state->send_target = in.dst;
+    if (active_generator->vm_state_cleanup != nullptr && active_generator->vm_state != nullptr) {
+      active_generator->vm_state_cleanup(active_generator->vm_state);
+    }
+    active_generator->vm_state = state;
+    active_generator->vm_state_cleanup = destroy_generator_vm_state;
+    active_generator->done = false;
+    value_assign_fast(active_generator->awaiting, regs[in.a]);
+    value_assign_fast(result.value, yielded_or_returned);
+    return XlangVMOpFlow::ReturnResult;
+  }
+  if (awaited_async_generator != nullptr) {
+    Value send_value = !awaited_async_generator->started || regs[in.dst].tag == ValueTag::Invalid
+        ? Value::none() : regs[in.dst];
+    value_set_invalid(regs[in.dst]);
+    bool done = false;
+    Value yielded_or_returned;
+    std::string await_error;
+    if (!async_generator_awaitable_send(
+            runtime, regs[in.a], std::move(send_value), done,
+            yielded_or_returned, await_error)) {
+      Value pending;
+      if (runtime.take_pending_exception(pending)) {
+        return raise_exception_value(std::move(pending))
+            ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+      }
+      return raise_runtime_error(await_error.empty() ? "await failed" : await_error)
+          ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    }
+    if (done) {
+      if (active_generator != nullptr) value_set_invalid(active_generator->awaiting);
+      value_assign_fast(regs[in.dst], yielded_or_returned);
+      return XlangVMOpFlow::Next;
+    }
+    if (active_generator == nullptr) {
+      return raise_runtime_error("coroutine yielded outside an active coroutine")
+          ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    }
+    if (!emit_monitoring_event(frame, kSysMonitoringEventPyYield, &yielded_or_returned) ||
+        !emit_trace_event(frame, "return", yielded_or_returned) ||
         !emit_profile_event(frame, "return", yielded_or_returned)) {
       return XlangVMOpFlow::ReturnResult;
     }

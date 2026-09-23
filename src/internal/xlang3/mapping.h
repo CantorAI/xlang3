@@ -119,8 +119,11 @@ bool mapping_get_item(const Value& object, const Value& key, Value& out, std::st
 bool mapping_get_string_item(
     const Value& object, std::string_view key, Value& out, std::string& error,
     size_t* found_index = nullptr);
-bool mapping_get_item_runtime(Runtime& runtime, const Value& object, const Value& key, Value& out, std::string& error);
+bool mapping_get_item_runtime(Runtime& runtime, const Value& object, const Value& key,
+                              Value& out, std::string& error,
+                              bool dispatch_override = true);
 bool mapping_set_item(Value& object, const Value& key, const Value& item, std::string& error);
+bool mapping_set_item_runtime(Runtime& runtime, Value& object, const Value& key, const Value& item, std::string& error);
 bool mapping_delete_item(Value& object, const Value& key, std::string& error);
 bool mapping_delete_item_runtime(Runtime& runtime, Value& object, const Value& key, std::string& error);
 bool mapping_get_iter(const Value& object, Value& out, std::string& error);

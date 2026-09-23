@@ -1,0 +1,4 @@
+200 {'item': {'quantity': 3, 'label': 'UNIT'}}
+422 int_parsing ('body', 'item', 'quantity')
+LineItem 4 BOX
+{'quantity': 4, 'label': 'BOX'} b'{"quantity":4,"label":"BOX"}'

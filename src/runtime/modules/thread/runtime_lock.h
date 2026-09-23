@@ -22,6 +22,8 @@ limitations under the License.
 
 namespace xlang3 {
 
+void xlang_runtime_execution_acquired();
+
 #ifndef XLANG3_VM_GLOBAL_LOCK
 #define XLANG3_VM_GLOBAL_LOCK 1
 #endif
@@ -43,6 +45,7 @@ public:
     waiters_.fetch_sub(1, std::memory_order_relaxed);
     owner_.store(current, std::memory_order_release);
     depth_ = 1;
+    xlang_runtime_execution_acquired();
   }
 
   bool has_waiters() const {
@@ -76,6 +79,9 @@ XlangRuntimeExecutionMutex& xlang_runtime_execution_lock();
 uint32_t& xlang_runtime_execution_depth();
 std::function<void()>& xlang_runtime_suspension_callback();
 bool xlang_runtime_execution_contended();
+bool xlang_runtime_execution_should_yield();
+double xlang_runtime_switch_interval();
+void xlang_runtime_set_switch_interval(double seconds);
 
 class XlangRuntimeSuspensionCallbackGuard {
 public:

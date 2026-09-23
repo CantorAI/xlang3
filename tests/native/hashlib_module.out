@@ -1,0 +1,3 @@
+standard hash vectors ok
+hmac and kdf vectors ok
+blake2 vectors and parameters ok

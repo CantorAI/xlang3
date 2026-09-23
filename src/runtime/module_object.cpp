@@ -17,7 +17,9 @@ limitations under the License.
 #include "xlang3/perf_counters.h"
 #include "xlang3/runtime.h"
 #include "xlang3/functional_iterators.h"
+#include "xlang3/attribute.h"
 #include "xlang3/mapping.h"
+#include "xlang3/object_model.h"
 #include "xlang3/sequence.h"
 
 #include <algorithm>
@@ -275,6 +277,28 @@ bool module_get_attr(const Value& object, const std::string& name, Value& out, s
   auto it = module->name_to_slot.find(name);
   if (it == module->name_to_slot.end() || it->second >= module->slots.size() ||
       module->slots[it->second].tag == ValueTag::Invalid) {
+    if (module->runtime != nullptr && value_as_class(module->klass) != nullptr) {
+      Value descriptor;
+      std::string descriptor_error;
+      if (object_lookup_class_attr(module->klass, name, descriptor, descriptor_error)) {
+        if (object_value_has_descriptor_get(descriptor)) {
+          Value get_method;
+          if (attribute_get(descriptor, "__get__", get_method, descriptor_error)) {
+            Value get_args[2] = {object, module->klass};
+            if (runtime_call_callable(
+                    *module->runtime, get_method, get_args, 2, out,
+                    descriptor_error)) {
+              return true;
+            }
+            error = std::move(descriptor_error);
+            return false;
+          }
+        } else {
+          value_assign_fast(out, descriptor);
+          return true;
+        }
+      }
+    }
     error = "module '" + module->name + "' has no attribute '" + name + "'";
     if (missing_lookup_diagnostics_enabled() && !is_expected_import_probe_attr(name)) {
       std::cerr << "XLANG3_MISSING_ATTR kind=\"module\" object=\"" << module->name
