@@ -41,6 +41,22 @@ limitations under the License.
 
 namespace xlang3::xlang_vm::ops {
 
+XLANG3_HOT_INLINE void initialize_exception_call_args(
+    Runtime& runtime, Value& instance, const CallArgsView& call_args) {
+  auto* object = value_as_instance(instance);
+  auto* klass = object == nullptr ? nullptr : value_as_class(object->klass);
+  const Value* base_value = runtime.find_builtin("BaseException");
+  auto* base = base_value == nullptr ? nullptr : value_as_class(*base_value);
+  if (klass == nullptr || base == nullptr || !class_is_subclass(klass, base)) return;
+  std::vector<Value> values;
+  values.reserve(call_args.size());
+  for (uint32_t index = 0; index < call_args.size(); ++index) {
+    values.push_back(call_args.get(index));
+  }
+  runtime_initialize_exception_constructor_args(
+      runtime, instance, values.data(), static_cast<uint32_t>(values.size()));
+}
+
 XLANG3_HOT_INLINE bool inline_calls_allowed(Runtime& runtime) {
   const auto active_hook = [](const Value& hook) {
     return hook.tag != ValueTag::Invalid && hook.tag != ValueTag::None;
@@ -1405,6 +1421,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
           : XlangVMOpFlow::ReturnResult;
     }
     Value instance = Value::instance(method);
+    initialize_exception_call_args(runtime, instance, call_args);
     CallArgsView init_args = call_args;
     init_args.leading = &instance;
     init_args.leading_count = 1;
@@ -1895,6 +1912,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_ex(
       return XlangVMOpFlow::ContinueLoop;
     }
     Value instance = Value::instance(callee);
+    initialize_exception_call_args(runtime, instance, call_args);
     Value bound_init;
     std::string init_error;
     if (class_get_bound_attr(runtime, callee, instance, "__init__", bound_init, init_error)) {
@@ -2087,6 +2105,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow call(
           return XlangVMOpFlow::Next;
         }
         Value instance = Value::instance(callee);
+        initialize_exception_call_args(runtime, instance, call_args);
         CallArgsView init_args = call_args;
         init_args.leading = &instance;
         init_args.leading_count = 1;
@@ -2351,6 +2370,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow call(
       return XlangVMOpFlow::ContinueLoop;
     }
     Value instance = Value::instance(callee);
+    initialize_exception_call_args(runtime, instance, call_args);
     CallArgsView init_args = call_args;
     init_args.leading = &instance;
     init_args.leading_count = 1;
@@ -3641,6 +3661,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_module_method(
             : XlangVMOpFlow::ReturnResult;
       }
       Value instance = Value::instance(callee);
+      initialize_exception_call_args(runtime, instance, call_args);
       CallArgsView init_args = call_args;
       init_args.leading = &instance;
       init_args.leading_count = 1;

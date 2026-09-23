@@ -1,6 +1,7 @@
 import asyncio
 from contextlib import asynccontextmanager
 
+import anyio
 from fastapi import BackgroundTasks, FastAPI, WebSocket
 from fastapi.responses import StreamingResponse
 
@@ -37,6 +38,21 @@ def record_background(value: str) -> None:
 async def background(tasks: BackgroundTasks) -> dict:
     tasks.add_task(record_background, "background")
     return {"scheduled": True}
+
+
+async def fail_in_task_group() -> None:
+    raise ValueError("child")
+
+
+@app.get("/task-group-errors")
+async def task_group_errors() -> dict:
+    try:
+        async with anyio.create_task_group() as group:
+            group.start_soon(fail_in_task_group)
+            raise ValueError("parent")
+    except ExceptionGroup as errors:
+        return {"types": [type(error).__name__ for error in errors.exceptions]}
+    raise AssertionError("task group did not raise")
 
 
 @app.websocket("/echo")
@@ -156,6 +172,10 @@ async def main() -> None:
     assert status == 200
     assert body == b'{"scheduled":true}'
     assert events[-1] == "background"
+
+    status, body, _ = await request("GET", "/task-group-errors")
+    assert status == 200
+    assert body == b'{"types":["ValueError","ValueError"]}'
 
     websocket_messages = await run_websocket()
     assert websocket_messages == [

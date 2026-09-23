@@ -72,6 +72,19 @@ bool resolve_class_new_callable(const Value& class_value, ClassObject* klass, Va
 
 } // namespace
 
+void runtime_initialize_exception_constructor_args(Runtime& runtime, Value& instance,
+                                                   const Value* args, uint32_t argc) {
+  auto* object = value_as_instance(instance);
+  auto* klass = object == nullptr ? nullptr : value_as_class(object->klass);
+  const Value* base_value = runtime.find_builtin("BaseException");
+  auto* base = base_value == nullptr ? nullptr : value_as_class(*base_value);
+  if (klass == nullptr || base == nullptr || !class_is_subclass(klass, base)) return;
+  std::vector<Value> items;
+  if (args != nullptr) items.assign(args, args + argc);
+  std::string ignored;
+  object_set_attr(instance, "args", Value::tuple(std::move(items)), ignored);
+}
+
 Value functional_enumerate_iterator(Value iterator, int64_t start) {
   Value value;
   value.tag = ValueTag::Object;
@@ -392,6 +405,7 @@ bool runtime_call_callable(
     }
 
     Value instance = Value::instance(callable);
+    runtime_initialize_exception_constructor_args(runtime, instance, args, argc);
     Value init;
     std::string init_error;
     if (object_get_attr(instance, "__init__", init, init_error) && init.tag != ValueTag::Invalid) {
@@ -586,6 +600,7 @@ bool runtime_construct_class_kw(
     }
   } else {
     instance = Value::instance(class_value);
+    runtime_initialize_exception_constructor_args(runtime, instance, args, argc);
   }
   Value init;
   std::string init_error;

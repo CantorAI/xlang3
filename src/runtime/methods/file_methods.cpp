@@ -659,7 +659,8 @@ bool fd_read_some(FileObject& file, size_t requested, std::string& out, std::str
     return false;
   }
   constexpr size_t kChunkSize = 8192;
-  const size_t chunk_size = requested == static_cast<size_t>(-1) ? kChunkSize : std::min(requested, kChunkSize);
+  const size_t chunk_size = requested == static_cast<size_t>(-1)
+      ? kChunkSize : std::min(requested, static_cast<size_t>(1024 * 1024));
   std::string chunk(chunk_size, '\0');
 #if defined(_WIN32)
   const int read_count = _read(file.fd, chunk.data(), static_cast<unsigned int>(chunk.size()));
@@ -689,7 +690,16 @@ bool fd_read(FileObject& file, int64_t requested, std::string& out, std::string&
   out.clear();
   if (requested >= 0) {
     if (requested == 0) return true;
-    return fd_read_some(file, static_cast<size_t>(requested), out, error);
+    const size_t limit = static_cast<size_t>(requested);
+    while (out.size() < limit) {
+      const size_t before = out.size();
+      if (!fd_read_some(file, limit - before, out, error)) {
+        if (!out.empty() && (errno == EAGAIN || errno == EWOULDBLOCK)) return true;
+        return false;
+      }
+      if (out.size() == before || file.buffering == 0) break;
+    }
+    return true;
   }
   for (;;) {
     const size_t before = out.size();

@@ -9,6 +9,20 @@ tree is authoritative.
 
 ## Current checkpoint (2026-09-23)
 
+Latest checkpoint for merge to `main`: general exception-group selection,
+exception constructor arguments, and sized file reads have CPython 3.14
+oracles and pass their corresponding unchanged Starlette cases. Native
+`_zstd` is now under `modules/zstd`, built from Zstandard 1.5.7 C sources
+with no CPython ABI dependency. Unmodified Python 3.14 `compression.zstd`
+imports on XLang3; ordinary and 192 KB streaming round trips match CPython.
+The unchanged Starlette asyncio request-header case passes, and the FastAPI
+TestClient integration tests actual `Content-Encoding: zstd` decoding.
+Release CTest passes **53/53**, and the full local FastAPI integration runner
+passes. The native `_zstd` API is not yet complete (`get_frame_info`, parameter
+bounds, dictionary training/finalization, and advanced stream options remain).
+The untouched full upstream suites and Trio/CFFI boundary remain open; this is
+a tested checkpoint, not completion of the FastAPI compatibility goal.
+
 The user's requested checkpoint was committed as `58b939d`, fast-forwarded to
 `main`, and pushed to `origin/main`. `fastapi-compatibility`, `main`, and
 `origin/main` all pointed to that commit at the start of this continuation.
@@ -36,6 +50,32 @@ session cookie persists across requests and verifies with itsdangerous.
 The final Release build passed CTest 53/53 and all production FastAPI
 integration runner cases, including Uvicorn end-to-end. The complete
 upstream suites are still not green.
+
+After `a742cec`, uncommitted work fixes `BaseExceptionGroup` constructor
+selection for ordinary exceptions. The CPython 3.14 oracle and a public
+FastAPI task-group route pass, as do Release CTest 53/53 and the full FastAPI
+integration runner. Untouched Starlette `test__utils.py` asyncio cases pass
+13/13; application/authentication/background/concurrency cases pass 42/42.
+The next 77-case Starlette selection has 76 passes and one upstream Windows
+failure: `test_missing_env_file_raises` interpolates `C:\Users` into a regex,
+causing `re.PatternError` under both CPython 3.14 and XLang3. The full
+upstream suite and the Trio/CFFI boundary remain open.
+
+Another untouched Starlette selection (form parser, requests, responses)
+collected 168 asyncio cases: 164 passed, 3 failed, 1 upstream skip. CPython
+passed all three failures. Two XLang3 failures are now fixed in uncommitted
+work: custom exception subclasses retain constructor `args` without calling
+`super().__init__`, and buffered `read(65536)` of a 14 KB regular file returns
+the whole file. The exact upstream form-limit and FileResponse cases pass;
+CPython oracles and public FastAPI TestClient file download pass. The third
+failure is missing HTTPX2 `zstd` advertisement. HTTPX2 imports Python 3.14's
+pure-Python `compression.zstd`, which requires native `_zstd`. Implement the
+true `_zstd` boundary under `modules/` instead of special-casing HTTPX or
+FastAPI; never load CPython's `_zstd.pyd`.
+The final Release CTest rerun passes 53/53, and the full FastAPI integration
+runner passes after the file-read fix. A preceding full CTest run had one
+intermittent native-network large-response failure; the isolated test and
+subsequent complete rerun passed.
 
 The other major frontier is generated CFFI ABI support in
 `modules/cffi/cffi_backend_module.cpp`: callable DLL symbols, owned C data,

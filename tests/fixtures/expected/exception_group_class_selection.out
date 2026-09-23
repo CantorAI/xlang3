@@ -1,0 +1,5 @@
+ExceptionGroup True 2
+BaseExceptionGroup False 1
+ExceptionGroup True 1
+CustomGroup False 1
+TypeError

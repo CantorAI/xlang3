@@ -91,6 +91,9 @@ void functional_iterator_release_object(Object* object);
 std::string functional_iterator_to_string(const Value& value);
 bool functional_iterator_next(Value& iterator, bool& done, Value& out, std::string& error);
 
+void runtime_initialize_exception_constructor_args(
+    Runtime& runtime, Value& instance, const Value* args, uint32_t argc);
+
 bool runtime_call_callable(
     Runtime& runtime,
     const Value& callable,

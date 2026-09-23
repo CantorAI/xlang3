@@ -36,6 +36,18 @@ for this goal on 2026-09-19.
 
 ## Current evidence (2026-09-23)
 
+Latest checkpoint: the CPython 3.14-oracle exception-group, custom-exception
+constructor, and sized file-read fixes are validated by unchanged Starlette
+cases and public FastAPI integration. Added an independent `_zstd` native
+package backed by vendored Zstandard 1.5.7 C sources, while retaining Python
+3.14's unmodified pure-Python `compression.zstd`. The local oracle verifies
+one-shot, incremental, and 192 KB streaming round trips. Unchanged Starlette
+`test_request_headers[asyncio]` now passes because HTTPX2 naturally
+advertises zstd, and a FastAPI TestClient zstd response is decoded correctly.
+Release CTest is **53/53** and all local FastAPI integration cases pass.
+Complete `_zstd` API coverage, the Trio/CFFI boundary, and the full untouched
+upstream matrix remain open. This checkpoint is not full compatibility.
+
 The checkpoint through `58b939d` was merged and pushed to `origin/main` at the
 user's request. This continuation on `fastapi-compatibility` implements
 `ast.Expression` compilation, parser-backed eval expressions,
@@ -51,6 +63,47 @@ end-to-end. The untouched serial FastAPI and Starlette suites
 still expose a shared Trio Windows CFFI boundary:
 `CLibrary.CreateIoCompletionPort` is missing. Full pinned upstream
 compatibility remains unverified.
+
+Continuation after `a742cec` (uncommitted on `fastapi-compatibility`):
+`BaseExceptionGroup(message, ordinary_exceptions)` now constructs an
+`ExceptionGroup`, matching CPython 3.14; mixed/base-only inputs retain
+`BaseExceptionGroup`, and user subclasses retain their type. A CPython-oracle
+fixture covers these cases. This fixes unchanged Starlette
+`test_collapsing_task_group_two_exc[asyncio]` (1/1); the complete
+`test__utils.py -k 'not trio'` selection passes **13/13**. A public FastAPI
+ASGI route now exercises two failures in an AnyIO task group and catches the
+resulting `ExceptionGroup`; both XLang3 and CPython pass. Release CTest passes
+**53/53**, and the complete production FastAPI integration runner passes,
+including Uvicorn end-to-end. The next unchanged Starlette selection
+(`test_applications.py`, `test_authentication.py`, `test_background.py`,
+`test_concurrency.py`, excluding Trio cases) passes **42/42**. The following
+selection (`test_config.py`, `test_convertors.py`, `test_datastructures.py`,
+`test_endpoints.py`, `test_exceptions.py`) passes **76**, fails **1**, and
+deselects **34** Trio cases. Its only failure,
+`test_missing_env_file_raises`, fails identically on CPython 3.14 under
+Windows because the upstream test interpolates a `C:\Users` path into an
+unescaped regular expression and `re` rejects `\U`. Do not alter XLang3 or
+the upstream source to make this case pass.
+
+The subsequent unchanged Starlette form/request/response batch selected 168
+asyncio cases: **164 passed, 3 failed, 1 upstream skip, 161 Trio cases
+deselected**. CPython 3.14 passed the same three failing cases. Two are now
+fixed in uncommitted general runtime changes: exception subclasses retain
+constructor arguments even if their custom `__init__` skips `super()` (the
+upstream URL-encoded form-limit case now passes), and buffered sized file reads
+continue to the requested count or EOF (the upstream 14 KB FileResponse case
+now passes). Both have CPython-oracle fixtures. A public FastAPI TestClient
+download of a 14 KB file passes on XLang3 and CPython. The remaining request
+headers test expects HTTPX2 to advertise `zstd`; its decoder imports Python
+3.14's unmodified `compression.zstd` on CPython, which in turn requires the
+native `_zstd` extension. XLang3 cannot use CPython's `_zstd.pyd`; implement
+that true native boundary under `modules/`, while retaining the pure-Python
+standard-library package. No HTTPX or Starlette source was altered.
+After the file-read fix, the final Release CTest rerun passes **53/53** and
+the complete FastAPI integration runner passes, including the new file
+download, task-group route, and Uvicorn end-to-end case. One preceding CTest
+run had an intermittent native-network large-response failure; the isolated
+network test and the subsequent complete rerun both passed.
 
 Branch: `fastapi-compatibility`, created from synchronized main `c09174a`.
 Reference interpreter: CPython 3.14.7, used only for tests.

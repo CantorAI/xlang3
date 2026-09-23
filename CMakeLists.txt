@@ -56,12 +56,13 @@ add_subdirectory(modules/hashlib)
 add_subdirectory(modules/pydantic_core)
 add_subdirectory(modules/argon2)
 add_subdirectory(modules/cffi)
+add_subdirectory(modules/zstd)
 if(CMAKE_RUNTIME_OUTPUT_DIRECTORY)
   foreach(native_module xlang_json_native_package xlang_sqlite3_native_package
       xlang_yaml_native_package xlang_device_native_package xlang_net_native_package
       xlang_ssl_native_package xlang_hashlib_native_package xlang_blake2_native_package
       xlang_pydantic_core_native_package xlang_argon2_cffi_native_package
-      xlang_cffi_backend_native_package)
+      xlang_cffi_backend_native_package xlang_zstd_native_package)
     set_target_properties(${native_module} PROPERTIES
       RUNTIME_OUTPUT_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/modules"
       LIBRARY_OUTPUT_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/modules")

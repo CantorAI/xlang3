@@ -202,6 +202,7 @@ bool exception_init(
   bool exception_group_requires_exception = false;
   const bool is_exception_group = exception_is_group_family(args[0], exception_group_requires_exception);
   std::vector<Value> group_exceptions;
+  bool all_group_items_are_exceptions = true;
   if (is_exception_group) {
     if (argc != 3 || value_as_string(args[1]) == nullptr) {
       error = "BaseExceptionGroup.__new__() requires a string message and a sequence of exceptions";
@@ -224,10 +225,21 @@ bool exception_init(
           (exception_class->name == "BaseException" || class_has_builtin_base_name(exception_class, "BaseException"));
       const bool is_exception = exception_class != nullptr &&
           (exception_class->name == "Exception" || class_has_builtin_base_name(exception_class, "Exception"));
+      all_group_items_are_exceptions = all_group_items_are_exceptions && is_exception;
       if (!is_base_exception || (exception_group_requires_exception && !is_exception)) {
         error = "Item 0 of second argument (exceptions) is not an exception";
         runtime.raise_class_error("TypeError", error);
         return false;
+      }
+    }
+    if (all_group_items_are_exceptions) {
+      if (auto* instance = value_as_instance(args[0])) {
+        if (auto* klass = value_as_class(instance->klass);
+            klass != nullptr && klass->name == "BaseExceptionGroup") {
+          if (const Value* narrowed = runtime.find_builtin("ExceptionGroup")) {
+            instance->klass = *narrowed;
+          }
+        }
       }
     }
   }
