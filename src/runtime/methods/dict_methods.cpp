@@ -323,7 +323,9 @@ bool dict_pop_method(Runtime& runtime, const Value* args, uint32_t argc, Value& 
     return false;
   }
   Value target = args[0];
-  if (mapping_get_item_runtime(runtime, target, args[1], out, error)) {
+  // CPython's native dict methods operate on the dict storage of subclasses;
+  // they do not dispatch an overridden __getitem__ or __delitem__.
+  if (mapping_get_item_runtime(runtime, target, args[1], out, error, false)) {
     std::string delete_error;
     mapping_delete_item_runtime(runtime, target, args[1], delete_error);
     return true;

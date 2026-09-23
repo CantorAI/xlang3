@@ -28,3 +28,20 @@ class WrappedGetitem(dict):
 
 wrapped = WrappedGetitem(answer=42)
 print(wrapped["answer"], dict.__getitem__(wrapped, "answer"))
+
+
+events = []
+
+
+class PopOverride(dict):
+    def __getitem__(self, key):
+        events.append(("get", key))
+        raise AssertionError("dict.pop must bypass __getitem__")
+
+    def __delitem__(self, key):
+        events.append(("del", key))
+        raise AssertionError("dict.pop must bypass __delitem__")
+
+
+values = PopOverride(present=7)
+print(values.pop(".", None), values.pop("present"), events, len(values))

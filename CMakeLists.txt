@@ -325,6 +325,13 @@ add_executable(xlang3 src/xlang3.cpp)
 target_link_libraries(xlang3 PRIVATE xlang3_runtime)
 target_compile_definitions(xlang3 PRIVATE XLANG3_USE_SHARED)
 target_include_directories(xlang3 PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/internal)
+if(MSVC)
+  # Native validators and protocol adapters can legitimately recurse through
+  # deeply nested Python object graphs. Reserve enough virtual stack for the
+  # runtime's configured recursion limits on Windows; pages are committed only
+  # as they are used.
+  target_link_options(xlang3 PRIVATE /STACK:8388608)
+endif()
 
 enable_testing()
 if(WIN32)

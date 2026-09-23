@@ -625,6 +625,8 @@ bool schema_type_name(PackageState* package, X3Runtime* runtime,
                       X3Value schema, std::string& type);
 X3Status import_module(PackageState* package, X3Runtime* runtime,
                        const char* name, X3Value* result);
+bool is_instance_of_class(PackageState* package, X3Runtime* runtime,
+                          X3Value input, X3Value klass);
 
 X3Status serialization_unexpected_init(
     X3CallContext* context, X3Runtime* runtime, void* user_data,
@@ -1400,6 +1402,22 @@ bool dict_find_string(PackageState* state, X3Runtime* runtime, X3Value dict,
   return false;
 }
 
+bool is_mapping_protocol_instance(PackageState* package, X3Runtime* runtime,
+                                  X3Value value) {
+  X3Value module = x3_value_invalid();
+  X3Value mapping_class = x3_value_invalid();
+  const bool matches =
+      import_module(package, runtime, "_collections_abc", &module) ==
+          X3_STATUS_OK &&
+      package->host->get_attr(runtime, module, "Mapping", &mapping_class) ==
+          X3_STATUS_OK &&
+      is_instance_of_class(package, runtime, value, mapping_class);
+  if (mapping_class.tag != X3_TAG_INVALID)
+    package->host->value_release(mapping_class);
+  if (module.tag != X3_TAG_INVALID) package->host->value_release(module);
+  return matches;
+}
+
 X3Status find_model_field_input(PackageState* package, X3Runtime* runtime,
                                 X3Value input, const std::string& name,
                                 bool from_attributes, bool* present,
@@ -1411,6 +1429,29 @@ X3Status find_model_field_input(PackageState* package, X3Runtime* runtime,
     return X3_STATUS_OK;
   }
   if (!from_attributes) return X3_STATUS_OK;
+  if (is_mapping_protocol_instance(package, runtime, input)) {
+    X3Value get_method = x3_value_invalid();
+    X3Value name_value = package->host->value_string_utf8(
+        runtime, name.data(), name.size());
+    X3Value arguments[] = {name_value, package->undefined};
+    const auto status =
+        package->host->get_attr(runtime, input, "get", &get_method) ==
+                X3_STATUS_OK
+            ? package->host->call(runtime, get_method, arguments, 2, value)
+            : X3_STATUS_ERROR;
+    if (get_method.tag != X3_TAG_INVALID)
+      package->host->value_release(get_method);
+    package->host->value_release(name_value);
+    if (status != X3_STATUS_OK) return status;
+    if (value->tag == package->undefined.tag && value->tag == X3_TAG_OBJECT &&
+        value->as.obj == package->undefined.as.obj) {
+      package->host->value_release(*value);
+      *value = x3_value_invalid();
+      return X3_STATUS_OK;
+    }
+    *present = true;
+    return X3_STATUS_OK;
+  }
   if (package->host->value_object_kind(input) == X3_OBJECT_KIND_TUPLE) {
     uint64_t count = 0;
     X3Value object = x3_value_invalid();
