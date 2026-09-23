@@ -9,6 +9,14 @@ tree is authoritative.
 
 ## Current checkpoint (2026-09-23)
 
+New work after `7b20d5b` (uncommitted): native `_cffi_backend` decodes
+generated CFFI type metadata and supports `ffi.sizeof()` for Trio's Windows
+typedefs and struct layouts. `run_cffi_type_layout.ps1` compares 31 actual
+Trio typedefs and pointer, array, and named-struct cases with CPython 3.14
+CFFI. Dynamic symbols,
+typed calls, allocated C data, and buffers are still missing; the full
+Starlette Trio test path remains open.
+
 Latest continuation: the XLang3 parser no longer loops on an
 invalid parenthesized `async with` snippet used by Python 3.14 traceback
 formatting. Coroutine exception context survives `await`, and nested
@@ -419,6 +427,24 @@ for nested synchronous calls; later suites may show that lazy serialization
 iterators must retain configuration themselves.
 
 ## Remaining work required before completion
+
+### 2026-09-23 checkpoint
+
+The native `_cffi_backend` now uses vendored Windows x64 libffi source compiled
+into the XLang3 package, with no CPython runtime dependency. It handles the
+generated Trio Windows declarations, dynamic library symbols, scalar/pointer
+foreign calls, owned pointer/array allocations, `getwinerror`, and CData pointer
+comparison/indexing. The CPython 3.14 comparison in
+`tests/fastapi/run_cffi_type_layout.ps1` passes, including real Win32 calls.
+The Release CLI fixture gate passes, including socket constants, signal wakeup
+FD, and Windows `OSError` constructor mapping. The FastAPI local gate also
+passes after the final `OSError` change. A direct Trio
+`trio.run` probe now enters the application but fails with `RuntimeError: must
+be called from async context` in `trio/_core/_generated_io_windows.py`.
+This is an open general async runtime compatibility issue; full Trio and
+untouched Starlette Trio tests do not yet pass. Do not claim full FastAPI
+compatibility from this checkpoint.
+
 
 1. Finish untouched pydantic-core scalar, URL, validator, and serializer test
    matrices and keep general regressions green.

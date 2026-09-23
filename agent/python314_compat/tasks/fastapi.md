@@ -36,6 +36,16 @@ for this goal on 2026-09-19.
 
 ## Current evidence (2026-09-23)
 
+After the `7b20d5b` main checkpoint, native `_cffi_backend.FFI` now decodes
+the generated CFFI type, typename, and struct/union tables and implements
+`ffi.sizeof()` for the primitive, pointer, typedef, array, and standard-layout
+struct types used in Trio's Windows definitions. The dedicated
+`tests/fastapi/run_cffi_type_layout.ps1` regression compares **all 31 Trio
+typedefs plus pointer, array, and named-struct cases** against CFFI under
+CPython 3.14 and passes.
+This is type-layout support only: native library symbol binding, typed foreign
+calls, owned C data, and buffers remain open, so Trio tests still cannot pass.
+
 Current continuation: fixed parser recovery when an invalid
 parenthesized `async with` reaches a closing delimiter; `ast.parse()` now
 raises `SyntaxError` for parser-rejected source instead of returning an empty
@@ -742,3 +752,13 @@ Release suite remains **53/53 passed** (33.55 seconds).
   JSON keys, and combined branch diagnostics.
 
 Do not mark FastAPI compatible based on imports or a narrow smoke test alone.
+
+2026-09-23 checkpoint: `_cffi_backend` now compiles bundled Windows x64 libffi
+source into its native package and supports the generated Trio Windows API
+declarations, real scalar/pointer foreign calls, owned pointer/array memory,
+`getwinerror`, and pointer comparison/indexing without a CPython runtime.
+`tests/fastapi/run_cffi_type_layout.ps1` matches CPython 3.14. CLI fixtures
+pass, including `signal.set_wakeup_fd`, socket constants, and Windows
+`OSError` constructor mapping. The direct Trio probe still fails at
+`RuntimeError: must be called from async context` in its generated Windows I/O
+module. Full Trio and untouched Starlette Trio coverage remains open.

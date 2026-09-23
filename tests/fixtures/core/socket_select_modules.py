@@ -6,6 +6,7 @@ import signal
 
 print(socket.AF_INET)
 print(socket.SOCK_STREAM)
+print(socket.SO_RCVBUF, socket.SO_SNDBUF)
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 print(s.family)
 print(s.type)

@@ -146,23 +146,54 @@ void initialize_syntax_error_attrs(Value& self, const Value* args, uint32_t argc
 
 void initialize_os_error_attrs(Value& self, const Value* args, uint32_t argc) {
   std::string ignored;
-  const bool has_errno_arg = argc >= 2 && (args[1].tag == ValueTag::Int64 || args[1].tag == ValueTag::None);
-  object_set_attr(self, "errno", has_errno_arg ? args[1] : Value::none(), ignored);
+  Value error_number = argc >= 2 ? args[1] : Value::none();
+  const Value winerror = argc >= 5 ? args[4] : Value::none();
+#if defined(_WIN32)
+  if (winerror.tag == ValueTag::Int64) {
+    switch (winerror.as.i64) {
+      case 2: case 3: error_number = Value::int64(2); break;
+      case 5: case 32: error_number = Value::int64(13); break;
+      case 6: error_number = Value::int64(9); break;
+      case 87: error_number = Value::int64(22); break;
+      case 109: error_number = Value::int64(32); break;
+      case 258: error_number = Value::int64(138); break;
+      case 10060: error_number = Value::int64(10060); break;
+      default: break;
+    }
+  }
+#endif
+  const bool has_errno_arg = error_number.tag == ValueTag::Int64 || error_number.tag == ValueTag::None;
+  object_set_attr(self, "errno", has_errno_arg ? error_number : Value::none(), ignored);
   object_set_attr(self, "strerror", argc >= 3 ? args[2] : Value::none(), ignored);
   object_set_attr(self, "filename", argc >= 4 ? args[3] : Value::none(), ignored);
-  object_set_attr(self, "filename2", argc >= 5 ? args[4] : Value::none(), ignored);
-  object_set_attr(self, "winerror", Value::none(), ignored);
+  object_set_attr(self, "filename2", argc >= 6 ? args[5] : Value::none(), ignored);
+  object_set_attr(self, "winerror", winerror, ignored);
 }
 
 void remap_exact_os_error(Runtime& runtime, Value& self, const Value* args, uint32_t argc) {
   auto* instance = value_as_instance(self);
   auto* klass = instance == nullptr ? nullptr : value_as_class(instance->klass);
-  if (klass == nullptr || klass->name != "OSError" || argc < 2 || args[1].tag != ValueTag::Int64) {
+  if (klass == nullptr || klass->name != "OSError" || argc < 2) {
     return;
   }
 
+  int64_t error_number = args[1].tag == ValueTag::Int64 ? args[1].as.i64 : -1;
+#if defined(_WIN32)
+  if (argc >= 5 && args[4].tag == ValueTag::Int64) {
+    switch (args[4].as.i64) {
+      case 2: case 3: error_number = 2; break;
+      case 5: case 32: error_number = 13; break;
+      case 6: error_number = 9; break;
+      case 87: error_number = 22; break;
+      case 109: error_number = 32; break;
+      case 258: error_number = 138; break;
+      case 10060: error_number = 10060; break;
+      default: break;
+    }
+  }
+#endif
   const char* mapped_name = nullptr;
-  switch (args[1].as.i64) {
+  switch (error_number) {
     case 2:
       mapped_name = "FileNotFoundError";
       break;
@@ -171,6 +202,9 @@ void remap_exact_os_error(Runtime& runtime, Value& self, const Value* args, uint
       break;
     case 17:
       mapped_name = "FileExistsError";
+      break;
+    case 138: case 10060:
+      mapped_name = "TimeoutError";
       break;
     default:
       break;
@@ -301,6 +335,14 @@ bool exception_init(
   if (is_os_error) {
     remap_exact_os_error(runtime, const_cast<Value&>(args[0]), args, argc);
     initialize_os_error_attrs(const_cast<Value&>(args[0]), args, argc);
+    if (argc >= 5) {
+      Value normalized_args = Value::tuple({});
+      Value error_number;
+      if (object_get_attr(args[0], "errno", error_number, ignored)) {
+        normalized_args = Value::tuple({error_number, args[2]});
+        object_set_attr(const_cast<Value&>(args[0]), "args", normalized_args, ignored);
+      }
+    }
   }
   if (is_syntax_error) {
     initialize_syntax_error_attrs(const_cast<Value&>(args[0]), args, argc);

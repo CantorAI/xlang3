@@ -2791,6 +2791,8 @@ void add_socket_exports(Runtime& runtime, NativeModuleBuilder& builder, const Va
       .value("SO_KEEPALIVE", Value::int64(SO_KEEPALIVE))
       .value("SOL_SOCKET", Value::int64(SOL_SOCKET))
       .value("SO_REUSEADDR", Value::int64(SO_REUSEADDR))
+      .value("SO_RCVBUF", Value::int64(SO_RCVBUF))
+      .value("SO_SNDBUF", Value::int64(SO_SNDBUF))
       .value("SO_ERROR", Value::int64(SO_ERROR))
       .value("SO_TYPE", Value::int64(SO_TYPE))
       .value("SO_EXCLUSIVEADDRUSE", Value::int64(-5))

@@ -23,6 +23,12 @@ limitations under the License.
 #include <vector>
 #include <csignal>
 
+#ifdef _WIN32
+#include <winsock2.h>
+#else
+#include <unistd.h>
+#endif
+
 namespace xlang3 {
 
 namespace {
@@ -31,6 +37,7 @@ struct SignalState {
   std::unordered_map<int64_t, Value> handlers;
   std::vector<int64_t> signals = {2, 4, 6, 8, 11, 15, 21};
   int64_t wakeup_fd = -1;
+  bool warn_on_full_buffer = true;
 };
 
 SignalState* signal_state(void* user_data) {
@@ -119,6 +126,27 @@ bool raise_signal(Runtime& runtime, const Value* args, uint32_t argc, Value& out
     runtime.raise_class_error("ValueError", error);
     return false;
   }
+  if (state->wakeup_fd >= 0) {
+    const char byte = static_cast<char>(signum & 0xff);
+#ifdef _WIN32
+    const bool written = ::send(static_cast<SOCKET>(state->wakeup_fd), &byte, 1, 0) == 1;
+#else
+    const bool written = ::write(static_cast<int>(state->wakeup_fd), &byte, 1) == 1;
+#endif
+    if (!written && state->warn_on_full_buffer) {
+      Value warnings;
+      Value warn;
+      const Value* warning_class = runtime.find_builtin("RuntimeWarning");
+      if (!runtime.import_module("warnings", warnings, error) ||
+          !module_get_attr(warnings, "warn", warn, error) ||
+          warning_class == nullptr) return false;
+      Value warning_args[] = {
+          Value::string("signal wakeup fd buffer is full"), *warning_class};
+      Value ignored;
+      if (!runtime_call_callable(runtime, warn, warning_args, 2, ignored, error))
+        return false;
+    }
+  }
   auto it = state->handlers.find(signum);
   if (it == state->handlers.end() || (it->second.tag == ValueTag::Int64 && it->second.as.i64 >= 0 && it->second.as.i64 <= 1)) {
     value_set_none(out);
@@ -162,7 +190,21 @@ bool set_wakeup_fd(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
   auto* state = signal_state(user_data);
   out = Value::int64(state->wakeup_fd);
   state->wakeup_fd = args[0].as.i64;
+  state->warn_on_full_buffer = argc == 2 ? value_truthy(args[1]) : true;
   return true;
+}
+
+bool set_wakeup_fd_kw(Runtime& runtime, const Value* args, uint32_t argc,
+                      const NativeKeywordArg* kwargs, uint32_t kwargc,
+                      Value& out, std::string& error, void* user_data) {
+  if (argc != 1 || kwargc != 1 || kwargs[0].name == nullptr ||
+      std::string(kwargs[0].name) != "warn_on_full_buffer" || kwargs[0].value == nullptr) {
+    error = "signal.set_wakeup_fd() expected fd and warn_on_full_buffer";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  const Value positional[] = {args[0], *kwargs[0].value};
+  return set_wakeup_fd(runtime, positional, 2, out, error, user_data);
 }
 
 bool strsignal(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -204,7 +246,9 @@ void fill_signal_module(Runtime& runtime, NativeModuleBuilder& builder, SignalSt
       .value("getsignal", runtime.make_native_function("signal.getsignal", getsignal, state))
       .value("raise_signal", runtime.make_native_function("signal.raise_signal", raise_signal, state))
       .value("valid_signals", runtime.make_native_function("signal.valid_signals", valid_signals, state))
-      .value("set_wakeup_fd", runtime.make_native_function("signal.set_wakeup_fd", set_wakeup_fd, state))
+      .value("set_wakeup_fd", runtime.make_native_function(
+          "signal.set_wakeup_fd", set_wakeup_fd, state, nullptr, nullptr,
+          false, set_wakeup_fd_kw))
       .function("strsignal", strsignal)
       .function("default_int_handler", default_int_handler)
       .value("SIG_DFL", Value::int64(0))

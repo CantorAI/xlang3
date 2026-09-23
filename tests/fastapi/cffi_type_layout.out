@@ -1,0 +1,46 @@
+AFD_POLL_HANDLE_INFO 16
+AFD_POLL_INFO 32
+BOOL 4
+BOOLEAN 1
+BYTE 1
+DWORD 4
+HANDLE 8
+LARGE_INTEGER 8
+LPCSTR 8
+LPCVOID 8
+LPCWSTR 8
+LPDWORD 8
+LPOVERLAPPED 8
+LPOVERLAPPED_ENTRY 8
+LPSECURITY_ATTRIBUTES 8
+LPVOID 8
+LPWSAOVERLAPPED 8
+NTSTATUS 4
+OVERLAPPED 32
+OVERLAPPED_ENTRY 32
+PAFD_POLL_HANDLE_INFO 8
+PAFD_POLL_INFO 8
+PULONG 8
+PVOID 8
+SOCKET 8
+UCHAR 1
+UINT_PTR 8
+ULONG 4
+ULONG_PTR 8
+WSAOVERLAPPED 32
+u_long 4
+HANDLE[3] 24
+DWORD * 8
+DWORD[2] 8
+struct _OVERLAPPED 32
+struct _AFD_POLL_INFO 32
+const void * 8
+undeclared pointer rejected
+event created True
+event closed 1
+completion port created True
+completion port closed 1
+zeroed handle True
+initialized dword 7
+zeroed handle array True
+Windows error (6, 'The handle is invalid')
