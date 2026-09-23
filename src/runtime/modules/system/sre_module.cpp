@@ -4823,12 +4823,7 @@ bool sre_compile(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
     regex_flags |= std::regex::icase;
   }
   if ((flags & kFlagMultiline) != 0) {
-#if defined(_MSC_VER)
-    // MSVC's standard library does not expose the C++17 multiline flag.
-    // normalize_std_regex_pattern already rewrites multiline anchors above.
-#else
     regex_flags |= std::regex_constants::multiline;
-#endif
   }
   auto* state = new PatternState();
   state->pattern = pattern;
