@@ -46,12 +46,30 @@ bool int_index_method(Runtime&, const Value* args, uint32_t argc, Value& out, st
     error = "int.__index__ expected no arguments";
     return false;
   }
-  if (args[0].tag != ValueTag::Int64 && value_as_bigint(args[0]) == nullptr) {
+  if (args[0].tag == ValueTag::Bool) {
+    value_set_int64(out, args[0].as.b ? 1 : 0);
+    return true;
+  }
+  if (args[0].tag == ValueTag::Int64 || value_as_bigint(args[0]) != nullptr) {
+    value_assign_fast(out, args[0]);
+    return true;
+  }
+  auto* instance = value_as_instance(args[0]);
+  auto* klass = instance == nullptr ? nullptr : value_as_class(instance->klass);
+  if (klass != nullptr && class_has_builtin_base_name(klass, "int")) {
+    Value stored;
+    std::string ignored;
+    if ((object_get_attr(args[0], "__xlang3_int_value__", stored, ignored) ||
+         object_get_attr(args[0], "_value_", stored, ignored)) &&
+        (stored.tag == ValueTag::Int64 || value_as_bigint(stored) != nullptr)) {
+      value_assign_fast(out, stored);
+      return true;
+    }
+  }
+  {
     error = "int.__index__ target must be int";
     return false;
   }
-  value_assign_fast(out, args[0]);
-  return true;
 }
 
 bool int_hash_method(Runtime&, const Value* args, uint32_t argc, Value& out,

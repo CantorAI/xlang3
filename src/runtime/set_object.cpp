@@ -19,6 +19,7 @@ limitations under the License.
 #include "xlang3/value_hash.h"
 
 #include <array>
+#include <unordered_map>
 
 namespace xlang3 {
 
@@ -234,6 +235,41 @@ bool set_add(Value& set, const Value& item, std::string& error) {
     return false;
   }
   return append_unique(obj->items, item, error);
+}
+
+bool set_union_values(const Value& left, const Value& right, Value& out,
+                      std::string& error) {
+  const auto* lhs = value_as_set(left);
+  const auto* rhs = value_as_set(right);
+  if (lhs == nullptr || rhs == nullptr) {
+    error = "set union operands must be sets";
+    return false;
+  }
+  Value result = Value::set({});
+  auto* destination = value_as_set(result);
+  destination->items.reserve(lhs->items.size() + rhs->items.size());
+  std::unordered_map<size_t, std::vector<size_t>> buckets;
+  buckets.reserve(lhs->items.size() + rhs->items.size());
+  const auto append = [&](const Value& item) {
+    size_t hash = 0;
+    if (!value_hash_key(item, hash, error)) return false;
+    auto& positions = buckets[hash];
+    for (const size_t position : positions) {
+      if (value_key_equal(destination->items[position], item)) return true;
+    }
+    positions.push_back(destination->items.size());
+    destination->items.push_back(item);
+    return true;
+  };
+  for (const auto& item : lhs->items) {
+    if (!append(item)) return false;
+  }
+  for (const auto& item : rhs->items) {
+    if (!append(item)) return false;
+  }
+  destination->frozen = lhs->frozen;
+  out = std::move(result);
+  return true;
 }
 
 } // namespace xlang3

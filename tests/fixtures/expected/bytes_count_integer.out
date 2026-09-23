@@ -1,0 +1,16 @@
+bytes 1 2
+bytes True 2
+bytes <Code.ONE: 1> 2
+bytes 256 ValueError byte must be in range(0, 256)
+bytes -1 ValueError byte must be in range(0, 256)
+bytes 'x' TypeError argument should be integer or bytes-like object, not 'str'
+bytes 1.0 TypeError argument should be integer or bytes-like object, not 'float'
+bytes slice 1
+bytearray 1 2
+bytearray True 2
+bytearray <Code.ONE: 1> 2
+bytearray 256 ValueError byte must be in range(0, 256)
+bytearray -1 ValueError byte must be in range(0, 256)
+bytearray 'x' TypeError argument should be integer or bytes-like object, not 'str'
+bytearray 1.0 TypeError argument should be integer or bytes-like object, not 'float'
+bytearray slice 1

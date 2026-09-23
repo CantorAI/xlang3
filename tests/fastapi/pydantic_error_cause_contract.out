@@ -1,0 +1,3 @@
+ExceptionGroup 1 Pydantic: cause of loc: count
+200 {'count': 2}
+422 value_error ['body', 'count'] Value error, count is negative

@@ -535,6 +535,41 @@ bool zlib_decompressobj_kw(Runtime& runtime, const Value* args, uint32_t argc,
   return zlib_decompressobj(runtime, values.data(), 2, out, error, user_data);
 }
 
+bool zlib_strict_decompressor_kw(Runtime& runtime, const Value* args,
+                                 uint32_t argc, const NativeKeywordArg* kwargs,
+                                 uint32_t kwargc, Value& out,
+                                 std::string& error, void* user_data) {
+  if (argc > 2)
+    return zlib_class_fail(runtime, "TypeError",
+                           "_ZlibDecompressor() takes at most 2 arguments",
+                           error);
+  std::array<Value, 2> values = {Value::int64(MAX_WBITS), Value::none()};
+  std::array<bool, 2> supplied{};
+  for (uint32_t index = 0; index < argc; ++index) {
+    values[index] = args[index];
+    supplied[index] = true;
+  }
+  for (uint32_t index = 0; index < kwargc; ++index) {
+    if (kwargs[index].name == nullptr || kwargs[index].value == nullptr)
+      return zlib_class_fail(runtime, "TypeError",
+                             "invalid _ZlibDecompressor keyword", error);
+    const std::string_view name(kwargs[index].name);
+    const size_t slot = name == "wbits" ? 0 : name == "zdict" ? 1 : 2;
+    if (slot == 2)
+      return zlib_class_fail(runtime, "TypeError",
+                             "_ZlibDecompressor() got an unexpected keyword argument",
+                             error);
+    if (supplied[slot])
+      return zlib_class_fail(runtime, "TypeError",
+                             "_ZlibDecompressor() got multiple values for an argument",
+                             error);
+    values[slot] = *kwargs[index].value;
+    supplied[slot] = true;
+  }
+  return zlib_strict_decompressor(runtime, values.data(), 2, out, error,
+                                   user_data);
+}
+
 bool zlib_compress_object_copy(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) return zlib_class_fail(runtime, "TypeError", "Compress.copy() expected no arguments", error);
   ZlibCompressState* state = nullptr;
@@ -859,7 +894,8 @@ void register_zlib_module(Runtime& runtime) {
               "zlib._ZlibDecompressor",
               zlib_strict_decompressor,
               new Value(decompress_class),
-              [](void* data) { delete static_cast<Value*>(data); }))
+              [](void* data) { delete static_cast<Value*>(data); },
+              nullptr, false, zlib_strict_decompressor_kw))
       .function("crc32", zlib_crc32)
       .function("adler32", zlib_adler32)
       .value("Compress", compress_class)

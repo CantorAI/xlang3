@@ -19,7 +19,7 @@ try {
     if ($runtimeName -ne 'xlang3') {
         throw "FastAPI gates must run on XLang3, got '$runtimeName'"
     }
-    foreach ($case in @('pydantic_features', 'pydantic_common_types', 'pydantic_constraints', 'pydantic_serializers', 'pydantic_urls', 'pydantic_core_schemas', 'pydantic_validators', 'pydantic_enums', 'pydantic_structures', 'pydantic_dataclasses', 'tagged_union_contract', 'typed_dict_contract', 'union_contract', 'pydantic_error_catalog', 'pydantic_errors_contract', 'asgi_end_to_end', 'framework_features', 'advanced_asgi_features', 'testclient_features')) {
+    foreach ($case in @('pydantic_features', 'pydantic_common_types', 'pydantic_constraints', 'pydantic_serializers', 'pydantic_urls', 'pydantic_core_schemas', 'pydantic_validators', 'pydantic_enums', 'pydantic_structures', 'pydantic_dataclasses', 'tagged_union_contract', 'typed_dict_contract', 'union_contract', 'pydantic_error_catalog', 'pydantic_errors_contract', 'pydantic_error_cause_contract', 'asgi_end_to_end', 'framework_features', 'advanced_asgi_features', 'testclient_features')) {
         $source = Join-Path $PSScriptRoot "$case.py"
         $expectedPath = Join-Path $PSScriptRoot "$case.out"
         $expected = ((Get-Content -LiteralPath $expectedPath -Raw) -replace "`r`n", "`n").TrimEnd()

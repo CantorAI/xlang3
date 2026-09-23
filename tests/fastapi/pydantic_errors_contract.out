@@ -1,4 +1,7 @@
 not_ready Value {value} is not ready {'value': 3} Value 3 is not ready Value 3 is not ready [type=not_ready, context={'value': 3}]
 greater_than Input should be greater than {gt} {'gt': 0} Input should be greater than 0 Input should be greater than 0 [type=greater_than, context={'gt': 0}]
+bad_setting Setting strict rejects no {'wrong_value': 'no', 'setting': 'strict'}
+value_error ('code',) Value error, bad value
 200 {'amount': 2, 'code': 'ok'}
 422 [{'type': 'greater_than', 'loc': ['body', 'amount'], 'msg': 'Input should be greater than 0', 'input': 0, 'ctx': {'gt': 0}}, {'type': 'bad_code', 'loc': ['body', 'code'], 'msg': 'Code no is invalid', 'input': 'no', 'ctx': {'code': 'no'}}]
+422 bad_setting Setting strict rejects no

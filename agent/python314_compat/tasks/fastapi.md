@@ -872,3 +872,43 @@ ExceptionGroup/traceback behavior. This checkpoint does not establish full
 FastAPI compatibility or completion of the seven-project matrix. The
 expanded local FastAPI gate, including Uvicorn HTTP/HTTPS, and all 53 CTest
 tests pass on the checkpoint build.
+
+2026-09-23 error-cause continuation (uncommitted on
+`fastapi-compatibility`): configured `validation_error_cause=True` now
+retains original user `ValueError` and `AssertionError` objects, adds
+location notes, and attaches an `ExceptionGroup` cause to the native
+`ValidationError`. This preserves explicit user exception chains and
+tracebacks. All **194** tests in untouched pydantic-core
+`tests/test_errors.py` pass, with **1** upstream skip. A new public
+FastAPI/Pydantic model-validator fixture matches CPython 3.14 for the
+cause chain, note, traceback, accepted request, and HTTP 422 response.
+The expanded FastAPI local gate including Uvicorn HTTP/HTTPS and all
+**53/53** CTest tests pass. The
+full seven-project upstream matrix and broader production load/soak gates
+remain open.
+
+2026-09-23 upstream expansion (uncommitted): untouched
+`tests/test_custom_errors.py` passes **4/4** after native
+`PydanticCustomError.__new__` preserves subclass-transformed templates and
+`ValidationError.from_exception_data` recomputes messages from type/context
+instead of accepting a caller-supplied `msg`. The expanded public FastAPI
+error-contract fixture matches CPython 3.14 for both subclass cases and an
+HTTP 422 response. The general XLang3 `bytes.count`/`bytearray.count`
+methods now accept integers and `__index__` objects with CPython range and
+type errors; inherited `int.__index__` works on integer subclasses such as
+`IntEnum`. A CPython 3.14 bytes fixture covers these boundaries. The
+untouched pydantic-core Hypothesis file progressed past the former
+`bytes.count` and `int.__index__` failures. A general set-union hash index
+reduced Hypothesis's loaded-source scan from about 40 to 3.3 seconds, and
+its first generated datetime test passes. Native `zlib._ZlibDecompressor`
+now accepts Python 3.14's `wbits=` keyword; the Hypothesis gzip Unicode
+cache loads and parses. A later untouched `test_urls_text` still ends the
+XLang3 process with exit code 3 during Hypothesis text generation, before
+Pydantic URL validation. This is an open general runtime gap. Set union also
+still has a pre-existing equality gap for distinct custom objects with
+equal user-defined `__hash__` and `__eq__`. The full upstream matrix remains
+open; these changes are a compatibility checkpoint, not a completion claim.
+The Release build, all **53/53** CTest checks, the expanded local FastAPI
+gate including live Uvicorn HTTP/HTTPS, and the untouched upstream
+`test_errors.py` plus `test_custom_errors.py` (**198 passed, 1 skipped**)
+pass on this checkpoint.

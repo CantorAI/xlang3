@@ -59,5 +59,7 @@ bool set_get_iter(const Value& object, Value& out, std::string& error);
 bool set_iter_next(Value& iterator, bool& done, Value& out, std::string& error);
 bool set_len(const Value& value, Value& out, std::string& error);
 bool set_add(Value& set, const Value& item, std::string& error);
+bool set_union_values(const Value& left, const Value& right, Value& out,
+                      std::string& error);
 
 } // namespace xlang3

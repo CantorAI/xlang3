@@ -17639,6 +17639,120 @@ X3Status validator_handler_repr(
   return X3_STATUS_OK;
 }
 
+X3Status attach_validation_cause(
+    PackageState* package, X3Runtime* runtime, X3Value exception,
+    X3Value config) {
+  X3Value enabled = x3_value_invalid();
+  const bool include_cause = config.tag == X3_TAG_OBJECT &&
+      dict_item(package, runtime, config, "validation_error_cause", enabled) &&
+      enabled.tag == X3_TAG_BOOL && enabled.as.b;
+  if (enabled.tag != X3_TAG_INVALID) package->host->value_release(enabled);
+  if (!include_cause || !is_instance_of_class(
+          package, runtime, exception, package->validation_error_class))
+    return X3_STATUS_OK;
+
+  X3Value errors = x3_value_invalid();
+  if (package->host->get_attr(runtime, exception, "_errors", &errors) !=
+      X3_STATUS_OK)
+    return X3_STATUS_ERROR;
+  X3Value user_errors = package->host->value_list(runtime);
+  uint64_t count = 0;
+  bool ok = user_errors.tag != X3_TAG_INVALID &&
+      package->host->len(runtime, errors, &count) == X3_STATUS_OK;
+  for (uint64_t index = 0; ok && index < count; ++index) {
+    X3Value detail = x3_value_invalid();
+    X3Value type = x3_value_invalid();
+    X3Value error_context = x3_value_invalid();
+    X3Value user_error = x3_value_invalid();
+    X3Value location = x3_value_invalid();
+    ok = package->host->get_item(
+             runtime, errors, x3_value_int64(static_cast<int64_t>(index)),
+             &detail) == X3_STATUS_OK;
+    std::string type_name;
+    const bool user_code_error = ok &&
+        dict_item(package, runtime, detail, "type", type) &&
+        string_data(package, runtime, type, type_name) &&
+        (type_name == "value_error" || type_name == "assertion_error") &&
+        dict_item(package, runtime, detail, "ctx", error_context) &&
+        dict_item(package, runtime, error_context, "error", user_error);
+    if (user_code_error) {
+      std::string location_text;
+      if (dict_item(package, runtime, detail, "loc", location)) {
+        uint64_t location_count = 0;
+        ok = package->host->len(runtime, location, &location_count) ==
+            X3_STATUS_OK;
+        for (uint64_t part_index = 0; ok && part_index < location_count;
+             ++part_index) {
+          X3Value part = x3_value_invalid();
+          ok = package->host->get_item(
+                   runtime, location,
+                   x3_value_int64(static_cast<int64_t>(part_index)),
+                   &part) == X3_STATUS_OK;
+          if (!ok) break;
+          std::string part_text;
+          ok = render_with_builtin(package, runtime, "str", part, part_text);
+          package->host->value_release(part);
+          if (ok) {
+            if (!location_text.empty()) location_text += '.';
+            location_text += part_text;
+          }
+        }
+      }
+      if (ok) {
+        const std::string note = "\nPydantic: cause of loc: " +
+            (location_text.empty() ? "root" : location_text);
+        X3Value add_note = x3_value_invalid();
+        X3Value note_value = package->host->value_string_utf8(
+            runtime, note.data(), note.size());
+        X3Value ignored = x3_value_invalid();
+        ok = package->host->get_attr(
+                 runtime, user_error, "add_note", &add_note) == X3_STATUS_OK &&
+             package->host->call(
+                 runtime, add_note, &note_value, 1, &ignored) ==
+                 X3_STATUS_OK &&
+             package->host->list_append(
+                 runtime, user_errors, user_error) == X3_STATUS_OK;
+        if (ignored.tag != X3_TAG_INVALID)
+          package->host->value_release(ignored);
+        if (add_note.tag != X3_TAG_INVALID)
+          package->host->value_release(add_note);
+        package->host->value_release(note_value);
+      }
+    }
+    if (location.tag != X3_TAG_INVALID) package->host->value_release(location);
+    if (user_error.tag != X3_TAG_INVALID)
+      package->host->value_release(user_error);
+    if (error_context.tag != X3_TAG_INVALID)
+      package->host->value_release(error_context);
+    if (type.tag != X3_TAG_INVALID) package->host->value_release(type);
+    if (detail.tag != X3_TAG_INVALID) package->host->value_release(detail);
+  }
+  package->host->value_release(errors);
+  uint64_t user_error_count = 0;
+  if (ok) ok = package->host->len(runtime, user_errors, &user_error_count) ==
+               X3_STATUS_OK;
+  if (ok && user_error_count != 0) {
+    X3Value group_class = x3_value_invalid();
+    X3Value title = package->host->value_string(
+        runtime, "Pydantic User Code Exceptions");
+    X3Value cause = x3_value_invalid();
+    X3Value arguments[] = {title, user_errors};
+    ok = package->host->builtin_value(
+             package->host, "BaseExceptionGroup", &group_class) ==
+             X3_STATUS_OK &&
+         package->host->call(
+             runtime, group_class, arguments, 2, &cause) == X3_STATUS_OK &&
+         package->host->set_attr(
+             runtime, exception, "__cause__", cause) == X3_STATUS_OK;
+    if (cause.tag != X3_TAG_INVALID) package->host->value_release(cause);
+    if (group_class.tag != X3_TAG_INVALID)
+      package->host->value_release(group_class);
+    package->host->value_release(title);
+  }
+  package->host->value_release(user_errors);
+  return ok ? X3_STATUS_OK : X3_STATUS_ERROR;
+}
+
 X3Status attach_validation_title(
     PackageState* package, X3CallContext* context, X3Runtime* runtime,
     X3Value schema, X3Value config, X3Status status) {
@@ -17692,6 +17806,11 @@ X3Status attach_validation_title(
   (void)package->host->set_attr(runtime, exception, "_hide_input", hide_input);
   if (configured_hide_input.tag != X3_TAG_INVALID)
     package->host->value_release(configured_hide_input);
+  if (attach_validation_cause(package, runtime, exception, config) !=
+      X3_STATUS_OK) {
+    package->host->value_release(exception);
+    return X3_STATUS_ERROR;
+  }
   package->host->raise_exception(context, exception);
   package->host->value_release(exception);
   return status;
@@ -25869,7 +25988,6 @@ X3Status normalize_line_errors(PackageState* package, X3CallContext* context,
     }
     detail = package->host->value_dict(runtime);
     uint64_t entry_count = 0;
-    bool has_message = false;
     std::string error_type;
     if (package->host->len(runtime, input, &entry_count) != X3_STATUS_OK) goto normalize_fail;
     for (uint64_t entry_index = 0; entry_index < entry_count; ++entry_index) {
@@ -25882,7 +26000,6 @@ X3Status normalize_line_errors(PackageState* package, X3CallContext* context,
       }
       std::string name;
       if (string_data(package, runtime, key, name)) {
-        if (name == "msg") has_message = true;
         if (name == "type") (void)string_data(package, runtime, value, error_type);
       }
       const auto status = package->host->dict_set_item(runtime, detail, key, value);
@@ -25933,7 +26050,7 @@ X3Status normalize_line_errors(PackageState* package, X3CallContext* context,
       if (location.tag != X3_TAG_INVALID) package->host->value_release(location);
       if (!valid_location) goto normalize_fail;
 
-      if (!has_message) {
+      {
         const char* message_template = custom_error == nullptr
             ? known_error_default_message(error_type, json_mode)
             : custom_error->message_template.c_str();
@@ -26453,17 +26570,63 @@ X3Status pydantic_error_init_impl(X3CallContext* context, X3Runtime* runtime,
 X3Status pydantic_custom_error_init(X3CallContext* context, X3Runtime* runtime,
                                     void* user_data, const X3Value* args,
                                     uint32_t argc, X3Value*) {
+  auto* package = static_cast<PackageState*>(user_data);
+  if (argc != 0 && pydantic_error_state(package, args[0]) != nullptr)
+    return X3_STATUS_OK;
   return pydantic_error_init_impl(context, runtime,
-                                  static_cast<PackageState*>(user_data), args,
-                                  argc, false);
+                                  package, args, argc, false);
 }
 
 X3Status pydantic_known_error_init(X3CallContext* context, X3Runtime* runtime,
                                    void* user_data, const X3Value* args,
                                    uint32_t argc, X3Value*) {
+  auto* package = static_cast<PackageState*>(user_data);
+  if (argc != 0 && pydantic_error_state(package, args[0]) != nullptr)
+    return X3_STATUS_OK;
   return pydantic_error_init_impl(context, runtime,
-                                  static_cast<PackageState*>(user_data), args,
-                                  argc, true);
+                                  package, args, argc, true);
+}
+
+X3Status pydantic_error_new_impl(X3CallContext* context, X3Runtime* runtime,
+                                 void* user_data, const X3Value* args,
+                                 uint32_t argc, X3Value* result, bool known) {
+  auto* package = static_cast<PackageState*>(user_data);
+  if (!known && argc == 1)
+    return package->host->raise_class_error(
+        context, "TypeError",
+        "PydanticCustomError.__new__() missing 2 required positional "
+        "arguments: 'error_type' and 'message_template'");
+  if (!valid_argc(package, context, argc, known ? 2 : 3,
+                  known ? 3 : 4,
+                  known ? "PydanticKnownError.__new__()" :
+                          "PydanticCustomError.__new__()"))
+    return X3_STATUS_ERROR;
+  X3Value instance = package->host->value_instance(runtime, args[0]);
+  if (instance.tag == X3_TAG_INVALID) return X3_STATUS_ERROR;
+  X3Value init_args[] = {instance, args[1],
+                         argc >= 3 ? args[2] : x3_value_none(),
+                         argc == 4 ? args[3] : x3_value_none()};
+  if (pydantic_error_init_impl(context, runtime, package, init_args,
+                               argc, known) != X3_STATUS_OK) {
+    package->host->value_release(instance);
+    return X3_STATUS_ERROR;
+  }
+  *result = instance;
+  return X3_STATUS_OK;
+}
+
+X3Status pydantic_custom_error_new(X3CallContext* context, X3Runtime* runtime,
+                                   void* user_data, const X3Value* args,
+                                   uint32_t argc, X3Value* result) {
+  return pydantic_error_new_impl(context, runtime, user_data, args, argc,
+                                  result, false);
+}
+
+X3Status pydantic_known_error_new(X3CallContext* context, X3Runtime* runtime,
+                                  void* user_data, const X3Value* args,
+                                  uint32_t argc, X3Value* result) {
+  return pydantic_error_new_impl(context, runtime, user_data, args, argc,
+                                  result, true);
 }
 
 X3Status pydantic_error_type(X3CallContext* context, X3Runtime* runtime,
@@ -26718,14 +26881,17 @@ X3Status register_module(X3PackageHost* host) {
   for (const char* name : {"PydanticCustomError", "PydanticKnownError"}) {
     X3Value klass = x3_value_invalid();
     const bool known = std::string_view(name) == "PydanticKnownError";
-    X3NativeFunctionDef methods[4]{};
-    define_method(methods[0], "__init__",
+    X3NativeFunctionDef methods[5]{};
+    define_method(methods[0], "__new__",
+                  known ? pydantic_known_error_new : pydantic_custom_error_new,
+                  state);
+    define_method(methods[1], "__init__",
                   known ? pydantic_known_error_init : pydantic_custom_error_init,
                   state);
-    define_method(methods[1], "message", pydantic_error_message, state);
-    define_method(methods[2], "__str__", pydantic_error_message, state);
-    define_method(methods[3], "__repr__", pydantic_error_repr, state);
-    if (host->module_add_class(module, name, methods, 4, &klass) !=
+    define_method(methods[2], "message", pydantic_error_message, state);
+    define_method(methods[3], "__str__", pydantic_error_message, state);
+    define_method(methods[4], "__repr__", pydantic_error_repr, state);
+    if (host->module_add_class(module, name, methods, 5, &klass) !=
             X3_STATUS_OK ||
         host->class_set_base(klass, value_error) != X3_STATUS_OK ||
         !add_property(state, host->runtime, klass, "type",

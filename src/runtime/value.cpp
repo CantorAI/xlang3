@@ -3415,6 +3415,8 @@ bool value_bit_or(const Value& lhs, const Value& rhs, Value& out, std::string& e
     }
   }
   if (value_as_set(lhs) != nullptr) {
+    if (value_as_set(rhs) != nullptr)
+      return set_union_values(lhs, rhs, out, error);
     out = Value::set(value_as_set(lhs)->items);
     return add_iterable_to_set(out, rhs, error);
   }

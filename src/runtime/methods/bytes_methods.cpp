@@ -588,15 +588,57 @@ bool normalize_bytes_bounds(size_t size, const Value* args, uint32_t argc, size_
   return true;
 }
 
-bool bytes_count_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool bytes_count_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 2 || argc > 4) {
     error = "bytes.count expected sub and optional start/end";
     return false;
   }
   std::string_view text;
   std::string_view needle;
-  if (!get_bytes_like_view(args[0], "bytes.count target", text, error) ||
-      !get_bytes_like_view(args[1], "bytes.count sub", needle, error)) {
+  if (!get_bytes_like_view(args[0], "bytes.count target", text, error)) {
+    return false;
+  }
+  char needle_byte = '\0';
+  Value index_value;
+  bool has_integer_needle = args[1].tag == ValueTag::Int64 ||
+      args[1].tag == ValueTag::Bool || value_as_bigint(args[1]) != nullptr;
+  if (has_integer_needle) {
+    index_value = args[1];
+  } else {
+    Value index_method;
+    std::string ignored;
+    if (object_get_attr(args[1], "__index__", index_method, ignored)) {
+      if (!runtime_call_callable(runtime, index_method, nullptr, 0,
+                                 index_value, error))
+        return false;
+      has_integer_needle = true;
+    }
+  }
+  if (has_integer_needle) {
+    int64_t number = 0;
+    if (index_value.tag == ValueTag::Int64) {
+      number = index_value.as.i64;
+    } else if (index_value.tag == ValueTag::Bool) {
+      number = index_value.as.b ? 1 : 0;
+    } else if (value_as_bigint(index_value) != nullptr) {
+      if (!value_bigint_to_i64(index_value, number)) number = 256;
+    } else {
+      error = "__index__ returned non-int (type " +
+          std::string(value_binary_type_name(index_value)) + ")";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    if (number < 0 || number > 255) {
+      error = "byte must be in range(0, 256)";
+      runtime.raise_class_error("ValueError", error);
+      return false;
+    }
+    needle_byte = static_cast<char>(number);
+    needle = std::string_view(&needle_byte, 1);
+  } else if (!get_bytes_like_view(args[1], "bytes.count sub", needle, error)) {
+    error = "argument should be integer or bytes-like object, not '" +
+        std::string(value_binary_type_name(args[1])) + "'";
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
   size_t start = 0;
