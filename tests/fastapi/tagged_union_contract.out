@@ -1,0 +1,5 @@
+union_tag_not_found () {'discriminator': "'kind'"}
+union_tag_invalid () {'discriminator': "'kind'", 'tag': 'pear', 'expected_tags': "'apple', 'banana'"}
+invalid_fruit () Unknown fruit
+200 {'fruit': 'banana', 'count': 2}
+422 union_tag_invalid ['body', 'fruit'] {'discriminator': "'kind'", 'tag': 'pear', 'expected_tags': "'apple', 'banana'"}

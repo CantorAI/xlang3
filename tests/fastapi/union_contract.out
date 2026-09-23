@@ -1,0 +1,17 @@
+int 1
+float 1.0
+int 1
+float 1.0
+Error building "union" validator:
+  SchemaError: One or more union choices required
+str text
+string_type ()
+invalid_text () Expected text or bytes
+UUID 12345678-1234-5678-1234-567812345678
+CoreStr
+[('CoreInt', 'x'), ('CoreStr', 'x')]
+200 {'type': 'int', 'value': 1}
+200 {'type': 'float', 'value': 1.0}
+200 {'type': 'StrOnly', 'data': {'x': '1'}}
+200 {'type': 'IntOnly', 'data': {'x': 1}}
+200 {'type': 'TwoInts', 'data': {'x': 1, 'y': 2}}

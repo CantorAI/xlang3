@@ -430,6 +430,7 @@ const char* known_error_default_message(std::string_view error_type) {
   if (error_type == "float_parsing")
     return "Input should be a valid number, unable to parse string as a number";
   if (error_type == "string_type") return "Input should be a valid string";
+  if (error_type == "less_than") return "Input should be less than {lt}";
   if (error_type == "bool_type") return "Input should be a valid boolean";
   if (error_type == "bool_parsing")
     return "Input should be a valid boolean, unable to interpret input";
@@ -5273,6 +5274,17 @@ bool validation_is_strict(PackageState* package, X3Runtime* runtime,
     package->host->value_release(strict_value);
     return strict;
   }
+  X3Value local_config = x3_value_invalid();
+  if (dict_item(package, runtime, schema, "config", local_config)) {
+    const bool has_strict = dict_item(package, runtime, local_config,
+                                      "strict", strict_value);
+    package->host->value_release(local_config);
+    if (has_strict) {
+      const bool strict = strict_value.tag == X3_TAG_BOOL && strict_value.as.b;
+      package->host->value_release(strict_value);
+      return strict;
+    }
+  }
   if (environment != nullptr &&
       dict_item(package, runtime, environment->config, "strict",
                 strict_value)) {
@@ -6372,15 +6384,50 @@ bool validate_schema_definition(PackageState* package, X3CallContext* context,
       !validate_string_regex(package, context, runtime, schema, root_config,
                              error))
     return false;
-  if (type == "model-fields") {
+  if (type == "union") {
+    X3Value choices = x3_value_invalid();
+    uint64_t choice_count = 0;
+    const bool has_choices = dict_item(package, runtime, schema, "choices",
+                                       choices) &&
+        package->host->len(runtime, choices, &choice_count) == X3_STATUS_OK;
+    if (choices.tag != X3_TAG_INVALID) package->host->value_release(choices);
+    if (!has_choices || choice_count == 0) {
+      error = "Error building \"union\" validator:\n"
+              "  SchemaError: One or more union choices required";
+      return false;
+    }
+  }
+  if (type == "model-fields" || type == "typed-dict") {
     std::string extra_behavior = "ignore";
     X3Value extra_behavior_value = x3_value_invalid();
-    if (dict_item(package, runtime, schema, "extra_behavior",
-                  extra_behavior_value) ||
+    bool has_extra_behavior =
+        dict_item(package, runtime, schema, "extra_behavior",
+                  extra_behavior_value) &&
+        string_data(package, runtime, extra_behavior_value, extra_behavior);
+    if (extra_behavior_value.tag != X3_TAG_INVALID) {
+      package->host->value_release(extra_behavior_value);
+      extra_behavior_value = x3_value_invalid();
+    }
+    X3Value schema_config = x3_value_invalid();
+    if (!has_extra_behavior &&
+        dict_item(package, runtime, schema, "config", schema_config)) {
+      has_extra_behavior = dict_item(package, runtime, schema_config,
+                                     "extra_fields_behavior",
+                                     extra_behavior_value) &&
+                           string_data(package, runtime, extra_behavior_value,
+                                       extra_behavior);
+    }
+    if (schema_config.tag != X3_TAG_INVALID)
+      package->host->value_release(schema_config);
+    if (extra_behavior_value.tag != X3_TAG_INVALID) {
+      package->host->value_release(extra_behavior_value);
+      extra_behavior_value = x3_value_invalid();
+    }
+    if (!has_extra_behavior &&
         dict_item(package, runtime, root_config, "extra_fields_behavior",
                   extra_behavior_value)) {
-      (void)string_data(
-          package, runtime, extra_behavior_value, extra_behavior);
+      (void)string_data(package, runtime, extra_behavior_value,
+                        extra_behavior);
       package->host->value_release(extra_behavior_value);
     }
     if (extra_behavior != "allow" && extra_behavior != "ignore" &&
@@ -6404,6 +6451,85 @@ bool validate_schema_definition(PackageState* package, X3CallContext* context,
         error = "extras_keys_schema can only be used if extra_behavior=allow";
         return false;
       }
+    }
+    if (type == "typed-dict") {
+      X3Value fields = x3_value_invalid();
+      uint64_t field_count = 0;
+      bool total = true;
+      X3Value total_value = x3_value_invalid();
+      if (dict_item(package, runtime, schema, "total", total_value)) {
+        if (total_value.tag == X3_TAG_BOOL) total = total_value.as.b;
+        package->host->value_release(total_value);
+      }
+      if (dict_item(package, runtime, schema, "fields", fields) &&
+          package->host->len(runtime, fields, &field_count) == X3_STATUS_OK) {
+        for (uint64_t index = 0; index < field_count; ++index) {
+          X3Value name = x3_value_invalid();
+          X3Value field = x3_value_invalid();
+          if (package->host->dict_get_entry(runtime, fields, index, &name,
+                                            &field) != X3_STATUS_OK) {
+            package->host->value_release(fields);
+            return false;
+          }
+          X3Value required = x3_value_invalid();
+          X3Value inner = x3_value_invalid();
+          X3Value inner_type = x3_value_invalid();
+          std::string name_text;
+          std::string inner_type_text;
+          bool field_required = total;
+          bool explicitly_required = false;
+          if (dict_item(package, runtime, field, "required", required) &&
+              required.tag == X3_TAG_BOOL) {
+            field_required = required.as.b;
+            explicitly_required = required.as.b;
+          }
+          const bool has_default_schema =
+              dict_item(package, runtime, field, "schema", inner) &&
+              dict_item(package, runtime, inner, "type", inner_type) &&
+              string_data(package, runtime, inner_type, inner_type_text) &&
+              inner_type_text == "default";
+          if (field_required && has_default_schema &&
+              string_data(package, runtime, name, name_text)) {
+            X3Value default_value = x3_value_invalid();
+            X3Value default_factory = x3_value_invalid();
+            X3Value on_error_value = x3_value_invalid();
+            std::string on_error;
+            const bool has_default =
+                dict_item(package, runtime, inner, "default", default_value) ||
+                dict_item(package, runtime, inner, "default_factory",
+                          default_factory);
+            if (dict_item(package, runtime, inner, "on_error",
+                          on_error_value))
+              (void)string_data(package, runtime, on_error_value, on_error);
+            if (has_default && explicitly_required)
+              error = "Error building \"typed-dict\" validator:\n"
+                      "  SchemaError: Field '" + name_text +
+                      "': a required field cannot have a default value";
+            else if (on_error == "omit")
+              error = "Error building \"typed-dict\" validator:\n"
+                      "  SchemaError: Field '" + name_text +
+                      "': 'on_error = omit' cannot be set for required fields";
+            if (default_value.tag != X3_TAG_INVALID)
+              package->host->value_release(default_value);
+            if (default_factory.tag != X3_TAG_INVALID)
+              package->host->value_release(default_factory);
+            if (on_error_value.tag != X3_TAG_INVALID)
+              package->host->value_release(on_error_value);
+          }
+          if (inner_type.tag != X3_TAG_INVALID)
+            package->host->value_release(inner_type);
+          if (inner.tag != X3_TAG_INVALID) package->host->value_release(inner);
+          if (required.tag != X3_TAG_INVALID)
+            package->host->value_release(required);
+          package->host->value_release(field);
+          package->host->value_release(name);
+          if (!error.empty()) {
+            package->host->value_release(fields);
+            return false;
+          }
+        }
+      }
+      if (fields.tag != X3_TAG_INVALID) package->host->value_release(fields);
     }
   }
   if (type == "chain") {
@@ -6741,8 +6867,40 @@ X3Status schema_init_common(X3CallContext* context, X3Runtime* runtime, void* us
   auto native = std::make_unique<SchemaState>();
   native->package = package;
   native->schema = args[1];
+  bool owns_effective_schema = false;
+  std::string root_type;
+  if (std::string_view(type) == kValidatorType &&
+      schema_type_name(package, runtime, args[1], root_type) &&
+      root_type == "union") {
+    X3Value choices = x3_value_invalid();
+    uint64_t choice_count = 0;
+    if (dict_item(package, runtime, args[1], "choices", choices) &&
+        package->host->len(runtime, choices, &choice_count) == X3_STATUS_OK &&
+        choice_count == 1) {
+      X3Value only_choice = x3_value_invalid();
+      if (package->host->get_item(runtime, choices, x3_value_int64(0),
+                                  &only_choice) == X3_STATUS_OK) {
+        const auto kind = package->host->value_object_kind(only_choice);
+        if (kind == X3_OBJECT_KIND_LIST || kind == X3_OBJECT_KIND_TUPLE) {
+          X3Value labeled_schema = x3_value_invalid();
+          if (package->host->get_item(runtime, only_choice,
+                                      x3_value_int64(0),
+                                      &labeled_schema) == X3_STATUS_OK) {
+            native->schema = labeled_schema;
+            owns_effective_schema = true;
+          }
+          package->host->value_release(only_choice);
+        } else {
+          native->schema = only_choice;
+          owns_effective_schema = true;
+        }
+      }
+    }
+    if (choices.tag != X3_TAG_INVALID) package->host->value_release(choices);
+  }
   native->config = argc >= 3 ? args[2] : x3_value_none();
   package->host->value_retain(native->schema);
+  if (owns_effective_schema) package->host->value_release(native->schema);
   package->host->value_retain(native->config);
   if (package->host->instance_set_native_data(args[0], type, native.get(), cleanup_schema) != X3_STATUS_OK)
     return package->host->raise_class_error(context, "RuntimeError", "cannot initialize schema engine");
@@ -6967,6 +7125,19 @@ std::string validation_schema_label(PackageState* package,
   if (depth > 64) return "recursive";
   std::string type;
   if (!schema_type_name(package, runtime, schema, type)) return "unknown";
+  if (type == "model" || type == "dataclass") {
+    X3Value klass = x3_value_invalid();
+    X3Value name = x3_value_invalid();
+    std::string class_name;
+    if (dict_item(package, runtime, schema, "cls", klass) &&
+        package->host->get_attr(runtime, klass, "__name__", &name) ==
+            X3_STATUS_OK)
+      (void)string_data(package, runtime, name, class_name);
+    if (name.tag != X3_TAG_INVALID) package->host->value_release(name);
+    if (klass.tag != X3_TAG_INVALID) package->host->value_release(klass);
+    if (!class_name.empty()) return class_name;
+    package->host->clear_exception(context);
+  }
   if (type == "definitions") {
     X3Value inner = x3_value_invalid();
     X3Value local_definitions = x3_value_invalid();
@@ -7157,8 +7328,19 @@ std::string validation_schema_label(PackageState* package,
               X3_STATUS_OK;
         }
         if (index != 0) label += ",";
-        label += validation_schema_label(
-            package, context, runtime, choice_schema, definitions, depth + 1);
+        std::string explicit_label;
+        if (owned_schema) {
+          X3Value label_value = x3_value_invalid();
+          if (package->host->get_item(runtime, choice, x3_value_int64(1),
+                                      &label_value) == X3_STATUS_OK) {
+            (void)string_data(package, runtime, label_value, explicit_label);
+            package->host->value_release(label_value);
+          }
+        }
+        label += explicit_label.empty()
+            ? validation_schema_label(package, context, runtime,
+                                      choice_schema, definitions, depth + 1)
+            : explicit_label;
         if (owned_schema) package->host->value_release(choice_schema);
         package->host->value_release(choice);
       }
@@ -9165,6 +9347,130 @@ X3Status validate_value(PackageState* package, X3CallContext* context,
 bool schema_matches_value(PackageState* package, X3Runtime* runtime,
                           X3Value schema, X3Value input, X3Value definitions,
                           unsigned depth);
+
+struct UnionFieldMatch {
+  uint64_t count = 0;
+  bool exact = true;
+};
+
+bool union_input_field_match(PackageState* package, X3Runtime* runtime,
+                             X3Value schema, X3Value input,
+                             X3Value definitions, unsigned depth,
+                             UnionFieldMatch* match) {
+  if (depth > 64 ||
+      package->host->value_object_kind(input) != X3_OBJECT_KIND_DICT)
+    return false;
+  std::string type;
+  if (!schema_type_name(package, runtime, schema, type)) return false;
+  if (type == "model" || type == "dataclass" || type == "model-field" ||
+      type == "typed-dict-field" || type == "dataclass-field" ||
+      type == "default" || type == "nullable" ||
+      type == "function-after" || type == "function-wrap") {
+    X3Value inner = x3_value_invalid();
+    if (!dict_item(package, runtime, schema, "schema", inner)) return false;
+    const bool structured = union_input_field_match(
+        package, runtime, inner, input, definitions, depth + 1, match);
+    package->host->value_release(inner);
+    return structured;
+  }
+  if (type == "union") {
+    X3Value choices = x3_value_invalid();
+    uint64_t choice_count = 0;
+    if (!dict_item(package, runtime, schema, "choices", choices) ||
+        package->host->len(runtime, choices, &choice_count) != X3_STATUS_OK) {
+      if (choices.tag != X3_TAG_INVALID)
+        package->host->value_release(choices);
+      return false;
+    }
+    bool found = false;
+    UnionFieldMatch best;
+    for (uint64_t index = 0; index < choice_count; ++index) {
+      X3Value choice = x3_value_invalid();
+      if (package->host->get_item(
+              runtime, choices, x3_value_int64(static_cast<int64_t>(index)),
+              &choice) != X3_STATUS_OK)
+        continue;
+      X3Value branch = choice;
+      bool owns_branch = false;
+      const auto kind = package->host->value_object_kind(choice);
+      if (kind == X3_OBJECT_KIND_LIST || kind == X3_OBJECT_KIND_TUPLE)
+        owns_branch = package->host->get_item(
+            runtime, choice, x3_value_int64(0), &branch) == X3_STATUS_OK;
+      UnionFieldMatch candidate;
+      const bool structured = union_input_field_match(
+          package, runtime, branch, input, definitions, depth + 1,
+          &candidate);
+      if (owns_branch) package->host->value_release(branch);
+      package->host->value_release(choice);
+      if (structured && (!found || candidate.count > best.count ||
+                         (candidate.count == best.count &&
+                          candidate.exact && !best.exact))) {
+        best = candidate;
+        found = true;
+      }
+    }
+    package->host->value_release(choices);
+    if (found) *match = best;
+    return found;
+  }
+  if (type != "model-fields" && type != "typed-dict" &&
+      type != "dataclass-args")
+    return false;
+
+  X3Value fields = x3_value_invalid();
+  uint64_t field_count = 0;
+  if (!dict_item(package, runtime, schema, "fields", fields) ||
+      package->host->len(runtime, fields, &field_count) != X3_STATUS_OK) {
+    if (fields.tag != X3_TAG_INVALID) package->host->value_release(fields);
+    return false;
+  }
+  UnionFieldMatch selected;
+  const bool dictionary_fields = type != "dataclass-args";
+  for (uint64_t index = 0; index < field_count; ++index) {
+    X3Value name = x3_value_invalid();
+    X3Value field = x3_value_invalid();
+    if (dictionary_fields) {
+      if (package->host->dict_get_entry(runtime, fields, index, &name,
+                                        &field) != X3_STATUS_OK)
+        break;
+    } else if (package->host->get_item(
+                   runtime, fields, x3_value_int64(static_cast<int64_t>(index)),
+                   &field) != X3_STATUS_OK ||
+               !dict_item(package, runtime, field, "name", name)) {
+      if (field.tag != X3_TAG_INVALID) package->host->value_release(field);
+      break;
+    }
+    std::string field_name;
+    X3Value field_input = x3_value_invalid();
+    X3Value field_schema = x3_value_invalid();
+    const bool present = string_data(package, runtime, name, field_name) &&
+        dict_find_string(package, runtime, input, field_name, field_input);
+    if (present && dict_item(package, runtime, field, "schema",
+                             field_schema)) {
+      ++selected.count;
+      UnionFieldMatch nested;
+      if (union_input_field_match(package, runtime, field_schema,
+                                  field_input, definitions, depth + 1,
+                                  &nested)) {
+        selected.count += nested.count;
+        selected.exact = selected.exact && nested.exact;
+      } else {
+        selected.exact = selected.exact && schema_matches_value(
+            package, runtime, field_schema, field_input, definitions,
+            depth + 1);
+      }
+    }
+    if (field_schema.tag != X3_TAG_INVALID)
+      package->host->value_release(field_schema);
+    if (field_input.tag != X3_TAG_INVALID)
+      package->host->value_release(field_input);
+    package->host->value_release(field);
+    package->host->value_release(name);
+  }
+  package->host->value_release(fields);
+  *match = selected;
+  return true;
+}
 
 bool collect_validation_definitions(PackageState* package, X3Runtime* runtime,
                                     X3Value value, X3Value output,
@@ -12512,6 +12818,38 @@ X3Status validate_value(PackageState* package, X3CallContext* context, X3Runtime
     }
     auto tagged_error = [&](const char* error_type, const std::string& message,
                             const std::vector<std::pair<std::string, std::string>>& fields) {
+      X3Value custom_type_value = x3_value_invalid();
+      std::string custom_type;
+      const bool has_custom_type = dict_item(
+          package, runtime, schema, "custom_error_type", custom_type_value) &&
+          string_data(package, runtime, custom_type_value, custom_type);
+      if (custom_type_value.tag != X3_TAG_INVALID)
+        package->host->value_release(custom_type_value);
+      if (has_custom_type) {
+        X3Value custom_message_value = x3_value_invalid();
+        std::string custom_message;
+        if (dict_item(package, runtime, schema, "custom_error_message",
+                      custom_message_value)) {
+          (void)string_data(package, runtime, custom_message_value,
+                            custom_message);
+          package->host->value_release(custom_message_value);
+        } else if (const char* known_message =
+                       known_error_default_message(custom_type)) {
+          custom_message = known_message;
+        }
+        X3Value custom_context = x3_value_invalid();
+        (void)dict_item(package, runtime, schema, "custom_error_context",
+                        custom_context);
+        const std::vector<std::string> empty;
+        const auto status = raise_validation_error(
+            package, context, runtime, custom_type.c_str(),
+            custom_message.c_str(), input,
+            location == nullptr ? empty : *location, nullptr,
+            x3_value_invalid(), custom_context);
+        if (custom_context.tag != X3_TAG_INVALID)
+          package->host->value_release(custom_context);
+        return status;
+      }
       X3Value error_context = package->host->value_dict(runtime);
       for (const auto& field : fields) {
         X3Value value = package->host->value_string_utf8(
@@ -12823,7 +13161,35 @@ X3Status validate_value(PackageState* package, X3CallContext* context, X3Runtime
     X3Value best_result = x3_value_invalid();
     X3Value collected_errors = package->host->value_list(runtime);
     uint64_t best_field_count = 0;
+    int best_quality = 0;
     bool have_best = false;
+    const bool json_string_input = environment != nullptr &&
+        environment->json_mode &&
+        package->host->value_object_kind(input) == X3_OBJECT_KIND_STRING;
+    bool json_string_has_uuid_choice = false;
+    if (json_string_input && !left_to_right) {
+      for (uint64_t index = 0; index < count; ++index) {
+        X3Value choice = x3_value_invalid();
+        if (package->host->get_item(
+                runtime, choices, x3_value_int64(static_cast<int64_t>(index)),
+                &choice) != X3_STATUS_OK)
+          continue;
+        X3Value choice_schema = choice;
+        bool owns_choice_schema = false;
+        const auto kind = package->host->value_object_kind(choice);
+        if (kind == X3_OBJECT_KIND_LIST || kind == X3_OBJECT_KIND_TUPLE)
+          owns_choice_schema = package->host->get_item(
+              runtime, choice, x3_value_int64(0), &choice_schema) ==
+              X3_STATUS_OK;
+        std::string choice_type;
+        if (schema_type_name(package, runtime, choice_schema, choice_type) &&
+            choice_type == "uuid")
+          json_string_has_uuid_choice = true;
+        if (owns_choice_schema) package->host->value_release(choice_schema);
+        package->host->value_release(choice);
+        if (json_string_has_uuid_choice) break;
+      }
+    }
     for (uint64_t index = 0; index < count; ++index) {
       X3Value choice = x3_value_invalid();
       if (package->host->get_item(runtime, choices,
@@ -12969,16 +13335,49 @@ X3Status validate_value(PackageState* package, X3CallContext* context, X3Runtime
           location == nullptr ? std::vector<std::string>{} : *location;
       choice_location.push_back(choice_label);
       X3Value candidate_result = x3_value_invalid();
-      const bool choice_input_exact = schema_matches_value(
-          package, runtime, choice_schema, input, definitions, depth + 1);
+      std::string choice_type;
+      (void)schema_type_name(package, runtime, choice_schema, choice_type);
+      UnionFieldMatch input_fields;
+      const bool structured_input = union_input_field_match(
+          package, runtime, choice_schema, input, definitions, depth + 1,
+          &input_fields);
+      const bool choice_input_exact = choice_type != "any" &&
+          schema_matches_value(package, runtime, choice_schema, input,
+                               definitions, depth + 1);
+      bool wrapped_input_exact = false;
+      if (choice_type == "function-after" ||
+          choice_type == "function-wrap") {
+        X3Value wrapped_schema = x3_value_invalid();
+        if (dict_item(package, runtime, choice_schema, "schema",
+                      wrapped_schema)) {
+          wrapped_input_exact = schema_matches_value(
+              package, runtime, wrapped_schema, input, definitions,
+              depth + 1);
+          package->host->value_release(wrapped_schema);
+        }
+      }
       const auto status = validate_value(
           package, context, runtime, choice_schema, input, &candidate_result, depth + 1,
           self_instance, definitions, &choice_location, environment);
       if (choice_schema_owned) package->host->value_release(choice_schema);
       package->host->value_release(choice);
       if (status == X3_STATUS_OK) {
-        if (left_to_right || choice_input_exact ||
-            same_validation_value(candidate_result, input)) {
+        const bool preferred_json_string_type = json_string_input &&
+            (choice_type == "uuid" || choice_type == "date" ||
+             choice_type == "time");
+        const bool defer_string_for_uuid = json_string_input &&
+            json_string_has_uuid_choice && choice_type == "str";
+        const bool same_value = same_validation_value(candidate_result, input);
+        const bool strict_float_from_int = choice_type == "float" &&
+            (input.tag == X3_TAG_INT64 || input.tag == X3_TAG_UINT64);
+        const int quality = choice_input_exact || wrapped_input_exact ||
+                                    (structured_input && input_fields.exact) ? 3
+            : same_value || strict_float_from_int || choice_type == "any"
+                ? 2 : 1;
+        if (left_to_right ||
+            (!defer_string_for_uuid &&
+             ((quality == 3 && !structured_input) ||
+              preferred_json_string_type))) {
           if (best_result.tag != X3_TAG_INVALID)
             package->host->value_release(best_result);
           package->host->value_release(collected_errors);
@@ -12996,11 +13395,14 @@ X3Status validate_value(PackageState* package, X3CallContext* context, X3Runtime
           package->host->value_release(choices);
           return X3_STATUS_ERROR;
         }
-        if (!have_best || field_count > best_field_count) {
+        if (structured_input) field_count = input_fields.count;
+        if (!have_best || field_count > best_field_count ||
+            (field_count == best_field_count && quality > best_quality)) {
           if (best_result.tag != X3_TAG_INVALID)
             package->host->value_release(best_result);
           best_result = candidate_result;
           best_field_count = field_count;
+          best_quality = quality;
           have_best = true;
         } else {
           package->host->value_release(candidate_result);
@@ -13021,6 +13423,67 @@ X3Status validate_value(PackageState* package, X3CallContext* context, X3Runtime
       package->host->value_release(collected_errors);
       *result = best_result;
       return X3_STATUS_OK;
+    }
+    X3Value custom_type_value = x3_value_invalid();
+    std::string custom_type;
+    const bool has_custom_type =
+        dict_item(package, runtime, schema, "custom_error_type",
+                  custom_type_value) &&
+        string_data(package, runtime, custom_type_value, custom_type);
+    if (custom_type_value.tag != X3_TAG_INVALID)
+      package->host->value_release(custom_type_value);
+    if (has_custom_type) {
+      X3Value custom_message_value = x3_value_invalid();
+      X3Value custom_context = x3_value_invalid();
+      std::string custom_message;
+      if (dict_item(package, runtime, schema, "custom_error_message",
+                    custom_message_value)) {
+        (void)string_data(package, runtime, custom_message_value,
+                          custom_message);
+        package->host->value_release(custom_message_value);
+      } else if (const char* known_message =
+                     known_error_default_message(custom_type)) {
+        custom_message = known_message;
+      }
+      if (dict_item(package, runtime, schema, "custom_error_context",
+                    custom_context) &&
+          package->host->value_object_kind(custom_context) ==
+              X3_OBJECT_KIND_DICT) {
+        uint64_t context_count = 0;
+        if (package->host->len(runtime, custom_context,
+                               &context_count) == X3_STATUS_OK) {
+          for (uint64_t index = 0; index < context_count; ++index) {
+            X3Value key = x3_value_invalid();
+            X3Value value = x3_value_invalid();
+            std::string key_text;
+            if (package->host->dict_get_entry(runtime, custom_context,
+                                              index, &key, &value) ==
+                    X3_STATUS_OK &&
+                string_data(package, runtime, key, key_text)) {
+              const char* rendered = package->host->value_to_cstr(runtime,
+                                                                   value);
+              const std::string marker = "{" + key_text + "}";
+              const size_t position = custom_message.find(marker);
+              if (rendered != nullptr && position != std::string::npos)
+                custom_message.replace(position, marker.size(), rendered);
+            }
+            if (key.tag != X3_TAG_INVALID)
+              package->host->value_release(key);
+            if (value.tag != X3_TAG_INVALID)
+              package->host->value_release(value);
+          }
+        }
+      }
+      package->host->value_release(collected_errors);
+      const std::vector<std::string> empty;
+      const auto status = raise_validation_error(
+          package, context, runtime, custom_type.c_str(),
+          custom_message.c_str(), input,
+          location == nullptr ? empty : *location, nullptr,
+          x3_value_invalid(), custom_context);
+      if (custom_context.tag != X3_TAG_INVALID)
+        package->host->value_release(custom_context);
+      return status;
     }
     uint64_t error_count = 0;
     if (package->host->len(runtime, collected_errors, &error_count) !=
@@ -13764,8 +14227,13 @@ X3Status validate_value(PackageState* package, X3CallContext* context, X3Runtime
     }
     bool validate_by_alias = true;
     bool validate_by_name = false;
+    X3Value validation_config = x3_value_invalid();
+    (void)dict_item(package, runtime, schema, "config", validation_config);
     X3Value alias_setting = x3_value_invalid();
     if (dict_item(package, runtime, schema, "validate_by_alias", alias_setting) ||
+        (validation_config.tag != X3_TAG_INVALID &&
+         dict_find_string(package, runtime, validation_config,
+                          "validate_by_alias", alias_setting)) ||
         (environment != nullptr &&
          dict_find_string(package, runtime, environment->config,
                           "validate_by_alias", alias_setting))) {
@@ -13775,6 +14243,9 @@ X3Status validate_value(PackageState* package, X3CallContext* context, X3Runtime
     }
     X3Value name_setting = x3_value_invalid();
     if (dict_item(package, runtime, schema, "validate_by_name", name_setting) ||
+        (validation_config.tag != X3_TAG_INVALID &&
+         dict_find_string(package, runtime, validation_config,
+                          "validate_by_name", name_setting)) ||
         (environment != nullptr &&
          dict_find_string(package, runtime, environment->config,
                           "validate_by_name", name_setting))) {
@@ -13788,13 +14259,18 @@ X3Status validate_value(PackageState* package, X3CallContext* context, X3Runtime
       validate_by_name = environment->by_name != 0;
     bool model_loc_by_alias = true;
     X3Value model_loc_by_alias_value = x3_value_invalid();
-    if (environment != nullptr &&
-        dict_find_string(package, runtime, environment->config,
-                         "loc_by_alias", model_loc_by_alias_value)) {
+    if ((validation_config.tag != X3_TAG_INVALID &&
+         dict_find_string(package, runtime, validation_config,
+                          "loc_by_alias", model_loc_by_alias_value)) ||
+        (environment != nullptr &&
+         dict_find_string(package, runtime, environment->config,
+                          "loc_by_alias", model_loc_by_alias_value))) {
       if (model_loc_by_alias_value.tag == X3_TAG_BOOL)
         model_loc_by_alias = model_loc_by_alias_value.as.b != 0;
       package->host->value_release(model_loc_by_alias_value);
     }
+    if (validation_config.tag != X3_TAG_INVALID)
+      package->host->value_release(validation_config);
     std::string partial_last_input_name;
     if (environment != nullptr && environment->allow_partial != 0 &&
         input_kind == X3_OBJECT_KIND_DICT) {
@@ -14085,9 +14561,21 @@ X3Status validate_value(PackageState* package, X3CallContext* context, X3Runtime
           return X3_STATUS_ERROR;
         }
         if (!string_data(package, runtime, key, name)) {
-          if (type == "model-fields" && extra_behavior == "allow") {
-            const std::vector<std::string> invalid_key_location =
+          if (extra_behavior == "allow") {
+            std::vector<std::string> invalid_key_location =
                 location == nullptr ? std::vector<std::string>{} : *location;
+            std::string key_repr;
+            if (!render_with_builtin(package, runtime, "repr", key,
+                                     key_repr)) {
+              package->host->value_release(key);
+              package->host->value_release(value);
+              if (has_extras_schema)
+                package->host->value_release(extras_schema);
+              package->host->value_release(output);
+              package->host->value_release(collected_errors);
+              return X3_STATUS_ERROR;
+            }
+            invalid_key_location.push_back(key_repr);
             (void)raise_validation_error(
                 package, context, runtime, "invalid_key",
                 "Keys should be strings", key, invalid_key_location);
@@ -17046,7 +17534,7 @@ X3Status attach_validation_title(
     std::string type;
     if (schema_type_name(package, runtime, schema, type)) {
       title_text = type;
-      if (type == "literal" || type == "list" || type == "set" ||
+      if (type == "literal" || type == "union" || type == "list" || type == "set" ||
           type == "frozenset" ||
           type == "tuple" || type == "chain" || type == "definitions" ||
           type == "function-plain" || type == "function-before" ||
@@ -19248,7 +19736,7 @@ bool schema_matches_value(PackageState* package, X3Runtime* runtime,
   }
   if (type == "bool") return input.tag == X3_TAG_BOOL;
   if (type == "int") return input.tag == X3_TAG_INT64 || input.tag == X3_TAG_UINT64;
-  if (type == "float") return input.tag == X3_TAG_DOUBLE || input.tag == X3_TAG_INT64 || input.tag == X3_TAG_UINT64;
+  if (type == "float") return input.tag == X3_TAG_DOUBLE;
   if (type == "str") return package->host->value_object_kind(input) == X3_OBJECT_KIND_STRING;
   if (type == "literal") {
     X3Value expected = x3_value_invalid();

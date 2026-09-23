@@ -1,0 +1,6 @@
+{'item': 2, 'note': 'ok'}
+invalid_key ("b'note'",) b'note'
+{'item': 3}
+Error building "typed-dict" validator:
+  SchemaError: Field 'item': a required field cannot have a default value
+200 {'item': 2, 'note': 'ok'}

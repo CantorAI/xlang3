@@ -1,9 +1,9 @@
 param(
     [Parameter(Mandatory = $true)][string]$XLang3,
-    [string]$ProductionPackages = (Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) 'scratch\fastapi-deps'),
-    [string]$TestPackages = (Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) 'scratch\fastapi-test-deps'),
-    [string]$UpstreamRoot = (Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) 'scratch\upstream-compat'),
-    [string]$ResultsDirectory = (Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) 'scratch\upstream-results'),
+    [string]$ProductionPackages,
+    [string]$TestPackages,
+    [string]$UpstreamRoot,
+    [string]$ResultsDirectory,
     [string[]]$Project,
     [int]$MaxFailures = 20,
     [int]$TimeoutSeconds = 120,
@@ -13,15 +13,47 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+if (-not $ProductionPackages) {
+    $ProductionPackages = Join-Path $repoRoot 'scratch\fastapi-deps'
+}
+if (-not $TestPackages) {
+    $TestPackages = Join-Path $repoRoot 'scratch\fastapi-test-deps'
+}
+if (-not $UpstreamRoot) {
+    $UpstreamRoot = Join-Path $repoRoot 'scratch\upstream-compat'
+}
+if (-not $ResultsDirectory) {
+    $ResultsDirectory = Join-Path $repoRoot 'scratch\upstream-results'
+}
 $manifestPath = Join-Path $PSScriptRoot 'upstream-matrix.json'
-$matrix = @(Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json)
-$platformSkips = @(Get-Content -LiteralPath (Join-Path $PSScriptRoot 'upstream-platform-skips.json') -Raw | ConvertFrom-Json)
+$matrix = @()
+foreach ($entry in (Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json)) {
+    $matrix += $entry
+}
+$availableProjects = @($matrix | ForEach-Object { $_.name })
+$platformSkips = @()
+foreach ($entry in (Get-Content -LiteralPath (Join-Path $PSScriptRoot 'upstream-platform-skips.json') -Raw | ConvertFrom-Json)) {
+    $platformSkips += $entry
+}
 if ($Project.Count -gt 0) {
     $unknown = @($Project | Where-Object { $_ -notin $matrix.name })
     if ($unknown.Count -gt 0) {
         throw "Unknown upstream matrix project(s): $($unknown -join ', ')"
     }
-    $matrix = @($matrix | Where-Object { $_.name -in $Project })
+    $selected = @()
+    foreach ($entry in $matrix) {
+        foreach ($requested in $Project) {
+            if ([string]::Equals($entry.name, $requested,
+                    [System.StringComparison]::OrdinalIgnoreCase)) {
+                $selected += $entry
+                break
+            }
+        }
+    }
+    $matrix = $selected
+}
+if ($matrix.Count -eq 0) {
+    throw "Upstream matrix selected no projects (requested: $($Project -join ', '); available: $($availableProjects -join ', '); raw entries: $($availableProjects.Count))"
 }
 
 $xlangPath = (Resolve-Path -LiteralPath $XLang3).Path
@@ -78,16 +110,20 @@ try {
         }
         Push-Location -LiteralPath $checkout
         try {
+            $previousErrorActionPreference = $ErrorActionPreference
+            $ErrorActionPreference = 'Continue'
             & $xlangPath -m pytest $testPath `
                 "--maxfail=$MaxFailures" `
                 -n $Workers `
                 @deselectArgs `
                 --assert=plain `
                 "--timeout=$TimeoutSeconds" `
+                -W 'ignore:Class-scoped fixture defined as instance method is deprecated:pytest.PytestRemovedIn10Warning' `
                 -W 'ignore:The anyio.abc.BlockingPortal alias is deprecated:DeprecationWarning' 2>&1 |
                 Tee-Object -LiteralPath $logPath
             $exitCode = $LASTEXITCODE
         } finally {
+            $ErrorActionPreference = $previousErrorActionPreference
             Pop-Location
         }
         $finished = Get-Date

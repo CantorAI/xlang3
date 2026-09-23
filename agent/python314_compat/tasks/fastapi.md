@@ -801,3 +801,44 @@ because they rely on pytest assertion rewriting; XLang's general `_ast`
 coverage for rewriting remains incomplete. The Release build, core fixtures,
 FastAPI local gate (including Uvicorn HTTP/HTTPS), and 53/53 CTest tests pass.
 These results are a checkpoint, not a full FastAPI compatibility claim.
+
+2026-09-23 validator continuation (uncommitted on `fastapi-compatibility`):
+the untouched pydantic-core tagged-union file passes **48/48** after matching
+custom error types and messages. The untouched TypedDict file passes **254
+tests with 1 upstream skip** after correcting schema-level config precedence,
+non-string extra-key errors, explicit required/default conflicts, `on_error`
+constraints, and alias locations. The untouched time/timedelta/tuple files
+pass **257 with 1 upstream skip**. The untouched URL/UUID/default files pass
+**605 with 8 upstream expected failures**. The union file currently reports
+**67 passed, 1 upstream expected failure, 9 failed assertions, and 7 fixture
+errors**. The same 7 class-fixture errors reproduce on CPython 3.14 with the
+current `--assert=plain` test setup; the 10 assertions remain genuine union
+compatibility work. A CPython 3.14 oracle confirms the native fixes for union
+custom errors, int/float exactness, explicit case labels, single-choice
+collapse, and JSON-mode UUID, date, and time ranking. Public FastAPI TestClient routes cover tagged unions,
+TypedDict-like allowed extras, and numeric union requests in the local gate.
+The full Release build, expanded FastAPI gate, core fixtures, and 53/53 CTest
+tests pass. The full seven-project upstream matrix, smart union field-count
+ranking, and broader production load/soak gates
+remain open; none of these partial passes constitutes full compatibility.
+
+2026-09-23 smart-union continuation (uncommitted): general native union
+ranking now tracks successful structured branches by validated input fields,
+nested field counts, and exactness while preserving branch-order ties. The
+unchanged upstream union file passes **83 tests with 1 upstream expected
+failure**, matching CPython 3.14 exactly when both runs filter a pytest 9
+`PytestRemovedIn10Warning` for upstream class-scoped instance fixtures. This
+filter changes no test code or selection. CPython's full untouched
+pydantic-core suite collected **5934** tests and under `--assert=plain`
+reported **5791 passed, 130 skipped, 10 expected failures, 3 failed**; all
+three failures are assertion-detail checks that pass under CPython's pytest
+assertion rewriting. XLang's full project matrix run is in progress. The
+PowerShell matrix runner's default path initialization, JSON array flattening,
+empty selection guard, and native stderr handling were corrected so the
+selected project actually executes and its exit code is reported. The broad
+XLang project run was interrupted for a requested commit and merge checkpoint.
+An independent top-level pydantic-core run found the next native API gap during
+collection: `pydantic_core._pydantic_core.list_all_errors` is not exported.
+The pinned upstream API exposes 104 error definitions; this catalog and
+`PydanticKnownError` behavior require native implementation before the full
+suite can collect. Full FastAPI compatibility remains unverified.
