@@ -55,6 +55,7 @@ sqlalchemy==2.0.46
 sqlmodel==0.0.39
 strawberry-graphql==0.320.1
 trio==0.32.0
+trustme==1.2.1
 typer==0.26.8
 tzdata==2026.4
 werkzeug==3.1.6

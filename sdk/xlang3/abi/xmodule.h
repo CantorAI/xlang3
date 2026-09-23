@@ -16,6 +16,7 @@ limitations under the License.
 #define XLANG3_ABI_MODULE_H
 
 #include "xlang3/abi/xapi.h"
+#include "xlang3/abi/xbuffer.h"
 #include "xlang3/abi/xstream.h"
 
 #ifdef __cplusplus
@@ -170,6 +171,9 @@ typedef struct X3PackageHost {
      by the payload; the host does not retain them a second time. */
   X3Status (*instance_set_native_gc_references)(
       X3Value, const X3Value*, uint32_t, X3NativeDataCleanup);
+  /* Stable, zero-copy buffer export shared by native packages. */
+  X3Status (*buffer_acquire)(X3Runtime*, X3Value, int32_t, X3Buffer**, X3BufferInfo*);
+  void (*buffer_release)(X3Buffer*);
 } X3PackageHost;
 
 typedef X3Status (*X3PackageInitFn)(void* host, X3Value cur_module);

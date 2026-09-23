@@ -1,0 +1,8 @@
+[
+  {
+    "project": "starlette",
+    "platform": "win32",
+    "node": "tests/test_config.py::test_missing_env_file_raises",
+    "reason": "CPython 3.14 fails the unchanged test on Windows: pytest.warns receives an unescaped path containing \\U as a regex and raises re.PatternError."
+  }
+]

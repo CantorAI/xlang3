@@ -5,20 +5,22 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$source = Join-Path $PSScriptRoot 'cffi_type_layout.py'
-$expected = ((Get-Content -LiteralPath (Join-Path $PSScriptRoot 'cffi_type_layout.out') -Raw) -replace "`r`n", "`n").TrimEnd()
 $previousPythonPath = $env:PYTHONPATH
 try {
     $env:PYTHONPATH = (Resolve-Path -LiteralPath $TestPackages).Path
-    $oracle = ((& $Python314 $source | Out-String) -replace "`r`n", "`n").TrimEnd()
-    if ($LASTEXITCODE -ne 0 -or $oracle -ne $expected) {
-        throw "CPython 3.14 CFFI layout oracle failed: '$oracle'"
+    foreach ($case in @('cffi_type_layout', 'cffi_from_buffer', 'cffi_struct_fields')) {
+        $source = Join-Path $PSScriptRoot ($case + '.py')
+        $expected = ((Get-Content -LiteralPath (Join-Path $PSScriptRoot ($case + '.out')) -Raw) -replace "`r`n", "`n").TrimEnd()
+        $oracle = ((& $Python314 $source | Out-String) -replace "`r`n", "`n").TrimEnd()
+        if ($LASTEXITCODE -ne 0 -or $oracle -ne $expected) {
+            throw "CPython 3.14 $case oracle failed: '$oracle'"
+        }
+        $actual = ((& $XLang3 $source | Out-String) -replace "`r`n", "`n").TrimEnd()
+        if ($LASTEXITCODE -ne 0 -or $actual -ne $oracle) {
+            throw "XLang3 $case differs from CPython 3.14: '$actual'"
+        }
     }
-    $actual = ((& $XLang3 $source | Out-String) -replace "`r`n", "`n").TrimEnd()
-    if ($LASTEXITCODE -ne 0 -or $actual -ne $oracle) {
-        throw "XLang3 CFFI layout differs from CPython 3.14: '$actual'"
-    }
-    Write-Host 'CFFI layout and native calls match CPython 3.14'
+    Write-Host 'CFFI layout, native calls, buffers, and struct fields match CPython 3.14'
 } finally {
     $env:PYTHONPATH = $previousPythonPath
 }

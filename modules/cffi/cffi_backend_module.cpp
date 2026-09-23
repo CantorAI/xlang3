@@ -66,6 +66,7 @@ struct CDataState {
   std::shared_ptr<FfiState> ffi;
   uint32_t function_index = UINT32_MAX;
   std::unique_ptr<unsigned char[]> owned;
+  X3Buffer* borrowed_buffer = nullptr;
   size_t owned_size = 0;
   size_t element_size = 0;
   std::string element_name;
@@ -101,6 +102,8 @@ void cleanup_cdata(void* pointer) {
   if (!state) return;
   if (state->owner_value.tag != X3_TAG_INVALID)
     state->package->host->value_release(state->owner_value);
+  if (state->borrowed_buffer)
+    state->package->host->buffer_release(state->borrowed_buffer);
   delete state;
 }
 void cleanup_library(void* pointer) {
@@ -308,6 +311,12 @@ struct CTypeLayout {
   size_t alignment = 1;
 };
 
+struct FieldLocation {
+  size_t offset = 0;
+  size_t type_index = 0;
+  CTypeLayout layout;
+};
+
 bool primitive_layout(uint32_t primitive, CTypeLayout& layout) {
   switch (primitive) {
     case 1: case 2: case 3: case 4: case 17: case 18: case 30: case 31:
@@ -466,6 +475,62 @@ bool layout_name(const FfiState& ffi, std::string name, CTypeLayout& layout,
   return false;
 }
 
+std::string type_name_at(const FfiState& ffi, size_t index, unsigned depth);
+
+const StructDescription* struct_for_name(const FfiState& ffi, std::string name) {
+  name = trim_type(std::move(name));
+  if (!name.empty() && name.back() == '*')
+    name = trim_type(name.substr(0, name.size() - 1));
+  const auto known = ffi.typenames.find(name);
+  if (known != ffi.typenames.end() && known->second < ffi.types.size()) {
+    size_t index = known->second;
+    for (unsigned depth = 0; depth < 16; ++depth) {
+      if (index >= ffi.types.size()) break;
+      const uint32_t opcode = ffi.types[index];
+      const uint32_t operation = opcode & 0xffu;
+      if (operation == 9u && (opcode >> 8) < ffi.structs.size())
+        return &ffi.structs[opcode >> 8];
+      if (operation == 17u || operation == 3u) index = opcode >> 8;
+      else if (operation == 21u && (opcode >> 8) < ffi.typename_indices.size())
+        index = ffi.typename_indices[opcode >> 8];
+      else break;
+    }
+  }
+  for (const auto& description : ffi.structs) {
+    const std::string declared =
+        ((description.flags & 1u) ? "union " : "struct ") + description.name;
+    if (name == declared) return &description;
+  }
+  return nullptr;
+}
+
+bool find_struct_field(const FfiState& ffi, const StructDescription& description,
+                       const std::string& name, FieldLocation& found) {
+  const bool is_union = (description.flags & 1u) != 0;
+  size_t offset = 0;
+  for (const auto& field : description.fields) {
+    if ((field.type_op & 0xffu) != 17u) return false;
+    const size_t type_index = field.type_op >> 8;
+    CTypeLayout layout;
+    if (!layout_at(ffi, type_index, layout, 0) || layout.alignment == 0)
+      return false;
+    if (!is_union) {
+      if (offset > std::numeric_limits<size_t>::max() - (layout.alignment - 1))
+        return false;
+      offset = (offset + layout.alignment - 1) & ~(layout.alignment - 1);
+    }
+    if (field.name == name) {
+      found = {offset, type_index, layout};
+      return true;
+    }
+    if (!is_union) {
+      if (offset > std::numeric_limits<size_t>::max() - layout.size) return false;
+      offset += layout.size;
+    }
+  }
+  return false;
+}
+
 X3Status make_cdata(PackageState* state, X3CallContext* call, X3Runtime* runtime,
                     std::string ctype, uintptr_t address, X3Value* result);
 
@@ -528,7 +593,17 @@ X3Status ffi_new(X3CallContext* call, X3Runtime* runtime, void* user_data,
   if (array) native->element_name = trim_type(name.substr(0, name.rfind('[')));
   else if (!name.empty() && name.back() == '*')
     native->element_name = trim_type(name.substr(0, name.size() - 1));
-  else native->element_name = name;
+  else {
+    native->element_name = name;
+    const auto known = ffi->typenames.find(name);
+    if (known != ffi->typenames.end() && known->second < ffi->types.size()) {
+      const uint32_t opcode = ffi->types[known->second];
+      if ((opcode & 0xffu) == 3u) {
+        const std::string pointee = type_name_at(*ffi, opcode >> 8, 0);
+        if (!pointee.empty()) native->element_name = pointee;
+      }
+    }
+  }
   native->ffi = std::make_shared<FfiState>(*ffi);
   native->address = reinterpret_cast<uintptr_t>(native->owned.get());
   if (!array && argc == 3) {
@@ -680,7 +755,86 @@ X3Status ffi_cast(X3CallContext* call, X3Runtime* runtime, void* user_data,
       return state->host->raise_class_error(call, "TypeError", "integer or C data required");
     address = static_cast<uintptr_t>(number);
   }
-  return make_cdata(state, call, runtime, std::move(ctype), address, result);
+  const X3Status status = make_cdata(state, call, runtime, std::move(ctype), address, result);
+  if (status == X3_STATUS_OK &&
+      state->host->instance_get_native_data(args[2], kCDataType)) {
+    auto* casted = static_cast<CDataState*>(
+        state->host->instance_get_native_data(*result, kCDataType));
+    casted->owner_value = args[2];
+    state->host->value_retain(args[2]);
+  }
+  return status;
+}
+
+X3Status ffi_from_buffer_kw(X3CallContext* call, X3Runtime* runtime, void* user_data,
+                            const X3Value* args, uint32_t argc,
+                            const X3KeywordArg* kwargs, uint32_t kwargc, X3Value* result) {
+  auto* package = static_cast<PackageState*>(user_data);
+  if (argc < 2 || argc > 4)
+    return package->host->raise_class_error(call, "TypeError", "ffi.from_buffer() expects a buffer and optional C type");
+  auto* ffi = static_cast<FfiState*>(package->host->instance_get_native_data(args[0], kFfiType));
+  if (!ffi)
+    return package->host->raise_class_error(call, "TypeError", "invalid FFI object");
+  std::string ctype = "char[]";
+  uint32_t buffer_index = 1;
+  if (argc >= 3) {
+    if (!string_value(package, runtime, args[1], ctype))
+      return package->host->raise_class_error(call, "TypeError", "C type must be a string");
+    buffer_index = 2;
+  }
+  if (argc > buffer_index + 2)
+    return package->host->raise_class_error(call, "TypeError", "too many arguments to ffi.from_buffer()");
+  bool writable = false;
+  if (argc == buffer_index + 2) {
+    if (args[buffer_index + 1].tag != X3_TAG_BOOL)
+      return package->host->raise_class_error(call, "TypeError", "require_writable must be a boolean");
+    writable = args[buffer_index + 1].as.b;
+  }
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    if (std::strcmp(kwargs[i].name, "require_writable") != 0 ||
+        argc == buffer_index + 2 || kwargs[i].value.tag != X3_TAG_BOOL)
+      return package->host->raise_class_error(call, "TypeError", "invalid ffi.from_buffer() keyword");
+    writable = kwargs[i].value.as.b;
+  }
+  ctype = trim_type(std::move(ctype));
+  const size_t open = ctype.rfind('[');
+  if (open == std::string::npos || ctype.back() != ']' ||
+      open != ctype.size() - 2)
+    return package->host->raise_class_error(call, "TypeError", "ffi.from_buffer() requires an open C array type");
+  CTypeLayout element;
+  const std::string element_name = trim_type(ctype.substr(0, open));
+  if (!layout_name(*ffi, element_name, element, 0) || element.size == 0)
+    return package->host->raise_class_error(call, "TypeError", "invalid ffi.from_buffer() C type");
+  X3Buffer* borrowed = nullptr;
+  X3BufferInfo info{};
+  if (!package->host->buffer_acquire || !package->host->buffer_release ||
+      package->host->buffer_acquire(runtime, args[buffer_index], writable ? 1 : 0,
+                                    &borrowed, &info) != X3_STATUS_OK)
+    return package->host->raise_class_error(call, writable ? "BufferError" : "TypeError",
+        "ffi.from_buffer() requires a contiguous buffer with requested access");
+  if (info.size % element.size != 0) {
+    package->host->buffer_release(borrowed);
+    return package->host->raise_class_error(call, "ValueError", "buffer size is not a multiple of C item size");
+  }
+  const X3Status status = make_cdata(package, call, runtime, ctype,
+                                     reinterpret_cast<uintptr_t>(info.data), result);
+  if (status != X3_STATUS_OK) {
+    package->host->buffer_release(borrowed);
+    return status;
+  }
+  auto* native = static_cast<CDataState*>(
+      package->host->instance_get_native_data(*result, kCDataType));
+  native->borrowed_buffer = borrowed;
+  native->owned_size = static_cast<size_t>(info.size);
+  native->element_size = element.size;
+  native->element_name = element_name;
+  native->ffi = std::make_shared<FfiState>(*ffi);
+  return X3_STATUS_OK;
+}
+
+X3Status ffi_from_buffer(X3CallContext* call, X3Runtime* runtime, void* user_data,
+                         const X3Value* args, uint32_t argc, X3Value* result) {
+  return ffi_from_buffer_kw(call, runtime, user_data, args, argc, nullptr, 0, result);
 }
 
 X3Status ffi_dlopen(X3CallContext* call, X3Runtime* runtime, void* user_data,
@@ -822,6 +976,35 @@ bool foreign_named(const FfiState& ffi, const std::string& name, ForeignType& ty
     return true;
   }
   return false;
+}
+
+std::string type_name_at(const FfiState& ffi, size_t index, unsigned depth = 0) {
+  if (depth > 32 || index >= ffi.types.size()) return {};
+  for (const auto& known : ffi.typenames)
+    if (known.second == index) return known.first;
+  const uint32_t opcode = ffi.types[index];
+  const uint32_t operation = opcode & 0xffu;
+  const size_t argument = opcode >> 8;
+  if (operation == 9u && argument < ffi.structs.size()) {
+    const auto& description = ffi.structs[argument];
+    return std::string((description.flags & 1u) ? "union " : "struct ") +
+           description.name;
+  }
+  if (operation == 17u) return type_name_at(ffi, argument, depth + 1);
+  if (operation == 21u && argument < ffi.typename_indices.size())
+    return type_name_at(ffi, ffi.typename_indices[argument], depth + 1);
+  if (operation == 5u && index + 1 < ffi.types.size()) {
+    const std::string element = type_name_at(ffi, argument, depth + 1);
+    return element.empty() ? std::string() :
+        element + "[" + std::to_string(ffi.types[index + 1]) + "]";
+  }
+  if (operation == 3u) {
+    const std::string target = type_name_at(ffi, argument, depth + 1);
+    return target.empty() ? "void *" : target + " *";
+  }
+  ForeignType primitive;
+  if (foreign_at(ffi, index, primitive)) return primitive.name;
+  return {};
 }
 
 bool numeric_foreign_value(PackageState* package, X3CallContext* call,
@@ -1008,12 +1191,19 @@ X3Status cdata_getitem(X3CallContext* call, X3Runtime* runtime, void* user_data,
   auto* data = static_cast<CDataState*>(
       package->host->instance_get_native_data(args[0], kCDataType));
   int64_t index = 0;
-  if (!data || !data->owned || !integer_value(args[1], index) || index < 0 ||
+  if (!data || (!data->owned && !data->borrowed_buffer &&
+                data->owner_value.tag == X3_TAG_INVALID) ||
+      !integer_value(args[1], index) || index < 0 ||
       data->element_size == 0 ||
       static_cast<uint64_t>(index) >= data->owned_size / data->element_size)
     return package->host->raise_class_error(call, "IndexError", "C data index is out of range");
   const uintptr_t address = data->address +
       static_cast<size_t>(index) * data->element_size;
+  if (data->element_name == "char") {
+    *result = package->host->value_bytes(runtime,
+        reinterpret_cast<const void*>(address), 1);
+    return X3_STATUS_OK;
+  }
 #ifdef XLANG_CFFI_HAS_LIBFFI
   ForeignType type;
   if (data->ffi && foreign_named(*data->ffi, data->element_name, type)) {
@@ -1039,6 +1229,119 @@ X3Status cdata_getitem(X3CallContext* call, X3Runtime* runtime, void* user_data,
   child->ffi = data->ffi;
   child->owner_value = args[0];
   package->host->value_retain(args[0]);
+  return X3_STATUS_OK;
+}
+
+X3Status cdata_getattr(X3CallContext* call, X3Runtime* runtime, void* user_data,
+                       const X3Value* args, uint32_t argc, X3Value* result) {
+  auto* package = static_cast<PackageState*>(user_data);
+  auto* data = argc == 2 ? static_cast<CDataState*>(
+      package->host->instance_get_native_data(args[0], kCDataType)) : nullptr;
+  std::string name;
+  if (!data || !data->ffi || !string_value(package, runtime, args[1], name))
+    return package->host->raise_class_error(call, "AttributeError", "invalid C data field");
+  const StructDescription* description = struct_for_name(*data->ffi, data->ctype);
+  FieldLocation field;
+  if (!description || !find_struct_field(*data->ffi, *description, name, field) ||
+      data->address == 0)
+    return package->host->raise_class_error(call, "AttributeError", "C data field is not declared");
+  const uintptr_t address = data->address + field.offset;
+  const uint32_t opcode = data->ffi->types[field.type_index];
+  const uint32_t operation = opcode & 0xffu;
+  if (operation == 9u || operation == 5u) {
+    std::string field_name = type_name_at(*data->ffi, field.type_index);
+    if (field_name.empty())
+      return package->host->raise_class_error(call, "NotImplementedError", "unsupported C field type");
+    const X3Status status = make_cdata(package, call, runtime,
+                                      std::move(field_name), address, result);
+    if (status != X3_STATUS_OK) return status;
+    auto* child = static_cast<CDataState*>(
+        package->host->instance_get_native_data(*result, kCDataType));
+    child->ffi = data->ffi;
+    child->owner_value = args[0];
+    package->host->value_retain(args[0]);
+    child->owned_size = field.layout.size;
+    if (operation == 5u) {
+      const size_t element_index = opcode >> 8;
+      CTypeLayout element;
+      if (layout_at(*data->ffi, element_index, element, 0)) {
+        child->element_size = element.size;
+        child->element_name = type_name_at(*data->ffi, element_index);
+      }
+    }
+    return X3_STATUS_OK;
+  }
+  ForeignType type;
+  if (!foreign_at(*data->ffi, field.type_index, type) ||
+      field.layout.size > sizeof(uint64_t))
+    return package->host->raise_class_error(call, "NotImplementedError", "unsupported C field type");
+  uint64_t storage = 0;
+  std::memcpy(&storage, reinterpret_cast<const void*>(address), field.layout.size);
+  if (type.name == "char") {
+    *result = package->host->value_bytes(runtime, &storage, 1);
+    return X3_STATUS_OK;
+  }
+  const X3Status status = foreign_result(package, call, runtime, type, storage, result);
+  if (status == X3_STATUS_OK && type.kind == ForeignKind::Pointer) {
+    auto* child = static_cast<CDataState*>(
+        package->host->instance_get_native_data(*result, kCDataType));
+    child->ctype = type_name_at(*data->ffi, field.type_index);
+    child->ffi = data->ffi;
+    child->owner_value = args[0];
+    package->host->value_retain(args[0]);
+  }
+  return status;
+}
+
+X3Status cdata_setattr(X3CallContext* call, X3Runtime* runtime, void* user_data,
+                       const X3Value* args, uint32_t argc, X3Value* result) {
+  auto* package = static_cast<PackageState*>(user_data);
+  auto* data = argc == 3 ? static_cast<CDataState*>(
+      package->host->instance_get_native_data(args[0], kCDataType)) : nullptr;
+  std::string name;
+  if (!data || !data->ffi || !string_value(package, runtime, args[1], name))
+    return package->host->raise_class_error(call, "AttributeError", "invalid C data field");
+  const StructDescription* description = struct_for_name(*data->ffi, data->ctype);
+  FieldLocation field;
+  if (!description || !find_struct_field(*data->ffi, *description, name, field) ||
+      data->address == 0)
+    return package->host->raise_class_error(call, "AttributeError", "C data field is not declared");
+  ForeignType type;
+  if ((data->ffi->types[field.type_index] & 0xffu) == 5u ||
+      !foreign_at(*data->ffi, field.type_index, type) ||
+      field.layout.size > sizeof(uint64_t) || type.kind == ForeignKind::Void)
+    return package->host->raise_class_error(call, "NotImplementedError", "unsupported C field assignment");
+  if ((type.kind == ForeignKind::Signed || type.kind == ForeignKind::Unsigned) &&
+      type.bits > 0 && type.bits <= 64) {
+    const X3Value lower = type.kind == ForeignKind::Unsigned
+        ? x3_value_int64(0)
+        : x3_value_int64(type.bits == 64 ? INT64_MIN :
+                         -(int64_t{1} << (type.bits - 1)));
+    const X3Value upper = type.kind == ForeignKind::Unsigned
+        ? x3_value_uint64(type.bits == 64 ? UINT64_MAX :
+                          (uint64_t{1} << type.bits) - 1)
+        : x3_value_int64(type.bits == 64 ? INT64_MAX :
+                         (int64_t{1} << (type.bits - 1)) - 1);
+    int32_t outside = 0;
+    if (package->host->value_compare_op(runtime, X3_VALUE_COMPARE_LT,
+                                        args[2], lower, &outside) == X3_STATUS_OK) {
+      if (outside)
+        return package->host->raise_class_error(call, "OverflowError", "C field value is out of range");
+      const X3Status upper_status = package->host->value_compare_op(
+          runtime, X3_VALUE_COMPARE_GT, args[2], upper, &outside);
+      if (upper_status == X3_STATUS_OK && outside)
+        return package->host->raise_class_error(call, "OverflowError", "C field value is out of range");
+      if (upper_status != X3_STATUS_OK) package->host->clear_exception(call);
+    } else {
+      package->host->clear_exception(call);
+    }
+  }
+  uint64_t storage = 0;
+  if (!convert_foreign_argument(package, call, runtime, args[2], type, storage))
+    return package->host->raise_class_error(call, "TypeError", "invalid C field value");
+  std::memcpy(reinterpret_cast<void*>(data->address + field.offset),
+              &storage, field.layout.size);
+  *result = x3_value_none();
   return X3_STATUS_OK;
 }
 
@@ -1088,6 +1391,58 @@ X3Status cdata_not_equal(X3CallContext* call, X3Runtime* runtime, void* user_dat
   return status;
 }
 
+X3Status cdata_hash(X3CallContext* call, X3Runtime*, void* user_data,
+                    const X3Value* args, uint32_t argc, X3Value* result) {
+  auto* package = static_cast<PackageState*>(user_data);
+  auto* data = argc == 1 ? static_cast<CDataState*>(
+      package->host->instance_get_native_data(args[0], kCDataType)) : nullptr;
+  if (!data)
+    return package->host->raise_class_error(call, "TypeError", "invalid C data object");
+  *result = x3_value_int64(static_cast<int64_t>(data->address));
+  return X3_STATUS_OK;
+}
+
+X3Status cdata_len(X3CallContext* call, X3Runtime*, void* user_data,
+                   const X3Value* args, uint32_t argc, X3Value* result) {
+  auto* package = static_cast<PackageState*>(user_data);
+  auto* data = argc == 1 ? static_cast<CDataState*>(
+      package->host->instance_get_native_data(args[0], kCDataType)) : nullptr;
+  if (!data || data->ctype.empty() || data->ctype.back() != ']' ||
+      data->element_size == 0 ||
+      (!data->owned && !data->borrowed_buffer &&
+       data->owner_value.tag == X3_TAG_INVALID))
+    return package->host->raise_class_error(call, "TypeError", "C data has no length");
+  *result = x3_value_uint64(data->owned_size / data->element_size);
+  return X3_STATUS_OK;
+}
+
+X3Status cdata_enter(X3CallContext* call, X3Runtime*, void* user_data,
+                     const X3Value* args, uint32_t argc, X3Value* result) {
+  auto* package = static_cast<PackageState*>(user_data);
+  auto* data = argc == 1 ? static_cast<CDataState*>(
+      package->host->instance_get_native_data(args[0], kCDataType)) : nullptr;
+  if (!data || !data->borrowed_buffer)
+    return package->host->raise_class_error(call, "TypeError", "C data is not a buffer context manager");
+  *result = args[0];
+  package->host->value_retain(*result);
+  return X3_STATUS_OK;
+}
+
+X3Status cdata_exit(X3CallContext* call, X3Runtime*, void* user_data,
+                    const X3Value* args, uint32_t argc, X3Value* result) {
+  auto* package = static_cast<PackageState*>(user_data);
+  auto* data = argc == 4 ? static_cast<CDataState*>(
+      package->host->instance_get_native_data(args[0], kCDataType)) : nullptr;
+  if (!data || !data->borrowed_buffer)
+    return package->host->raise_class_error(call, "TypeError", "C data is not a buffer context manager");
+  package->host->buffer_release(data->borrowed_buffer);
+  data->borrowed_buffer = nullptr;
+  data->address = 0;
+  data->owned_size = 0;
+  *result = x3_value_none();
+  return X3_STATUS_OK;
+}
+
 void method(X3NativeFunctionDef& definition, const char* name,
             X3NativeFn callback, PackageState* state,
             X3NativeKeywordFn keywords = nullptr) {
@@ -1111,27 +1466,34 @@ X3Status register_module(X3PackageHost* host) {
 
   if (host->create_class(host, "CType", nullptr, 0, &state->ctype_class) != X3_STATUS_OK)
     return X3_STATUS_ERROR;
-  X3NativeFunctionDef cdata_methods[6]{};
+  X3NativeFunctionDef cdata_methods[12]{};
   method(cdata_methods[0], "__int__", cdata_int, state);
   method(cdata_methods[1], "__bool__", cdata_bool, state);
   method(cdata_methods[2], "__call__", cdata_call, state);
   method(cdata_methods[3], "__getitem__", cdata_getitem, state);
   method(cdata_methods[4], "__eq__", cdata_equal, state);
   method(cdata_methods[5], "__ne__", cdata_not_equal, state);
-  if (host->create_class(host, "CData", cdata_methods, 6, &state->cdata_class) != X3_STATUS_OK)
+  method(cdata_methods[6], "__len__", cdata_len, state);
+  method(cdata_methods[7], "__enter__", cdata_enter, state);
+  method(cdata_methods[8], "__exit__", cdata_exit, state);
+  method(cdata_methods[9], "__getattr__", cdata_getattr, state);
+  method(cdata_methods[10], "__setattr__", cdata_setattr, state);
+  method(cdata_methods[11], "__hash__", cdata_hash, state);
+  if (host->create_class(host, "CData", cdata_methods, 12, &state->cdata_class) != X3_STATUS_OK)
     return X3_STATUS_ERROR;
   X3NativeFunctionDef library_methods[1]{};
   method(library_methods[0], "__getattr__", library_getattr, state);
   if (host->create_class(host, "CLibrary", library_methods, 1, &state->library_class) != X3_STATUS_OK)
     return X3_STATUS_ERROR;
-  X3NativeFunctionDef ffi_methods[6]{};
+  X3NativeFunctionDef ffi_methods[7]{};
   method(ffi_methods[0], "__init__", ffi_init, state, ffi_init_kw);
   method(ffi_methods[1], "cast", ffi_cast, state);
   method(ffi_methods[2], "dlopen", ffi_dlopen, state);
   method(ffi_methods[3], "sizeof", ffi_sizeof, state);
   method(ffi_methods[4], "new", ffi_new, state);
   method(ffi_methods[5], "getwinerror", ffi_getwinerror, state);
-  if (host->module_add_class(module, "FFI", ffi_methods, 6, &state->ffi_class) != X3_STATUS_OK)
+  method(ffi_methods[6], "from_buffer", ffi_from_buffer, state, ffi_from_buffer_kw);
+  if (host->module_add_class(module, "FFI", ffi_methods, 7, &state->ffi_class) != X3_STATUS_OK)
     return X3_STATUS_ERROR;
   if (host->class_add_value(state->ffi_class, "CData", state->cdata_class) != X3_STATUS_OK ||
       host->class_add_value(state->ffi_class, "CType", state->ctype_class) != X3_STATUS_OK)
@@ -1150,7 +1512,10 @@ extern "C" XLANG3_PACKAGE_EXPORT const uint32_t xlang3_package_abi_version = X3_
 
 extern "C" XLANG3_PACKAGE_EXPORT X3Status Load(void* host_pointer, X3Value) {
   auto* host = static_cast<X3PackageHost*>(host_pointer);
-  if (!host || host->abi_version != X3_ABI_VERSION) return X3_STATUS_ERROR;
+  if (!host || host->abi_version != X3_ABI_VERSION ||
+      host->size < offsetof(X3PackageHost, buffer_release) + sizeof(host->buffer_release) ||
+      !host->buffer_acquire || !host->buffer_release)
+    return X3_STATUS_ERROR;
   host->package_set_metadata(host, "package", "_cffi_backend");
   host->package_set_metadata(host, "version", "2.0.0");
   return register_module(host);

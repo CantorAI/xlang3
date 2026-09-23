@@ -430,6 +430,70 @@ iterators must retain configuration themselves.
 
 ### 2026-09-23 checkpoint
 
+Follow-up after commit `1849241` on `fastapi-compatibility`:
+the XLang3 native host now exposes its stable zero-copy buffer export to
+packages. CFFI `ffi.from_buffer` borrows contiguous bytes/bytearray storage,
+honors `require_writable`, prevents bytearray resizing while exported, and
+supports context-manager release. The CPython 3.14 oracle runner now covers
+these cases and passes. The Release CLI fixture gate and local FastAPI gate
+also pass after this change. A diagnostic wrapper around unchanged Trio code
+showed the previous generic `must be called from async context` error hid
+`AttributeError: 'FFI' object has no attribute 'from_buffer'`. After this fix,
+the same real Trio probe reaches `poll_info.Handles[0].Handle` and fails because
+CFFI CData struct-field access was the next gap. Regular generated CFFI
+struct/union fields now use type metadata for aligned offsets, nested array and
+struct views, primitive/pointer reads and writes, and address-consistent CData
+hashing. The CPython 3.14 `cffi_struct_fields.py` oracle passes. The unchanged
+oracle also checks integer field overflow against CPython: unsigned 32-bit
+negative/oversized values and signed 64-bit overflow raise `OverflowError`.
+The upstream matrix runner now accepts a bounded per-test timeout (default
+120 seconds) so a stalled suite produces evidence instead of hanging forever.
+The pinned AnyIO test file `tests/test_taskgroups.py -k trio` cannot collect in
+the clean test target: its unchanged `conftest.py` imports `trustme` 1.2.1,
+which has been installed as pure Python, but `trustme` imports `cryptography`.
+That dependency is absent; CPython binary wheels must not be used as an XLang3
+shortcut. The AnyIO suite therefore remains unexecuted rather than counted as
+a pass or a justified platform skip. Resolve the real cryptography boundary or
+another authentic dependency path before claiming the full matrix.
+Additional clean-target collection probes found HTTPX also imports `trustme`
+and stops on the same absent `cryptography` dependency. Uvicorn initially
+collected 617 tests with five collection errors. Installing its lockfile-pinned
+`websockets` 16.1.1 from the upstream universal pure-Python wheel reduced this
+to one collection error after 1337 tests: the true native `httptools` boundary.
+The test installer now pins `trustme` and selects that universal `websockets`
+wheel explicitly. These are dependency/preflight failures,
+not test passes or justified platform skips. Uvicorn's upstream pytest config
+requests eight xdist workers; the serial `-n 0` probe avoids an unrelated
+pytest-benchmark warning promoted to an error. Keep the eventual matrix run
+serial or otherwise account for this upstream configuration without editing
+upstream tests.
+The unchanged
+Trio `trio.run` probe now finishes identically on XLang3 and CPython. The
+previously failing untouched Starlette Trio tests pass 2/2; the entire
+untouched `tests/test__utils.py` file passes 15/15. Continue with wider
+untouched Trio/Starlette/AnyIO coverage; these narrow successes do not establish
+full production compatibility. Do not modify Trio to make tests pass.
+The first pinned full Starlette matrix attempt collected 1065 tests and timed
+out at `tests/middleware/test_session.py::test_secure_session` after about 18%
+of the suite; its JSON result and log are in `scratch/upstream-results-starlette`.
+The exact secure-session cases pass 2/2 when isolated on XLang3 and CPython,
+and the full untouched session file passes 19/19 on XLang3. This points to a
+cross-test state or timing issue; the full matrix is still failed, not passed.
+With a 120-second per-test timeout, a repeat full Starlette matrix passed the
+session file and reached 324 passed / 2 upstream xfailed before failing at
+`test_config.py::test_missing_env_file_raises`. CPython 3.14 independently
+fails that unchanged test on Windows: the test passes an unescaped `C:\Users...`
+path to `pytest.warns(..., match=...)`, and `re.PatternError` reports an
+incomplete `\\U` escape. The matrix runner now records and deselects that one
+exact CPython-baseline Windows case through `upstream-platform-skips.json`;
+the other five tests in the file pass on XLang3. A repeat Starlette matrix is
+running with that explicit deselection. A separate full
+FastAPI `--collect-only` probe was stopped after the XLang3 process reached
+about 4 GB working set without a collection result; investigate collection
+memory with smaller unchanged subsets before retrying it. Do not report that
+probe as a completed FastAPI collection or test run.
+
+
 The native `_cffi_backend` now uses vendored Windows x64 libffi source compiled
 into the XLang3 package, with no CPython runtime dependency. It handles the
 generated Trio Windows declarations, dynamic library symbols, scalar/pointer

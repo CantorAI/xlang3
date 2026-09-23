@@ -753,6 +753,25 @@ Release suite remains **53/53 passed** (33.55 seconds).
 
 Do not mark FastAPI compatible based on imports or a narrow smoke test alone.
 
+After `1849241`, the native CFFI boundary gained zero-copy `ffi.from_buffer`
+using XLang3's general buffer export API. CPython 3.14 borrowed-buffer oracle
+cases pass. The unchanged Trio probe now reaches `poll_info.Handles` and
+failed on missing general CFFI struct-field access. Generated CFFI struct
+fields, nested arrays/structs, primitive and pointer writes, and CData hashing
+now match the new CPython 3.14 oracle. An unchanged direct Trio `trio.run`
+probe finishes, the targeted Starlette Trio cases pass 2/2, and the full
+untouched Starlette `test__utils.py` passes 15/15. Wider untouched suites remain
+open.
+The untouched AnyIO matrix currently stops during collection because its
+`trustme` test dependency imports unavailable `cryptography`; no AnyIO test
+result is claimed from that attempt.
+HTTPX collection has the same `trustme`/`cryptography` dependency gap. Uvicorn
+collects 1337 tests with its lockfile-pinned pure-Python `websockets` wheel,
+but one test module still cannot collect without a true native `httptools`
+boundary. The full Starlette matrix reached 324 passes and 2 expected failures
+before an unchanged Windows test failed identically on CPython 3.14; the exact
+case is recorded as an explicit platform deselection for the next run.
+
 2026-09-23 checkpoint: `_cffi_backend` now compiles bundled Windows x64 libffi
 source into its native package and supports the generated Trio Windows API
 declarations, real scalar/pointer foreign calls, owned pointer/array memory,

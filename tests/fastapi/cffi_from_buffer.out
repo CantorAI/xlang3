@@ -1,0 +1,5 @@
+3 b'a' b'c'
+BufferError
+3 b'x' b'z'
+BufferError
+b'xyz!'

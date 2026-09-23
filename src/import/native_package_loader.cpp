@@ -861,6 +861,8 @@ const X3PackageHost kPackageHostTemplate = {
     host_clear_exception,
     host_take_exception,
     host_instance_set_native_gc_references,
+    x3_buffer_acquire,
+    x3_buffer_release,
 };
 
 std::vector<std::filesystem::path> collect_native_library_candidates(

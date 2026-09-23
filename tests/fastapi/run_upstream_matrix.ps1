@@ -6,6 +6,8 @@ param(
     [string]$ResultsDirectory = (Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) 'scratch\upstream-results'),
     [string[]]$Project,
     [int]$MaxFailures = 20,
+    [int]$TimeoutSeconds = 120,
+    [int]$Workers = 0,
     [switch]$StopOnFailure
 )
 
@@ -13,6 +15,7 @@ $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $manifestPath = Join-Path $PSScriptRoot 'upstream-matrix.json'
 $matrix = @(Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json)
+$platformSkips = @(Get-Content -LiteralPath (Join-Path $PSScriptRoot 'upstream-platform-skips.json') -Raw | ConvertFrom-Json)
 if ($Project.Count -gt 0) {
     $unknown = @($Project | Where-Object { $_ -notin $matrix.name })
     if ($unknown.Count -gt 0) {
@@ -60,13 +63,24 @@ try {
         $logPath = Join-Path $ResultsDirectory "$($entry.name).log"
         $started = Get-Date
         Write-Host "upstream matrix $($entry.name) $($entry.version)"
+        $entrySkips = @()
+        $deselectArgs = @()
+        if ($env:OS -eq 'Windows_NT') {
+            $entrySkips = @($platformSkips | Where-Object { $_.project -eq $entry.name -and $_.platform -eq 'win32' })
+            foreach ($skip in $entrySkips) {
+                $deselectArgs += "--deselect=$($skip.node)"
+                Write-Host "upstream platform deselection $($skip.node): $($skip.reason)"
+            }
+        }
         Push-Location -LiteralPath $checkout
         try {
             & $xlangPath -m pytest $testPath `
                 "--maxfail=$MaxFailures" `
+                -n $Workers `
+                @deselectArgs `
                 --assert=plain `
                 -p no:logging `
-                --timeout=0 `
+                "--timeout=$TimeoutSeconds" `
                 -W 'ignore:The anyio.abc.BlockingPortal alias is deprecated:DeprecationWarning' 2>&1 |
                 Tee-Object -LiteralPath $logPath
             $exitCode = $LASTEXITCODE
@@ -83,6 +97,7 @@ try {
             started_at = $started.ToUniversalTime().ToString('o')
             finished_at = $finished.ToUniversalTime().ToString('o')
             duration_seconds = [math]::Round(($finished - $started).TotalSeconds, 3)
+            platform_deselections = $entrySkips
             log = $logPath
         }
         $results | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $resultsPath -Encoding utf8
