@@ -9,6 +9,27 @@ tree is authoritative.
 
 ## Current checkpoint (2026-09-23)
 
+Latest continuation: the XLang3 parser no longer loops on an
+invalid parenthesized `async with` snippet used by Python 3.14 traceback
+formatting. Coroutine exception context survives `await`, and nested
+interpreter calls restore the caller's active exception. General `os.stat`
+follows symlinks by default, and Windows `os.symlink` detects existing
+directory targets. CPython 3.14 oracle fixtures, public FastAPI routes, and
+unchanged Starlette lifespan/static-file tests pass. The selected Starlette
+routing through WebSocket asyncio batch is **168 passed, 1 Unix-only skip**,
+with one CPython-confirmed Windows permission assertion deselected. Release
+CTest is **53/53** and the complete local FastAPI integration runner passes.
+The full pinned upstream matrix and Trio/CFFI boundary remain open.
+
+After the pushed `76d9231` checkpoint, this work adds native `_zstd`
+frame metadata and parameter bounds. The CPython 3.14 oracle matches XLang3,
+Release CTest passes **53/53** on rerun, and the local FastAPI integration
+runner passes. The unchanged Starlette form/request/response asyncio batch is
+now **167 passed, 1 upstream skip**. The next routing batch times out at
+`test_lifespan_state_unsupported[asyncio]` on XLang3; CPython passes it.
+Starlette is formatting a lifespan exception traceback at timeout. Investigate
+this general traceback/import/runtime behavior next; do not skip the case.
+
 Latest checkpoint for merge to `main`: general exception-group selection,
 exception constructor arguments, and sized file reads have CPython 3.14
 oracles and pass their corresponding unchanged Starlette cases. Native

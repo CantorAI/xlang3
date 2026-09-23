@@ -1,4 +1,5 @@
 import asyncio
+import traceback
 from contextlib import asynccontextmanager
 
 import anyio
@@ -53,6 +54,20 @@ async def task_group_errors() -> dict:
     except ExceptionGroup as errors:
         return {"types": [type(error).__name__ for error in errors.exceptions]}
     raise AssertionError("task group did not raise")
+
+
+@app.get("/reraise-after-await")
+async def reraise_after_await() -> dict:
+    try:
+        try:
+            raise RuntimeError("original")
+        except BaseException as error:
+            traceback.format_exception(type(error), error, error.__traceback__)
+            formatted = "RuntimeError: original" in traceback.format_exc()
+            await asyncio.sleep(0)
+            raise
+    except BaseException as error:
+        return {"type": type(error).__name__, "message": str(error), "formatted": formatted}
 
 
 @app.websocket("/echo")
@@ -176,6 +191,10 @@ async def main() -> None:
     status, body, _ = await request("GET", "/task-group-errors")
     assert status == 200
     assert body == b'{"types":["ValueError","ValueError"]}'
+
+    status, body, _ = await request("GET", "/reraise-after-await")
+    assert status == 200
+    assert body == b'{"type":"RuntimeError","message":"original","formatted":true}'
 
     websocket_messages = await run_websocket()
     assert websocket_messages == [

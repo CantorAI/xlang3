@@ -403,6 +403,81 @@ X3Status get_frame_size(X3CallContext* call, X3Runtime* runtime, void* user_data
   return X3_STATUS_OK;
 }
 
+X3Status pair_result(PackageState* state, X3CallContext* call, X3Runtime* runtime,
+                     X3Value first, X3Value second, X3Value* result) {
+  X3Value items = state->host->value_list(runtime);
+  if (items.tag == X3_TAG_INVALID) return X3_STATUS_ERROR;
+  if (state->host->list_append(runtime, items, first) != X3_STATUS_OK ||
+      state->host->list_append(runtime, items, second) != X3_STATUS_OK) {
+    state->host->value_release(items);
+    return X3_STATUS_ERROR;
+  }
+  X3Value tuple_class = x3_value_invalid();
+  if (state->host->builtin_value(state->host, "tuple", &tuple_class) != X3_STATUS_OK) {
+    state->host->value_release(items);
+    return state->host->raise_class_error(call, "RuntimeError", "tuple type unavailable");
+  }
+  const X3Status status = state->host->call(runtime, tuple_class, &items, 1, result);
+  state->host->value_release(tuple_class);
+  state->host->value_release(items);
+  return status;
+}
+
+X3Status get_frame_info(X3CallContext* call, X3Runtime* runtime, void* user_data,
+                        const X3Value* args, uint32_t argc, X3Value* result) {
+  auto* state = static_cast<PackageState*>(user_data);
+  if (argc != 1) return type_error(state, call, "get_frame_info() expects frame bytes");
+  const void* data = nullptr;
+  size_t size = 0;
+  if (!bytes_view(state, runtime, args[0], data, size))
+    return type_error(state, call, "frame must be bytes-like");
+  const unsigned long long content_size = ZSTD_getFrameContentSize(data, size);
+  if (content_size == ZSTD_CONTENTSIZE_ERROR)
+    return state->host->raise_error(call, state->error_class, "Could not get frame information from frame header");
+  const X3Value size_value = content_size == ZSTD_CONTENTSIZE_UNKNOWN
+      ? x3_value_none() : x3_value_uint64(content_size);
+  return pair_result(state, call, runtime, size_value,
+                     x3_value_uint64(ZSTD_getDictID_fromFrame(data, size)), result);
+}
+
+X3Status get_param_bounds_kw(X3CallContext* call, X3Runtime* runtime, void* user_data,
+                             const X3Value* args, uint32_t argc,
+                             const X3KeywordArg* kwargs, uint32_t kwargc, X3Value* result) {
+  auto* state = static_cast<PackageState*>(user_data);
+  if (argc < 1 || argc > 2 || kwargc > 1)
+    return type_error(state, call, "get_param_bounds() expects parameter and is_compress");
+  int64_t parameter = 0;
+  if (!signed_integer(args[0], parameter) || parameter < std::numeric_limits<int>::min() ||
+      parameter > std::numeric_limits<int>::max())
+    return type_error(state, call, "parameter must be an integer");
+  X3Value compress_arg = x3_value_invalid();
+  bool is_compress = false;
+  if (argc == 2) compress_arg = args[1];
+  if (kwargc != 0 && !parameter_value(kwargs, kwargc, "is_compress", compress_arg))
+    return type_error(state, call, "unexpected keyword argument");
+  if (kwargc != 0) {
+    if (argc == 2) return type_error(state, call, "is_compress given twice");
+  }
+  if (compress_arg.tag == X3_TAG_INVALID)
+    return type_error(state, call, "missing is_compress");
+  int64_t compress_integer = 0;
+  is_compress = compress_arg.tag == X3_TAG_BOOL ? compress_arg.as.b
+      : signed_integer(compress_arg, compress_integer) ? compress_integer != 0
+      : compress_arg.tag != X3_TAG_NONE;
+  const ZSTD_bounds bounds = is_compress
+      ? ZSTD_cParam_getBounds(static_cast<ZSTD_cParameter>(parameter))
+      : ZSTD_dParam_getBounds(static_cast<ZSTD_dParameter>(parameter));
+  if (ZSTD_isError(bounds.error))
+    return zstd_error(state, call, "invalid Zstandard parameter", bounds.error);
+  return pair_result(state, call, runtime,
+                     x3_value_int64(bounds.lowerBound), x3_value_int64(bounds.upperBound), result);
+}
+
+X3Status get_param_bounds(X3CallContext* call, X3Runtime* runtime, void* user_data,
+                          const X3Value* args, uint32_t argc, X3Value* result) {
+  return get_param_bounds_kw(call, runtime, user_data, args, argc, nullptr, 0, result);
+}
+
 void method(X3NativeFunctionDef& definition, const char* name,
             X3NativeFn callback, PackageState* state,
             X3NativeKeywordFn keyword_callback = nullptr) {
@@ -459,9 +534,11 @@ X3Status register_module(X3PackageHost* host) {
                              &state->decompressor_class) != X3_STATUS_OK)
     return X3_STATUS_ERROR;
 
-  X3NativeFunctionDef functions[2]{};
+  X3NativeFunctionDef functions[4]{};
   method(functions[0], "set_parameter_types", set_parameter_types, state);
   method(functions[1], "get_frame_size", get_frame_size, state);
+  method(functions[2], "get_frame_info", get_frame_info, state);
+  method(functions[3], "get_param_bounds", get_param_bounds, state, get_param_bounds_kw);
   for (const auto& function : functions)
     if (host->module_add_function(module, &function) != X3_STATUS_OK) return X3_STATUS_ERROR;
 

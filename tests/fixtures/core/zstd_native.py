@@ -24,3 +24,8 @@ stream_decoder = zstd.ZstdDecompressor()
 chunks = [large_frame[i:i + 1000] for i in range(0, len(large_frame), 1000)]
 print(b"".join(stream_decoder.decompress(chunk) for chunk in chunks) == large,
       stream_decoder.eof)
+print(zstd.get_frame_info(compressed).decompressed_size == len(payload),
+      zstd.get_frame_info(compressed).dictionary_id)
+print(zstd.get_frame_info(combined).decompressed_size)
+print(zstd.CompressionParameter.compression_level.bounds())
+print(zstd.DecompressionParameter.window_log_max.bounds())

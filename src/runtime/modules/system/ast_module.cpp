@@ -1315,6 +1315,22 @@ bool ast_parse_kw(
       }
     }
   }
+  if (mode == "exec" || mode == "eval") {
+    const std::string source_text = string_object_to_string(*source);
+    std::string parse_error;
+    if (mode == "exec") {
+      const auto checked = parse_source(source_text);
+      if (!checked.errors.empty()) parse_error = checked.errors.front();
+    } else {
+      const auto checked = parse_expression_source(source_text);
+      if (!checked.errors.empty()) parse_error = checked.errors.front();
+    }
+    if (!parse_error.empty()) {
+      error = parse_error;
+      runtime.raise_class_error("SyntaxError", error);
+      return false;
+    }
+  }
   Value klass = mode == "eval" ? node_class(state, "Expression") : node_class(state, "Module");
   out = Value::instance(klass);
   object_set_attr(out, "source", args[0], error);

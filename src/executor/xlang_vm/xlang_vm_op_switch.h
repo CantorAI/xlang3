@@ -112,7 +112,10 @@ enum class XlangVMOpFlow {
     const XlangVMOpFlow flow = call_expr;                          \
     if (flow != XlangVMOpFlow::Next) {                             \
       if (flow == XlangVMOpFlow::ContinueLoop) continue;           \
-      if (flow == XlangVMOpFlow::ReturnResult) return result;      \
+      if (flow == XlangVMOpFlow::ReturnResult) {                    \
+        save_generator_exception_context();                       \
+        return result;                                             \
+      }                                                            \
       goto switch_frame;                                           \
     }                                                              \
     break;                                                         \

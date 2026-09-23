@@ -538,10 +538,13 @@ ParseResult Parser::parse_module() {
   ParseResult result;
   skip_newlines();
   while (!check(TokenKind::End)) {
+    const size_t statement_start = current_;
     auto stmt = parse_statement();
     if (stmt) {
       result.module.body.push_back(std::move(stmt));
-    } else {
+    }
+    if (current_ == statement_start && !check(TokenKind::End)) {
+      error_here("unexpected token while parsing statement");
       advance();
     }
     skip_newlines();
@@ -1470,11 +1473,15 @@ std::vector<ast::StmtPtr> Parser::parse_suite_after_colon(const std::string& con
   }
 
   std::vector<ast::StmtPtr> body;
-  while (!check(TokenKind::Newline) && !check(TokenKind::Dedent) && !check(TokenKind::End)) {
+  while (!check(TokenKind::Newline) && !check(TokenKind::Dedent) && !check(TokenKind::End) &&
+         !check(TokenKind::RParen) && !check(TokenKind::RBracket) && !check(TokenKind::RBrace)) {
+    const size_t statement_start = current_;
     auto stmt = parse_simple_statement();
     if (stmt) {
       body.push_back(std::move(stmt));
-    } else {
+    }
+    if (current_ == statement_start && !check(TokenKind::End)) {
+      error_here("unexpected token in statement body");
       advance();
     }
     if (previous().kind == TokenKind::Newline) {

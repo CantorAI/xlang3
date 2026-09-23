@@ -57,6 +57,10 @@ struct GeneratorVMState {
   std::vector<VMFrame> frames;
   size_t frame_count = 0;
   uint32_t send_target = UINT32_MAX;
+  Value current_exception;
+  std::vector<Value> previous_exceptions;
+  std::vector<size_t> active_exception_handler_depths;
+  std::vector<size_t> active_exception_handler_frames;
 };
 
 struct RuntimeDebugPauseState {

@@ -36,6 +36,31 @@ for this goal on 2026-09-19.
 
 ## Current evidence (2026-09-23)
 
+Current continuation: fixed parser recovery when an invalid
+parenthesized `async with` reaches a closing delimiter; `ast.parse()` now
+raises `SyntaxError` for parser-rejected source instead of returning an empty
+placeholder. Coroutine VM suspension preserves the active exception and
+handler stack across `await`, while nested interpreter calls restore their
+caller's active exception. The CPython 3.14 `async_exception_context.py`
+oracle, existing traceback fixture, public FastAPI async re-raise route, and
+unchanged Starlette lifespan failure case pass. General `os.stat()` now follows
+symlink targets by default and honors `follow_symlinks=False`; Windows
+`os.symlink()` recognizes existing directory targets. The CPython oracle,
+unchanged Starlette file/directory symlink tests, and a public FastAPI static
+file request through a symlink pass.
+
+The unchanged Starlette routing/schema/static/status/template/TestClient/
+WebSocket asyncio selection passes **168 tests, 1 upstream Unix-only skip**;
+132 cases were deselected (Trio plus one Windows permission assertion). The
+excluded `test_staticfiles_with_invalid_dir_permissions_returns_401[asyncio]`
+fails on CPython 3.14 too because Windows `chmod` does not enforce its Unix
+permission expectation. A separate static-file fixture initially failed under
+both runtimes because Git `core.autocrlf=true` converted an upstream LF file to
+CRLF; it was restored byte-for-byte from the upstream Git blob without editing
+the test source. Release CTest is **53/53** and all local FastAPI integration
+cases pass after these fixes. The untouched full seven-project matrix and
+Trio/CFFI boundary remain open; full compatibility is unproven.
+
 Latest checkpoint: the CPython 3.14-oracle exception-group, custom-exception
 constructor, and sized file-read fixes are validated by unchanged Starlette
 cases and public FastAPI integration. Added an independent `_zstd` native
@@ -47,6 +72,22 @@ advertises zstd, and a FastAPI TestClient zstd response is decoded correctly.
 Release CTest is **53/53** and all local FastAPI integration cases pass.
 Complete `_zstd` API coverage, the Trio/CFFI boundary, and the full untouched
 upstream matrix remain open. This checkpoint is not full compatibility.
+
+Continuation after `76d9231`: the complete unchanged Starlette
+form-parser/request/response asyncio selection now passes **167 tests with one
+upstream Python-version skip**; 161 Trio cases were deselected. The next
+unchanged routing/schema/static/status/template/TestClient/WebSocket selection
+stops at `test_lifespan_state_unsupported[asyncio]`: XLang3 times out while
+Starlette formats the lifespan exception traceback; CPython 3.14 passes the
+isolated case. This is an open runtime failure, not a skip. A standalone
+reproduction also stalled during import, so the specific root cause is not
+yet established. Native `_zstd` now also implements frame-header metadata and
+compression/decompression parameter bounds using the Zstandard C API. The
+public Python 3.14 `compression.zstd` oracle matches CPython for known and
+unknown frame content size and parameter bounds. Release CTest passed **53/53**
+on rerun; the first run had one intermittent native-network large-response
+failure, and that test passed in isolation. The complete local FastAPI
+integration runner passed after this change.
 
 The checkpoint through `58b939d` was merged and pushed to `origin/main` at the
 user's request. This continuation on `fastapi-compatibility` implements

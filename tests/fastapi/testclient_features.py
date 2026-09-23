@@ -1,10 +1,12 @@
 from contextlib import asynccontextmanager
 from pathlib import Path
+import os
 import tempfile
 from compression import zstd
 
 from fastapi import FastAPI, WebSocket
 from fastapi.responses import FileResponse, Response
+from fastapi.staticfiles import StaticFiles
 from fastapi.testclient import TestClient
 from pydantic import BaseModel
 
@@ -42,6 +44,10 @@ with tempfile.TemporaryDirectory() as directory:
     path = Path(directory) / "download.bin"
     content = b"<file content>" * 1000
     path.write_bytes(content)
+    static_directory = Path(directory) / "static"
+    static_directory.mkdir()
+    os.symlink(path, static_directory / "linked.bin")
+    app.mount("/static", StaticFiles(directory=static_directory, follow_symlink=True), name="static")
 
     @app.get("/file")
     async def download() -> FileResponse:
@@ -63,6 +69,9 @@ with tempfile.TemporaryDirectory() as directory:
         assert response.status_code == 200
         assert response.json() == {"result": 42}
         response = client.get("/file")
+        assert response.status_code == 200
+        assert response.content == content
+        response = client.get("/static/linked.bin")
         assert response.status_code == 200
         assert response.content == content
         response = client.get("/zstd")

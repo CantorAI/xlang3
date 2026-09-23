@@ -507,6 +507,14 @@ bool os_symlink_impl(Runtime& runtime, const Value* args, uint32_t argc,
     runtime.raise_class_error("ValueError", error);
     return false;
   }
+  if (!target_is_directory) {
+    VfsNodeKind source_kind = VfsNodeKind::Missing;
+    std::string lookup_error;
+    if (runtime.vfs().kind(source.text, source_kind, lookup_error) &&
+        source_kind == VfsNodeKind::Directory) {
+      target_is_directory = true;
+    }
+  }
   if (!runtime.vfs().create_link(
           source.text, destination.text, target_is_directory, error)) {
     runtime.raise_class_error("OSError", error);
@@ -3038,7 +3046,8 @@ bool os_makedirs_kw(
   return os_makedirs_impl(runtime, args, argc, kwargs, kwargc, out, error);
 }
 
-bool os_stat(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+bool os_stat_impl(Runtime& runtime, const Value* args, uint32_t argc,
+                  bool follow_symlinks, Value& out, std::string& error, void* user_data) {
   if (argc != 1) {
     error = "os.stat() expected one argument";
     return false;
@@ -3098,12 +3107,39 @@ bool os_stat(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std
   if (!runtime.vfs().stat(path.text, stat, error)) {
     return raise_path_not_found(runtime, error, &args[0]);
   }
+  if (follow_symlinks) {
+    std::string current_path = path.text;
+    for (size_t depth = 0; stat.is_symlink && depth < 40; ++depth) {
+      std::string target;
+      if (!runtime.vfs().read_link(current_path, target, error)) {
+        return raise_path_not_found(runtime, error, &args[0]);
+      }
+      const std::filesystem::path target_path = std::filesystem::u8path(target);
+      current_path = (target_path.is_absolute()
+          ? target_path
+          : std::filesystem::u8path(current_path).parent_path() / target_path)
+          .lexically_normal().u8string();
+      if (!runtime.vfs().stat(current_path, stat, error)) {
+        return raise_path_not_found(runtime, error, &args[0]);
+      }
+      if (stat.kind == VfsNodeKind::Missing) break;
+    }
+    if (stat.is_symlink) {
+      error = "too many levels of symbolic links: " + path.text;
+      runtime.raise_class_error("OSError", error);
+      return false;
+    }
+  }
   if (stat.kind == VfsNodeKind::Missing) {
     error = "file not found: " + path.text;
     return raise_path_not_found(runtime, error, &args[0]);
   }
   out = make_stat_result(state->stat_result_class, stat);
   return true;
+}
+
+bool os_stat(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
+  return os_stat_impl(runtime, args, argc, true, out, error, user_data);
 }
 
 #if defined(_WIN32)
@@ -3459,6 +3495,7 @@ bool os_stat_kw(
     error = "os.stat() expected one argument";
     return false;
   }
+  bool follow_symlinks = true;
   for (uint32_t i = 0; i < kwargc; ++i) {
     const char* name = kwargs[i].name;
     if (name == nullptr || kwargs[i].value == nullptr) {
@@ -3469,8 +3506,9 @@ bool os_stat_kw(
       error = std::string("os.stat() got unexpected keyword argument '") + name + "'";
       return false;
     }
+    follow_symlinks = value_truthy(*kwargs[i].value);
   }
-  return os_stat(runtime, args, argc, out, error, user_data);
+  return os_stat_impl(runtime, args, argc, follow_symlinks, out, error, user_data);
 }
 
 bool os_access(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {

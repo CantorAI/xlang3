@@ -539,8 +539,28 @@ RuntimeResult Interpreter::run_function(
       runtime.pop_current_frame_state();
     }
   } current_frame_guard(runtime_);
+  struct ActiveExceptionGuard {
+    Runtime& runtime;
+    Value previous;
+
+    explicit ActiveExceptionGuard(Runtime& target_runtime) : runtime(target_runtime) {
+      value_assign_fast(previous, runtime.active_exception());
+    }
+
+    ~ActiveExceptionGuard() {
+      if (previous.tag == ValueTag::Invalid) {
+        runtime.clear_active_exception();
+      } else {
+        runtime.set_active_exception(previous);
+      }
+    }
+  } active_exception_guard(runtime_);
   size_t frame_count = 0;
   bool resumed_generator = false;
+  Value resumed_current_exception;
+  std::vector<Value> resumed_previous_exceptions;
+  std::vector<size_t> resumed_exception_handler_depths;
+  std::vector<size_t> resumed_exception_handler_frames;
   Value generator_resume_exception;
   bool has_generator_resume_exception = false;
   if (pause_state != nullptr) {
@@ -551,6 +571,10 @@ RuntimeResult Interpreter::run_function(
     const uint32_t send_target = state->send_target;
     frames = std::move(state->frames);
     frame_count = state->frame_count;
+    value_assign_fast(resumed_current_exception, state->current_exception);
+    resumed_previous_exceptions = std::move(state->previous_exceptions);
+    resumed_exception_handler_depths = std::move(state->active_exception_handler_depths);
+    resumed_exception_handler_frames = std::move(state->active_exception_handler_frames);
     delete state;
     generator->vm_state = nullptr;
     generator->vm_state_cleanup = nullptr;
@@ -1095,6 +1119,23 @@ RuntimeResult Interpreter::run_function(
   std::vector<Value> previous_exceptions;
   std::vector<size_t> active_exception_handler_depths;
   std::vector<size_t> active_exception_handler_frames;
+  if (resumed_generator) {
+    value_assign_fast(current_exception, resumed_current_exception);
+    previous_exceptions = std::move(resumed_previous_exceptions);
+    active_exception_handler_depths = std::move(resumed_exception_handler_depths);
+    active_exception_handler_frames = std::move(resumed_exception_handler_frames);
+    if (current_exception.tag != ValueTag::Invalid) {
+      runtime_.set_active_exception(current_exception);
+    }
+  }
+  auto save_generator_exception_context = [&]() {
+    if (generator == nullptr || generator->vm_state == nullptr) return;
+    auto* state = static_cast<GeneratorVMState*>(generator->vm_state);
+    value_assign_fast(state->current_exception, current_exception);
+    state->previous_exceptions = std::move(previous_exceptions);
+    state->active_exception_handler_depths = std::move(active_exception_handler_depths);
+    state->active_exception_handler_frames = std::move(active_exception_handler_frames);
+  };
   Value pending_exception_cause;
   bool pending_exception_explicit_cause = false;
   Value traceback_builtins;
