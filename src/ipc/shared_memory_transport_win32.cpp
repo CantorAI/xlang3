@@ -111,7 +111,9 @@ SharedNames make_names(const std::string& port, const std::string& ns) {
 }
 
 bool wait_mutex(HANDLE mutex, std::string& error) {
-  DWORD wait = WaitForSingleObject(mutex, lrpc_request_timeout_ms());
+  const auto configured_timeout = lrpc_request_timeout_ms();
+  DWORD wait = WaitForSingleObject(mutex,
+      configured_timeout == 0 ? INFINITE : configured_timeout);
   if (wait == WAIT_OBJECT_0 || wait == WAIT_ABANDONED) {
     return true;
   }
@@ -595,7 +597,8 @@ bool lrpc_shared_memory_request_platform(
   SetEvent(client.server_event);
   HANDLE server_process = OpenProcess(SYNCHRONIZE, FALSE, server_pid);
   HANDLE waits[2] = {client.slot_event, server_process};
-  const DWORD timeout_ms = lrpc_request_timeout_ms();
+  const auto configured_timeout = lrpc_request_timeout_ms();
+  const DWORD timeout_ms = configured_timeout == 0 ? INFINITE : configured_timeout;
   DWORD wait_result = server_process != nullptr
       ? WaitForMultipleObjects(2, waits, FALSE, timeout_ms)
       : WaitForSingleObject(client.slot_event, timeout_ms);

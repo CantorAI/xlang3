@@ -39,6 +39,10 @@ uint32_t lrpc_request_timeout_ms() {
   char* end = nullptr;
   const unsigned long parsed = std::strtoul(configured, &end, 10);
   if (end == configured || *end != '\0') return default_timeout_ms;
+  // Zero means wait for the response or for the peer process to exit. Both
+  // platform transports observe peer death while waiting, so long-running
+  // calls do not need an arbitrary device-dependent deadline.
+  if (parsed == 0) return 0;
   return static_cast<uint32_t>(std::clamp<unsigned long>(parsed, 100, 300000));
 }
 
