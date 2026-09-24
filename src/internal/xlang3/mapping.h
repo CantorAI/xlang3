@@ -42,6 +42,8 @@ struct DictObject {
   // fast execution storage. This non-owning link keeps mutations coherent.
   ModuleObject* backing_module = nullptr;
   mutable std::unordered_map<int64_t, size_t> integer_index;
+  mutable std::unordered_map<int64_t, std::vector<size_t>> runtime_hash_index;
+  mutable size_t runtime_hash_indexed_entry_count = static_cast<size_t>(-1);
   // Flat open-addressed slots store entry index + 1 (zero means empty). The
   // authoritative strings and cached hashes remain in entries.
   mutable std::vector<size_t> string_index;

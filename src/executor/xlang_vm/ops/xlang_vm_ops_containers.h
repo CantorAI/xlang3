@@ -116,6 +116,11 @@ XLANG3_HOT_INLINE XlangVMOpFlow make_dict(
         Value value;
         if (!mapping_get_item_runtime(runtime, regs[pair.second], key, value, error) ||
             !assign_entry(key, value, error)) {
+          Value pending;
+          if (runtime.take_pending_exception(pending)) {
+            return raise_exception_value(std::move(pending))
+                       ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+          }
           return raise_exception_value(runtime.make_exception("TypeError", error))
                      ? XlangVMOpFlow::ContinueLoop
                      : XlangVMOpFlow::ReturnResult;
@@ -124,6 +129,11 @@ XLANG3_HOT_INLINE XlangVMOpFlow make_dict(
       continue;
     }
     if (!assign_entry(regs[pair.first], regs[pair.second], error)) {
+      Value pending;
+      if (runtime.take_pending_exception(pending)) {
+        return raise_exception_value(std::move(pending))
+                   ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+      }
       return raise_exception_value(runtime.make_exception("TypeError", error))
                  ? XlangVMOpFlow::ContinueLoop
                  : XlangVMOpFlow::ReturnResult;
@@ -289,6 +299,11 @@ XLANG3_HOT_INLINE XlangVMOpFlow dict_set(
       ? mapping_set_item_runtime(runtime, regs[in.dst], regs[in.a], regs[in.b], error)
       : sequence_set_item(regs[in.dst], regs[in.a], regs[in.b], error);
   if (!set_ok) {
+    Value pending;
+    if (runtime.take_pending_exception(pending)) {
+      return raise_exception_value(std::move(pending))
+                 ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    }
     if (error.find("not hashable") != std::string::npos ||
         error.find("unhashable type") != std::string::npos ||
         error.find("does not support item assignment") != std::string::npos) {
@@ -1039,6 +1054,11 @@ XLANG3_HOT_INLINE XlangVMOpFlow set_item(
       ? mapping_set_item_runtime(runtime, regs[in.dst], regs[in.a], regs[in.b], error)
       : sequence_set_item(regs[in.dst], regs[in.a], regs[in.b], error);
   if (!set_ok) {
+    Value pending;
+    if (runtime.take_pending_exception(pending)) {
+      return raise_exception_value(std::move(pending))
+                 ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    }
     if (value_as_instance(regs[in.dst]) != nullptr) {
       Value setitem;
       std::string attr_error;

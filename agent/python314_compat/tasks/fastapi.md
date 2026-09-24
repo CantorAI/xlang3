@@ -912,3 +912,44 @@ The Release build, all **53/53** CTest checks, the expanded local FastAPI
 gate including live Uvicorn HTTP/HTTPS, and the untouched upstream
 `test_errors.py` plus `test_custom_errors.py` (**198 passed, 1 skipped**)
 pass on this checkpoint.
+
+2026-09-23 Unicode/Hypothesis continuation (uncommitted on
+`fastapi-compatibility`): the generic built-in `sum` now accepts Python
+3.14's `start=` keyword, with a CPython oracle fixture. A missing gzip
+cache exposed a runtime finalizer failure when a bare `except` released an
+exception while the cross-thread exception-registry mutex was held. The
+registry now retires values after unlocking; a public gzip missing-file
+fixture and cold Hypothesis Unicode-cache generation pass. General
+`_IOBase.close()` is now idempotent for already closed streams, eliminating
+an unraisable finalizer error from gzip's decompressor. Its CPython oracle
+fixture passes. The **unchanged** pydantic-core `tests/test_hypothesis.py`
+now reports **10 passed, 1 skipped** on XLang3 under `--assert=plain` and
+the same upstream pytest deprecation-warning filter used on CPython. This
+does not establish the untouched seven-project matrix or full FastAPI
+production compatibility.
+The unchanged upstream `tests/validators/test_url.py` also passes
+**378 tests with 6 upstream expected failures**. A full pydantic-core
+matrix attempt was interrupted after more than five minutes of active,
+CPU-bound collection with no test report yet; this is not a test failure or
+a complete matrix result. The runner starts with a fresh bytecode cache, and
+the focused URL file itself needed roughly 40 seconds before its first
+collection output. The complete entry must be rerun to a terminal result.
+The follow-up collection trace found that all **5,934** pydantic-core cases
+collect in about 50 seconds; pytest then spent minutes inside its fixture
+reordering hook. XLang3 dictionary operations on 3,000 distinct object keys
+took 2.6 seconds to build and 6.2 seconds to look up, versus effectively
+instant CPython 3.14 timings. A runtime hash-bucket index now preserves
+collision equality and insertion order while reducing the same XLang3 probe
+to about **0.006 seconds to build and 0.011 seconds to look up**. Native
+`dict.fromkeys()` and `dict.update()` use runtime-aware key hashing, and
+user `__hash__` exceptions retain their original Python type and message.
+A CPython 3.14 oracle fixture covers identity keys, collisions, deletion,
+clear/reinsert, and hash errors. The complete, untouched pydantic-core
+matrix entry now collects all **5,934** cases and reaches a terminal result:
+**861 passed, 6 skipped, 1 xfailed, 5 failed** before the configured
+`--maxfail=5` stop. The five failures are the nested definition-model
+recursion benchmark, date validation from a datetime string, and three
+serializer warning contracts (enum/any, variadic tuple, and union fallback).
+The same five cases pass on CPython 3.14 (**5/5**). They remain open native
+Pydantic-core compatibility gaps; this checkpoint does not establish full
+FastAPI compatibility or completion of the seven-project matrix.

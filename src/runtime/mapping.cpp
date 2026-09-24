@@ -147,6 +147,8 @@ void recycle_dict_object(DictObject* object) {
   object->entries.clear();
   object->backing_module = nullptr;
   object->integer_index.clear();
+  object->runtime_hash_index.clear();
+  object->runtime_hash_indexed_entry_count = static_cast<size_t>(-1);
   object->string_index.clear();
   object->indexed_entry_count = static_cast<size_t>(-1);
   object->index_has_other_keys = false;
@@ -196,6 +198,22 @@ bool runtime_mapping_hash(Runtime& runtime, const Value& value, int64_t& hash, s
   size_t raw = 0;
   if (!runtime_value_hash_key(runtime, value, raw, error)) return false;
   hash = static_cast<int64_t>(raw);
+  return true;
+}
+
+bool ensure_runtime_hash_index(Runtime& runtime, DictObject& dict,
+                               std::string& error) {
+  if (dict.runtime_hash_indexed_entry_count == dict.entries.size()) return true;
+  std::unordered_map<int64_t, std::vector<size_t>> rebuilt;
+  rebuilt.reserve(dict.entries.size());
+  for (size_t index = 0; index < dict.entries.size(); ++index) {
+    int64_t hash = 0;
+    if (!runtime_mapping_hash(runtime, dict.entries[index].first, hash, error))
+      return false;
+    rebuilt[hash].push_back(index);
+  }
+  dict.runtime_hash_index = std::move(rebuilt);
+  dict.runtime_hash_indexed_entry_count = dict.entries.size();
   return true;
 }
 
@@ -607,6 +625,7 @@ void erase_dict_entry(DictObject& dict, size_t index) {
   value_set_invalid(dict.entries[index].second);
   dict.entries.erase(dict.entries.begin() + static_cast<std::ptrdiff_t>(index));
   dict.indexed_entry_count = static_cast<size_t>(-1);
+  dict.runtime_hash_indexed_entry_count = static_cast<size_t>(-1);
 }
 
 bool mapping_get_item(const Value& object, const Value& key, Value& out, std::string& error) {
@@ -787,23 +806,24 @@ bool mapping_get_item_runtime(
   }
   int64_t key_hash = 0;
   if (!runtime_mapping_hash(runtime, key, key_hash, error)) return false;
-  for (size_t index = 0; index < dict->entries.size(); ++index) {
-    Value candidate_key = dict->entries[index].first;
-    Value candidate_value = dict->entries[index].second;
-    if (value_is(candidate_key, key)) {
-      value_assign_fast(out, candidate_value);
-      return true;
-    }
-    int64_t candidate_hash = 0;
-    if (!runtime_mapping_hash(runtime, candidate_key, candidate_hash, error)) return false;
-    if (candidate_hash != key_hash) continue;
-    Value equal;
-    if (!runtime_value_compare(runtime, "==", candidate_key, key, equal, error)) return false;
-    bool is_equal = false;
-    if (!runtime_truthy(runtime, equal, is_equal, error)) return false;
-    if (is_equal) {
-      value_assign_fast(out, candidate_value);
-      return true;
+  if (!ensure_runtime_hash_index(runtime, *dict, error)) return false;
+  const auto candidates = dict->runtime_hash_index.find(key_hash);
+  if (candidates != dict->runtime_hash_index.end()) {
+    for (size_t index : candidates->second) {
+      Value candidate_key = dict->entries[index].first;
+      Value candidate_value = dict->entries[index].second;
+      if (value_is(candidate_key, key)) {
+        value_assign_fast(out, candidate_value);
+        return true;
+      }
+      Value equal;
+      if (!runtime_value_compare(runtime, "==", candidate_key, key, equal, error)) return false;
+      bool is_equal = false;
+      if (!runtime_truthy(runtime, equal, is_equal, error)) return false;
+      if (is_equal) {
+        value_assign_fast(out, candidate_value);
+        return true;
+      }
     }
   }
   if (dispatch_override && value_as_instance(object) != nullptr) {
@@ -839,20 +859,21 @@ bool mapping_delete_item_runtime(Runtime& runtime, Value& object, const Value& k
   }
   int64_t key_hash = 0;
   if (!runtime_mapping_hash(runtime, key, key_hash, error)) return false;
-  for (size_t index = 0; index < dict->entries.size(); ++index) {
-    Value candidate_key = dict->entries[index].first;
-    bool matches = value_is(candidate_key, key);
-    if (!matches) {
-      int64_t candidate_hash = 0;
-      if (!runtime_mapping_hash(runtime, candidate_key, candidate_hash, error)) return false;
-      if (candidate_hash != key_hash) continue;
-      Value equal;
-      if (!runtime_value_compare(runtime, "==", candidate_key, key, equal, error)) return false;
-      if (!runtime_truthy(runtime, equal, matches, error)) return false;
+  if (!ensure_runtime_hash_index(runtime, *dict, error)) return false;
+  const auto candidates = dict->runtime_hash_index.find(key_hash);
+  if (candidates != dict->runtime_hash_index.end()) {
+    for (size_t index : candidates->second) {
+      Value candidate_key = dict->entries[index].first;
+      bool matches = value_is(candidate_key, key);
+      if (!matches) {
+        Value equal;
+        if (!runtime_value_compare(runtime, "==", candidate_key, key, equal, error)) return false;
+        if (!runtime_truthy(runtime, equal, matches, error)) return false;
+      }
+      if (!matches) continue;
+      erase_dict_entry(*dict, index);
+      return true;
     }
-    if (!matches) continue;
-    erase_dict_entry(*dict, index);
-    return true;
   }
   error = "key not found";
   return false;
@@ -995,21 +1016,23 @@ bool mapping_set_item_runtime(
 
   int64_t key_hash = 0;
   if (!runtime_mapping_hash(runtime, key, key_hash, error)) return false;
-  for (auto& entry : dict->entries) {
-    if (value_is(entry.first, key)) {
-      value_assign_fast(entry.second, item);
-      return true;
-    }
-    int64_t candidate_hash = 0;
-    if (!runtime_mapping_hash(runtime, entry.first, candidate_hash, error)) return false;
-    if (candidate_hash != key_hash) continue;
-    Value equal;
-    if (!runtime_value_compare(runtime, "==", entry.first, key, equal, error)) return false;
-    bool is_equal = false;
-    if (!runtime_truthy(runtime, equal, is_equal, error)) return false;
-    if (is_equal) {
-      value_assign_fast(entry.second, item);
-      return true;
+  if (!ensure_runtime_hash_index(runtime, *dict, error)) return false;
+  const auto candidates = dict->runtime_hash_index.find(key_hash);
+  if (candidates != dict->runtime_hash_index.end()) {
+    for (size_t index : candidates->second) {
+      auto& entry = dict->entries[index];
+      if (value_is(entry.first, key)) {
+        value_assign_fast(entry.second, item);
+        return true;
+      }
+      Value equal;
+      if (!runtime_value_compare(runtime, "==", entry.first, key, equal, error)) return false;
+      bool is_equal = false;
+      if (!runtime_truthy(runtime, equal, is_equal, error)) return false;
+      if (is_equal) {
+        value_assign_fast(entry.second, item);
+        return true;
+      }
     }
   }
 
@@ -1019,6 +1042,8 @@ bool mapping_set_item_runtime(
   value_assign_fast(owned_item, item);
   dict->entries.push_back(std::make_pair(std::move(owned_key), std::move(owned_item)));
   dict->indexed_entry_count = static_cast<size_t>(-1);
+  dict->runtime_hash_index[key_hash].push_back(dict->entries.size() - 1);
+  dict->runtime_hash_indexed_entry_count = dict->entries.size();
   return true;
 }
 
@@ -1299,6 +1324,8 @@ bool mapping_clear(Value& value, std::string& error) {
     }
     dict->entries.clear();
     dict->integer_index.clear();
+    dict->runtime_hash_index.clear();
+    dict->runtime_hash_indexed_entry_count = 0;
     dict->string_index.clear();
     dict->indexed_entry_count = 0;
     dict->index_has_other_keys = false;
@@ -1342,6 +1369,8 @@ bool mapping_popitem(Value& value, Value& out, std::string& error) {
     }
     auto entry = dict->entries.back();
     dict->entries.pop_back();
+    dict->indexed_entry_count = static_cast<size_t>(-1);
+    dict->runtime_hash_indexed_entry_count = static_cast<size_t>(-1);
     out = Value::tuple({entry.first, entry.second});
     return true;
   }

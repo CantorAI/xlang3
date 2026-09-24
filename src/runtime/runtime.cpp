@@ -250,13 +250,27 @@ Value& runtime_pending_exception_state(const Runtime& runtime) {
 }
 
 void runtime_publish_current_exception_state(const Runtime& runtime) {
-  std::lock_guard<std::mutex> lock(g_runtime_exception_registry_mutex);
-  g_runtime_exception_registry[&runtime][runtime_current_thread_ident()] = runtime_current_exception_state(runtime);
+  Value retired;
+  {
+    std::lock_guard<std::mutex> lock(g_runtime_exception_registry_mutex);
+    auto& published = g_runtime_exception_registry[&runtime][runtime_current_thread_ident()];
+    retired = std::move(published);
+    published = runtime_current_exception_state(runtime);
+  }
+  // Releasing an exception can run a finalizer, which may re-enter the runtime.
+  // Keep that release outside the registry lock.
 }
 
 void runtime_clear_exception_states(const Runtime& runtime) {
-  std::lock_guard<std::mutex> lock(g_runtime_exception_registry_mutex);
-  g_runtime_exception_registry.erase(&runtime);
+  std::unordered_map<int64_t, Value> retired;
+  {
+    std::lock_guard<std::mutex> lock(g_runtime_exception_registry_mutex);
+    auto found = g_runtime_exception_registry.find(&runtime);
+    if (found != g_runtime_exception_registry.end()) {
+      retired = std::move(found->second);
+      g_runtime_exception_registry.erase(found);
+    }
+  }
 }
 
 namespace {

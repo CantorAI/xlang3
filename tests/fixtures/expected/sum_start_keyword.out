@@ -1,0 +1,6 @@
+10
+[1, 2]
+iterable TypeError sum() takes at least 1 positional argument (0 given)
+missing TypeError sum() takes at least 1 positional argument (0 given)
+duplicate TypeError sum() takes at most 2 arguments (3 given)
+unknown TypeError sum() got an unexpected keyword argument 'foo'

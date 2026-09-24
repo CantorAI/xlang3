@@ -1894,6 +1894,51 @@ bool builtin_sum(
   }
 }
 
+bool builtin_sum_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  if (argc == 0) {
+    return raise_type_error(runtime,
+                            "sum() takes at least 1 positional argument (0 given)",
+                            error);
+  }
+  if (argc > 2) {
+    return raise_type_error(runtime,
+                            "sum() takes at most 2 arguments (" +
+                                std::to_string(argc) + " given)",
+                            error);
+  }
+  Value positional[2];
+  value_assign_fast(positional[0], args[0]);
+  uint32_t positional_count = argc;
+  if (argc == 2) value_assign_fast(positional[1], args[1]);
+  for (uint32_t index = 0; index < kwargc; ++index) {
+    const std::string name = kwargs[index].name == nullptr ? "" : kwargs[index].name;
+    if (name != "start") {
+      return raise_type_error(runtime,
+                              "sum() got an unexpected keyword argument '" +
+                                  name + "'",
+                              error);
+    }
+    if (positional_count == 2) {
+      return raise_type_error(runtime,
+                              "sum() takes at most 2 arguments (" +
+                                  std::to_string(argc + kwargc) + " given)",
+                              error);
+    }
+    value_assign_fast(positional[1], *kwargs[index].value);
+    positional_count = 2;
+  }
+  return builtin_sum(runtime, positional, positional_count, out, error,
+                     user_data);
+}
+
 struct SortEntry {
   Value key;
   Value value;
@@ -4331,7 +4376,9 @@ void register_functional_builtins(Runtime& runtime) {
   runtime.register_native_builtin("reversed", builtin_reversed, builtin_fast_adapter<builtin_reversed, 1>);
   runtime.register_native_builtin("map", builtin_map, builtin_variadic_fast_adapter<builtin_map, 4>);
   runtime.register_native_builtin("filter", builtin_filter, builtin_fast_adapter<builtin_filter, 2>);
-  runtime.register_native_builtin("sum", builtin_sum, builtin_fast_adapter<builtin_sum, 2>);
+  runtime.register_native_builtin("sum", builtin_sum,
+                                  builtin_fast_adapter<builtin_sum, 2>, false,
+                                  builtin_sum_kw);
   runtime.register_native_builtin("sorted", builtin_sorted, nullptr, false, builtin_sorted_kw);
   runtime.register_native_builtin(
       "min", builtin_min, builtin_variadic_fast_adapter<builtin_min, 4>, true, builtin_min_kw);

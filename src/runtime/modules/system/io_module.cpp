@@ -4059,6 +4059,13 @@ bool io_base_close(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
     error = "_io._IOBase.close() expected no arguments";
     return false;
   }
+  Value already_closed;
+  std::string ignored;
+  if (object_get_attr(args[0], "__xlang3_io_closed", already_closed, ignored) &&
+      value_truthy(already_closed)) {
+    value_set_none(out);
+    return true;
+  }
   Value flush;
   Value flush_result;
   Value pending;
