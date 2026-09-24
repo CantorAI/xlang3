@@ -577,7 +577,12 @@ bool exception_str(
     out = Value::string("");
     return true;
   }
-  const char* builtin_name = tuple->items.size() == 1 ? "str" : "repr";
+  auto* klass = value_as_class(instance->klass);
+  const bool key_error = klass != nullptr &&
+      (klass->name == "KeyError" ||
+       class_has_builtin_base_name(klass, "KeyError"));
+  const char* builtin_name =
+      tuple->items.size() == 1 && !key_error ? "str" : "repr";
   const Value* formatter = runtime.find_builtin(builtin_name);
   const Value& value = tuple->items.size() == 1 ? tuple->items[0] : stored_args;
   if (formatter == nullptr || !runtime_call_callable(runtime, *formatter, &value, 1, out, error)) {

@@ -41,6 +41,11 @@ namespace xlang3 {
 
 namespace {
 
+std::unordered_set<Object*>& native_gc_instances() {
+  static auto* instances = new std::unordered_set<Object*>();
+  return *instances;
+}
+
 bool exception_internal_attribute_name(std::string_view name) {
   // CPython stores these fields in BaseException's native payload rather than
   // in the instance dictionary.  XLang3 currently keeps the payload in the
@@ -313,6 +318,7 @@ void function_annotate_cleanup(void* user_data) {
 
 
 void recycle_instance_object(InstanceObject* instance) {
+  native_gc_instances().erase(&instance->header);
   if (instance->native_data_cleanup != nullptr && instance->native_data != nullptr) {
     instance->native_data_cleanup(instance->native_owner);
   }
@@ -5482,6 +5488,7 @@ bool instance_set_native_owner(Value instance, std::string native_type, void* na
   if (instance_obj->native_data_cleanup != nullptr && instance_obj->native_data != nullptr) {
     instance_obj->native_data_cleanup(instance_obj->native_owner);
   }
+  native_gc_instances().erase(&instance_obj->header);
   instance_obj->native_type = std::move(native_type);
   instance_obj->native_data = native_data;
   instance_obj->native_data_cast = nullptr;
@@ -5518,7 +5525,13 @@ bool instance_set_native_gc_references(Value instance, const Value* references,
   }
   instance_obj->native_gc_references = std::move(objects);
   instance_obj->native_data_clear = clear;
+  if (clear != nullptr && !instance_obj->native_gc_references.empty())
+    native_gc_instances().insert(&instance_obj->header);
   return true;
+}
+
+const std::unordered_set<Object*>& native_gc_instance_registry() {
+  return native_gc_instances();
 }
 
 void* instance_get_native_data(const Value& instance, const std::string& native_type) {

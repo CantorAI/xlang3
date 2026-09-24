@@ -129,6 +129,8 @@ struct SerializationCallableState {
 thread_local X3Value g_serialization_config = x3_value_invalid();
 thread_local X3Value g_serialization_fallback = x3_value_invalid();
 thread_local bool g_serialization_to_json = false;
+thread_local bool g_serialization_unknown_as_string = false;
+thread_local std::unordered_set<X3Object*> g_active_schema_engines;
 thread_local std::unordered_map<std::string, X3Object*>*
     g_schema_definition_refs =
     nullptr;
@@ -217,6 +219,31 @@ struct SerializationJsonOutputScope {
     g_serialization_to_json = enabled;
   }
   ~SerializationJsonOutputScope() { g_serialization_to_json = previous; }
+};
+
+struct SerializationUnknownScope {
+  bool previous;
+  explicit SerializationUnknownScope(bool enabled)
+      : previous(g_serialization_unknown_as_string) {
+    g_serialization_unknown_as_string = enabled;
+  }
+  ~SerializationUnknownScope() {
+    g_serialization_unknown_as_string = previous;
+  }
+};
+
+struct ActiveSchemaEngineScope {
+  X3Object* object = nullptr;
+  bool inserted = false;
+  explicit ActiveSchemaEngineScope(X3Value engine) {
+    if (engine.tag == X3_TAG_OBJECT && engine.as.obj != nullptr) {
+      object = engine.as.obj;
+      inserted = g_active_schema_engines.insert(object).second;
+    }
+  }
+  ~ActiveSchemaEngineScope() {
+    if (inserted) g_active_schema_engines.erase(object);
+  }
 };
 
 struct SerializationWarningsScope {
@@ -553,6 +580,25 @@ void cleanup_validator_iterator(void* pointer) {
   state->package->host->value_release(state->environment.data);
   state->package->host->value_release(state->environment.config);
   delete state;
+}
+
+void clear_validator_iterator(void* pointer) {
+  auto* state = static_cast<ValidatorIteratorState*>(pointer);
+  if (state == nullptr) return;
+  state->package->host->value_release(state->iterator);
+  state->package->host->value_release(state->item_schema);
+  state->package->host->value_release(state->definitions);
+  state->package->host->value_release(state->original_input);
+  state->package->host->value_release(state->environment.context);
+  state->package->host->value_release(state->environment.data);
+  state->package->host->value_release(state->environment.config);
+  state->iterator = x3_value_invalid();
+  state->item_schema = x3_value_invalid();
+  state->definitions = x3_value_invalid();
+  state->original_input = x3_value_invalid();
+  state->environment.context = x3_value_invalid();
+  state->environment.data = x3_value_invalid();
+  state->environment.config = x3_value_invalid();
 }
 
 void cleanup_serialization_iterator(void* pointer) {
@@ -6292,6 +6338,24 @@ bool validate_schema_definition(PackageState* package, X3CallContext* context,
     error = "schema has no valid type";
     return false;
   }
+  static const std::unordered_set<std::string_view> schema_types{
+      "invalid", "any", "none", "bool", "int", "float", "decimal",
+      "str", "bytes", "date", "time", "datetime", "timedelta",
+      "literal", "missing-sentinel", "enum", "is-instance",
+      "is-subclass", "callable", "list", "tuple", "set", "frozenset",
+      "generator", "dict", "function-after", "function-before",
+      "function-wrap", "function-plain", "default", "nullable",
+      "union", "tagged-union", "chain", "lax-or-strict",
+      "json-or-python", "typed-dict", "model-fields", "model",
+      "model-field", "typed-dict-field", "dataclass-field",
+      "computed-field",
+      "dataclass-args", "dataclass", "arguments", "arguments-v3",
+      "call", "custom-error", "json", "url", "multi-host-url",
+      "definitions", "definition-ref", "uuid", "complex"};
+  if (schema_types.find(type) == schema_types.end()) {
+    error = "Unknown schema type: \"" + type + "\"";
+    return false;
+  }
   if (type == "definition-ref" && g_schema_used_definition_refs != nullptr) {
     X3Value schema_ref_value = x3_value_invalid();
     std::string schema_ref;
@@ -7825,6 +7889,72 @@ void append_timedelta_constraint_debug(PackageState* package,
   }
 }
 
+bool resolve_prebuilt_model_engine(
+    PackageState* package, X3CallContext* context, X3Runtime* runtime,
+    X3Value model_schema, const char* engine_type, X3Value* engine) {
+  *engine = x3_value_invalid();
+  X3Value klass = x3_value_invalid();
+  X3Value complete = x3_value_invalid();
+  bool ready = dict_item(package, runtime, model_schema, "cls", klass) &&
+      package->host->get_attr(runtime, klass, "__pydantic_complete__",
+                              &complete) == X3_STATUS_OK &&
+      complete.tag == X3_TAG_BOOL && complete.as.b != 0;
+  if (complete.tag != X3_TAG_INVALID)
+    package->host->value_release(complete);
+  package->host->clear_exception(context);
+  if (ready) {
+    const char* attribute = std::string_view(engine_type) == kValidatorType
+        ? "__pydantic_validator__" : "__pydantic_serializer__";
+    ready = package->host->get_attr(runtime, klass, attribute, engine) ==
+        X3_STATUS_OK;
+  }
+  if (klass.tag != X3_TAG_INVALID) package->host->value_release(klass);
+  package->host->clear_exception(context);
+  if (!ready) {
+    if (engine->tag != X3_TAG_INVALID) package->host->value_release(*engine);
+    *engine = x3_value_invalid();
+    return false;
+  }
+  if (std::string_view(engine_type) == kValidatorType &&
+      package->host->instance_get_native_data(*engine, engine_type) == nullptr) {
+    X3Value wrapped = x3_value_invalid();
+    if (package->host->get_attr(runtime, *engine,
+                                "__pydantic_schema_validator__", &wrapped) ==
+        X3_STATUS_OK) {
+      package->host->value_release(*engine);
+      *engine = wrapped;
+    }
+    package->host->clear_exception(context);
+  }
+  auto* state = static_cast<SchemaState*>(
+      package->host->instance_get_native_data(*engine, engine_type));
+  std::string type;
+  ready = engine->tag == X3_TAG_OBJECT &&
+      g_active_schema_engines.find(engine->as.obj) ==
+          g_active_schema_engines.end() &&
+      state != nullptr &&
+      schema_type_name(package, runtime, state->schema, type);
+  if (ready && std::string_view(engine_type) == kValidatorType) {
+    ready = type == "model" || type == "function-plain" ||
+        type == "function-before";
+  } else if (ready) {
+    X3Value serialization = x3_value_invalid();
+    std::string serialization_type;
+    if (dict_item(package, runtime, state->schema, "serialization",
+                  serialization))
+      (void)schema_type_name(package, runtime, serialization,
+                             serialization_type);
+    if (serialization.tag != X3_TAG_INVALID)
+      package->host->value_release(serialization);
+    ready = type == "model" && serialization_type != "function-wrap";
+  }
+  if (!ready) {
+    package->host->value_release(*engine);
+    *engine = x3_value_invalid();
+  }
+  return ready;
+}
+
 std::string schema_validator_debug(PackageState* package,
                                    X3CallContext* context,
                                    X3Runtime* runtime, X3Value schema,
@@ -7832,6 +7962,15 @@ std::string schema_validator_debug(PackageState* package,
   if (depth > 64) return "Recursive(RecursiveValidator{})";
   std::string type;
   if (!schema_type_name(package, runtime, schema, type)) return "Unknown(UnknownValidator{})";
+  if (type == "model" && depth > 0) {
+    X3Value prebuilt = x3_value_invalid();
+    if (resolve_prebuilt_model_engine(
+            package, context, runtime, schema, kValidatorType,
+            &prebuilt)) {
+      package->host->value_release(prebuilt);
+      return "Prebuilt(PrebuiltValidator{})";
+    }
+  }
   if (type == "json") {
     X3Value inner = x3_value_invalid();
     std::string inner_type;
@@ -8088,6 +8227,23 @@ X3Status schema_repr(X3CallContext* context, X3Runtime* runtime, void* user_data
     std::string type;
     if (!schema_type_name(package, runtime, state->schema, type)) type = "unknown";
     if (type == "model") {
+      X3Value root_serialization = x3_value_invalid();
+      std::string root_serialization_type;
+      if (dict_item(package, runtime, state->schema, "serialization",
+                    root_serialization))
+        (void)schema_type_name(package, runtime, root_serialization,
+                               root_serialization_type);
+      if (root_serialization.tag != X3_TAG_INVALID)
+        package->host->value_release(root_serialization);
+      if (root_serialization_type == "function-plain" ||
+          root_serialization_type == "function-wrap") {
+        const std::string text = root_serialization_type == "function-plain"
+            ? "SchemaSerializer(serializer=FunctionPlainSerializer{})"
+            : "SchemaSerializer(serializer=FunctionWrapSerializer{})";
+        *result = package->host->value_string_utf8(
+            runtime, text.data(), text.size());
+        return X3_STATUS_OK;
+      }
       std::string debug;
       auto append_model_debug = [&](auto&& self, X3Value candidate,
                                     unsigned depth) -> void {
@@ -8097,6 +8253,16 @@ X3Status schema_repr(X3CallContext* context, X3Runtime* runtime, void* user_data
                 package, runtime, candidate, candidate_type))
           return;
         if (candidate_type == "model") {
+          if (depth > 0) {
+            X3Value prebuilt = x3_value_invalid();
+            if (resolve_prebuilt_model_engine(
+                    package, context, runtime, candidate,
+                    kSerializerType, &prebuilt)) {
+              package->host->value_release(prebuilt);
+              debug += "PrebuiltSerializer,";
+              return;
+            }
+          }
           bool has_extra = false;
           bool root_model = false;
           std::string name = "Model";
@@ -11022,7 +11188,20 @@ X3Status validate_value(PackageState* package, X3CallContext* context, X3Runtime
       return package->host->raise_class_error(
           context, "RuntimeError", "cannot create validated generator");
     }
-    state.release();
+    auto* installed = state.release();
+    const std::array<X3Value, 7> native_references{
+        installed->iterator, installed->item_schema, installed->definitions,
+        installed->original_input, installed->environment.context,
+        installed->environment.data, installed->environment.config};
+    if (package->host->instance_set_native_gc_references == nullptr ||
+        package->host->instance_set_native_gc_references(
+            instance, native_references.data(),
+            static_cast<uint32_t>(native_references.size()),
+            clear_validator_iterator) != X3_STATUS_OK) {
+      package->host->value_release(instance);
+      return package->host->raise_class_error(
+          context, "RuntimeError", "cannot register validated generator GC references");
+    }
     *result = instance;
     return X3_STATUS_OK;
   }
@@ -11984,9 +12163,16 @@ X3Status validate_value(PackageState* package, X3CallContext* context, X3Runtime
     } else {
       X3Value function = x3_value_invalid(), answer = x3_value_invalid();
       X3Value arguments[] = {input, klass};
-      const auto status =
+      X3Value type_class = x3_value_invalid();
+      const bool input_is_class =
           package->host->builtin_value(
-              package->host, "issubclass", &function) == X3_STATUS_OK
+              package->host, "type", &type_class) == X3_STATUS_OK &&
+          is_instance_of_class(package, runtime, input, type_class);
+      if (type_class.tag != X3_TAG_INVALID)
+        package->host->value_release(type_class);
+      const auto status = !input_is_class ? X3_STATUS_OK
+          : package->host->builtin_value(
+                package->host, "issubclass", &function) == X3_STATUS_OK
           ? package->host->call(
                 runtime, function, arguments, 2, &answer)
           : X3_STATUS_ERROR;
@@ -12089,24 +12275,65 @@ X3Status validate_value(PackageState* package, X3CallContext* context, X3Runtime
         kind == X3_OBJECT_KIND_STRING) {
       X3Value encoding_value = x3_value_invalid();
       std::string encoding;
-      const bool base64 = environment != nullptr &&
+      if (environment != nullptr &&
           dict_find_string(package, runtime, environment->config,
-                           "val_json_bytes", encoding_value) &&
-          string_data(package, runtime, encoding_value, encoding) &&
-          encoding == "base64";
+                           "val_json_bytes", encoding_value))
+        (void)string_data(package, runtime, encoding_value, encoding);
       if (encoding_value.tag != X3_TAG_INVALID)
         package->host->value_release(encoding_value);
-      if (base64) {
+      if (encoding == "base64" || encoding == "hex") {
+        std::string source;
+        if (!string_data(package, runtime, input, source))
+          return X3_STATUS_ERROR;
+        const std::vector<std::string> empty;
+        const auto invalid_encoding = [&](const std::string& reason) {
+          return raise_validation_error(
+              package, context, runtime, "bytes_invalid_encoding",
+              ("Data should be valid " + encoding + ": " + reason).c_str(),
+              input, location == nullptr ? empty : *location);
+        };
+        if (encoding == "hex") {
+          if (source.size() % 2 != 0)
+            return invalid_encoding("Odd number of digits");
+          std::string decoded;
+          decoded.reserve(source.size() / 2);
+          for (size_t index = 0; index < source.size(); index += 2) {
+            const int high = ascii_hex_value(
+                static_cast<unsigned char>(source[index]));
+            const int low = ascii_hex_value(
+                static_cast<unsigned char>(source[index + 1]));
+            if (high < 0 || low < 0) {
+              const size_t bad = high < 0 ? index : index + 1;
+              return invalid_encoding(
+                  "Invalid character '" + source.substr(bad, 1) +
+                  "' at position " + std::to_string(bad));
+            }
+            decoded.push_back(static_cast<char>((high << 4) | low));
+          }
+          return finish_bytes(package->host->value_bytes(
+              runtime, decoded.data(), decoded.size()));
+        }
+        for (size_t index = 0; index < source.size(); ++index) {
+          const unsigned char byte =
+              static_cast<unsigned char>(source[index]);
+          if (!std::isalnum(byte) && byte != '-' && byte != '_' &&
+              byte != '+' && byte != '/' && byte != '=')
+            return invalid_encoding(
+                "Invalid symbol " + std::to_string(byte) + ", offset " +
+                std::to_string(index) + ".");
+        }
+        const size_t padding = (4 - source.size() % 4) % 4;
+        source.append(padding, '=');
+        X3Value padded = package->host->value_string_utf8(
+            runtime, source.data(), source.size());
         X3Value decoded = x3_value_invalid();
-        if (call_base64_function(package, runtime, "urlsafe_b64decode", input,
-                                 &decoded) == X3_STATUS_OK)
+        const auto decode_status = call_base64_function(
+            package, runtime, "urlsafe_b64decode", padded, &decoded);
+        package->host->value_release(padded);
+        if (decode_status == X3_STATUS_OK)
           return finish_bytes(decoded);
         package->host->clear_exception(context);
-        const std::vector<std::string> empty;
-        return raise_validation_error(
-            package, context, runtime, "bytes_invalid_encoding",
-            "Data should be valid base64: Invalid symbol", input,
-            location == nullptr ? empty : *location);
+        return invalid_encoding("Invalid padding");
       }
       X3Value encode = x3_value_invalid();
       X3Value encoded = x3_value_invalid();
@@ -15284,6 +15511,26 @@ X3Status validate_value(PackageState* package, X3CallContext* context, X3Runtime
       if (inner.tag != X3_TAG_INVALID) package->host->value_release(inner);
       return package->host->raise_class_error(context, "SchemaError", "model schema is incomplete");
     }
+    if (depth > 0) {
+      X3Value prebuilt = x3_value_invalid();
+      if (resolve_prebuilt_model_engine(
+              package, context, runtime, schema, kValidatorType,
+              &prebuilt)) {
+        X3Value validate = x3_value_invalid();
+        const bool ready = package->host->get_attr(
+            runtime, prebuilt, "validate_python", &validate) ==
+            X3_STATUS_OK;
+        const auto status = ready
+            ? package->host->call(runtime, validate, &input, 1, result)
+            : X3_STATUS_ERROR;
+        if (validate.tag != X3_TAG_INVALID)
+          package->host->value_release(validate);
+        package->host->value_release(prebuilt);
+        package->host->value_release(inner);
+        package->host->value_release(klass);
+        return status;
+      }
+    }
     auto model_set_attr = [&](X3Value instance, const char* name,
                               X3Value value) -> X3Status {
       X3Value object_class = x3_value_invalid();
@@ -17948,6 +18195,7 @@ X3Status validator_validate_common(X3CallContext* context, X3Runtime* runtime,
   if (!valid_argc(package, context, argc, 2, 2, "validate_python()")) return X3_STATUS_ERROR;
   auto* state = schema_state(package, context, args[0], kValidatorType);
   if (!state) return X3_STATUS_ERROR;
+  ActiveSchemaEngineScope engine_scope(args[0]);
   ValidationEnvironment environment;
   environment.config = state->config;
   environment.strings_mode = strings_mode;
@@ -18105,6 +18353,7 @@ X3Status validator_validate_json_common(
   if (!valid_argc(package, context, argc, 2, 2, "validate_json()")) return X3_STATUS_ERROR;
   auto* state = schema_state(package, context, args[0], kValidatorType);
   if (!state) return X3_STATUS_ERROR;
+  ActiveSchemaEngineScope engine_scope(args[0]);
   ValidationEnvironment environment;
   environment.config = state->config;
   environment.json_mode = true;
@@ -18293,6 +18542,7 @@ X3Status validator_validate_kw_common(
   }
   auto* state = schema_state(package, c, a[0], kValidatorType);
   if (!state) return X3_STATUS_ERROR;
+  ActiveSchemaEngineScope engine_scope(a[0]);
   environment.context = validation_context;
   environment.config = state->config;
   environment.strings_mode = strings_mode;
@@ -21645,6 +21895,7 @@ X3Status serialize_value(PackageState* package, X3CallContext* context,
         X3Value key = x3_value_invalid();
         X3Value value = x3_value_invalid();
         X3Value serialized = x3_value_invalid();
+        X3Value serialized_key = x3_value_invalid();
         X3Value output_key = x3_value_invalid();
         X3Value child_include = x3_value_none();
         X3Value child_exclude = x3_value_none();
@@ -21660,7 +21911,12 @@ X3Status serialize_value(PackageState* package, X3CallContext* context,
                               package, context, runtime, exclude, key, true,
                               &selected, &child_exclude) == X3_STATUS_OK);
         if (ok && selected)
-          ok = serialization_key_text(package, runtime, key, key_text) &&
+          ok = serialize_value(package, context, runtime, schema, key,
+                               &serialized_key, depth + 1, by_alias,
+                               exclude_none, true, exclude_unset,
+                               exclude_defaults, definitions, owner_instance) ==
+                   X3_STATUS_OK &&
+            serialization_key_text(package, runtime, serialized_key, key_text) &&
             (output_key = package->host->value_string_utf8(
                  runtime, key_text.data(), key_text.size()),
              output_key.tag != X3_TAG_INVALID) &&
@@ -21673,6 +21929,8 @@ X3Status serialize_value(PackageState* package, X3CallContext* context,
                                          serialized) == X3_STATUS_OK;
         if (output_key.tag != X3_TAG_INVALID)
           package->host->value_release(output_key);
+        if (serialized_key.tag != X3_TAG_INVALID)
+          package->host->value_release(serialized_key);
         if (serialized.tag != X3_TAG_INVALID)
           package->host->value_release(serialized);
         if (value.tag != X3_TAG_INVALID) package->host->value_release(value);
@@ -22391,6 +22649,37 @@ serialize_dataclass_field_fail:
       package->host->value_release(inner);
       return package->host->raise_class_error(
           context, "SchemaError", "model serializer is missing its class");
+    }
+    if (depth > 0) {
+      X3Value prebuilt = x3_value_invalid();
+      if (resolve_prebuilt_model_engine(
+              package, context, runtime, schema, kSerializerType,
+              &prebuilt)) {
+            X3Value to_python = x3_value_invalid();
+            const bool ready = package->host->get_attr(
+                runtime, prebuilt, "to_python", &to_python) == X3_STATUS_OK;
+            X3Value mode = package->host->value_string(
+                runtime, json_mode ? "json" : "python");
+            X3Value alias = x3_value_bool(by_alias);
+            X3Value no_none = x3_value_bool(exclude_none);
+            std::array<X3KeywordArg, 5> keywords{{
+                {"mode", mode}, {"by_alias", alias},
+                {"exclude_none", no_none}, {"include", include},
+                {"exclude", exclude}}};
+            const auto status = ready
+                ? package->host->call_kw(runtime, to_python, &input, 1,
+                                         keywords.data(),
+                                         static_cast<uint32_t>(keywords.size()),
+                                         result)
+                : X3_STATUS_ERROR;
+            package->host->value_release(mode);
+            if (to_python.tag != X3_TAG_INVALID)
+              package->host->value_release(to_python);
+            package->host->value_release(prebuilt);
+            package->host->value_release(model_class);
+            package->host->value_release(inner);
+            return status;
+      }
     }
     if (g_serialization_call_options != nullptr &&
         g_serialization_call_options->serialize_as_any &&
@@ -24515,6 +24804,39 @@ serialize_list_fail:
       package->host->value_release(replacement);
       return status;
     }
+    if (json_mode && g_serialization_unknown_as_string) {
+      X3Value str_function = x3_value_invalid();
+      if (package->host->builtin_value(package->host, "str",
+                                       &str_function) != X3_STATUS_OK)
+        return X3_STATUS_ERROR;
+      const auto status = package->host->call(
+          runtime, str_function, &input, 1, result);
+      package->host->value_release(str_function);
+      if (status == X3_STATUS_OK) return status;
+      package->host->clear_exception(context);
+      X3Value type_function = x3_value_invalid();
+      X3Value input_type = x3_value_invalid();
+      X3Value name = x3_value_invalid();
+      std::string class_name = "object";
+      if (package->host->builtin_value(package->host, "type",
+                                       &type_function) == X3_STATUS_OK &&
+          package->host->call(runtime, type_function, &input, 1,
+                              &input_type) == X3_STATUS_OK &&
+          package->host->get_attr(runtime, input_type, "__name__", &name) ==
+              X3_STATUS_OK)
+        (void)string_data(package, runtime, name, class_name);
+      if (name.tag != X3_TAG_INVALID) package->host->value_release(name);
+      if (input_type.tag != X3_TAG_INVALID)
+        package->host->value_release(input_type);
+      if (type_function.tag != X3_TAG_INVALID)
+        package->host->value_release(type_function);
+      package->host->clear_exception(context);
+      const std::string fallback =
+          "<Unserializable " + class_name + " object>";
+      *result = package->host->value_string_utf8(
+          runtime, fallback.data(), fallback.size());
+      return result->tag == X3_TAG_INVALID ? X3_STATUS_ERROR : X3_STATUS_OK;
+    }
     if (json_mode) {
       X3Value type_function = x3_value_invalid();
       X3Value input_type = x3_value_invalid();
@@ -24523,9 +24845,27 @@ serialize_list_fail:
               package->host, "type", &type_function) == X3_STATUS_OK &&
           package->host->call(
               runtime, type_function, &input, 1, &input_type) ==
-              X3_STATUS_OK)
-        (void)render_with_builtin(
-            package, runtime, "repr", input_type, type_text);
+              X3_STATUS_OK &&
+          !render_with_builtin(
+              package, runtime, "repr", input_type, type_text)) {
+        package->host->clear_exception(context);
+        X3Value metaclass = x3_value_invalid();
+        X3Value metaclass_name = x3_value_invalid();
+        std::string name = "type";
+        if (package->host->call(
+                runtime, type_function, &input_type, 1,
+                &metaclass) == X3_STATUS_OK &&
+            package->host->get_attr(
+                runtime, metaclass, "__name__", &metaclass_name) ==
+                X3_STATUS_OK)
+          (void)string_data(package, runtime, metaclass_name, name);
+        if (metaclass_name.tag != X3_TAG_INVALID)
+          package->host->value_release(metaclass_name);
+        if (metaclass.tag != X3_TAG_INVALID)
+          package->host->value_release(metaclass);
+        package->host->clear_exception(context);
+        type_text = "<unprintable " + name + " object>";
+      }
       if (input_type.tag != X3_TAG_INVALID)
         package->host->value_release(input_type);
       if (type_function.tag != X3_TAG_INVALID)
@@ -25074,6 +25414,7 @@ X3Status serializer_to_python(X3CallContext* context, X3Runtime* runtime, void* 
   if (!valid_argc(package, context, argc, 2, 2, "to_python()")) return X3_STATUS_ERROR;
   auto* state = schema_state(package, context, args[0], kSerializerType);
   if (!state) return X3_STATUS_ERROR;
+  ActiveSchemaEngineScope engine_scope(args[0]);
   SerializationDefinitionsScope definitions_scope(package);
   SerializationConfigScope config_scope(state->config);
   SerializationFallbackScope fallback_scope(x3_value_invalid());
@@ -25167,6 +25508,7 @@ X3Status serializer_to_python_kw(X3CallContext* c, X3Runtime* r, void* d,
   }
   auto* state = schema_state(package, c, a[0], kSerializerType);
   if (!state) return X3_STATUS_ERROR;
+  ActiveSchemaEngineScope engine_scope(a[0]);
   if (!has_by_alias)
     by_alias = serialize_by_alias_default(
         package, r, state->config, state->schema);
@@ -25268,6 +25610,7 @@ X3Status serializer_to_json(X3CallContext* context, X3Runtime* runtime, void* us
   if (!valid_argc(package, context, argc, 2, 2, "to_json()")) return X3_STATUS_ERROR;
   auto* state = schema_state(package, context, args[0], kSerializerType);
   if (!state) return X3_STATUS_ERROR;
+  ActiveSchemaEngineScope engine_scope(args[0]);
   SerializationDefinitionsScope definitions_scope(package);
   SerializationConfigScope config_scope(state->config);
   SerializationFallbackScope fallback_scope(x3_value_invalid());
@@ -25377,6 +25720,7 @@ X3Status serializer_to_json_kw(X3CallContext* c, X3Runtime* r, void* d,
   }
   auto* state = schema_state(package, c, a[0], kSerializerType);
   if (!state) return X3_STATUS_ERROR;
+  ActiveSchemaEngineScope engine_scope(a[0]);
   if (!has_by_alias)
     by_alias = serialize_by_alias_default(
         package, r, state->config, state->schema);
@@ -25439,11 +25783,97 @@ X3Status json_call(PackageState* package, X3Runtime* runtime, const char* name,
   return status;
 }
 
-X3Status from_json(X3CallContext* context, X3Runtime* runtime, void* user_data,
-                   const X3Value* args, uint32_t argc, X3Value* result) {
+X3Status from_json_impl(X3CallContext* context, X3Runtime* runtime,
+                        void* user_data, const X3Value* args, uint32_t argc,
+                        const X3KeywordArg* kwargs, uint32_t kwargc,
+                        X3Value* result) {
   auto* package = static_cast<PackageState*>(user_data);
   if (!valid_argc(package, context, argc, 1, 1, "from_json()")) return X3_STATUS_ERROR;
-  return json_call(package, runtime, "loads", args[0], result);
+  int allow_partial = 0;
+  for (uint32_t index = 0; index < kwargc; ++index) {
+    const std::string_view name(
+        kwargs[index].name == nullptr ? "" : kwargs[index].name);
+    if (name == "allow_partial") {
+      const X3Value value = kwargs[index].value;
+      if (value.tag == X3_TAG_BOOL)
+        allow_partial = value.as.b ? 1 : 0;
+      else {
+        std::string mode;
+        if (string_data(package, runtime, value, mode) &&
+            mode == "trailing-strings")
+          allow_partial = 2;
+      }
+    } else if (name != "allow_inf_nan" && name != "cache_strings") {
+      const std::string message =
+          "from_json() got an unexpected keyword argument '" +
+          std::string(name) + "'";
+      return package->host->raise_class_error(
+          context, "TypeError", message.c_str());
+    }
+  }
+  X3Value module = x3_value_invalid();
+  X3Value loads = x3_value_invalid();
+  const bool ready =
+      import_module(package, runtime, "json", &module) == X3_STATUS_OK &&
+      package->host->get_attr(runtime, module, "loads", &loads) ==
+          X3_STATUS_OK;
+  if (!ready) {
+    if (loads.tag != X3_TAG_INVALID) package->host->value_release(loads);
+    if (module.tag != X3_TAG_INVALID) package->host->value_release(module);
+    return X3_STATUS_ERROR;
+  }
+  const bool parsed = load_json_with_partial(
+      package, context, runtime, loads, args[0], allow_partial, result);
+  package->host->value_release(loads);
+  package->host->value_release(module);
+  if (parsed) return X3_STATUS_OK;
+
+  X3Value exception = x3_value_invalid();
+  if (package->host->take_exception(context, &exception) != X3_STATUS_OK ||
+      exception.tag == X3_TAG_INVALID)
+    return X3_STATUS_ERROR;
+  std::string detail;
+  (void)render_with_builtin(package, runtime, "str", exception, detail);
+  if (detail.rfind("Unterminated string starting at:", 0) == 0) {
+    std::string source;
+    bool has_source = string_data(package, runtime, args[0], source);
+    if (!has_source) {
+      const void* bytes = nullptr;
+      uint64_t size = 0;
+      if (package->host->value_bytes_data(
+              runtime, args[0], &bytes, &size) == X3_STATUS_OK) {
+        source.assign(static_cast<const char*>(bytes),
+                      static_cast<size_t>(size));
+        has_source = true;
+      }
+    }
+    if (has_source) {
+      size_t line = 1;
+      size_t column = 0;
+      for (unsigned char byte : source) {
+        if (byte == '\n') {
+          ++line;
+          column = 0;
+        } else if ((byte & 0xc0) != 0x80) {
+          ++column;
+        }
+      }
+      package->host->value_release(exception);
+      detail = "EOF while parsing a string at line " +
+          std::to_string(line) + " column " + std::to_string(column);
+      return package->host->raise_class_error(
+          context, "ValueError", detail.c_str());
+    }
+  }
+  (void)package->host->raise_exception(context, exception);
+  package->host->value_release(exception);
+  return X3_STATUS_ERROR;
+}
+
+X3Status from_json(X3CallContext* context, X3Runtime* runtime, void* user_data,
+                   const X3Value* args, uint32_t argc, X3Value* result) {
+  return from_json_impl(
+      context, runtime, user_data, args, argc, nullptr, 0, result);
 }
 
 X3Status list_all_errors(X3CallContext* context, X3Runtime* runtime,
@@ -25461,24 +25891,84 @@ X3Status list_all_errors(X3CallContext* context, X3Runtime* runtime,
 }
 
 X3Status from_json_kw(X3CallContext* c, X3Runtime* r, void* d, const X3Value* a,
-                      uint32_t n, const X3KeywordArg*, uint32_t, X3Value* out) {
-  return from_json(c, r, d, a, n, out);
+                      uint32_t n, const X3KeywordArg* kwargs,
+                      uint32_t kwargc, X3Value* out) {
+  return from_json_impl(c, r, d, a, n, kwargs, kwargc, out);
 }
 
-X3Status to_json_impl(X3CallContext* context, X3Runtime* runtime,
+X3Status top_level_json_impl(X3CallContext* context, X3Runtime* runtime,
                       void* user_data, const X3Value* args, uint32_t argc,
                       const X3KeywordArg* kwargs, uint32_t kwargc,
-                      X3Value* result) {
+                      X3Value* result, bool bytes_output) {
   auto* package = static_cast<PackageState*>(user_data);
-  if (!valid_argc(package, context, argc, 1, 1, "to_json()")) return X3_STATUS_ERROR;
+  const char* function_name =
+      bytes_output ? "to_json()" : "to_jsonable_python()";
+  if (argc > 1) {
+    const std::string message = std::string(function_name) +
+        " takes 1 positional arguments but " + std::to_string(argc) +
+        " were given";
+    return package->host->raise_class_error(
+        context, "TypeError", message.c_str());
+  }
+  if (!valid_argc(package, context, argc, 1, 1, function_name))
+    return X3_STATUS_ERROR;
   X3Value config = package->host->value_dict(runtime);
   X3Value fallback = x3_value_invalid();
+  X3Value include = x3_value_none();
+  X3Value exclude = x3_value_none();
+  bool by_alias = true;
+  bool exclude_none = false;
+  bool ensure_ascii = false;
+  bool serialize_unknown = false;
+  SerializationCallOptions call_options;
   int indent = -1;
   for (uint32_t index = 0; index < kwargc; ++index) {
     const std::string_view name(
         kwargs[index].name == nullptr ? "" : kwargs[index].name);
     if (name == "fallback") {
       fallback = kwargs[index].value;
+      continue;
+    }
+    if (name == "include") {
+      include = kwargs[index].value;
+      call_options.include = include;
+      call_options.has_include = true;
+      continue;
+    }
+    if (name == "exclude") {
+      exclude = kwargs[index].value;
+      call_options.exclude = exclude;
+      call_options.has_exclude = true;
+      continue;
+    }
+    if (name == "by_alias" && kwargs[index].value.tag == X3_TAG_BOOL) {
+      by_alias = kwargs[index].value.as.b != 0;
+      call_options.by_alias = kwargs[index].value;
+      continue;
+    }
+    if (name == "exclude_none" && kwargs[index].value.tag == X3_TAG_BOOL) {
+      exclude_none = kwargs[index].value.as.b != 0;
+      continue;
+    }
+    if (name == "round_trip" && kwargs[index].value.tag == X3_TAG_BOOL) {
+      call_options.round_trip = kwargs[index].value.as.b != 0;
+      continue;
+    }
+    if (name == "serialize_as_any" && kwargs[index].value.tag == X3_TAG_BOOL) {
+      call_options.serialize_as_any = kwargs[index].value.as.b != 0;
+      continue;
+    }
+    if (name == "serialize_unknown" && kwargs[index].value.tag == X3_TAG_BOOL) {
+      serialize_unknown = kwargs[index].value.as.b != 0;
+      continue;
+    }
+    if (name == "ensure_ascii" && kwargs[index].value.tag == X3_TAG_BOOL) {
+      ensure_ascii = kwargs[index].value.as.b != 0;
+      continue;
+    }
+    if (name == "context") {
+      call_options.context = kwargs[index].value;
+      call_options.has_context = true;
       continue;
     }
     if (name == "indent") {
@@ -25492,7 +25982,9 @@ X3Status to_json_impl(X3CallContext* context, X3Runtime* runtime,
     }
     const char* config_name = name == "bytes_mode"
         ? "ser_json_bytes"
-        : name == "timedelta_mode" ? "ser_json_timedelta" : nullptr;
+        : name == "timedelta_mode" ? "ser_json_timedelta"
+        : name == "temporal_mode" ? "ser_json_temporal"
+        : name == "inf_nan_mode" ? "ser_json_inf_nan" : nullptr;
     if (config_name == nullptr) continue;
     X3Value key = package->host->value_string(runtime, config_name);
     if (package->host->dict_set_item(
@@ -25522,15 +26014,22 @@ X3Status to_json_impl(X3CallContext* context, X3Runtime* runtime,
     SerializationConfigScope config_scope(config);
     SerializationFallbackScope fallback_scope(fallback);
     SerializationJsonOutputScope json_output_scope(true);
+    SerializationUnknownScope unknown_scope(serialize_unknown);
+    SerializationCallOptionsScope call_options_scope(call_options);
     status = serialize_value(
-        package, context, runtime, schema, args[0], &serialized, 0, false,
-        false, true, false, false);
+        package, context, runtime, schema, args[0], &serialized, 0, by_alias,
+        exclude_none, true, false, false, x3_value_invalid(),
+        x3_value_invalid(), include, exclude);
   }
   package->host->value_release(schema);
   package->host->value_release(config);
   if (status != X3_STATUS_OK) return status;
+  if (!bytes_output) {
+    *result = serialized;
+    return X3_STATUS_OK;
+  }
   std::string utf8;
-  if (!encode_json_value(package, runtime, serialized, utf8, 0, false,
+  if (!encode_json_value(package, runtime, serialized, utf8, 0, ensure_ascii,
                          indent)) {
     package->host->value_release(serialized);
     return package->host->raise_error(
@@ -25544,30 +26043,26 @@ X3Status to_json_impl(X3CallContext* context, X3Runtime* runtime,
 
 X3Status to_json(X3CallContext* context, X3Runtime* runtime, void* user_data,
                  const X3Value* args, uint32_t argc, X3Value* result) {
-  return to_json_impl(
-      context, runtime, user_data, args, argc, nullptr, 0, result);
+  return top_level_json_impl(
+      context, runtime, user_data, args, argc, nullptr, 0, result, true);
 }
 
 X3Status to_json_kw(X3CallContext* c, X3Runtime* r, void* d, const X3Value* a,
                     uint32_t n, const X3KeywordArg* kwargs, uint32_t kwargc,
                     X3Value* out) {
-  return to_json_impl(c, r, d, a, n, kwargs, kwargc, out);
+  return top_level_json_impl(c, r, d, a, n, kwargs, kwargc, out, true);
 }
 
 X3Status to_jsonable(X3CallContext* context, X3Runtime* runtime, void* user_data,
                      const X3Value* args, uint32_t argc, X3Value* result) {
-  auto* package = static_cast<PackageState*>(user_data);
-  if (!valid_argc(package, context, argc, 1, 1, "to_jsonable_python()")) return X3_STATUS_ERROR;
-  X3Value text = x3_value_invalid();
-  if (json_call(package, runtime, "dumps", args[0], &text) != X3_STATUS_OK) return X3_STATUS_ERROR;
-  const auto status = json_call(package, runtime, "loads", text, result);
-  package->host->value_release(text);
-  return status;
+  return top_level_json_impl(
+      context, runtime, user_data, args, argc, nullptr, 0, result, false);
 }
 
 X3Status to_jsonable_kw(X3CallContext* c, X3Runtime* r, void* d, const X3Value* a,
-                        uint32_t n, const X3KeywordArg*, uint32_t, X3Value* out) {
-  return to_jsonable(c, r, d, a, n, out);
+                        uint32_t n, const X3KeywordArg* kwargs,
+                        uint32_t kwargc, X3Value* out) {
+  return top_level_json_impl(c, r, d, a, n, kwargs, kwargc, out, false);
 }
 
 X3Status raise_deferred_render_error(PackageState* package,

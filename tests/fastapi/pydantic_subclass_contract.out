@@ -1,0 +1,3 @@
+rejected is_subclass_of
+rejected is_subclass_of
+http 422 {'error': 'is_subclass_of'}

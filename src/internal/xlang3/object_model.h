@@ -20,6 +20,7 @@ limitations under the License.
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <unordered_set>
 
 namespace xlang3 {
 
@@ -229,6 +230,7 @@ bool instance_set_native_owner(Value instance, std::string native_type, void* na
     void* owner, void (*cleanup)(void*), std::string& error);
 bool instance_set_native_gc_references(Value instance, const Value* references,
     uint32_t reference_count, void (*clear)(void*), std::string& error);
+const std::unordered_set<Object*>& native_gc_instance_registry();
 void* instance_get_native_data(const Value& instance, const std::string& native_type);
 bool instance_set_native_truthy(Value instance, bool (*truthy)(const void*), std::string& error);
 bool instance_native_truthy(const Value& instance, bool& out);

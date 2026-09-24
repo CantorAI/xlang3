@@ -268,6 +268,31 @@ bool builtin_iter(
     runtime.raise_class_error("TypeError", error);
     return false;
   }
+  if (value_as_instance(args[0]) != nullptr ||
+      value_as_class(args[0]) != nullptr) {
+    Value iter_method;
+    std::string method_error;
+    if (object_get_special_method(runtime, args[0], "__iter__",
+                                  iter_method, method_error)) {
+      Value iterator;
+      if (!runtime_call_callable(
+              runtime, iter_method, nullptr, 0, iterator, error))
+        return false;
+      Value next_method;
+      std::string next_error;
+      Value native_iterator;
+      std::string native_error;
+      if (!sequence_get_iter(iterator, native_iterator, native_error) &&
+          !object_get_special_method(runtime, iterator, "__next__",
+                                     next_method, next_error)) {
+        error = "iter() returned non-iterator";
+        runtime.raise_class_error("TypeError", error);
+        return false;
+      }
+      value_assign_fast(out, iterator);
+      return true;
+    }
+  }
   if (!runtime_get_iter(runtime, args[0], out, error)) {
     if (error == "object is not iterable") {
       error = "'" + std::string(value_binary_type_name(args[0])) + "' object is not iterable";

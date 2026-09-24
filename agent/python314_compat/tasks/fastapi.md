@@ -1023,3 +1023,69 @@ remain open.
 The full Release build, **53/53** CTest checks (including the fixture gate),
 and expanded FastAPI gate (including all new CPython-oracle requests and live
 Uvicorn HTTP/HTTPS) pass on this checkpoint.
+
+2026-09-23 JSON continuation (uncommitted on `fastapi-compatibility`):
+`to_jsonable_python` now uses the native schema serializer instead of
+delegating to Python `json.dumps`, so sets, bytes, exclusions, unknown-object
+fallbacks, and inferred Pydantic serializers use the same general path as
+`to_json`. Top-level JSON functions now honor `ensure_ascii`,
+`serialize_unknown`, and the public serialization selectors; dictionary keys
+also pass through the serializer before becoming JSON keys. Native bytes
+validation handles unpadded base64 and hex input with matching invalid-symbol
+and invalid-character errors. A CPython 3.14 oracle covers these behaviors
+and a real FastAPI request. The complete untouched upstream `test_json.py`
+file improved from **36 passed, 14 failed** to **50 passed, 0 failed**.
+Correcting `repr(SomeClass)` to dispatch through a custom metaclass is a
+general runtime fix; the native JSON functions now also handle failing
+representations and partial JSON parsing. The full pydantic-core matrix,
+run before those last two fixes, reached **1,268 passed, 10 skipped,
+1 xfailed, 5 failed** before `--maxfail=5`: deep definition recursion,
+validator-iterator GC, the two then-open JSON cases, and prebuilt validator
+use. Nested prebuilt validator and serializer selection is now shared across
+execution and debug output, with an active-engine guard to avoid recursive
+self-selection. The untouched upstream `test_prebuilt.py` file reports
+**9 passed**, and a CPython 3.14 oracle plus FastAPI request covers the
+nested-model boundary. The full Release build, **53/53** CTest checks, and
+expanded FastAPI gate including both new request oracles and live Uvicorn
+HTTP/HTTPS pass. The complete pydantic-core matrix has not yet been rerun
+after all these changes. The full seven-project matrix, full FastAPI
+compatibility, production load/soak, and final demo verification remain open.
+
+2026-09-23 schema continuation (uncommitted on `fastapi-compatibility`):
+The complete pydantic-core matrix now reaches **1,399 passed, 10 skipped,
+1 xfailed, 5 failed** before `--maxfail=5`; the five are deep definition
+recursion, validator-iterator GC, `is-subclass` on non-class input, unknown
+schema type acceptance, and `PydanticKnownError` string formatting. The last
+three were fixed after that run. Non-class input now produces a
+`is_subclass_of` validation error, while actual classes still use runtime
+`issubclass`; untouched `test_schema_functions.py` reports **80 passed**.
+Schema construction checks the pinned core schema and field-type vocabulary
+and raises `SchemaError` for unknown types. General `KeyError.__str__`
+uses its argument's representation as on CPython. Untouched `test_typing.py`
+reports **10 passed**. CPython 3.14 oracles and public FastAPI requests cover
+both fixes. The full matrix and local gates have not yet been rerun after
+these last changes; the full seven-project matrix, production load/soak,
+demo verification, and full FastAPI compatibility remain open.
+
+2026-09-23 generator GC continuation (uncommitted on
+`fastapi-compatibility`): the next complete untouched pydantic-core matrix
+reached **1,408 passed, 10 skipped, 1 xfailed, 5 failed** before
+`--maxfail=5`. The remaining failures at that point were deep definition
+recursion, validator-iterator GC, and three timezone/context-manager cases.
+The native validator iterator now registers all owned values as GC edges,
+including its live field-data dictionary. General runtime cycle collection
+now follows those native edges through dictionaries and clears only isolated
+components. VM liveness analysis also releases container literals created
+inside a loop after their last use; otherwise the final input dictionary
+remained rooted after `del` of the local value. The unchanged upstream
+`test_gc_validator_iterator` function passes when invoked directly, and a
+new CPython 3.14 oracle verifies iterator identity and zero retained inputs
+after 1,000 model validations. The pytest wrapper prints the test as passed
+but currently exits with a separate traceback-rendering failure during its
+own teardown. A Release CTest fixture rerun passes after adjusting built-in
+`iter` to recognize both native iterators and Python `__next__` methods.
+The full Release build, **53/53** CTest checks, and expanded FastAPI gate
+including the generator GC oracle and live Uvicorn HTTP/HTTPS pass. A fresh
+non-benchmark pydantic-core matrix is running; the complete seven-project
+matrix, production load/soak, final demo verification, and full FastAPI
+compatibility remain open.

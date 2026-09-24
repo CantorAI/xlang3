@@ -1,0 +1,7 @@
+basic [1, 'x'] b'["\\u00e0"]'
+fallback ok
+repr ok
+keys ok
+bytes ok
+partial ok
+http 200 {'set': [1, 2], 'bytes': ['x'], 'fallback': 'fallback:Unknown', 'key': {'fallback:Unknown': 1}, 'hex': 'hello', 'repr': '<Unserializable BrokenRepr object>', 'partial': ['aa', 'bb']}

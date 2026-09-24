@@ -1,0 +1,3 @@
+schema Unknown schema type: "bad"
+key "Invalid error type: 'foobar'"
+http 422 {'error': 'Unknown schema type: "bad"'}

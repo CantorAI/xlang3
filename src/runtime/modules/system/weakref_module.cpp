@@ -1199,6 +1199,67 @@ uint64_t collect_isolated_function_component(FunctionObject* function) {
   return collected;
 }
 
+uint64_t collect_isolated_native_instance_component(InstanceObject* instance) {
+  constexpr size_t kMaximumCandidateObjects = 4096;
+  auto* root = &instance->header;
+  if (instance->native_data_clear == nullptr ||
+      instance->native_gc_references.empty()) return 0;
+
+  std::vector<Object*> nodes{root};
+  std::unordered_map<Object*, size_t> indices{{root, 0}};
+  std::vector<std::vector<size_t>> adjacency;
+  for (size_t index = 0; index < nodes.size(); ++index) {
+    if (nodes.size() > kMaximumCandidateObjects) return 0;
+    adjacency.emplace_back();
+    visit_strong_object_edges(nodes[index], root, [&](Object* target) {
+      // Class-owned cycles are collected from their class root separately.
+      if (target->kind == ObjectKind::Class && target != root) return;
+      auto [position, inserted] = indices.emplace(target, nodes.size());
+      if (inserted) nodes.push_back(target);
+      adjacency[index].push_back(position->second);
+    });
+  }
+  std::vector<std::vector<size_t>> reverse(nodes.size());
+  for (size_t source = 0; source < adjacency.size(); ++source)
+    for (size_t target : adjacency[source]) reverse[target].push_back(source);
+  std::vector<bool> reaches_root(nodes.size(), false);
+  std::vector<size_t> pending{0};
+  reaches_root[0] = true;
+  for (size_t index = 0; index < pending.size(); ++index) {
+    for (size_t predecessor : reverse[pending[index]]) {
+      if (!reaches_root[predecessor]) {
+        reaches_root[predecessor] = true;
+        pending.push_back(predecessor);
+      }
+    }
+  }
+  if (pending.size() <= 1) return 0;
+  std::vector<uint64_t> internal_references(nodes.size(), 0);
+  for (size_t source = 0; source < adjacency.size(); ++source) {
+    if (!reaches_root[source]) continue;
+    for (size_t target : adjacency[source])
+      if (reaches_root[target]) ++internal_references[target];
+  }
+  for (size_t index = 0; index < nodes.size(); ++index) {
+    if (reaches_root[index] &&
+        nodes[index]->refcnt.load(std::memory_order_relaxed) !=
+            internal_references[index]) return 0;
+  }
+  Value borrowed;
+  borrowed.tag = ValueTag::Object;
+  borrowed.flags = kXlangValueBorrowedRefFlag;
+  borrowed.as.obj = root;
+  Value keep_alive;
+  value_assign_fast(keep_alive, borrowed);
+  auto clear = instance->native_data_clear;
+  instance->native_data_clear = nullptr;
+  clear(instance->native_owner);
+  instance->native_gc_references.clear();
+  const uint64_t collected = static_cast<uint64_t>(pending.size());
+  value_set_invalid(keep_alive);
+  return collected;
+}
+
 uint64_t weakref_collect_cycles() {
   std::vector<ClassObject*> candidates;
   std::unordered_set<ClassObject*> seen;
@@ -1276,6 +1337,14 @@ uint64_t weakref_collect_cycles() {
         weakref_registry().begin(), weakref_registry().end(),
         [&](const WeakrefEntry& entry) { return entry.target == candidate_object; });
     if (still_registered) collected += collect_isolated_function_component(function);
+  }
+  std::vector<Object*> native_candidates(
+      native_gc_instance_registry().begin(), native_gc_instance_registry().end());
+  for (auto* candidate : native_candidates) {
+    if (native_gc_instance_registry().find(candidate) ==
+        native_gc_instance_registry().end()) continue;
+    collected += collect_isolated_native_instance_component(
+        reinterpret_cast<InstanceObject*>(candidate));
   }
   std::vector<FileObject*> file_candidates;
   std::unordered_set<FileObject*> file_candidate_set;

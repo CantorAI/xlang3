@@ -595,12 +595,10 @@ private:
           instr.dst >= i) {
         continue;
       }
-      // Compiler temporaries produced by calls inside a loop are overwritten
-      // on every iteration. They are not loop-carried roots merely because
-      // the same virtual register is read again in the loop body. Keeping
-      // them for the frame lifetime can retain weakref results across an
-      // explicit gc.collect().
-      std::vector<bool> call_result_defined_in_loop(fn->register_count, false);
+      // Call results and container literals produced inside a loop are
+      // overwritten on every iteration, so their registers are not roots
+      // carried into the next iteration.
+      std::vector<bool> temporary_defined_in_loop(fn->register_count, false);
       for (size_t loop_ip = instr.dst; loop_ip <= i; ++loop_ip) {
         const auto& loop_instr = fn->code[loop_ip];
         switch (loop_instr.op) {
@@ -611,8 +609,12 @@ private:
           case ir::Op::CallLocalMethod:
           case ir::Op::CallModuleMethod:
           case ir::Op::CallGlobal:
-            if (loop_instr.dst < call_result_defined_in_loop.size())
-              call_result_defined_in_loop[loop_instr.dst] = true;
+          case ir::Op::MakeDict:
+          case ir::Op::MakeList:
+          case ir::Op::MakeSet:
+          case ir::Op::MakeTuple:
+            if (loop_instr.dst < temporary_defined_in_loop.size())
+              temporary_defined_in_loop[loop_instr.dst] = true;
             break;
           default:
             break;
@@ -621,7 +623,7 @@ private:
       for (size_t loop_ip = instr.dst; loop_ip <= i; ++loop_ip) {
         for_each_register_read(fn->code[loop_ip], [&](uint32_t reg) {
           if (reg < computed->register_last_use.size() &&
-              !call_result_defined_in_loop[reg]) {
+              !temporary_defined_in_loop[reg]) {
             computed->register_loop_carried[reg] = true;
             computed->register_last_use[reg] = std::numeric_limits<size_t>::max();
           }

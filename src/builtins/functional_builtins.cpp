@@ -3559,6 +3559,22 @@ bool builtin_repr(
         "mappingproxy(" + string_object_to_string(*source_text) + ")");
     return true;
   }
+  if (value_as_class(args[0]) != nullptr) {
+    Value repr_method;
+    std::string attr_error;
+    if (object_get_special_method(
+            runtime, args[0], "__repr__", repr_method, attr_error)) {
+      Value result;
+      if (!runtime_call_callable(
+              runtime, repr_method, nullptr, 0, result, error))
+        return false;
+      if (value_as_string(result) == nullptr)
+        return raise_type_error(
+            runtime, "__repr__ returned non-string", error);
+      out = std::move(result);
+      return true;
+    }
+  }
   if (value_as_instance(args[0]) != nullptr) {
     Value repr_method;
     std::string attr_error;
