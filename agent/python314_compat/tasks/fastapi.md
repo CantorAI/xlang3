@@ -1085,7 +1085,11 @@ but currently exits with a separate traceback-rendering failure during its
 own teardown. A Release CTest fixture rerun passes after adjusting built-in
 `iter` to recognize both native iterators and Python `__next__` methods.
 The full Release build, **53/53** CTest checks, and expanded FastAPI gate
-including the generator GC oracle and live Uvicorn HTTP/HTTPS pass. A fresh
-non-benchmark pydantic-core matrix is running; the complete seven-project
-matrix, production load/soak, final demo verification, and full FastAPI
-compatibility remain open.
+including the generator GC oracle and live Uvicorn HTTP/HTTPS pass. The
+fresh non-benchmark, untouched pydantic-core matrix reports **1,252 passed,
+10 skipped, 1 xfailed, 5 failed** before `--maxfail=5`; the five are four
+timezone cases and `validate_strings` string-to-bool handling. A separate
+matrix attempt including benchmarks stopped on the known deep-definition
+recursion failure and four pytest 10 fixture-deprecation setup errors.
+The complete seven-project matrix, production load/soak, final demo
+verification, and full FastAPI compatibility remain open.
