@@ -1129,3 +1129,293 @@ runner already filters that exact deprecation warning. A larger diagnostic
 matrix with that filter stopped on a timeout in Python 3.14's `weakref.py`
 during a later test, without establishing a new compatibility result. Full AST
 round-trip and the other project suites remain open.
+
+2026-09-23 AST and lazy-module continuation on `fastapi-compatibility`
+(uncommitted): the unchanged FastAPI 0.141.1 suite collected **3,335 tests
+with 10 collection skips** and passed through its first 4% without a failure.
+That serial diagnostic run was interrupted to rebuild the runtime; it is not
+a full-suite pass. Parser-backed `_ast` now preserves `Import`, `ImportFrom`,
+`Dict`, and `Set`, and `compile(ast.Module(...))` lowers them to general
+XLang3 statements/expressions. The parser-backed AST conversion rejects
+unsupported call arguments instead of emitting invalid child nodes.
+CPython 3.14 oracle fixtures cover import aliases, relative import levels,
+dictionary unpacking, set literals, and execution from an AST. Pytest's
+unchanged assertion rewriter now gets past imports and dictionaries; its next
+unsupported node is `Raise`, so rewrite support is still incomplete.
+
+The fuller AST exposed AnyIO's ordinary lazy-import path. XLang3's fused
+module-method call had bypassed module `__getattr__` when the attribute was
+not stored yet, causing unchanged Starlette `TestClient.__enter__` to fail on
+`anyio.create_memory_object_stream`. The fused path now resolves the
+module's `__getattr__` and invokes the returned callable. A CPython-oracle
+module fixture and a public FastAPI TestClient route both pass. The Release
+build, all registered fixtures, **53/53** CTest checks on final rerun, and
+the full local FastAPI gate including live Uvicorn HTTP/HTTPS pass. An
+earlier CTest run had the previously observed intermittent large-response
+network failure; it passed in isolation and in the full rerun. The seven-
+project untouched matrix, complete pytest assertion rewriting, full Trio
+CFFI calls, load/soak, and final demo verification remain open.
+
+2026-09-23 further upstream AST audit (uncommitted): parser-backed `_ast`
+and `compile(ast.Module(...))` now also handle `Raise` with and without a
+cause. A CPython 3.14 oracle fixture passes. A minimal untouched pytest
+assertion-rewrite probe now produces a rewritten assertion failure rather
+than an AST conversion error; this does **not** establish full rewrite
+compatibility for upstream pydantic-core tests. The untouched FastAPI
+WebSocket and streaming/cancellation selection passes **25/25** with the
+matrix runner's existing AnyIO deprecation-warning filter. The full
+3,335-test FastAPI suite remains unfinished. HTTPX suite collection stops
+because its test dependency `trustme` imports `cryptography`, whose CPython
+binary extension cannot be loaded by XLang3. Uvicorn collects 1,324 tests
+but stops on one collection error: `test_server.py` imports the unavailable
+native `httptools` HTTP parser. Both require genuine native dependency
+support or a justified upstream test configuration, not a FastAPI-specific
+shim. The registered CPython-oracle fixture runner passes after the `Raise`
+change. The final CTest rerun passes **53/53**, and the full local FastAPI
+gate passes, including live Uvicorn HTTP/HTTPS. The full upstream suites,
+native HTTPX/Uvicorn test dependencies, load/soak, and final production
+demo validation remain open.
+
+2026-09-23 Uvicorn continuation (uncommitted): a diagnostic run of the
+untouched Uvicorn suite excluding only `test_server.py` exposed a real
+circular-import diagnostic mismatch. Source-backed modules now set and
+clear `__spec__._initializing` around execution, and failed `from` imports
+from an initializing module report the CPython 3.14 circular-import message.
+The unchanged Uvicorn `test_circular_import_error`, a CPython-oracle
+fixture, and a public FastAPI TestClient route pass. The next diagnostic
+failure came from `truststore`'s `str | bytes | typing.Callable[...]`
+annotation. Native union operands now retain arbitrary members as Python
+3.14 does; the unchanged Uvicorn logging test, a CPython-oracle fixture,
+and a public FastAPI route importing `truststore` pass.
+
+The next Uvicorn failure was h11's `int(chunk_size, base=16)` while parsing
+a chunked response. XLang3's inline `int` constructor now accepts the
+`base` keyword and checks explicit-base operands before its numeric fast
+paths. The unchanged Uvicorn `test_unknown_status_code`, a CPython-oracle
+fixture, and a public FastAPI route pass. The broader diagnostic advanced
+past these failures to roughly 21% before a 60-second timeout in an
+`a2wsgi` WSGI request-body read; that boundary remains under audit. The
+Release build and all registered fixtures pass. A concurrent CTest run
+timed out only in the Visual Studio debugpy smoke test; an isolated rerun
+and a sequential full rerun both pass **53/53**. The final FastAPI gate
+rerun after the `int` fix passes, including live Uvicorn HTTP/HTTPS.
+
+WSGI follow-up: the unchanged Uvicorn
+`test_wsgi_put_more_body[WSGIMiddleware]` times out at both 20 and 180
+seconds on XLang3, while the same test passes on CPython 3.14 in **0.29
+seconds**. The test streams 1 MiB in 1,024 chunks through `a2wsgi`'s
+worker-thread `asyncio.run_coroutine_threadsafe(...).result()` path.
+Thread stacks vary between the worker's future wait and the event loop's
+callback/weakref iteration, so a deadlock is not established. A standalone
+32-iteration coroutine handoff takes **2.031 s** on XLang3 versus **0.032
+s** on CPython; 128 iterations take **12.127 s** on XLang3. This points to
+severe growing per-handoff overhead in general asyncio/thread scheduling.
+No timing gate or workaround has been added; this is an open runtime
+performance/concurrency investigation.
+
+2026-09-23 native IOCP continuation (uncommitted): the event-loop
+slowdown came from XLang3's `_overlapped.GetQueuedCompletionStatus`
+returning immediately on an empty queue regardless of its timeout.
+Python 3.14's Windows Proactor loop then spun and competed with worker
+threads. The native boundary now waits for queued completion or timeout,
+polling native socket/registered-handle operations as needed while
+releasing the runtime execution lock. The unchanged Uvicorn streamed-WSGI
+test passes in **8.37 s** under its normal 60-second timeout. A CPython
+3.14 oracle verifies timeout and cross-thread completion, and a public
+FastAPI route verifies 128 event-loop/worker handoffs. An earlier 32-
+handoff diagnostic fell to **0.163 s** after the fix. The broader untouched
+Uvicorn diagnostic advanced to **375 passed, 278 skipped** before finding
+a separate `_socket.AF_IPX` omission. XLang3 now exports the platform's
+native `AF_IPX` constant; the unchanged Uvicorn socket-utility file passes
+**6/6**, as do its CPython-oracle fixture and public FastAPI route. The
+full Uvicorn suite still cannot collect `test_server.py` until true native
+`httptools` support is present. Final Release build passed; fixture,
+CTest, and complete FastAPI gate reruns on this final code pass, including
+live Uvicorn HTTP/HTTPS. The full untouched upstream matrix, genuine native
+`httptools` and `cryptography` dependencies, production load/soak, and final
+demo verification remain open.
+
+2026-09-23 WebSocket continuation (uncommitted): the untouched Uvicorn
+WebSocket suite exposed missing `bytearray * int` support in the pure-Python
+websockets masker. General `bytearray` repetition now matches a CPython 3.14
+oracle, a public FastAPI WebSocket route, and the exact upstream text-frame
+case. A later 16 MiB frame timed out in XLang3's quadratic `int.from_bytes`
+and `int.to_bytes` bigint conversion loops. Direct 32-bit-limb packing and
+extraction now pass a 1 MiB CPython-oracle round trip, a 1 MiB public FastAPI
+WebSocket frame, and the exact untouched 16 MiB Uvicorn case in **3.82 s**.
+The current WebSocket run reached **49 passed, 237 skipped** before an
+upstream test referenced `_WSProtocol` without importing it. CPython 3.14
+produced the identical failure in that incomplete test environment. The
+checkout pins pure-Python `wsproto==1.3.2`; it is now in the reproducible test
+requirements and installed locally. With wsproto enabled, collection exposes
+a new XLang3 `NameError: b` in wsproto's nested comprehension
+`[bytes(a ^ b for a in range(256)) for b in range(256)]`. This is an open
+general comprehension-scope defect. The final full fixture, CTest, and
+FastAPI gates have not yet been rerun after the bigint change; the targeted
+oracle, public route, and unchanged upstream large-frame case pass.
+
+2026-09-23 nested-comprehension continuation (uncommitted): the missing
+`wsproto` test dependency is now pinned to the upstream `wsproto==1.3.2`.
+Its import exposed a general compiler closure-capture defect: generator
+expressions nested inside comprehensions could not see the outer iteration
+variable. Hidden comprehension targets now participate in closure analysis;
+generator lowering carries active aliases; captured targets in ordinary and
+async loops are promoted to cells after nested bodies are lowered; the fused
+constant-range iteration path updates any captured cell. CPython 3.14 and
+XLang3 match on constant, dynamic, deferred, and async nested-comprehension
+cases. A public FastAPI TestClient route using a dynamic range passes on
+both runtimes. The exact previously blocked Uvicorn `wsproto` case passes.
+The full untouched Uvicorn WebSocket file passed **143 tests, 295 skipped**
+on the final compiler build; the skips are predominantly missing native
+`httptools`/`zttp` parser variants. The final Release build, all registered
+fixtures, **53/53** CTest checks, and the complete local FastAPI gate pass,
+including the new route and live Uvicorn HTTP/HTTPS. The broader untouched
+matrix, native dependency boundaries, and load/soak remain open.
+
+2026-09-23 Uvicorn multiprocessing continuation (uncommitted): the
+untouched HTTP-plus-WebSocket protocol selection passed **234, skipped 475**.
+The broader all-except-`test_server.py` diagnostic later stalled after 53%
+with high CPU; both protocol files pass independently and together, so the
+cross-file interaction remains unresolved. Running the other Uvicorn files
+exposed two deterministic native/lifetime defects. The unchanged
+`test_process_ping_pong` failed on XLang3 but passed on CPython 3.14 because
+`BytesIO.getbuffer()` returned a memoryview that retained only an internal
+bytearray, allowing the `BytesIO` exporter to finalize with a live export.
+The view now retains the exporter through derived views and releases it after
+the export count drops. A CPython-oracle lifetime fixture, a public FastAPI
+route, and the exact unchanged upstream test pass.
+
+The next unchanged `test_process_ping_pong_timeout` hung because XLang3's
+native `_winapi.PeekNamedPipe(handle)` returned `(b'', 0, 0)` where CPython
+3.14 returns `(0, 0)`; the standard-library poll therefore treated an empty
+pipe as readable. `_winapi.PeekNamedPipe` now returns the two-int form when
+size is omitted/zero and retains the three-item byte form for positive size.
+A CPython-oracle named-pipe fixture, a public FastAPI route, and the exact
+unchanged upstream test pass. The remaining supervisor file progresses five
+tests, then `test_multiprocess_run` times out in a spawned subprocess on
+XLang3; CPython passes. That worker startup/shutdown path is the current
+unresolved native/process boundary. The timeout left three orphaned test
+processes, which were stopped after checking their parentage. The final
+Release build, all registered oracle fixtures, **53/53** CTest checks, and
+the complete local FastAPI gate pass after the latest native fix, including
+both new public routes and live Uvicorn HTTP/HTTPS.
+
+2026-09-23 Uvicorn reloader continuation (uncommitted): the diagnostic
+selection excluding the known blocked native/server and protocol files
+reached **301 passed, 89 skipped** before the unchanged reloader test hit
+`TypeError: kill() expected pid and signal integers`. Python 3.14's
+`signal.CTRL_C_EVENT` is an `IntEnum`, which native `os.kill` had rejected
+because it checked only the internal plain-int tag. Native `os.kill` now
+uses the module's existing `__index__` conversion for pid and signal.
+A CPython-oracle fixture, a public FastAPI route, and unchanged
+`test_reloader_should_initialize[StatReload]` pass. The WatchFiles variant
+is skipped because its optional dependency is absent. A full reloader-file
+run was interrupted without a test result; no child processes remained on
+inspection. The final Release build, registered fixtures, **53/53** CTest
+checks, and complete local FastAPI gate pass after this `os.kill` change,
+including its public route and live Uvicorn HTTP/HTTPS. The separate
+`test_multiprocess_run` spawned-worker timeout remains open.
+
+2026-09-23 Uvicorn config continuation (uncommitted): the broader diagnostic
+selection reached **347 passed, 92 skipped** before `test_log_config_yaml`
+raised `UnboundLocalError` inside the unmodified Python 3.14 `unittest.mock`.
+The exact JSON-then-YAML upstream pair passes on CPython but failed on XLang3;
+the YAML case alone passed. A reduced probe showed that deleting an attribute
+from a Python module left an `Invalid` entry visible in its `__dict__`, so the
+second `mock.patch` treated the deleted name as a local attribute. Both VM
+`del module.attr` and generic `object_delete_attr` now call the existing
+`module_delete_attr` path, which removes the namespace key and raises
+`AttributeError` for a missing name. A CPython 3.14 oracle, a public FastAPI
+TestClient route using two real `unittest.mock.patch` operations, and the
+exact unchanged upstream pair pass. The complete unchanged Uvicorn config
+file passes **118, skipped 8** (two missing optional `trustme` and six
+Unix-only cases). The broader remainder and final full gates are being rerun
+after this fix. The separate spawned-worker timeout and native dependency
+boundaries remain open.
+
+The final full Release build passed after the module deletion fix. All
+registered CPython-oracle fixtures passed, including the new
+`module_attribute_delete` fixture; CTest passed **53/53**; the complete local
+FastAPI gate passed, including `module_attribute_delete_contract` and live
+Uvicorn HTTP/HTTPS. `git diff --check` reports no whitespace errors. The
+broader Uvicorn diagnostic selection advanced beyond the previous failure to
+**86%**, then stopped making progress without a child process while its
+XLang3 process remained live; that diagnostic was stopped and is not counted
+as a pass. The config file passes alone and when preceded by the CLI, compat,
+supervisor-signal, HTTP2, and protocol-utility files (**146 passed, 58
+skipped** in the broadest of these shorter sequences). Earlier middleware or
+benchmark shared state remains to be isolated. The full unmodified upstream
+matrix and production load/soak remain open.
+
+2026-09-23 Uvicorn main startup continuation (uncommitted): a verbose run
+showed that the earlier apparent 86% stall was not a config failure; the run
+passed config and stalled at unchanged `tests/test_main.py::test_run[default]`
+after ASGI lifespan startup. The isolated CPython 3.14 case passed, while
+XLang3 timed out. A minimal `asyncio.start_server(host=None, port=0)` probe
+showed that the Python 3.14 stdlib needs native `socket.IPV6_V6ONLY` for the
+IPv6 half of a dual-stack listener. XLang3 now exports the platform WinSock
+constant. That exposed native `socket.setsockopt` rejecting `True`, though
+Python treats bool as an integer; it now accepts the existing socket
+integer-like forms for level, option, value, and optlen. The CPython-oracle
+dual-stack listener returns `IPV6_V6ONLY=27` and families `[2, 23]` under
+both runtimes; a public FastAPI route does the same. The exact unchanged
+Uvicorn default/hostname/IPv6 host variants pass **3/3**, and the full
+unchanged `test_main.py` passes **13/13**. The broader diagnostic selection
+and final full gates are being rerun after this socket change. The separate
+supervisor worker timeout and genuine native dependencies remain open.
+
+After the socket fix, the broader unchanged Uvicorn diagnostic selection
+(excluding the separately tracked server/protocol/supervisor files) completed
+**480 passed, 106 skipped** in 119.74 s. The skipped cases are reported by
+upstream for missing optional `httptools`, `zttp`, and `trustme` dependencies
+or Unix-only behavior. This selection includes all of `test_main.py` and
+`test_config.py`, and the prior broad-run stall is resolved. The full Release
+build and registered fixtures pass on this code; CTest and the local FastAPI
+gate are completing their final rerun.
+
+Those final gates passed on the socket change: full Release build, all
+registered CPython-oracle fixtures (including module deletion and dual-stack
+listener), **53/53** CTest checks, and the complete local FastAPI gate
+(including both new public routes and live Uvicorn HTTP/HTTPS). The Uvicorn
+upstream checkout is unchanged, and `git diff --check` found no whitespace
+errors. The overall goal remains active because the unmodified full upstream
+matrix, genuine native `httptools`/other optional boundaries, the separate
+supervisor worker path, production load/soak, and final production-style demo
+are not yet complete.
+
+The previously timed-out unchanged Uvicorn
+`tests/supervisors/test_multiprocess.py::test_multiprocess_run` now passes
+individually and in the supervisor-file sequence. That file reaches **5
+passed** before `test_multiprocess_health_check` fails in its Windows
+subprocess; CPython 3.14 passes the exact case. A scratch-only reproduction
+with two real spawned workers shows that initial spawn, killing one worker,
+replacement, and both `is_alive()` checks succeed. Shutdown reaches
+`terminate_all()` but blocks in `join_all()` after sending
+`CTRL_BREAK_EVENT`; the diagnostic wrapper then kills the parent at its
+20-second timeout, after which no XLang3 worker remains. Inspection of
+XLang3's native `_signal` module shows that
+`signal.signal` currently records Python handlers but does not register a
+Windows console or CRT signal handler, so real OS signal delivery to Python
+handlers is the next native boundary to implement. This is an evidence-based
+suspected cause, not yet a verified fix. No upstream code was modified.
+
+2026-09-23 Windows supervisor signal audit: an experimental general
+`SetConsoleCtrlHandler` bridge with queued VM dispatch and wakeup-FD writes
+was built and exercised, then removed because it did not pass a separate
+CPython-oracle process-group case. The first scratch timeout report was
+misleading: `subprocess.run` killed the parent at its 20-second timeout and
+then drained worker output, so the workers' later shutdown lines did not
+prove that the earlier `CTRL_BREAK_EVENT` had been delivered. A live pipe
+capture showed workers remained active before the timeout. An instrumented
+native `os.kill` run enumerating the parent console's attached processes
+before `GenerateConsoleCtrlEvent` passed the real two-worker lifecycle 3/3;
+the same run without that console enumeration failed 0/3, as did a scheduler
+yield or console enumeration only when installing the handler. A separate
+XLang3-parent/XLang3-child process-group probe still missed the event even
+with enumeration; XLang3-parent/CPython-child passed. CPython 3.14 passed the
+Uvicorn worker probe without any upstream modification. Console enumeration
+was rejected as an unexplained timing-dependent workaround; the experimental
+signal bridge, diagnostics, and teardown tracing are absent from the
+working runtime. The unmodified upstream supervisor health test remains an
+open native Windows compatibility boundary. These experiments justify neither
+a signal fix nor a full compatibility claim.

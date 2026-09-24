@@ -2474,6 +2474,23 @@ bool Runtime::import_from(const std::string& module_name, const std::string& att
   if (module_get_attr(module, attr_name, out, error) && out.tag != ValueTag::Invalid) {
     return true;
   }
+  const auto describe_missing_from_import = [&]() {
+    Value spec;
+    Value initializing;
+    std::string ignored;
+    if (!module_get_attr(module, "__spec__", spec, ignored) || spec.tag == ValueTag::None ||
+        !object_get_attr(spec, "_initializing", initializing, ignored) ||
+        initializing.tag != ValueTag::Bool || !initializing.as.b) {
+      return;
+    }
+    error = "cannot import name '" + attr_name + "' from partially initialized module '" +
+        resolved_module + "' (most likely due to a circular import)";
+    Value file;
+    if (module_get_attr(module, "__file__", file, ignored) && file.tag != ValueTag::None &&
+        value_as_string(file) != nullptr) {
+      error += " (" + value_to_string(file) + ")";
+    }
+  };
   if (resolved_module == "builtins" || resolved_module == "_builtins") {
     if (const auto* builtin = find_builtin(attr_name)) {
       value_assign_fast(out, *builtin);
@@ -2497,6 +2514,7 @@ bool Runtime::import_from(const std::string& module_name, const std::string& att
       Value ignored_pending;
       take_pending_exception(ignored_pending);
     }
+    describe_missing_from_import();
     return false;
   }
 
@@ -2523,6 +2541,7 @@ bool Runtime::import_from(const std::string& module_name, const std::string& att
   if (!submodule_error.empty()) {
     error = submodule_error;
   }
+  describe_missing_from_import();
   return false;
 }
 

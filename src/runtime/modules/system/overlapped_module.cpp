@@ -18,8 +18,12 @@ limitations under the License.
 #include "xlang3/object_model.h"
 #include "xlang3/sequence.h"
 
+#include "../thread/runtime_lock.h"
+
+#include <algorithm>
 #include <deque>
 #include <chrono>
+#include <condition_variable>
 #include <cstdint>
 #include <cstring>
 #include <mutex>
@@ -103,6 +107,7 @@ struct WaitRegistration {
 OverlappedState* overlapped_state(const Value& self, std::string& error);
 
 std::mutex g_iocp_mutex;
+std::condition_variable g_iocp_condition;
 std::unordered_map<int64_t, IocpState> g_iocp_ports;
 std::unordered_map<int64_t, int64_t> g_iocp_handle_ports;
 std::unordered_map<int64_t, OverlappedState*> g_overlapped_by_address;
@@ -295,6 +300,7 @@ void post_iocp_completion(int64_t port, int64_t transferred, int64_t key, int64_
     return;
   }
   port_it->second.completions.push_back(IocpCompletion{error_code, transferred, key, address});
+  g_iocp_condition.notify_all();
 }
 
 int64_t unique_iocp_port_unlocked() {
@@ -647,7 +653,10 @@ bool overlapped_io_method(Runtime& runtime, const Value* args, uint32_t argc, Va
           out, error, handled)) {
     return false;
   }
-  if (handled) return true;
+  if (handled) {
+    g_iocp_condition.notify_all();
+    return true;
+  }
 #endif
   if (method != nullptr &&
       (std::string_view(method) == "WSARecv" || std::string_view(method) == "WSARecvFrom" ||
@@ -822,7 +831,16 @@ bool get_queued_completion_status(Runtime&, const Value* args, uint32_t argc, Va
     error = "GetQueuedCompletionStatus() port must be an integer handle";
     return false;
   }
-  std::lock_guard<std::mutex> lock(g_iocp_mutex);
+  int64_t timeout_ms = 0;
+  if (!value_to_i64(args[1], timeout_ms) || timeout_ms < 0 || timeout_ms > 0xffffffffLL) {
+    error = "GetQueuedCompletionStatus() timeout must be a DWORD";
+    return false;
+  }
+  const bool infinite_timeout = timeout_ms == 0xffffffffLL;
+  const auto deadline = std::chrono::steady_clock::now() +
+      std::chrono::milliseconds(infinite_timeout ? 0 : timeout_ms);
+  std::unique_lock<std::mutex> lock(g_iocp_mutex);
+  for (;;) {
   auto it = g_iocp_ports.find(port);
 #if defined(_WIN32)
   if (it != g_iocp_ports.end()) {
@@ -846,12 +864,14 @@ bool get_queued_completion_status(Runtime&, const Value* args, uint32_t argc, Va
   }
 #endif
   if (it == g_iocp_ports.end() || it->second.completions.empty()) {
+    bool has_pollable_operation = false;
     if (it != g_iocp_ports.end()) {
       for (auto& entry : g_overlapped_by_address) {
         auto* state = entry.second;
         if (state == nullptr || state->port != port || state->completion_delivered) {
           continue;
         }
+        has_pollable_operation = true;
 #if defined(_WIN32)
         (void)overlapped_poll_socket(*state);
 #endif
@@ -867,8 +887,36 @@ bool get_queued_completion_status(Runtime&, const Value* args, uint32_t argc, Va
         return true;
       }
     }
-    value_set_none(out);
-    return true;
+    if (it == g_iocp_ports.end() || timeout_ms == 0 ||
+        (!infinite_timeout && std::chrono::steady_clock::now() >= deadline)) {
+      value_set_none(out);
+      return true;
+    }
+#if defined(_WIN32)
+    for (const auto& wait : g_wait_registrations) {
+      if (wait.second.port == port) {
+        has_pollable_operation = true;
+        break;
+      }
+    }
+#endif
+    // Socket and registered-handle completions are polled by this runtime;
+    // queued completions wake the condition variable immediately.
+    const auto poll_interval = std::chrono::milliseconds(1);
+    const auto remaining = infinite_timeout ? poll_interval :
+        std::chrono::duration_cast<std::chrono::milliseconds>(deadline - std::chrono::steady_clock::now());
+    const auto wait_time = has_pollable_operation ? std::min(poll_interval, remaining) : remaining;
+    {
+      XlangRuntimeExecutionSuspension suspension;
+      if (infinite_timeout && !has_pollable_operation) {
+        g_iocp_condition.wait(lock);
+      } else if (wait_time.count() > 0) {
+        g_iocp_condition.wait_for(lock, wait_time);
+      }
+      lock.unlock();
+    }
+    lock.lock();
+    continue;
   }
   const IocpCompletion completion = it->second.completions.front();
   it->second.completions.pop_front();
@@ -883,6 +931,7 @@ bool get_queued_completion_status(Runtime&, const Value* args, uint32_t argc, Va
       Value::int64(completion.address),
   });
   return true;
+  }
 }
 
 bool post_queued_completion_status(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -911,6 +960,7 @@ bool close_iocp(Runtime&, const Value* args, uint32_t argc, Value& out, std::str
   if (value_to_i64(args[0], port)) {
     std::lock_guard<std::mutex> lock(g_iocp_mutex);
     g_iocp_ports.erase(port);
+    g_iocp_condition.notify_all();
 #if defined(_WIN32)
     for (auto wait = g_wait_registrations.begin(); wait != g_wait_registrations.end();) {
       if (wait->second.port == port) wait = g_wait_registrations.erase(wait);
@@ -980,6 +1030,7 @@ bool register_wait_with_queue(Runtime& runtime, const Value* args, uint32_t argc
   {
     std::lock_guard<std::mutex> lock(g_iocp_mutex);
     g_wait_registrations[registration] = wait;
+    g_iocp_condition.notify_all();
   }
   out = Value::int64(registration);
 #else

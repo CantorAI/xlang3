@@ -634,13 +634,21 @@ bool value_bigint_from_bytes(
     bool is_big,
     bool signed_value,
     Value& out,
-    std::string&) {
+    std::string& error) {
+  const size_t limb_count = size / 4u + (size % 4u != 0);
+  if (limb_count > std::numeric_limits<uint32_t>::max()) {
+    error = "int.from_bytes input is too large";
+    return false;
+  }
   BigIntPayload value = make_zero_payload();
   value.sign = 1;
+  if (limb_count != 0) {
+    ensure_capacity(value, static_cast<uint32_t>(limb_count));
+    value.limb_count = static_cast<uint32_t>(limb_count);
+  }
   for (size_t i = 0; i < size; ++i) {
-    const size_t index = is_big ? i : (size - 1u - i);
-    mul_small_inplace(value, 256);
-    add_small_inplace(value, bytes[index]);
+    const size_t index = is_big ? size - 1u - i : i;
+    value.limbs[i / 4u] |= static_cast<uint32_t>(bytes[index]) << (8u * (i % 4u));
   }
   if (signed_value && size != 0) {
     const uint8_t sign_byte = is_big ? bytes[0] : bytes[size - 1u];
@@ -700,7 +708,8 @@ bool value_int_like_to_bytes(
 
   out.assign(length, '\0');
   for (size_t i = 0; i < length; ++i) {
-    const uint32_t byte = div_small_inplace(encoded, 256);
+    const uint32_t limb = i / 4u < encoded.limb_count ? encoded.limbs[i / 4u] : 0;
+    const uint32_t byte = (limb >> (8u * (i % 4u))) & 0xffu;
     const size_t index = is_big ? (length - 1u - i) : i;
     out[index] = static_cast<char>(byte);
   }

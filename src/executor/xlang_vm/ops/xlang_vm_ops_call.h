@@ -3558,6 +3558,35 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_module_method(
   const auto& name = fn.names[in.b];
   if (!module_find_attr_slot(module_value, name, module_slot, module_error) ||
       module_slot >= module_object->slots.size()) {
+    Value module_getattr;
+    std::string getattr_error;
+    if (module_get_attr(module_value, "__getattr__", module_getattr,
+                        getattr_error)) {
+      Value attr_arg = Value::string(name);
+      Value dynamic_callee;
+      std::string call_error;
+      if (!runtime_call_callable(runtime, module_getattr, &attr_arg, 1,
+                                 dynamic_callee, call_error)) {
+        Value pending;
+        if (runtime.take_pending_exception(pending))
+          return raise_exception_value(std::move(pending))
+              ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+        return raise_runtime_error(call_error)
+            ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+      }
+      std::vector<NativeKeywordArg> native_keyword_args;
+      bool pushed_frame = false;
+      if (!call_callable_value_ex(
+              runtime, dynamic_callee, call_args, module, module_owner,
+              in.dst, ip, native_call_args, native_keyword_args,
+              execution_lock, regs[in.dst], pushed_frame,
+              make_generator_if_needed, push_frame, raise_runtime_error,
+              raise_exception_value)) {
+        return result.errors.empty()
+            ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+      }
+      return pushed_frame ? XlangVMOpFlow::SwitchFrame : XlangVMOpFlow::Next;
+    }
     return raise_exception_value(runtime.make_exception(
                "AttributeError",
                module_error.empty() ? "module method not found" : module_error))

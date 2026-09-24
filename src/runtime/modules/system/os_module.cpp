@@ -856,13 +856,19 @@ bool os_system(Runtime& runtime, const Value* args, uint32_t argc, Value& out, s
 }
 
 bool os_kill(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc != 2 || args[0].tag != ValueTag::Int64 || args[1].tag != ValueTag::Int64) {
+  if (argc != 2) {
     error = "kill() expected pid and signal integers";
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  const DWORD pid = static_cast<DWORD>(args[0].as.i64);
-  const DWORD signal = static_cast<DWORD>(args[1].as.i64);
+  int64_t pid_value = 0;
+  int64_t signal_value = 0;
+  if (!os_index_i64(runtime, args[0], "pid", pid_value, error) ||
+      !os_index_i64(runtime, args[1], "signal", signal_value, error)) {
+    return false;
+  }
+  const DWORD pid = static_cast<DWORD>(pid_value);
+  const DWORD signal = static_cast<DWORD>(signal_value);
   if (signal == CTRL_C_EVENT || signal == CTRL_BREAK_EVENT) {
     if (!GenerateConsoleCtrlEvent(signal, pid)) {
       return raise_win32_os_error(runtime, GetLastError(), nullptr, error);

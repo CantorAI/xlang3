@@ -1,0 +1,6 @@
+255
+5
+10
+int() missing string argument
+int() can't convert non-string with explicit base
+int() takes at most 2 arguments (3 given)

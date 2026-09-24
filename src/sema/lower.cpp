@@ -1959,7 +1959,8 @@ private:
         return;
       }
       if (op == ir::Op::StoreLocal && previous.op == ir::Op::IterNext &&
-          previous.dst == a) {
+          previous.dst == a && dst < fn_.locals.size() &&
+          hidden_locals_.find(fn_.locals[dst]) == hidden_locals_.end()) {
         const uint32_t item_reg = previous.dst;
         previous.op = ir::Op::IterNextLocal;
         previous.dst = dst;
@@ -4680,6 +4681,7 @@ private:
       const auto hidden_name = "#comp." + std::to_string(next_hidden_local_++) + "." + name;
       hidden_locals_.insert(hidden_name);
       ensure_local(hidden_name);
+      local_name_set_.insert(hidden_name);
       const auto old_alias = name_aliases_.find(name);
       saved_aliases.push_back(SavedAlias{
           name,
@@ -4703,7 +4705,9 @@ private:
       const auto next_awaitable = emit_call_method(iterator_reg, "__anext__", {});
       const auto item_reg = emit_await_value(next_awaitable);
       emit(ir::Op::PopExcept);
+      const size_t target_store_begin = fn_.code.size();
       lower_unpack_assign(target_expr, item_reg);
+      const size_t target_store_end = fn_.code.size();
       size_t skip_body = 0;
       const bool has_filter = filter != nullptr;
       if (has_filter) {
@@ -4711,6 +4715,19 @@ private:
         skip_body = emit_jump(ir::Op::JumpIfFalse, filter_reg);
       }
       body();
+      for (size_t index = target_store_begin; index < target_store_end; ++index) {
+        auto& instruction = fn_.code[index];
+        if (instruction.op != ir::Op::StoreLocal) {
+          continue;
+        }
+        for (size_t cell_index = 0; cell_index < fn_.cell_slots.size(); ++cell_index) {
+          if (fn_.cell_slots[cell_index] == instruction.dst) {
+            instruction.op = ir::Op::StoreCell;
+            instruction.dst = static_cast<uint32_t>(cell_index);
+            break;
+          }
+        }
+      }
       if (has_filter) {
         patch_jump(skip_body, static_cast<uint32_t>(fn_.code.size()));
       }
@@ -4744,6 +4761,8 @@ private:
     size_t loop_exit = 0;
     uint32_t start = 0;
     bool fused_range = false;
+    size_t target_store_begin = 0;
+    size_t target_store_end = 0;
     if (has_single_name_target && try_parse_const_range_call(iterable, range_start, range_stop, range_step)) {
       fused_range = true;
       const auto state_name = "#range." + std::to_string(next_hidden_local_++) + "." + target_name->name;
@@ -4764,7 +4783,9 @@ private:
       const auto item_reg = new_reg();
       emit(ir::Op::IterNext, item_reg, iterator_reg, 0);
       loop_exit = fn_.code.size() - 1;
+      target_store_begin = fn_.code.size();
       lower_unpack_assign(target_expr, item_reg);
+      target_store_end = fn_.code.size();
     }
     size_t skip_append = 0;
     const bool has_filter = filter != nullptr;
@@ -4773,6 +4794,21 @@ private:
       skip_append = emit_jump(ir::Op::JumpIfFalse, filter_reg);
     }
     body();
+    if (!fused_range) {
+      for (size_t index = target_store_begin; index < target_store_end; ++index) {
+        auto& instruction = fn_.code[index];
+        if (instruction.op != ir::Op::StoreLocal) {
+          continue;
+        }
+        for (size_t cell_index = 0; cell_index < fn_.cell_slots.size(); ++cell_index) {
+          if (fn_.cell_slots[cell_index] == instruction.dst) {
+            instruction.op = ir::Op::StoreCell;
+            instruction.dst = static_cast<uint32_t>(cell_index);
+            break;
+          }
+        }
+      }
+    }
     if (has_filter) {
       patch_jump(skip_append, static_cast<uint32_t>(fn_.code.size()));
     }
@@ -4872,6 +4908,7 @@ private:
     FunctionLowerer child_lowerer(
         module_, "#genexpr", {eager_iterable_name}, {}, free_vars, std::vector<ast::StmtPtr>{}, true, is_async, false, comp.line, false,
         instance_slot_self_, instance_slots_, class_infos_, module_global_slots_, imported_module_slots_);
+    child_lowerer.name_aliases_ = name_aliases_;
     ast::NameExpr eager_iterable_expr(eager_iterable_name);
     auto clauses = child_lowerer.generator_comp_clauses(comp);
     if (!clauses.empty()) {

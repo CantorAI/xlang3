@@ -731,6 +731,44 @@ ast::ExprPtr runtime_ast_to_expr(const Value& node, std::string& error) {
     if (kind == "Tuple") return std::make_unique<ast::TupleExpr>(std::move(items));
     return std::make_unique<ast::ListExpr>(std::move(items));
   }
+  if (kind == "Dict") {
+    Value keys;
+    Value values;
+    if (!runtime_ast_attr(node, "keys", keys, error) ||
+        !runtime_ast_attr(node, "values", values, error) ||
+        value_as_list(keys) == nullptr || value_as_list(values) == nullptr)
+      return {};
+    const auto& key_items = value_as_list(keys)->items;
+    const auto& value_items = value_as_list(values)->items;
+    if (key_items.size() != value_items.size()) {
+      error = "AST Dict keys and values have different lengths";
+      return {};
+    }
+    std::vector<std::pair<ast::ExprPtr, ast::ExprPtr>> entries;
+    entries.reserve(key_items.size());
+    for (size_t index = 0; index < key_items.size(); ++index) {
+      ast::ExprPtr key;
+      if (key_items[index].tag != ValueTag::None) {
+        key = runtime_ast_to_expr(key_items[index], error);
+        if (!key) return {};
+      }
+      auto item_value = runtime_ast_to_expr(value_items[index], error);
+      if (!item_value) return {};
+      entries.emplace_back(std::move(key), std::move(item_value));
+    }
+    return std::make_unique<ast::DictExpr>(std::move(entries));
+  }
+  if (kind == "Set") {
+    if (!runtime_ast_attr(node, "elts", value, error) ||
+        value_as_list(value) == nullptr) return {};
+    std::vector<ast::ExprPtr> items;
+    for (const auto& item : value_as_list(value)->items) {
+      auto converted = runtime_ast_to_expr(item, error);
+      if (!converted) return {};
+      items.push_back(std::move(converted));
+    }
+    return std::make_unique<ast::SetExpr>(std::move(items));
+  }
   if (kind == "IfExp") {
     Value test;
     Value body;
@@ -840,6 +878,52 @@ bool runtime_ast_to_statements(
     const std::string kind = runtime_ast_class_name(node);
     if (kind == "Pass") {
       out.push_back(std::make_unique<ast::PassStmt>());
+    } else if (kind == "Import" || kind == "ImportFrom") {
+      Value names_value;
+      if (!runtime_ast_attr(node, "names", names_value, error) ||
+          value_as_list(names_value) == nullptr) return false;
+      std::vector<ast::ImportBinding> bindings;
+      for (const auto& alias : value_as_list(names_value)->items) {
+        Value name_value;
+        Value asname_value;
+        if (!runtime_ast_attr(alias, "name", name_value, error) ||
+            value_as_string(name_value) == nullptr ||
+            !runtime_ast_attr(alias, "asname", asname_value, error) ||
+            (asname_value.tag != ValueTag::None &&
+             value_as_string(asname_value) == nullptr)) {
+          error = "AST import alias requires string name and optional asname";
+          return false;
+        }
+        const std::string name = string_object_to_string(*value_as_string(name_value));
+        const std::string binding = asname_value.tag == ValueTag::None
+            ? (kind == "Import" ? name.substr(0, name.find('.')) : name)
+            : string_object_to_string(*value_as_string(asname_value));
+        bindings.push_back({name, binding});
+      }
+      if (kind == "Import") {
+        if (bindings.size() == 1) {
+          out.push_back(std::make_unique<ast::ImportStmt>(
+              bindings[0].name, bindings[0].as_name));
+        } else {
+          out.push_back(std::make_unique<ast::ImportManyStmt>(std::move(bindings)));
+        }
+      } else {
+        Value module_value;
+        Value level_value;
+        if (!runtime_ast_attr(node, "module", module_value, error) ||
+            (module_value.tag != ValueTag::None &&
+             value_as_string(module_value) == nullptr) ||
+            !runtime_ast_attr(node, "level", level_value, error) ||
+            level_value.tag != ValueTag::Int64 || level_value.as.i64 < 0) {
+          error = "AST ImportFrom requires optional string module and nonnegative level";
+          return false;
+        }
+        std::string module(static_cast<size_t>(level_value.as.i64), '.');
+        if (module_value.tag != ValueTag::None)
+          module += string_object_to_string(*value_as_string(module_value));
+        out.push_back(std::make_unique<ast::FromImportStmt>(
+            std::move(module), std::move(bindings)));
+      }
     } else if (kind == "Assert") {
       Value test;
       Value message;
@@ -867,6 +951,23 @@ bool runtime_ast_to_statements(
       if (value.tag != ValueTag::None) expr = runtime_ast_to_expr(value, error);
       if (value.tag != ValueTag::None && !expr) return false;
       out.push_back(std::make_unique<ast::ReturnStmt>(std::move(expr)));
+    } else if (kind == "Raise") {
+      Value exception;
+      Value cause;
+      if (!runtime_ast_attr(node, "exc", exception, error) ||
+          !runtime_ast_attr(node, "cause", cause, error)) return false;
+      ast::ExprPtr exception_expr;
+      ast::ExprPtr cause_expr;
+      if (exception.tag != ValueTag::None) {
+        exception_expr = runtime_ast_to_expr(exception, error);
+        if (!exception_expr) return false;
+      }
+      if (cause.tag != ValueTag::None) {
+        cause_expr = runtime_ast_to_expr(cause, error);
+        if (!cause_expr) return false;
+      }
+      out.push_back(std::make_unique<ast::RaiseStmt>(
+          std::move(exception_expr), std::move(cause_expr)));
     } else if (kind == "Assign") {
       Value targets_value;
       Value assigned_value;

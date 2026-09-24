@@ -95,7 +95,7 @@ XLANG3_VM_FLOW(UnpackSequence, xlang3::xlang_vm::ops::unpack_sequence_or_local_p
 XLANG3_VM_FLOW(GetIter, xlang3::xlang_vm::ops::get_iter(in, runtime_, regs, raise_runtime_error, raise_exception_value))
 XLANG3_VM_FLOW(IterNext, xlang3::xlang_vm::ops::iter_next(in, runtime_, regs, ip, [&](int64_t event, const Value* arg) { return emit_monitoring_event(frame, event, arg); }, raise_runtime_error, raise_exception_value))
 XLANG3_VM_FLOW(IterNextLocal, xlang3::xlang_vm::ops::iter_next_local(in, runtime_, regs, locals, ip, [&](int64_t event, const Value* arg) { return emit_monitoring_event(frame, event, arg); }, raise_runtime_error, raise_exception_value))
-XLANG3_VM_FLOW(ForRangeConstLocalNext, xlang3::xlang_vm::ops::for_range_const_local_next(in, fn, locals, ip, result))
+XLANG3_VM_FLOW(ForRangeConstLocalNext, xlang3::xlang_vm::ops::for_range_const_local_next(in, fn, locals, cells, ip, result))
 XLANG3_VM_FLOW(Add, xlang3::xlang_vm::ops::add(in, module, module_owner, runtime_, regs, native_call_args, ip, result, execution_lock, make_generator_if_needed, push_frame, raise_runtime_error, raise_exception_value))
 XLANG3_VM_FLOW(InplaceAdd, xlang3::xlang_vm::ops::inplace_add(in, runtime_, regs, raise_runtime_error, raise_exception_value))
 XLANG3_VM_FLOW(Sub, xlang3::xlang_vm::ops::sub(in, module, module_owner, runtime_, regs, native_call_args, ip, result, execution_lock, make_generator_if_needed, push_frame, raise_runtime_error, raise_exception_value))

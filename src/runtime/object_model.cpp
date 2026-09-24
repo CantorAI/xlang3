@@ -4950,7 +4950,7 @@ bool object_delete_attr(Value& object, const std::string& name, std::string& err
   }
 
   if (value_as_module(object) != nullptr) {
-    return module_set_attr(object, name, Value::invalid(), error);
+    return module_delete_attr(object, name, error);
   }
 
   if (auto* function = value_as_function(object)) {

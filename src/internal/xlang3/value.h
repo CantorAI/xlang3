@@ -564,6 +564,7 @@ struct NativeBufferStorage {
 struct MemoryViewObject {
   Object header;
   Value owner;
+  Value exporter;
   std::shared_ptr<NativeBufferStorage> external;
   size_t offset = 0;
   size_t size = 0;

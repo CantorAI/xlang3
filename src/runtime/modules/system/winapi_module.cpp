@@ -1559,6 +1559,13 @@ bool winapi_peek_named_pipe(Runtime& runtime, const Value* args, uint32_t argc, 
     return raise_win32_error(runtime, "PeekNamedPipe", GetLastError(), error);
   }
   data.resize(static_cast<size_t>(read));
+  if (size_value == 0) {
+    out = Value::tuple({
+        Value::int64(static_cast<int64_t>(available)),
+        Value::int64(static_cast<int64_t>(left_in_message)),
+    });
+    return true;
+  }
   out = Value::tuple({
       Value::bytes(std::move(data)),
       Value::int64(static_cast<int64_t>(available)),

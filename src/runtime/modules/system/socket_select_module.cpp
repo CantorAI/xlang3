@@ -1111,20 +1111,23 @@ bool socket_setsockopt(Runtime& runtime, const Value* args, uint32_t argc, Value
   if (fd == kInvalidSocket) {
     return false;
   }
-  if (args[1].tag != ValueTag::Int64 || args[2].tag != ValueTag::Int64) {
+  int64_t level_value = 0;
+  int64_t option_value = 0;
+  if (!socket_int_arg(args[1], level_value) || !socket_int_arg(args[2], option_value)) {
     error = "socket.setsockopt() level and optname must be integers";
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  const int level = static_cast<int>(args[1].as.i64);
-  const int option = static_cast<int>(args[2].as.i64);
-  if (args[3].tag == ValueTag::Int64) {
+  const int level = static_cast<int>(level_value);
+  const int option = static_cast<int>(option_value);
+  int64_t integer_value = 0;
+  if (socket_int_arg(args[3], integer_value)) {
     if (argc != 4) {
       error = "socket.setsockopt() integer value does not take optlen";
       runtime.raise_class_error("TypeError", error);
       return false;
     }
-    int value = static_cast<int>(args[3].as.i64);
+    int value = static_cast<int>(integer_value);
     if (setsockopt(
         fd,
         level,
@@ -1134,12 +1137,13 @@ bool socket_setsockopt(Runtime& runtime, const Value* args, uint32_t argc, Value
       return raise_socket_os_error(runtime, "setsockopt", error);
     }
   } else if (args[3].tag == ValueTag::None) {
-    if (argc != 5 || args[4].tag != ValueTag::Int64 || args[4].as.i64 < 0) {
+    int64_t optlen = -1;
+    if (argc != 5 || !socket_int_arg(args[4], optlen) || optlen < 0) {
       error = "socket.setsockopt() None value requires a non-negative integer optlen";
       runtime.raise_class_error("TypeError", error);
       return false;
     }
-    if (setsockopt(fd, level, option, nullptr, static_cast<int>(args[4].as.i64)) != 0) {
+    if (setsockopt(fd, level, option, nullptr, static_cast<int>(optlen)) != 0) {
       return raise_socket_os_error(runtime, "setsockopt", error);
     }
   } else {
@@ -2747,6 +2751,9 @@ void add_socket_exports(Runtime& runtime, NativeModuleBuilder& builder, const Va
   builder.value("AF_UNSPEC", Value::int64(kAfUnspec))
       .value("AF_INET", Value::int64(kAfInet))
       .value("AF_INET6", Value::int64(kAfInet6))
+#ifdef AF_IPX
+      .value("AF_IPX", Value::int64(AF_IPX))
+#endif
       .value("has_ipv6", Value::boolean(true))
       .value("SOCK_STREAM", Value::int64(kSockStream))
       .value("SOCK_DGRAM", Value::int64(kSockDgram))
@@ -2759,6 +2766,9 @@ void add_socket_exports(Runtime& runtime, NativeModuleBuilder& builder, const Va
       .value("IPPROTO_TCP", Value::int64(IPPROTO_TCP))
       .value("IPPROTO_UDP", Value::int64(IPPROTO_UDP))
       .value("IPPROTO_IPV6", Value::int64(IPPROTO_IPV6))
+#ifdef IPV6_V6ONLY
+      .value("IPV6_V6ONLY", Value::int64(IPV6_V6ONLY))
+#endif
       .value("IPPROTO_ICLFXBM", Value::int64(78))
       .value("IPPROTO_ST", Value::int64(5))
       .value("IPPROTO_CBT", Value::int64(7))

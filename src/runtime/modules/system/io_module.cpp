@@ -2362,6 +2362,9 @@ bool stream_getbuffer(Runtime&, const Value* args, uint32_t argc, Value& out, st
     state->exported_buffer = Value::bytearray(state->buffer);
   }
   out = Value::memoryview(state->exported_buffer, 0, state->buffer.size(), false);
+  if (auto* view = value_as_memoryview(out)) {
+    view->exporter = args[0];
+  }
   return true;
 }
 

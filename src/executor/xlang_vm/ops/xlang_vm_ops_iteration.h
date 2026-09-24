@@ -143,6 +143,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow for_range_const_local_next(
     const ir::Instr& in,
     const ir::Function& fn,
     XlangVMSmallValueBuffer& locals,
+    XlangVMSmallValueBuffer& cells,
     size_t& ip,
     RuntimeResult& result) {
   if (in.a >= locals.size() || in.b >= locals.size() || in.c >= fn.range_specs.size()) {
@@ -168,6 +169,16 @@ XLANG3_HOT_INLINE XlangVMOpFlow for_range_const_local_next(
     return XlangVMOpFlow::ContinueLoop;
   }
   value_set_int64(locals[in.a], value);
+  for (size_t cell_index = 0; cell_index < fn.cell_slots.size(); ++cell_index) {
+    if (fn.cell_slots[cell_index] == in.a) {
+      if (cell_index >= cells.size() || value_as_cell(cells[cell_index]) == nullptr) {
+        result.errors.push_back("invalid fused range cell");
+        return XlangVMOpFlow::ReturnResult;
+      }
+      value_assign_fast(value_as_cell(cells[cell_index])->value, locals[in.a]);
+      break;
+    }
+  }
   value_set_int64(current, value + step);
   return XlangVMOpFlow::Next;
 }

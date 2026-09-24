@@ -1,0 +1,6 @@
+import [('math', None), ('json', 'js')]
+from collections 0 [('deque', 'Queue'), ('namedtuple', None)]
+from None 1 [('widget', 'alias')]
+from shared 2 [('item', None)]
+execute 9.0 [1, 2] [3, 4] namedtuple
+literals {'a': 1, 'b': 2} [3, 4]

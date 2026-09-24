@@ -1126,8 +1126,9 @@ XLANG3_HOT_INLINE XlangVMOpFlow delete_attr(
   }
   std::string error;
   if (value_as_module(regs[in.dst]) != nullptr) {
-    if (!module_set_attr(regs[in.dst], fn.names[in.a], Value::invalid(), error)) {
-      return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    if (!module_delete_attr(regs[in.dst], fn.names[in.a], error)) {
+      return raise_exception_value(runtime.make_exception("AttributeError", error))
+          ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
     }
     return XlangVMOpFlow::Next;
   }

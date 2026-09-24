@@ -1678,10 +1678,37 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
   }
 
   if (constructor == XlangVMBuiltinConstructor::Int) {
-    if (!reject_constructor_keywords()) return false;
+    if (!reject_constructor_keywords_except({"base"})) return false;
+    if (const Value* base_keyword = find_constructor_keyword("base")) {
+      if (constructor_args.size() == 0) {
+        error = "int() missing string argument";
+        return false;
+      }
+      if (constructor_args.size() >= 2) {
+        error = "int() takes at most 2 arguments (3 given)";
+        return false;
+      }
+      constructor_positional.push_back(*base_keyword);
+      constructor_args.leading = constructor_positional.data();
+      constructor_args.leading_count = static_cast<uint32_t>(constructor_positional.size());
+    }
     if (constructor_args.size() > 2) {
       error = "int() expected at most 2 arguments";
       return false;
+    }
+    int base = 10;
+    if (constructor_args.size() == 2) {
+      if (constructor_args.get(1).tag != ValueTag::Int64) {
+        error = "int() base must be an integer";
+        return false;
+      }
+      base = static_cast<int>(constructor_args.get(1).as.i64);
+      const Value& value = constructor_args.get(0);
+      if (value_as_string(value) == nullptr && value_as_bytes(value) == nullptr &&
+          value_as_bytearray(value) == nullptr) {
+        error = "int() can't convert non-string with explicit base";
+        return false;
+      }
     }
     auto finish_int_value = [&](const Value& parsed) -> bool {
       if (exact_builtin_constructor) {
@@ -1820,18 +1847,6 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
           return true;
         }
         error = "__int__ returned non-int";
-        return false;
-      }
-    }
-    int base = 10;
-    if (constructor_args.size() == 2) {
-      if (constructor_args.get(1).tag != ValueTag::Int64) {
-        error = "int() base must be an integer";
-        return false;
-      }
-      base = static_cast<int>(constructor_args.get(1).as.i64);
-      if (value_as_string(value) == nullptr && value_as_bytes(value) == nullptr && value_as_bytearray(value) == nullptr) {
-        error = "int() can't convert non-string with explicit base";
         return false;
       }
     }

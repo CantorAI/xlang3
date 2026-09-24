@@ -844,10 +844,19 @@ bool import_python_module(Runtime& runtime, const std::string& name, Value& out,
   }
 
   runtime.register_module(name, module_value);
+  Value module_spec;
+  const bool has_module_spec = module_get_attr(module_value, "__spec__", module_spec, attr_error) &&
+      module_spec.tag != ValueTag::None;
+  if (has_module_spec) {
+    object_set_attr(module_spec, "_initializing", Value::boolean(true), attr_error);
+  }
   Interpreter interpreter(runtime);
   trace_import_timing(name, "exec-begin", import_start);
   auto result = interpreter.run_module(*module_ir, module_value, module_ir);
   trace_import_timing(name, "exec-end", import_start);
+  if (has_module_spec) {
+    object_set_attr(module_spec, "_initializing", Value::boolean(false), attr_error);
+  }
   if (!result.errors.empty()) {
     runtime.unregister_module(name);
     if (result.exception.tag != ValueTag::Invalid) {

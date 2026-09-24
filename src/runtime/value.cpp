@@ -1062,6 +1062,7 @@ Value Value::memoryview(Value owner, size_t offset, size_t size, bool readonly) 
     obj->strides = source->strides;
     obj->readonly = readonly || source->readonly;
     obj->contiguous = source->contiguous;
+    obj->exporter = source->exporter;
     // Retain the underlying owner before dropping the source view reference.
     Value root = source->owner;
     obj->owner = std::move(root);
@@ -3055,6 +3056,19 @@ bool value_mul(const Value& lhs, const Value& rhs, Value& out, std::string& erro
     out = Value::bytes(std::move(repeated));
     return true;
   };
+  auto repeat_bytearray = [&](const ByteArrayObject* bytes, int64_t count) {
+    if (count <= 0) {
+      out = Value::bytearray("");
+      return true;
+    }
+    std::string repeated;
+    repeated.reserve(bytes->value.size() * static_cast<size_t>(count));
+    for (int64_t i = 0; i < count; ++i) {
+      repeated.append(bytes->value);
+    }
+    out = Value::bytearray(std::move(repeated));
+    return true;
+  };
   auto repeat_list = [&](const ListObject* list, int64_t count) {
     if (count <= 0 || list->items.empty()) {
       out = Value::list({});
@@ -3103,6 +3117,16 @@ bool value_mul(const Value& lhs, const Value& rhs, Value& out, std::string& erro
   if (auto* bytes = value_as_bytes(rhs)) {
     if (repeat_count(lhs, count)) {
       return repeat_bytes(bytes, count);
+    }
+  }
+  if (auto* bytes = value_as_bytearray(lhs)) {
+    if (repeat_count(rhs, count)) {
+      return repeat_bytearray(bytes, count);
+    }
+  }
+  if (auto* bytes = value_as_bytearray(rhs)) {
+    if (repeat_count(lhs, count)) {
+      return repeat_bytearray(bytes, count);
     }
   }
   if (auto* list = value_as_list(lhs)) {
@@ -3469,8 +3493,13 @@ bool value_bit_or(const Value& lhs, const Value& rhs, Value& out, std::string& e
     }
     return false;
   };
+  const auto* left_alias = value_as_generic_alias(lhs);
+  const auto* right_alias = value_as_generic_alias(rhs);
+  const bool has_union_operand =
+      (left_alias != nullptr && left_alias->is_union) ||
+      (right_alias != nullptr && right_alias->is_union);
   if ((lhs.tag != ValueTag::Int64 || rhs.tag != ValueTag::Int64) &&
-      type_like(lhs) && type_like(rhs)) {
+      (has_union_operand || (type_like(lhs) && type_like(rhs)))) {
     std::vector<Value> members;
     const auto append_members = [&members](const Value& value) {
       const auto* alias = value_as_generic_alias(value);
