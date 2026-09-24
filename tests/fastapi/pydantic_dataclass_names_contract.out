@@ -1,0 +1,2 @@
+location ('child', 'Child[class]')
+http 422 {'type': 'dataclass_type', 'loc': ['child', 'Child[class]'], 'ctx': {'class_name': 'Child[args]'}}

@@ -1093,3 +1093,39 @@ matrix attempt including benchmarks stopped on the known deep-definition
 recursion failure and four pytest 10 fixture-deprecation setup errors.
 The complete seven-project matrix, production load/soak, final demo
 verification, and full FastAPI compatibility remain open.
+
+2026-09-23 string and timezone continuation: strict
+`SchemaValidator.validate_strings` now
+parses bool, int, float, and temporal text in its string-input mode while
+keeping strict Python-object validation distinct. Strict string-mode
+dataclass validation accepts field dictionaries. The unchanged upstream
+`test_validate_strings.py` reports **21 passed**; a CPython 3.14 oracle and
+public FastAPI requests cover valid, malformed, and dataclass inputs.
+Native `TzInfo` now implements offset-based ordering, `NotImplemented`
+for unrelated objects, and `fromutc` conversion. General `%` execution
+dispatches Python `__mod__`/`__rmod__` before native numeric fallback,
+allowing Python 3.14's unmodified `timedelta` modulo method to run. The
+unchanged upstream `test_tzinfo.py` reports **14 passed, 26 subtests
+passed**; a CPython 3.14 oracle and public FastAPI request cover modulo,
+ordering, and `fromutc`. The full Release build, **53/53** CTest checks,
+and expanded FastAPI gate including live Uvicorn HTTP/HTTPS pass. The
+broader non-benchmark pydantic-core matrix is running; the seven-project
+matrix, production load/soak, and final demo gates remain open.
+
+2026-09-23 upstream continuation: after the string and timezone fixes, the untouched
+non-benchmark pydantic-core suite reached **4,957 passed, 130 skipped,
+1 xfailed, 4 failed, 1 setup error** before `--maxfail=5`. One assertion
+was a real dataclass union-location mismatch: `cls_name` must label the
+branch, while the dataclass-args schema name belongs in the message and
+context. The native schema-label fix passes the unchanged upstream case;
+a CPython 3.14 oracle and public FastAPI request match both names. The
+three model root-validator assertions fail identically on CPython 3.14
+when pytest is invoked with `--assert=plain`; they require pytest assertion
+rewriting, which XLang3 does not yet support for the full generated AST.
+The setup error is a `PytestRemovedIn10Warning` caused by the pinned
+upstream test's class-scoped instance fixture; CPython 3.14 produces the
+same error with this pytest 9.1.1 test environment. The checked-in matrix
+runner already filters that exact deprecation warning. A larger diagnostic
+matrix with that filter stopped on a timeout in Python 3.14's `weakref.py`
+during a later test, without establishing a new compatibility result. Full AST
+round-trip and the other project suites remain open.

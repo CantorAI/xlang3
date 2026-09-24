@@ -5282,6 +5282,49 @@ X3Status tzinfo_dst(X3CallContext* context, X3Runtime*, void* user_data,
   return X3_STATUS_OK;
 }
 
+X3Status tzinfo_fromutc(X3CallContext* context, X3Runtime* runtime,
+                        void* user_data, const X3Value* args,
+                        uint32_t argc, X3Value* result) {
+  auto* package = static_cast<PackageState*>(user_data);
+  if (!valid_argc(package, context, argc, 2, 2, "TzInfo.fromutc()"))
+    return X3_STATUS_ERROR;
+  auto* state = tzinfo_state(package, context, args[0]);
+  if (state == nullptr) return X3_STATUS_ERROR;
+  X3Value module = x3_value_invalid();
+  X3Value datetime_class = x3_value_invalid();
+  const bool ready =
+      import_module(package, runtime, "datetime", &module) == X3_STATUS_OK &&
+      package->host->get_attr(runtime, module, "datetime", &datetime_class) ==
+          X3_STATUS_OK;
+  if (!ready) {
+    if (datetime_class.tag != X3_TAG_INVALID)
+      package->host->value_release(datetime_class);
+    if (module.tag != X3_TAG_INVALID) package->host->value_release(module);
+    return X3_STATUS_ERROR;
+  }
+  const bool is_datetime = is_instance_of_class(
+      package, runtime, args[1], datetime_class);
+  package->host->value_release(datetime_class);
+  package->host->value_release(module);
+  if (!is_datetime)
+    return package->host->raise_class_error(
+        context, "TypeError",
+        args[1].tag == X3_TAG_NONE
+            ? "argument 'dt': 'None' is not an instance of 'datetime'"
+            : "argument 'dt' is not an instance of 'datetime'");
+  X3Value offset = x3_value_invalid();
+  X3Value add = x3_value_invalid();
+  const bool added =
+      tzinfo_timedelta(package, runtime, state->seconds, &offset) ==
+          X3_STATUS_OK &&
+      package->host->get_attr(runtime, args[1], "__add__", &add) ==
+          X3_STATUS_OK &&
+      package->host->call(runtime, add, &offset, 1, result) == X3_STATUS_OK;
+  if (add.tag != X3_TAG_INVALID) package->host->value_release(add);
+  if (offset.tag != X3_TAG_INVALID) package->host->value_release(offset);
+  return added ? X3_STATUS_OK : X3_STATUS_ERROR;
+}
+
 X3Status tzinfo_str(X3CallContext* context, X3Runtime* runtime, void* user_data,
                     const X3Value* args, uint32_t argc, X3Value* result) {
   auto* package = static_cast<PackageState*>(user_data);
@@ -5324,13 +5367,30 @@ X3Status tzinfo_hash(X3CallContext* context, X3Runtime* runtime, void* user_data
 
 X3Status tzinfo_eq_impl(X3CallContext* context, X3Runtime* runtime,
                         PackageState* package, const X3Value* args,
-                        uint32_t argc, X3Value* result, bool negate) {
+                        uint32_t argc, X3Value* result, int operation) {
   if (!valid_argc(package, context, argc, 2, 2, "TzInfo.__eq__()")) return X3_STATUS_ERROR;
   auto* state = tzinfo_state(package, context, args[0]);
   if (state == nullptr) return X3_STATUS_ERROR;
+  X3Value datetime_module = x3_value_invalid();
+  X3Value tzinfo_class = x3_value_invalid();
+  const bool has_tzinfo_class =
+      import_module(package, runtime, "datetime", &datetime_module) ==
+          X3_STATUS_OK &&
+      package->host->get_attr(runtime, datetime_module, "tzinfo",
+                              &tzinfo_class) == X3_STATUS_OK;
+  const bool is_tzinfo = has_tzinfo_class &&
+      is_instance_of_class(package, runtime, args[1], tzinfo_class);
+  if (tzinfo_class.tag != X3_TAG_INVALID)
+    package->host->value_release(tzinfo_class);
+  if (datetime_module.tag != X3_TAG_INVALID)
+    package->host->value_release(datetime_module);
+  if (!has_tzinfo_class) return X3_STATUS_ERROR;
+  if (!is_tzinfo)
+    return package->host->builtin_value(
+        package->host, "NotImplemented", result);
   X3Value callable = x3_value_invalid(), other_offset = x3_value_invalid();
   X3Value total_seconds = x3_value_invalid(), seconds_value = x3_value_invalid();
-  bool equal = false;
+  double other_seconds = 0.0;
   bool ok = package->host->get_attr(runtime, args[1], "utcoffset", &callable) == X3_STATUS_OK;
   X3Value none = x3_value_none();
   if (ok) ok = package->host->call(runtime, callable, &none, 1, &other_offset) == X3_STATUS_OK;
@@ -5338,11 +5398,11 @@ X3Status tzinfo_eq_impl(X3CallContext* context, X3Runtime* runtime,
   if (ok) ok = package->host->call(runtime, total_seconds, nullptr, 0, &seconds_value) == X3_STATUS_OK;
   if (ok) {
     if (seconds_value.tag == X3_TAG_DOUBLE)
-      equal = seconds_value.as.f64 == static_cast<double>(state->seconds);
+      other_seconds = seconds_value.as.f64;
     else if (seconds_value.tag == X3_TAG_INT64)
-      equal = seconds_value.as.i64 == state->seconds;
+      other_seconds = static_cast<double>(seconds_value.as.i64);
     else if (seconds_value.tag == X3_TAG_UINT64)
-      equal = state->seconds >= 0 && seconds_value.as.u64 == static_cast<uint64_t>(state->seconds);
+      other_seconds = static_cast<double>(seconds_value.as.u64);
     else ok = false;
   }
   if (callable.tag != X3_TAG_INVALID) package->host->value_release(callable);
@@ -5351,19 +5411,44 @@ X3Status tzinfo_eq_impl(X3CallContext* context, X3Runtime* runtime,
   if (seconds_value.tag != X3_TAG_INVALID) package->host->value_release(seconds_value);
   if (!ok) {
     package->host->clear_exception(context);
-    equal = false;
+    return package->host->builtin_value(
+        package->host, "NotImplemented", result);
   }
-  *result = x3_value_bool(negate ? !equal : equal);
+  const double seconds = static_cast<double>(state->seconds);
+  bool answer = false;
+  if (operation == 0) answer = seconds == other_seconds;
+  else if (operation == 1) answer = seconds != other_seconds;
+  else if (operation == 2) answer = seconds < other_seconds;
+  else if (operation == 3) answer = seconds <= other_seconds;
+  else if (operation == 4) answer = seconds > other_seconds;
+  else answer = seconds >= other_seconds;
+  *result = x3_value_bool(answer);
   return X3_STATUS_OK;
 }
 
 X3Status tzinfo_eq(X3CallContext* c, X3Runtime* r, void* d,
                    const X3Value* a, uint32_t n, X3Value* out) {
-  return tzinfo_eq_impl(c, r, static_cast<PackageState*>(d), a, n, out, false);
+  return tzinfo_eq_impl(c, r, static_cast<PackageState*>(d), a, n, out, 0);
 }
 X3Status tzinfo_ne(X3CallContext* c, X3Runtime* r, void* d,
                    const X3Value* a, uint32_t n, X3Value* out) {
-  return tzinfo_eq_impl(c, r, static_cast<PackageState*>(d), a, n, out, true);
+  return tzinfo_eq_impl(c, r, static_cast<PackageState*>(d), a, n, out, 1);
+}
+X3Status tzinfo_lt(X3CallContext* c, X3Runtime* r, void* d,
+                   const X3Value* a, uint32_t n, X3Value* out) {
+  return tzinfo_eq_impl(c, r, static_cast<PackageState*>(d), a, n, out, 2);
+}
+X3Status tzinfo_le(X3CallContext* c, X3Runtime* r, void* d,
+                   const X3Value* a, uint32_t n, X3Value* out) {
+  return tzinfo_eq_impl(c, r, static_cast<PackageState*>(d), a, n, out, 3);
+}
+X3Status tzinfo_gt(X3CallContext* c, X3Runtime* r, void* d,
+                   const X3Value* a, uint32_t n, X3Value* out) {
+  return tzinfo_eq_impl(c, r, static_cast<PackageState*>(d), a, n, out, 4);
+}
+X3Status tzinfo_ge(X3CallContext* c, X3Runtime* r, void* d,
+                   const X3Value* a, uint32_t n, X3Value* out) {
+  return tzinfo_eq_impl(c, r, static_cast<PackageState*>(d), a, n, out, 5);
 }
 
 bool validation_is_strict(PackageState* package, X3Runtime* runtime,
@@ -7387,6 +7472,15 @@ std::string validation_schema_label(PackageState* package,
   std::string type;
   if (!schema_type_name(package, runtime, schema, type)) return "unknown";
   if (type == "model" || type == "dataclass") {
+    if (type == "dataclass") {
+      X3Value configured_name = x3_value_invalid();
+      std::string custom_name;
+      if (dict_item(package, runtime, schema, "cls_name", configured_name))
+        (void)string_data(package, runtime, configured_name, custom_name);
+      if (configured_name.tag != X3_TAG_INVALID)
+        package->host->value_release(configured_name);
+      if (!custom_name.empty()) return custom_name;
+    }
     X3Value klass = x3_value_invalid();
     X3Value name = x3_value_invalid();
     std::string class_name;
@@ -11459,6 +11553,7 @@ X3Status validate_value(PackageState* package, X3CallContext* context, X3Runtime
   if (type == "bool") {
     if (input.tag == X3_TAG_BOOL) { *result = input; return X3_STATUS_OK; }
     const bool strict = validation_is_strict(package, runtime, schema, environment);
+    const bool strings_mode = environment != nullptr && environment->strings_mode;
     if (!strict && input.tag == X3_TAG_INT64 &&
         (input.as.i64 == 0 || input.as.i64 == 1)) {
       *result = x3_value_bool(input.as.i64 != 0);
@@ -11478,7 +11573,8 @@ X3Status validate_value(PackageState* package, X3CallContext* context, X3Runtime
       }
     }
     std::string bool_text;
-    if (!strict && string_data(package, runtime, input, bool_text)) {
+    if ((!strict || strings_mode) &&
+        string_data(package, runtime, input, bool_text)) {
       std::transform(bool_text.begin(), bool_text.end(), bool_text.begin(),
                      [](unsigned char ch) {
                        return static_cast<char>(std::tolower(ch));
@@ -11511,6 +11607,7 @@ X3Status validate_value(PackageState* package, X3CallContext* context, X3Runtime
   }
   if (type == "int") {
     const bool strict = validation_is_strict(package, runtime, schema, environment);
+    const bool strings_mode = environment != nullptr && environment->strings_mode;
     X3Value converted_value = input;
     bool converted_owned = false;
     if (input.tag != X3_TAG_INT64) {
@@ -11560,7 +11657,8 @@ X3Status validate_value(PackageState* package, X3CallContext* context, X3Runtime
       }
       std::string text;
       bool textual_input = false;
-      if (!converted_owned && !strict && string_data(package, runtime, input, text)) {
+      if (!converted_owned && (!strict || strings_mode) &&
+          string_data(package, runtime, input, text)) {
         textual_input = true;
       } else if (!strict) {
         const auto kind = package->host->value_object_kind(input);
@@ -11754,6 +11852,7 @@ X3Status validate_value(PackageState* package, X3CallContext* context, X3Runtime
   }
   if (type == "float") {
     const bool strict = validation_is_strict(package, runtime, schema, environment);
+    const bool strings_mode = environment != nullptr && environment->strings_mode;
     double converted = 0.0;
     bool valid = false;
     bool textual_input = false;
@@ -11774,7 +11873,8 @@ X3Status validate_value(PackageState* package, X3CallContext* context, X3Runtime
       converted = input.as.b ? 1.0 : 0.0;
       valid = true;
     } else if (input.tag != X3_TAG_BOOL &&
-               (!strict || is_builtin_instance(package, runtime, input, "int") ||
+               (!strict || (strings_mode && input_kind == X3_OBJECT_KIND_STRING) ||
+                is_builtin_instance(package, runtime, input, "int") ||
                 is_builtin_instance(package, runtime, input, "float"))) {
       X3Value float_class = x3_value_invalid();
       X3Value converted_value = x3_value_invalid();
@@ -11794,7 +11894,7 @@ X3Status validate_value(PackageState* package, X3CallContext* context, X3Runtime
     }
     if (!valid) {
       const std::vector<std::string> empty;
-      const bool parsing_error = !strict && textual_input;
+      const bool parsing_error = (!strict || strings_mode) && textual_input;
       return raise_validation_error(
           package, context, runtime, parsing_error ? "float_parsing" : "float_type",
           !parsing_error ? "Input should be a valid number" :
@@ -12374,36 +12474,38 @@ X3Status validate_value(PackageState* package, X3CallContext* context, X3Runtime
   }
   if (type == "datetime" || type == "date" || type == "time" ||
       type == "timedelta") {
+    const bool textual_mode = environment != nullptr &&
+        (environment->json_mode || environment->strings_mode);
     X3Value converted = x3_value_invalid();
     X3Status status = X3_STATUS_ERROR;
     if (type == "timedelta") {
       status = validate_timedelta(
           package, context, runtime, input, &converted, location,
           validation_is_strict(package, runtime, schema, environment),
-          environment != nullptr && environment->json_mode);
+          textual_mode);
     } else if (type == "date") {
       status = validate_date_value(
           package, context, runtime, input, &converted, location,
           validation_is_strict(package, runtime, schema, environment),
-          environment != nullptr && environment->json_mode,
+          textual_mode,
           environment == nullptr ? x3_value_none() : environment->config);
     } else if (type == "datetime") {
       status = validate_datetime_value(
           package, context, runtime, input, &converted, location,
           validation_is_strict(package, runtime, schema, environment),
-          environment != nullptr && environment->json_mode,
+          textual_mode,
           environment == nullptr ? x3_value_none() : environment->config);
     } else if (type == "time") {
       status = validate_time_value(
           package, context, runtime, schema, input, &converted, location,
           validation_is_strict(package, runtime, schema, environment),
-          environment != nullptr && environment->json_mode);
+          textual_mode);
     } else {
       status = validate_stdlib_scalar(
           package, context, runtime, "datetime", type.c_str(), "fromisoformat",
           type.c_str(), input, &converted, location,
           validation_is_strict(package, runtime, schema, environment) &&
-              !(environment != nullptr && environment->json_mode));
+              !textual_mode);
     }
     if (status != X3_STATUS_OK) return status;
     if (validate_temporal_or_decimal_bounds(
@@ -15251,7 +15353,8 @@ X3Status validate_value(PackageState* package, X3CallContext* context, X3Runtime
     const bool input_is_instance =
         is_instance_of_class(package, runtime, input, klass);
     if (validation_is_strict(package, runtime, schema, environment) &&
-        !(environment != nullptr && environment->json_mode) &&
+        !(environment != nullptr &&
+          (environment->json_mode || environment->strings_mode)) &&
         !input_is_instance) {
       X3Value name_value = x3_value_invalid();
       std::string class_name = "dataclass";
@@ -27779,7 +27882,7 @@ X3Status register_module(X3PackageHost* host) {
     host->value_release(method); host->value_release(classmethod_type); host->value_release(descriptor);
   }
 
-  X3NativeFunctionDef timezone_methods[11]{};
+  X3NativeFunctionDef timezone_methods[16]{};
   define_method(timezone_methods[0], "__init__", tzinfo_init, state);
   define_method(timezone_methods[1], "utcoffset", tzinfo_utcoffset, state);
   define_method(timezone_methods[2], "tzname", tzinfo_tzname, state);
@@ -27791,7 +27894,12 @@ X3Status register_module(X3PackageHost* host) {
   define_method(timezone_methods[8], "__ne__", tzinfo_ne, state);
   define_method(timezone_methods[9], "__reduce__", tzinfo_reduce, state);
   define_method(timezone_methods[10], "__reduce_ex__", tzinfo_reduce, state);
-  if (host->module_add_class(module, "TzInfo", timezone_methods, 11,
+  define_method(timezone_methods[11], "__lt__", tzinfo_lt, state);
+  define_method(timezone_methods[12], "__le__", tzinfo_le, state);
+  define_method(timezone_methods[13], "__gt__", tzinfo_gt, state);
+  define_method(timezone_methods[14], "__ge__", tzinfo_ge, state);
+  define_method(timezone_methods[15], "fromutc", tzinfo_fromutc, state);
+  if (host->module_add_class(module, "TzInfo", timezone_methods, 16,
                              &state->tzinfo_class) != X3_STATUS_OK)
     return X3_STATUS_ERROR;
   X3Value datetime_module = x3_value_invalid(), tzinfo_base = x3_value_invalid();

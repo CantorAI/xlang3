@@ -295,11 +295,20 @@ XLANG3_HOT_INLINE XlangVMOpFlow floor_div(
   return XlangVMOpFlow::Next;
 }
 
-template <typename RaiseRuntimeError, typename RaiseExceptionValue>
+template <typename MakeGeneratorIfNeeded, typename PushFrame,
+          typename RaiseRuntimeError, typename RaiseExceptionValue>
 XLANG3_HOT_INLINE XlangVMOpFlow mod(
     const ir::Instr& in,
+    const ir::Module& module,
+    const std::shared_ptr<const ir::Module>& module_owner,
     Runtime& runtime,
     XlangVMSmallRegisterBuffer& regs,
+    std::vector<Value>& native_call_args,
+    size_t& ip,
+    RuntimeResult& result,
+    XlangRuntimeExecutionGuard& execution_lock,
+    MakeGeneratorIfNeeded&& make_generator_if_needed,
+    PushFrame&& push_frame,
     RaiseRuntimeError&& raise_runtime_error,
     RaiseExceptionValue&& raise_exception_value) {
   const auto& lhs = regs[in.a];
@@ -308,6 +317,22 @@ XLANG3_HOT_INLINE XlangVMOpFlow mod(
   if (!fast_mod(lhs, rhs, regs[in.dst], modulo_by_zero)) {
     if (modulo_by_zero) {
       return raise_zero_division(runtime, "integer modulo by zero", std::forward<RaiseExceptionValue>(raise_exception_value));
+    }
+    if (lhs.tag == ValueTag::Object && lhs.as.obj != nullptr) {
+      const auto flow = call_binary_special_method(
+          runtime, lhs, rhs, "__mod__", module, module_owner, in.dst, ip,
+          native_call_args, execution_lock, result, regs[in.dst],
+          make_generator_if_needed, push_frame, raise_runtime_error,
+          raise_exception_value);
+      if (flow != XlangVMOpFlow::Next) return flow;
+    }
+    if (rhs.tag == ValueTag::Object && rhs.as.obj != nullptr) {
+      const auto flow = call_binary_special_method(
+          runtime, rhs, lhs, "__rmod__", module, module_owner, in.dst, ip,
+          native_call_args, execution_lock, result, regs[in.dst],
+          make_generator_if_needed, push_frame, raise_runtime_error,
+          raise_exception_value);
+      if (flow != XlangVMOpFlow::Next) return flow;
     }
     std::string error;
     if (!value_mod_runtime(runtime, lhs, rhs, regs[in.dst], error)) {
@@ -325,13 +350,21 @@ XLANG3_HOT_INLINE XlangVMOpFlow mod(
   return XlangVMOpFlow::Next;
 }
 
-template <typename RaiseRuntimeError, typename RaiseExceptionValue>
+template <typename MakeGeneratorIfNeeded, typename PushFrame,
+          typename RaiseRuntimeError, typename RaiseExceptionValue>
 XLANG3_HOT_INLINE XlangVMOpFlow mod_const(
     const ir::Instr& in,
     const ir::Function& fn,
+    const ir::Module& module,
+    const std::shared_ptr<const ir::Module>& module_owner,
     Runtime& runtime,
     XlangVMSmallRegisterBuffer& regs,
+    std::vector<Value>& native_call_args,
+    size_t& ip,
     RuntimeResult& result,
+    XlangRuntimeExecutionGuard& execution_lock,
+    MakeGeneratorIfNeeded&& make_generator_if_needed,
+    PushFrame&& push_frame,
     RaiseRuntimeError&& raise_runtime_error,
     RaiseExceptionValue&& raise_exception_value) {
   if (in.b >= fn.constants.size()) {
@@ -344,6 +377,22 @@ XLANG3_HOT_INLINE XlangVMOpFlow mod_const(
   if (!fast_mod(lhs, rhs, regs[in.dst], modulo_by_zero)) {
     if (modulo_by_zero) {
       return raise_zero_division(runtime, "integer modulo by zero", std::forward<RaiseExceptionValue>(raise_exception_value));
+    }
+    if (lhs.tag == ValueTag::Object && lhs.as.obj != nullptr) {
+      const auto flow = call_binary_special_method(
+          runtime, lhs, rhs, "__mod__", module, module_owner, in.dst, ip,
+          native_call_args, execution_lock, result, regs[in.dst],
+          make_generator_if_needed, push_frame, raise_runtime_error,
+          raise_exception_value);
+      if (flow != XlangVMOpFlow::Next) return flow;
+    }
+    if (rhs.tag == ValueTag::Object && rhs.as.obj != nullptr) {
+      const auto flow = call_binary_special_method(
+          runtime, rhs, lhs, "__rmod__", module, module_owner, in.dst, ip,
+          native_call_args, execution_lock, result, regs[in.dst],
+          make_generator_if_needed, push_frame, raise_runtime_error,
+          raise_exception_value);
+      if (flow != XlangVMOpFlow::Next) return flow;
     }
     std::string error;
     if (!value_mod_runtime(runtime, lhs, rhs, regs[in.dst], error)) {
