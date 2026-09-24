@@ -1,0 +1,4 @@
+control SchemaError
+control SchemaError
+http 200 {'value': 'keep'}
+http 422 {'error': 'SchemaError'}

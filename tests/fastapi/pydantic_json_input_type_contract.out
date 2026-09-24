@@ -1,0 +1,10 @@
+accepted [1, 2]
+rejected json_type
+rejected json_type
+rejected json_type
+syntax Invalid JSON: EOF while parsing a string at line 1 column 7
+syntax Invalid JSON: trailing comma at line 3 column 3
+syntax Invalid JSON: EOF while parsing a value at line 1 column 0
+http 200 {'numbers': [1, 2]}
+http 422 {'error': 'json_type', 'message': 'JSON input should be string, bytes or bytearray'}
+http 422 {'error': 'json_invalid', 'message': 'Invalid JSON: trailing comma at line 1 column 6'}

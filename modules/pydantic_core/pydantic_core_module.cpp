@@ -1228,6 +1228,12 @@ bool parse_url_host(std::string_view input, UrlHost& output, std::string& error)
     error = "empty host";
     return false;
   }
+  for (unsigned char byte : output.host) {
+    if (byte < 0x20 || byte == 0x7f) {
+      error = "invalid international domain name";
+      return false;
+    }
+  }
   output.unicode_host = output.host;
   if (!port_text.empty()) {
     int64_t port = 0;
@@ -1278,19 +1284,15 @@ bool parse_url_text(std::string text, bool multi, UrlState& output,
                return byte == '\t' || byte == '\n' || byte == '\r';
              }),
              text.end());
-  while (!text.empty() && std::isspace(static_cast<unsigned char>(text.front())))
+  while (!text.empty() &&
+         static_cast<unsigned char>(text.front()) <= 0x20)
     text.erase(text.begin());
-  while (!text.empty() && std::isspace(static_cast<unsigned char>(text.back())))
+  while (!text.empty() &&
+         static_cast<unsigned char>(text.back()) <= 0x20)
     text.pop_back();
   if (text.empty()) {
     error = "input is empty";
     return false;
-  }
-  for (unsigned char byte : text) {
-    if (byte < 0x20 || byte == 0x7f) {
-      error = "control character in URL";
-      return false;
-    }
   }
   const size_t scheme_end = text.find(':');
   const size_t first_separator = text.find_first_of("/?#");
@@ -3499,6 +3501,31 @@ X3Status validate_date_value(
     package->host->clear_exception(context);
     if (parsed_date.tag != X3_TAG_INVALID)
       package->host->value_release(parsed_date);
+
+    if (!strict) {
+      X3Value datetime_fromisoformat = x3_value_invalid();
+      X3Value parsed_datetime = x3_value_invalid();
+      const bool parsed_datetime_text =
+          package->host->get_attr(runtime, datetime_class, "fromisoformat",
+                                  &datetime_fromisoformat) == X3_STATUS_OK &&
+          package->host->call(runtime, datetime_fromisoformat, &text_value, 1,
+                              &parsed_datetime) == X3_STATUS_OK;
+      if (datetime_fromisoformat.tag != X3_TAG_INVALID)
+        package->host->value_release(datetime_fromisoformat);
+      if (parsed_datetime_text) {
+        const auto status = date_from_exact_datetime(
+            package, context, runtime, input, parsed_datetime, result, location);
+        package->host->value_release(parsed_datetime);
+        if (release_text) package->host->value_release(text_value);
+        package->host->value_release(datetime_class);
+        package->host->value_release(date_class);
+        package->host->value_release(module);
+        return status;
+      }
+      package->host->clear_exception(context);
+      if (parsed_datetime.tag != X3_TAG_INVALID)
+        package->host->value_release(parsed_datetime);
+    }
   }
 
   double timestamp = 0.0;
@@ -5633,7 +5660,17 @@ X3Status raise_json_invalid(PackageState* package, X3CallContext* context,
                             const std::vector<std::string>& location) {
   std::string detail;
   std::string source;
-  if (string_data(package, runtime, input, source)) {
+  bool has_source = string_data(package, runtime, input, source);
+  if (!has_source) {
+    const void* bytes = nullptr;
+    uint64_t size = 0;
+    if (package->host->value_bytes_data(runtime, input, &bytes, &size) ==
+        X3_STATUS_OK) {
+      source.assign(static_cast<const char*>(bytes), static_cast<size_t>(size));
+      has_source = true;
+    }
+  }
+  if (has_source) {
     size_t offset = 0;
     while (offset < source.size() &&
            std::isspace(static_cast<unsigned char>(source[offset])))
@@ -5685,6 +5722,60 @@ X3Status raise_json_invalid(PackageState* package, X3CallContext* context,
   if (exception.tag != X3_TAG_INVALID)
     package->host->value_release(exception);
   if (detail.empty()) detail = "invalid JSON data";
+  const auto source_location = [&](size_t consumed_bytes) {
+    size_t line = 1;
+    size_t column = 0;
+    for (size_t index = 0; index < consumed_bytes && index < source.size();
+         ++index) {
+      const auto byte = static_cast<unsigned char>(source[index]);
+      if (byte == '\n') {
+        ++line;
+        column = 0;
+      } else if ((byte & 0xc0) != 0x80) {
+        ++column;
+      }
+    }
+    return "line " + std::to_string(line) + " column " +
+        std::to_string(column);
+  };
+  if (has_source &&
+      detail.rfind("Unterminated string starting at:", 0) == 0) {
+    detail = "EOF while parsing a string at " +
+        source_location(source.size());
+  } else if (has_source && source.find_first_not_of(" \t\r\n") ==
+                                std::string::npos) {
+    detail = "EOF while parsing a value at " +
+        source_location(source.size());
+  } else if (has_source &&
+             (detail.rfind("Illegal trailing comma before end of array:", 0) == 0 ||
+              detail.rfind("Illegal trailing comma before end of object:", 0) == 0)) {
+    const size_t marker = detail.find("(char ");
+    size_t character_offset = 0;
+    if (marker != std::string::npos) {
+      size_t index = marker + 6;
+      while (index < detail.size() &&
+             std::isdigit(static_cast<unsigned char>(detail[index]))) {
+        character_offset = character_offset * 10 +
+            static_cast<size_t>(detail[index] - '0');
+        ++index;
+      }
+      size_t byte_offset = 0;
+      size_t characters = 0;
+      while (byte_offset < source.size() && characters < character_offset) {
+        const auto byte = static_cast<unsigned char>(source[byte_offset++]);
+        if ((byte & 0xc0) != 0x80) ++characters;
+      }
+      if (byte_offset < source.size() && source[byte_offset] == ',') {
+        ++byte_offset;
+        while (byte_offset < source.size() &&
+               std::isspace(static_cast<unsigned char>(source[byte_offset])))
+          ++byte_offset;
+        if (byte_offset < source.size() &&
+            (source[byte_offset] == ']' || source[byte_offset] == '}'))
+          detail = "trailing comma at " + source_location(byte_offset + 1);
+      }
+    }
+  }
   const auto line_column = [&](std::string_view prefix,
                                std::string_view replacement) {
     if (detail.rfind(prefix, 0) != 0) return;
@@ -9456,6 +9547,7 @@ bool schema_matches_value(PackageState* package, X3Runtime* runtime,
 
 struct UnionFieldMatch {
   uint64_t count = 0;
+  uint64_t literal_count = 0;
   bool exact = true;
 };
 
@@ -9559,11 +9651,18 @@ bool union_input_field_match(PackageState* package, X3Runtime* runtime,
                                   field_input, definitions, depth + 1,
                                   &nested)) {
         selected.count += nested.count;
+        selected.literal_count += nested.literal_count;
         selected.exact = selected.exact && nested.exact;
       } else {
-        selected.exact = selected.exact && schema_matches_value(
+        const bool field_exact = schema_matches_value(
             package, runtime, field_schema, field_input, definitions,
             depth + 1);
+        std::string field_type;
+        if (field_exact &&
+            schema_type_name(package, runtime, field_schema, field_type) &&
+            field_type == "literal")
+          ++selected.literal_count;
+        selected.exact = selected.exact && field_exact;
       }
     }
     if (field_schema.tag != X3_TAG_INVALID)
@@ -17816,6 +17915,31 @@ X3Status attach_validation_title(
   return status;
 }
 
+X3Status normalize_uncaught_validator_control(
+    PackageState* package, X3CallContext* context, X3Runtime* runtime,
+    X3Status status) {
+  if (status == X3_STATUS_OK) return status;
+  X3Value exception = x3_value_invalid();
+  if (package->host->take_exception(context, &exception) != X3_STATUS_OK ||
+      exception.tag == X3_TAG_INVALID)
+    return status;
+  const bool omit = is_instance_of_class(
+      package, runtime, exception, package->pydantic_omit_class);
+  const bool use_default = is_instance_of_class(
+      package, runtime, exception, package->pydantic_use_default_class);
+  if (omit || use_default) {
+    package->host->value_release(exception);
+    return package->host->raise_error(
+        context, package->schema_error_class,
+        omit
+            ? "Uncaught Omit error, please check your usage of `default` validators."
+            : "Uncaught `PydanticUseDefault` exception: the error was raised in a field validator and no default value is available for that field.");
+  }
+  (void)package->host->raise_exception(context, exception);
+  package->host->value_release(exception);
+  return status;
+}
+
 X3Status validator_validate_common(X3CallContext* context, X3Runtime* runtime,
                                    void* user_data, const X3Value* args,
                                    uint32_t argc, X3Value* result,
@@ -17827,29 +17951,11 @@ X3Status validator_validate_common(X3CallContext* context, X3Runtime* runtime,
   ValidationEnvironment environment;
   environment.config = state->config;
   environment.strings_mode = strings_mode;
-  const auto status = validate_value(
+  auto status = validate_value(
       package, context, runtime, state->schema, args[1], result, 0,
       x3_value_invalid(), x3_value_invalid(), nullptr, &environment);
-  if (status != X3_STATUS_OK) {
-    X3Value exception = x3_value_invalid();
-    if (package->host->take_exception(context, &exception) == X3_STATUS_OK &&
-        exception.tag != X3_TAG_INVALID) {
-      const bool omit = is_instance_of_class(
-          package, runtime, exception, package->pydantic_omit_class);
-      const bool use_default = is_instance_of_class(
-          package, runtime, exception, package->pydantic_use_default_class);
-      if (omit || use_default) {
-        package->host->value_release(exception);
-        return package->host->raise_error(
-            context, package->schema_error_class,
-            omit
-                ? "Uncaught Omit error, please check your usage of `default` validators."
-                : "Uncaught `PydanticUseDefault` exception: the error was raised in a field validator and no default value is available for that field.");
-      }
-      (void)package->host->raise_exception(context, exception);
-      package->host->value_release(exception);
-    }
-  }
+  status = normalize_uncaught_validator_control(
+      package, context, runtime, status);
   return attach_validation_title(
       package, context, runtime, state->schema, state->config, status);
 }
@@ -18035,6 +18141,17 @@ X3Status validator_validate_json_common(
                                "validate_json() got an unexpected keyword argument");
     }
   }
+  const auto input_kind = package->host->value_object_kind(args[1]);
+  if (input_kind != X3_OBJECT_KIND_STRING &&
+      input_kind != X3_OBJECT_KIND_BYTES &&
+      input_kind != X3_OBJECT_KIND_BYTEARRAY) {
+    const std::vector<std::string> empty;
+    const auto status = raise_validation_error(
+        package, context, runtime, "json_type",
+        "JSON input should be string, bytes or bytearray", args[1], empty);
+    return attach_validation_title(
+        package, context, runtime, state->schema, state->config, status);
+  }
   X3Value module = x3_value_invalid(), loads = x3_value_invalid(), parsed = x3_value_invalid();
   const bool loader_ready =
       import_module(package, runtime, "json", &module) == X3_STATUS_OK &&
@@ -18092,12 +18209,14 @@ X3Status validator_validate_json_common(
     return attach_validation_title(
         package, context, runtime, state->schema, state->config, status);
   }
-  const auto status = validate_value(
+  auto status = validate_value(
       package, context, runtime, state->schema, parsed, result, 0,
       self_instance, x3_value_invalid(), nullptr, &environment);
   package->host->value_release(parsed);
   package->host->value_release(loads);
   package->host->value_release(module);
+  status = normalize_uncaught_validator_control(
+      package, context, runtime, status);
   return attach_validation_title(
       package, context, runtime, state->schema, state->config, status);
 }
@@ -18177,29 +18296,11 @@ X3Status validator_validate_kw_common(
   environment.context = validation_context;
   environment.config = state->config;
   environment.strings_mode = strings_mode;
-  const auto status = validate_value(
+  auto status = validate_value(
       package, c, r, state->schema, a[1], out, 0, self_instance,
       x3_value_invalid(), nullptr, &environment);
-  if (status != X3_STATUS_OK) {
-    X3Value exception = x3_value_invalid();
-    if (package->host->take_exception(c, &exception) == X3_STATUS_OK &&
-        exception.tag != X3_TAG_INVALID) {
-      const bool omit = is_instance_of_class(
-          package, r, exception, package->pydantic_omit_class);
-      const bool use_default = is_instance_of_class(
-          package, r, exception, package->pydantic_use_default_class);
-      if (omit || use_default) {
-        package->host->value_release(exception);
-        return package->host->raise_error(
-            c, package->schema_error_class,
-            omit
-                ? "Uncaught Omit error, please check your usage of `default` validators."
-                : "Uncaught `PydanticUseDefault` exception: the error was raised in a field validator and no default value is available for that field.");
-      }
-      (void)package->host->raise_exception(c, exception);
-      package->host->value_release(exception);
-    }
-  }
+  status = normalize_uncaught_validator_control(
+      package, c, r, status);
   return attach_validation_title(package, c, r, state->schema, state->config, status);
 }
 
@@ -18218,19 +18319,35 @@ X3Status validator_validate_strings_kw(
       c, r, d, a, n, kwargs, kwargc, out, true);
 }
 
+X3Status finish_isinstance_validation(
+    PackageState* package, X3CallContext* context, X3Runtime* runtime,
+    X3Status status, X3Value validated, X3Value* result) {
+  if (status == X3_STATUS_OK) {
+    package->host->value_release(validated);
+    *result = x3_value_bool(1);
+    return X3_STATUS_OK;
+  }
+  X3Value exception = x3_value_invalid();
+  if (package->host->take_exception(context, &exception) != X3_STATUS_OK ||
+      exception.tag == X3_TAG_INVALID)
+    return X3_STATUS_ERROR;
+  const bool invalid_input = is_instance_of_class(
+      package, runtime, exception, package->validation_error_class);
+  if (!invalid_input)
+    (void)package->host->raise_exception(context, exception);
+  package->host->value_release(exception);
+  if (!invalid_input) return X3_STATUS_ERROR;
+  *result = x3_value_bool(0);
+  return X3_STATUS_OK;
+}
+
 X3Status validator_isinstance(X3CallContext* context, X3Runtime* runtime, void* user_data,
                               const X3Value* args, uint32_t argc, X3Value* result) {
   X3Value validated = x3_value_invalid();
   const auto status = validator_validate(context, runtime, user_data, args, argc, &validated);
-  if (status == X3_STATUS_OK) {
-    static_cast<PackageState*>(user_data)->host->value_release(validated);
-    *result = x3_value_bool(1);
-    return X3_STATUS_OK;
-  }
   auto* package = static_cast<PackageState*>(user_data);
-  package->host->clear_exception(context);
-  *result = x3_value_bool(0);
-  return X3_STATUS_OK;
+  return finish_isinstance_validation(
+      package, context, runtime, status, validated, result);
 }
 
 X3Status validator_isinstance_kw(
@@ -18241,14 +18358,8 @@ X3Status validator_isinstance_kw(
   const auto status = validator_validate_kw(
       context, runtime, user_data, args, argc, kwargs, kwargc, &validated);
   auto* package = static_cast<PackageState*>(user_data);
-  if (status == X3_STATUS_OK) {
-    package->host->value_release(validated);
-    *result = x3_value_bool(1);
-    return X3_STATUS_OK;
-  }
-  package->host->clear_exception(context);
-  *result = x3_value_bool(0);
-  return X3_STATUS_OK;
+  return finish_isinstance_validation(
+      package, context, runtime, status, validated, result);
 }
 
 X3Status validator_validate_assignment_common(
@@ -20363,6 +20474,14 @@ X3Status serialize_value(PackageState* package, X3CallContext* context,
                 serialization_type == "to-string")) {
       use_serializer = json_mode && input.tag != X3_TAG_NONE;
     }
+    if (!use_serializer && !json_mode && has_serialization_type &&
+        (serialization_type == "format" ||
+         serialization_type == "to-string")) {
+      package->host->value_release(serialization);
+      package->host->value_retain(input);
+      *result = input;
+      return X3_STATUS_OK;
+    }
     if (has_serialization_type && serialization_type == "json" &&
         use_serializer && g_serialization_call_options != nullptr &&
         g_serialization_call_options->round_trip) {
@@ -20829,13 +20948,14 @@ X3Status serialize_value(PackageState* package, X3CallContext* context,
       return status;
     }
     if (has_serialization_type && use_serializer &&
-        (serialization_type == "date" ||
+        (serialization_type == "any" ||
+         serialization_type == "date" ||
          serialization_type == "datetime" ||
          serialization_type == "time" ||
          serialization_type == "timedelta")) {
       // A simple serialization schema replaces the parent schema's serializer
       // while leaving validation unchanged. Route it through the same general
-      // serializer used by a top-level temporal schema so warnings, JSON
+      // serializer used by a top-level schema so warnings, JSON
       // conversion, and configuration have identical behavior.
       X3Value override_schema = package->host->value_dict(runtime);
       X3Value override_key = package->host->value_string(runtime, "type");
@@ -23257,6 +23377,8 @@ serialize_computed_fail:
       return X3_STATUS_ERROR;
     }
     X3Value selected = x3_value_invalid();
+    X3Value literal_selected = x3_value_invalid();
+    UnionFieldMatch best_literal_match;
     for (uint64_t index = 0; index < count; ++index) {
       X3Value choice = x3_value_invalid();
       if (package->host->get_item(runtime, choices,
@@ -23280,9 +23402,29 @@ serialize_computed_fail:
         package->host->value_retain(choice_schema);
         selected = choice_schema;
       }
+      UnionFieldMatch field_match;
+      if (union_input_field_match(package, runtime, choice_schema, input,
+                                  definitions, depth + 1, &field_match) &&
+          field_match.literal_count > 0 &&
+          (field_match.literal_count > best_literal_match.literal_count ||
+           (field_match.literal_count == best_literal_match.literal_count &&
+            field_match.count > best_literal_match.count))) {
+        if (literal_selected.tag != X3_TAG_INVALID)
+          package->host->value_release(literal_selected);
+        package->host->value_retain(choice_schema);
+        literal_selected = choice_schema;
+        best_literal_match = field_match;
+      }
       if (owned) package->host->value_release(choice_schema);
       package->host->value_release(choice);
     }
+    if (selected.tag == X3_TAG_INVALID &&
+        literal_selected.tag != X3_TAG_INVALID) {
+      selected = literal_selected;
+      literal_selected = x3_value_invalid();
+    }
+    if (literal_selected.tag != X3_TAG_INVALID)
+      package->host->value_release(literal_selected);
     if (selected.tag != X3_TAG_INVALID) {
       X3Status selected_status = X3_STATUS_ERROR;
       {
@@ -24152,7 +24294,7 @@ serialize_list_fail:
       return X3_STATUS_ERROR;
     }
     const uint64_t minimum_count = variadic ? schema_count - 1 : schema_count;
-    if ((!variadic && count != schema_count) || (variadic && count < minimum_count)) {
+    if (!variadic && count != schema_count) {
       const std::string message = count > schema_count
           ? "Unexpected extra items present in tuple"
           : "Unexpected too few items present in tuple";

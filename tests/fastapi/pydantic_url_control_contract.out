@@ -1,0 +1,4 @@
+url controls-ok
+multi-host-url controls-ok
+http 200 {'url': 'http://example.com/a%00b'}
+http 422 {'error': 'invalid international domain name'}

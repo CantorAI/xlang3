@@ -953,3 +953,73 @@ serializer warning contracts (enum/any, variadic tuple, and union fallback).
 The same five cases pass on CPython 3.14 (**5/5**). They remain open native
 Pydantic-core compatibility gaps; this checkpoint does not establish full
 FastAPI compatibility or completion of the seven-project matrix.
+
+2026-09-23 native date/tuple continuation (uncommitted on
+`fastapi-compatibility`): lax `date` validation now accepts ISO datetime
+strings only when their time is exactly midnight, preserving the
+`date_from_datetime_inexact` error for non-midnight values. The unchanged
+upstream `TestBenchmarkDateX.test_date_from_datetime_str` passes, and a
+CPython 3.14 oracle covers Python/JSON inputs plus HTTP 200/422 FastAPI
+requests. Variadic tuple serialization no longer warns for inputs shorter
+than the fixed schema prefix; non-variadic tuple length warnings remain.
+The unchanged upstream `test_function_positional_tuple` passes, and another
+CPython 3.14 oracle covers tuple lengths zero through four and a FastAPI
+response. The complete pydantic-core matrix entry now reaches **1,182
+passed, 9 skipped, 1 xfailed, 5 failed** before `--maxfail=5`. Its five
+failures are recursive definition-model validation, enum/any serialization
+warning, union-of-functions warning, typed-dict/literal union output, and
+validator-iterator garbage collection. The last two pass unchanged on
+CPython 3.14. A probe showed the recursive schema currently hits an
+artificial 12-active-definition cap; increasing it toward the advertised
+99 without restructuring native stack use made deep inputs terminate the
+process, so that unsafe experiment was reverted. The recursion gap remains
+open. Full seven-project matrix, production load/soak, and final demo
+verification remain open.
+
+2026-09-23 serializer/validator continuation (uncommitted on
+`fastapi-compatibility`): `simple_ser_schema('any')` now replaces its parent
+serializer, including an enum parent, rather than falling through to the
+enum serializer. The unchanged upstream `test_any.py` reports **99 passed,
+2 skipped**. A format serializer left inactive in Python mode now returns
+the value without a spurious type warning; union serialization also ranks
+branches with matching literal fields when no exact branch matches. The
+unchanged upstream `test_union.py` reports **106 passed**. Python and JSON
+root validators both convert uncaught `PydanticOmit`/`PydanticUseDefault`
+to `SchemaError`; `isinstance_python` suppresses only `ValidationError`
+and propagates internal errors. The unchanged upstream `test_isinstance.py`
+reports **6 passed**. Public CPython 3.14 oracle fixtures cover each of
+these behaviors and FastAPI requests. The complete pydantic-core matrix
+reached **1,235 passed, 10 skipped, 1 xfailed, 5 failed** before
+`--maxfail=5`; the failures were deep recursive definition validation,
+validator-iterator garbage collection, Hypothesis multi-host URL text
+generation (`unsupported operands for -` in pure Python code), invalid
+JSON input type, and malformed JSON error text. The last two JSON cases
+were fixed after that run: `validate_json` now rejects non-text input with
+`json_type`, and its parser-error bridge reports CPython-matched EOF and
+trailing-comma details. Both unchanged focused upstream tests pass, and
+a FastAPI request oracle matches CPython. A separate full `test_json.py`
+run now reports **36 passed, 14 failed**; those failures concern broader
+JSON serialization, fallbacks, cycles, partial parsing, and encoded bytes.
+The full Release build, **53/53** CTest checks, and expanded FastAPI gate
+including the new CPython-oracle requests and live Uvicorn HTTP/HTTPS passed
+at this stage.
+
+2026-09-23 IntEnum/URL continuation: general runtime subtraction now accepts
+numeric subclasses such as `IntEnum`, matching existing addition and
+comparison behavior. A CPython 3.14 oracle covers reverse subtraction,
+numeric subclasses, and an overridden `__sub__`; a public FastAPI request
+exercises the same behavior. Native URL parsing now trims leading/trailing
+C0/space characters, percent-encodes control characters in path/query/fragment,
+and rejects them in the host with the CPython-matched error. A differential
+probe and public FastAPI request oracle cover URL and multi-host URL behavior.
+The unchanged upstream Hypothesis and URL test files report **388 passed,
+1 skipped, 6 xfailed**. The complete untouched pydantic-core matrix collects
+**5,934** cases and now reaches **1,238 passed, 10 skipped, 1 xfailed,
+5 failed** before `--maxfail=5`. The five failures are deep recursive
+definition-model validation, validator-iterator garbage collection, and
+three general JSON serialization/fallback cases. Full seven-project matrix,
+production load/soak, final demo verification, and full FastAPI compatibility
+remain open.
+The full Release build, **53/53** CTest checks (including the fixture gate),
+and expanded FastAPI gate (including all new CPython-oracle requests and live
+Uvicorn HTTP/HTTPS) pass on this checkpoint.

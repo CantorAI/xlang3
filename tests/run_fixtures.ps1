@@ -87,6 +87,7 @@ $cases = @(
     "set_union_bulk",
     "zlib_strict_decompressor_kwargs",
     "sum_start_keyword",
+    "int_enum_subtraction",
     "gzip_missing_cleanup",
     "gzip_finalizer_cleanup",
     "dict_hash_index",
