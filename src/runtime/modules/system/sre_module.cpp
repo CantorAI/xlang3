@@ -4822,9 +4822,13 @@ bool sre_compile(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
       regex_requires_host_ignorecase(pattern)) {
     regex_flags |= std::regex::icase;
   }
+#if !defined(_MSC_VER)
+  // MSVC does not expose this standard flag; anchor behavior is already
+  // normalized above for multiline patterns on that implementation.
   if ((flags & kFlagMultiline) != 0) {
     regex_flags |= std::regex_constants::multiline;
   }
+#endif
   auto* state = new PatternState();
   state->pattern = pattern;
   state->engine_pattern = std::move(engine_pattern);
