@@ -27,3 +27,17 @@ __pycache__/
 
 browser-*.json
 github-*.json
+
+# Unused files from the unpacked Brotli source distribution. The C library
+# sources and LICENSE used by modules/brotli remain tracked.
+third_party/brotli-1.2.0/CONTRIBUTING.md
+third_party/brotli-1.2.0/MANIFEST.in
+third_party/brotli-1.2.0/PKG-INFO
+third_party/brotli-1.2.0/README
+third_party/brotli-1.2.0/README.md
+third_party/brotli-1.2.0/pyproject.toml
+third_party/brotli-1.2.0/setup.cfg
+third_party/brotli-1.2.0/setup.py
+third_party/brotli-1.2.0/python/
+third_party/brotli-1.2.0/tests/
+third_party/brotli-1.2.0/c/tools/
