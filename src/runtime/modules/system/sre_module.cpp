@@ -5011,9 +5011,9 @@ bool sre_compile(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
       regex_requires_host_ignorecase(pattern)) {
     regex_flags |= std::regex::icase;
   }
-#if !defined(_MSC_VER)
-  // MSVC does not expose this standard flag; anchor behavior is already
-  // normalized above for multiline patterns on that implementation.
+#if !defined(_MSC_VER) || _MSC_VER >= 1930
+  // VS 2019's standard library lacks this flag; newer MSVC libraries
+  // expose it and need it for anchors after embedded newlines.
   if ((flags & kFlagMultiline) != 0) {
     regex_flags |= std::regex_constants::multiline;
   }
