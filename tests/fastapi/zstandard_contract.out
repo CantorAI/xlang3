@@ -1,0 +1,2 @@
+200 {'backend': 'cext', 'frame': '28b52ffd2003190000666f6f', 'restored': 'foo', 'version': '0.25.0'}
+ZstdError error determining content size from frame header

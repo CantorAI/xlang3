@@ -4,6 +4,7 @@
     "version": "0.141.1",
     "checkout": "fastapi",
     "commit": "95f8322ee1dcda7ceace7b1c4f6c9915b36d748f",
+    "isolate_console": true,
     "source": ".",
     "tests": "tests"
   },
@@ -20,6 +21,9 @@
     "version": "2.13.5",
     "checkout": "pydantic",
     "commit": "001dea020e0809844e5b17666432c9135a976f46",
+    "additional_packages": ["scratch/pytest8-test-runner", "scratch/pydantic-test-deps"],
+    "pytest_version": "8.4.2",
+    "rewrite_assertions": true,
     "source": ".",
     "tests": "tests"
   },
@@ -28,14 +32,17 @@
     "version": "2.46.5",
     "checkout": "pydantic_core-2.46.5",
     "commit": null,
+    "rewrite_assertions": true,
     "source": "python",
     "tests": "tests"
   },
   {
     "name": "anyio",
     "version": "4.15.1",
+    "disable_plugin_autoload": true,
     "checkout": "anyio",
     "commit": "ffcd1542cd6d127980205f90a0100078849dd703",
+    "isolate_console": true,
     "source": "src",
     "tests": "tests"
   },
@@ -44,6 +51,8 @@
     "version": "0.53.0",
     "checkout": "uvicorn",
     "commit": "421708fbc1a704dac8bd4053a7c4c0bf4d3704ee",
+    "additional_packages": ["scratch/httptools-pure"],
+    "isolate_console": true,
     "source": ".",
     "tests": "tests"
   },

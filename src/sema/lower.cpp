@@ -200,7 +200,9 @@ std::string join_annotation_parts(const std::vector<std::string>& parts, const c
   return out;
 }
 
-std::string annotation_expr_to_string(const ast::Expr& expr) {
+std::string annotation_expr_to_string(const ast::Expr& expr);
+
+std::string annotation_expr_to_string_impl(const ast::Expr& expr) {
   if (auto* name = dynamic_cast<const ast::NameExpr*>(&expr)) {
     return name->name;
   }
@@ -223,6 +225,14 @@ std::string annotation_expr_to_string(const ast::Expr& expr) {
   }
   if (auto* binary = dynamic_cast<const ast::BinaryExpr*>(&expr)) {
     return annotation_expr_to_string(*binary->lhs) + " " + binary->op + " " + annotation_expr_to_string(*binary->rhs);
+  }
+  if (auto* comparisons = dynamic_cast<const ast::CompareChainExpr*>(&expr)) {
+    std::string rendered = annotation_expr_to_string(*comparisons->first);
+    for (const auto& comparison : comparisons->comparisons) {
+      rendered += " " + comparison.first + " " +
+          annotation_expr_to_string(*comparison.second);
+    }
+    return rendered;
   }
   if (auto* unary = dynamic_cast<const ast::UnaryExpr*>(&expr)) {
     return unary->op + annotation_expr_to_string(*unary->expr);
@@ -309,7 +319,34 @@ std::string annotation_expr_to_string(const ast::Expr& expr) {
     }
     return annotation_expr_to_string(*call->callee) + "(" + join_annotation_parts(parts, ", ") + ")";
   }
+  if (auto* lambda = dynamic_cast<const ast::LambdaExpr*>(&expr)) {
+    std::vector<std::string> params;
+    if (!lambda->signature.empty()) {
+      params.reserve(lambda->signature.size());
+      for (const auto& param : lambda->signature) {
+        std::string rendered = param.name;
+        if (param.kind == ast::LambdaExpr::Param::Kind::VarArgs) rendered = "*" + rendered;
+        if (param.kind == ast::LambdaExpr::Param::Kind::KwArgs) rendered = "**" + rendered;
+        if (param.default_value != nullptr)
+          rendered += "=" + annotation_expr_to_string(*param.default_value);
+        params.push_back(std::move(rendered));
+      }
+    } else {
+      params = lambda->params;
+    }
+    return "lambda " + join_annotation_parts(params, ", ") + ": " +
+           annotation_expr_to_string(*lambda->body);
+  }
   return "<annotation>";
+}
+
+std::string annotation_expr_to_string(const ast::Expr& expr) {
+  auto rendered = annotation_expr_to_string_impl(expr);
+  if (rendered.find("<annotation>") != std::string::npos &&
+      !expr.annotation_source.empty()) {
+    return expr.annotation_source;
+  }
+  return rendered;
 }
 
 bool module_uses_future_annotations(const std::vector<ast::StmtPtr>& body) {
@@ -582,7 +619,9 @@ ast::ExprPtr clone_expr(const ast::Expr& expr) {
     std::vector<std::pair<ast::ExprPtr, ast::ExprPtr>> entries;
     entries.reserve(dict->entries.size());
     for (const auto& entry : dict->entries) {
-      entries.push_back(std::make_pair(clone_expr(*entry.first), clone_expr(*entry.second)));
+      entries.push_back(std::make_pair(
+          entry.first ? clone_expr(*entry.first) : nullptr,
+          clone_expr(*entry.second)));
     }
     return std::make_unique<ast::DictExpr>(std::move(entries));
   }
@@ -1301,10 +1340,17 @@ private:
   uint32_t emit_type_params_tuple(const std::vector<std::string>& type_params) {
     std::vector<uint32_t> items;
     items.reserve(type_params.size());
+    uint32_t typevar_class = UINT32_MAX;
+    if (!type_params.empty()) {
+      const auto typing_module = new_reg();
+      emit(ir::Op::ImportModule, typing_module, add_name("_typing"));
+      typevar_class = new_reg();
+      emit(ir::Op::LoadAttr, typevar_class, typing_module, add_name("TypeVar"));
+    }
     for (const auto& type_param : type_params) {
-      const auto reg = new_reg();
-      emit(ir::Op::LoadConst, reg, add_const(Value::type_param(type_param)));
-      items.push_back(reg);
+      const auto name = new_reg();
+      emit(ir::Op::LoadConst, name, add_const(Value::string(type_param)));
+      items.push_back(emit_inferred_typevar(typevar_class, name));
     }
     const auto tuple = new_reg();
     emit(ir::Op::MakeTuple, tuple, add_tuple_items(std::move(items)));
@@ -1457,6 +1503,8 @@ private:
                                          bool evaluate_annotations = false) {
     if (auto* assign = dynamic_cast<const ast::AssignStmt*>(&stmt)) {
       prepare_captured_locals_from_expr(*assign->value);
+    } else if (auto* alias = dynamic_cast<const ast::TypeAliasStmt*>(&stmt)) {
+      prepare_captured_locals_from_expr(*alias->value, true);
     } else if (auto* assign = dynamic_cast<const ast::AttrAssignStmt*>(&stmt)) {
       prepare_captured_locals_from_expr(*assign->object);
       prepare_captured_locals_from_expr(*assign->value);
@@ -1590,7 +1638,10 @@ private:
       std::unordered_set<std::string>& seen,
       bool capture_names) const {
     if (auto* name = dynamic_cast<const ast::NameExpr*>(&expr)) {
-      if (capture_names) {
+      if (capture_names && name->name != "__xlang3_fstring_format__" &&
+          name->name != "__xlang3_fstring_str__" &&
+          name->name != "__xlang3_fstring_repr__" &&
+          name->name != "__xlang3_fstring_ascii__") {
         add_expression_capture(name->name, local_targets, names, seen);
       }
       return;
@@ -1762,6 +1813,7 @@ private:
 
   static bool needs_private_name_mangling(const std::string& name) {
     return name.size() >= 3 && name[0] == '_' && name[1] == '_' &&
+           name.find_first_not_of('_') != std::string::npos &&
            !(name.size() >= 4 && name[name.size() - 1] == '_' && name[name.size() - 2] == '_') &&
            name.find('.') == std::string::npos;
   }
@@ -2154,12 +2206,14 @@ private:
     enum class Kind {
       TryFinally,
       WithExit,
+      ExceptTarget,
     };
 
     Kind kind = Kind::TryFinally;
     const std::vector<ast::StmtPtr>* body = nullptr;
     uint32_t manager = 0;
     bool is_async = false;
+    std::string exception_target;
   };
 
   void lower_finalizer_body(const std::vector<ast::StmtPtr>& body) {
@@ -2186,6 +2240,13 @@ private:
     emit(ir::Op::LoadConst, manager, none_const);
   }
 
+  void clear_named_value(const std::string& name) {
+    const auto none = new_reg();
+    emit(ir::Op::LoadConst, none, add_const(Value::none()));
+    store_named_value(name, none);
+    delete_named_value(name);
+  }
+
   void lower_active_finalizers_from(size_t base_count) {
     const auto saved = active_finalizers_;
     for (auto it = saved.rbegin(); it != saved.rend(); ++it) {
@@ -2195,8 +2256,10 @@ private:
       }
       if (it->kind == ActiveFinalizer::Kind::TryFinally) {
         lower_finalizer_body(*it->body);
-      } else {
+      } else if (it->kind == ActiveFinalizer::Kind::WithExit) {
         emit_with_normal_exit(it->manager, it->is_async);
+      } else {
+        clear_named_value(it->exception_target);
       }
     }
   }
@@ -2209,6 +2272,7 @@ private:
     loop_continue_targets_.push_back(continue_target);
     loop_break_jumps_.push_back({});
     loop_finalizer_base_counts_.push_back(active_finalizers_.size());
+    loop_except_base_counts_.push_back(active_except_depth_);
   }
 
   std::vector<size_t> pop_loop_control() {
@@ -2216,7 +2280,15 @@ private:
     loop_break_jumps_.pop_back();
     loop_continue_targets_.pop_back();
     loop_finalizer_base_counts_.pop_back();
+    loop_except_base_counts_.pop_back();
     return break_jumps;
+  }
+
+  void pop_loop_exceptions() {
+    for (size_t depth = active_except_depth_;
+         depth > loop_except_base_counts_.back(); --depth) {
+      emit(ir::Op::PopExcept);
+    }
   }
 
   void store_named_value(const std::string& name, uint32_t reg) {
@@ -2463,7 +2535,9 @@ private:
 
   void lower_try_except_core(const ast::TryExceptStmt& stmt) {
     const auto setup = emit_jump(ir::Op::SetupExcept);
+    ++active_except_depth_;
     lower_body(stmt.try_body);
+    --active_except_depth_;
     emit(ir::Op::PopExcept);
     lower_body(stmt.else_body);
     const auto skip_except = emit_jump(ir::Op::Jump);
@@ -2505,8 +2579,21 @@ private:
         emit(ir::Op::LoadException, exc_reg);
         store_named_value(handler.name, exc_reg);
       }
+      const size_t cleanup_setup = handler.name.empty()
+          ? 0 : emit_jump(ir::Op::SetupExcept);
+      if (!handler.name.empty()) {
+        active_finalizers_.push_back(
+            {ActiveFinalizer::Kind::ExceptTarget, nullptr, 0, false,
+             handler.name});
+      }
       const size_t handler_body_start = fn_.code.size();
+      if (!handler.name.empty()) ++active_except_depth_;
       lower_body(handler.body);
+      if (!handler.name.empty()) {
+        --active_except_depth_;
+        active_finalizers_.pop_back();
+        emit(ir::Op::PopExcept);
+      }
       if (handler.is_star && handler.line != 0) {
         for (size_t instruction = handler_body_start; instruction < fn_.code.size(); ++instruction) {
           if (fn_.code[instruction].op != ir::Op::Reraise ||
@@ -2525,10 +2612,15 @@ private:
       // handler so the exception and traceback do not form a reference
       // cycle through the frame locals.
       if (!handler.name.empty()) {
-        delete_named_value(handler.name);
+        clear_named_value(handler.name);
       }
       emit(ir::Op::ClearException);
       handler_done_jumps.push_back(emit_jump(ir::Op::Jump));
+      if (!handler.name.empty()) {
+        patch_jump(cleanup_setup, static_cast<uint32_t>(fn_.code.size()));
+        clear_named_value(handler.name);
+        emit(ir::Op::Reraise);
+      }
       if (handler.type != nullptr) {
         patch_jump(next_handler, static_cast<uint32_t>(fn_.code.size()));
       }
@@ -2588,11 +2680,31 @@ private:
   }
 
   uint32_t apply_decorators(uint32_t object_reg, const std::vector<ast::ExprPtr>& decorators) {
+    struct DecoratorSourceScope {
+      uint32_t& line;
+      ir::SourcePosition& position;
+      uint32_t saved_line;
+      ir::SourcePosition saved_position;
+      ~DecoratorSourceScope() {
+        line = saved_line;
+        position = saved_position;
+      }
+    } source_scope{current_source_line_, current_source_position_,
+                   current_source_line_, current_source_position_};
     uint32_t current = object_reg;
-    std::vector<uint32_t> resolved;
+    std::vector<std::pair<uint32_t, ir::SourcePosition>> resolved;
     for (const auto& expr : decorators) {
+      if (expr->line != 0) {
+        current_source_line_ = expr->line;
+        current_source_position_ = ir::SourcePosition{
+            expr->line, expr->end_line == 0 ? expr->line : expr->end_line,
+            expr->column, expr->end_column};
+      }
       auto* call = dynamic_cast<const ast::CallExpr*>(expr.get());
-      if (!call) { resolved.push_back(lower_expr(*expr)); continue; }
+      if (!call) {
+        resolved.emplace_back(lower_expr(*expr), current_source_position_);
+        continue;
+      }
       const auto callee = lower_expr(*call->callee);
       const auto mode = new_reg();
       const auto decorator = new_reg();
@@ -2629,14 +2741,20 @@ private:
         emit(ir::Op::CallEx, decorator, callee, add_call_spec(std::move(spec)));
       }
       patch_jump(done, static_cast<uint32_t>(fn_.code.size()));
-      resolved.push_back(decorator);
+      resolved.emplace_back(decorator, current_source_position_);
     }
-    for (auto it = resolved.rbegin(); it != resolved.rend(); ++it)
-      current = emit_call_value(*it, {current});
+    for (auto it = resolved.rbegin(); it != resolved.rend(); ++it) {
+      current_source_position_ = it->second;
+      current_source_line_ = it->second.line;
+      current = emit_call_value(it->first, {current});
+    }
     return current;
   }
 
-  void lower_with(const ast::WithStmt& stmt) {
+  template <typename LowerTarget, typename LowerBody>
+  void lower_with_custom(const ast::WithStmt& stmt,
+                         LowerTarget&& lower_target,
+                         LowerBody&& lower_with_body) {
     // Attribute and subscript expressions may lower to borrowed values.  The
     // context manager must remain alive until __exit__/__aexit__, even when
     // the object that owns the attribute is deleted inside the with body.
@@ -2648,16 +2766,10 @@ private:
     if (stmt.is_async) {
       entered = emit_await_value(entered);
     }
-    if (stmt.target_expr != nullptr) {
-      lower_unpack_assign(*stmt.target_expr, entered);
-    } else if (!stmt.target.empty()) {
-      store_named_value(stmt.target, entered);
-    } else {
-      emit(ir::Op::Pop, 0, entered);
-    }
+    lower_target(entered);
     const auto setup = emit_jump(ir::Op::SetupWith, manager);
     active_finalizers_.push_back({ActiveFinalizer::Kind::WithExit, nullptr, manager, stmt.is_async});
-    lower_body(stmt.body);
+    lower_with_body();
     active_finalizers_.pop_back();
     emit(ir::Op::PopExcept);
     const auto none_const = add_const(Value::none());
@@ -2688,6 +2800,32 @@ private:
     patch_jump(suppressed, static_cast<uint32_t>(fn_.code.size()));
   }
 
+  uint32_t emit_inferred_typevar(uint32_t typevar_class, uint32_t name) {
+    const auto infer_variance = new_reg();
+    emit(ir::Op::LoadConst, infer_variance, add_const(Value::boolean(true)));
+    ir::CallSpec spec;
+    spec.positional.push_back(name);
+    spec.keywords.push_back(ir::CallKeywordArg{"infer_variance", infer_variance});
+    const auto parameter = new_reg();
+    emit(ir::Op::CallEx, parameter, typevar_class, add_call_spec(std::move(spec)));
+    return parameter;
+  }
+
+  void lower_with(const ast::WithStmt& stmt) {
+    lower_with_custom(
+        stmt,
+        [&](uint32_t entered) {
+          if (stmt.target_expr != nullptr) {
+            lower_unpack_assign(*stmt.target_expr, entered);
+          } else if (!stmt.target.empty()) {
+            store_named_value(stmt.target, entered);
+          } else {
+            emit(ir::Op::Pop, 0, entered);
+          }
+        },
+        [&] { lower_body(stmt.body); });
+  }
+
   struct PatternCapture {
     std::string name;
     uint32_t source = 0;
@@ -2699,8 +2837,14 @@ private:
       std::vector<PatternCapture>* captures = nullptr) {
     if (auto* binary = dynamic_cast<const ast::BinaryExpr*>(&pattern)) {
       if (binary->op == "|") {
+        const auto subject_name = "#match.or." + std::to_string(next_hidden_local_++);
+        hidden_locals_.insert(subject_name);
+        const auto subject_slot = ensure_local(subject_name);
+        emit(ir::Op::StoreLocal, subject_slot, subject);
+        const auto lhs_subject = new_reg();
+        emit(ir::Op::LoadLocal, lhs_subject, subject_slot);
         std::vector<PatternCapture> lhs_captures;
-        const auto lhs = lower_pattern_to_bool(*binary->lhs, subject, captures == nullptr ? nullptr : &lhs_captures);
+        const auto lhs = lower_pattern_to_bool(*binary->lhs, lhs_subject, captures == nullptr ? nullptr : &lhs_captures);
         const auto result = new_reg();
         std::vector<PatternCapture> merged_captures;
         if (captures != nullptr) {
@@ -2716,8 +2860,10 @@ private:
         emit(ir::Op::LoadConst, result, add_const(Value::boolean(true)));
         const auto done = emit_jump(ir::Op::Jump);
         patch_jump(lhs_failed, static_cast<uint32_t>(fn_.code.size()));
+        const auto rhs_subject = new_reg();
+        emit(ir::Op::LoadLocal, rhs_subject, subject_slot);
         std::vector<PatternCapture> rhs_captures;
-        const auto rhs = lower_pattern_to_bool(*binary->rhs, subject, captures == nullptr ? nullptr : &rhs_captures);
+        const auto rhs = lower_pattern_to_bool(*binary->rhs, rhs_subject, captures == nullptr ? nullptr : &rhs_captures);
         emit(ir::Op::LoadConst, result, add_const(Value::boolean(false)));
         const auto rhs_failed = emit_jump(ir::Op::JumpIfFalse, rhs);
         if (captures != nullptr) {
@@ -2877,6 +3023,10 @@ private:
       uint32_t subject,
       std::vector<size_t>& fail_jumps,
       std::vector<PatternCapture>& captures) {
+    const auto sequence_check = new_reg();
+    emit(ir::Op::LoadGlobal, sequence_check, add_name("__xlang3_match_sequence__"));
+    const auto is_sequence = emit_call_value(sequence_check, {subject});
+    fail_jumps.push_back(emit_jump(ir::Op::JumpIfFalse, is_sequence));
     size_t star_index = items.size();
     for (size_t i = 0; i < items.size(); ++i) {
       if (dynamic_cast<const ast::StarredExpr*>(items[i].get()) != nullptr) {
@@ -2936,31 +3086,75 @@ private:
       uint32_t subject,
       std::vector<size_t>& fail_jumps,
       std::vector<PatternCapture>& captures) {
+    const auto mapping_check = new_reg();
+    emit(ir::Op::LoadGlobal, mapping_check, add_name("__xlang3_match_mapping__"));
+    const auto is_mapping = emit_call_value(mapping_check, {subject});
+    fail_jumps.push_back(emit_jump(ir::Op::JumpIfFalse, is_mapping));
+    size_t key_count = 0;
     for (const auto& entry : dict.entries) {
+      if (entry.first != nullptr) ++key_count;
+    }
+    if (key_count != 0) {
+      const auto length = new_reg();
+      const auto minimum = new_reg();
+      const auto enough = new_reg();
+      emit(ir::Op::Len, length, subject);
+      emit(ir::Op::LoadConst, minimum, add_const(Value::int64(static_cast<int64_t>(key_count))));
+      emit(ir::Op::Compare, enough, length, minimum, static_cast<uint32_t>(ir::CompareOp::Ge));
+      fail_jumps.push_back(emit_jump(ir::Op::JumpIfFalse, enough));
+    }
+    const auto object_type = new_reg();
+    emit(ir::Op::LoadGlobal, object_type, add_name("object"));
+    const auto missing = emit_call_value(object_type, {});
+    std::vector<uint32_t> matched_keys;
+    for (const auto& entry : dict.entries) {
+      if (entry.first == nullptr) continue;
       const auto key = lower_expr(*entry.first);
+      matched_keys.push_back(key);
+      const auto get = new_reg();
+      emit(ir::Op::LoadAttr, get, subject, add_name("get"));
+      const auto value = emit_call_value(get, {key, missing});
       const auto present = new_reg();
-      emit(ir::Op::Contains, present, key, subject);
+      emit(ir::Op::Is, present, value, missing, 1u);
       fail_jumps.push_back(emit_jump(ir::Op::JumpIfFalse, present));
-      const auto value = new_reg();
-      emit(ir::Op::GetItem, value, subject, key);
       emit_pattern_checks(*entry.second, value, fail_jumps, captures);
+    }
+    for (const auto& entry : dict.entries) {
+      if (entry.first != nullptr) continue;
+      const auto dict_type = new_reg();
+      emit(ir::Op::LoadGlobal, dict_type, add_name("dict"));
+      const auto rest = emit_call_value(dict_type, {subject});
+      for (const auto key : matched_keys) {
+        const auto pop = new_reg();
+        emit(ir::Op::LoadAttr, pop, rest, add_name("pop"));
+        const auto missing = new_reg();
+        emit(ir::Op::LoadConst, missing, add_const(Value::none()));
+        (void)emit_call_value(pop, {key, missing});
+      }
+      emit_pattern_checks(*entry.second, rest, fail_jumps, captures);
     }
   }
 
   void lower_match(const ast::MatchStmt& stmt) {
     const auto subject = lower_expr(*stmt.subject);
+    const auto subject_name = "#match.subject." + std::to_string(next_hidden_local_++);
+    hidden_locals_.insert(subject_name);
+    const auto subject_slot = ensure_local(subject_name);
+    emit(ir::Op::StoreLocal, subject_slot, subject);
     std::vector<size_t> done_jumps;
     for (const auto& match_case : stmt.cases) {
+      const auto case_subject = new_reg();
+      emit(ir::Op::LoadLocal, case_subject, subject_slot);
       std::vector<size_t> next_case_jumps;
       if (!match_case.wildcard) {
         std::vector<PatternCapture> captures;
-        const auto matched = lower_pattern_to_bool(*match_case.pattern, subject, &captures);
+        const auto matched = lower_pattern_to_bool(*match_case.pattern, case_subject, &captures);
         next_case_jumps.push_back(emit_jump(ir::Op::JumpIfFalse, matched));
         for (const auto& capture : captures) {
           store_named_value(capture.name, capture.source);
         }
         if (!match_case.as_name.empty() && match_case.as_name != "_") {
-          store_named_value(match_case.as_name, subject);
+          store_named_value(match_case.as_name, case_subject);
         }
         if (match_case.guard != nullptr) {
           const auto guard = lower_expr(*match_case.guard);
@@ -3043,7 +3237,8 @@ private:
         references_super = references_super || mangled == "super";
         auto alias = child_name_aliases->find(mangled);
         const auto& resolved = alias == child_name_aliases->end() ? mangled : alias->second;
-        if ((locals_.find(resolved) != locals_.end() || free_indices_.find(resolved) != free_indices_.end()) &&
+        if ((locals_.find(resolved) != locals_.end() ||
+             free_indices_.find(resolved) != free_indices_.end()) &&
             seen.insert(mangled).second) {
           free_vars.push_back(mangled);
           closure_sources.push_back(resolved);
@@ -3134,6 +3329,10 @@ private:
     const auto reg = new_reg();
     emit(ir::Op::MakeFunction, reg, function_id, add_function_closure(std::move(closure_regs)),
          default_regs.empty() ? UINT32_MAX : add_function_defaults(std::move(default_regs)));
+    if (!fn.type_params.empty()) {
+      const auto parameters = emit_type_params_tuple(fn.type_params);
+      emit(ir::Op::StoreAttr, reg, add_name("__type_params__"), parameters);
+    }
     if (!annotation_regs.empty()) {
       emit(ir::Op::SetFunctionAnnotations, reg, add_function_annotations(std::move(annotation_regs)));
     }
@@ -3197,13 +3396,65 @@ private:
       annotate.body.push_back(std::make_unique<ast::ReturnStmt>(
           std::make_unique<ast::DictExpr>(std::move(annotation_entries))));
 
-      const auto annotate_reg = lower_function_value(annotate);
+      const auto annotate_reg = lower_function_value(
+          annotate, {}, {}, {}, child_name_aliases);
       emit(ir::Op::StoreAttr, reg, add_name("__annotate__"), annotate_reg);
     }
     if (!kwdefault_regs.empty()) {
       emit(ir::Op::SetFunctionKwDefaults, reg, add_function_kwdefaults(std::move(kwdefault_regs)));
     }
     return reg;
+  }
+
+  uint32_t lower_type_alias_value(const ast::TypeAliasStmt& alias) {
+    const auto typing_module = new_reg();
+    emit(ir::Op::ImportModule, typing_module, add_name("_typing"));
+    const auto typevar_class = new_reg();
+    emit(ir::Op::LoadAttr, typevar_class, typing_module, add_name("TypeVar"));
+    std::vector<uint32_t> parameter_regs;
+    struct SavedAlias {
+      std::string name;
+      bool existed;
+      std::string prior;
+    };
+    std::vector<SavedAlias> saved_aliases;
+    for (const auto& parameter : alias.type_params) {
+      const auto parameter_name = new_reg();
+      emit(ir::Op::LoadConst, parameter_name,
+           add_const(Value::string(parameter)));
+      const auto parameter_value = emit_inferred_typevar(typevar_class, parameter_name);
+      parameter_regs.push_back(parameter_value);
+      const auto mangled = mangle_private_identifier(parameter);
+      const auto hidden = "#typealias." +
+          std::to_string(next_hidden_local_++) + "." + mangled;
+      hidden_locals_.insert(hidden);
+      ensure_cell_for_local(hidden);
+      store_named_value(hidden, parameter_value);
+      auto old = name_aliases_.find(mangled);
+      saved_aliases.push_back({mangled, old != name_aliases_.end(),
+                               old == name_aliases_.end() ? "" : old->second});
+      name_aliases_[mangled] = hidden;
+    }
+    ast::FunctionDef value_scope;
+    value_scope.name = alias.name + ".__value__";
+    value_scope.line = alias.line;
+    value_scope.body.push_back(std::make_unique<ast::ReturnStmt>(
+        clone_expr(*alias.value)));
+    const auto thunk = lower_function_value(
+        value_scope, {}, {}, {}, &name_aliases_);
+    for (auto it = saved_aliases.rbegin(); it != saved_aliases.rend(); ++it) {
+      if (it->existed) name_aliases_[it->name] = it->prior;
+      else name_aliases_.erase(it->name);
+    }
+    const auto params = new_reg();
+    emit(ir::Op::MakeTuple, params,
+         add_tuple_items(std::move(parameter_regs)));
+    const auto name = new_reg();
+    emit(ir::Op::LoadConst, name, add_const(Value::string(alias.name)));
+    const auto factory = new_reg();
+    emit(ir::Op::LoadAttr, factory, typing_module,
+         add_name("_make_type_alias"));
+    return emit_call_value(factory, {name, thunk, params});
   }
 
   static bool decorator_name_is(const ast::Expr& expr, std::string_view name) {
@@ -3248,12 +3499,15 @@ private:
 
     std::vector<std::pair<std::string, uint32_t>> attrs;
     std::vector<ir::CallKeywordArg> class_keywords;
+    std::vector<uint32_t> class_kw_star_args;
     uint32_t metaclass_reg = UINT32_MAX;
     bool metaclass_supports_prepare = false;
     bool metaclass_layout_dynamic = false;
     for (const auto& keyword : klass.keywords) {
       const auto value = lower_expr(*keyword.second);
-      if (keyword.first == "metaclass") {
+      if (keyword.first.empty()) {
+        class_kw_star_args.push_back(value);
+      } else if (keyword.first == "metaclass") {
         metaclass_reg = value;
         if (auto* name = dynamic_cast<const ast::NameExpr*>(keyword.second.get())) {
           metaclass_supports_prepare = name->name == "type" || class_infos_.find(name->name) != class_infos_.end();
@@ -3426,29 +3680,55 @@ private:
     // finalized layout. Ordinary classes deliberately have no slot layout.
     class_infos_[klass.name] = class_info;
 
+    uint32_t class_type_params_reg = UINT32_MAX;
+    uint32_t generic_base_reg = UINT32_MAX;
+    if (!klass.type_params.empty()) {
+      class_type_params_reg = emit_type_params_tuple(klass.type_params);
+      const auto typing_module = new_reg();
+      emit(ir::Op::ImportModule, typing_module, add_name("_typing"));
+      const auto generic_class = new_reg();
+      emit(ir::Op::LoadAttr, generic_class, typing_module, add_name("Generic"));
+      generic_base_reg = new_reg();
+      emit(ir::Op::GetItem, generic_base_reg, generic_class, class_type_params_reg);
+    }
     std::vector<uint32_t> base_regs;
     uint32_t bases_reg = UINT32_MAX;
     const bool has_starred_bases = has_starred_item(klass.bases);
     if (has_starred_bases) {
       bases_reg = lower_tuple_with_unpack(klass.bases);
+      if (generic_base_reg != UINT32_MAX) {
+        const auto generic_tuple = new_reg();
+        emit(ir::Op::MakeTuple, generic_tuple, add_tuple_items({generic_base_reg}));
+        const auto combined = new_reg();
+        emit(ir::Op::Add, combined, bases_reg, generic_tuple);
+        bases_reg = combined;
+      }
     } else {
-      base_regs.reserve(klass.bases.size());
+      base_regs.reserve(klass.bases.size() + (generic_base_reg == UINT32_MAX ? 0 : 1));
       for (const auto& base_expr : klass.bases) {
         base_regs.push_back(lower_expr(*base_expr));
       }
+      if (generic_base_reg != UINT32_MAX) base_regs.push_back(generic_base_reg);
     }
-    if (metaclass_reg == UINT32_MAX && (bases_reg != UINT32_MAX || !base_regs.empty())) {
+    uint32_t resolved_bases_reg = UINT32_MAX;
+    if (bases_reg != UINT32_MAX || !base_regs.empty()) {
       if (bases_reg == UINT32_MAX) {
         bases_reg = new_reg();
         emit(ir::Op::MakeTuple, bases_reg, add_tuple_items(base_regs));
       }
+      const auto resolve_bases_reg = new_reg();
+      emit(ir::Op::LoadGlobal, resolve_bases_reg, add_name("__xlang3_resolve_bases__"));
+      resolved_bases_reg = new_reg();
+      emit(ir::Op::Call, resolved_bases_reg, resolve_bases_reg, add_call_args({bases_reg}));
+    }
+    if (metaclass_reg == UINT32_MAX && resolved_bases_reg != UINT32_MAX) {
       const auto select_metaclass_reg = new_reg();
       emit(ir::Op::LoadGlobal, select_metaclass_reg, add_name("__xlang3_select_metaclass__"));
       metaclass_reg = new_reg();
-      emit(ir::Op::Call, metaclass_reg, select_metaclass_reg, add_call_args({bases_reg}));
+      emit(ir::Op::Call, metaclass_reg, select_metaclass_reg, add_call_args({resolved_bases_reg}));
       metaclass_supports_prepare = true;
     }
-    if (metaclass_reg == UINT32_MAX && !class_keywords.empty()) {
+    if (metaclass_reg == UINT32_MAX && (!class_keywords.empty() || !class_kw_star_args.empty())) {
       metaclass_reg = new_reg();
       emit(ir::Op::LoadGlobal, metaclass_reg, add_name("type"));
       metaclass_supports_prepare = true;
@@ -3463,15 +3743,17 @@ private:
         bases_reg = new_reg();
         emit(ir::Op::MakeTuple, bases_reg, add_tuple_items(base_regs));
       }
+      const auto prepare_bases_reg = resolved_bases_reg == UINT32_MAX ? bases_reg : resolved_bases_reg;
       const auto prepare_reg = new_reg();
       emit(ir::Op::LoadAttr, prepare_reg, metaclass_reg, add_name("__prepare__"));
       namespace_reg = new_reg();
-      if (class_keywords.empty()) {
-        emit(ir::Op::Call, namespace_reg, prepare_reg, add_call_args({name_reg, bases_reg}));
+      if (class_keywords.empty() && class_kw_star_args.empty()) {
+        emit(ir::Op::Call, namespace_reg, prepare_reg, add_call_args({name_reg, prepare_bases_reg}));
       } else {
         ir::CallSpec prepare_spec;
-        prepare_spec.positional = {name_reg, bases_reg};
+        prepare_spec.positional = {name_reg, prepare_bases_reg};
         prepare_spec.keywords = class_keywords;
+        prepare_spec.kw_star_args = class_kw_star_args;
         emit(ir::Op::CallEx, namespace_reg, prepare_reg, add_call_spec(std::move(prepare_spec)));
       }
     }
@@ -3490,6 +3772,13 @@ private:
           ast::FunctionDef annotation_scope;
           annotation_scope.body.push_back(std::make_unique<ast::ReturnStmt>(
               clone_expr(*assign->annotation)));
+          for (const auto& name : sema::free_candidates_for(annotation_scope)) {
+            annotation_capture_names.insert(mangle_private_identifier(name));
+          }
+        } else if (auto* alias = dynamic_cast<const ast::TypeAliasStmt*>(&stmt)) {
+          ast::FunctionDef annotation_scope;
+          annotation_scope.body.push_back(std::make_unique<ast::ReturnStmt>(
+              clone_expr(*alias->value)));
           for (const auto& name : sema::free_candidates_for(annotation_scope)) {
             annotation_capture_names.insert(mangle_private_identifier(name));
           }
@@ -3519,13 +3808,19 @@ private:
       };
       for (const auto& stmt : klass.body) collect_annotation_captures(collect_annotation_captures, *stmt);
     }
+    uint32_t class_frame_namespace_reg = UINT32_MAX;
     auto add_to_prepared_namespace = [&](const std::string& name, uint32_t reg) {
-      if (namespace_reg == UINT32_MAX) {
+      if (namespace_reg == UINT32_MAX && class_frame_namespace_reg == UINT32_MAX) {
         return;
       }
       const auto key = new_reg();
       emit(ir::Op::LoadConst, key, add_const(Value::string(mangle_private_identifier(name))));
-      emit(ir::Op::DictSet, namespace_reg, key, reg);
+      if (namespace_reg != UINT32_MAX) {
+        emit(ir::Op::DictSet, namespace_reg, key, reg);
+      }
+      if (class_frame_namespace_reg != UINT32_MAX && class_frame_namespace_reg != namespace_reg) {
+        emit(ir::Op::DictSet, class_frame_namespace_reg, key, reg);
+      }
     };
     auto bind_class_attr_alias = [&](const std::string& name, uint32_t reg) {
       const std::string hidden_name = "#class." + klass.name + "." + name;
@@ -3571,6 +3866,15 @@ private:
       namespace_reg = new_reg();
       emit(ir::Op::MakeDict, namespace_reg, add_dict_items({}));
     }
+    class_frame_namespace_reg = namespace_reg == UINT32_MAX ? new_reg() : namespace_reg;
+    if (namespace_reg == UINT32_MAX) {
+      emit(ir::Op::MakeDict, class_frame_namespace_reg, add_dict_items({}));
+    }
+    const std::string class_frame_namespace_name =
+        "#class.frame." + std::to_string(next_hidden_local_++);
+    hidden_locals_.insert(class_frame_namespace_name);
+    const uint32_t class_frame_locals_slot = ensure_local(class_frame_namespace_name);
+    emit(ir::Op::StoreLocal, class_frame_locals_slot, class_frame_namespace_reg);
     for (const auto& attr : attrs) {
       add_to_prepared_namespace(attr.first, attr.second);
     }
@@ -3601,10 +3905,80 @@ private:
     std::unordered_map<std::string, std::string> class_method_aliases;
 
     if (!klass.type_params.empty()) {
-      const auto attr_reg = emit_type_params_tuple(klass.type_params);
-      attrs.push_back(std::make_pair("__type_params__", attr_reg));
-      bind_class_attr_alias("__type_params__", attr_reg);
+      attrs.push_back(std::make_pair("__type_params__", class_type_params_reg));
+      bind_class_attr_alias("__type_params__", class_type_params_reg);
+      for (size_t index = 0; index < klass.type_params.size(); ++index) {
+        const auto& parameter_name = klass.type_params[index];
+        const auto mangled = mangle_private_identifier(parameter_name);
+        const auto hidden = "#class.typeparam." +
+            std::to_string(next_hidden_local_++) + "." + mangled;
+        hidden_locals_.insert(hidden);
+        ensure_cell_for_local(hidden);
+        const auto parameter = new_reg();
+        const auto parameter_index = new_reg();
+        emit(ir::Op::LoadConst, parameter_index,
+             add_const(Value::int64(static_cast<int64_t>(index))));
+        emit(ir::Op::GetItem, parameter, class_type_params_reg,
+             parameter_index);
+        store_named_value(hidden, parameter);
+        if (class_aliases.insert(mangled).second) {
+          const auto previous = name_aliases_.find(mangled);
+          if (previous == name_aliases_.end()) erased_aliases.insert(mangled);
+          else saved_aliases[mangled] = previous->second;
+        }
+        name_aliases_[mangled] = hidden;
+        class_method_aliases[mangled] = hidden;
+      }
     }
+
+    auto assign_class_target = [&](auto&& self, const ast::Expr& target,
+                                   uint32_t source_reg) -> void {
+      if (auto* name = dynamic_cast<const ast::NameExpr*>(&target)) {
+        attrs.push_back(std::make_pair(mangle_private_identifier(name->name), source_reg));
+        bind_class_attr_alias(name->name, source_reg);
+        return;
+      }
+      if (auto* starred = dynamic_cast<const ast::StarredExpr*>(&target)) {
+        self(self, *starred->expr, source_reg);
+        return;
+      }
+      std::vector<const ast::Expr*> items;
+      if (auto* tuple = dynamic_cast<const ast::TupleExpr*>(&target)) {
+        for (const auto& item : tuple->items) items.push_back(item.get());
+      } else if (auto* list = dynamic_cast<const ast::ListExpr*>(&target)) {
+        for (const auto& item : list->items) items.push_back(item.get());
+      } else {
+        lower_assign_target(target, source_reg);
+        return;
+      }
+      size_t star_index = items.size();
+      for (size_t index = 0; index < items.size(); ++index) {
+        if (dynamic_cast<const ast::StarredExpr*>(items[index]) != nullptr) {
+          star_index = index;
+          break;
+        }
+      }
+      const bool has_star = star_index != items.size();
+      const uint32_t before_count = has_star
+          ? static_cast<uint32_t>(star_index)
+          : static_cast<uint32_t>(items.size());
+      const uint32_t after_count = has_star
+          ? static_cast<uint32_t>(items.size() - star_index - 1) : 0;
+      const uint32_t output_count = before_count + after_count +
+          (has_star ? 1u : 0u);
+      const uint32_t first_output = new_reg();
+      for (uint32_t index = 1; index < output_count; ++index) (void)new_reg();
+      emit(ir::Op::UnpackSequence, first_output, source_reg, before_count,
+           after_count | (has_star ? 0x80000000u : 0u));
+      for (uint32_t index = 0; index < before_count; ++index)
+        self(self, *items[index], first_output + index);
+      if (has_star) {
+        self(self, *items[star_index], first_output + before_count);
+        for (uint32_t index = 0; index < after_count; ++index)
+          self(self, *items[star_index + 1 + index],
+               first_output + before_count + 1 + index);
+      }
+    };
 
     auto lower_class_body_stmt = [&](auto&& self, const ast::Stmt& stmt) -> void {
       if (auto* fn = dynamic_cast<const ast::FunctionDef*>(&stmt)) {
@@ -3647,47 +4021,12 @@ private:
         const auto attr_reg = lower_expr(*assign->value);
         attrs.push_back(std::make_pair(mangle_private_identifier(assign->name), attr_reg));
         bind_class_attr_alias(assign->name, attr_reg);
+      } else if (auto* alias = dynamic_cast<const ast::TypeAliasStmt*>(&stmt)) {
+        const auto attr_reg = lower_type_alias_value(*alias);
+        attrs.push_back(std::make_pair(mangle_private_identifier(alias->name), attr_reg));
+        bind_class_attr_alias(alias->name, attr_reg);
       } else if (auto* assign = dynamic_cast<const ast::UnpackAssignStmt*>(&stmt)) {
         const auto value_reg = lower_expr(*assign->value);
-        auto assign_class_target = [&](auto&& self, const ast::Expr& target, uint32_t source_reg) -> void {
-          if (auto* name = dynamic_cast<const ast::NameExpr*>(&target)) {
-            attrs.push_back(std::make_pair(mangle_private_identifier(name->name), source_reg));
-            bind_class_attr_alias(name->name, source_reg);
-            return;
-          }
-          if (auto* starred = dynamic_cast<const ast::StarredExpr*>(&target)) {
-            self(self, *starred->expr, source_reg);
-            return;
-          }
-          std::vector<const ast::Expr*> items;
-          if (auto* tuple = dynamic_cast<const ast::TupleExpr*>(&target)) {
-            for (const auto& item : tuple->items) items.push_back(item.get());
-          } else if (auto* list = dynamic_cast<const ast::ListExpr*>(&target)) {
-            for (const auto& item : list->items) items.push_back(item.get());
-          } else {
-            lower_assign_target(target, source_reg);
-            return;
-          }
-          size_t star_index = items.size();
-          for (size_t index = 0; index < items.size(); ++index) {
-            if (dynamic_cast<const ast::StarredExpr*>(items[index]) != nullptr) { star_index = index; break; }
-          }
-          const bool has_star = star_index != items.size();
-          const uint32_t before_count = has_star ? static_cast<uint32_t>(star_index) : static_cast<uint32_t>(items.size());
-          const uint32_t after_count = has_star ? static_cast<uint32_t>(items.size() - star_index - 1) : 0;
-          const uint32_t output_count = before_count + after_count + (has_star ? 1u : 0u);
-          const uint32_t first_output = new_reg();
-          for (uint32_t index = 1; index < output_count; ++index) (void)new_reg();
-          emit(ir::Op::UnpackSequence, first_output, source_reg, before_count,
-               after_count | (has_star ? 0x80000000u : 0u));
-          for (uint32_t index = 0; index < before_count; ++index) self(self, *items[index], first_output + index);
-          if (has_star) {
-            self(self, *items[star_index], first_output + before_count);
-            for (uint32_t index = 0; index < after_count; ++index) {
-              self(self, *items[star_index + 1 + index], first_output + before_count + 1 + index);
-            }
-          }
-        };
         assign_class_target(assign_class_target, *assign->target, value_reg);
       } else if (auto* assign = dynamic_cast<const ast::SubscriptAssignStmt*>(&stmt)) {
         const auto object = lower_expr(*assign->object);
@@ -3797,6 +4136,24 @@ private:
           self(self, *child);
         }
         patch_jump(jend, static_cast<uint32_t>(fn_.code.size()));
+      } else if (auto* with = dynamic_cast<const ast::WithStmt*>(&stmt)) {
+        lower_with_custom(
+            *with,
+            [&](uint32_t entered) {
+              if (with->target_expr != nullptr) {
+                assign_class_target(assign_class_target, *with->target_expr,
+                                    entered);
+              } else if (!with->target.empty()) {
+                const auto name = mangle_private_identifier(with->target);
+                attrs.push_back(std::make_pair(name, entered));
+                bind_class_attr_alias(with->target, entered);
+              } else {
+                emit(ir::Op::Pop, 0, entered);
+              }
+            },
+            [&] {
+              for (const auto& child : with->body) self(self, *child);
+            });
       } else if (auto* expr_stmt = dynamic_cast<const ast::ExprStmt*>(&stmt)) {
         const auto reg = lower_expr(*expr_stmt->expr);
         emit(ir::Op::Pop, 0, reg);
@@ -3818,6 +4175,7 @@ private:
           class_body_start,
           class_body_end,
           static_cast<uint32_t>(module_.functions.size() - 1),
+          class_frame_locals_slot,
       });
     }
 
@@ -3957,7 +4315,18 @@ private:
       annotate.body.push_back(std::make_unique<ast::ReturnStmt>(
           std::make_unique<ast::NameExpr>(annotations_result)));
 
+      const size_t first_annotate_function = module_.functions.size();
       const auto annotate_reg = lower_function_value(annotate, {}, {}, class_qualname, &name_aliases_);
+      const std::string generated_prefix =
+          class_qualname + ".__annotate__.<locals>.";
+      for (size_t index = first_annotate_function;
+           index < module_.functions.size(); ++index) {
+        auto& qualified_name = module_.functions[index].qualname;
+        if (qualified_name.rfind(generated_prefix, 0) == 0) {
+          qualified_name = class_qualname + "." +
+              qualified_name.substr(generated_prefix.size());
+        }
+      }
       attrs.push_back(std::make_pair("__annotate__", annotate_reg));
       bind_class_attr_alias("__annotate__", annotate_reg);
       }
@@ -4001,13 +4370,18 @@ private:
         optimized_slots_reg = new_reg();
         emit(ir::Op::LoadConst, optimized_slots_reg, add_const(Value::none()));
       }
-      if (class_keywords.empty()) {
+      if (class_keywords.empty() && class_kw_star_args.empty()) {
         emit(ir::Op::Call, reg, build_class_reg,
-             add_call_args({metaclass_reg, name_reg, bases_reg, namespace_reg, optimized_slots_reg}));
+             add_call_args({metaclass_reg, name_reg, bases_reg, namespace_reg,
+                            optimized_slots_reg,
+                            resolved_bases_reg == UINT32_MAX ? bases_reg : resolved_bases_reg}));
       } else {
         ir::CallSpec class_spec;
-        class_spec.positional = {metaclass_reg, name_reg, bases_reg, namespace_reg, optimized_slots_reg};
+        class_spec.positional = {metaclass_reg, name_reg, bases_reg, namespace_reg,
+                                 optimized_slots_reg,
+                                 resolved_bases_reg == UINT32_MAX ? bases_reg : resolved_bases_reg};
         class_spec.keywords = std::move(class_keywords);
+        class_spec.kw_star_args = std::move(class_kw_star_args);
         emit(ir::Op::CallEx, reg, build_class_reg, add_call_spec(std::move(class_spec)));
       }
     }
@@ -4246,6 +4620,7 @@ private:
         return;
       }
       lower_active_finalizers_from(loop_finalizer_base_counts_.back());
+      pop_loop_exceptions();
       loop_break_jumps_.back().push_back(emit_jump(ir::Op::Jump));
       return;
     }
@@ -4254,6 +4629,7 @@ private:
         return;
       }
       lower_active_finalizers_from(loop_finalizer_base_counts_.back());
+      pop_loop_exceptions();
       emit(ir::Op::Jump, loop_continue_targets_.back());
       return;
     }
@@ -4276,6 +4652,10 @@ private:
       emit(ir::Op::Call, exc, klass, add_call_args(std::move(args)));
       emit(ir::Op::Raise, 0, exc);
       patch_jump(done, static_cast<uint32_t>(fn_.code.size()));
+      return;
+    }
+    if (auto* alias = dynamic_cast<const ast::TypeAliasStmt*>(&stmt)) {
+      store_named_value(alias->name, lower_type_alias_value(*alias));
       return;
     }
     if (auto* assign = dynamic_cast<const ast::AssignStmt*>(&stmt)) {
@@ -4442,6 +4822,10 @@ private:
     }
     if (auto* loop = dynamic_cast<const ast::WhileStmt*>(&stmt)) {
       const auto start = static_cast<uint32_t>(fn_.code.size());
+      // The condition is a backward-jump target.  Do not fuse its first load
+      // into an instruction before the loop, or later iterations read a stale
+      // register instead of the updated local.
+      control_flow_entries_.insert(start);
       size_t jf = 0;
       if (!try_emit_local_const_condition_jump(*loop->condition, jf)) {
         const auto cond = lower_expr(*loop->condition);
@@ -4670,8 +5054,19 @@ private:
       bool is_async,
       uint32_t dst,
       Body body) {
+    const auto* target_name = dynamic_cast<const ast::NameExpr*>(&target_expr);
+    const bool has_single_name_target = target_name != nullptr;
+    int64_t range_start = 0;
+    int64_t range_stop = 0;
+    int64_t range_step = 1;
+    const bool fused_range = !is_async && has_single_name_target &&
+        try_parse_const_range_call(iterable, range_start, range_stop, range_step);
+    // The iterable is evaluated in the enclosing scope, before this clause's
+    // target names become local to the comprehension.
+    const uint32_t iterable_reg = fused_range ? 0 : lower_expr(iterable);
     struct SavedAlias {
       std::string name;
+      std::string hidden_name;
       bool had_alias = false;
       std::string value;
     };
@@ -4685,20 +5080,18 @@ private:
       const auto old_alias = name_aliases_.find(name);
       saved_aliases.push_back(SavedAlias{
           name,
+          hidden_name,
           old_alias != name_aliases_.end(),
           old_alias == name_aliases_.end() ? std::string{} : old_alias->second});
       name_aliases_[name] = hidden_name;
     }
 
-    const auto* target_name = dynamic_cast<const ast::NameExpr*>(&target_expr);
     uint32_t single_hidden_slot = 0;
-    const bool has_single_name_target = target_name != nullptr;
     if (has_single_name_target) {
       single_hidden_slot = ensure_local(name_aliases_[target_name->name]);
     }
 
     if (is_async) {
-      const auto iterable_reg = lower_expr(iterable);
       const auto iterator_reg = emit_call_method(iterable_reg, "__aiter__", {});
       const auto start = static_cast<uint32_t>(fn_.code.size());
       const auto setup_next = emit_jump(ir::Op::SetupExcept);
@@ -4746,6 +5139,8 @@ private:
       patch_jump(done, static_cast<uint32_t>(fn_.code.size()));
 
       for (auto it = saved_aliases.rbegin(); it != saved_aliases.rend(); ++it) {
+        if (!is_cell_local(it->hidden_name))
+          clear_named_value(it->hidden_name);
         if (it->had_alias) {
           name_aliases_[it->name] = it->value;
         } else {
@@ -4755,16 +5150,11 @@ private:
       return dst;
     }
 
-    int64_t range_start = 0;
-    int64_t range_stop = 0;
-    int64_t range_step = 1;
     size_t loop_exit = 0;
     uint32_t start = 0;
-    bool fused_range = false;
     size_t target_store_begin = 0;
     size_t target_store_end = 0;
-    if (has_single_name_target && try_parse_const_range_call(iterable, range_start, range_stop, range_step)) {
-      fused_range = true;
+    if (fused_range) {
       const auto state_name = "#range." + std::to_string(next_hidden_local_++) + "." + target_name->name;
       hidden_locals_.insert(state_name);
       const auto state_slot = ensure_local(state_name);
@@ -4776,7 +5166,6 @@ private:
            add_range_spec(add_const(Value::int64(range_stop)), add_const(Value::int64(range_step))));
       loop_exit = fn_.code.size() - 1;
     } else {
-      const auto iterable_reg = lower_expr(iterable);
       const auto iterator_reg = new_reg();
       emit(ir::Op::GetIter, iterator_reg, iterable_reg);
       start = static_cast<uint32_t>(fn_.code.size());
@@ -4820,6 +5209,8 @@ private:
     }
 
     for (auto it = saved_aliases.rbegin(); it != saved_aliases.rend(); ++it) {
+      if (!is_cell_local(it->hidden_name))
+        clear_named_value(it->hidden_name);
       if (it->had_alias) {
         name_aliases_[it->name] = it->value;
       } else {
@@ -4907,7 +5298,8 @@ private:
         [](const ast::CompClause& clause) { return clause.is_async; });
     FunctionLowerer child_lowerer(
         module_, "#genexpr", {eager_iterable_name}, {}, free_vars, std::vector<ast::StmtPtr>{}, true, is_async, false, comp.line, false,
-        instance_slot_self_, instance_slots_, class_infos_, module_global_slots_, imported_module_slots_);
+        instance_slot_self_, instance_slots_, class_infos_, module_global_slots_, imported_module_slots_,
+        {}, future_annotations_, active_private_class_name());
     child_lowerer.name_aliases_ = name_aliases_;
     ast::NameExpr eager_iterable_expr(eager_iterable_name);
     auto clauses = child_lowerer.generator_comp_clauses(comp);
@@ -5010,7 +5402,7 @@ private:
         emit(ir::Op::LoadFree, reg, free_it->second);
       } else {
         uint32_t slot = 0;
-        if (module_global_slot(resolved, slot)) {
+        if (fn_.name != "__annotate__" && module_global_slot(resolved, slot)) {
           emit(ir::Op::LoadModuleSlot, reg, slot);
         } else {
           emit(ir::Op::LoadGlobal, reg, add_name(resolved));
@@ -5038,14 +5430,11 @@ private:
       if (yield->from) {
         const auto iterator = new_reg();
         emit(ir::Op::GetIter, iterator, src);
-        const auto start = static_cast<uint32_t>(fn_.code.size());
-        const auto item = new_reg();
-        emit(ir::Op::IterNext, item, iterator, 0);
-        const auto iter_next = fn_.code.size() - 1;
-        emit(ir::Op::Yield, reg, item);
-        emit(ir::Op::Jump, start);
-        patch_iter_done(iter_next, static_cast<uint32_t>(fn_.code.size()));
-        emit(ir::Op::Move, reg, item);
+        const auto sent = new_reg();
+        emit(ir::Op::LoadConst, sent, add_const(Value::none()));
+        const auto started = new_reg();
+        emit(ir::Op::LoadConst, started, add_const(Value::boolean(false)));
+        emit(ir::Op::YieldFrom, reg, iterator, sent, started);
       } else {
         emit(ir::Op::Yield, reg, src);
       }
@@ -5164,9 +5553,23 @@ private:
         }
       }
       if (auto* attr = dynamic_cast<const ast::AttrExpr*>(call->callee.get())) {
+        // __class__ is an attribute of the value, not a method supplied by
+        // its type. Resolve it before calling so data-descriptor semantics
+        // match a separate attribute load followed by a call.
+        if (attr->name == "__class__") {
+          const auto callee = lower_expr(*call->callee);
+          std::vector<uint32_t> arg_regs;
+          for (const auto& arg : call->args) {
+            arg_regs.push_back(lower_expr(*arg));
+          }
+          const auto dst = new_reg();
+          emit(ir::Op::Call, dst, callee, add_call_args(std::move(arg_regs)));
+          return dst;
+        }
         uint32_t imported_slot = 0;
         auto* module_name = dynamic_cast<const ast::NameExpr*>(attr->object.get());
-        if (!is_module_ && module_name != nullptr) {
+        if (!is_module_ && fn_.name != "__annotate__" &&
+            module_name != nullptr) {
           const auto resolved = resolve_name(module_name->name);
           if (locals_.find(resolved) == locals_.end() &&
               free_indices_.find(resolved) == free_indices_.end() &&
@@ -5355,7 +5758,12 @@ private:
         }
       }
       fn.body.push_back(std::make_unique<ast::ReturnStmt>(clone_expr(*lambda->body)));
-      return lower_function_value(fn);
+      bool has_comprehension_alias = false;
+      for (const auto& alias : name_aliases_)
+        if (alias.second.rfind("#comp.", 0) == 0)
+          has_comprehension_alias = true;
+      return lower_function_value(fn, {}, {}, {},
+                                  has_comprehension_alias ? &name_aliases_ : nullptr);
     }
     const auto reg = new_reg();
     emit(ir::Op::LoadConst, reg, add_const(Value::none()));
@@ -5411,6 +5819,8 @@ private:
   std::unordered_map<std::string, std::string> name_aliases_;
   std::vector<ActiveFinalizer> active_finalizers_;
   std::vector<std::vector<size_t>> loop_break_jumps_;
+  size_t active_except_depth_ = 0;
+  std::vector<size_t> loop_except_base_counts_;
   std::vector<uint32_t> loop_continue_targets_;
   std::vector<size_t> loop_finalizer_base_counts_;
   std::unordered_set<uint32_t> control_flow_entries_;

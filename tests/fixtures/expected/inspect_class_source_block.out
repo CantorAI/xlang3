@@ -1,0 +1,2 @@
+source True ['class Example:', 'value: int', '"""Field docs"""']
+deferred True True

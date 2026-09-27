@@ -686,7 +686,7 @@ assert copy.deepcopy(keyword_pattern) is keyword_pattern
 copy_match = keyword_pattern.match("ab")
 assert copy.copy(copy_match) is copy_match and copy.deepcopy(copy_match) is copy_match
 assert copy_match.regs == ((0, 2), (0, 2))
-assert repr(copy_match) == "<_sre.SRE_Match object; span=(0, 2), match='ab'>"
+assert repr(copy_match) == "<re.Match object; span=(0, 2), match='ab'>"
 named_pattern = re.compile(r"(?P<first>a)")
 format_match = re.match(r"(?P<first>a)(?P<second>b)?", "a")
 assert "first={first} second={second}".format_map(format_match) == "first=a second=None"

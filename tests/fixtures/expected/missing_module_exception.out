@@ -1,0 +1,4 @@
+foobar __import__ No module named 'foobar' foobar
+foobar import_module No module named 'foobar' foobar
+os.missing __import__ No module named 'os.missing'; 'os' is not a package os.missing
+os.missing import_module No module named 'os.missing'; 'os' is not a package os.missing

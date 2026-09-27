@@ -1,0 +1,7 @@
+plain = memoryview(b"abc")
+character = plain.cast("c")
+print(list(plain))
+print(list(character))
+print(list(enumerate(character)))
+print(list(memoryview(b"")))
+print(bytes(character), bytearray(character))

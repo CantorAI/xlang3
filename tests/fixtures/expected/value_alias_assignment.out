@@ -1,0 +1,3 @@
+('http', 'http://example.com/')
+('http', 'https://example.com/')
+('other', 'data:text/plain,hello')

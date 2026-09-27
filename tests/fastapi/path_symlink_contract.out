@@ -1,0 +1,1 @@
+200 {"entry_broken_is_file": false, "entry_broken_is_file_no_follow": false, "entry_dir_follow": true, "entry_dir_no_follow": false, "entry_dir_stat_is_dir": true, "entry_dir_stat_is_link": true, "exists": false, "is_dir": false, "is_file": false, "lexists": true, "path_exists_follow": false, "path_exists_no_follow": true}

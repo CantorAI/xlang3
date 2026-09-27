@@ -1,0 +1,2 @@
+response 200 {'value': 3}
+warnings ['value is deprecated', 'value is deprecated']

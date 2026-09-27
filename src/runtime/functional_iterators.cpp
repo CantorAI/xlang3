@@ -19,6 +19,7 @@ limitations under the License.
 #include "xlang3/interpreter.h"
 #include "xlang3/attribute.h"
 #include "xlang3/mapping.h"
+#include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
 #include "xlang3/perf_counters.h"
 #include "xlang3/sequence.h"
@@ -36,6 +37,7 @@ T* allocate_functional_iterator(ObjectKind kind) {
   obj->header.kind = kind;
   obj->header.refcnt = 1;
   xlang_perf_count_object_alloc(kind);
+  gc_track_object(&obj->header);
   return obj;
 }
 
@@ -102,6 +104,18 @@ Value functional_zip_iterator(Runtime* runtime, std::vector<Value> iterators, bo
   obj->runtime = runtime;
   obj->iterators = std::move(iterators);
   obj->strict = strict;
+  value.as.obj = &obj->header;
+  return value;
+}
+
+Value functional_zip_longest_iterator(std::vector<Value> iterators, Value fillvalue) {
+  Value value;
+  value.tag = ValueTag::Object;
+  auto* obj = allocate_functional_iterator<ZipLongestIteratorObject>(ObjectKind::ZipLongestIterator);
+  obj->active = iterators.size();
+  obj->exhausted.resize(iterators.size(), false);
+  obj->iterators = std::move(iterators);
+  obj->fillvalue = std::move(fillvalue);
   value.as.obj = &obj->header;
   return value;
 }
@@ -189,6 +203,7 @@ bool value_is_functional_iterator(const Value& value) {
   }
   return value.as.obj->kind == ObjectKind::EnumerateIterator ||
          value.as.obj->kind == ObjectKind::ZipIterator ||
+         value.as.obj->kind == ObjectKind::ZipLongestIterator ||
          value.as.obj->kind == ObjectKind::MapIterator ||
          value.as.obj->kind == ObjectKind::FilterIterator ||
          value.as.obj->kind == ObjectKind::CallableIterator ||
@@ -203,6 +218,9 @@ void functional_iterator_release_object(Object* object) {
       break;
     case ObjectKind::ZipIterator:
       delete reinterpret_cast<ZipIteratorObject*>(object);
+      break;
+    case ObjectKind::ZipLongestIterator:
+      delete reinterpret_cast<ZipLongestIteratorObject*>(object);
       break;
     case ObjectKind::MapIterator:
       delete reinterpret_cast<MapIteratorObject*>(object);
@@ -233,6 +251,8 @@ std::string functional_iterator_to_string(const Value& value) {
       return "<enumerate object>";
     case ObjectKind::ZipIterator:
       return "<zip object>";
+    case ObjectKind::ZipLongestIterator:
+      return "<itertools.zip_longest object>";
     case ObjectKind::MapIterator:
       return "<map object>";
     case ObjectKind::FilterIterator:
@@ -389,11 +409,16 @@ bool runtime_call_callable(
         return false;
       }
       auto* instance = value_as_instance(new_result);
-      auto* instance_class = instance == nullptr ? nullptr : value_as_class(instance->klass);
+      auto* module_instance = value_as_module(new_result);
+      auto* instance_class = instance != nullptr ? value_as_class(instance->klass)
+          : module_instance != nullptr ? value_as_class(module_instance->klass) : nullptr;
       if (instance_class != nullptr && class_is_subclass(instance_class, klass)) {
         Value init;
         std::string init_error;
-        if (object_get_attr(new_result, "__init__", init, init_error) && init.tag != ValueTag::Invalid) {
+        if ((module_instance != nullptr
+                 ? module_get_attr(new_result, "__init__", init, init_error)
+                 : object_get_attr(new_result, "__init__", init, init_error)) &&
+            init.tag != ValueTag::Invalid) {
           Value ignored;
           if (!runtime_call_callable(runtime, init, args, argc, ignored, error)) {
             return false;
@@ -593,7 +618,9 @@ bool runtime_construct_class_kw(
     if (!runtime_call_callable_kw(runtime, new_callable, new_args.data(),
         static_cast<uint32_t>(new_args.size()), kwargs, instance, error)) return false;
     auto* object = value_as_instance(instance);
-    auto* actual_class = object ? value_as_class(object->klass) : nullptr;
+    auto* module_object = value_as_module(instance);
+    auto* actual_class = object ? value_as_class(object->klass)
+        : module_object ? value_as_class(module_object->klass) : nullptr;
     if (!actual_class || !class_is_subclass(actual_class, klass)) {
       value_assign_fast(out, instance);
       return true;
@@ -604,7 +631,10 @@ bool runtime_construct_class_kw(
   }
   Value init;
   std::string init_error;
-  if (!object_get_attr(instance, "__init__", init, init_error) || init.tag == ValueTag::Invalid) {
+  if (!(value_as_module(instance) != nullptr
+            ? module_get_attr(instance, "__init__", init, init_error)
+            : object_get_attr(instance, "__init__", init, init_error)) ||
+      init.tag == ValueTag::Invalid) {
     return raise_type_error(runtime, "class construction does not accept keyword arguments", error);
   }
   Value ignored;
@@ -785,6 +815,40 @@ bool functional_iterator_next(Value& iterator, bool& done, Value& out, std::stri
         return true;
       }
       row.push_back(std::move(item));
+    }
+    out = Value::tuple(std::move(row));
+    return true;
+  }
+
+  if (iterator.as.obj->kind == ObjectKind::ZipLongestIterator) {
+    auto* obj = reinterpret_cast<ZipLongestIteratorObject*>(iterator.as.obj);
+    if (obj->active == 0) {
+      done = true;
+      value_set_none(out);
+      return true;
+    }
+    std::vector<Value> row;
+    row.reserve(obj->iterators.size());
+    for (size_t index = 0; index < obj->iterators.size(); ++index) {
+      if (obj->exhausted[index]) {
+        row.push_back(obj->fillvalue);
+        continue;
+      }
+      Value item;
+      bool child_done = false;
+      if (!sequence_iter_next(obj->iterators[index], child_done, item, error)) return false;
+      if (child_done) {
+        obj->exhausted[index] = true;
+        --obj->active;
+        row.push_back(obj->fillvalue);
+      } else {
+        row.push_back(std::move(item));
+      }
+    }
+    if (obj->active == 0) {
+      done = true;
+      value_set_none(out);
+      return true;
     }
     out = Value::tuple(std::move(row));
     return true;

@@ -146,5 +146,5 @@ XLANG3_VM_FLOW(Return, xlang3::xlang_vm::ops::return_op(in, regs, generator, res
 XLANG3_VM_FLOW(ReturnConst, xlang3::xlang_vm::ops::return_const(in, fn, generator, result, finish_frame))
 XLANG3_VM_FLOW(ReturnLocal, xlang3::xlang_vm::ops::return_local(in, fn, locals, generator, result, finish_frame, raise_unbound_local_error))
 XLANG3_VM_FLOW(Await, xlang3::xlang_vm::ops::await_op(in, runtime_, regs, ip, frame, frames, frame_count, generator, result, emit_monitoring_event, emit_trace_event, emit_profile_event, raise_runtime_error, raise_exception_value))
-XLANG3_VM_FLOW(YieldFrom, xlang3::xlang_vm::ops::yield_from(raise_runtime_error))
+XLANG3_VM_FLOW(YieldFrom, xlang3::xlang_vm::ops::yield_from(in, runtime_, regs, frame, frames, frame_count, generator, result, emit_monitoring_event, emit_trace_event, emit_profile_event, raise_runtime_error, raise_exception_value))
 XLANG3_VM_FAST(Pop, xlang3::xlang_vm::ops::pop())

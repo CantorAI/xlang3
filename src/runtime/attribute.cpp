@@ -58,6 +58,7 @@ const char* diagnostic_value_kind(const Value& value) {
       case ObjectKind::SequenceIterator: return "sequence_iterator";
       case ObjectKind::EnumerateIterator: return "enumerate";
       case ObjectKind::ZipIterator: return "zip";
+      case ObjectKind::ZipLongestIterator: return "zip_longest";
       case ObjectKind::MapIterator: return "map";
       case ObjectKind::FilterIterator: return "filter";
       case ObjectKind::CallableIterator: return "callable_iterator";

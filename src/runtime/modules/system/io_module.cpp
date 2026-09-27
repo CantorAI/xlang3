@@ -2278,6 +2278,7 @@ bool stream_write(Runtime& runtime, const Value* args, uint32_t argc, Value& out
     return false;
   }
   const size_t input_size = data.size();
+  const size_t input_characters = state->binary ? input_size : utf8_codepoint_count(data);
   if (state->binary && !memory_stream_export_allowed(runtime, *state, error)) {
     return false;
   }
@@ -2293,7 +2294,7 @@ bool stream_write(Runtime& runtime, const Value* args, uint32_t argc, Value& out
   std::copy(data.begin(), data.end(), state->buffer.begin() + static_cast<std::ptrdiff_t>(state->cursor));
   state->cursor += data.size();
   memory_stream_update_exported_buffer(*state);
-  value_set_int64(out, static_cast<int64_t>(state->binary ? data.size() : input_size));
+  value_set_int64(out, static_cast<int64_t>(state->binary ? data.size() : input_characters));
   return true;
 }
 

@@ -443,6 +443,23 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_attr(
       }
     }
   }
+  if (auto* receiver_class = value_as_class(regs[in.a])) {
+    auto* metaclass = value_as_class(receiver_class->metaclass);
+    if (metaclass != nullptr && metaclass->has_getattribute_hook) {
+      const Value* getattr_builtin = runtime.find_builtin("getattr");
+      if (getattr_builtin == nullptr) {
+        return raise_runtime_error("getattr builtin is unavailable")
+            ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+      }
+      Value hook_values[2];
+      value_assign_fast(hook_values[0], regs[in.a]);
+      hook_values[1] = Value::string(attr_name);
+      return call_attr_hook(*getattr_builtin, hook_values, 2, module, module_owner,
+                            runtime, native_call_args, execution_lock, regs[in.dst],
+                            in.dst, ip, result, make_generator_if_needed, push_frame,
+                            raise_runtime_error, raise_exception_value);
+    }
+  }
   if (attr_name == "__class__" && runtime_type_of_value(runtime, regs[in.a], regs[in.dst])) {
     return XlangVMOpFlow::Next;
   }
@@ -479,10 +496,15 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_attr(
     if (hook_class != nullptr && hook_class->has_getattribute_hook &&
         object_get_class_attr_for_instance(regs[in.a], "__getattribute__", hook, hook_error) &&
         !xlang_vm_is_default_object_hook(hook, "object.__getattribute__")) {
+      const Value* getattr_builtin = runtime.find_builtin("getattr");
+      if (getattr_builtin == nullptr) {
+        return raise_runtime_error("getattr builtin is unavailable")
+            ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+      }
       Value hook_values[2];
       value_assign_fast(hook_values[0], regs[in.a]);
       hook_values[1] = Value::string(fn.names[in.b]);
-      return call_attr_hook(hook, hook_values, 2, module, module_owner, runtime, native_call_args, execution_lock,
+      return call_attr_hook(*getattr_builtin, hook_values, 2, module, module_owner, runtime, native_call_args, execution_lock,
                             regs[in.dst], in.dst, ip, result, make_generator_if_needed, push_frame,
                             raise_runtime_error, raise_exception_value);
     }
@@ -610,6 +632,21 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_attr(
                               raise_runtime_error, raise_exception_value);
       }
     }
+    if (auto* receiver_class = value_as_class(regs[in.a])) {
+      if (value_as_class(receiver_class->metaclass) != nullptr) {
+        Value hook;
+        std::string hook_error;
+        if (class_get_bound_attr(runtime, receiver_class->metaclass,
+                                 regs[in.a], "__getattr__", hook, hook_error)) {
+          Value hook_value = Value::string(fn.names[in.b]);
+          return call_attr_hook(hook, &hook_value, 1, module, module_owner,
+                                runtime, native_call_args, execution_lock,
+                                regs[in.dst], in.dst, ip, result,
+                                make_generator_if_needed, push_frame,
+                                raise_runtime_error, raise_exception_value);
+        }
+      }
+    }
     if (value_as_module(regs[in.a]) != nullptr) {
       Value pending;
       if (runtime.take_pending_exception(pending)) {
@@ -617,6 +654,14 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_attr(
       }
       auto* module_object = value_as_module(regs[in.a]);
       if (value_as_class(module_object->klass) != nullptr) {
+        Value class_getattr;
+        std::string class_getattr_error;
+        if (object_lookup_class_attr(module_object->klass, "__getattr__",
+                                     class_getattr, class_getattr_error)) {
+          return raise_exception_value(xlang_vm_attribute_error(
+              runtime, regs[in.a], fn.names[in.b], error))
+              ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+        }
         Value descriptor;
         std::string descriptor_error;
         if (object_lookup_class_attr(
@@ -750,7 +795,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_attr(
               pushed_frame,
               make_generator_if_needed,
               push_frame)) {
-        return XlangVMOpFlow::ReturnResult;
+        return result.errors.empty() ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
       }
       return pushed_frame ? XlangVMOpFlow::SwitchFrame : XlangVMOpFlow::Next;
     }
@@ -1076,7 +1121,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow store_attr(
           : XlangVMOpFlow::ReturnResult;
     }
     if (error.find("immutable type") != std::string::npos ||
-        error.rfind("__dict__ must be", 0) == 0) {
+        error.rfind("__dict__ must be", 0) == 0 ||
+        error.rfind("can only assign string to ", 0) == 0) {
       return raise_exception_value(runtime.make_exception("TypeError", error))
           ? XlangVMOpFlow::ContinueLoop
           : XlangVMOpFlow::ReturnResult;

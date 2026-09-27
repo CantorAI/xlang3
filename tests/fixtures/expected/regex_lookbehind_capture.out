@@ -1,0 +1,5 @@
+3 (1, 2) {'number': '3'}
+abc (1, 4) {'word': 'abc', 'literal': None}
+abc (1, 4) {'word': 'abc', 'literal': None}
+abc (0, 3) {'marked': None, 'plain': 'abc'}
+[{'marked': None, 'plain': 'abc'}, {'marked': None, 'plain': 'abc'}]

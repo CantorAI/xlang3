@@ -1232,6 +1232,53 @@ X3Status cdata_getitem(X3CallContext* call, X3Runtime* runtime, void* user_data,
   return X3_STATUS_OK;
 }
 
+X3Status cdata_setitem(X3CallContext* call, X3Runtime* runtime, void* user_data,
+                       const X3Value* args, uint32_t argc, X3Value* result) {
+  auto* package = static_cast<PackageState*>(user_data);
+  if (argc != 3)
+    return package->host->raise_class_error(call, "TypeError", "C data assignment expects an index and value");
+  auto* data = static_cast<CDataState*>(
+      package->host->instance_get_native_data(args[0], kCDataType));
+  int64_t index = 0;
+  if (!data || (!data->owned && !data->borrowed_buffer &&
+                data->owner_value.tag == X3_TAG_INVALID) ||
+      !integer_value(args[1], index) || index < 0 ||
+      data->element_size == 0 ||
+      static_cast<uint64_t>(index) >= data->owned_size / data->element_size)
+    return package->host->raise_class_error(call, "IndexError", "C data index is out of range");
+  ForeignType type;
+  if (!data->ffi || !foreign_named(*data->ffi, data->element_name, type) ||
+      type.kind == ForeignKind::Void || data->element_size > sizeof(uint64_t))
+    return package->host->raise_class_error(call, "NotImplementedError", "unsupported C array element type");
+  if (type.kind == ForeignKind::Pointer &&
+      package->host->instance_get_native_data(args[2], kCDataType) == nullptr)
+    return package->host->raise_class_error(call, "TypeError", "C pointer value required");
+  uint64_t storage = 0;
+  if (!convert_foreign_argument(package, call, runtime, args[2], type, storage))
+    return package->host->raise_class_error(call, "TypeError", "invalid C array element value");
+  if (type.kind == ForeignKind::Unsigned && type.bits > 0) {
+    const uint64_t maximum = type.bits == 64 ? UINT64_MAX :
+        (uint64_t{1} << type.bits) - 1;
+    if ((args[2].tag == X3_TAG_INT64 && args[2].as.i64 < 0) ||
+        storage > maximum)
+      return package->host->raise_class_error(call, "OverflowError", "C array element is out of range");
+  } else if (type.kind == ForeignKind::Signed && type.bits > 0) {
+    const int64_t minimum = type.bits == 64 ? INT64_MIN :
+        -(int64_t{1} << (type.bits - 1));
+    const int64_t maximum = type.bits == 64 ? INT64_MAX :
+        (int64_t{1} << (type.bits - 1)) - 1;
+    const int64_t signed_value = static_cast<int64_t>(storage);
+    if ((args[2].tag == X3_TAG_UINT64 && args[2].as.u64 > INT64_MAX) ||
+        signed_value < minimum || signed_value > maximum)
+      return package->host->raise_class_error(call, "OverflowError", "C array element is out of range");
+  }
+  std::memcpy(reinterpret_cast<void*>(data->address +
+              static_cast<size_t>(index) * data->element_size),
+              &storage, data->element_size);
+  *result = x3_value_none();
+  return X3_STATUS_OK;
+}
+
 X3Status cdata_getattr(X3CallContext* call, X3Runtime* runtime, void* user_data,
                        const X3Value* args, uint32_t argc, X3Value* result) {
   auto* package = static_cast<PackageState*>(user_data);
@@ -1466,7 +1513,7 @@ X3Status register_module(X3PackageHost* host) {
 
   if (host->create_class(host, "CType", nullptr, 0, &state->ctype_class) != X3_STATUS_OK)
     return X3_STATUS_ERROR;
-  X3NativeFunctionDef cdata_methods[12]{};
+  X3NativeFunctionDef cdata_methods[13]{};
   method(cdata_methods[0], "__int__", cdata_int, state);
   method(cdata_methods[1], "__bool__", cdata_bool, state);
   method(cdata_methods[2], "__call__", cdata_call, state);
@@ -1479,7 +1526,8 @@ X3Status register_module(X3PackageHost* host) {
   method(cdata_methods[9], "__getattr__", cdata_getattr, state);
   method(cdata_methods[10], "__setattr__", cdata_setattr, state);
   method(cdata_methods[11], "__hash__", cdata_hash, state);
-  if (host->create_class(host, "CData", cdata_methods, 12, &state->cdata_class) != X3_STATUS_OK)
+  method(cdata_methods[12], "__setitem__", cdata_setitem, state);
+  if (host->create_class(host, "CData", cdata_methods, 13, &state->cdata_class) != X3_STATUS_OK)
     return X3_STATUS_ERROR;
   X3NativeFunctionDef library_methods[1]{};
   method(library_methods[0], "__getattr__", library_getattr, state);

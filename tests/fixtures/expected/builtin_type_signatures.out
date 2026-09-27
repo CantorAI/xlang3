@@ -1,0 +1,6 @@
+str unavailable None
+float (x=0, /) '(x=0, /)'
+int unavailable None
+bool (object=False, /) '(object=False, /)'
+list (iterable=(), /) '(iterable=(), /)'
+dict unavailable None

@@ -86,10 +86,6 @@ bool msvcrt_open_osfhandle(Runtime& runtime, const Value* args, uint32_t argc, V
     runtime.raise_class_error("OSError", error);
     return false;
   }
-  // Ownership has moved from the Python Handle wrapper into the CRT fd.  Drop
-  // the raw-handle tracking entry so a later recycled Windows handle cannot be
-  // mistaken for the old pipe endpoint by DuplicateHandle().
-  forget_winapi_pipe_handle(static_cast<intptr_t>(handle_value));
   out = Value::int64(fd);
 #else
   out = Value::int64(handle_value);

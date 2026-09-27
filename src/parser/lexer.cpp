@@ -595,40 +595,61 @@ LexResult Lexer::tokenize() {
   for (size_t line_index = 0; line_index < lines.size(); ++line_index) {
     std::string_view line = lines[line_index].text;
     line_no = lines[line_index].line;
-    uint32_t indent = 0;
-    while (indent < line.size() && line[indent] == ' ') {
-      ++indent;
+    uint32_t indent_chars = 0;
+    uint32_t indent_columns = 0;
+    uint32_t alternate_indent = 0;
+    while (indent_chars < line.size()) {
+      const char ch = line[indent_chars];
+      if (ch == ' ') {
+        ++indent_columns;
+        ++alternate_indent;
+      } else if (ch == '\t') {
+        indent_columns = (indent_columns / 8 + 1) * 8;
+        ++alternate_indent;
+      } else if (ch == '\f') {
+        indent_columns = 0;
+        alternate_indent = 0;
+      } else {
+        break;
+      }
+      ++indent_chars;
     }
     const auto first = line.find_first_not_of(" \t\f\r");
     if (first == std::string_view::npos || line[first] == '#') {
       continue;
     }
-    if (indent > indent_stack_.back()) {
+    if (indent_columns > indent_stack_.back()) {
       if (indent_stack_.size() >= 100) {
         errors_.push_back("line " + std::to_string(line_no) + ": too many levels of indentation");
         break;
       }
-      indent_stack_.push_back(indent);
+      if (alternate_indent <= alternate_indent_stack_.back())
+        errors_.push_back("line " + std::to_string(line_no) + ": inconsistent use of tabs and spaces in indentation");
+      indent_stack_.push_back(indent_columns);
+      alternate_indent_stack_.push_back(alternate_indent);
       emit(TokenKind::Indent, "", line_no, 1);
     } else {
-      while (indent < indent_stack_.back()) {
+      while (indent_columns < indent_stack_.back()) {
         indent_stack_.pop_back();
+        alternate_indent_stack_.pop_back();
         emit(TokenKind::Dedent, "", line_no, 1);
       }
-      if (indent != indent_stack_.back()) {
+      if (indent_columns != indent_stack_.back()) {
         errors_.push_back("line " + std::to_string(line_no) + ": inconsistent indentation");
+      } else if (alternate_indent != alternate_indent_stack_.back()) {
+        errors_.push_back("line " + std::to_string(line_no) + ": inconsistent use of tabs and spaces in indentation");
       }
     }
 
-    const auto triple_start = find_first_triple_string_start(line, indent);
+    const auto triple_start = find_first_triple_string_start(line, indent_chars);
     if (triple_start.found) {
       const uint32_t start_line_no = line_no;
       const auto prefix = triple_start.prefix;
       const size_t triple_pos = prefix.quote;
       const auto opener = triple_start.opener;
       const size_t prefix_start = prefix.start;
-      if (prefix_start > indent) {
-        tokenize_line(line.substr(0, prefix_start), line_no, indent);
+      if (prefix_start > indent_chars) {
+        tokenize_line(line.substr(0, prefix_start), line_no, indent_chars);
       }
       std::string value;
       std::string suffix;
@@ -669,10 +690,10 @@ LexResult Lexer::tokenize() {
       if (suffix_triple.found) {
         if (suffix_triple.prefix.start > 0) {
           auto prefix_line = std::make_unique<std::string>(
-              std::string(indent, ' ') + suffix.substr(0, suffix_triple.prefix.start));
+              std::string(indent_chars, ' ') + suffix.substr(0, suffix_triple.prefix.start));
           const std::string_view prefix_view(*prefix_line);
           owned_text_.push_back(std::move(prefix_line));
-          tokenize_line(prefix_view, line_no, indent);
+          tokenize_line(prefix_view, line_no, indent_chars);
         }
         const char suffix_quote = suffix[suffix_triple.prefix.quote];
         const std::string suffix_opener(3, suffix_quote);
@@ -719,14 +740,14 @@ LexResult Lexer::tokenize() {
             suffix_triple.prefix.raw);
       }
       if (suffix.find_first_not_of(" \t") != std::string::npos) {
-        std::string logical_line(std::string(indent, ' ') + suffix);
+        std::string logical_line(std::string(indent_chars, ' ') + suffix);
         uint32_t logical_end_line = line_no;
         int bracket_depth = 0;
         bool explicit_continue = false;
         bool continued_string = false;
         char continued_quote = 0;
         bool continued_triple = false;
-        if (prefix_start > indent) {
+        if (prefix_start > indent_chars) {
           (void)update_line_join_state(line.substr(0, prefix_start), bracket_depth, explicit_continue,
                                        continued_string, continued_quote, continued_triple);
           explicit_continue = false;
@@ -747,7 +768,7 @@ LexResult Lexer::tokenize() {
         auto owned = std::make_unique<std::string>(std::move(logical_line));
         const std::string_view logical_view(*owned);
         owned_text_.push_back(std::move(owned));
-        tokenize_line(logical_view, line_no, indent);
+        tokenize_line(logical_view, line_no, indent_chars);
         emit(TokenKind::Newline, "", logical_end_line, static_cast<uint32_t>(logical_view.size() + 1));
       } else {
         emit(TokenKind::Newline, "", line_no, static_cast<uint32_t>(line.size() + 1));
@@ -777,18 +798,19 @@ LexResult Lexer::tokenize() {
     }
 
     if (logical_end_line == line_no) {
-      tokenize_line(line, line_no, indent);
+      tokenize_line(line, line_no, indent_chars);
       emit(TokenKind::Newline, "", line_no, static_cast<uint32_t>(line.size() + 1));
     } else {
       auto owned = std::make_unique<std::string>(std::move(logical_line));
       const std::string_view logical_view(*owned);
       owned_text_.push_back(std::move(owned));
-      tokenize_line(logical_view, line_no, indent);
+      tokenize_line(logical_view, line_no, indent_chars);
       emit(TokenKind::Newline, "", logical_end_line, static_cast<uint32_t>(logical_view.size() + 1));
     }
   }
   while (indent_stack_.size() > 1) {
     indent_stack_.pop_back();
+    alternate_indent_stack_.pop_back();
     emit(TokenKind::Dedent, "", line_no, 1);
   }
   emit(TokenKind::End, "", line_no, 1);

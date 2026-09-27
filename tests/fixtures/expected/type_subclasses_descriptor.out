@@ -1,0 +1,4 @@
+True
+True
+unbound method type.__subclasses__() needs an argument
+type.__subclasses__() takes no arguments (1 given)

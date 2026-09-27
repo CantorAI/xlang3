@@ -49,6 +49,7 @@ limitations under the License.
 #include "task_objects.h"
 #endif
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <functional>
@@ -61,6 +62,26 @@ limitations under the License.
 #include "xlang_vm_inline_support.h"
 
 namespace xlang3 {
+
+void generator_vm_visit_references(
+    const GeneratorObject& generator,
+    const std::function<void(const Value&)>& visit) {
+  if (generator.vm_state == nullptr) return;
+  const auto* state = static_cast<const GeneratorVMState*>(generator.vm_state);
+  visit(state->current_exception);
+  for (const auto& value : state->previous_exceptions) visit(value);
+  const size_t count = std::min(state->frame_count, state->frames.size());
+  for (size_t index = 0; index < count; ++index) {
+    const auto& frame = state->frames[index];
+    for (size_t i = 0; i < frame.locals.size(); ++i) visit(frame.locals[i]);
+    for (size_t i = 0; i < frame.cells.size(); ++i) visit(frame.cells[i]);
+    for (size_t i = 0; i < frame.regs.size(); ++i) visit(frame.regs[i]);
+    for (const auto& value : frame.native_call_args) visit(value);
+    if (frame.closure_owner != nullptr)
+      for (const auto& value : *frame.closure_owner) visit(value);
+    visit(frame.continuation_value);
+  }
+}
 
 bool generator_vm_frame_snapshot(const GeneratorObject& generator, Value& out) {
   if (generator.vm_state == nullptr) {
@@ -120,6 +141,8 @@ bool generator_vm_frame_snapshot(const GeneratorObject& generator, Value& out) {
       Value::none(),
       Value::none(),
       frame.activation_id);
+  if (generator.runtime != nullptr)
+    frame_set_generator_owner(*generator.runtime, out, generator);
   return true;
 }
 
@@ -681,7 +704,7 @@ RuntimeResult Interpreter::run_function(
     constexpr size_t kSafeHostFrameLimit = 1024;
     const size_t effective_recursion_limit = std::min(
         static_cast<size_t>(runtime_.recursion_limit()), kSafeHostFrameLimit);
-    if (frame_count >= effective_recursion_limit) {
+    if (frame_count + runtime_.saved_python_frame_depth() >= effective_recursion_limit) {
       deferred_frame_exception = runtime_.make_exception(
           "RecursionError", "maximum recursion depth exceeded");
       return false;
@@ -765,6 +788,8 @@ RuntimeResult Interpreter::run_function(
             nullptr,
             0,
             nullptr,
+            view_frame.closure,
+            i == 0 ? generator : nullptr,
         };
         return;
       }
@@ -781,6 +806,8 @@ RuntimeResult Interpreter::run_function(
           &view_frame.execution_metadata->register_last_use,
           view_frame.regs.size(),
           &view_frame.native_call_args,
+          view_frame.closure,
+          i == 0 ? generator : nullptr,
       };
     };
     if (frame_storage_moved) {
@@ -885,7 +912,10 @@ RuntimeResult Interpreter::run_function(
     trace_args.leading_count = 3;
 
     auto* visible_frame = value_as_frame(trace_args_storage[0]);
-    if (visible_frame != nullptr) visible_frame->allow_line_jump = true;
+    if (visible_frame != nullptr) {
+      visible_frame->allow_line_jump = true;
+      visible_frame->source_line_is_current = true;
+    }
     runtime_.set_trace_dispatch_active(true);
     struct TraceDispatchGuard {
       Runtime& runtime;
@@ -895,7 +925,10 @@ RuntimeResult Interpreter::run_function(
     std::string trace_error;
     const bool trace_ok = runtime_call_callable(
         runtime_, hook, trace_args.leading, trace_args.leading_count, trace_result, trace_error);
-    if (visible_frame != nullptr) visible_frame->allow_line_jump = false;
+    if (visible_frame != nullptr) {
+      visible_frame->allow_line_jump = false;
+      visible_frame->source_line_is_current = false;
+    }
     if (!trace_ok) {
       result.errors.push_back(trace_error.empty() ? "trace callback failed" : trace_error);
       return false;
@@ -931,6 +964,9 @@ RuntimeResult Interpreter::run_function(
         Value::string(event_name),
         arg,
     };
+    if (auto* current = value_as_frame(profile_args_storage[0])) {
+      current->source_line_is_current = true;
+    }
 
     runtime_.set_profile_dispatch_active(true);
     struct ProfileDispatchGuard {
@@ -939,7 +975,11 @@ RuntimeResult Interpreter::run_function(
     } profile_guard{runtime_};
     Value ignored;
     std::string profile_error;
-    if (!runtime_call_callable(runtime_, hook, profile_args_storage, 3, ignored, profile_error)) {
+    const bool profile_ok = runtime_call_callable(runtime_, hook, profile_args_storage, 3, ignored, profile_error);
+    if (auto* current = value_as_frame(profile_args_storage[0])) {
+      current->source_line_is_current = false;
+    }
+    if (!profile_ok) {
       result.errors.push_back(profile_error.empty() ? "profile callback failed" : profile_error);
       return false;
     }
@@ -966,6 +1006,9 @@ RuntimeResult Interpreter::run_function(
         runtime_.current_frame_snapshot(),
         Value::string(event_name),
     };
+    if (auto* current = value_as_frame(debug_args_storage[0])) {
+      current->source_line_is_current = true;
+    }
     CallArgsView debug_args;
     debug_args.leading = debug_args_storage;
     debug_args.leading_count = 2;
@@ -973,6 +1016,9 @@ RuntimeResult Interpreter::run_function(
     runtime_.set_debug_dispatch_active(true);
     Interpreter debug_interpreter(runtime_);
     RuntimeResult debug_result = debug_interpreter.run_function_value(hook_fn, debug_args);
+    if (auto* current = value_as_frame(debug_args_storage[0])) {
+      current->source_line_is_current = false;
+    }
     runtime_.set_debug_dispatch_active(false);
     if (!debug_result.errors.empty()) {
       result.errors.insert(result.errors.end(), debug_result.errors.begin(), debug_result.errors.end());
@@ -1078,6 +1124,9 @@ RuntimeResult Interpreter::run_function(
     result.selected_frame = static_cast<uint32_t>(frame_count - 1);
     result.pause_file = paused_frame.module != nullptr ? paused_frame.module->source_file : std::string();
     result.pause_frame = runtime_.current_frame_snapshot();
+    if (auto* current = value_as_frame(result.pause_frame)) {
+      current->source_line_is_current = true;
+    }
 
     auto state = std::make_shared<RuntimeDebugPauseState>();
     state->reason = reason;
@@ -1621,6 +1670,20 @@ RuntimeResult Interpreter::run_function(
       if (published_frame_stack_generation != frame_stack_generation) {
         refresh_runtime_frame_views();
       }
+      if (XLANG3_UNLIKELY(weakref_callbacks_pending())) {
+        weakref_dispatch_callbacks(runtime_);
+      }
+      if (XLANG3_UNLIKELY(signal_events_pending())) {
+        std::string signal_error;
+        if (!signal_dispatch_pending(runtime_, signal_error)) {
+          Value exception;
+          if (!runtime_.take_pending_exception(exception)) {
+            exception = runtime_.make_exception("RuntimeError", signal_error);
+          }
+          if (!dispatch_exception(std::move(exception))) return result;
+          goto switch_frame;
+        }
+      }
       if (deferred_frame_exception.tag != ValueTag::Invalid) {
         Value exception = std::move(deferred_frame_exception);
         value_set_invalid(deferred_frame_exception);
@@ -1746,7 +1809,95 @@ RuntimeResult Interpreter::run_function(
         refresh_monitoring_configuration(frame);
       }
       frame.release_memoryviews_last_used_at(ip);
-      frame.track_memoryview_result(in.dst);
+      // Only inspect destinations that this opcode wrote as registers. Many
+      // instructions use dst for a local slot, a branch target, or an input.
+      // Such a register may contain a borrowed reference to an object that
+      // the instruction just released.
+      switch (in.op) {
+        case ir::Op::LoadConst:
+        case ir::Op::Move:
+        case ir::Op::CaptureExpressions:
+        case ir::Op::LoadLocal:
+        case ir::Op::LoadCell:
+        case ir::Op::LoadCellObject:
+        case ir::Op::LoadFree:
+        case ir::Op::LoadFreeObject:
+        case ir::Op::LoadGlobal:
+        case ir::Op::LoadModuleSlot:
+        case ir::Op::ImportModule:
+        case ir::Op::ImportModuleThru:
+        case ir::Op::ImportFrom:
+        case ir::Op::LoadAttr:
+        case ir::Op::LoadInstanceSlot:
+        case ir::Op::MakeClass:
+        case ir::Op::MakeFunction:
+        case ir::Op::MakeTuple:
+        case ir::Op::MakeList:
+        case ir::Op::MakeDict:
+        case ir::Op::MakeSet:
+        case ir::Op::MakeSlice:
+        case ir::Op::TupleFromList:
+        case ir::Op::Len:
+        case ir::Op::GetItem:
+        case ir::Op::GetIter:
+        case ir::Op::IterNext:
+        case ir::Op::Add:
+        case ir::Op::Sub:
+        case ir::Op::Mul:
+        case ir::Op::MatMul:
+        case ir::Op::Div:
+        case ir::Op::FloorDiv:
+        case ir::Op::Mod:
+        case ir::Op::ModConst:
+        case ir::Op::Pow:
+        case ir::Op::BitAnd:
+        case ir::Op::BitOr:
+        case ir::Op::BitXor:
+        case ir::Op::Shl:
+        case ir::Op::Shr:
+        case ir::Op::BoolAnd:
+        case ir::Op::BoolOr:
+        case ir::Op::Compare:
+        case ir::Op::Is:
+        case ir::Op::Contains:
+        case ir::Op::Not:
+        case ir::Op::Neg:
+        case ir::Op::Invert:
+        case ir::Op::LoadException:
+        case ir::Op::LoadExceptionType:
+        case ir::Op::MatchException:
+        case ir::Op::CallModuleMethod:
+        case ir::Op::CallMethod:
+        case ir::Op::CallEx:
+        case ir::Op::Call:
+        case ir::Op::CallLocal:
+        case ir::Op::CallLocalMethod:
+        case ir::Op::CallGlobal:
+        case ir::Op::Await:
+        case ir::Op::InplaceAdd:
+        case ir::Op::LoadLocalInstanceSlot:
+        case ir::Op::LoadLocalAttr:
+        case ir::Op::LoadModuleAttr:
+        case ir::Op::LoadLocalGetItem:
+        case ir::Op::JumpIfFalseLoadLocal:
+        case ir::Op::MoveJumpIfFalse:
+        case ir::Op::MoveJumpIfTrue:
+          frame.track_memoryview_result(in.dst);
+          break;
+        case ir::Op::LoadLocalPair:
+        case ir::Op::LoadLocalConst:
+        case ir::Op::LoadConstPair:
+        case ir::Op::LoadLocalGlobal:
+        case ir::Op::LoadGlobalLocal:
+          frame.track_memoryview_result(in.dst);
+          frame.track_memoryview_result(in.b);
+          break;
+        case ir::Op::StoreLocalLoadLocal:
+          frame.track_memoryview_result(in.b);
+          break;
+        default:
+          break;
+      }
       ++ip;
     }
     } catch (const VMUnwind&) {

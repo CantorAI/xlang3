@@ -705,7 +705,17 @@ bool print_write_text(Runtime& runtime, const Value& file, const std::string& te
 
 bool print_flush_file(Runtime& runtime, const Value& file, std::string& error) {
   if (file.tag == ValueTag::None) {
-    return true;
+    Value sys;
+    Value stdout_stream;
+    if (!runtime.import_module("sys", sys, error) ||
+        !module_get_attr(sys, "stdout", stdout_stream, error))
+      return false;
+    if (stdout_stream.tag == ValueTag::None) {
+      error = "lost sys.stdout";
+      runtime.raise_class_error("RuntimeError", error);
+      return false;
+    }
+    return print_flush_file(runtime, stdout_stream, error);
   }
   Value flush_method;
   if (!attribute_get(file, "flush", flush_method, error)) {

@@ -36,6 +36,14 @@ struct ZipIteratorObject {
   bool strict = false;
 };
 
+struct ZipLongestIteratorObject {
+  Object header;
+  std::vector<Value> iterators;
+  std::vector<bool> exhausted;
+  Value fillvalue;
+  size_t active = 0;
+};
+
 struct MapIteratorObject {
   Object header;
   Runtime* runtime = nullptr;
@@ -78,6 +86,7 @@ struct ProtocolIteratorObject {
 
 Value functional_enumerate_iterator(Value iterator, int64_t start);
 Value functional_zip_iterator(Runtime* runtime, std::vector<Value> iterators, bool strict = false);
+Value functional_zip_longest_iterator(std::vector<Value> iterators, Value fillvalue);
 Value functional_map_iterator(Runtime* runtime, Value callable, std::vector<Value> iterators);
 Value functional_filter_iterator(Runtime* runtime, Value predicate, Value iterator, bool invert = false);
 Value functional_callable_iterator(Runtime* runtime, Value callable, Value sentinel);

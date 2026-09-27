@@ -1,0 +1,3 @@
+default-handler True
+raised KeyboardInterrupt
+fastapi 200 {"handler_is_default": true}

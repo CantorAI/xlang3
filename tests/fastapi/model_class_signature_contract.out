@@ -1,0 +1,1 @@
+200 {'class_signature': '(*, value: int = 3) -> None', 'instance_signature': '(arg: int) -> bool', 'instance_has_class_signature': False, 'call_result': True}

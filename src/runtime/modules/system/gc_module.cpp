@@ -14,12 +14,101 @@ limitations under the License.
 */
 #include "xlang3/builtins.h"
 
+#include "xlang3/functional_iterators.h"
+#include "xlang3/generator.h"
 #include "xlang3/mapping.h"
 #include "xlang3/module_object.h"
+#include "xlang3/object_model.h"
+#include "xlang3/sequence.h"
+#include "xlang3/set_object.h"
 
+#include <algorithm>
 #include <array>
+#include <mutex>
+#include <unordered_set>
 
 namespace xlang3 {
+
+namespace {
+
+std::mutex& tracked_objects_mutex() {
+  static auto* mutex = new std::mutex();
+  return *mutex;
+}
+
+std::unordered_set<Object*>& tracked_objects() {
+  static auto* objects = new std::unordered_set<Object*>();
+  return *objects;
+}
+
+bool gc_kind_may_be_tracked(ObjectKind kind) {
+  switch (kind) {
+    case ObjectKind::String:
+    case ObjectKind::BigInt:
+    case ObjectKind::Complex:
+    case ObjectKind::Bytes:
+    case ObjectKind::ByteArray:
+    case ObjectKind::Range:
+    case ObjectKind::Code:
+    case ObjectKind::NativeFunction:
+      return false;
+    default:
+      return true;
+  }
+}
+
+} // namespace
+
+void gc_track_object(Object* object) {
+  if (object == nullptr || !gc_kind_may_be_tracked(object->kind)) return;
+  std::lock_guard lock(tracked_objects_mutex());
+  tracked_objects().insert(object);
+}
+
+void gc_untrack_object(Object* object) {
+  if (object == nullptr || !gc_kind_may_be_tracked(object->kind)) return;
+  std::lock_guard lock(tracked_objects_mutex());
+  tracked_objects().erase(object);
+}
+
+bool gc_value_is_tracked(const Value& value) {
+  if (value.tag != ValueTag::Object || value.as.obj == nullptr ||
+      !gc_kind_may_be_tracked(value.as.obj->kind)) {
+    return false;
+  }
+  if (value.as.obj->kind == ObjectKind::Tuple) {
+    const auto* tuple = value_as_tuple(value);
+    return tuple != nullptr && !tuple->items.empty();
+  }
+  return true;
+}
+
+std::vector<Value> gc_snapshot_tracked_objects() {
+  std::vector<Value> result;
+  {
+    std::lock_guard lock(tracked_objects_mutex());
+    result.reserve(tracked_objects().size());
+    for (auto* object : tracked_objects()) {
+      uint32_t references = object->refcnt.load(std::memory_order_acquire);
+      while (references != 0) {
+        if (object->refcnt.compare_exchange_weak(
+                references, references + 1, std::memory_order_acq_rel,
+                std::memory_order_acquire)) {
+          Value value;
+          value.tag = ValueTag::Object;
+          value.as.obj = object;
+          result.push_back(std::move(value));
+          break;
+        }
+      }
+    }
+  }
+  result.erase(
+      std::remove_if(result.begin(), result.end(), [](const Value& value) {
+        return !gc_value_is_tracked(value);
+      }), result.end());
+  return result;
+}
 
 void emit_pending_socket_resource_warnings(Runtime& runtime);
 void emit_pending_file_resource_warnings(Runtime& runtime);
@@ -68,7 +157,7 @@ bool gc_collect(Runtime& runtime, const Value* args, uint32_t argc, Value& out, 
   runtime.synchronize_modules_from_registry();
   runtime.release_dead_frame_registers();
   emit_pending_socket_resource_warnings(runtime);
-  const uint64_t collected = weakref_collect_cycles();
+  const uint64_t collected = weakref_collect_cycles(runtime);
   emit_pending_file_resource_warnings(runtime);
   weakref_dispatch_callbacks(runtime);
   value_set_int64(out, static_cast<int64_t>(collected));
@@ -89,27 +178,153 @@ bool gc_is_tracked(Runtime&, const Value* args, uint32_t argc, Value& out, std::
     error = "gc.is_tracked() takes exactly one argument";
     return false;
   }
-  value_set_bool(out, args[0].tag == ValueTag::Object && args[0].as.obj != nullptr);
+  value_set_bool(out, gc_value_is_tracked(args[0]));
   return true;
+}
+
+bool gc_get_objects(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 0) {
+    error = "gc.get_objects() generation selection is not yet supported";
+    return false;
+  }
+  out = Value::list(gc_snapshot_tracked_objects());
+  return true;
+}
+
+bool gc_object_references_any(Runtime& runtime, const Value& source,
+                              const Value* targets,
+                              uint32_t target_count) {
+  bool found = false;
+  const auto edge = [&](const Value& value) {
+    if (found || value.tag != ValueTag::Object || value.as.obj == nullptr)
+      return;
+    for (uint32_t index = 0; index < target_count; ++index) {
+      if (value_is(value, targets[index])) {
+        found = true;
+        return;
+      }
+    }
+  };
+  if (auto* value = value_as_list(source)) {
+    for (const auto& item : value->items) edge(item);
+  } else if (auto* value = value_as_tuple(source)) {
+    for (const auto& item : value->items) edge(item);
+  } else if (auto* value = value_as_set(source)) {
+    for (const auto& item : value->items) edge(item);
+  } else if (auto* value = value_as_dict(source)) {
+    for (const auto& item : value->entries) {
+      edge(item.first);
+      edge(item.second);
+    }
+  } else if (auto* value = value_as_mapping_proxy(source)) {
+    edge(value->source);
+  } else if (auto* value = value_as_dict_view(source)) {
+    edge(value->source);
+  } else if (auto* value = value_as_slice(source)) {
+    edge(value->start);
+    edge(value->stop);
+    edge(value->step);
+  } else if (auto* value = value_as_memoryview(source)) {
+    edge(value->owner);
+    edge(value->exporter);
+  } else if (auto* value = value_as_cell(source)) {
+    edge(value->value);
+  } else if (auto* value = value_as_module(source)) {
+    for (const auto& item : value->slots) edge(item);
+    for (const auto& item : value->extra_globals) edge(item.second);
+    edge(value->namespace_dict);
+  } else if (auto* value = value_as_function(source)) {
+    edge(value->globals_module);
+    edge(value->annotations);
+    edge(value->doc);
+    edge(value->attrs_dict);
+    for (const auto& item : value->closure) edge(item);
+    for (const auto& item : value->defaults) edge(item);
+    for (const auto& item : value->positional_defaults) edge(item);
+    for (const auto& item : value->kwdefaults) edge(item.second);
+  } else if (auto* value = value_as_native_function(source)) {
+    if (value->attrs_dict != nullptr) edge(*value->attrs_dict);
+  } else if (auto* value = value_as_generic_alias(source)) {
+    edge(value->origin);
+    edge(value->args);
+    edge(value->klass);
+  } else if (auto* value = value_as_type_param(source)) {
+    edge(value->bound);
+    edge(value->default_value);
+  } else if (auto* value = value_as_class(source)) {
+    edge(value->base);
+    edge(value->metaclass);
+    edge(value->globals_module);
+    for (const auto& item : value->bases) edge(item);
+    for (const auto& item : value->mro_cache) edge(item);
+    for (const auto& item : value->attrs) edge(item.second);
+  } else if (auto* value = value_as_instance(source)) {
+    edge(value->klass);
+    edge(value->mapping_storage);
+    edge(value->sequence_storage);
+    for (uint32_t index = 0; index < value->slot_count; ++index)
+      edge(instance_slot_at(value, index));
+    for (const auto& item : value->attrs) edge(item.second);
+    for (auto* target : value->native_gc_references)
+      for (uint32_t index = 0; index < target_count; ++index)
+        if (targets[index].tag == ValueTag::Object &&
+            targets[index].as.obj == target)
+          found = true;
+  } else if (auto* value = value_as_bound_method(source)) {
+    edge(value->self);
+    edge(value->function);
+  } else if (auto* value = value_as_static_method(source)) {
+    edge(value->function);
+    edge(value->attrs_dict);
+  } else if (auto* value = value_as_class_method(source)) {
+    edge(value->function);
+    edge(value->attrs_dict);
+  } else if (auto* value = value_as_super(source)) {
+    edge(value->klass);
+    edge(value->self);
+  } else if (auto* value = value_as_slot_descriptor(source)) {
+    edge(value->owner_class);
+  } else if (auto* value = value_as_property(source)) {
+    edge(value->fget);
+    edge(value->fset);
+    edge(value->fdel);
+    edge(value->doc);
+    edge(value->name);
+  } else if (auto* value = value_as_frame(source)) {
+    edge(value->globals_module);
+    edge(value->locals);
+    if (!value->live)
+      for (const auto& item : value->local_snapshot) edge(item);
+    edge(value->back);
+    edge(value->builtins);
+    edge(value->trace);
+    edge(value->generator_ref);
+  } else if (auto* value = value_as_traceback(source)) {
+    edge(value->frame);
+    edge(value->next);
+  } else if (auto* value = value_as_generator(source)) {
+    edge(value->function);
+    for (const auto& item : value->args) edge(item);
+    edge(value->pending_send);
+    edge(value->pending_throw);
+    edge(value->return_value);
+    edge(value->awaiting);
+    edge(value->origin);
+    generator_vm_visit_references(*value, edge);
+    runtime.visit_active_generator_references(value, edge);
+  } else if (auto* value = value_as_async_generator_awaitable(source)) {
+    edge(value->generator);
+    for (const auto& item : value->args) edge(item);
+  }
+  return found;
 }
 
 bool gc_get_referrers(Runtime& runtime, const Value* args, uint32_t argc,
                       Value& out, std::string&, void*) {
   std::vector<Value> referrers;
-  Value locals = runtime.current_locals_snapshot();
-  if (auto* mapping = value_as_dict(locals)) {
-    bool found = false;
-    for (const auto& entry : mapping->entries) {
-      for (uint32_t index = 0; index < argc; ++index) {
-        if (value_is(entry.second, args[index])) {
-          found = true;
-          break;
-        }
-      }
-      if (found) break;
-    }
-    if (found) referrers.push_back(std::move(locals));
-  }
+  for (auto& candidate : gc_snapshot_tracked_objects())
+    if (gc_object_references_any(runtime, candidate, args, argc))
+      referrers.push_back(std::move(candidate));
   out = Value::list(std::move(referrers));
   return true;
 }
@@ -152,6 +367,7 @@ void register_gc_module(Runtime& runtime) {
       .value("isenabled", runtime.make_native_function("gc.isenabled", gc_isenabled, state))
       .function("collect", gc_collect)
       .function("is_tracked", gc_is_tracked)
+      .function("get_objects", gc_get_objects)
       .function("get_referrers", gc_get_referrers)
       .function("get_count", gc_get_count)
       .value("get_threshold", runtime.make_native_function("gc.get_threshold", gc_get_threshold, state))

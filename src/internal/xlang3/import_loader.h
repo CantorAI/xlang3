@@ -24,6 +24,7 @@ namespace xlang3 {
 struct PythonModuleLocation {
   std::string path;
   std::string package_dir;
+  std::string path_importer_cache_key;
   std::vector<std::string> namespace_dirs;
   bool is_package = false;
   bool is_namespace_package = false;

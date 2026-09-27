@@ -1,0 +1,2 @@
+200
+{'cached': 8, 'delegated': ['ready', 'sent:5', 'complete'], 'delegate_throw_close': ['recovered', 'complete', ['ValueError', 'closed']], 'index_error': 'TypeError', 'socket_error': 'ConnectionRefusedError', 'asend_coroutine': True, 'recovered': ['recovered']}

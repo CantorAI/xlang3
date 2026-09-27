@@ -1,0 +1,7 @@
+TypeAlias Alias Store
+TypeVar T
+type Alias[T] = list[T]
+1 0 1 23
+5 10
+11 12
+TypeAliasType 1 list[T]

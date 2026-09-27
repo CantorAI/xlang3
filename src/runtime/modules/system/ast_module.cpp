@@ -23,7 +23,9 @@ limitations under the License.
 #include "xlang3/set_object.h"
 #include "xlang3/parser.h"
 
+#include <algorithm>
 #include <cctype>
+#include <cstdlib>
 #include <deque>
 #include <string>
 #include <unordered_map>
@@ -906,16 +908,41 @@ bool parse_simple_function_ast(Runtime&, AstState* state, std::string_view sourc
 
 Value convert_parser_expr(AstState* state, const ast::Expr& expr, bool store_context, std::string& error);
 
+Value convert_parser_comprehension(
+    AstState* state, const ast::Expr& target, const ast::Expr& iterable,
+    const ast::ExprPtr& filter, bool is_async, std::string& error) {
+  Value converted_target = convert_parser_expr(state, target, true, error);
+  Value converted_iterable = convert_parser_expr(state, iterable, false, error);
+  if (converted_target.tag == ValueTag::Invalid ||
+      converted_iterable.tag == ValueTag::Invalid) return Value::invalid();
+  std::vector<Value> conditions;
+  if (filter != nullptr) {
+    Value converted_filter = convert_parser_expr(state, *filter, false, error);
+    if (converted_filter.tag == ValueTag::Invalid) return Value::invalid();
+    conditions.push_back(std::move(converted_filter));
+  }
+  Value node = ast_instance(state, "comprehension");
+  object_set_attr(node, "target", converted_target, error);
+  object_set_attr(node, "iter", converted_iterable, error);
+  object_set_attr(node, "ifs", Value::list(std::move(conditions)), error);
+  object_set_attr(node, "is_async", Value::int64(is_async ? 1 : 0), error);
+  return node;
+}
+
 Value parser_context(AstState* state, bool store) {
   return ast_instance(state, store ? "Store" : "Load");
 }
 
 void set_parser_location(Value& node, const ast::Expr& expr, std::string& error) {
-  ast_set_location(node, expr.line, expr.end_line, expr.column, expr.end_column, error);
+  ast_set_location(node, expr.line, expr.end_line,
+      expr.column == 0 ? 0 : expr.column - 1,
+      expr.end_column == 0 ? 0 : expr.end_column - 1, error);
 }
 
 void set_parser_location(Value& node, const ast::Stmt& stmt, std::string& error) {
-  ast_set_location(node, stmt.line, stmt.end_line, stmt.column, stmt.end_column, error);
+  ast_set_location(node, stmt.line, stmt.end_line,
+      stmt.column == 0 ? 0 : stmt.column - 1,
+      stmt.end_column == 0 ? 0 : stmt.end_column - 1, error);
 }
 
 Value convert_parser_expr(AstState* state, const ast::Expr& expr, bool store_context, std::string& error) {
@@ -929,6 +956,29 @@ Value convert_parser_expr(AstState* state, const ast::Expr& expr, bool store_con
     switch (literal->kind) {
       case ast::LiteralExpr::Kind::None: literal_value = Value::none(); break;
       case ast::LiteralExpr::Kind::Bool: literal_value = Value::boolean(literal->bool_value); break;
+      case ast::LiteralExpr::Kind::Int:
+        literal_value = value_bigint_from_decimal(
+            literal->text,
+            literal->text.size() > 1 && literal->text[0] == '0' &&
+                    (literal->text[1] == 'x' || literal->text[1] == 'X' ||
+                     literal->text[1] == 'o' || literal->text[1] == 'O' ||
+                     literal->text[1] == 'b' || literal->text[1] == 'B')
+                ? 0 : 10,
+            error);
+        if (literal_value.tag != ValueTag::Invalid)
+          node = ast_make_constant(state, literal_value, error);
+        break;
+      case ast::LiteralExpr::Kind::Double:
+      case ast::LiteralExpr::Kind::Complex: {
+        std::string number = literal->text;
+        number.erase(std::remove(number.begin(), number.end(), '_'), number.end());
+        if (literal->kind == ast::LiteralExpr::Kind::Complex) number.pop_back();
+        const double parsed = std::strtod(number.c_str(), nullptr);
+        literal_value = literal->kind == ast::LiteralExpr::Kind::Complex
+            ? Value::complex(0.0, parsed) : Value::number(parsed);
+        node = ast_make_constant(state, literal_value, error);
+        break;
+      }
       case ast::LiteralExpr::Kind::Ellipsis: {
         const Value* ellipsis = state->runtime == nullptr
             ? nullptr : state->runtime->find_builtin("Ellipsis");
@@ -942,15 +992,111 @@ Value convert_parser_expr(AstState* state, const ast::Expr& expr, bool store_con
       case ast::LiteralExpr::Kind::Bytes:
         node = ast_make_constant(state, Value::bytes(literal->text), error);
         break;
-      default: {
-        node = ast_parse_simple_expr(state, literal->text, error, expr.line, expr.column);
-        break;
-      }
     }
     if (node.tag == ValueTag::Invalid &&
         (literal->kind == ast::LiteralExpr::Kind::None || literal->kind == ast::LiteralExpr::Kind::Bool)) {
       node = ast_make_constant(state, literal_value, error);
     }
+  } else if (auto* yielded = dynamic_cast<const ast::YieldExpr*>(&expr)) {
+    node = ast_instance(state, yielded->from ? "YieldFrom" : "Yield");
+    Value value = yielded->expr == nullptr ? Value::none()
+        : convert_parser_expr(state, *yielded->expr, false, error);
+    if (value.tag == ValueTag::Invalid) return Value::invalid();
+    object_set_attr(node, "value", value, error);
+  } else if (auto* starred = dynamic_cast<const ast::StarredExpr*>(&expr)) {
+    Value value = convert_parser_expr(state, *starred->expr, store_context, error);
+    if (value.tag == ValueTag::Invalid) return Value::invalid();
+    node = ast_instance(state, "Starred");
+    object_set_attr(node, "value", value, error);
+    object_set_attr(node, "ctx", parser_context(state, store_context), error);
+  } else if (auto* named = dynamic_cast<const ast::NamedExpr*>(&expr)) {
+    Value target = ast_make_name(state, named->name, error);
+    Value value = convert_parser_expr(state, *named->value, false, error);
+    if (target.tag == ValueTag::Invalid || value.tag == ValueTag::Invalid)
+      return Value::invalid();
+    object_set_attr(target, "ctx", parser_context(state, true), error);
+    node = ast_instance(state, "NamedExpr");
+    object_set_attr(node, "target", target, error);
+    object_set_attr(node, "value", value, error);
+  } else if (auto* awaited = dynamic_cast<const ast::AwaitExpr*>(&expr)) {
+    Value value = convert_parser_expr(state, *awaited->expr, false, error);
+    if (value.tag == ValueTag::Invalid) return Value::invalid();
+    node = ast_instance(state, "Await");
+    object_set_attr(node, "value", value, error);
+  } else if (auto* lambda = dynamic_cast<const ast::LambdaExpr*>(&expr)) {
+    Value arguments = make_empty_arguments(state, error);
+    std::vector<Value> posonly;
+    std::vector<Value> regular;
+    std::vector<Value> kwonly;
+    std::vector<Value> kw_defaults;
+    std::vector<Value> defaults;
+    Value vararg = Value::none();
+    Value kwarg = Value::none();
+    for (const auto& parameter : lambda->signature) {
+      Value arg = ast_make_arg(state, parameter.name, error);
+      switch (parameter.kind) {
+        case ast::LambdaExpr::Param::Kind::PosOnly:
+          posonly.push_back(arg);
+          if (parameter.default_value != nullptr)
+            defaults.push_back(convert_parser_expr(state, *parameter.default_value, false, error));
+          break;
+        case ast::LambdaExpr::Param::Kind::PosOrKeyword:
+          regular.push_back(arg);
+          if (parameter.default_value != nullptr)
+            defaults.push_back(convert_parser_expr(state, *parameter.default_value, false, error));
+          break;
+        case ast::LambdaExpr::Param::Kind::VarArgs: vararg = arg; break;
+        case ast::LambdaExpr::Param::Kind::KeywordOnly:
+          kwonly.push_back(arg);
+          kw_defaults.push_back(parameter.default_value == nullptr ? Value::none()
+              : convert_parser_expr(state, *parameter.default_value, false, error));
+          break;
+        case ast::LambdaExpr::Param::Kind::KwArgs: kwarg = arg; break;
+      }
+    }
+    object_set_attr(arguments, "posonlyargs", Value::list(std::move(posonly)), error);
+    object_set_attr(arguments, "args", Value::list(std::move(regular)), error);
+    object_set_attr(arguments, "vararg", vararg, error);
+    object_set_attr(arguments, "kwonlyargs", Value::list(std::move(kwonly)), error);
+    object_set_attr(arguments, "kw_defaults", Value::list(std::move(kw_defaults)), error);
+    object_set_attr(arguments, "kwarg", kwarg, error);
+    object_set_attr(arguments, "defaults", Value::list(std::move(defaults)), error);
+    Value body = convert_parser_expr(state, *lambda->body, false, error);
+    if (body.tag == ValueTag::Invalid) return Value::invalid();
+    node = ast_instance(state, "Lambda");
+    object_set_attr(node, "args", arguments, error);
+    object_set_attr(node, "body", body, error);
+  } else if (auto* fstring = dynamic_cast<const ast::FStringExpr*>(&expr)) {
+    std::vector<Value> values;
+    for (const auto& part : fstring->parts) {
+      if (!part.is_expr) {
+        values.push_back(ast_make_constant(state, Value::string(part.text), error));
+        continue;
+      }
+      if (part.debug_equal) {
+        values.push_back(ast_make_constant(state, Value::string(part.debug_text), error));
+      }
+      auto parsed = parse_expression_source(part.text);
+      if (!parsed.errors.empty() || parsed.expression == nullptr) {
+        error = parsed.errors.empty() ? "invalid formatted expression" : parsed.errors.front();
+        return Value::invalid();
+      }
+      Value formatted = ast_instance(state, "FormattedValue");
+      Value expression = convert_parser_expr(state, *parsed.expression, false, error);
+      if (expression.tag == ValueTag::Invalid) return Value::invalid();
+      object_set_attr(formatted, "value", expression, error);
+      object_set_attr(formatted, "conversion", Value::int64(
+          part.conversion == '\0' ? (part.debug_equal ? 'r' : -1) : part.conversion), error);
+      Value format_spec = Value::none();
+      if (!part.format_spec.empty()) {
+        ast::FStringExpr spec(parse_fstring_parts(part.format_spec));
+        format_spec = convert_parser_expr(state, spec, false, error);
+      }
+      object_set_attr(formatted, "format_spec", format_spec, error);
+      values.push_back(std::move(formatted));
+    }
+    node = ast_instance(state, "JoinedStr");
+    object_set_attr(node, "values", Value::list(std::move(values)), error);
   } else if (auto* attr = dynamic_cast<const ast::AttrExpr*>(&expr)) {
     Value owner = convert_parser_expr(state, *attr->object, false, error);
     node = ast_instance(state, "Attribute");
@@ -1057,6 +1203,19 @@ Value convert_parser_expr(AstState* state, const ast::Expr& expr, bool store_con
     object_set_attr(node, "left", convert_parser_expr(state, *binary->lhs, false, error), error);
     object_set_attr(node, "op", ast_instance(state, found->second), error);
     object_set_attr(node, "right", convert_parser_expr(state, *binary->rhs, false, error), error);
+  } else if (auto* slice = dynamic_cast<const ast::SliceExpr*>(&expr)) {
+    Value lower = slice->start == nullptr ? Value::none()
+        : convert_parser_expr(state, *slice->start, false, error);
+    Value upper = slice->stop == nullptr ? Value::none()
+        : convert_parser_expr(state, *slice->stop, false, error);
+    Value step = slice->step == nullptr ? Value::none()
+        : convert_parser_expr(state, *slice->step, false, error);
+    if (lower.tag == ValueTag::Invalid || upper.tag == ValueTag::Invalid ||
+        step.tag == ValueTag::Invalid) return Value::invalid();
+    node = ast_instance(state, "Slice");
+    object_set_attr(node, "lower", lower, error);
+    object_set_attr(node, "upper", upper, error);
+    object_set_attr(node, "step", step, error);
   } else if (auto* subscript = dynamic_cast<const ast::SubscriptExpr*>(&expr)) {
     node = ast_instance(state, "Subscript");
     object_set_attr(node, "value", convert_parser_expr(state, *subscript->object, false, error), error);
@@ -1065,7 +1224,9 @@ Value convert_parser_expr(AstState* state, const ast::Expr& expr, bool store_con
   } else if (auto* tuple = dynamic_cast<const ast::TupleExpr*>(&expr)) {
     std::vector<Value> elements;
     for (const auto& item : tuple->items) {
-      elements.push_back(convert_parser_expr(state, *item, store_context, error));
+      Value converted = convert_parser_expr(state, *item, store_context, error);
+      if (converted.tag == ValueTag::Invalid) return Value::invalid();
+      elements.push_back(std::move(converted));
     }
     node = ast_instance(state, "Tuple");
     object_set_attr(node, "elts", Value::list(std::move(elements)), error);
@@ -1073,7 +1234,9 @@ Value convert_parser_expr(AstState* state, const ast::Expr& expr, bool store_con
   } else if (auto* list = dynamic_cast<const ast::ListExpr*>(&expr)) {
     std::vector<Value> elements;
     for (const auto& item : list->items) {
-      elements.push_back(convert_parser_expr(state, *item, store_context, error));
+      Value converted = convert_parser_expr(state, *item, store_context, error);
+      if (converted.tag == ValueTag::Invalid) return Value::invalid();
+      elements.push_back(std::move(converted));
     }
     node = ast_instance(state, "List");
     object_set_attr(node, "elts", Value::list(std::move(elements)), error);
@@ -1095,6 +1258,69 @@ Value convert_parser_expr(AstState* state, const ast::Expr& expr, bool store_con
     node = ast_instance(state, "Dict");
     object_set_attr(node, "keys", Value::list(std::move(keys)), error);
     object_set_attr(node, "values", Value::list(std::move(values)), error);
+  } else if (auto* list_comp = dynamic_cast<const ast::ListCompExpr*>(&expr)) {
+    Value element = convert_parser_expr(state, *list_comp->result, false, error);
+    Value first = convert_parser_comprehension(state, *list_comp->target_expr,
+        *list_comp->iterable, list_comp->filter, list_comp->is_async, error);
+    if (element.tag == ValueTag::Invalid || first.tag == ValueTag::Invalid) return Value::invalid();
+    std::vector<Value> generators{first};
+    for (const auto& clause : list_comp->extra_clauses) {
+      Value converted = convert_parser_comprehension(state, *clause.target_expr,
+          *clause.iterable, clause.filter, clause.is_async, error);
+      if (converted.tag == ValueTag::Invalid) return Value::invalid();
+      generators.push_back(std::move(converted));
+    }
+    node = ast_instance(state, "ListComp");
+    object_set_attr(node, "elt", element, error);
+    object_set_attr(node, "generators", Value::list(std::move(generators)), error);
+  } else if (auto* set_comp = dynamic_cast<const ast::SetCompExpr*>(&expr)) {
+    Value element = convert_parser_expr(state, *set_comp->result, false, error);
+    Value first = convert_parser_comprehension(state, *set_comp->target_expr,
+        *set_comp->iterable, set_comp->filter, set_comp->is_async, error);
+    if (element.tag == ValueTag::Invalid || first.tag == ValueTag::Invalid) return Value::invalid();
+    std::vector<Value> generators{first};
+    for (const auto& clause : set_comp->extra_clauses) {
+      Value converted = convert_parser_comprehension(state, *clause.target_expr,
+          *clause.iterable, clause.filter, clause.is_async, error);
+      if (converted.tag == ValueTag::Invalid) return Value::invalid();
+      generators.push_back(std::move(converted));
+    }
+    node = ast_instance(state, "SetComp");
+    object_set_attr(node, "elt", element, error);
+    object_set_attr(node, "generators", Value::list(std::move(generators)), error);
+  } else if (auto* dict_comp = dynamic_cast<const ast::DictCompExpr*>(&expr)) {
+    Value key = convert_parser_expr(state, *dict_comp->key, false, error);
+    Value value = convert_parser_expr(state, *dict_comp->value, false, error);
+    Value first = convert_parser_comprehension(state, *dict_comp->target_expr,
+        *dict_comp->iterable, dict_comp->filter, dict_comp->is_async, error);
+    if (key.tag == ValueTag::Invalid || value.tag == ValueTag::Invalid ||
+        first.tag == ValueTag::Invalid) return Value::invalid();
+    std::vector<Value> generators{first};
+    for (const auto& clause : dict_comp->extra_clauses) {
+      Value converted = convert_parser_comprehension(state, *clause.target_expr,
+          *clause.iterable, clause.filter, clause.is_async, error);
+      if (converted.tag == ValueTag::Invalid) return Value::invalid();
+      generators.push_back(std::move(converted));
+    }
+    node = ast_instance(state, "DictComp");
+    object_set_attr(node, "key", key, error);
+    object_set_attr(node, "value", value, error);
+    object_set_attr(node, "generators", Value::list(std::move(generators)), error);
+  } else if (auto* generator = dynamic_cast<const ast::GeneratorExpr*>(&expr)) {
+    Value element = convert_parser_expr(state, *generator->result, false, error);
+    Value first = convert_parser_comprehension(state, *generator->target_expr,
+        *generator->iterable, generator->filter, generator->is_async, error);
+    if (element.tag == ValueTag::Invalid || first.tag == ValueTag::Invalid) return Value::invalid();
+    std::vector<Value> generators{first};
+    for (const auto& clause : generator->extra_clauses) {
+      Value converted = convert_parser_comprehension(state, *clause.target_expr,
+          *clause.iterable, clause.filter, clause.is_async, error);
+      if (converted.tag == ValueTag::Invalid) return Value::invalid();
+      generators.push_back(std::move(converted));
+    }
+    node = ast_instance(state, "GeneratorExp");
+    object_set_attr(node, "elt", element, error);
+    object_set_attr(node, "generators", Value::list(std::move(generators)), error);
   } else if (auto* set = dynamic_cast<const ast::SetExpr*>(&expr)) {
     std::vector<Value> elements;
     elements.reserve(set->items.size());
@@ -1109,6 +1335,138 @@ Value convert_parser_expr(AstState* state, const ast::Expr& expr, bool store_con
     return Value::invalid();
   }
   if (node.tag != ValueTag::Invalid) set_parser_location(node, expr, error);
+  return node;
+}
+
+Value convert_parser_pattern(AstState* state, const ast::Expr& expr, std::string& error);
+
+bool append_parser_or_patterns(
+    AstState* state, const ast::Expr& expr, std::vector<Value>& patterns,
+    std::string& error) {
+  if (auto* binary = dynamic_cast<const ast::BinaryExpr*>(&expr);
+      binary != nullptr && binary->op == "|") {
+    return append_parser_or_patterns(state, *binary->lhs, patterns, error) &&
+           append_parser_or_patterns(state, *binary->rhs, patterns, error);
+  }
+  Value pattern = convert_parser_pattern(state, expr, error);
+  if (pattern.tag == ValueTag::Invalid) return false;
+  patterns.push_back(std::move(pattern));
+  return true;
+}
+
+Value convert_parser_pattern(AstState* state, const ast::Expr& expr, std::string& error) {
+  Value node;
+  if (auto* name = dynamic_cast<const ast::NameExpr*>(&expr)) {
+    node = ast_instance(state, "MatchAs");
+    object_set_attr(node, "pattern", Value::none(), error);
+    object_set_attr(node, "name", name->name == "_" ? Value::none() : Value::string(name->name), error);
+  } else if (auto* literal = dynamic_cast<const ast::LiteralExpr*>(&expr)) {
+    const bool singleton = literal->kind == ast::LiteralExpr::Kind::None ||
+                           literal->kind == ast::LiteralExpr::Kind::Bool;
+    node = ast_instance(state, singleton ? "MatchSingleton" : "MatchValue");
+    Value value = convert_parser_expr(state, expr, false, error);
+    if (value.tag == ValueTag::Invalid) return value;
+    if (singleton) {
+      Value constant;
+      if (!object_get_attr(value, "value", constant, error)) return Value::invalid();
+      object_set_attr(node, "value", constant, error);
+    } else {
+      object_set_attr(node, "value", value, error);
+    }
+  } else if (auto* binary = dynamic_cast<const ast::BinaryExpr*>(&expr)) {
+    if (binary->op == "|") {
+      std::vector<Value> patterns;
+      if (!append_parser_or_patterns(state, expr, patterns, error)) return Value::invalid();
+      node = ast_instance(state, "MatchOr");
+      object_set_attr(node, "patterns", Value::list(std::move(patterns)), error);
+    } else if (binary->op == "as") {
+      auto* capture = dynamic_cast<const ast::NameExpr*>(binary->rhs.get());
+      if (capture == nullptr) return Value::invalid();
+      Value pattern = convert_parser_pattern(state, *binary->lhs, error);
+      if (pattern.tag == ValueTag::Invalid) return pattern;
+      node = ast_instance(state, "MatchAs");
+      object_set_attr(node, "pattern", pattern, error);
+      object_set_attr(node, "name", Value::string(capture->name), error);
+    }
+  } else if (auto* sequence = dynamic_cast<const ast::ListExpr*>(&expr)) {
+    std::vector<Value> patterns;
+    for (const auto& item : sequence->items) {
+      Value pattern = convert_parser_pattern(state, *item, error);
+      if (pattern.tag == ValueTag::Invalid) return pattern;
+      patterns.push_back(std::move(pattern));
+    }
+    node = ast_instance(state, "MatchSequence");
+    object_set_attr(node, "patterns", Value::list(std::move(patterns)), error);
+  } else if (auto* sequence = dynamic_cast<const ast::TupleExpr*>(&expr)) {
+    std::vector<Value> patterns;
+    for (const auto& item : sequence->items) {
+      Value pattern = convert_parser_pattern(state, *item, error);
+      if (pattern.tag == ValueTag::Invalid) return pattern;
+      patterns.push_back(std::move(pattern));
+    }
+    node = ast_instance(state, "MatchSequence");
+    object_set_attr(node, "patterns", Value::list(std::move(patterns)), error);
+  } else if (auto* mapping = dynamic_cast<const ast::DictExpr*>(&expr)) {
+    std::vector<Value> keys;
+    std::vector<Value> patterns;
+    Value rest = Value::none();
+    for (const auto& entry : mapping->entries) {
+      if (entry.first == nullptr) {
+        auto* capture = dynamic_cast<const ast::NameExpr*>(entry.second.get());
+        if (capture == nullptr) return Value::invalid();
+        rest = Value::string(capture->name);
+        continue;
+      }
+      Value key = convert_parser_expr(state, *entry.first, false, error);
+      Value pattern = convert_parser_pattern(state, *entry.second, error);
+      if (key.tag == ValueTag::Invalid || pattern.tag == ValueTag::Invalid) return Value::invalid();
+      keys.push_back(std::move(key));
+      patterns.push_back(std::move(pattern));
+    }
+    node = ast_instance(state, "MatchMapping");
+    object_set_attr(node, "keys", Value::list(std::move(keys)), error);
+    object_set_attr(node, "patterns", Value::list(std::move(patterns)), error);
+    object_set_attr(node, "rest", rest, error);
+  } else if (auto* call = dynamic_cast<const ast::CallExpr*>(&expr)) {
+    Value klass = convert_parser_expr(state, *call->callee, false, error);
+    if (klass.tag == ValueTag::Invalid) return klass;
+    std::vector<Value> positional;
+    std::vector<Value> keyword_names;
+    std::vector<Value> keyword_patterns;
+    for (const auto& argument : call->args) {
+      Value pattern = convert_parser_pattern(state, *argument, error);
+      if (pattern.tag == ValueTag::Invalid) return pattern;
+      positional.push_back(std::move(pattern));
+    }
+    for (const auto& argument : call->call_args) {
+      if (argument.star || argument.kw_star) return Value::invalid();
+      Value pattern = convert_parser_pattern(state, *argument.value, error);
+      if (pattern.tag == ValueTag::Invalid) return pattern;
+      if (argument.name.empty()) positional.push_back(std::move(pattern));
+      else {
+        keyword_names.push_back(Value::string(argument.name));
+        keyword_patterns.push_back(std::move(pattern));
+      }
+    }
+    node = ast_instance(state, "MatchClass");
+    object_set_attr(node, "cls", klass, error);
+    object_set_attr(node, "patterns", Value::list(std::move(positional)), error);
+    object_set_attr(node, "kwd_attrs", Value::list(std::move(keyword_names)), error);
+    object_set_attr(node, "kwd_patterns", Value::list(std::move(keyword_patterns)), error);
+  } else if (auto* starred = dynamic_cast<const ast::StarredExpr*>(&expr)) {
+    auto* capture = dynamic_cast<const ast::NameExpr*>(starred->expr.get());
+    if (capture == nullptr) return Value::invalid();
+    node = ast_instance(state, "MatchStar");
+    object_set_attr(node, "name", capture->name == "_" ? Value::none() : Value::string(capture->name), error);
+  } else if (dynamic_cast<const ast::AttrExpr*>(&expr) != nullptr ||
+             dynamic_cast<const ast::UnaryExpr*>(&expr) != nullptr) {
+    Value value = convert_parser_expr(state, expr, false, error);
+    if (value.tag == ValueTag::Invalid) return value;
+    node = ast_instance(state, "MatchValue");
+    object_set_attr(node, "value", value, error);
+  }
+  if (node.tag == ValueTag::Invalid) return node;
+  set_parser_location(node, expr, error);
   return node;
 }
 
@@ -1130,6 +1488,27 @@ bool convert_parser_statements(
       names.push_back(std::move(alias));
     }
     return Value::list(std::move(names));
+  };
+  auto convert_type_params = [&](
+      const std::vector<std::string>& names,
+      const std::vector<std::pair<uint32_t, uint32_t>>& positions) {
+    std::vector<Value> converted;
+    converted.reserve(names.size());
+    for (size_t index = 0; index < names.size(); ++index) {
+      Value parameter = ast_instance(state, "TypeVar");
+      object_set_attr(parameter, "name", Value::string(names[index]), error);
+      object_set_attr(parameter, "bound", Value::none(), error);
+      object_set_attr(parameter, "default_value", Value::none(), error);
+      if (index < positions.size()) {
+        const auto [line, column] = positions[index];
+        ast_set_location(
+            parameter, line, line, column == 0 ? 0 : column - 1,
+            (column == 0 ? 0 : column - 1) +
+                static_cast<uint32_t>(names[index].size()), error);
+      }
+      converted.push_back(std::move(parameter));
+    }
+    return Value::list(std::move(converted));
   };
   for (const auto& statement_ptr : statements) {
     const ast::Stmt& statement = *statement_ptr;
@@ -1194,7 +1573,70 @@ bool convert_parser_statements(
           ? Value::none()
           : convert_parser_expr(state, *function->return_annotation, false, error), error);
       object_set_attr(node, "type_comment", Value::none(), error);
-      object_set_attr(node, "type_params", Value::list({}), error);
+      object_set_attr(node, "type_params", convert_type_params(
+          function->type_params, function->type_param_positions), error);
+    } else if (auto* klass = dynamic_cast<const ast::ClassDef*>(&statement)) {
+      std::vector<Value> bases;
+      std::vector<Value> keywords;
+      std::vector<Value> decorators;
+      std::vector<Value> body;
+      for (const auto& base : klass->bases) {
+        Value converted = convert_parser_expr(state, *base, false, error);
+        if (converted.tag == ValueTag::Invalid) return false;
+        bases.push_back(std::move(converted));
+      }
+      for (const auto& [name, value] : klass->keywords) {
+        Value converted = convert_parser_expr(state, *value, false, error);
+        if (converted.tag == ValueTag::Invalid) return false;
+        Value keyword = ast_instance(state, "keyword");
+        object_set_attr(keyword, "arg", name.empty() ? Value::none() : Value::string(name), error);
+        object_set_attr(keyword, "value", converted, error);
+        keywords.push_back(std::move(keyword));
+      }
+      for (const auto& decorator : klass->decorators) {
+        Value converted = convert_parser_expr(state, *decorator, false, error);
+        if (converted.tag == ValueTag::Invalid) return false;
+        decorators.push_back(std::move(converted));
+      }
+      if (!convert_parser_statements(state, klass->body, body, error)) return false;
+      node = ast_instance(state, "ClassDef");
+      object_set_attr(node, "name", Value::string(klass->name), error);
+      object_set_attr(node, "bases", Value::list(std::move(bases)), error);
+      object_set_attr(node, "keywords", Value::list(std::move(keywords)), error);
+      object_set_attr(node, "body", Value::list(std::move(body)), error);
+      object_set_attr(node, "decorator_list", Value::list(std::move(decorators)), error);
+      object_set_attr(node, "type_params", convert_type_params(
+          klass->type_params, klass->type_param_positions), error);
+    } else if (auto* alias = dynamic_cast<const ast::TypeAliasStmt*>(&statement)) {
+      Value name = ast_instance(state, "Name");
+      object_set_attr(name, "id", Value::string(alias->name), error);
+      object_set_attr(name, "ctx", parser_context(state, true), error);
+      ast_set_location(
+          name, alias->name_line, alias->name_line,
+          alias->name_column == 0 ? 0 : alias->name_column - 1,
+          (alias->name_column == 0 ? 0 : alias->name_column - 1) +
+              static_cast<uint32_t>(alias->name.size()), error);
+      std::vector<Value> type_params;
+      for (size_t index = 0; index < alias->type_params.size(); ++index) {
+        Value parameter = ast_instance(state, "TypeVar");
+        object_set_attr(parameter, "name", Value::string(alias->type_params[index]), error);
+        object_set_attr(parameter, "bound", Value::none(), error);
+        object_set_attr(parameter, "default_value", Value::none(), error);
+        if (index < alias->type_param_positions.size()) {
+          const auto [line, column] = alias->type_param_positions[index];
+          ast_set_location(
+              parameter, line, line, column == 0 ? 0 : column - 1,
+              (column == 0 ? 0 : column - 1) +
+                  static_cast<uint32_t>(alias->type_params[index].size()), error);
+        }
+        type_params.push_back(std::move(parameter));
+      }
+      Value value = convert_parser_expr(state, *alias->value, false, error);
+      if (value.tag == ValueTag::Invalid) return false;
+      node = ast_instance(state, "TypeAlias");
+      object_set_attr(node, "name", name, error);
+      object_set_attr(node, "type_params", Value::list(std::move(type_params)), error);
+      object_set_attr(node, "value", value, error);
     } else if (auto* imported = dynamic_cast<const ast::ImportStmt*>(&statement)) {
       node = ast_instance(state, "Import");
       object_set_attr(node, "names", import_aliases(
@@ -1213,6 +1655,103 @@ bool convert_parser_statements(
       object_set_attr(node, "level", Value::int64(
           static_cast<int64_t>(level == std::string::npos
               ? imported->module.size() : level)), error);
+    } else if (auto* loop = dynamic_cast<const ast::ForStmt*>(&statement)) {
+      Value target = convert_parser_expr(state, *loop->target_expr, true, error);
+      Value iterable = convert_parser_expr(state, *loop->iterable, false, error);
+      std::vector<Value> body;
+      std::vector<Value> otherwise;
+      if (target.tag == ValueTag::Invalid || iterable.tag == ValueTag::Invalid ||
+          !convert_parser_statements(state, loop->body, body, error) ||
+          !convert_parser_statements(state, loop->else_body, otherwise, error)) return false;
+      node = ast_instance(state, loop->is_async ? "AsyncFor" : "For");
+      object_set_attr(node, "target", target, error);
+      object_set_attr(node, "iter", iterable, error);
+      object_set_attr(node, "body", Value::list(std::move(body)), error);
+      object_set_attr(node, "orelse", Value::list(std::move(otherwise)), error);
+      object_set_attr(node, "type_comment", Value::none(), error);
+    } else if (auto* loop = dynamic_cast<const ast::WhileStmt*>(&statement)) {
+      Value test = convert_parser_expr(state, *loop->condition, false, error);
+      std::vector<Value> body;
+      std::vector<Value> otherwise;
+      if (test.tag == ValueTag::Invalid ||
+          !convert_parser_statements(state, loop->body, body, error) ||
+          !convert_parser_statements(state, loop->else_body, otherwise, error)) return false;
+      node = ast_instance(state, "While");
+      object_set_attr(node, "test", test, error);
+      object_set_attr(node, "body", Value::list(std::move(body)), error);
+      object_set_attr(node, "orelse", Value::list(std::move(otherwise)), error);
+    } else if (auto* attempted = dynamic_cast<const ast::TryExceptStmt*>(&statement)) {
+      std::vector<Value> body;
+      std::vector<Value> handlers;
+      std::vector<Value> otherwise;
+      std::vector<Value> finalbody;
+      if (!convert_parser_statements(state, attempted->try_body, body, error) ||
+          !convert_parser_statements(state, attempted->else_body, otherwise, error) ||
+          !convert_parser_statements(state, attempted->finally_body, finalbody, error)) return false;
+      bool starred = false;
+      for (const auto& handler : attempted->handlers) {
+        std::vector<Value> handler_body;
+        if (!convert_parser_statements(state, handler.body, handler_body, error)) return false;
+        Value type = handler.type == nullptr ? Value::none()
+            : convert_parser_expr(state, *handler.type, false, error);
+        if (type.tag == ValueTag::Invalid) return false;
+        Value converted = ast_instance(state, "ExceptHandler");
+        object_set_attr(converted, "type", type, error);
+        object_set_attr(converted, "name", handler.name.empty()
+            ? Value::none() : Value::string(handler.name), error);
+        object_set_attr(converted, "body", Value::list(std::move(handler_body)), error);
+        ast_set_location(converted, handler.line, handler.line,
+            handler.column, handler.column, error);
+        handlers.push_back(std::move(converted));
+        starred = starred || handler.is_star;
+      }
+      node = ast_instance(state, starred ? "TryStar" : "Try");
+      object_set_attr(node, "body", Value::list(std::move(body)), error);
+      object_set_attr(node, "handlers", Value::list(std::move(handlers)), error);
+      object_set_attr(node, "orelse", Value::list(std::move(otherwise)), error);
+      object_set_attr(node, "finalbody", Value::list(std::move(finalbody)), error);
+    } else if (auto* deleted = dynamic_cast<const ast::DelStmt*>(&statement)) {
+      Value target = convert_parser_expr(state, *deleted->target, true, error);
+      if (target.tag == ValueTag::Invalid) return false;
+      node = ast_instance(state, "Delete");
+      object_set_attr(node, "targets", Value::list({target}), error);
+    } else if (auto* global = dynamic_cast<const ast::GlobalStmt*>(&statement)) {
+      std::vector<Value> names;
+      for (const auto& name : global->names) names.push_back(Value::string(name));
+      node = ast_instance(state, "Global");
+      object_set_attr(node, "names", Value::list(std::move(names)), error);
+    } else if (auto* nonlocal = dynamic_cast<const ast::NonlocalStmt*>(&statement)) {
+      std::vector<Value> names;
+      for (const auto& name : nonlocal->names) names.push_back(Value::string(name));
+      node = ast_instance(state, "Nonlocal");
+      object_set_attr(node, "names", Value::list(std::move(names)), error);
+    } else if (auto* with = dynamic_cast<const ast::WithStmt*>(&statement)) {
+      Value manager = convert_parser_expr(state, *with->manager, false, error);
+      Value target = with->target_expr == nullptr ? Value::none()
+          : convert_parser_expr(state, *with->target_expr, true, error);
+      std::vector<Value> body;
+      if (manager.tag == ValueTag::Invalid || target.tag == ValueTag::Invalid ||
+          !convert_parser_statements(state, with->body, body, error)) return false;
+      Value item = ast_instance(state, "withitem");
+      object_set_attr(item, "context_expr", manager, error);
+      object_set_attr(item, "optional_vars", target, error);
+      node = ast_instance(state, with->is_async ? "AsyncWith" : "With");
+      object_set_attr(node, "items", Value::list({item}), error);
+      object_set_attr(node, "body", Value::list(std::move(body)), error);
+      object_set_attr(node, "type_comment", Value::none(), error);
+    } else if (auto* annotated = dynamic_cast<const ast::AnnotatedAssignStmt*>(&statement)) {
+      Value target = convert_parser_expr(state, *annotated->target, true, error);
+      Value annotation = convert_parser_expr(state, *annotated->annotation, false, error);
+      Value value = annotated->value == nullptr
+          ? Value::none() : convert_parser_expr(state, *annotated->value, false, error);
+      if (target.tag == ValueTag::Invalid || annotation.tag == ValueTag::Invalid ||
+          value.tag == ValueTag::Invalid) return false;
+      node = ast_instance(state, "AnnAssign");
+      object_set_attr(node, "target", target, error);
+      object_set_attr(node, "annotation", annotation, error);
+      object_set_attr(node, "value", value, error);
+      object_set_attr(node, "simple", Value::int64(
+          dynamic_cast<const ast::NameExpr*>(annotated->target.get()) == nullptr ? 0 : 1), error);
     } else if (auto* augmented = dynamic_cast<const ast::AugAssignStmt*>(&statement)) {
       static const std::unordered_map<std::string, const char*> operators = {
           {"+", "Add"}, {"-", "Sub"}, {"*", "Mult"}, {"@", "MatMult"},
@@ -1225,12 +1764,46 @@ bool convert_parser_statements(
       object_set_attr(node, "target", convert_parser_expr(state, *augmented->target, true, error), error);
       object_set_attr(node, "op", ast_instance(state, found->second), error);
       object_set_attr(node, "value", convert_parser_expr(state, *augmented->value, false, error), error);
+    } else if (auto* assign = dynamic_cast<const ast::SubscriptAssignStmt*>(&statement)) {
+      Value target = ast_instance(state, "Subscript");
+      Value owner = convert_parser_expr(state, *assign->object, false, error);
+      Value index = convert_parser_expr(state, *assign->index, false, error);
+      Value value = convert_parser_expr(state, *assign->value, false, error);
+      if (owner.tag == ValueTag::Invalid || index.tag == ValueTag::Invalid ||
+          value.tag == ValueTag::Invalid) return false;
+      object_set_attr(target, "value", owner, error);
+      object_set_attr(target, "slice", index, error);
+      object_set_attr(target, "ctx", parser_context(state, true), error);
+      node = ast_instance(state, "Assign");
+      object_set_attr(node, "targets", Value::list({target}), error);
+      object_set_attr(node, "value", value, error);
+      object_set_attr(node, "type_comment", Value::none(), error);
+    } else if (auto* assign = dynamic_cast<const ast::AttrAssignStmt*>(&statement)) {
+      Value target = ast_instance(state, "Attribute");
+      Value owner = convert_parser_expr(state, *assign->object, false, error);
+      Value value = convert_parser_expr(state, *assign->value, false, error);
+      if (owner.tag == ValueTag::Invalid || value.tag == ValueTag::Invalid) return false;
+      object_set_attr(target, "value", owner, error);
+      object_set_attr(target, "attr", Value::string(assign->name), error);
+      object_set_attr(target, "ctx", parser_context(state, true), error);
+      node = ast_instance(state, "Assign");
+      object_set_attr(node, "targets", Value::list({target}), error);
+      object_set_attr(node, "value", value, error);
+      object_set_attr(node, "type_comment", Value::none(), error);
     } else if (auto* assign = dynamic_cast<const ast::AssignStmt*>(&statement)) {
       Value target = ast_make_name(state, assign->name, error);
       object_set_attr(target, "ctx", parser_context(state, true), error);
       node = ast_instance(state, "Assign");
       object_set_attr(node, "targets", Value::list({target}), error);
       object_set_attr(node, "value", convert_parser_expr(state, *assign->value, false, error), error);
+      object_set_attr(node, "type_comment", Value::none(), error);
+    } else if (auto* assign = dynamic_cast<const ast::UnpackAssignStmt*>(&statement)) {
+      Value target = convert_parser_expr(state, *assign->target, true, error);
+      Value value = convert_parser_expr(state, *assign->value, false, error);
+      if (target.tag == ValueTag::Invalid || value.tag == ValueTag::Invalid) return false;
+      node = ast_instance(state, "Assign");
+      object_set_attr(node, "targets", Value::list({target}), error);
+      object_set_attr(node, "value", value, error);
       object_set_attr(node, "type_comment", Value::none(), error);
     } else if (auto* assign = dynamic_cast<const ast::MultiAssignStmt*>(&statement)) {
       std::vector<Value> targets;
@@ -1258,6 +1831,42 @@ bool convert_parser_statements(
       if (message.tag == ValueTag::Invalid) return false;
       object_set_attr(node, "test", test, error);
       object_set_attr(node, "msg", message, error);
+    } else if (auto* matched = dynamic_cast<const ast::MatchStmt*>(&statement)) {
+      Value subject = convert_parser_expr(state, *matched->subject, false, error);
+      if (subject.tag == ValueTag::Invalid) return false;
+      std::vector<Value> cases;
+      for (const auto& source_case : matched->cases) {
+        Value pattern;
+        if (source_case.wildcard) {
+          pattern = ast_instance(state, "MatchAs");
+          object_set_attr(pattern, "pattern", Value::none(), error);
+          object_set_attr(pattern, "name", Value::none(), error);
+          set_parser_location(pattern, statement, error);
+        } else if (source_case.pattern != nullptr) {
+          pattern = convert_parser_pattern(state, *source_case.pattern, error);
+        }
+        if (pattern.tag == ValueTag::Invalid) return false;
+        if (!source_case.as_name.empty()) {
+          Value wrapped = ast_instance(state, "MatchAs");
+          object_set_attr(wrapped, "pattern", pattern, error);
+          object_set_attr(wrapped, "name", Value::string(source_case.as_name), error);
+          set_parser_location(wrapped, statement, error);
+          pattern = std::move(wrapped);
+        }
+        Value guard = source_case.guard == nullptr
+            ? Value::none() : convert_parser_expr(state, *source_case.guard, false, error);
+        if (guard.tag == ValueTag::Invalid) return false;
+        std::vector<Value> body;
+        if (!convert_parser_statements(state, source_case.body, body, error)) return false;
+        Value case_node = ast_instance(state, "match_case");
+        object_set_attr(case_node, "pattern", pattern, error);
+        object_set_attr(case_node, "guard", guard, error);
+        object_set_attr(case_node, "body", Value::list(std::move(body)), error);
+        cases.push_back(std::move(case_node));
+      }
+      node = ast_instance(state, "Match");
+      object_set_attr(node, "subject", subject, error);
+      object_set_attr(node, "cases", Value::list(std::move(cases)), error);
     } else if (auto* conditional = dynamic_cast<const ast::IfStmt*>(&statement)) {
       std::vector<Value> body;
       std::vector<Value> otherwise;
@@ -1269,6 +1878,10 @@ bool convert_parser_statements(
       object_set_attr(node, "orelse", Value::list(std::move(otherwise)), error);
     } else if (dynamic_cast<const ast::PassStmt*>(&statement) != nullptr) {
       node = ast_instance(state, "Pass");
+    } else if (dynamic_cast<const ast::BreakStmt*>(&statement) != nullptr) {
+      node = ast_instance(state, "Break");
+    } else if (dynamic_cast<const ast::ContinueStmt*>(&statement) != nullptr) {
+      node = ast_instance(state, "Continue");
     } else if (auto* returned = dynamic_cast<const ast::ReturnStmt*>(&statement)) {
       node = ast_instance(state, "Return");
       object_set_attr(node, "value", returned->value == nullptr
@@ -1303,7 +1916,7 @@ bool convert_parser_statements(
 
 bool parse_with_runtime_parser_ast(
     AstState* state, const std::string& source, Value& out, std::string& error) {
-  auto parsed = parse_source(source);
+  auto parsed = parse_source(source, true);
   if (!parsed.errors.empty()) return false;
   std::vector<Value> body;
   if (!convert_parser_statements(state, parsed.module.body, body, error)) return false;
@@ -1387,7 +2000,7 @@ bool ast_parse_kw(
       return true;
     }
     error.clear();
-    auto parsed_expression = parse_expression_source(string_object_to_string(*source));
+    auto parsed_expression = parse_expression_source(string_object_to_string(*source), true);
     if (parsed_expression.errors.empty() && parsed_expression.expression != nullptr) {
       parsed = convert_parser_expr(state, *parsed_expression.expression, false, error);
       if (parsed.tag != ValueTag::Invalid) {
@@ -1418,16 +2031,9 @@ bool ast_parse_kw(
       return false;
     }
   }
-  Value klass = mode == "eval" ? node_class(state, "Expression") : node_class(state, "Module");
-  out = Value::instance(klass);
-  object_set_attr(out, "source", args[0], error);
-  if (mode == "eval") {
-    object_set_attr(out, "body", Value::none(), error);
-  } else {
-    object_set_attr(out, "body", Value::list({}), error);
-    object_set_attr(out, "type_ignores", Value::list({}), error);
-  }
-  return true;
+  error = "XLang3 _ast cannot represent this Python source";
+  runtime.raise_class_error("NotImplementedError", error);
+  return false;
 }
 
 bool ast_parse(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {

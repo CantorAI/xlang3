@@ -1,0 +1,3 @@
+Annotated[str, AfterValidator(lambda x: x.upper())]
+Annotated[int, Check(lambda x: x + 1)]
+list[int]

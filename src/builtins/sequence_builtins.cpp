@@ -20,6 +20,7 @@ limitations under the License.
 #include "xlang3/generator.h"
 #include "xlang3/object_model.h"
 #include "xlang3/sequence.h"
+#include "xlang3/set_object.h"
 
 #include <cstring>
 
@@ -131,6 +132,7 @@ Value noninterned_string_value(const std::string& text) {
   if (string != nullptr && !text.empty()) {
     std::memcpy(string_object_mutable_data(*string), text.data(), text.size());
   }
+  if (string != nullptr) string_object_refresh_ascii(*string);
   return out;
 }
 
@@ -425,6 +427,19 @@ bool builtin_ord(
 } // namespace
 
 bool builtin_str_from_value(Runtime& runtime, const Value& value, Value& out, std::string& error) {
+  if (value_as_generic_alias(value) != nullptr) {
+    if (const Value* repr_function = runtime.find_builtin("repr")) {
+      return runtime_call_callable(runtime, *repr_function, &value, 1, out, error);
+    }
+  }
+  if (value_as_dict(value) != nullptr || value_as_list(value) != nullptr ||
+      value_as_tuple(value) != nullptr || value_as_set(value) != nullptr ||
+      value_as_mapping_proxy(value) != nullptr ||
+      value_as_dict_view(value) != nullptr) {
+    if (const Value* repr_function = runtime.find_builtin("repr")) {
+      return runtime_call_callable(runtime, *repr_function, &value, 1, out, error);
+    }
+  }
   if (auto* instance = value_as_instance(value)) {
     auto* klass = value_as_class(instance->klass);
     if (klass != nullptr && klass->attrs.find("__str__") == klass->attrs.end() &&

@@ -1,0 +1,1 @@
+200 {'node': 'TypeAlias', 'name': 'Alias', 'parameter': 'T', 'source': 'type Alias[T] = list[T]'}

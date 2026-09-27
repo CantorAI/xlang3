@@ -132,12 +132,14 @@ bool clear_abc_list_attr(Value& abc_class, const char* attr, std::string& error)
 }
 
 bool value_has_abstract_marker(Runtime& runtime, const Value& value, bool& out, std::string& error) {
-  Value marker;
-  std::string ignored;
-  if (!attribute_get(value, "__isabstractmethod__", marker, ignored)) {
-    out = false;
-    return true;
+  const Value* getattr_function = runtime.find_builtin("getattr");
+  if (getattr_function == nullptr) {
+    error = "getattr is unavailable";
+    return false;
   }
+  Value getattr_args[] = {value, Value::string("__isabstractmethod__"), Value::boolean(false)};
+  Value marker;
+  if (!runtime_call_callable(runtime, *getattr_function, getattr_args, 3, marker, error)) return false;
   return runtime_truthy(runtime, marker, out, error);
 }
 

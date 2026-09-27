@@ -1,0 +1,7 @@
+error time_parsing Input should be in a valid time format, invalid time separator, expected `:`
+error time_parsing Input should be in a valid time format, invalid time separator, expected `:`
+error time_parsing Input should be in a valid time format, invalid timezone sign
+error time_parsing Input should be in a valid time format, second value is outside expected range of 0-59
+error time_parsing Input should be in a valid time format, invalid timezone sign
+error time_parsing Input should be in a valid time format, timezone offset must be less than 24 hours
+valid 09:15:00

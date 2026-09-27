@@ -17,8 +17,12 @@ limitations under the License.
 #include "xlang3/functional_iterators.h"
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
+#include "../thread/thread_objects.h"
 
 #include <algorithm>
+#include <atomic>
+#include <mutex>
+#include <utility>
 #include <unordered_map>
 #include <vector>
 #include <csignal>
@@ -35,10 +39,55 @@ namespace {
 
 struct SignalState {
   std::unordered_map<int64_t, Value> handlers;
+  Value default_int_handler;
   std::vector<int64_t> signals = {2, 4, 6, 8, 11, 15, 21};
   int64_t wakeup_fd = -1;
   bool warn_on_full_buffer = true;
 };
+
+#ifdef _WIN32
+// The console handler runs on a Windows-created thread. It can only record an
+// event and wake the interpreter; Python callbacks run on the main VM thread.
+std::atomic<SignalState*> active_signal_state{nullptr};
+std::atomic<uint32_t> pending_console_signals{0};
+std::atomic<int64_t> console_wakeup_fd{-1};
+std::atomic<int> console_int_mode{0};
+std::atomic<int> console_break_mode{0};
+std::once_flag console_handler_once;
+std::atomic<bool> console_handler_installed{false};
+
+BOOL WINAPI console_control_handler(DWORD event) {
+  std::atomic<int>* mode = nullptr;
+  uint32_t bit = 0;
+  char signum = 0;
+  if (event == CTRL_C_EVENT) {
+    mode = &console_int_mode;
+    bit = 1u;
+    signum = 2;
+  } else if (event == CTRL_BREAK_EVENT) {
+    mode = &console_break_mode;
+    bit = 2u;
+    signum = 21;
+  } else {
+    return FALSE;
+  }
+  const int disposition = mode->load(std::memory_order_relaxed);
+  if (disposition == 0) return FALSE;
+  if (disposition == 1) return TRUE;  // SIG_IGN
+  pending_console_signals.fetch_or(bit, std::memory_order_release);
+  const int64_t fd = console_wakeup_fd.load(std::memory_order_relaxed);
+  if (fd >= 0) (void)::send(static_cast<SOCKET>(fd), &signum, 1, 0);
+  return TRUE;
+}
+
+void ensure_console_handler() {
+  std::call_once(console_handler_once, [] {
+    console_handler_installed.store(
+        SetConsoleCtrlHandler(console_control_handler, TRUE) != 0,
+        std::memory_order_release);
+  });
+}
+#endif
 
 SignalState* signal_state(void* user_data) {
   return static_cast<SignalState*>(user_data);
@@ -56,9 +105,8 @@ bool signal_number(const Value& value, int64_t& out, std::string& error) {
   return true;
 }
 
-Value default_handler_for(int64_t signum) {
-  (void)signum;
-  return Value::int64(0);
+Value default_handler_for(const SignalState& state, int64_t signum) {
+  return signum == 2 ? state.default_int_handler : Value::int64(0);
 }
 
 bool signal_signal(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
@@ -70,6 +118,11 @@ bool signal_signal(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
   if (!signal_number(args[0], signum, error)) {
     return false;
   }
+  if (xlang_thread_current_ident() != xlang_thread_main_ident()) {
+    error = "signal only works in main thread of the main interpreter";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
   auto* state = signal_state(user_data);
   if (!supported_signal(*state, signum)) {
     error = "invalid signal number";
@@ -77,8 +130,25 @@ bool signal_signal(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
     return false;
   }
   auto it = state->handlers.find(signum);
-  out = it == state->handlers.end() ? default_handler_for(signum) : it->second;
+  out = it == state->handlers.end() ? default_handler_for(*state, signum) : it->second;
   state->handlers[signum] = args[1];
+#ifdef _WIN32
+  if (signum == 2 || signum == 21) {
+    ensure_console_handler();
+    if (!console_handler_installed.load(std::memory_order_acquire)) {
+      error = "cannot install Windows console signal handler";
+      runtime.raise_class_error("OSError", error);
+      return false;
+    }
+    int disposition = 0;
+    if (args[1].tag == ValueTag::Int64 && args[1].as.i64 == 1)
+      disposition = 1;
+    else if (!(args[1].tag == ValueTag::Int64 && args[1].as.i64 == 0))
+      disposition = 2;
+    (signum == 2 ? console_int_mode : console_break_mode)
+        .store(disposition, std::memory_order_release);
+  }
+#endif
   return true;
 }
 
@@ -98,7 +168,7 @@ bool getsignal(Runtime& runtime, const Value* args, uint32_t argc, Value& out, s
     return false;
   }
   auto it = state->handlers.find(signum);
-  out = it == state->handlers.end() ? default_handler_for(signum) : it->second;
+  out = it == state->handlers.end() ? default_handler_for(*state, signum) : it->second;
   return true;
 }
 
@@ -109,6 +179,23 @@ bool default_int_handler(Runtime& runtime, const Value*, uint32_t argc, Value&, 
   }
   runtime.raise_class_error("KeyboardInterrupt", "");
   return false;
+}
+
+bool invoke_signal_handler(Runtime& runtime, SignalState* state, int64_t signum,
+                           Value& out, std::string& error) {
+  auto it = state->handlers.find(signum);
+  const Value handler = it == state->handlers.end()
+      ? default_handler_for(*state, signum) : it->second;
+  if (handler.tag == ValueTag::Int64 && handler.as.i64 >= 0 && handler.as.i64 <= 1) {
+    value_set_none(out);
+    return true;
+  }
+  Value call_args[2] = {Value::int64(signum), Value::none()};
+  Value ignored;
+  if (!runtime_call_callable(runtime, handler, call_args, 2, ignored, error))
+    return false;
+  value_set_none(out);
+  return true;
 }
 
 bool raise_signal(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
@@ -147,18 +234,7 @@ bool raise_signal(Runtime& runtime, const Value* args, uint32_t argc, Value& out
         return false;
     }
   }
-  auto it = state->handlers.find(signum);
-  if (it == state->handlers.end() || (it->second.tag == ValueTag::Int64 && it->second.as.i64 >= 0 && it->second.as.i64 <= 1)) {
-    value_set_none(out);
-    return true;
-  }
-  Value call_args[2] = {Value::int64(signum), Value::none()};
-  Value ignored;
-  if (!runtime_call_callable(runtime, it->second, call_args, 2, ignored, error)) {
-    return false;
-  }
-  value_set_none(out);
-  return true;
+  return invoke_signal_handler(runtime, state, signum, out, error);
 }
 
 bool valid_signals(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void* user_data) {
@@ -187,9 +263,17 @@ bool set_wakeup_fd(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
     runtime.raise_class_error("TypeError", error);
     return false;
   }
+  if (xlang_thread_current_ident() != xlang_thread_main_ident()) {
+    error = "set_wakeup_fd only works in main thread of the main interpreter";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
   auto* state = signal_state(user_data);
   out = Value::int64(state->wakeup_fd);
   state->wakeup_fd = args[0].as.i64;
+#ifdef _WIN32
+  console_wakeup_fd.store(state->wakeup_fd, std::memory_order_release);
+#endif
   state->warn_on_full_buffer = argc == 2 ? value_truthy(args[1]) : true;
   return true;
 }
@@ -250,7 +334,7 @@ void fill_signal_module(Runtime& runtime, NativeModuleBuilder& builder, SignalSt
           "signal.set_wakeup_fd", set_wakeup_fd, state, nullptr, nullptr,
           false, set_wakeup_fd_kw))
       .function("strsignal", strsignal)
-      .function("default_int_handler", default_int_handler)
+      .value("default_int_handler", state->default_int_handler)
       .value("SIG_DFL", Value::int64(0))
       .value("SIG_IGN", Value::int64(1))
       .value("SIGINT", Value::int64(2))
@@ -281,9 +365,52 @@ void fill_signal_module(Runtime& runtime, NativeModuleBuilder& builder, SignalSt
 
 } // namespace
 
+bool signal_events_pending() {
+#ifdef _WIN32
+  return pending_console_signals.load(std::memory_order_acquire) != 0;
+#else
+  return false;
+#endif
+}
+
+bool signal_dispatch_pending(Runtime& runtime, std::string& error) {
+#ifdef _WIN32
+  if (xlang_thread_current_ident() != xlang_thread_main_ident()) return true;
+  auto* state = active_signal_state.load(std::memory_order_acquire);
+  if (state == nullptr) return true;
+  const uint32_t pending = pending_console_signals.exchange(0, std::memory_order_acq_rel);
+  for (const auto [bit, signum] : {std::pair{1u, 2}, std::pair{2u, 21}}) {
+    if ((pending & bit) == 0) continue;
+    Value ignored;
+    if (!invoke_signal_handler(runtime, state, signum, ignored, error)) return false;
+  }
+#else
+  (void)runtime;
+  (void)error;
+#endif
+  return true;
+}
+
 void register_signal_module(Runtime& runtime) {
   auto* state = new SignalState();
-  runtime.register_native_package_cleanup(state, [](void* data) { delete static_cast<SignalState*>(data); });
+  state->default_int_handler = runtime.make_native_function(
+      "signal.default_int_handler", default_int_handler);
+  runtime.register_native_package_cleanup(state, [](void* data) {
+    auto* retiring = static_cast<SignalState*>(data);
+#ifdef _WIN32
+    SignalState* expected = retiring;
+    if (active_signal_state.compare_exchange_strong(expected, nullptr)) {
+      console_int_mode.store(0);
+      console_break_mode.store(0);
+      console_wakeup_fd.store(-1);
+      pending_console_signals.store(0);
+    }
+#endif
+    delete retiring;
+  });
+#ifdef _WIN32
+  active_signal_state.store(state, std::memory_order_release);
+#endif
 
   NativeModuleBuilder private_module(runtime, "_signal");
   fill_signal_module(runtime, private_module, state);

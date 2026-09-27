@@ -16,6 +16,7 @@ limitations under the License.
 
 #include "xlang3/value.h"
 
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -35,6 +36,7 @@ struct GeneratorObject {
   Value origin;
   bool has_pending_send = false;
   bool has_pending_throw = false;
+  bool delegated_result_ready = false;
   bool args_bound = false;
   bool started = false;
   bool running = false;
@@ -85,6 +87,11 @@ bool generator_send(Value& generator, Value value, bool& done, Value& out, std::
 bool generator_close(Value& generator, Value& out, std::string& error);
 bool generator_throw(Value& generator, const Value* args, uint32_t argc, Value& out, std::string& error);
 bool generator_vm_frame_snapshot(const GeneratorObject& generator, Value& out);
+void generator_vm_visit_references(
+    const GeneratorObject& generator,
+    const std::function<void(const Value&)>& visit);
+void frame_set_generator_owner(Runtime& runtime, Value& frame,
+                               const GeneratorObject& generator);
 bool generator_get_method(const Value& object, const std::string& name, Value& out);
 bool async_generator_awaitable_await(Runtime& runtime, const Value& value, Value& out, std::string& error);
 bool async_generator_awaitable_send(

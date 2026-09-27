@@ -126,6 +126,7 @@ T* allocate_object(ObjectKind kind) {
   obj->header.kind = kind;
   obj->header.refcnt = 1;
   xlang_perf_count_object_alloc(kind);
+  gc_track_object(&obj->header);
   return obj;
 }
 
@@ -414,6 +415,7 @@ TupleObject* allocate_tuple_object(size_t capacity) {
       obj->header.kind = ObjectKind::Tuple;
       obj->header.refcnt = 1;
       xlang_perf_count_object_alloc(ObjectKind::Tuple);
+      gc_track_object(&obj->header);
       return obj;
     }
   }
@@ -430,6 +432,7 @@ TupleObject* allocate_tuple_object(size_t capacity) {
     new (item_storage + i) Value();
   }
   obj->items.bind(item_storage, static_cast<uint32_t>(capacity));
+  gc_track_object(&obj->header);
   return obj;
 }
 
@@ -628,7 +631,9 @@ bool set_difference_value(const Value& lhs, const Value& rhs, Value& out, std::s
     error = "unsupported operands for set difference";
     return false;
   }
-  out = Value::set(left->items);
+  out = Value::set({});
+  value_as_set(out)->items = left->items;
+  value_as_set(out)->item_hashes = left->item_hashes;
   auto* result = value_as_set(out);
   Value iterator;
   if (!sequence_get_iter(rhs, iterator, error)) {
@@ -645,7 +650,9 @@ bool set_difference_value(const Value& lhs, const Value& rhs, Value& out, std::s
     }
     for (auto it = result->items.begin(); it != result->items.end(); ++it) {
       if (value_key_equal(*it, item)) {
+        const auto index = static_cast<size_t>(it - result->items.begin());
         result->items.erase(it);
+        result->item_hashes.erase(result->item_hashes.begin() + index);
         break;
       }
     }
@@ -658,7 +665,9 @@ bool set_symmetric_difference_value(const Value& lhs, const Value& rhs, Value& o
     error = "unsupported operands for set symmetric difference";
     return false;
   }
-  out = Value::set(left->items);
+  out = Value::set({});
+  value_as_set(out)->items = left->items;
+  value_as_set(out)->item_hashes = left->item_hashes;
   auto* result = value_as_set(out);
   Value iterator;
   if (!sequence_get_iter(rhs, iterator, error)) {
@@ -676,7 +685,9 @@ bool set_symmetric_difference_value(const Value& lhs, const Value& rhs, Value& o
     bool removed = false;
     for (auto it = result->items.begin(); it != result->items.end(); ++it) {
       if (value_key_equal(*it, item)) {
+        const auto index = static_cast<size_t>(it - result->items.begin());
         result->items.erase(it);
+        result->item_hashes.erase(result->item_hashes.begin() + index);
         removed = true;
         break;
       }
@@ -699,7 +710,9 @@ bool value_is_set_like_operand(const Value& value) {
 
 bool value_materialize_set_like(const Value& value, Value& out, std::string& error) {
   if (auto* set = value_as_set(value)) {
-    out = Value::set(set->items);
+    out = Value::set({});
+    value_as_set(out)->items = set->items;
+    value_as_set(out)->item_hashes = set->item_hashes;
     return true;
   }
   if (auto* view = value_as_dict_view(value)) {
@@ -1458,24 +1471,21 @@ void release_last_reference(const Value& value) {
   if (value.as.obj->kind == ObjectKind::Instance) {
     auto* instance = reinterpret_cast<InstanceObject*>(value.as.obj);
     Runtime* runtime = runtime_for_object_finalization();
-    Value finalize_marker;
-    std::string marker_error;
+    Value class_finalizer;
+    std::string lookup_error;
     const bool release_finalizer_enabled =
-        object_lookup_class_attr(
-            instance->klass, "__xlang3_finalize_on_release__",
-            finalize_marker, marker_error) &&
-        value_truthy(finalize_marker);
+        object_lookup_class_attr(instance->klass, "__del__", class_finalizer,
+                                 lookup_error);
     if (runtime != nullptr && !runtime->finalizing() && !instance->finalizer_started &&
         release_finalizer_enabled) {
       Value self;
       self.tag = ValueTag::Object;
       self.flags = kXlangValueBorrowedRefFlag;
       self.as.obj = value.as.obj;
+      value.as.obj->refcnt.fetch_add(1, std::memory_order_relaxed);
       Value finalizer;
-      std::string lookup_error;
       if (attribute_get(self, "__del__", finalizer, lookup_error)) {
         instance->finalizer_started = true;
-        value.as.obj->refcnt.fetch_add(1, std::memory_order_relaxed);
         Value saved_exception;
         (void)runtime->take_pending_exception(saved_exception);
         Value ignored;
@@ -1490,10 +1500,9 @@ void release_last_reference(const Value& value) {
         if (saved_exception.tag != ValueTag::Invalid) {
           runtime->set_pending_exception(std::move(saved_exception));
         }
-        if (value.as.obj->refcnt.fetch_sub(1, std::memory_order_acq_rel) != 1) {
-          return;
-        }
       }
+      if (value.as.obj->refcnt.fetch_sub(1, std::memory_order_acq_rel) != 1)
+        return;
     }
   } else if (value.as.obj->kind == ObjectKind::File) {
     auto* file = reinterpret_cast<FileObject*>(value.as.obj);
@@ -1529,6 +1538,7 @@ void release_last_reference(const Value& value) {
       }
     }
   }
+  gc_untrack_object(value.as.obj);
   xlang_perf_count_object_final_release(value.as.obj->kind);
   weakref_invalidate_target(value.as.obj);
   switch (value.as.obj->kind) {
@@ -1585,6 +1595,7 @@ void release_last_reference(const Value& value) {
       break;
     case ObjectKind::EnumerateIterator:
     case ObjectKind::ZipIterator:
+    case ObjectKind::ZipLongestIterator:
     case ObjectKind::MapIterator:
     case ObjectKind::FilterIterator:
       functional_iterator_release_object(value.as.obj);
@@ -2739,7 +2750,8 @@ const char* value_binary_type_name(const Value& value) {
         case ObjectKind::Tuple: return "tuple";
         case ObjectKind::List: return "list";
         case ObjectKind::Dict: return "dict";
-        case ObjectKind::Set: return "set";
+        case ObjectKind::Set:
+          return value_as_set(value)->frozen ? "frozenset" : "set";
         case ObjectKind::Module: return "module";
         case ObjectKind::Function: return "function";
         case ObjectKind::NativeFunction: return "builtin_function_or_method";
@@ -2863,6 +2875,8 @@ bool value_add(const Value& lhs, const Value& rhs, Value& out, std::string& erro
     if (!right.empty()) {
       std::memcpy(target + left.size(), right.data(), right.size());
     }
+    string->ascii = string_object_is_ascii(*as_string(lhs.as.obj)) &&
+                    string_object_is_ascii(*as_string(rhs.as.obj));
     return true;
   }
   if (lhs.tag == ValueTag::Object && rhs.tag == ValueTag::Object &&
@@ -3190,6 +3204,14 @@ bool value_matmul(const Value& lhs, const Value& rhs, Value& out, std::string& e
 }
 
 bool value_div(const Value& lhs, const Value& rhs, Value& out, std::string& error) {
+  Value numeric_lhs;
+  Value numeric_rhs;
+  const bool lhs_is_numeric_subclass = numeric_subclass_value(lhs, numeric_lhs);
+  const bool rhs_is_numeric_subclass = numeric_subclass_value(rhs, numeric_rhs);
+  if (lhs_is_numeric_subclass || rhs_is_numeric_subclass) {
+    return value_div(lhs_is_numeric_subclass ? numeric_lhs : lhs,
+                     rhs_is_numeric_subclass ? numeric_rhs : rhs, out, error);
+  }
   const bool lhs_bigint = value_as_bigint(lhs) != nullptr;
   const bool rhs_bigint = value_as_bigint(rhs) != nullptr;
   if ((!is_number(lhs) && !lhs_bigint) || (!is_number(rhs) && !rhs_bigint)) {
@@ -3429,7 +3451,12 @@ bool value_bit_or(const Value& lhs, const Value& rhs, Value& out, std::string& e
   }
   const auto dict_storage = [](const Value& value) -> const DictObject* {
     if (auto* dict = value_as_dict(value)) return dict;
-    if (auto* instance = value_as_instance(value)) return value_as_dict(instance->mapping_storage);
+    if (auto* instance = value_as_instance(value)) {
+      auto* klass = value_as_class(instance->klass);
+      if (klass != nullptr && class_has_builtin_base_name(klass, "dict")) {
+        return value_as_dict(instance->mapping_storage);
+      }
+    }
     return nullptr;
   };
   if (const auto* left = dict_storage(lhs)) {
@@ -3452,7 +3479,9 @@ bool value_bit_or(const Value& lhs, const Value& rhs, Value& out, std::string& e
   if (value_as_set(lhs) != nullptr) {
     if (value_as_set(rhs) != nullptr)
       return set_union_values(lhs, rhs, out, error);
-    out = Value::set(value_as_set(lhs)->items);
+    out = Value::set({});
+    value_as_set(out)->items = value_as_set(lhs)->items;
+    value_as_set(out)->item_hashes = value_as_set(lhs)->item_hashes;
     return add_iterable_to_set(out, rhs, error);
   }
   if (auto* view = value_as_dict_view(lhs)) {
@@ -3479,6 +3508,7 @@ bool value_bit_or(const Value& lhs, const Value& rhs, Value& out, std::string& e
         value_as_function(value) != nullptr ||
         value_as_native_function(value) != nullptr ||
         value_as_generic_alias(value) != nullptr ||
+        instance_get_native_data(value, "typing.TypeAliasType") != nullptr ||
         instance_get_native_data(value, "typing._Alias") != nullptr) {
       return true;
     }
@@ -3795,6 +3825,7 @@ bool value_compare(const std::string& op, const Value& lhs, const Value& rhs, Va
           value_set_bool(out, op == "!=");
           return true;
         }
+        if (value_is(entry.second, right_value)) continue;
         Value equal;
         if (!value_compare("==", entry.second, right_value, equal, error)) {
           return false;
@@ -3816,6 +3847,7 @@ bool value_compare(const std::string& op, const Value& lhs, const Value& rhs, Va
       const size_t common = std::min(left->items.size(), right->items.size());
       int ordering = 0;
       for (size_t i = 0; i < common; ++i) {
+        if (value_is(left->items[i], right->items[i])) continue;
         Value equal;
         if (!value_compare("==", left->items[i], right->items[i], equal, error)) {
           return false;
@@ -3861,6 +3893,7 @@ bool value_compare(const std::string& op, const Value& lhs, const Value& rhs, Va
     const size_t common = std::min(left->items.size(), right->items.size());
     int ordering = 0;
     for (size_t i = 0; i < common; ++i) {
+      if (value_is(left->items[i], right->items[i])) continue;
       Value equal;
       if (!value_compare("==", left->items[i], right->items[i], equal, error)) {
         return false;
@@ -4024,8 +4057,7 @@ bool value_is(const Value& lhs, const Value& rhs) {
     case ValueTag::Int64:
       return lhs.as.i64 == rhs.as.i64;
     case ValueTag::Double:
-      return lhs.as.f64 == rhs.as.f64 ||
-          (std::isnan(lhs.as.f64) && std::isnan(rhs.as.f64));
+      return lhs.flags != 0 && lhs.flags == rhs.flags;
     case ValueTag::Object:
       if (auto* left_code = value_as_code(lhs)) {
         auto* right_code = value_as_code(rhs);

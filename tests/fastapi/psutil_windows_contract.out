@@ -1,0 +1,1 @@
+{'version': '7.2.2', 'has_loopback': True, 'current_pid_exists': True, 'pid_zero_exists': True, 'negative_pid_exists': False, 'heap_fields': ['heap_used', 'mmap_used', 'heap_count'], 'heap_nonnegative': True, 'disk_counters_present': True, 'disk_counters_nonnegative': True}

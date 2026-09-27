@@ -1,0 +1,2 @@
+adapter [(0, 'value'), (1, 'value')]
+route 422 [['body', 0, 'value'], ['body', 1, 'value']]

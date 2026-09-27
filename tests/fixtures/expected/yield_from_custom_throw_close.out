@@ -1,0 +1,7 @@
+throw next
+delegate-throw ValueError
+throw recovered
+throw StopIteration return
+close next
+delegate-close
+close None

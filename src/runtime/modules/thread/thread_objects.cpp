@@ -952,6 +952,11 @@ bool xlang_thread_start_state(std::shared_ptr<XlangThreadState> state, std::stri
               call_error)) {
         result.errors.push_back(call_error.empty() ? "thread target is not callable" : call_error);
       }
+      // The native thread state can outlive the Python Thread object.  In
+      // particular, Thread._bootstrap is a bound target that owns its Thread;
+      // retaining it after completion defeats threading._dangling's weak set.
+      value_set_none(state->target);
+      state->args.clear();
     }
     {
       std::lock_guard<std::mutex> lock(state->mutex);
@@ -1046,6 +1051,11 @@ bool xlang_thread_start_detached(
           ignored,
           callback_error,
           native->user_data);
+    }
+    {
+      XlangRuntimeExecutionGuard execution_lock;
+      value_set_none(state->target);
+      state->args.clear();
     }
     {
       std::lock_guard<std::mutex> lock(state->mutex);

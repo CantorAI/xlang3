@@ -3,6 +3,7 @@ Copyright (C) 2026 CantorAI Inc. and The XLang Foundation
 Licensed under the Apache License, Version 2.0 (the "License");
 */
 #include "xlang3/builtins.h"
+#include "ctypes_ffi.h"
 
 #include "xlang3/functional_iterators.h"
 #include "xlang3/module_object.h"
@@ -56,28 +57,6 @@ int64_t simple_type_size(const Value& type) {
   }
 }
 
-int64_t type_size(const Value& type) {
-  if (const int64_t size = simple_type_size(type); size != 0) return size;
-  Value length;
-  Value element;
-  if (attr(type, "_length_", length) && length.tag == ValueTag::Int64 &&
-      attr(type, "_type_", element)) {
-    return length.as.i64 * type_size(element);
-  }
-  Value fields;
-  if (attr(type, "_fields_", fields)) {
-    auto* list = value_as_list(fields);
-    if (list == nullptr) return 0;
-    int64_t total = 0;
-    for (const auto& field : list->items) {
-      auto* tuple = value_as_tuple(field);
-      if (tuple != nullptr && tuple->items.size() >= 2) total += type_size(tuple->items[1]);
-    }
-    return total;
-  }
-  return static_cast<int64_t>(sizeof(void*));
-}
-
 bool ctypes_sizeof(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
                    std::string& error, void*) {
   if (argc != 1) {
@@ -87,7 +66,14 @@ bool ctypes_sizeof(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
   }
   Value type = args[0];
   if (auto* instance = value_as_instance(args[0])) type = instance->klass;
-  out = Value::int64(type_size(type));
+  size_t size = 0;
+  size_t alignment = 0;
+  if (!ctypes_type_layout(type, size, alignment)) {
+    error = "this type has no size";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  out = Value::int64(static_cast<int64_t>(size));
   return true;
 }
 
@@ -98,12 +84,16 @@ bool ctypes_alignment(Runtime& runtime, const Value* args, uint32_t argc, Value&
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  Value size;
-  if (!ctypes_sizeof(runtime, args, argc, size, error, nullptr)) return false;
-  int64_t alignment = size.as.i64;
-  if (alignment > static_cast<int64_t>(sizeof(void*))) alignment = sizeof(void*);
-  if (alignment < 1) alignment = 1;
-  out = Value::int64(alignment);
+  Value type = args[0];
+  if (auto* instance = value_as_instance(args[0])) type = instance->klass;
+  size_t size = 0;
+  size_t alignment = 0;
+  if (!ctypes_type_layout(type, size, alignment)) {
+    error = "this type has no alignment";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  out = Value::int64(static_cast<int64_t>(alignment));
   return true;
 }
 
@@ -114,6 +104,53 @@ bool ctypes_simple_init(Runtime&, const Value* args, uint32_t argc, Value& out,
   Value self = args[0];
   if (!object_set_attr(self, "value", value, error)) return false;
   out = Value::none();
+  return true;
+}
+
+bool ctypes_pointer_contents(Runtime& runtime, const Value* args, uint32_t argc,
+                             Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "pointer contents require an instance";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  return ctypes_pointer_read(runtime, args[0], 0, out, error);
+}
+
+bool ctypes_pointer_getitem(Runtime& runtime, const Value* args, uint32_t argc,
+                            Value& out, std::string& error, void*) {
+  if (argc != 2 || args[1].tag != ValueTag::Int64) {
+    error = "pointer indices must be integers";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value element;
+  if (!ctypes_pointer_read(runtime, args[0], args[1].as.i64, element, error)) return false;
+  Value value;
+  if (attr(element, "value", value)) {
+    out = std::move(value);
+  } else {
+    out = std::move(element);
+  }
+  return true;
+}
+
+bool ctypes_pointer_bool(Runtime& runtime, const Value* args, uint32_t argc,
+                         Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "pointer truth requires an instance";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value address;
+  if (attr(args[0], "_address_", address) && address.tag == ValueTag::Int64) {
+    out = Value::boolean(address.as.i64 != 0);
+    return true;
+  }
+  Value referent;
+  out = Value::boolean(attr(args[0], "value", referent) &&
+                       referent.tag != ValueTag::None &&
+                       !(referent.tag == ValueTag::Int64 && referent.as.i64 == 0));
   return true;
 }
 
@@ -135,16 +172,18 @@ bool ctypes_structure_init(Runtime& runtime, const Value* args, uint32_t argc, V
     return true;
   }
   auto* field_list = value_as_list(fields);
-  if (field_list == nullptr) {
+  auto* field_tuple = value_as_tuple(fields);
+  if (field_list == nullptr && field_tuple == nullptr) {
     error = "_fields_ must be a sequence of field definitions";
     return false;
   }
-  if (argc - 1 > field_list->items.size()) {
+  const auto& definitions = field_list != nullptr ? field_list->items : field_tuple->items;
+  if (argc - 1 > definitions.size()) {
     error = "too many initializers";
     return false;
   }
-  for (size_t index = 0; index < field_list->items.size(); ++index) {
-    auto* definition = value_as_tuple(field_list->items[index]);
+  for (size_t index = 0; index < definitions.size(); ++index) {
+    auto* definition = value_as_tuple(definitions[index]);
     if (definition == nullptr || definition->items.size() < 2) continue;
     auto* name = value_as_string(definition->items[0]);
     if (name == nullptr) continue;
@@ -192,6 +231,140 @@ bool ctypes_array_mul(Runtime& runtime, const Value* args, uint32_t argc, Value&
   return true;
 }
 
+bool ctypes_array_init(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
+                       std::string& error, void*) {
+  if (argc < 1 || value_as_instance(args[0]) == nullptr) {
+    error = "Array.__init__() requires an array instance";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value length_value;
+  Value element_type;
+  const Value& array_type = value_as_instance(args[0])->klass;
+  if (!attr(array_type, "_length_", length_value) || length_value.tag != ValueTag::Int64 ||
+      length_value.as.i64 < 0 || !attr(array_type, "_type_", element_type)) {
+    error = "invalid ctypes array type";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  const size_t length = static_cast<size_t>(length_value.as.i64);
+  if (argc - 1 > length) {
+    error = "too many initializers";
+    runtime.raise_class_error("IndexError", error);
+    return false;
+  }
+  std::vector<Value> items;
+  items.reserve(length);
+  for (size_t index = 0; index < length; ++index) {
+    Value item;
+    const Value* initializer = index + 1 < argc ? &args[index + 1] : nullptr;
+    if (initializer != nullptr && value_as_instance(*initializer) != nullptr &&
+        value_as_instance(*initializer)->klass.tag == ValueTag::Object &&
+        element_type.tag == ValueTag::Object &&
+        value_as_instance(*initializer)->klass.as.obj == element_type.as.obj) {
+      item = *initializer;
+    } else if (!runtime_call_callable(runtime, element_type, initializer,
+                                      initializer == nullptr ? 0 : 1, item, error)) {
+      return false;
+    }
+    items.push_back(std::move(item));
+  }
+  Value self = args[0];
+  if (!object_set_attr(self, "_array_items_", Value::list(std::move(items)), error)) return false;
+  out = Value::none();
+  return true;
+}
+
+bool ctypes_array_len(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
+                      std::string& error, void*) {
+  if (argc != 1 || value_as_instance(args[0]) == nullptr) {
+    error = "expected ctypes array";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value items;
+  if (!attr(args[0], "_array_items_", items) || value_as_list(items) == nullptr) {
+    error = "ctypes array is uninitialized";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
+  out = Value::int64(static_cast<int64_t>(value_as_list(items)->items.size()));
+  return true;
+}
+
+bool ctypes_array_getitem(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
+                          std::string& error, void*) {
+  if (argc != 2 || args[1].tag != ValueTag::Int64) {
+    error = "array indices must be integers";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value items;
+  auto* list = attr(args[0], "_array_items_", items) ? value_as_list(items) : nullptr;
+  if (list == nullptr) {
+    error = "ctypes array is uninitialized";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
+  int64_t index = args[1].as.i64;
+  if (index < 0) index += static_cast<int64_t>(list->items.size());
+  if (index < 0 || static_cast<size_t>(index) >= list->items.size()) {
+    error = "invalid index";
+    runtime.raise_class_error("IndexError", error);
+    return false;
+  }
+  Value element = list->items[static_cast<size_t>(index)];
+  Value element_type;
+  Value code;
+  if (value_as_instance(args[0]) != nullptr &&
+      attr(value_as_instance(args[0])->klass, "_type_", element_type) &&
+      attr(element_type, "_type_", code) && value_as_string(code) != nullptr &&
+      attr(element, "value", out)) return true;
+  out = std::move(element);
+  return true;
+}
+
+bool ctypes_array_setitem(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
+                          std::string& error, void*) {
+  if (argc != 3 || args[1].tag != ValueTag::Int64) {
+    error = "array indices must be integers";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value items;
+  auto* list = attr(args[0], "_array_items_", items) ? value_as_list(items) : nullptr;
+  if (list == nullptr || value_as_instance(args[0]) == nullptr) {
+    error = "ctypes array is uninitialized";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
+  int64_t index = args[1].as.i64;
+  if (index < 0) index += static_cast<int64_t>(list->items.size());
+  if (index < 0 || static_cast<size_t>(index) >= list->items.size()) {
+    error = "invalid index";
+    runtime.raise_class_error("IndexError", error);
+    return false;
+  }
+  Value element_type;
+  if (!attr(value_as_instance(args[0])->klass, "_type_", element_type)) {
+    error = "invalid ctypes array type";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value element;
+  if (value_as_instance(args[2]) != nullptr &&
+      value_as_instance(args[2])->klass.tag == ValueTag::Object &&
+      element_type.tag == ValueTag::Object &&
+      value_as_instance(args[2])->klass.as.obj == element_type.as.obj) {
+    element = args[2];
+  } else if (!runtime_call_callable(runtime, element_type, args + 2, 1, element, error)) {
+    return false;
+  }
+  list->items[static_cast<size_t>(index)] = std::move(element);
+  out = Value::none();
+  return true;
+}
+
 bool ctypes_function_init(Runtime&, const Value* args, uint32_t argc, Value& out,
                           std::string& error, void*) {
   if (argc < 1 || argc > 2) { error = "CFuncPtr() takes one argument"; return false; }
@@ -201,35 +374,14 @@ bool ctypes_function_init(Runtime&, const Value* args, uint32_t argc, Value& out
   return true;
 }
 
-bool ctypes_function_call(Runtime&, const Value* args, uint32_t argc, Value& out,
-                          std::string& error, void*) {
-  if (argc < 1) { error = "invalid C function pointer"; return false; }
-  Value target;
-  if (attr(args[0], "_target_", target)) {
-    if (auto* tuple = value_as_tuple(target); tuple != nullptr && !tuple->items.empty()) {
-      if (auto* name = value_as_string(tuple->items[0])) {
-        const auto function_name = string_object_to_string(*name);
-#if defined(_WIN32)
-        if (function_name == "GetLastError") out = Value::int64(GetLastError());
-        else
-#endif
-          out = Value::int64(0);
-        return true;
-      }
-    }
-  }
-  out = argc >= 2 ? args[1] : Value::int64(0);
-  return true;
+bool ctypes_function_call(Runtime& runtime, const Value* args, uint32_t argc,
+                          Value& out, std::string& error, void*) {
+  return ctypes_foreign_call(runtime, args, argc, out, error);
 }
 
-bool ctypes_load_library(Runtime&, const Value*, uint32_t, Value& out,
-                         std::string&, void*) {
-#if defined(_WIN32)
-  out = Value::int64(reinterpret_cast<int64_t>(GetModuleHandleW(nullptr)));
-#else
-  out = Value::int64(1);
-#endif
-  return true;
+bool ctypes_load_library(Runtime& runtime, const Value* args, uint32_t argc,
+                         Value& out, std::string& error, void*) {
+  return ctypes_foreign_load_library(runtime, args, argc, out, error);
 }
 
 bool ctypes_get_errno(Runtime&, const Value*, uint32_t argc, Value& out,
@@ -328,6 +480,14 @@ void register_ctypes_module(Runtime& runtime) {
   Value ctypes_meta = Value::class_object("PyCSimpleType", std::move(meta_attrs), type_type, {}, type_type);
   Value simple = make_base(runtime, "_SimpleCData", ctypes_meta, true);
   ctypes_array_base = make_base(runtime, "Array", ctypes_meta);
+  value_as_class(ctypes_array_base)->attrs["__init__"] =
+      runtime.make_native_function("_ctypes.Array.__init__", ctypes_array_init);
+  value_as_class(ctypes_array_base)->attrs["__len__"] =
+      runtime.make_native_function("_ctypes.Array.__len__", ctypes_array_len);
+  value_as_class(ctypes_array_base)->attrs["__getitem__"] =
+      runtime.make_native_function("_ctypes.Array.__getitem__", ctypes_array_getitem);
+  value_as_class(ctypes_array_base)->attrs["__setitem__"] =
+      runtime.make_native_function("_ctypes.Array.__setitem__", ctypes_array_setitem);
   Value structure = make_base(runtime, "Structure", ctypes_meta);
   Value union_type = make_base(runtime, "Union", ctypes_meta);
   value_as_class(structure)->attrs["__init__"] =
@@ -335,6 +495,13 @@ void register_ctypes_module(Runtime& runtime) {
   value_as_class(union_type)->attrs["__init__"] =
       runtime.make_native_function("_ctypes.Union.__init__", ctypes_structure_init);
   Value pointer_type = make_base(runtime, "_Pointer", ctypes_meta, true);
+  value_as_class(pointer_type)->attrs["contents"] = Value::property(
+      runtime.make_native_function("_ctypes._Pointer.contents", ctypes_pointer_contents),
+      Value::none(), Value::none(), Value::none());
+  value_as_class(pointer_type)->attrs["__getitem__"] =
+      runtime.make_native_function("_ctypes._Pointer.__getitem__", ctypes_pointer_getitem);
+  value_as_class(pointer_type)->attrs["__bool__"] =
+      runtime.make_native_function("_ctypes._Pointer.__bool__", ctypes_pointer_bool);
   Value cfunc = make_base(runtime, "CFuncPtr", ctypes_meta, false, true);
   Value cfield = make_base(runtime, "CField", ctypes_meta);
 

@@ -25,7 +25,7 @@ namespace xlang3::ir {
 namespace {
 
 constexpr uint32_t kMagic = 0x33524958u; // XIR3
-constexpr uint32_t kVersion = 45;
+constexpr uint32_t kVersion = 54;
 constexpr uint32_t kMaxVectorItems = 1u << 20u;
 constexpr uint32_t kMaxStringBytes = 16u << 20u;
 
@@ -41,6 +41,7 @@ enum class ConstTag : uint8_t {
   Invalid = 9,
   Complex = 10,
   TypeParam = 11,
+  BigInt = 12,
 };
 
 struct Writer {
@@ -589,6 +590,10 @@ bool write_value(Writer& w, const Value& value, std::string& error, uint32_t dep
         w.f64(complex->imag);
         return true;
       }
+      if (value_as_bigint(value) != nullptr) {
+        w.u8(static_cast<uint8_t>(ConstTag::BigInt));
+        return w.string(value_bigint_to_string(value), error);
+      }
       if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::String) {
         w.u8(static_cast<uint8_t>(ConstTag::String));
         return w.string(string_object_to_string(*reinterpret_cast<StringObject*>(value.as.obj)), error);
@@ -668,6 +673,13 @@ bool read_value(Reader& r, Value& value, uint32_t depth = 0) {
       if (!r.f64(real) || !r.f64(imag)) return false;
       value = Value::complex(real, imag);
       return true;
+    }
+    case ConstTag::BigInt: {
+      std::string digits;
+      std::string error;
+      if (!r.string(digits)) return false;
+      value = value_bigint_from_decimal(digits, 10, error);
+      return value.tag != ValueTag::Invalid;
     }
     case ConstTag::TypeParam: {
       std::string name;
@@ -792,6 +804,13 @@ bool write_function(Writer& w, const Function& fn, std::string& error) {
       !write_source_positions(w, fn.source_positions, error)) {
     return false;
   }
+  if (!write_count(w, fn.logical_frame_ranges.size(), error)) return false;
+  for (const auto& range : fn.logical_frame_ranges) {
+    w.u32(range.start_instruction);
+    w.u32(range.end_instruction);
+    w.u32(range.function_id);
+    w.u32(range.locals_slot);
+  }
   return true;
 }
 
@@ -861,6 +880,18 @@ bool read_function(Reader& r, Function& fn, std::string& error) {
   if (!read_u32_vector(r, fn.source_lines, error) ||
       !read_source_positions(r, fn.source_positions, error)) {
     return false;
+  }
+  uint32_t logical_range_count = 0;
+  if (!r.u32(logical_range_count) || !check_count(logical_range_count, error)) return false;
+  fn.logical_frame_ranges.resize(logical_range_count);
+  for (auto& range : fn.logical_frame_ranges) {
+    if (!r.u32(range.start_instruction) || !r.u32(range.end_instruction) ||
+        !r.u32(range.function_id) || !r.u32(range.locals_slot) ||
+        range.start_instruction >= range.end_instruction ||
+        range.end_instruction > fn.code.size() || range.locals_slot >= fn.locals.size()) {
+      error = "invalid logical frame range";
+      return false;
+    }
   }
   return true;
 }

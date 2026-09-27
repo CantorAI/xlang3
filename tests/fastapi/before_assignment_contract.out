@@ -1,0 +1,1 @@
+200 {'failure': {'type': 'value_error', 'loc': [], 'input': {'current_value': '100', 'max_value': 200.0}}, 'current': 125.0}

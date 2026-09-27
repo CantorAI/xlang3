@@ -15,6 +15,7 @@ limitations under the License.
 #include "xlang3/builtins.h"
 
 #include "xlang3/functional_iterators.h"
+#include "xlang3/mapping.h"
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
 #include "xlang3/value.h"
@@ -73,6 +74,64 @@ bool typing_idfunc(Runtime&, const Value* args, uint32_t argc, Value& out, std::
   return true;
 }
 
+bool generic_init_subclass_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 1) {
+    error = "Generic.__init_subclass__ expected a class";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value typing;
+  if (!runtime.import_module("typing", typing, error)) {
+    error = "Generic.__init_subclass__ import typing: " + error;
+    return false;
+  }
+  Value helper;
+  if (!module_get_attr(typing, "_generic_init_subclass", helper, error)) {
+    error = "Generic.__init_subclass__ find helper: " + error;
+    return false;
+  }
+  std::vector<std::pair<std::string, Value>> forwarded;
+  forwarded.reserve(kwargc);
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    forwarded.emplace_back(kwargs[i].name, *kwargs[i].value);
+  }
+  if (!runtime_call_callable_kw(runtime, helper, args, argc, forwarded, out, error)) {
+    error = "Generic.__init_subclass__ call helper: " + error;
+    return false;
+  }
+  return true;
+}
+
+bool generic_init_subclass(
+    Runtime& runtime, const Value* args, uint32_t argc,
+    Value& out, std::string& error, void* user_data) {
+  return generic_init_subclass_kw(runtime, args, argc, nullptr, 0, out, error, user_data);
+}
+
+bool generic_class_getitem(
+    Runtime& runtime, const Value* args, uint32_t argc,
+    Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "Generic.__class_getitem__ expected a class and type arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value typing;
+  if (!runtime.import_module("typing", typing, error)) return false;
+  Value helper;
+  if (!module_get_attr(typing, "_generic_class_getitem", helper, error))
+    return false;
+  return runtime_call_callable(runtime, helper, args, argc, out, error);
+}
+
 bool type_parameter_repr(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
     error = "type parameter __repr__ expected self";
@@ -82,11 +141,17 @@ bool type_parameter_repr(Runtime&, const Value* args, uint32_t argc, Value& out,
   if (!object_get_attr(args[0], "__name__", name, error)) {
     return false;
   }
-  std::string prefix;
+  auto* instance = value_as_instance(args[0]);
+  auto* klass = instance == nullptr ? nullptr : value_as_class(instance->klass);
+  std::string prefix = klass != nullptr && klass->name == "TypeVarTuple" ? "" : "~";
   Value covariant;
   Value contravariant;
+  Value infer_variance;
   std::string ignored;
-  if (object_get_attr(args[0], "__covariant__", covariant, ignored) && value_truthy(covariant)) {
+  if (object_get_attr(args[0], "__infer_variance__", infer_variance, ignored) &&
+      value_truthy(infer_variance)) {
+    prefix.clear();
+  } else if (object_get_attr(args[0], "__covariant__", covariant, ignored) && value_truthy(covariant)) {
     prefix = "+";
   } else if (object_get_attr(args[0], "__contravariant__", contravariant, ignored) && value_truthy(contravariant)) {
     prefix = "-";
@@ -225,6 +290,13 @@ bool paramspec_init_kw(
   }
   Value self = args[0];
   Value default_value = kw_value(kwargs, kwargc, "default", typing_no_default(runtime));
+  const bool covariant = kw_bool(kwargs, kwargc, "covariant", false);
+  const bool contravariant = kw_bool(kwargs, kwargc, "contravariant", false);
+  if (covariant && contravariant) {
+    error = "Bivariant types are not supported.";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
   Value args_class = runtime.find_builtin("ParamSpecArgs") != nullptr ? *runtime.find_builtin("ParamSpecArgs") : Value::invalid();
   Value kwargs_class = runtime.find_builtin("ParamSpecKwargs") != nullptr ? *runtime.find_builtin("ParamSpecKwargs") : Value::invalid();
   Value args_instance = args_class.tag == ValueTag::Invalid ? Value::none() : Value::instance(args_class);
@@ -247,8 +319,8 @@ bool paramspec_init_kw(
       !set_instance_attr(self, "__module__", Value::string("typing"), error) ||
       !set_instance_attr(self, "__bound__", Value::none(), error) ||
       !set_instance_attr(self, "__constraints__", Value::tuple({}), error) ||
-      !set_instance_attr(self, "__covariant__", Value::boolean(false), error) ||
-      !set_instance_attr(self, "__contravariant__", Value::boolean(false), error) ||
+      !set_instance_attr(self, "__covariant__", Value::boolean(covariant), error) ||
+      !set_instance_attr(self, "__contravariant__", Value::boolean(contravariant), error) ||
       !set_instance_attr(self, "__infer_variance__", Value::boolean(false), error) ||
       !set_instance_attr(self, "__default__", default_value, error) ||
       !set_instance_attr(self, "args", args_instance, error) ||
@@ -296,7 +368,19 @@ bool typevartuple_init(Runtime& runtime, const Value* args, uint32_t argc, Value
   return typevartuple_init_kw(runtime, args, argc, nullptr, 0, out, error, user_data);
 }
 
-bool type_alias_type_init(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+int type_alias_native_marker = 0;
+
+Value type_alias_definition_module(Runtime& runtime) {
+  Value name;
+  std::string ignored;
+  Value globals = module_namespace_dict(runtime.current_globals_module());
+  if (mapping_get_item(globals, Value::string("__name__"), name, ignored))
+    return name;
+  return Value::none();
+}
+
+bool type_alias_type_init(Runtime& runtime, const Value* args, uint32_t argc,
+                          Value& out, std::string& error, void*) {
   if (argc < 3 || argc > 4) {
     error = "TypeAliasType expected name, value, and optional type_params";
     return false;
@@ -309,12 +393,128 @@ bool type_alias_type_init(Runtime&, const Value* args, uint32_t argc, Value& out
   Value self = args[0];
   Value params = argc == 4 ? args[3] : Value::tuple({});
   if (!set_instance_attr(self, "__name__", args[1], error) ||
-      !set_instance_attr(self, "__module__", Value::string("typing"), error) ||
-      !set_instance_attr(self, "__value__", args[2], error) ||
-      !set_instance_attr(self, "__type_params__", params, error)) {
+      !set_instance_attr(self, "__module__", type_alias_definition_module(runtime), error) ||
+      !set_instance_attr(self, "__xlang3_type_alias_value__", args[2], error) ||
+      !set_instance_attr(self, "__type_params__", params, error) ||
+      !instance_set_native_data(self, "typing.TypeAliasType",
+                                &type_alias_native_marker, nullptr, error)) {
     return false;
   }
   value_set_none(out);
+  return true;
+}
+
+bool type_alias_value_get(Runtime& runtime, const Value* args, uint32_t argc,
+                          Value& out, std::string& error, void*) {
+  if (argc != 1 || value_as_instance(args[0]) == nullptr) {
+    error = "TypeAliasType.__value__ requires an alias";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* instance = value_as_instance(args[0]);
+  for (const auto& attr : instance->attrs) {
+    if (attr.first == "__xlang3_type_alias_value__") {
+      value_assign_fast(out, attr.second);
+      return true;
+    }
+  }
+  Value thunk;
+  for (const auto& attr : instance->attrs) {
+    if (attr.first == "__xlang3_type_alias_thunk__") {
+      value_assign_fast(thunk, attr.second);
+      break;
+    }
+  }
+  if (thunk.tag == ValueTag::Invalid) {
+    error = "TypeAliasType has no value";
+    runtime.raise_class_error("AttributeError", error);
+    return false;
+  }
+  Value computed;
+  if (!runtime_call_callable(runtime, thunk, nullptr, 0, computed, error))
+    return false;
+  Value self = args[0];
+  if (!set_instance_attr(self, "__xlang3_type_alias_value__", computed,
+                         error))
+    return false;
+  out = std::move(computed);
+  return true;
+}
+
+bool type_alias_repr(Runtime& runtime, const Value* args, uint32_t argc,
+                     Value& out, std::string& error, void*) {
+  if (argc != 1 || !object_get_attr(args[0], "__name__", out, error)) {
+    if (error.empty()) error = "TypeAliasType.__repr__ requires an alias";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  return true;
+}
+
+bool type_alias_getitem(Runtime& runtime, const Value* args, uint32_t argc,
+                        Value& out, std::string& error, void*) {
+  if (argc != 2 || value_as_instance(args[0]) == nullptr) {
+    error = "TypeAliasType.__getitem__ requires an alias and type arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value params;
+  if (!object_get_attr(args[0], "__type_params__", params, error))
+    return false;
+  auto* tuple = value_as_tuple(params);
+  if (tuple == nullptr || tuple->items.empty()) {
+    error = "Only generic type aliases are subscriptable";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value arguments = value_as_tuple(args[1]) != nullptr
+      ? args[1] : Value::tuple({args[1]});
+  out = Value::generic_alias(args[0], std::move(arguments));
+  return true;
+}
+
+bool type_alias_or(Runtime& runtime, const Value* args, uint32_t argc,
+                   Value& out, std::string& error, void* user_data) {
+  if (argc != 2) {
+    error = "TypeAliasType union expects one operand";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  const bool reverse = user_data != nullptr;
+  if (value_bit_or(reverse ? args[1] : args[0],
+                   reverse ? args[0] : args[1], out, error))
+    return true;
+  if (const Value* not_implemented = runtime.find_builtin("NotImplemented")) {
+    value_assign_fast(out, *not_implemented);
+    error.clear();
+    return true;
+  }
+  runtime.raise_class_error("TypeError", error);
+  return false;
+}
+
+bool make_type_alias(Runtime& runtime, const Value* args, uint32_t argc,
+                     Value& out, std::string& error, void*) {
+  if (argc != 3 || value_as_string(args[0]) == nullptr ||
+      value_as_tuple(args[2]) == nullptr) {
+    error = "type alias requires a name, value scope, and type parameters";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  const Value* alias_class = runtime.find_builtin("TypeAliasType");
+  if (alias_class == nullptr) {
+    error = "TypeAliasType is unavailable";
+    runtime.raise_class_error("RuntimeError", error);
+    return false;
+  }
+  out = Value::instance(*alias_class);
+  if (!set_instance_attr(out, "__name__", args[0], error) ||
+      !set_instance_attr(out, "__module__", type_alias_definition_module(runtime), error) ||
+      !set_instance_attr(out, "__type_params__", args[2], error) ||
+      !set_instance_attr(out, "__xlang3_type_alias_thunk__", args[1], error) ||
+      !instance_set_native_data(out, "typing.TypeAliasType",
+                                &type_alias_native_marker, nullptr, error))
+    return false;
   return true;
 }
 
@@ -376,8 +576,33 @@ void register_typing_module(Runtime& runtime) {
   Value paramspec = make_typing_class(runtime, "ParamSpec", paramspec_init, paramspec_init_kw);
   Value typevartuple = make_typing_class(runtime, "TypeVarTuple", typevartuple_init, typevartuple_init_kw);
   Value type_alias_type = make_typing_class(runtime, "TypeAliasType", type_alias_type_init);
+  if (auto* alias_class = value_as_class(type_alias_type)) {
+    alias_class->attrs["__value__"] = Value::property(
+        runtime.make_native_function("_typing.TypeAliasType.__value__",
+                                     type_alias_value_get),
+        Value::none(), Value::none(), Value::none());
+    alias_class->attrs["__repr__"] = runtime.make_native_function(
+        "_typing.TypeAliasType.__repr__", type_alias_repr);
+    alias_class->attrs["__str__"] = runtime.make_native_function(
+        "_typing.TypeAliasType.__str__", type_alias_repr);
+    alias_class->attrs["__getitem__"] = runtime.make_native_function(
+        "_typing.TypeAliasType.__getitem__", type_alias_getitem);
+    alias_class->attrs["__or__"] = runtime.make_native_function(
+        "_typing.TypeAliasType.__or__", type_alias_or);
+    alias_class->attrs["__ror__"] = runtime.make_native_function(
+        "_typing.TypeAliasType.__ror__", type_alias_or,
+        &type_alias_native_marker);
+    ++alias_class->version;
+  }
   Value generic = make_typing_class(runtime, "Generic");
   if (auto* generic_class = value_as_class(generic)) {
+    generic_class->attrs["__class_getitem__"] = Value::class_method(
+        runtime.make_native_function(
+            "_typing.Generic.__class_getitem__", generic_class_getitem));
+    generic_class->attrs["__init_subclass__"] = Value::class_method(runtime.make_native_function(
+        "_typing.Generic.__init_subclass__", generic_init_subclass,
+        nullptr, nullptr, nullptr, false, generic_init_subclass_kw));
+    ++generic_class->version;
     generic_class->allow_instance_dict = false;
     generic_class->allow_weakref = false;
   }
@@ -398,6 +623,7 @@ void register_typing_module(Runtime& runtime) {
   builder.value("ParamSpecArgs", paramspec_args);
   builder.value("ParamSpecKwargs", paramspec_kwargs);
   builder.value("TypeAliasType", type_alias_type);
+  builder.function("_make_type_alias", make_type_alias);
   builder.value("Generic", generic);
   builder.value("Union", union_class);
   builder.value("NoDefault", no_default);

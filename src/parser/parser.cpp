@@ -493,12 +493,19 @@ bool keyword_typo_error(const LexResult& lex, bool hazardous_only, std::string& 
 
 } // namespace
 
-Parser::Parser(LexResult lex)
+Parser::Parser(LexResult lex, std::string_view source, bool capture_expression_locations)
     : tokens_(std::move(lex.tokens)),
+      source_(source),
       owned_text_(std::move(lex.owned_text)),
-      errors_(std::move(lex.errors)) {}
+      errors_(std::move(lex.errors)),
+      capture_expression_locations_(capture_expression_locations) {
+  line_offsets_.push_back(0);
+  for (size_t index = 0; index < source_.size(); ++index) {
+    if (source_[index] == '\n') line_offsets_.push_back(index + 1);
+  }
+}
 
-ParseResult parse_source(const std::string& source) {
+ParseResult parse_source(const std::string& source, bool capture_expression_locations) {
   const auto start = std::chrono::steady_clock::now();
   trace_parse_timing("lex-begin", start);
   Lexer lexer(source);
@@ -511,7 +518,7 @@ ParseResult parse_source(const std::string& source) {
     return result;
   }
   keyword_typo_error(lex, false, typo_error);
-  Parser parser(std::move(lex));
+  Parser parser(std::move(lex), source, capture_expression_locations);
   trace_parse_timing("parse-begin", start);
   auto result = parser.parse_module();
   trace_parse_timing("parse-end", start);
@@ -521,13 +528,13 @@ ParseResult parse_source(const std::string& source) {
   return result;
 }
 
-ParseExpressionResult parse_expression_source(const std::string& source) {
+ParseExpressionResult parse_expression_source(const std::string& source, bool capture_expression_locations) {
   const auto start = std::chrono::steady_clock::now();
   trace_parse_timing("expr-lex-begin", start);
   Lexer lexer(source);
   auto lex = lexer.tokenize();
   trace_parse_timing("expr-lex-end", start);
-  Parser parser(std::move(lex));
+  Parser parser(std::move(lex), source, capture_expression_locations);
   trace_parse_timing("expr-parse-begin", start);
   auto result = parser.parse_expression_module();
   trace_parse_timing("expr-parse-end", start);
@@ -589,19 +596,28 @@ ast::StmtPtr Parser::parse_statement_impl() {
   if (is_statement_recovery_boundary(peek().kind)) {
     return nullptr;
   }
-  // PEP 695 makes `type` a soft keyword.  XLang evaluates the alias value as
-  // an ordinary assignment for now; this preserves runtime use by stdlib
-  // modules while leaving the richer TypeAliasType metadata to its native
-  // dependency.
+  // PEP 695 makes `type` a soft keyword. Alias values are lowered in an
+  // annotation scope and evaluated when __value__ is first requested.
   if (check(TokenKind::Identifier) && peek().text == "type" &&
       current_ + 1 < tokens_.size() && tokens_[current_ + 1].kind == TokenKind::Identifier) {
     advance();
-    const std::string name(advance().text);
-    (void)consume_optional_type_params();
+    const Token alias_name = advance();
+    const std::string name(alias_name.text);
+    std::vector<std::pair<uint32_t, uint32_t>> type_param_positions;
+    auto type_params = consume_optional_type_params(&type_param_positions);
     consume(TokenKind::Assign, "expected '=' after type alias name");
     auto value = parse_expression();
     consume_simple_statement_end();
-    return std::make_unique<ast::AssignStmt>(name, std::move(value));
+    auto alias = std::make_unique<ast::TypeAliasStmt>(
+        name, std::move(type_params), std::move(value));
+    alias->name_line = alias_name.line;
+    alias->name_column = alias_name.column;
+    alias->type_param_positions = std::move(type_param_positions);
+    if (alias->value != nullptr) {
+      alias->end_line = alias->value->end_line;
+      alias->end_column = alias->value->end_column;
+    }
+    return alias;
   }
   if (check(TokenKind::At)) {
     return parse_decorated_statement();
@@ -641,7 +657,8 @@ ast::StmtPtr Parser::parse_statement_impl() {
       error_here("expected function name");
       return nullptr;
     }
-    auto type_params = consume_optional_type_params();
+    std::vector<std::pair<uint32_t, uint32_t>> type_param_positions;
+    auto type_params = consume_optional_type_params(&type_param_positions);
     std::vector<std::string> params;
     std::vector<ast::FunctionDef::Param> signature;
     ast::ExprPtr return_annotation;
@@ -650,6 +667,7 @@ ast::StmtPtr Parser::parse_statement_impl() {
     fn->name = std::string(name.text);
     fn->params = std::move(params);
     fn->type_params = std::move(type_params);
+    fn->type_param_positions = std::move(type_param_positions);
     fn->signature = std::move(signature);
     fn->return_annotation = std::move(return_annotation);
     fn->body = parse_suite_after_colon("function header");
@@ -664,12 +682,15 @@ ast::StmtPtr Parser::parse_statement_impl() {
       error_here("expected class name");
       return nullptr;
     }
-    auto type_params = consume_optional_type_params();
+    std::vector<std::pair<uint32_t, uint32_t>> type_param_positions;
+    auto type_params = consume_optional_type_params(&type_param_positions);
     std::vector<ast::ExprPtr> bases;
     std::vector<std::pair<std::string, ast::ExprPtr>> keywords;
     if (match(TokenKind::LParen)) {
       while (!check(TokenKind::RParen) && !check(TokenKind::End)) {
-        if (check(TokenKind::Identifier) && current_ + 1 < tokens_.size() && tokens_[current_ + 1].kind == TokenKind::Assign) {
+        if (match(TokenKind::DoubleStar)) {
+          keywords.push_back(std::make_pair(std::string{}, parse_conditional()));
+        } else if (check(TokenKind::Identifier) && current_ + 1 < tokens_.size() && tokens_[current_ + 1].kind == TokenKind::Assign) {
           const std::string key(advance().text);
           advance();
           keywords.push_back(std::make_pair(key, parse_conditional()));
@@ -685,6 +706,7 @@ ast::StmtPtr Parser::parse_statement_impl() {
     auto klass = std::make_unique<ast::ClassDef>();
     klass->name = std::string(name.text);
     klass->type_params = std::move(type_params);
+    klass->type_param_positions = std::move(type_param_positions);
     klass->bases = std::move(bases);
     klass->keywords = std::move(keywords);
     klass->body = parse_suite_after_colon("class name");
@@ -1235,7 +1257,7 @@ ast::StmtPtr Parser::parse_simple_statement() {
     return nullptr;
   }
   if (match(TokenKind::Colon)) {
-    auto annotation = parse_expression();
+    auto annotation = parse_annotation_expression();
     ast::ExprPtr value;
     if (match(TokenKind::Assign)) {
       value = parse_expression();
@@ -1437,7 +1459,8 @@ bool Parser::parse_dotted_name(std::string& out, const std::string& message, boo
   return true;
 }
 
-std::vector<std::string> Parser::consume_optional_type_params() {
+std::vector<std::string> Parser::consume_optional_type_params(
+    std::vector<std::pair<uint32_t, uint32_t>>* positions) {
   std::vector<std::string> names;
   if (!match(TokenKind::LBracket)) {
     return names;
@@ -1454,7 +1477,10 @@ std::vector<std::string> Parser::consume_optional_type_params() {
     } else if (depth == 1 && (match(TokenKind::Star) || match(TokenKind::DoubleStar))) {
       expect_name = true;
     } else if (depth == 1 && expect_name && check(TokenKind::Identifier)) {
-      names.push_back(std::string(advance().text));
+      const Token name = advance();
+      names.push_back(std::string(name.text));
+      if (positions != nullptr)
+        positions->emplace_back(name.line, name.column);
       expect_name = false;
     } else if (depth == 1 && (match(TokenKind::Colon) || match(TokenKind::Assign))) {
       expect_name = false;
@@ -1793,7 +1819,7 @@ ast::ExprPtr Parser::parse_power() {
 
 ast::ExprPtr Parser::parse_unary() {
   if (match(TokenKind::Star)) {
-    return std::make_unique<ast::StarredExpr>(parse_unary());
+    return std::make_unique<ast::StarredExpr>(parse_conditional());
   }
   if (match(TokenKind::Minus)) {
     return std::make_unique<ast::UnaryExpr>("-", parse_unary());
@@ -1982,6 +2008,23 @@ std::vector<ast::CompClause> Parser::parse_extra_comp_clauses() {
 }
 
 ast::ExprPtr Parser::parse_primary() {
+  if (!capture_expression_locations_) return parse_primary_impl();
+  const Token start = peek();
+  auto expr = parse_primary_impl();
+  if (expr == nullptr) return expr;
+  if (expr->line == 0) {
+    expr->line = start.line;
+    expr->column = start.column;
+  }
+  if (expr->end_line == 0) {
+    const Token& end = previous();
+    expr->end_line = end.line;
+    expr->end_column = end.column + static_cast<uint32_t>(end.text.size());
+  }
+  return expr;
+}
+
+ast::ExprPtr Parser::parse_primary_impl() {
   if (match(TokenKind::Integer)) return std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::Int, std::string(previous().text));
   if (match(TokenKind::Double)) return std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::Double, std::string(previous().text));
   if (match(TokenKind::Complex)) return std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::Complex, std::string(previous().text));
@@ -2237,11 +2280,32 @@ bool Parser::consume(TokenKind kind, const std::string& message) {
   return false;
 }
 
+std::string Parser::annotation_source_from_tokens(size_t start, size_t end) const {
+  if (start >= end || end > tokens_.size()) return {};
+  const auto& first = tokens_[start];
+  const auto& last = tokens_[end - 1];
+  if (first.line == 0 || last.line == 0 ||
+      first.line > line_offsets_.size() || last.line > line_offsets_.size()) return {};
+  const size_t begin = line_offsets_[first.line - 1] + first.column - 1;
+  const size_t finish = line_offsets_[last.line - 1] + last.column - 1 + last.text.size();
+  if (begin > finish || finish > source_.size()) return {};
+  return std::string(source_.substr(begin, finish - begin));
+}
+
+ast::ExprPtr Parser::parse_annotation_expression(bool conditional_only) {
+  const size_t start = current_;
+  auto expression = conditional_only ? parse_conditional() : parse_expression();
+  if (expression != nullptr) {
+    expression->annotation_source = annotation_source_from_tokens(start, current_);
+  }
+  return expression;
+}
+
 ast::ExprPtr Parser::parse_optional_annotation() {
   if (!match(TokenKind::Colon)) {
     return nullptr;
   }
-  return parse_conditional();
+  return parse_annotation_expression(true);
 }
 
 bool Parser::parse_function_signature(
@@ -2301,7 +2365,7 @@ bool Parser::parse_function_signature(
   }
   consume(TokenKind::RParen, "expected ')' after parameters");
   if (match(TokenKind::Arrow)) {
-    return_annotation = parse_expression();
+    return_annotation = parse_annotation_expression();
   }
   return true;
 }

@@ -55,6 +55,14 @@ Assert-Output "module argv" "['$modulePathRepr', 'red', 'blue']" {
         Pop-Location
     }
 }
+Assert-Output "compact module argv" "['$modulePathRepr', 'green', 'yellow']" {
+    Push-Location $WorkDir
+    try {
+        & $XLang3 -mcli_module_probe green yellow
+    } finally {
+        Pop-Location
+    }
+}
 
 Assert-Output "ignored -X option" "['-c', 'gamma']" {
     & $XLang3 -X frozen_modules=off -c "import sys`nprint(sys.argv)" gamma
@@ -81,7 +89,10 @@ Assert-Output "directory sys.path mutation" "$pathPackageDir/../`nTrue" {
 
 if ($env:OS -eq 'Windows_NT') {
 $pythonExe = Join-Path (Split-Path -Parent $XLang3) "python.exe"
-if (Test-Path -LiteralPath $pythonExe) {
-    throw "python.exe alias must not exist next to xlang3.exe"
+if (-not (Test-Path -LiteralPath $pythonExe -PathType Leaf)) {
+    throw "XLang3 python.exe entry point is missing"
+}
+Assert-Output "Windows python.exe entry point" "xlang3" {
+    & $pythonExe -c 'import sys; print(sys.implementation.name)'
 }
 }

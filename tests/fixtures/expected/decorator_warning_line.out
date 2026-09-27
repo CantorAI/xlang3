@@ -1,0 +1,4 @@
+DeprecationWarning old
+@deprecate("old")
+1
+@deprecate('ast')

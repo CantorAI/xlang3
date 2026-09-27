@@ -132,41 +132,46 @@ RuntimeResult Interpreter::run_module(
     }
     Value existing;
     auto name = globals->name.empty() ? "__main__" : globals->name;
-    if (!module_set_attr(globals_module, "__name__", Value::string(name), error)) {
-      result.errors.push_back(error);
-      return result;
-    }
-    const Value module_doc =
+    const auto name_slot = globals->name_to_slot.find("__name__");
+    const bool has_name = name_slot != globals->name_to_slot.end() &&
+        name_slot->second < globals->slots.size() && globals->slots[name_slot->second].tag != ValueTag::Invalid;
+    if (register_in_runtime || globals->implicit_name || has_name) {
+      if (!module_set_attr(globals_module, "__name__", Value::string(name), error)) {
+        result.errors.push_back(error);
+        return result;
+      }
+      const Value module_doc =
         module.entry < module.functions.size() && !module.functions[module.entry].doc.empty()
             ? Value::string(module.functions[module.entry].doc)
             : Value::none();
-    if (!module_set_attr(globals_module, "__doc__", module_doc, error)) {
-      result.errors.push_back(error);
-      return result;
-    }
-    const bool synthetic_source_file =
+      if (!module_set_attr(globals_module, "__doc__", module_doc, error)) {
+        result.errors.push_back(error);
+        return result;
+      }
+      const bool synthetic_source_file =
         module.source_file.size() >= 2 && module.source_file.front() == '<' &&
         module.source_file.back() == '>';
-    if (!module.source_file.empty() && !synthetic_source_file &&
-        (!module_get_attr(globals_module, "__file__", existing, error) || existing.tag == ValueTag::Invalid)) {
-      error.clear();
-      if (!module_set_attr(globals_module, "__file__", Value::string(module.source_file), error)) {
-        result.errors.push_back(error);
-        return result;
+      if (!module.source_file.empty() && !synthetic_source_file &&
+          (!module_get_attr(globals_module, "__file__", existing, error) || existing.tag == ValueTag::Invalid)) {
+        error.clear();
+        if (!module_set_attr(globals_module, "__file__", Value::string(module.source_file), error)) {
+          result.errors.push_back(error);
+          return result;
+        }
       }
-    }
-    if (!module_get_attr(globals_module, "__package__", existing, error) || existing.tag == ValueTag::Invalid) {
-      error.clear();
-      if (!module_set_attr(globals_module, "__package__", Value::string(""), error)) {
-        result.errors.push_back(error);
-        return result;
+      if (!module_get_attr(globals_module, "__package__", existing, error) || existing.tag == ValueTag::Invalid) {
+        error.clear();
+        if (!module_set_attr(globals_module, "__package__", Value::string(""), error)) {
+          result.errors.push_back(error);
+          return result;
+        }
       }
-    }
-    if (!module_get_attr(globals_module, "__annotations__", existing, error) || existing.tag == ValueTag::Invalid) {
-      error.clear();
-      if (!module_set_attr(globals_module, "__annotations__", Value::dict({}), error)) {
-        result.errors.push_back(error);
-        return result;
+      if (!module_get_attr(globals_module, "__annotations__", existing, error) || existing.tag == ValueTag::Invalid) {
+        error.clear();
+        if (!module_set_attr(globals_module, "__annotations__", Value::dict({}), error)) {
+          result.errors.push_back(error);
+          return result;
+        }
       }
     }
     if (!module_get_attr(globals_module, "__builtins__", existing, error) || existing.tag == ValueTag::Invalid) {
@@ -214,6 +219,10 @@ RuntimeResult Interpreter::run_function_value(FunctionObject* function, CallArgs
       function->globals_module,
       function->module,
       nullptr);
+  // A Python callee may have taken a temporary sys._getframe() snapshot.
+  // Reclaim registry-only frames after its locals are gone, so those frames
+  // do not keep unrelated caller locals alive beyond their deletion.
+  runtime_.refresh_live_frame_snapshots(false, true);
   if (!result.errors.empty() && result.exception.tag == ValueTag::Invalid) {
     Value pending;
     if (runtime_.take_pending_exception(pending)) {

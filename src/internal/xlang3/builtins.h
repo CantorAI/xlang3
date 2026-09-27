@@ -104,6 +104,8 @@ void register_unicodedata_module(Runtime& runtime);
 bool unicodedata_lookup_codepoint(std::string_view name, uint32_t& codepoint);
 void register_struct_module(Runtime& runtime);
 void register_signal_module(Runtime& runtime);
+bool signal_events_pending();
+bool signal_dispatch_pending(Runtime& runtime, std::string& error);
 void register_sha2_module(Runtime& runtime);
 void register_sre_module(Runtime& runtime);
 void register_collections_module(Runtime& runtime);
@@ -118,8 +120,9 @@ Value make_weakref_ref(Runtime& runtime, const Value& target);
 bool weakref_get_target(const Value& ref, Value& out);
 bool weakref_find_ref(const Value& target, Value& out);
 void weakref_invalidate_target(Object* target);
+bool weakref_callbacks_pending();
 void weakref_dispatch_callbacks(Runtime& runtime);
-uint64_t weakref_collect_cycles();
+uint64_t weakref_collect_cycles(Runtime& runtime);
 void register_marshal_module(Runtime& runtime);
 bool marshal_load_code_module(
     Runtime& runtime,
@@ -134,7 +137,6 @@ void register_pyexpat_module(Runtime& runtime);
 void register_overlapped_module(Runtime& runtime);
 void register_multiprocessing_module(Runtime& runtime);
 void register_winapi_module(Runtime& runtime);
-void forget_winapi_pipe_handle(intptr_t handle);
 void register_winreg_module(Runtime& runtime);
 void register_zlib_module(Runtime& runtime);
 void register_zipimport_module(Runtime& runtime);

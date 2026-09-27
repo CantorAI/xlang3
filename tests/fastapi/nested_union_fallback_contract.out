@@ -1,0 +1,5 @@
+python identity: True
+warning count: 1
+warning models: ['ModelA', 'ModelB', 'ModelCat', 'ModelDog']
+json exception: PydanticSerializationError
+json unknown type: True

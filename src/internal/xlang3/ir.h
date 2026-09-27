@@ -223,6 +223,7 @@ struct Function {
     uint32_t start_instruction = 0;
     uint32_t end_instruction = 0;
     uint32_t function_id = 0;
+    uint32_t locals_slot = UINT32_MAX;
   };
 
   std::string name;

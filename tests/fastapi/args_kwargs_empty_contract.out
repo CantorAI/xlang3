@@ -1,0 +1,4 @@
+ArgsKwargs(()) None
+ArgsKwargs(()) None
+ArgsKwargs((1,), {'x': 2}) {'x': 2}
+reflected True True

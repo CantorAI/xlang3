@@ -1,0 +1,7 @@
+30 time_delta_parsing Input should be a valid timedelta, "day" identifier in duration not correctly formatted
+-1 time_delta_parsing Input should be a valid timedelta, "day" identifier in duration not correctly formatted
+broken time_delta_parsing Input should be a valid timedelta, invalid character in hour
+"errordata" time_delta_parsing Input should be a valid duration, invalid digit in duration {'error': 'invalid digit in duration'}
+"broken" time_delta_parsing Input should be a valid duration, invalid character in hour {'error': 'invalid character in hour'}
+"12345" time_delta_parsing Input should be a valid duration, invalid character in hour {'error': 'invalid character in hour'}
+"12:xx" time_delta_parsing Input should be a valid duration, invalid character in minute {'error': 'invalid character in minute'}

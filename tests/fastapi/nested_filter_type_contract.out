@@ -1,0 +1,2 @@
+TypeError `exclude` argument must be a set or dict.
+200 {'error': '`exclude` argument must be a set or dict.'}

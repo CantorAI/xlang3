@@ -165,7 +165,7 @@ annotations 3 None 16777216
 True True True
 RED 1 BLUE 2
 True True True
-[<Color object>, <Color object>] True ['RED', 'BLUE']
+[<Color.RED: 1>, <Color.BLUE: 2>] True ['RED', 'BLUE']
 THREE True True
 unique-error
 READ|WRITE 3 <Perm.READ|WRITE: 3> Perm.READ|WRITE
@@ -917,7 +917,7 @@ idna example.com
 a 1 True False
 b'abc' True True
 True
-True True True
+False True True
 [2] Terminated
 keyboard
 {"a":[2,3],"b":1}

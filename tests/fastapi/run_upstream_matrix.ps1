@@ -2,12 +2,16 @@ param(
     [Parameter(Mandatory = $true)][string]$XLang3,
     [string]$ProductionPackages,
     [string]$TestPackages,
+    [string[]]$AdditionalPackages,
     [string]$UpstreamRoot,
     [string]$ResultsDirectory,
     [string[]]$Project,
+    [string[]]$Deselect,
     [int]$MaxFailures = 20,
     [int]$TimeoutSeconds = 120,
     [int]$Workers = 0,
+    [switch]$IsolateConsole,
+    [switch]$RewriteAssertions,
     [switch]$StopOnFailure
 )
 
@@ -59,8 +63,13 @@ if ($matrix.Count -eq 0) {
 $xlangPath = (Resolve-Path -LiteralPath $XLang3).Path
 $productionPath = (Resolve-Path -LiteralPath $ProductionPackages).Path
 $testPackagesPath = (Resolve-Path -LiteralPath $TestPackages).Path
+$additionalPackagePaths = @()
+foreach ($packagePath in $AdditionalPackages) {
+    $additionalPackagePaths += (Resolve-Path -LiteralPath $packagePath).Path
+}
 $upstreamPath = (Resolve-Path -LiteralPath $UpstreamRoot).Path
 New-Item -ItemType Directory -Force -Path $ResultsDirectory | Out-Null
+$ResultsDirectory = (Resolve-Path -LiteralPath $ResultsDirectory).Path
 $resultsPath = Join-Path $ResultsDirectory 'matrix-results.json'
 
 $runtimeName = ((& $xlangPath -c 'import sys; print(sys.implementation.name)' | Out-String) -replace "`r`n", "`n").Trim()
@@ -71,6 +80,7 @@ if ($LASTEXITCODE -ne 0 -or $runtimeName -ne 'xlang3') {
 $previousPythonPath = $env:PYTHONPATH
 $previousCoverageFile = $env:COVERAGE_FILE
 $previousPycachePrefix = $env:PYTHONPYCACHEPREFIX
+$previousPluginAutoload = $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD
 $env:PYTHONPYCACHEPREFIX = Join-Path $ResultsDirectory (
     'pycache-' + (Get-Date).ToUniversalTime().ToString('yyyyMMddTHHmmssfffffff') + '-' + $PID
 )
@@ -94,7 +104,14 @@ try {
 
         $sourcePath = (Resolve-Path -LiteralPath (Join-Path $checkout $entry.source)).Path
         $testPath = (Resolve-Path -LiteralPath (Join-Path $checkout $entry.tests)).Path
-        $env:PYTHONPATH = "$testPackagesPath;$productionPath;$sourcePath"
+        $entryPackagePaths = @()
+        foreach ($relativePath in @($entry.additional_packages)) {
+            if (-not [string]::IsNullOrWhiteSpace($relativePath)) {
+                $entryPackagePaths += (Resolve-Path -LiteralPath (Join-Path $repoRoot $relativePath)).Path
+            }
+        }
+        $env:PYTHONPATH = (@($additionalPackagePaths) + @($entryPackagePaths) + @($testPackagesPath, $productionPath, $sourcePath)) -join ';'
+        $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD = if ($entry.disable_plugin_autoload) { '1' } else { $previousPluginAutoload }
         $env:COVERAGE_FILE = Join-Path $ResultsDirectory ".coverage-$($entry.name)"
         $logPath = Join-Path $ResultsDirectory "$($entry.name).log"
         $started = Get-Date
@@ -108,19 +125,47 @@ try {
                 Write-Host "upstream platform deselection $($skip.node): $($skip.reason)"
             }
         }
+        foreach ($node in $Deselect) {
+            $deselectArgs += "--deselect=$node"
+            Write-Host "upstream diagnostic deselection $node"
+        }
         Push-Location -LiteralPath $checkout
         try {
             $previousErrorActionPreference = $ErrorActionPreference
             $ErrorActionPreference = 'Continue'
-            & $xlangPath -m pytest $testPath `
-                "--maxfail=$MaxFailures" `
-                -n $Workers `
-                @deselectArgs `
-                --assert=plain `
-                "--timeout=$TimeoutSeconds" `
-                -W 'ignore:Class-scoped fixture defined as instance method is deprecated:pytest.PytestRemovedIn10Warning' `
-                -W 'ignore:The anyio.abc.BlockingPortal alias is deprecated:DeprecationWarning' 2>&1 |
-                Tee-Object -LiteralPath $logPath
+            $pytestVersion = ((& $xlangPath -c 'import pytest; print(pytest.__version__)' | Out-String) -replace "`r`n", "`n").Trim()
+            if ($LASTEXITCODE -ne 0 -or $pytestVersion -notmatch '^\d+\.\d+(?:\.\d+)?') {
+                throw "Cannot determine pytest version for $($entry.name): '$pytestVersion'"
+            }
+            if ($entry.pytest_version -and $pytestVersion -ne $entry.pytest_version) {
+                throw "$($entry.name) requires pytest $($entry.pytest_version), got $pytestVersion"
+            }
+            $pytestMajorText = $pytestVersion.Split('.')[0]
+            $assertionArgs = if ($RewriteAssertions -or $entry.rewrite_assertions) { @() } else { @('--assert=plain') }
+            $pytestWarningArgs = @('-W', 'ignore:The anyio.abc.BlockingPortal alias is deprecated:DeprecationWarning')
+            if ([int]$pytestMajorText -ge 9) {
+                $pytestWarningArgs += @(
+                    '-W', 'ignore:Class-scoped fixture defined as instance method is deprecated:pytest.PytestRemovedIn10Warning',
+                    '-W', 'ignore:Passing a non-Collection iterable to parametrize is deprecated:pytest.PytestRemovedIn10Warning')
+            }
+            $pluginArgs = @()
+            $workerArgs = if ($Workers -gt 0) { @('-n', $Workers) } else { @() }
+            if ($Workers -gt 0 -and $entry.disable_plugin_autoload) {
+                $pluginArgs += @('-p', 'xdist')
+            }
+            $pytestArgs = @('-m', 'pytest', $testPath,
+                "--maxfail=$MaxFailures") + $pluginArgs + $workerArgs +
+                $deselectArgs + $assertionArgs + @(
+                "--timeout=$TimeoutSeconds") + $pytestWarningArgs
+            if (($IsolateConsole -or $entry.isolate_console) -and $env:OS -eq 'Windows_NT') {
+                $launcher = Join-Path $PSScriptRoot 'run_isolated_windows.py'
+                $harnessPython = (Get-Command python -ErrorAction Stop).Source
+                & $harnessPython $launcher $xlangPath @pytestArgs 2>&1 |
+                    Tee-Object -LiteralPath $logPath
+            } else {
+                & $xlangPath @pytestArgs 2>&1 |
+                    Tee-Object -LiteralPath $logPath
+            }
             $exitCode = $LASTEXITCODE
         } finally {
             $ErrorActionPreference = $previousErrorActionPreference
@@ -137,6 +182,12 @@ try {
             finished_at = $finished.ToUniversalTime().ToString('o')
             duration_seconds = [math]::Round(($finished - $started).TotalSeconds, 3)
             platform_deselections = $entrySkips
+            diagnostic_deselections = @($Deselect)
+            additional_packages = $entryPackagePaths
+            assertion_rewriting = [bool]($RewriteAssertions -or $entry.rewrite_assertions)
+            pytest_version = $pytestVersion
+            isolated_console = [bool]($IsolateConsole -or $entry.isolate_console)
+            plugin_autoload_disabled = [bool]$entry.disable_plugin_autoload
             log = $logPath
         }
         $results | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $resultsPath -Encoding utf8
@@ -148,6 +199,7 @@ try {
     $env:PYTHONPATH = $previousPythonPath
     $env:COVERAGE_FILE = $previousCoverageFile
     $env:PYTHONPYCACHEPREFIX = $previousPycachePrefix
+    $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD = $previousPluginAutoload
 }
 
 $failed = @($results | Where-Object status -eq 'failed')

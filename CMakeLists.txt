@@ -56,17 +56,39 @@ add_subdirectory(modules/hashlib)
 add_subdirectory(modules/pydantic_core)
 add_subdirectory(modules/argon2)
 add_subdirectory(modules/cffi)
+add_subdirectory(modules/cryptography)
+add_subdirectory(modules/httptools)
+add_subdirectory(modules/rpds)
 add_subdirectory(modules/zstd)
+add_subdirectory(modules/zstandard)
+add_subdirectory(modules/brotli)
+add_subdirectory(modules/mmap)
+if(WIN32)
+  add_subdirectory(modules/psutil)
+endif()
 if(CMAKE_RUNTIME_OUTPUT_DIRECTORY)
   foreach(native_module xlang_json_native_package xlang_sqlite3_native_package
       xlang_yaml_native_package xlang_device_native_package xlang_net_native_package
       xlang_ssl_native_package xlang_hashlib_native_package xlang_blake2_native_package
       xlang_pydantic_core_native_package xlang_argon2_cffi_native_package
-      xlang_cffi_backend_native_package xlang_zstd_native_package)
+      xlang_cffi_backend_native_package xlang_httptools_url_native_package
+      xlang_httptools_parser_native_package
+      xlang_zstd_native_package xlang_zstandard_native_package
+      xlang_brotli_native_package xlang_mmap_native_package)
     set_target_properties(${native_module} PROPERTIES
       RUNTIME_OUTPUT_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/modules"
       LIBRARY_OUTPUT_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/modules")
   endforeach()
+  if(TARGET xlang_psutil_windows_native_package)
+    set_target_properties(xlang_psutil_windows_native_package PROPERTIES
+      RUNTIME_OUTPUT_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/modules"
+      LIBRARY_OUTPUT_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/modules")
+  endif()
+  if(TARGET xlang_rpds_native_package)
+    set_target_properties(xlang_rpds_native_package PROPERTIES
+      RUNTIME_OUTPUT_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/modules"
+      LIBRARY_OUTPUT_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/modules")
+  endif()
 endif()
 endif()
 
@@ -262,6 +284,7 @@ add_library(xlang3_runtime_static STATIC ${XLANG3_RUNTIME_SOURCES})
 add_library(xlang3_thread_runtime STATIC ${XLANG3_THREAD_RUNTIME_SOURCES})
 add_library(xlang3_task_runtime STATIC ${XLANG3_TASK_RUNTIME_SOURCES})
 add_library(xlang3_system_runtime STATIC ${XLANG3_SYSTEM_RUNTIME_SOURCES})
+add_subdirectory(modules/ctypes)
 
 set(XLANG3_MULTIARCH "${CMAKE_LIBRARY_ARCHITECTURE}")
 if(APPLE AND NOT XLANG3_MULTIARCH)
@@ -295,6 +318,7 @@ target_include_directories(${xlang3_runtime_target}
     ${CMAKE_CURRENT_SOURCE_DIR}/src/runtime/modules/thread
     ${CMAKE_CURRENT_SOURCE_DIR}/src/runtime/modules/task
     ${CMAKE_CURRENT_SOURCE_DIR}/src/runtime/modules/system
+    ${CMAKE_CURRENT_SOURCE_DIR}/modules/ctypes
 )
 
 target_compile_features(${xlang3_runtime_target} PUBLIC cxx_std_17)
@@ -314,8 +338,8 @@ target_include_directories(xlang3_runtime_static PRIVATE ${CMAKE_CURRENT_SOURCE_
 target_include_directories(xlang3_system_runtime PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/third_party/nlohmann_json)
 
 target_link_libraries(xlang3_system_runtime PUBLIC ZLIB::ZLIBSTATIC bzip2static)
-target_link_libraries(xlang3_runtime PRIVATE xlang3_thread_runtime xlang3_task_runtime xlang3_system_runtime ZLIB::ZLIBSTATIC Threads::Threads)
-target_link_libraries(xlang3_runtime_static PRIVATE xlang3_thread_runtime xlang3_task_runtime xlang3_system_runtime ZLIB::ZLIBSTATIC Threads::Threads)
+target_link_libraries(xlang3_runtime PRIVATE xlang3_thread_runtime xlang3_task_runtime xlang3_system_runtime xlang3_ctypes_ffi ZLIB::ZLIBSTATIC Threads::Threads)
+target_link_libraries(xlang3_runtime_static PRIVATE xlang3_thread_runtime xlang3_task_runtime xlang3_system_runtime xlang3_ctypes_ffi ZLIB::ZLIBSTATIC Threads::Threads)
 
 if(WIN32)
   target_link_libraries(xlang3_runtime PRIVATE ws2_32 advapi32)
@@ -326,6 +350,14 @@ add_executable(xlang3 src/xlang3.cpp)
 target_link_libraries(xlang3 PRIVATE xlang3_runtime)
 target_compile_definitions(xlang3 PRIVATE XLANG3_USE_SHARED)
 target_include_directories(xlang3 PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/internal)
+if(WIN32)
+  # The unmodified Python 3.14 venv redirector resolves python.exe in the
+  # base interpreter directory. Ship that name as the same XLang3 executable
+  # so virtual-environment children run XLang3, not a CPython binary.
+  add_custom_command(TARGET xlang3 POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+      "$<TARGET_FILE:xlang3>" "$<TARGET_FILE_DIR:xlang3>/python.exe")
+endif()
 if(MSVC)
   # Native validators and protocol adapters can legitimately recurse through
   # deeply nested Python object graphs. Reserve enough virtual stack for the

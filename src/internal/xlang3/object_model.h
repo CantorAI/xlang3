@@ -180,6 +180,7 @@ XLANG3_HOT_INLINE const Value& instance_slot_at(const InstanceObject* instance, 
 }
 
 void object_model_release_object(Object* object);
+bool object_model_class_is_live(const ClassObject* klass);
 
 Value slot_descriptor(std::string owner_name, std::string name, uint32_t index);
 void slot_descriptor_set_owner_class(Value& descriptor, const Value& owner_class);

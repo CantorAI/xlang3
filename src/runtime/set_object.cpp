@@ -16,6 +16,8 @@ limitations under the License.
 #include "runtime/memory/object_cache_lifetime.h"
 
 #include "xlang3/perf_counters.h"
+#include "xlang3/object_model.h"
+#include "xlang3/runtime.h"
 #include "xlang3/value_hash.h"
 
 #include <array>
@@ -48,6 +50,7 @@ SetObject* allocate_set_object() {
   obj->header.kind = ObjectKind::Set;
   obj->header.refcnt = 1;
   xlang_perf_count_object_alloc(ObjectKind::Set);
+  gc_track_object(&obj->header);
   return obj;
 }
 
@@ -56,12 +59,16 @@ SetIteratorObject* allocate_set_iterator_object() {
   obj->header.kind = ObjectKind::SetIterator;
   obj->header.refcnt = 1;
   xlang_perf_count_object_alloc(ObjectKind::SetIterator);
+  gc_track_object(&obj->header);
   return obj;
 }
 
 void recycle_set_object(SetObject* object) {
   object->items.clear();
+  object->item_hashes.clear();
   object->frozen = false;
+  object->hash_cached = false;
+  object->cached_hash = 0;
   if (memory::object_caches_alive) set_free_list.Release(object);
   else delete object;
 }
@@ -73,17 +80,18 @@ void recycle_set_iterator_object(SetIteratorObject* object) {
   else delete object;
 }
 
-bool append_unique(std::vector<Value>& items, const Value& value, std::string& error) {
-  size_t ignored = 0;
-  if (!value_hash_key(value, ignored, error)) {
+bool append_unique(SetObject& set, const Value& value, std::string& error) {
+  size_t hash = 0;
+  if (!value_hash_key(value, hash, error)) {
     return false;
   }
-  for (const auto& item : items) {
-    if (value_key_equal(item, value)) {
+  for (size_t index = 0; index < set.items.size(); ++index) {
+    if (set.item_hashes[index] == hash && value_key_equal(set.items[index], value)) {
       return true;
     }
   }
-  items.push_back(value);
+  set.items.push_back(value);
+  set.item_hashes.push_back(hash);
   return true;
 }
 
@@ -109,7 +117,7 @@ Value make_set_value(std::vector<Value> items, bool frozen) {
   obj->items.reserve(items.size());
   for (const auto& item : items) {
     std::string error;
-    append_unique(obj->items, item, error);
+    append_unique(*obj, item, error);
   }
   v.as.obj = &obj->header;
   return v;
@@ -234,7 +242,29 @@ bool set_add(Value& set, const Value& item, std::string& error) {
     error = "frozenset is immutable";
     return false;
   }
-  return append_unique(obj->items, item, error);
+  return append_unique(*obj, item, error);
+}
+
+bool set_add_runtime(Runtime& runtime, Value& set, const Value& item,
+                     std::string& error) {
+  auto* obj = value_as_set(set);
+  if (obj == nullptr || obj->frozen) return set_add(set, item, error);
+  Value owned_item = item;
+  size_t hash = 0;
+  if (!runtime_value_hash_key(runtime, owned_item, hash, error)) return false;
+  for (size_t index = 0; index < obj->items.size(); ++index) {
+    Value existing = obj->items[index];
+    if (value_is(existing, owned_item)) return true;
+    if (obj->item_hashes[index] != hash) continue;
+    Value equal;
+    if (!runtime_value_compare(runtime, "==", existing, owned_item, equal, error)) return false;
+    bool matches = false;
+    if (!runtime_truthy(runtime, equal, matches, error)) return false;
+    if (matches) return true;
+  }
+  obj->items.push_back(owned_item);
+  obj->item_hashes.push_back(hash);
+  return true;
 }
 
 bool set_union_values(const Value& left, const Value& right, Value& out,
@@ -250,22 +280,21 @@ bool set_union_values(const Value& left, const Value& right, Value& out,
   destination->items.reserve(lhs->items.size() + rhs->items.size());
   std::unordered_map<size_t, std::vector<size_t>> buckets;
   buckets.reserve(lhs->items.size() + rhs->items.size());
-  const auto append = [&](const Value& item) {
-    size_t hash = 0;
-    if (!value_hash_key(item, hash, error)) return false;
+  const auto append = [&](const Value& item, size_t hash) {
     auto& positions = buckets[hash];
     for (const size_t position : positions) {
       if (value_key_equal(destination->items[position], item)) return true;
     }
     positions.push_back(destination->items.size());
     destination->items.push_back(item);
+    destination->item_hashes.push_back(hash);
     return true;
   };
-  for (const auto& item : lhs->items) {
-    if (!append(item)) return false;
+  for (size_t index = 0; index < lhs->items.size(); ++index) {
+    if (!append(lhs->items[index], lhs->item_hashes[index])) return false;
   }
-  for (const auto& item : rhs->items) {
-    if (!append(item)) return false;
+  for (size_t index = 0; index < rhs->items.size(); ++index) {
+    if (!append(rhs->items[index], rhs->item_hashes[index])) return false;
   }
   destination->frozen = lhs->frozen;
   out = std::move(result);

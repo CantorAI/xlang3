@@ -1,0 +1,4 @@
+initial: input 123
+assigned: different 123
+callback types: ['bytes', 'bytes']
+callback values: [{'x': b'input', 'y': '123'}, {'x': 'different', 'y': 123}]

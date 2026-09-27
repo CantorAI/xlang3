@@ -27,6 +27,7 @@ struct Expr {
   uint32_t column = 0;
   uint32_t end_line = 0;
   uint32_t end_column = 0;
+  std::string annotation_source;
 
   virtual ~Expr() = default;
 };
@@ -331,6 +332,19 @@ struct AssignStmt final : Stmt {
   AssignStmt(std::string name, ExprPtr value) : name(std::move(name)), value(std::move(value)) {}
 };
 
+struct TypeAliasStmt final : Stmt {
+  std::string name;
+  std::vector<std::string> type_params;
+  uint32_t name_line = 0;
+  uint32_t name_column = 0;
+  std::vector<std::pair<uint32_t, uint32_t>> type_param_positions;
+  ExprPtr value;
+  TypeAliasStmt(std::string name, std::vector<std::string> type_params,
+                ExprPtr value)
+      : name(std::move(name)), type_params(std::move(type_params)),
+        value(std::move(value)) {}
+};
+
 struct SubscriptAssignStmt final : Stmt {
   ExprPtr object;
   ExprPtr index;
@@ -491,6 +505,7 @@ struct FunctionDef final : Stmt {
   std::string name;
   std::vector<std::string> params;
   std::vector<std::string> type_params;
+  std::vector<std::pair<uint32_t, uint32_t>> type_param_positions;
   std::vector<Param> signature;
   std::vector<ExprPtr> decorators;
   ExprPtr return_annotation;
@@ -501,6 +516,7 @@ struct FunctionDef final : Stmt {
 struct ClassDef final : Stmt {
   std::string name;
   std::vector<std::string> type_params;
+  std::vector<std::pair<uint32_t, uint32_t>> type_param_positions;
   std::vector<ExprPtr> bases;
   std::vector<std::pair<std::string, ExprPtr>> keywords;
   std::vector<ExprPtr> decorators;

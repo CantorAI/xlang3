@@ -1,0 +1,5 @@
+fields [('first', True), ('second', True)]
+schema [('first', None), ('second', None)]
+regular-schema [('first', False), ('second', False)]
+error [('unexpected_positional_argument', (0,)), ('unexpected_positional_argument', (1,))]
+keyword ok

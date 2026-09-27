@@ -1,0 +1,12 @@
+[package]
+name = "xlang3-rpds-bridge"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["staticlib"]
+
+[dependencies]
+rpds = "=1.2.1"
+archery = "=1.2.2"

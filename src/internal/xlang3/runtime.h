@@ -52,6 +52,8 @@ struct NativeSerializationCodec {
   std::function<bool(Value&, const Value&, std::string&)> decode;
 };
 
+struct GeneratorObject;
+
 struct RuntimeFrameView {
   const std::shared_ptr<const ir::Module>* module_owner = nullptr;
   const Value* globals_module = nullptr;
@@ -65,6 +67,8 @@ struct RuntimeFrameView {
   const std::vector<size_t>* register_last_use = nullptr;
   size_t register_count = 0;
   std::vector<Value>* native_call_args = nullptr;
+  const std::vector<Value>* closure = nullptr;
+  GeneratorObject* generator_owner = nullptr;
 };
 
 enum class RuntimeDebugStepMode : uint8_t {
@@ -116,6 +120,7 @@ public:
   ~Runtime();
 
   void write_output(const char* data, std::size_t size);
+  bool uses_process_stdout() const;
   void write_output(const std::string& text) { write_output(text.data(), text.size()); }
   void write_output(const char* text);
   void write_output(char ch) { write_output(&ch, 1); }
@@ -223,18 +228,24 @@ public:
   void push_current_frame_state();
   void pop_current_frame_state();
   void set_current_frame_stack(const RuntimeFrameView* frames, size_t count);
+  size_t saved_python_frame_depth() const;
   void publish_current_frame_for_thread_inspection();
   void release_dead_frame_registers();
   void clear_current_frame();
   Value current_frame_snapshot() const;
+  void visit_active_generator_references(
+      const GeneratorObject* generator,
+      const std::function<void(const Value&)>& visit) const;
   Value track_live_frame_snapshot(Value frame);
-  void refresh_live_frame_snapshots(bool refresh_traceback_locals = false);
+  void refresh_live_frame_snapshots(bool refresh_traceback_locals = false,
+                                    bool force_prune = false);
   void retire_live_frame_snapshot(
       uint64_t activation_id, uint32_t instruction_index,
       const Value* local_values, size_t local_count);
   uint64_t allocate_frame_activation_id();
   uint32_t current_frame_function_id() const;
   const std::shared_ptr<const ir::Module>* current_frame_module_owner() const;
+  bool current_frame_free_var(const std::string& name, Value& out) const;
   void set_current_frame_locals(const std::vector<std::string>* names, const Value* values, size_t count);
   void clear_current_frame_locals();
   Value current_locals_snapshot() const;

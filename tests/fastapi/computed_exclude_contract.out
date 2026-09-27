@@ -1,0 +1,5 @@
+dump-one {'foo': 1, 'baz': 1}
+dump-two {'foo': 2, 'bar': 2}
+json-one {"foo":1,"baz":1}
+http-one {'foo': 1, 'baz': 1}
+http-two {'foo': 2, 'bar': 2}

@@ -1,0 +1,2 @@
+200 {"curve": "secp256r1", "decoded": true, "key_size": 256, "point": "028e533b6fa0bf7b4625bb30667c01fb607ef9f8b8a80fef5b300628703187b2a3", "private_der_size": 138, "private_value": 7, "restored": true, "x": "0x8e533b6fa0bf7b4625bb30667c01fb607ef9f8b8a80fef5b300628703187b2a3", "y": "0x73eb1dbde03318366d069f83a6f5900053c73633cb041b21c55e1a86c1f400b4"}
+200 {"curve": "secp256r1", "encrypted_pem": true, "round_trip": true}

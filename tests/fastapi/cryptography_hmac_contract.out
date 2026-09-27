@@ -1,0 +1,2 @@
+200 {"algorithm": "sha256", "authenticated": true}
+401 {"detail": "Invalid signature"}

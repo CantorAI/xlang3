@@ -1,0 +1,7 @@
+4 days, 0:15:30
+-5 days, 23:44:30
+4 days, 0:15:30
+1 days 10:10 200 {'seconds': 123000.0}
+1 d 10:10 200 {'seconds': 123000.0}
+1 10:10 422
+trailing 422 [('time_delta_parsing', 'Input should be a valid timedelta, unexpected extra characters at the end of the input', {'error': 'unexpected extra characters at the end of the input'})]

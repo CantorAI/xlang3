@@ -1,0 +1,4 @@
+origin True
+args-count 2
+display dict[str, int] | typing.Callable[[int], NoneType]
+int-or 7

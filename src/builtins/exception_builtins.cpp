@@ -155,7 +155,7 @@ void initialize_os_error_attrs(Value& self, const Value* args, uint32_t argc) {
       case 5: case 32: error_number = Value::int64(13); break;
       case 6: error_number = Value::int64(9); break;
       case 87: error_number = Value::int64(22); break;
-      case 109: error_number = Value::int64(32); break;
+      case 109: case 232: error_number = Value::int64(32); break;
       case 258: error_number = Value::int64(138); break;
       case 10060: error_number = Value::int64(10060); break;
       default: break;
@@ -185,7 +185,7 @@ void remap_exact_os_error(Runtime& runtime, Value& self, const Value* args, uint
       case 5: case 32: error_number = 13; break;
       case 6: error_number = 9; break;
       case 87: error_number = 22; break;
-      case 109: error_number = 32; break;
+      case 109: case 232: error_number = 32; break;
       case 258: error_number = 138; break;
       case 10060: error_number = 10060; break;
       default: break;
@@ -197,15 +197,41 @@ void remap_exact_os_error(Runtime& runtime, Value& self, const Value* args, uint
     case 2:
       mapped_name = "FileNotFoundError";
       break;
+    case 3:
+      mapped_name = "ProcessLookupError";
+      break;
+    case 4:
+      mapped_name = "InterruptedError";
+      break;
+    case 11:
+#if defined(_WIN32)
+    case 10035:
+#endif
+      mapped_name = "BlockingIOError";
+      break;
     case 13:
       mapped_name = "PermissionError";
       break;
     case 17:
       mapped_name = "FileExistsError";
       break;
+    case 32:
+      mapped_name = "BrokenPipeError";
+      break;
     case 138: case 10060:
       mapped_name = "TimeoutError";
       break;
+#if defined(_WIN32)
+    case 10053:
+      mapped_name = "ConnectionAbortedError";
+      break;
+    case 10054:
+      mapped_name = "ConnectionResetError";
+      break;
+    case 10061:
+      mapped_name = "ConnectionRefusedError";
+      break;
+#endif
     default:
       break;
   }
@@ -842,6 +868,21 @@ bool exception_reduce(
   return true;
 }
 
+bool exception_group_class_getitem(
+    Runtime& runtime, const Value* args, uint32_t argc,
+    Value& out, std::string& error, void*) {
+  if (argc != 2 || value_as_class(args[0]) == nullptr) {
+    error = "BaseExceptionGroup.__class_getitem__ expects a class and one argument";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value parameters;
+  if (value_as_tuple(args[1]) != nullptr) value_assign_fast(parameters, args[1]);
+  else parameters = Value::tuple({args[1]});
+  out = Value::generic_alias(args[0], std::move(parameters));
+  return true;
+}
+
 void register_exception_class(Runtime& runtime, const char* name, Value base = Value::invalid()) {
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.emplace_back("__module__", Value::string("builtins"));
@@ -873,6 +914,10 @@ void register_exception_class(Runtime& runtime, const char* name, Value base = V
         "__reduce__",
         runtime.make_native_function("BaseException.__reduce__", exception_reduce));
   } else if (std::string_view(name) == "BaseExceptionGroup") {
+    attrs.emplace_back(
+        "__class_getitem__",
+        Value::class_method(runtime.make_native_function(
+            "BaseExceptionGroup.__class_getitem__", exception_group_class_getitem)));
     attrs.emplace_back(
         "derive",
         runtime.make_native_function("BaseExceptionGroup.derive", exception_group_derive));

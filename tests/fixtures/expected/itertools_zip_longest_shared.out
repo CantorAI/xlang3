@@ -1,0 +1,6 @@
+shared [('a', 'b'), ('c', 'd')]
+fill [(1, 3), (2, 9)]
+empty []
+lazy-before []
+lazy-next (7, 8) ['start']
+lazy-stop

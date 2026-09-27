@@ -1,0 +1,3 @@
+recv OSError True -1
+send OSError True -1
+connect OSError True -1

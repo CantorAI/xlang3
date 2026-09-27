@@ -170,6 +170,7 @@ struct XlangVMPreparedFunctionState {
 struct XlangVMFrame {
   const ir::Module* module = nullptr;
   const ir::Function* fn = nullptr;
+  std::unique_ptr<std::vector<Value>> closure_owner;
   const std::vector<Value>* closure = nullptr;
   Value globals_module;
   std::shared_ptr<const ir::Module> module_owner;
@@ -205,6 +206,17 @@ struct XlangVMFrame {
   std::vector<Value> native_call_args;
   std::unordered_map<const ir::Function*, XlangVMPreparedFunctionState> prepared_functions;
 
+  void set_closure(const std::vector<Value>& frame_closure) {
+    if (frame_closure.empty()) {
+      closure_owner.reset();
+      static const std::vector<Value> empty_closure;
+      closure = &empty_closure;
+    } else {
+      closure_owner = std::make_unique<std::vector<Value>>(frame_closure);
+      closure = closure_owner.get();
+    }
+  }
+
   XlangVMFrame(
       const ir::Module& frame_module,
       uint32_t function_id,
@@ -218,7 +230,6 @@ struct XlangVMFrame {
       Value frame_continuation_value = Value::invalid())
       : module(&frame_module),
         fn(&frame_module.functions[function_id]),
-        closure(&frame_closure),
         globals_module(std::move(frame_globals_module)),
         module_owner(std::move(frame_module_owner)),
         function_id(function_id),
@@ -230,6 +241,7 @@ struct XlangVMFrame {
         cells(fn->cell_slots.size(), Value::invalid()),
         regs(fn->register_count, Value::invalid()),
         instr_cache(fn->code.size()) {
+    set_closure(frame_closure);
     compute_register_last_use();
     for (size_t i = 0; i < args.size(); ++i) {
       value_assign_fast(locals[i], args.get(i));
@@ -267,7 +279,7 @@ struct XlangVMFrame {
     }
     module = &frame_module;
     fn = next_fn;
-    closure = &frame_closure;
+    set_closure(frame_closure);
     globals_module = std::move(frame_globals_module);
     module_owner = std::move(frame_module_owner);
     this->function_id = function_id;
@@ -391,6 +403,11 @@ private:
       case ir::Op::Await:
       case ir::Op::Pop:
         one(instr.a);
+        break;
+      case ir::Op::YieldFrom:
+        one(instr.a);
+        one(instr.b);
+        one(instr.c);
         break;
       case ir::Op::LoadAttr:
       case ir::Op::LoadInstanceSlot:

@@ -1,0 +1,4 @@
+dict {'a': CUSTOM}
+list [CUSTOM]
+tuple (CUSTOM,)
+set {CUSTOM}

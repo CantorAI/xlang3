@@ -16,6 +16,7 @@ limitations under the License.
 
 #include "xlang3/builtin_methods.h"
 #include "xlang3/builtins.h"
+#include "xlang3/functional_iterators.h"
 #include "xlang3/interpreter.h"
 #include "xlang3/object_model.h"
 #include "xlang3/perf_counters.h"
@@ -46,6 +47,7 @@ T* allocate_generator_object(ObjectKind kind) {
   obj->header.kind = kind;
   obj->header.refcnt = 1;
   xlang_perf_count_object_alloc(kind);
+  gc_track_object(&obj->header);
   return obj;
 }
 
@@ -224,8 +226,15 @@ bool generator_send(Value& generator, Value value, bool& done, Value& out, std::
     return false;
   }
   if (obj->done) {
+    if (obj->is_coroutine) {
+      error = "cannot reuse already awaited coroutine";
+      Value exception = obj->runtime->make_exception("RuntimeError", error);
+      value_assign_fast(out, exception);
+      obj->runtime->set_pending_exception(std::move(exception));
+      return false;
+    }
     done = true;
-    value_assign_fast(out, obj->return_value);
+    value_set_none(out);
     return true;
   }
   if (!obj->started && value.tag != ValueTag::None) {
@@ -268,6 +277,8 @@ bool generator_send(Value& generator, Value value, bool& done, Value& out, std::
     obj->args.clear();
     obj->has_pending_send = false;
     obj->has_pending_throw = false;
+    obj->delegated_result_ready = false;
+    value_set_none(obj->return_value);
   }
   if (!result.errors.empty()) {
     if (result.exception.tag != ValueTag::Invalid) {
@@ -289,9 +300,25 @@ bool generator_close(Value& generator, Value& out, std::string& error) {
     Value awaiting = obj->awaiting;
     Value ignored;
     std::string close_error;
-    if (!generator_close(awaiting, ignored, close_error) && !close_error.empty()) {
-      error = std::move(close_error);
-      return false;
+    if (value_as_generator(awaiting) != nullptr) {
+      if (!generator_close(awaiting, ignored, close_error)) {
+        error = std::move(close_error);
+        return false;
+      }
+    } else {
+      Value close_method;
+      if (object_get_attr(awaiting, "close", close_method, close_error)) {
+        if (!runtime_call_callable(*obj->runtime, close_method, nullptr, 0,
+                                   ignored, error)) return false;
+      } else {
+        Value pending;
+        if (obj->runtime->take_pending_exception(pending) &&
+            !exception_has_class_name(*obj->runtime, pending, "AttributeError")) {
+          obj->runtime->set_pending_exception(std::move(pending));
+          error = std::move(close_error);
+          return false;
+        }
+      }
     }
     value_set_invalid(obj->awaiting);
   }
@@ -332,6 +359,8 @@ bool generator_close(Value& generator, Value& out, std::string& error) {
   obj->args.clear();
   obj->has_pending_send = false;
   obj->has_pending_throw = false;
+  obj->delegated_result_ready = false;
+  value_set_none(obj->return_value);
   value_set_none(out);
   return true;
 }
@@ -398,11 +427,30 @@ bool generator_throw(Value& generator, const Value* args, uint32_t argc, Value& 
           }
         }
       }
-    } else {
+    } else if (value_as_generator(awaiting) != nullptr) {
       delegated_resumed = generator_throw(awaiting, args, argc, delegated_out, delegated_error);
       if (delegated_resumed) {
         value_assign_fast(out, delegated_out);
         return true;
+      }
+    } else {
+      Value throw_method;
+      if (object_get_attr(awaiting, "throw", throw_method, delegated_error)) {
+        delegated_resumed = runtime_call_callable(
+            *obj->runtime, throw_method, args, argc, delegated_out,
+            delegated_error);
+        if (delegated_resumed) {
+          value_assign_fast(out, delegated_out);
+          return true;
+        }
+      } else {
+        Value pending;
+        if (obj->runtime->take_pending_exception(pending) &&
+            !exception_has_class_name(*obj->runtime, pending, "AttributeError")) {
+          obj->runtime->set_pending_exception(std::move(pending));
+          error = std::move(delegated_error);
+          return false;
+        }
       }
     }
     Value delegated_exception;
@@ -444,6 +492,7 @@ bool generator_throw(Value& generator, const Value* args, uint32_t argc, Value& 
   if (delegated_completed) {
     value_assign_fast(obj->pending_send, delegated_return);
     obj->has_pending_send = true;
+    obj->delegated_result_ready = true;
     value_set_invalid(obj->pending_throw);
     obj->has_pending_throw = false;
   } else {
@@ -472,6 +521,8 @@ bool generator_throw(Value& generator, const Value* args, uint32_t argc, Value& 
     obj->args.clear();
     obj->has_pending_send = false;
     obj->has_pending_throw = false;
+    obj->delegated_result_ready = false;
+    value_set_none(obj->return_value);
   }
   if (!result.errors.empty()) {
     if (result.exception.tag != ValueTag::Invalid) {
@@ -674,6 +725,74 @@ bool async_generator_awaitable_send_method(
   }
   raise_stop_iteration_with_value(runtime, out);
   return false;
+}
+
+bool async_generator_awaitable_throw_method(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc < 2 || argc > 4) {
+    error = "async_generator_awaitable.throw expected 1 to 3 arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* state = value_as_async_generator_awaitable(args[0]);
+  if (state == nullptr) {
+    error = "object is not an async generator awaitable";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (state->consumed) {
+    error = "cannot reuse already awaited async generator awaitable";
+    runtime.raise_class_error("RuntimeError", error);
+    return false;
+  }
+  state->started = true;
+  bool resumed = generator_throw(state->generator, args + 1, argc - 1, out, error);
+  if (!resumed) {
+    state->consumed = true;
+    if (value_as_instance(out) != nullptr) runtime.set_pending_exception(out);
+    return false;
+  }
+  auto* generator = value_as_generator(state->generator);
+  if (generator != nullptr && generator->awaiting.tag != ValueTag::Invalid) return true;
+  state->consumed = true;
+  raise_stop_iteration_with_value(runtime, out);
+  return false;
+}
+
+bool async_generator_awaitable_close_method(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (!method_check_argc(argc, 1, "async_generator_awaitable.close", error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* state = value_as_async_generator_awaitable(args[0]);
+  if (state == nullptr) {
+    error = "object is not an async generator awaitable";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (state->consumed) {
+    value_set_none(out);
+    return true;
+  }
+  state->consumed = true;
+  if (!generator_close(state->generator, out, error)) {
+    if (runtime.active_exception().tag == ValueTag::Invalid) {
+      runtime.raise_class_error("RuntimeError", error);
+    }
+    return false;
+  }
+  return true;
 }
 
 bool generator_send_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -880,9 +999,24 @@ static BuiltinMethodSpec kAsyncGeneratorAwaitableMethods[] = {
       {"__iter__", "async_generator_awaitable.__iter__", async_generator_awaitable_await_method},
       {"__next__", "async_generator_awaitable.__next__", async_generator_awaitable_next_method},
       {"send", "async_generator_awaitable.send", async_generator_awaitable_send_method},
+      {"throw", "async_generator_awaitable.throw", async_generator_awaitable_throw_method},
+      {"close", "async_generator_awaitable.close", async_generator_awaitable_close_method},
 };
 
 } // namespace
+
+void frame_set_generator_owner(Runtime& runtime, Value& frame,
+                               const GeneratorObject& generator) {
+  auto* frame_object = value_as_frame(frame);
+  if (frame_object == nullptr ||
+      frame_object->generator_ref.tag != ValueTag::Invalid)
+    return;
+  Value borrowed;
+  borrowed.tag = ValueTag::Object;
+  borrowed.flags = kXlangValueBorrowedRefFlag;
+  borrowed.as.obj = const_cast<Object*>(&generator.header);
+  frame_object->generator_ref = make_weakref_ref(runtime, borrowed);
+}
 
 bool generator_get_method(const Value& object, const std::string& name, Value& out) {
   if (value_as_async_generator_awaitable(object) != nullptr) {
@@ -945,6 +1079,8 @@ bool generator_get_method(const Value& object, const std::string& name, Value& o
           Value::dict(std::move(entries)),
           Value::none(),
           Value::none());
+      if (generator->runtime != nullptr)
+        frame_set_generator_owner(*generator->runtime, out, *generator);
       return true;
     }
     value_set_none(out);

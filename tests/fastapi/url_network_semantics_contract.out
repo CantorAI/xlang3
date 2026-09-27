@@ -1,0 +1,9 @@
+http://2001:db8::1 invalid port number
+http://:password@example.org http://:password@example.org/ None 'example.org'
+http://@example.org http://example.org/ None 'example.org'
+file://localhost/foo/bar file:///foo/bar None None
+file:////localhost/foo/bar file:///localhost/foo/bar None None
+amqps:// amqps:// None None
+foo:///foo/bar foo:///foo/bar None None
+serializer_error Pydantic serializer warnings:
+http 200 {'file': 'file:///foo/bar', 'empty_host': 'amqps://', 'password_without_user': None}

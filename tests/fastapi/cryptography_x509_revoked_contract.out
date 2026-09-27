@@ -1,0 +1,1 @@
+200 {"date": "2025-06-01T00:00:00+00:00", "empty_iteration": [], "entry_type": "RevokedCertificate", "extensions": 0, "invalid_serial_type": "TypeError", "iteration": [42], "lookup": 42, "missing": null, "serial": 42, "slice": [42]}

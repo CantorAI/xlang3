@@ -794,10 +794,17 @@ XLANG3_HOT_INLINE std::string xlang_vm_inline_current_module_name(Runtime& runti
   return "__main__";
 }
 
-XLANG3_HOT_INLINE bool xlang_vm_value_has_abstract_marker(const Value& value) {
+XLANG3_HOT_INLINE bool xlang_vm_value_has_abstract_marker(Runtime& runtime, const Value& value,
+                                                           bool& out, std::string& error) {
+  const Value* getattr_function = runtime.find_builtin("getattr");
+  if (getattr_function == nullptr) {
+    error = "getattr is unavailable";
+    return false;
+  }
+  Value getattr_args[] = {value, Value::string("__isabstractmethod__"), Value::boolean(false)};
   Value marker;
-  std::string ignored;
-  return object_get_attr(value, "__isabstractmethod__", marker, ignored) && value_truthy(marker);
+  if (!runtime_call_callable(runtime, *getattr_function, getattr_args, 3, marker, error)) return false;
+  return runtime_truthy(runtime, marker, out, error);
 }
 
 XLANG3_HOT_INLINE void xlang_vm_add_abstract_name(std::vector<Value>& names, const std::string& name) {
@@ -836,9 +843,9 @@ XLANG3_HOT_INLINE void xlang_vm_collect_abstract_names_from_iterable(const Value
   }
 }
 
-XLANG3_HOT_INLINE Value xlang_vm_abc_abstract_methods_for_type_constructor_attrs(
-    TupleObject* bases,
-    const std::vector<std::pair<std::string, Value>>& attrs) {
+XLANG3_HOT_INLINE bool xlang_vm_abc_abstract_methods_for_type_constructor_attrs(
+    Runtime& runtime, TupleObject* bases,
+    const std::vector<std::pair<std::string, Value>>& attrs, Value& out, std::string& error) {
   std::vector<Value> abstracts;
   std::vector<std::string> inherited_names;
   for (const auto& base : bases->items) {
@@ -858,19 +865,25 @@ XLANG3_HOT_INLINE Value xlang_vm_abc_abstract_methods_for_type_constructor_attrs
         break;
       }
     }
-    if (!has_override || xlang_vm_value_has_abstract_marker(override_value)) {
+    bool is_abstract = false;
+    if (has_override && !xlang_vm_value_has_abstract_marker(runtime, override_value, is_abstract, error)) return false;
+    if (!has_override || is_abstract) {
       xlang_vm_add_abstract_name(abstracts, name);
     }
   }
   for (const auto& attr : attrs) {
-    if (xlang_vm_value_has_abstract_marker(attr.second)) {
+    bool is_abstract = false;
+    if (!xlang_vm_value_has_abstract_marker(runtime, attr.second, is_abstract, error)) return false;
+    if (is_abstract) {
       xlang_vm_add_abstract_name(abstracts, attr.first);
     }
   }
-  return Value::frozenset(std::move(abstracts));
+  out = Value::frozenset(std::move(abstracts));
+  return true;
 }
 
-XLANG3_HOT_INLINE Value xlang_vm_abc_abstract_methods_for_type_constructor(TupleObject* bases, DictObject* namespace_dict) {
+XLANG3_HOT_INLINE bool xlang_vm_abc_abstract_methods_for_type_constructor(
+    Runtime& runtime, TupleObject* bases, DictObject* namespace_dict, Value& out, std::string& error) {
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.reserve(namespace_dict->entries.size());
   for (const auto& entry : namespace_dict->entries) {
@@ -879,7 +892,7 @@ XLANG3_HOT_INLINE Value xlang_vm_abc_abstract_methods_for_type_constructor(Tuple
       attrs.push_back({string_object_to_string(*key), entry.second});
     }
   }
-  return xlang_vm_abc_abstract_methods_for_type_constructor_attrs(bases, attrs);
+  return xlang_vm_abc_abstract_methods_for_type_constructor_attrs(runtime, bases, attrs, out, error);
 }
 
 XLANG3_HOT_INLINE XlangVMBuiltinConstructor xlang_vm_find_builtin_constructor(const std::string& name) {
@@ -958,6 +971,12 @@ XLANG3_HOT_INLINE bool xlang_vm_infer_super_defining_class(
     const Value& self,
     Value& out,
     std::string& error) {
+  Value lexical_class;
+  if (runtime.current_frame_free_var("__class__", lexical_class) &&
+      value_as_class(lexical_class) != nullptr) {
+    value_assign_fast(out, lexical_class);
+    return true;
+  }
   auto* instance = value_as_instance(self);
   Value subject_class;
   if (instance != nullptr) {
@@ -1538,7 +1557,8 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
     const bool needs_abstract_methods =
         klass.name == "ABCMeta" || class_has_builtin_base_name(const_cast<ClassObject*>(&klass), "ABCMeta");
     if (needs_abstract_methods) {
-      abstract_methods = xlang_vm_abc_abstract_methods_for_type_constructor_attrs(bases, attrs);
+      if (!xlang_vm_abc_abstract_methods_for_type_constructor_attrs(
+              runtime, bases, attrs, abstract_methods, error)) return false;
     }
     out = Value::class_object(class_name, std::move(attrs), base, {}, std::move(metaclass));
     if (!xlang_vm_call_set_name_descriptors(runtime, out, set_name_descriptors, error)) {
@@ -2156,19 +2176,6 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
         return false;
       }
     }
-    if (constructor == XlangVMBuiltinConstructor::Set ||
-        constructor == XlangVMBuiltinConstructor::FrozenSet) {
-      for (const auto& item : items) {
-        size_t hash = 0;
-        if (!runtime_value_hash_key(runtime, item, hash, error)) {
-          error = "cannot use '" +
-              std::string(value_binary_type_name(item)) +
-              "' as a set element (" + error + ")";
-          runtime.raise_class_error("TypeError", error);
-          return false;
-        }
-      }
-    }
     if (constructor == XlangVMBuiltinConstructor::List) {
       if (exact_builtin_constructor) {
         out = Value::list(std::move(items));
@@ -2196,27 +2203,34 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
           return false;
         }
       }
-    } else if (constructor == XlangVMBuiltinConstructor::FrozenSet) {
-      if (exact_builtin_constructor) {
-        out = Value::frozenset(std::move(items));
-      } else {
-        Value klass_value;
-        klass_value.tag = ValueTag::Object;
-        klass_value.as.obj = const_cast<Object*>(&klass.header);
-        retain(klass_value);
-        out = Value::instance(std::move(klass_value));
-        value_as_instance(out)->sequence_storage = Value::frozenset(std::move(items));
+    } else if (constructor == XlangVMBuiltinConstructor::FrozenSet ||
+               constructor == XlangVMBuiltinConstructor::Set) {
+      Value set_storage = Value::set({});
+      for (const auto& item : items) {
+        if (!set_add_runtime(runtime, set_storage, item, error)) {
+          Value pending;
+          if (runtime.take_pending_exception(pending)) {
+            runtime.set_pending_exception(std::move(pending));
+            return false;
+          }
+          error = "cannot use '" +
+              std::string(value_binary_type_name(item)) +
+              "' as a set element (" + error + ")";
+          runtime.raise_class_error("TypeError", error);
+          return false;
+        }
       }
-    } else {
+      if (constructor == XlangVMBuiltinConstructor::FrozenSet)
+        value_as_set(set_storage)->frozen = true;
       if (exact_builtin_constructor) {
-        out = Value::set(std::move(items));
+        out = std::move(set_storage);
       } else {
         Value klass_value;
         klass_value.tag = ValueTag::Object;
         klass_value.as.obj = const_cast<Object*>(&klass.header);
         retain(klass_value);
         out = Value::instance(std::move(klass_value));
-        value_as_instance(out)->sequence_storage = Value::set(std::move(items));
+        value_as_instance(out)->sequence_storage = std::move(set_storage);
       }
     }
     return true;
@@ -2240,13 +2254,11 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
       return true;
     }
     if (auto* view = value_as_memoryview(arg)) {
-      for (size_t i = 0; i < view->size; ++i) {
-        Value item;
-        if (!sequence_get_item(arg, Value::int64(static_cast<int64_t>(i)), item, local_error)) {
-          return false;
-        }
-        bytes.push_back(static_cast<char>(item.as.i64));
+      if (view->released) {
+        local_error = "operation forbidden on released memoryview object";
+        return false;
       }
+      bytes.assign(memoryview_object_view(*view));
       return true;
     }
     if (auto* string = value_as_string(arg)) {
@@ -2345,7 +2357,14 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
       return add_constructor_keywords_to_dict();
     }
     if (auto* instance = value_as_instance(source)) {
-      if (auto* storage = value_as_dict(instance->mapping_storage)) {
+      auto* source_class = value_as_class(instance->klass);
+      if (source_class != nullptr &&
+          class_has_builtin_base_name(source_class, "dict")) {
+        auto* storage = value_as_dict(instance->mapping_storage);
+        if (storage == nullptr) {
+          error = "dict subclass has no mapping storage";
+          return false;
+        }
         for (const auto& entry : storage->entries) {
           if (!mapping_set_item(dict_target, entry.first, entry.second, error)) {
             return false;
@@ -2782,7 +2801,8 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
     }
     auto* name = value_as_string(constructor_args.get(0));
     if (name == nullptr) {
-      error = "module name must be a string";
+      error = "module() argument 'name' must be str, not " +
+          std::string(value_binary_type_name(constructor_args.get(0)));
       return false;
     }
     out = Value::module(string_object_to_string(*name));

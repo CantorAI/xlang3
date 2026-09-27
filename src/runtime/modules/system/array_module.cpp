@@ -60,8 +60,48 @@ void sync_array_bytes(const Value& self, ArrayState& state) {
 bool array_as_index(Runtime& runtime, const Value& value, int64_t& out,
                     std::string& error);
 
+std::string array_utf8(uint32_t codepoint) {
+  std::string text;
+  if (codepoint < 0x80u) text.push_back(static_cast<char>(codepoint));
+  else if (codepoint < 0x800u) {
+    text.push_back(static_cast<char>(0xc0u | (codepoint >> 6)));
+    text.push_back(static_cast<char>(0x80u | (codepoint & 0x3fu)));
+  } else if (codepoint < 0x10000u) {
+    text.push_back(static_cast<char>(0xe0u | (codepoint >> 12)));
+    text.push_back(static_cast<char>(0x80u | ((codepoint >> 6) & 0x3fu)));
+    text.push_back(static_cast<char>(0x80u | (codepoint & 0x3fu)));
+  } else {
+    text.push_back(static_cast<char>(0xf0u | (codepoint >> 18)));
+    text.push_back(static_cast<char>(0x80u | ((codepoint >> 12) & 0x3fu)));
+    text.push_back(static_cast<char>(0x80u | ((codepoint >> 6) & 0x3fu)));
+    text.push_back(static_cast<char>(0x80u | (codepoint & 0x3fu)));
+  }
+  return text;
+}
+
 bool append_array_value(Runtime& runtime, ArrayState& state, const Value& item,
                         std::string& error) {
+  if (state.typecode == 'w') {
+    const auto* string = value_as_string(item);
+    const auto text = string == nullptr ? std::string_view{} : string_object_view(*string);
+    if (string == nullptr || utf8_codepoint_count(text) != 1) {
+      error = "array item must be a unicode character, not " +
+          std::string(value_binary_type_name(item));
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    const auto lead = static_cast<unsigned char>(text[0]);
+    uint32_t codepoint = lead;
+    if (text.size() == 2) codepoint = lead & 0x1fu;
+    else if (text.size() == 3) codepoint = lead & 0x0fu;
+    else if (text.size() == 4) codepoint = lead & 0x07u;
+    for (size_t i = 1; i < text.size(); ++i) {
+      codepoint = (codepoint << 6) |
+          (static_cast<unsigned char>(text[i]) & 0x3fu);
+    }
+    state.bytes.append(reinterpret_cast<const char*>(&codepoint), sizeof(codepoint));
+    return true;
+  }
   if (state.typecode == 'f' || state.typecode == 'd') {
     double number = item.tag == ValueTag::Double ? item.as.f64 :
         item.tag == ValueTag::Int64 ? static_cast<double>(item.as.i64) : 0.0;
@@ -292,6 +332,12 @@ bool array_getitem(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
   const char* data = state->bytes.data() + static_cast<size_t>(index) * state->itemsize;
   if (state->typecode == 'f') { float value; std::memcpy(&value, data, 4); value_set_number(out, value); return true; }
   if (state->typecode == 'd') { double value; std::memcpy(&value, data, 8); value_set_number(out, value); return true; }
+  if (state->typecode == 'w') {
+    uint32_t codepoint;
+    std::memcpy(&codepoint, data, sizeof(codepoint));
+    out = Value::string(array_utf8(codepoint));
+    return true;
+  }
   uint64_t value = 0;
   std::memcpy(&value, data, state->itemsize);
   const bool signed_type = state->typecode == 'b' || state->typecode == 'h' ||

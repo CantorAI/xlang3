@@ -1,0 +1,1 @@
+200 {'class': 'Inner[int]', 'value': 7, 'new_instance': True, 'invalid_type': 'int_parsing', 'invalid_location': ['inner', 'value'], 'unrelated_type': 'model_type'}

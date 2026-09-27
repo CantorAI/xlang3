@@ -379,11 +379,16 @@ XLANG3_HOT_INLINE bool xlang_vm_call_class_new_then_init_sync(
   }
 
   auto* instance = value_as_instance(new_result);
-  auto* instance_class = instance == nullptr ? nullptr : value_as_class(instance->klass);
+  auto* module_instance = value_as_module(new_result);
+  auto* instance_class = instance != nullptr ? value_as_class(instance->klass)
+      : module_instance != nullptr ? value_as_class(module_instance->klass) : nullptr;
   if (instance_class != nullptr && klass != nullptr && class_is_subclass(instance_class, klass)) {
     Value init;
     std::string init_error;
-    if (object_get_attr(new_result, "__init__", init, init_error) && init.tag != ValueTag::Invalid) {
+    const bool found_init = module_instance != nullptr
+        ? module_get_attr(new_result, "__init__", init, init_error)
+        : object_get_attr(new_result, "__init__", init, init_error);
+    if (found_init && init.tag != ValueTag::Invalid) {
       const NativeFunctionObject* init_native = value_as_native_function(init);
       if (auto* bound_init = value_as_bound_method(init)) {
         init_native = value_as_native_function(bound_init->function);
@@ -702,12 +707,17 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
       if (object_get_class_attr_for_instance(regs[in.a], "__getattribute__", hook, error) &&
           !xlang_vm_is_default_object_hook(hook, "object.__getattribute__")) {
         // Dynamic lookup can return a new callable on every access; do not cache it.
+        const Value* getattr_builtin = runtime.find_builtin("getattr");
+        if (getattr_builtin == nullptr) {
+          return raise_runtime_error("getattr builtin is unavailable")
+              ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+        }
         Value lookup_args[] = {regs[in.a], Value::string(name)};
         Value callable;
         std::vector<Value> arguments;
         arguments.reserve(call_arg_regs.size());
         for (auto index : call_arg_regs) arguments.push_back(regs[index]);
-        if (!runtime_call_callable(runtime, hook, lookup_args, 2, callable, error) ||
+        if (!runtime_call_callable(runtime, *getattr_builtin, lookup_args, 2, callable, error) ||
             !runtime_call_callable(runtime, callable, arguments.data(),
                 static_cast<uint32_t>(arguments.size()), regs[in.dst], error)) {
           Value pending;
@@ -717,6 +727,32 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
         }
         return XlangVMOpFlow::Next;
       }
+    }
+  }
+
+  if (auto* receiver_class = value_as_class(regs[in.a])) {
+    auto* metaclass = value_as_class(receiver_class->metaclass);
+    if (metaclass != nullptr && metaclass->has_getattribute_hook) {
+      const Value* getattr_builtin = runtime.find_builtin("getattr");
+      if (getattr_builtin == nullptr) {
+        return raise_runtime_error("getattr builtin is unavailable")
+            ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+      }
+      Value lookup_args[] = {regs[in.a], Value::string(name)};
+      Value callable;
+      std::string error;
+      std::vector<Value> arguments;
+      arguments.reserve(call_arg_regs.size());
+      for (auto index : call_arg_regs) arguments.push_back(regs[index]);
+      if (!runtime_call_callable(runtime, *getattr_builtin, lookup_args, 2, callable, error) ||
+          !runtime_call_callable(runtime, callable, arguments.data(),
+              static_cast<uint32_t>(arguments.size()), regs[in.dst], error)) {
+        Value pending;
+        const bool handled = runtime.take_pending_exception(pending)
+            ? raise_exception_value(std::move(pending)) : raise_runtime_error(error);
+        return handled ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+      }
+      return XlangVMOpFlow::Next;
     }
   }
 
@@ -1292,8 +1328,18 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
       }
       if (pushed_frame) return XlangVMOpFlow::SwitchFrame;
     } else {
-      if (xlang_vm_raise_not_callable(runtime, raise_exception_value)) return XlangVMOpFlow::ContinueLoop;
-      return XlangVMOpFlow::ReturnResult;
+      // A classmethod may wrap any callable, including an instance with
+      // __call__. Keep the fused attribute-call path equivalent to calling
+      // the bound method returned by normal attribute lookup.
+      if (!xlang3::xlang_vm::ops::call_callable_value(
+              runtime, bound->function, bound_args, module, module_owner,
+              in.dst, ip, native_call_args, execution_lock, regs[in.dst],
+              pushed_frame, make_generator_if_needed, push_frame,
+              raise_runtime_error, raise_exception_value)) {
+        if (!result.errors.empty()) return XlangVMOpFlow::ReturnResult;
+        return XlangVMOpFlow::ContinueLoop;
+      }
+      if (pushed_frame) return XlangVMOpFlow::SwitchFrame;
     }
   } else if (auto* native = value_as_native_function(method)) {
     if (!xlang3::xlang_vm::ops::call_native_function(runtime, native, call_args, native_call_args, execution_lock, regs[in.dst], raise_runtime_error, raise_exception_value)) {
@@ -3385,14 +3431,37 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_module_method(
   }
   const auto& module_value = globals_module_obj->slots[resolved_module_slot];
   auto* module_object = value_as_module(module_value);
-  if (module_object == nullptr) {
-    return raise_runtime_error("imported module binding is not a module") ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
-  }
-
   const auto& call_arg_regs = fn.call_args[in.c];
   CallArgsView call_args;
   call_args.registers = regs.value_data();
   call_args.register_args = &call_arg_regs;
+  if (module_object == nullptr) {
+    Value callee;
+    std::string attr_error;
+    const Value* getattr_builtin = runtime.find_builtin("getattr");
+    const Value getattr_args[] = {module_value, Value::string(fn.names[in.b])};
+    if (getattr_builtin == nullptr ||
+        !runtime_call_callable(runtime, *getattr_builtin, getattr_args, 2,
+                               callee, attr_error)) {
+      Value pending;
+      if (runtime.take_pending_exception(pending))
+        return raise_exception_value(std::move(pending))
+            ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+      return raise_exception_value(runtime.make_exception("AttributeError", attr_error))
+          ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    }
+    std::vector<NativeKeywordArg> native_keyword_args;
+    bool pushed_frame = false;
+    if (!call_callable_value_ex(
+            runtime, callee, call_args, module, module_owner, in.dst, ip,
+            native_call_args, native_keyword_args, execution_lock, regs[in.dst],
+            pushed_frame, make_generator_if_needed, push_frame,
+            raise_runtime_error, raise_exception_value)) {
+      return result.errors.empty()
+          ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    }
+    return pushed_frame ? XlangVMOpFlow::SwitchFrame : XlangVMOpFlow::Next;
+  }
 
   auto monitoring_event_enabled = [&](int64_t event) {
     auto* code_object = value_as_code(monitoring_code);

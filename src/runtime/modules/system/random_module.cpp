@@ -18,6 +18,9 @@ limitations under the License.
 #include "xlang3/object_model.h"
 
 #include <chrono>
+#include <array>
+#include <algorithm>
+#include <cstdlib>
 #include <cstring>
 #include <limits>
 #include <mutex>
@@ -34,10 +37,53 @@ constexpr const char* kRandomNativeType = "_random.Random";
 
 struct RandomState {
   std::mutex mutex;
-  std::mt19937_64 engine;
-  uint64_t seed = 0;
-  uint64_t draws = 0;
+  // MT19937 state layout and seeding follow CPython's _random module.
+  std::array<uint32_t, 624> words{};
+  size_t index = 624;
 };
+
+// MT19937 by Matsumoto and Nishimura; init_by_array and the 53-bit float
+// construction match CPython 3.14 Modules/_randommodule.c (BSD licensed).
+uint32_t random_next(RandomState& state) {
+  constexpr size_t n = 624, m = 397;
+  if (state.index >= n) {
+    for (size_t i = 0; i < n; ++i) {
+      const uint32_t y = (state.words[i] & 0x80000000u) |
+                         (state.words[(i + 1) % n] & 0x7fffffffu);
+      state.words[i] = state.words[(i + m) % n] ^ (y >> 1) ^
+                       ((y & 1u) ? 0x9908b0dfu : 0u);
+    }
+    state.index = 0;
+  }
+  uint32_t y = state.words[state.index++];
+  y ^= y >> 11;
+  y ^= (y << 7) & 0x9d2c5680u;
+  y ^= (y << 15) & 0xefc60000u;
+  y ^= y >> 18;
+  return y;
+}
+
+void random_reseed(RandomState& state, const std::vector<uint32_t>& key) {
+  auto& mt = state.words;
+  mt[0] = 19650218u;
+  for (size_t i = 1; i < mt.size(); ++i)
+    mt[i] = 1812433253u * (mt[i - 1] ^ (mt[i - 1] >> 30)) +
+            static_cast<uint32_t>(i);
+  state.index = mt.size();
+  size_t i = 1, j = 0;
+  for (size_t k = std::max(mt.size(), key.size()); k != 0; --k) {
+    mt[i] = (mt[i] ^ ((mt[i - 1] ^ (mt[i - 1] >> 30)) * 1664525u)) +
+            key[j] + static_cast<uint32_t>(j);
+    if (++i >= mt.size()) { mt[0] = mt.back(); i = 1; }
+    if (++j >= key.size()) j = 0;
+  }
+  for (size_t k = mt.size() - 1; k != 0; --k) {
+    mt[i] = (mt[i] ^ ((mt[i - 1] ^ (mt[i - 1] >> 30)) * 1566083941u)) -
+            static_cast<uint32_t>(i);
+    if (++i >= mt.size()) { mt[0] = mt.back(); i = 1; }
+  }
+  mt[0] = 0x80000000u;
+}
 
 uint64_t fnv1a_bytes(std::string_view bytes) {
   uint64_t hash = 1469598103934665603ull;
@@ -57,32 +103,48 @@ uint64_t default_seed() {
   return seed;
 }
 
-uint64_t seed_from_value(const Value& value) {
+std::vector<uint32_t> seed_from_value(const Value& value) {
   if (value.tag == ValueTag::None || value.tag == ValueTag::Invalid) {
-    return default_seed();
+    const uint64_t seed = default_seed();
+    return {static_cast<uint32_t>(seed), static_cast<uint32_t>(seed >> 32)};
   }
   if (value.tag == ValueTag::Int64) {
-    return static_cast<uint64_t>(value.as.i64);
+    const uint64_t magnitude = value.as.i64 < 0
+        ? static_cast<uint64_t>(-(value.as.i64 + 1)) + 1
+        : static_cast<uint64_t>(value.as.i64);
+    if (magnitude <= UINT32_MAX) return {static_cast<uint32_t>(magnitude)};
+    return {static_cast<uint32_t>(magnitude),
+            static_cast<uint32_t>(magnitude >> 32)};
+  }
+  if (value_as_bigint(value) != nullptr) {
+    bool negative = false;
+    const uint32_t* limbs = nullptr;
+    uint32_t count = 0;
+    if (value_bigint_limb_view(value, negative, limbs, count)) {
+      if (count == 0) return {0};
+      return std::vector<uint32_t>(limbs, limbs + count);
+    }
   }
   if (value.tag == ValueTag::Double) {
     uint64_t bits = 0;
     static_assert(sizeof(bits) == sizeof(value.as.f64));
     std::memcpy(&bits, &value.as.f64, sizeof(bits));
-    return bits;
+    return {static_cast<uint32_t>(bits), static_cast<uint32_t>(bits >> 32)};
   }
   if (auto* string = value_as_string(value)) {
-    return fnv1a_bytes(string_object_view(*string));
+    const uint64_t hash = fnv1a_bytes(string_object_view(*string));
+    return {static_cast<uint32_t>(hash), static_cast<uint32_t>(hash >> 32)};
   }
   if (auto* bytes = value_as_bytes(value)) {
-    return fnv1a_bytes(bytes_object_view(*bytes));
+    const uint64_t hash = fnv1a_bytes(bytes_object_view(*bytes));
+    return {static_cast<uint32_t>(hash), static_cast<uint32_t>(hash >> 32)};
   }
   if (auto* bytearray = value_as_bytearray(value)) {
-    return fnv1a_bytes(bytearray->value);
+    const uint64_t hash = fnv1a_bytes(bytearray->value);
+    return {static_cast<uint32_t>(hash), static_cast<uint32_t>(hash >> 32)};
   }
-  if (value_as_bigint(value) != nullptr) {
-    return fnv1a_bytes(value_bigint_to_string(value));
-  }
-  return fnv1a_bytes(value_to_string(value));
+  const uint64_t hash = fnv1a_bytes(value_to_string(value));
+  return {static_cast<uint32_t>(hash), static_cast<uint32_t>(hash >> 32)};
 }
 
 RandomState* random_state(const Value& self, std::string& error) {
@@ -99,24 +161,12 @@ RandomState* ensure_random_state(const Value& self, std::string& error) {
   }
   error.clear();
   auto* state = new RandomState();
-  state->seed = default_seed();
-  state->engine.seed(state->seed);
+  random_reseed(*state, seed_from_value(Value::none()));
   if (!instance_set_native_data(self, kRandomNativeType, state, [](void* data) { delete static_cast<RandomState*>(data); }, error)) {
     delete state;
     return nullptr;
   }
   return state;
-}
-
-void random_reseed(RandomState& state, uint64_t seed) {
-  state.seed = seed;
-  state.draws = 0;
-  state.engine.seed(seed);
-}
-
-uint64_t random_next(RandomState& state) {
-  ++state.draws;
-  return state.engine();
 }
 
 bool random_init(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -128,7 +178,7 @@ bool random_init(Runtime&, const Value* args, uint32_t argc, Value& out, std::st
   if (state == nullptr) {
     return false;
   }
-  const uint64_t seed = argc == 2 ? seed_from_value(args[1]) : default_seed();
+  const auto seed = argc == 2 ? seed_from_value(args[1]) : seed_from_value(Value::none());
   {
     std::lock_guard<std::mutex> lock(state->mutex);
     random_reseed(*state, seed);
@@ -146,7 +196,7 @@ bool random_seed(Runtime&, const Value* args, uint32_t argc, Value& out, std::st
   if (state == nullptr) {
     return false;
   }
-  const uint64_t seed = argc == 2 ? seed_from_value(args[1]) : default_seed();
+  const auto seed = argc == 2 ? seed_from_value(args[1]) : seed_from_value(Value::none());
   {
     std::lock_guard<std::mutex> lock(state->mutex);
     random_reseed(*state, seed);
@@ -164,12 +214,13 @@ bool random_random(Runtime&, const Value* args, uint32_t argc, Value& out, std::
   if (state == nullptr) {
     return false;
   }
-  uint64_t bits = 0;
+  uint32_t a = 0, b = 0;
   {
     std::lock_guard<std::mutex> lock(state->mutex);
-    bits = random_next(*state);
+    a = random_next(*state) >> 5;
+    b = random_next(*state) >> 6;
   }
-  value_set_number(out, static_cast<double>(bits >> 11u) * (1.0 / 9007199254740992.0));
+  value_set_number(out, (a * 67108864.0 + b) * (1.0 / 9007199254740992.0));
   return true;
 }
 
@@ -191,32 +242,36 @@ bool random_getrandbits(Runtime&, const Value* args, uint32_t argc, Value& out, 
     value_set_int64(out, 0);
     return true;
   }
-  const size_t byte_count = static_cast<size_t>((bit_count + 7) / 8);
-  std::vector<uint8_t> bytes(byte_count);
+  if (static_cast<uint64_t>(bit_count) >
+      static_cast<uint64_t>(std::numeric_limits<size_t>::max() / 4) * 32) {
+    error = "number of bits is too large";
+    return false;
+  }
+  const size_t word_count = static_cast<size_t>((static_cast<uint64_t>(bit_count) + 31) / 32);
+  std::vector<uint32_t> words(word_count);
   {
     std::lock_guard<std::mutex> lock(state->mutex);
-    for (size_t offset = 0; offset < byte_count;) {
-      uint64_t word = random_next(*state);
-      for (uint32_t i = 0; i < 8 && offset < byte_count; ++i, ++offset) {
-        bytes[offset] = static_cast<uint8_t>((word >> (i * 8u)) & 0xffu);
-      }
+    for (size_t i = 0; i < word_count; ++i) {
+      const uint64_t remaining = static_cast<uint64_t>(bit_count) - i * 32;
+      words[i] = random_next(*state);
+      if (remaining < 32) words[i] >>= (32 - remaining);
     }
   }
-  const uint32_t extra_bits = static_cast<uint32_t>(byte_count * 8 - bit_count);
-  if (extra_bits != 0) {
-    bytes.back() &= static_cast<uint8_t>(0xffu >> extra_bits);
-  }
-  if (byte_count <= 8) {
-    uint64_t value = 0;
-    for (size_t i = 0; i < byte_count; ++i) {
-      value |= static_cast<uint64_t>(bytes[i]) << (i * 8u);
-    }
+  if (word_count <= 2) {
+    const uint64_t value = words[0] |
+        (word_count == 2 ? static_cast<uint64_t>(words[1]) << 32 : 0);
     if (value <= static_cast<uint64_t>(std::numeric_limits<int64_t>::max())) {
       value_set_int64(out, static_cast<int64_t>(value));
       return true;
     }
   }
-  return value_bigint_from_bytes(bytes.data(), bytes.size(), false, false, out, error);
+  while (!words.empty() && words.back() == 0) words.pop_back();
+  if (words.empty()) {
+    value_set_int64(out, 0);
+    return true;
+  }
+  return value_bigint_from_binary_limbs(words.data(), words.size() * sizeof(uint32_t),
+                                        false, out, error);
 }
 
 bool random_getstate(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -228,14 +283,14 @@ bool random_getstate(Runtime&, const Value* args, uint32_t argc, Value& out, std
   if (state == nullptr) {
     return false;
   }
-  uint64_t seed = 0;
-  uint64_t draws = 0;
+  std::vector<Value> items;
+  items.reserve(625);
   {
     std::lock_guard<std::mutex> lock(state->mutex);
-    seed = state->seed;
-    draws = state->draws;
+    for (uint32_t word : state->words) items.push_back(Value::int64(word));
+    items.push_back(Value::int64(static_cast<int64_t>(state->index)));
   }
-  out = Value::tuple({Value::int64(static_cast<int64_t>(seed)), Value::int64(static_cast<int64_t>(draws))});
+  out = Value::tuple(std::move(items));
   return true;
 }
 
@@ -245,8 +300,26 @@ bool random_setstate(Runtime&, const Value* args, uint32_t argc, Value& out, std
     return false;
   }
   auto* tuple = value_as_tuple(args[1]);
-  if (tuple == nullptr || tuple->items.size() < 2 || tuple->items[0].tag != ValueTag::Int64 || tuple->items[1].tag != ValueTag::Int64) {
-    error = "state vector is invalid";
+  if (tuple == nullptr) {
+    error = "state vector must be a tuple";
+    return false;
+  }
+  if (tuple->items.size() != 625) {
+    error = "state vector is the wrong size";
+    return false;
+  }
+  std::array<uint32_t, 624> words{};
+  for (size_t i = 0; i < words.size(); ++i) {
+    if (tuple->items[i].tag != ValueTag::Int64 ||
+        tuple->items[i].as.i64 < 0 || tuple->items[i].as.i64 > UINT32_MAX) {
+      error = "state vector is invalid";
+      return false;
+    }
+    words[i] = static_cast<uint32_t>(tuple->items[i].as.i64);
+  }
+  if (tuple->items[624].tag != ValueTag::Int64 ||
+      tuple->items[624].as.i64 < 0 || tuple->items[624].as.i64 > 624) {
+    error = "invalid state";
     return false;
   }
   auto* state = ensure_random_state(args[0], error);
@@ -255,11 +328,8 @@ bool random_setstate(Runtime&, const Value* args, uint32_t argc, Value& out, std
   }
   {
     std::lock_guard<std::mutex> lock(state->mutex);
-    random_reseed(*state, static_cast<uint64_t>(tuple->items[0].as.i64));
-    const uint64_t draws = static_cast<uint64_t>(tuple->items[1].as.i64);
-    for (uint64_t i = 0; i < draws; ++i) {
-      (void)random_next(*state);
-    }
+    state->words = words;
+    state->index = static_cast<size_t>(tuple->items[624].as.i64);
   }
   value_set_none(out);
   return true;
