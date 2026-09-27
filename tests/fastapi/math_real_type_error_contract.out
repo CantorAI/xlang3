@@ -1,0 +1,1 @@
+200 {'errors': [['isfinite', 'TypeError', 'must be real number, not str'], ['isinf', 'TypeError', 'must be real number, not str'], ['isnan', 'TypeError', 'must be real number, not str']]}

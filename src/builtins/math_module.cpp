@@ -335,7 +335,16 @@ bool unary_math_bool_protocol(Runtime& runtime, const char* name,
   if (!require_number_arg(args[0], name, value, error)) {
     Value method;
     std::string lookup_error;
-    if (!object_get_attr(args[0], "__float__", method, lookup_error)) return false;
+    if (!object_get_attr(args[0], "__float__", method, lookup_error)) {
+      Value type;
+      std::string type_name = value_binary_type_name(args[0]);
+      if (runtime_type_of_value(runtime, args[0], type)) {
+        if (auto* klass = value_as_class(type)) type_name = klass->name;
+      }
+      error = "must be real number, not " + type_name;
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
     Value converted;
     error.clear();
     if (!runtime_call_callable(runtime, method, nullptr, 0, converted, error))

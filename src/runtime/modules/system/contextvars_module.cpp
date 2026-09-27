@@ -518,9 +518,27 @@ bool copy_context(Runtime&, const Value*, uint32_t argc, Value& out, std::string
   return true;
 }
 
+bool context_generic_class_getitem(
+    Runtime& runtime, const Value* args, uint32_t argc,
+    Value& out, std::string& error, void*) {
+  if (argc != 2 || value_as_class(args[0]) == nullptr) {
+    error = "__class_getitem__ expects a class and one argument";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value parameters;
+  if (value_as_tuple(args[1]) != nullptr) value_assign_fast(parameters, args[1]);
+  else parameters = Value::tuple({args[1]});
+  out = Value::generic_alias(args[0], std::move(parameters));
+  return true;
+}
+
 Value make_context_var_class(Runtime& runtime) {
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.push_back({"__module__", Value::string("_contextvars")});
+  attrs.push_back({"__class_getitem__", Value::class_method(
+      runtime.make_native_function("_contextvars.ContextVar.__class_getitem__",
+                                   context_generic_class_getitem))});
   attrs.push_back({"__init__", runtime.make_native_function("_contextvars.ContextVar.__init__", context_var_init, nullptr, nullptr, nullptr, false, context_var_init_kw)});
   attrs.push_back({"get", runtime.make_native_function("_contextvars.ContextVar.get", context_var_get)});
   attrs.push_back({"set", runtime.make_native_function("_contextvars.ContextVar.set", context_var_set)});
@@ -532,6 +550,9 @@ Value make_context_var_class(Runtime& runtime) {
 Value make_token_class(Runtime& runtime) {
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.push_back({"__module__", Value::string("_contextvars")});
+  attrs.push_back({"__class_getitem__", Value::class_method(
+      runtime.make_native_function("_contextvars.Token.__class_getitem__",
+                                   context_generic_class_getitem))});
   attrs.push_back({"MISSING", missing_value(runtime)});
   return Value::class_object("Token", std::move(attrs));
 }

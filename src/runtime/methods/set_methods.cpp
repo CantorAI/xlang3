@@ -351,6 +351,18 @@ bool set_remove_method(Runtime& runtime, const Value* args, uint32_t argc, Value
   }
   Value set = set_method_target(args[0]);
   if (!remove_set_item(runtime, set, args[1], true, error)) {
+    if (error == "set item not found") {
+      const Value* exception_class = runtime.find_builtin("KeyError");
+      Value exception;
+      std::string ignored;
+      if (exception_class != nullptr &&
+          runtime_call_callable(runtime, *exception_class, &args[1], 1,
+                                exception, ignored)) {
+        runtime.set_pending_exception(std::move(exception));
+      } else {
+        runtime.raise_class_error("KeyError", value_to_repr(args[1]));
+      }
+    }
     return false;
   }
   value_set_none(out);
