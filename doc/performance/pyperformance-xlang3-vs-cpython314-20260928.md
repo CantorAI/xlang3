@@ -28,6 +28,16 @@ Bars run left to right on a logarithmic speedup axis (`CPython time / XLang3 tim
 | `unpack_sequence` | 3.545e-05 ms | 0.000154 ms | 0.230216× | XLang3 about 4.34× slower |
 | `telco` | 5.54 ms | timed out (>90 s) | — | No ratio; XLang3 did not finish in the selected fast pass. |
 
+## Current Release rerun after native `_json` encoder work
+
+After implementing XLang3's own native `_json` encoder for the standard built-in JSON data path, the full 97-definition `pyperformance run --fast` selection was attempted again, with a 90-second per-benchmark cap. The XLang3 driver recorded results for 36 top-level definitions (42 subtests); the remaining cases either timed out, lacked an optional package, or exited in a worker. CPython's matching full fast data contains 124 subtests. The 97-row status CSV records every top-level definition, and the 124-row comparison CSV marks every CPython subtest with its current XLang3 measurement or missing-result status.
+
+![Horizontal log-scale comparison for all current XLang3 pyperformance subtests](pyperformance-xlang3-native-json-full-fast-20260928.svg)
+
+The `json_dumps` result is **99.5 ms** on XLang3 versus **7.58 ms** on CPython 3.14, or **0.0762×** (XLang3 is about 13.1× slower). The preceding XLang3 sample measured 1.087 s, so the native path reduced that workload by about **10.9×** and narrowed the CPython gap by the same factor. This is a substantial within-XLang3 improvement, but it has not yet beaten CPython. Other unchanged high-gap cases remain: `json_loads` 5.07 ms versus 0.0175 ms, `pickle_dict` 47.3 ms versus 0.0232 ms, and `pickle_list` 5.82 ms versus 0.00395 ms.
+
+The full current-run measurements are [in pyperf JSON format](data/pyperformance-xlang3-native-json-full-fast-20260928.json), with [all 97 benchmark-definition statuses](data/pyperformance-xlang3-native-json-full-fast-20260928.csv) and [all 124 CPython subtests](data/pyperformance-xlang3-native-json-subtests-20260928.csv). Missing XLang3 timings are left blank rather than estimated.
+
 ## Paired one-iteration run
 
 To collect more coverage when the XLang3 fast pass ran into very long cases, both runtimes were also run with `--debug-single-value` through the same `pyperformance` benchmark definitions. This gives one measured iteration per subtest and is useful for finding trouble spots, but it is not a statistically sound speed ranking. Across 56 exact-name subtest matches, the ratio distribution was:
@@ -48,9 +58,9 @@ To collect more coverage when the XLang3 fast pass ran into very long cases, bot
 
 ## What the measurements point to
 
-1. **Serialization and data processing need attention.** In the selected fast sample, `json_dumps` was 0.00697× (about 143× slower), `json_loads` 0.00341× (about 293× slower), `pickle_dict` 0.000505× (about 1,980× slower), and `pickle_list` 0.000682× (about 1,466× slower). These are particularly high-value profiling targets.
+1. **Serialization and data processing need attention.** In the pre-acceleration selected fast sample, `json_dumps` was 0.00697× (about 143× slower), `json_loads` 0.00341× (about 293× slower), `pickle_dict` 0.000505× (about 1,980× slower), and `pickle_list` 0.000682× (about 1,466× slower). The current JSON result is recorded above; pickle and JSON loading remain high-value targets.
 2. **The runner coverage gap is itself a performance problem.** 45 of 97 XLang3 benchmark processes died or timed out, so the suite currently cannot yield a complete XLang3 timing list. Timeouts and process deaths are not silently omitted from the coverage table.
-3. **Investigate JSON encoder delegation.** `src/runtime/modules/system/json_module.cpp` implements `json_make_encoder_impl` by calling Python’s `json.encoder._make_iterencode` helper. This is a plausible source of the large `json_dumps` gap and a concrete profiling lead; this benchmark alone does not establish causality.
+3. **JSON dumping responded to native acceleration, but remains slower than CPython.** XLang3's registered `_json.make_encoder` now directly serializes common built-in values, while unsupported options and objects retain the Python `_make_iterencode` fallback. This moved the full pyperformance case from 1.087 s to 99.5 ms. The remaining 13× gap and the very slow `json_loads` / pickle results still need work.
 4. **Do not optimize from ratios alone.** Profile the high-gap cases, identify interpreter/runtime costs, and add benchmark coverage or focused regression checks for any optimization. Re-measure against the same CPython build and harness.
 
 ## Complete suite status (97 benchmark definitions)

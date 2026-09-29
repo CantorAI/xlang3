@@ -2,3 +2,9 @@ xlang3
 2
 True
 {"a": 1, "b": [2, 3]}
+{"unicode": "\u0105\u0107\u017c\ud83e\uddea", "quote": "a\"b\\c", "controls": "\n\t", "nested": [null, true, false, -4, [5, 6]]}
+{"a": 1, "b": 2}
+{"unicode": "ąćż"}
+{"1": "integer key"}
+[1.0, -0.0, 1e+20, 1e-07, 1267650600228229401496703205376]
+cycle detected

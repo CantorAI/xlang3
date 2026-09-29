@@ -1,0 +1,98 @@
+﻿benchmark (97 definitions),CPython 3.14 status,CPython subtests,XLang3 status,XLang3 subtests,speedup (CPython / XLang3; >1 favors XLang3)
+2to3,completed,2to3=251.674ms,"attempted; no result (worker failure, missing dependency, or timeout)",,
+argparse,completed,,"attempted; no result (worker failure, missing dependency, or timeout)",,
+argparse_subparsers,completed,,"attempted; no result (worker failure, missing dependency, or timeout)",,
+async_generators,completed,async_generators=277.756ms,"attempted; no result (worker failure, missing dependency, or timeout)",,
+async_tree,completed,async_tree_none=226.436ms; async_tree_none_tg=242.232ms,"attempted; no result (worker failure, missing dependency, or timeout)",,
+async_tree_cpu_io_mixed,completed,async_tree_cpu_io_mixed=430.097ms,"attempted; no result (worker failure, missing dependency, or timeout)",,
+async_tree_cpu_io_mixed_tg,completed,async_tree_cpu_io_mixed_tg=424ms,"attempted; no result (worker failure, missing dependency, or timeout)",,
+async_tree_eager,completed,async_tree_eager=84.8434ms,"attempted; no result (worker failure, missing dependency, or timeout)",,
+async_tree_eager_cpu_io_mixed,completed,async_tree_eager_cpu_io_mixed=333.81ms,"attempted; no result (worker failure, missing dependency, or timeout)",,
+async_tree_eager_cpu_io_mixed_tg,completed,async_tree_eager_cpu_io_mixed_tg=393.708ms,"attempted; no result (worker failure, missing dependency, or timeout)",,
+async_tree_eager_io,completed,async_tree_eager_io=564.455ms,"attempted; no result (worker failure, missing dependency, or timeout)",,
+async_tree_eager_io_tg,completed,async_tree_eager_io_tg=561.145ms,"attempted; no result (worker failure, missing dependency, or timeout)",,
+async_tree_eager_memoization,completed,async_tree_eager_memoization=191.569ms,"attempted; no result (worker failure, missing dependency, or timeout)",,
+async_tree_eager_memoization_tg,completed,async_tree_eager_memoization_tg=270.171ms,"attempted; no result (worker failure, missing dependency, or timeout)",,
+async_tree_eager_tg,completed,async_tree_eager_tg=196.478ms,"attempted; no result (worker failure, missing dependency, or timeout)",,
+async_tree_io,completed,async_tree_io=573.188ms,"attempted; no result (worker failure, missing dependency, or timeout)",,
+async_tree_io_tg,completed,async_tree_io_tg=558.669ms,"attempted; no result (worker failure, missing dependency, or timeout)",,
+async_tree_memoization,completed,async_tree_memoization=281.985ms,"attempted; no result (worker failure, missing dependency, or timeout)",,
+async_tree_memoization_tg,completed,async_tree_memoization_tg=282.14ms,"attempted; no result (worker failure, missing dependency, or timeout)",,
+async_tree_tg,completed,,"attempted; no result (worker failure, missing dependency, or timeout)",,
+asyncio_tcp,completed,asyncio_tcp=739.771ms,"attempted; no result (worker failure, missing dependency, or timeout)",,
+asyncio_tcp_ssl,completed,asyncio_tcp_ssl=4466.71ms,"attempted; no result (worker failure, missing dependency, or timeout)",,
+asyncio_websockets,completed,asyncio_websockets=192.169ms,"attempted; no result (worker failure, missing dependency, or timeout)",,
+base64,completed,base64_large=7.90688ms; base64_small=0.267936ms,"attempted; no result (worker failure, missing dependency, or timeout)",,
+bpe_tokeniser,completed,bpe_tokeniser=3533.09ms,"attempted; no result (worker failure, missing dependency, or timeout)",,
+chameleon,completed,chameleon=11.5539ms,"attempted; no result (worker failure, missing dependency, or timeout)",,
+chaos,completed,chaos=46.8551ms,completed,chaos=665.756ms,0.0703787x
+comprehensions,completed,comprehensions=0.0136876ms,completed,comprehensions=0.215392ms,0.0635471x
+concurrent_imap,completed,,"attempted; no result (worker failure, missing dependency, or timeout)",,
+coroutines,completed,coroutines=17.4385ms,completed,coroutines=742.668ms,0.0234809x
+coverage,completed,coverage=63.455ms,"attempted; no result (worker failure, missing dependency, or timeout)",,
+crypto_pyaes,completed,crypto_pyaes=55.2763ms,"attempted; no result (worker failure, missing dependency, or timeout)",,
+dask,completed,dask=769.434ms,"attempted; no result (worker failure, missing dependency, or timeout)",,
+deepcopy,completed,deepcopy=0.210039ms; deepcopy_memo=0.0214685ms; deepcopy_reduce=0.00220295ms,completed,deepcopy=7.26997ms; deepcopy_memo=1.0949ms; deepcopy_reduce=0.067009ms,0.0196078x; 0.0328755x; 0.0288912x
+deltablue,completed,deltablue=2.48469ms,completed,deltablue=67.016ms,0.0370761x
+django_template,completed,django_template=28.9841ms,"attempted; no result (worker failure, missing dependency, or timeout)",,
+docutils,completed,docutils=1811.73ms,"attempted; no result (worker failure, missing dependency, or timeout)",,
+dulwich_log,completed,dulwich_log=66.5561ms,"attempted; no result (worker failure, missing dependency, or timeout)",,
+fannkuch,completed,fannkuch=312.286ms,completed,fannkuch=1877.31ms,0.166348x
+fastapi,completed,fastapi_http=415.245ms,"attempted; no result (worker failure, missing dependency, or timeout)",,
+float,completed,float=56.1802ms,completed,float=632.303ms,0.0888501x
+gc_collect,completed,,"attempted; no result (worker failure, missing dependency, or timeout)",,
+gc_traversal,completed,gc_traversal=2.369ms,completed,gc_traversal=83.4183ms,0.028399x
+generators,completed,generators=27.0079ms,completed,generators=992.029ms,0.0272249x
+genshi,completed,genshi_text=18.9624ms; genshi_xml=41.6582ms,"attempted; no result (worker failure, missing dependency, or timeout)",,
+go,completed,go=94.2161ms,completed,go=1713.3ms,0.054991x
+hexiom,completed,hexiom=4.92847ms,completed,hexiom=78.615ms,0.0626913x
+html5lib,completed,html5lib=42.3449ms,"attempted; no result (worker failure, missing dependency, or timeout)",,
+json_dumps,completed,json_dumps=7.58351ms,completed,json_dumps=99.5007ms,0.0762157x
+json_loads,completed,json_loads=0.0175438ms,completed,json_loads=5.06738ms,0.00346211x
+logging,completed,logging_format=0.00731575ms; logging_silent=6.69281e-05ms; logging_simple=0.00675492ms,completed,logging_format=0.132392ms; logging_silent=0.00305767ms; logging_simple=0.133488ms,0.0218886x; 0.0552584x; 0.0506033x
+mako,completed,mako=7.49018ms,"attempted; no result (worker failure, missing dependency, or timeout)",,
+mdp,completed,mdp=975.11ms,"attempted; no result (worker failure, missing dependency, or timeout)",,
+meteor_contest,completed,meteor_contest=87.4131ms,completed,meteor_contest=1331.01ms,0.0656741x
+nbody,completed,nbody=81.038ms,completed,nbody=283.79ms,0.285556x
+networkx,completed,,"attempted; no result (worker failure, missing dependency, or timeout)",,
+networkx_connected_components,completed,,"attempted; no result (worker failure, missing dependency, or timeout)",,
+networkx_k_core,completed,,"attempted; no result (worker failure, missing dependency, or timeout)",,
+nqueens,completed,nqueens=73.9361ms,completed,nqueens=874.222ms,0.0845736x
+pathlib,completed,pathlib=47.8175ms,completed,pathlib=673.497ms,0.0709989x
+pickle,completed,pickle=0.00907842ms,completed,pickle=9.73496ms,0.000932559x
+pickle_dict,completed,pickle_dict=0.0232063ms,completed,pickle_dict=47.2615ms,0.00049102x
+pickle_list,completed,pickle_list=0.00395186ms,completed,pickle_list=5.82262ms,0.000678707x
+pickle_pure_python,completed,pickle_pure_python=0.252284ms,completed,pickle_pure_python=9.98756ms,0.0252598x
+pidigits,completed,pidigits=164.38ms,completed,pidigits=384.55ms,0.427462x
+pprint,completed,pprint_pformat=1180.02ms; pprint_safe_repr=575.927ms,"attempted; no result (worker failure, missing dependency, or timeout)",,
+pyflate,completed,pyflate=328.524ms,"attempted; no result (worker failure, missing dependency, or timeout)",,
+python_startup,completed,python_startup=31.2637ms,completed,python_startup=32.8956ms,0.950392x
+python_startup_no_site,completed,python_startup_no_site=24.6155ms,completed,python_startup_no_site=20.5183ms,1.19969x
+raytrace,completed,raytrace=217.002ms,"attempted; no result (worker failure, missing dependency, or timeout)",,
+regex_compile,completed,regex_compile=93.6407ms,"attempted; no result (worker failure, missing dependency, or timeout)",,
+regex_dna,completed,regex_dna=132.329ms,completed,regex_dna=206.922ms,0.639512x
+regex_effbot,completed,regex_effbot=1.7946ms,completed,regex_effbot=13.341ms,0.134518x
+regex_v8,completed,regex_v8=16.4623ms,completed,regex_v8=77.2549ms,0.213091x
+richards,completed,richards=33.3574ms,completed,richards=686.897ms,0.0485625x
+richards_super,completed,richards_super=37.3086ms,completed,richards_super=816.712ms,0.0456815x
+scimark,completed,scimark_fft=219.317ms; scimark_lu=72.8907ms; scimark_monte_carlo=50.9483ms; scimark_sor=94.2419ms; scimark_sparse_mat_mult=3.01707ms,"attempted; no result (worker failure, missing dependency, or timeout)",,
+spectral_norm,completed,spectral_norm=72.1761ms,completed,spectral_norm=708.774ms,0.101832x
+sphinx,completed,sphinx=728.74ms,"attempted; no result (worker failure, missing dependency, or timeout)",,
+sqlalchemy_declarative,completed,sqlalchemy_declarative=87.4334ms,"attempted; no result (worker failure, missing dependency, or timeout)",,
+sqlalchemy_imperative,completed,sqlalchemy_imperative=10.6188ms,"attempted; no result (worker failure, missing dependency, or timeout)",,
+sqlglot_v2,completed,sqlglot_v2_normalize=85.1819ms,"attempted; no result (worker failure, missing dependency, or timeout)",,
+sqlglot_v2_optimize,completed,sqlglot_v2_optimize=41.0163ms,"attempted; no result (worker failure, missing dependency, or timeout)",,
+sqlglot_v2_parse,completed,sqlglot_v2_parse=0.94893ms,"attempted; no result (worker failure, missing dependency, or timeout)",,
+sqlglot_v2_transpile,completed,sqlglot_v2_transpile=1.1868ms,"attempted; no result (worker failure, missing dependency, or timeout)",,
+sqlite_synth,completed,sqlite_synth=0.00175974ms,"attempted; no result (worker failure, missing dependency, or timeout)",,
+sympy,completed,sympy_expand=336.421ms; sympy_integrate=14.2253ms; sympy_str=194.058ms; sympy_sum=100.98ms,"attempted; no result (worker failure, missing dependency, or timeout)",,
+telco,completed,telco=5.54049ms,"attempted; no result (worker failure, missing dependency, or timeout)",,
+tomli_loads,completed,tomli_loads=1689.3ms,"attempted; no result (worker failure, missing dependency, or timeout)",,
+tornado_http,completed,tornado_http=232.943ms,"attempted; no result (worker failure, missing dependency, or timeout)",,
+typing_runtime_protocols,completed,typing_runtime_protocols=0.124367ms,completed,typing_runtime_protocols=7.80563ms,0.015933x
+unpack_sequence,completed,unpack_sequence=3.54493e-05ms,completed,unpack_sequence=0.000150966ms,0.234817x
+unpickle,completed,unpickle=0.0097ms,completed,unpickle=4.92843ms,0.00196817x
+unpickle_list,completed,unpickle_list=0.00315896ms,completed,unpickle_list=2.09698ms,0.00150644x
+unpickle_pure_python,completed,unpickle_pure_python=0.161446ms,completed,unpickle_pure_python=5.21674ms,0.0309476x
+xdsl,completed,xdsl_constant_fold=32.8031ms,"attempted; no result (worker failure, missing dependency, or timeout)",,
+xml_etree,completed,xml_etree_generate=66.3037ms; xml_etree_iterparse=68.2502ms; xml_etree_parse=107.561ms; xml_etree_process=46.0111ms,"attempted; no result (worker failure, missing dependency, or timeout)",,

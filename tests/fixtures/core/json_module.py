@@ -17,3 +17,14 @@ print(data["name"])
 print(data["items"][1])
 print(data["enabled"])
 print(json.dumps({"a": 1, "b": [2, 3]}))
+print(json.dumps({"unicode": "ąćż🧪", "quote": "a\"b\\c", "controls": "\n\t", "nested": [None, True, False, -4, (5, 6)]}))
+print(json.dumps({"b": 2, "a": 1}, sort_keys=True))
+print(json.dumps({"unicode": "ąćż"}, ensure_ascii=False))
+print(json.dumps({1: "integer key"}))
+print(json.dumps([1.0, -0.0, 1e20, 1e-7, 2 ** 100]))
+cycle = []
+cycle.append(cycle)
+try:
+    json.dumps(cycle)
+except ValueError:
+    print("cycle detected")
