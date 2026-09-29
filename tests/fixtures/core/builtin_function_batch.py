@@ -12,6 +12,9 @@
 # limitations under the License.
 
 print(list(enumerate(["a", "b"], 3)))
+retained_enumerate_rows = list(enumerate(["first", "second", "third"], 7))
+print(retained_enumerate_rows)
+print(retained_enumerate_rows[0], retained_enumerate_rows[1], retained_enumerate_rows[0] is retained_enumerate_rows[1])
 print(list(zip([1, 2, 3], ["a", "b"])))
 print(sum([1, 2, 3]))
 print(sum([1.5, 2.5], 1))

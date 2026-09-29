@@ -20,7 +20,7 @@ import tempfile
 CASES = (
     "local_slots", "scalar_arithmetic", "range_for", "function_calls",
     "class_construct", "list_append", "property_access", "deepcopy_memo",
-    "json_dumps", "gc_traversal",
+    "json_dumps", "gc_traversal", "subparsers",
 )
 MARKER = "__xlang3_benchmark_seconds__"
 ROOT = Path(__file__).resolve().parents[1]

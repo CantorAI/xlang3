@@ -822,6 +822,9 @@ bool functional_iterator_next(Value& iterator, bool& done, Value& out, std::stri
       value_set_none(out);
       return true;
     }
+    // Each result is an independent immutable tuple because callers may retain
+    // earlier rows; any reuse optimization must first prove the prior row is
+    // unshared, as CPython's enumerate iterator does.
     out = Value::tuple({Value::int64(obj->index), std::move(item)});
     ++obj->index;
     return true;
