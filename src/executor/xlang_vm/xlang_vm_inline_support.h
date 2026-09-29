@@ -330,6 +330,43 @@ XLANG3_HOT_INLINE bool execute_inline_small_self_method(
   return false;
 }
 
+// A Python method with a straight constant return may ignore explicit
+// positional arguments. Inlining is safe only when every declared argument
+// was supplied exactly and no keyword/expansion binding is involved; callers
+// enforce those call-shape guards before using this result.
+XLANG3_HOT_INLINE bool analyze_const_method_with_args(
+    const ir::Module& current_module, const FunctionObject& fn_obj,
+    uint32_t explicit_arg_count, Value& out) {
+  const ir::Module* fn_module = nullptr;
+  if (!module_for_function(current_module, fn_obj, fn_module)) return false;
+  const auto& function = fn_module->functions[fn_obj.function_id];
+  if (function.is_generator || function.params.size() != explicit_arg_count + 1 ||
+      function.signature.size() != function.params.size() ||
+      !function.free_vars.empty() || !function.cell_slots.empty()) {
+    return false;
+  }
+  for (const auto& param : function.signature) {
+    if (param.kind != ir::ParamKind::PosOnly && param.kind != ir::ParamKind::PosOrKeyword) {
+      return false;
+    }
+  }
+  // Lowering can retain an unreachable implicit return after a source-level
+  // return statement, so inspect the first terminating instruction only.
+  if (!function.code.empty() && function.code[0].op == ir::Op::ReturnConst &&
+      function.code[0].a < function.constants.size()) {
+    value_assign_fast(out, function.constants[function.code[0].a]);
+    return true;
+  }
+  if (function.code.size() == 2 && function.code[0].op == ir::Op::LoadConst &&
+      function.code[0].a < function.constants.size() &&
+      function.code[1].op == ir::Op::Return &&
+      function.code[1].a == function.code[0].dst) {
+    value_assign_fast(out, function.constants[function.code[0].a]);
+    return true;
+  }
+  return false;
+}
+
 struct SelfSlotMaximizeMethodSpec {
   std::array<uint32_t, 3> name_indices{};
 };

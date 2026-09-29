@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="808" viewBox="0 0 1400 808">
+<style>text{font-family:Segoe UI,Arial,sans-serif;fill:#17212b}.title{font-size:23px;font-weight:700}.sub{font-size:14px;fill:#475569}.label{font-size:13px}.value{font-size:12px;fill:#334155}.axis{font-size:12px;fill:#475569}</style>
+<rect width="100%" height="100%" fill="#fff"/>
+<text x="24" y="30" class="title">XLang3 vs CPython 3.14 — full pyperformance fast results</text>
+<text x="24" y="54" class="sub">CPython time ÷ XLang3 time · right of 1× favors XLang3 · log scale · full 97-definition run</text>
+<line x1="350.0" y1="68" x2="350.0" y2="753" stroke="#dbe2ea" stroke-width="1"/>
+<text x="350.0" y="794" text-anchor="middle" class="axis">0.001×</text>
+<line x1="540.0" y1="68" x2="540.0" y2="753" stroke="#dbe2ea" stroke-width="1"/>
+<text x="540.0" y="794" text-anchor="middle" class="axis">0.01×</text>
+<line x1="730.0" y1="68" x2="730.0" y2="753" stroke="#dbe2ea" stroke-width="1"/>
+<text x="730.0" y="794" text-anchor="middle" class="axis">0.1×</text>
+<line x1="920.0" y1="68" x2="920.0" y2="753" stroke="#2563eb" stroke-width="2"/>
+<text x="920.0" y="794" text-anchor="middle" class="axis">1×</text>
+<line x1="1110.0" y1="68" x2="1110.0" y2="753" stroke="#dbe2ea" stroke-width="1"/>
+<text x="1110.0" y="794" text-anchor="middle" class="axis">10×</text>
+<line x1="1300.0" y1="68" x2="1300.0" y2="753" stroke="#dbe2ea" stroke-width="1"/>
+<text x="1300.0" y="794" text-anchor="middle" class="axis">100×</text>
+<text x="24" y="97" class="label">unpickle_pure_python</text>
+<rect x="649.2" y="86" width="270.8" height="15" rx="3" fill="#c2413b"/>
+<text x="642.2" y="97" text-anchor="end" class="value">0.03756×</text>
+<text x="24" y="120" class="label">typing_runtime_protocols</text>
+<rect x="650.6" y="109" width="269.4" height="15" rx="3" fill="#c2413b"/>
+<text x="643.6" y="120" text-anchor="end" class="value">0.0382×</text>
+<text x="24" y="143" class="label">pickle_pure_python</text>
+<rect x="651.7" y="132" width="268.3" height="15" rx="3" fill="#c2413b"/>
+<text x="644.7" y="143" text-anchor="end" class="value">0.03873×</text>
+<text x="24" y="166" class="label">subparsers</text>
+<rect x="654.8" y="155" width="265.2" height="15" rx="3" fill="#c2413b"/>
+<text x="647.8" y="166" text-anchor="end" class="value">0.04021×</text>
+<text x="24" y="189" class="label">deltablue</text>
+<rect x="655.9" y="178" width="264.1" height="15" rx="3" fill="#c2413b"/>
+<text x="648.9" y="189" text-anchor="end" class="value">0.04073×</text>
+<text x="24" y="212" class="label">logging_silent</text>
+<rect x="661.8" y="201" width="258.2" height="15" rx="3" fill="#c2413b"/>
+<text x="654.8" y="212" text-anchor="end" class="value">0.04374×</text>
+<text x="24" y="235" class="label">deepcopy</text>
+<rect x="666.2" y="224" width="253.8" height="15" rx="3" fill="#c2413b"/>
+<text x="659.2" y="235" text-anchor="end" class="value">0.04616×</text>
+<text x="24" y="258" class="label">coroutines</text>
+<rect x="667.1" y="247" width="252.9" height="15" rx="3" fill="#c2413b"/>
+<text x="660.1" y="258" text-anchor="end" class="value">0.04664×</text>
+<text x="24" y="281" class="label">deepcopy_reduce</text>
+<rect x="672.2" y="270" width="247.8" height="15" rx="3" fill="#c2413b"/>
+<text x="665.2" y="281" text-anchor="end" class="value">0.04962×</text>
+<text x="24" y="304" class="label">comprehensions</text>
+<rect x="695.2" y="293" width="224.8" height="15" rx="3" fill="#c2413b"/>
+<text x="688.2" y="304" text-anchor="end" class="value">0.06561×</text>
+<text x="24" y="327" class="label">hexiom</text>
+<rect x="698.6" y="316" width="221.4" height="15" rx="3" fill="#c2413b"/>
+<text x="691.6" y="327" text-anchor="end" class="value">0.06833×</text>
+<text x="24" y="350" class="label">logging_format</text>
+<rect x="698.6" y="339" width="221.4" height="15" rx="3" fill="#c2413b"/>
+<text x="691.6" y="350" text-anchor="end" class="value">0.06837×</text>
+<text x="24" y="373" class="label">many_optionals</text>
+<rect x="702.9" y="362" width="217.1" height="15" rx="3" fill="#c2413b"/>
+<text x="695.9" y="373" text-anchor="end" class="value">0.07199×</text>
+<text x="24" y="396" class="label">richards</text>
+<rect x="708.7" y="385" width="211.3" height="15" rx="3" fill="#c2413b"/>
+<text x="701.7" y="396" text-anchor="end" class="value">0.07725×</text>
+<text x="24" y="419" class="label">regex_effbot</text>
+<rect x="756.9" y="408" width="163.1" height="15" rx="3" fill="#c2413b"/>
+<text x="749.9" y="419" text-anchor="end" class="value">0.1385×</text>
+<text x="24" y="442" class="label">unpickle</text>
+<rect x="763.6" y="431" width="156.4" height="15" rx="3" fill="#c2413b"/>
+<text x="756.6" y="442" text-anchor="end" class="value">0.1503×</text>
+<text x="24" y="465" class="label">spectral_norm</text>
+<rect x="766.5" y="454" width="153.5" height="15" rx="3" fill="#c2413b"/>
+<text x="759.5" y="465" text-anchor="end" class="value">0.1557×</text>
+<text x="24" y="488" class="label">json_loads</text>
+<rect x="778.3" y="477" width="141.7" height="15" rx="3" fill="#c2413b"/>
+<text x="771.3" y="488" text-anchor="end" class="value">0.1797×</text>
+<text x="24" y="511" class="label">json_dumps</text>
+<rect x="782.1" y="500" width="137.9" height="15" rx="3" fill="#c2413b"/>
+<text x="775.1" y="511" text-anchor="end" class="value">0.188×</text>
+<text x="24" y="534" class="label">unpack_sequence</text>
+<rect x="800.3" y="523" width="119.7" height="15" rx="3" fill="#c2413b"/>
+<text x="793.3" y="534" text-anchor="end" class="value">0.2343×</text>
+<text x="24" y="557" class="label">regex_v8</text>
+<rect x="801.9" y="546" width="118.1" height="15" rx="3" fill="#c2413b"/>
+<text x="794.9" y="557" text-anchor="end" class="value">0.239×</text>
+<text x="24" y="580" class="label">pickle</text>
+<rect x="808.1" y="569" width="111.9" height="15" rx="3" fill="#c2413b"/>
+<text x="801.1" y="580" text-anchor="end" class="value">0.2578×</text>
+<text x="24" y="603" class="label">unpickle_list</text>
+<rect x="815.5" y="592" width="104.5" height="15" rx="3" fill="#c2413b"/>
+<text x="808.5" y="603" text-anchor="end" class="value">0.2817×</text>
+<text x="24" y="626" class="label">nbody</text>
+<rect x="816.6" y="615" width="103.4" height="15" rx="3" fill="#c2413b"/>
+<text x="809.6" y="626" text-anchor="end" class="value">0.2857×</text>
+<text x="24" y="649" class="label">pidigits</text>
+<rect x="853.8" y="638" width="66.2" height="15" rx="3" fill="#c2413b"/>
+<text x="846.8" y="649" text-anchor="end" class="value">0.4484×</text>
+<text x="24" y="672" class="label">pickle_list</text>
+<rect x="879.0" y="661" width="41.0" height="15" rx="3" fill="#c2413b"/>
+<text x="872.0" y="672" text-anchor="end" class="value">0.6084×</text>
+<text x="24" y="695" class="label">pickle_dict</text>
+<rect x="889.2" y="684" width="30.8" height="15" rx="3" fill="#c2413b"/>
+<text x="882.2" y="695" text-anchor="end" class="value">0.6884×</text>
+<text x="24" y="718" class="label">float</text>
+<rect x="894.7" y="707" width="25.3" height="15" rx="3" fill="#c2413b"/>
+<text x="887.7" y="718" text-anchor="end" class="value">0.736×</text>
+<text x="24" y="741" class="label">gc_traversal</text>
+<rect x="920.0" y="730" width="54.1" height="15" rx="3" fill="#238636"/>
+<text x="981.1" y="741" text-anchor="start" class="value">1.927×</text>
+</svg>

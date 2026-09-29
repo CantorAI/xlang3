@@ -1018,7 +1018,9 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
             }
             return XlangVMOpFlow::Next;
           }
-          if (allow_cached_python_inline && cache.kind == CallSiteKind::InlineConstMethod && call_arg_regs.empty()) {
+          if (allow_cached_python_inline && cache.kind == CallSiteKind::InlineConstMethod &&
+              call_arg_regs.size() == cache.lhs_slot && !call_args.has_keywords() &&
+              !call_args.has_expansion()) {
             value_assign_fast(regs[in.dst], cache.inline_const);
             return XlangVMOpFlow::Next;
           }
@@ -1071,7 +1073,10 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
         }
         if (auto* fn_obj = value_as_function(method_it->second)) {
           Value const_value;
-          if (inline_python_function_allowed(runtime, module, *fn_obj) && call_arg_regs.empty() && analyze_const_method_fn(module, *fn_obj, const_value)) {
+          if (inline_python_function_allowed(runtime, module, *fn_obj) &&
+              !call_args.has_keywords() && !call_args.has_expansion() &&
+              analyze_const_method_with_args(
+                  module, *fn_obj, static_cast<uint32_t>(call_arg_regs.size()), const_value)) {
             if (!instr_cache.empty()) {
               auto& cache = instr_cache[ip].call;
               cache.callee_object = &klass->header;
@@ -1079,6 +1084,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
               cache.function = fn_obj;
               cache.native = nullptr;
               cache.class_version = klass->version;
+              cache.lhs_slot = static_cast<uint32_t>(call_arg_regs.size());
               value_assign_fast(cache.inline_const, const_value);
             }
             value_assign_fast(regs[in.dst], const_value);
@@ -1296,7 +1302,10 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
         }
         if (auto* fn_obj = value_as_function(inherited_method)) {
           Value const_value;
-          if (inline_python_function_allowed(runtime, module, *fn_obj) && call_arg_regs.empty() && analyze_const_method_fn(module, *fn_obj, const_value)) {
+          if (inline_python_function_allowed(runtime, module, *fn_obj) &&
+              !call_args.has_keywords() && !call_args.has_expansion() &&
+              analyze_const_method_with_args(
+                  module, *fn_obj, static_cast<uint32_t>(call_arg_regs.size()), const_value)) {
             if (!instr_cache.empty()) {
               auto& cache = instr_cache[ip].call;
               cache.callee_object = &klass->header;
@@ -1304,6 +1313,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
               cache.function = fn_obj;
               cache.native = nullptr;
               cache.class_version = klass->version;
+              cache.lhs_slot = static_cast<uint32_t>(call_arg_regs.size());
               value_assign_fast(cache.inline_const, const_value);
             }
             value_assign_fast(regs[in.dst], const_value);
