@@ -1,0 +1,291 @@
+{
+  "note": "Process elapsed time includes startup. Three workload sizes and OLS slope estimate separate iteration throughput from startup intercept; five alternating-order samples at each size. Diagnostic, not pyperf.",
+  "runtimes": {
+    "august": {
+      "path": "D:\\CantorAI\\xlang3-perf-aug20\\build\\Release\\xlang3.exe",
+      "sha256": "2182ac0fbf8e66d69de8115a3f4179651c940f464cbadd09780871d0e8138683",
+      "runtime_sha256": "4c9c79d7893042ffbbc632d3e6a25d26fc7eb225d031bd927254e524e3f4edb2"
+    },
+    "current": {
+      "path": "D:\\CantorAI\\xlang3\\build\\Release\\xlang3.exe",
+      "sha256": "98cbc243329a128a56c5c30966a6c0b8fa5cadbcf02580c2b490fe19474fce37",
+      "runtime_sha256": "41db044425bfc533d34fddcb7a11d9d656429865653775a1375b55554942aa8c"
+    }
+  },
+  "results": [
+    {
+      "case": "function_calls.py",
+      "iterations": [
+        0,
+        125000,
+        250000
+      ],
+      "rows": [
+        {
+          "iterations": 0,
+          "rep": 0,
+          "output": "0",
+          "august": 18.16279999911785,
+          "current": 79.65070003410801
+        },
+        {
+          "iterations": 0,
+          "rep": 1,
+          "output": "0",
+          "current": 40.49790004501119,
+          "august": 13.837400008924305
+        },
+        {
+          "iterations": 0,
+          "rep": 2,
+          "output": "0",
+          "august": 13.00410000840202,
+          "current": 38.386300031561404
+        },
+        {
+          "iterations": 0,
+          "rep": 3,
+          "output": "0",
+          "current": 38.42499997699633,
+          "august": 13.729700003750622
+        },
+        {
+          "iterations": 0,
+          "rep": 4,
+          "output": "0",
+          "august": 12.997400015592575,
+          "current": 40.67700001178309
+        },
+        {
+          "iterations": 125000,
+          "rep": 0,
+          "output": "7813062500",
+          "august": 23.2331000152044,
+          "current": 39.81110005406663
+        },
+        {
+          "iterations": 125000,
+          "rep": 1,
+          "output": "7813062500",
+          "current": 39.211199968121946,
+          "august": 23.573899990879
+        },
+        {
+          "iterations": 125000,
+          "rep": 2,
+          "output": "7813062500",
+          "august": 23.024900001473725,
+          "current": 39.841000048909336
+        },
+        {
+          "iterations": 125000,
+          "rep": 3,
+          "output": "7813062500",
+          "current": 40.44030001387,
+          "august": 23.791000014171004
+        },
+        {
+          "iterations": 125000,
+          "rep": 4,
+          "output": "7813062500",
+          "august": 24.043200013693422,
+          "current": 40.894300036598
+        },
+        {
+          "iterations": 250000,
+          "rep": 0,
+          "output": "31251125000",
+          "august": 34.06019997783005,
+          "current": 40.558099979534745
+        },
+        {
+          "iterations": 250000,
+          "rep": 1,
+          "output": "31251125000",
+          "current": 42.59630001615733,
+          "august": 32.82749996287748
+        },
+        {
+          "iterations": 250000,
+          "rep": 2,
+          "output": "31251125000",
+          "august": 32.594599993899465,
+          "current": 41.13369999686256
+        },
+        {
+          "iterations": 250000,
+          "rep": 3,
+          "output": "31251125000",
+          "current": 40.43759999331087,
+          "august": 34.65349995531142
+        },
+        {
+          "iterations": 250000,
+          "rep": 4,
+          "output": "31251125000",
+          "august": 33.77149999141693,
+          "current": 41.0558000439778
+        }
+      ],
+      "slopes": {
+        "august": {
+          "median_ms_by_iterations": {
+            "0": 13.729700003750622,
+            "125000": 23.573899990879,
+            "250000": 33.77149999141693
+          },
+          "ms_per_iteration": 8.016719995066523e-05,
+          "intercept_ms": 13.670800001515698
+        },
+        "current": {
+          "median_ms_by_iterations": {
+            "0": 40.49790004501119,
+            "125000": 39.841000048909336,
+            "250000": 41.0558000439778
+          },
+          "ms_per_iteration": 2.2315999958664178e-06,
+          "intercept_ms": 40.18595004648281
+        }
+      },
+      "current_over_august_slope": 0.027836821009586725,
+      "source_sha256": "1c1f4935461cc230bceae7ca35bdec4ac1b5de019016f916e7889768a76cd7fa"
+    },
+    {
+      "case": "local_slots.py",
+      "iterations": [
+        0,
+        750000,
+        1500000
+      ],
+      "rows": [
+        {
+          "iterations": 0,
+          "rep": 0,
+          "output": "10",
+          "august": 14.449499954935163,
+          "current": 40.661800012458116
+        },
+        {
+          "iterations": 0,
+          "rep": 1,
+          "output": "10",
+          "current": 39.97659997548908,
+          "august": 14.58489999640733
+        },
+        {
+          "iterations": 0,
+          "rep": 2,
+          "output": "10",
+          "august": 13.40260001597926,
+          "current": 40.676800010260195
+        },
+        {
+          "iterations": 0,
+          "rep": 3,
+          "output": "10",
+          "current": 40.7071000081487,
+          "august": 14.407699985895306
+        },
+        {
+          "iterations": 0,
+          "rep": 4,
+          "output": "10",
+          "august": 13.839300023391843,
+          "current": 41.35030001634732
+        },
+        {
+          "iterations": 750000,
+          "rep": 0,
+          "output": "2999990",
+          "august": 35.9463999629952,
+          "current": 59.56159997731447
+        },
+        {
+          "iterations": 750000,
+          "rep": 1,
+          "output": "2999990",
+          "current": 56.23560003004968,
+          "august": 35.54330003680661
+        },
+        {
+          "iterations": 750000,
+          "rep": 2,
+          "output": "2999990",
+          "august": 34.72279995912686,
+          "current": 57.525500014889985
+        },
+        {
+          "iterations": 750000,
+          "rep": 3,
+          "output": "2999990",
+          "current": 57.551999983843416,
+          "august": 36.11069999169558
+        },
+        {
+          "iterations": 750000,
+          "rep": 4,
+          "output": "2999990",
+          "august": 34.348899964243174,
+          "current": 56.890100007876754
+        },
+        {
+          "iterations": 1500000,
+          "rep": 0,
+          "output": "5999990",
+          "august": 59.39040001248941,
+          "current": 74.70399996964261
+        },
+        {
+          "iterations": 1500000,
+          "rep": 1,
+          "output": "5999990",
+          "current": 75.69209998473525,
+          "august": 57.063099986407906
+        },
+        {
+          "iterations": 1500000,
+          "rep": 2,
+          "output": "5999990",
+          "august": 56.506099994294345,
+          "current": 73.40619998285547
+        },
+        {
+          "iterations": 1500000,
+          "rep": 3,
+          "output": "5999990",
+          "current": 74.36259998939931,
+          "august": 56.949299992993474
+        },
+        {
+          "iterations": 1500000,
+          "rep": 4,
+          "output": "5999990",
+          "august": 56.23610003385693,
+          "current": 76.46850001765415
+        }
+      ],
+      "slopes": {
+        "august": {
+          "median_ms_by_iterations": {
+            "0": 14.407699985895306,
+            "750000": 35.54330003680661,
+            "1500000": 56.949299992993474
+          },
+          "ms_per_iteration": 2.8361066671398777e-05,
+          "intercept_ms": 14.36263333501605
+        },
+        "current": {
+          "median_ms_by_iterations": {
+            "0": 40.676800010260195,
+            "750000": 57.525500014889985,
+            "1500000": 74.70399996964261
+          },
+          "ms_per_iteration": 2.268479997292161e-05,
+          "intercept_ms": 40.62183335190639
+        }
+      },
+      "current_over_august_slope": 0.7998570799806518,
+      "source_sha256": "7207d49fc38bc57f33d130f2287b78a81b0cac694cd1b8e3c9f93ec634f677f4"
+    }
+  ]
+}
