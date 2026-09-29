@@ -1,0 +1,104 @@
+{
+  "pairs": [
+    {
+      "xlang3": {
+        "whole_ms": 55.644,
+        "encode_ms": 44.17,
+        "iterencode_ms": 24.244
+      },
+      "cpython314": {
+        "whole_ms": 11.416,
+        "encode_ms": 9.95,
+        "iterencode_ms": 7.826
+      }
+    },
+    {
+      "cpython314": {
+        "whole_ms": 10.822,
+        "encode_ms": 9.464,
+        "iterencode_ms": 7.448
+      },
+      "xlang3": {
+        "whole_ms": 56.742,
+        "encode_ms": 45.015,
+        "iterencode_ms": 24.661
+      }
+    },
+    {
+      "xlang3": {
+        "whole_ms": 54.813,
+        "encode_ms": 43.568,
+        "iterencode_ms": 23.97
+      },
+      "cpython314": {
+        "whole_ms": 10.714,
+        "encode_ms": 9.378,
+        "iterencode_ms": 7.417
+      }
+    },
+    {
+      "cpython314": {
+        "whole_ms": 10.693,
+        "encode_ms": 9.337,
+        "iterencode_ms": 7.371
+      },
+      "xlang3": {
+        "whole_ms": 55.466,
+        "encode_ms": 43.982,
+        "iterencode_ms": 24.107
+      }
+    },
+    {
+      "xlang3": {
+        "whole_ms": 55.805,
+        "encode_ms": 44.337,
+        "iterencode_ms": 24.432
+      },
+      "cpython314": {
+        "whole_ms": 11.093,
+        "encode_ms": 9.674,
+        "iterencode_ms": 7.638
+      }
+    },
+    {
+      "cpython314": {
+        "whole_ms": 10.966,
+        "encode_ms": 9.558,
+        "iterencode_ms": 7.558
+      },
+      "xlang3": {
+        "whole_ms": 57.593,
+        "encode_ms": 45.701,
+        "iterencode_ms": 25.013
+      }
+    },
+    {
+      "xlang3": {
+        "whole_ms": 56.771,
+        "encode_ms": 45.306,
+        "iterencode_ms": 25.05
+      },
+      "cpython314": {
+        "whole_ms": 10.806,
+        "encode_ms": 9.457,
+        "iterencode_ms": 7.446
+      }
+    }
+  ],
+  "medians_ms": {
+    "xlang3": {
+      "whole_ms": 55.805,
+      "encode_ms": 44.337,
+      "iterencode_ms": 24.432
+    },
+    "cpython314": {
+      "whole_ms": 10.822,
+      "encode_ms": 9.464,
+      "iterencode_ms": 7.448
+    }
+  },
+  "source_sha256": "732d1bc6bc10c229b34182dc0592ade8cb94f9f8018aa91d25087ef257584f4f",
+  "xlang_exe_sha256": "36ab4a3b30c1fcb335017b8c26e91163f066b1f8a3de9e5f481108692a91fa5f",
+  "runtime_dll_sha256": "8e24a4dd1bcf75c4d92dc7c1c7c6af04232aac07294e609fbeda5b36bfa8e3cf",
+  "python": "C:\\Python\\Python314\\python.exe"
+}
