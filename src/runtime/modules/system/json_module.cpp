@@ -441,10 +441,17 @@ struct JsonFloatState {
   Value allow_nan;
 };
 
+bool json_floatstr(Runtime& runtime, const Value* args, uint32_t argc,
+                   Value& out, std::string& error, void* data);
+
 struct JsonEncoderState {
   Value iterencode;
   bool native_fast_path = false;
+  Value bound[9];
 };
+
+bool initialize_json_python_encoder(Runtime& runtime, JsonEncoderState& state,
+                                    std::string& error);
 
 // The default json.dumps hot path is deliberately handled here in C++: this is
 // the _json accelerator, not a replacement for json.encoder. Keep the Python
@@ -555,6 +562,20 @@ void json_float_state_cleanup(void* data) {
   delete static_cast<JsonFloatState*>(data);
 }
 
+bool initialize_json_python_encoder(Runtime& runtime, JsonEncoderState& state,
+                                    std::string& error) {
+  auto* float_state = new JsonFloatState{state.bound[8]};
+  Value floatstr = runtime.make_native_function(
+      "_json._floatstr", json_floatstr, float_state, json_float_state_cleanup,
+      nullptr, false, nullptr, false);
+  Value helper_args[] = {
+      state.bound[0], state.bound[1], state.bound[2], state.bound[3], floatstr,
+      state.bound[4], state.bound[5], state.bound[6], state.bound[7], Value::boolean(true)};
+  return call_python_json_helper(
+      runtime, "json.encoder", "_make_iterencode", helper_args, 10,
+      nullptr, 0, state.iterencode, error);
+}
+
 void json_encoder_state_cleanup(void* data) {
   delete static_cast<JsonEncoderState*>(data);
 }
@@ -583,6 +604,10 @@ bool json_encoder_call(
     }
     // Preserve Python-level fallback, default hooks and error messages for
     // non-primitive values and circular-reference errors.
+  }
+  if (state->iterencode.tag == ValueTag::Invalid &&
+      !initialize_json_python_encoder(runtime, *state, error)) {
+    return false;
   }
   Value call_args[] = {args[0], args[1].as.i64 < 0 ? Value::int64(0) : args[1]};
   Value generated;
@@ -720,33 +745,14 @@ bool json_make_encoder_impl(
     bool ignored = false;
     if (!runtime_truthy(runtime, bound[index], ignored, error)) return false;
   }
-  auto* float_state = new JsonFloatState{bound[8]};
-  Value floatstr = runtime.make_native_function(
-      "_json._floatstr", json_floatstr, float_state, json_float_state_cleanup,
-      nullptr, false, nullptr, false);
-  Value helper_args[] = {
-      bound[0], bound[1], bound[2], bound[3], floatstr,
-      bound[4], bound[5], bound[6], bound[7], Value::boolean(true)};
-  Value iterencode;
-  if (!call_python_json_helper(
-      runtime, "json.encoder", "_make_iterencode", helper_args, 10,
-      nullptr, 0, iterencode, error)) {
-    return false;
-  }
   const auto string_equals = [](const Value& value, std::string_view expected) {
     auto* string = value_as_string(value);
     return string && string_object_view(*string) == expected;
   };
-  Value encoder_module;
-  Value ascii_encoder;
-  std::string encoder_error;
+  const auto* encoder_native = value_as_native_function(bound[2]);
   const bool standard_ascii_encoder =
-      runtime.import_module("json.encoder", encoder_module, encoder_error) &&
-      module_get_attr(encoder_module, "encode_basestring_ascii", ascii_encoder, encoder_error) &&
-      ((value_as_native_function(bound[2]) != nullptr &&
-        value_as_native_function(bound[2]) == value_as_native_function(ascii_encoder)) ||
-       (value_as_function(bound[2]) != nullptr &&
-        value_as_function(bound[2]) == value_as_function(ascii_encoder)));
+      encoder_native != nullptr &&
+      encoder_native->callback == json_encode_basestring_ascii;
   // CPython passes a fresh empty marker dict for normal circular checking;
   // our active recursion set provides the same detection without per-item VM
   // dictionary traffic.
@@ -757,7 +763,12 @@ bool json_make_encoder_impl(
       string_equals(bound[5], ", ") && !value_truthy(bound[6]) && !value_truthy(bound[7]) &&
       value_truthy(bound[8]) &&
       standard_ascii_encoder;
-  auto* state = new JsonEncoderState{std::move(iterencode), native_fast_path};
+  // Avoid allocating the Python recursive encoder closure per json.dumps call
+  // when the native path owns the whole default built-in data graph. Keep the
+  // bound arguments so custom and unsupported values can initialize it lazily.
+  auto* state = new JsonEncoderState{};
+  state->native_fast_path = native_fast_path;
+  for (size_t index = 0; index < 9; ++index) state->bound[index] = bound[index];
   out = runtime.make_native_function(
       "_json.Encoder.__call__", json_encoder_call, state,
       json_encoder_state_cleanup, nullptr, false, nullptr, false);
