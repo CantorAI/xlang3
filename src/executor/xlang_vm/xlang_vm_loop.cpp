@@ -669,21 +669,15 @@ RuntimeResult Interpreter::run_function(
       }
     }
 
-    Value function_value = Value::function(
-        fn_obj->function_id,
-        fn_obj->closure,
-        fn_obj->globals_module,
-        fn_obj->module != nullptr ? fn_obj->module : module_owner,
-        fn_obj->defaults);
-    if (auto* generated_function = value_as_function(function_value)) {
-      value_assign_fast(generated_function->attrs_dict, fn_obj->attrs_dict);
-      value_assign_fast(generated_function->builtins, fn_obj->builtins);
-      value_assign_fast(generated_function->globals_dict, fn_obj->globals_dict);
-      value_assign_fast(generated_function->doc, fn_obj->doc);
-      generated_function->positional_defaults = fn_obj->positional_defaults;
-      generated_function->kwdefaults = fn_obj->kwdefaults;
-      generated_function->qualname = fn_obj->qualname;
-    }
+    // A generator captures the callable that was invoked. Keep that function
+    // alive directly instead of cloning its object, closure, defaults, and
+    // metadata for every coroutine/generator creation. Arguments have already
+    // been bound into args_for_generator, so later __defaults__ changes cannot
+    // affect this suspended call.
+    Value function_value;
+    function_value.tag = ValueTag::Object;
+    function_value.as.obj = &fn_obj->header;
+    retain(function_value);
     out = Value::generator(
         &runtime_,
         std::move(function_value),

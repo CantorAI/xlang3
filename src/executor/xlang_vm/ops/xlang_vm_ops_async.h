@@ -110,14 +110,21 @@ XLANG3_HOT_INLINE XlangVMOpFlow await_op(
     }
     if (done) {
       if (active_generator != nullptr) value_set_invalid(active_generator->awaiting);
-      Value stop = runtime.make_exception("StopIteration", "");
-      std::string ignored;
-      object_set_attr(stop, "value", yielded_or_returned, ignored);
-      object_set_attr(stop, "args", yielded_or_returned.tag == ValueTag::None
-          ? Value::tuple({}) : Value::tuple({yielded_or_returned}), ignored);
-      Value event_arg = Value::tuple({runtime.exception_type(stop), stop, Value::none()});
-      if (!emit_trace_event(frame, "exception", event_arg)) {
-        return XlangVMOpFlow::ReturnResult;
+      // StopIteration here is VM control flow used to transport the coroutine
+      // result. Materialize the Python exception and trace tuple only when a
+      // trace hook can observe the event; the normal await path should be a
+      // direct value transfer with no exception-object allocation.
+      if (frame.trace_function.tag != ValueTag::Invalid &&
+          frame.trace_function.tag != ValueTag::None) {
+        Value stop = runtime.make_exception("StopIteration", "");
+        std::string ignored;
+        object_set_attr(stop, "value", yielded_or_returned, ignored);
+        object_set_attr(stop, "args", yielded_or_returned.tag == ValueTag::None
+            ? Value::tuple({}) : Value::tuple({yielded_or_returned}), ignored);
+        Value event_arg = Value::tuple({runtime.exception_type(stop), stop, Value::none()});
+        if (!emit_trace_event(frame, "exception", event_arg)) {
+          return XlangVMOpFlow::ReturnResult;
+        }
       }
       value_assign_fast(regs[in.dst], yielded_or_returned);
       return XlangVMOpFlow::Next;
