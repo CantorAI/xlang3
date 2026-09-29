@@ -1,0 +1,69 @@
+{
+  "benchmark": "pyperformance bm_richards Richards.run(1)",
+  "pairs": [
+    {
+      "parent": 550.1504,
+      "candidate": 542.2876
+    },
+    {
+      "candidate": 539.3851,
+      "parent": 537.243
+    },
+    {
+      "parent": 531.7032,
+      "candidate": 542.9093
+    },
+    {
+      "candidate": 542.2867,
+      "parent": 580.0094
+    },
+    {
+      "parent": 543.1757,
+      "candidate": 540.1312
+    },
+    {
+      "candidate": 542.779,
+      "parent": 540.4807999999999
+    },
+    {
+      "parent": 542.2841000000001,
+      "candidate": 543.2612999999999
+    },
+    {
+      "candidate": 562.9395999999999,
+      "parent": 534.5335
+    },
+    {
+      "parent": 537.8169,
+      "candidate": 544.6571
+    },
+    {
+      "candidate": 549.8336,
+      "parent": 530.5165
+    },
+    {
+      "parent": 556.4196000000001,
+      "candidate": 542.4774
+    }
+  ],
+  "medians_ms": {
+    "parent": 540.4807999999999,
+    "candidate": 542.779
+  },
+  "candidate_over_parent": 1.004252139946507,
+  "executables": {
+    "parent": {
+      "path": "D:\\CantorAI\\xlang3-parent-before-fastpath\\build\\Release\\xlang3.exe",
+      "sha256": "46d0515bd54e0171af81ed20c8ddbccf70eb10f3fd955d2fc89db3aa1a7c24b7",
+      "runtime_sha256": "7a7dd1932502d0a8f5c294f6eb00d6358f2ec5c9fcbd4febd1cfe1af94c5754b"
+    },
+    "candidate": {
+      "path": "D:\\CantorAI\\xlang3\\build\\Release\\xlang3.exe",
+      "sha256": "98cbc243329a128a56c5c30966a6c0b8fa5cadbcf02580c2b490fe19474fce37",
+      "runtime_sha256": "5ec1eafca52df660cf8775699df78446e79cc2c136e4754f9d7f193df917e3a4"
+    }
+  },
+  "source_sha256": "60b65e97b7f4b74eabc7375b1e430134b74f11360e5488eea1bb6db9b254df9c",
+  "benchmark_source_sha256": "a4512668525331960c54043b5150a3fff92badaeaba850a941893ac69a1028d8",
+  "note": "11 order-balanced paired single-process runs; timer surrounds only one workload call inside each process. Diagnostic only, not pyperf."
+}
