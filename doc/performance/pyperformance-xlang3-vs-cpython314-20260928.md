@@ -17,7 +17,7 @@ The left-to-right log-scale chart shows the latest 44 matched results, where bar
 
 ![Horizontal log-scale chart of current full pyperformance comparison](pyperformance-xlang3-current-full-fast-20260929.svg)
 
-The three measured wins are `pickle_list` (1.30×), `python_startup_no_site` (1.17×), and `pickle_dict` (1.16×). The largest remaining gaps include `unpickle_list` (0.00187×), `unpickle` (0.00193×), and `typing_runtime_protocols` (0.0151×). `json_dumps` measured 55.9 ms versus about 7.5 ms for CPython (about 0.134×); `json_loads` measured 115 μs versus about 17.5 μs (about 0.152×). The focused float sample measured 75.3 ms versus 55.8 ms (0.741×); current-run XLang3 `float` was 75.0 ms.
+The three measured wins are `pickle_list` (1.30×), `python_startup_no_site` (1.17×), and `pickle_dict` (1.16×). After the focused pickle and unpickle reruns, the largest measured gaps include `unpickle` (0.139×), `pickle` (0.256×), `unpickle_list` (0.284×), and `typing_runtime_protocols` (0.0151×). `json_dumps` measured 55.9 ms versus about 7.5 ms for CPython (about 0.134×); `json_loads` measured 115 μs versus about 17.5 μs (about 0.152×). The focused float sample measured 75.3 ms versus 55.8 ms (0.741×); current-run XLang3 `float` was 75.0 ms.
 
 Full raw results: [XLang3 pyperf JSON](data/pyperformance-xlang3-full-fast-current-20260929.json), [CPython 3.14 pyperf JSON](data/pyperformance-cpython314-full-fast-20260928.json), and [all 97 current statuses and matched ratios](data/pyperformance-xlang3-vs-cpython314-current-full-fast-20260929.csv). The failures are retained in the CSV, including capped async workloads and third-party import/runtime failures such as `chameleon`, `coverage`, `dask`, `html5lib`, `networkx`, and `tornado_http`.
 
@@ -26,6 +26,14 @@ Full raw results: [XLang3 pyperf JSON](data/pyperformance-xlang3-full-fast-curre
 The `pickle` benchmark's realistic graph repeats strings, containers, and `datetime.date` values. The native `_pickle.dumps` path previously rejected any repeated object and sent the whole graph through `pickle.py`. Its eligibility walk now rejects cycles but permits repeated objects in acyclic graphs; the C++ protocol writer emits `MEMOIZE`/`BINGET` to preserve reference identity and handles the exact standard-library `datetime.date` reducer. Custom classes and cycles continue through the standard Python implementation. The fixture checks both shared mutable-list identity and repeated-date identity after a round trip.
 
 The focused official fast `pickle` result fell from **9.38 ms** in the full-suite run to **35.5 μs**, about **264× faster within XLang3**. CPython 3.14 measured **9.08 μs**, so XLang3 is now about **0.256×** as fast (3.9× slower); the new sample warns about limited stability. The latest full-suite chart and CSV use this focused value for `pickle` and identify it as a focused rerun. The raw sample is [here](data/pickle-native-memo-xlang3-fast-20260929.json), and the full Release regression gate passed all seven fixed cases in [this report](data/release-regression-pickle-memo-20260929.json).
+
+## Follow-up: native reader for safe `_pickle.loads` streams (2026-09-29)
+
+The C++ pickle opcode reader existed but was not connected to `_pickle.loads`. The native module now routes supported primitive/container streams through it, with memo-table support for shared and cyclic references. It allows only the exact `datetime.date` global and reducer; unsupported globals, reducers, build operations, oversized integers, and other opcodes use the source-compatible loader before user reducers can run twice.
+
+The focused `unpickle_list` result fell from **1.69 ms** to **11.3 μs** (about **149× faster within XLang3**); refreshed CPython 3.14 measured **3.21 μs**, leaving XLang3 at **0.284×**. The full `unpickle` case fell from **5.03 ms** to **68.4 μs** (about **74× faster within XLang3**); CPython measured **9.49 μs**, leaving XLang3 at **0.139×**. Both fast samples warn about limited stability. Fixtures cover ordinary values, shared references, cyclic lists, and repeated `datetime.date` identity. The fixed seven-case Release gate passed again: [report](data/release-regression-pickle-unpickle-20260929.json).
+
+Raw XLang3 and CPython samples: [`unpickle_list` XLang3](data/unpickle-list-native-reader-xlang3-fast-20260929.json), [CPython](data/unpickle-list-cpython314-fast-20260929.json), [`unpickle` XLang3](data/unpickle-native-reader-xlang3-fast-20260929.json), and [CPython](data/unpickle-cpython314-fast-20260929.json).
 
 ## Chart: selected `--fast` sample
 

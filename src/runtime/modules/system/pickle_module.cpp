@@ -25,6 +25,7 @@ limitations under the License.
 
 #include <climits>
 #include <cstring>
+#include <limits>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -600,6 +601,7 @@ struct PickleReader {
   size_t pos = 0;
   std::vector<Value> stack;
   std::vector<size_t> marks;
+  std::vector<Value> memo;
 
   bool read_byte(unsigned char& out) {
     if (pos >= data.size()) {
@@ -668,7 +670,8 @@ enum class PickleScanResult {
   Invalid,
 };
 
-PickleScanResult scan_pickle_record(std::string_view data, std::string& error) {
+PickleScanResult scan_pickle_record(
+    std::string_view data, std::string& error, bool builtin_only = false) {
   size_t pos = 0;
   auto skip = [&](size_t count) -> bool {
     if (count > data.size() - pos) {
@@ -710,6 +713,10 @@ PickleScanResult scan_pickle_record(std::string_view data, std::string& error) {
       case 0x8a: { // LONG1
         if (pos == data.size()) return PickleScanResult::Incomplete;
         const size_t size = static_cast<unsigned char>(data[pos++]);
+        if (builtin_only && size > sizeof(uint64_t)) {
+          error = "large integers require the compatible Python loader";
+          return PickleScanResult::Invalid;
+        }
         if (!skip(size)) return PickleScanResult::Incomplete;
         break;
       }
@@ -742,6 +749,14 @@ PickleScanResult scan_pickle_record(std::string_view data, std::string& error) {
         pos = newline + 1;
         break;
       }
+      case 'q': // BINPUT
+      case 'h': // BINGET
+        if (!skip(1)) return PickleScanResult::Incomplete;
+        break;
+      case 'r': // LONG_BINPUT
+      case 'j': // LONG_BINGET
+        if (!skip(4)) return PickleScanResult::Incomplete;
+        break;
       case 'N': // NONE
       case 0x88: // NEWTRUE
       case 0x89: // NEWFALSE
@@ -768,7 +783,18 @@ PickleScanResult scan_pickle_record(std::string_view data, std::string& error) {
   return PickleScanResult::Incomplete;
 }
 
-bool pickle_read_value(Runtime& runtime, std::string_view payload, Value& out, std::string& error) {
+bool pickle_is_datetime_date(Runtime& runtime, const Value& candidate) {
+  Value datetime_module;
+  Value date_class;
+  std::string ignored;
+  return runtime.import_module("datetime", datetime_module, ignored) &&
+      attribute_get(datetime_module, "date", date_class, ignored) &&
+      value_is(candidate, date_class);
+}
+
+bool pickle_read_value(
+    Runtime& runtime, std::string_view payload, Value& out, std::string& error,
+    bool builtin_only = false) {
   PickleReader reader{payload};
   while (reader.pos < reader.data.size()) {
     unsigned char opcode = 0;
@@ -785,8 +811,14 @@ bool pickle_read_value(Runtime& runtime, std::string_view payload, Value& out, s
         }
         break;
       }
-      case 0x94: // MEMOIZE
+      case 0x94: { // MEMOIZE
+        if (reader.stack.empty()) {
+          error = "pickle MEMOIZE needs a stack value";
+          return false;
+        }
+        reader.memo.push_back(reader.stack.back());
         break;
+      }
       case 0x95: { // FRAME
         uint64_t frame_size = 0;
         if (!reader.read_u64(frame_size)) {
@@ -857,6 +889,77 @@ bool pickle_read_value(Runtime& runtime, std::string_view payload, Value& out, s
           error = "truncated pickle memo index";
           return false;
         }
+        size_t index = 0;
+        for (char digit : memo_index) {
+          if (digit < '0' || digit > '9' ||
+              index > (std::numeric_limits<size_t>::max() - 9) / 10) {
+            error = "invalid pickle memo index";
+            return false;
+          }
+          index = index * 10 + static_cast<size_t>(digit - '0');
+        }
+        if (reader.stack.empty()) { error = "pickle PUT needs a stack value"; return false; }
+        if (reader.memo.size() <= index) reader.memo.resize(index + 1, Value::invalid());
+        reader.memo[index] = reader.stack.back();
+        break;
+      }
+      case 'q': { // BINPUT
+        unsigned char index = 0;
+        if (!reader.read_byte(index) || reader.stack.empty()) {
+          error = "truncated pickle BINPUT";
+          return false;
+        }
+        if (reader.memo.size() <= index) reader.memo.resize(static_cast<size_t>(index) + 1, Value::invalid());
+        reader.memo[index] = reader.stack.back();
+        break;
+      }
+      case 'r': { // LONG_BINPUT
+        uint32_t index = 0;
+        if (!reader.read_u32(index) || reader.stack.empty()) {
+          error = "truncated pickle LONG_BINPUT";
+          return false;
+        }
+        if (reader.memo.size() <= index) reader.memo.resize(static_cast<size_t>(index) + 1, Value::invalid());
+        reader.memo[index] = reader.stack.back();
+        break;
+      }
+      case 'g': { // GET
+        std::string_view memo_index;
+        if (!reader.read_line(memo_index)) { error = "truncated pickle GET"; return false; }
+        size_t index = 0;
+        for (char digit : memo_index) {
+          if (digit < '0' || digit > '9' ||
+              index > (std::numeric_limits<size_t>::max() - 9) / 10) {
+            error = "invalid pickle memo index";
+            return false;
+          }
+          index = index * 10 + static_cast<size_t>(digit - '0');
+        }
+        if (index >= reader.memo.size() || reader.memo[index].tag == ValueTag::Invalid) {
+          error = "pickle GET refers to a missing memo entry";
+          return false;
+        }
+        reader.stack.push_back(reader.memo[index]);
+        break;
+      }
+      case 'h': { // BINGET
+        unsigned char index = 0;
+        if (!reader.read_byte(index) || index >= reader.memo.size() ||
+            reader.memo[index].tag == ValueTag::Invalid) {
+          error = "pickle BINGET refers to a missing memo entry";
+          return false;
+        }
+        reader.stack.push_back(reader.memo[index]);
+        break;
+      }
+      case 'j': { // LONG_BINGET
+        uint32_t index = 0;
+        if (!reader.read_u32(index) || index >= reader.memo.size() ||
+            reader.memo[index].tag == ValueTag::Invalid) {
+          error = "pickle LONG_BINGET refers to a missing memo entry";
+          return false;
+        }
+        reader.stack.push_back(reader.memo[index]);
         break;
       }
       case 0x8a: { // LONG1
@@ -917,6 +1020,10 @@ bool pickle_read_value(Runtime& runtime, std::string_view payload, Value& out, s
           error = "truncated pickle global";
           return false;
         }
+        if (builtin_only && (module_name != "datetime" || qualified_name != "date")) {
+          error = "pickle global requires the compatible Python loader";
+          return false;
+        }
         Value global;
         if (!runtime.import_module(std::string(module_name), global, error)) {
           return false;
@@ -957,6 +1064,10 @@ bool pickle_read_value(Runtime& runtime, std::string_view payload, Value& out, s
         }
         const std::string module_name = string_object_to_string(*module_name_string);
         const std::string qualified_name = string_object_to_string(*qualified_name_string);
+        if (builtin_only && (module_name != "datetime" || qualified_name != "date")) {
+          error = "pickle STACK_GLOBAL requires the compatible Python loader";
+          return false;
+        }
         Value global;
         if (!runtime.import_module(module_name, global, error)) {
           return false;
@@ -989,6 +1100,10 @@ bool pickle_read_value(Runtime& runtime, std::string_view payload, Value& out, s
         reader.stack.pop_back();
         Value callable = reader.stack.back();
         reader.stack.pop_back();
+        if (builtin_only && !pickle_is_datetime_date(runtime, callable)) {
+          error = "pickle reducer requires the compatible Python loader";
+          return false;
+        }
         auto* tuple = value_as_tuple(arguments);
         if (tuple == nullptr) {
           error = "pickle REDUCE arguments are not a tuple";
@@ -1008,6 +1123,10 @@ bool pickle_read_value(Runtime& runtime, std::string_view payload, Value& out, s
         break;
       }
       case 'b': { // BUILD
+        if (builtin_only) {
+          error = "pickle BUILD requires the compatible Python loader";
+          return false;
+        }
         if (reader.stack.size() < 2) {
           error = "pickle BUILD needs an instance and state";
           return false;
@@ -1305,6 +1424,20 @@ bool pickle_dumps_kw(
 }
 
 bool pickle_loads(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc == 1) {
+    std::string_view payload;
+    std::string fast_error;
+    // Keep the common protocol-4/5 container path out of Python opcode dispatch.
+    // The native reader's reducer whitelist preserves compatibility fallback
+    // without executing arbitrary user reducers twice after a partial decode.
+    if (get_bytes_view(args[0], payload, fast_error) &&
+        scan_pickle_record(payload, fast_error, true) == PickleScanResult::Complete &&
+        pickle_read_value(runtime, payload, out, fast_error, true)) {
+      return true;
+    }
+    Value ignored_exception;
+    runtime.take_pending_exception(ignored_exception);
+  }
   return call_source_pickle(runtime, "_loads", args, argc, nullptr, 0, out, error);
 }
 

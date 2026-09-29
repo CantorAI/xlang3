@@ -51,6 +51,10 @@ shared_item = []
 shared_payload = [shared_item, shared_item]
 shared_restored = pickle.loads(pickle.dumps(shared_payload, protocol=5))
 print(shared_restored[0] is shared_restored[1])
+cyclic_payload = []
+cyclic_payload.append(cyclic_payload)
+cyclic_restored = pickle.loads(pickle.dumps(cyclic_payload, protocol=5))
+print(cyclic_restored is cyclic_restored[0])
 import datetime
 shared_date = datetime.date(1980, 5, 7)
 date_restored = pickle.loads(pickle.dumps([shared_date, shared_date], protocol=5))

@@ -91,8 +91,8 @@ tomli_loads,completed,tomli_loads=1689.3ms,failed: timed out,,timed out,full pyp
 tornado_http,completed,tornado_http=232.943ms,failed: benchmark died,,benchmark process died,full pyperformance --fast (2026-09-29)
 typing_runtime_protocols,completed,typing_runtime_protocols=0.124367ms,completed,typing_runtime_protocols=8.25447ms (0.015067x CP/XLang),,full pyperformance --fast (2026-09-29)
 unpack_sequence,completed,unpack_sequence=3.54493e-05ms,completed,unpack_sequence=0.000150839ms (0.23501x CP/XLang),,full pyperformance --fast (2026-09-29)
-unpickle,completed,unpickle=0.0097ms,completed,unpickle=5.0326ms (0.0019274x CP/XLang),,full pyperformance --fast (2026-09-29)
-unpickle_list,completed,unpickle_list=0.00315896ms,completed,unpickle_list=1.69359ms (0.0018652x CP/XLang),,full pyperformance --fast (2026-09-29)
+unpickle,completed,unpickle=0.0097ms,completed,unpickle=0.0684ms (0.13867x CP/XLang),,focused pyperformance --fast rerun after native reader
+unpickle_list,completed,unpickle_list=0.00315896ms,completed,unpickle_list=0.0113ms (0.28407x CP/XLang),,focused pyperformance --fast rerun after native reader
 unpickle_pure_python,completed,unpickle_pure_python=0.161446ms,completed,unpickle_pure_python=5.55744ms (0.02905x CP/XLang),,full pyperformance --fast (2026-09-29)
 xdsl,completed,xdsl_constant_fold=32.8031ms,failed: benchmark died,,benchmark process died,full pyperformance --fast (2026-09-29)
 xml_etree,completed,xml_etree_parse=107.561ms; xml_etree_iterparse=68.2502ms; xml_etree_generate=66.3037ms; xml_etree_process=46.0111ms,failed: benchmark died,,benchmark process died,full pyperformance --fast (2026-09-29)
