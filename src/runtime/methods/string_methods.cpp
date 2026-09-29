@@ -505,6 +505,13 @@ bool join_string_values(
     const Items& items,
     Value& out,
     std::string& error) {
+  if (items.size() == 1 && value_as_string(items[0]) != nullptr) {
+    // CPython returns the original exact string for a one-item join. This also
+    // avoids allocating and copying the chunk returned by _json.make_encoder.
+    out = items[0];
+    return true;
+  }
+
   constexpr size_t kStackJoinViewCount = 8;
   std::array<memory::X3StringView, kStackJoinViewCount> stack_views{};
   std::vector<memory::X3StringView> heap_views;
