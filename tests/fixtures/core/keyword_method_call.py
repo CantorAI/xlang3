@@ -28,3 +28,9 @@ def replace_method():
 
 
 print(ordered.run(value=replace_method(), enabled=True))
+
+
+class_override = Sample()
+print(class_override.run("before-class-change", enabled=True))
+Sample.run = lambda self, value, enabled=False: ("class replacement", value, enabled)
+print(class_override.run("after-class-change", enabled=True))

@@ -1913,7 +1913,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method_ex(
     const ir::Instr& in, const ir::Function& fn, const ir::Module& module,
     const std::shared_ptr<const ir::Module>& module_owner,
     const Value& monitoring_code, Runtime& runtime,
-    XlangVMSmallRegisterBuffer& regs, std::vector<Value>& native_call_args,
+    XlangVMSmallRegisterBuffer& regs, std::vector<XlangVMInstrCache>& instr_cache,
+    std::vector<Value>& native_call_args,
     size_t& ip, RuntimeResult& result, XlangRuntimeExecutionGuard& execution_lock,
     MakeGeneratorIfNeeded&& make_generator_if_needed, PushFrame&& push_frame,
     RaiseRuntimeError&& raise_runtime_error, RaiseExceptionValue&& raise_exception_value) {
@@ -1922,10 +1923,40 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method_ex(
     return XlangVMOpFlow::ReturnResult;
   }
   const auto& spec = fn.call_specs[in.c];
+  xlang_vm_cache_touch(instr_cache[ip], XlangVMCacheDomain::CallMethod);
+  auto& cache = instr_cache[ip].call;
   CallArgsView args;
   args.registers = regs.value_data();
   args.register_args = &spec.positional;
   args.keyword_args = &spec.keywords;
+
+  // Cache the function descriptor at this call site when the same ordinary
+  // instance is called repeatedly. Guard instance shadowing and class version
+  // on every hit so assignments preserve Python's normal method lookup. This
+  // avoids repeated MRO/descriptor work in wrapper-heavy loops such as
+  // json.dumps, while still entering the original Python method frame.
+  if (!args.has_expansion()) {
+    if (auto* instance = value_as_instance(regs[in.a]);
+        instance != nullptr && instance->native_get_attr == nullptr) {
+      auto* klass = value_as_class(instance->klass);
+      const bool instance_shadowed = std::any_of(
+          instance->attrs.begin(), instance->attrs.end(), [&](const auto& attr) {
+            return attr.first == fn.names[in.b];
+          });
+      if (klass != nullptr && !klass->has_getattribute_hook && !instance_shadowed &&
+          klass->instance_slot_indices.find(fn.names[in.b]) == klass->instance_slot_indices.end() &&
+          cache.kind == CallSiteKind::UserFunction && cache.function != nullptr &&
+          cache.callee_object == &klass->header && cache.class_version == klass->version &&
+          cache.arg0_object == regs[in.a].as.obj) {
+        bool pushed_frame = false;
+        if (!call_user_function(cache.function, args, module, module_owner, in.dst, ip,
+                                regs[in.dst], pushed_frame, make_generator_if_needed, push_frame)) {
+          return result.errors.empty() ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+        }
+        return pushed_frame ? XlangVMOpFlow::SwitchFrame : XlangVMOpFlow::Next;
+      }
+    }
+  }
 
   // Fuse attribute lookup and a keyword call: ordinary function descriptors
   // would otherwise allocate a bound-method object before every call. Keep
@@ -1948,6 +1979,12 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method_ex(
           std::string lookup_error;
           if (object_get_class_attr_for_instance(regs[in.a], fn.names[in.b], method, lookup_error)) {
             if (auto* function = value_as_function(method)) {
+              cache.callee_object = &klass->header;
+              cache.arg0_object = regs[in.a].as.obj;
+              cache.kind = CallSiteKind::UserFunction;
+              cache.function = function;
+              cache.native = nullptr;
+              cache.class_version = klass->version;
               CallArgsView method_args = args;
               method_args.leading = &regs[in.a];
               method_args.leading_count = 1;

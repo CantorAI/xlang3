@@ -452,6 +452,21 @@ XLang3 baseline     57.0  ms |████████████████
 
 The candidate passes the 21-pair, seven-case fixed Release regression gate. The gate now gives each executable a separate Python bytecode-cache prefix; sharing caches between distinct runtime builds produced a `site.py` startup failure and invalidated earlier measurements. The final gate report is [`data/release-regression-callmethodex-final-20260929.json`](data/release-regression-callmethodex-final-20260929.json). Raw pyperf files: [`data/pyperformance-json-dumps-xlang3-fixed-baseline-20260929.json`](data/pyperformance-json-dumps-xlang3-fixed-baseline-20260929.json), [`data/pyperformance-json-dumps-xlang3-fixed-candidate-20260929.json`](data/pyperformance-json-dumps-xlang3-fixed-candidate-20260929.json), and the CPython reference [`data/pyperformance-json-dumps-cpython314-rigorous-20260929.json`](data/pyperformance-json-dumps-cpython314-rigorous-20260929.json).
 
+### Follow-up: cache fused method descriptors
+
+`CallMethodEx` now uses its per-instruction call cache for ordinary Python function descriptors. The fast path requires the same receiver, unchanged class version, no matching instance attribute or slot, and no custom `__getattribute__`; it still calls the original Python function through the regular frame path. This avoids repeated MRO and descriptor resolution on stable keyword-method calls such as `JSONEncoder.iterencode`. The code comment records the expected hot path and its semantic guards. The `keyword_method_call` fixture exercises instance shadowing and class-method replacement after cache warm-up.
+
+The fixed-gate case [`json_dumps.py`](../../benchmarks/cases/json_dumps.py) retains pyperformance 1.14's four payload shapes and iteration counts while checking deterministic output. Against the preserved pre-optimization Release runtime, the current candidate measures **40.0 ms vs 56.7 ms**, or **1.41× faster** (0.708× elapsed time). The matched case comparison against CPython 3.14.7 measures **40.2 ms vs 7.58 ms**; XLang3 is still **5.25× slower**. This closes a meaningful part of the wrapper overhead, but does not meet the goal of beating CPython. The full nine-case Release gate passes, including the prior `deepcopy_memo` case. Reports: [all fixed-gate cases](data/release-regression-callmethodex-cache-full-20260929.json), [focused JSON vs the preserved XLang3 Release baseline](data/release-regression-json-callmethodex-cache-20260929.json), and [matched JSON case vs CPython 3.14](data/json-dumps-xlang3-vs-cpython314-release-20260929.json).
+
+```text
+Elapsed time (lower is better; bars grow left to right)
+CPython 3.14.7       7.58 ms |███████
+XLang3 current      40.17 ms |██████████████████████████████████████████
+XLang3 baseline     56.75 ms |███████████████████████████████████████████████████████████
+```
+
+An attempted official `pyperformance run --fast --benchmarks=json_dumps` worker failed before producing a score with Windows `select` error 10038 in pyperf's subprocess worker. The fixed-gate report uses an order-balanced internal timer over the exact payloads instead; it is a direct matched workload, not an official pyperf score. The standard pyperformance worker issue remains open.
+
 ### Full fast-suite follow-up
 
 After the focused change, pyperformance 1.14 attempted all 97 benchmarks in `--fast` mode. It produced 42 sub-benchmark results across 38 benchmark groups; 59 groups produced no result because of timeouts, worker/runtime errors, or unavailable optional packages. The run exited nonzero after completing the list. The raw suite contains successful measurements only; the 97-row status CSV records every attempted group. Comparing the 42 matching sub-benchmarks with the CPython 3.14.7 full-fast run gives a 10.40× slower geometric mean for XLang3. This broad, older CPython reference is directional; the raw JSON files preserve their dates and warnings.
