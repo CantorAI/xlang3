@@ -4189,6 +4189,22 @@ bool io_base_unsupported(Runtime& runtime, const Value*, uint32_t argc, Value&, 
   return false;
 }
 
+bool io_base_tell(Runtime& runtime, const Value* args, uint32_t argc,
+                  Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "tell() expected no arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  // BufferedIOBase.tell() delegates to seek(0, SEEK_CUR). Pure-Python
+  // compressed streams override seek() and rely on super().tell() to query
+  // their decompressed position, so do not hard-code UnsupportedOperation.
+  Value seek;
+  if (!object_get_attr(args[0], "seek", seek, error)) return false;
+  Value seek_args[] = {Value::int64(0), Value::int64(1)};
+  return runtime_call_callable(runtime, seek, seek_args, 2, out, error);
+}
+
 bool io_base_readline(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 1 || argc > 2) {
     error = "_io._IOBase.readline() expected optional limit";
@@ -4344,7 +4360,7 @@ void add_io_exports(NativeModuleBuilder& builder, Runtime& runtime, const Value&
       {"isatty", runtime.make_native_function("_io._IOBase.isatty", io_base_false_method, const_cast<char*>("isatty"))},
       {"fileno", runtime.make_native_function("_io._IOBase.fileno", io_base_unsupported, const_cast<char*>("fileno"))},
       {"seek", runtime.make_native_function("_io._IOBase.seek", io_base_unsupported, const_cast<char*>("seek"))},
-      {"tell", runtime.make_native_function("_io._IOBase.tell", io_base_unsupported, const_cast<char*>("tell"))},
+      {"tell", runtime.make_native_function("_io._IOBase.tell", io_base_tell)},
       {"truncate", runtime.make_native_function("_io._IOBase.truncate", io_base_unsupported, const_cast<char*>("truncate"))},
       {"readline", runtime.make_native_function("_io._IOBase.readline", io_base_readline)},
       {"readlines", runtime.make_native_function("_io._IOBase.readlines", io_base_readlines)},

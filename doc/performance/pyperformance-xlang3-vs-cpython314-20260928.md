@@ -571,3 +571,9 @@ A repeated bound-method call with a keyword argument failed on its second cache 
 The new `bound_method_keyword_repeated` fixture exercises two calls through one method call site with both a positional argument and a keyword-only argument. It passes, as does the existing `ast_traceback_multiline` fixture; the entire fixture suite passes. The complete 11-case fixed Release regression gate also passes against `baseline-0336992`; candidate/baseline ratios range from 0.974× to 1.024× and remain within the 10% gate. Raw paired data and runtime hashes: [gate report](data/release-regression-callmethodex-receiver-20260929.json). This is a correctness and benchmark-diagnostics fix, not a measured pyperformance speedup.
 
 
+
+### Delegate `BufferedIOBase.tell()` to the stream's seek implementation (2026-09-29)
+
+Python 3.14's pure-Python gzip layer implements `GzipFile.tell()` through `super().tell()`, which in turn queries `seek(0, SEEK_CUR)`. XLang3's `_io._IOBase.tell` always raised `UnsupportedOperation`, so `tarfile.open()` rejected valid gzip-compressed package archives as “not a gzip file.” The native I/O base method now delegates to the receiver's `seek` method, preserving the normal unsupported-operation behavior when a subclass does not implement seeking. The new `gzip_buffered_tell` fixture covers read, tell, and rewind behavior; it passes, as do the complete fixture suite and the full 11-case Release gate. The paired gate report is [here](data/release-regression-io-base-tell-20260929.json).
+
+This let the focused `pyperformance` setup pass archive parsing and proceed to building `psutil`; that native extension's build-requirements step still fails under XLang3, so the focused run did not reach benchmark execution. No new CPython speed ratio is claimed from that attempt.
