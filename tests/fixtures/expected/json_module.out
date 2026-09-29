@@ -1,6 +1,13 @@
 xlang3
 2
 True
+{'u': '🧪', 'a': [-4, 0.001, True, None]}
+{'same': 2}
+{'raw': 'ąć', 'empty': ''}
+123456789012345678901234567890
+[inf, -inf, 0.0, -0.0, 1.7976931348623157e+308]
+{'x': 'i:4'}
+invalid JSON fallback
 {"a": 1, "b": [2, 3]}
 {"unicode": "\u0105\u0107\u017c\ud83e\uddea", "quote": "a\"b\\c", "controls": "\n\t", "nested": [null, true, false, -4, [5, 6]]}
 {"a": 1, "b": 2}

@@ -23,6 +23,7 @@ limitations under the License.
 #include "xlang3/sequence.h"
 #include "xlang3/value.h"
 
+#include <algorithm>
 #include <cmath>
 #include <charconv>
 #include <cstdint>
@@ -92,21 +93,348 @@ bool json_scanstring_kw(
       kwargs, kwargc, out, error);
 }
 
+struct JsonScannerState {
+  Value memo;
+  bool strict = true;
+};
+
+void json_scanner_state_cleanup(void* data) {
+  delete static_cast<JsonScannerState*>(data);
+}
+
+class JsonBuiltinParser {
+public:
+  // Keep the default JSONDecoder path in one native recursive-descent pass:
+  // per-token Python calls dominate small JSON documents. Custom hooks still
+  // use json.scanner.py_make_scanner, preserving the stdlib extension points.
+  JsonBuiltinParser(Runtime& runtime, std::string_view source, size_t start, bool strict, Value& memo)
+      : runtime_(runtime), source_(source), pos_(start), strict_(strict), memo_(memo) {}
+
+  bool parse(Value& out, size_t& end) {
+    if (!parse_value(out, 0)) return false;
+    end = pos_;
+    return true;
+  }
+
+  size_t position() const { return pos_; }
+
+private:
+  void whitespace() {
+    while (pos_ < source_.size()) {
+      const char c = source_[pos_];
+      if (c != ' ' && c != '\t' && c != '\n' && c != '\r') break;
+      ++pos_;
+    }
+  }
+
+  bool hex4(uint32_t& value) {
+    if (source_.size() - pos_ < 4) return false;
+    value = 0;
+    for (size_t i = 0; i < 4; ++i) {
+      const char c = source_[pos_++];
+      uint32_t digit;
+      if (c >= '0' && c <= '9') digit = static_cast<uint32_t>(c - '0');
+      else if (c >= 'a' && c <= 'f') digit = static_cast<uint32_t>(c - 'a' + 10);
+      else if (c >= 'A' && c <= 'F') digit = static_cast<uint32_t>(c - 'A' + 10);
+      else return false;
+      value = (value << 4) | digit;
+    }
+    return true;
+  }
+
+  static void append_utf8(uint32_t cp, std::string& out) {
+    if (cp <= 0x7f) out.push_back(static_cast<char>(cp));
+    else if (cp <= 0x7ff) {
+      out.push_back(static_cast<char>(0xc0 | (cp >> 6)));
+      out.push_back(static_cast<char>(0x80 | (cp & 0x3f)));
+    } else if (cp <= 0xffff) {
+      out.push_back(static_cast<char>(0xe0 | (cp >> 12)));
+      out.push_back(static_cast<char>(0x80 | ((cp >> 6) & 0x3f)));
+      out.push_back(static_cast<char>(0x80 | (cp & 0x3f)));
+    } else {
+      out.push_back(static_cast<char>(0xf0 | (cp >> 18)));
+      out.push_back(static_cast<char>(0x80 | ((cp >> 12) & 0x3f)));
+      out.push_back(static_cast<char>(0x80 | ((cp >> 6) & 0x3f)));
+      out.push_back(static_cast<char>(0x80 | (cp & 0x3f)));
+    }
+  }
+
+  bool parse_string(Value& out) {
+    if (pos_ >= source_.size() || source_[pos_] != '"') return false;
+    ++pos_;
+    std::string decoded;
+    const size_t content_start = pos_;
+    while (pos_ < source_.size()) {
+      const unsigned char c = static_cast<unsigned char>(source_[pos_++]);
+      if (c == '"') {
+        if (decoded.empty() && pos_ - content_start >= 1) {
+          out = Value::string(std::string(source_.substr(content_start, pos_ - content_start - 1)));
+        } else {
+          out = Value::string(std::move(decoded));
+        }
+        return true;
+      }
+      if (c >= 0x80) {
+        if (!decoded.empty()) decoded.push_back(static_cast<char>(c));
+        continue;
+      }
+      if (c < 0x20 && strict_) return false;
+      if (c != '\\') {
+        if (!decoded.empty()) decoded.push_back(static_cast<char>(c));
+        continue;
+      }
+      if (decoded.empty()) {
+        decoded.assign(source_.substr(content_start, pos_ - content_start - 1));
+      }
+      if (pos_ >= source_.size()) return false;
+      const char escape = source_[pos_++];
+      switch (escape) {
+        case '"': decoded.push_back('"'); break;
+        case '\\': decoded.push_back('\\'); break;
+        case '/': decoded.push_back('/'); break;
+        case 'b': decoded.push_back('\b'); break;
+        case 'f': decoded.push_back('\f'); break;
+        case 'n': decoded.push_back('\n'); break;
+        case 'r': decoded.push_back('\r'); break;
+        case 't': decoded.push_back('\t'); break;
+        case 'u': {
+          uint32_t cp;
+          if (!hex4(cp)) return false;
+          if (cp >= 0xd800 && cp <= 0xdbff) {
+            if (source_.size() - pos_ < 6 || source_[pos_] != '\\' || source_[pos_ + 1] != 'u') return false;
+            pos_ += 2;
+            uint32_t low;
+            if (!hex4(low) || low < 0xdc00 || low > 0xdfff) return false;
+            cp = 0x10000 + ((cp - 0xd800) << 10) + (low - 0xdc00);
+          } else if (cp >= 0xdc00 && cp <= 0xdfff) {
+            return false; // Preserve isolated-surrogate behavior through json.decoder.
+          }
+          append_utf8(cp, decoded);
+          break;
+        }
+        default: return false;
+      }
+    }
+    return false;
+  }
+
+  bool memoize_key(Value& key) {
+    Value existing;
+    std::string ignored;
+    if (mapping_get_item(memo_, key, existing, ignored)) {
+      key = std::move(existing);
+      return true;
+    }
+    ignored.clear();
+    return mapping_set_item(memo_, key, key, ignored);
+  }
+
+  bool parse_number(Value& out) {
+    const size_t begin = pos_;
+    if (source_[pos_] == '-') ++pos_;
+    if (pos_ >= source_.size()) return false;
+    if (source_[pos_] == '0') ++pos_;
+    else {
+      if (source_[pos_] < '1' || source_[pos_] > '9') return false;
+      while (pos_ < source_.size() && source_[pos_] >= '0' && source_[pos_] <= '9') ++pos_;
+    }
+    bool floating = false;
+    if (pos_ < source_.size() && source_[pos_] == '.') {
+      floating = true; ++pos_;
+      const size_t digits = pos_;
+      while (pos_ < source_.size() && source_[pos_] >= '0' && source_[pos_] <= '9') ++pos_;
+      if (digits == pos_) return false;
+    }
+    if (pos_ < source_.size() && (source_[pos_] == 'e' || source_[pos_] == 'E')) {
+      floating = true; ++pos_;
+      if (pos_ < source_.size() && (source_[pos_] == '+' || source_[pos_] == '-')) ++pos_;
+      const size_t digits = pos_;
+      while (pos_ < source_.size() && source_[pos_] >= '0' && source_[pos_] <= '9') ++pos_;
+      if (digits == pos_) return false;
+    }
+    const auto token = source_.substr(begin, pos_ - begin);
+    if (floating) {
+      double number = 0.0;
+      const auto result = std::from_chars(token.data(), token.data() + token.size(), number, std::chars_format::general);
+      if (result.ptr != token.data() + token.size()) return false;
+      if (result.ec == std::errc::result_out_of_range) {
+        // from_chars reports both overflow and underflow as out_of_range. Let
+        // the configured default float implementation resolve only these rare
+        // boundary cases; ordinary JSON floats stay entirely on the native path.
+        const Value* float_class = runtime_.find_builtin("float");
+        Value parsed;
+        Value text_value = Value::string(std::string(token));
+        std::string error;
+        if (float_class == nullptr ||
+            !runtime_call_callable(runtime_, *float_class, &text_value, 1, parsed, error) ||
+            parsed.tag != ValueTag::Double) {
+          return false;
+        }
+        number = parsed.as.f64;
+      } else if (result.ec != std::errc{}) {
+        return false;
+      }
+      out = Value::number(number);
+      return true;
+    }
+    int64_t integer = 0;
+    const auto result = std::from_chars(token.data(), token.data() + token.size(), integer);
+    if (result.ec == std::errc{} && result.ptr == token.data() + token.size()) {
+      out = Value::int64(integer);
+      return true;
+    }
+    std::string error;
+    out = value_bigint_from_decimal(token, 10, error);
+    return out.tag != ValueTag::Invalid;
+  }
+
+  bool parse_array(Value& out, size_t depth) {
+    ++pos_;
+    whitespace();
+    if (pos_ < source_.size() && source_[pos_] == ']') {
+      ++pos_; out = Value::list({}); return true;
+    }
+    std::vector<Value> values;
+    while (true) {
+      Value item;
+      if (!parse_value(item, depth + 1)) return false;
+      values.push_back(std::move(item));
+      whitespace();
+      if (pos_ >= source_.size()) return false;
+      const char separator = source_[pos_++];
+      if (separator == ']') break;
+      if (separator != ',') return false;
+      whitespace();
+    }
+    out = Value::list(std::move(values));
+    return true;
+  }
+
+  bool parse_object(Value& out, size_t depth) {
+    ++pos_;
+    whitespace();
+    out = Value::dict({});
+    if (pos_ < source_.size() && source_[pos_] == '}') { ++pos_; return true; }
+    while (true) {
+      Value key;
+      if (!parse_string(key) || !memoize_key(key)) return false;
+      whitespace();
+      if (pos_ >= source_.size() || source_[pos_++] != ':') return false;
+      whitespace();
+      Value item;
+      if (!parse_value(item, depth + 1)) return false;
+      std::string error;
+      if (!mapping_set_item(out, key, item, error)) return false;
+      whitespace();
+      if (pos_ >= source_.size()) return false;
+      const char separator = source_[pos_++];
+      if (separator == '}') break;
+      if (separator != ',') return false;
+      whitespace();
+    }
+    return true;
+  }
+
+  bool parse_value(Value& out, size_t depth) {
+    if (depth > 900) return false;
+    whitespace();
+    if (pos_ >= source_.size()) return false;
+    const char c = source_[pos_];
+    if (c == '"') return parse_string(out);
+    if (c == '[') return parse_array(out, depth);
+    if (c == '{') return parse_object(out, depth);
+    if (c == 'n' && source_.substr(pos_, 4) == "null") { pos_ += 4; out = Value::none(); return true; }
+    if (c == 't' && source_.substr(pos_, 4) == "true") { pos_ += 4; out = Value::boolean(true); return true; }
+    if (c == 'f' && source_.substr(pos_, 5) == "false") { pos_ += 5; out = Value::boolean(false); return true; }
+    if (c == '-' || (c >= '0' && c <= '9')) return parse_number(out);
+    return false;
+  }
+
+  std::string_view source_;
+  size_t pos_ = 0;
+  bool strict_ = true;
+  Runtime& runtime_;
+  Value& memo_;
+};
+
+bool json_scanner_call(
+    Runtime& runtime, const Value* args, uint32_t argc, Value& out,
+    std::string& error, void* data) {
+  auto* state = static_cast<JsonScannerState*>(data);
+  if (argc != 2 || value_as_string(args[0]) == nullptr || args[1].tag != ValueTag::Int64 || args[1].as.i64 < 0) {
+    error = "JSON scanner expected a string and integer index";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  const auto text = string_object_view(*value_as_string(args[0]));
+  const size_t start = utf8_byte_offset(text, static_cast<size_t>(args[1].as.i64));
+  if (static_cast<size_t>(args[1].as.i64) > utf8_codepoint_count(text)) {
+    error = "JSON scanner index out of range";
+    runtime.raise_class_error("IndexError", error);
+    return false;
+  }
+  JsonBuiltinParser parser(runtime, text, start, state->strict, state->memo);
+  Value result;
+  size_t end_byte = 0;
+  if (!parser.parse(result, end_byte)) {
+    const size_t error_index = utf8_codepoint_count(text.substr(0, parser.position()));
+    std::string ignored;
+    (void)mapping_clear(state->memo, ignored);
+    const Value* stop_iteration = runtime.find_builtin("StopIteration");
+    Value stop = stop_iteration != nullptr
+        ? runtime.make_exception_from_class(*stop_iteration, std::to_string(error_index))
+        : runtime.make_exception("StopIteration", std::to_string(error_index));
+    const Value index = Value::int64(static_cast<int64_t>(error_index));
+    std::string attr_error;
+    (void)object_set_attr(stop, "value", index, attr_error);
+    (void)object_set_attr(stop, "args", Value::tuple({index}), attr_error);
+    runtime.set_pending_exception(std::move(stop));
+    error = "JSON scanner stopped at invalid input";
+    return false;
+  }
+  std::string ignored;
+  (void)mapping_clear(state->memo, ignored);
+  const size_t end = utf8_codepoint_count(text.substr(0, end_byte));
+  out = Value::tuple({std::move(result), Value::int64(static_cast<int64_t>(end))});
+  return true;
+}
+
 bool json_make_scanner(
     Runtime& runtime, const Value* args, uint32_t argc, Value& out,
     std::string& error, void*) {
-  if (argc == 1) {
-    Value strict;
-    if (!object_get_attr(args[0], "strict", strict, error)) {
-      runtime.raise_class_error("AttributeError", error);
-      return false;
-    }
-    bool ignored = false;
-    if (!runtime_truthy(runtime, strict, ignored, error)) return false;
+  auto python_fallback = [&]() {
+    return call_python_json_helper(
+        runtime, "json.scanner", "py_make_scanner", args, argc,
+        nullptr, 0, out, error);
+  };
+  if (argc != 1) return python_fallback();
+  Value strict;
+  Value parse_float;
+  Value parse_int;
+  Value object_hook;
+  Value object_pairs_hook;
+  Value memo;
+  const Value* float_class = runtime.find_builtin("float");
+  const Value* int_class = runtime.find_builtin("int");
+  bool strict_enabled = false;
+  const bool native_eligible =
+      float_class != nullptr && int_class != nullptr &&
+      object_get_attr(args[0], "strict", strict, error) &&
+      runtime_truthy(runtime, strict, strict_enabled, error) && strict_enabled &&
+      object_get_attr(args[0], "parse_float", parse_float, error) && value_is(parse_float, *float_class) &&
+      object_get_attr(args[0], "parse_int", parse_int, error) && value_is(parse_int, *int_class) &&
+      object_get_attr(args[0], "object_hook", object_hook, error) && object_hook.tag == ValueTag::None &&
+      object_get_attr(args[0], "object_pairs_hook", object_pairs_hook, error) && object_pairs_hook.tag == ValueTag::None &&
+      object_get_attr(args[0], "memo", memo, error) && value_as_dict(memo) != nullptr;
+  if (!native_eligible) {
+    error.clear();
+    return python_fallback();
   }
-  return call_python_json_helper(
-      runtime, "json.scanner", "py_make_scanner", args, argc,
-      nullptr, 0, out, error);
+  auto* state = new JsonScannerState{std::move(memo), true};
+  out = runtime.make_native_function(
+      "_json.Scanner.__call__", json_scanner_call, state,
+      json_scanner_state_cleanup, nullptr, false, nullptr, false);
+  return true;
 }
 
 struct JsonFloatState {
