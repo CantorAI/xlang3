@@ -168,7 +168,10 @@ private:
       const unsigned char c = static_cast<unsigned char>(source_[pos_++]);
       if (c == '"') {
         if (decoded.empty() && pos_ - content_start >= 1) {
-          out = Value::string(std::string(source_.substr(content_start, pos_ - content_start - 1)));
+          // The source view is copied directly into XLang's owned string.
+          // Avoid constructing a temporary std::string for every unescaped
+          // JSON key/value; json_loads contains many short strings per parse.
+          out = Value::string_view(source_.substr(content_start, pos_ - content_start - 1));
         } else {
           out = Value::string(std::move(decoded));
         }
