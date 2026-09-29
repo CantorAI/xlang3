@@ -1,0 +1,14 @@
+XLang3 3.14.7 Release diagnostic, 2026-09-29
+
+Same split script and inputs in scratch/performance/typing-runtime-protocols-split.py:
+- 20 passes over the exact 5-protocol x 13-instance matrix: isinstance 162.031 ms before, 150.443 ms after.
+- 20 passes over 182 inspect.getattr_static probes: 447.565 ms before, 341.019 ms after.
+- 1000 passes over object.__getattribute__(instance, "__dict__"): 7.715 ms before, 7.664 ms after.
+
+Separate helper split, 20 passes over the same 182 attribute probes:
+- inspect.getattr_static: 415.291 ms before, 353.266 ms after.
+- inspect._check_class: 229.862 ms before, 186.247 ms after.
+- inspect._check_instance: 9.539 ms before, 8.780 ms after.
+- inspect._shadowed_dict: 73.006 ms before, 70.794 ms after.
+
+These are single diagnostic runs and are not pyperf estimates. The two official focused pyperf result files are next to this report.

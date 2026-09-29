@@ -1249,6 +1249,17 @@ bool mapping_contains(const Value& container, const Value& item, bool& out, std:
   if (const Value* source = mapping_proxy_source(container)) {
     return mapping_contains(*source, item, out, error);
   }
+  if (auto* klass = value_as_class(container)) {
+    if (auto* string = value_as_string(item)) {
+      // Class mapping proxies are probed repeatedly by inspect.getattr_static
+      // and runtime Protocol checks. Avoid materializing every class entry
+      // just to test one string key; retain the general path below for
+      // non-string keys.
+      const std::string name = string_object_to_string(*string);
+      out = class_visible_name(name) && klass->attrs.find(name) != klass->attrs.end();
+      return true;
+    }
+  }
   out = false;
   DictIterationKind kind = DictIterationKind::Keys;
   auto* dict = dict_source_from_view_or_dict(container, kind);
