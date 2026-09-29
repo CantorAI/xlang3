@@ -206,6 +206,7 @@ struct XlangVMFrame {
   uint32_t last_debug_line = 0;
   uint64_t monitoring_configuration_generation = 0;
   int64_t monitoring_events = 0;
+  bool monitoring_cache_touched = false;
   bool trace_call_emitted = false;
   bool trace_lines = true;
   bool trace_opcodes = false;
@@ -357,17 +358,19 @@ struct XlangVMFrame {
     // Inline caches must not extend the lifetime of Python objects after the
     // frame returns. CPython's adaptive caches are non-owning; XLang3 cache
     // entries currently contain owning Values, so discard those entries while
-    // retaining the allocated cache vector for the next activation.
-    for (auto& cache : instr_cache) {
-      // Cache writers touch their adaptive domain before storing auxiliary
-      // values. Monitoring's negative-location mask is the sidecar state that
-      // does not use a domain, so clear those entries too. Most IR instructions
-      // never touch a cache and can skip the large record/vector reset here.
-      if (cache.domain != XlangVMCacheDomain::Empty ||
-          cache.monitoring_generation != 0 || cache.monitoring_disabled_events != 0) {
-        cache = XlangVMInstrCache{};
+    // retaining the allocated cache vector for the next activation. Function
+    // metadata lists only IR sites that can own cache state, avoiding a scan of
+    // every instruction on each Python return in call-heavy workloads.
+    const auto* cache_sites = execution_metadata == nullptr || monitoring_cache_touched
+        ? nullptr : &execution_metadata->cache_cleanup_instructions;
+    if (cache_sites != nullptr) {
+      for (uint32_t index : *cache_sites) {
+        if (index < instr_cache.size()) clear_cache_if_owned(instr_cache[index]);
       }
+    } else {
+      for (auto& cache : instr_cache) clear_cache_if_owned(cache);
     }
+    monitoring_cache_touched = false;
     value_set_invalid(trace_function);
     value_set_invalid(trace_frame_object);
     closure = nullptr;
@@ -382,6 +385,48 @@ struct XlangVMFrame {
   }
 
 private:
+  static void clear_cache_if_owned(XlangVMInstrCache& cache) {
+    // Cache writers touch their adaptive domain before storing auxiliary
+    // values. Monitoring's negative-location mask is the sidecar state that
+    // does not use a domain, so clear those entries too. Most IR instructions
+    // never touch a cache and can skip the large record/vector reset here.
+    if (cache.domain != XlangVMCacheDomain::Empty ||
+        cache.monitoring_generation != 0 || cache.monitoring_disabled_events != 0) {
+      cache = XlangVMInstrCache{};
+    }
+  }
+
+  static bool instruction_may_own_inline_cache(ir::Op op) {
+    // Keep this set aligned with every xlang_vm_cache_touch() callsite and
+    // include fused IR ops that delegate to those cached handlers.
+    switch (op) {
+      case ir::Op::LoadModuleSlot:
+      case ir::Op::LoadGlobal:
+      case ir::Op::LoadLocalGlobal:
+      case ir::Op::LoadGlobalLocal:
+      case ir::Op::StoreGlobal:
+      case ir::Op::LoadAttr:
+      case ir::Op::LoadLocalAttr:
+      case ir::Op::LoadModuleAttr:
+      case ir::Op::StoreAttr:
+      case ir::Op::DeleteAttr:
+      case ir::Op::Len:
+      case ir::Op::GetItem:
+      case ir::Op::LoadLocalGetItem:
+      case ir::Op::Call:
+      case ir::Op::CallLocal:
+      case ir::Op::CallGlobal:
+      case ir::Op::CallEx:
+      case ir::Op::CallMethod:
+      case ir::Op::CallMethodEx:
+      case ir::Op::CallLocalMethod:
+      case ir::Op::CallModuleMethod:
+        return true;
+      default:
+        return false;
+    }
+  }
+
   template <typename Fn>
   void for_each_register_read(const ir::Instr& instr, Fn&& fn) const {
     auto one = [&](uint32_t reg) {
@@ -628,6 +673,12 @@ private:
     }
     auto computed = std::make_shared<ir::FunctionExecutionMetadata>();
     computed->owner = fn;
+    computed->cache_cleanup_instructions.reserve(fn->code.size() / 8);
+    for (size_t ip = 0; ip < fn->code.size(); ++ip) {
+      if (instruction_may_own_inline_cache(fn->code[ip].op)) {
+        computed->cache_cleanup_instructions.push_back(static_cast<uint32_t>(ip));
+      }
+    }
     computed->register_last_use.assign(
         fn->register_count, std::numeric_limits<size_t>::max());
     computed->register_loop_carried.assign(fn->register_count, false);

@@ -1052,6 +1052,7 @@ RuntimeResult Interpreter::run_function(
     XlangVMInstrCache* monitoring_cache = monitoring_frame.ip < monitoring_frame.instr_cache.size()
         ? &monitoring_frame.instr_cache[monitoring_frame.ip]
         : nullptr;
+    if (monitoring_cache != nullptr) monitoring_frame.monitoring_cache_touched = true;
     const uint64_t monitoring_generation = sys_monitoring_configuration_generation();
     if (monitoring_cache != nullptr) {
       if (monitoring_cache->monitoring_generation != monitoring_generation) {

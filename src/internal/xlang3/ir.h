@@ -289,6 +289,8 @@ struct FunctionExecutionMetadata {
   const Function* owner = nullptr;
   std::vector<size_t> register_last_use;
   std::vector<bool> register_loop_carried;
+  // Precomputed IR sites whose execution may populate an owning inline cache.
+  std::vector<uint32_t> cache_cleanup_instructions;
 };
 
 struct Function {
