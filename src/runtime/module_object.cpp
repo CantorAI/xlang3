@@ -396,6 +396,7 @@ bool module_set_attr(Value& object, const std::string& name, const Value& value,
     }
   }
   ++module->version;
+  if (name == "__builtins__") ++module->builtins_version;
   module_update_namespace_entry(*module, name, value);
   return true;
 }
@@ -427,6 +428,7 @@ bool module_delete_attr(Value& object, const std::string& name, std::string& err
     module->name_to_slot.erase(it);
   }
   ++module->version;
+  if (name == "__builtins__") ++module->builtins_version;
   module_delete_namespace_entry(*module, name);
   return true;
 }

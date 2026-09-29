@@ -1428,14 +1428,12 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
         code->module,
         std::move(defaults),
         std::move(kwdefaults));
+    if (auto* function = value_as_function(out)) {
+      function_capture_builtins(runtime, *function, globals_value);
+    }
     std::string ignored;
     if (!function_name.empty()) {
       object_set_attr(out, "__name__", Value::string(function_name), ignored);
-    }
-    Value builtins;
-    if (mapping_get_item(
-            runtime.module_registry_dict(), Value::string("builtins"), builtins, ignored)) {
-      object_set_attr(out, "__builtins__", builtins, ignored);
     }
     return true;
   }

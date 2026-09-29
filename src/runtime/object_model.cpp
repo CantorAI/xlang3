@@ -3013,6 +3013,27 @@ static bool native_function_new(
   return false;
 }
 
+void function_capture_builtins(Runtime& runtime, FunctionObject& function, const Value& globals) {
+  Value builtins;
+  std::string ignored;
+  bool found = false;
+  if (value_as_module(globals) != nullptr) {
+    found = module_get_attr(globals, "__builtins__", builtins, ignored);
+  } else if (value_as_dict(globals) != nullptr) {
+    found = mapping_get_string_item(globals, "__builtins__", builtins, ignored);
+  }
+  if (!found) {
+    ignored.clear();
+    Value builtins_module;
+    if (mapping_get_string_item(runtime.module_registry_dict(), "builtins", builtins_module, ignored)) {
+      value_assign_fast(builtins, builtins_module);
+    }
+  }
+  if (builtins.tag != ValueTag::Invalid) {
+    value_assign_fast(function.builtins, builtins);
+  }
+}
+
 bool object_get_attr(const Value& object, const std::string& name, Value& out, std::string& error) {
   if (auto* slot = value_as_slot_descriptor(object)) {
     if (name == "__name__") {
@@ -3298,6 +3319,21 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
   }
 
   if (auto* function = value_as_function(object)) {
+    // CPython exposes the builtins mapping captured at function creation as a
+    // read-only data attribute. Store it directly instead of in __dict__, so
+    // ordinary defs need no per-function attribute-dict allocation.
+    if (name == "__builtins__") {
+      if (function->builtins.tag == ValueTag::Invalid) {
+        error = "function has no builtins namespace";
+        return false;
+      }
+      if (value_as_module(function->builtins) != nullptr) {
+        value_assign_fast(out, module_namespace_dict(function->builtins));
+      } else {
+        value_assign_fast(out, function->builtins);
+      }
+      return true;
+    }
     if (function->attrs_dict.tag != ValueTag::Invalid) {
       std::string ignored;
       if (mapping_get_item(function->attrs_dict, Value::string(name), out, ignored)) {
@@ -4592,6 +4628,10 @@ bool object_set_attr(Value& object, const std::string& name, const Value& value,
   }
 
   if (auto* function = value_as_function(object)) {
+    if (name == "__builtins__") {
+      error = "function attribute '__builtins__' is read-only";
+      return false;
+    }
     if (name == "__qualname__") {
       auto* string = value_as_string(value);
       if (string == nullptr) {
@@ -5051,6 +5091,10 @@ bool object_delete_attr(Value& object, const std::string& name, std::string& err
   }
 
   if (auto* function = value_as_function(object)) {
+    if (name == "__builtins__") {
+      error = "attribute '__builtins__' of 'function' objects is not writable";
+      return false;
+    }
     if (name == "__module__") {
       if (function->attrs_dict.tag == ValueTag::Invalid) {
         function->attrs_dict = Value::dict({});

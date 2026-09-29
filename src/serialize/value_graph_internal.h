@@ -16,7 +16,7 @@
 
 namespace xlang3::serialize::graph {
 constexpr uint32_t magic = 0x47563358; // X3VG
-constexpr uint32_t version = 1;
+constexpr uint32_t version = 2;
 constexpr uint32_t max_nodes = 1000000;
 constexpr uint32_t max_fields = 16000000;
 constexpr uint64_t max_payload = 1024ull * 1024 * 1024;

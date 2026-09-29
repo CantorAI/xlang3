@@ -13,7 +13,9 @@ public:
   Reader(Runtime& runtime, XLangStream& stream) : runtime(runtime), io(stream) {}
   ~Reader() { if (!committed) for (size_t i = 0; i < owned.size(); ++i) if (owned[i]) clear_edges(values[i]); }
   Value run() {
-    IO::require(io.number<uint32_t>() == magic && io.number<uint32_t>() == version, "unsupported value graph format");
+    IO::require(io.number<uint32_t>() == magic, "unsupported value graph format");
+    graph_version = io.number<uint32_t>();
+    IO::require(graph_version == 1 || graph_version == version, "unsupported value graph format");
     auto module_count = io.count();
     IO::require(module_count <= max_nodes, "too many code modules");
     for (uint32_t i = 0; i < module_count; ++i) {
@@ -73,6 +75,7 @@ public:
 private:
   Runtime& runtime;
   IO io;
+  uint32_t graph_version = version;
   bool committed = false;
   std::vector<Record> records;
   std::vector<Value> values;
@@ -190,11 +193,28 @@ private:
         auto& n = r.numbers;
         for (size_t j = 2; j < 6; ++j) IO::require(n[j] <= max_fields, "invalid function field count");
         IO::require(n[1] < modules.size() && n[0] < modules[n[1]]->functions.size(), "invalid function IR reference");
-        IO::require(r.refs.size() == 4 + n[2] + n[3] + n[4] + n[5] && r.names.size() >= 1 + n[5], "invalid function fields");
+        const size_t fixed_refs = graph_version >= 2 ? 5 : 4;
+        IO::require(r.refs.size() == fixed_refs + n[2] + n[3] + n[4] + n[5] && r.names.size() >= 1 + n[5], "invalid function fields");
         auto* f = value_as_function(v);
         f->function_id = static_cast<uint32_t>(n[0]); f->module = modules[n[1]]; f->qualname = r.names[0];
-        f->globals_module = ref(0); f->annotations = ref(1); f->doc = ref(2); f->attrs_dict = ref(3);
-        size_t cursor = 4;
+        f->globals_module = ref(0);
+        size_t cursor;
+        if (graph_version >= 2) {
+          f->builtins = ref(1); f->annotations = ref(2); f->doc = ref(3); f->attrs_dict = ref(4);
+          cursor = 5;
+        } else {
+          f->annotations = ref(1); f->doc = ref(2); f->attrs_dict = ref(3);
+          // Version 1 stored function builtins inside the user attribute dict.
+          // Move that legacy value to the captured field and keep __dict__ clean.
+          function_capture_builtins(runtime, *f, f->globals_module);
+          Value legacy_builtins;
+          std::string ignored;
+          if (mapping_get_string_item(f->attrs_dict, "__builtins__", legacy_builtins, ignored)) {
+            f->builtins = std::move(legacy_builtins);
+            (void)mapping_delete_item(f->attrs_dict, Value::string("__builtins__"), ignored);
+          }
+          cursor = 4;
+        }
         for (size_t j = 0; j < n[2]; ++j) f->closure.push_back(ref(cursor++));
         for (size_t j = 0; j < n[3]; ++j) f->defaults.push_back(ref(cursor++));
         for (size_t j = 0; j < n[4]; ++j) f->positional_defaults.push_back(ref(cursor++));

@@ -512,6 +512,9 @@ struct FunctionObject {
   Value annotations;
   Value doc;
   Value globals_module;
+  // Captured builtins namespace, matching function.__builtins__; keeping it
+  // separate avoids allocating an attribute dictionary for every function.
+  Value builtins;
   Value globals_dict;
   Value attrs_dict;
   std::shared_ptr<const ir::Module> module;
@@ -1006,6 +1009,13 @@ XLANG3_HOT_INLINE void value_assign_fast(Value& out, const Value& value) {
     return;
   }
   if (value.tag == ValueTag::Object) {
+    // Re-loading a stable cached object into its existing register must not
+    // churn the atomic refcount: either slot's current ownership is already
+    // correct when both values name the same object. Keep scalar assignments
+    // on the original branch path by checking identity only for object copies.
+    if (out.tag == ValueTag::Object && out.as.obj == value.as.obj) {
+      return;
+    }
     out = value;
     return;
   }

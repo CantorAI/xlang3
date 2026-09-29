@@ -28,6 +28,9 @@ class Runtime;
 struct ModuleObject {
   Object header;
   uint64_t version = 0;
+  // Function-definition caches only depend on this global binding, so routine
+  // module initialization does not invalidate the captured __builtins__ value.
+  uint64_t builtins_version = 0;
   std::string name;
   bool implicit_name = true;
   Value klass;

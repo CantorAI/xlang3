@@ -167,7 +167,7 @@ bool consume_system_exit_result(xlang3::Runtime& runtime, const xlang3::RuntimeR
 }
 
 void print_usage() {
-  std::cerr << "usage: xlang3 [--dap-stdio] [--dump-ir] [--debug-dir <folder>] [--perf-counters] "
+  std::cerr << "usage: xlang3 [--dap-stdio] [--dump-ir] [--debug-dir <folder>] [--perf-counters] [--perf-counters-startup] "
                "[-c code | -m module | file.py] [args...]\n";
 }
 
@@ -180,6 +180,11 @@ bool parse_args(int argc, char** argv, xlang3::RunConfig& config) {
     }
     if (arg == "--perf-counters") {
       config.perf_counters = true;
+      continue;
+    }
+    if (arg == "--perf-counters-startup") {
+      config.perf_counters = true;
+      config.perf_counters_startup = true;
       continue;
     }
     if (arg == "--debug-dir") {
@@ -1225,6 +1230,12 @@ int xlang3_main(int argc, char** argv) {
     std::cerr << "runtime: " << argv_error << "\n";
     return 1;
   }
+  // Startup profiling begins before site import so its Python-level bootstrap
+  // work is included; the default perf switch still isolates user execution.
+  if (config.perf_counters_startup) {
+    xlang3::xlang_perf_reset();
+    xlang3::xlang_perf_set_enabled(true);
+  }
   if (!config.no_site) {
     xlang3::Value site;
     if (!runtime.import_module("site", site, argv_error)) {
@@ -1249,7 +1260,9 @@ int xlang3_main(int argc, char** argv) {
   runtime.hide_cached_module("_sre");
   xlang3::Interpreter interpreter(runtime);
   if (config.perf_counters) {
-    xlang3::xlang_perf_reset();
+    if (!config.perf_counters_startup) {
+      xlang3::xlang_perf_reset();
+    }
     xlang3::xlang_perf_set_enabled(true);
   }
   bool ok = false;

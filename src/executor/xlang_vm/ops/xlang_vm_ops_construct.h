@@ -22,6 +22,7 @@ limitations under the License.
 #include "xlang3/module_object.h"
 #include "xlang3/runtime.h"
 
+#include <cstddef>
 #include <memory>
 #include <string>
 #include <utility>
@@ -151,6 +152,9 @@ XLANG3_HOT_INLINE XlangVMOpFlow make_function(
     const ir::Instr& in,
     const ir::Function& fn,
     Runtime& runtime,
+    XlangVMFrame& frame,
+    size_t& ip,
+    bool allow_unobserved_store_fusion,
     XlangVMSmallRegisterBuffer& regs,
     Value& globals_module,
     const std::shared_ptr<const ir::Module>& module_owner,
@@ -184,11 +188,41 @@ XLANG3_HOT_INLINE XlangVMOpFlow make_function(
     }
   }
   regs[in.dst] = Value::function(in.a, std::move(closure), globals_module, module_owner, std::move(defaults));
-  Value builtins;
-  std::string ignored;
-  if (mapping_get_item(
-          runtime.module_registry_dict(), Value::string("builtins"), builtins, ignored)) {
-    object_set_attr(regs[in.dst], "__builtins__", builtins, ignored);
+  if (auto* function = value_as_function(regs[in.dst])) {
+    auto* globals = value_as_module(globals_module);
+    if (globals != nullptr && frame.function_builtins_cache_module == globals &&
+        frame.function_builtins_cache_version == globals->builtins_version &&
+        frame.function_builtins_cache.tag != ValueTag::Invalid) {
+      value_assign_fast(function->builtins, frame.function_builtins_cache);
+    } else {
+      function_capture_builtins(runtime, *function, globals_module);
+      if (globals != nullptr && function->builtins.tag != ValueTag::Invalid) {
+        value_assign_fast(frame.function_builtins_cache, function->builtins);
+        frame.function_builtins_cache_module = globals;
+        frame.function_builtins_cache_version = globals->builtins_version;
+      }
+    }
+  }
+  // A plain module-level def commonly stores its newly created function in
+  // the very next opcode. Fold that store into MakeFunction only when no
+  // debugger, tracer, or per-instruction monitor can observe the boundary;
+  // advance to the store's IP before raising so errors retain its location.
+  if (allow_unobserved_store_fusion && frame.module != nullptr &&
+      value_as_module(globals_module) != nullptr && ip + 1 < fn.code.size()) {
+    const auto& next = fn.code[ip + 1];
+    if (next.op == ir::Op::StoreModuleSlot && next.a == in.dst &&
+        next.dst < frame.module->global_slots.size()) {
+      ++ip;
+      std::string error;
+      if (!module_set_attr(
+              globals_module,
+              frame.module->global_slots[next.dst],
+              regs[in.dst],
+              error)) {
+        result.errors.push_back(error);
+        return XlangVMOpFlow::ReturnResult;
+      }
+    }
   }
   return XlangVMOpFlow::Next;
 }

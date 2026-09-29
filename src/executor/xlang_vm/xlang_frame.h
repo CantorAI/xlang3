@@ -19,6 +19,7 @@ limitations under the License.
 #include "xlang3/builtin_methods.h"
 #include "xlang3/interpreter.h"
 #include "xlang3/ir.h"
+#include "xlang3/module_object.h"
 #include "xlang3/runtime.h"
 
 #include <cstdint>
@@ -183,6 +184,11 @@ struct XlangVMFrame {
   Value monitoring_code;
   Value trace_function;
   Value trace_frame_object;
+  // Function definitions in one module repeatedly capture the same builtin
+  // binding; the dedicated module version invalidates this across rebinding.
+  ModuleObject* function_builtins_cache_module = nullptr;
+  uint64_t function_builtins_cache_version = 0;
+  Value function_builtins_cache;
   size_t ip = 0;
   uint32_t last_trace_line = 0;
   uint32_t last_monitoring_line = 0;
@@ -292,6 +298,9 @@ struct XlangVMFrame {
     }
     value_set_invalid(trace_function);
     value_set_invalid(trace_frame_object);
+    function_builtins_cache_module = nullptr;
+    function_builtins_cache_version = 0;
+    value_set_invalid(function_builtins_cache);
     ip = 0;
     last_trace_line = 0;
     last_monitoring_line = 0;

@@ -187,6 +187,7 @@ void slot_descriptor_set_owner_class(Value& descriptor, const Value& owner_class
 std::string object_model_to_string(const Value& value);
 
 bool object_get_attr(const Value& object, const std::string& name, Value& out, std::string& error);
+void function_capture_builtins(Runtime& runtime, FunctionObject& function, const Value& globals);
 bool object_set_attr(Value& object, const std::string& name, const Value& value, std::string& error);
 bool object_delete_attr(Value& object, const std::string& name, std::string& error);
 bool object_get_class_attr_for_instance(const Value& object, const std::string& name, Value& out, std::string& error);
