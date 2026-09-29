@@ -40,6 +40,8 @@ namespace {
 
 static constexpr const char* kWeakrefCallbackAttr = "__xlang3_weakref_callback__";
 static constexpr const char* kWeakrefHashAttr = "__xlang3_weakref_hash__";
+Value weakref_reference_type_value = Value::invalid();
+std::atomic_uint64_t weakref_reference_type_version{0};
 
 struct WeakrefEntry {
   Object* ref = nullptr;
@@ -422,9 +424,8 @@ bool weakref_reference_class_getitem(
 }
 
 Value weakref_reference_type(Runtime& runtime) {
-  static Value reference_type = Value::invalid();
-  if (reference_type.tag != ValueTag::Invalid) {
-    return reference_type;
+  if (weakref_reference_type_value.tag != ValueTag::Invalid) {
+    return weakref_reference_type_value;
   }
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.push_back({"__module__", Value::string("weakref")});
@@ -457,8 +458,8 @@ Value weakref_reference_type(Runtime& runtime) {
   if (const auto* builtin_object = runtime.find_builtin("object")) {
     value_assign_fast(object_base, *builtin_object);
   }
-  reference_type = Value::class_object("ReferenceType", std::move(attrs), std::move(object_base));
-  if (auto* reference_class = value_as_class(reference_type)) {
+  weakref_reference_type_value = Value::class_object("ReferenceType", std::move(attrs), std::move(object_base));
+  if (auto* reference_class = value_as_class(weakref_reference_type_value)) {
     reference_class->restrict_instance_attrs = true;
     reference_class->allow_instance_dict = false;
     reference_class->allow_weakref = false;
@@ -468,8 +469,9 @@ Value weakref_reference_type(Runtime& runtime) {
       reference_class->instance_slot_indices[reference_class->instance_slot_names[i]] =
           static_cast<uint32_t>(i);
     }
+    weakref_reference_type_version.store(reference_class->version, std::memory_order_relaxed);
   }
-  return reference_type;
+  return weakref_reference_type_value;
 }
 
 bool weakref_ref(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -912,6 +914,30 @@ void add_weakref_exports(NativeModuleBuilder& builder, Runtime& runtime) {
 }
 
 } // namespace
+
+bool weakref_cached_hash(const Value& ref, size_t& out) {
+  auto* instance = value_as_instance(ref);
+  // Do not initialize the weakref builtin as a side effect of hashing an
+  // unrelated instance; only recognize the type after its module created it.
+  if (instance == nullptr || weakref_reference_type_value.tag == ValueTag::Invalid ||
+      !value_is(instance->klass, weakref_reference_type_value)) {
+    return false;
+  }
+  auto* klass = value_as_class(instance->klass);
+  if (klass == nullptr || klass->version !=
+          weakref_reference_type_version.load(std::memory_order_relaxed) ||
+      instance_slot_count(instance) <= 1) {
+    return false;
+  }
+  // The exact builtin class identity plus its unchanged version proves both
+  // the native __hash__ implementation and fixed slot layout are intact. The
+  // immutable cached hash can then be read without dynamic attribute dispatch.
+  constexpr uint32_t kCachedHashSlot = 1;
+  const Value& cached = instance_slot_at(instance, kCachedHashSlot);
+  if (cached.tag != ValueTag::Int64) return false;
+  out = static_cast<size_t>(cached.as.i64);
+  return true;
+}
 
 Value make_weakref_ref(Runtime& runtime, const Value& target) {
   Value ref = Value::instance(weakref_reference_type(runtime));

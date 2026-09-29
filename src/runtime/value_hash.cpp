@@ -438,6 +438,11 @@ bool value_hash_key(const Value& value, size_t& out, std::string& error) {
 }
 
 bool runtime_value_hash_key(Runtime& runtime, const Value& value, size_t& out, std::string& error) {
+  // CPython inspect's cached MRO probe keys are tuples of weakref.ref objects.
+  // Those refs cache their referent hash after the first lookup. Read that
+  // stable slot directly on subsequent probes instead of repeating Python
+  // __hash__ attribute binding and native-call dispatch for every MRO member.
+  if (weakref_cached_hash(value, out)) return true;
   if (value_as_instance(value) != nullptr) {
     Value hash_method;
     std::string attr_error;

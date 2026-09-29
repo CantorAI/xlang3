@@ -107,6 +107,50 @@ bool keys_equal(Runtime& runtime, const Value& left, const Value& right,
   return true;
 }
 
+bool flat_positional_tuple_hash(Runtime& runtime, const Value* args, uint32_t argc,
+                                size_t& out, std::string& error) {
+  size_t hash = 0x345678ul;
+  for (uint32_t i = 0; i < argc; ++i) {
+    size_t item_hash = 0;
+    if (!runtime_value_hash_key(runtime, args[i], item_hash, error)) return false;
+    hash = (hash ^ item_hash) * 1000003ul;
+    hash ^= argc;
+  }
+  out = hash == static_cast<size_t>(-1) ? static_cast<size_t>(-2) : hash;
+  return true;
+}
+
+bool flat_positional_tuple_equal(Runtime& runtime, const Value& stored_key,
+                                 const Value* args, uint32_t argc,
+                                 bool& equal, std::string& error) {
+  const auto* tuple = value_as_tuple(stored_key);
+  if (tuple == nullptr || tuple->items.size() != argc) {
+    equal = false;
+    return true;
+  }
+  for (uint32_t i = 0; i < argc; ++i) {
+    // Python tuple comparison skips rich comparison when corresponding
+    // elements are identical; preserve that behavior while avoiding a
+    // temporary candidate tuple on this lru_cache hit path.
+    if (value_is(tuple->items[i], args[i])) continue;
+    Value compared;
+    if (!runtime_value_compare(runtime, "==", tuple->items[i], args[i], compared, error)) return false;
+    if (!value_truthy(compared)) {
+      equal = false;
+      return true;
+    }
+  }
+  equal = true;
+  return true;
+}
+
+Value flat_positional_tuple_key(const Value* args, uint32_t argc) {
+  std::vector<Value> items;
+  items.reserve(argc);
+  for (uint32_t i = 0; i < argc; ++i) items.push_back(args[i]);
+  return Value::tuple(std::move(items));
+}
+
 bool lru_wrapper_call(Runtime& runtime, const Value* args, uint32_t argc,
                       const NativeKeywordArg* kwargs, uint32_t kwargc,
                       Value& out, std::string& error, void* user_data) {
@@ -123,16 +167,29 @@ bool lru_wrapper_call(Runtime& runtime, const Value* args, uint32_t argc,
     return runtime_call_callable_kw(runtime, state.function, args, argc, keyword_values, out, error);
   }
 
+  // For the common multi-positional form, lru_cache's key is exactly a tuple
+  // of args. Hash and compare that virtual tuple directly on hits; allocating
+  // a short-lived tuple for every hit is pure VM/GC overhead. Keep ordinary
+  // key construction on misses and use the same dynamic item hash/equality
+  // rules as tuple so custom key types and exceptions retain their behavior.
+  const bool flat_positional_key = !state.typed && kwargc == 0 && argc > 1;
   Value key;
   size_t hash = 0;
-  if (!make_cache_key(runtime, state, args, argc, kwargs, kwargc, key, error) ||
-      !runtime_value_hash_key(runtime, key, hash, error)) return false;
+  if (flat_positional_key) {
+    if (!flat_positional_tuple_hash(runtime, args, argc, hash, error)) return false;
+  } else if (!make_cache_key(runtime, state, args, argc, kwargs, kwargc, key, error) ||
+             !runtime_value_hash_key(runtime, key, hash, error)) {
+    return false;
+  }
   {
     std::lock_guard<std::recursive_mutex> lock(state.mutex);
     for (auto& entry : state.entries) {
       if (entry.hash != hash) continue;
       bool equal = false;
-      if (!keys_equal(runtime, entry.key, key, equal, error)) return false;
+      const bool compared = flat_positional_key
+          ? flat_positional_tuple_equal(runtime, entry.key, args, argc, equal, error)
+          : keys_equal(runtime, entry.key, key, equal, error);
+      if (!compared) return false;
       if (!equal) continue;
       ++state.hits;
       entry.age = ++state.clock;
@@ -142,6 +199,7 @@ bool lru_wrapper_call(Runtime& runtime, const Value* args, uint32_t argc,
     ++state.misses;
   }
 
+  if (flat_positional_key) key = flat_positional_tuple_key(args, argc);
   std::vector<std::pair<std::string, Value>> keyword_values;
   keyword_values.reserve(kwargc);
   for (uint32_t i = 0; i < kwargc; ++i)

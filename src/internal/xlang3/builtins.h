@@ -119,6 +119,7 @@ void register_random_module(Runtime& runtime);
 void register_weakref_module(Runtime& runtime);
 Value make_weakref_ref(Runtime& runtime, const Value& target);
 bool weakref_get_target(const Value& ref, Value& out);
+bool weakref_cached_hash(const Value& ref, size_t& out);
 bool weakref_find_ref(const Value& target, Value& out);
 void weakref_invalidate_target(Object* target);
 bool weakref_callbacks_pending();
