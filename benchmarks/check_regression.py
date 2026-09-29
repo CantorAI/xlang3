@@ -49,9 +49,21 @@ def timed_source(source):
 
 
 def run_once(executable, source, timeout):
+    # Different XLang3 revisions may use different IR instruction layouts for
+    # the same 3.14 bytecode cache. Keep each executable's startup cache apart
+    # during paired comparisons so one side cannot consume the other's artifacts.
+    cache_root = Path(os.environ.get(
+        "PYTHONPYCACHEPREFIX", ROOT / "scratch/performance/pycache-regression"))
+    runtime_dll = executable.with_name("xlang3_runtime.dll")
+    identity = [str(executable.resolve()), executable.stat().st_mtime_ns]
+    if runtime_dll.exists():
+        identity.extend((str(runtime_dll.resolve()), runtime_dll.stat().st_mtime_ns))
+    cache_key = hashlib.sha256(repr(identity).encode()).hexdigest()[:16]
+    child_env = os.environ.copy()
+    child_env["PYTHONPYCACHEPREFIX"] = str(cache_root / cache_key)
     completed = subprocess.run(
         [str(executable), str(source)], cwd=ROOT, capture_output=True,
-        text=True, timeout=timeout,
+        text=True, timeout=timeout, env=child_env,
     )
     if completed.returncode:
         raise ValueError(f"{executable} failed ({completed.returncode}): {completed.stderr[-4000:]}")

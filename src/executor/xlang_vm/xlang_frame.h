@@ -521,6 +521,14 @@ private:
         one(instr.a);
         call_args(instr.c);
         break;
+      case ir::Op::CallMethodEx:
+        one(instr.a);
+        if (instr.c < this->fn->call_specs.size()) {
+          const auto& spec = this->fn->call_specs[instr.c];
+          list(spec.positional);
+          for (const auto& keyword : spec.keywords) one(keyword.value_reg);
+        }
+        break;
       case ir::Op::CallLocalMethod:
         call_args(instr.c);
         break;
@@ -642,6 +650,7 @@ private:
           case ir::Op::Call:
           case ir::Op::CallEx:
           case ir::Op::CallMethod:
+          case ir::Op::CallMethodEx:
           case ir::Op::CallLocal:
           case ir::Op::CallLocalMethod:
           case ir::Op::CallModuleMethod:

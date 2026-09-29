@@ -6111,6 +6111,36 @@ private:
     }
     if (auto* call = dynamic_cast<const ast::CallExpr*>(&expr)) {
       if (!call->call_args.empty()) {
+        auto* method = dynamic_cast<const ast::AttrExpr*>(call->callee.get());
+        const bool has_keyword = std::any_of(
+            call->call_args.begin(), call->call_args.end(),
+            [](const auto& arg) { return !arg.name.empty(); });
+        const bool has_expansion = std::any_of(
+            call->call_args.begin(), call->call_args.end(),
+            [](const auto& arg) { return arg.star || arg.kw_star; });
+        const bool side_effect_free_args = std::all_of(
+            call->call_args.begin(), call->call_args.end(), [](const auto& arg) {
+              return dynamic_cast<const ast::NameExpr*>(arg.value.get()) != nullptr ||
+                     dynamic_cast<const ast::LiteralExpr*>(arg.value.get()) != nullptr;
+            });
+        // CallMethodEx resolves the descriptor at dispatch time, after argument
+        // evaluation. Restrict fusion to local/name and literal arguments so
+        // user code in an argument cannot observe that lookup being delayed.
+        if (method != nullptr && method->name != "__class__" && has_keyword &&
+            !has_expansion && side_effect_free_args) {
+          const auto object = lower_expr(*method->object);
+          ir::CallSpec spec;
+          for (const auto& arg : call->call_args) {
+            const auto value = lower_expr(*arg.value);
+            if (!arg.name.empty()) spec.keywords.push_back(ir::CallKeywordArg{arg.name, value});
+            else spec.positional.push_back(value);
+          }
+          const auto dst = new_reg();
+          emit(ir::Op::CallMethodEx, dst, object,
+               add_name(mangle_private_identifier(method->name)),
+               add_call_spec(std::move(spec)));
+          return dst;
+        }
         const auto callee = lower_expr(*call->callee);
         ir::CallSpec spec;
         bool saw_starred_positional = false;

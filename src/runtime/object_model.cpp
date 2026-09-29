@@ -216,7 +216,7 @@ std::string code_object_compat_bytecode(const ir::Module& module, const ir::Func
       emit(92, (static_cast<size_t>(instruction.a) << 1u) | push_null, 4);  // LOAD_GLOBAL.
       continue;
     }
-    if ((instruction.op == ir::Op::LoadAttr || instruction.op == ir::Op::CallMethod) &&
+    if ((instruction.op == ir::Op::LoadAttr || instruction.op == ir::Op::CallMethod || instruction.op == ir::Op::CallMethodEx) &&
         instruction.b < function.names.size()) {
       const auto& name = function.names[instruction.b];
       // Exception traceback loads emitted for context-manager unwinding are an
@@ -227,7 +227,7 @@ std::string code_object_compat_bytecode(const ir::Module& module, const ir::Func
       if (name == "__enter__" || name == "__exit__") {
         emit(95, name == "__exit__" ? 1u : 0u, 0);  // LOAD_SPECIAL.
       } else {
-        const size_t method_flag = instruction.op == ir::Op::CallMethod ? 1u : 0u;
+        const size_t method_flag = (instruction.op == ir::Op::CallMethod || instruction.op == ir::Op::CallMethodEx) ? 1u : 0u;
         emit(80, (static_cast<size_t>(instruction.b) << 1u) | method_flag, 9);  // LOAD_ATTR.
       }
       continue;

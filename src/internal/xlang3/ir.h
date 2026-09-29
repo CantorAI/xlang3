@@ -144,6 +144,7 @@ enum class Op : uint16_t {
   MatchException,
   CallModuleMethod,
   CallMethod,
+  CallMethodEx,
   CallEx,
   Call,
   Await,

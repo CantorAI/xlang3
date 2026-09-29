@@ -1907,6 +1907,84 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_metaclass_init_after_type_new(
   return raise_runtime_error("__init__ is not callable") ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
 }
 
+template <typename MakeGeneratorIfNeeded, typename PushFrame, typename RaiseRuntimeError,
+          typename RaiseExceptionValue>
+XLANG3_HOT_INLINE XlangVMOpFlow call_method_ex(
+    const ir::Instr& in, const ir::Function& fn, const ir::Module& module,
+    const std::shared_ptr<const ir::Module>& module_owner,
+    const Value& monitoring_code, Runtime& runtime,
+    XlangVMSmallRegisterBuffer& regs, std::vector<Value>& native_call_args,
+    size_t& ip, RuntimeResult& result, XlangRuntimeExecutionGuard& execution_lock,
+    MakeGeneratorIfNeeded&& make_generator_if_needed, PushFrame&& push_frame,
+    RaiseRuntimeError&& raise_runtime_error, RaiseExceptionValue&& raise_exception_value) {
+  if (in.a >= regs.size() || in.b >= fn.names.size() || in.c >= fn.call_specs.size()) {
+    result.errors.push_back("invalid keyword method call");
+    return XlangVMOpFlow::ReturnResult;
+  }
+  const auto& spec = fn.call_specs[in.c];
+  CallArgsView args;
+  args.registers = regs.value_data();
+  args.register_args = &spec.positional;
+  args.keyword_args = &spec.keywords;
+
+  // Fuse attribute lookup and a keyword call: ordinary function descriptors
+  // would otherwise allocate a bound-method object before every call. Keep
+  // custom attribute hooks and shadowing on the general Python lookup path.
+  if (!args.has_expansion()) {
+    if (auto* instance = value_as_instance(regs[in.a]);
+        instance != nullptr && instance->native_get_attr == nullptr) {
+      auto* klass = value_as_class(instance->klass);
+      bool shadowed = false;
+      if (klass != nullptr && !klass->has_getattribute_hook) {
+        for (const auto& attr : instance->attrs) {
+          if (attr.first == fn.names[in.b]) { shadowed = true; break; }
+        }
+        if (!shadowed &&
+            klass->instance_slot_indices.find(fn.names[in.b]) != klass->instance_slot_indices.end()) {
+          shadowed = true;
+        }
+        if (!shadowed) {
+          Value method;
+          std::string lookup_error;
+          if (object_get_class_attr_for_instance(regs[in.a], fn.names[in.b], method, lookup_error)) {
+            if (auto* function = value_as_function(method)) {
+              CallArgsView method_args = args;
+              method_args.leading = &regs[in.a];
+              method_args.leading_count = 1;
+              bool pushed_frame = false;
+              if (!call_user_function(function, method_args, module, module_owner, in.dst, ip,
+                                      regs[in.dst], pushed_frame, make_generator_if_needed, push_frame)) {
+                return result.errors.empty() ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+              }
+              return pushed_frame ? XlangVMOpFlow::SwitchFrame : XlangVMOpFlow::Next;
+            }
+          }
+        }
+      }
+    }
+  }
+  Value method;
+  std::string error;
+  if (!attribute_get(regs[in.a], fn.names[in.b], method, error)) {
+    Value pending;
+    if (runtime.take_pending_exception(pending)) {
+      return raise_exception_value(std::move(pending)) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    }
+    return raise_exception_value(runtime.make_exception("AttributeError", error))
+        ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+  }
+  std::vector<NativeKeywordArg> native_keyword_args;
+  bool pushed_frame = false;
+  if (!call_callable_value_ex(runtime, method, args, module, module_owner, in.dst, ip,
+                              native_call_args, native_keyword_args, execution_lock,
+                              regs[in.dst], pushed_frame, make_generator_if_needed,
+                              push_frame, raise_runtime_error, raise_exception_value,
+                              &monitoring_code, static_cast<int64_t>(ip))) {
+    return result.errors.empty() ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+  }
+  return pushed_frame ? XlangVMOpFlow::SwitchFrame : XlangVMOpFlow::Next;
+}
+
 template <
     typename MakeGeneratorIfNeeded,
     typename PushFrame,

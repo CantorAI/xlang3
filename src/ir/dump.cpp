@@ -119,6 +119,7 @@ const char* op_name(Op op) {
     case Op::MatchException: return "MatchException";
     case Op::CallModuleMethod: return "CallModuleMethod";
     case Op::CallMethod: return "CallMethod";
+    case Op::CallMethodEx: return "CallMethodEx";
     case Op::CallEx: return "CallEx";
     case Op::Call: return "Call";
     case Op::Await: return "Await";

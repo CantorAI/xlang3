@@ -24,6 +24,7 @@ $root = $PSScriptRoot
 $cases = @(
     "scalar_loop",
     "functions",
+    "keyword_method_call",
     "nested_function_no_closure",
     "if_else",
     "syntax_logical_lines",

@@ -1,0 +1,5 @@
+('class', 'local', True)
+('static', 'local', True)
+('Sample', 'local', True)
+('instance', 'local', True)
+('class', 'argument', True)
