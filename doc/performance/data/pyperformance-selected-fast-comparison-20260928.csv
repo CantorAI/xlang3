@@ -1,0 +1,9 @@
+﻿benchmark,CPython 3.14 mean seconds (--fast),XLang3 mean seconds (--fast),speedup CPython/XLang3 (>1 means XLang3 faster),XLang3 status
+comprehensions,1.36875762941e-05,0.000216036083989,0.063357824,completed
+json_dumps,0.00758351374998,1.0873609,0.006974238,completed
+json_loads,1.75438046877e-05,0.00514081775007,0.0034126486,completed
+pickle_dict,2.32063193351e-05,0.0459537900009,0.0005049925,completed
+pickle_list,3.95185754403e-06,0.00579248350012,0.0006822389,completed
+python_startup_no_site,0.0246155054165,0.0215502029169,1.1422401,completed
+telco,0.00554048531249,,,failed: Benchmark timed out
+unpack_sequence,3.54493270875e-08,1.53983203127e-07,0.23021555,completed

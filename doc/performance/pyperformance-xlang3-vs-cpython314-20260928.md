@@ -1,0 +1,302 @@
+# XLang3 vs CPython 3.14: pyperformance results (2026-09-28)
+
+This report records the full `pyperformance` suite comparison performed on 2026-09-28. It is a measurement snapshot, not a claim that XLang3 is faster overall. The results show that the current XLang3 build is substantially slower on most comparable cases, and that a sizable portion of the suite did not finish successfully under XLang3.
+
+## Headline results
+
+- Suite: 97 top-level benchmark definitions; CPython 3.14 produced results for all 97 (124 subtests).
+- XLang3 was attempted on all 97 definitions: 52 completed, 29 benchmark processes died, and 16 hit the 30-second per-benchmark timeout.
+- In the paired one-iteration debug run, 56 exact-name subtests had measurements on both runtimes. XLang3 was faster on 1 and slower on 55; the sole faster case was `python_startup_no_site` at 1.14×. These single-iteration results are diagnostic, not stable estimates.
+- A separate selected `--fast` sample completed 7 of 8 benchmarks. It showed only `python_startup_no_site` faster; `telco` exceeded its 90-second cap. Several XLang3 values emitted instability warnings, so treat these ratios as directional.
+
+## Chart: selected `--fast` sample
+
+Bars run left to right on a logarithmic speedup axis (`CPython time / XLang3 time`). A value below 1× means XLang3 took longer; above 1× means XLang3 was faster. The chart includes only the seven selected cases with measurements on both runtimes; `telco` is listed below as a timeout.
+
+![Log-scale horizontal bar chart of XLang3 speedup relative to CPython 3.14](pyperformance-xlang3-vs-cpython314.svg)
+
+## Selected `--fast` measurements
+
+| Benchmark | CPython 3.14 | XLang3 | Speedup (CPython ÷ XLang3) | Interpretation |
+|---|---:|---:|---:|---|
+| `comprehensions` | 0.01369 ms | 0.216 ms | 0.0633578× | XLang3 about 15.8× slower |
+| `json_dumps` | 7.584 ms | 1087 ms | 0.00697424× | XLang3 about 143× slower |
+| `json_loads` | 0.01754 ms | 5.141 ms | 0.00341265× | XLang3 about 293× slower |
+| `pickle_dict` | 0.02321 ms | 45.95 ms | 0.000504992× | XLang3 about 1.98e+03× slower |
+| `pickle_list` | 0.003952 ms | 5.792 ms | 0.000682239× | XLang3 about 1.47e+03× slower |
+| `python_startup_no_site` | 24.62 ms | 21.55 ms | 1.14224× | XLang3 faster |
+| `unpack_sequence` | 3.545e-05 ms | 0.000154 ms | 0.230216× | XLang3 about 4.34× slower |
+| `telco` | 5.54 ms | timed out (>90 s) | — | No ratio; XLang3 did not finish in the selected fast pass. |
+
+## Paired one-iteration run
+
+To collect more coverage when the XLang3 fast pass ran into very long cases, both runtimes were also run with `--debug-single-value` through the same `pyperformance` benchmark definitions. This gives one measured iteration per subtest and is useful for finding trouble spots, but it is not a statistically sound speed ranking. Across 56 exact-name subtest matches, the ratio distribution was:
+
+- Comparable subtests: 56; XLang3 faster: 1; XLang3 slower: 55.
+- `python_startup_no_site` was the only paired subtest above 1× (about 1.14×).
+- Every one of the 124 CPython subtests is listed with its paired XLang3 measurement or failure state in the complete subtest table below. The 97-case table records top-level suite coverage.
+
+## Method and limits
+
+- Platform: Windows 11 (build 10.0.26200), x86-64. CPython 3.14.7; XLang3 Release executable (`build/Release/xlang3.exe`); `pyperformance` 1.14.0.
+- CPython full suite: `pyperformance run --fast` (all 97 benchmark definitions; 124 subtests). A paired full pass also used `--debug-single-value`.
+- XLang3 used the same installed `pyperformance` benchmark definitions via a local driver/worker shim. The shim disables optional pyperf `psutil` metadata/priority hooks unavailable in this XLang3 environment; the outer CPython harness enforces a 30-second cap per benchmark and kills its process tree when exceeded.
+- The selected XLang3 fast sample used a 90-second cap for `telco`; CPython comparison values came from the CPython full fast run.
+- Ratios are defined as `CPython elapsed time / XLang3 elapsed time`; larger than 1× favors XLang3, smaller than 1× favors CPython. This direction is kept consistent in the table and chart.
+- These runs were not fully controlled for machine load, and the XLang3 fast sample reported instability warnings on several cases. They are useful for diagnosing large gaps, not for publishing precision claims. Rerun candidates with repeated calibrated measurements and a clean machine before treating small differences as real.
+- The result JSON and derived CSV files are checked in under [`data/`](data/). They preserve both full-suite CPython runs, the full paired XLang3 run, the selected calibrated XLang3 sample, and the complete 97-case / 124-subtest comparison tables. The verbose runner logs remain machine-local scratch artifacts.
+
+## What the measurements point to
+
+1. **Serialization and data processing need attention.** In the selected fast sample, `json_dumps` was 0.00697× (about 143× slower), `json_loads` 0.00341× (about 293× slower), `pickle_dict` 0.000505× (about 1,980× slower), and `pickle_list` 0.000682× (about 1,466× slower). These are particularly high-value profiling targets.
+2. **The runner coverage gap is itself a performance problem.** 45 of 97 XLang3 benchmark processes died or timed out, so the suite currently cannot yield a complete XLang3 timing list. Timeouts and process deaths are not silently omitted from the coverage table.
+3. **Investigate JSON encoder delegation.** `src/runtime/modules/system/json_module.cpp` implements `json_make_encoder_impl` by calling Python’s `json.encoder._make_iterencode` helper. This is a plausible source of the large `json_dumps` gap and a concrete profiling lead; this benchmark alone does not establish causality.
+4. **Do not optimize from ratios alone.** Profile the high-gap cases, identify interpreter/runtime costs, and add benchmark coverage or focused regression checks for any optimization. Re-measure against the same CPython build and harness.
+
+## Complete suite status (97 benchmark definitions)
+
+`Completed` means a result was recorded for the top-level benchmark. Failure and timeout rows have no XLang3 timing. CPython completion here refers to the full `--fast` run.
+
+| Benchmark | CPython 3.14 | XLang3 | XLang3 measurement / failure details |
+|---|---|---|---|
+| `2to3` | completed | completed | 2to3=3781.87ms (0.06553x CP/XLang) |
+| `argparse` | completed | completed | many_optionals=15.4162ms (0.07375x CP/XLang) |
+| `argparse_subparsers` | completed | completed | subparsers=241.416ms (0.03319x CP/XLang) |
+| `async_generators` | completed | completed | async_generators=2587.42ms (0.1053x CP/XLang) |
+| `async_tree` | completed | failed: timed out | timed out |
+| `async_tree_cpu_io_mixed` | completed | failed: timed out | timed out |
+| `async_tree_cpu_io_mixed_tg` | completed | failed: timed out | timed out |
+| `async_tree_eager` | completed | completed | async_tree_eager=8334.63ms (0.009923x CP/XLang) |
+| `async_tree_eager_cpu_io_mixed` | completed | completed | async_tree_eager_cpu_io_mixed=18396.9ms (0.01757x CP/XLang) |
+| `async_tree_eager_cpu_io_mixed_tg` | completed | failed: timed out | timed out |
+| `async_tree_eager_io` | completed | failed: timed out | timed out |
+| `async_tree_eager_io_tg` | completed | failed: timed out | timed out |
+| `async_tree_eager_memoization` | completed | completed | async_tree_eager_memoization=23039.2ms (0.007628x CP/XLang) |
+| `async_tree_eager_memoization_tg` | completed | failed: timed out | timed out |
+| `async_tree_eager_tg` | completed | completed | async_tree_eager_tg=18978.4ms (0.009602x CP/XLang) |
+| `async_tree_io` | completed | failed: timed out | timed out |
+| `async_tree_io_tg` | completed | failed: timed out | timed out |
+| `async_tree_memoization` | completed | failed: timed out | timed out |
+| `async_tree_memoization_tg` | completed | failed: timed out | timed out |
+| `async_tree_tg` | completed | failed: timed out | timed out |
+| `asyncio_tcp` | completed | completed | asyncio_tcp=6511.82ms (0.1116x CP/XLang) |
+| `asyncio_tcp_ssl` | completed | benchmark process died | failed: Benchmark died |
+| `asyncio_websockets` | completed | completed | asyncio_websockets=583.911ms (0.3607x CP/XLang) |
+| `base64` | completed | failed: timed out | timed out |
+| `bpe_tokeniser` | completed | failed: timed out | timed out |
+| `chameleon` | completed | benchmark process died | failed: Benchmark died |
+| `chaos` | completed | completed | chaos=664.813ms (0.06975x CP/XLang) |
+| `comprehensions` | completed | completed | comprehensions=0.3072ms (0.0931x CP/XLang) |
+| `concurrent_imap` | completed | benchmark process died | failed: Benchmark died |
+| `coroutines` | completed | completed | coroutines=749.494ms (0.02266x CP/XLang) |
+| `coverage` | completed | benchmark process died | failed: Benchmark died |
+| `crypto_pyaes` | completed | completed | crypto_pyaes=458.703ms (0.1198x CP/XLang) |
+| `dask` | completed | benchmark process died | failed: Benchmark died |
+| `deepcopy` | completed | completed | deepcopy=9.5181ms (0.02755x CP/XLang); deepcopy_reduce=0.192ms (0.08438x CP/XLang); deepcopy_memo=1.2371ms (0.03064x CP/XLang) |
+| `deltablue` | completed | completed | deltablue=69.9487ms (0.03922x CP/XLang) |
+| `django_template` | completed | benchmark process died | failed: Benchmark died |
+| `docutils` | completed | benchmark process died | failed: Benchmark died |
+| `dulwich_log` | completed | benchmark process died | failed: Benchmark died |
+| `fannkuch` | completed | completed | fannkuch=1933.27ms (0.1588x CP/XLang) |
+| `fastapi` | completed | completed | fastapi_http=7865.66ms (0.05245x CP/XLang) |
+| `float` | completed | completed | float=630.987ms (0.08772x CP/XLang) |
+| `gc_collect` | completed | benchmark process died | failed: Benchmark died |
+| `gc_traversal` | completed | completed | gc_traversal=90.0649ms (0.02365x CP/XLang) |
+| `generators` | completed | completed | generators=1045.96ms (0.02398x CP/XLang) |
+| `genshi` | completed | benchmark process died | failed: Benchmark died |
+| `go` | completed | completed | go=1719.16ms (0.05339x CP/XLang) |
+| `hexiom` | completed | completed | hexiom=84.6166ms (0.05919x CP/XLang) |
+| `html5lib` | completed | benchmark process died | failed: Benchmark died |
+| `json_dumps` | completed | completed | json_dumps=1079.22ms (0.007206x CP/XLang) |
+| `json_loads` | completed | completed | json_loads=5.02627ms (0.004191x CP/XLang) |
+| `logging` | completed | completed | logging_format=0.18595ms (0.0982x CP/XLang); logging_silent=0.0064ms (0.1484x CP/XLang); logging_simple=0.17972ms (0.1146x CP/XLang) |
+| `mako` | completed | benchmark process died | failed: Benchmark died |
+| `mdp` | completed | benchmark process died | failed: Benchmark died |
+| `meteor_contest` | completed | completed | meteor_contest=1351.91ms (0.06401x CP/XLang) |
+| `nbody` | completed | completed | nbody=283.75ms (0.2809x CP/XLang) |
+| `networkx` | completed | benchmark process died | failed: Benchmark died |
+| `networkx_connected_components` | completed | benchmark process died | failed: Benchmark died |
+| `networkx_k_core` | completed | benchmark process died | failed: Benchmark died |
+| `nqueens` | completed | completed | nqueens=891.328ms (0.08261x CP/XLang) |
+| `pathlib` | completed | completed | pathlib=678.079ms (0.06914x CP/XLang) |
+| `pickle` | completed | completed | pickle=10.017ms (0.001201x CP/XLang) |
+| `pickle_dict` | completed | completed | pickle_dict=46.8278ms (0.0005723x CP/XLang) |
+| `pickle_list` | completed | completed | pickle_list=5.8788ms (0.0009015x CP/XLang) |
+| `pickle_pure_python` | completed | completed | pickle_pure_python=10.1001ms (0.02672x CP/XLang) |
+| `pidigits` | completed | completed | pidigits=383.994ms (0.4289x CP/XLang) |
+| `pprint` | completed | failed: timed out | timed out |
+| `pyflate` | completed | completed | pyflate=4178.41ms (0.08101x CP/XLang) |
+| `python_startup` | completed | completed | python_startup=34.5063ms (0.9027x CP/XLang) |
+| `python_startup_no_site` | completed | completed | python_startup_no_site=22.5031ms (1.144x CP/XLang) |
+| `raytrace` | completed | completed | raytrace=3145.12ms (0.06992x CP/XLang) |
+| `regex_compile` | completed | completed | regex_compile=3072.96ms (0.03022x CP/XLang) |
+| `regex_dna` | completed | completed | regex_dna=224.77ms (0.5862x CP/XLang) |
+| `regex_effbot` | completed | completed | regex_effbot=13.2547ms (0.1362x CP/XLang) |
+| `regex_v8` | completed | completed | regex_v8=310.922ms (0.07106x CP/XLang) |
+| `richards` | completed | completed | richards=696.391ms (0.0476x CP/XLang) |
+| `richards_super` | completed | completed | richards_super=816.655ms (0.04506x CP/XLang) |
+| `scimark` | completed | benchmark process died | failed: Benchmark died |
+| `spectral_norm` | completed | completed | spectral_norm=718.566ms (0.09979x CP/XLang) |
+| `sphinx` | completed | benchmark process died | failed: Benchmark died |
+| `sqlalchemy_declarative` | completed | benchmark process died | failed: Benchmark died |
+| `sqlalchemy_imperative` | completed | benchmark process died | failed: Benchmark died |
+| `sqlglot_v2` | completed | benchmark process died | failed: Benchmark died |
+| `sqlglot_v2_optimize` | completed | benchmark process died | failed: Benchmark died |
+| `sqlglot_v2_parse` | completed | benchmark process died | failed: Benchmark died |
+| `sqlglot_v2_transpile` | completed | benchmark process died | failed: Benchmark died |
+| `sqlite_synth` | completed | benchmark process died | failed: Benchmark died |
+| `sympy` | completed | benchmark process died | failed: Benchmark died |
+| `telco` | completed | completed | telco=4941.42ms (0.001161x CP/XLang) |
+| `tomli_loads` | completed | failed: timed out | timed out |
+| `tornado_http` | completed | benchmark process died | failed: Benchmark died |
+| `typing_runtime_protocols` | completed | completed | typing_runtime_protocols=10.2522ms (0.02841x CP/XLang) |
+| `unpack_sequence` | completed | completed | unpack_sequence=0.00016325ms (0.3614x CP/XLang) |
+| `unpickle` | completed | completed | unpickle=5.02818ms (0.002288x CP/XLang) |
+| `unpickle_list` | completed | completed | unpickle_list=2.11703ms (0.001993x CP/XLang) |
+| `unpickle_pure_python` | completed | completed | unpickle_pure_python=5.22487ms (0.03156x CP/XLang) |
+| `xdsl` | completed | benchmark process died | failed: Benchmark died |
+| `xml_etree` | completed | benchmark process died | failed: Benchmark died |
+
+## Complete paired subtest results (124 subtests)
+
+Times in this table come from the one-iteration `--debug-single-value` runs. They are shown as milliseconds for readability; ratios are CPython time divided by XLang3 time. A blank XLang3 value means the subtest failed or timed out before a result was produced.
+
+| Benchmark | Subtest | CPython 3.14 | XLang3 | Speedup | XLang3 status |
+|---|---|---:|---:|---:|---|
+| `2to3` | `2to3` | 247.814 ms | 3781.87 ms | 0.0655268× | completed |
+| `base64` | `ascii85_large` | 824.66 ms | — | — | failed: timed out |
+| `base64` | `ascii85_small` | 15.4891 ms | — | — | failed: timed out |
+| `async_generators` | `async_generators` | 272.501 ms | 2587.42 ms | 0.105318× | completed |
+| `async_tree_cpu_io_mixed` | `async_tree_cpu_io_mixed` | 403.196 ms | — | — | failed: timed out |
+| `async_tree_cpu_io_mixed_tg` | `async_tree_cpu_io_mixed_tg` | 391.962 ms | — | — | failed: timed out |
+| `async_tree_eager` | `async_tree_eager` | 82.7008 ms | 8334.63 ms | 0.00992255× | completed |
+| `async_tree_eager_cpu_io_mixed` | `async_tree_eager_cpu_io_mixed` | 323.272 ms | 18396.9 ms | 0.0175721× | completed |
+| `async_tree_eager_cpu_io_mixed_tg` | `async_tree_eager_cpu_io_mixed_tg` | 377.795 ms | — | — | failed: timed out |
+| `async_tree_eager_io` | `async_tree_eager_io` | 570.829 ms | — | — | failed: timed out |
+| `async_tree_eager_io_tg` | `async_tree_eager_io_tg` | 567.653 ms | — | — | failed: timed out |
+| `async_tree_eager_memoization` | `async_tree_eager_memoization` | 175.734 ms | 23039.2 ms | 0.00762759× | completed |
+| `async_tree_eager_memoization_tg` | `async_tree_eager_memoization_tg` | 234.531 ms | — | — | failed: timed out |
+| `async_tree_eager_tg` | `async_tree_eager_tg` | 182.221 ms | 18978.4 ms | 0.00960153× | completed |
+| `async_tree_io` | `async_tree_io` | 555.546 ms | — | — | failed: timed out |
+| `async_tree_io_tg` | `async_tree_io_tg` | 585.153 ms | — | — | failed: timed out |
+| `async_tree_memoization` | `async_tree_memoization` | 269.363 ms | — | — | failed: timed out |
+| `async_tree_memoization_tg` | `async_tree_memoization_tg` | 263.773 ms | — | — | failed: timed out |
+| `async_tree` | `async_tree_none` | 219.171 ms | — | — | failed: timed out |
+| `async_tree_tg` | `async_tree_none_tg` | 213.611 ms | — | — | failed: timed out |
+| `asyncio_tcp` | `asyncio_tcp` | 726.417 ms | 6511.82 ms | 0.111554× | completed |
+| `asyncio_tcp_ssl` | `asyncio_tcp_ssl` | 5108.31 ms | — | — | benchmark process died |
+| `asyncio_websockets` | `asyncio_websockets` | 210.636 ms | 583.911 ms | 0.360734× | completed |
+| `base64` | `base16_large` | 6.1988 ms | — | — | failed: timed out |
+| `base64` | `base16_small` | 0.322 ms | — | — | failed: timed out |
+| `base64` | `base32_large` | 369.631 ms | — | — | failed: timed out |
+| `base64` | `base32_small` | 7.365 ms | — | — | failed: timed out |
+| `base64` | `base64_large` | 7.963 ms | — | — | failed: timed out |
+| `base64` | `base64_small` | 0.2934 ms | — | — | failed: timed out |
+| `base64` | `base85_large` | 291.321 ms | — | — | failed: timed out |
+| `base64` | `base85_small` | 5.4831 ms | — | — | failed: timed out |
+| `concurrent_imap` | `bench_mp_pool` | 175.519 ms | — | — | benchmark process died |
+| `concurrent_imap` | `bench_thread_pool` | 3.6921 ms | — | — | benchmark process died |
+| `bpe_tokeniser` | `bpe_tokeniser` | 3467.9 ms | — | — | failed: timed out |
+| `chameleon` | `chameleon` | 11.7106 ms | — | — | benchmark process died |
+| `chaos` | `chaos` | 46.3728 ms | 664.813 ms | 0.0697531× | completed |
+| `comprehensions` | `comprehensions` | 0.0286 ms | 0.3072 ms | 0.093099× | completed |
+| `networkx_connected_components` | `connected_components` | 395.995 ms | — | — | benchmark process died |
+| `coroutines` | `coroutines` | 16.9856 ms | 749.494 ms | 0.0226628× | completed |
+| `coverage` | `coverage` | 65.6405 ms | — | — | benchmark process died |
+| `gc_collect` | `create_gc_cycles` | 1.4924 ms | — | — | benchmark process died |
+| `crypto_pyaes` | `crypto_pyaes` | 54.9444 ms | 458.703 ms | 0.119782× | completed |
+| `dask` | `dask` | 958.166 ms | — | — | benchmark process died |
+| `deepcopy` | `deepcopy` | 0.2622 ms | 9.5181 ms | 0.0275475× | completed |
+| `deepcopy` | `deepcopy_memo` | 0.0379 ms | 1.2371 ms | 0.0306362× | completed |
+| `deepcopy` | `deepcopy_reduce` | 0.0162 ms | 0.192 ms | 0.084375× | completed |
+| `deltablue` | `deltablue` | 2.7435 ms | 69.9487 ms | 0.0392216× | completed |
+| `django_template` | `django_template` | 29.565 ms | — | — | benchmark process died |
+| `docutils` | `docutils` | 1832.61 ms | — | — | benchmark process died |
+| `dulwich_log` | `dulwich_log` | 66.0774 ms | — | — | benchmark process died |
+| `fannkuch` | `fannkuch` | 306.949 ms | 1933.27 ms | 0.158772× | completed |
+| `fastapi` | `fastapi_http` | 412.515 ms | 7865.66 ms | 0.0524451× | completed |
+| `float` | `float` | 55.3503 ms | 630.987 ms | 0.0877202× | completed |
+| `gc_traversal` | `gc_traversal` | 2.1296 ms | 90.0649 ms | 0.0236452× | completed |
+| `generators` | `generators` | 25.0813 ms | 1045.96 ms | 0.0239792× | completed |
+| `genshi` | `genshi_text` | 19.5918 ms | — | — | benchmark process died |
+| `genshi` | `genshi_xml` | 44.055 ms | — | — | benchmark process died |
+| `go` | `go` | 91.786 ms | 1719.16 ms | 0.0533902× | completed |
+| `hexiom` | `hexiom` | 5.0083 ms | 84.6166 ms | 0.0591882× | completed |
+| `html5lib` | `html5lib` | 48.6588 ms | — | — | benchmark process died |
+| `json_dumps` | `json_dumps` | 7.777 ms | 1079.22 ms | 0.00720612× | completed |
+| `json_loads` | `json_loads` | 0.021065 ms | 5.02627 ms | 0.00419098× | completed |
+| `networkx_k_core` | `k_core` | 2290.59 ms | — | — | benchmark process died |
+| `logging` | `logging_format` | 0.01826 ms | 0.18595 ms | 0.0981984× | completed |
+| `logging` | `logging_silent` | 0.000949999 ms | 0.0064 ms | 0.148437× | completed |
+| `logging` | `logging_simple` | 0.02059 ms | 0.17972 ms | 0.114567× | completed |
+| `mako` | `mako` | 7.84 ms | — | — | benchmark process died |
+| `argparse` | `many_optionals` | 1.1369 ms | 15.4162 ms | 0.0737471× | completed |
+| `mdp` | `mdp` | 972.634 ms | — | — | benchmark process died |
+| `meteor_contest` | `meteor_contest` | 86.5295 ms | 1351.91 ms | 0.0640055× | completed |
+| `nbody` | `nbody` | 79.7186 ms | 283.75 ms | 0.280947× | completed |
+| `nqueens` | `nqueens` | 73.6302 ms | 891.328 ms | 0.0826073× | completed |
+| `pathlib` | `pathlib` | 46.8833 ms | 678.079 ms | 0.0691414× | completed |
+| `pickle` | `pickle` | 0.01203 ms | 10.017 ms | 0.00120096× | completed |
+| `pickle_dict` | `pickle_dict` | 0.0268 ms | 46.8278 ms | 0.00057231× | completed |
+| `pickle_list` | `pickle_list` | 0.0053 ms | 5.8788 ms | 0.000901544× | completed |
+| `pickle_pure_python` | `pickle_pure_python` | 0.269885 ms | 10.1001 ms | 0.0267209× | completed |
+| `pidigits` | `pidigits` | 164.71 ms | 383.994 ms | 0.428939× | completed |
+| `pprint` | `pprint_pformat` | 1184.41 ms | — | — | failed: timed out |
+| `pprint` | `pprint_safe_repr` | 570.932 ms | — | — | failed: timed out |
+| `pyflate` | `pyflate` | 338.491 ms | 4178.41 ms | 0.0810095× | completed |
+| `python_startup` | `python_startup` | 31.1481 ms | 34.5063 ms | 0.902679× | completed |
+| `python_startup_no_site` | `python_startup_no_site` | 25.7427 ms | 22.5031 ms | 1.14396× | completed |
+| `raytrace` | `raytrace` | 219.915 ms | 3145.12 ms | 0.0699226× | completed |
+| `regex_compile` | `regex_compile` | 92.8509 ms | 3072.96 ms | 0.0302155× | completed |
+| `regex_dna` | `regex_dna` | 131.753 ms | 224.77 ms | 0.586168× | completed |
+| `regex_effbot` | `regex_effbot` | 1.80541 ms | 13.2547 ms | 0.136209× | completed |
+| `regex_v8` | `regex_v8` | 22.0944 ms | 310.922 ms | 0.0710609× | completed |
+| `richards` | `richards` | 33.1479 ms | 696.391 ms | 0.0475996× | completed |
+| `richards_super` | `richards_super` | 36.7956 ms | 816.655 ms | 0.0450565× | completed |
+| `scimark` | `scimark_fft` | 218.375 ms | — | — | benchmark process died |
+| `scimark` | `scimark_lu` | 71.6251 ms | — | — | benchmark process died |
+| `scimark` | `scimark_monte_carlo` | 49.8459 ms | — | — | benchmark process died |
+| `scimark` | `scimark_sor` | 92.5707 ms | — | — | benchmark process died |
+| `scimark` | `scimark_sparse_mat_mult` | 3.0578 ms | — | — | benchmark process died |
+| `networkx` | `shortest_path` | 445.949 ms | — | — | benchmark process died |
+| `spectral_norm` | `spectral_norm` | 71.7078 ms | 718.566 ms | 0.0997929× | completed |
+| `sphinx` | `sphinx` | 869.452 ms | — | — | benchmark process died |
+| `sqlalchemy_declarative` | `sqlalchemy_declarative` | 90.2571 ms | — | — | benchmark process died |
+| `sqlalchemy_imperative` | `sqlalchemy_imperative` | 11.9657 ms | — | — | benchmark process died |
+| `sqlglot_v2` | `sqlglot_v2_normalize` | 84.197 ms | — | — | benchmark process died |
+| `sqlglot_v2_optimize` | `sqlglot_v2_optimize` | 40.7521 ms | — | — | benchmark process died |
+| `sqlglot_v2_parse` | `sqlglot_v2_parse` | 1.159 ms | — | — | benchmark process died |
+| `sqlglot_v2_transpile` | `sqlglot_v2_transpile` | 1.6464 ms | — | — | benchmark process died |
+| `sqlite_synth` | `sqlite_synth` | 0.3698 ms | — | — | benchmark process died |
+| `argparse_subparsers` | `subparsers` | 8.0122 ms | 241.416 ms | 0.0331884× | completed |
+| `sympy` | `sympy_expand` | 351.151 ms | — | — | benchmark process died |
+| `sympy` | `sympy_integrate` | 34.1907 ms | — | — | benchmark process died |
+| `sympy` | `sympy_str` | 211.746 ms | — | — | benchmark process died |
+| `sympy` | `sympy_sum` | 181.258 ms | — | — | benchmark process died |
+| `telco` | `telco` | 5.7355 ms | 4941.42 ms | 0.0011607× | completed |
+| `tomli_loads` | `tomli_loads` | 1690.52 ms | — | — | failed: timed out |
+| `tornado_http` | `tornado_http` | 261.781 ms | — | — | benchmark process died |
+| `typing_runtime_protocols` | `typing_runtime_protocols` | 0.2913 ms | 10.2522 ms | 0.0284134× | completed |
+| `unpack_sequence` | `unpack_sequence` | 5.89999e-05 ms | 0.00016325 ms | 0.361409× | completed |
+| `unpickle` | `unpickle` | 0.011505 ms | 5.02818 ms | 0.00228811× | completed |
+| `unpickle_list` | `unpickle_list` | 0.00422 ms | 2.11703 ms | 0.00199336× | completed |
+| `unpickle_pure_python` | `unpickle_pure_python` | 0.164875 ms | 5.22487 ms | 0.0315558× | completed |
+| `base64` | `urlsafe_base64_small` | 0.4254 ms | — | — | failed: timed out |
+| `xdsl` | `xdsl_constant_fold` | 32.173 ms | — | — | benchmark process died |
+| `xml_etree` | `xml_etree_generate` | 65.7617 ms | — | — | benchmark process died |
+| `xml_etree` | `xml_etree_iterparse` | 67.7134 ms | — | — | benchmark process died |
+| `xml_etree` | `xml_etree_parse` | 105.651 ms | — | — | benchmark process died |
+| `xml_etree` | `xml_etree_process` | 46.9788 ms | — | — | benchmark process died |
+
+## Reproducibility artifacts
+
+The raw benchmark results and derived comparison tables are included alongside this report in `doc/performance/data/`:
+
+- [`data/pyperformance-cpython314-full-fast-20260928.json`](data/pyperformance-cpython314-full-fast-20260928.json) — full CPython 3.14 fast run (all 97 benchmark definitions).
+- [`data/pyperformance-cpython314-full-debug-20260928.json`](data/pyperformance-cpython314-full-debug-20260928.json) — paired CPython single-value run.
+- [`data/pyperformance-xlang3-full-debug-20260928.json`](data/pyperformance-xlang3-full-debug-20260928.json) — paired XLang3 run (97 definitions attempted; completed and failed cases recorded).
+- [`data/pyperformance-xlang3-selected-fast-20260928.json`](data/pyperformance-xlang3-selected-fast-20260928.json) — selected XLang3 fast sample.
+- [`data/pyperformance-all-97-status-20260928.csv`](data/pyperformance-all-97-status-20260928.csv) — source for the complete status table.
+- [`data/pyperformance-subtests-comparison-20260928.csv`](data/pyperformance-subtests-comparison-20260928.csv) — all 124 paired subtests; [`data/pyperformance-selected-fast-comparison-20260928.csv`](data/pyperformance-selected-fast-comparison-20260928.csv) — selected calibrated comparison.
+
+The full CPython fast suite and the paired CPython/XLang3 results are preserved as raw JSON alongside the derived tables, allowing readers to inspect the recorded measurements directly.

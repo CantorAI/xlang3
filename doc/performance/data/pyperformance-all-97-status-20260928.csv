@@ -1,0 +1,98 @@
+﻿pyperformance benchmark,CPython 3.14 status,CPython measured subtests,XLang3 status,XLang3 measured subtests,Failure detail
+2to3,completed,2to3=247.814ms,completed,2to3=3781.87ms (0.06553x CP/XLang),
+argparse,completed,many_optionals=1.1369ms,completed,many_optionals=15.4162ms (0.07375x CP/XLang),
+argparse_subparsers,completed,subparsers=8.0122ms,completed,subparsers=241.416ms (0.03319x CP/XLang),
+async_generators,completed,async_generators=272.501ms,completed,async_generators=2587.42ms (0.1053x CP/XLang),
+async_tree,completed,async_tree_none=219.171ms,failed: timed out,,timed out
+async_tree_cpu_io_mixed,completed,async_tree_cpu_io_mixed=403.196ms,failed: timed out,,timed out
+async_tree_cpu_io_mixed_tg,completed,async_tree_cpu_io_mixed_tg=391.962ms,failed: timed out,,timed out
+async_tree_eager,completed,async_tree_eager=82.7008ms,completed,async_tree_eager=8334.63ms (0.009923x CP/XLang),
+async_tree_eager_cpu_io_mixed,completed,async_tree_eager_cpu_io_mixed=323.272ms,completed,async_tree_eager_cpu_io_mixed=18396.9ms (0.01757x CP/XLang),
+async_tree_eager_cpu_io_mixed_tg,completed,async_tree_eager_cpu_io_mixed_tg=377.795ms,failed: timed out,,timed out
+async_tree_eager_io,completed,async_tree_eager_io=570.829ms,failed: timed out,,timed out
+async_tree_eager_io_tg,completed,async_tree_eager_io_tg=567.653ms,failed: timed out,,timed out
+async_tree_eager_memoization,completed,async_tree_eager_memoization=175.734ms,completed,async_tree_eager_memoization=23039.2ms (0.007628x CP/XLang),
+async_tree_eager_memoization_tg,completed,async_tree_eager_memoization_tg=234.531ms,failed: timed out,,timed out
+async_tree_eager_tg,completed,async_tree_eager_tg=182.221ms,completed,async_tree_eager_tg=18978.4ms (0.009602x CP/XLang),
+async_tree_io,completed,async_tree_io=555.546ms,failed: timed out,,timed out
+async_tree_io_tg,completed,async_tree_io_tg=585.153ms,failed: timed out,,timed out
+async_tree_memoization,completed,async_tree_memoization=269.363ms,failed: timed out,,timed out
+async_tree_memoization_tg,completed,async_tree_memoization_tg=263.773ms,failed: timed out,,timed out
+async_tree_tg,completed,async_tree_none_tg=213.611ms,failed: timed out,,timed out
+asyncio_tcp,completed,asyncio_tcp=726.417ms,completed,asyncio_tcp=6511.82ms (0.1116x CP/XLang),
+asyncio_tcp_ssl,completed,asyncio_tcp_ssl=5108.31ms,failed: failed: Benchmark died,,failed: Benchmark died
+asyncio_websockets,completed,asyncio_websockets=210.636ms,completed,asyncio_websockets=583.911ms (0.3607x CP/XLang),
+base64,completed,base64_small=0.2934ms; base64_large=7.963ms; urlsafe_base64_small=0.4254ms; base32_small=7.365ms; base32_large=369.631ms; base16_small=0.322ms; base16_large=6.1988ms; ascii85_small=15.4891ms; ascii85_large=824.66ms; base85_small=5.4831ms; base85_large=291.321ms,failed: timed out,,timed out
+bpe_tokeniser,completed,bpe_tokeniser=3467.9ms,failed: timed out,,timed out
+chameleon,completed,chameleon=11.7106ms,failed: failed: Benchmark died,,failed: Benchmark died
+chaos,completed,chaos=46.3728ms,completed,chaos=664.813ms (0.06975x CP/XLang),
+comprehensions,completed,comprehensions=0.0286ms,completed,comprehensions=0.3072ms (0.0931x CP/XLang),
+concurrent_imap,completed,bench_mp_pool=175.519ms; bench_thread_pool=3.6921ms,failed: failed: Benchmark died,,failed: Benchmark died
+coroutines,completed,coroutines=16.9856ms,completed,coroutines=749.494ms (0.02266x CP/XLang),
+coverage,completed,coverage=65.6405ms,failed: failed: Benchmark died,,failed: Benchmark died
+crypto_pyaes,completed,crypto_pyaes=54.9444ms,completed,crypto_pyaes=458.703ms (0.1198x CP/XLang),
+dask,completed,dask=958.166ms,failed: failed: Benchmark died,,failed: Benchmark died
+deepcopy,completed,deepcopy=0.2622ms; deepcopy_reduce=0.0162ms; deepcopy_memo=0.0379ms,completed,deepcopy=9.5181ms (0.02755x CP/XLang); deepcopy_reduce=0.192ms (0.08438x CP/XLang); deepcopy_memo=1.2371ms (0.03064x CP/XLang),
+deltablue,completed,deltablue=2.7435ms,completed,deltablue=69.9487ms (0.03922x CP/XLang),
+django_template,completed,django_template=29.565ms,failed: failed: Benchmark died,,failed: Benchmark died
+docutils,completed,docutils=1832.61ms,failed: failed: Benchmark died,,failed: Benchmark died
+dulwich_log,completed,dulwich_log=66.0774ms,failed: failed: Benchmark died,,failed: Benchmark died
+fannkuch,completed,fannkuch=306.949ms,completed,fannkuch=1933.27ms (0.1588x CP/XLang),
+fastapi,completed,fastapi_http=412.515ms,completed,fastapi_http=7865.66ms (0.05245x CP/XLang),
+float,completed,float=55.3503ms,completed,float=630.987ms (0.08772x CP/XLang),
+gc_collect,completed,create_gc_cycles=1.4924ms,failed: failed: Benchmark died,,failed: Benchmark died
+gc_traversal,completed,gc_traversal=2.1296ms,completed,gc_traversal=90.0649ms (0.02365x CP/XLang),
+generators,completed,generators=25.0813ms,completed,generators=1045.96ms (0.02398x CP/XLang),
+genshi,completed,genshi_text=19.5918ms; genshi_xml=44.055ms,failed: failed: Benchmark died,,failed: Benchmark died
+go,completed,go=91.786ms,completed,go=1719.16ms (0.05339x CP/XLang),
+hexiom,completed,hexiom=5.0083ms,completed,hexiom=84.6166ms (0.05919x CP/XLang),
+html5lib,completed,html5lib=48.6588ms,failed: failed: Benchmark died,,failed: Benchmark died
+json_dumps,completed,json_dumps=7.777ms,completed,json_dumps=1079.22ms (0.007206x CP/XLang),
+json_loads,completed,json_loads=0.021065ms,completed,json_loads=5.02627ms (0.004191x CP/XLang),
+logging,completed,logging_format=0.01826ms; logging_silent=0.000949999ms; logging_simple=0.02059ms,completed,logging_format=0.18595ms (0.0982x CP/XLang); logging_silent=0.0064ms (0.1484x CP/XLang); logging_simple=0.17972ms (0.1146x CP/XLang),
+mako,completed,mako=7.84ms,failed: failed: Benchmark died,,failed: Benchmark died
+mdp,completed,mdp=972.634ms,failed: failed: Benchmark died,,failed: Benchmark died
+meteor_contest,completed,meteor_contest=86.5295ms,completed,meteor_contest=1351.91ms (0.06401x CP/XLang),
+nbody,completed,nbody=79.7186ms,completed,nbody=283.75ms (0.2809x CP/XLang),
+networkx,completed,shortest_path=445.949ms,failed: failed: Benchmark died,,failed: Benchmark died
+networkx_connected_components,completed,connected_components=395.995ms,failed: failed: Benchmark died,,failed: Benchmark died
+networkx_k_core,completed,k_core=2290.59ms,failed: failed: Benchmark died,,failed: Benchmark died
+nqueens,completed,nqueens=73.6302ms,completed,nqueens=891.328ms (0.08261x CP/XLang),
+pathlib,completed,pathlib=46.8833ms,completed,pathlib=678.079ms (0.06914x CP/XLang),
+pickle,completed,pickle=0.01203ms,completed,pickle=10.017ms (0.001201x CP/XLang),
+pickle_dict,completed,pickle_dict=0.0268ms,completed,pickle_dict=46.8278ms (0.0005723x CP/XLang),
+pickle_list,completed,pickle_list=0.0053ms,completed,pickle_list=5.8788ms (0.0009015x CP/XLang),
+pickle_pure_python,completed,pickle_pure_python=0.269885ms,completed,pickle_pure_python=10.1001ms (0.02672x CP/XLang),
+pidigits,completed,pidigits=164.71ms,completed,pidigits=383.994ms (0.4289x CP/XLang),
+pprint,completed,pprint_safe_repr=570.932ms; pprint_pformat=1184.41ms,failed: timed out,,timed out
+pyflate,completed,pyflate=338.491ms,completed,pyflate=4178.41ms (0.08101x CP/XLang),
+python_startup,completed,python_startup=31.1481ms,completed,python_startup=34.5063ms (0.9027x CP/XLang),
+python_startup_no_site,completed,python_startup_no_site=25.7427ms,completed,python_startup_no_site=22.5031ms (1.144x CP/XLang),
+raytrace,completed,raytrace=219.915ms,completed,raytrace=3145.12ms (0.06992x CP/XLang),
+regex_compile,completed,regex_compile=92.8509ms,completed,regex_compile=3072.96ms (0.03022x CP/XLang),
+regex_dna,completed,regex_dna=131.753ms,completed,regex_dna=224.77ms (0.5862x CP/XLang),
+regex_effbot,completed,regex_effbot=1.80541ms,completed,regex_effbot=13.2547ms (0.1362x CP/XLang),
+regex_v8,completed,regex_v8=22.0944ms,completed,regex_v8=310.922ms (0.07106x CP/XLang),
+richards,completed,richards=33.1479ms,completed,richards=696.391ms (0.0476x CP/XLang),
+richards_super,completed,richards_super=36.7956ms,completed,richards_super=816.655ms (0.04506x CP/XLang),
+scimark,completed,scimark_fft=218.375ms; scimark_lu=71.6251ms; scimark_monte_carlo=49.8459ms; scimark_sor=92.5707ms; scimark_sparse_mat_mult=3.0578ms,failed: failed: Benchmark died,,failed: Benchmark died
+spectral_norm,completed,spectral_norm=71.7078ms,completed,spectral_norm=718.566ms (0.09979x CP/XLang),
+sphinx,completed,sphinx=869.452ms,failed: failed: Benchmark died,,failed: Benchmark died
+sqlalchemy_declarative,completed,sqlalchemy_declarative=90.2571ms,failed: failed: Benchmark died,,failed: Benchmark died
+sqlalchemy_imperative,completed,sqlalchemy_imperative=11.9657ms,failed: failed: Benchmark died,,failed: Benchmark died
+sqlglot_v2,completed,sqlglot_v2_normalize=84.197ms,failed: failed: Benchmark died,,failed: Benchmark died
+sqlglot_v2_optimize,completed,sqlglot_v2_optimize=40.7521ms,failed: failed: Benchmark died,,failed: Benchmark died
+sqlglot_v2_parse,completed,sqlglot_v2_parse=1.159ms,failed: failed: Benchmark died,,failed: Benchmark died
+sqlglot_v2_transpile,completed,sqlglot_v2_transpile=1.6464ms,failed: failed: Benchmark died,,failed: Benchmark died
+sqlite_synth,completed,sqlite_synth=0.3698ms,failed: failed: Benchmark died,,failed: Benchmark died
+sympy,completed,sympy_expand=351.151ms; sympy_integrate=34.1907ms; sympy_sum=181.258ms; sympy_str=211.746ms,failed: failed: Benchmark died,,failed: Benchmark died
+telco,completed,telco=5.7355ms,completed,telco=4941.42ms (0.001161x CP/XLang),
+tomli_loads,completed,tomli_loads=1690.52ms,failed: timed out,,timed out
+tornado_http,completed,tornado_http=261.781ms,failed: failed: Benchmark died,,failed: Benchmark died
+typing_runtime_protocols,completed,typing_runtime_protocols=0.2913ms,completed,typing_runtime_protocols=10.2522ms (0.02841x CP/XLang),
+unpack_sequence,completed,unpack_sequence=5.89999e-05ms,completed,unpack_sequence=0.00016325ms (0.3614x CP/XLang),
+unpickle,completed,unpickle=0.011505ms,completed,unpickle=5.02818ms (0.002288x CP/XLang),
+unpickle_list,completed,unpickle_list=0.00422ms,completed,unpickle_list=2.11703ms (0.001993x CP/XLang),
+unpickle_pure_python,completed,unpickle_pure_python=0.164875ms,completed,unpickle_pure_python=5.22487ms (0.03156x CP/XLang),
+xdsl,completed,xdsl_constant_fold=32.173ms,failed: failed: Benchmark died,,failed: Benchmark died
+xml_etree,completed,xml_etree_parse=105.651ms; xml_etree_iterparse=67.7134ms; xml_etree_generate=65.7617ms; xml_etree_process=46.9788ms,failed: failed: Benchmark died,,failed: Benchmark died
