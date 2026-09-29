@@ -536,6 +536,10 @@ A second same-source A/B tested caching the negative per-instance-method-shadow 
 
 The next useful target is general Python frame, method-call, and interpreter-loop cost inside `_parse_known_args`, not a native reimplementation of the pure-Python `argparse` library. The source comment at the enumerate iterator records the retained-tuple constraint for future optimization work.
 
+### Memoryview result tracking bounds-check experiment (2026-09-29)
+
+Removing the register bounds check from `XlangVMFrame::track_memoryview_result()` was tested because opcode result registers have already passed IR validation. The complete 11-case fixed Release gate passed, but the targeted `subparsers` case became **1.016× slower** (95% paired interval **1.009–1.022×**); `json_dumps` and `function_calls` were unchanged. The change was reverted because it did not improve the call-heavy workload and made it measurably slower. The full paired report, including both executable/runtime hashes and all case samples, is [here](data/release-regression-memoryview-track-bounds-20260929.json).
+
 ### `json_dumps` singleton-join fast path (2026-09-29)
 
 The C++ `_json.make_encoder` fast path returns a one-element list of encoded chunks, as required by the CPython-compatible accelerator API. `JSONEncoder.encode()` then joins that list. XLang's general `str.join` implementation previously allocated a new string and copied the only chunk. `join_string_values` now returns the existing object when the input has exactly one exact XLang string; string subclasses and all other cases keep the full validation and copy path. CPython 3.14 confirms the identity behavior for both empty and nonempty separators, and the `strings_and_unicode` fixture now checks it.
