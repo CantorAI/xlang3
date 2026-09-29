@@ -971,7 +971,10 @@ void register_struct_module(Runtime& runtime) {
   NativeModuleBuilder builder(runtime, "_struct");
   builder.value("__doc__", Value::string("Functions to convert between Python values and C structs."))
       .function("calcsize", struct_calcsize, builtin_fast_adapter<struct_calcsize, 1>)
-      .function("pack", struct_pack)
+      // Pickle's pure-Python implementation calls this small variadic native
+      // helper in its inner loop. Keep common calls on borrowed VM registers;
+      // the adapter still spills unusually wide calls to a vector.
+      .function("pack", struct_pack, builtin_variadic_fast_adapter<struct_pack, 4>)
       .function("pack_into", struct_pack_into)
       .function("unpack", struct_unpack)
       .function("unpack_from", struct_unpack_from)
