@@ -51,6 +51,10 @@ shared_item = []
 shared_payload = [shared_item, shared_item]
 shared_restored = pickle.loads(pickle.dumps(shared_payload, protocol=5))
 print(shared_restored[0] is shared_restored[1])
+import datetime
+shared_date = datetime.date(1980, 5, 7)
+date_restored = pickle.loads(pickle.dumps([shared_date, shared_date], protocol=5))
+print(date_restored[0] == shared_date, date_restored[0] is date_restored[1])
 bytearray_restored = pickle.loads(pickle.dumps(bytearray(b"mutable"), protocol=5))
 print(type(bytearray_restored).__name__, bytes(bytearray_restored))
 

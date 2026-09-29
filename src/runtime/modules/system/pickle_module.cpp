@@ -27,6 +27,7 @@ limitations under the License.
 #include <cstring>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
@@ -285,13 +286,28 @@ bool pickle_write_global(Runtime& runtime, const Value& callable, std::string& o
   return true;
 }
 
+struct PickleWriterState {
+  std::unordered_map<Object*, uint32_t> memo;
+  uint32_t next_memo_index = 0;
+};
+
 bool pickle_write_value(
     Runtime& runtime,
     const Value& value,
     int protocol,
     std::string& out,
     std::string& error,
-    const Value* dispatch_table = nullptr) {
+    const Value* dispatch_table = nullptr,
+    PickleWriterState* state = nullptr);
+
+bool pickle_write_value_body(
+    Runtime& runtime,
+    const Value& value,
+    int protocol,
+    std::string& out,
+    std::string& error,
+    const Value* dispatch_table,
+    PickleWriterState* state) {
   switch (value.tag) {
     case ValueTag::None:
       out.push_back('N');
@@ -358,7 +374,7 @@ bool pickle_write_value(
     if (!list->items.empty()) {
       out.push_back('('); // MARK
       for (const auto& item : list->items) {
-        if (!pickle_write_value(runtime, item, protocol, out, error, dispatch_table)) {
+        if (!pickle_write_value(runtime, item, protocol, out, error, dispatch_table, state)) {
           return false;
         }
       }
@@ -373,7 +389,7 @@ bool pickle_write_value(
     }
     out.push_back('('); // MARK
     for (const auto& item : tuple->items) {
-      if (!pickle_write_value(runtime, item, protocol, out, error, dispatch_table)) {
+      if (!pickle_write_value(runtime, item, protocol, out, error, dispatch_table, state)) {
         return false;
       }
     }
@@ -385,8 +401,8 @@ bool pickle_write_value(
     if (!dict->entries.empty()) {
       out.push_back('('); // MARK
       for (const auto& entry : dict->entries) {
-        if (!pickle_write_value(runtime, entry.first, protocol, out, error, dispatch_table) ||
-            !pickle_write_value(runtime, entry.second, protocol, out, error, dispatch_table)) {
+        if (!pickle_write_value(runtime, entry.first, protocol, out, error, dispatch_table, state) ||
+            !pickle_write_value(runtime, entry.second, protocol, out, error, dispatch_table, state)) {
           return false;
         }
       }
@@ -399,7 +415,7 @@ bool pickle_write_value(
     if (!set->items.empty()) {
       out.push_back('('); // MARK
       for (const auto& item : set->items) {
-        if (!pickle_write_value(runtime, item, protocol, out, error, dispatch_table)) {
+        if (!pickle_write_value(runtime, item, protocol, out, error, dispatch_table, state)) {
           return false;
         }
       }
@@ -424,7 +440,7 @@ bool pickle_write_value(
     }
     if (!pickle_write_global(runtime, *getattr_function, out, error) ||
         !pickle_write_value(
-            runtime, Value::tuple({bound->self, std::move(method_name)}), protocol, out, error, dispatch_table)) {
+            runtime, Value::tuple({bound->self, std::move(method_name)}), protocol, out, error, dispatch_table, state)) {
       return false;
     }
     out.push_back('R'); // REDUCE
@@ -482,7 +498,7 @@ bool pickle_write_value(
     error += " while reducing " + value_to_repr(value);
     return false;
   }
-  if (!pickle_write_value(runtime, reduced_tuple->items[1], protocol, out, error, dispatch_table)) {
+  if (!pickle_write_value(runtime, reduced_tuple->items[1], protocol, out, error, dispatch_table, state)) {
     return false;
   }
   out.push_back('R'); // REDUCE
@@ -495,13 +511,13 @@ bool pickle_write_value(
     if (!list_items.empty()) {
       if (protocol == 0) {
         for (const auto& item : list_items) {
-          if (!pickle_write_value(runtime, item, protocol, out, error, dispatch_table)) return false;
+          if (!pickle_write_value(runtime, item, protocol, out, error, dispatch_table, state)) return false;
           out.push_back('a'); // APPEND
         }
       } else {
         out.push_back('('); // MARK
         for (const auto& item : list_items) {
-          if (!pickle_write_value(runtime, item, protocol, out, error, dispatch_table)) return false;
+          if (!pickle_write_value(runtime, item, protocol, out, error, dispatch_table, state)) return false;
         }
         out.push_back('e'); // APPENDS
       }
@@ -521,8 +537,8 @@ bool pickle_write_value(
           error = "dict items iterator must return 2-tuples";
           return false;
         }
-        if (!pickle_write_value(runtime, pair->items[0], protocol, out, error, dispatch_table) ||
-            !pickle_write_value(runtime, pair->items[1], protocol, out, error, dispatch_table)) return false;
+        if (!pickle_write_value(runtime, pair->items[0], protocol, out, error, dispatch_table, state) ||
+            !pickle_write_value(runtime, pair->items[1], protocol, out, error, dispatch_table, state)) return false;
         if (protocol == 0) out.push_back('s'); // SETITEM
       }
       if (protocol != 0) out.push_back('u'); // SETITEMS
@@ -530,7 +546,7 @@ bool pickle_write_value(
   }
 
   if (reduced_tuple->items.size() >= 3 && reduced_tuple->items[2].tag != ValueTag::None) {
-    if (!pickle_write_value(runtime, reduced_tuple->items[2], protocol, out, error, dispatch_table)) {
+    if (!pickle_write_value(runtime, reduced_tuple->items[2], protocol, out, error, dispatch_table, state)) {
       return false;
     }
     out.push_back('b'); // BUILD
@@ -1130,49 +1146,87 @@ bool pickle_read_value(Runtime& runtime, std::string_view payload, Value& out, s
   return false;
 }
 
-// The built-in-only path may use the C++ protocol writer only when it can
-// preserve pickle's alias semantics without a memo table. Repeated objects,
-// cycles, custom reducers, and deep graphs stay on pickle.py's compatible path.
+// The native shortcut accepts acyclic built-in graphs and exact datetime.date
+// values. Its prewalk rejects cycles; the writer then memoizes after encoding,
+// preserving repeated-reference identity with MEMOIZE/BINGET. Other custom
+// classes and deep graphs stay on pickle.py's fully compatible path.
 bool pickle_builtin_tree_supported(
-    const Value& value, std::unordered_set<Object*>& seen, size_t depth = 0) {
+    Runtime& runtime,
+    const Value& value,
+    std::unordered_set<Object*>& active,
+    std::unordered_set<Object*>& checked,
+    size_t depth = 0) {
   if (depth > 900) return false;
   if (value.tag == ValueTag::None || value.tag == ValueTag::Bool ||
       value.tag == ValueTag::Int64 || value.tag == ValueTag::Double) {
     return true;
   }
-  if (value.tag != ValueTag::Object || value.as.obj == nullptr ||
-      !seen.insert(value.as.obj).second) {
+  if (value.tag != ValueTag::Object || value.as.obj == nullptr) {
     return false;
   }
+  Object* object = value.as.obj;
+  if (active.find(object) != active.end()) return false;
+  if (checked.find(object) != checked.end()) return true;
+
+  active.insert(object);
+  bool supported = false;
   if (value_as_string(value) != nullptr || value_as_bytes(value) != nullptr) {
-    return true;
+    supported = true;
+  } else if (auto* instance = value_as_instance(value); instance != nullptr) {
+    auto* instance_class = value_as_class(instance->klass);
+    if (instance_class != nullptr && instance_class->name == "date") {
+      // datetime.date's reducer is already handled by pickle_write_value;
+      // require the actual standard-library class so arbitrary user reducers
+      // continue to use pickle.py's fully compatible writer.
+      Value date_module;
+      Value date_class;
+      Value actual_class;
+      std::string ignored;
+      supported = runtime_type_of_value(runtime, value, actual_class) &&
+          runtime.import_module("datetime", date_module, ignored) &&
+          attribute_get(date_module, "date", date_class, ignored) &&
+          value_is(actual_class, date_class);
+    }
   }
-  if (auto* list = value_as_list(value)) {
+  if (!supported) if (auto* list = value_as_list(value)) {
+    supported = true;
     for (const auto& item : list->items) {
-      if (!pickle_builtin_tree_supported(item, seen, depth + 1)) return false;
+      if (!pickle_builtin_tree_supported(runtime, item, active, checked, depth + 1)) {
+        supported = false;
+        break;
+      }
     }
-    return true;
   }
-  if (auto* tuple = value_as_tuple(value)) {
+  if (!supported) if (auto* tuple = value_as_tuple(value)) {
+    supported = true;
     for (const auto& item : tuple->items) {
-      if (!pickle_builtin_tree_supported(item, seen, depth + 1)) return false;
+      if (!pickle_builtin_tree_supported(runtime, item, active, checked, depth + 1)) {
+        supported = false;
+        break;
+      }
     }
-    return true;
   }
-  if (auto* dict = value_as_dict(value)) {
+  if (!supported) if (auto* dict = value_as_dict(value)) {
+    supported = true;
     for (const auto& [key, item] : dict->entries) {
-      if (!pickle_builtin_tree_supported(key, seen, depth + 1) ||
-          !pickle_builtin_tree_supported(item, seen, depth + 1)) return false;
+      if (!pickle_builtin_tree_supported(runtime, key, active, checked, depth + 1) ||
+          !pickle_builtin_tree_supported(runtime, item, active, checked, depth + 1)) {
+        supported = false;
+        break;
+      }
     }
-    return true;
   }
-  return false;
+  active.erase(object);
+  if (supported) checked.insert(object);
+  return supported;
 }
 
 bool pickle_dumps_builtin_tree(
     Runtime& runtime, const Value& value, int protocol, Value& out, std::string& error) {
-  std::unordered_set<Object*> seen;
-  if (protocol < 4 || protocol > 5 || !pickle_builtin_tree_supported(value, seen)) {
+  std::unordered_set<Object*> active;
+  std::unordered_set<Object*> checked;
+  if (protocol < 4 || protocol > 5 ||
+      !pickle_builtin_tree_supported(runtime, value, active, checked)) {
     return false;
   }
   // Protocol 4/5 framing is optional. These small scalar/container streams
@@ -1181,12 +1235,49 @@ bool pickle_dumps_builtin_tree(
   encoded.reserve(256);
   encoded.push_back(static_cast<char>(0x80));
   encoded.push_back(static_cast<char>(protocol));
-  if (!pickle_write_value(runtime, value, protocol, encoded, error)) {
+  PickleWriterState writer_state;
+  if (!pickle_write_value(runtime, value, protocol, encoded, error, nullptr, &writer_state)) {
     error.clear();
     return false;
   }
   encoded.push_back('.');
   out = Value::bytes(encoded);
+  return true;
+}
+
+bool pickle_write_value(
+    Runtime& runtime,
+    const Value& value,
+    int protocol,
+    std::string& out,
+    std::string& error,
+    const Value* dispatch_table,
+    PickleWriterState* state) {
+  Object* object = value.tag == ValueTag::Object ? value.as.obj : nullptr;
+  if (state != nullptr && object != nullptr) {
+    const auto memoized = state->memo.find(object);
+    if (memoized != state->memo.end()) {
+      const uint32_t index = memoized->second;
+      if (index <= 0xffu) {
+        out.push_back('h'); // BINGET
+        out.push_back(static_cast<char>(index));
+      } else {
+        out.push_back('j'); // LONG_BINGET
+        append_u32(out, index);
+      }
+      return true;
+    }
+  }
+
+  if (!pickle_write_value_body(runtime, value, protocol, out, error, dispatch_table, state)) {
+    return false;
+  }
+  if (state != nullptr && object != nullptr) {
+    // The eligibility walk rejects cycles, so memoizing after encoding is
+    // sufficient and preserves repeated immutable and container references.
+    state->memo.emplace(object, state->next_memo_index++);
+    out.push_back(static_cast<char>(0x94)); // MEMOIZE
+  }
   return true;
 }
 

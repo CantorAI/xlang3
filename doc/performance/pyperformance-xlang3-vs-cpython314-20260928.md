@@ -17,9 +17,15 @@ The left-to-right log-scale chart shows the latest 44 matched results, where bar
 
 ![Horizontal log-scale chart of current full pyperformance comparison](pyperformance-xlang3-current-full-fast-20260929.svg)
 
-The three measured wins are `pickle_list` (1.30×), `python_startup_no_site` (1.17×), and `pickle_dict` (1.16×). The largest remaining gaps include `pickle` (0.000968×), `unpickle_list` (0.00187×), `unpickle` (0.00193×), and `typing_runtime_protocols` (0.0151×). `json_dumps` measured 55.9 ms versus about 7.5 ms for CPython (about 0.134×); `json_loads` measured 115 μs versus about 17.5 μs (about 0.152×). The focused float sample measured 75.3 ms versus 55.8 ms (0.741×); current-run XLang3 `float` was 75.0 ms.
+The three measured wins are `pickle_list` (1.30×), `python_startup_no_site` (1.17×), and `pickle_dict` (1.16×). The largest remaining gaps include `unpickle_list` (0.00187×), `unpickle` (0.00193×), and `typing_runtime_protocols` (0.0151×). `json_dumps` measured 55.9 ms versus about 7.5 ms for CPython (about 0.134×); `json_loads` measured 115 μs versus about 17.5 μs (about 0.152×). The focused float sample measured 75.3 ms versus 55.8 ms (0.741×); current-run XLang3 `float` was 75.0 ms.
 
 Full raw results: [XLang3 pyperf JSON](data/pyperformance-xlang3-full-fast-current-20260929.json), [CPython 3.14 pyperf JSON](data/pyperformance-cpython314-full-fast-20260928.json), and [all 97 current statuses and matched ratios](data/pyperformance-xlang3-vs-cpython314-current-full-fast-20260929.csv). The failures are retained in the CSV, including capped async workloads and third-party import/runtime failures such as `chameleon`, `coverage`, `dask`, `html5lib`, `networkx`, and `tornado_http`.
+
+## Follow-up: memoize repeated references in native `_pickle.dumps` (2026-09-29)
+
+The `pickle` benchmark's realistic graph repeats strings, containers, and `datetime.date` values. The native `_pickle.dumps` path previously rejected any repeated object and sent the whole graph through `pickle.py`. Its eligibility walk now rejects cycles but permits repeated objects in acyclic graphs; the C++ protocol writer emits `MEMOIZE`/`BINGET` to preserve reference identity and handles the exact standard-library `datetime.date` reducer. Custom classes and cycles continue through the standard Python implementation. The fixture checks both shared mutable-list identity and repeated-date identity after a round trip.
+
+The focused official fast `pickle` result fell from **9.38 ms** in the full-suite run to **35.5 μs**, about **264× faster within XLang3**. CPython 3.14 measured **9.08 μs**, so XLang3 is now about **0.256×** as fast (3.9× slower); the new sample warns about limited stability. The latest full-suite chart and CSV use this focused value for `pickle` and identify it as a focused rerun. The raw sample is [here](data/pickle-native-memo-xlang3-fast-20260929.json), and the full Release regression gate passed all seven fixed cases in [this report](data/release-regression-pickle-memo-20260929.json).
 
 ## Chart: selected `--fast` sample
 
