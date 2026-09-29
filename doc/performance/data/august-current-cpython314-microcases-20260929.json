@@ -1,0 +1,118 @@
+{
+  "note": "Seven order-balanced process wall-time samples per runtime; startup is included. This isolates whether August source executes these identical workloads faster; not pyperf, and the old August runtime predates recent semantics/features.",
+  "runtimes": {
+    "august": {
+      "path": "D:\\CantorAI\\xlang3-perf-aug20\\build\\Release\\xlang3.exe",
+      "sha256": "2182ac0fbf8e66d69de8115a3f4179651c940f464cbadd09780871d0e8138683",
+      "runtime_sha256": "4c9c79d7893042ffbbc632d3e6a25d26fc7eb225d031bd927254e524e3f4edb2"
+    },
+    "current": {
+      "path": "D:\\CantorAI\\xlang3\\build\\Release\\xlang3.exe",
+      "sha256": "98cbc243329a128a56c5c30966a6c0b8fa5cadbcf02580c2b490fe19474fce37",
+      "runtime_sha256": "41db044425bfc533d34fddcb7a11d9d656429865653775a1375b55554942aa8c"
+    },
+    "cpython314": {
+      "path": "C:\\Python\\Python314\\python.exe",
+      "sha256": "4942b86a6597e5aee0128daa00050ed79bc21f6e709a78eb19cbfeb0c2f39ac9",
+      "runtime_sha256": null
+    }
+  },
+  "results": [
+    {
+      "case": "function_calls.py",
+      "pairs": [
+        {
+          "august": 33.37429999373853,
+          "current": 41.05800000252202,
+          "cpython314": 44.62310002418235
+        },
+        {
+          "cpython314": 45.290399983059615,
+          "current": 41.80059995269403,
+          "august": 33.40169996954501
+        },
+        {
+          "current": 39.87330000381917,
+          "august": 32.17190003488213,
+          "cpython314": 43.90260000946
+        },
+        {
+          "august": 32.657000003382564,
+          "current": 39.33659999165684,
+          "cpython314": 43.60660002566874
+        },
+        {
+          "cpython314": 43.92029996961355,
+          "current": 38.93899999093264,
+          "august": 32.874600030481815
+        },
+        {
+          "current": 39.44209998007864,
+          "august": 32.37050003372133,
+          "cpython314": 42.813200037926435
+        },
+        {
+          "august": 32.45860000606626,
+          "current": 38.66740001831204,
+          "cpython314": 43.662299984134734
+        }
+      ],
+      "medians_ms": {
+        "august": 32.657000003382564,
+        "current": 39.44209998007864,
+        "cpython314": 43.90260000946
+      },
+      "current_over_august": 1.207768624674443,
+      "cpython_over_august": 1.3443549623331181,
+      "source_sha256": "1c1f4935461cc230bceae7ca35bdec4ac1b5de019016f916e7889768a76cd7fa"
+    },
+    {
+      "case": "local_slots.py",
+      "pairs": [
+        {
+          "august": 55.221599992364645,
+          "current": 73.9478999748826,
+          "cpython314": 83.30630004638806
+        },
+        {
+          "cpython314": 82.57599995704368,
+          "current": 75.33159997547045,
+          "august": 56.00450001657009
+        },
+        {
+          "current": 74.28200001595542,
+          "august": 54.59890002384782,
+          "cpython314": 82.16460002586246
+        },
+        {
+          "august": 54.704500013031065,
+          "current": 73.03580001462251,
+          "cpython314": 81.88449998851866
+        },
+        {
+          "cpython314": 82.4566999799572,
+          "current": 73.75430001411587,
+          "august": 55.138600000645965
+        },
+        {
+          "current": 74.3526000296697,
+          "august": 55.74239999987185,
+          "cpython314": 82.152999995742
+        },
+        {
+          "august": 55.55000004824251,
+          "current": 73.0615999782458,
+          "cpython314": 88.1703999475576
+        }
+      ],
+      "medians_ms": {
+        "august": 55.221599992364645,
+        "current": 73.9478999748826,
+        "cpython314": 82.4566999799572
+      },
+      "current_over_august": 1.3391118689988555,
+      "cpython_over_august": 1.4931965026612464,
+      "source_sha256": "7207d49fc38bc57f33d130f2287b78a81b0cac694cd1b8e3c9f93ec634f677f4"
+    }
+  ]
+}
