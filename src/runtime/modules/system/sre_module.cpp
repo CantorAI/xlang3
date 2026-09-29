@@ -81,6 +81,7 @@ struct LookbehindAssertion {
   std::string expression;
   int64_t marker_group = 0;
   int64_t alternate_marker_group = 0;
+  std::vector<std::string> literal_alternatives;
 };
 
 struct BoundaryAssertion {
@@ -567,7 +568,8 @@ bool regex_parse_fixed_literal_lookbehind(
     size_t& close,
     std::string& literal,
     char& category,
-    int64_t& group_ref);
+    int64_t& group_ref,
+    std::vector<std::string>& alternatives);
 
 bool regex_parse_conditional_literal_lookbehind(
     std::string_view pattern,
@@ -656,6 +658,7 @@ bool regex_has_unsupported_std_construct(std::string_view pattern) {
       bool positive = true;
       size_t close = 0;
       std::string literal;
+      std::vector<std::string> literal_alternatives;
       char category = '\0';
       int64_t group_ref = 0;
       int64_t conditional_group = 0;
@@ -664,7 +667,7 @@ bool regex_has_unsupported_std_construct(std::string_view pattern) {
       std::string captured_negative_literal;
       if (lookbehind_kind == '!' &&
           !regex_parse_fixed_literal_lookbehind(
-              pattern, i, positive, close, literal, category, group_ref) &&
+              pattern, i, positive, close, literal, category, group_ref, literal_alternatives) &&
           !regex_parse_captured_literal_negative_lookbehind(
               pattern, i, close, captured_negative_literal) &&
           !regex_parse_conditional_literal_lookbehind(
@@ -896,7 +899,8 @@ bool regex_parse_fixed_literal_lookbehind(
     size_t& close,
     std::string& literal,
     char& category,
-    int64_t& group_ref) {
+    int64_t& group_ref,
+    std::vector<std::string>& alternatives) {
   if (open + 3 >= pattern.size() || pattern[open] != '(' || pattern[open + 1] != '?' || pattern[open + 2] != '<') {
     return false;
   }
@@ -909,6 +913,7 @@ bool regex_parse_fixed_literal_lookbehind(
   }
 
   literal.clear();
+  alternatives.clear();
   category = '\0';
   group_ref = 0;
   if (open + 10 < pattern.size() &&
@@ -941,14 +946,15 @@ bool regex_parse_fixed_literal_lookbehind(
     group_ref = 0;
   }
   bool escaped = false;
+  std::string branch;
   for (size_t i = open + 4; i < pattern.size(); ++i) {
     const char ch = pattern[i];
     if (escaped) {
       switch (ch) {
-        case 'n': literal.push_back('\n'); break;
-        case 'r': literal.push_back('\r'); break;
-        case 't': literal.push_back('\t'); break;
-        default: literal.push_back(ch); break;
+        case 'n': branch.push_back('\n'); break;
+        case 'r': branch.push_back('\r'); break;
+        case 't': branch.push_back('\t'); break;
+        default: branch.push_back(ch); break;
       }
       escaped = false;
       continue;
@@ -958,14 +964,39 @@ bool regex_parse_fixed_literal_lookbehind(
       continue;
     }
     if (ch == ')') {
+      if (branch.empty()) return false;
+      if (alternatives.empty()) {
+        literal = std::move(branch);
+      } else {
+        // The matcher evaluates these fixed-width ASCII lookbehinds after the
+        // host regex match; variable-width and non-ASCII alternatives stay on
+        // the explicit unsupported path rather than changing regex semantics.
+        alternatives.push_back(std::move(branch));
+        const size_t width = alternatives.front().size();
+        if (width == 0 || std::any_of(alternatives.begin(), alternatives.end(), [&](const std::string& item) {
+              return item.size() != width || std::any_of(item.begin(), item.end(), [](unsigned char value) {
+                return value >= 0x80u;
+              });
+            })) {
+          alternatives.clear();
+          return false;
+        }
+        literal = alternatives.front();
+      }
       close = i;
       return true;
+    }
+    if (ch == '|') {
+      if (branch.empty()) return false;
+      alternatives.push_back(std::move(branch));
+      branch.clear();
+      continue;
     }
     if (ch == '(' || ch == '[' || ch == '{' || ch == '.' || ch == '*' || ch == '+' || ch == '?' || ch == '|' || ch == '^' ||
         ch == '$') {
       return false;
     }
-    literal.push_back(ch);
+    branch.push_back(ch);
   }
   return false;
 }
@@ -1915,6 +1946,7 @@ std::string normalize_std_regex_pattern(
       bool positive = true;
       size_t close = 0;
       std::string literal;
+      std::vector<std::string> literal_alternatives;
       char category = '\0';
       int64_t group_ref = 0;
       int64_t conditional_group = 0;
@@ -1922,7 +1954,7 @@ std::string normalize_std_regex_pattern(
       std::string conditional_no;
       std::string captured_negative_literal;
       if (regex_parse_fixed_literal_lookbehind(
-              pattern, i, positive, close, literal, category, group_ref)) {
+              pattern, i, positive, close, literal, category, group_ref, literal_alternatives)) {
         if (lookbehinds != nullptr) {
           const size_t branch_end = pattern.find('|', close + 1);
           const bool empty_only = branch_end != std::string_view::npos &&
@@ -1934,6 +1966,7 @@ std::string normalize_std_regex_pattern(
           LookbehindAssertion assertion{
               out.size(), std::move(literal), positive, category, empty_only,
               group_ref, anchor_from_end, trailing_literal.size()};
+          assertion.literal_alternatives = std::move(literal_alternatives);
           assertion.captures_before_assertion = regex_capture_count_before(pattern, i);
           int64_t markers_before = 0;
           for (const auto& previous : *lookbehinds) {
@@ -3405,8 +3438,16 @@ bool match_satisfies_lookbehinds(
         present = text.compare(
             anchor - assertion.literal.size(), assertion.literal.size(), assertion.literal) == 0;
       }
-    } else if (anchor >= assertion.literal.size()) {
-      present = text.compare(anchor - assertion.literal.size(), assertion.literal.size(), assertion.literal) == 0;
+    } else {
+      const auto literal_precedes_anchor = [&](std::string_view literal) {
+        return anchor >= literal.size() &&
+            text.compare(anchor - literal.size(), literal.size(), literal) == 0;
+      };
+      present = literal_precedes_anchor(assertion.literal);
+      for (const auto& alternative : assertion.literal_alternatives) {
+        if (present) break;
+        present = literal_precedes_anchor(alternative);
+      }
     }
     if (assertion.positive != present) {
       return false;
@@ -3500,13 +3541,19 @@ bool regex_retry_other_alternative_at_same_start(
     const PatternState& state, const std::string& text,
     size_t match_start, size_t endpos, bool full,
     std::match_results<std::string::const_iterator>& match) {
-  // Host regex does not support lookbehind. If its first alternative matches
-  // but fails our post-match assertion, retry later alternatives at that same
-  // subject position without changing capture numbering.
-  std::vector<std::string_view> branches;
+  // Host regex does not support lookbehind. If its preferred nested branch
+  // matches but fails a deferred assertion, retry sibling branches at the same
+  // subject position. Keep each disabled branch in the expression behind an
+  // always-failing assertion so its captures retain their original numbering.
+  struct Branch { size_t begin; size_t end; };
+  struct Scope {
+    size_t branch_begin;
+    std::vector<Branch> branches;
+  };
+  std::vector<Scope> scopes;
   const std::string_view pattern(state.engine_pattern);
-  size_t branch_start = 0;
-  size_t depth = 0;
+  std::vector<Scope> stack;
+  stack.push_back(Scope{0, {}});  // The implicit top-level alternation.
   bool in_class = false;
   bool escaped = false;
   for (size_t i = 0; i < pattern.size(); ++i) {
@@ -3516,42 +3563,79 @@ bool regex_retry_other_alternative_at_same_start(
     if (ch == '[' && !in_class) { in_class = true; continue; }
     if (ch == ']' && in_class) { in_class = false; continue; }
     if (in_class) continue;
-    if (ch == '(') { ++depth; continue; }
-    if (ch == ')') { if (depth > 0) --depth; continue; }
-    if (ch == '|' && depth == 0) {
-      branches.push_back(pattern.substr(branch_start, i - branch_start));
-      branch_start = i + 1;
+    if (ch == '(') {
+      size_t content_begin = i + 1;
+      if (i + 2 < pattern.size() && pattern[i + 1] == '?' &&
+          (pattern[i + 2] == ':' || pattern[i + 2] == '=' || pattern[i + 2] == '!')) {
+        content_begin = i + 3;
+      } else if (i + 1 < pattern.size() && pattern[i + 1] == '?') {
+        const size_t colon = pattern.find(':', i + 2);
+        const size_t close = pattern.find(')', i + 2);
+        if (colon != std::string_view::npos &&
+            (close == std::string_view::npos || colon < close)) {
+          content_begin = colon + 1;
+        }
+      }
+      stack.push_back(Scope{content_begin, {}});
+      continue;
+    }
+    if (ch == '|') {
+      auto& scope = stack.back();
+      scope.branches.push_back(Branch{scope.branch_begin, i});
+      scope.branch_begin = i + 1;
+      continue;
+    }
+    if (ch == ')' && stack.size() > 1) {
+      auto scope = std::move(stack.back());
+      stack.pop_back();
+      if (!scope.branches.empty()) {
+        scope.branches.push_back(Branch{scope.branch_begin, i});
+        scopes.push_back(std::move(scope));
+      }
     }
   }
-  if (branches.empty()) return false;
-  branches.push_back(pattern.substr(branch_start));
+  auto root = std::move(stack.front());
+  if (!root.branches.empty()) {
+    root.branches.push_back(Branch{root.branch_begin, pattern.size()});
+    scopes.push_back(std::move(root));
+  }
+  if (scopes.empty()) return false;
   const auto begin = text.cbegin() + static_cast<std::ptrdiff_t>(match_start);
   const auto end = text.cbegin() + static_cast<std::ptrdiff_t>(endpos);
   auto flags = std::regex_constants::match_continuous;
   if (match_start != 0)
     flags |= std::regex_constants::match_prev_avail |
              std::regex_constants::match_not_bol;
-  for (size_t disabled = 1; disabled < branches.size(); ++disabled) {
-    std::string alternative;
-    alternative.reserve(pattern.size() + disabled * 4);
-    for (size_t branch = 0; branch < branches.size(); ++branch) {
-      if (branch != 0) alternative.push_back('|');
-      if (branch < disabled) alternative += "(?!)";
-      alternative.append(branches[branch]);
-    }
-    try {
-      const std::regex candidate_regex(alternative, state.regex_flags);
-      std::match_results<std::string::const_iterator> candidate;
-      const bool found = full
-          ? std::regex_match(begin, end, candidate, candidate_regex, flags)
-          : std::regex_search(begin, end, candidate, candidate_regex, flags);
-      if (found && match_satisfies_lookbehinds(
-                       state, text, candidate, match_start)) {
-        match = std::move(candidate);
-        return true;
+  for (const auto& scope : scopes) {
+    for (size_t selected = 1; selected < scope.branches.size(); ++selected) {
+      std::string alternative;
+      alternative.reserve(pattern.size() + selected * 8);
+      size_t copied = 0;
+      for (size_t branch = 0; branch < scope.branches.size(); ++branch) {
+        const auto span = scope.branches[branch];
+        if (branch < selected) {
+          alternative.append(pattern.substr(copied, span.begin - copied));
+          alternative += "(?!)(?:";
+          alternative.append(pattern.substr(span.begin, span.end - span.begin));
+          alternative += ")";
+          copied = span.end;
+        }
       }
-    } catch (const std::regex_error&) {
-      return false;
+      alternative.append(pattern.substr(copied));
+      try {
+        const std::regex candidate_regex(alternative, state.regex_flags);
+        std::match_results<std::string::const_iterator> candidate;
+        const bool found = full
+            ? std::regex_match(begin, end, candidate, candidate_regex, flags)
+            : std::regex_search(begin, end, candidate, candidate_regex, flags);
+        if (found && match_satisfies_lookbehinds(
+                         state, text, candidate, match_start)) {
+          match = std::move(candidate);
+          return true;
+        }
+      } catch (const std::regex_error&) {
+        return false;
+      }
     }
   }
   return false;

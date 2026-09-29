@@ -1629,7 +1629,11 @@ ast::ExprPtr Parser::parse_await() {
     if (is_simple_statement_end() || check(TokenKind::RParen) || check(TokenKind::RBracket) || check(TokenKind::RBrace)) {
       return std::make_unique<ast::YieldExpr>(std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::None), from);
     }
-    return std::make_unique<ast::YieldExpr>(from ? parse_await() : parse_expression(), from);
+    // Python's ``yield from`` operand is a full expression. Parsing only the
+    // next await/primary expression drops trailing boolean and conditional
+    // operators (for example, ``yield from items or ()``), which can make
+    // stdlib fallback iterables disappear at runtime.
+    return std::make_unique<ast::YieldExpr>(parse_expression(), from);
   }
   return parse_lambda();
 }
