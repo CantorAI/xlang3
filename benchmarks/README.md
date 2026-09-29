@@ -26,7 +26,7 @@ Both engines must support the native `time.perf_counter` function (the August
 python benchmarks/check_regression.py --baseline scratch/performance-baseline/xlang3.exe --candidate build/Release/xlang3.exe
 ```
 
-This runs seven fixed workloads on both executables, alternates execution
+This runs eight fixed workloads on both executables, alternates execution
 order, verifies equal output, excludes startup with internal timing, and saves
 raw samples, benchmark hashes, runtime hashes, and paired bootstrap intervals
 to `scratch/performance/latest.json`. It uses 21 measured samples after five warmup rounds. Each sample runs both baseline-candidate and candidate-baseline process orders, then combines same-position timings geometrically to reduce launch-position bias. Workload loops, output checks, and the 10% per-case slowdown limit are unchanged.
