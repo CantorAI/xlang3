@@ -1136,23 +1136,39 @@ void visit_strong_object_edges(Object* object, Object* cycle_root, Visit visit) 
   }
 }
 
-bool class_has_module_root(const ClassObject* klass) {
+bool class_has_module_root(Runtime& runtime, const ClassObject* klass) {
   const auto* module = value_as_module(klass->globals_module);
-  if (module == nullptr) return false;
   const auto holds_class = [klass](const Value& value) {
     return value.tag == ValueTag::Object && value.as.obj == &klass->header;
   };
-  for (const auto& value : module->slots)
-    if (holds_class(value)) return true;
-  for (const auto& entry : module->extra_globals)
-    if (holds_class(entry.second)) return true;
-  if (const auto* namespace_dict = value_as_dict(module->namespace_dict))
-    for (const auto& entry : namespace_dict->entries)
+  const auto module_holds_class = [&](const ModuleObject* owner) {
+    if (owner == nullptr) return false;
+    for (const auto& value : owner->slots)
+      if (holds_class(value)) return true;
+    for (const auto& entry : owner->extra_globals)
       if (holds_class(entry.second)) return true;
-  return false;
+    if (const auto* namespace_dict = value_as_dict(owner->namespace_dict))
+      for (const auto& entry : namespace_dict->entries)
+        if (holds_class(entry.second)) return true;
+    return false;
+  };
+  if (module_holds_class(module)) return true;
+
+  // Source-backed classes can lack globals_module while keeping a canonical
+  // __module__ name. Resolve that registered module binding so each GC pass
+  // does not walk the same huge stdlib graph for every module-owned subclass.
+  const auto module_attr = klass->attrs.find("__module__");
+  if (module_attr == klass->attrs.end()) return false;
+  const auto* module_name = value_as_string(module_attr->second);
+  if (module_name == nullptr) return false;
+  Value registered_module;
+  std::string ignored;
+  if (!mapping_get_string_item(runtime.module_registry_dict(),
+          string_object_view(*module_name), registered_module, ignored)) return false;
+  return module_holds_class(value_as_module(registered_module));
 }
 
-uint64_t collect_isolated_class_component(ClassObject* klass) {
+uint64_t collect_isolated_class_component(Runtime& runtime, ClassObject* klass) {
   constexpr size_t kMaximumCandidateObjects = 50000;
   std::vector<Object*> nodes{&klass->header};
   std::unordered_map<Object*, size_t> indices{{&klass->header, 0}};
@@ -1165,7 +1181,7 @@ uint64_t collect_isolated_class_component(ClassObject* klass) {
       // entire live import graph into a local class-cycle search. Local classes
       // remain eligible, including cycles spanning multiple classes.
       if (target->kind == ObjectKind::Class && target != &klass->header &&
-          class_has_module_root(reinterpret_cast<ClassObject*>(target))) return;
+          class_has_module_root(runtime, reinterpret_cast<ClassObject*>(target))) return;
       auto [position, inserted] = indices.emplace(target, nodes.size());
       if (inserted) nodes.push_back(target);
       adjacency[index].push_back(position->second);
@@ -1445,11 +1461,11 @@ uint64_t weakref_collect_cycles(Runtime& runtime) {
   std::vector<ClassObject*> local_classes;
   local_classes.reserve(class_hierarchy.size());
   for (auto* klass : class_hierarchy)
-    if (!class_has_module_root(klass)) local_classes.push_back(klass);
+    if (!class_has_module_root(runtime, klass)) local_classes.push_back(klass);
   uint64_t collected = 0;
   for (auto* klass : local_classes) {
     if (!object_model_class_is_live(klass)) continue;
-    collected += collect_isolated_class_component(klass);
+    collected += collect_isolated_class_component(runtime, klass);
   }
 
   std::vector<ClassObject*> candidates;
@@ -1472,6 +1488,10 @@ uint64_t weakref_collect_cycles(Runtime& runtime) {
     if (!still_registered) {
       continue;
     }
+    // A class still bound in its defining module cannot be an isolated cycle.
+    // Resolve __module__ for source-backed classes missing globals_module too;
+    // otherwise every gc.collect() rescans the same imported stdlib graph.
+    if (class_has_module_root(runtime, klass)) continue;
     std::unordered_map<InstanceObject*, uint32_t> instance_attr_refs;
     std::vector<std::string> cyclic_attrs;
     for (const auto& attr : klass->attrs) {
@@ -1483,7 +1503,7 @@ uint64_t weakref_collect_cycles(Runtime& runtime) {
     }
     if (instance_attr_refs.empty() ||
         klass->header.refcnt.load(std::memory_order_relaxed) != instance_attr_refs.size()) {
-      collected += collect_isolated_class_component(klass);
+      collected += collect_isolated_class_component(runtime, klass);
       continue;
     }
     bool isolated = true;
@@ -1494,7 +1514,7 @@ uint64_t weakref_collect_cycles(Runtime& runtime) {
       }
     }
     if (!isolated) {
-      collected += collect_isolated_class_component(klass);
+      collected += collect_isolated_class_component(runtime, klass);
       continue;
     }
 

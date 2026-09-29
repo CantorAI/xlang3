@@ -1,0 +1,26 @@
+GC traversal diagnosis (2026-09-29)
+=================================
+
+Workload: pyperformance bm_gc_traversal, 1,000 nested list containers. Profiling script imported pyperf, built the same graph, then called gc.collect() twice. The profile switches were temporary and environment-gated; they have been removed from production source.
+
+Before module-root filtering (same XLang3 Release build apart from profiling instrumentation):
+  weakref_cycles:       128.865 ms and 129.773 ms
+  local-class-cycles:   114.266 ms / 115.066 ms; 687 / 686 local classes
+  class candidates:      14.409 ms / 14.555 ms; 46 candidates
+  weakref registry:      54 entries
+
+Five repeated roots were pathlib classes. Each class scan walked approximately 21,392 objects:
+  PackagePath, WindowsPath, PosixPath, PureWindowsPath, PurePosixPath
+A sixth scan for the weakly referenced, still module-bound PurePath walked 21,494 objects.
+
+After resolving canonical __module__ bindings and skipping module-rooted class candidates:
+  local-class-cycles:     2.339 ms and 1.991 ms
+  class candidates:       0.107 ms and 0.087 ms
+  weakref_cycles:         2.689 ms and 2.264 ms
+
+Official focused pyperf samples with matching settings (3 processes, 6 values, 2 warmups):
+  XLang3:       1.14412 ms (mean 1.14 ms, standard deviation 0.04 ms)
+  CPython 3.14: 2.19122 ms (mean 2.19 ms, standard deviation 0.08 ms)
+  CPython / XLang3: 1.9152x
+
+The checked-in raw pyperf JSON files are pyperf-xlang3-gc-module-root-20260929.json and pyperf-cpython314-gc-module-root-20260929.json. The fixed-baseline regression gate is release-regression-gc-class-root-full-20260929.json.
