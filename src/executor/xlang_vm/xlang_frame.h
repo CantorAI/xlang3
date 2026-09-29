@@ -359,7 +359,14 @@ struct XlangVMFrame {
     // entries currently contain owning Values, so discard those entries while
     // retaining the allocated cache vector for the next activation.
     for (auto& cache : instr_cache) {
-      cache = XlangVMInstrCache{};
+      // Cache writers touch their adaptive domain before storing auxiliary
+      // values. Monitoring's negative-location mask is the sidecar state that
+      // does not use a domain, so clear those entries too. Most IR instructions
+      // never touch a cache and can skip the large record/vector reset here.
+      if (cache.domain != XlangVMCacheDomain::Empty ||
+          cache.monitoring_generation != 0 || cache.monitoring_disabled_events != 0) {
+        cache = XlangVMInstrCache{};
+      }
     }
     value_set_invalid(trace_function);
     value_set_invalid(trace_frame_object);

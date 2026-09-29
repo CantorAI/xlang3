@@ -477,6 +477,22 @@ The IR for `JSONEncoder.encode()` identifies another plausible contributor: each
 
 A direct path split confirms where the time goes. Calling the existing native `_json` encoder callable took 0.65–1.01 µs in XLang3 for empty/simple objects, while `json.dumps()` took about 14 µs. CPython's corresponding measurements were 0.11–0.60 µs and 0.83–1.43 µs. The native encoding core is therefore already fast; most remaining cost is in XLang3's execution of the public Python wrapper layers. The diagnostic loop and VM counter evidence are preserved in [`data/json-dumps-path-split-20260929.txt`](data/json-dumps-path-split-20260929.txt); those microtimings are diagnostic rather than pyperf release scores.
 
+### `deepcopy_memo` VM cache cleanup optimization (2026-09-29)
+
+`XlangVMFrame::clear_for_pop()` previously assigned a fresh, large instruction-cache record to every IR instruction whenever a Python frame returned, including instructions whose adaptive cache was never used. It now skips records with an empty cache domain. All global, attribute, and call-site cache writes touch their domain before storing values, so active records still release owned values and reset fully at return. The invariant and reason are documented beside the cleanup loop in [`xlang_frame.h`](../../src/executor/xlang_vm/xlang_frame.h).
+
+The exact `benchmark_memo` function from pyperformance 1.14, measured with pyperf 2.10.0 in rigorous mode, improved from **1.12 ms ±0.01 ms** on the preserved XLang3 Release baseline to **559 μs ±8 μs** on the candidate (**2.00× faster**). CPython 3.14.7 measured **22.1 μs ±0.3 μs**, leaving the candidate about **25.3× slower**. The standard pyperformance virtualenv launcher cannot bootstrap XLang3 with `ensurepip`; this focused run used pyperf's worker/calibration directly and disabled the unsupported Windows priority/system-metadata hooks. The three raw pyperf files are [baseline](data/pyperformance-deepcopy-memo-xlang3-baseline-rigorous-20260929.json), [candidate](data/pyperformance-deepcopy-memo-xlang3-candidate-rigorous-20260929.json), and [CPython 3.14.7](data/pyperformance-deepcopy-memo-cpython314-rigorous-final-20260929.json).
+
+Elapsed time relative to CPython 3.14.7 (shorter is better):
+
+```text
+CPython 3.14.7             22.1 μs |█
+XLang3 candidate            559 μs |█████████████████████████
+XLang3 accepted baseline   1.12 ms |██████████████████████████████████████████████████
+```
+
+The full eight-case fixed Release gate passed. `deepcopy_memo` ran at **0.497×** the accepted baseline time over 21 order-balanced pairs after five warmups; the other seven cases also passed. The raw gate report, including paired samples and executable/runtime hashes, is [here](data/release-regression-deepcopy-cache-cleanup-20260929.json). The exact graph's aliasing and deep-copy semantics are checked by the benchmark's preflight assertions.
+
 ### `deepcopy_memo` call-path diagnosis (2026-09-29)
 
 A fresh same-source diagnostic using the exact pyperformance 1.14 graph and 25 `deepcopy` calls per sample measured a 1.118 ms median in the current Release XLang3 runtime and 21.208 µs in CPython 3.14.7 (about 52.7× slower in this direct timing; use the official full-run pyperf values above for suite comparisons). VM profiling of one graph copy counted 208 calls to the pure-Python `copy.deepcopy` function, plus two `_deepcopy_list`, one `_deepcopy_dict`, one `_deepcopy_tuple`, and four `_keep_alive` calls. The integer-key `memo.get` operation already reaches XLang3's guarded direct `dict.get` path; the remaining cost is the repeated Python-function call/frame execution. The reproducible workload is [`benchmarks/cases/deepcopy_memo.py`](../../benchmarks/cases/deepcopy_memo.py), now included in the fixed Release regression gate. Its paired comparison against the preserved baseline passed at 0.992× for XLang3 candidate/baseline; this checks regressions and does not represent an improvement against CPython. The detailed diagnostic samples and function counts are in [`data/deepcopy-memo-call-profile-20260929.txt`](data/deepcopy-memo-call-profile-20260929.txt).

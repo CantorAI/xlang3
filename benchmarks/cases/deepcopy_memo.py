@@ -4,6 +4,10 @@ import copy
 
 A = [1] * 100
 data = {"a": (A, A, A), "b": [A] * 100}
+probe = copy.deepcopy(data)
+assert probe is not data
+assert probe["a"][0] is probe["a"][1] is probe["a"][2]
+assert probe["b"][0] is probe["a"][0] and probe["a"][0] is not A
 
 
 def main():
