@@ -689,28 +689,79 @@ bool runtime_get_iter(Runtime& runtime, const Value& iterable, Value& out, std::
     }
   }
 
-  Value iter_method;
-  std::string attr_error;
-  if (!attribute_get(iterable, "__iter__", iter_method, attr_error)) {
-    Value getitem_method;
-    std::string getitem_error;
-    if (attribute_get(iterable, "__getitem__", getitem_method, getitem_error)) {
-      out = functional_getitem_iterator(&runtime, iterable);
-      error.clear();
-      return true;
+  Value iter_result;
+  bool handled_instance_protocol = false;
+  if (auto* instance = value_as_instance(iterable)) {
+    // Special-method lookup for iter(obj) is type-based. When __iter__ is an
+    // ordinary Python/native class function, pass self directly instead of
+    // allocating a temporary bound method for each nested iterator.
+    Value class_method;
+    std::string ignored;
+    if (object_get_class_attr_for_instance(iterable, "__iter__", class_method, ignored)) {
+      handled_instance_protocol = true;
+      const auto* native = value_as_native_function(class_method);
+      if (value_as_function(class_method) != nullptr ||
+          (native != nullptr && native->bind_as_descriptor)) {
+        Value self = iterable;
+        if (!runtime_call_callable(runtime, class_method, &self, 1, iter_result, error)) {
+          error = error.empty() ? "__iter__ call failed" : error;
+          return false;
+        }
+      } else {
+        // Preserve descriptor binding for staticmethod, classmethod, and
+        // custom descriptors while still looking the special method up on
+        // the type rather than through the instance's __getattribute__.
+        Value iter_method;
+        if (!class_get_bound_attr(
+                runtime, instance->klass, iterable, "__iter__", iter_method, error)) {
+          error = error.empty() ? "object is not iterable" : error;
+          return false;
+        }
+        std::string call_error;
+        if (!runtime_call_callable(runtime, iter_method, nullptr, 0, iter_result, call_error)) {
+          error = call_error.empty() ? "__iter__ call failed" : call_error;
+          return false;
+        }
+      }
+    } else {
+      // An instance-level __iter__ is ignored by Python's special-method
+      // lookup. Keep XLang's built-in sequence-storage fallback, then check
+      // the legacy __getitem__ protocol on the class itself.
+      if (sequence_get_iter(iterable, out, error)) return true;
+      Value class_getitem;
+      if (object_get_class_attr_for_instance(iterable, "__getitem__", class_getitem, ignored)) {
+        out = functional_getitem_iterator(&runtime, iterable);
+        error.clear();
+        return true;
+      }
+      error = "object is not iterable";
+      return false;
     }
-    if (protocol_first && sequence_get_iter(iterable, out, error)) {
-      return true;
-    }
-    error = error.empty() ? "object is not iterable" : error;
-    return false;
   }
 
-  Value iter_result;
-  std::string call_error;
-  if (!runtime_call_callable(runtime, iter_method, nullptr, 0, iter_result, call_error)) {
-    error = call_error.empty() ? "__iter__ call failed" : call_error;
-    return false;
+  if (!handled_instance_protocol) {
+    Value iter_method;
+    std::string attr_error;
+    if (!attribute_get(iterable, "__iter__", iter_method, attr_error)) {
+      Value getitem_method;
+      std::string getitem_error;
+      if (attribute_get(iterable, "__getitem__", getitem_method, getitem_error)) {
+        out = functional_getitem_iterator(&runtime, iterable);
+        error.clear();
+        return true;
+      }
+      if (protocol_first && sequence_get_iter(iterable, out, error)) {
+        return true;
+      }
+      error = error.empty() ? "object is not iterable" : error;
+      return false;
+    }
+
+    std::string call_error;
+    if (!runtime_call_callable(runtime, iter_method, nullptr, 0, iter_result, call_error)) {
+      error = call_error.empty() ? "__iter__ call failed" : call_error;
+      return false;
+    }
   }
 
   std::string concrete_error;
