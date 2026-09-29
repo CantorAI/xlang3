@@ -3763,12 +3763,15 @@ Value make_memory_stream_class(
   attrs.push_back({"read", runtime.make_native_function(std::string("_io.") + name + ".read", stream_read, const_cast<char*>(type))});
   attrs.push_back({"readline", runtime.make_native_function(std::string("_io.") + name + ".readline", stream_readline, const_cast<char*>(type))});
   attrs.push_back({"readlines", runtime.make_native_function(std::string("_io.") + name + ".readlines", stream_readlines, const_cast<char*>(type))});
-  // The pure-Python pickler emits many small writes to BytesIO. Preserve its
-  // Python implementation while using the VM's vectorcall-style native adapter
-  // for the exact in-memory bytes stream; other stream classes may forward
-  // into user-provided objects and keep the ordinary call path.
+  // The pure-Python pickler emits many small writes and tell queries to BytesIO.
+  // Preserve its Python implementation while using vectorcall-style native
+  // adapters for the exact in-memory bytes stream; other stream classes may
+  // forward into user-provided objects and keep the ordinary call path.
   const NativeFastCallCallback write_fast_callback = std::string_view(name) == "BytesIO"
       ? builtin_method_fast_adapter<stream_write, 2>
+      : nullptr;
+  const NativeFastCallCallback tell_fast_callback = std::string_view(name) == "BytesIO"
+      ? builtin_method_fast_adapter<stream_tell, 1>
       : nullptr;
   attrs.push_back({"write", runtime.make_native_function(
       std::string("_io.") + name + ".write", stream_write, const_cast<char*>(type),
@@ -3796,7 +3799,9 @@ Value make_memory_stream_class(
   attrs.push_back({"detach", runtime.make_native_function(
       std::string("_io.") + name + ".detach",
       std::string_view(name) == "TextIOWrapper" ? text_io_wrapper_detach : stream_detach)});
-  attrs.push_back({"tell", runtime.make_native_function(std::string("_io.") + name + ".tell", stream_tell, const_cast<char*>(type))});
+  attrs.push_back({"tell", runtime.make_native_function(
+      std::string("_io.") + name + ".tell", stream_tell, const_cast<char*>(type),
+      nullptr, tell_fast_callback)});
   attrs.push_back({"truncate", runtime.make_native_function(std::string("_io.") + name + ".truncate", stream_truncate, const_cast<char*>(type))});
   attrs.push_back({"close", runtime.make_native_function(std::string("_io.") + name + ".close", stream_close, const_cast<char*>(type))});
   attrs.push_back({"flush", runtime.make_native_function(std::string("_io.") + name + ".flush", stream_flush, const_cast<char*>(type))});
