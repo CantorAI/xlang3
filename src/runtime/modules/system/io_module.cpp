@@ -13,6 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 #include "xlang3/builtins.h"
+#include "xlang3/builtin_methods.h"
 
 #include "xlang3/attribute.h"
 #include "xlang3/functional_iterators.h"
@@ -3762,7 +3763,16 @@ Value make_memory_stream_class(
   attrs.push_back({"read", runtime.make_native_function(std::string("_io.") + name + ".read", stream_read, const_cast<char*>(type))});
   attrs.push_back({"readline", runtime.make_native_function(std::string("_io.") + name + ".readline", stream_readline, const_cast<char*>(type))});
   attrs.push_back({"readlines", runtime.make_native_function(std::string("_io.") + name + ".readlines", stream_readlines, const_cast<char*>(type))});
-  attrs.push_back({"write", runtime.make_native_function(std::string("_io.") + name + ".write", stream_write, const_cast<char*>(type))});
+  // The pure-Python pickler emits many small writes to BytesIO. Preserve its
+  // Python implementation while using the VM's vectorcall-style native adapter
+  // for the exact in-memory bytes stream; other stream classes may forward
+  // into user-provided objects and keep the ordinary call path.
+  const NativeFastCallCallback write_fast_callback = std::string_view(name) == "BytesIO"
+      ? builtin_method_fast_adapter<stream_write, 2>
+      : nullptr;
+  attrs.push_back({"write", runtime.make_native_function(
+      std::string("_io.") + name + ".write", stream_write, const_cast<char*>(type),
+      nullptr, write_fast_callback)});
   attrs.push_back({"writelines", runtime.make_native_function(std::string("_io.") + name + ".writelines", stream_writelines, const_cast<char*>(type))});
   attrs.push_back({"getvalue", runtime.make_native_function(std::string("_io.") + name + ".getvalue", stream_getvalue, const_cast<char*>(type))});
   if (std::string_view(name) == "BytesIO") {
