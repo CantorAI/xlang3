@@ -27,6 +27,7 @@ limitations under the License.
 #include <cstring>
 #include <string>
 #include <string_view>
+#include <unordered_set>
 #include <vector>
 
 namespace xlang3 {
@@ -1129,7 +1130,74 @@ bool pickle_read_value(Runtime& runtime, std::string_view payload, Value& out, s
   return false;
 }
 
+// The built-in-only path may use the C++ protocol writer only when it can
+// preserve pickle's alias semantics without a memo table. Repeated objects,
+// cycles, custom reducers, and deep graphs stay on pickle.py's compatible path.
+bool pickle_builtin_tree_supported(
+    const Value& value, std::unordered_set<Object*>& seen, size_t depth = 0) {
+  if (depth > 900) return false;
+  if (value.tag == ValueTag::None || value.tag == ValueTag::Bool ||
+      value.tag == ValueTag::Int64 || value.tag == ValueTag::Double) {
+    return true;
+  }
+  if (value.tag != ValueTag::Object || value.as.obj == nullptr ||
+      !seen.insert(value.as.obj).second) {
+    return false;
+  }
+  if (value_as_string(value) != nullptr || value_as_bytes(value) != nullptr) {
+    return true;
+  }
+  if (auto* list = value_as_list(value)) {
+    for (const auto& item : list->items) {
+      if (!pickle_builtin_tree_supported(item, seen, depth + 1)) return false;
+    }
+    return true;
+  }
+  if (auto* tuple = value_as_tuple(value)) {
+    for (const auto& item : tuple->items) {
+      if (!pickle_builtin_tree_supported(item, seen, depth + 1)) return false;
+    }
+    return true;
+  }
+  if (auto* dict = value_as_dict(value)) {
+    for (const auto& [key, item] : dict->entries) {
+      if (!pickle_builtin_tree_supported(key, seen, depth + 1) ||
+          !pickle_builtin_tree_supported(item, seen, depth + 1)) return false;
+    }
+    return true;
+  }
+  return false;
+}
+
+bool pickle_dumps_builtin_tree(
+    Runtime& runtime, const Value& value, int protocol, Value& out, std::string& error) {
+  std::unordered_set<Object*> seen;
+  if (protocol < 4 || protocol > 5 || !pickle_builtin_tree_supported(value, seen)) {
+    return false;
+  }
+  // Protocol 4/5 framing is optional. These small scalar/container streams
+  // need only the protocol header and STOP opcode around the existing writer.
+  std::string encoded;
+  encoded.reserve(256);
+  encoded.push_back(static_cast<char>(0x80));
+  encoded.push_back(static_cast<char>(protocol));
+  if (!pickle_write_value(runtime, value, protocol, encoded, error)) {
+    error.clear();
+    return false;
+  }
+  encoded.push_back('.');
+  out = Value::bytes(encoded);
+  return true;
+}
+
 bool pickle_dumps(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc == 1) {
+    if (pickle_dumps_builtin_tree(runtime, args[0], kPickleHighestProtocol, out, error)) return true;
+  } else if (argc == 2 && args[1].tag == ValueTag::Int64 &&
+             args[1].as.i64 >= 4 && args[1].as.i64 <= kPickleHighestProtocol) {
+    const int protocol = static_cast<int>(args[1].as.i64);
+    if (pickle_dumps_builtin_tree(runtime, args[0], protocol, out, error)) return true;
+  }
   return call_source_pickle(runtime, "_dumps", args, argc, nullptr, 0, out, error);
 }
 

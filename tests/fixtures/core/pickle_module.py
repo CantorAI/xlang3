@@ -41,7 +41,18 @@ gc.collect()
 print(cycle_ref() is None)
 
 payload = {"items": [1, "two"], "flag": False}
+print(pickle.loads(pickle.dumps(payload, protocol=4)) == payload)
 print(pickle.loads(pickle.dumps(payload, protocol=5)) == payload)
+try:
+    pickle.dumps(payload, protocol=4294967301)
+except ValueError:
+    print("large protocol rejected")
+shared_item = []
+shared_payload = [shared_item, shared_item]
+shared_restored = pickle.loads(pickle.dumps(shared_payload, protocol=5))
+print(shared_restored[0] is shared_restored[1])
+bytearray_restored = pickle.loads(pickle.dumps(bytearray(b"mutable"), protocol=5))
+print(type(bytearray_restored).__name__, bytes(bytearray_restored))
 
 buffers = []
 stream = io.BytesIO()

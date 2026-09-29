@@ -5,6 +5,10 @@ ValueError
 ValueError
 True
 True
+True
+large protocol rejected
+True
+bytearray b'mutable'
 1 b'buffer'
 b'buffer'
 ['loaded:persistent-marker']
