@@ -25,7 +25,7 @@ namespace xlang3::ir {
 namespace {
 
 constexpr uint32_t kMagic = 0x33524958u; // XIR3
-constexpr uint32_t kVersion = 54;
+constexpr uint32_t kVersion = 63;
 constexpr uint32_t kMaxVectorItems = 1u << 20u;
 constexpr uint32_t kMaxStringBytes = 16u << 20u;
 
@@ -790,10 +790,59 @@ bool write_function(Writer& w, const Function& fn, std::string& error) {
       !write_u32_pair_vector(w, fn.string_replace_specs, error)) {
     return false;
   }
+  if (!write_count(w, fn.guarded_local_numeric_exprs.size(), error)) return false;
+  for (const auto& spec : fn.guarded_local_numeric_exprs) {
+    if (spec.nodes.empty() || spec.nodes.size() > kMaxGuardedLocalNumericExprNodes ||
+        spec.fallback_span == 0) {
+      error = "invalid guarded local numeric expression";
+      return false;
+    }
+    if (!write_count(w, spec.nodes.size(), error)) return false;
+    w.u32(spec.fallback_span);
+    for (size_t index = 0; index < spec.nodes.size(); ++index) {
+      const auto& node = spec.nodes[index];
+      switch (node.kind) {
+        case GuardedLocalNumericExprNodeKind::Local:
+          if (node.a >= fn.locals.size()) {
+            error = "invalid guarded numeric local slot";
+            return false;
+          }
+          break;
+        case GuardedLocalNumericExprNodeKind::Constant:
+          if (node.a >= fn.constants.size()) {
+            error = "invalid guarded numeric constant";
+            return false;
+          }
+          break;
+        case GuardedLocalNumericExprNodeKind::Add:
+        case GuardedLocalNumericExprNodeKind::Sub:
+        case GuardedLocalNumericExprNodeKind::Mul:
+          if (node.a >= index || node.b >= index) {
+            error = "invalid guarded numeric expression node reference";
+            return false;
+          }
+          break;
+        default:
+          error = "unknown guarded numeric expression node";
+          return false;
+      }
+      w.u8(static_cast<uint8_t>(node.kind));
+      w.u32(node.a);
+      w.u32(node.b);
+    }
+  }
   if (!write_count(w, fn.code.size(), error)) {
     return false;
   }
-  for (const auto& instr : fn.code) {
+  for (size_t ip = 0; ip < fn.code.size(); ++ip) {
+    const auto& instr = fn.code[ip];
+    if (instr.op == Op::GuardedLocalNumericExpr &&
+        (instr.a >= fn.guarded_local_numeric_exprs.size() ||
+         fn.guarded_local_numeric_exprs[instr.a].fallback_span == 0 ||
+         fn.guarded_local_numeric_exprs[instr.a].fallback_span >= fn.code.size() - ip)) {
+      error = "invalid guarded local numeric expression reference";
+      return false;
+    }
     w.u16(static_cast<uint16_t>(instr.op));
     w.u32(instr.dst);
     w.u32(instr.a);
@@ -865,6 +914,50 @@ bool read_function(Reader& r, Function& fn, std::string& error) {
       !read_u32_pair_vector(r, fn.string_replace_specs, error)) {
     return false;
   }
+  uint32_t guarded_expr_count = 0;
+  if (!r.u32(guarded_expr_count) || !check_count(guarded_expr_count, error)) return false;
+  fn.guarded_local_numeric_exprs.resize(guarded_expr_count);
+  for (auto& spec : fn.guarded_local_numeric_exprs) {
+    uint32_t node_count = 0;
+    if (!r.u32(node_count) || !check_count(node_count, error) ||
+        node_count == 0 || node_count > kMaxGuardedLocalNumericExprNodes ||
+        !r.u32(spec.fallback_span) || spec.fallback_span == 0) {
+      error = "invalid guarded local numeric expression";
+      return false;
+    }
+    spec.nodes.resize(node_count);
+    for (size_t index = 0; index < spec.nodes.size(); ++index) {
+      auto& node = spec.nodes[index];
+      uint8_t kind = 0;
+      if (!r.u8(kind) || !r.u32(node.a) || !r.u32(node.b)) return false;
+      node.kind = static_cast<GuardedLocalNumericExprNodeKind>(kind);
+      switch (node.kind) {
+        case GuardedLocalNumericExprNodeKind::Local:
+          if (node.a >= fn.locals.size()) {
+            error = "invalid guarded numeric local slot";
+            return false;
+          }
+          break;
+        case GuardedLocalNumericExprNodeKind::Constant:
+          if (node.a >= fn.constants.size()) {
+            error = "invalid guarded numeric constant";
+            return false;
+          }
+          break;
+        case GuardedLocalNumericExprNodeKind::Add:
+        case GuardedLocalNumericExprNodeKind::Sub:
+        case GuardedLocalNumericExprNodeKind::Mul:
+          if (node.a >= index || node.b >= index) {
+            error = "invalid guarded numeric expression node reference";
+            return false;
+          }
+          break;
+        default:
+          error = "unknown guarded numeric expression node";
+          return false;
+      }
+    }
+  }
   uint32_t code_count = 0;
   if (!r.u32(code_count) || !check_count(code_count, error)) {
     return false;
@@ -876,6 +969,19 @@ bool read_function(Reader& r, Function& fn, std::string& error) {
       return false;
     }
     instr.op = static_cast<Op>(op);
+  }
+  for (size_t ip = 0; ip < fn.code.size(); ++ip) {
+    const auto& instr = fn.code[ip];
+    if (instr.op != Op::GuardedLocalNumericExpr) continue;
+    if (instr.a >= fn.guarded_local_numeric_exprs.size()) {
+      error = "invalid guarded local numeric expression reference";
+      return false;
+    }
+    const size_t span = fn.guarded_local_numeric_exprs[instr.a].fallback_span;
+    if (span == 0 || span >= fn.code.size() - ip) {
+      error = "invalid guarded local numeric expression fallback";
+      return false;
+    }
   }
   if (!read_u32_vector(r, fn.source_lines, error) ||
       !read_source_positions(r, fn.source_positions, error)) {

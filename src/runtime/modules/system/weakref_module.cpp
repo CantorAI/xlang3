@@ -13,6 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 #include "xlang3/builtins.h"
+#include "xlang3/interpreter_events.h"
 
 #include "xlang3/attribute.h"
 #include "xlang3/builtin_methods.h"
@@ -25,6 +26,7 @@ limitations under the License.
 #include "xlang3/value_hash.h"
 
 #include <algorithm>
+#include <atomic>
 #include <cstring>
 #include <deque>
 #include <mutex>
@@ -134,6 +136,12 @@ void register_weakref_instance(const Value& ref, const Value& target) {
   auto& refs = weakref_registry();
   Object* ref_pointer = ref.tag == ValueTag::Object ? ref.as.obj : nullptr;
   Object* target_pointer = target.tag == ValueTag::Object ? target.as.obj : nullptr;
+  if (ref_pointer != nullptr)
+    ref_pointer->gc_tracking_state.fetch_or(
+        kObjectWeakrefReferenceFlag, std::memory_order_release);
+  if (target_pointer != nullptr)
+    target_pointer->gc_tracking_state.fetch_or(
+        kObjectWeakrefTargetFlag, std::memory_order_release);
   for (auto& existing : refs) {
     if (existing.ref == ref_pointer) {
       existing.target = target_pointer;
@@ -937,24 +945,38 @@ void weakref_invalidate_target(Object* target) {
   if (target == nullptr) {
     return;
   }
+  if ((target->gc_tracking_state.load(std::memory_order_acquire) &
+       kObjectWeakrefFlagsMask) == 0) return;
+  uint64_t roles = 0;
   std::vector<Value> callback_candidates;
   {
     std::lock_guard lock(weakref_registry_mutex());
+    // Registration sets these flags under this same lock. Re-read and clear
+    // while holding it so a concurrent registration cannot be lost between a
+    // fast precheck and invalidation.
+    roles = target->gc_tracking_state.fetch_and(
+        kGcObjectIndexMask, std::memory_order_acq_rel) &
+        kObjectWeakrefFlagsMask;
+    if (roles == 0) return;
     auto& refs = weakref_registry();
-    for (auto entry = refs.rbegin(); entry != refs.rend(); ++entry) {
-      if (entry->target != target) continue;
-      if (entry->ref != target && entry->ref != nullptr) {
-        Value owned;
-        if (weakref_retain_if_alive(entry->ref, owned))
-          callback_candidates.push_back(std::move(owned));
+    if ((roles & kObjectWeakrefTargetFlag) != 0) {
+      for (auto entry = refs.rbegin(); entry != refs.rend(); ++entry) {
+        if (entry->target != target) continue;
+        if (entry->ref != target && entry->ref != nullptr) {
+          Value owned;
+          if (weakref_retain_if_alive(entry->ref, owned))
+            callback_candidates.push_back(std::move(owned));
+        }
+        entry->target = nullptr;
       }
-      entry->target = nullptr;
     }
-    refs.erase(
-        std::remove_if(
-            refs.begin(), refs.end(),
-            [&](const WeakrefEntry& entry) { return entry.ref == target; }),
-        refs.end());
+    if ((roles & kObjectWeakrefReferenceFlag) != 0) {
+      refs.erase(
+          std::remove_if(
+              refs.begin(), refs.end(),
+              [&](const WeakrefEntry& entry) { return entry.ref == target; }),
+          refs.end());
+    }
   }
   for (auto& ref : callback_candidates) {
     Value callback;
@@ -964,6 +986,7 @@ void weakref_invalidate_target(Object* target) {
       std::lock_guard lock(pending_weakref_callbacks_mutex());
       pending_weakref_callbacks().push_back(std::move(ref));
       pending_weakref_callbacks_flag().store(true, std::memory_order_release);
+      interpreter_set_pending_event(kInterpreterEventWeakrefCallbacks);
     }
   }
 }
@@ -984,6 +1007,9 @@ void weakref_dispatch_callbacks(Runtime& runtime) {
       callbacks = std::move(pending_weakref_callbacks());
       pending_weakref_callbacks().clear();
       pending_weakref_callbacks_flag().store(false, std::memory_order_release);
+      // Clear under the queue lock so an enqueue cannot race the drain and
+      // leave pending work without a VM wakeup bit.
+      interpreter_clear_pending_event(kInterpreterEventWeakrefCallbacks);
     }
     if (callbacks.empty()) break;
     for (const auto& ref : callbacks) {
@@ -1042,6 +1068,7 @@ void visit_strong_object_edges(Object* object, Object* cycle_root, Visit visit) 
   } else if (auto* value = value_as_module(borrowed)) {
     for (const auto& item : value->slots) edge(item);
   } else if (auto* value = value_as_function(borrowed)) {
+    edge(value->builtins);
     edge(value->annotations);
     edge(value->doc);
     edge(value->attrs_dict);

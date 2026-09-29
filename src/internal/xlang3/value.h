@@ -103,9 +103,22 @@ enum class ObjectKind : uint32_t {
   Expression,
 };
 
+// The tracking index needs only 62 bits in practice. Share the remaining
+// state word with weakref-role bits so the no-weakref fast path does not grow
+// every heap object's header.
+constexpr uint64_t kGcObjectIndexMask = (uint64_t{1} << 62) - 1;
+constexpr uint64_t kGcObjectIndexNone = kGcObjectIndexMask;
+constexpr uint64_t kObjectWeakrefTargetFlag = uint64_t{1} << 63;
+constexpr uint64_t kObjectWeakrefReferenceFlag = uint64_t{1} << 62;
+constexpr uint64_t kObjectWeakrefFlagsMask =
+    kObjectWeakrefTargetFlag | kObjectWeakrefReferenceFlag;
+
 struct Object {
   ObjectKind kind;
   std::atomic_uint32_t refcnt;
+  // GC index (low bits) keeps O(1) removal; weakref roles (high bits) let
+  // ordinary destruction bypass the registry lock without enlarging Object.
+  std::atomic_uint64_t gc_tracking_state{kGcObjectIndexNone};
 };
 
 void gc_track_object(Object* object);

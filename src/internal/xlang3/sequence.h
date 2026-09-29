@@ -93,7 +93,7 @@ bool sequence_truthy(const Value& value);
 
 bool sequence_get_iter(const Value& iterable, Value& out, std::string& error);
 bool sequence_iter_next(Value& iterator, bool& done, Value& out, std::string& error);
-bool sequence_list_append(Value& list, const Value& item, std::string& error);
+bool sequence_list_append(const Value& list, const Value& item, std::string& error);
 bool sequence_get_item(
     const Value& object, const Value& index, Value& out, std::string& error,
     Runtime* runtime = nullptr);

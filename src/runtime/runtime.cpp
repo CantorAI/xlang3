@@ -58,6 +58,10 @@ void xlang_thread_detach_runtime_daemon_threads(Runtime* runtime);
 
 namespace {
 thread_local Runtime* g_object_finalization_runtime = nullptr;
+// Track recursive acquisitions in TLS so the hot nested-import path does not
+// serialize on a second mutex; the per-runtime atomic remains available to
+// _imp.lock_held().
+thread_local std::vector<Runtime*> g_import_lock_stack;
 }
 
 Runtime* runtime_for_object_finalization() {
@@ -2269,44 +2273,36 @@ bool Runtime::execute_raw_block(
 }
 
 void Runtime::acquire_import_lock() {
-  const auto current_thread = std::this_thread::get_id();
-  bool recursively_owned = false;
-  {
-    std::lock_guard<std::mutex> state_lock(import_lock_state_mutex_);
-    recursively_owned = import_lock_depth_ != 0 && import_lock_owner_ == current_thread;
+  // Grow before locking so allocation failure cannot strand the import mutex.
+  if (g_import_lock_stack.size() == g_import_lock_stack.capacity()) {
+    g_import_lock_stack.reserve(g_import_lock_stack.capacity() == 0
+        ? 8
+        : g_import_lock_stack.capacity() * 2);
   }
-  if (recursively_owned) {
+  // Recursive acquisitions by this thread succeed immediately. Only genuine
+  // cross-thread contention releases the VM execution token while waiting.
+  if (!import_mutex_.try_lock()) {
+    XlangRuntimeExecutionSuspension execution_suspension;
     import_mutex_.lock();
-  } else {
-    // Match CPython's fast import path: retain the VM execution token when the
-    // import lock is immediately available, and expose the thread only when
-    // another importer actually makes this acquisition block.
-    if (!import_mutex_.try_lock()) {
-      XlangRuntimeExecutionSuspension execution_suspension;
-      import_mutex_.lock();
-    }
   }
-  std::lock_guard<std::mutex> state_lock(import_lock_state_mutex_);
-  if (import_lock_depth_ == 0) import_lock_owner_ = current_thread;
-  ++import_lock_depth_;
+  g_import_lock_stack.push_back(this);
+  import_lock_depth_.fetch_add(1, std::memory_order_release);
 }
 
 bool Runtime::release_import_lock() {
-  {
-    std::lock_guard<std::mutex> state_lock(import_lock_state_mutex_);
-    if (import_lock_depth_ == 0 || import_lock_owner_ != std::this_thread::get_id()) {
-      return false;
-    }
-    --import_lock_depth_;
-    if (import_lock_depth_ == 0) import_lock_owner_ = std::thread::id{};
-  }
+  // Runtime locks are independent even when a host nests them. Remove this
+  // runtime's most recent acquisition, not only the global stack's top entry.
+  const auto acquisition = std::find(
+      g_import_lock_stack.rbegin(), g_import_lock_stack.rend(), this);
+  if (acquisition == g_import_lock_stack.rend()) return false;
+  g_import_lock_stack.erase(std::next(acquisition).base());
+  import_lock_depth_.fetch_sub(1, std::memory_order_release);
   import_mutex_.unlock();
   return true;
 }
 
 bool Runtime::import_lock_held() const {
-  std::lock_guard<std::mutex> state_lock(import_lock_state_mutex_);
-  return import_lock_depth_ != 0;
+  return import_lock_depth_.load(std::memory_order_acquire) != 0;
 }
 
 bool Runtime::import_module(const std::string& name, Value& out, std::string& error, bool* module_not_found) {

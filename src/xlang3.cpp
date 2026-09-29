@@ -1254,10 +1254,6 @@ int xlang3_main(int argc, char** argv) {
       }
     }
   }
-  // Native modules are registered as import providers during runtime startup.
-  // Keep optional providers out of sys.modules until Python actually imports
-  // them, matching CPython's observable startup state.
-  runtime.hide_cached_module("_sre");
   xlang3::Interpreter interpreter(runtime);
   if (config.perf_counters) {
     if (!config.perf_counters_startup) {

@@ -329,9 +329,7 @@ private:
   std::unordered_map<std::string, Value> builtins_;
   std::unordered_map<std::string, Value> modules_;
   mutable std::recursive_mutex import_mutex_;
-  mutable std::mutex import_lock_state_mutex_;
-  std::thread::id import_lock_owner_;
-  uint32_t import_lock_depth_ = 0;
+  std::atomic_uint32_t import_lock_depth_{0};
   mutable std::mutex python_import_misses_mutex_;
   std::unordered_set<std::string> python_import_miss_names_;
   std::unordered_set<std::string> python_import_misses_;

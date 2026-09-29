@@ -258,6 +258,7 @@ struct InstanceFreeList {
   ~InstanceFreeList() {
     memory::object_caches_alive = false;
     for (auto* instance : items) {
+      gc_untrack_object(&instance->header);
       delete instance;
     }
     for (auto* method : bound_methods) {
@@ -337,7 +338,12 @@ void function_annotate_cleanup(void* user_data) {
 
 
 void recycle_instance_object(InstanceObject* instance) {
-  native_gc_instances().erase(&instance->header);
+  // Ordinary Python instances never enter the native-edge registry; avoid a
+  // process-wide hash probe for them on every final release.
+  if (instance->native_gc_registered) {
+    native_gc_instances().erase(&instance->header);
+    instance->native_gc_registered = false;
+  }
   if (instance->native_data_cleanup != nullptr && instance->native_data != nullptr) {
     instance->native_data_cleanup(instance->native_owner);
   }
@@ -363,9 +369,12 @@ void recycle_instance_object(InstanceObject* instance) {
   instance->attrs.clear();
   instance->slot_count = 0;
   if (memory::object_caches_alive && instance_free_list.items.size() < 1024) {
+    // Keep the GC index on cached zero-ref instances. Snapshotting ignores
+    // them, and a later allocation can reuse the entry without a lock/unlock.
     instance_free_list.items.push_back(instance);
     return;
   }
+  gc_untrack_object(&instance->header);
   delete instance;
 }
 
@@ -811,13 +820,17 @@ bool choose_compatible_metaclass(Value& current, const Value& candidate, std::st
 namespace {
 
 bool class_has_builtin_base_name_impl(ClassObject* klass, std::string_view name) {
-  std::vector<const ClassObject*> mro;
+  // Instance creation asks this for several builtin container bases. Read the
+  // cached Value MRO directly instead of materializing a temporary vector of
+  // class pointers for each query (and each new instance).
+  const std::vector<Value>* mro = nullptr;
   std::string ignored;
-  if (!class_mro_classes(klass, mro, ignored)) {
+  if (!class_mro_values(klass, mro, ignored)) {
     return false;
   }
-  for (const auto* item : mro) {
-    if (item != nullptr && item->name == name) {
+  for (const auto& item : *mro) {
+    const auto* item_class = value_as_class(item);
+    if (item_class != nullptr && item_class->name == name) {
       return true;
     }
   }
@@ -1318,7 +1331,7 @@ bool slot_descriptor_get_method(
           return false;
         }
         value_assign_fast(klass->attrs["__annotations__"], out);
-        ++klass->version;
+        invalidate_class_lookup_caches(klass);
         return true;
       }
     }
@@ -1793,6 +1806,43 @@ bool callable_qualname_attr(const Value& callable, Value& out) {
 bool class_has_builtin_base_name(ClassObject* klass, std::string_view name) {
   return class_has_builtin_base_name_impl(klass, name);
 }
+
+namespace {
+
+constexpr uint8_t kInstanceHasDictBase = 1u << 0;
+constexpr uint8_t kInstanceHasOrderedDictBase = 1u << 1;
+constexpr uint8_t kInstanceHasDefaultDictBase = 1u << 2;
+constexpr uint8_t kInstanceHasListBase = 1u << 3;
+constexpr uint8_t kInstanceHasSetBase = 1u << 4;
+constexpr uint8_t kInstanceHasFrozenSetBase = 1u << 5;
+
+uint8_t class_instance_container_traits(ClassObject* klass) {
+  if (klass->instance_container_traits_version == klass->version) {
+    return klass->instance_container_traits;
+  }
+  uint8_t traits = 0;
+  const std::vector<Value>* mro = nullptr;
+  std::string ignored;
+  if (class_mro_values(klass, mro, ignored)) {
+    for (const auto& value : *mro) {
+      auto* base = value_as_class(value);
+      if (base == nullptr) continue;
+      if (base->name == "dict") traits |= kInstanceHasDictBase;
+      else if (base->name == "OrderedDict") traits |= kInstanceHasOrderedDictBase;
+      else if (base->name == "defaultdict") traits |= kInstanceHasDefaultDictBase;
+      else if (base->name == "list") traits |= kInstanceHasListBase;
+      else if (base->name == "set") traits |= kInstanceHasSetBase;
+      else if (base->name == "frozenset") traits |= kInstanceHasFrozenSetBase;
+    }
+  }
+  // Class/base mutation bumps the class version, so cached traits are reused
+  // by every instance allocation until the MRO can actually change.
+  klass->instance_container_traits = traits;
+  klass->instance_container_traits_version = klass->version;
+  return traits;
+}
+
+} // namespace
 
 bool class_try_enum_value_lookup(const Value& klass, const Value& value, Value& out) {
   auto* klass_obj = value_as_class(klass);
@@ -2595,18 +2645,18 @@ Value Value::instance(Value klass) {
     if (obj->slot_count > 8) {
       obj->overflow_slots.assign(obj->slot_count, Value::invalid());
     }
-    if (class_has_builtin_base_name(klass_obj, "dict") ||
-        class_has_builtin_base_name(klass_obj, "OrderedDict") ||
-        class_has_builtin_base_name(klass_obj, "defaultdict")) {
+    const uint8_t container_traits = class_instance_container_traits(klass_obj);
+    if ((container_traits & (kInstanceHasDictBase | kInstanceHasOrderedDictBase |
+                            kInstanceHasDefaultDictBase)) != 0) {
       obj->mapping_storage = Value::dict({});
       obj->attrs.emplace_back("#__dict__", Value::dict({}));
     }
-    if (class_has_builtin_base_name(klass_obj, "list")) {
+    if ((container_traits & kInstanceHasListBase) != 0) {
       obj->sequence_storage = Value::list({});
     }
-    if (class_has_builtin_base_name(klass_obj, "set")) {
+    if ((container_traits & kInstanceHasSetBase) != 0) {
       obj->sequence_storage = Value::set({});
-    } else if (class_has_builtin_base_name(klass_obj, "frozenset")) {
+    } else if ((container_traits & kInstanceHasFrozenSetBase) != 0) {
       obj->sequence_storage = Value::frozenset({});
     }
   }
@@ -3379,10 +3429,15 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       return true;
     }
     if (name == "__doc__") {
-      if (function->doc.tag == ValueTag::Invalid) {
-        value_set_none(out);
-      } else {
+      if (function->doc.tag != ValueTag::Invalid) {
         value_assign_fast(out, function->doc);
+      } else if (function->module != nullptr && function->function_id < function->module->functions.size() &&
+                 !function->module->functions[function->function_id].doc.empty()) {
+        // The code module owns the default docstring. Delay its Value/string
+        // allocation until introspection asks for __doc__.
+        out = Value::string(function->module->functions[function->function_id].doc);
+      } else {
+        value_set_none(out);
       }
       return true;
     }
@@ -5069,7 +5124,7 @@ bool object_set_attr(Value& object, const std::string& name, const Value& value,
       klass->has_descriptors = true;
     }
     update_special_attr_flags(*klass, name);
-    ++klass->version;
+    invalidate_class_lookup_caches(klass);
     return true;
   }
   error = "object does not support attribute assignment";
@@ -5197,7 +5252,7 @@ bool object_delete_attr(Value& object, const std::string& name, std::string& err
     klass->attrs.erase(it);
     auto& order = klass->definition_attr_order;
     order.erase(std::remove(order.begin(), order.end(), name), order.end());
-    ++klass->version;
+    invalidate_class_lookup_caches(klass);
     return true;
   }
   error = "object does not support attribute deletion";
@@ -5491,7 +5546,7 @@ bool object_get_class_annotations(Runtime& runtime, const Value& object, Value& 
     out = Value::dict({});
   }
   value_assign_fast(klass->attrs["__annotations__"], out);
-  ++klass->version;
+  invalidate_class_lookup_caches(klass);
   return true;
 }
 
@@ -5645,7 +5700,10 @@ bool instance_set_native_owner(Value instance, std::string native_type, void* na
   if (instance_obj->native_data_cleanup != nullptr && instance_obj->native_data != nullptr) {
     instance_obj->native_data_cleanup(instance_obj->native_owner);
   }
-  native_gc_instances().erase(&instance_obj->header);
+  if (instance_obj->native_gc_registered) {
+    native_gc_instances().erase(&instance_obj->header);
+    instance_obj->native_gc_registered = false;
+  }
   instance_obj->native_type = std::move(native_type);
   instance_obj->native_data = native_data;
   instance_obj->native_data_cast = nullptr;
@@ -5671,6 +5729,10 @@ bool instance_set_native_gc_references(Value instance, const Value* references,
     error = "native GC references are null";
     return false;
   }
+  if (instance_obj->native_gc_registered) {
+    native_gc_instances().erase(&instance_obj->header);
+    instance_obj->native_gc_registered = false;
+  }
   std::vector<Object*> objects;
   objects.reserve(reference_count);
   for (uint32_t index = 0; index < reference_count; ++index) {
@@ -5682,8 +5744,10 @@ bool instance_set_native_gc_references(Value instance, const Value* references,
   }
   instance_obj->native_gc_references = std::move(objects);
   instance_obj->native_data_clear = clear;
-  if (clear != nullptr && !instance_obj->native_gc_references.empty())
+  if (clear != nullptr && !instance_obj->native_gc_references.empty()) {
     native_gc_instances().insert(&instance_obj->header);
+    instance_obj->native_gc_registered = true;
+  }
   return true;
 }
 

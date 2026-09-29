@@ -161,10 +161,14 @@ XLANG3_HOT_INLINE void xlang_perf_count_frame_refresh(uint64_t items) {
   counters.frame_refresh_items.fetch_add(items, std::memory_order_relaxed);
 }
 
-XLANG3_HOT_INLINE void xlang_perf_count_opcode(uint16_t opcode) {
-  if (!xlang_perf_enabled() || opcode >= xlang_perf_opcode_count) return;
+XLANG3_HOT_INLINE void xlang_perf_count_opcode_enabled(uint16_t opcode) {
+  if (opcode >= xlang_perf_opcode_count) return;
   auto& counters = xlang_perf_counters();
   counters.opcode_dispatches[opcode].fetch_add(1, std::memory_order_relaxed);
+}
+
+XLANG3_HOT_INLINE void xlang_perf_count_opcode(uint16_t opcode) {
+  if (xlang_perf_enabled()) xlang_perf_count_opcode_enabled(opcode);
 }
 
 

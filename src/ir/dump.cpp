@@ -76,6 +76,12 @@ const char* op_name(Op op) {
     case Op::GetIter: return "GetIter";
     case Op::IterNext: return "IterNext";
     case Op::ForRangeConstLocalNext: return "ForRangeConstLocalNext";
+    case Op::ForRangeConstLocalSum: return "ForRangeConstLocalSum";
+    case Op::ForLocalMoveAddLoop: return "ForLocalMoveAddLoop";
+    case Op::ForCallAccumulateLoop: return "ForCallAccumulateLoop";
+    case Op::ForConstructMethodAccumulateLoop: return "ForConstructMethodAccumulateLoop";
+    case Op::ForScalarArithmeticLoop: return "ForScalarArithmeticLoop";
+    case Op::ForPropertyAccessLoop: return "ForPropertyAccessLoop";
     case Op::Add: return "Add";
     case Op::Sub: return "Sub";
     case Op::Mul: return "Mul";
@@ -127,6 +133,7 @@ const char* op_name(Op op) {
     case Op::InplaceAddLocalLocal: return "InplaceAddLocalLocal";
     case Op::JumpIfLocalLocalFalse: return "JumpIfLocalLocalFalse";
     case Op::IsLocalConstJumpIfFalse: return "IsLocalConstJumpIfFalse";
+    case Op::GuardedLocalNumericExpr: return "GuardedLocalNumericExpr";
     case Op::LoadLocalInstanceSlot: return "LoadLocalInstanceSlot";
     case Op::StoreLocalInstanceSlot: return "StoreLocalInstanceSlot";
     case Op::LoadLocalPair: return "LoadLocalPair";
@@ -362,6 +369,33 @@ std::string dump_module(const Module& module) {
       os << "  range_spec #" << range_i
          << ": stop=c" << fn.range_specs[range_i].first
          << " step=c" << fn.range_specs[range_i].second << "\n";
+    }
+    for (size_t expr_i = 0; expr_i < fn.guarded_local_numeric_exprs.size(); ++expr_i) {
+      const auto& expr = fn.guarded_local_numeric_exprs[expr_i];
+      os << "  guarded_local_numeric_expr #" << expr_i
+         << " fallback_span=" << expr.fallback_span << " nodes=";
+      for (size_t node_i = 0; node_i < expr.nodes.size(); ++node_i) {
+        const auto& node = expr.nodes[node_i];
+        if (node_i != 0) os << ";";
+        switch (node.kind) {
+          case GuardedLocalNumericExprNodeKind::Local:
+            os << "local%" << node.a;
+            break;
+          case GuardedLocalNumericExprNodeKind::Constant:
+            os << "const#" << node.a;
+            break;
+          case GuardedLocalNumericExprNodeKind::Add:
+            os << "add(" << node.a << "," << node.b << ")";
+            break;
+          case GuardedLocalNumericExprNodeKind::Sub:
+            os << "sub(" << node.a << "," << node.b << ")";
+            break;
+          case GuardedLocalNumericExprNodeKind::Mul:
+            os << "mul(" << node.a << "," << node.b << ")";
+            break;
+        }
+      }
+      os << "\n";
     }
     for (size_t ip = 0; ip < fn.code.size(); ++ip) {
       const auto& in = fn.code[ip];

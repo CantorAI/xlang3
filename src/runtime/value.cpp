@@ -1195,9 +1195,6 @@ Value Value::function(
   if (module != nullptr && function_id < module->functions.size()) {
     const auto& fn = module->functions[function_id];
     obj->type_params = fn.type_params;
-    if (!fn.doc.empty()) {
-      obj->doc = Value::string(fn.doc);
-    }
     for (const auto& param : fn.signature) {
       if ((param.kind == ir::ParamKind::PosOnly || param.kind == ir::ParamKind::PosOrKeyword) &&
           param.default_reg != UINT32_MAX &&
@@ -1209,7 +1206,6 @@ Value Value::function(
     obj->positional_defaults = obj->defaults;
   }
   obj->globals_module = std::move(globals_module);
-  obj->attrs_dict = Value::dict({});
   if (qualname.empty() && module != nullptr && function_id < module->functions.size()) {
     qualname = module->functions[function_id].qualname.empty() ? module->functions[function_id].name
                                                                : module->functions[function_id].qualname;
@@ -1467,23 +1463,43 @@ bool value_finalize_temporary_instance(Runtime& runtime, const Value& value) {
   return true;
 }
 
+bool class_has_release_finalizer(const Value& klass_value) {
+  auto* klass = value_as_class(klass_value);
+  if (klass == nullptr) return false;
+  const uint64_t version = klass->version;
+  const uint64_t cached = klass->release_finalizer_cache.load(std::memory_order_acquire);
+  if (cached != 0 && (cached >> 1) == version) {
+    return (cached & 1u) != 0;
+  }
+
+  Value finalizer;
+  std::string lookup_error;
+  const bool present = object_lookup_class_attr(
+      klass_value, "__del__", finalizer, lookup_error);
+  // Class mutations bump version and invalidate this entry. Cache only if the
+  // lookup observed one stable version; normal instance destruction then
+  // avoids allocating an error string and walking the MRO for absent __del__.
+  if (klass->version == version && version < (uint64_t{1} << 63)) {
+    klass->release_finalizer_cache.store(
+        (version << 1) | static_cast<uint64_t>(present),
+        std::memory_order_release);
+  }
+  return present;
+}
+
 void release_last_reference(const Value& value) {
   if (value.as.obj->kind == ObjectKind::Instance) {
     auto* instance = reinterpret_cast<InstanceObject*>(value.as.obj);
     Runtime* runtime = runtime_for_object_finalization();
-    Value class_finalizer;
-    std::string lookup_error;
-    const bool release_finalizer_enabled =
-        object_lookup_class_attr(instance->klass, "__del__", class_finalizer,
-                                 lookup_error);
     if (runtime != nullptr && !runtime->finalizing() && !instance->finalizer_started &&
-        release_finalizer_enabled) {
+        class_has_release_finalizer(instance->klass)) {
       Value self;
       self.tag = ValueTag::Object;
       self.flags = kXlangValueBorrowedRefFlag;
       self.as.obj = value.as.obj;
       value.as.obj->refcnt.fetch_add(1, std::memory_order_relaxed);
       Value finalizer;
+      std::string lookup_error;
       if (attribute_get(self, "__del__", finalizer, lookup_error)) {
         instance->finalizer_started = true;
         Value saved_exception;
@@ -1538,7 +1554,11 @@ void release_last_reference(const Value& value) {
       }
     }
   }
-  gc_untrack_object(value.as.obj);
+  // Instance recycling keeps zero-ref objects in the thread-local cache and
+  // retains their GC index; the recycler untracks only objects it deletes.
+  if (value.as.obj->kind != ObjectKind::Instance) {
+    gc_untrack_object(value.as.obj);
+  }
   xlang_perf_count_object_final_release(value.as.obj->kind);
   weakref_invalidate_target(value.as.obj);
   switch (value.as.obj->kind) {

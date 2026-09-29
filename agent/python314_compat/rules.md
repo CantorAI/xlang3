@@ -1,5 +1,12 @@
 # Rules
 
+- Correctness and performance are both required. Follow the repository
+  `AGENTS.md` performance gate. `codex_loop.py` runs the gate before committing;
+  preserve a separate accepted Release runtime at the configured
+  `repo.performance_baseline` path. Missing, inconclusive, and regressed runs
+  block validation. Do not refresh that baseline or relax the gate to pass a
+  compatibility change without explicit user approval.
+
 - The product goal is Python 3.14 runtime compatibility, not debugpy-only,
   benchmark-only, or fixture-only progress.
 - Non-negotiable order: first keep real CPython 3.14 `Lib/*.py` modules

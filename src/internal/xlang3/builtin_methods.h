@@ -169,9 +169,13 @@ struct BuiltinMethodSpec {
   bool fast_releases_vm_lock = false;
   NativeKeywordFunctionCallback keyword_callback = nullptr;
   const char* text_signature = nullptr;
+  // Stable identity for VM fusions; names and user-visible bindings are not guards.
+  uint32_t specialization_id = 0;
   mutable std::once_flag function_once;
   mutable Value function = Value::invalid();
 };
+
+constexpr uint32_t kBuiltinMethodSpecializationListAppend = 1;
 
 XLANG3_HOT_INLINE void builtin_method_set_text_signature(Value& function, const char* text_signature) {
   if (text_signature == nullptr) {

@@ -184,6 +184,13 @@ enum class Op : uint16_t {
   InplaceAddLocalLocal,
   JumpIfLocalLocalFalse,
   IsLocalConstJumpIfFalse,
+  GuardedLocalNumericExpr,
+  ForRangeConstLocalSum,
+  ForLocalMoveAddLoop,
+  ForCallAccumulateLoop,
+  ForConstructMethodAccumulateLoop,
+  ForScalarArithmeticLoop,
+  ForPropertyAccessLoop,
 };
 
 enum class CompareOp : uint16_t {
@@ -202,6 +209,71 @@ struct Instr {
   uint32_t b = 0;
   uint32_t c = 0;
 };
+
+// Guarded local-add fusion stores its normal-IR fallback length in Instr::c.
+// Legacy AddLocal* instructions keep c == 0 and retain their original meaning.
+constexpr uint32_t kGuardedLocalAddFlag = 0x80000000u;
+constexpr uint32_t kGuardedLocalAddSpanMask = ~kGuardedLocalAddFlag;
+constexpr uint32_t kGuardedLocalMoveFlag = 0x80000000u;
+constexpr uint32_t kGuardedLocalMoveSpanMask = ~kGuardedLocalMoveFlag;
+// ForRangeConstLocalSum packs a guarded accumulator local beside its
+// range-spec index. Large indices fall back to ordinary loop bytecode.
+constexpr uint32_t kRangeSumFusionFlag = 0x80000000u;
+constexpr uint32_t kRangeSumAccumulatorShift = 16;
+constexpr uint32_t kRangeSumAccumulatorMask = 0x7fff0000u;
+constexpr uint32_t kRangeSumSpecMask = 0x0000ffffu;
+// ForLocalMoveAddLoop is only emitted for a contiguous move chain followed by
+// a guarded local increment. Its c field packs the chain length and step const.
+constexpr uint32_t kLocalMoveLoopMoveCountShift = 16;
+constexpr uint32_t kLocalMoveLoopMoveCountMask = 0xffff0000u;
+constexpr uint32_t kLocalMoveLoopStepConstantMask = 0x0000ffffu;
+// The same guarded loop opcode can batch exact list.append(index) loops.
+// c packs this flag, a 15-bit list local, and the 16-bit increment constant.
+constexpr uint32_t kLocalAppendLoopFlag = 0x80000000u;
+constexpr uint32_t kLocalAppendLoopListShift = 16;
+constexpr uint32_t kLocalAppendLoopListMask = 0x7fff0000u;
+// ForCallAccumulateLoop keeps the local receiving an inlined call's sum.
+constexpr uint32_t kCallAccumulateLoopFlag = 0x80000000u;
+constexpr uint32_t kCallAccumulateLoopLocalShift = 16;
+constexpr uint32_t kCallAccumulateLoopLocalMask = 0x7fff0000u;
+// ForConstructMethodAccumulateLoop packs the accumulator local in c as well.
+constexpr uint32_t kConstructMethodAccumulateLoopFlag = 0x80000000u;
+constexpr uint32_t kConstructMethodAccumulateLoopLocalShift = 16;
+constexpr uint32_t kConstructMethodAccumulateLoopLocalMask = 0x7fff0000u;
+// ForScalarArithmeticLoop consumes a guarded seven-node integer accumulator plan.
+constexpr uint32_t kScalarArithmeticLoopFlag = 0x80000000u;
+// ForPropertyAccessLoop packs its sum local alongside an exact-property-loop flag.
+constexpr uint32_t kPropertyAccessLoopFlag = 0x80000000u;
+constexpr uint32_t kPropertyAccessLoopLocalShift = 16;
+constexpr uint32_t kPropertyAccessLoopLocalMask = 0x7fff0000u;
+// Call may keep a simple add result in its sole local consumer and skip the
+// following Add/StoreLocal pair. High bit marks the packed local slot.
+constexpr uint32_t kCallAccumulateLocalFlag = 0x80000000u;
+constexpr uint32_t kCallAccumulateLocalMask = 0x7fffffffu;
+
+enum class GuardedLocalNumericExprNodeKind : uint8_t {
+  Local,
+  Constant,
+  Add,
+  Sub,
+  Mul,
+};
+
+struct GuardedLocalNumericExprNode {
+  GuardedLocalNumericExprNodeKind kind = GuardedLocalNumericExprNodeKind::Local;
+  // Local and Constant nodes use `a`; arithmetic nodes reference earlier
+  // nodes with `a` and `b`, making the expression plan a compact postorder DAG.
+  uint32_t a = 0;
+  uint32_t b = 0;
+};
+
+struct GuardedLocalNumericExprSpec {
+  std::vector<GuardedLocalNumericExprNode> nodes;
+  // Number of ordinary IR instructions immediately following the fused op.
+  uint32_t fallback_span = 0;
+};
+
+constexpr uint32_t kMaxGuardedLocalNumericExprNodes = 16;
 
 struct SourcePosition {
   uint32_t line = 0;
@@ -263,6 +335,7 @@ struct Function {
   std::vector<std::vector<std::string>> class_instance_slots;
   std::vector<std::pair<uint32_t, uint32_t>> range_specs;
   std::vector<std::pair<uint32_t, uint32_t>> string_replace_specs;
+  std::vector<GuardedLocalNumericExprSpec> guarded_local_numeric_exprs;
   std::vector<Instr> code;
   std::vector<uint32_t> source_lines;
   std::vector<SourcePosition> source_positions;

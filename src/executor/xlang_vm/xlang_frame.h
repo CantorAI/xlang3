@@ -22,6 +22,8 @@ limitations under the License.
 #include "xlang3/module_object.h"
 #include "xlang3/runtime.h"
 
+#include <algorithm>
+#include <array>
 #include <cstdint>
 #include <limits>
 #include <memory>
@@ -55,7 +57,9 @@ enum class CallSiteKind : uint8_t {
   UserConstructor,
   NativeConstructor,
   InlineSlotConstructor,
+  InlineMathPointConstructor,
   InlineSelfBinaryMethod,
+  InlineSelfAttrBinaryMethod,
   InlineArgBinaryFunction,
   InlineConditionalArgFunction,
   InlineTrivialFunction,
@@ -63,6 +67,8 @@ enum class CallSiteKind : uint8_t {
   InlineSmallSelfMethod,
   InlineSelfSlotMethod,
   InlineSelfSlotConstSumMethod,
+  InlineSelfSlotMaximizeMethod,
+  InlineSelfSlotNormalizeMethod,
   InlineFastListMethod,
   InlineCachedStringMethod,
   InlineCachedLen,
@@ -75,6 +81,7 @@ enum class AttrSiteKind : uint8_t {
   InstanceAttr,
   InstanceSlot,
   Descriptor,
+  PropertyInstanceAttr,
 };
 
 struct CallSiteCache {
@@ -91,8 +98,11 @@ struct CallSiteCache {
   uint64_t class_version = 0;
   uint32_t lhs_slot = 0;
   uint32_t rhs_slot = 0;
+  std::array<uint32_t, 3> inline_slots{};
+  ModuleObject* inline_globals_module = nullptr;
+  uint64_t inline_globals_version = 0;
   ir::Op inline_op = ir::Op::Add;
-  uint32_t inline_function_id = 0;
+  uint32_t inline_function_id = UINT32_MAX;
   uint32_t fast_method_id = 0;
   uint32_t next_arg = 0;
   ir::Op next_op = ir::Op::Add;
@@ -109,6 +119,7 @@ struct AttrSiteCache {
   AttrSiteKind kind = AttrSiteKind::Empty;
   Object* owner = nullptr;
   uint64_t version = 0;
+  const std::string* property_attr_name = nullptr;
   Value value;
   uint32_t getter_slot = 0;
   uint32_t setter_slot = 0;
@@ -700,6 +711,38 @@ public:
     }
   }
 
+  // Guarded local arithmetic may skip its ordinary register-based fallback.
+  // Drop memoryviews left in registers written only by skipped instructions,
+  // so an earlier fallback iteration cannot extend a buffer lease.
+  void release_memoryviews_for_skipped_local_add(
+      const ir::Function& function, size_t first_instruction, size_t span) {
+    if (memoryview_registers.empty()) return;
+    const size_t end = std::min(function.code.size(), first_instruction + span);
+    for (size_t index = first_instruction; index < end; ++index) {
+      const auto& instr = function.code[index];
+      switch (instr.op) {
+        case ir::Op::LoadConst:
+        case ir::Op::LoadLocal:
+        case ir::Op::Add:
+        case ir::Op::Sub:
+        case ir::Op::Mul:
+          release_memoryview_register(instr.dst);
+          break;
+        case ir::Op::LoadLocalPair:
+        case ir::Op::LoadLocalConst:
+          release_memoryview_register(instr.dst);
+          release_memoryview_register(instr.b);
+          break;
+        case ir::Op::LoadConstPair:
+          release_memoryview_register(instr.dst);
+          release_memoryview_register(instr.b);
+          break;
+        default:
+          break;
+      }
+    }
+  }
+
   void track_memoryview_result(uint32_t reg) {
     if (reg >= regs.size() || value_as_memoryview(regs[reg]) == nullptr) return;
     if (memoryview_register_flags.empty()) {
@@ -712,6 +755,21 @@ public:
   }
 
 private:
+  void release_memoryview_register(uint32_t reg) {
+    if (reg >= memoryview_register_flags.size() || !memoryview_register_flags[reg]) return;
+    if (reg < regs.size() && value_as_memoryview(regs[reg]) != nullptr) {
+      value_set_invalid(regs[reg]);
+    }
+    memoryview_register_flags[reg] = false;
+    for (size_t index = 0; index < memoryview_registers.size(); ++index) {
+      if (memoryview_registers[index] == reg) {
+        memoryview_registers[index] = memoryview_registers.back();
+        memoryview_registers.pop_back();
+        break;
+      }
+    }
+  }
+
   void reserve_call_args() {
     uint32_t max_call_arg_count = 0;
     for (const auto& arg_regs : fn->call_args) {

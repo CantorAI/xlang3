@@ -429,6 +429,111 @@ bool apply_optimized_instance_slots(
 }
 
 bool value_has_abstract_marker(Runtime& runtime, const Value& value, bool& out, std::string& error) {
+  // Exact builtin values cannot carry an abstract marker in Python, so class
+  // namespace constants need no dynamic getattr dispatch. User-defined
+  // instances, descriptors, and the dynamic wrappers below stay on the full
+  // protocol path.
+  if (value.tag == ValueTag::None || value.tag == ValueTag::Bool ||
+      value.tag == ValueTag::Int64 || value.tag == ValueTag::Double) {
+    out = false;
+    return true;
+  }
+  if (value_as_static_method(value) != nullptr ||
+      value_as_class_method(value) != nullptr ||
+      value_as_property(value) != nullptr) {
+    // These exact builtin descriptors define __isabstractmethod__ themselves;
+    // attribute_get preserves their forwarding/property rules without making
+    // a generic Python getattr call for each ABC namespace entry.
+    Value marker;
+    std::string marker_error;
+    if (attribute_get(value, "__isabstractmethod__", marker, marker_error)) {
+      return runtime_truthy(runtime, marker, out, error);
+    }
+  }
+  if (auto* native = value_as_native_function(value)) {
+    if (native->attrs_dict == nullptr || native->attrs_dict->tag == ValueTag::Invalid) {
+      out = false;
+      return true;
+    }
+    Value marker;
+    std::string marker_error;
+    if (mapping_get_string_item(
+            *native->attrs_dict, "__isabstractmethod__", marker, marker_error)) {
+      return runtime_truthy(runtime, marker, out, error);
+    }
+    if (marker_error == "key not found") {
+      out = false;
+      return true;
+    }
+    error = std::move(marker_error);
+    return false;
+  }
+  if (auto* bound = value_as_bound_method(value)) {
+    // Attribute lookup on bound methods delegates ordinary attributes to
+    // __func__, so reuse its guarded marker lookup before going fully generic.
+    return value_has_abstract_marker(runtime, bound->function, out, error);
+  }
+  if (value.as.obj != nullptr) {
+    switch (value.as.obj->kind) {
+      case ObjectKind::String:
+      case ObjectKind::BigInt:
+      case ObjectKind::Complex:
+      case ObjectKind::Bytes:
+      case ObjectKind::ByteArray:
+      case ObjectKind::MemoryView:
+      case ObjectKind::Slice:
+      case ObjectKind::Tuple:
+      case ObjectKind::List:
+      case ObjectKind::Dict:
+      case ObjectKind::MappingProxy:
+      case ObjectKind::Set:
+      case ObjectKind::DictKeysView:
+      case ObjectKind::DictValuesView:
+      case ObjectKind::DictItemsView:
+      case ObjectKind::DictIterator:
+      case ObjectKind::SetIterator:
+      case ObjectKind::Range:
+      case ObjectKind::RangeIterator:
+      case ObjectKind::SequenceIterator:
+      case ObjectKind::EnumerateIterator:
+      case ObjectKind::ZipIterator:
+      case ObjectKind::ZipLongestIterator:
+      case ObjectKind::MapIterator:
+      case ObjectKind::FilterIterator:
+      case ObjectKind::CallableIterator:
+      case ObjectKind::ChainIterator:
+      case ObjectKind::ProtocolIterator:
+      case ObjectKind::Generator:
+      case ObjectKind::AsyncGeneratorAwaitable:
+        out = false;
+        return true;
+      default:
+        break;
+    }
+  }
+  if (auto* function = value_as_function(value)) {
+    // Python functions cannot override attribute lookup: for the common class
+    // namespace entry, the abstract marker lives directly in the function
+    // attribute dict. Read it there to avoid a generic getattr call while
+    // ABCMeta builds standard-library classes; preserve the full protocol
+    // fallback below for descriptors, instances, and custom objects.
+    if (function->attrs_dict.tag == ValueTag::Invalid) {
+      out = false;
+      return true;
+    }
+    Value marker;
+    std::string marker_error;
+    if (mapping_get_string_item(
+            function->attrs_dict, "__isabstractmethod__", marker, marker_error)) {
+      return runtime_truthy(runtime, marker, out, error);
+    }
+    if (marker_error == "key not found") {
+      out = false;
+      return true;
+    }
+    error = std::move(marker_error);
+    return false;
+  }
   const Value* getattr_function = runtime.find_builtin("getattr");
   if (getattr_function == nullptr) {
     error = "getattr is unavailable";
@@ -463,7 +568,7 @@ bool metaclass_is_abc_meta(const Value& value) {
 void add_abstract_name(std::vector<Value>& names, const std::string& name) {
   for (const auto& item : names) {
     auto* string = value_as_string(item);
-    if (string != nullptr && string_object_to_string(*string) == name) {
+    if (string != nullptr && string_object_view(*string) == name) {
       return;
     }
   }
@@ -512,7 +617,10 @@ bool abc_abstract_methods_for_type_new(Runtime& runtime, TupleObject* bases, Dic
     bool has_override = false;
     for (const auto& entry : namespace_dict->entries) {
       auto* key = value_as_string(entry.first);
-      if (key != nullptr && string_object_to_string(*key) == name) {
+      // Namespace keys stay alive for this class build, so compare views while
+      // inheriting ABC abstract names instead of allocating one string copy per
+      // candidate key.
+      if (key != nullptr && string_object_view(*key) == name) {
         value_assign_fast(override_value, entry.second);
         has_override = true;
         break;

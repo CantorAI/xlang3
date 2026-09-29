@@ -13,6 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 #include "xlang3/interpreter.h"
+#include "xlang3/interpreter_events.h"
 #include "xlang3/expression.h"
 
 #include "xlang_frame.h"
@@ -162,6 +163,9 @@ RuntimeResult Interpreter::run_function(
     return result;
   }
   const auto& fn = module.functions[function_id];
+  // The CLI changes this diagnostic switch only outside interpreter execution.
+  // Snapshot it once so normal opcode dispatch avoids an atomic load per op.
+  const bool count_opcode_dispatches = xlang_perf_enabled();
   const bool resuming_pause = pause_state != nullptr;
   struct CurrentGlobalsGuard {
     Runtime& runtime;
@@ -598,7 +602,11 @@ RuntimeResult Interpreter::run_function(
     resumed_previous_exceptions = std::move(state->previous_exceptions);
     resumed_exception_handler_depths = std::move(state->active_exception_handler_depths);
     resumed_exception_handler_frames = std::move(state->active_exception_handler_frames);
-    delete state;
+    // Retain the continuation shell during execution. A yield can move the
+    // frame vectors back into it, amortizing state allocation across every
+    // item produced by generator-heavy Python code.
+    generator->vm_state_reuse = state;
+    generator->vm_state_reuse_cleanup = generator->vm_state_cleanup;
     generator->vm_state = nullptr;
     generator->vm_state_cleanup = nullptr;
     resumed_generator = true;
@@ -669,7 +677,9 @@ RuntimeResult Interpreter::run_function(
         fn_obj->defaults);
     if (auto* generated_function = value_as_function(function_value)) {
       value_assign_fast(generated_function->attrs_dict, fn_obj->attrs_dict);
+      value_assign_fast(generated_function->builtins, fn_obj->builtins);
       value_assign_fast(generated_function->globals_dict, fn_obj->globals_dict);
+      value_assign_fast(generated_function->doc, fn_obj->doc);
       generated_function->positional_defaults = fn_obj->positional_defaults;
       generated_function->kwdefaults = fn_obj->kwdefaults;
       generated_function->qualname = fn_obj->qualname;
@@ -1036,6 +1046,9 @@ RuntimeResult Interpreter::run_function(
   };
 
   auto emit_monitoring_event = [&](VMFrame& monitoring_frame, int64_t event, const Value* arg) -> bool {
+    // Branch op handlers reach this helper from the hot dispatch loop even
+    // when monitoring is off. Keep this frame-local mask check first so the
+    // disabled path avoids instruction-cache and runtime-frame work.
     if ((monitoring_frame.monitoring_events & event) == 0) {
       return true;
     }
@@ -1556,6 +1569,8 @@ RuntimeResult Interpreter::run_function(
   uint32_t execution_lock_ticks = 0;
 
   while (frame_count != 0) {
+    // Every push or pop exits the opcode loop through switch_frame, so publish
+    // the changed stack once here instead of comparing generations per opcode.
     refresh_runtime_frame_views();
     auto& frame = frames[frame_count - 1];
     const auto& module = *frame.module;
@@ -1583,6 +1598,9 @@ RuntimeResult Interpreter::run_function(
           : Value::none();
     }
 
+    // The globals module is stable for this frame. Update it at the frame
+    // boundary; doing a Value assignment in the opcode loop retains/releases
+    // the module on every instruction and measurably slows tight loops.
     runtime_.set_current_globals_module(globals_module);
     runtime_.set_current_frame_locals(&fn.locals, locals.value_data(), locals.size());
     // The live frame-stack view owns the changing instruction pointer. Update
@@ -1664,24 +1682,23 @@ RuntimeResult Interpreter::run_function(
 
     try {
     for (;;) {
-      // Inline calls can replace frames while staying inside this dispatch
-      // loop. Publish the exact live stack before an opcode can release the
-      // execution lock and let another thread call sys._current_frames().
-      if (published_frame_stack_generation != frame_stack_generation) {
-        refresh_runtime_frame_views();
-      }
-      if (XLANG3_UNLIKELY(weakref_callbacks_pending())) {
-        weakref_dispatch_callbacks(runtime_);
-      }
-      if (XLANG3_UNLIKELY(signal_events_pending())) {
-        std::string signal_error;
-        if (!signal_dispatch_pending(runtime_, signal_error)) {
-          Value exception;
-          if (!runtime_.take_pending_exception(exception)) {
-            exception = runtime_.make_exception("RuntimeError", signal_error);
+      // Weak-reference callbacks and console signals set independent bits in
+      // one eval breaker, preserving safepoint dispatch with one acquire poll.
+      const uint32_t pending_events = interpreter_poll_pending_events();
+      if (XLANG3_UNLIKELY(pending_events != 0)) {
+        if ((pending_events & kInterpreterEventWeakrefCallbacks) != 0) {
+          weakref_dispatch_callbacks(runtime_);
+        }
+        if ((pending_events & kInterpreterEventSignals) != 0) {
+          std::string signal_error;
+          if (!signal_dispatch_pending(runtime_, signal_error)) {
+            Value exception;
+            if (!runtime_.take_pending_exception(exception)) {
+              exception = runtime_.make_exception("RuntimeError", signal_error);
+            }
+            if (!dispatch_exception(std::move(exception))) return result;
+            goto switch_frame;
           }
-          if (!dispatch_exception(std::move(exception))) return result;
-          goto switch_frame;
         }
       }
       if (deferred_frame_exception.tag != ValueTag::Invalid) {
@@ -1704,7 +1721,8 @@ RuntimeResult Interpreter::run_function(
         goto switch_frame;
       }
 
-      if (XLANG3_UNLIKELY(runtime_.debug_poll_needed())) {
+      const bool debug_poll_active = runtime_.debug_poll_needed();
+      if (XLANG3_UNLIKELY(debug_poll_active)) {
         if (!poll_debug_event(frame)) {
           return result;
         }
@@ -1781,7 +1799,9 @@ RuntimeResult Interpreter::run_function(
         }
       }
       const auto& in = fn.code[ip];
-      xlang_perf_count_opcode(static_cast<uint16_t>(in.op));
+      if (count_opcode_dispatches) {
+        xlang_perf_count_opcode_enabled(static_cast<uint16_t>(in.op));
+      }
       if (!trace_dispatch_active &&
           XLANG3_UNLIKELY((frame.monitoring_events & kSysMonitoringEventInstruction) != 0)) {
         if (!emit_monitoring_event(frame, kSysMonitoringEventInstruction, nullptr)) {
@@ -1798,106 +1818,7 @@ RuntimeResult Interpreter::run_function(
       switch (in.op) {
 #include "xlang_vm_op_rows.h"
       }
-      // sys.monitoring configuration is changed through calls. Refresh after
-      // a native call returns in this frame; Python calls switch frames and
-      // refresh at the resume point above.
-      if (XLANG3_UNLIKELY(
-              in.op == ir::Op::Call || in.op == ir::Op::CallEx ||
-              in.op == ir::Op::CallMethod || in.op == ir::Op::CallModuleMethod ||
-              in.op == ir::Op::CallLocal || in.op == ir::Op::CallGlobal ||
-              in.op == ir::Op::CallLocalMethod)) {
-        refresh_monitoring_configuration(frame);
-      }
       frame.release_memoryviews_last_used_at(ip);
-      // Only inspect destinations that this opcode wrote as registers. Many
-      // instructions use dst for a local slot, a branch target, or an input.
-      // Such a register may contain a borrowed reference to an object that
-      // the instruction just released.
-      switch (in.op) {
-        case ir::Op::LoadConst:
-        case ir::Op::Move:
-        case ir::Op::CaptureExpressions:
-        case ir::Op::LoadLocal:
-        case ir::Op::LoadCell:
-        case ir::Op::LoadCellObject:
-        case ir::Op::LoadFree:
-        case ir::Op::LoadFreeObject:
-        case ir::Op::LoadGlobal:
-        case ir::Op::LoadModuleSlot:
-        case ir::Op::ImportModule:
-        case ir::Op::ImportModuleThru:
-        case ir::Op::ImportFrom:
-        case ir::Op::LoadAttr:
-        case ir::Op::LoadInstanceSlot:
-        case ir::Op::MakeClass:
-        case ir::Op::MakeFunction:
-        case ir::Op::MakeTuple:
-        case ir::Op::MakeList:
-        case ir::Op::MakeDict:
-        case ir::Op::MakeSet:
-        case ir::Op::MakeSlice:
-        case ir::Op::TupleFromList:
-        case ir::Op::Len:
-        case ir::Op::GetItem:
-        case ir::Op::GetIter:
-        case ir::Op::IterNext:
-        case ir::Op::Add:
-        case ir::Op::Sub:
-        case ir::Op::Mul:
-        case ir::Op::MatMul:
-        case ir::Op::Div:
-        case ir::Op::FloorDiv:
-        case ir::Op::Mod:
-        case ir::Op::ModConst:
-        case ir::Op::Pow:
-        case ir::Op::BitAnd:
-        case ir::Op::BitOr:
-        case ir::Op::BitXor:
-        case ir::Op::Shl:
-        case ir::Op::Shr:
-        case ir::Op::BoolAnd:
-        case ir::Op::BoolOr:
-        case ir::Op::Compare:
-        case ir::Op::Is:
-        case ir::Op::Contains:
-        case ir::Op::Not:
-        case ir::Op::Neg:
-        case ir::Op::Invert:
-        case ir::Op::LoadException:
-        case ir::Op::LoadExceptionType:
-        case ir::Op::MatchException:
-        case ir::Op::CallModuleMethod:
-        case ir::Op::CallMethod:
-        case ir::Op::CallEx:
-        case ir::Op::Call:
-        case ir::Op::CallLocal:
-        case ir::Op::CallLocalMethod:
-        case ir::Op::CallGlobal:
-        case ir::Op::Await:
-        case ir::Op::InplaceAdd:
-        case ir::Op::LoadLocalInstanceSlot:
-        case ir::Op::LoadLocalAttr:
-        case ir::Op::LoadModuleAttr:
-        case ir::Op::LoadLocalGetItem:
-        case ir::Op::JumpIfFalseLoadLocal:
-        case ir::Op::MoveJumpIfFalse:
-        case ir::Op::MoveJumpIfTrue:
-          frame.track_memoryview_result(in.dst);
-          break;
-        case ir::Op::LoadLocalPair:
-        case ir::Op::LoadLocalConst:
-        case ir::Op::LoadConstPair:
-        case ir::Op::LoadLocalGlobal:
-        case ir::Op::LoadGlobalLocal:
-          frame.track_memoryview_result(in.dst);
-          frame.track_memoryview_result(in.b);
-          break;
-        case ir::Op::StoreLocalLoadLocal:
-          frame.track_memoryview_result(in.b);
-          break;
-        default:
-          break;
-      }
       ++ip;
     }
     } catch (const VMUnwind&) {

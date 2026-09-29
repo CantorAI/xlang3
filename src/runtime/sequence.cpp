@@ -936,8 +936,11 @@ bool sequence_iter_next(Value& iterator, bool& done, Value& out, std::string& er
   return false;
 }
 
-bool sequence_list_append(Value& list, const Value& item, std::string& error) {
-  auto* obj = value_as_list_storage(list);
+bool sequence_list_append(const Value& list, const Value& item, std::string& error) {
+  // The list object is shared mutable storage; appending changes its contents,
+  // never the Value handle. Taking a const handle avoids a retain/release copy
+  // in the cached list.append callback on every loop iteration.
+  auto* obj = value_as_mutable_list_storage(list);
   if (obj == nullptr) {
     error = "list append target is not a list: " + value_to_repr(list);
     return false;

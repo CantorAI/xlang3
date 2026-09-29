@@ -25,7 +25,6 @@ limitations under the License.
 #include <algorithm>
 #include <array>
 #include <mutex>
-#include <unordered_set>
 
 namespace xlang3 {
 
@@ -36,8 +35,8 @@ std::mutex& tracked_objects_mutex() {
   return *mutex;
 }
 
-std::unordered_set<Object*>& tracked_objects() {
-  static auto* objects = new std::unordered_set<Object*>();
+std::vector<Object*>& tracked_objects() {
+  static auto* objects = new std::vector<Object*>();
   return *objects;
 }
 
@@ -61,14 +60,47 @@ bool gc_kind_may_be_tracked(ObjectKind kind) {
 
 void gc_track_object(Object* object) {
   if (object == nullptr || !gc_kind_may_be_tracked(object->kind)) return;
+  // Recycled cached objects remain indexed with refcount zero; reuse can
+  // reactivate them without serializing on the global tracker mutex.
+  if ((object->gc_tracking_state.load(std::memory_order_relaxed) &
+       kGcObjectIndexMask) != kGcObjectIndexNone) return;
   std::lock_guard lock(tracked_objects_mutex());
-  tracked_objects().insert(object);
+  auto& objects = tracked_objects();
+  const uint64_t state = object->gc_tracking_state.load(std::memory_order_relaxed);
+  if ((state & kGcObjectIndexMask) != kGcObjectIndexNone) return;
+  objects.push_back(object);
+  uint64_t expected = state;
+  while (!object->gc_tracking_state.compare_exchange_weak(
+      expected, (expected & kObjectWeakrefFlagsMask) |
+          static_cast<uint64_t>(objects.size() - 1),
+      std::memory_order_release, std::memory_order_relaxed)) {
+  }
 }
 
 void gc_untrack_object(Object* object) {
   if (object == nullptr || !gc_kind_may_be_tracked(object->kind)) return;
+  if ((object->gc_tracking_state.load(std::memory_order_relaxed) &
+       kGcObjectIndexMask) == kGcObjectIndexNone) return;
   std::lock_guard lock(tracked_objects_mutex());
-  tracked_objects().erase(object);
+  auto& objects = tracked_objects();
+  const uint64_t state = object->gc_tracking_state.load(std::memory_order_relaxed);
+  const size_t index = static_cast<size_t>(state & kGcObjectIndexMask);
+  if (index >= objects.size() || objects[index] != object) return;
+  Object* last = objects.back();
+  objects[index] = last;
+  uint64_t last_state = last->gc_tracking_state.load(std::memory_order_relaxed);
+  while (!last->gc_tracking_state.compare_exchange_weak(
+      last_state, (last_state & kObjectWeakrefFlagsMask) |
+          static_cast<uint64_t>(index),
+      std::memory_order_release, std::memory_order_relaxed)) {
+  }
+  objects.pop_back();
+  uint64_t object_state = object->gc_tracking_state.load(std::memory_order_relaxed);
+  while (!object->gc_tracking_state.compare_exchange_weak(
+      object_state, (object_state & kObjectWeakrefFlagsMask) |
+          kGcObjectIndexNone,
+      std::memory_order_release, std::memory_order_relaxed)) {
+  }
 }
 
 bool gc_value_is_tracked(const Value& value) {
@@ -234,6 +266,7 @@ bool gc_object_references_any(Runtime& runtime, const Value& source,
     for (const auto& item : value->extra_globals) edge(item.second);
     edge(value->namespace_dict);
   } else if (auto* value = value_as_function(source)) {
+    edge(value->builtins);
     edge(value->globals_module);
     edge(value->annotations);
     edge(value->doc);

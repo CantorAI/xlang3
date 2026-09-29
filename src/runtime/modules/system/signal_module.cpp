@@ -13,6 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 #include "xlang3/builtins.h"
+#include "xlang3/interpreter_events.h"
 
 #include "xlang3/functional_iterators.h"
 #include "xlang3/module_object.h"
@@ -75,6 +76,7 @@ BOOL WINAPI console_control_handler(DWORD event) {
   if (disposition == 0) return FALSE;
   if (disposition == 1) return TRUE;  // SIG_IGN
   pending_console_signals.fetch_or(bit, std::memory_order_release);
+  interpreter_set_pending_event(kInterpreterEventSignals);
   const int64_t fd = console_wakeup_fd.load(std::memory_order_relaxed);
   if (fd >= 0) (void)::send(static_cast<SOCKET>(fd), &signum, 1, 0);
   return TRUE;
@@ -366,11 +368,7 @@ void fill_signal_module(Runtime& runtime, NativeModuleBuilder& builder, SignalSt
 } // namespace
 
 bool signal_events_pending() {
-#ifdef _WIN32
-  return pending_console_signals.load(std::memory_order_acquire) != 0;
-#else
-  return false;
-#endif
+  return (interpreter_pending_events() & kInterpreterEventSignals) != 0;
 }
 
 bool signal_dispatch_pending(Runtime& runtime, std::string& error) {
@@ -378,6 +376,9 @@ bool signal_dispatch_pending(Runtime& runtime, std::string& error) {
   if (xlang_thread_current_ident() != xlang_thread_main_ident()) return true;
   auto* state = active_signal_state.load(std::memory_order_acquire);
   if (state == nullptr) return true;
+  // Clear before draining. A racing interrupt either enters this exchange or
+  // leaves its event bit set for the next safepoint, so it cannot be lost.
+  interpreter_clear_pending_event(kInterpreterEventSignals);
   const uint32_t pending = pending_console_signals.exchange(0, std::memory_order_acq_rel);
   for (const auto [bit, signum] : {std::pair{1u, 2}, std::pair{2u, 21}}) {
     if ((pending & bit) == 0) continue;

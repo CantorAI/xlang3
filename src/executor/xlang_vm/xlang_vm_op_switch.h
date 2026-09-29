@@ -31,6 +31,11 @@ through one of these macros:
     For op implementations that may need the caller's continue, return result,
     or goto switch_frame behavior. The op returns XlangVMOpFlow.
 
+  XLANG3_VM_*_TRACKED variants
+    For instructions that write an expression register, record possible
+    memoryview results in the opcode row. This avoids a second per-instruction
+    opcode switch; pair and _B forms track the additional output register(s).
+
 Both row styles call real header-visible inline/template functions. The op
 implementation files must not contain case labels and must not use macro-body
 line continuations. Complex jumps are represented by XlangVMOpFlow.
@@ -92,6 +97,9 @@ namespace xlang3 {
 
 enum class XlangVMOpFlow {
   Next,
+  // The handler completed only guarded arithmetic and cannot have changed
+  // monitoring state, so call rows may skip their post-call generation poll.
+  NextNoMonitoringRefresh,
   ContinueLoop,
   ReturnResult,
   SwitchFrame,
@@ -107,6 +115,28 @@ enum class XlangVMOpFlow {
     break;                                 \
   }
 
+#define XLANG3_VM_FAST_TRACKED(op_name, call_expr) \
+  case ir::Op::op_name: {                         \
+    call_expr;                                    \
+    frame.track_memoryview_result(in.dst);        \
+    break;                                        \
+  }
+
+#define XLANG3_VM_FAST_TRACKED_PAIR(op_name, call_expr) \
+  case ir::Op::op_name: {                               \
+    call_expr;                                          \
+    frame.track_memoryview_result(in.dst);              \
+    frame.track_memoryview_result(in.b);                \
+    break;                                              \
+  }
+
+#define XLANG3_VM_FAST_TRACKED_B(op_name, call_expr) \
+  case ir::Op::op_name: {                            \
+    call_expr;                                       \
+    frame.track_memoryview_result(in.b);             \
+    break;                                           \
+  }
+
 #define XLANG3_VM_FLOW(op_name, call_expr)                         \
   case ir::Op::op_name: {                                          \
     const XlangVMOpFlow flow = call_expr;                          \
@@ -118,5 +148,74 @@ enum class XlangVMOpFlow {
       }                                                            \
       goto switch_frame;                                           \
     }                                                              \
+    break;                                                         \
+  }
+
+#define XLANG3_VM_FLOW_TRACKED(op_name, call_expr)                 \
+  case ir::Op::op_name: {                                          \
+    const XlangVMOpFlow flow = call_expr;                          \
+    if (flow != XlangVMOpFlow::Next) {                             \
+      if (flow == XlangVMOpFlow::ContinueLoop) continue;           \
+      if (flow == XlangVMOpFlow::ReturnResult) {                    \
+        save_generator_exception_context();                       \
+        return result;                                             \
+      }                                                            \
+      goto switch_frame;                                           \
+    }                                                              \
+    frame.track_memoryview_result(in.dst);                         \
+    break;                                                         \
+  }
+
+// Monitoring can be reconfigured by a call that returns in this frame.
+// Keeping the refresh in call rows avoids testing seven call opcodes after
+// every unrelated instruction; frame switches refresh at the resume boundary.
+#define XLANG3_VM_FLOW_TRACKED_REFRESH_MONITORING(op_name, call_expr) \
+  case ir::Op::op_name: {                                             \
+    const XlangVMOpFlow flow = call_expr;                             \
+    if (flow == XlangVMOpFlow::NextNoMonitoringRefresh) {              \
+      frame.track_memoryview_result(in.dst);                          \
+      break;                                                           \
+    }                                                                  \
+    if (flow != XlangVMOpFlow::Next) {                                \
+      if (flow == XlangVMOpFlow::ContinueLoop) continue;              \
+      if (flow == XlangVMOpFlow::ReturnResult) {                      \
+        save_generator_exception_context();                          \
+        return result;                                                \
+      }                                                               \
+      goto switch_frame;                                              \
+    }                                                                 \
+    frame.track_memoryview_result(in.dst);                            \
+    refresh_monitoring_configuration(frame);                          \
+    break;                                                            \
+  }
+
+#define XLANG3_VM_FLOW_TRACKED_PAIR(op_name, call_expr)             \
+  case ir::Op::op_name: {                                          \
+    const XlangVMOpFlow flow = call_expr;                          \
+    if (flow != XlangVMOpFlow::Next) {                             \
+      if (flow == XlangVMOpFlow::ContinueLoop) continue;           \
+      if (flow == XlangVMOpFlow::ReturnResult) {                    \
+        save_generator_exception_context();                       \
+        return result;                                             \
+      }                                                            \
+      goto switch_frame;                                           \
+    }                                                              \
+    frame.track_memoryview_result(in.dst);                         \
+    frame.track_memoryview_result(in.b);                           \
+    break;                                                         \
+  }
+
+#define XLANG3_VM_FLOW_TRACKED_B(op_name, call_expr)                \
+  case ir::Op::op_name: {                                          \
+    const XlangVMOpFlow flow = call_expr;                          \
+    if (flow != XlangVMOpFlow::Next) {                             \
+      if (flow == XlangVMOpFlow::ContinueLoop) continue;           \
+      if (flow == XlangVMOpFlow::ReturnResult) {                    \
+        save_generator_exception_context();                       \
+        return result;                                             \
+      }                                                            \
+      goto switch_frame;                                           \
+    }                                                              \
+    frame.track_memoryview_result(in.b);                           \
     break;                                                         \
   }

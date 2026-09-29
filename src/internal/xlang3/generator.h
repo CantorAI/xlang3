@@ -29,6 +29,11 @@ struct GeneratorObject {
   std::vector<Value> args;
   void* vm_state = nullptr;
   void (*vm_state_cleanup)(void*) = nullptr;
+  // Keep a yielded VM continuation allocation attached while the generator is
+  // running again, so the next yield can reuse it instead of allocating one
+  // state object per produced item.
+  void* vm_state_reuse = nullptr;
+  void (*vm_state_reuse_cleanup)(void*) = nullptr;
   Value pending_send;
   Value pending_throw;
   Value return_value;

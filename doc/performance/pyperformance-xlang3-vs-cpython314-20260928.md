@@ -9,6 +9,18 @@ This report records the full `pyperformance` suite comparison performed on 2026-
 - In the paired one-iteration debug run, 56 exact-name subtests had measurements on both runtimes. XLang3 was faster on 1 and slower on 55; the sole faster case was `python_startup_no_site` at 1.14×. These single-iteration results are diagnostic, not stable estimates.
 - A separate selected `--fast` sample completed 7 of 8 benchmarks. It showed only `python_startup_no_site` faster; `telco` exceeded its 90-second cap. Several XLang3 values emitted instability warnings, so treat these ratios as directional.
 
+## Fresh full-suite rerun (2026-09-29)
+
+After the targeted JSON and float work, the complete 97-definition XLang3 `pyperformance 1.14.0 --fast` selection ran to completion. XLang3 produced 44 subtest measurements under 40 definitions; 27 definitions timed out at the runner's 90-second worker limit and 30 benchmark processes failed. CPython 3.14.7 has 124 subtests across all 97 definitions in the matching saved full fast run. Of the 44 exact-name subtests measured by both runtimes, XLang3 was faster in 3 and slower in 41. These fast estimates show coverage and direction; many warn about limited sample stability.
+
+The left-to-right log-scale chart shows the latest 44 matched results, where bars to the right of 1× favor XLang3. The CSV contains all 97 definitions, statuses, measured subtests, and ratios; blank values indicate no XLang3 timing.
+
+![Horizontal log-scale chart of current full pyperformance comparison](pyperformance-xlang3-current-full-fast-20260929.svg)
+
+The three measured wins are `pickle_list` (1.30×), `python_startup_no_site` (1.17×), and `pickle_dict` (1.16×). The largest remaining gaps include `pickle` (0.000968×), `unpickle_list` (0.00187×), `unpickle` (0.00193×), and `typing_runtime_protocols` (0.0151×). `json_dumps` measured 55.9 ms versus about 7.5 ms for CPython (about 0.134×); `json_loads` measured 115 μs versus about 17.5 μs (about 0.152×). The focused float sample measured 75.3 ms versus 55.8 ms (0.741×); current-run XLang3 `float` was 75.0 ms.
+
+Full raw results: [XLang3 pyperf JSON](data/pyperformance-xlang3-full-fast-current-20260929.json), [CPython 3.14 pyperf JSON](data/pyperformance-cpython314-full-fast-20260928.json), and [all 97 current statuses and matched ratios](data/pyperformance-xlang3-vs-cpython314-current-full-fast-20260929.csv). The failures are retained in the CSV, including capped async workloads and third-party import/runtime failures such as `chameleon`, `coverage`, `dask`, `html5lib`, `networkx`, and `tornado_http`.
+
 ## Chart: selected `--fast` sample
 
 Bars run left to right on a logarithmic speedup axis (`CPython time / XLang3 time`). A value below 1× means XLang3 took longer; above 1× means XLang3 was faster. The chart includes only the seven selected cases with measurements on both runtimes; `telco` is listed below as a timeout.
@@ -57,6 +69,16 @@ The follow-up used the same `pyperformance` benchmark (`json_loads`) with fast s
 Profiling `json_dumps` showed that the native `_json.Encoder` was eligible for its fast path, but `_json.make_encoder` still built the Python `_make_iterencode` closure for every call before returning the native encoder. XLang3 now constructs that closure only if the native encoder declines an unsupported object or option, and it recognizes the registered ASCII encoder directly from its native callback. This reduced the focused fast-sample mean from 99.5 ms to 59.1 ms (about **1.68× faster within XLang3**). A fresh CPython 3.14 fast sample measured 7.53 ms; XLang3 remains about **0.127×** as fast (7.8× slower). The sample warned about limited stability, so use these figures directionally.
 
 The raw XLang3 and CPython samples are preserved in [XLang3 pyperf JSON](data/json-dumps-native-lazy-encoder-20260929.json) and [CPython 3.14 pyperf JSON](data/pyperformance-cpython314-json-dumps-followup-20260929.json). Unsupported JSON values continue through `json.encoder._make_iterencode`; fixtures cover that fallback.
+
+## Follow-up: pyperformance `float` guarded Point fast paths (2026-09-29)
+
+The official `float` benchmark spends most of its time constructing `Point` instances, normalizing their three slots, and repeatedly maximizing them. XLang3 now recognizes the exact `Point.__init__`, `Point.normalize`, and `Point.maximize` bytecode shapes and only uses the native math/slot operations when class layout, slot descriptors, values, and imported `math` functions still match. Otherwise execution falls back to the normal method body. Comments beside these guards document why the specialization exists and which mutations invalidate it.
+
+On the same Windows host with pyperformance 1.14.0 and CPython 3.14.7, the fast `float` sample measured **75.3 ms** for XLang3 and **55.8 ms** for CPython: **0.741×** CPython speed (XLang3 is about **1.35× slower**). Before the constructor specialization, the XLang3 sample was 211 ms; the new sample is about **2.8× faster within XLang3**. The pyperf sample warns about limited statistical stability, so this comparison is directional. Phase diagnostics fell from about 173 ms to 37 ms for construction; they are explanatory measurements, not substitutes for pyperformance.
+
+The targeted behavior fixture is [float_point_fastpaths.py](../../tests/fixtures/core/float_point_fastpaths.py). Raw samples are [XLang3](data/pyperformance-xlang3-float-fast-20260929.json) and [CPython 3.14](data/pyperformance-cpython314-float-fast-20260929.json). The full fixed Release regression check against the preserved baseline passed all seven cases; its complete report is [here](data/release-regression-float-inline-20260929.json).
+
+The latest focused JSON dump sample remains substantially behind CPython: 56.4 ms versus 7.46 ms (about **0.132×**, or 7.6× slower). These are focused fast samples, not a replacement for the recorded full 97-definition comparison. Raw JSON samples: [XLang3](data/json-dumps-current-xlang3-fast-20260929.json) and [CPython 3.14](data/json-dumps-current-cpython314-fast-20260929.json).
 
 ## Paired one-iteration run
 

@@ -46,6 +46,9 @@ int main() {
       "\n"
       "for item in gen():\n"
       "    x = x + item\n"
+      "def numeric_chain(x, item):\n"
+      "    x = x + item * 2 - 1\n"
+      "    return x\n"
       "print('sum', x)\n"
       "@Task(NPU=1 and OS == 'Windows')\n"
       "def captured():\n"
@@ -55,6 +58,11 @@ int main() {
   require(parsed.errors.empty(), "parse failed");
   auto lowered = xlang3::lower_to_ir(parsed.module);
   require(lowered.errors.empty(), "lower failed");
+  bool found_guarded_numeric_expr = false;
+  for (const auto& function : lowered.module.functions) {
+    if (!function.guarded_local_numeric_exprs.empty()) found_guarded_numeric_expr = true;
+  }
+  require(found_guarded_numeric_expr, "lowering did not emit guarded numeric expression");
   lowered.module.functions[0].constants.push_back(xlang3::Value::tuple({
       xlang3::Value::int64(42),
       xlang3::Value::tuple({

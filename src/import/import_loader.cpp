@@ -88,12 +88,25 @@ std::string python_path_string(const std::filesystem::path& path) {
   return path.lexically_normal().string();
 }
 
+bool get_cached_sys_module(Runtime& runtime, Value& sys, std::string& error) {
+  // Import helpers normally run under Runtime::import_module's lock. Use the
+  // same sys.modules entry that import_module would return without repeating
+  // its recursive lock and import-dispatch path for each lookup.
+  Value registered;
+  if (mapping_get_string_item(runtime.module_registry_dict(), "sys", registered, error) &&
+      value_as_module(registered) != nullptr) {
+    sys = std::move(registered);
+    return true;
+  }
+  return runtime.import_module("sys", sys, error);
+}
+
 std::string bytecode_cache_path(Runtime& runtime, const std::string& source) {
   const std::filesystem::path source_path(source);
   Value sys;
   Value prefix;
   std::string ignored;
-  if (runtime.import_module("sys", sys, ignored) &&
+  if (get_cached_sys_module(runtime, sys, ignored) &&
       module_get_attr(sys, "pycache_prefix", prefix, ignored)) {
     if (auto* prefix_string = value_as_string(prefix);
         prefix_string != nullptr && !string_object_view(*prefix_string).empty()) {
@@ -330,7 +343,7 @@ Value cache_zip_path_importer(Runtime& runtime, const std::string& archive_path)
   }
   Value sys;
   std::string ignored;
-  if (!runtime.import_module("sys", sys, ignored)) {
+  if (!get_cached_sys_module(runtime, sys, ignored)) {
     return Value::invalid();
   }
   Value cache;
@@ -479,7 +492,7 @@ bool find_module_file(Runtime& runtime, const std::string& name, ModuleFile& out
   };
   Value sys;
   std::string ignored;
-  if (runtime.import_module("sys", sys, ignored)) {
+  if (get_cached_sys_module(runtime, sys, ignored)) {
     Value path;
     if (module_get_attr(sys, "path", path, ignored)) {
       if (auto* list = value_as_list(path)) {
@@ -564,7 +577,7 @@ std::string python_import_miss_key(Runtime& runtime, const std::string& name) {
   Value sys;
   Value path;
   std::string ignored;
-  if (runtime.import_module("sys", sys, ignored) && module_get_attr(sys, "path", path, ignored)) {
+  if (get_cached_sys_module(runtime, sys, ignored) && module_get_attr(sys, "path", path, ignored)) {
     key.push_back('\n');
     key += value_to_string(path);
   }
@@ -605,7 +618,7 @@ void write_source_bytecode_cache(
   Value sys;
   Value dont_write;
   std::string ignored;
-  if (runtime.import_module("sys", sys, ignored) &&
+  if (get_cached_sys_module(runtime, sys, ignored) &&
       module_get_attr(sys, "dont_write_bytecode", dont_write, ignored) &&
       value_truthy(dont_write)) {
     return;
@@ -650,6 +663,11 @@ void write_source_bytecode_cache(
 } // namespace
 
 bool find_python_module_location(Runtime& runtime, const std::string& name, PythonModuleLocation& out) {
+  runtime.acquire_import_lock();
+  struct ImportLockGuard {
+    Runtime& runtime;
+    ~ImportLockGuard() { runtime.release_import_lock(); }
+  } import_lock{runtime};
   ModuleFile module_file;
   if (!find_module_file(runtime, name, module_file)) {
     return false;

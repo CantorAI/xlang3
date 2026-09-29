@@ -20,6 +20,8 @@ fixture_root = "tests/fixtures"
 python_exe = "C:/Python/Python314/python.exe"
 cmake_exe = "C:/Program Files/Microsoft Visual Studio/18/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/bin/cmake.exe"
 fixture_case_timeout = 60
+performance_baseline = "scratch/performance-baseline/xlang3.exe"
+performance_report = "scratch/performance/latest.json"
 
 [codex]
 bin_dir = "C:/Users/shaw9/AppData/Local/OpenAI/Codex/bin"

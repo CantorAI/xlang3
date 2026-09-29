@@ -1655,9 +1655,23 @@ bool sys_stdio_write(Runtime& runtime, const Value* args, uint32_t argc, Value& 
   if (object_get_attr(args[0], "errors", errors_value, attr_error)) {
     if (auto* text = value_as_string(errors_value)) errors = string_object_to_string(*text);
   }
+  const char* kind = sys_stdio_kind(args[0]);
+  const bool utf8_encoding = encoding == "utf-8" || encoding == "utf8" ||
+      encoding == "utf_8";
+  const bool ascii_output = std::all_of(data.begin(), data.end(), [](unsigned char ch) {
+    return ch < 0x80;
+  });
+  if (!runtime.finalizing() && kind != nullptr && std::string_view(kind) == "stdout" &&
+      runtime.uses_process_stdout() && utf8_encoding && ascii_output) {
+    // The ordinary CLI stdout sink is already UTF-8 bytes. ASCII survives every
+    // UTF-8 error policy, and newline translation above has already applied the
+    // platform rule, so bypass importing/calling codecs for this common case.
+    runtime.write_output(data);
+    value_set_int64(out, written);
+    return true;
+  }
   if (runtime.finalizing() &&
       (encoding == "utf-8" || encoding == "utf8" || encoding == "utf_8")) {
-    const char* kind = sys_stdio_kind(args[0]);
     if (kind != nullptr && std::string(kind) == "stderr") {
       std::cerr.write(data.data(), static_cast<std::streamsize>(data.size()));
     } else {
@@ -1686,7 +1700,7 @@ bool sys_stdio_write(Runtime& runtime, const Value* args, uint32_t argc, Value& 
     return false;
   }
   data = bytes_object_to_string(*encoded_bytes);
-  const char* kind = argc > 0 ? sys_stdio_kind(args[0]) : nullptr;
+  kind = argc > 0 ? sys_stdio_kind(args[0]) : nullptr;
   if (kind != nullptr && std::string(kind) == "stderr") {
     std::cerr.write(data.data(), static_cast<std::streamsize>(data.size()));
   } else {

@@ -134,7 +134,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow await_op(
         !emit_profile_event(frame, "return", yielded_or_returned)) {
       return XlangVMOpFlow::ReturnResult;
     }
-    auto* state = new GeneratorVMState();
+    auto* state = acquire_generator_vm_state(active_generator);
     state->frames = std::move(frames);
     state->frame_count = frame_count;
     state->send_target = in.dst;
@@ -181,7 +181,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow await_op(
         !emit_profile_event(frame, "return", yielded_or_returned)) {
       return XlangVMOpFlow::ReturnResult;
     }
-    auto* state = new GeneratorVMState();
+    auto* state = acquire_generator_vm_state(active_generator);
     state->frames = std::move(frames);
     state->frame_count = frame_count;
     state->send_target = in.dst;
@@ -252,8 +252,10 @@ XLANG3_HOT_INLINE XlangVMOpFlow yield_from(
   bool done = false;
   std::string error;
   if (value_as_generator(regs[in.a]) != nullptr) {
-    Value iterator = regs[in.a];
-    if (!generator_send(iterator, sent, done, yielded_or_returned, error)) {
+    // Delegate through the generator already held in the register. Copying a
+    // Value here would add an incref/decref pair for every yield-from step,
+    // which is costly for Python encoders and other chunk-producing generators.
+    if (!generator_send(regs[in.a], sent, done, yielded_or_returned, error)) {
       Value pending;
       if (runtime.take_pending_exception(pending)) {
         return raise_exception_value(std::move(pending))
@@ -335,7 +337,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow yield_from(
     return XlangVMOpFlow::ReturnResult;
   }
   value_set_bool(regs[in.c], true);
-  auto* state = new GeneratorVMState();
+  auto* state = acquire_generator_vm_state(generator);
   state->frames = std::move(frames);
   state->frame_count = frame_count;
   state->send_target = in.b;

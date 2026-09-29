@@ -24,6 +24,7 @@ limitations under the License.
 #include <algorithm>
 #include <cstdlib>
 #include <memory>
+#include <stdexcept>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -1274,6 +1275,14 @@ public:
 
   ir::Function finish() {
     emit_return_none();
+    mark_numeric_loop_move_chains();
+    mark_range_sum_loops();
+    mark_local_move_add_loops();
+    mark_call_accumulator_consumers();
+    mark_call_accumulate_loops();
+    mark_construct_method_accumulate_loops();
+    mark_scalar_arithmetic_loops();
+    mark_property_access_loops();
     return std::move(fn_);
   }
 
@@ -1287,6 +1296,452 @@ public:
   }
 
 private:
+  void mark_range_sum_loops() {
+    for (size_t range_ip = 0; range_ip + 1 < fn_.code.size(); ++range_ip) {
+      auto& range = fn_.code[range_ip];
+      const auto& add = fn_.code[range_ip + 1];
+      if (range.op != ir::Op::ForRangeConstLocalNext ||
+          range.c > ir::kRangeSumSpecMask ||
+          range.a >= fn_.locals.size() || range.b >= fn_.locals.size() ||
+          add.op != ir::Op::AddLocalLocal ||
+          (add.c & ir::kGuardedLocalAddFlag) == 0) {
+        continue;
+      }
+      const size_t fallback_span = add.c & ir::kGuardedLocalAddSpanMask;
+      const size_t back_edge_ip = range_ip + 1 + fallback_span + 1;
+      if (fallback_span == 0 || back_edge_ip >= fn_.code.size() ||
+          fn_.code[back_edge_ip].op != ir::Op::Jump ||
+          fn_.code[back_edge_ip].dst != range_ip) {
+        continue;
+      }
+      // Recognize only a side-effect-free local sum whose guarded add already
+      // owns the normal bytecode fallback and whose back-edge returns here.
+      uint32_t accumulator = UINT32_MAX;
+      if (add.dst == add.a && add.b == range.a) accumulator = add.a;
+      else if (add.dst == add.b && add.a == range.a) accumulator = add.b;
+      if (accumulator >= fn_.locals.size() || accumulator == range.b || accumulator > 0x7fffu) {
+        continue;
+      }
+      range.op = ir::Op::ForRangeConstLocalSum;
+      range.c = ir::kRangeSumFusionFlag |
+          (accumulator << ir::kRangeSumAccumulatorShift) | range.c;
+    }
+  }
+
+  void mark_local_move_add_loops() {
+    for (size_t loop_ip = 0; loop_ip + 1 < fn_.code.size(); ++loop_ip) {
+      auto& condition = fn_.code[loop_ip];
+      if (condition.op != ir::Op::JumpIfLocalConstFalse ||
+          condition.c != static_cast<uint32_t>(ir::CompareOp::Lt) ||
+          condition.a >= fn_.locals.size() || condition.b >= fn_.constants.size() ||
+          fn_.constants[condition.b].tag != ValueTag::Int64) {
+        continue;
+      }
+      // Mark the common list.append(local) loop only when its increment has
+      // the same guarded fallback/back-edge shape as the local-move fusion.
+      // Runtime method-cache identity, exact values, and observer state guard batching.
+      if (loop_ip + 4 < fn_.code.size()) {
+        const auto& pair = fn_.code[loop_ip + 1];
+        const auto& call = fn_.code[loop_ip + 2];
+        const auto& pop = fn_.code[loop_ip + 3];
+        const auto& add = fn_.code[loop_ip + 4];
+        if (pair.op == ir::Op::LoadLocalPair && call.op == ir::Op::CallMethod &&
+            pop.op == ir::Op::Pop && pop.a == call.dst && call.a == pair.dst &&
+            call.c < fn_.call_args.size() && fn_.call_args[call.c].size() == 1 &&
+            fn_.call_args[call.c][0] == pair.b && add.op == ir::Op::AddLocalConst &&
+            add.dst == condition.a && add.a == condition.a &&
+            pair.a < fn_.locals.size() && pair.c == condition.a &&
+            pair.a != condition.a && pair.a <= 0x7fffu &&
+            add.b < fn_.constants.size() && add.b <= 0xffffu &&
+            fn_.constants[add.b].tag == ValueTag::Int64 &&
+            fn_.constants[add.b].as.i64 > 0 &&
+            (add.c & ir::kGuardedLocalAddFlag) != 0) {
+          const size_t fallback = add.c & ir::kGuardedLocalAddSpanMask;
+          const size_t back = loop_ip + 4 + fallback + 1;
+          if (fallback != 0 && back < fn_.code.size() &&
+              fn_.code[back].op == ir::Op::Jump && fn_.code[back].dst == loop_ip &&
+              condition.dst == back + 1) {
+            condition.op = ir::Op::ForLocalMoveAddLoop;
+            condition.c = ir::kLocalAppendLoopFlag |
+                (pair.a << ir::kLocalAppendLoopListShift) | add.b;
+            continue;
+          }
+        }
+      }
+      const auto& first_move = fn_.code[loop_ip + 1];
+      if (first_move.op != ir::Op::MoveLocal ||
+          (first_move.c & ir::kGuardedLocalMoveFlag) == 0) {
+        continue;
+      }
+      const size_t move_count =
+          (first_move.c & ir::kGuardedLocalMoveSpanMask) + 1;
+      // Reserve the packed high bit for the sibling append-loop form.
+      if (move_count < 2 || move_count >= 0x8000u ||
+          move_count >= fn_.code.size() - loop_ip - 1) {
+        continue;
+      }
+      bool safe_moves = true;
+      for (size_t offset = 0; offset < move_count; ++offset) {
+        const auto& move = fn_.code[loop_ip + 1 + offset];
+        if (move.op != ir::Op::MoveLocal ||
+            (offset != 0 && move.c != 0) ||
+            move.dst >= fn_.locals.size() || move.a >= fn_.locals.size() ||
+            move.dst == condition.a ||
+            std::find(fn_.cell_slots.begin(), fn_.cell_slots.end(), move.dst) !=
+                fn_.cell_slots.end() ||
+            std::find(fn_.cell_slots.begin(), fn_.cell_slots.end(), move.a) !=
+                fn_.cell_slots.end()) {
+          safe_moves = false;
+          break;
+        }
+      }
+      if (!safe_moves) continue;
+      const size_t add_ip = loop_ip + 1 + move_count;
+      const auto& add = fn_.code[add_ip];
+      if (add.op != ir::Op::AddLocalConst || add.dst != condition.a ||
+          add.a != condition.a || add.b >= fn_.constants.size() ||
+          (add.c & ir::kGuardedLocalAddFlag) == 0 ||
+          fn_.constants[add.b].tag != ValueTag::Int64 ||
+          fn_.constants[add.b].as.i64 == 0) {
+        continue;
+      }
+      const size_t fallback_span = add.c & ir::kGuardedLocalAddSpanMask;
+      const size_t back_edge_ip = add_ip + fallback_span + 1;
+      if (fallback_span == 0 || back_edge_ip >= fn_.code.size() ||
+          fn_.code[back_edge_ip].op != ir::Op::Jump ||
+          fn_.code[back_edge_ip].dst != loop_ip ||
+          condition.dst != back_edge_ip + 1 || add.b > 0xffffu) {
+        continue;
+      }
+      // A separate opcode keeps ordinary conditions untouched; observers,
+      // object-valued moves, and overflow fall through to the original body.
+      condition.op = ir::Op::ForLocalMoveAddLoop;
+      condition.c = (static_cast<uint32_t>(move_count) <<
+                     ir::kLocalMoveLoopMoveCountShift) | add.b;
+    }
+  }
+
+  void mark_call_accumulator_consumers() {
+    for (size_t call_ip = 1; call_ip + 2 < fn_.code.size(); ++call_ip) {
+      auto& call = fn_.code[call_ip];
+      const auto& add = fn_.code[call_ip + 1];
+      const auto& store = fn_.code[call_ip + 2];
+      if (call.op != ir::Op::Call || call.c != 0 ||
+          add.op != ir::Op::Add || store.op != ir::Op::StoreLocal ||
+          add.dst >= fn_.register_count || store.dst >= fn_.locals.size() ||
+          store.a != add.dst) {
+        continue;
+      }
+      const uint32_t other_reg = add.a == call.dst ? add.b
+          : add.b == call.dst ? add.a : UINT32_MAX;
+      if (other_reg == UINT32_MAX) continue;
+      bool found_accumulator_load = false;
+      for (size_t previous = call_ip; previous-- > 0;) {
+        const auto& producer = fn_.code[previous];
+        if (producer.dst == other_reg) {
+          found_accumulator_load = producer.op == ir::Op::LoadLocal &&
+              producer.a == store.dst;
+          break;
+        }
+        if ((producer.op == ir::Op::LoadLocalPair ||
+             producer.op == ir::Op::LoadLocalConst ||
+             producer.op == ir::Op::LoadConstPair) && producer.b == other_reg) {
+          break;
+        }
+      }
+      if (!found_accumulator_load || store.dst > ir::kCallAccumulateLocalMask) continue;
+      // Mark only a call whose result immediately feeds its sole local sum;
+      // the VM still guards function identity, exact integer operands and the
+      // outer addition, falling back to normal call/arithmetic on any miss.
+      call.c = ir::kCallAccumulateLocalFlag | store.dst;
+    }
+  }
+
+  void mark_call_accumulate_loops() {
+    for (size_t loop_ip = 0; loop_ip + 8 < fn_.code.size(); ++loop_ip) {
+      auto& condition = fn_.code[loop_ip];
+      const auto& sum_load = fn_.code[loop_ip + 1];
+      const auto& callee_load = fn_.code[loop_ip + 2];
+      const auto& first_two_args = fn_.code[loop_ip + 3];
+      const auto& last_arg = fn_.code[loop_ip + 4];
+      auto& call = fn_.code[loop_ip + 5];
+      const auto& sum = fn_.code[loop_ip + 6];
+      const auto& store = fn_.code[loop_ip + 7];
+      const auto& increment = fn_.code[loop_ip + 8];
+      if (condition.op != ir::Op::JumpIfLocalConstFalse ||
+          condition.c != static_cast<uint32_t>(ir::CompareOp::Lt) ||
+          condition.a >= fn_.locals.size() || condition.b >= fn_.constants.size() ||
+          fn_.constants[condition.b].tag != ValueTag::Int64 ||
+          sum_load.op != ir::Op::LoadLocal || sum_load.a >= fn_.locals.size() ||
+          sum_load.a == condition.a || sum_load.dst >= fn_.register_count ||
+          callee_load.op != ir::Op::LoadModuleSlot ||
+          first_two_args.op != ir::Op::LoadLocalConst ||
+          first_two_args.a != condition.a || last_arg.op != ir::Op::LoadConst ||
+          first_two_args.c >= fn_.constants.size() ||
+          last_arg.a >= fn_.constants.size() || call.op != ir::Op::Call ||
+          (call.c & ir::kCallAccumulateLocalFlag) == 0 ||
+          (call.c & ir::kCallAccumulateLocalMask) != sum_load.a ||
+          call.a != callee_load.dst || call.b >= fn_.call_args.size() ||
+          fn_.call_args[call.b].size() != 3 ||
+          fn_.call_args[call.b][0] != first_two_args.dst ||
+          fn_.call_args[call.b][1] != first_two_args.b ||
+          fn_.call_args[call.b][2] != last_arg.dst ||
+          sum.op != ir::Op::Add || sum.dst >= fn_.register_count ||
+          (sum.a != call.dst && sum.b != call.dst) ||
+          (sum.a == call.dst ? sum.b : sum.a) != sum_load.dst ||
+          store.op != ir::Op::StoreLocal || store.dst != sum_load.a ||
+          store.a != sum.dst || increment.op != ir::Op::AddLocalConst ||
+          increment.dst != condition.a || increment.a != condition.a ||
+          increment.b >= fn_.constants.size() ||
+          fn_.constants[increment.b].tag != ValueTag::Int64 ||
+          fn_.constants[increment.b].as.i64 <= 0 ||
+          (increment.c & ir::kGuardedLocalAddFlag) == 0 ||
+          sum_load.a > 0x7fffu) {
+        continue;
+      }
+      const size_t fallback = increment.c & ir::kGuardedLocalAddSpanMask;
+      const size_t back = loop_ip + 8 + fallback + 1;
+      if (fallback == 0 || back >= fn_.code.size() ||
+          fn_.code[back].op != ir::Op::Jump || fn_.code[back].dst != loop_ip ||
+          condition.dst != back + 1) {
+        continue;
+      }
+      // This shape is safe to batch only after the VM proves the cached target
+      // is a pure, exact-scalar inline function; any mutation/overflow resumes
+      // the original call, sum, increment, and fallback bytecode.
+      condition.op = ir::Op::ForCallAccumulateLoop;
+      condition.c = ir::kCallAccumulateLoopFlag |
+          (sum_load.a << ir::kCallAccumulateLoopLocalShift);
+    }
+  }
+
+  void mark_construct_method_accumulate_loops() {
+    for (size_t loop_ip = 0; loop_ip + 9 < fn_.code.size(); ++loop_ip) {
+      auto& condition = fn_.code[loop_ip];
+      const auto& class_load = fn_.code[loop_ip + 1];
+      const auto& constructor_args = fn_.code[loop_ip + 2];
+      const auto& construct = fn_.code[loop_ip + 3];
+      const auto& save_instance = fn_.code[loop_ip + 4];
+      const auto& receiver_pair = fn_.code[loop_ip + 5];
+      const auto& method_call = fn_.code[loop_ip + 6];
+      const auto& sum = fn_.code[loop_ip + 7];
+      const auto& save_sum = fn_.code[loop_ip + 8];
+      const auto& increment = fn_.code[loop_ip + 9];
+      if (condition.op != ir::Op::JumpIfLocalConstFalse ||
+          condition.c != static_cast<uint32_t>(ir::CompareOp::Lt) ||
+          condition.a >= fn_.locals.size() || condition.b >= fn_.constants.size() ||
+          fn_.constants[condition.b].tag != ValueTag::Int64 ||
+          class_load.op != ir::Op::LoadModuleSlot ||
+          constructor_args.op != ir::Op::LoadLocalConst ||
+          constructor_args.a != condition.a || constructor_args.c >= fn_.constants.size() ||
+          fn_.constants[constructor_args.c].tag != ValueTag::Int64 ||
+          construct.op != ir::Op::Call || construct.a != class_load.dst ||
+          construct.b >= fn_.call_args.size() || fn_.call_args[construct.b].size() != 2 ||
+          fn_.call_args[construct.b][0] != constructor_args.dst ||
+          fn_.call_args[construct.b][1] != constructor_args.b ||
+          save_instance.op != ir::Op::StoreLocal || save_instance.a != construct.dst ||
+          save_instance.dst >= fn_.locals.size() || save_instance.dst == condition.a ||
+          receiver_pair.op != ir::Op::LoadLocalPair ||
+          receiver_pair.a >= fn_.locals.size() || receiver_pair.a == condition.a ||
+          receiver_pair.a == save_instance.dst || receiver_pair.c != save_instance.dst ||
+          method_call.op != ir::Op::CallMethod || method_call.a != receiver_pair.b ||
+          method_call.c >= fn_.call_args.size() || !fn_.call_args[method_call.c].empty() ||
+          sum.op != ir::Op::Add ||
+          (sum.a != receiver_pair.dst && sum.b != receiver_pair.dst) ||
+          (sum.a == receiver_pair.dst ? sum.b : sum.a) != method_call.dst ||
+          save_sum.op != ir::Op::StoreLocal || save_sum.dst != receiver_pair.a ||
+          save_sum.a != sum.dst || increment.op != ir::Op::AddLocalConst ||
+          increment.dst != condition.a || increment.a != condition.a ||
+          increment.b >= fn_.constants.size() ||
+          fn_.constants[increment.b].tag != ValueTag::Int64 ||
+          fn_.constants[increment.b].as.i64 <= 0 ||
+          (increment.c & ir::kGuardedLocalAddFlag) == 0 ||
+          receiver_pair.a > 0x7fffu) {
+        continue;
+      }
+      const size_t fallback = increment.c & ir::kGuardedLocalAddSpanMask;
+      const size_t back = loop_ip + 9 + fallback + 1;
+      if (fallback == 0 || back >= fn_.code.size() ||
+          fn_.code[back].op != ir::Op::Jump || fn_.code[back].dst != loop_ip ||
+          condition.dst != back + 1) {
+        continue;
+      }
+      // Runtime constructor/method caches must prove pure direct attribute
+      // stores and a scalar binary getter before this whole loop can batch.
+      condition.op = ir::Op::ForConstructMethodAccumulateLoop;
+      condition.c = ir::kConstructMethodAccumulateLoopFlag |
+          (receiver_pair.a << ir::kConstructMethodAccumulateLoopLocalShift);
+    }
+  }
+
+  void mark_scalar_arithmetic_loops() {
+    for (size_t loop_ip = 0; loop_ip + 1 < fn_.code.size(); ++loop_ip) {
+      auto& condition = fn_.code[loop_ip];
+      const auto& expression = fn_.code[loop_ip + 1];
+      if (condition.op != ir::Op::JumpIfLocalConstFalse ||
+          condition.c != static_cast<uint32_t>(ir::CompareOp::Lt) ||
+          condition.a >= fn_.locals.size() || condition.b >= fn_.constants.size() ||
+          fn_.constants[condition.b].tag != ValueTag::Int64 ||
+          expression.op != ir::Op::GuardedLocalNumericExpr ||
+          expression.dst >= fn_.locals.size() ||
+          expression.a >= fn_.guarded_local_numeric_exprs.size()) {
+        continue;
+      }
+      const auto& spec = fn_.guarded_local_numeric_exprs[expression.a];
+      if (spec.nodes.size() != 7 || spec.fallback_span == 0) continue;
+      const auto& n0 = spec.nodes[0];
+      const auto& n1 = spec.nodes[1];
+      const auto& n2 = spec.nodes[2];
+      const auto& n3 = spec.nodes[3];
+      const auto& n4 = spec.nodes[4];
+      const auto& n5 = spec.nodes[5];
+      const auto& n6 = spec.nodes[6];
+      if (n0.kind != ir::GuardedLocalNumericExprNodeKind::Local ||
+          n0.a != expression.dst || n1.kind != ir::GuardedLocalNumericExprNodeKind::Local ||
+          n1.a != condition.a || n2.kind != ir::GuardedLocalNumericExprNodeKind::Constant ||
+          n3.kind != ir::GuardedLocalNumericExprNodeKind::Mul || n3.a != 1 || n3.b != 2 ||
+          n4.kind != ir::GuardedLocalNumericExprNodeKind::Add || n4.a != 0 || n4.b != 3 ||
+          n5.kind != ir::GuardedLocalNumericExprNodeKind::Constant ||
+          n6.kind != ir::GuardedLocalNumericExprNodeKind::Sub || n6.a != 4 || n6.b != 5 ||
+          n2.a >= fn_.constants.size() || n5.a >= fn_.constants.size() ||
+          fn_.constants[n2.a].tag != ValueTag::Int64 ||
+          fn_.constants[n5.a].tag != ValueTag::Int64 ||
+          expression.dst == condition.a) {
+        continue;
+      }
+      const size_t increment_ip = loop_ip + 2 + spec.fallback_span;
+      if (increment_ip >= fn_.code.size()) continue;
+      const auto& increment = fn_.code[increment_ip];
+      if (increment.op != ir::Op::AddLocalConst || increment.dst != condition.a ||
+          increment.a != condition.a || increment.b >= fn_.constants.size() ||
+          fn_.constants[increment.b].tag != ValueTag::Int64 ||
+          fn_.constants[increment.b].as.i64 <= 0 ||
+          (increment.c & ir::kGuardedLocalAddFlag) == 0) {
+        continue;
+      }
+      const size_t fallback = increment.c & ir::kGuardedLocalAddSpanMask;
+      const size_t back = increment_ip + fallback + 1;
+      if (fallback == 0 || back >= fn_.code.size() ||
+          fn_.code[back].op != ir::Op::Jump || fn_.code[back].dst != loop_ip ||
+          condition.dst != back + 1) {
+        continue;
+      }
+      // This exact accumulator plan is evaluated with checked int64 arithmetic
+      // in one loop handler. Overflow, non-int locals, and observers deopt to
+      // the guarded expression plus its original Python arithmetic fallback.
+      condition.op = ir::Op::ForScalarArithmeticLoop;
+      condition.c = ir::kScalarArithmeticLoopFlag;
+    }
+  }
+
+  void mark_property_access_loops() {
+    // This fusion is deliberately limited to the canonical setter/getter plus
+    // periodic deleter loop. The VM still guards descriptor identity, accessor
+    // shape, storage type, and observers before bypassing normal dispatch.
+    for (size_t loop_ip = 0; loop_ip + 21 < fn_.code.size(); ++loop_ip) {
+      auto& condition = fn_.code[loop_ip];
+      const auto& set_pair = fn_.code[loop_ip + 1];
+      const auto& set_attr = fn_.code[loop_ip + 2];
+      const auto& get_pair = fn_.code[loop_ip + 3];
+      const auto& get_attr = fn_.code[loop_ip + 4];
+      const auto& get_sum = fn_.code[loop_ip + 5];
+      const auto& save_sum = fn_.code[loop_ip + 6];
+      const auto& modulus_value = fn_.code[loop_ip + 7];
+      const auto& modulus = fn_.code[loop_ip + 8];
+      const auto& zero = fn_.code[loop_ip + 9];
+      const auto& branch = fn_.code[loop_ip + 10];
+      const auto& delete_receiver = fn_.code[loop_ip + 11];
+      const auto& delete_attr = fn_.code[loop_ip + 12];
+      const auto& delete_pair = fn_.code[loop_ip + 13];
+      const auto& delete_get = fn_.code[loop_ip + 14];
+      const auto& delete_sum = fn_.code[loop_ip + 15];
+      const auto& delete_save = fn_.code[loop_ip + 16];
+      const auto& skip_increment = fn_.code[loop_ip + 17];
+      auto& increment = fn_.code[loop_ip + 18];
+      if (condition.op != ir::Op::JumpIfLocalConstFalse ||
+          condition.c != static_cast<uint32_t>(ir::CompareOp::Lt) ||
+          condition.a >= fn_.locals.size() || condition.b >= fn_.constants.size() ||
+          fn_.constants[condition.b].tag != ValueTag::Int64 ||
+          set_pair.op != ir::Op::LoadLocalPair || set_pair.a >= fn_.locals.size() ||
+          set_pair.a == condition.a || set_pair.c != condition.a ||
+          set_attr.op != ir::Op::StoreAttr || set_attr.dst != set_pair.dst ||
+          get_pair.op != ir::Op::LoadLocalPair || get_pair.a >= fn_.locals.size() ||
+          get_pair.a == condition.a || get_pair.a == set_pair.a ||
+          get_attr.op != ir::Op::LoadAttr || get_attr.a != get_pair.b ||
+          get_sum.op != ir::Op::Add ||
+          (get_sum.a != get_pair.dst && get_sum.b != get_pair.dst) ||
+          (get_sum.a == get_pair.dst ? get_sum.b : get_sum.a) != get_attr.dst ||
+          save_sum.op != ir::Op::StoreLocal || save_sum.dst != get_pair.a ||
+          save_sum.a != get_sum.dst || modulus_value.op != ir::Op::LoadLocal ||
+          modulus_value.a != condition.a || modulus.op != ir::Op::ModConst ||
+          modulus.a != modulus_value.dst || modulus.b >= fn_.constants.size() ||
+          fn_.constants[modulus.b].tag != ValueTag::Int64 ||
+          zero.op != ir::Op::LoadConst || zero.a >= fn_.constants.size() ||
+          fn_.constants[zero.a].tag != ValueTag::Int64 ||
+          branch.op != ir::Op::CompareJumpIfFalse || branch.a != modulus.dst ||
+          branch.b != zero.dst || branch.c != static_cast<uint32_t>(ir::CompareOp::Eq) ||
+          branch.dst != loop_ip + 18 ||
+          delete_receiver.op != ir::Op::LoadLocal || delete_receiver.a != set_pair.a ||
+          delete_attr.op != ir::Op::DeleteAttr || delete_attr.dst != delete_receiver.dst ||
+          delete_attr.a != set_attr.a || delete_pair.op != ir::Op::LoadLocalPair ||
+          delete_pair.a != get_pair.a || delete_pair.c != set_pair.a ||
+          delete_get.op != ir::Op::LoadAttr || delete_get.a != delete_pair.b ||
+          delete_get.b != get_attr.b || delete_sum.op != ir::Op::Add ||
+          (delete_sum.a != delete_pair.dst && delete_sum.b != delete_pair.dst) ||
+          (delete_sum.a == delete_pair.dst ? delete_sum.b : delete_sum.a) != delete_get.dst ||
+          delete_save.op != ir::Op::StoreLocal || delete_save.dst != get_pair.a ||
+          delete_save.a != delete_sum.dst || skip_increment.op != ir::Op::Jump ||
+          skip_increment.dst != loop_ip + 18 ||
+          modulus.b >= fn_.constants.size() || fn_.constants[modulus.b].as.i64 <= 0 ||
+          get_pair.a > 0x7fffu) {
+        continue;
+      }
+      if (increment.op != ir::Op::AddLocalConst || increment.dst != condition.a ||
+          increment.a != condition.a || increment.b >= fn_.constants.size() ||
+          fn_.constants[increment.b].tag != ValueTag::Int64 ||
+          fn_.constants[increment.b].as.i64 <= 0 ||
+          (increment.c & ir::kGuardedLocalAddFlag) == 0) continue;
+      const size_t fallback = increment.c & ir::kGuardedLocalAddSpanMask;
+      const size_t back = loop_ip + 18 + fallback + 1;
+      if (fallback == 0 || back >= fn_.code.size() ||
+          fn_.code[back].op != ir::Op::Jump || fn_.code[back].dst != loop_ip ||
+          condition.dst != back + 1) continue;
+      condition.op = ir::Op::ForPropertyAccessLoop;
+      condition.c = ir::kPropertyAccessLoopFlag |
+          (get_pair.a << ir::kPropertyAccessLoopLocalShift);
+    }
+  }
+
+  void mark_numeric_loop_move_chains() {
+    for (size_t start = 0; start < fn_.code.size();) {
+      if (fn_.code[start].op != ir::Op::MoveLocal || fn_.code[start].c != 0) {
+        ++start;
+        continue;
+      }
+      size_t end = start + 1;
+      while (end < fn_.code.size() && fn_.code[end].op == ir::Op::MoveLocal &&
+             fn_.code[end].c == 0) ++end;
+      const size_t move_count = end - start;
+      if (move_count < 2 || move_count - 1 > ir::kGuardedLocalMoveSpanMask) {
+        start = end;
+        continue;
+      }
+      bool inside_back_edge = false;
+      for (size_t jump_ip = end; jump_ip < fn_.code.size(); ++jump_ip) {
+        const auto& jump = fn_.code[jump_ip];
+        if (jump.op == ir::Op::Jump && jump.dst <= start && jump_ip >= end) {
+          inside_back_edge = true;
+          break;
+        }
+      }
+      if (inside_back_edge) {
+        fn_.code[start].c = ir::kGuardedLocalMoveFlag |
+            static_cast<uint32_t>(move_count - 1);
+      }
+      start = end;
+    }
+  }
+
   uint32_t new_reg() {
     return fn_.register_count++;
   }
@@ -3187,7 +3642,149 @@ private:
         return true;
       }
     }
+    if (try_emit_guarded_local_numeric_expression(assign, dst_slot)) {
+      return true;
+    }
+    if (auto* binary = dynamic_cast<const ast::BinaryExpr*>(assign.value.get())) {
+      if (binary->op != "+") return false;
+      auto* lhs = dynamic_cast<const ast::NameExpr*>(binary->lhs.get());
+      if (lhs == nullptr) return false;
+      uint32_t lhs_slot = 0;
+      if (!direct_local_slot(lhs->name, lhs_slot)) return false;
+
+      ir::Op fused_op;
+      uint32_t rhs_operand = 0;
+      if (auto* rhs_name = dynamic_cast<const ast::NameExpr*>(binary->rhs.get())) {
+        if (!direct_local_slot(rhs_name->name, rhs_operand)) return false;
+        fused_op = ir::Op::AddLocalLocal;
+      } else if (auto* rhs = dynamic_cast<const ast::LiteralExpr*>(binary->rhs.get())) {
+        if (rhs->kind != ast::LiteralExpr::Kind::Int &&
+            rhs->kind != ast::LiteralExpr::Kind::Double) return false;
+        rhs_operand = add_const(literal_value(*rhs));
+        fused_op = ir::Op::AddLocalConst;
+      } else {
+        return false;
+      }
+
+      // Emit a one-op exact-int/float fast path followed by the ordinary
+      // expression as a deoptimization path. Non-scalars, integer overflow,
+      // and active tracing/debugging therefore retain generic Python dispatch.
+      const size_t fused_ip = fn_.code.size();
+      emit(fused_op, dst_slot, lhs_slot, rhs_operand, ir::kGuardedLocalAddFlag);
+      store_named_value(assign.name, lower_expr(*assign.value));
+      const size_t fallback_span = fn_.code.size() - fused_ip - 1;
+      if (fallback_span == 0 || fallback_span > ir::kGuardedLocalAddSpanMask) {
+        throw std::logic_error("invalid guarded local-add fallback span");
+      }
+      fn_.code[fused_ip].c = ir::kGuardedLocalAddFlag | static_cast<uint32_t>(fallback_span);
+      return true;
+    }
     return false;
+  }
+
+  bool try_emit_guarded_local_numeric_expression(
+      const ast::AssignStmt& assign, uint32_t dst_slot) {
+    auto numeric_constant = [&](const ast::Expr& expression, Value& out) {
+      if (auto* literal = dynamic_cast<const ast::LiteralExpr*>(&expression)) {
+        if (literal->kind != ast::LiteralExpr::Kind::Int &&
+            literal->kind != ast::LiteralExpr::Kind::Double) {
+          return false;
+        }
+        out = literal_value(*literal);
+        return out.tag == ValueTag::Int64 || out.tag == ValueTag::Double;
+      }
+      auto* unary = dynamic_cast<const ast::UnaryExpr*>(&expression);
+      auto* literal = unary == nullptr
+          ? nullptr
+          : dynamic_cast<const ast::LiteralExpr*>(unary->expr.get());
+      if (unary == nullptr || unary->op != "-" || literal == nullptr ||
+          (literal->kind != ast::LiteralExpr::Kind::Int &&
+           literal->kind != ast::LiteralExpr::Kind::Double)) {
+        return false;
+      }
+      const Value positive = literal_value(*literal);
+      if (positive.tag == ValueTag::Int64) {
+        if (positive.as.i64 == std::numeric_limits<int64_t>::min()) return false;
+        out = Value::int64(-positive.as.i64);
+        return true;
+      }
+      if (positive.tag == ValueTag::Double) {
+        out = Value::number(-positive.as.f64);
+        return true;
+      }
+      return false;
+    };
+
+    uint32_t operation_count = 0;
+    uint32_t node_count = 0;
+    auto is_supported = [&](auto&& self, const ast::Expr& expression) -> bool {
+      if (auto* name = dynamic_cast<const ast::NameExpr*>(&expression)) {
+        uint32_t slot = 0;
+        if (!direct_local_slot(name->name, slot)) return false;
+        return ++node_count <= ir::kMaxGuardedLocalNumericExprNodes;
+      }
+      Value ignored;
+      if (numeric_constant(expression, ignored)) {
+        return ++node_count <= ir::kMaxGuardedLocalNumericExprNodes;
+      }
+      auto* binary = dynamic_cast<const ast::BinaryExpr*>(&expression);
+      if (binary == nullptr ||
+          (binary->op != "+" && binary->op != "-" && binary->op != "*")) {
+        return false;
+      }
+      if (!self(self, *binary->lhs) || !self(self, *binary->rhs)) return false;
+      ++operation_count;
+      return ++node_count <= ir::kMaxGuardedLocalNumericExprNodes;
+    };
+    if (!is_supported(is_supported, *assign.value) || operation_count < 2) return false;
+
+    ir::GuardedLocalNumericExprSpec spec;
+    spec.nodes.reserve(node_count);
+    auto append_node = [&](auto&& self, const ast::Expr& expression) -> uint32_t {
+      ir::GuardedLocalNumericExprNode node;
+      if (auto* name = dynamic_cast<const ast::NameExpr*>(&expression)) {
+        node.kind = ir::GuardedLocalNumericExprNodeKind::Local;
+        direct_local_slot(name->name, node.a);
+      } else {
+        Value constant;
+        if (numeric_constant(expression, constant)) {
+          node.kind = ir::GuardedLocalNumericExprNodeKind::Constant;
+          node.a = add_const(std::move(constant));
+        } else {
+          const auto& binary = *dynamic_cast<const ast::BinaryExpr*>(&expression);
+          node.a = self(self, *binary.lhs);
+          node.b = self(self, *binary.rhs);
+          if (binary.op == "+") node.kind = ir::GuardedLocalNumericExprNodeKind::Add;
+          else if (binary.op == "-") node.kind = ir::GuardedLocalNumericExprNodeKind::Sub;
+          else node.kind = ir::GuardedLocalNumericExprNodeKind::Mul;
+        }
+      }
+      const uint32_t index = static_cast<uint32_t>(spec.nodes.size());
+      spec.nodes.push_back(node);
+      return index;
+    };
+    (void)append_node(append_node, *assign.value);
+
+    if (fn_.guarded_local_numeric_exprs.size() >= UINT32_MAX) {
+      throw std::logic_error("too many guarded local numeric expressions");
+    }
+    const uint32_t spec_index = static_cast<uint32_t>(fn_.guarded_local_numeric_exprs.size());
+    fn_.guarded_local_numeric_exprs.push_back(std::move(spec));
+
+    // Leaves are side-effect-free local reads and numeric literals. Exact
+    // int/float execution can therefore use the postorder plan; every other
+    // tag, overflow, observation mode, or unbound slot falls through to the
+    // original lowered expression immediately following this opcode.
+    const size_t fused_ip = fn_.code.size();
+    emit(ir::Op::GuardedLocalNumericExpr, dst_slot, spec_index);
+    store_named_value(assign.name, lower_expr(*assign.value));
+    const size_t fallback_span = fn_.code.size() - fused_ip - 1;
+    if (fallback_span == 0 || fallback_span > UINT32_MAX) {
+      throw std::logic_error("invalid guarded numeric expression fallback span");
+    }
+    fn_.guarded_local_numeric_exprs[spec_index].fallback_span =
+        static_cast<uint32_t>(fallback_span);
+    return true;
   }
 
   bool try_emit_local_const_condition_jump(const ast::Expr& condition, size_t& jump) {

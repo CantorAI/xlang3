@@ -24,11 +24,11 @@ limitations under the License.
 #include "xlang3/value.h"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <charconv>
 #include <cstdint>
 #include <string_view>
-#include <unordered_set>
 #include <vector>
 
 namespace xlang3 {
@@ -501,8 +501,37 @@ void append_json_ascii_string(std::string_view input, std::string& out) {
   out.push_back('"');
 }
 
+struct JsonActiveStack {
+  // Most JSON graphs are shallow. Keep the cycle-detection path in the
+  // encoder's stack frame so each json.dumps call avoids heap allocation; only
+  // unusually deep input spills to the vector.
+  std::array<Object*, 32> inline_items{};
+  size_t size = 0;
+  std::vector<Object*> overflow;
+
+  bool contains(Object* object) const {
+    const size_t inline_size = std::min(size, inline_items.size());
+    if (std::find(inline_items.begin(), inline_items.begin() + inline_size,
+                  object) != inline_items.begin() + inline_size) {
+      return true;
+    }
+    return std::find(overflow.begin(), overflow.end(), object) != overflow.end();
+  }
+
+  void push(Object* object) {
+    if (size < inline_items.size()) inline_items[size] = object;
+    else overflow.push_back(object);
+    ++size;
+  }
+
+  void pop() {
+    if (size > inline_items.size()) overflow.pop_back();
+    --size;
+  }
+};
+
 bool append_json_builtin(const Value& value, std::string& out,
-                         std::unordered_set<Object*>& active, bool& supported,
+                         JsonActiveStack& active, bool& supported,
                          size_t depth = 0) {
   // Match the interpreter's recursion safety by falling back before native C++
   // recursion can exhaust the process stack on deeply nested input.
@@ -532,28 +561,39 @@ bool append_json_builtin(const Value& value, std::string& out,
   auto* dict = value_as_dict(value);
   if (list || tuple) {
     Object* identity = value.as.obj;
-    if (!active.insert(identity).second) { supported = false; return false; }
+    // JSON only needs to detect cycles on the current recursion path. A small
+    // stack avoids hashing and allocating a node for every container in large
+    // acyclic graphs (the common pyperformance json_dumps workload).
+    if (active.contains(identity)) {
+      supported = false;
+      return false;
+    }
+    active.push(identity);
     out.push_back('[');
     const size_t count = list ? list->items.size() : tuple->items.size();
     for (size_t i = 0; i < count; ++i) {
       if (i) out += ", ";
       const Value& item = list ? list->items[i] : tuple->items[i];
-      if (!append_json_builtin(item, out, active, supported, depth + 1)) { active.erase(identity); return false; }
+      if (!append_json_builtin(item, out, active, supported, depth + 1)) { active.pop(); return false; }
     }
-    out.push_back(']'); active.erase(identity); return true;
+    out.push_back(']'); active.pop(); return true;
   }
   if (dict) {
     Object* identity = value.as.obj;
-    if (!active.insert(identity).second) { supported = false; return false; }
+    if (active.contains(identity)) {
+      supported = false;
+      return false;
+    }
+    active.push(identity);
     out.push_back('{'); bool first = true;
     for (const auto& [key, item] : dict->entries) {
       auto* key_string = value_as_string(key);
-      if (!key_string) { supported = false; active.erase(identity); return false; }
+      if (!key_string) { supported = false; active.pop(); return false; }
       if (!first) out += ", "; first = false;
       append_json_ascii_string(string_object_view(*key_string), out); out += ": ";
-      if (!append_json_builtin(item, out, active, supported, depth + 1)) { active.erase(identity); return false; }
+      if (!append_json_builtin(item, out, active, supported, depth + 1)) { active.pop(); return false; }
     }
-    out.push_back('}'); active.erase(identity); return true;
+    out.push_back('}'); active.pop(); return true;
   }
   supported = false; return false;
 }
@@ -580,38 +620,16 @@ void json_encoder_state_cleanup(void* data) {
   delete static_cast<JsonEncoderState*>(data);
 }
 
-bool json_encoder_call(
-    Runtime& runtime, const Value* args, uint32_t argc, Value& out,
-    std::string& error, void* data) {
-  if (argc != 2) {
-    error = "_iterencode() takes exactly 2 arguments";
-    runtime.raise_class_error("TypeError", error);
-    return false;
-  }
-  if (args[1].tag != ValueTag::Int64) {
-    error = "_current_indent_level must be an integer";
-    runtime.raise_class_error("TypeError", error);
-    return false;
-  }
-  auto* state = static_cast<JsonEncoderState*>(data);
-  if (state->native_fast_path) {
-    std::string encoded;
-    std::unordered_set<Object*> active;
-    bool supported = true;
-    if (append_json_builtin(args[0], encoded, active, supported)) {
-      out = Value::list({Value::string(std::move(encoded))});
-      return true;
-    }
-    // Preserve Python-level fallback, default hooks and error messages for
-    // non-primitive values and circular-reference errors.
-  }
-  if (state->iterencode.tag == ValueTag::Invalid &&
-      !initialize_json_python_encoder(runtime, *state, error)) {
+bool json_encoder_python_fallback(
+    Runtime& runtime, const Value* args, JsonEncoderState& state,
+    Value& out, std::string& error) {
+  if (state.iterencode.tag == ValueTag::Invalid &&
+      !initialize_json_python_encoder(runtime, state, error)) {
     return false;
   }
   Value call_args[] = {args[0], args[1].as.i64 < 0 ? Value::int64(0) : args[1]};
   Value generated;
-  if (!runtime_call_callable(runtime, state->iterencode, call_args, 2, generated, error)) {
+  if (!runtime_call_callable(runtime, state.iterencode, call_args, 2, generated, error)) {
     return false;
   }
   const Value* list_class = runtime.find_builtin("list");
@@ -634,6 +652,62 @@ bool json_encoder_call(
   }
   out = Value::list({joined});
   return true;
+}
+
+bool json_encoder_call(
+    Runtime& runtime, const Value* args, uint32_t argc, Value& out,
+    std::string& error, void* data) {
+  if (argc != 2) {
+    error = "_iterencode() takes exactly 2 arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (args[1].tag != ValueTag::Int64) {
+    error = "_current_indent_level must be an integer";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (data == nullptr) {
+    // The registered default encoder has no captured options, so it can be
+    // reused by every default JSONEncoder.iterencode call. Custom encoders
+    // keep their own state and use the ordinary Python fallback.
+    std::string encoded;
+    JsonActiveStack active;
+    bool supported = true;
+    if (append_json_builtin(args[0], encoded, active, supported)) {
+      out = Value::list({Value::string(std::move(encoded))});
+      return true;
+    }
+    // Construct fallback state only for unsupported values. The frequent
+    // built-in path avoids initializing the Python encoder options.
+    JsonEncoderState fallback;
+    fallback.bound[0] = Value::dict({});
+    fallback.bound[1] = Value::none();
+    const Value* ascii_encoder = runtime.find_native_symbol("_json.encode_basestring_ascii");
+    if (ascii_encoder == nullptr) {
+      error = "JSON ASCII encoder is unavailable";
+      return false;
+    }
+    fallback.bound[2] = *ascii_encoder;
+    fallback.bound[3] = Value::none();
+    fallback.bound[4] = Value::string(": ");
+    fallback.bound[5] = Value::string(", ");
+    fallback.bound[6] = Value::boolean(false);
+    fallback.bound[7] = Value::boolean(false);
+    fallback.bound[8] = Value::boolean(true);
+    return json_encoder_python_fallback(runtime, args, fallback, out, error);
+  }
+  auto& state = *static_cast<JsonEncoderState*>(data);
+  if (state.native_fast_path) {
+    std::string encoded;
+    JsonActiveStack active;
+    bool supported = true;
+    if (append_json_builtin(args[0], encoded, active, supported)) {
+      out = Value::list({Value::string(std::move(encoded))});
+      return true;
+    }
+  }
+  return json_encoder_python_fallback(runtime, args, state, out, error);
 }
 
 bool json_floatstr(
@@ -763,6 +837,15 @@ bool json_make_encoder_impl(
       string_equals(bound[5], ", ") && !value_truthy(bound[6]) && !value_truthy(bound[7]) &&
       value_truthy(bound[8]) &&
       standard_ascii_encoder;
+  if (native_fast_path) {
+    // _json.make_encoder is called once for each default dumps() invocation.
+    // Reuse a stateless native callable so shallow inputs avoid allocating an
+    // Encoder object and heap state for every call.
+    if (const Value* cached = runtime.find_native_symbol("_json._default_encoder")) {
+      out = *cached;
+      return true;
+    }
+  }
   // Avoid allocating the Python recursive encoder closure per json.dumps call
   // when the native path owns the whole default built-in data graph. Keep the
   // bound arguments so custom and unsupported values can initialize it lazily.
@@ -801,7 +884,15 @@ void register_json_module(Runtime& runtime) {
           true)
       .function("scanstring", json_scanstring, builtin_fast_adapter<json_scanstring, 4>, false, json_scanstring_kw)
       .function("make_scanner", json_make_scanner)
-      .function("make_encoder", json_make_encoder, nullptr, false, json_make_encoder_kw);
+      .function(
+          "make_encoder", json_make_encoder,
+          builtin_fast_adapter<json_make_encoder, 9>, false,
+          json_make_encoder_kw);
+  builder.value(
+      "_default_encoder",
+      runtime.make_native_function(
+          "_json._default_encoder", json_encoder_call, nullptr, nullptr,
+          builtin_fast_adapter<json_encoder_call, 2>, false, nullptr, false));
   runtime.register_module("_json", builder.finish());
 }
 
