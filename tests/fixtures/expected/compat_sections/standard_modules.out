@@ -17,6 +17,9 @@ True True True True
 [1, 2, 3, 1] CacheInfo(hits=1, misses=4, maxsize=2, currsize=2)
 CacheInfo(hits=0, misses=0, maxsize=2, currsize=0)
 6 6 CacheInfo(hits=1, misses=1, maxsize=None, currsize=1) {'maxsize': None, 'typed': False}
+1 1 2
+[(1, 2), (True, 2)] CacheInfo(hits=1, misses=2, maxsize=4, currsize=2)
+1 2 [3, 3] CacheInfo(hits=0, misses=2, maxsize=0, currsize=0)
 <input> <module> True
 True True
 ['a.py', 'c.py']

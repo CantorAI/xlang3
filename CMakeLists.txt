@@ -197,6 +197,7 @@ set(XLANG3_SYSTEM_RUNTIME_SOURCES
   src/runtime/modules/system/ctypes_module.cpp
   src/runtime/modules/system/errno_module.cpp
   src/runtime/modules/system/faulthandler_module.cpp
+  src/runtime/modules/system/functools_module.cpp
     src/runtime/modules/system/gc_module.cpp
     src/runtime/modules/system/lsprof_module.cpp
     src/runtime/modules/system/array_module.cpp

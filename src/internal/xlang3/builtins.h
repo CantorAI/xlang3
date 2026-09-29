@@ -80,6 +80,7 @@ void register_bz2_module(Runtime& runtime);
 void register_cmath_module(Runtime& runtime);
 void register_io_module(Runtime& runtime);
 void register_json_module(Runtime& runtime);
+void register_functools_module(Runtime& runtime);
 void register_csv_module(Runtime& runtime);
 void register_os_module(Runtime& runtime);
 void register_posix_process_module(Runtime& runtime);
