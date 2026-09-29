@@ -1,0 +1,25 @@
+XLang3 vs CPython 3.14 JSON Python-frame-entry counts
+Date: 2026-09-29
+Workload: pyperformance 1.14 bm_json_dumps exact inputs and iteration counts
+Diagnostic source SHA-256: 05d2a7ce651feaf301ff311e2e4442e864a4e51f6aa0c648d29193d3ae4d7e8b
+XLang3 executable SHA-256: 36ab4a3b30c1fcb335017b8c26e91163f066b1f8a3de9e5f481108692a91fa5f
+XLang3 runtime SHA-256: 8e24a4dd1bcf75c4d92dc7c1c7c6af04232aac07294e609fbeda5b36bfa8e3cf
+CPython: C:\Python\Python314\python.exe (3.14)
+
+XLang3 Release:
+4001 dumps C:\Python\Python314\Lib\json\__init__.py
+4001 encode C:\Python\Python314\Lib\json\encoder.py
+4001 iterencode C:\Python\Python314\Lib\json\encoder.py
+profiled Python frame entries 12003
+
+CPython 3.14:
+4001 dumps C:\Python\Python314\Lib\json\__init__.py
+4001 encode C:\Python\Python314\Lib\json\encoder.py
+4001 iterencode C:\Python\Python314\Lib\json\encoder.py
+profiled Python frame entries 12003
+
+Interpretation: both runtimes execute the same three Python wrapper functions once
+per json.dumps call. The benchmark gap is therefore not extra Python fallback
+frames in XLang3; it is the cost of executing the same Python frames and their
+instructions in XLang3's VM. sys.setprofile call events perturb runtime cost, so
+these counts are diagnostic only and provide no timing comparison.
