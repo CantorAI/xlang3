@@ -1948,8 +1948,14 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method_ex(
           cache.kind == CallSiteKind::UserFunction && cache.function != nullptr &&
           cache.callee_object == &klass->header && cache.class_version == klass->version &&
           cache.arg0_object == regs[in.a].as.obj) {
+        // Cached CallMethodEx args contain only explicit arguments. Bind the
+        // current receiver as `self` on every hit, just as descriptor lookup
+        // does on the uncached path.
+        CallArgsView method_args = args;
+        method_args.leading = &regs[in.a];
+        method_args.leading_count = 1;
         bool pushed_frame = false;
-        if (!call_user_function(cache.function, args, module, module_owner, in.dst, ip,
+        if (!call_user_function(cache.function, method_args, module, module_owner, in.dst, ip,
                                 regs[in.dst], pushed_frame, make_generator_if_needed, push_frame)) {
           return result.errors.empty() ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
         }

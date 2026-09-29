@@ -230,10 +230,13 @@ bool lru_cache_wrapper_factory(Runtime& runtime, const Value* args, uint32_t arg
     }
     state->maxsize = maxsize;
   }
+  // CPython's _lru_cache_wrapper is a descriptor: decorating an instance
+  // method must bind `self` before the cache key is built and the wrapped
+  // function is called. Keep descriptor binding enabled on this native ABI.
   Value wrapper = runtime.make_native_function(
       "functools._lru_cache_wrapper", lru_wrapper_call_plain,
       new LruStateRef(state),
-      lru_state_cleanup, nullptr, false, lru_wrapper_call, false);
+      lru_state_cleanup, nullptr, false, lru_wrapper_call, true);
   // functools.update_wrapper assigns these fields on the returned wrapper.
   // Native functions normally expose them as immutable implementation names,
   // so predeclare the per-wrapper slots that the decorator will copy.
