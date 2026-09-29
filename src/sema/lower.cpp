@@ -1478,7 +1478,10 @@ private:
           first_two_args.op != ir::Op::LoadLocalConst ||
           first_two_args.a != condition.a || last_arg.op != ir::Op::LoadConst ||
           first_two_args.c >= fn_.constants.size() ||
-          last_arg.a >= fn_.constants.size() || call.op != ir::Op::Call ||
+          last_arg.a >= fn_.constants.size() ||
+          fn_.constants[first_two_args.c].tag != ValueTag::Int64 ||
+          fn_.constants[last_arg.a].tag != ValueTag::Int64 ||
+          call.op != ir::Op::Call ||
           (call.c & ir::kCallAccumulateLocalFlag) == 0 ||
           (call.c & ir::kCallAccumulateLocalMask) != sum_load.a ||
           call.a != callee_load.dst || call.b >= fn_.call_args.size() ||
