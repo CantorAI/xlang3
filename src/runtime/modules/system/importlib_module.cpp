@@ -17,6 +17,7 @@ limitations under the License.
 #include "xlang3/attribute.h"
 #include "xlang3/functional_iterators.h"
 #include "xlang3/import_loader.h"
+#include "xlang3/pyc_magic.h"
 #include "xlang3/interpreter.h"
 #include "xlang3/mapping.h"
 #include "xlang3/module_object.h"
@@ -358,8 +359,7 @@ bool importlib_loader_get_code(Runtime& runtime, const Value* args, uint32_t arg
     return false;
   }
   if (std::filesystem::path(path).extension() == ".pyc") {
-    static constexpr unsigned char kMagic[] = {0x4f, 0x58, 0x0d, 0x0a};
-    if (bytes.size() < 16 || !std::equal(std::begin(kMagic), std::end(kMagic), bytes.begin())) {
+    if (bytes.size() < 16 || !std::equal(std::begin(kPycMagic), std::end(kPycMagic), bytes.begin())) {
       error = "bad magic number in bytecode file '" + path + "'";
       return false;
     }
@@ -1752,7 +1752,7 @@ bool bootstrap_external_code_to_timestamp_pyc(
       ? static_cast<uint32_t>(args[1].as.i64) : 0;
   const uint32_t size = argc >= 3 && args[2].tag == ValueTag::Int64
       ? static_cast<uint32_t>(args[2].as.i64) : 0;
-  std::string data("\x4f\x58\x0d\x0a", 4);
+  std::string data(kPycMagic, sizeof(kPycMagic));
   append_uint32_le(data, 0);
   append_uint32_le(data, mtime);
   append_uint32_le(data, size);
@@ -1776,7 +1776,7 @@ bool bootstrap_external_code_to_hash_pyc(
     return false;
   }
   const bool checked = argc < 3 || value_truthy(args[2]);
-  std::string data("\x4f\x58\x0d\x0a", 4);
+  std::string data(kPycMagic, sizeof(kPycMagic));
   append_uint32_le(data, checked ? 3u : 1u);
   data.append(bytes_object_view(*hash));
   return append_marshaled_code(runtime, args[0], data, out, error);
@@ -1909,7 +1909,7 @@ void register_importlib_module(Runtime& runtime) {
       .value("DEBUG_BYTECODE_SUFFIXES", Value::list({Value::string(".pyc")}))
       .value("OPTIMIZED_BYTECODE_SUFFIXES", Value::list({Value::string(".pyc")}))
       .value("EXTENSION_SUFFIXES", Value::list({}))
-      .value("MAGIC_NUMBER", Value::bytes(std::string("\x4f\x58\x0d\x0a", 4)))
+      .value("MAGIC_NUMBER", Value::bytes(std::string(kPycMagic, sizeof(kPycMagic))))
       .function("cache_from_source", bootstrap_external_cache_from_source, nullptr, false, bootstrap_external_cache_from_source_kw)
       .function("source_from_cache", bootstrap_external_source_from_cache)
       .function("decode_source", bootstrap_external_decode_source)

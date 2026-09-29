@@ -22,7 +22,9 @@ with tempfile.TemporaryDirectory() as directory:
         cache.parent.mkdir(parents=True, exist_ok=True)
         stat = os.stat(fresh_source)
         magic = importlib.util.MAGIC_NUMBER
-        stale_magic = (b"=X\r\n" if sys.implementation.name == "xlang3"
+        # This is the immediately previous XLang3 cache magic, emitted before
+        # the serialized IR opcode layout changed.
+        stale_magic = (b"OX\r\n" if sys.implementation.name == "xlang3"
                        else bytes((magic[0] ^ 1,)) + magic[1:])
         cache.write_bytes(stale_magic + b"\0\0\0\0" +
                           struct.pack("<II", int(stat.st_mtime), stat.st_size) + body)

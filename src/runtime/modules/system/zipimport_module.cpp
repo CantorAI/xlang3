@@ -13,6 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 #include "xlang3/builtins.h"
+#include "xlang3/pyc_magic.h"
 
 #include "xlang3/functional_iterators.h"
 #include "xlang3/interpreter.h"
@@ -525,7 +526,7 @@ bool zipimporter_get_code(Runtime& runtime, const Value* args, uint32_t argc, Va
     return false;
   }
   if (std::filesystem::path(member).extension() == ".pyc") {
-    if (source.size() < 16 || source.compare(0, 4, "\x4f\x58\x0d\x0a", 4) != 0) {
+    if (source.size() < 16 || source.compare(0, 4, kPycMagicView) != 0) {
       return raise_zipimport_error(runtime, "bad magic number in '" + member + "'", error);
     }
     Value marshal_module;
