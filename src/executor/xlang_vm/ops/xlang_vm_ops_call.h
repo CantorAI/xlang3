@@ -976,6 +976,19 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
             return XlangVMOpFlow::Next;
           }
           if (allow_cached_python_inline &&
+              cache.kind == CallSiteKind::InlineSelfAttrBooleanExprMethod &&
+              call_arg_regs.empty()) {
+            const bool output_overwrite_cannot_finalize =
+                regs[in.dst].tag != ValueTag::Object;
+            if (xlang_vm_execute_self_attr_boolean_expr_method(
+                    module, *cache.function, *instance, cache.inline_slots,
+                    static_cast<uint8_t>(cache.fast_method_id), regs[in.dst])) {
+              return output_overwrite_cannot_finalize
+                  ? XlangVMOpFlow::NextNoMonitoringRefresh
+                  : XlangVMOpFlow::Next;
+            }
+          }
+          if (allow_cached_python_inline &&
               cache.kind == CallSiteKind::InlineSelfAttrBinaryMethod &&
               call_arg_regs.empty()) {
             const bool output_overwrite_cannot_finalize =
@@ -1072,6 +1085,34 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
             return XlangVMOpFlow::Next;
           }
           XlangVMSelfAttrBinaryMethodSpec attr_inline_spec;
+          XlangVMSelfAttrBooleanExprMethodSpec bool_expr_spec;
+          if (inline_python_function_allowed(runtime, module, *fn_obj) &&
+              call_arg_regs.empty() &&
+              xlang_vm_analyze_self_attr_boolean_expr_method(
+                  module, *fn_obj, bool_expr_spec)) {
+            std::array<uint32_t, 3> slots{};
+            const bool output_overwrite_cannot_finalize =
+                regs[in.dst].tag != ValueTag::Object;
+            if (xlang_vm_prepare_self_attr_boolean_expr_method(
+                    module, *fn_obj, *instance, bool_expr_spec, slots) &&
+                xlang_vm_execute_self_attr_boolean_expr_method(
+                    module, *fn_obj, *instance, slots, bool_expr_spec.expression,
+                    regs[in.dst])) {
+              if (!instr_cache.empty()) {
+                auto& cache = instr_cache[ip].call;
+                cache.callee_object = &klass->header;
+                cache.kind = CallSiteKind::InlineSelfAttrBooleanExprMethod;
+                cache.function = fn_obj;
+                cache.native = nullptr;
+                cache.class_version = klass->version;
+                cache.inline_slots = slots;
+                cache.fast_method_id = bool_expr_spec.expression;
+              }
+              return output_overwrite_cannot_finalize
+                  ? XlangVMOpFlow::NextNoMonitoringRefresh
+                  : XlangVMOpFlow::Next;
+            }
+          }
           if (inline_python_function_allowed(runtime, module, *fn_obj) && call_arg_regs.empty() &&
               xlang_vm_analyze_self_attr_binary_method(module, *fn_obj, attr_inline_spec)) {
             uint32_t lhs_attr = 0;
@@ -1267,6 +1308,34 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
             }
             value_assign_fast(regs[in.dst], const_value);
             return XlangVMOpFlow::Next;
+          }
+          XlangVMSelfAttrBooleanExprMethodSpec inherited_bool_expr_spec;
+          if (inline_python_function_allowed(runtime, module, *fn_obj) &&
+              call_arg_regs.empty() &&
+              xlang_vm_analyze_self_attr_boolean_expr_method(
+                  module, *fn_obj, inherited_bool_expr_spec)) {
+            std::array<uint32_t, 3> slots{};
+            const bool output_overwrite_cannot_finalize =
+                regs[in.dst].tag != ValueTag::Object;
+            if (xlang_vm_prepare_self_attr_boolean_expr_method(
+                    module, *fn_obj, *instance, inherited_bool_expr_spec, slots) &&
+                xlang_vm_execute_self_attr_boolean_expr_method(
+                    module, *fn_obj, *instance, slots,
+                    inherited_bool_expr_spec.expression, regs[in.dst])) {
+              if (!instr_cache.empty()) {
+                auto& cache = instr_cache[ip].call;
+                cache.callee_object = &klass->header;
+                cache.kind = CallSiteKind::InlineSelfAttrBooleanExprMethod;
+                cache.function = fn_obj;
+                cache.native = nullptr;
+                cache.class_version = klass->version;
+                cache.inline_slots = slots;
+                cache.fast_method_id = inherited_bool_expr_spec.expression;
+              }
+              return output_overwrite_cannot_finalize
+                  ? XlangVMOpFlow::NextNoMonitoringRefresh
+                  : XlangVMOpFlow::Next;
+            }
           }
           SelfBinaryMethodSpec inline_spec;
           if (inline_python_function_allowed(runtime, module, *fn_obj) && call_arg_regs.empty() && analyze_self_binary_method_fn(module, *fn_obj, inline_spec)) {

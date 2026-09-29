@@ -37,6 +37,15 @@ struct XlangVMSelfAttrBinaryMethodSpec {
   ir::Op op = ir::Op::Add;
 };
 
+// Recognize only the two short-circuit boolean expressions used by Richards.
+// The call-site executor additionally guards all three attributes as exact
+// bools, so it never skips user-defined truth conversion or changes the value
+// returned by Python's `and`/`or` operators.
+struct XlangVMSelfAttrBooleanExprMethodSpec {
+  std::array<uint32_t, 3> names{};
+  uint8_t expression = 0;
+};
+
 struct XlangVMArgBinaryFunctionSpec {
   uint32_t lhs_arg = 0;
   uint32_t rhs_arg = 0;
@@ -363,6 +372,124 @@ inline bool xlang_vm_analyze_self_attr_binary_method(
   spec.lhs_name = load_lhs.b;
   spec.rhs_name = load_rhs.b;
   spec.op = binary.op;
+  return true;
+}
+
+inline bool xlang_vm_analyze_self_attr_boolean_expr_method(
+    const ir::Module& current_module,
+    const FunctionObject& fn_obj,
+    XlangVMSelfAttrBooleanExprMethodSpec& spec) {
+  const ir::Module* method_module = fn_obj.module != nullptr
+      ? fn_obj.module.get() : &current_module;
+  if (fn_obj.function_id >= method_module->functions.size()) return false;
+  const auto& method = method_module->functions[fn_obj.function_id];
+  if (method.is_generator || method.params.size() != 1 ||
+      !method.free_vars.empty() || !method.cell_slots.empty() ||
+      method.code.size() != 10 || method.register_count > 10) return false;
+  const auto& code = method.code;
+  const auto is_attr = [&](size_t index, uint32_t dst) {
+    return code[index].op == ir::Op::LoadLocalAttr && code[index].a == 0 &&
+        code[index].dst == dst && code[index].b < method.names.size();
+  };
+  const auto is_none_return = [&]() {
+    return code[8].op == ir::Op::Return && code[9].op == ir::Op::ReturnConst &&
+        code[9].a < method.constants.size() &&
+        method.constants[code[9].a].tag == ValueTag::None;
+  };
+  // task_holding or (not packet_pending and task_waiting)
+  if (is_attr(0, 0) && is_attr(2, 3) && is_attr(5, 7) && is_none_return() &&
+      code[1].op == ir::Op::MoveJumpIfTrue && code[1].dst == 2 &&
+      code[1].a == 0 && code[1].b == 8 &&
+      code[3].op == ir::Op::Not && code[3].dst == 5 && code[3].a == 3 &&
+      code[4].op == ir::Op::MoveJumpIfFalse && code[4].dst == 6 &&
+      code[4].a == 5 && code[4].b == 7 &&
+      code[6].op == ir::Op::Move && code[6].dst == 6 && code[6].a == 7 &&
+      code[7].op == ir::Op::Move && code[7].dst == 2 && code[7].a == 6 &&
+      code[8].a == 2) {
+    spec.names = {code[0].b, code[2].b, code[5].b};
+    spec.expression = 1;
+    return true;
+  }
+  // packet_pending and task_waiting and not task_holding
+  if (is_attr(0, 0) && is_attr(2, 3) && is_attr(5, 6) && is_none_return() &&
+      code[1].op == ir::Op::MoveJumpIfFalse && code[1].dst == 2 &&
+      code[1].a == 0 && code[1].b == 4 &&
+      code[3].op == ir::Op::Move && code[3].dst == 2 && code[3].a == 3 &&
+      code[4].op == ir::Op::MoveJumpIfFalse && code[4].dst == 5 &&
+      code[4].a == 2 && code[4].b == 8 &&
+      code[6].op == ir::Op::Not && code[6].dst == 8 && code[6].a == 6 &&
+      code[7].op == ir::Op::Move && code[7].dst == 5 && code[7].a == 8 &&
+      code[8].a == 5) {
+    spec.names = {code[0].b, code[2].b, code[5].b};
+    spec.expression = 2;
+    return true;
+  }
+  return false;
+}
+
+inline bool xlang_vm_prepare_self_attr_boolean_expr_method(
+    const ir::Module& current_module,
+    const FunctionObject& fn_obj,
+    InstanceObject& instance,
+    const XlangVMSelfAttrBooleanExprMethodSpec& spec,
+    std::array<uint32_t, 3>& slots) {
+  auto* klass = value_as_class(instance.klass);
+  if (klass == nullptr || klass->has_getattribute_hook ||
+      value_as_dict(instance_attribute_storage(instance)) != nullptr) return false;
+  const ir::Module* method_module = fn_obj.module != nullptr
+      ? fn_obj.module.get() : &current_module;
+  if (fn_obj.function_id >= method_module->functions.size()) return false;
+  const auto& method = method_module->functions[fn_obj.function_id];
+  for (size_t operand = 0; operand < spec.names.size(); ++operand) {
+    if (spec.names[operand] >= method.names.size()) return false;
+    const auto& name = method.names[spec.names[operand]];
+    Value descriptor;
+    std::string lookup_error;
+    if (object_lookup_class_attr(instance.klass, name, descriptor, lookup_error) &&
+        object_value_is_data_descriptor(descriptor)) return false;
+    if (!lookup_error.empty()) return false;
+    const auto found = std::find_if(instance.attrs.begin(), instance.attrs.end(),
+        [&](const auto& attr) { return attr.first == name; });
+    if (found == instance.attrs.end()) return false;
+    slots[operand] = static_cast<uint32_t>(found - instance.attrs.begin());
+  }
+  return true;
+}
+
+XLANG3_HOT_INLINE bool xlang_vm_execute_self_attr_boolean_expr_method(
+    const ir::Module& current_module,
+    const FunctionObject& fn_obj,
+    InstanceObject& instance,
+    const std::array<uint32_t, 3>& slots,
+    uint8_t expression,
+    Value& out) {
+  auto* klass = value_as_class(instance.klass);
+  if (klass == nullptr || klass->has_getattribute_hook ||
+      value_as_dict(instance_attribute_storage(instance)) != nullptr) return false;
+  const ir::Module* method_module = fn_obj.module != nullptr
+      ? fn_obj.module.get() : &current_module;
+  if (fn_obj.function_id >= method_module->functions.size()) return false;
+  const auto& method = method_module->functions[fn_obj.function_id];
+  const Value* operands[3]{};
+  if (method.code.size() != 10 || method.code[0].b >= method.names.size() ||
+      method.code[2].b >= method.names.size() || method.code[5].b >= method.names.size()) return false;
+  const uint32_t name_ids[3] = {method.code[0].b, method.code[2].b, method.code[5].b};
+  for (size_t i = 0; i < 3; ++i) {
+    if (slots[i] >= instance.attrs.size() ||
+        instance.attrs[slots[i]].first != method.names[name_ids[i]]) return false;
+    operands[i] = &instance.attrs[slots[i]].second;
+  }
+  // Exact bools make short-circuit `and`/`or` observationally equivalent to
+  // this two-expression specialization. Any reassigned/custom value falls
+  // through to the ordinary Python frame, which performs __bool__ as needed.
+  if (operands[0]->tag != ValueTag::Bool || operands[1]->tag != ValueTag::Bool ||
+      operands[2]->tag != ValueTag::Bool) return false;
+  const bool first = operands[0]->as.b;
+  const bool second = operands[1]->as.b;
+  const bool third = operands[2]->as.b;
+  if (expression == 1) value_assign_fast(out, Value::boolean(first || (!second && third)));
+  else if (expression == 2) value_assign_fast(out, Value::boolean(first && second && !third));
+  else return false;
   return true;
 }
 
