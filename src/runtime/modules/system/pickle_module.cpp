@@ -286,8 +286,22 @@ bool pickle_write_global(Runtime& runtime, const Value& callable, std::string& o
   return true;
 }
 
+enum class PickleTreeVisitState : uint8_t {
+  Active,
+  Supported,
+};
+
+struct PickleObjectState {
+  PickleTreeVisitState tree_state = PickleTreeVisitState::Active;
+  uint32_t memo_index = 0;
+  bool memoized = false;
+};
+
 struct PickleWriterState {
-  std::unordered_map<Object*, uint32_t> memo;
+  // The built-in-tree prewalk stores container state here first. Reusing those
+  // same nodes for pickle memo indices avoids a second allocation per
+  // container while retaining separate memoization for string/bytes leaves.
+  std::unordered_map<Object*, PickleObjectState> objects;
   uint32_t next_memo_index = 0;
 };
 
@@ -1268,15 +1282,10 @@ bool pickle_read_value(
 // values. Its prewalk rejects cycles; the writer then memoizes after encoding,
 // preserving repeated-reference identity with MEMOIZE/BINGET. Other custom
 // classes and deep graphs stay on pickle.py's fully compatible path.
-enum class PickleTreeVisitState : uint8_t {
-  Active,
-  Supported,
-};
-
 bool pickle_builtin_tree_supported(
     Runtime& runtime,
     const Value& value,
-    std::unordered_map<Object*, PickleTreeVisitState>& container_states,
+    PickleWriterState& state,
     size_t depth = 0) {
   if (depth > 900) return false;
   if (value.tag == ValueTag::None || value.tag == ValueTag::Bool ||
@@ -1314,11 +1323,11 @@ bool pickle_builtin_tree_supported(
     return supported;
   }
 
-  auto visit = container_states.find(object);
-  if (visit != container_states.end()) {
+  auto visit = state.objects.find(object);
+  if (visit != state.objects.end()) {
     // Active means a back-edge (unsupported by this fast writer); Supported
     // means a previously validated shared container.
-    return visit->second == PickleTreeVisitState::Supported;
+    return visit->second.tree_state == PickleTreeVisitState::Supported;
   }
 
   auto* list = value_as_list(value);
@@ -1327,37 +1336,37 @@ bool pickle_builtin_tree_supported(
   if (list == nullptr && tuple == nullptr && dict == nullptr) {
     return false;
   }
-  container_states.emplace(object, PickleTreeVisitState::Active);
+  state.objects.emplace(object, PickleObjectState{PickleTreeVisitState::Active});
 
   if (list != nullptr) {
     for (const auto& item : list->items) {
-      if (!pickle_builtin_tree_supported(runtime, item, container_states, depth + 1)) {
+      if (!pickle_builtin_tree_supported(runtime, item, state, depth + 1)) {
         return false;
       }
     }
   } else if (tuple != nullptr) {
     for (const auto& item : tuple->items) {
-      if (!pickle_builtin_tree_supported(runtime, item, container_states, depth + 1)) {
+      if (!pickle_builtin_tree_supported(runtime, item, state, depth + 1)) {
         return false;
       }
     }
   } else {
     for (const auto& [key, item] : dict->entries) {
-      if (!pickle_builtin_tree_supported(runtime, key, container_states, depth + 1) ||
-          !pickle_builtin_tree_supported(runtime, item, container_states, depth + 1)) {
+      if (!pickle_builtin_tree_supported(runtime, key, state, depth + 1) ||
+          !pickle_builtin_tree_supported(runtime, item, state, depth + 1)) {
         return false;
       }
     }
   }
-  container_states.find(object)->second = PickleTreeVisitState::Supported;
+  state.objects.find(object)->second.tree_state = PickleTreeVisitState::Supported;
   return true;
 }
 
 bool pickle_dumps_builtin_tree(
     Runtime& runtime, const Value& value, int protocol, Value& out, std::string& error) {
-  std::unordered_map<Object*, PickleTreeVisitState> container_states;
+  PickleWriterState writer_state;
   if (protocol < 4 || protocol > 5 ||
-      !pickle_builtin_tree_supported(runtime, value, container_states)) {
+      !pickle_builtin_tree_supported(runtime, value, writer_state)) {
     return false;
   }
   // Protocol 4/5 framing is optional. These small scalar/container streams
@@ -1366,7 +1375,6 @@ bool pickle_dumps_builtin_tree(
   encoded.reserve(256);
   encoded.push_back(static_cast<char>(0x80));
   encoded.push_back(static_cast<char>(protocol));
-  PickleWriterState writer_state;
   if (!pickle_write_value(runtime, value, protocol, encoded, error, nullptr, &writer_state)) {
     error.clear();
     return false;
@@ -1386,9 +1394,9 @@ bool pickle_write_value(
     PickleWriterState* state) {
   Object* object = value.tag == ValueTag::Object ? value.as.obj : nullptr;
   if (state != nullptr && object != nullptr) {
-    const auto memoized = state->memo.find(object);
-    if (memoized != state->memo.end()) {
-      const uint32_t index = memoized->second;
+    const auto memoized = state->objects.find(object);
+    if (memoized != state->objects.end() && memoized->second.memoized) {
+      const uint32_t index = memoized->second.memo_index;
       if (index <= 0xffu) {
         out.push_back('h'); // BINGET
         out.push_back(static_cast<char>(index));
@@ -1406,7 +1414,9 @@ bool pickle_write_value(
   if (state != nullptr && object != nullptr) {
     // The eligibility walk rejects cycles, so memoizing after encoding is
     // sufficient and preserves repeated immutable and container references.
-    state->memo.emplace(object, state->next_memo_index++);
+    auto& memo = state->objects[object];
+    memo.memo_index = state->next_memo_index++;
+    memo.memoized = true;
     out.push_back(static_cast<char>(0x94)); // MEMOIZE
   }
   return true;
