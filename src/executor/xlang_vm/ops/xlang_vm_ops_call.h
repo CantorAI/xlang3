@@ -2493,6 +2493,28 @@ XLANG3_HOT_INLINE XlangVMOpFlow call(
         if (pushed_frame) return XlangVMOpFlow::SwitchFrame;
         return XlangVMOpFlow::Next;
       }
+      if (cache.kind == CallSiteKind::BoundPythonMethod) {
+        if (auto* bound = value_as_bound_method(cache.retained_callee);
+            bound != nullptr && value_as_function(bound->function) == cache.function) {
+          // `LOAD_ATTR; CALL` is the common shape for a bound Python method
+          // saved on an instance (pickle's `self.write` is a hot example).
+          // The exact callee-object guard above keeps rebinding observable;
+          // retain the bound method so its receiver and identity stay alive.
+          CallArgsView bound_args = call_args;
+          bound_args.leading = &bound->self;
+          bound_args.leading_count = 1;
+          if (!xlang3::xlang_vm::ops::call_user_function(
+                  cache.function, bound_args, module, module_owner, in.dst, ip,
+                  regs[in.dst], pushed_frame, make_generator_if_needed, push_frame)) {
+            if (!result.errors.empty()) return XlangVMOpFlow::ReturnResult;
+            return XlangVMOpFlow::ContinueLoop;
+          }
+          if (pushed_frame) return XlangVMOpFlow::SwitchFrame;
+          return XlangVMOpFlow::Next;
+        }
+        cache.kind = CallSiteKind::Empty;
+        cache.function = nullptr;
+      }
       if (cache.kind == CallSiteKind::NativeFunction) {
         if (!xlang3::xlang_vm::ops::call_native_function(runtime, cache.native, call_args, native_call_args, execution_lock, regs[in.dst], raise_runtime_error, raise_exception_value)) {
           if (!result.errors.empty()) return XlangVMOpFlow::ReturnResult;
@@ -2749,6 +2771,16 @@ XLANG3_HOT_INLINE XlangVMOpFlow call(
     CallArgsView bound_args = call_args;
     bound_args.leading = &bound->self;
     bound_args.leading_count = 1;
+    if (auto* fn_obj = value_as_function(bound->function);
+        fn_obj != nullptr && !instr_cache.empty()) {
+      auto& cache = instr_cache[ip].call;
+      cache.callee_object = callee.as.obj;
+      value_assign_fast(cache.retained_callee, callee);
+      cache.kind = CallSiteKind::BoundPythonMethod;
+      cache.function = fn_obj;
+      cache.native = nullptr;
+      cache.class_version = 0;
+    }
     if (!xlang3::xlang_vm::ops::call_callable_value(runtime, bound->function, bound_args, module, module_owner, in.dst, ip, native_call_args, execution_lock, regs[in.dst], pushed_frame, make_generator_if_needed, push_frame, raise_runtime_error, raise_exception_value)) {
       if (!result.errors.empty()) return XlangVMOpFlow::ReturnResult;
       return XlangVMOpFlow::ContinueLoop;

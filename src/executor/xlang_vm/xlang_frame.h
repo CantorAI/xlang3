@@ -52,6 +52,7 @@ namespace xlang3 {
 enum class CallSiteKind : uint8_t {
   Empty,
   UserFunction,
+  BoundPythonMethod,
   NativeFunction,
   BoundNativeFunction,
   UserConstructor,
