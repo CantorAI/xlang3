@@ -333,13 +333,14 @@ $cases = @(
     "minmax_custom_key",
     "math_combinatorics",
     "try_loop_exception_scope",
-    "native_module_function_binding"
+    "native_module_function_binding",
+    "classmethod_attr_int_compare"
 )
 
 foreach ($case in $cases) {
     $source = Join-Path $root "fixtures/core/$case.py"
     $expectedPath = Join-Path $root "fixtures/expected/$case.out"
-    $expected = ((Get-Content -LiteralPath $expectedPath -Raw) -replace "`r`n", "`n").TrimEnd()
+    $expected = ((Get-Content -LiteralPath $expectedPath -Raw -Encoding UTF8) -replace "`r`n", "`n").TrimEnd()
     $actual = ((& $XLang3 $source | Out-String) -replace "`r`n", "`n").TrimEnd()
     $actual = $actual -replace [regex]::Escape($root), "tests"
     if ($env:OS -ne 'Windows_NT') {
@@ -372,7 +373,7 @@ $sectionCases = @(
 foreach ($case in $sectionCases) {
     $source = Join-Path $root "fixtures/compat_sections/$case.py"
     $expectedPath = Join-Path $root "fixtures/expected/compat_sections/$case.out"
-    $expected = ((Get-Content -LiteralPath $expectedPath -Raw) -replace "`r`n", "`n").TrimEnd()
+    $expected = ((Get-Content -LiteralPath $expectedPath -Raw -Encoding UTF8) -replace "`r`n", "`n").TrimEnd()
     if ($case -eq 'standard_modules' -and $env:OS -ne 'Windows_NT') {
         # These assertions exercise APIs that exist only on Windows.
         $expected = ($expected -split "`n" | Where-Object {

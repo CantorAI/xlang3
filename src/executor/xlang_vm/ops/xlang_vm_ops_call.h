@@ -836,6 +836,93 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
       }
       return XlangVMOpFlow::Next;
     }
+
+    // Hot classmethod comparators such as DeltaBlue's Strength.stronger and
+    // Strength.weaker otherwise allocate a BoundMethod and push a Python frame
+    // for two attribute loads and one integer comparison. Cache only a
+    // verified classmethod on the exact builtin `type` metaclass, and keep
+    // normal lookup as the fallback for every dynamic or observable case.
+    if (metaclass != nullptr && call_arg_regs.size() == 2 &&
+        !call_args.has_keywords() && !call_args.has_expansion() &&
+        !instr_cache.empty()) {
+      auto& cache = instr_cache[ip].call;
+      const bool cached_classmethod_site =
+          cache.kind == CallSiteKind::InlineClassMethodAttrIntCompare &&
+          cache.callee_object == &receiver_class->header &&
+          cache.class_version == receiver_class->version &&
+          cache.arg0_object == &metaclass->header &&
+          cache.secondary_class_version == metaclass->version;
+      if (cached_classmethod_site && cache.function != nullptr &&
+          inline_python_function_allowed(runtime, module, *cache.function)) {
+        const bool output_overwrite_cannot_finalize =
+            regs[in.dst].tag != ValueTag::Object;
+        if (xlang_vm_execute_classmethod_attr_int_compare(
+                *cache.function, module, regs[in.a], call_args,
+                cache.lhs_slot,
+                static_cast<ir::CompareOp>(cache.fast_method_id),
+                cache.inline_slots[0], cache.inline_slots[1], regs[in.dst])) {
+          return output_overwrite_cannot_finalize
+              ? XlangVMOpFlow::NextNoMonitoringRefresh
+              : XlangVMOpFlow::Next;
+        }
+      }
+
+      // Install only after proving class attribute resolution and the method
+      // body shape. Class and metaclass versions invalidate both lookup and
+      // data-descriptor precedence; the retained class prevents pointer reuse
+      // from making a stale function cache appear to belong to a new class.
+      const Value* builtin_type = runtime.find_builtin("type");
+      if (builtin_type != nullptr && value_as_class(*builtin_type) == metaclass &&
+          !cached_classmethod_site) {
+        Value meta_descriptor;
+        std::string meta_error;
+        const bool has_meta_descriptor = object_lookup_class_attr(
+            receiver_class->metaclass, name, meta_descriptor, meta_error);
+        if (meta_error.empty() &&
+            (!has_meta_descriptor || !object_value_is_data_descriptor(meta_descriptor))) {
+          Value raw_method;
+          std::string class_lookup_error;
+          if (object_lookup_class_attr(regs[in.a], name, raw_method, class_lookup_error) &&
+              class_lookup_error.empty()) {
+            auto* class_method = value_as_class_method(raw_method);
+            auto* function = class_method != nullptr
+                ? value_as_function(class_method->function) : nullptr;
+            XlangVMClassMethodAttrIntCompareSpec spec;
+            if (function != nullptr && inline_python_function_allowed(runtime, module, *function) &&
+                xlang_vm_analyze_classmethod_attr_int_compare(module, *function, spec)) {
+              uint32_t lhs_slot = 0;
+              uint32_t rhs_slot = 0;
+              if (xlang_vm_prepare_classmethod_attr_int_compare(
+                      *function, module, spec, regs[in.a], call_args,
+                      lhs_slot, rhs_slot)) {
+                const bool output_overwrite_cannot_finalize =
+                    regs[in.dst].tag != ValueTag::Object;
+                if (xlang_vm_execute_classmethod_attr_int_compare(
+                        *function, module, regs[in.a], call_args,
+                        spec.attribute_name, spec.compare, lhs_slot, rhs_slot,
+                        regs[in.dst])) {
+                  cache = CallSiteCache{};
+                  value_assign_fast(cache.retained_callee, regs[in.a]);
+                  cache.callee_object = &receiver_class->header;
+                  cache.arg0_object = &metaclass->header;
+                  cache.kind = CallSiteKind::InlineClassMethodAttrIntCompare;
+                  cache.function = function;
+                  cache.class_version = receiver_class->version;
+                  cache.secondary_class_version = metaclass->version;
+                  cache.lhs_slot = spec.attribute_name;
+                  cache.fast_method_id = static_cast<uint32_t>(spec.compare);
+                  cache.inline_slots[0] = lhs_slot;
+                  cache.inline_slots[1] = rhs_slot;
+                  return output_overwrite_cannot_finalize
+                      ? XlangVMOpFlow::NextNoMonitoringRefresh
+                      : XlangVMOpFlow::Next;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
   }
 
   const bool receiver_is_super = value_as_super(regs[in.a]) != nullptr;

@@ -62,6 +62,7 @@ enum class CallSiteKind : uint8_t {
   InlineMathPointConstructor,
   InlineSelfBinaryMethod,
   InlineSelfAttrBinaryMethod,
+  InlineClassMethodAttrIntCompare,
   InlineSelfAttrBooleanExprMethod,
   InlineArgBinaryFunction,
   InlineConditionalArgFunction,
@@ -103,7 +104,12 @@ struct CallSiteCache {
   uint32_t rhs_slot = 0;
   std::array<uint32_t, 3> inline_slots{};
   ModuleObject* inline_globals_module = nullptr;
-  uint64_t inline_globals_version = 0;
+  // These versions are mutually exclusive by call-site specialization. The
+  // classmethod comparator uses the secondary slot for its metaclass guard.
+  union {
+    uint64_t inline_globals_version = 0;
+    uint64_t secondary_class_version;
+  };
   ir::Op inline_op = ir::Op::Add;
   uint32_t inline_function_id = UINT32_MAX;
   uint32_t fast_method_id = 0;

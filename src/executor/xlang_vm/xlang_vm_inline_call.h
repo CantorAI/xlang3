@@ -208,6 +208,146 @@ XLANG3_HOT_INLINE bool xlang_vm_execute_conditional_arg_function(
       error);
 }
 
+struct XlangVMClassMethodAttrIntCompareSpec {
+  uint32_t attribute_name = 0;
+  ir::CompareOp compare = ir::CompareOp::Lt;
+};
+
+inline bool xlang_vm_analyze_classmethod_attr_int_compare(
+    const ir::Module& current_module,
+    const FunctionObject& fn_obj,
+    XlangVMClassMethodAttrIntCompareSpec& spec) {
+  const ir::Module* fn_module = fn_obj.module != nullptr
+      ? fn_obj.module.get() : &current_module;
+  if (fn_obj.function_id >= fn_module->functions.size()) return false;
+  const auto& function = fn_module->functions[fn_obj.function_id];
+  if (function.is_generator ||
+      !xlang_vm_has_direct_positional_signature(function, 3) ||
+      !function.free_vars.empty() || !function.cell_slots.empty() ||
+      function.code.size() != 5) {
+    return false;
+  }
+  const auto& lhs = function.code[0];
+  const auto& rhs = function.code[1];
+  const auto& compare = function.code[2];
+  const auto& ret = function.code[3];
+  const auto& implicit_return = function.code[4];
+  if (lhs.op != ir::Op::LoadLocalAttr || lhs.a != 1 ||
+      rhs.op != ir::Op::LoadLocalAttr || rhs.a != 2 ||
+      lhs.b >= function.names.size() || rhs.b >= function.names.size() ||
+      function.names[lhs.b] != function.names[rhs.b] ||
+      compare.op != ir::Op::Compare || compare.a != lhs.dst ||
+      compare.b != rhs.dst ||
+      (compare.c != static_cast<uint32_t>(ir::CompareOp::Lt) &&
+       compare.c != static_cast<uint32_t>(ir::CompareOp::Gt)) ||
+      ret.op != ir::Op::Return || ret.a != compare.dst ||
+      implicit_return.op != ir::Op::ReturnConst ||
+      implicit_return.a >= function.constants.size() ||
+      function.constants[implicit_return.a].tag != ValueTag::None) {
+    return false;
+  }
+  spec.attribute_name = lhs.b;
+  spec.compare = static_cast<ir::CompareOp>(compare.c);
+  return true;
+}
+
+inline bool xlang_vm_prepare_classmethod_attr_int_compare(
+    const FunctionObject& fn_obj,
+    const ir::Module& current_module,
+    const XlangVMClassMethodAttrIntCompareSpec& spec,
+    const Value& receiver_class,
+    CallArgsView args,
+    uint32_t& lhs_slot,
+    uint32_t& rhs_slot) {
+  if (args.size() != 2 || args.has_keywords() || args.has_expansion()) return false;
+  auto* expected_class = value_as_class(receiver_class);
+  auto* lhs = value_as_instance(args.get(0));
+  auto* rhs = value_as_instance(args.get(1));
+  if (expected_class == nullptr || lhs == nullptr || rhs == nullptr ||
+      value_as_class(lhs->klass) != expected_class ||
+      value_as_class(rhs->klass) != expected_class ||
+      expected_class->has_getattribute_hook || lhs->native_get_attr != nullptr ||
+      rhs->native_get_attr != nullptr ||
+      value_as_dict(instance_attribute_storage(*lhs)) != nullptr ||
+      value_as_dict(instance_attribute_storage(*rhs)) != nullptr) {
+    return false;
+  }
+
+  const ir::Module* fn_module = fn_obj.module != nullptr
+      ? fn_obj.module.get() : &current_module;
+  if (fn_obj.function_id >= fn_module->functions.size()) return false;
+  const auto& function = fn_module->functions[fn_obj.function_id];
+  if (spec.attribute_name >= function.names.size()) return false;
+  const auto& attribute_name = function.names[spec.attribute_name];
+
+  // A cached instance slot is safe only when class lookup would not give a
+  // data descriptor precedence. The call-site class-version guard invalidates
+  // this proof if the class or one of its bases later changes.
+  Value descriptor;
+  std::string lookup_error;
+  if (object_lookup_class_attr(lhs->klass, attribute_name, descriptor, lookup_error) &&
+      object_value_is_data_descriptor(descriptor)) {
+    return false;
+  }
+  if (!lookup_error.empty()) return false;
+
+  const auto lhs_attr = std::find_if(lhs->attrs.begin(), lhs->attrs.end(),
+      [&](const auto& item) { return item.first == attribute_name; });
+  const auto rhs_attr = std::find_if(rhs->attrs.begin(), rhs->attrs.end(),
+      [&](const auto& item) { return item.first == attribute_name; });
+  if (lhs_attr == lhs->attrs.end() || rhs_attr == rhs->attrs.end()) return false;
+  lhs_slot = static_cast<uint32_t>(lhs_attr - lhs->attrs.begin());
+  rhs_slot = static_cast<uint32_t>(rhs_attr - rhs->attrs.begin());
+  return true;
+}
+
+XLANG3_HOT_INLINE bool xlang_vm_execute_classmethod_attr_int_compare(
+    const FunctionObject& fn_obj,
+    const ir::Module& current_module,
+    const Value& receiver_class,
+    CallArgsView args,
+    uint32_t attribute_name_id,
+    ir::CompareOp compare,
+    uint32_t lhs_slot,
+    uint32_t rhs_slot,
+    Value& out) {
+  if (args.size() != 2 || args.has_keywords() || args.has_expansion()) return false;
+  auto* expected_class = value_as_class(receiver_class);
+  auto* lhs = value_as_instance(args.get(0));
+  auto* rhs = value_as_instance(args.get(1));
+  if (expected_class == nullptr || lhs == nullptr || rhs == nullptr ||
+      value_as_class(lhs->klass) != expected_class ||
+      value_as_class(rhs->klass) != expected_class ||
+      expected_class->has_getattribute_hook || lhs->native_get_attr != nullptr ||
+      rhs->native_get_attr != nullptr ||
+      value_as_dict(instance_attribute_storage(*lhs)) != nullptr ||
+      value_as_dict(instance_attribute_storage(*rhs)) != nullptr) {
+    return false;
+  }
+  const ir::Module* fn_module = fn_obj.module != nullptr
+      ? fn_obj.module.get() : &current_module;
+  if (fn_obj.function_id >= fn_module->functions.size()) return false;
+  const auto& function = fn_module->functions[fn_obj.function_id];
+  if (attribute_name_id >= function.names.size()) return false;
+  const auto& attribute_name = function.names[attribute_name_id];
+  if (lhs_slot >= lhs->attrs.size() || rhs_slot >= rhs->attrs.size() ||
+      lhs->attrs[lhs_slot].first != attribute_name ||
+      rhs->attrs[rhs_slot].first != attribute_name) {
+    return false;
+  }
+  const auto& lhs_value = lhs->attrs[lhs_slot].second;
+  const auto& rhs_value = rhs->attrs[rhs_slot].second;
+  // Exact immediate ints cannot dispatch user comparison methods or raise.
+  // Every other value kind takes the ordinary Python function-frame path.
+  if (lhs_value.tag != ValueTag::Int64 || rhs_value.tag != ValueTag::Int64) return false;
+  bool result = false;
+  if (compare == ir::CompareOp::Lt) result = lhs_value.as.i64 < rhs_value.as.i64;
+  else if (compare == ir::CompareOp::Gt) result = lhs_value.as.i64 > rhs_value.as.i64;
+  else return false;
+  value_assign_fast(out, Value::boolean(result));
+  return true;
+}
+
 struct XlangVMTrivialFunctionSpec {
   bool returns_argument = false;
   uint32_t argument = 0;
