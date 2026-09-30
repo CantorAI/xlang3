@@ -259,17 +259,17 @@ RuntimeResult Interpreter::run_function(
     }
 
     bound.assign(target_fn.params.size(), Value::invalid());
-    std::vector<Value> positional;
-    positional.reserve(values.size());
-    for (size_t i = 0; i < values.size(); ++i) {
-      positional.push_back(values.get(i));
-    }
+    // Read explicit positional arguments directly from the call view. Most
+    // calls with keywords have no `*args`; copying their arguments into a
+    // temporary vector only adds an allocation and refcount traffic before
+    // the bound frame copies them again. Keep storage only for expanded stars.
+    std::vector<Value> expanded_positional;
     auto expand_star_arg = [&](uint32_t star_reg) -> bool {
       const Value& star = values.registers[star_reg];
       if (auto* tuple = value_as_tuple(star)) {
-        for (const auto& item : tuple->items) positional.push_back(item);
+        for (const auto& item : tuple->items) expanded_positional.push_back(item);
       } else if (auto* list = value_as_list(star)) {
-        for (const auto& item : list->items) positional.push_back(item);
+        for (const auto& item : list->items) expanded_positional.push_back(item);
       } else {
         Value iterator;
         std::string iter_error;
@@ -285,7 +285,7 @@ RuntimeResult Interpreter::run_function(
           if (done) {
             break;
           }
-          positional.push_back(std::move(item));
+          expanded_positional.push_back(std::move(item));
         }
       }
       return true;
@@ -317,18 +317,23 @@ RuntimeResult Interpreter::run_function(
         kwargs_index = static_cast<int32_t>(i);
       }
     }
-    while (positional_index < positional.size()) {
+    const size_t positional_count = values.size() + expanded_positional.size();
+    while (positional_index < positional_count) {
       while (next_positional_param < signature.size() &&
              (signature[next_positional_param].kind == ir::ParamKind::KeywordOnly ||
               signature[next_positional_param].kind == ir::ParamKind::VarArgs ||
               signature[next_positional_param].kind == ir::ParamKind::KwArgs)) {
         ++next_positional_param;
       }
+      const Value& positional_value = positional_index < values.size()
+          ? values.get(positional_index)
+          : expanded_positional[positional_index - values.size()];
+      ++positional_index;
       if (next_positional_param < signature.size()) {
-        value_assign_fast(bound[next_positional_param], positional[positional_index++]);
+        value_assign_fast(bound[next_positional_param], positional_value);
         ++next_positional_param;
       } else if (varargs_index >= 0) {
-        extra_positional.push_back(positional[positional_index++]);
+        extra_positional.push_back(positional_value);
       } else {
         too_many_positional = true;
         break;
@@ -464,15 +469,15 @@ RuntimeResult Interpreter::run_function(
         expected = std::to_string(positional_capacity) + " positional argument" +
                    (positional_capacity == 1 ? "" : "s");
       }
-      std::string provided = std::to_string(positional.size());
+      std::string provided = std::to_string(positional_count);
       if (keyword_only_given != 0) {
-        provided += " positional argument" + std::string(positional.size() == 1 ? "" : "s") +
+        provided += " positional argument" + std::string(positional_count == 1 ? "" : "s") +
                     " (and " + std::to_string(keyword_only_given) + " keyword-only argument" +
                     (keyword_only_given == 1 ? "" : "s") + ")";
       }
       return bind_error(
           display_name + "() takes " + expected + " but " + provided +
-          (positional.size() == 1 && keyword_only_given == 0 ? " was given" : " were given"));
+          (positional_count == 1 && keyword_only_given == 0 ? " was given" : " were given"));
     }
     std::vector<std::string> missing_positional;
     std::vector<std::string> missing_keyword_only;
@@ -725,15 +730,20 @@ RuntimeResult Interpreter::run_function(
       return false;
     }
     const auto& call_fn = call_module.functions[call_function_id];
-    std::vector<Value> bound_args;
+    std::vector<Value>* bound_args = nullptr;
     CallArgsView frame_args = call_args;
     if (!simple_signature(call_fn) || has_dynamic_positional_defaults(call_fn, defaults) ||
         call_args.has_keywords() || call_args.has_expansion()) {
-      if (!bind_args(call_fn, call_args, defaults, bound_args)) {
+      // Binding temporaries belong to the active caller frame. Reusing this
+      // vector avoids allocating a fresh bound-argument array on each keyword
+      // call; frame initialization copies the values before we clear it.
+      bound_args = &frames[frame_count - 1].call_binding_scratch;
+      if (!bind_args(call_fn, call_args, defaults, *bound_args)) {
+        bound_args->clear();
         return false;
       }
-      frame_args.leading = bound_args.data();
-      frame_args.leading_count = static_cast<uint32_t>(bound_args.size());
+      frame_args.leading = bound_args->data();
+      frame_args.leading_count = static_cast<uint32_t>(bound_args->size());
       frame_args.registers = nullptr;
       frame_args.register_args = nullptr;
       frame_args.keyword_args = nullptr;
@@ -752,6 +762,11 @@ RuntimeResult Interpreter::run_function(
       frames.emplace_back(call_module, call_function_id, frame_args, closure, std::move(call_globals_module),
                           std::move(call_module_owner), return_dst, true, return_mode,
                           std::move(continuation_value));
+    }
+    if (bound_args != nullptr) {
+      // emplace_back may relocate the frame vector, so reacquire the caller by
+      // index. The bound values now live in the callee's locals.
+      frames[frame_count - 1].call_binding_scratch.clear();
     }
     auto& pushed = frames[frame_count];
     pushed.activation_id = runtime_.allocate_frame_activation_id();

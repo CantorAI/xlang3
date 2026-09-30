@@ -224,6 +224,9 @@ struct XlangVMFrame {
   std::vector<uint32_t> memoryview_registers;
   std::vector<bool> memoryview_register_flags;
   std::vector<Value> native_call_args;
+  // Reuse per-caller argument-binding storage across calls at this frame depth.
+  // The scratch is cleared immediately after the callee copies its bound locals.
+  std::vector<Value> call_binding_scratch;
   std::unordered_map<const ir::Function*, XlangVMPreparedFunctionState> prepared_functions;
 
   void set_closure(const std::vector<Value>& frame_closure) {
@@ -333,6 +336,7 @@ struct XlangVMFrame {
     temps.clear();
     exception_handlers.clear();
     native_call_args.clear();
+    call_binding_scratch.clear();
     memoryview_registers.clear();
     memoryview_register_flags.clear();
 
