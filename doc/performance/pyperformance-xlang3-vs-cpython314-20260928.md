@@ -833,3 +833,7 @@ A follow-up experiment deferred copying nested function qualified names from IR.
 ### Avoid zeroing unused generator-delegation slots (2026-09-30)
 
 The synchronous `yield from` trampoline now leaves its fixed scratch-pointer array uninitialized and writes each entry before reading it. This small generic runtime change improved two paired official `generators --fast` runs by a combined **1.02×**; the complete fixture suite and fixed 11-case Release gate passed. XLang3 remains about **13× slower** than the saved CPython 3.14.7 result, so this does not resolve the generator gap. The [focused report](generators-chain-prefix-buffer-trial-20260930.md) records the invariant, test limits, and raw measurements.
+
+### Avoid generator discovery on ordinary Python calls (2026-09-30)
+
+Generic VM call dispatch now skips the generator-construction callback for ordinary Python functions after checking their IR metadata once. Two paired official `pyperformance --fast` rounds measured a significant **1.02×** improvement on both `pickle_pure_python` and `unpickle_pure_python`; the fixed 11-case gate and full fixture suite passed. Their pure-Python library implementations remain unchanged. XLang3 remains about **25×** and **27×** slower than CPython 3.14.7 on those benchmarks. The [focused report](call-skip-generator-check-trial-20260930.md) records the dispatch invariant and evidence.

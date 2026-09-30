@@ -3588,18 +3588,24 @@ XLANG3_HOT_INLINE bool call_user_function(
     PushFrame&& push_frame,
     FrameReturnMode return_mode,
     Value continuation_value) {
-  bool made_generator = false;
-  if (!make_generator_if_needed(fn_obj, values, out, made_generator)) {
-    return false;
-  }
-  if (made_generator) {
-    return true;
-  }
   const ir::Module* call_module = &module;
   auto call_module_owner = module_owner;
   if (fn_obj->module != nullptr) {
     call_module = fn_obj->module.get();
     call_module_owner = fn_obj->module;
+  }
+  if (fn_obj->function_id >= call_module->functions.size() ||
+      call_module->functions[fn_obj->function_id].is_generator) {
+    // Ordinary Python calls dominate this path. Generator construction needs
+    // the extra callback only for generator IR or invalid IDs (which retain
+    // the callback's existing error); reuse the selected module for the frame.
+    bool made_generator = false;
+    if (!make_generator_if_needed(fn_obj, values, out, made_generator)) {
+      return false;
+    }
+    if (made_generator) {
+      return true;
+    }
   }
   ++ip;
   if (!push_frame(*call_module, fn_obj->function_id, values, fn_obj->closure, fn_obj->defaults,
