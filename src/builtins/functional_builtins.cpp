@@ -3565,6 +3565,40 @@ bool builtin_inplace_floor_div(
   return raise_type_error(runtime, error, error);
 }
 
+bool builtin_inplace_floor_div_fast(
+    Runtime& runtime,
+    const Value* leading,
+    uint32_t leading_count,
+    const Value* registers,
+    const uint32_t* register_args,
+    uint32_t register_arg_count,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  const uint32_t argc = leading_count + register_arg_count;
+  if (argc != 2) {
+    return raise_type_error(runtime, "in-place // expects two operands", error);
+  }
+  if ((leading_count != 0 && leading == nullptr) ||
+      (register_arg_count != 0 && (registers == nullptr || register_args == nullptr))) {
+    return raise_type_error(runtime, "invalid in-place // call arguments", error);
+  }
+  const auto arg_at = [&](uint32_t index) -> const Value& {
+    return index < leading_count ? leading[index] : registers[register_args[index - leading_count]];
+  };
+  const Value& lhs = arg_at(0);
+  const Value& rhs = arg_at(1);
+  // Exact built-in numbers cannot override in-place rich comparison. Keep
+  // their floor division out of the generic special-method dispatcher; custom
+  // objects and numeric subclasses still use the full compatibility path.
+  if (is_builtin_number(lhs) && is_builtin_number(rhs)) {
+    if (value_floor_div(lhs, rhs, out, error)) return true;
+    return raise_type_error(runtime, error, error);
+  }
+  Value args[2] = {lhs, rhs};
+  return builtin_inplace_floor_div(runtime, args, 2, out, error, user_data);
+}
+
 bool builtin_inplace_add_fast(
     Runtime& runtime,
     const Value* leading,
@@ -5515,7 +5549,9 @@ void register_functional_builtins(Runtime& runtime) {
       builtin_fast_adapter<builtin_inplace_or, 2>, true);
   runtime.register_native_builtin("__xlang3_inplace_add__", builtin_inplace_add, builtin_inplace_add_fast);
   runtime.register_native_builtin("__xlang3_inplace_mul__", builtin_inplace_mul);
-  runtime.register_native_builtin("__xlang3_inplace_floor_div__", builtin_inplace_floor_div);
+  runtime.register_native_builtin(
+      "__xlang3_inplace_floor_div__", builtin_inplace_floor_div,
+      builtin_inplace_floor_div_fast);
   runtime.register_native_builtin("__xlang3_inplace_matmul__", builtin_inplace_matmul);
   runtime.register_native_builtin("_identity", builtin_identity);
   runtime.register_native_builtin(

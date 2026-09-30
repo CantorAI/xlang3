@@ -19,6 +19,39 @@ x //= 6
 x %= 5
 print(x)
 
+negative = -7
+negative //= 2
+assert negative == -4
+floating = -7.5
+floating //= 2
+assert floating == -4.0
+
+class FloorDivFallback:
+    def __ifloordiv__(self, other):
+        return NotImplemented
+
+    def __floordiv__(self, other):
+        return NotImplemented
+
+class InPlaceFloorDiv:
+    def __ifloordiv__(self, other):
+        return "in-place"
+
+    def __floordiv__(self, other):
+        return "fallback"
+
+class ReflectedFloorDiv:
+    def __rfloordiv__(self, other):
+        return "reflected"
+
+in_place = InPlaceFloorDiv()
+in_place //= 2
+assert in_place == "in-place"
+
+fallback = FloorDivFallback()
+fallback //= ReflectedFloorDiv()
+assert fallback == "reflected"
+
 y = 2
 y **= 5
 y >>= 2
