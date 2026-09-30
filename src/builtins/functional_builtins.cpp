@@ -3588,7 +3588,7 @@ bool builtin_inplace_floor_div_fast(
   };
   const Value& lhs = arg_at(0);
   const Value& rhs = arg_at(1);
-  // Exact built-in numbers cannot override in-place rich comparison. Keep
+  // Exact built-in numbers cannot override in-place arithmetic methods. Keep
   // their floor division out of the generic special-method dispatcher; custom
   // objects and numeric subclasses still use the full compatibility path.
   if (is_builtin_number(lhs) && is_builtin_number(rhs)) {
