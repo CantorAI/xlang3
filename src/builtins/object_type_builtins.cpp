@@ -424,7 +424,7 @@ bool apply_optimized_instance_slots(
       klass->has_descriptors = true;
     }
   }
-  ++klass->version;
+  klass->version = next_class_version_tag();
   return true;
 }
 
@@ -4515,7 +4515,7 @@ void register_object_type_builtins(Runtime& runtime) {
       int_class->attrs["__str__"] = Value::native_function(
           0, "int.__str__", builtin_numeric_repr, nullptr, nullptr,
           builtin_fast_adapter<builtin_numeric_repr, 1>);
-      ++int_class->version;
+      int_class->version = next_class_version_tag();
     }
   }
   const Value* int_type = runtime.find_builtin("int");
@@ -4528,7 +4528,7 @@ void register_object_type_builtins(Runtime& runtime) {
       bool_class->attrs["__text_signature__"] =
           Value::string("(object=False, /)");
       bool_class->attrs["__and__"] = Value::native_function(0, "bool.__and__", builtin_bool_and);
-      ++bool_class->version;
+      bool_class->version = next_class_version_tag();
     }
   }
   register_builtin_type(runtime, "float", object_type);
@@ -4538,7 +4538,7 @@ void register_object_type_builtins(Runtime& runtime) {
       float_class->attrs["__getformat__"] = Value::native_function(0, "float.__getformat__", builtin_float_getformat);
       float_class->attrs["__repr__"] = Value::native_function(0, "float.__repr__", builtin_numeric_repr);
       float_class->attrs["__str__"] = Value::native_function(0, "float.__str__", builtin_numeric_repr);
-      ++float_class->version;
+      float_class->version = next_class_version_tag();
     }
   }
   register_builtin_type(runtime, "complex", object_type);
@@ -4546,7 +4546,7 @@ void register_object_type_builtins(Runtime& runtime) {
     if (auto* complex_class = value_as_class(*complex_value)) {
       complex_class->attrs["__new__"] = Value::static_method(
           Value::native_function(0, "complex.__new__", builtin_complex_new));
-      ++complex_class->version;
+      complex_class->version = next_class_version_tag();
     }
   }
   register_builtin_type(runtime, "str", object_type);
@@ -4598,7 +4598,7 @@ void register_object_type_builtins(Runtime& runtime) {
   if (const auto* list_value = runtime.find_builtin("list")) {
     if (auto* list_class = value_as_class(*list_value)) {
       list_class->attrs["__hash__"] = Value::none();
-      ++list_class->version;
+      list_class->version = next_class_version_tag();
     }
   }
   register_builtin_type(runtime, "dict", object_type);
@@ -4612,7 +4612,7 @@ void register_object_type_builtins(Runtime& runtime) {
       dict_class->attrs["fromkeys"] = make_dict_fromkeys_classmethod();
       dict_class->attrs["__hash__"] = Value::none();
       dict_install_class_methods(runtime, *dict_class);
-      ++dict_class->version;
+      dict_class->version = next_class_version_tag();
     }
   }
   register_builtin_type(runtime, "dict_keys", object_type);
@@ -4629,7 +4629,7 @@ void register_object_type_builtins(Runtime& runtime) {
   if (const auto* mappingproxy_value = runtime.find_builtin("mappingproxy")) {
     if (auto* mappingproxy_class = value_as_class(*mappingproxy_value)) {
       mappingproxy_class->attrs["__new__"] = Value::native_function(0, "mappingproxy.__new__", builtin_mappingproxy_new);
-      ++mappingproxy_class->version;
+      mappingproxy_class->version = next_class_version_tag();
     }
   }
   register_builtin_type(runtime, "set", object_type);
@@ -4637,7 +4637,7 @@ void register_object_type_builtins(Runtime& runtime) {
     if (auto* set_class = value_as_class(*set_value)) {
       set_class->attrs["__hash__"] = Value::none();
       set_install_class_methods(runtime, *set_class);
-      ++set_class->version;
+      set_class->version = next_class_version_tag();
     }
   }
   register_builtin_type(runtime, "frozenset", object_type);
@@ -4654,7 +4654,7 @@ void register_object_type_builtins(Runtime& runtime) {
     if (type_class == nullptr) return;
     type_class->attrs["__repr__"] = Value::native_function(
         0, std::string(type_name) + ".__repr__", builtin_object_repr);
-    ++type_class->version;
+    type_class->version = next_class_version_tag();
   };
   for (const char* type_name : {
            "str", "bytearray", "tuple", "list", "dict",
@@ -4675,7 +4675,7 @@ void register_object_type_builtins(Runtime& runtime) {
             std::string(type_name) + ".__iter__", builtin_functional_iterator_iter);
         iterator_class->attrs["__next__"] = runtime.make_native_function(
             std::string(type_name) + ".__next__", builtin_functional_iterator_next);
-        ++iterator_class->version;
+        iterator_class->version = next_class_version_tag();
       }
     }
   }
@@ -4685,7 +4685,7 @@ void register_object_type_builtins(Runtime& runtime) {
         type_class->attrs["__class_getitem__"] = Value::class_method(
             Value::native_function(0, std::string(name) + ".__class_getitem__",
                                    builtin_class_getitem));
-        ++type_class->version;
+        type_class->version = next_class_version_tag();
       }
     }
   }
@@ -4703,7 +4703,7 @@ void register_object_type_builtins(Runtime& runtime) {
             builtin_async_generator_awaitable_method,
             const_cast<char*>(method_name));
       }
-      ++awaitable_class->version;
+      awaitable_class->version = next_class_version_tag();
     }
   }
   register_builtin_type(runtime, "module", object_type);
@@ -4711,7 +4711,7 @@ void register_object_type_builtins(Runtime& runtime) {
     if (auto* module_class = value_as_class(*module_value)) {
       module_class->attrs["__new__"] = Value::native_function(0, "module.__new__", builtin_module_new);
       module_class->attrs["__init__"] = Value::native_function(0, "module.__init__", builtin_module_init);
-      ++module_class->version;
+      module_class->version = next_class_version_tag();
     }
   }
   register_builtin_type(runtime, "function", object_type);
@@ -4723,7 +4723,7 @@ void register_object_type_builtins(Runtime& runtime) {
           0, "function.__get__", builtin_function_descriptor_get,
           nullptr, nullptr, nullptr, false, nullptr, false);
       function_class->has_descriptors = true;
-      ++function_class->version;
+      function_class->version = next_class_version_tag();
     }
   }
   register_builtin_type(runtime, "builtin_function_or_method", object_type);
@@ -4733,7 +4733,7 @@ void register_object_type_builtins(Runtime& runtime) {
       descriptor_class->attrs["__get__"] = Value::native_function(
           0, "wrapper_descriptor.__get__", builtin_native_descriptor_get);
       descriptor_class->has_descriptors = true;
-      ++descriptor_class->version;
+      descriptor_class->version = next_class_version_tag();
     }
   }
   register_builtin_type(runtime, "method_descriptor", object_type);
@@ -4742,7 +4742,7 @@ void register_object_type_builtins(Runtime& runtime) {
       descriptor_class->attrs["__get__"] = Value::native_function(
           0, "method_descriptor.__get__", builtin_native_descriptor_get);
       descriptor_class->has_descriptors = true;
-      ++descriptor_class->version;
+      descriptor_class->version = next_class_version_tag();
     }
   }
   register_builtin_type(runtime, "classmethod_descriptor", object_type);
@@ -4751,7 +4751,7 @@ void register_object_type_builtins(Runtime& runtime) {
       descriptor_class->attrs["__get__"] = runtime.make_native_function(
           "classmethod_descriptor.__get__", builtin_descriptor_method_proxy, const_cast<char*>("__get__"));
       descriptor_class->has_descriptors = true;
-      ++descriptor_class->version;
+      descriptor_class->version = next_class_version_tag();
     }
   }
   register_builtin_type(runtime, "method-wrapper", object_type);
@@ -4759,7 +4759,7 @@ void register_object_type_builtins(Runtime& runtime) {
   if (const auto* method_value = runtime.find_builtin("method")) {
     if (auto* method_class = value_as_class(*method_value)) {
       method_class->attrs["__new__"] = Value::native_function(0, "method.__new__", builtin_method_new);
-      ++method_class->version;
+      method_class->version = next_class_version_tag();
     }
   }
   register_builtin_type(runtime, "member_descriptor", object_type);
@@ -4775,7 +4775,7 @@ void register_object_type_builtins(Runtime& runtime) {
           "member_descriptor.__delete__", builtin_descriptor_method_proxy, const_cast<char*>("__delete__"), nullptr,
           builtin_fast_adapter<builtin_descriptor_method_proxy, 2>, true);
       descriptor_class->has_descriptors = true;
-      ++descriptor_class->version;
+      descriptor_class->version = next_class_version_tag();
     }
   }
   register_builtin_type(runtime, "property", object_type);
@@ -4793,7 +4793,7 @@ void register_object_type_builtins(Runtime& runtime) {
           "classmethod.__init__", builtin_classmethod_init, nullptr, nullptr, nullptr, false, builtin_classmethod_init_kw);
       classmethod_class->attrs["__get__"] = runtime.make_native_function(
           "classmethod.__get__", builtin_descriptor_method_proxy, const_cast<char*>("__get__"));
-      ++classmethod_class->version;
+      classmethod_class->version = next_class_version_tag();
     }
   }
   if (const auto* staticmethod_value = runtime.find_builtin("staticmethod")) {
@@ -4803,7 +4803,7 @@ void register_object_type_builtins(Runtime& runtime) {
           "staticmethod.__init__", builtin_staticmethod_init, nullptr, nullptr, nullptr, false, builtin_staticmethod_init_kw);
       staticmethod_class->attrs["__get__"] = runtime.make_native_function(
           "staticmethod.__get__", builtin_descriptor_method_proxy, const_cast<char*>("__get__"));
-      ++staticmethod_class->version;
+      staticmethod_class->version = next_class_version_tag();
     }
   }
   register_builtin_type(runtime, "code", object_type);
@@ -4818,7 +4818,7 @@ void register_object_type_builtins(Runtime& runtime) {
         code_class->attrs[code_members[i]] = slot_descriptor("code", code_members[i], i);
       }
       code_class->has_descriptors = true;
-      ++code_class->version;
+      code_class->version = next_class_version_tag();
     }
   }
   register_builtin_type(runtime, "frame", object_type);
@@ -4829,7 +4829,7 @@ void register_object_type_builtins(Runtime& runtime) {
       frame_class->attrs["f_code"] = slot_descriptor("frame", "f_code", 2);
       frame_class->attrs["f_back"] = slot_descriptor("frame", "f_back", 3);
       frame_class->has_descriptors = true;
-      ++frame_class->version;
+      frame_class->version = next_class_version_tag();
     }
   }
   register_builtin_type(runtime, "coroutine", object_type);
@@ -4841,7 +4841,7 @@ void register_object_type_builtins(Runtime& runtime) {
           Value::native_function(0, "traceback.__new__", builtin_traceback_new);
       traceback_class->attrs["__init__"] =
           Value::native_function(0, "traceback.__init__", builtin_traceback_init);
-      ++traceback_class->version;
+      traceback_class->version = next_class_version_tag();
     }
   }
   register_builtin_type(runtime, "cell", object_type);
@@ -4858,7 +4858,7 @@ void register_object_type_builtins(Runtime& runtime) {
         slot_descriptor_set_owner_class(attr.second, *file_value);
       }
       file_class->has_descriptors = true;
-      ++file_class->version;
+      file_class->version = next_class_version_tag();
     }
   }
   register_builtin_type(runtime, "GenericAlias", object_type);
@@ -4866,7 +4866,7 @@ void register_object_type_builtins(Runtime& runtime) {
     if (auto* generic_alias_class = value_as_class(*generic_alias_value)) {
       generic_alias_class->attrs["__module__"] = Value::string("types");
       generic_alias_class->attrs["__new__"] = Value::native_function(0, "types.GenericAlias.__new__", builtin_generic_alias_new);
-      ++generic_alias_class->version;
+      generic_alias_class->version = next_class_version_tag();
     }
   }
   register_builtin_type(runtime, "type_parameter", object_type);
@@ -4875,7 +4875,7 @@ void register_object_type_builtins(Runtime& runtime) {
     if (auto* ellipsis_class = value_as_class(*ellipsis_type)) {
       ellipsis_class->attrs["__reduce__"] = runtime.make_native_function(
           "ellipsis.__reduce__", builtin_singleton_reduce, const_cast<char*>("Ellipsis"));
-      ++ellipsis_class->version;
+      ellipsis_class->version = next_class_version_tag();
     }
     Value ellipsis = Value::instance(*ellipsis_type);
     std::string ignored;
@@ -4889,7 +4889,7 @@ void register_object_type_builtins(Runtime& runtime) {
           "NotImplementedType.__reduce__",
           builtin_singleton_reduce,
           const_cast<char*>("NotImplemented"));
-      ++not_implemented_class->version;
+      not_implemented_class->version = next_class_version_tag();
     }
     Value not_implemented = Value::instance(*not_implemented_type);
     std::string ignored;

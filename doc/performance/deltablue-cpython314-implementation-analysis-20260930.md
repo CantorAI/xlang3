@@ -103,3 +103,15 @@ The optimization and its semantic guards are in [`xlang_vm_inline_call.h`](../..
 and [`xlang_vm_ops_call.h`](../../src/executor/xlang_vm/ops/xlang_vm_ops_call.h).
 The fixture exercises the specialized methods and its generic fallbacks in
 [`classmethod_attr_int_compare.py`](../../tests/fixtures/core/classmethod_attr_int_compare.py).
+
+## Follow-up: cache lifetime across repeated calls
+
+The source comparison identified a broader difference than classmethod
+binding: CPython retains adaptive attribute and call guards on each bytecode
+site, while XLang3 had been discarding selected caches at frame return to
+release owning Values. A follow-up now keeps only non-owning attribute and
+class-owned method guards warm across calls. Two opposite-order rigorous
+pyperf pairs measure **62.8 ms to 49.6 ms**, or **1.27× faster within XLang3**;
+the candidate is still **18.2× slower than CPython 3.14.7**. The unpickle
+result and cache ownership details are in the
+[cross-activation cache report](vm-inline-cache-cross-activation-20260930.md).

@@ -144,6 +144,19 @@ call overhead on small objects; it does not indicate a missing native module
 or Python fallback. A native-binder shortcut was already measured and rejected
 at 1.01x slower, so it should not be repeated.
 
+## Preserve non-owning caches across frame returns
+
+The CPython source comparison exposed a cache-lifetime mismatch: CPython keeps
+adaptive guards on the bytecode site, while XLang3 cleared ordinary attribute
+and method cache payloads on each frame return to release their owning Values.
+The follow-up now retains only non-owning attribute indexes and class-owned
+`CallMethod` targets, guarded by globally unique class version tags; all
+Value-owning descriptor, property, and generic `Call` caches still reset.
+This measured **1.26× faster DeltaBlue** and **1.05–1.10× faster
+`unpickle_pure_python`**, with both 11-case Release gates passing. Details,
+CPython source links, opposite-order pyperf samples, and the horizontal chart
+are in the [cache-lifetime report](vm-inline-cache-cross-activation-20260930.md).
+
 ## Current benchmark status and next target
 
 The matched official rigorous result is 3.41 ms for XLang3 versus 160 μs for
@@ -169,11 +182,12 @@ ownership traffic when a reused frame stayed in the same module. It measured
 change was removed. The [candidate pyperf result](data/frame-owner-candidate-unpickle-pure-python-rigorous-20260930.json)
 preserves that negative result.
 
-The comparison narrows the next work to Python call dispatch and frame
-switching together with XLang3's ordinary IR loop. It does not yet identify a
-validated large speedup. XLang3's per-call analysis and cache ownership remain
-hypotheses to measure; neither should be removed without same-source timing
-and semantic validation.
+The cache-lifetime follow-up validates one CPython-inspired change, but the
+overall goal remains open. Its `CallMethod` cache does not cover generic
+`Call`, which remains the largest call cost in the unpickle profile; item
+access, loop control, and frame switching are still substantial shared-VM
+targets. The accepted change and its semantic invalidation rules are recorded
+in the [cache-lifetime report](vm-inline-cache-cross-activation-20260930.md).
 
 The completed all-97 pyperformance coverage run is documented in
 [`pyperformance-xlang3-vs-cpython314-20260930.md`](pyperformance-xlang3-vs-cpython314-20260930.md).

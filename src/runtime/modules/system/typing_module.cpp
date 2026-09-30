@@ -563,7 +563,7 @@ void register_typing_module(Runtime& runtime) {
   if (auto* klass = value_as_class(no_default_type)) {
     klass->attrs["__repr__"] = runtime.make_native_function("_typing.NoDefaultType.__repr__", no_default_repr);
     klass->attrs["__str__"] = runtime.make_native_function("_typing.NoDefaultType.__repr__", no_default_repr);
-    ++klass->version;
+    klass->version = next_class_version_tag();
   }
   Value no_default = Value::instance(no_default_type);
   runtime.register_builtin("NoDefault", no_default);
@@ -592,7 +592,7 @@ void register_typing_module(Runtime& runtime) {
     alias_class->attrs["__ror__"] = runtime.make_native_function(
         "_typing.TypeAliasType.__ror__", type_alias_or,
         &type_alias_native_marker);
-    ++alias_class->version;
+    alias_class->version = next_class_version_tag();
   }
   Value generic = make_typing_class(runtime, "Generic");
   if (auto* generic_class = value_as_class(generic)) {
@@ -602,7 +602,7 @@ void register_typing_module(Runtime& runtime) {
     generic_class->attrs["__init_subclass__"] = Value::class_method(runtime.make_native_function(
         "_typing.Generic.__init_subclass__", generic_init_subclass,
         nullptr, nullptr, nullptr, false, generic_init_subclass_kw));
-    ++generic_class->version;
+    generic_class->version = next_class_version_tag();
     generic_class->allow_instance_dict = false;
     generic_class->allow_weakref = false;
   }

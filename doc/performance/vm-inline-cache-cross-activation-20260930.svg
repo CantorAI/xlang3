@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="650" viewBox="0 0 1000 650" role="img" aria-labelledby="title desc">
+  <title id="title">XLang3 inline-cache lifetime benchmark results</title>
+  <desc id="desc">Horizontal bars compare XLang3 and CPython speed, and the candidate's within-XLang3 speedup, for DeltaBlue and pure-Python unpickle.</desc>
+  <rect width="1000" height="650" fill="#ffffff"/>
+  <style>
+    text { font-family: Segoe UI, Arial, sans-serif; fill: #17212b; }
+    .title { font-size: 25px; font-weight: 700; }
+    .section { font-size: 18px; font-weight: 650; }
+    .case { font-size: 15px; font-weight: 650; }
+    .label { font-size: 14px; }
+    .value { font-size: 13px; font-weight: 650; }
+    .tick { font-size: 12px; fill: #52606d; }
+    .note { font-size: 13px; fill: #394956; }
+  </style>
+  <text x="48" y="44" class="title">Cross-activation VM cache trial</text>
+  <text x="48" y="70" class="note">Higher bars mean faster execution. CPython 3.14.7 = 1.00×.</text>
+
+  <text x="48" y="112" class="section">Speed relative to CPython 3.14.7</text>
+  <text x="375" y="112" class="tick">0.00×</text>
+  <text x="497" y="112" class="tick">0.25×</text>
+  <text x="619" y="112" class="tick">0.50×</text>
+  <text x="741" y="112" class="tick">0.75×</text>
+  <text x="863" y="112" class="tick">1.00×</text>
+  <line x1="380" y1="124" x2="868" y2="124" stroke="#9aa7b1" stroke-width="1"/>
+  <g stroke="#e4e9ed" stroke-width="1">
+    <line x1="380" y1="124" x2="380" y2="366"/>
+    <line x1="502" y1="124" x2="502" y2="366"/>
+    <line x1="624" y1="124" x2="624" y2="366"/>
+    <line x1="746" y1="124" x2="746" y2="366"/>
+    <line x1="868" y1="124" x2="868" y2="366"/>
+  </g>
+  <text x="48" y="151" class="case">DeltaBlue</text>
+  <text x="48" y="174" class="label">CPython 3.14.7</text>
+  <rect x="380" y="158" width="488" height="18" rx="3" fill="#8392a0"/>
+  <text x="878" y="173" class="value">1.00×</text>
+  <text x="48" y="202" class="label">XLang3 control</text>
+  <rect x="380" y="186" width="21.2" height="18" rx="3" fill="#6c8ebf"/>
+  <text x="410" y="201" class="value">0.043×</text>
+  <text x="48" y="230" class="label">XLang3 candidate</text>
+  <rect x="380" y="214" width="26.9" height="18" rx="3" fill="#2a8f63"/>
+  <text x="416" y="229" class="value">0.055×</text>
+
+  <text x="48" y="272" class="case">Pure-Python unpickle</text>
+  <text x="48" y="295" class="label">CPython 3.14.7</text>
+  <rect x="380" y="279" width="488" height="18" rx="3" fill="#8392a0"/>
+  <text x="878" y="294" class="value">1.00×</text>
+  <text x="48" y="323" class="label">XLang3 control</text>
+  <rect x="380" y="307" width="21.2" height="18" rx="3" fill="#6c8ebf"/>
+  <text x="410" y="322" class="value">0.043×</text>
+  <text x="48" y="351" class="label">XLang3 candidate</text>
+  <rect x="380" y="335" width="22.8" height="18" rx="3" fill="#2a8f63"/>
+  <text x="412" y="350" class="value">0.047×</text>
+
+  <text x="48" y="405" class="section">Speedup inside XLang3 (control = 1.00×)</text>
+  <text x="370" y="405" class="tick">0.00×</text>
+  <text x="495" y="405" class="tick">0.35×</text>
+  <text x="620" y="405" class="tick">0.70×</text>
+  <text x="745" y="405" class="tick">1.05×</text>
+  <text x="870" y="405" class="tick">1.40×</text>
+  <line x1="380" y1="417" x2="880" y2="417" stroke="#9aa7b1" stroke-width="1"/>
+  <g stroke="#e4e9ed" stroke-width="1">
+    <line x1="380" y1="417" x2="380" y2="574"/>
+    <line x1="505" y1="417" x2="505" y2="574"/>
+    <line x1="630" y1="417" x2="630" y2="574"/>
+    <line x1="755" y1="417" x2="755" y2="574"/>
+    <line x1="880" y1="417" x2="880" y2="574"/>
+  </g>
+  <text x="48" y="449" class="label">DeltaBlue</text>
+  <text x="220" y="449" class="label">control</text>
+  <rect x="380" y="433" width="357" height="18" rx="3" fill="#6c8ebf"/>
+  <text x="747" y="448" class="value">1.00×</text>
+  <text x="220" y="478" class="label">candidate</text>
+  <rect x="380" y="462" width="452" height="18" rx="3" fill="#2a8f63"/>
+  <text x="842" y="477" class="value">1.27×</text>
+  <text x="48" y="526" class="label">Unpickle</text>
+  <text x="220" y="526" class="label">control</text>
+  <rect x="380" y="510" width="357" height="18" rx="3" fill="#6c8ebf"/>
+  <text x="747" y="525" class="value">1.00×</text>
+  <text x="220" y="555" class="label">candidate</text>
+  <rect x="380" y="539" width="382" height="18" rx="3" fill="#2a8f63"/>
+  <text x="772" y="554" class="value">1.07×</text>
+  <text x="48" y="615" class="note">The cache-lifetime change is measurable; both workloads remain slower than CPython 3.14.7.</text>
+</svg>

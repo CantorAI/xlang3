@@ -2492,7 +2492,7 @@ bool bytes_install_class_methods(Runtime& runtime, ClassObject& bytes_class) {
       runtime.make_native_function(
           is_bytearray ? "bytearray.fromhex" : "bytes.fromhex",
           is_bytearray ? bytearray_fromhex_method : bytes_fromhex_method));
-  ++bytes_class.version;
+  bytes_class.version = next_class_version_tag();
   return true;
 }
 

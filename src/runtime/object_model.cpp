@@ -40,6 +40,11 @@ limitations under the License.
 
 namespace xlang3 {
 
+uint64_t next_class_version_tag() noexcept {
+  static std::atomic_uint64_t next{1};
+  return next.fetch_add(1, std::memory_order_relaxed);
+}
+
 namespace {
 
 std::vector<Value> function_positional_defaults_for_introspection(
@@ -505,7 +510,7 @@ void invalidate_class_lookup_caches(ClassObject* klass, std::unordered_set<Class
   }
   klass->mro_cache.clear();
   klass->mro_cache_version = 0;
-  ++klass->version;
+  klass->version = next_class_version_tag();
   for (auto* subclass : klass->subclasses) {
     invalidate_class_lookup_caches(subclass, visited);
   }
@@ -710,7 +715,7 @@ bool finalize_enum_class(ClassObject& klass) {
   klass.attrs["_member_names_"] = Value::list(member_names);
   klass.attrs["_member_list_"] = Value::list(member_values);
   klass.attrs["__xlang3_enum_finalized__"] = Value::boolean(true);
-  ++klass.version;
+  klass.version = next_class_version_tag();
   return true;
 }
 
@@ -5461,7 +5466,7 @@ bool class_set_base(Value klass, Value base, std::string& error) {
     return false;
   }
   class_register_subclass(added_base_class, klass_obj);
-  ++klass_obj->version;
+  klass_obj->version = next_class_version_tag();
   return true;
 }
 

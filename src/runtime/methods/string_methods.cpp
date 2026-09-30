@@ -3645,7 +3645,7 @@ bool string_install_class_methods(Runtime& runtime, ClassObject& string_class) {
     builtin_method_set_text_signature(function, method.text_signature);
     string_class.attrs[method.name] = std::move(function);
   }
-  ++string_class.version;
+  string_class.version = next_class_version_tag();
   return true;
 }
 

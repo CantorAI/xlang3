@@ -1531,7 +1531,7 @@ Value make_defaultdict_class(Runtime& runtime) {
     class_object->attrs["__repr__"] = runtime.make_native_function("_collections.defaultdict.__repr__", defaultdict_repr);
     class_object->attrs["default_factory"] = slot_descriptor("defaultdict", "default_factory", 0);
     slot_descriptor_set_owner_class(class_object->attrs["default_factory"], klass);
-    ++class_object->version;
+    class_object->version = next_class_version_tag();
   }
   return klass;
 }

@@ -29,6 +29,12 @@ using NativeInstanceGetAttr = bool (*)(const Value& self, const std::string& nam
 using NativeInstanceSetAttr = bool (*)(Value& self, const std::string& name, const Value& value, std::string& error);
 using NativeInstanceDeleteAttr = bool (*)(Value& self, const std::string& name, std::string& error);
 
+// Class cache versions are process-wide tags, like CPython's type version
+// tags. A tag identifies both this class lifetime and its current attributes,
+// so non-owning VM caches can survive calls without being fooled by allocator
+// address reuse after a class is collected.
+uint64_t next_class_version_tag() noexcept;
+
 struct ClassObject {
   Object header;
   std::string name;
@@ -40,7 +46,7 @@ struct ClassObject {
   std::vector<std::string> definition_attr_order;
   std::vector<std::string> instance_slot_names;
   std::unordered_map<std::string, uint32_t> instance_slot_indices;
-  uint64_t version = 1;
+  uint64_t version = next_class_version_tag();
   // Cached builtin-container traits for Value::instance. The version tag lets
   // instance creation avoid repeated MRO queries while still tracking changes
   // to this class or one of its bases.

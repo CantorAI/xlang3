@@ -570,7 +570,7 @@ bool list_install_class_methods(Runtime& runtime, ClassObject& list_class) {
         method.fast_releases_vm_lock,
         method.keyword_callback);
   }
-  ++list_class.version;
+  list_class.version = next_class_version_tag();
   return true;
 }
 

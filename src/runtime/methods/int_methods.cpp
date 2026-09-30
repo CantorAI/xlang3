@@ -501,7 +501,7 @@ bool int_install_class_methods(Runtime& runtime, ClassObject& int_class) {
     slot_descriptor_set_owner_class(descriptor, owner);
     int_class.attrs[name] = std::move(descriptor);
   }
-  ++int_class.version;
+  int_class.version = next_class_version_tag();
   return true;
 }
 

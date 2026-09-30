@@ -415,15 +415,78 @@ private:
       case XlangVMCacheDomain::Global:
         cache.global = GlobalSiteCache{};
         break;
-      case XlangVMCacheDomain::Attr:
+      case XlangVMCacheDomain::Attr: {
         cache.global = GlobalSiteCache{};
+        // CPython keeps guarded attribute caches with the code object. Keep
+        // XLang3's equally non-owning index caches warm across frame reuse;
+        // globally unique class versions prevent a freed class at a reused
+        // address from satisfying an old guard. Descriptor caches own Values
+        // and still reset below so a cache cannot extend Python object life.
+        const uint32_t index = cache.attr.index;
+        const AttrSiteKind kind = cache.attr.kind;
+        Object* owner = cache.attr.owner;
+        const uint64_t version = cache.attr.version;
         cache.attr = AttrSiteCache{};
+        if (kind == AttrSiteKind::InstanceAttr ||
+            kind == AttrSiteKind::InstanceDict ||
+            kind == AttrSiteKind::InstanceSlot) {
+          cache.attr.index = index;
+          cache.attr.kind = kind;
+          cache.attr.owner = owner;
+          cache.attr.version = version;
+        }
         break;
+      }
       case XlangVMCacheDomain::Call:
-      case XlangVMCacheDomain::CallMethod:
         cache.global = GlobalSiteCache{};
         cache.call = CallSiteCache{};
         break;
+      case XlangVMCacheDomain::CallMethod: {
+        cache.global = GlobalSiteCache{};
+        // The common method cache points into the receiver class's attrs.
+        // That class owns the function, and its process-wide version tag
+        // invalidates the raw pointer on mutation or class destruction. Copy
+        // only scalar guards: retained_callee, inline_const, and vectors stay
+        // empty, preserving CPython-like code-site warming without rooting
+        // otherwise-dead Python objects.
+        const CallSiteCache& old = cache.call;
+        const bool keep = old.kind == CallSiteKind::UserFunction ||
+            old.kind == CallSiteKind::NativeFunction ||
+            old.kind == CallSiteKind::InlineSelfSlotMaximizeMethod ||
+            old.kind == CallSiteKind::InlineSelfAttrBooleanExprMethod ||
+            old.kind == CallSiteKind::InlineSelfAttrBinaryMethod ||
+            old.kind == CallSiteKind::InlineSelfBinaryMethod ||
+            old.kind == CallSiteKind::InlineSelfSlotMethod ||
+            old.kind == CallSiteKind::InlineSmallSelfMethod ||
+            old.kind == CallSiteKind::BuiltinMethodSpec;
+        const CallSiteKind kind = old.kind;
+        Object* callee_object = old.callee_object;
+        FunctionObject* function = old.function;
+        NativeFunctionObject* native = old.native;
+        const BuiltinMethodSpec* builtin_method = old.builtin_method;
+        const uint64_t class_version = old.class_version;
+        const uint32_t lhs_slot = old.lhs_slot;
+        const uint32_t rhs_slot = old.rhs_slot;
+        const std::array<uint32_t, 3> inline_slots = old.inline_slots;
+        const uint32_t fast_method_id = old.fast_method_id;
+        const ir::Op inline_op = old.inline_op;
+        cache.call = CallSiteCache{};
+        if (keep) {
+          auto& retained = cache.call;
+          retained.kind = kind;
+          retained.callee_object = callee_object;
+          retained.function = function;
+          retained.native = native;
+          retained.builtin_method = builtin_method;
+          retained.class_version = class_version;
+          retained.lhs_slot = lhs_slot;
+          retained.rhs_slot = rhs_slot;
+          retained.inline_slots = inline_slots;
+          retained.fast_method_id = fast_method_id;
+          retained.inline_op = inline_op;
+        }
+        break;
+      }
       case XlangVMCacheDomain::GetItem:
         // GetItem's Python-method guard has raw class/function pointers; those
         // must not survive return even though its scalar core can be reused.

@@ -739,7 +739,7 @@ bool dict_install_class_methods(Runtime& runtime, ClassObject& dict_class) {
             method.keyword_callback);
   }
   dict_class.has_descriptors = true;
-  ++dict_class.version;
+  dict_class.version = next_class_version_tag();
   return true;
 }
 
@@ -748,7 +748,7 @@ bool dict_install_view_class_methods(Runtime& runtime, ClassObject& view_class) 
       "dict view.__contains__", dict_view_contains_method, nullptr, nullptr,
       builtin_method_fast_adapter<dict_view_contains_method, 2>);
   view_class.has_descriptors = true;
-  ++view_class.version;
+  view_class.version = next_class_version_tag();
   return true;
 }
 

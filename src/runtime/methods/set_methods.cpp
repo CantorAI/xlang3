@@ -767,7 +767,7 @@ bool set_install_class_methods(Runtime& runtime, ClassObject& set_class) {
         method.full_name, method.callback, nullptr, nullptr,
         method.fast_callback, method.fast_releases_vm_lock, method.keyword_callback);
   }
-  ++set_class.version;
+  set_class.version = next_class_version_tag();
   return true;
 }
 
@@ -783,7 +783,7 @@ bool frozenset_install_class_methods(Runtime& runtime, ClassObject& frozenset_cl
         std::string("frozenset.") + method.name, method.callback, nullptr, nullptr,
         method.fast_callback, method.fast_releases_vm_lock, method.keyword_callback);
   }
-  ++frozenset_class.version;
+  frozenset_class.version = next_class_version_tag();
   return true;
 }
 

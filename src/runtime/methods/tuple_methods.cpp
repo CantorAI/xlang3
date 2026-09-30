@@ -271,7 +271,7 @@ bool tuple_install_class_methods(Runtime& runtime, ClassObject& tuple_class) {
   for (const auto& method : kTupleMethods) {
     tuple_class.attrs[method.name] = runtime.make_native_function(method.full_name, method.callback);
   }
-  ++tuple_class.version;
+  tuple_class.version = next_class_version_tag();
   return true;
 }
 

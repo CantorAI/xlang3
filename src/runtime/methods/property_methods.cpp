@@ -491,7 +491,7 @@ bool property_install_class_methods(Runtime& runtime, ClassObject& property_clas
       runtime.make_native_function("property.setter", property_setter_method, nullptr, nullptr, nullptr, false, property_setter_kw);
   property_class.attrs["deleter"] =
       runtime.make_native_function("property.deleter", property_deleter_method, nullptr, nullptr, nullptr, false, property_deleter_kw);
-  ++property_class.version;
+  property_class.version = next_class_version_tag();
   return true;
 }
 
