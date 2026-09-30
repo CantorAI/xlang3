@@ -407,6 +407,9 @@ TupleObject* allocate_tuple_object(size_t capacity) {
   if (capacity > kMaxTupleItems) {
     capacity = kMaxTupleItems;
   }
+  // Zero-capacity tuples cannot contain references and gc_value_is_tracked()
+  // already reports them as untracked. Skip the collector's shared index (and
+  // its mutex) for the empty *args tuples created by ordinary Python calls.
   if (memory::object_caches_alive && capacity < tuple_object_free_lists.small.size()) {
     auto& list = tuple_object_free_lists.small[capacity];
     if (!list.empty()) {
@@ -415,7 +418,7 @@ TupleObject* allocate_tuple_object(size_t capacity) {
       obj->header.kind = ObjectKind::Tuple;
       obj->header.refcnt = 1;
       xlang_perf_count_object_alloc(ObjectKind::Tuple);
-      gc_track_object(&obj->header);
+      if (capacity != 0) gc_track_object(&obj->header);
       return obj;
     }
   }
@@ -432,7 +435,7 @@ TupleObject* allocate_tuple_object(size_t capacity) {
     new (item_storage + i) Value();
   }
   obj->items.bind(item_storage, static_cast<uint32_t>(capacity));
-  gc_track_object(&obj->header);
+  if (capacity != 0) gc_track_object(&obj->header);
   return obj;
 }
 
