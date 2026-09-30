@@ -1,0 +1,9 @@
+direct workload unpickle_pure_python: 0.0946239999611862 wall=0.103582800 s loops=1 inner_loops=20
+vm-time: clock_pair_mean_ns=14
+vm-time: opcode=253 calls=1660 self_ns=196536900 total_ns=699737400
+vm-time: opcode=252 calls=36797 self_ns=12080900 total_ns=12080900
+vm-time: opcode=248 calls=38216 self_ns=8018900 total_ns=8018900
+vm-time: opcode=247 calls=37295 self_ns=4756600 total_ns=18094200
+vm-time: opcode=249 calls=38216 self_ns=4165700 total_ns=4165700
+vm-time: opcode=250 calls=76242 self_ns=2208500 total_ns=2208500
+vm-time: opcode=251 calls=76242 self_ns=1887300 total_ns=1887300

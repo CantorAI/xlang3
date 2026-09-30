@@ -1,0 +1,33 @@
+diff --git a/src/executor/xlang_vm/xlang_frame.h b/src/executor/xlang_vm/xlang_frame.h
+index 4505960..a5238d8 100644
+--- a/src/executor/xlang_vm/xlang_frame.h
++++ b/src/executor/xlang_vm/xlang_frame.h
+@@ -23,0 +24 @@ limitations under the License.
++#include "../../../benchmarks/diagnostics/native_vm_opcode_timer.h"
+@@ -286,0 +288 @@ struct XlangVMFrame {
++    diagnostics::VMOpcodeTimer reset_timer(diagnostics::kVMFrameResetTimer);
+@@ -370,0 +373,2 @@ struct XlangVMFrame {
++    {
++    diagnostics::VMOpcodeTimer cache_timer(diagnostics::kVMCacheCleanupTimer);
+@@ -380,0 +385,2 @@ struct XlangVMFrame {
++    }
++    diagnostics::VMOpcodeTimer values_timer(diagnostics::kVMValueCleanupTimer);
+diff --git a/src/executor/xlang_vm/xlang_vm_loop.cpp b/src/executor/xlang_vm/xlang_vm_loop.cpp
+index b0d7917..6649b89 100644
+--- a/src/executor/xlang_vm/xlang_vm_loop.cpp
++++ b/src/executor/xlang_vm/xlang_vm_loop.cpp
+@@ -166,0 +167 @@ RuntimeResult Interpreter::run_function(
++  diagnostics::VMOpcodeTimer invocation_timer(diagnostics::kVMInvocationTimer);
+@@ -714,0 +716 @@ RuntimeResult Interpreter::run_function(
++    diagnostics::VMOpcodeTimer preparation_timer(diagnostics::kVMCallPreparationTimer);
+@@ -1600 +1602,4 @@ RuntimeResult Interpreter::run_function(
+-    refresh_runtime_frame_views();
++    {
++      diagnostics::VMOpcodeTimer views_timer(diagnostics::kVMFrameViewsTimer);
++      refresh_runtime_frame_views();
++    }
+@@ -1629,0 +1635,2 @@ RuntimeResult Interpreter::run_function(
++    {
++    diagnostics::VMOpcodeTimer identity_timer(diagnostics::kVMFrameIdentityTimer);
+@@ -1634,0 +1642 @@ RuntimeResult Interpreter::run_function(
++    }

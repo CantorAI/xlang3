@@ -364,7 +364,7 @@ struct XlangVMFrame {
     value_set_invalid(continuation_value);
     // Inline caches must not extend the lifetime of Python objects after the
     // frame returns. CPython's adaptive caches are non-owning; XLang3 cache
-    // entries currently contain owning Values, so discard those entries while
+    // entries currently contain owning Values, so discard owning payloads while
     // retaining the allocated cache vector for the next activation. Function
     // metadata lists only IR sites that can own cache state, avoiding a scan of
     // every instruction on each Python return in call-heavy workloads.
@@ -393,14 +393,49 @@ struct XlangVMFrame {
 
 private:
   static void clear_cache_if_owned(XlangVMInstrCache& cache) {
-    // Cache writers touch their adaptive domain before storing auxiliary
-    // values. Monitoring's negative-location mask is the sidecar state that
-    // does not use a domain, so clear those entries too. Most IR instructions
-    // never touch a cache and can skip the large record/vector reset here.
-    if (cache.domain != XlangVMCacheDomain::Empty ||
-        cache.monitoring_generation != 0 || cache.monitoring_disabled_events != 0) {
-      cache = XlangVMInstrCache{};
+    // Fused global-then-attribute/call sites can write two payloads: the last
+    // adaptive domain is not a complete ownership mask. Clear their global
+    // payload first, matching the old whole-record release order, then clear
+    // the active attribute/call payload. Clearing unrelated payloads in all
+    // 424 bytes on every Python return adds needless work. Keep cache writers
+    // aligned with this ownership rule and instruction_may_own_inline_cache.
+    // See doc/performance/vm-cache-domain-cleanup-20260930.md for the official
+    // benchmark and complete Release gate evidence behind this design.
+    const XlangVMCacheDomain domain = cache.domain;
+    if (domain != XlangVMCacheDomain::GetItem && domain != XlangVMCacheDomain::Len) {
+      xlang_vm_cache_clear(cache);
     }
+    switch (domain) {
+      case XlangVMCacheDomain::Global:
+        cache.global = GlobalSiteCache{};
+        break;
+      case XlangVMCacheDomain::Attr:
+        cache.global = GlobalSiteCache{};
+        cache.attr = AttrSiteCache{};
+        break;
+      case XlangVMCacheDomain::Call:
+      case XlangVMCacheDomain::CallMethod:
+        cache.global = GlobalSiteCache{};
+        cache.call = CallSiteCache{};
+        break;
+      case XlangVMCacheDomain::GetItem:
+        // GetItem's Python-method guard has raw class/function pointers; those
+        // must not survive return even though its scalar core can be reused.
+        cache.call = CallSiteCache{};
+        break;
+      case XlangVMCacheDomain::Len:
+      case XlangVMCacheDomain::Empty:
+        break;
+      default:
+        cache = XlangVMInstrCache{};
+        return;
+    }
+    // Len/GetItem's core owns no objects and validates the current operand
+    // kind on every hit, so short activations can accumulate specialization.
+    // Preserve the previous monitoring cleanup on return: retaining the scalar
+    // core must not also retain its DISABLE mask.
+    cache.monitoring_generation = 0;
+    cache.monitoring_disabled_events = 0;
   }
 
   static bool instruction_may_own_inline_cache(ir::Op op) {

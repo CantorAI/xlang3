@@ -1,0 +1,10 @@
+...........
+WARNING: the benchmark result may be unstable
+* the standard deviation (621 us) is 13% of the mean (4.65 ms)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+unpickle_pure_python: Mean +- std dev: 4.65 ms +- 0.62 ms

@@ -1,0 +1,9 @@
+vm-time: clock_pair_mean_ns=14
+vm-time: opcode=253 calls=2460 self_ns=2988529000 total_ns=8135422900
+vm-time: opcode=248 calls=1288616 self_ns=200566300 total_ns=200566300
+vm-time: opcode=252 calls=1285597 self_ns=138694000 total_ns=138694000
+vm-time: opcode=247 calls=1286895 self_ns=94374400 total_ns=270622500
+vm-time: opcode=249 calls=1288616 self_ns=90586400 total_ns=90586400
+vm-time: opcode=250 calls=2576242 self_ns=71716800 total_ns=71716800
+vm-time: opcode=251 calls=2576242 self_ns=60838400 total_ns=60838400
+direct workload unpickle_pure_python: 3.8046383999753743 wall=3.813492800 s loops=41 inner_loops=20

@@ -1,0 +1,53 @@
+diff --git a/src/executor/xlang_vm/xlang_frame.h b/src/executor/xlang_vm/xlang_frame.h
+index 4505960..1b697d4 100644
+--- a/src/executor/xlang_vm/xlang_frame.h
++++ b/src/executor/xlang_vm/xlang_frame.h
+@@ -367 +367 @@ struct XlangVMFrame {
+-    // entries currently contain owning Values, so discard those entries while
++    // entries currently contain owning Values, so discard owning payloads while
+@@ -396,7 +396,10 @@ private:
+-    // Cache writers touch their adaptive domain before storing auxiliary
+-    // values. Monitoring's negative-location mask is the sidecar state that
+-    // does not use a domain, so clear those entries too. Most IR instructions
+-    // never touch a cache and can skip the large record/vector reset here.
+-    if (cache.domain != XlangVMCacheDomain::Empty ||
+-        cache.monitoring_generation != 0 || cache.monitoring_disabled_events != 0) {
+-      cache = XlangVMInstrCache{};
++    // Each immutable IR site writes only its domain's payload. Call and
++    // CallMethod may delegate to each other but both use the call payload.
++    // Reset just that payload: clearing all 424 bytes on every Python return
++    // needlessly visits unrelated Values and vectors. Keep new cache writers
++    // aligned with this ownership rule and instruction_may_own_inline_cache.
++    // See doc/performance/vm-cache-domain-cleanup-20260930.md for the official
++    // benchmark and complete Release gate evidence behind this design.
++    const XlangVMCacheDomain domain = cache.domain;
++    if (domain != XlangVMCacheDomain::GetItem && domain != XlangVMCacheDomain::Len) {
++      xlang_vm_cache_clear(cache);
+@@ -403,0 +407,27 @@ private:
++    switch (domain) {
++      case XlangVMCacheDomain::Global:
++        cache.global = GlobalSiteCache{};
++        break;
++      case XlangVMCacheDomain::Attr:
++        cache.attr = AttrSiteCache{};
++        break;
++      case XlangVMCacheDomain::Call:
++      case XlangVMCacheDomain::CallMethod:
++      case XlangVMCacheDomain::GetItem:
++        // GetItem's Python-method guard has raw class/function pointers; those
++        // must not survive return even though its scalar core can be reused.
++        cache.call = CallSiteCache{};
++        break;
++      case XlangVMCacheDomain::Len:
++      case XlangVMCacheDomain::Empty:
++        break;
++      default:
++        cache = XlangVMInstrCache{};
++        return;
++    }
++    // Len/GetItem's core owns no objects and validates the current operand
++    // kind on every hit, so short activations can accumulate specialization.
++    // Preserve the previous monitoring cleanup on return: retaining the scalar
++    // core must not also retain its DISABLE mask.
++    cache.monitoring_generation = 0;
++    cache.monitoring_disabled_events = 0;

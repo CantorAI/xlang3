@@ -24,6 +24,12 @@ Licensed under the Apache License, Version 2.0.
 namespace xlang3::diagnostics {
 
 // These diagnostic IDs must stay above the IR enum used by the probe build.
+constexpr uint16_t kVMCallPreparationTimer = 247;
+constexpr uint16_t kVMCacheCleanupTimer = 248;
+constexpr uint16_t kVMValueCleanupTimer = 249;
+constexpr uint16_t kVMFrameViewsTimer = 250;
+constexpr uint16_t kVMFrameIdentityTimer = 251;
+constexpr uint16_t kVMFrameResetTimer = 252;
 constexpr uint16_t kVMInvocationTimer = 253;
 constexpr uint16_t kVMFrameSwitchTimer = 254;
 constexpr uint16_t kVMLoopControlTimer = 255;

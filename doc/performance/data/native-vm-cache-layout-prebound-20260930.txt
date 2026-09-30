@@ -1,0 +1,8 @@
+Value=16
+XlangVMInstrCacheCore=12
+GlobalSiteCache=40
+CallSiteCache=232
+AttrSiteCache=120
+XlangVMInstrCache=424
+XlangVMPreparedFunctionState=136
+XlangVMFrame=4832

@@ -65,9 +65,14 @@ def main():
     body = ir_text.split("enum class Op : uint16_t {", 1)[1].split("};", 1)[0]
     names = [line.split("//", 1)[0].strip().rstrip(",")
              for line in body.splitlines() if line.split("//", 1)[0].strip()]
-    if len(names) > 253:
+    if len(names) > 247:
         raise ValueError("IR opcodes overlap the diagnostic scope IDs")
-    scope_names = {253: "VM_INVOCATION", 254: "VM_FRAME_SWITCH", 255: "VM_LOOP_CONTROL"}
+    scope_names = {
+        247: "VM_CALL_PREPARATION", 248: "VM_CACHE_CLEANUP",
+        249: "VM_VALUE_CLEANUP", 250: "VM_FRAME_VIEWS",
+        251: "VM_FRAME_IDENTITY", 252: "VM_FRAME_RESET",
+        253: "VM_INVOCATION", 254: "VM_FRAME_SWITCH", 255: "VM_LOOP_CONTROL",
+    }
 
     rows = []
     for opcode in sorted(profile.keys() | baseline.keys()):

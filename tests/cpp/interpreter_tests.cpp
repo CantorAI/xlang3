@@ -16,9 +16,46 @@ limitations under the License.
 
 #include "xlang3/object_model.h"
 #include "xlang3/sequence.h"
+#include "executor/xlang_vm/xlang_frame.h"
 
 int main() {
   xlang3::test::CaseResult result;
+
+  // A fused site's final adaptive domain does not describe every owning
+  // payload. CallGlobal and LoadModuleAttr must release the preceding global
+  // value as well as the call/attribute value, without retaining either object
+  // in an inactive frame. Check ownership directly so globals-dict snapshots
+  // or top-level temporary registers cannot obscure this lifetime contract.
+  for (const auto op : {xlang3::ir::Op::CallGlobal, xlang3::ir::Op::LoadModuleAttr}) {
+    xlang3::ir::Module module;
+    module.functions.emplace_back();
+    auto& function = module.functions.back();
+    function.register_count = 1;
+    function.call_args.emplace_back();
+    function.code.push_back({op, 0, 0, 0, 0});
+    const std::vector<xlang3::Value> closure;
+    xlang3::XlangVMFrame frame(module, 0, xlang3::CallArgsView{}, closure,
+                              xlang3::Value::none(), {}, 0, false);
+    auto global_owner = xlang3::Value::list({});
+    auto payload_owner = xlang3::Value::list({});
+    const auto global_refs = global_owner.as.obj->refcnt.load();
+    const auto payload_refs = payload_owner.as.obj->refcnt.load();
+    auto& cache = frame.instr_cache[0];
+    cache.global.value = global_owner;
+    cache.global.kind = 2;
+    if (op == xlang3::ir::Op::CallGlobal) {
+      cache.domain = xlang3::XlangVMCacheDomain::Call;
+      cache.call.retained_callee = payload_owner;
+    } else {
+      cache.domain = xlang3::XlangVMCacheDomain::Attr;
+      cache.attr.value = payload_owner;
+    }
+    frame.clear_for_pop();
+    xlang3::test::expect_true(result, global_owner.as.obj->refcnt.load() == global_refs,
+                              "fused cache cleanup must release its global owner");
+    xlang3::test::expect_true(result, payload_owner.as.obj->refcnt.load() == payload_refs,
+                              "fused cache cleanup must release its active payload owner");
+  }
 
   {
     std::string output;

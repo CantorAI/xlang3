@@ -1,0 +1,137 @@
+diff --git a/src/executor/xlang_vm/ops/xlang_vm_ops_attr.h b/src/executor/xlang_vm/ops/xlang_vm_ops_attr.h
+index a0472e0..f32a4f6 100644
+--- a/src/executor/xlang_vm/ops/xlang_vm_ops_attr.h
++++ b/src/executor/xlang_vm/ops/xlang_vm_ops_attr.h
+@@ -397 +397 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_attr(
+-    std::vector<XlangVMInstrCache>& instr_cache,
++    XlangVMInstructionCaches& instr_cache,
+@@ -957 +957 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_local_attr(
+-    std::vector<XlangVMInstrCache>& instr_cache,
++    XlangVMInstructionCaches& instr_cache,
+@@ -996 +996 @@ XLANG3_HOT_INLINE XlangVMOpFlow store_attr(
+-    std::vector<XlangVMInstrCache>& instr_cache,
++    XlangVMInstructionCaches& instr_cache,
+@@ -1255 +1255 @@ XLANG3_HOT_INLINE XlangVMOpFlow delete_attr(
+-    std::vector<XlangVMInstrCache>& instr_cache,
++    XlangVMInstructionCaches& instr_cache,
+diff --git a/src/executor/xlang_vm/ops/xlang_vm_ops_call.h b/src/executor/xlang_vm/ops/xlang_vm_ops_call.h
+index 72208e4..3874ffd 100644
+--- a/src/executor/xlang_vm/ops/xlang_vm_ops_call.h
++++ b/src/executor/xlang_vm/ops/xlang_vm_ops_call.h
+@@ -725 +725 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
+-    std::vector<XlangVMInstrCache>& instr_cache,
++    XlangVMInstructionCaches& instr_cache,
+@@ -2003 +2003 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method_ex(
+-    XlangVMSmallRegisterBuffer& regs, std::vector<XlangVMInstrCache>& instr_cache,
++    XlangVMSmallRegisterBuffer& regs, XlangVMInstructionCaches& instr_cache,
+@@ -2134 +2134 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_ex(
+-    std::vector<XlangVMInstrCache>& instr_cache,
++    XlangVMInstructionCaches& instr_cache,
+@@ -2449 +2449 @@ XLANG3_HOT_INLINE XlangVMOpFlow call(
+-    std::vector<XlangVMInstrCache>& instr_cache,
++    XlangVMInstructionCaches& instr_cache,
+@@ -3956 +3956 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_module_method(
+-    std::vector<XlangVMInstrCache>& instr_cache,
++    XlangVMInstructionCaches& instr_cache,
+@@ -4407 +4407 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_local(
+-    std::vector<XlangVMInstrCache>& instr_cache, std::vector<Value>& native_call_args,
++    XlangVMInstructionCaches& instr_cache, std::vector<Value>& native_call_args,
+@@ -4454 +4454 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_global(
+-    std::vector<XlangVMInstrCache>& instr_cache, std::vector<Value>& native_call_args,
++    XlangVMInstructionCaches& instr_cache, std::vector<Value>& native_call_args,
+@@ -4496 +4496 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_local_method(
+-    std::vector<XlangVMInstrCache>& instr_cache, std::vector<Value>& native_call_args,
++    XlangVMInstructionCaches& instr_cache, std::vector<Value>& native_call_args,
+diff --git a/src/executor/xlang_vm/ops/xlang_vm_ops_control.h b/src/executor/xlang_vm/ops/xlang_vm_ops_control.h
+index e97b79b..03ec648 100644
+--- a/src/executor/xlang_vm/ops/xlang_vm_ops_control.h
++++ b/src/executor/xlang_vm/ops/xlang_vm_ops_control.h
+@@ -478 +478 @@ XLANG3_NOINLINE inline XlangVMOpFlow for_property_access_loop(
+-    std::vector<XlangVMInstrCache>& instr_cache,
++    XlangVMInstructionCaches& instr_cache,
+@@ -623 +623 @@ XLANG3_NOINLINE inline XlangVMOpFlow for_construct_method_accumulate_loop(
+-    std::vector<XlangVMInstrCache>& instr_cache,
++    XlangVMInstructionCaches& instr_cache,
+@@ -872 +872 @@ XLANG3_NOINLINE inline XlangVMOpFlow for_call_accumulate_loop(
+-    std::vector<XlangVMInstrCache>& instr_cache,
++    XlangVMInstructionCaches& instr_cache,
+@@ -1023 +1023 @@ XLANG3_NOINLINE inline XlangVMOpFlow for_local_move_add_loop(
+-    std::vector<XlangVMInstrCache>& instr_cache,
++    XlangVMInstructionCaches& instr_cache,
+diff --git a/src/executor/xlang_vm/ops/xlang_vm_ops_fused.h b/src/executor/xlang_vm/ops/xlang_vm_ops_fused.h
+index 6557e58..d498870 100644
+--- a/src/executor/xlang_vm/ops/xlang_vm_ops_fused.h
++++ b/src/executor/xlang_vm/ops/xlang_vm_ops_fused.h
+@@ -31 +31 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_module_attr(
+-    std::vector<XlangVMInstrCache>& instr_cache,
++    XlangVMInstructionCaches& instr_cache,
+diff --git a/src/executor/xlang_vm/xlang_frame.h b/src/executor/xlang_vm/xlang_frame.h
+index 4505960..e50d38e 100644
+--- a/src/executor/xlang_vm/xlang_frame.h
++++ b/src/executor/xlang_vm/xlang_frame.h
+@@ -156,0 +157,43 @@ struct XlangVMInstrCache : XlangVMInstrCacheCore {
++class XlangVMInstructionCaches {
++  std::vector<uint32_t> instruction_slots_;
++  std::vector<XlangVMInstrCache> entries_;
++
++  XLANG3_NOINLINE XlangVMInstrCache& materialize(size_t instruction) {
++    const auto slot = static_cast<uint32_t>(entries_.size());
++    entries_.emplace_back();
++    instruction_slots_[instruction] = slot;
++    return entries_.back();
++  }
++
++public:
++  XlangVMInstructionCaches() = default;
++  explicit XlangVMInstructionCaches(size_t instruction_count) { reset(instruction_count); }
++
++  void reset(size_t instruction_count) {
++    entries_.clear();
++    instruction_slots_.assign(instruction_count, UINT32_MAX);
++    // Cache entries are large (424 bytes on the measured Windows Release
++    // build), while most IR instructions never populate one. Construct only
++    // requested sites and pack them together instead of zeroing a full record
++    // for every opcode. Reserve the logical maximum without constructing it:
++    // fused handlers can hold two cache references, and monitoring callbacks
++    // can request another site. Those references must never move on insertion.
++    entries_.reserve(instruction_count);
++  }
++
++  size_t size() const { return instruction_slots_.size(); }
++  bool empty() const { return instruction_slots_.empty(); }
++
++  XLANG3_HOT_INLINE XlangVMInstrCache& operator[](size_t instruction) {
++    const uint32_t slot = instruction_slots_[instruction];
++    if (XLANG3_UNLIKELY(slot == UINT32_MAX)) return materialize(instruction);
++    return entries_[slot];
++  }
++
++  XlangVMInstrCache* find(size_t instruction) {
++    const uint32_t slot = instruction_slots_[instruction];
++    return slot == UINT32_MAX ? nullptr : &entries_[slot];
++  }
++
++};
++
+@@ -180 +223 @@ struct XlangVMPreparedFunctionState {
+-  std::vector<XlangVMInstrCache> instr_cache;
++  XlangVMInstructionCaches instr_cache;
+@@ -223 +266 @@ struct XlangVMFrame {
+-  std::vector<XlangVMInstrCache> instr_cache;
++  XlangVMInstructionCaches instr_cache;
+@@ -351 +394 @@ struct XlangVMFrame {
+-        instr_cache.assign(fn->code.size(), {});
++        instr_cache.reset(fn->code.size());
+@@ -375 +418,3 @@ struct XlangVMFrame {
+-        if (index < instr_cache.size()) clear_cache_if_owned(instr_cache[index]);
++        if (index < instr_cache.size()) {
++          if (auto* cache = instr_cache.find(index)) clear_cache_if_owned(*cache);
++        }
+@@ -378 +423,6 @@ struct XlangVMFrame {
+-      for (auto& cache : instr_cache) clear_cache_if_owned(cache);
++      // Monitoring can materialize otherwise uncached instructions. Preserve
++      // the original instruction-order release of owning Values, rather than
++      // changing finalizer order to the dense cache's insertion order.
++      for (size_t index = 0; index < instr_cache.size(); ++index) {
++        if (auto* cache = instr_cache.find(index)) clear_cache_if_owned(*cache);
++      }
