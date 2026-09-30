@@ -2173,9 +2173,31 @@ bool runtime_value_compare(
     size_t right_size = 0;
     if (sequence_size(lhs, left_size) && sequence_size(rhs, right_size)) {
       const size_t common = std::min(left_size, right_size);
+      // Exact scalar tuple keys are common in sorting workloads.  Their
+      // comparisons cannot run user-defined rich-comparison methods, so keep
+      // lexicographic comparison in this frame and avoid recursively building
+      // temporary Values and truth-testing each element.  Any object or
+      // subclass still takes the general runtime path below to preserve Python
+      // comparison dispatch.
+      const auto primitive_scalar = [](const Value& value) {
+        return value.tag == ValueTag::Bool || value.tag == ValueTag::Int64 ||
+            value.tag == ValueTag::Double || value_as_string(value) != nullptr;
+      };
       for (size_t i = 0; i < common; ++i) {
         const auto& left_item = sequence_item(lhs, i);
         const auto& right_item = sequence_item(rhs, i);
+        if (primitive_scalar(left_item) && primitive_scalar(right_item)) {
+          // Equal same-tag scalars (especially integer tuple prefixes during
+          // sort) need no comparator call; mixed numeric tags still go through
+          // value_compare so bool/int/float equality stays Python-compatible.
+          if (value_is(left_item, right_item)) continue;
+          Value equal;
+          if (!value_compare("==", left_item, right_item, equal, error)) return false;
+          if (equal.tag == ValueTag::Bool && equal.as.b) continue;
+          return value_compare(
+              (op == "<" || op == "<=") ? "<" : ">",
+              left_item, right_item, out, error);
+        }
         Value equal;
         if (!runtime_value_compare(runtime, "==", left_item, right_item, equal, error)) {
           return false;
