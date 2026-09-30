@@ -261,7 +261,9 @@ bool try_generator_delegation_trampoline(
   // when a child finishes. This removes one interpreter entry and yield event
   // propagation per forwarding level for each yielded item.
   constexpr size_t kMaxDelegationDepth = 200;
-  std::array<GeneratorObject*, kMaxDelegationDepth> chain{};
+  // Only [0, chain_size) is read, and the scan writes each slot before use.
+  // Avoid clearing the full maximum-depth buffer on every generator resume.
+  std::array<GeneratorObject*, kMaxDelegationDepth> chain;
   size_t chain_size = 0;
   GeneratorObject* current = root;
   while (current != nullptr) {
