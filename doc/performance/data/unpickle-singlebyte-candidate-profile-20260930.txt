@@ -1,0 +1,45 @@
+profiled workload unpickle_pure_python 3.876431600016076
+profiled Python calls, grouped by source/function
+[[["pickle.py","read"],20200],[["pickle.py","load_memoize"],3940],[["pickle.py","load_short_binunicode"],3700],[["pickle.py","load_binget"],1360],[["pickle.py","write"],521],[["pickle.py","load_binint"],480],[["pickle.py","commit_frame"],307],[["pickle.py","persistent_id"],304],[["pickle.py","save"],304],[["pickle.py","load_binint1"],280],[["pickle.py","put"],197],[["pickle.py","memoize"],197],[["pickle.py","__init__"],186],[["pickle.py","save_str"],185],[["pickle.py","load_mark"],140],[["pickle.py","pop_mark"],140],[["pickle.py","load_frame"],120],[["pickle.py","load_empty_dictionary"],80],[["pickle.py","load_setitems"],80],[["pickle.py","get"],68],[["pickle.py","load_proto"],60],[["pickle.py","load_empty_list"],60],[["pickle.py","load_appends"],60],[["pickle.py","save_long"],39],[["pickle.py","find_class"],20],[["pickle.py","load_stack_global"],20],[["pickle.py","load_short_binbytes"],20],[["pickle.py","load_tuple1"],20],[["_pydatetime.py","__setstate"],20],[["_pydatetime.py","__new__"],20],[["pickle.py","load_reduce"],20],[["pickle.py","decode_long"],20],[["pickle.py","load_long1"],20],[["pickle.py","load_tuple2"],20],[["pickle.py","_batch_setitems"],4],[["pickle.py","save_dict"],4],[["pickle.py","start_framing"],3],[["pickle.py","_batch_appends"],3],[["pickle.py","save_list"],3],[["pickle.py","end_framing"],3],[["pickle.py","dump"],3],[["pickle.py","_dumps"],3],[["pickle.py","save_tuple"],2],[["aliases.py","<module>"],1],[["_win_cp_codecs.py","<module>"],1],[["__init__.py","<module>"],1],[["__init__.py","normalize_encoding"],1],[["utf_8.py","<module>"],1],[["codecs.py","__new__"],1],[["utf_8.py","getregentry"],1],[["__init__.py","search_function"],1],[["_pydatetime.py","_getstate"],1],[["_pydatetime.py","__reduce__"],1],[["pickle.py","_getattribute"],1],[["pickle.py","whichmodule"],1],[["pickle.py","save_global"],1],[["pickle.py","save_type"],1],[["pickle.py","_save_bytes_no_memo"],1],[["pickle.py","save_bytes"],1],[["pickle.py","save_reduce"],1]]
+profiled benchmark function times (inclusive/self seconds)
+pickle.py read 20200 1.163502 1.163502
+pickle.py load_short_binunicode 3700 1.052804 0.615294
+pickle.py save 304 0.562723 0.065091
+pickle.py load_binget 1360 0.234839 0.153945
+pickle.py _dumps 3 0.214133 0.000585
+pickle.py dump 3 0.213234 0.00094
+pickle.py save_dict 4 0.197646 0.000741
+pickle.py _batch_setitems 4 0.195746 0.013819
+pickle.py save_list 3 0.155338 0.000595
+pickle.py _batch_appends 3 0.153913 0.002056
+pickle.py load_memoize 3940 0.139035 0.139035
+pickle.py save_str 185 0.090071 0.030189
+pickle.py load_binint 480 0.085807 0.057681
+pickle.py memoize 197 0.05063 0.036294
+pickle.py load_binint1 280 0.044393 0.0279
+pickle.py write 521 0.025882 0.025882
+pickle.py load_frame 120 0.017828 0.012982
+pickle.py commit_frame 307 0.015125 0.015125
+pickle.py load_setitems 80 0.013065 0.011559
+pickle.py save_tuple 2 0.012576 0.00059
+pickle.py load_appends 60 0.008591 0.007532
+pickle.py load_long1 20 0.0081 0.004888
+pickle.py load_proto 60 0.007177 0.004909
+pickle.py load_reduce 20 0.006808 0.002205
+pickle.py persistent_id 304 0.005975 0.005975
+pickle.py save_reduce 1 0.005908 0.000407
+pickle.py load_short_binbytes 20 0.005811 0.003332
+pickle.py save_long 39 0.005303 0.003408
+_pydatetime.py __new__ 20 0.004603 0.004164
+pickle.py put 197 0.004245 0.004245
+pickle.py load_stack_global 20 0.00384 0.002353
+pickle.py __init__ 186 0.00352 0.003471
+pickle.py get 68 0.003283 0.003283
+pickle.py load_empty_dictionary 80 0.00299 0.00299
+pickle.py save_type 1 0.002846 0.000133
+pickle.py save_global 1 0.002713 0.000406
+pickle.py pop_mark 140 0.002565 0.002565
+pickle.py load_mark 140 0.002309 0.002309
+pickle.py load_empty_list 60 0.002113 0.002113
+__init__.py search_function 1 0.001549 0.000754
+profiled benchmark-frame calls 33254
