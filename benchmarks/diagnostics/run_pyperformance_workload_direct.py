@@ -40,5 +40,7 @@ class _DirectRunner:
 
 pyperf_stub = types.ModuleType("pyperf")
 pyperf_stub.Runner = _DirectRunner
+# Keep the benchmark module's timer API available in this one-shot diagnostic.
+pyperf_stub.perf_counter = time.perf_counter
 sys.modules["pyperf"] = pyperf_stub
 runpy.run_path(sys.argv[1], run_name="__main__")
