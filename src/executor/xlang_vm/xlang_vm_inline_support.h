@@ -64,6 +64,34 @@ struct GeneratorVMState {
   std::vector<size_t> active_exception_handler_frames;
 };
 
+XLANG3_HOT_INLINE bool generator_continuation_has_observers(
+    Runtime& runtime, const std::vector<VMFrame>& frames, size_t frame_count) {
+  const auto active_hook = [](const Value& hook) {
+    return hook.tag != ValueTag::Invalid && hook.tag != ValueTag::None;
+  };
+  if (runtime.debug_step_active() || active_hook(runtime.debug_hook()) ||
+      active_hook(runtime.trace_function()) || active_hook(runtime.profile_function()) ||
+      sys_monitoring_event_may_dispatch(kSysMonitoringEventAll)) {
+    return true;
+  }
+  const size_t count = std::min(frame_count, frames.size());
+  for (size_t index = 0; index < count; ++index) {
+    if (active_hook(frames[index].trace_function) || frames[index].monitoring_events != 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
+XLANG3_HOT_INLINE bool generator_continuation_has_active_exception_handlers(
+    const std::vector<VMFrame>& frames, size_t frame_count) {
+  const size_t count = std::min(frame_count, frames.size());
+  for (size_t index = 0; index < count; ++index) {
+    if (!frames[index].exception_handlers.empty()) return true;
+  }
+  return false;
+}
+
 XLANG3_HOT_INLINE GeneratorVMState* acquire_generator_vm_state(GeneratorObject* generator) {
   if (generator != nullptr && generator->vm_state_reuse != nullptr) {
     auto* state = static_cast<GeneratorVMState*>(generator->vm_state_reuse);

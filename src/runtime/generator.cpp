@@ -27,6 +27,7 @@ limitations under the License.
 #endif
 
 #include <algorithm>
+#include <array>
 #include <cstdint>
 #include <sstream>
 
@@ -230,6 +231,117 @@ bool generator_iter_next(Value& generator, bool& done, Value& out, std::string& 
   return generator_send(generator, Value::none(), done, out, error);
 }
 
+namespace {
+
+bool generator_can_trampoline(const GeneratorObject& generator) {
+  if (generator.runtime == nullptr || generator.is_async || generator.is_coroutine ||
+      generator.has_observed_continuation ||
+      generator.has_active_suspended_exception_handlers || xlang_perf_enabled()) {
+    return false;
+  }
+  const Runtime& runtime = *generator.runtime;
+  const auto active_hook = [](const Value& hook) {
+    return hook.tag != ValueTag::Invalid && hook.tag != ValueTag::None;
+  };
+  return !runtime.debug_step_active() && !active_hook(runtime.debug_hook()) &&
+      !active_hook(runtime.trace_function()) && !active_hook(runtime.profile_function()) &&
+      !sys_monitoring_event_may_dispatch(kSysMonitoringEventAll);
+}
+
+bool try_generator_delegation_trampoline(
+    Value& root_value, Value send_value, bool& handled, bool& done, Value& out, std::string& error) {
+  handled = false;
+  auto* root = value_as_generator(root_value);
+  if (root == nullptr || !generator_can_trampoline(*root)) return true;
+
+  // Preserve the ordinary VM path whenever any continuation is observable,
+  // has an active exception handler, is async, or has already completed.
+  // In the unobserved synchronous case, a yield-from chain is only a stack of
+  // saved forwarding frames: resume its leaf directly and unwind parents only
+  // when a child finishes. This removes one interpreter entry and yield event
+  // propagation per forwarding level for each yielded item.
+  constexpr size_t kMaxDelegationDepth = 200;
+  std::array<GeneratorObject*, kMaxDelegationDepth> chain{};
+  size_t chain_size = 0;
+  GeneratorObject* current = root;
+  while (current != nullptr) {
+    if (!generator_can_trampoline(*current) || current->running || chain_size == chain.size()) {
+      return true;
+    }
+    chain[chain_size++] = current;
+    auto* child = value_as_generator(current->awaiting);
+    if (child == nullptr) break;
+    if (child->done || child->running || child->runtime != root->runtime) return true;
+    current = child;
+  }
+  if (chain_size < 2) return true;
+
+  struct RunningChainGuard {
+    std::array<GeneratorObject*, kMaxDelegationDepth>& chain;
+    size_t count;
+    ~RunningChainGuard() {
+      for (size_t i = 0; i < count; ++i) chain[i]->running = false;
+    }
+  } running_guard{chain, chain_size};
+  for (size_t i = 0; i < chain_size; ++i) {
+    chain[i]->running = true;
+    chain[i]->started = true;
+  }
+
+  handled = true;
+  size_t target_index = chain_size - 1;
+  bool forward_send = true;
+  while (true) {
+    bool target_done = false;
+    Value target_out;
+    bool resumed = false;
+    if (target_index == 0) {
+      resumed = generator_send(root_value,
+          chain[0]->delegation_trampoline_result_ready ? Value::none() : send_value,
+          target_done, target_out, error);
+    } else {
+      Value target_value;
+      value_assign_fast(target_value, chain[target_index - 1]->awaiting);
+      const Value target_send = forward_send ? send_value : Value::none();
+      resumed = generator_send(target_value, target_send, target_done, target_out, error);
+    }
+    forward_send = false;
+    if (!resumed) {
+      // With no suspended handlers, a delegated exception is unhandled at
+      // every forwarding level. Retire those continuations while preserving
+      // the original pending exception for the caller.
+      for (size_t i = 0; i <= target_index; ++i) {
+        clear_generator_vm_states(*chain[i]);
+        chain[i]->done = true;
+        chain[i]->has_pending_send = false;
+        chain[i]->delegation_trampoline_result_ready = false;
+        value_set_invalid(chain[i]->pending_send);
+        value_set_invalid(chain[i]->awaiting);
+      }
+      return false;
+    }
+    if (!target_done) {
+      done = false;
+      value_assign_fast(out, target_out);
+      return true;
+    }
+    if (target_index == 0) {
+      done = true;
+      value_assign_fast(out, target_out);
+      return true;
+    }
+
+    GeneratorObject* parent = chain[target_index - 1];
+    value_set_invalid(parent->awaiting);
+    value_assign_fast(parent->pending_send, target_out);
+    parent->has_pending_send = true;
+    parent->delegation_trampoline_result_ready = true;
+    --target_index;
+  }
+}
+
+} // namespace
+
 bool generator_send(Value& generator, Value value, bool& done, Value& out, std::string& error) {
   auto* obj = value_as_generator(generator);
   if (obj == nullptr) {
@@ -256,6 +368,12 @@ bool generator_send(Value& generator, Value value, bool& done, Value& out, std::
     error = "generator has invalid runtime";
     return false;
   }
+  bool trampoline_handled = false;
+  if (!try_generator_delegation_trampoline(
+          generator, value, trampoline_handled, done, out, error)) {
+    return false;
+  }
+  if (trampoline_handled) return true;
   // ``yield from`` resumes delegated generators through this native call path,
   // so each level consumes host stack even though it is a Python generator
   // frame.  Guard it before Windows exhausts its C stack.
@@ -269,8 +387,10 @@ bool generator_send(Value& generator, Value value, bool& done, Value& out, std::
   }
   GeneratorResumeGuard resume_guard;
   obj->started = true;
-  value_assign_fast(obj->pending_send, value);
-  obj->has_pending_send = true;
+  if (!obj->delegation_trampoline_result_ready) {
+    value_assign_fast(obj->pending_send, value);
+    obj->has_pending_send = true;
+  }
   Interpreter interpreter(*obj->runtime);
   obj->running = true;
   RuntimeResult result = interpreter.resume_generator(*obj, out, done);
@@ -285,6 +405,7 @@ bool generator_send(Value& generator, Value value, bool& done, Value& out, std::
     obj->has_pending_send = false;
     obj->has_pending_throw = false;
     obj->delegated_result_ready = false;
+    obj->delegation_trampoline_result_ready = false;
     value_set_none(obj->return_value);
   }
   if (!result.errors.empty()) {

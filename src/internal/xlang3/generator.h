@@ -48,6 +48,14 @@ struct GeneratorObject {
   bool is_async = false;
   bool is_coroutine = false;
   bool is_await_iterator = false;
+  // A saved continuation may carry per-frame trace/monitoring hooks even
+  // after the runtime-wide hooks are disabled. Keep delegation trampolining
+  // off for such a generator so every observable yield still runs normally.
+  bool has_observed_continuation = false;
+  bool has_active_suspended_exception_handlers = false;
+  // A trampoline injects a completed child's StopIteration.value into this
+  // saved yield-from frame before resuming it.
+  bool delegation_trampoline_result_ready = false;
   bool done = false;
 };
 

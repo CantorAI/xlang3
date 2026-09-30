@@ -145,6 +145,11 @@ XLANG3_HOT_INLINE XlangVMOpFlow await_op(
     state->frames = std::move(frames);
     state->frame_count = frame_count;
     state->send_target = in.dst;
+    active_generator->has_observed_continuation =
+        active_generator->has_observed_continuation ||
+        generator_continuation_has_observers(runtime, state->frames, state->frame_count);
+    active_generator->has_active_suspended_exception_handlers =
+        generator_continuation_has_active_exception_handlers(state->frames, state->frame_count);
     if (active_generator->vm_state_cleanup != nullptr && active_generator->vm_state != nullptr) {
       active_generator->vm_state_cleanup(active_generator->vm_state);
     }
@@ -192,6 +197,11 @@ XLANG3_HOT_INLINE XlangVMOpFlow await_op(
     state->frames = std::move(frames);
     state->frame_count = frame_count;
     state->send_target = in.dst;
+    active_generator->has_observed_continuation =
+        active_generator->has_observed_continuation ||
+        generator_continuation_has_observers(runtime, state->frames, state->frame_count);
+    active_generator->has_active_suspended_exception_handlers =
+        generator_continuation_has_active_exception_handlers(state->frames, state->frame_count);
     if (active_generator->vm_state_cleanup != nullptr && active_generator->vm_state != nullptr) {
       active_generator->vm_state_cleanup(active_generator->vm_state);
     }
@@ -243,6 +253,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow yield_from(
   // generator_throw places its return value in the send register in that case.
   if (value_truthy(regs[in.c]) && generator->awaiting.tag == ValueTag::Invalid) {
     generator->delegated_result_ready = false;
+    generator->delegation_trampoline_result_ready = false;
     value_assign_fast(regs[in.dst], regs[in.b]);
     value_set_bool(regs[in.c], false);
     return XlangVMOpFlow::Next;
@@ -348,6 +359,11 @@ XLANG3_HOT_INLINE XlangVMOpFlow yield_from(
   state->frames = std::move(frames);
   state->frame_count = frame_count;
   state->send_target = in.b;
+  generator->has_observed_continuation =
+      generator->has_observed_continuation ||
+      generator_continuation_has_observers(runtime, state->frames, state->frame_count);
+  generator->has_active_suspended_exception_handlers =
+      generator_continuation_has_active_exception_handlers(state->frames, state->frame_count);
   if (generator->vm_state_cleanup != nullptr && generator->vm_state != nullptr) {
     generator->vm_state_cleanup(generator->vm_state);
   }
