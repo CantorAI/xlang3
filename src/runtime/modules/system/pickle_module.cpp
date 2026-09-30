@@ -1871,6 +1871,9 @@ Value make_pickle_module(Runtime& runtime, const char* name) {
   buffer_attrs.push_back({"raw", runtime.make_native_function(std::string(name) + ".PickleBuffer.raw", picklebuffer_raw)});
   buffer_attrs.push_back({"release", runtime.make_native_function(std::string(name) + ".PickleBuffer.release", picklebuffer_release)});
 
+  // `_pickle` is XLang3's counterpart to CPython's native accelerator. Keep
+  // native shortcuts here only where they preserve that module's behavior;
+  // the pure-Python `pickle.py` implementation and its benchmarks stay Python.
   NativeModuleBuilder builder(runtime, name);
   builder.value("HIGHEST_PROTOCOL", Value::int64(kPickleHighestProtocol))
       .value("DEFAULT_PROTOCOL", Value::int64(5))
