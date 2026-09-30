@@ -1,0 +1,242 @@
+profiled workload unpickle_pure_python 4.073680399975274
+profiled Python calls, grouped by source/function
+perf: native_calls=246155 fast=178498 cached_fast=68114
+perf: native _io.BytesIO.__init__ slow=129 fast=0
+perf: native _random.Random.random slow=99 fast=0
+perf: native int.__new__ slow=16 fast=78
+perf: native __xlang3_build_class_from_namespace__ slow=2 fast=67
+perf: native list.extend slow=60 fast=0
+perf: native print slow=45 fast=0
+perf: native _operator.index slow=38 fast=0
+perf: native type.__new__ slow=26 fast=0
+perf: native __import__ slow=22 fast=0
+perf: native int.from_bytes slow=20 fast=0
+perf: native sys.audit slow=20 fast=0
+perf: native object.__init__ slow=4 fast=15
+perf: native itertools.batched slow=7 fast=0
+perf: native str.__new__ slow=7 fast=0
+perf: native _codecs.lookup_error slow=6 fast=0
+perf: native sorted slow=6 fast=0
+perf: native bytearray.translate slow=5 fast=0
+perf: native _io.BytesIO.getbuffer slow=3 fast=0
+perf: native _io.BytesIO.getvalue slow=3 fast=0
+perf: native _codecs.register slow=2 fast=0
+perf: native _random.Random.seed slow=2 fast=0
+perf: native eval slow=2 fast=0
+perf: native file.__enter__ slow=2 fast=0
+perf: native file.__exit__ slow=2 fast=0
+perf: native file.read slow=2 fast=0
+perf: native io.open_code slow=2 fast=0
+perf: native sys.setprofile slow=2 fast=0
+perf: native type.__or__ slow=2 fast=0
+perf: native FileFinder.path_hook slow=1 fast=0
+perf: native _functools._lru_cache_wrapper slow=1 fast=0
+perf: native _json.Encoder.__call__ slow=1 fast=0
+[[["pickle.py","read"],20200],[["pickle.py","load_memoize"],3940],[["pickle.py","load_short_binunicode"],3700],[["pickle.py","load_binget"],1360],[["pickle.py","write"],521],[["pickle.py","load_binint"],480],[["pickle.py","commit_frame"],307],[["pickle.py","persistent_id"],304],[["pickle.py","save"],304],[["pickle.py","load_binint1"],280],[["pickle.py","put"],197],[["pickle.py","memoize"],197],[["pickle.py","__init__"],186],[["pickle.py","save_str"],185],[["pickle.py","load_mark"],140],[["pickle.py","pop_mark"],140],[["pickle.py","load_frame"],120],[["pickle.py","load_empty_dictionary"],80],[["pickle.py","load_setitems"],80],[["pickle.py","get"],68],[["pickle.py","load_proto"],60],[["pickle.py","load_empty_list"],60],[["pickle.py","load_appends"],60],[["pickle.py","save_long"],39],[["pickle.py","find_class"],20],[["pickle.py","load_stack_global"],20],[["pickle.py","load_short_binbytes"],20],[["pickle.py","load_tuple1"],20],[["_pydatetime.py","__setstate"],20],[["_pydatetime.py","__new__"],20],[["pickle.py","load_reduce"],20],[["pickle.py","decode_long"],20],[["pickle.py","load_long1"],20],[["pickle.py","load_tuple2"],20],[["pickle.py","_batch_setitems"],4],[["pickle.py","save_dict"],4],[["pickle.py","start_framing"],3],[["pickle.py","_batch_appends"],3],[["pickle.py","save_list"],3],[["pickle.py","end_framing"],3],[["pickle.py","dump"],3],[["pickle.py","_dumps"],3],[["pickle.py","save_tuple"],2],[["aliases.py","<module>"],1],[["_win_cp_codecs.py","<module>"],1],[["__init__.py","<module>"],1],[["__init__.py","normalize_encoding"],1],[["utf_8.py","<module>"],1],[["codecs.py","__new__"],1],[["utf_8.py","getregentry"],1],[["__init__.py","search_function"],1],[["_pydatetime.py","_getstate"],1],[["_pydatetime.py","__reduce__"],1],[["pickle.py","_getattribute"],1],[["pickle.py","whichmodule"],1],[["pickle.py","save_global"],1],[["pickle.py","save_type"],1],[["pickle.py","_save_bytes_no_memo"],1],[["pickle.py","save_bytes"],1],[["pickle.py","save_reduce"],1]]
+perf: native _json.make_scanner slow=1 fast=0
+perf: native compile slow=1 fast=0
+perf: native dict.update slow=1 fast=0
+perf: native exec slow=1 fast=0
+perf: native generator.close slow=1 fast=0
+perf: native int.to_bytes slow=1 fast=0
+perf: native iter slow=1 fast=0
+perf: native itertools.count slow=1 fast=0
+perf: native list.sort slow=1 fast=0
+perf: native object.__reduce_ex__ slow=1 fast=0
+perf: native property.setter slow=1 fast=0
+perf: native tuple.__new__ slow=1 fast=0
+perf: native types.SimpleNamespace.__init__ slow=1 fast=0
+perf: native zipimport.zipimporter.__init__ slow=1 fast=0
+profiled benchmark function times (inclusive/self seconds)
+pickle.py read 20200 1.215674 1.215674
+pickle.py load_short_binunicode 3700 1.106147 0.648032
+pickle.py save 304 0.589848 0.068916
+pickle.py load_binget 1360 0.244372 0.160707
+pickle.py _dumps 3 0.223507 0.000574
+pickle.py dump 3 0.222629 0.00092
+pickle.py save_dict 4 0.206361 0.000747
+pickle.py _batch_setitems 4 0.204404 0.013989
+pickle.py save_list 3 0.163213 0.000562
+pickle.py _batch_appends 3 0.161833 0.002123
+pickle.py load_memoize 3940 0.147748 0.147748
+pickle.py save_str 185 0.094003 0.031861
+pickle.py load_binint 480 0.090036 0.060821
+pickle.py memoize 197 0.052571 0.037977
+pickle.py load_binint1 280 0.046817 0.029468
+pickle.py write 521 0.026486 0.026486
+pickle.py load_frame 120 0.018786 0.013763
+pickle.py commit_frame 307 0.015537 0.015537
+pickle.py load_setitems 80 0.013948 0.012323
+pickle.py save_tuple 2 0.013364 0.000805
+pickle.py load_appends 60 0.009661 0.008508
+perf: store_local moves=246170 copies=4435
+perf: frame_snapshots calls=130973 frames=1118543 locals=0 refresh_calls=195625 refresh_items=2477645
+perf: opcode 0 376884
+perf: opcode 1 68461
+perf: opcode 2 382444
+perf: opcode 3 246887
+perf: opcode 4 383
+perf: opcode 5 93
+perf: opcode 6 16
+perf: opcode 7 75
+perf: opcode 8 158
+perf: opcode 9 141
+perf: opcode 10 302871
+perf: opcode 11 2
+perf: opcode 12 5
+perf: opcode 13 2569
+perf: opcode 15 100
+perf: opcode 17 15
+perf: opcode 18 15315
+perf: opcode 19 906
+perf: opcode 20 74
+perf: opcode 22 148
+perf: opcode 23 10
+perf: opcode 25 69712
+perf: opcode 26 3009
+perf: opcode 30 36
+perf: opcode 31 1361
+perf: opcode 33 36
+perf: opcode 35 35266
+perf: opcode 36 34061
+perf: opcode 37 407
+perf: opcode 38 30
+perf: opcode 39 315
+perf: opcode 40 294
+perf: opcode 41 1
+perf: opcode 42 1591
+perf: opcode 46 25165
+perf: opcode 47 372735
+perf: opcode 48 141255
+perf: opcode 49 122
+perf: opcode 50 1570
+perf: opcode 51 728
+perf: opcode 52 692
+perf: opcode 53 15
+perf: opcode 54 3903
+perf: opcode 55 66751
+perf: opcode 56 333
+pickle.py load_long1 20 0.008396 0.005092
+pickle.py load_proto 60 0.007799 0.005421
+pickle.py load_reduce 20 0.007186 0.002371
+pickle.py save_reduce 1 0.006679 0.000399
+pickle.py persistent_id 304 0.006207 0.006207
+pickle.py load_short_binbytes 20 0.00609 0.003455
+pickle.py save_long 39 0.005348 0.00344
+_pydatetime.py __new__ 20 0.004815 0.004361
+pickle.py put 197 0.004359 0.004359
+pickle.py load_stack_global 20 0.004092 0.002556
+pickle.py __init__ 186 0.003925 0.003877
+pickle.py get 68 0.003479 0.003479
+pickle.py load_empty_dictionary 80 0.003037 0.003037
+pickle.py save_type 1 0.00293 0.000139
+pickle.py save_global 1 0.002791 0.000422
+pickle.py pop_mark 140 0.002779 0.002779
+pickle.py load_mark 140 0.002472 0.002472
+pickle.py load_empty_list 60 0.002212 0.002212
+__init__.py search_function 1 0.001619 0.000811
+profiled benchmark-frame calls 33254
+perf: opcode 58 1
+perf: opcode 59 10
+perf: opcode 60 123
+perf: opcode 62 2
+perf: opcode 63 193
+perf: opcode 64 47
+perf: opcode 65 9
+perf: opcode 66 4
+perf: opcode 67 41
+perf: opcode 70 163926
+perf: opcode 71 33672
+perf: opcode 72 827
+perf: opcode 73 53522
+perf: opcode 74 104526
+perf: opcode 75 23
+perf: opcode 76 64272
+perf: opcode 77 262955
+perf: opcode 78 195722
+perf: opcode 79 2345
+perf: opcode 80 4
+perf: opcode 81 2164
+perf: opcode 82 61
+perf: opcode 84 4
+perf: opcode 85 30
+perf: opcode 86 61
+perf: opcode 88 103
+perf: opcode 89 66867
+perf: opcode 90 174132
+perf: opcode 91 35
+perf: opcode 92 196
+perf: opcode 93 43528
+perf: opcode 95 816
+perf: opcode 96 1089
+perf: opcode 97 53754
+perf: opcode 98 2198
+perf: opcode 99 6
+perf: opcode 101 133100
+perf: opcode 102 17
+perf: opcode 105 99655
+perf: opcode 106 213913
+perf: opcode 107 38920
+perf: opcode 108 580
+perf: opcode 109 122
+perf: opcode 110 122043
+perf: opcode 111 91
+perf: opcode 112 919
+perf: opcode 113 20706
+perf: opcode 114 1486
+perf: opcode 115 21786
+perf: opcode 116 107
+perf: opcode 117 324024
+perf: opcode 118 208283
+perf: opcode 119 20545
+perf: opcode 120 4734
+perf: opcode 121 13823
+perf: opcode 122 413
+perf: opcode 125 294
+perf: opcode 126 11130
+perf: opcode 127 370
+perf: opcode 129 86
+perf: opcode 130 198
+perf: opcode 131 1890
+perf: opcode 132 90
+perf: objects kind alloc final_release incref decref
+perf: String 167775 162170 2055223 2214944
+perf: BigInt 12 10 190 200
+perf: Bytes 21364 21175 1718376 1739306
+perf: ByteArray 68 68 53 121
+perf: MemoryView 3 3 36 39
+perf: Slice 315 315 23 338
+perf: Tuple 37578 36921 1309856 1346280
+perf: List 67459 66926 633115 699884
+perf: Dict 131845 131436 5354953 5485987
+perf: Unknown 105 97 23 120
+perf: Set 127 93 358 451
+perf: DictValuesView 2 2 0 2
+perf: DictItemsView 30 30 12577 12607
+perf: DictIterator 91 91 3 94
+perf: SetIterator 9 9 0 9
+perf: Range 263 262 248164 248426
+perf: RangeIterator 244 244 0 244
+perf: SequenceIterator 636 636 3 639
+perf: Unknown 132 132 132 264
+perf: Unknown 2 2 2 4
+perf: Unknown 4 4 4 8
+perf: Unknown 1 0 2 2
+perf: Generator 146 146 292 438
+perf: Module 45 1 3012920 3010180
+perf: Cell 200 124 783309 783387
+perf: Function 1361 210 1596126 1595805
+perf: NativeFunction 86 14 650090 649600
+perf: Class 151 3 86746 85416
+perf: Instance 850 347 3485505 3484768
+perf: BoundMethod 205610 205214 312748 517781
+perf: StaticMethod 28 1 1053 1054
+perf: ClassMethod 49 0 361 360
+perf: Super 196 196 0 196
+perf: SlotDescriptor 48 0 863 863
+perf: Property 45 1 307 303
+perf: Unknown 66551 66550 785835 852383
+perf: Unknown 1644637 1644448 11411502 13055769
+perf: Unknown 165 165 109 274
+perf: File 2 2 19 21
+perf: Unknown 4 4 0 4

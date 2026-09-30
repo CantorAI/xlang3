@@ -976,7 +976,10 @@ void register_struct_module(Runtime& runtime) {
       // the adapter still spills unusually wide calls to a vector.
       .function("pack", struct_pack, builtin_variadic_fast_adapter<struct_pack, 4>)
       .function("pack_into", struct_pack_into)
-      .function("unpack", struct_unpack)
+      // Pure-Python unpickler opcode handlers repeatedly unpack fixed-size
+      // fields through CPython's native _struct equivalent. Keep this common
+      // format/buffer pair on borrowed VM registers in XLang3 too.
+      .function("unpack", struct_unpack, builtin_fast_adapter<struct_unpack, 2>)
       .function("unpack_from", struct_unpack_from)
       .function("iter_unpack", struct_iter_unpack)
       .function("_clearcache", struct_clearcache)
