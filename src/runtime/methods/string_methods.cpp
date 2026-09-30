@@ -398,6 +398,9 @@ bool publish_string_result(Value& target, Value& result) {
   if (result.tag == ValueTag::Invalid) {
     return false;
   }
+  if (auto* string = value_as_string(result)) {
+    string_object_refresh_ascii(*string);
+  }
   value_move_assign_fast(target, result);
   return true;
 }
@@ -502,6 +505,13 @@ bool join_string_values(
     const Items& items,
     Value& out,
     std::string& error) {
+  if (items.size() == 1 && value_as_string(items[0]) != nullptr) {
+    // CPython returns the original exact string for a one-item join. This also
+    // avoids allocating and copying the chunk returned by _json.make_encoder.
+    out = items[0];
+    return true;
+  }
+
   constexpr size_t kStackJoinViewCount = 8;
   std::array<memory::X3StringView, kStackJoinViewCount> stack_views{};
   std::vector<memory::X3StringView> heap_views;
@@ -1649,6 +1659,20 @@ bool resolve_format_access(
       }
       Value next;
       if (!object_get_attr(out, std::string(suffix.substr(start, cursor - start)), next, error)) return false;
+      if (auto* property = value_as_instance(out) != nullptr
+              ? value_as_property(next) : nullptr) {
+        if (property->fget.tag == ValueTag::None ||
+            property->fget.tag == ValueTag::Invalid) {
+          error = "unreadable attribute";
+          runtime.raise_class_error("AttributeError", error);
+          return false;
+        }
+        Value resolved;
+        if (!runtime_call_callable(runtime, property->fget, &out, 1,
+                                   resolved, error))
+          return false;
+        next = std::move(resolved);
+      }
       out = std::move(next);
       continue;
     }
@@ -1664,7 +1688,16 @@ bool resolve_format_access(
       Value key = end != token.c_str() && *end == '\0'
           ? Value::int64(static_cast<int64_t>(parsed)) : Value::string(token);
       Value next;
-      if (!mapping_get_item_runtime(runtime, out, key, next, error)) return false;
+      const auto* instance = value_as_instance(out);
+      const bool mapping = value_as_dict(out) != nullptr ||
+          value_as_mapping_proxy(out) != nullptr ||
+          (instance != nullptr &&
+           value_as_dict(instance->mapping_storage) != nullptr);
+      if (mapping || instance != nullptr) {
+        if (!mapping_get_item_runtime(runtime, out, key, next, error)) return false;
+      } else if (!sequence_get_item(out, key, next, error, &runtime)) {
+        return false;
+      }
       out = std::move(next);
       cursor = close + 1;
       continue;

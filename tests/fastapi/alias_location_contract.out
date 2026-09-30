@@ -1,0 +1,7 @@
+model ('age',)
+valid 200 {'age': 12}
+invalid 422 ['body', 'age']
+by-alias Ada
+by-name Ada
+duplicate ('last_updated_by',)
+duplicate-http 422 ['body', 'last_updated_by']

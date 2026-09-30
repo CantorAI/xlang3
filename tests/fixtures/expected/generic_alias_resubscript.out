@@ -1,0 +1,2 @@
+T True list[T]
+TypeError list[int] is not a generic class

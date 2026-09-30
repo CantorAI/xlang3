@@ -178,8 +178,7 @@ bool list_append_method(Runtime&, const Value* args, uint32_t argc, Value& out, 
   if (!method_check_argc(argc, 2, "list.append", error)) {
     return false;
   }
-  Value list = args[0];
-  if (!sequence_list_append(list, args[1], error)) {
+  if (!sequence_list_append(args[0], args[1], error)) {
     return false;
   }
   value_set_none(out);
@@ -200,8 +199,7 @@ bool list_append_fast_method(
     error = "list.append expected 1 argument";
     return false;
   }
-  Value list = leading[0];
-  if (!sequence_list_append(list, registers[register_args[0]], error)) {
+  if (!sequence_list_append(leading[0], registers[register_args[0]], error)) {
     return false;
   }
   value_set_none(out);
@@ -526,7 +524,8 @@ static BuiltinMethodSpec kListMethods[] = {
       {"__iter__", "list.__iter__", list_iter_method},
       {"__len__", "list.__len__", list_len_method},
       {"__setitem__", "list.__setitem__", list_setitem_method},
-      {"append", "list.append", list_append_method, list_append_fast_method},
+      {"append", "list.append", list_append_method, list_append_fast_method,
+       false, nullptr, nullptr, kBuiltinMethodSpecializationListAppend},
       {"clear", "list.clear", list_clear_method},
       {"copy", "list.copy", list_copy_method},
       {"count", "list.count", list_count_method},

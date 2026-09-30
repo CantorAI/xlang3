@@ -13,6 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 #include "xlang3/import_loader.h"
+#include "xlang3/pyc_magic.h"
 
 #include "xlang3/builtins.h"
 #include "xlang3/interpreter.h"
@@ -88,12 +89,25 @@ std::string python_path_string(const std::filesystem::path& path) {
   return path.lexically_normal().string();
 }
 
+bool get_cached_sys_module(Runtime& runtime, Value& sys, std::string& error) {
+  // Import helpers normally run under Runtime::import_module's lock. Use the
+  // same sys.modules entry that import_module would return without repeating
+  // its recursive lock and import-dispatch path for each lookup.
+  Value registered;
+  if (mapping_get_string_item(runtime.module_registry_dict(), "sys", registered, error) &&
+      value_as_module(registered) != nullptr) {
+    sys = std::move(registered);
+    return true;
+  }
+  return runtime.import_module("sys", sys, error);
+}
+
 std::string bytecode_cache_path(Runtime& runtime, const std::string& source) {
   const std::filesystem::path source_path(source);
   Value sys;
   Value prefix;
   std::string ignored;
-  if (runtime.import_module("sys", sys, ignored) &&
+  if (get_cached_sys_module(runtime, sys, ignored) &&
       module_get_attr(sys, "pycache_prefix", prefix, ignored)) {
     if (auto* prefix_string = value_as_string(prefix);
         prefix_string != nullptr && !string_object_view(*prefix_string).empty()) {
@@ -135,7 +149,7 @@ bool zip_pyc_matches_source(
     std::string_view bytecode,
     const ZipArchiveEntry* source_entry,
     std::string& error) {
-  if (bytecode.size() < 16 || bytecode.compare(0, 4, "\x3e\x58\x0d\x0a", 4) != 0) {
+  if (bytecode.size() < 16 || bytecode.compare(0, 4, kPycMagicView) != 0) {
     return false;
   }
   const uint32_t flags = zip_pyc_u32(bytecode, 4);
@@ -210,13 +224,25 @@ void raise_zipimport_bytecode_error(Runtime& runtime, const std::string& message
 
 bool find_zip_module_file(Runtime& runtime, const std::filesystem::path& archive_path, const std::vector<std::string>& parts, ModuleFile& out) {
   std::string path_entry = archive_path.string();
-  std::string lower_entry = path_entry;
-  std::transform(lower_entry.begin(), lower_entry.end(), lower_entry.begin(),
-                 [](unsigned char ch) { return static_cast<char>(std::tolower(ch)); });
-  const auto zip_pos = lower_entry.find(".zip");
-  if (zip_pos == std::string::npos) return false;
-  const std::string archive_name = path_entry.substr(0, zip_pos + 4);
-  std::string prefix = path_entry.substr(zip_pos + 4);
+  std::string archive_name;
+  std::vector<uint8_t> archive;
+  for (auto candidate = archive_path; !candidate.empty(); candidate = candidate.parent_path()) {
+    VfsNodeKind kind = VfsNodeKind::Missing;
+    std::string candidate_error;
+    if (runtime.vfs().kind(candidate.string(), kind, candidate_error) &&
+        kind == VfsNodeKind::File &&
+        runtime.vfs().read_file(candidate.string(), archive, candidate_error)) {
+      std::vector<ZipArchiveEntry> entries;
+      if (zip_archive_list_entries(archive, entries, candidate_error)) {
+        archive_name = candidate.string();
+        break;
+      }
+    }
+    archive.clear();
+    if (candidate == candidate.parent_path()) break;
+  }
+  if (archive_name.empty()) return false;
+  std::string prefix = path_entry.substr(archive_name.size());
   while (!prefix.empty() && (prefix.front() == '/' || prefix.front() == '\\')) prefix.erase(prefix.begin());
   std::replace(prefix.begin(), prefix.end(), '\\', '/');
   VfsNodeKind kind = VfsNodeKind::Missing;
@@ -231,10 +257,6 @@ bool find_zip_module_file(Runtime& runtime, const std::filesystem::path& archive
     result.make_preferred();
     return result.string();
   };
-  std::vector<uint8_t> archive;
-  if (!runtime.vfs().read_file(archive_string, archive, error)) {
-    return false;
-  }
   auto base = module_member_base(parts);
   if (!prefix.empty()) base = prefix + "/" + base;
   ZipArchiveEntry entry;
@@ -322,7 +344,7 @@ Value cache_zip_path_importer(Runtime& runtime, const std::string& archive_path)
   }
   Value sys;
   std::string ignored;
-  if (!runtime.import_module("sys", sys, ignored)) {
+  if (!get_cached_sys_module(runtime, sys, ignored)) {
     return Value::invalid();
   }
   Value cache;
@@ -342,29 +364,13 @@ Value cache_zip_path_importer(Runtime& runtime, const std::string& archive_path)
       value_as_class(zipimporter_class) == nullptr) {
     return Value::invalid();
   }
-  Value importer = Value::instance(std::move(zipimporter_class));
-  std::string lower_path = archive_path;
-  std::transform(lower_path.begin(), lower_path.end(), lower_path.begin(),
-                 [](unsigned char ch) { return static_cast<char>(std::tolower(ch)); });
-  const size_t zip_end = lower_path.find(".zip");
-  const std::string archive = zip_end == std::string::npos
-      ? archive_path
-      : archive_path.substr(0, zip_end + 4);
-  std::string prefix = zip_end == std::string::npos
-      ? std::string()
-      : archive_path.substr(zip_end + 4);
-  while (!prefix.empty() && (prefix.front() == '/' || prefix.front() == '\\')) {
-    prefix.erase(prefix.begin());
+  Value path_argument = Value::string(archive_path);
+  Value importer;
+  if (!runtime_call_callable(runtime, zipimporter_class, &path_argument, 1, importer, ignored)) {
+    Value pending;
+    runtime.take_pending_exception(pending);
+    return Value::invalid();
   }
-#if defined(_WIN32)
-  std::replace(prefix.begin(), prefix.end(), '/', '\\');
-  if (!prefix.empty() && prefix.back() != '\\') prefix.push_back('\\');
-#else
-  std::replace(prefix.begin(), prefix.end(), '\\', '/');
-  if (!prefix.empty() && prefix.back() != '/') prefix.push_back('/');
-#endif
-  object_set_attr(importer, "archive", Value::string(archive), ignored);
-  object_set_attr(importer, "prefix", Value::string(std::move(prefix)), ignored);
   mapping_set_item(cache, Value::string(archive_path), importer, ignored);
   return importer;
 }
@@ -487,7 +493,7 @@ bool find_module_file(Runtime& runtime, const std::string& name, ModuleFile& out
   };
   Value sys;
   std::string ignored;
-  if (runtime.import_module("sys", sys, ignored)) {
+  if (get_cached_sys_module(runtime, sys, ignored)) {
     Value path;
     if (module_get_attr(sys, "path", path, ignored)) {
       if (auto* list = value_as_list(path)) {
@@ -572,7 +578,7 @@ std::string python_import_miss_key(Runtime& runtime, const std::string& name) {
   Value sys;
   Value path;
   std::string ignored;
-  if (runtime.import_module("sys", sys, ignored) && module_get_attr(sys, "path", path, ignored)) {
+  if (get_cached_sys_module(runtime, sys, ignored) && module_get_attr(sys, "path", path, ignored)) {
     key.push_back('\n');
     key += value_to_string(path);
   }
@@ -592,7 +598,7 @@ bool read_current_source_bytecode_cache(
   std::string ignored;
   const std::string cache_path = bytecode_cache_path(runtime, source_path);
   if (!read_file(runtime, cache_path, bytecode, ignored) || bytecode.size() < 16 ||
-      bytecode.compare(0, 4, "\x3e\x58\x0d\x0a", 4) != 0 ||
+      bytecode.compare(0, 4, kPycMagicView) != 0 ||
       zip_pyc_u32(bytecode, 4) != 0) {
     return false;
   }
@@ -613,7 +619,7 @@ void write_source_bytecode_cache(
   Value sys;
   Value dont_write;
   std::string ignored;
-  if (runtime.import_module("sys", sys, ignored) &&
+  if (get_cached_sys_module(runtime, sys, ignored) &&
       module_get_attr(sys, "dont_write_bytecode", dont_write, ignored) &&
       value_truthy(dont_write)) {
     return;
@@ -637,7 +643,7 @@ void write_source_bytecode_cache(
   if (!runtime.vfs().stat(module_file.path, stat, ignored)) {
     return;
   }
-  std::string pyc("\x3e\x58\x0d\x0a", 4);
+  std::string pyc(kPycMagic, sizeof(kPycMagic));
   append_pyc_u32(pyc, 0);
   append_pyc_u32(pyc, static_cast<uint32_t>(stat.mtime_ns / 1000000000ll));
   append_pyc_u32(pyc, static_cast<uint32_t>(stat.size));
@@ -658,12 +664,18 @@ void write_source_bytecode_cache(
 } // namespace
 
 bool find_python_module_location(Runtime& runtime, const std::string& name, PythonModuleLocation& out) {
+  runtime.acquire_import_lock();
+  struct ImportLockGuard {
+    Runtime& runtime;
+    ~ImportLockGuard() { runtime.release_import_lock(); }
+  } import_lock{runtime};
   ModuleFile module_file;
   if (!find_module_file(runtime, name, module_file)) {
     return false;
   }
   out.path = std::move(module_file.path);
   out.package_dir = std::move(module_file.package_dir);
+  out.path_importer_cache_key = std::move(module_file.path_importer_cache_key);
   out.namespace_dirs = std::move(module_file.namespace_dirs);
   out.is_package = module_file.is_package;
   out.is_namespace_package = module_file.is_namespace_package;
@@ -797,7 +809,7 @@ bool import_python_module(Runtime& runtime, const std::string& name, Value& out,
 
   std::shared_ptr<const ir::Module> module_ir;
   if (using_bytecode) {
-    if (source.size() < 16 || source.compare(0, 4, "\x3e\x58\x0d\x0a", 4) != 0) {
+    if (source.size() < 16 || source.compare(0, 4, kPycMagicView) != 0) {
       error = "bad magic number in bytecode file '" + module_file.path + "'";
       if (module_file.is_zip_source) {
         raise_zipimport_bytecode_error(runtime, error);

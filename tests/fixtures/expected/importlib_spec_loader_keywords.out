@@ -1,0 +1,4 @@
+('sample.child', None, False, None, 'sample', None)
+('sample.child', 'generated', False, None, 'sample.child', [])
+TypeError
+TypeError

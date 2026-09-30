@@ -1,0 +1,6 @@
+date date_from_datetime_parsing Input should be a valid date or datetime, dates after 9999 are not supported as unix timestamps {'error': 'dates after 9999 are not supported as unix timestamps'}
+date date_from_datetime_parsing Input should be a valid date or datetime, dates before 0000 are not supported as unix timestamps {'error': 'dates before 0000 are not supported as unix timestamps'}
+date date_from_datetime_parsing Input should be a valid date or datetime, NaN values not permitted {'error': 'NaN values not permitted'}
+datetime datetime_parsing Input should be a valid datetime, dates after 9999 are not supported as unix timestamps {'error': 'dates after 9999 are not supported as unix timestamps'}
+datetime datetime_parsing Input should be a valid datetime, dates before 0000 are not supported as unix timestamps {'error': 'dates before 0000 are not supported as unix timestamps'}
+datetime datetime_parsing Input should be a valid datetime, NaN values not permitted {'error': 'NaN values not permitted'}

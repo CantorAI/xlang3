@@ -122,10 +122,16 @@ struct TokenizerState {
   std::string triple_text;
   std::vector<int> indent_stack{0};
   std::vector<Value> tokens;
+  Value deferred_exception;
 };
 
 void tokenizer_cleanup(void* data) {
   delete static_cast<TokenizerState*>(data);
+}
+
+bool defer_tokenizer_exception(Runtime& runtime, TokenizerState& state) {
+  if (state.tokens.empty()) return false;
+  return runtime.take_pending_exception(state.deferred_exception);
 }
 
 bool is_stop_iteration(Runtime& runtime) {
@@ -1553,7 +1559,7 @@ bool build_tokens(Runtime& runtime, TokenizerState& state, std::string& error) {
       } else {
         runtime.raise_class_error("SyntaxError", state.syntax_error);
       }
-      return false;
+      return defer_tokenizer_exception(runtime, state);
     }
     if (state.has_encoding && line.back() != '\n' && line.back() != '\r' &&
         state.delimiter_depth == 0 && !state.in_triple_string) {
@@ -1573,7 +1579,7 @@ bool build_tokens(Runtime& runtime, TokenizerState& state, std::string& error) {
   if (state.in_triple_string) {
     runtime.raise_class_error("SyntaxError", state.continued_string_is_triple
         ? "unterminated triple-quoted string literal" : "unterminated string literal");
-    return false;
+    return defer_tokenizer_exception(runtime, state);
   }
   if (!state.delimiter_stack.empty()) {
     Value exception = runtime.make_exception("SyntaxError", "unclosed parenthesis");
@@ -1585,7 +1591,7 @@ bool build_tokens(Runtime& runtime, TokenizerState& state, std::string& error) {
     object_set_attr(exception, "offset", Value::int64(static_cast<int64_t>(column + 1)), ignored);
     object_set_attr(exception, "text", Value::string(state.last_line), ignored);
     runtime.set_pending_exception(std::move(exception));
-    return false;
+    return defer_tokenizer_exception(runtime, state);
   }
   push_token(state, kTokenEndMarker, "", end_line, end_column, end_line, end_column, end_text);
   return true;
@@ -1621,6 +1627,10 @@ bool tokenizer_next(Runtime& runtime, const Value* args, uint32_t argc, Value& o
     return false;
   }
   if (state->index >= state->tokens.size()) {
+    if (state->deferred_exception.tag != ValueTag::Invalid) {
+      runtime.set_pending_exception(std::move(state->deferred_exception));
+      return false;
+    }
     runtime.raise_class_error("StopIteration", "");
     return false;
   }

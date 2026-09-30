@@ -964,9 +964,11 @@ X3Status x3_len(X3Runtime* runtime, X3Value value, uint64_t* result) {
   }
   xlang3::Value length;
   if (xlang3::value_as_instance(internal)) {
-    xlang3::Value method;
-    if (!xlang3::object_get_attr(internal, "__len__", method, error) ||
-        !xlang3::runtime_call_callable(*rt, method, nullptr, 0, length, error)) return fail(rt, error);
+    const xlang3::Value* builtin_len = rt->find_builtin("len");
+    if (builtin_len == nullptr ||
+        !xlang3::runtime_call_callable(*rt, *builtin_len, &internal, 1,
+                                      length, error))
+      return fail(rt, error.empty() ? "object has no len()" : error);
     if (length.tag != xlang3::ValueTag::Int64 || length.as.i64 < 0) return fail(rt, "invalid length");
     *result = static_cast<uint64_t>(length.as.i64);
     return X3_STATUS_OK;
@@ -1055,6 +1057,12 @@ X3Status x3_dict_get_entry(X3Runtime* runtime, X3Value dict, uint64_t index, X3V
     return fail(rt, error);
   }
   auto* dict_object = xlang3::value_as_dict(internal);
+  if (dict_object == nullptr) {
+    auto* instance = xlang3::value_as_instance(internal);
+    auto* klass = instance == nullptr ? nullptr : xlang3::value_as_class(instance->klass);
+    if (klass != nullptr && xlang3::class_has_builtin_base_name(klass, "dict"))
+      dict_object = xlang3::value_as_dict(instance->mapping_storage);
+  }
   if (dict_object == nullptr) {
     return fail(rt, "object is not a dict");
   }

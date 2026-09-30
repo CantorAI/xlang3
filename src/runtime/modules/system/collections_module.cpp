@@ -1415,10 +1415,28 @@ Value make_deque_iterator_class(Runtime& runtime, bool reverse) {
   return Value::class_object(name, std::move(attrs));
 }
 
+bool deque_class_getitem(
+    Runtime& runtime, const Value* args, uint32_t argc,
+    Value& out, std::string& error, void*) {
+  if (argc != 2 || value_as_class(args[0]) == nullptr) {
+    error = "deque.__class_getitem__ expects a class and one argument";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value parameters;
+  if (value_as_tuple(args[1]) != nullptr) value_assign_fast(parameters, args[1]);
+  else parameters = Value::tuple({args[1]});
+  out = Value::generic_alias(args[0], std::move(parameters));
+  return true;
+}
+
 Value make_deque_class(Runtime& runtime, DequeIteratorClasses* iterator_classes) {
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.push_back({"__module__", Value::string("collections")});
   attrs.push_back({"__qualname__", Value::string("deque")});
+  attrs.push_back({"__class_getitem__", Value::class_method(
+      runtime.make_native_function("_collections.deque.__class_getitem__",
+                                   deque_class_getitem))});
   attrs.push_back({"__init__", runtime.make_native_function(
       "_collections.deque.__init__", deque_init, nullptr, nullptr, nullptr, false, deque_init_kw)});
   attrs.push_back({"maxlen", Value::property(

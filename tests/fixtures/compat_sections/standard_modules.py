@@ -145,6 +145,24 @@ def cached_inc(value):
     return value + 1
 
 print(cached_inc(5), cached_inc(5), cached_inc.cache_info(), cached_inc.cache_parameters())
+
+# The native _functools wrapper must preserve typed and keyword key semantics.
+typed_cache_calls = []
+@functools.lru_cache(maxsize=4, typed=True)
+def cached_typed(value, *, marker=0):
+    typed_cache_calls.append((value, marker))
+    return len(typed_cache_calls)
+
+print(cached_typed(1, marker=2), cached_typed(1, marker=2), cached_typed(True, marker=2))
+print(typed_cache_calls, cached_typed.cache_info())
+
+uncached_calls = []
+@functools.lru_cache(maxsize=0)
+def always_uncached(value):
+    uncached_calls.append(value)
+    return len(uncached_calls)
+
+print(always_uncached(3), always_uncached(3), uncached_calls, always_uncached.cache_info())
 compiled_command = code.compile_command("answer = 42")
 print(compiled_command.co_filename, compiled_command.co_name, code.compile_command("if True:") is None)
 print(fnmatch.fnmatch("alpha.py", "*.py"), fnmatch.fnmatchcase("alpha.py", "a[!0-9]*.py"))

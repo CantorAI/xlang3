@@ -1,0 +1,10 @@
+send start ready
+send return reply
+send closed 1
+throw start ready
+throw yield recovered
+throw return after-throw
+throw closed 2
+close start ready
+close return None
+close closed 3

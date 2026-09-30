@@ -1,0 +1,5 @@
+200
+int ValidatorIterator(index=0, schema=Some(Int(IntValidator { strict: false })))
+str ValidatorIterator(index=0, schema=Some(Str(StrValidator { strict: false, coerce_numbers_to_str: false })))
+any ValidatorIterator(index=0, schema=None)
+list ValidatorIterator(index=0, schema=Some(List(ListValidator { strict: false, item_validator: Some(Int(IntValidator { strict: false })), min_length: None, max_length: None, name: OnceLock("list[int]"), fail_fast: false })))

@@ -27,6 +27,7 @@ limitations under the License.
 #include "xlang3/sequence.h"
 
 #include <string>
+#include <array>
 #include <unordered_map>
 #include <vector>
 
@@ -131,10 +132,46 @@ XLANG3_HOT_INLINE XlangVMOpFlow store_local_load_local(
   return XlangVMOpFlow::Next;
 }
 
-XLANG3_HOT_INLINE void move_local(
+XLANG3_HOT_INLINE XlangVMOpFlow move_local(
     const ir::Instr& in,
-    XlangVMSmallValueBuffer& locals) {
+    const ir::Function& fn,
+    XlangVMSmallValueBuffer& locals,
+    RuntimeResult& result,
+    size_t& ip,
+    bool allow_guarded_fast_path) {
+  if ((in.c & ir::kGuardedLocalMoveFlag) != 0) {
+    const size_t span = in.c & ir::kGuardedLocalMoveSpanMask;
+    if (span == 0 || ip >= fn.code.size() || span >= fn.code.size() - ip) {
+      result.errors.push_back("invalid guarded local move fallback span");
+      return XlangVMOpFlow::ReturnResult;
+    }
+    const auto immediate_numeric = [](const Value& value) {
+      return value.tag == ValueTag::Int64 || value.tag == ValueTag::Double;
+    };
+    bool exact_numeric_chain = allow_guarded_fast_path;
+    for (size_t offset = 0; exact_numeric_chain && offset <= span; ++offset) {
+      const auto& move = fn.code[ip + offset];
+      if (move.op != ir::Op::MoveLocal || (offset != 0 && move.c != 0) ||
+          move.dst >= locals.size() ||
+          move.a >= locals.size() || !immediate_numeric(locals[move.dst]) ||
+          !immediate_numeric(locals[move.a])) {
+        exact_numeric_chain = false;
+      }
+    }
+    if (exact_numeric_chain) {
+      // Exact immediate values cannot run finalizers or weakref callbacks while
+      // locals are replaced. Preserve copy order, then skip the redundant VM
+      // dispatches; observable/debugged execution keeps the original opcodes.
+      for (size_t offset = 0; offset <= span; ++offset) {
+        const auto& move = fn.code[ip + offset];
+        value_assign_fast(locals[move.dst], locals[move.a]);
+      }
+      ip += span;
+      return XlangVMOpFlow::Next;
+    }
+  }
   value_assign_fast(locals[in.dst], locals[in.a]);
+  return XlangVMOpFlow::Next;
 }
 
 XLANG3_HOT_INLINE void load_cell_object(
@@ -592,8 +629,11 @@ template <typename RaiseRuntimeError>
 XLANG3_HOT_INLINE XlangVMOpFlow add_local_const(
     const ir::Instr& in,
     const ir::Function& fn,
+    XlangVMFrame& frame,
     XlangVMSmallValueBuffer& locals,
     RuntimeResult& result,
+    size_t& ip,
+    bool allow_guarded_fast_path,
     RaiseRuntimeError&& raise_runtime_error) {
   if (in.dst >= locals.size() || in.a >= locals.size() || in.b >= fn.constants.size()) {
     result.errors.push_back("invalid local const add");
@@ -601,6 +641,39 @@ XLANG3_HOT_INLINE XlangVMOpFlow add_local_const(
   }
   const auto& lhs = locals[in.a];
   const auto& rhs = fn.constants[in.b];
+  if ((in.c & ir::kGuardedLocalAddFlag) != 0) {
+    const size_t fallback_span = in.c & ir::kGuardedLocalAddSpanMask;
+    if (fallback_span == 0 || ip >= fn.code.size() ||
+        fallback_span >= fn.code.size() - ip) {
+      result.errors.push_back("invalid guarded local const add fallback span");
+      return XlangVMOpFlow::ReturnResult;
+    }
+    // Exact immediate numeric tags exclude bool, big-int objects, subclasses,
+    // and user objects; those all execute the following normal Add sequence.
+    if (!allow_guarded_fast_path ||
+        (lhs.tag != ValueTag::Int64 && lhs.tag != ValueTag::Double) ||
+        (rhs.tag != ValueTag::Int64 && rhs.tag != ValueTag::Double)) {
+      return XlangVMOpFlow::Next;
+    }
+    if (lhs.tag == ValueTag::Int64 && rhs.tag == ValueTag::Int64) {
+      int64_t sum = 0;
+      if (xlang_vm_checked_add_i64(lhs.as.i64, rhs.as.i64, sum)) {
+        // Exact-int loop increments can commit the checked payload directly;
+        // overflow still executes the original Add sequence for bigint promotion.
+        value_set_int64(locals[in.dst], sum);
+        frame.release_memoryviews_for_skipped_local_add(fn, ip + 1, fallback_span);
+        ip += fallback_span;
+        return XlangVMOpFlow::Next;
+      }
+      return XlangVMOpFlow::Next;
+    }
+    Value sum;
+    if (!fast_add(lhs, rhs, sum)) return XlangVMOpFlow::Next;
+    value_move_assign_fast(locals[in.dst], sum);
+    frame.release_memoryviews_for_skipped_local_add(fn, ip + 1, fallback_span);
+    ip += fallback_span;
+    return XlangVMOpFlow::Next;
+  }
   if (!fast_add(lhs, rhs, locals[in.dst])) {
     std::string error;
     if (!value_add(lhs, rhs, locals[in.dst], error)) {
@@ -780,8 +853,12 @@ XLANG3_HOT_INLINE XlangVMOpFlow inplace_add_local_local(
 template <typename RaiseRuntimeError>
 XLANG3_HOT_INLINE XlangVMOpFlow add_local_local(
     const ir::Instr& in,
+    const ir::Function& fn,
+    XlangVMFrame& frame,
     XlangVMSmallValueBuffer& locals,
     RuntimeResult& result,
+    size_t& ip,
+    bool allow_guarded_fast_path,
     RaiseRuntimeError&& raise_runtime_error) {
   if (in.dst >= locals.size() || in.a >= locals.size() || in.b >= locals.size()) {
     result.errors.push_back("invalid local local add");
@@ -789,12 +866,319 @@ XLANG3_HOT_INLINE XlangVMOpFlow add_local_local(
   }
   const auto& lhs = locals[in.a];
   const auto& rhs = locals[in.b];
+  if ((in.c & ir::kGuardedLocalAddFlag) != 0) {
+    const size_t fallback_span = in.c & ir::kGuardedLocalAddSpanMask;
+    if (fallback_span == 0 || ip >= fn.code.size() ||
+        fallback_span >= fn.code.size() - ip) {
+      result.errors.push_back("invalid guarded local local add fallback span");
+      return XlangVMOpFlow::ReturnResult;
+    }
+    // Keep the common loop update to one dispatch; unusual or observable cases
+    // fall through to the exact generic bytecode emitted immediately afterward.
+    if (!allow_guarded_fast_path ||
+        (lhs.tag != ValueTag::Int64 && lhs.tag != ValueTag::Double) ||
+        (rhs.tag != ValueTag::Int64 && rhs.tag != ValueTag::Double)) {
+      return XlangVMOpFlow::Next;
+    }
+    if (lhs.tag == ValueTag::Int64 && rhs.tag == ValueTag::Int64) {
+      int64_t sum = 0;
+      if (xlang_vm_checked_add_i64(lhs.as.i64, rhs.as.i64, sum)) {
+        // Exact-int local updates avoid a temporary Value; overflow resumes
+        // the original Add bytecode so Python's arbitrary-precision result is preserved.
+        value_set_int64(locals[in.dst], sum);
+        frame.release_memoryviews_for_skipped_local_add(fn, ip + 1, fallback_span);
+        ip += fallback_span;
+        return XlangVMOpFlow::Next;
+      }
+      return XlangVMOpFlow::Next;
+    }
+    Value sum;
+    if (!fast_add(lhs, rhs, sum)) return XlangVMOpFlow::Next;
+    value_move_assign_fast(locals[in.dst], sum);
+    frame.release_memoryviews_for_skipped_local_add(fn, ip + 1, fallback_span);
+    ip += fallback_span;
+    return XlangVMOpFlow::Next;
+  }
   if (!fast_add(lhs, rhs, locals[in.dst])) {
     std::string error;
     if (!value_add(lhs, rhs, locals[in.dst], error)) {
       return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
     }
   }
+  return XlangVMOpFlow::Next;
+}
+
+enum class GuardedNumericPlanResult : uint8_t { NotApplicable, Applied, Invalid };
+
+// Keep the mixed/double fallback out of the interpreter's hot exact-int path;
+// functions can contain guarded plans even when their warmed values are ints.
+XLANG3_NOINLINE inline GuardedNumericPlanResult evaluate_mixed_guarded_numeric_plan(
+    const ir::GuardedLocalNumericExprSpec& spec,
+    const ir::Function& fn,
+    XlangVMSmallValueBuffer& locals,
+    Value& out,
+    RuntimeResult& result) {
+  std::array<ValueTag, ir::kMaxGuardedLocalNumericExprNodes> tags;
+  std::array<int64_t, ir::kMaxGuardedLocalNumericExprNodes> integers;
+  std::array<double, ir::kMaxGuardedLocalNumericExprNodes> doubles;
+  for (size_t i = 0; i < spec.nodes.size(); ++i) {
+    const auto& node = spec.nodes[i];
+    switch (node.kind) {
+      case ir::GuardedLocalNumericExprNodeKind::Local:
+        if (node.a >= locals.size() ||
+            (locals[node.a].tag != ValueTag::Int64 && locals[node.a].tag != ValueTag::Double)) {
+          return GuardedNumericPlanResult::NotApplicable;
+        }
+        tags[i] = locals[node.a].tag;
+        if (tags[i] == ValueTag::Int64) integers[i] = locals[node.a].as.i64;
+        else doubles[i] = locals[node.a].as.f64;
+        break;
+      case ir::GuardedLocalNumericExprNodeKind::Constant:
+        if (node.a >= fn.constants.size()) {
+          result.errors.push_back("invalid guarded numeric expression constant");
+          return GuardedNumericPlanResult::Invalid;
+        }
+        if (fn.constants[node.a].tag != ValueTag::Int64 &&
+            fn.constants[node.a].tag != ValueTag::Double) {
+          return GuardedNumericPlanResult::NotApplicable;
+        }
+        tags[i] = fn.constants[node.a].tag;
+        if (tags[i] == ValueTag::Int64) integers[i] = fn.constants[node.a].as.i64;
+        else doubles[i] = fn.constants[node.a].as.f64;
+        break;
+      case ir::GuardedLocalNumericExprNodeKind::Add:
+      case ir::GuardedLocalNumericExprNodeKind::Sub:
+      case ir::GuardedLocalNumericExprNodeKind::Mul: {
+        if (node.a >= i || node.b >= i) {
+          result.errors.push_back("invalid guarded numeric expression node reference");
+          return GuardedNumericPlanResult::Invalid;
+        }
+        if (tags[node.a] == ValueTag::Int64 && tags[node.b] == ValueTag::Int64) {
+          bool succeeded = false;
+          if (node.kind == ir::GuardedLocalNumericExprNodeKind::Add) {
+            succeeded = xlang_vm_checked_add_i64(integers[node.a], integers[node.b], integers[i]);
+          } else if (node.kind == ir::GuardedLocalNumericExprNodeKind::Sub) {
+            succeeded = xlang_vm_checked_sub_i64(integers[node.a], integers[node.b], integers[i]);
+          } else {
+            succeeded = xlang_vm_checked_mul_i64(integers[node.a], integers[node.b], integers[i]);
+          }
+          if (!succeeded) return GuardedNumericPlanResult::NotApplicable;
+          tags[i] = ValueTag::Int64;
+        } else {
+          const double lhs = tags[node.a] == ValueTag::Int64
+              ? static_cast<double>(integers[node.a]) : doubles[node.a];
+          const double rhs = tags[node.b] == ValueTag::Int64
+              ? static_cast<double>(integers[node.b]) : doubles[node.b];
+          if (node.kind == ir::GuardedLocalNumericExprNodeKind::Add) doubles[i] = lhs + rhs;
+          else if (node.kind == ir::GuardedLocalNumericExprNodeKind::Sub) doubles[i] = lhs - rhs;
+          else doubles[i] = lhs * rhs;
+          tags[i] = ValueTag::Double;
+        }
+        break;
+      }
+      default:
+        result.errors.push_back("invalid guarded numeric expression node kind");
+        return GuardedNumericPlanResult::Invalid;
+    }
+  }
+  const size_t final_index = spec.nodes.size() - 1;
+  if (tags[final_index] == ValueTag::Int64) value_set_int64(out, integers[final_index]);
+  else value_set_number(out, doubles[final_index]);
+  return GuardedNumericPlanResult::Applied;
+}
+
+XLANG3_HOT_INLINE XlangVMOpFlow guarded_local_numeric_expr(
+    const ir::Instr& in,
+    const ir::Function& fn,
+    XlangVMFrame& frame,
+    XlangVMSmallValueBuffer& locals,
+    RuntimeResult& result,
+    size_t& ip,
+    bool allow_guarded_fast_path) {
+  if (in.dst >= locals.size() || in.a >= fn.guarded_local_numeric_exprs.size()) {
+    result.errors.push_back("invalid guarded local numeric expression");
+    return XlangVMOpFlow::ReturnResult;
+  }
+  const auto& spec = fn.guarded_local_numeric_exprs[in.a];
+  const size_t fallback_span = spec.fallback_span;
+  if (spec.nodes.empty() || spec.nodes.size() > ir::kMaxGuardedLocalNumericExprNodes ||
+      fallback_span == 0 || ip >= fn.code.size() ||
+      fallback_span >= fn.code.size() - ip) {
+    result.errors.push_back("invalid guarded local numeric expression fallback");
+    return XlangVMOpFlow::ReturnResult;
+  }
+  if (!allow_guarded_fast_path) return XlangVMOpFlow::Next;
+
+  // Keep the hot accumulator loop out of the generic node evaluator: its
+  // static (accumulator + index * constant) - constant shape needs only four
+  // registers and checked integer operations, then retains the same fallback.
+  if (spec.nodes.size() == 7) {
+    const auto& n0 = spec.nodes[0];
+    const auto& n1 = spec.nodes[1];
+    const auto& n2 = spec.nodes[2];
+    const auto& n3 = spec.nodes[3];
+    const auto& n4 = spec.nodes[4];
+    const auto& n5 = spec.nodes[5];
+    const auto& n6 = spec.nodes[6];
+    if (n0.kind == ir::GuardedLocalNumericExprNodeKind::Local &&
+        n0.a == in.dst &&
+        n1.kind == ir::GuardedLocalNumericExprNodeKind::Local &&
+        n2.kind == ir::GuardedLocalNumericExprNodeKind::Constant &&
+        n3.kind == ir::GuardedLocalNumericExprNodeKind::Mul &&
+        n3.a == 1 && n3.b == 2 &&
+        n4.kind == ir::GuardedLocalNumericExprNodeKind::Add &&
+        n4.a == 0 && n4.b == 3 &&
+        n5.kind == ir::GuardedLocalNumericExprNodeKind::Constant &&
+        n6.kind == ir::GuardedLocalNumericExprNodeKind::Sub &&
+        n6.a == 4 && n6.b == 5 &&
+        n1.a < locals.size() && n2.a < fn.constants.size() &&
+        n5.a < fn.constants.size() &&
+        locals[in.dst].tag == ValueTag::Int64 &&
+        locals[n1.a].tag == ValueTag::Int64 &&
+        fn.constants[n2.a].tag == ValueTag::Int64 &&
+        fn.constants[n5.a].tag == ValueTag::Int64) {
+      int64_t scaled_index = 0;
+      int64_t adjusted_index = 0;
+      int64_t sum = 0;
+      if (xlang_vm_checked_mul_i64(
+              locals[n1.a].as.i64, fn.constants[n2.a].as.i64, scaled_index) &&
+          xlang_vm_checked_sub_i64(
+              scaled_index, fn.constants[n5.a].as.i64, adjusted_index) &&
+          xlang_vm_checked_add_i64(locals[in.dst].as.i64, adjusted_index, sum)) {
+        value_set_int64(locals[in.dst], sum);
+        frame.release_memoryviews_for_skipped_local_add(fn, ip + 1, fallback_span);
+        ip += fallback_span;
+        return XlangVMOpFlow::Next;
+      }
+    }
+  }
+
+  // The common scalar-loop shape contains only exact int64 locals/constants.
+  // Evaluate that analyzed plan in unboxed integers and construct one Value at
+  // the destination. Checked overflow exits to the original bytecode so Python
+  // bigint promotion, bool/subclass operators, and other cases stay unchanged.
+  // The lowering plan is topological: each node writes its own slot before a
+  // later node can reference it, so zeroing this fixed scratch array per loop
+  // iteration only adds work to the exact-int fast path.
+  std::array<int64_t, ir::kMaxGuardedLocalNumericExprNodes> int_values;
+  bool exact_int_plan = true;
+  for (size_t i = 0; i < spec.nodes.size(); ++i) {
+    const auto& node = spec.nodes[i];
+    switch (node.kind) {
+      case ir::GuardedLocalNumericExprNodeKind::Local:
+        if (node.a >= locals.size() || locals[node.a].tag == ValueTag::Invalid ||
+            locals[node.a].tag != ValueTag::Int64) {
+          exact_int_plan = false;
+          break;
+        }
+        int_values[i] = locals[node.a].as.i64;
+        break;
+      case ir::GuardedLocalNumericExprNodeKind::Constant:
+        if (node.a >= fn.constants.size()) {
+          result.errors.push_back("invalid guarded numeric expression constant");
+          return XlangVMOpFlow::ReturnResult;
+        }
+        if (fn.constants[node.a].tag != ValueTag::Int64) {
+          exact_int_plan = false;
+          break;
+        }
+        int_values[i] = fn.constants[node.a].as.i64;
+        break;
+      case ir::GuardedLocalNumericExprNodeKind::Add:
+      case ir::GuardedLocalNumericExprNodeKind::Sub:
+      case ir::GuardedLocalNumericExprNodeKind::Mul: {
+        if (node.a >= i || node.b >= i) {
+          result.errors.push_back("invalid guarded numeric expression node reference");
+          return XlangVMOpFlow::ReturnResult;
+        }
+        bool succeeded = false;
+        if (node.kind == ir::GuardedLocalNumericExprNodeKind::Add) {
+          succeeded = xlang_vm_checked_add_i64(int_values[node.a], int_values[node.b], int_values[i]);
+        } else if (node.kind == ir::GuardedLocalNumericExprNodeKind::Sub) {
+          succeeded = xlang_vm_checked_sub_i64(int_values[node.a], int_values[node.b], int_values[i]);
+        } else {
+          succeeded = xlang_vm_checked_mul_i64(int_values[node.a], int_values[node.b], int_values[i]);
+        }
+        if (!succeeded) exact_int_plan = false;
+        break;
+      }
+      default:
+        result.errors.push_back("invalid guarded numeric expression node kind");
+        return XlangVMOpFlow::ReturnResult;
+    }
+    if (!exact_int_plan) break;
+  }
+  if (exact_int_plan) {
+    Value result_value;
+    value_set_int64(result_value, int_values[spec.nodes.size() - 1]);
+    value_move_assign_fast(locals[in.dst], result_value);
+    frame.release_memoryviews_for_skipped_local_add(fn, ip + 1, fallback_span);
+    ip += fallback_span;
+    return XlangVMOpFlow::Next;
+  }
+
+  // This cold helper keeps mixed-number checks and scratch arrays outside the
+  // exact-int interpreter path while retaining bigint and malformed-IR fallback.
+  Value numeric_result;
+  const auto numeric_status = evaluate_mixed_guarded_numeric_plan(
+      spec, fn, locals, numeric_result, result);
+  if (numeric_status == GuardedNumericPlanResult::Invalid) {
+    return XlangVMOpFlow::ReturnResult;
+  }
+  if (numeric_status == GuardedNumericPlanResult::Applied) {
+    value_move_assign_fast(locals[in.dst], numeric_result);
+    frame.release_memoryviews_for_skipped_local_add(fn, ip + 1, fallback_span);
+    ip += fallback_span;
+    return XlangVMOpFlow::Next;
+  }
+  std::array<Value, ir::kMaxGuardedLocalNumericExprNodes> values{};
+  for (size_t i = 0; i < spec.nodes.size(); ++i) {
+    const auto& node = spec.nodes[i];
+    switch (node.kind) {
+      case ir::GuardedLocalNumericExprNodeKind::Local:
+        if (node.a >= locals.size() || locals[node.a].tag == ValueTag::Invalid) {
+          return XlangVMOpFlow::Next;
+        }
+        if (locals[node.a].tag != ValueTag::Int64 && locals[node.a].tag != ValueTag::Double) {
+          return XlangVMOpFlow::Next;
+        }
+        value_borrow_assign_fast(values[i], locals[node.a]);
+        break;
+      case ir::GuardedLocalNumericExprNodeKind::Constant:
+        if (node.a >= fn.constants.size()) {
+          result.errors.push_back("invalid guarded numeric expression constant");
+          return XlangVMOpFlow::ReturnResult;
+        }
+        if (fn.constants[node.a].tag != ValueTag::Int64 &&
+            fn.constants[node.a].tag != ValueTag::Double) return XlangVMOpFlow::Next;
+        value_borrow_assign_fast(values[i], fn.constants[node.a]);
+        break;
+      case ir::GuardedLocalNumericExprNodeKind::Add:
+      case ir::GuardedLocalNumericExprNodeKind::Sub:
+      case ir::GuardedLocalNumericExprNodeKind::Mul: {
+        if (node.a >= i || node.b >= i) {
+          result.errors.push_back("invalid guarded numeric expression node reference");
+          return XlangVMOpFlow::ReturnResult;
+        }
+        bool succeeded = false;
+        if (node.kind == ir::GuardedLocalNumericExprNodeKind::Add)
+          succeeded = fast_add(values[node.a], values[node.b], values[i]);
+        else if (node.kind == ir::GuardedLocalNumericExprNodeKind::Sub)
+          succeeded = fast_sub(values[node.a], values[node.b], values[i]);
+        else
+          succeeded = fast_mul(values[node.a], values[node.b], values[i]);
+        // Overflow and big-integer promotion take the unchanged generic path.
+        if (!succeeded) return XlangVMOpFlow::Next;
+        break;
+      }
+      default:
+        result.errors.push_back("invalid guarded numeric expression node kind");
+        return XlangVMOpFlow::ReturnResult;
+    }
+  }
+  value_move_assign_fast(locals[in.dst], values[spec.nodes.size() - 1]);
+  frame.release_memoryviews_for_skipped_local_add(fn, ip + 1, fallback_span);
+  ip += fallback_span;
   return XlangVMOpFlow::Next;
 }
 

@@ -1,0 +1,5 @@
+spec_demo True
+spec_demo True
+spec_demo ['custom']
+['custom']
+'' None

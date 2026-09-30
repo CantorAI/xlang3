@@ -161,7 +161,12 @@ XLANG3_HOT_INLINE XlangVMOpFlow make_set(
       return XlangVMOpFlow::ReturnResult;
     }
     std::string error;
-    if (!::xlang3::set_add(regs[in.dst], regs[reg], error)) {
+    if (!::xlang3::set_add_runtime(runtime, regs[in.dst], regs[reg], error)) {
+      Value pending;
+      if (runtime.take_pending_exception(pending)) {
+        return raise_exception_value(std::move(pending))
+                   ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+      }
       if (error.find("not hashable") != std::string::npos) {
         return raise_exception_value(runtime.make_exception("TypeError", error))
                    ? XlangVMOpFlow::ContinueLoop
@@ -337,13 +342,25 @@ XLANG3_HOT_INLINE XlangVMOpFlow set_add_op(
         }
       }
       if (!exists) {
+        size_t hash = 0;
+        std::string hash_error;
+        if (!value_hash_key(item, hash, hash_error)) {
+          return raise_runtime_error(hash_error)
+              ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+        }
         set->items.push_back(item);
+        set->item_hashes.push_back(hash);
       }
       return XlangVMOpFlow::Next;
     }
   }
   std::string error;
-  if (!::xlang3::set_add(regs[in.dst], regs[in.a], error)) {
+  if (!::xlang3::set_add_runtime(runtime, regs[in.dst], regs[in.a], error)) {
+    Value pending;
+    if (runtime.take_pending_exception(pending)) {
+      return raise_exception_value(std::move(pending))
+                 ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    }
     if (error.find("not hashable") != std::string::npos) {
       return raise_exception_value(runtime.make_exception("TypeError", error))
                  ? XlangVMOpFlow::ContinueLoop
@@ -385,7 +402,12 @@ XLANG3_HOT_INLINE XlangVMOpFlow set_update(
     if (done) {
       break;
     }
-    if (!::xlang3::set_add(regs[in.dst], item, error)) {
+    if (!::xlang3::set_add_runtime(runtime, regs[in.dst], item, error)) {
+      Value pending;
+      if (runtime.take_pending_exception(pending)) {
+        return raise_exception_value(std::move(pending))
+                   ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+      }
       return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
     }
   }
@@ -855,9 +877,10 @@ XLANG3_HOT_INLINE XlangVMOpFlow get_item(
     std::string class_attr_error;
     if (object_get_class_attr_for_instance(regs[in.a], "__getitem__", class_getitem, class_attr_error) &&
         (value_as_function(class_getitem) != nullptr ||
-         value_as_native_function(class_getitem) != nullptr)) {
+         value_as_native_function(class_getitem) != nullptr ||
+         object_value_has_descriptor_get(class_getitem))) {
       Value getitem;
-      if (object_get_attr(regs[in.a], "__getitem__", getitem, class_attr_error)) {
+      if (object_get_special_method(runtime, regs[in.a], "__getitem__", getitem, class_attr_error)) {
         const Value call_arg = regs[in.b];
         if (runtime_call_callable(runtime, getitem, &call_arg, 1, regs[in.dst], error)) {
           xlang_vm_cache_note_hit(cache);
@@ -873,9 +896,12 @@ XLANG3_HOT_INLINE XlangVMOpFlow get_item(
       }
     }
   }
+  const auto* mapping_instance = value_as_instance(regs[in.a]);
   const bool runtime_mapping = value_as_dict(regs[in.a]) != nullptr ||
-      (value_as_instance(regs[in.a]) != nullptr &&
-       value_as_dict(value_as_instance(regs[in.a])->mapping_storage) != nullptr);
+      (mapping_instance != nullptr &&
+       value_as_class(mapping_instance->klass) != nullptr &&
+       class_has_builtin_base_name(value_as_class(mapping_instance->klass), "dict") &&
+       value_as_dict(mapping_instance->mapping_storage) != nullptr);
   const bool mapping_found = runtime_mapping &&
       mapping_get_item_runtime(runtime, regs[in.a], regs[in.b], regs[in.dst], error);
   if (mapping_found) {
@@ -899,6 +925,11 @@ XLANG3_HOT_INLINE XlangVMOpFlow get_item(
                                                            : XlangVMOpFlow::ReturnResult;
         }
       }
+    }
+    Value pending;
+    if (runtime.take_pending_exception(pending)) {
+      return raise_exception_value(std::move(pending)) ? XlangVMOpFlow::ContinueLoop
+                                                       : XlangVMOpFlow::ReturnResult;
     }
     bool is_mapping_miss = error == "key not found" &&
         (value_as_dict(regs[in.a]) != nullptr || value_as_mapping_proxy(regs[in.a]) != nullptr ||
@@ -924,8 +955,16 @@ XLANG3_HOT_INLINE XlangVMOpFlow get_item(
                                                                                : XlangVMOpFlow::ReturnResult;
     }
     if (error == "object is not subscriptable") {
-      return raise_exception_value(runtime.make_exception("TypeError", error)) ? XlangVMOpFlow::ContinueLoop
-                                                                               : XlangVMOpFlow::ReturnResult;
+      std::string message = error;
+      if (auto* klass = value_as_class(regs[in.a])) {
+        message = "type '" + klass->name + "' is not subscriptable";
+      } else if (value_as_function(regs[in.a]) != nullptr) {
+        message = "'function' object is not subscriptable";
+      } else if (value_as_native_function(regs[in.a]) != nullptr) {
+        message = "'builtin_function_or_method' object is not subscriptable";
+      }
+      return raise_exception_value(runtime.make_exception("TypeError", message))
+                 ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
     }
     if (error == "operation forbidden on released memoryview object") {
       return raise_exception_value(runtime.make_exception("ValueError", error))

@@ -1,0 +1,24 @@
+Match 6
+MatchOr ('patterns',)
+no guard
+MatchSequence ('patterns',)
+Name
+MatchMapping ('keys', 'patterns', 'rest')
+no guard
+MatchClass ('cls', 'patterns', 'kwd_attrs', 'kwd_patterns')
+no guard
+MatchSingleton ('value',)
+no guard
+MatchAs ('pattern', 'name')
+no guard
+or 2
+sequence ['MatchAs', 'MatchStar']
+mapping 1 rest
+class ['prefix']
+singleton True
+capture other
+number
+sequence
+mapping
+none
+other

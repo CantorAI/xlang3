@@ -33,6 +33,7 @@ limitations under the License.
 #include <algorithm>
 #include <cctype>
 #include <iomanip>
+#include <mutex>
 #include <sstream>
 #include <string_view>
 #include <unordered_set>
@@ -44,6 +45,16 @@ namespace {
 std::unordered_set<Object*>& native_gc_instances() {
   static auto* instances = new std::unordered_set<Object*>();
   return *instances;
+}
+
+std::mutex& live_classes_mutex() {
+  static auto* mutex = new std::mutex();
+  return *mutex;
+}
+
+std::unordered_set<const ClassObject*>& live_classes() {
+  static auto* classes = new std::unordered_set<const ClassObject*>();
+  return *classes;
 }
 
 bool exception_internal_attribute_name(std::string_view name) {
@@ -132,6 +143,11 @@ bool generic_alias_union_impl(
       value_assign_fast(normalized_right, *none_type);
   }
   if (value_bit_or(normalized_left, normalized_right, out, error)) return true;
+  if (const Value* not_implemented = runtime.find_builtin("NotImplemented")) {
+    value_assign_fast(out, *not_implemented);
+    error.clear();
+    return true;
+  }
   runtime.raise_class_error("TypeError", error);
   return false;
 }
@@ -200,7 +216,7 @@ std::string code_object_compat_bytecode(const ir::Module& module, const ir::Func
       emit(92, (static_cast<size_t>(instruction.a) << 1u) | push_null, 4);  // LOAD_GLOBAL.
       continue;
     }
-    if ((instruction.op == ir::Op::LoadAttr || instruction.op == ir::Op::CallMethod) &&
+    if ((instruction.op == ir::Op::LoadAttr || instruction.op == ir::Op::CallMethod || instruction.op == ir::Op::CallMethodEx) &&
         instruction.b < function.names.size()) {
       const auto& name = function.names[instruction.b];
       // Exception traceback loads emitted for context-manager unwinding are an
@@ -211,7 +227,7 @@ std::string code_object_compat_bytecode(const ir::Module& module, const ir::Func
       if (name == "__enter__" || name == "__exit__") {
         emit(95, name == "__exit__" ? 1u : 0u, 0);  // LOAD_SPECIAL.
       } else {
-        const size_t method_flag = instruction.op == ir::Op::CallMethod ? 1u : 0u;
+        const size_t method_flag = (instruction.op == ir::Op::CallMethod || instruction.op == ir::Op::CallMethodEx) ? 1u : 0u;
         emit(80, (static_cast<size_t>(instruction.b) << 1u) | method_flag, 9);  // LOAD_ATTR.
       }
       continue;
@@ -234,6 +250,7 @@ T* allocate_object_model(ObjectKind kind) {
   obj->header.kind = kind;
   obj->header.refcnt = 1;
   xlang_perf_count_object_alloc(kind);
+  gc_track_object(&obj->header);
   return obj;
 }
 
@@ -241,6 +258,7 @@ struct InstanceFreeList {
   ~InstanceFreeList() {
     memory::object_caches_alive = false;
     for (auto* instance : items) {
+      gc_untrack_object(&instance->header);
       delete instance;
     }
     for (auto* method : bound_methods) {
@@ -261,6 +279,7 @@ InstanceObject* allocate_instance_object() {
     obj->header.kind = ObjectKind::Instance;
     obj->header.refcnt = 1;
     xlang_perf_count_object_alloc(ObjectKind::Instance);
+    gc_track_object(&obj->header);
     return obj;
   }
   return allocate_object_model<InstanceObject>(ObjectKind::Instance);
@@ -273,6 +292,7 @@ BoundMethodObject* allocate_bound_method_object() {
     obj->header.kind = ObjectKind::BoundMethod;
     obj->header.refcnt = 1;
     xlang_perf_count_object_alloc(ObjectKind::BoundMethod);
+    gc_track_object(&obj->header);
     return obj;
   }
   return allocate_object_model<BoundMethodObject>(ObjectKind::BoundMethod);
@@ -318,7 +338,12 @@ void function_annotate_cleanup(void* user_data) {
 
 
 void recycle_instance_object(InstanceObject* instance) {
-  native_gc_instances().erase(&instance->header);
+  // Ordinary Python instances never enter the native-edge registry; avoid a
+  // process-wide hash probe for them on every final release.
+  if (instance->native_gc_registered) {
+    native_gc_instances().erase(&instance->header);
+    instance->native_gc_registered = false;
+  }
   if (instance->native_data_cleanup != nullptr && instance->native_data != nullptr) {
     instance->native_data_cleanup(instance->native_owner);
   }
@@ -344,9 +369,12 @@ void recycle_instance_object(InstanceObject* instance) {
   instance->attrs.clear();
   instance->slot_count = 0;
   if (memory::object_caches_alive && instance_free_list.items.size() < 1024) {
+    // Keep the GC index on cached zero-ref instances. Snapshotting ignores
+    // them, and a later allocation can reuse the entry without a lock/unlock.
     instance_free_list.items.push_back(instance);
     return;
   }
+  gc_untrack_object(&instance->header);
   delete instance;
 }
 
@@ -792,13 +820,17 @@ bool choose_compatible_metaclass(Value& current, const Value& candidate, std::st
 namespace {
 
 bool class_has_builtin_base_name_impl(ClassObject* klass, std::string_view name) {
-  std::vector<const ClassObject*> mro;
+  // Instance creation asks this for several builtin container bases. Read the
+  // cached Value MRO directly instead of materializing a temporary vector of
+  // class pointers for each query (and each new instance).
+  const std::vector<Value>* mro = nullptr;
   std::string ignored;
-  if (!class_mro_classes(klass, mro, ignored)) {
+  if (!class_mro_values(klass, mro, ignored)) {
     return false;
   }
-  for (const auto* item : mro) {
-    if (item != nullptr && item->name == name) {
+  for (const auto& item : *mro) {
+    const auto* item_class = value_as_class(item);
+    if (item_class != nullptr && item_class->name == name) {
       return true;
     }
   }
@@ -841,6 +873,11 @@ bool bind_metaclass_attr_for_class_access(const Value& class_value, Value attr, 
   }
   if (value_as_function(attr) != nullptr ||
       (value_as_native_function(attr) != nullptr && value_as_native_function(attr)->bind_as_descriptor)) {
+    if (auto* klass = value_as_class(class_value);
+        klass != nullptr && value_is(klass->metaclass, class_value)) {
+      value_assign_fast(out, attr);
+      return true;
+    }
     out = Value::bound_method(class_value, std::move(attr));
     return true;
   }
@@ -1026,6 +1063,7 @@ void add_unique_slot_name(std::vector<std::string>& slots, const std::string& na
 
 std::string mangle_instance_slot_name(std::string_view class_name, const std::string& slot_name) {
   if (slot_name.size() < 3 || slot_name[0] != '_' || slot_name[1] != '_' ||
+      slot_name.find_first_not_of('_') == std::string::npos ||
       (slot_name.size() >= 4 && slot_name[slot_name.size() - 1] == '_' &&
        slot_name[slot_name.size() - 2] == '_')) {
     return slot_name;
@@ -1164,10 +1202,28 @@ int64_t frame_source_line(const FrameObject& frame) {
     return static_cast<int64_t>(frame.instruction_index);
   }
   const auto& fn = frame.module->functions[frame.function_id];
+  if (frame.source_line_is_current && frame.instruction_index < fn.source_lines.size() &&
+      fn.source_lines[frame.instruction_index] != 0) {
+    return static_cast<int64_t>(fn.source_lines[frame.instruction_index]);
+  }
+  // Live call frames retain the next instruction while the callee executes.
+  // f_lineno names the call instruction that suspended this frame.
+  if (frame.instruction_index > 0 &&
+      frame.instruction_index - 1 < fn.source_lines.size() &&
+      fn.source_lines[frame.instruction_index - 1] != 0) {
+    return static_cast<int64_t>(fn.source_lines[frame.instruction_index - 1]);
+  }
   if (frame.instruction_index < fn.source_lines.size() && fn.source_lines[frame.instruction_index] != 0) {
     return static_cast<int64_t>(fn.source_lines[frame.instruction_index]);
   }
-  return static_cast<int64_t>(frame.instruction_index);
+  // A logical class frame uses instructions from its enclosing physical
+  // function. Its own code object carries metadata, not a duplicate line map.
+  if (auto* physical = value_as_frame(frame.back);
+      physical != nullptr && physical->module.get() == frame.module.get() &&
+      physical->instruction_index == frame.instruction_index) {
+    return frame_source_line(*physical);
+  }
+  return fn.first_line == 0 ? 1 : static_cast<int64_t>(fn.first_line);
 }
 
 std::string slot_descriptor_receiver_type_name(const Value& value) {
@@ -1275,7 +1331,7 @@ bool slot_descriptor_get_method(
           return false;
         }
         value_assign_fast(klass->attrs["__annotations__"], out);
-        ++klass->version;
+        invalidate_class_lookup_caches(klass);
         return true;
       }
     }
@@ -1751,6 +1807,43 @@ bool class_has_builtin_base_name(ClassObject* klass, std::string_view name) {
   return class_has_builtin_base_name_impl(klass, name);
 }
 
+namespace {
+
+constexpr uint8_t kInstanceHasDictBase = 1u << 0;
+constexpr uint8_t kInstanceHasOrderedDictBase = 1u << 1;
+constexpr uint8_t kInstanceHasDefaultDictBase = 1u << 2;
+constexpr uint8_t kInstanceHasListBase = 1u << 3;
+constexpr uint8_t kInstanceHasSetBase = 1u << 4;
+constexpr uint8_t kInstanceHasFrozenSetBase = 1u << 5;
+
+uint8_t class_instance_container_traits(ClassObject* klass) {
+  if (klass->instance_container_traits_version == klass->version) {
+    return klass->instance_container_traits;
+  }
+  uint8_t traits = 0;
+  const std::vector<Value>* mro = nullptr;
+  std::string ignored;
+  if (class_mro_values(klass, mro, ignored)) {
+    for (const auto& value : *mro) {
+      auto* base = value_as_class(value);
+      if (base == nullptr) continue;
+      if (base->name == "dict") traits |= kInstanceHasDictBase;
+      else if (base->name == "OrderedDict") traits |= kInstanceHasOrderedDictBase;
+      else if (base->name == "defaultdict") traits |= kInstanceHasDefaultDictBase;
+      else if (base->name == "list") traits |= kInstanceHasListBase;
+      else if (base->name == "set") traits |= kInstanceHasSetBase;
+      else if (base->name == "frozenset") traits |= kInstanceHasFrozenSetBase;
+    }
+  }
+  // Class/base mutation bumps the class version, so cached traits are reused
+  // by every instance allocation until the MRO can actually change.
+  klass->instance_container_traits = traits;
+  klass->instance_container_traits_version = klass->version;
+  return traits;
+}
+
+} // namespace
+
 bool class_try_enum_value_lookup(const Value& klass, const Value& value, Value& out) {
   auto* klass_obj = value_as_class(klass);
   if (klass_obj == nullptr || !attr_truthy_marker(klass_obj, "__xlang3_enum_marker__")) {
@@ -1783,6 +1876,10 @@ Value Value::class_object(
   Value v;
   v.tag = ValueTag::Object;
   auto* obj = allocate_object_model<ClassObject>(ObjectKind::Class);
+  {
+    std::lock_guard lock(live_classes_mutex());
+    live_classes().insert(obj);
+  }
   obj->name = std::move(name);
   obj->attrs.reserve(attrs.size() + instance_slots.size() + 1);
   obj->definition_attr_order.reserve(attrs.size());
@@ -2076,9 +2173,31 @@ bool runtime_value_compare(
     size_t right_size = 0;
     if (sequence_size(lhs, left_size) && sequence_size(rhs, right_size)) {
       const size_t common = std::min(left_size, right_size);
+      // Exact scalar tuple keys are common in sorting workloads.  Their
+      // comparisons cannot run user-defined rich-comparison methods, so keep
+      // lexicographic comparison in this frame and avoid recursively building
+      // temporary Values and truth-testing each element.  Any object or
+      // subclass still takes the general runtime path below to preserve Python
+      // comparison dispatch.
+      const auto primitive_scalar = [](const Value& value) {
+        return value.tag == ValueTag::Bool || value.tag == ValueTag::Int64 ||
+            value.tag == ValueTag::Double || value_as_string(value) != nullptr;
+      };
       for (size_t i = 0; i < common; ++i) {
         const auto& left_item = sequence_item(lhs, i);
         const auto& right_item = sequence_item(rhs, i);
+        if (primitive_scalar(left_item) && primitive_scalar(right_item)) {
+          // Equal same-tag scalars (especially integer tuple prefixes during
+          // sort) need no comparator call; mixed numeric tags still go through
+          // value_compare so bool/int/float equality stays Python-compatible.
+          if (value_is(left_item, right_item)) continue;
+          Value equal;
+          if (!value_compare("==", left_item, right_item, equal, error)) return false;
+          if (equal.tag == ValueTag::Bool && equal.as.b) continue;
+          return value_compare(
+              (op == "<" || op == "<=") ? "<" : ">",
+              left_item, right_item, out, error);
+        }
         Value equal;
         if (!runtime_value_compare(runtime, "==", left_item, right_item, equal, error)) {
           return false;
@@ -2254,7 +2373,11 @@ bool runtime_value_compare(
     }
     auto mapping_storage = [](const Value& value) -> const DictObject* {
       if (auto* dict = value_as_dict(value)) return dict;
-      if (auto* instance = value_as_instance(value)) return value_as_dict(instance->mapping_storage);
+      if (auto* instance = value_as_instance(value)) {
+        auto* klass = value_as_class(instance->klass);
+        if (klass != nullptr && class_has_builtin_base_name(klass, "dict"))
+          return value_as_dict(instance->mapping_storage);
+      }
       return nullptr;
     };
     if (auto* left_dict = mapping_storage(lhs)) {
@@ -2272,18 +2395,22 @@ bool runtime_value_compare(
           const auto& left_entry = left_dict->entries[i];
           const auto& right_entry = right_dict->entries[i];
           Value keys_equal;
-          if (!runtime_value_compare(runtime, "==", left_entry.first, right_entry.first, keys_equal, error)) {
+          if (!value_is(left_entry.first, right_entry.first) &&
+              !runtime_value_compare(runtime, "==", left_entry.first, right_entry.first, keys_equal, error)) {
             return false;
           }
-          if (keys_equal.tag != ValueTag::Bool || !keys_equal.as.b) {
+          if (!value_is(left_entry.first, right_entry.first) &&
+              (keys_equal.tag != ValueTag::Bool || !keys_equal.as.b)) {
             same_order = false;
             break;
           }
           Value values_equal;
-          if (!runtime_value_compare(runtime, "==", left_entry.second, right_entry.second, values_equal, error)) {
+          if (!value_is(left_entry.second, right_entry.second) &&
+              !runtime_value_compare(runtime, "==", left_entry.second, right_entry.second, values_equal, error)) {
             return false;
           }
-          if (values_equal.tag != ValueTag::Bool || !values_equal.as.b) {
+          if (!value_is(left_entry.second, right_entry.second) &&
+              (values_equal.tag != ValueTag::Bool || !values_equal.as.b)) {
             value_set_bool(out, !equality);
             return true;
           }
@@ -2296,10 +2423,12 @@ bool runtime_value_compare(
           const Value* matched_value = nullptr;
           for (const auto& right_entry : right_dict->entries) {
             Value keys_equal;
-            if (!runtime_value_compare(runtime, "==", left_entry.first, right_entry.first, keys_equal, error)) {
+            if (!value_is(left_entry.first, right_entry.first) &&
+                !runtime_value_compare(runtime, "==", left_entry.first, right_entry.first, keys_equal, error)) {
               return false;
             }
-            if (keys_equal.tag == ValueTag::Bool && keys_equal.as.b) {
+            if (value_is(left_entry.first, right_entry.first) ||
+                (keys_equal.tag == ValueTag::Bool && keys_equal.as.b)) {
               matched_value = &right_entry.second;
               break;
             }
@@ -2309,10 +2438,12 @@ bool runtime_value_compare(
             return true;
           }
           Value values_equal;
-          if (!runtime_value_compare(runtime, "==", left_entry.second, *matched_value, values_equal, error)) {
+          if (!value_is(left_entry.second, *matched_value) &&
+              !runtime_value_compare(runtime, "==", left_entry.second, *matched_value, values_equal, error)) {
             return false;
           }
-          if (values_equal.tag != ValueTag::Bool || !values_equal.as.b) {
+          if (!value_is(left_entry.second, *matched_value) &&
+              (values_equal.tag != ValueTag::Bool || !values_equal.as.b)) {
             value_set_bool(out, !equality);
             return true;
           }
@@ -2464,14 +2595,13 @@ bool runtime_value_contains(
     };
     int64_t item_hash = 0;
     if (!runtime_hash(item, item_hash)) return false;
-    for (const auto& candidate : set->items) {
+    for (size_t index = 0; index < set->items.size(); ++index) {
+      Value candidate = set->items[index];
       if (value_is(candidate, item)) {
         out = true;
         return true;
       }
-      int64_t candidate_hash = 0;
-      if (!runtime_hash(candidate, candidate_hash)) return false;
-      if (candidate_hash != item_hash) continue;
+      if (set->item_hashes[index] != static_cast<size_t>(item_hash)) continue;
       Value equal;
       if (!runtime_value_compare(runtime, "==", candidate, item, equal, error)) return false;
       bool is_equal = false;
@@ -2491,7 +2621,10 @@ bool runtime_value_contains(
     if (!runtime_call_callable(runtime, contains_method, &item, 1, result, error)) return false;
     return runtime_truthy(runtime, result, out, error);
   }
-  if (value_contains(container, item, out, ignored)) {
+  const auto* dict_view = value_as_dict_view(container);
+  const bool values_view = dict_view != nullptr &&
+      dict_view->kind == DictIterationKind::Values;
+  if (!values_view && value_contains(container, item, out, ignored)) {
     return true;
   }
   Value iterator;
@@ -2534,18 +2667,18 @@ Value Value::instance(Value klass) {
     if (obj->slot_count > 8) {
       obj->overflow_slots.assign(obj->slot_count, Value::invalid());
     }
-    if (class_has_builtin_base_name(klass_obj, "dict") ||
-        class_has_builtin_base_name(klass_obj, "OrderedDict") ||
-        class_has_builtin_base_name(klass_obj, "defaultdict")) {
+    const uint8_t container_traits = class_instance_container_traits(klass_obj);
+    if ((container_traits & (kInstanceHasDictBase | kInstanceHasOrderedDictBase |
+                            kInstanceHasDefaultDictBase)) != 0) {
       obj->mapping_storage = Value::dict({});
       obj->attrs.emplace_back("#__dict__", Value::dict({}));
     }
-    if (class_has_builtin_base_name(klass_obj, "list")) {
+    if ((container_traits & kInstanceHasListBase) != 0) {
       obj->sequence_storage = Value::list({});
     }
-    if (class_has_builtin_base_name(klass_obj, "set")) {
+    if ((container_traits & kInstanceHasSetBase) != 0) {
       obj->sequence_storage = Value::set({});
-    } else if (class_has_builtin_base_name(klass_obj, "frozenset")) {
+    } else if ((container_traits & kInstanceHasFrozenSetBase) != 0) {
       obj->sequence_storage = Value::frozenset({});
     }
   }
@@ -2612,10 +2745,19 @@ void slot_descriptor_set_owner_class(Value& descriptor, const Value& owner_class
   }
 }
 
+bool object_model_class_is_live(const ClassObject* klass) {
+  std::lock_guard lock(live_classes_mutex());
+  return live_classes().find(klass) != live_classes().end();
+}
+
 void object_model_release_object(Object* object) {
   switch (object->kind) {
     case ObjectKind::Class: {
       auto* klass = reinterpret_cast<ClassObject*>(object);
+      {
+        std::lock_guard lock(live_classes_mutex());
+        live_classes().erase(klass);
+      }
       for (const auto& base : klass->bases) {
         class_unregister_subclass(value_as_class(base), klass);
       }
@@ -2943,6 +3085,27 @@ static bool native_function_new(
   return false;
 }
 
+void function_capture_builtins(Runtime& runtime, FunctionObject& function, const Value& globals) {
+  Value builtins;
+  std::string ignored;
+  bool found = false;
+  if (value_as_module(globals) != nullptr) {
+    found = module_get_attr(globals, "__builtins__", builtins, ignored);
+  } else if (value_as_dict(globals) != nullptr) {
+    found = mapping_get_string_item(globals, "__builtins__", builtins, ignored);
+  }
+  if (!found) {
+    ignored.clear();
+    Value builtins_module;
+    if (mapping_get_string_item(runtime.module_registry_dict(), "builtins", builtins_module, ignored)) {
+      value_assign_fast(builtins, builtins_module);
+    }
+  }
+  if (builtins.tag != ValueTag::Invalid) {
+    value_assign_fast(function.builtins, builtins);
+  }
+}
+
 bool object_get_attr(const Value& object, const std::string& name, Value& out, std::string& error) {
   if (auto* slot = value_as_slot_descriptor(object)) {
     if (name == "__name__") {
@@ -3228,6 +3391,21 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
   }
 
   if (auto* function = value_as_function(object)) {
+    // CPython exposes the builtins mapping captured at function creation as a
+    // read-only data attribute. Store it directly instead of in __dict__, so
+    // ordinary defs need no per-function attribute-dict allocation.
+    if (name == "__builtins__") {
+      if (function->builtins.tag == ValueTag::Invalid) {
+        error = "function has no builtins namespace";
+        return false;
+      }
+      if (value_as_module(function->builtins) != nullptr) {
+        value_assign_fast(out, module_namespace_dict(function->builtins));
+      } else {
+        value_assign_fast(out, function->builtins);
+      }
+      return true;
+    }
     if (function->attrs_dict.tag != ValueTag::Invalid) {
       std::string ignored;
       if (mapping_get_item(function->attrs_dict, Value::string(name), out, ignored)) {
@@ -3273,10 +3451,15 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       return true;
     }
     if (name == "__doc__") {
-      if (function->doc.tag == ValueTag::Invalid) {
-        value_set_none(out);
-      } else {
+      if (function->doc.tag != ValueTag::Invalid) {
         value_assign_fast(out, function->doc);
+      } else if (function->module != nullptr && function->function_id < function->module->functions.size() &&
+                 !function->module->functions[function->function_id].doc.empty()) {
+        // The code module owns the default docstring. Delay its Value/string
+        // allocation until introspection asks for __doc__.
+        out = Value::string(function->module->functions[function->function_id].doc);
+      } else {
+        value_set_none(out);
       }
       return true;
     }
@@ -3302,6 +3485,11 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       return true;
     }
     if (name == "__type_params__") {
+      if (function->attrs_dict.tag != ValueTag::Invalid) {
+        std::string ignored;
+        if (mapping_get_item(function->attrs_dict, Value::string(name), out, ignored))
+          return true;
+      }
       std::vector<Value> values;
       values.reserve(function->type_params.size());
       for (const auto& type_param : function->type_params) {
@@ -3643,7 +3831,9 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       return true;
     }
     if (name == "f_generator") {
-      value_set_none(out);
+      if (frame->generator_ref.tag == ValueTag::Invalid ||
+          !weakref_get_target(frame->generator_ref, out))
+        value_set_none(out);
       return true;
     }
     if (name == "f_trace") {
@@ -4372,13 +4562,21 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
         break;
       }
     }
+    // A class's qualified name is metadata on the type, not an attribute
+    // inherited by its instances. Let an instance's __getattr__ handle it.
+    if (name == "__qualname__") {
+      error = "'" + klass->name + "' object has no attribute '__qualname__'";
+      return false;
+    }
     Value class_attr;
     if (!class_lookup_attr(klass, name, class_attr, error)) {
       if (name == "__doc__") {
         value_set_none(out);
         return true;
       }
-      if (value_as_dict(instance->mapping_storage) != nullptr && dict_get_method(instance->mapping_storage, name, out)) {
+      if (class_has_builtin_base_name(klass, "dict") &&
+          value_as_dict(instance->mapping_storage) != nullptr &&
+          dict_get_method(instance->mapping_storage, name, out)) {
         return true;
       }
       if (value_as_list(instance->sequence_storage) != nullptr && list_get_method(instance->sequence_storage, name, out)) {
@@ -4507,6 +4705,10 @@ bool object_set_attr(Value& object, const std::string& name, const Value& value,
   }
 
   if (auto* function = value_as_function(object)) {
+    if (name == "__builtins__") {
+      error = "function attribute '__builtins__' is read-only";
+      return false;
+    }
     if (name == "__qualname__") {
       auto* string = value_as_string(value);
       if (string == nullptr) {
@@ -4863,6 +5065,18 @@ bool object_set_attr(Value& object, const std::string& name, const Value& value,
       error = "cannot set '" + name + "' attribute of immutable type '_socket.socket'";
       return false;
     }
+    if (name == "__name__") {
+      const auto* new_name = value_as_string(value);
+      if (new_name == nullptr) {
+        error = "can only assign string to " + klass->name + ".__name__";
+        return false;
+      }
+      klass->name = string_object_to_string(*new_name);
+      klass->attrs.erase("__name__");
+      auto& order = klass->definition_attr_order;
+      order.erase(std::remove(order.begin(), order.end(), "__name__"), order.end());
+      return true;
+    }
     if (name == "__bases__") {
       auto* requested_bases = value_as_tuple(value);
       if (requested_bases == nullptr || requested_bases->items.empty()) {
@@ -4932,7 +5146,7 @@ bool object_set_attr(Value& object, const std::string& name, const Value& value,
       klass->has_descriptors = true;
     }
     update_special_attr_flags(*klass, name);
-    ++klass->version;
+    invalidate_class_lookup_caches(klass);
     return true;
   }
   error = "object does not support attribute assignment";
@@ -4954,6 +5168,10 @@ bool object_delete_attr(Value& object, const std::string& name, std::string& err
   }
 
   if (auto* function = value_as_function(object)) {
+    if (name == "__builtins__") {
+      error = "attribute '__builtins__' of 'function' objects is not writable";
+      return false;
+    }
     if (name == "__module__") {
       if (function->attrs_dict.tag == ValueTag::Invalid) {
         function->attrs_dict = Value::dict({});
@@ -5038,6 +5256,12 @@ bool object_delete_attr(Value& object, const std::string& name, std::string& err
         return true;
       }
     }
+    if (value_as_dict(instance_attribute_storage(*instance)) != nullptr) {
+      std::string ignored;
+      if (mapping_delete_item(instance_attribute_storage(*instance),
+                              Value::string(name), ignored))
+        return true;
+    }
     error = "object has no attribute '" + name + "'";
     return false;
   }
@@ -5050,7 +5274,7 @@ bool object_delete_attr(Value& object, const std::string& name, std::string& err
     klass->attrs.erase(it);
     auto& order = klass->definition_attr_order;
     order.erase(std::remove(order.begin(), order.end(), name), order.end());
-    ++klass->version;
+    invalidate_class_lookup_caches(klass);
     return true;
   }
   error = "object does not support attribute deletion";
@@ -5289,6 +5513,13 @@ bool object_get_special_method(
       error = "type object '" + klass->name + "' has no special method '" + name + "'";
       return false;
     }
+    if (value_is(klass->metaclass, object) &&
+        (value_as_function(attr) != nullptr ||
+         (value_as_native_function(attr) != nullptr &&
+          value_as_native_function(attr)->bind_as_descriptor))) {
+      out = Value::bound_method(object, std::move(attr));
+      return true;
+    }
     return bind_metaclass_attr_for_class_access(object, std::move(attr), out);
   }
   if (auto* instance = value_as_instance(object)) {
@@ -5302,6 +5533,9 @@ bool object_get_special_method(
       error.clear();
       return object_get_attr(object, name, out, error);
     }
+  }
+  if (value_as_set(object) != nullptr && set_get_method(object, name, out)) {
+    return true;
   }
   return object_get_attr(object, name, out, error);
 }
@@ -5334,7 +5568,7 @@ bool object_get_class_annotations(Runtime& runtime, const Value& object, Value& 
     out = Value::dict({});
   }
   value_assign_fast(klass->attrs["__annotations__"], out);
-  ++klass->version;
+  invalidate_class_lookup_caches(klass);
   return true;
 }
 
@@ -5488,7 +5722,10 @@ bool instance_set_native_owner(Value instance, std::string native_type, void* na
   if (instance_obj->native_data_cleanup != nullptr && instance_obj->native_data != nullptr) {
     instance_obj->native_data_cleanup(instance_obj->native_owner);
   }
-  native_gc_instances().erase(&instance_obj->header);
+  if (instance_obj->native_gc_registered) {
+    native_gc_instances().erase(&instance_obj->header);
+    instance_obj->native_gc_registered = false;
+  }
   instance_obj->native_type = std::move(native_type);
   instance_obj->native_data = native_data;
   instance_obj->native_data_cast = nullptr;
@@ -5514,6 +5751,10 @@ bool instance_set_native_gc_references(Value instance, const Value* references,
     error = "native GC references are null";
     return false;
   }
+  if (instance_obj->native_gc_registered) {
+    native_gc_instances().erase(&instance_obj->header);
+    instance_obj->native_gc_registered = false;
+  }
   std::vector<Object*> objects;
   objects.reserve(reference_count);
   for (uint32_t index = 0; index < reference_count; ++index) {
@@ -5525,8 +5766,10 @@ bool instance_set_native_gc_references(Value instance, const Value* references,
   }
   instance_obj->native_gc_references = std::move(objects);
   instance_obj->native_data_clear = clear;
-  if (clear != nullptr && !instance_obj->native_gc_references.empty())
+  if (clear != nullptr && !instance_obj->native_gc_references.empty()) {
     native_gc_instances().insert(&instance_obj->header);
+    instance_obj->native_gc_registered = true;
+  }
   return true;
 }
 
@@ -5600,7 +5843,24 @@ bool runtime_instance_truthy(Runtime& runtime, const Value& value, bool& out, st
   }
   Value result;
   error.clear();
-  if (!runtime_call_callable(runtime, hook, &value, 1, result, error)) return false;
+  // Special methods live on the class. A class attribute may itself be a
+  // descriptor (for example unittest.mock's MagicProxy), so bind it before
+  // invoking the method rather than trying to call the descriptor object.
+  const bool descriptor = object_value_has_descriptor_get(hook);
+  Value callable;
+  if (descriptor) {
+    auto* instance = value_as_instance(value);
+    if (instance == nullptr ||
+        !class_get_bound_attr(runtime, instance->klass, value,
+                              has_bool ? "__bool__" : "__len__", callable, error)) {
+      return false;
+    }
+  } else {
+    value_assign_fast(callable, hook);
+  }
+  if (!runtime_call_callable(runtime, callable,
+                             descriptor ? nullptr : &value,
+                             descriptor ? 0 : 1, result, error)) return false;
   if (has_bool && result.tag == ValueTag::Bool) { out = result.as.b; return true; }
   if (!has_bool && (result.tag == ValueTag::Int64 || result.tag == ValueTag::Bool)) {
     const int64_t length = result.tag == ValueTag::Bool ? result.as.b : result.as.i64;

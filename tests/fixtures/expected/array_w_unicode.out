@@ -1,0 +1,3 @@
+initial 4 [65, 233, 128161]
+changed [65, 90, 128161, 20013]
+invalid TypeError array item must be a unicode character, not int

@@ -426,7 +426,8 @@ Value make_binascii_exception(Runtime& runtime, const char* name) {
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.emplace_back("__module__", Value::string("binascii"));
   attrs.emplace_back("__qualname__", Value::string(name));
-  if (const Value* exception = runtime.find_builtin("Exception")) {
+  if (const Value* exception = runtime.find_builtin(
+          std::string_view(name) == "Error" ? "ValueError" : "Exception")) {
     return Value::class_object(name, std::move(attrs), *exception);
   }
   return Value::class_object(name, std::move(attrs));

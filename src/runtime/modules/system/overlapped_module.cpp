@@ -21,6 +21,7 @@ limitations under the License.
 #include "../thread/runtime_lock.h"
 
 #include <algorithm>
+#include <cerrno>
 #include <deque>
 #include <chrono>
 #include <condition_variable>
@@ -51,6 +52,37 @@ namespace {
 
 constexpr const char* kOverlappedNativeType = "_overlapped.Overlapped";
 
+bool raise_overlapped_error(Runtime& runtime, int64_t code,
+                            std::string& error) {
+  error = "overlapped operation failed with Windows error " +
+          std::to_string(code);
+  const char* exception_name = "OSError";
+#if defined(_WIN32)
+  switch (code) {
+    case WSAECONNREFUSED: exception_name = "ConnectionRefusedError"; break;
+    case WSAECONNRESET: exception_name = "ConnectionResetError"; break;
+    case WSAECONNABORTED: exception_name = "ConnectionAbortedError"; break;
+    case WSAETIMEDOUT: exception_name = "TimeoutError"; break;
+    case WSAEWOULDBLOCK: exception_name = "BlockingIOError"; break;
+    default: break;
+  }
+#endif
+  Value exception = runtime.make_exception(exception_name, error);
+  std::string ignored;
+#if defined(_WIN32)
+  const int64_t error_number = code == WSAEINVAL ? EINVAL : code;
+#else
+  const int64_t error_number = code;
+#endif
+  object_set_attr(exception, "errno", Value::int64(error_number), ignored);
+  object_set_attr(exception, "strerror", Value::string(error), ignored);
+#if defined(_WIN32)
+  object_set_attr(exception, "winerror", Value::int64(code), ignored);
+#endif
+  runtime.set_pending_exception(std::move(exception));
+  return false;
+}
+
 struct OverlappedState {
   int64_t event = 0;
   int64_t address = 0;
@@ -70,7 +102,10 @@ struct OverlappedState {
     Connect,
     Recv,
     RecvInto,
+    RecvFrom,
+    RecvFromInto,
     Send,
+    SendTo,
     FileRead,
     FileReadInto,
     FileWrite,
@@ -80,6 +115,9 @@ struct OverlappedState {
   HANDLE handle = INVALID_HANDLE_VALUE;
   std::vector<char> buffer;
   Value buffer_target;
+  sockaddr_storage address_storage{};
+  int address_length = 0;
+  DWORD io_flags = 0;
 #endif
 };
 
@@ -170,6 +208,10 @@ bool overlapped_socket_address(
     auto* address = reinterpret_cast<sockaddr_in6*>(&storage);
     address->sin6_family = AF_INET6;
     address->sin6_port = htons(port);
+    if (tuple->items.size() >= 3 && tuple->items[2].tag == ValueTag::Int64)
+      address->sin6_flowinfo = static_cast<ULONG>(tuple->items[2].as.i64);
+    if (tuple->items.size() >= 4 && tuple->items[3].tag == ValueTag::Int64)
+      address->sin6_scope_id = static_cast<ULONG>(tuple->items[3].as.i64);
     if (InetPtonA(AF_INET6, host.c_str(), &address->sin6_addr) != 1) {
       error = "invalid IPv6 socket address";
       return false;
@@ -186,6 +228,23 @@ bool overlapped_socket_address(
   }
   length = sizeof(*address);
   return true;
+}
+
+Value overlapped_received_address(const sockaddr_storage& storage) {
+  char host[INET6_ADDRSTRLEN] = {};
+  if (storage.ss_family == AF_INET) {
+    const auto* address = reinterpret_cast<const sockaddr_in*>(&storage);
+    if (InetNtopA(AF_INET, const_cast<IN_ADDR*>(&address->sin_addr), host, sizeof(host)) != nullptr) {
+      return Value::tuple({Value::string(host), Value::int64(ntohs(address->sin_port))});
+    }
+  } else if (storage.ss_family == AF_INET6) {
+    const auto* address = reinterpret_cast<const sockaddr_in6*>(&storage);
+    if (InetNtopA(AF_INET6, const_cast<IN6_ADDR*>(&address->sin6_addr), host, sizeof(host)) != nullptr) {
+      return Value::tuple({Value::string(host), Value::int64(ntohs(address->sin6_port)),
+                           Value::int64(address->sin6_flowinfo), Value::int64(address->sin6_scope_id)});
+    }
+  }
+  return Value::none();
 }
 
 template <typename Function>
@@ -206,13 +265,27 @@ void overlapped_finalize_socket_result(OverlappedState& state, DWORD transferred
   using Operation = OverlappedState::SocketOperation;
   if (state.socket_operation == Operation::Recv || state.socket_operation == Operation::FileRead) {
     state.result = Value::bytes(std::string(state.buffer.data(), transferred));
+  } else if (state.socket_operation == Operation::RecvFrom) {
+    state.result = Value::tuple({
+        Value::bytes(std::string(state.buffer.data(), transferred)),
+        overlapped_received_address(state.address_storage),
+    });
   } else if (state.socket_operation == Operation::RecvInto || state.socket_operation == Operation::FileReadInto) {
     if (!overlapped_copy_into(state.buffer_target, state.buffer.data(), transferred)) {
       state.completion_error = WSAEFAULT;
     }
     value_set_invalid(state.buffer_target);
     state.result = Value::int64(static_cast<int64_t>(transferred));
-  } else if (state.socket_operation == Operation::Send || state.socket_operation == Operation::FileWrite) {
+  } else if (state.socket_operation == Operation::RecvFromInto) {
+    if (!overlapped_copy_into(state.buffer_target, state.buffer.data(), transferred)) {
+      state.completion_error = WSAEFAULT;
+    }
+    value_set_invalid(state.buffer_target);
+    state.result = Value::tuple({Value::int64(static_cast<int64_t>(transferred)),
+                                 overlapped_received_address(state.address_storage)});
+  } else if (state.socket_operation == Operation::Send ||
+             state.socket_operation == Operation::SendTo ||
+             state.socket_operation == Operation::FileWrite) {
     state.result = Value::int64(static_cast<int64_t>(transferred));
   } else {
     state.result = Value::int64(0);
@@ -384,9 +457,7 @@ bool overlapped_getresult(Runtime& runtime, const Value* args, uint32_t argc, Va
   (void)overlapped_poll_socket(*state);
 #endif
   if (state->completion_error != 0) {
-    error = "overlapped operation failed with WSA error " + std::to_string(state->completion_error);
-    runtime.raise_class_error("OSError", error);
-    return false;
+    return raise_overlapped_error(runtime, state->completion_error, error);
   }
   state->pending = false;
   value_assign_fast(out, state->result);
@@ -409,8 +480,6 @@ bool overlapped_cancel(Runtime&, const Value* args, uint32_t argc, Value& out, s
     if (operation_handle != INVALID_HANDLE_VALUE) (void)CancelIoEx(operation_handle, &state->native);
   }
 #endif
-  state->pending = false;
-  post_iocp_completion(state->port, 0, 0, state->address, 995);
   out = Value::boolean(false);
   return true;
 }
@@ -427,7 +496,9 @@ bool overlapped_begin_socket_operation(
     bool& handled) {
   const bool file_operation = method == "ReadFile" || method == "ReadFileInto" || method == "WriteFile";
   handled = method == "AcceptEx" || method == "ConnectEx" || method == "WSARecv" ||
-      method == "WSARecvInto" || method == "WSASend" || file_operation;
+      method == "WSARecvInto" || method == "WSARecvFrom" ||
+      method == "WSARecvFromInto" || method == "WSASend" ||
+      method == "WSASendTo" || file_operation;
   if (!handled) return true;
   if (argc < 2 || args[1].tag != ValueTag::Int64) {
     error = std::string(method) + " expected an integer handle";
@@ -444,6 +515,9 @@ bool overlapped_begin_socket_operation(
   state.completion_error = 0;
   state.completion_transferred = 0;
   state.socket_operation = OverlappedState::SocketOperation::None;
+  state.address_storage = {};
+  state.address_length = 0;
+  state.io_flags = 0;
 
   BOOL immediate = FALSE;
   if (method == "AcceptEx") {
@@ -541,21 +615,25 @@ bool overlapped_begin_socket_operation(
         state.handle, state.buffer.data(), static_cast<DWORD>(state.buffer.size()),
         &transferred, &state.native);
     if (immediate) overlapped_finalize_socket_result(state, transferred);
-  } else if (method == "WSARecv" || method == "WSARecvInto") {
+  } else if (method == "WSARecv" || method == "WSARecvInto" ||
+             method == "WSARecvFrom" || method == "WSARecvFromInto") {
     if (argc < 3) {
       error = std::string(method) + " expected socket handle and buffer";
       runtime.raise_class_error("TypeError", error);
       return false;
     }
     size_t size = 0;
-    if (method == "WSARecv") {
+    const bool receive_from = method == "WSARecvFrom" || method == "WSARecvFromInto";
+    if (method == "WSARecv" || method == "WSARecvFrom") {
       if (args[2].tag != ValueTag::Int64 || args[2].as.i64 < 0) {
         error = "WSARecv size must be a non-negative integer";
         runtime.raise_class_error("TypeError", error);
         return false;
       }
       size = static_cast<size_t>(args[2].as.i64);
-      state.socket_operation = OverlappedState::SocketOperation::Recv;
+      state.socket_operation = receive_from
+          ? OverlappedState::SocketOperation::RecvFrom
+          : OverlappedState::SocketOperation::Recv;
     } else {
       if (auto* bytes = value_as_bytearray(args[2])) size = bytes->value.size();
       else if (auto* view = value_as_memoryview(args[2])) size = view->size;
@@ -565,14 +643,57 @@ bool overlapped_begin_socket_operation(
         return false;
       }
       value_assign_fast(state.buffer_target, args[2]);
-      state.socket_operation = OverlappedState::SocketOperation::RecvInto;
+      state.socket_operation = receive_from
+          ? OverlappedState::SocketOperation::RecvFromInto
+          : OverlappedState::SocketOperation::RecvInto;
     }
     state.buffer.resize(size);
     WSABUF buffer{static_cast<ULONG>(size), state.buffer.data()};
     DWORD transferred = 0;
-    DWORD flags = argc >= 4 && args[3].tag == ValueTag::Int64
+    state.io_flags = argc >= 4 && args[3].tag == ValueTag::Int64
         ? static_cast<DWORD>(args[3].as.i64) : 0;
-    const int status = WSARecv(state.socket, &buffer, 1, &transferred, &flags, &state.native, nullptr);
+    int status = 0;
+    if (receive_from) {
+      state.address_length = sizeof(state.address_storage);
+      status = WSARecvFrom(
+          state.socket, &buffer, 1, &transferred, &state.io_flags,
+          reinterpret_cast<sockaddr*>(&state.address_storage), &state.address_length,
+          &state.native, nullptr);
+    } else {
+      status = WSARecv(state.socket, &buffer, 1, &transferred,
+                       &state.io_flags, &state.native, nullptr);
+    }
+    immediate = status == 0;
+    if (immediate) overlapped_finalize_socket_result(state, transferred);
+  } else if (method == "WSASendTo") {
+    if (argc != 5) {
+      error = "WSASendTo expected socket handle, data, flags, and address";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    std::string_view data;
+    if (!overlapped_bytes_view(args[2], data)) {
+      error = "WSASendTo data must be bytes-like";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    state.buffer.assign(data.begin(), data.end());
+    state.socket_operation = OverlappedState::SocketOperation::SendTo;
+    if (args[4].tag != ValueTag::None &&
+        !overlapped_socket_address(args[4], state.address_storage,
+                                   state.address_length, error)) {
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    WSABUF buffer{static_cast<ULONG>(state.buffer.size()), state.buffer.data()};
+    DWORD transferred = 0;
+    const DWORD flags = args[3].tag == ValueTag::Int64
+        ? static_cast<DWORD>(args[3].as.i64) : 0;
+    const int status = WSASendTo(
+        state.socket, &buffer, 1, &transferred, flags,
+        args[4].tag == ValueTag::None ? nullptr
+            : reinterpret_cast<const sockaddr*>(&state.address_storage),
+        state.address_length, &state.native, nullptr);
     immediate = status == 0;
     if (immediate) overlapped_finalize_socket_result(state, transferred);
   } else {
@@ -606,9 +727,7 @@ bool overlapped_begin_socket_operation(
     } else if (code != ERROR_IO_PENDING && code != WSA_IO_PENDING) {
       state.pending = false;
       state.completion_error = code;
-      error = std::string(method) + " failed with Windows error " + std::to_string(code);
-      runtime.raise_class_error("OSError", error);
-      return false;
+      return raise_overlapped_error(runtime, code, error);
     } else {
       state.pending = true;
     }
@@ -1001,14 +1120,40 @@ bool bind_local(Runtime& runtime, const Value* args, uint32_t argc, Value& out, 
     status = bind(socket, reinterpret_cast<const sockaddr*>(&address), sizeof(address));
   }
   if (status == SOCKET_ERROR) {
-    error = "BindLocal failed with WSA error " + std::to_string(WSAGetLastError());
-    runtime.raise_class_error("OSError", error);
-    return false;
+    return raise_overlapped_error(runtime, WSAGetLastError(), error);
   }
   value_set_none(out);
   return true;
 #else
   return overlapped_not_implemented(runtime, "BindLocal", error);
+#endif
+}
+
+bool wsa_connect(Runtime& runtime, const Value* args, uint32_t argc,
+                 Value& out, std::string& error, void*) {
+  if (argc != 2 || args[0].tag != ValueTag::Int64) {
+    error = "WSAConnect() expected socket handle and address";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+#if defined(_WIN32)
+  sockaddr_storage address{};
+  int address_length = 0;
+  if (!overlapped_socket_address(args[1], address, address_length, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  const int status = ::WSAConnect(
+      static_cast<SOCKET>(args[0].as.i64),
+      reinterpret_cast<const sockaddr*>(&address), address_length,
+      nullptr, nullptr, nullptr, nullptr);
+  if (status == SOCKET_ERROR) {
+    return raise_overlapped_error(runtime, WSAGetLastError(), error);
+  }
+  value_set_none(out);
+  return true;
+#else
+  return overlapped_not_implemented(runtime, "WSAConnect", error);
 #endif
 }
 
@@ -1113,13 +1258,13 @@ void register_overlapped_module(Runtime& runtime) {
   add_function(builder, "GetQueuedCompletionStatus", get_queued_completion_status);
   add_function(builder, "PostQueuedCompletionStatus", post_queued_completion_status);
   add_function(builder, "BindLocal", bind_local);
+  add_function(builder, "WSAConnect", wsa_connect);
   add_function(builder, "RegisterWaitWithQueue", register_wait_with_queue);
   add_function(builder, "UnregisterWait", unregister_wait);
   add_function(builder, "UnregisterWaitEx", unregister_wait_ex);
   for (const char* name : {
            "ConnectPipe",
            "FormatMessage",
-           "WSAConnect",
        }) {
     add_unimplemented_function(runtime, builder, name);
   }

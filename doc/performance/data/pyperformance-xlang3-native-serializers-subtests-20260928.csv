@@ -1,0 +1,125 @@
+﻿subtest,top-level benchmark,measurement mode,CPython 3.14 ms,XLang3 ms,speedup (CPython / XLang3; >1 favors XLang3),XLang3 status
+2to3,2to3,not measured,251.67402,,,attempted; no matching XLang3 result
+ascii85_large,,not measured,842.14151,,,attempted; no matching XLang3 result
+ascii85_small,,not measured,15.728754,,,attempted; no matching XLang3 result
+async_generators,async_generators,not measured,277.75564,,,attempted; no matching XLang3 result
+async_tree_cpu_io_mixed,async_tree_cpu_io_mixed,not measured,430.09711,,,attempted; no matching XLang3 result
+async_tree_cpu_io_mixed_tg,async_tree_cpu_io_mixed_tg,not measured,423.99964,,,attempted; no matching XLang3 result
+async_tree_eager,async_tree_eager,not measured,84.84337,,,attempted; no matching XLang3 result
+async_tree_eager_cpu_io_mixed,async_tree_eager_cpu_io_mixed,not measured,333.80983,,,attempted; no matching XLang3 result
+async_tree_eager_cpu_io_mixed_tg,async_tree_eager_cpu_io_mixed_tg,not measured,393.70788,,,attempted; no matching XLang3 result
+async_tree_eager_io,async_tree_eager_io,not measured,564.45532,,,attempted; no matching XLang3 result
+async_tree_eager_io_tg,async_tree_eager_io_tg,not measured,561.14512,,,attempted; no matching XLang3 result
+async_tree_eager_memoization,async_tree_eager_memoization,not measured,191.56922,,,attempted; no matching XLang3 result
+async_tree_eager_memoization_tg,async_tree_eager_memoization_tg,not measured,270.1711,,,attempted; no matching XLang3 result
+async_tree_eager_tg,async_tree_eager_tg,not measured,196.47773,,,attempted; no matching XLang3 result
+async_tree_io,async_tree_io,not measured,573.1876,,,attempted; no matching XLang3 result
+async_tree_io_tg,async_tree_io_tg,not measured,558.66878,,,attempted; no matching XLang3 result
+async_tree_memoization,async_tree_memoization,not measured,281.98521,,,attempted; no matching XLang3 result
+async_tree_memoization_tg,async_tree_memoization_tg,not measured,282.13976,,,attempted; no matching XLang3 result
+async_tree_none,async_tree,not measured,226.4363,,,attempted; no matching XLang3 result
+async_tree_none_tg,async_tree,not measured,242.23197,,,attempted; no matching XLang3 result
+asyncio_tcp,asyncio_tcp,not measured,739.77143,,,attempted; no matching XLang3 result
+asyncio_tcp_ssl,asyncio_tcp_ssl,not measured,4466.7065,,,attempted; no matching XLang3 result
+asyncio_websockets,asyncio_websockets,not measured,192.1689,,,attempted; no matching XLang3 result
+base16_large,,not measured,6.1005358,,,attempted; no matching XLang3 result
+base16_small,,not measured,0.29016038,,,attempted; no matching XLang3 result
+base32_large,,not measured,378.3794,,,attempted; no matching XLang3 result
+base32_small,,not measured,7.3097934,,,attempted; no matching XLang3 result
+base64_large,base64,not measured,7.9068775,,,attempted; no matching XLang3 result
+base64_small,base64,not measured,0.26793607,,,attempted; no matching XLang3 result
+base85_large,,not measured,295.83961,,,attempted; no matching XLang3 result
+base85_small,,not measured,5.3660578,,,attempted; no matching XLang3 result
+bench_mp_pool,,not measured,158.65799,,,attempted; no matching XLang3 result
+bench_thread_pool,,not measured,1.1447819,,,attempted; no matching XLang3 result
+bpe_tokeniser,bpe_tokeniser,not measured,3533.0905,,,attempted; no matching XLang3 result
+chameleon,chameleon,not measured,11.553933,,,attempted; no matching XLang3 result
+chaos,chaos,fast,46.855097,665.75647,0.070378734,completed
+comprehensions,comprehensions,fast,0.013687576,0.21539249,0.063547138,completed
+connected_components,,not measured,428.43363,,,attempted; no matching XLang3 result
+coroutines,coroutines,fast,17.438535,742.66832,0.02348092,completed
+coverage,coverage,not measured,63.455025,,,attempted; no matching XLang3 result
+create_gc_cycles,,not measured,1.5603178,,,attempted; no matching XLang3 result
+crypto_pyaes,crypto_pyaes,not measured,55.276315,,,attempted; no matching XLang3 result
+dask,dask,not measured,769.43393,,,attempted; no matching XLang3 result
+deepcopy,deepcopy,fast,0.21003855,7.2699744,0.028891237,completed
+deepcopy_memo,deepcopy,fast,0.021468491,1.0948975,0.019607763,completed
+deepcopy_reduce,deepcopy,fast,0.0022029521,0.067008982,0.032875475,completed
+deltablue,deltablue,fast,2.4846934,67.016033,0.037076105,completed
+django_template,django_template,not measured,28.984117,,,attempted; no matching XLang3 result
+docutils,docutils,not measured,1811.7346,,,attempted; no matching XLang3 result
+dulwich_log,dulwich_log,not measured,66.556102,,,attempted; no matching XLang3 result
+fannkuch,fannkuch,fast,312.28626,1877.3092,0.1663478,completed
+fastapi_http,fastapi,not measured,415.24455,,,attempted; no matching XLang3 result
+float,float,fast,56.180163,632.30258,0.088850123,completed
+gc_traversal,gc_traversal,fast,2.3689967,83.418282,0.028399011,completed
+generators,generators,fast,27.007871,992.02895,0.027224882,completed
+genshi_text,genshi,not measured,18.962379,,,attempted; no matching XLang3 result
+genshi_xml,genshi,not measured,41.658189,,,attempted; no matching XLang3 result
+go,go,fast,94.216078,1713.2987,0.05499104,completed
+hexiom,hexiom,fast,4.9284748,78.615028,0.062691256,completed
+html5lib,html5lib,not measured,42.344906,,,attempted; no matching XLang3 result
+json_dumps,json_dumps,fast,7.5835137,99.50067,0.076215705,completed
+json_loads,json_loads,fast,0.017543805,5.0673788,0.0034621065,completed
+k_core,,not measured,2361.5336,,,attempted; no matching XLang3 result
+logging_format,logging,fast,0.0073157466,0.13239152,0.055258421,completed
+logging_silent,logging,fast,6.6928066e-05,0.0030576732,0.021888561,completed
+logging_simple,logging,fast,0.0067549194,0.13348768,0.050603319,completed
+mako,mako,not measured,7.4901791,,,attempted; no matching XLang3 result
+many_optionals,,fast,0.66839773,10.947209,0.061056453,completed
+mdp,mdp,not measured,975.11023,,,attempted; no matching XLang3 result
+meteor_contest,meteor_contest,fast,87.413095,1331.0124,0.065674141,completed
+nbody,nbody,fast,81.038013,283.79037,0.28555589,completed
+nqueens,nqueens,fast,73.936077,874.22218,0.084573555,completed
+pathlib,pathlib,fast,47.817519,673.49699,0.07099886,completed
+pickle,pickle,fast,0.0090784241,9.7349568,0.00093255926,completed
+pickle_dict,pickle_dict,rigorous,0.023739532,0.020010319,1.1863645,completed
+pickle_list,pickle_list,rigorous,0.0040298218,0.0030094027,1.339077,completed
+pickle_pure_python,pickle_pure_python,fast,0.25228416,9.9875613,0.025259836,completed
+pidigits,pidigits,fast,164.38029,384.54959,0.42746189,completed
+pprint_pformat,pprint,not measured,1180.0206,,,attempted; no matching XLang3 result
+pprint_safe_repr,pprint,not measured,575.92681,,,attempted; no matching XLang3 result
+pyflate,pyflate,not measured,328.52386,,,attempted; no matching XLang3 result
+python_startup,python_startup,fast,31.263729,32.895618,0.95039189,completed
+python_startup_no_site,python_startup_no_site,fast,24.615505,20.518257,1.1996879,completed
+raytrace,raytrace,not measured,217.00232,,,attempted; no matching XLang3 result
+regex_compile,regex_compile,not measured,93.640735,,,attempted; no matching XLang3 result
+regex_dna,regex_dna,fast,132.32897,206.92165,0.63951244,completed
+regex_effbot,regex_effbot,fast,1.7945986,13.340985,0.13451771,completed
+regex_v8,regex_v8,fast,16.462328,77.254855,0.21309118,completed
+richards,richards,fast,33.357384,686.89659,0.048562453,completed
+richards_super,richards_super,fast,37.308591,816.7116,0.045681476,completed
+scimark_fft,scimark,not measured,219.31665,,,attempted; no matching XLang3 result
+scimark_lu,scimark,not measured,72.890705,,,attempted; no matching XLang3 result
+scimark_monte_carlo,scimark,not measured,50.948324,,,attempted; no matching XLang3 result
+scimark_sor,scimark,not measured,94.241858,,,attempted; no matching XLang3 result
+scimark_sparse_mat_mult,scimark,not measured,3.0170675,,,attempted; no matching XLang3 result
+shortest_path,,not measured,481.60911,,,attempted; no matching XLang3 result
+spectral_norm,spectral_norm,fast,72.176055,708.774,0.10183225,completed
+sphinx,sphinx,not measured,728.7402,,,attempted; no matching XLang3 result
+sqlalchemy_declarative,sqlalchemy_declarative,not measured,87.433355,,,attempted; no matching XLang3 result
+sqlalchemy_imperative,sqlalchemy_imperative,not measured,10.618801,,,attempted; no matching XLang3 result
+sqlglot_v2_normalize,sqlglot_v2,not measured,85.181947,,,attempted; no matching XLang3 result
+sqlglot_v2_optimize,sqlglot_v2_optimize,not measured,41.016345,,,attempted; no matching XLang3 result
+sqlglot_v2_parse,sqlglot_v2_parse,not measured,0.94892973,,,attempted; no matching XLang3 result
+sqlglot_v2_transpile,sqlglot_v2_transpile,not measured,1.186805,,,attempted; no matching XLang3 result
+sqlite_synth,sqlite_synth,not measured,0.0017597444,,,attempted; no matching XLang3 result
+subparsers,,fast,7.6010841,239.95543,0.031677066,completed
+sympy_expand,sympy,not measured,336.42096,,,attempted; no matching XLang3 result
+sympy_integrate,sympy,not measured,14.225305,,,attempted; no matching XLang3 result
+sympy_str,sympy,not measured,194.05812,,,attempted; no matching XLang3 result
+sympy_sum,sympy,not measured,100.97958,,,attempted; no matching XLang3 result
+telco,telco,not measured,5.5404853,,,attempted; no matching XLang3 result
+tomli_loads,tomli_loads,not measured,1689.2999,,,attempted; no matching XLang3 result
+tornado_http,tornado_http,not measured,232.94328,,,attempted; no matching XLang3 result
+typing_runtime_protocols,typing_runtime_protocols,fast,0.12436695,7.8056259,0.015932989,completed
+unpack_sequence,unpack_sequence,fast,3.5449327e-05,0.00015096582,0.23481691,completed
+unpickle,unpickle,fast,0.0097000044,4.928434,0.0019681717,completed
+unpickle_list,unpickle_list,fast,0.0031589603,2.0969758,0.0015064363,completed
+unpickle_pure_python,unpickle_pure_python,fast,0.16144558,5.2167428,0.030947583,completed
+urlsafe_base64_small,,not measured,0.40618186,,,attempted; no matching XLang3 result
+xdsl_constant_fold,xdsl,not measured,32.803105,,,attempted; no matching XLang3 result
+xml_etree_generate,xml_etree,not measured,66.303687,,,attempted; no matching XLang3 result
+xml_etree_iterparse,xml_etree,not measured,68.250193,,,attempted; no matching XLang3 result
+xml_etree_parse,xml_etree,not measured,107.56115,,,attempted; no matching XLang3 result
+xml_etree_process,xml_etree,not measured,46.011142,,,attempted; no matching XLang3 result

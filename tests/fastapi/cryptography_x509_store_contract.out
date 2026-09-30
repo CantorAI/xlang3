@@ -1,0 +1,1 @@
+200 {"certificate_der_sha256": "e6abe993205ee002fdb3870077a4dd4b405bfc661f076848583d7ac96cad2305", "certificate_serial": 100, "duplicate_store_type": "Store", "invalid_anchor_errors": ["ValueError", "TypeError"], "store_type": "Store"}

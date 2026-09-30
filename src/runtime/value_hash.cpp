@@ -109,6 +109,33 @@ bool int_payload_value(const Value& value, int64_t& out) {
   return false;
 }
 
+template <typename HashValue>
+bool hash_generic_alias(const GenericAliasObject& alias, HashValue hash_value,
+                        size_t& out, std::string& error) {
+  size_t args_hash = 0;
+  if (alias.is_union) {
+    const auto* args = value_as_tuple(alias.args);
+    if (args == nullptr) {
+      error = "invalid union arguments";
+      return false;
+    }
+    // Union equality ignores member order, so its hash must do the same.
+    for (const auto& item : args->items) {
+      size_t item_hash = 0;
+      if (!hash_value(item, item_hash, error)) return false;
+      args_hash += item_hash;
+    }
+    out = args_hash ^ (args->items.size() * static_cast<size_t>(0x9e3779b9u));
+    return true;
+  }
+  size_t origin_hash = 0;
+  if (!hash_value(alias.origin, origin_hash, error) ||
+      !hash_value(alias.args, args_hash, error)) return false;
+  out = origin_hash ^ (args_hash + static_cast<size_t>(0x9e3779b9u) +
+                       (origin_hash << 6) + (origin_hash >> 2));
+  return true;
+}
+
 } // namespace
 
 bool value_key_equal(const Value& lhs, const Value& rhs) {
@@ -143,7 +170,8 @@ bool value_key_equal(const Value& lhs, const Value& rhs) {
       (rhs.tag == ValueTag::Int64 || rhs.tag == ValueTag::Double)) {
     const double a = lhs.tag == ValueTag::Int64 ? static_cast<double>(lhs.as.i64) : lhs.as.f64;
     const double b = rhs.tag == ValueTag::Int64 ? static_cast<double>(rhs.as.i64) : rhs.as.f64;
-    return a == b;
+    return a == b || (lhs.tag == ValueTag::Double && rhs.tag == ValueTag::Double &&
+                      lhs.flags != 0 && lhs.flags == rhs.flags);
   }
   if (is_binary_like_value(lhs) && is_binary_like_value(rhs)) {
     const auto left = hash_binary_view(lhs);
@@ -163,7 +191,8 @@ bool value_key_equal(const Value& lhs, const Value& rhs) {
     case ValueTag::Int64:
       return lhs.as.i64 == rhs.as.i64;
     case ValueTag::Double:
-      return lhs.as.f64 == rhs.as.f64;
+      return lhs.as.f64 == rhs.as.f64 ||
+          (lhs.flags != 0 && lhs.flags == rhs.flags);
     case ValueTag::Object:
       if (lhs.as.obj == rhs.as.obj) {
         return true;
@@ -215,6 +244,31 @@ bool value_key_equal(const Value& lhs, const Value& rhs) {
             left_code->first_line_override == right_code->first_line_override &&
             left_code->flags_override == right_code->flags_override;
       }
+      if (auto* left_alias = value_as_generic_alias(lhs)) {
+        auto* right_alias = value_as_generic_alias(rhs);
+        if (right_alias == nullptr || left_alias->is_union != right_alias->is_union) return false;
+        if (!left_alias->is_union) {
+          return value_key_equal(left_alias->origin, right_alias->origin) &&
+                 value_key_equal(left_alias->args, right_alias->args);
+        }
+        const auto* left_args = value_as_tuple(left_alias->args);
+        const auto* right_args = value_as_tuple(right_alias->args);
+        if (left_args == nullptr || right_args == nullptr ||
+            left_args->items.size() != right_args->items.size()) return false;
+        std::vector<bool> matched(right_args->items.size(), false);
+        for (const auto& item : left_args->items) {
+          bool found = false;
+          for (size_t i = 0; i < right_args->items.size(); ++i) {
+            if (!matched[i] && value_key_equal(item, right_args->items[i])) {
+              matched[i] = true;
+              found = true;
+              break;
+            }
+          }
+          if (!found) return false;
+        }
+        return true;
+      }
       if (auto* left_instance = value_as_instance(lhs)) {
         auto* left_class = value_as_class(left_instance->klass);
         auto* right_instance = value_as_instance(rhs);
@@ -247,6 +301,10 @@ bool value_hash_key(const Value& value, size_t& out, std::string& error) {
     case ValueTag::Int64:
       return value_int_like_hash(value, out);
     case ValueTag::Double: {
+      if (std::isnan(value.as.f64)) {
+        out = static_cast<size_t>(value.flags);
+        return true;
+      }
       double integral = 0.0;
       if (std::isfinite(value.as.f64) && std::modf(value.as.f64, &integral) == 0.0 &&
           integral >= static_cast<double>(std::numeric_limits<int64_t>::min()) &&
@@ -313,6 +371,9 @@ bool value_hash_key(const Value& value, size_t& out, std::string& error) {
         out = hash == static_cast<size_t>(-1) ? static_cast<size_t>(-2) : hash;
         return true;
       }
+      if (auto* alias = value_as_generic_alias(value)) {
+        return hash_generic_alias(*alias, value_hash_key, out, error);
+      }
       if (auto* code = value_as_code(value)) {
         auto combine = [](size_t seed, size_t item) {
           return seed ^ (item + static_cast<size_t>(0x9e3779b9u) + (seed << 6) + (seed >> 2));
@@ -346,11 +407,7 @@ bool value_hash_key(const Value& value, size_t& out, std::string& error) {
                 return true;
               }
               size_t hash = 0x2f4f0f1f0e0d0c0bull;
-              for (const auto& item : set->items) {
-                size_t item_hash = 0;
-              if (!value_hash_key(item, item_hash, error)) {
-                return false;
-              }
+              for (const size_t item_hash : set->item_hashes) {
                 size_t shuffled = item_hash ^ (item_hash << 16) ^ static_cast<size_t>(89869747);
                 shuffled *= static_cast<size_t>(3644798167u);
                 hash ^= shuffled;
@@ -381,12 +438,20 @@ bool value_hash_key(const Value& value, size_t& out, std::string& error) {
 }
 
 bool runtime_value_hash_key(Runtime& runtime, const Value& value, size_t& out, std::string& error) {
+  // CPython inspect's cached MRO probe keys are tuples of weakref.ref objects.
+  // Those refs cache their referent hash after the first lookup. Read that
+  // stable slot directly on subsequent probes instead of repeating Python
+  // __hash__ attribute binding and native-call dispatch for every MRO member.
+  if (weakref_cached_hash(value, out)) return true;
   if (value_as_instance(value) != nullptr) {
     Value hash_method;
     std::string attr_error;
     if (object_get_attr(value, "__hash__", hash_method, attr_error)) {
       if (hash_method.tag == ValueTag::None) {
-        error = "unhashable type";
+        auto* instance = value_as_instance(value);
+        auto* klass = instance == nullptr ? nullptr : value_as_class(instance->klass);
+        error = "unhashable type: '" +
+            std::string(klass == nullptr ? "object" : klass->name) + "'";
         return false;
       }
       Value hash_value;
@@ -411,17 +476,27 @@ bool runtime_value_hash_key(Runtime& runtime, const Value& value, size_t& out, s
     out = hash == static_cast<size_t>(-1) ? static_cast<size_t>(-2) : hash;
     return true;
   }
+  if (const auto* alias = value_as_generic_alias(value)) {
+    return hash_generic_alias(*alias,
+        [&runtime](const Value& item, size_t& item_hash, std::string& item_error) {
+          return runtime_value_hash_key(runtime, item, item_hash, item_error);
+        }, out, error);
+  }
   if (const auto* set = value_as_set(value); set != nullptr && set->frozen) {
+    if (set->hash_cached) {
+      out = set->cached_hash;
+      return true;
+    }
     size_t hash = 0x2f4f0f1f0e0d0c0bull;
-    for (const auto& item : set->items) {
-      size_t item_hash = 0;
-      if (!runtime_value_hash_key(runtime, item, item_hash, error)) return false;
+    for (const size_t item_hash : set->item_hashes) {
       size_t shuffled = item_hash ^ (item_hash << 16) ^ static_cast<size_t>(89869747);
       shuffled *= static_cast<size_t>(3644798167u);
       hash ^= shuffled;
     }
     hash ^= set->items.size() * static_cast<size_t>(1927868237u);
     out = hash == static_cast<size_t>(-1) ? static_cast<size_t>(-2) : hash;
+    set->cached_hash = out;
+    set->hash_cached = true;
     return true;
   }
   return value_hash_key(value, out, error);

@@ -1,0 +1,5 @@
+qualname DynamicName False
+nested-repr list[typing.Annotated[str, FieldInfo(annotation=NoneType, required=True, metadata=[MaxLen(max_length=3)])]]
+field-repr FieldInfo(annotation=list[Annotated[str, FieldInfo(annotation=NoneType, required=True, metadata=[MaxLen(max_length=3)])]], required=True)
+valid 200
+invalid 422

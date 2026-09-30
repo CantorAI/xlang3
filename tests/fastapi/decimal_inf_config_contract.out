@@ -1,0 +1,3 @@
+allowed True
+forbidden finite_number
+http {'infinite': True}

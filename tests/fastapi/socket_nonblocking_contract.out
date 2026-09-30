@@ -1,0 +1,2 @@
+200
+{'recv': ['BlockingIOError', True], 'recv_into': ['BlockingIOError', True], 'recvfrom': ['BlockingIOError', True], 'recvfrom_into': ['BlockingIOError', True], 'send': ['BlockingIOError', True], 'closed_recv': ['OSError', True, -1], 'closed_send': ['OSError', True, -1], 'closed_connect': ['OSError', True, -1]}

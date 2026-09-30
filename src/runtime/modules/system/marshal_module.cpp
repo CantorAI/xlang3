@@ -20,6 +20,7 @@ limitations under the License.
 #include "xlang3/mapping.h"
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
+#include "xlang3/value_hash.h"
 #include "xlang3/sequence.h"
 #include "xlang3/set_object.h"
 
@@ -789,7 +790,10 @@ bool unmarshal_cpython_value(MarshalReader& reader, Value& out, std::string& err
           error = set->frozen ? "bad marshal data (invalid reference)" : "unhashable type: 'set'";
           return false;
         }
+        size_t hash = 0;
+        if (!value_hash_key(item, hash, error)) return false;
         set->items.push_back(std::move(item));
+        set->item_hashes.push_back(hash);
       }
       else value_move_assign_fast(value_as_tuple(out)->items[i], item);
     }

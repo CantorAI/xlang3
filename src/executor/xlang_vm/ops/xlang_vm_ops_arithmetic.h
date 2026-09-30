@@ -130,17 +130,23 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_binary_special_method(
     return XlangVMOpFlow::Next;
   }
   auto* bound = value_as_bound_method(method);
-  if (bound == nullptr) {
+  if (bound == nullptr && value_as_instance(method) == nullptr) {
     return XlangVMOpFlow::Next;
   }
-  Value leading[2] = {bound->self, rhs};
+  Value leading[2] = {Value::invalid(), Value::invalid()};
+  if (bound != nullptr) {
+    value_assign_fast(leading[0], bound->self);
+    value_assign_fast(leading[1], rhs);
+  } else {
+    value_assign_fast(leading[0], rhs);
+  }
   CallArgsView args;
   args.leading = leading;
-  args.leading_count = 2;
+  args.leading_count = bound != nullptr ? 2 : 1;
   bool pushed_frame = false;
   if (!call_callable_value(
           runtime,
-          bound->function,
+          bound != nullptr ? bound->function : method,
           args,
           module,
           module_owner,
@@ -344,6 +350,13 @@ XLANG3_HOT_INLINE XlangVMOpFlow mod(
             ? XlangVMOpFlow::ContinueLoop
             : XlangVMOpFlow::ReturnResult;
       }
+      if (error == "unsupported operands for %") {
+        error = std::string("unsupported operand type(s) for %: '") +
+            value_binary_type_name(lhs) + "' and '" +
+            value_binary_type_name(rhs) + "'";
+        return raise_exception_value(runtime.make_exception("TypeError", error))
+            ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+      }
       return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
     }
   }
@@ -398,6 +411,13 @@ XLANG3_HOT_INLINE XlangVMOpFlow mod_const(
     if (!value_mod_runtime(runtime, lhs, rhs, regs[in.dst], error)) {
       if (error == "integer modulo by zero" || error == "float modulo by zero") {
         return raise_zero_division(runtime, error.c_str(), std::forward<RaiseExceptionValue>(raise_exception_value));
+      }
+      if (error == "unsupported operands for %") {
+        error = std::string("unsupported operand type(s) for %: '") +
+            value_binary_type_name(lhs) + "' and '" +
+            value_binary_type_name(rhs) + "'";
+        return raise_exception_value(runtime.make_exception("TypeError", error))
+            ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
       }
       return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
     }

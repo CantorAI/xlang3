@@ -1,0 +1,1 @@
+200 {'base': 'list', 'original': 'list[int]', 'value': [123], 'schema': {'$defs': {'ListEnum': {'enum': [[123], [456]], 'title': 'ListEnum', 'type': 'array'}}, 'properties': {'item': {'$ref': '#/$defs/ListEnum'}}, 'required': ['item'], 'title': 'EnumModel', 'type': 'object'}}

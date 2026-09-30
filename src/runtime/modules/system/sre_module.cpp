@@ -81,6 +81,7 @@ struct LookbehindAssertion {
   std::string expression;
   int64_t marker_group = 0;
   int64_t alternate_marker_group = 0;
+  std::vector<std::string> literal_alternatives;
 };
 
 struct BoundaryAssertion {
@@ -155,12 +156,22 @@ struct MatchState {
   Value pattern;
   Value subject;
   std::shared_ptr<const std::string> text;
+  bool borrowed_text = false;
   bool bytes_text = false;
   bool ascii_text = false;
   std::vector<MatchGroup> groups;
   int64_t pos = 0;
   int64_t endpos = 0;
 };
+
+std::string_view match_text_view(const MatchState& state) {
+  if (state.borrowed_text) {
+    if (auto* string = value_as_string(state.subject)) {
+      return string_object_view(*string);
+    }
+  }
+  return state.text ? std::string_view(*state.text) : std::string_view();
+}
 
 struct FindIterState {
   Value pattern;
@@ -557,7 +568,8 @@ bool regex_parse_fixed_literal_lookbehind(
     size_t& close,
     std::string& literal,
     char& category,
-    int64_t& group_ref);
+    int64_t& group_ref,
+    std::vector<std::string>& alternatives);
 
 bool regex_parse_conditional_literal_lookbehind(
     std::string_view pattern,
@@ -646,6 +658,7 @@ bool regex_has_unsupported_std_construct(std::string_view pattern) {
       bool positive = true;
       size_t close = 0;
       std::string literal;
+      std::vector<std::string> literal_alternatives;
       char category = '\0';
       int64_t group_ref = 0;
       int64_t conditional_group = 0;
@@ -654,7 +667,7 @@ bool regex_has_unsupported_std_construct(std::string_view pattern) {
       std::string captured_negative_literal;
       if (lookbehind_kind == '!' &&
           !regex_parse_fixed_literal_lookbehind(
-              pattern, i, positive, close, literal, category, group_ref) &&
+              pattern, i, positive, close, literal, category, group_ref, literal_alternatives) &&
           !regex_parse_captured_literal_negative_lookbehind(
               pattern, i, close, captured_negative_literal) &&
           !regex_parse_conditional_literal_lookbehind(
@@ -886,7 +899,8 @@ bool regex_parse_fixed_literal_lookbehind(
     size_t& close,
     std::string& literal,
     char& category,
-    int64_t& group_ref) {
+    int64_t& group_ref,
+    std::vector<std::string>& alternatives) {
   if (open + 3 >= pattern.size() || pattern[open] != '(' || pattern[open + 1] != '?' || pattern[open + 2] != '<') {
     return false;
   }
@@ -899,6 +913,7 @@ bool regex_parse_fixed_literal_lookbehind(
   }
 
   literal.clear();
+  alternatives.clear();
   category = '\0';
   group_ref = 0;
   if (open + 10 < pattern.size() &&
@@ -931,14 +946,15 @@ bool regex_parse_fixed_literal_lookbehind(
     group_ref = 0;
   }
   bool escaped = false;
+  std::string branch;
   for (size_t i = open + 4; i < pattern.size(); ++i) {
     const char ch = pattern[i];
     if (escaped) {
       switch (ch) {
-        case 'n': literal.push_back('\n'); break;
-        case 'r': literal.push_back('\r'); break;
-        case 't': literal.push_back('\t'); break;
-        default: literal.push_back(ch); break;
+        case 'n': branch.push_back('\n'); break;
+        case 'r': branch.push_back('\r'); break;
+        case 't': branch.push_back('\t'); break;
+        default: branch.push_back(ch); break;
       }
       escaped = false;
       continue;
@@ -948,14 +964,39 @@ bool regex_parse_fixed_literal_lookbehind(
       continue;
     }
     if (ch == ')') {
+      if (branch.empty()) return false;
+      if (alternatives.empty()) {
+        literal = std::move(branch);
+      } else {
+        // The matcher evaluates these fixed-width ASCII lookbehinds after the
+        // host regex match; variable-width and non-ASCII alternatives stay on
+        // the explicit unsupported path rather than changing regex semantics.
+        alternatives.push_back(std::move(branch));
+        const size_t width = alternatives.front().size();
+        if (width == 0 || std::any_of(alternatives.begin(), alternatives.end(), [&](const std::string& item) {
+              return item.size() != width || std::any_of(item.begin(), item.end(), [](unsigned char value) {
+                return value >= 0x80u;
+              });
+            })) {
+          alternatives.clear();
+          return false;
+        }
+        literal = alternatives.front();
+      }
       close = i;
       return true;
+    }
+    if (ch == '|') {
+      if (branch.empty()) return false;
+      alternatives.push_back(std::move(branch));
+      branch.clear();
+      continue;
     }
     if (ch == '(' || ch == '[' || ch == '{' || ch == '.' || ch == '*' || ch == '+' || ch == '?' || ch == '|' || ch == '^' ||
         ch == '$') {
       return false;
     }
-    literal.push_back(ch);
+    branch.push_back(ch);
   }
   return false;
 }
@@ -1905,6 +1946,7 @@ std::string normalize_std_regex_pattern(
       bool positive = true;
       size_t close = 0;
       std::string literal;
+      std::vector<std::string> literal_alternatives;
       char category = '\0';
       int64_t group_ref = 0;
       int64_t conditional_group = 0;
@@ -1912,7 +1954,7 @@ std::string normalize_std_regex_pattern(
       std::string conditional_no;
       std::string captured_negative_literal;
       if (regex_parse_fixed_literal_lookbehind(
-              pattern, i, positive, close, literal, category, group_ref)) {
+              pattern, i, positive, close, literal, category, group_ref, literal_alternatives)) {
         if (lookbehinds != nullptr) {
           const size_t branch_end = pattern.find('|', close + 1);
           const bool empty_only = branch_end != std::string_view::npos &&
@@ -1921,9 +1963,20 @@ std::string normalize_std_regex_pattern(
           std::string trailing_literal;
           const bool anchor_from_end = close + 1 < pattern.size() &&
               regex_append_unescaped_literal(pattern.substr(close + 1), trailing_literal);
-          lookbehinds->push_back(LookbehindAssertion{
+          LookbehindAssertion assertion{
               out.size(), std::move(literal), positive, category, empty_only,
-              group_ref, anchor_from_end, trailing_literal.size()});
+              group_ref, anchor_from_end, trailing_literal.size()};
+          assertion.literal_alternatives = std::move(literal_alternatives);
+          assertion.captures_before_assertion = regex_capture_count_before(pattern, i);
+          int64_t markers_before = 0;
+          for (const auto& previous : *lookbehinds) {
+            if (previous.marker_group > 0) ++markers_before;
+          }
+          assertion.marker_group = assertion.captures_before_assertion + markers_before + 1;
+          lookbehinds->push_back(std::move(assertion));
+          // A zero-width capture records where the assertion occurs in the
+          // subject and whether its alternative participated in the match.
+          out += "()";
         }
         i = close;
       } else if (regex_parse_captured_literal_negative_lookbehind(
@@ -2197,7 +2250,7 @@ Value match_group_value(const MatchState& state, size_t index) {
   }
   const auto& group = state.groups[index];
   std::string live_text;
-  std::string_view current_text = *state.text;
+  std::string_view current_text = match_text_view(state);
   bool current_bytes = state.bytes_text;
   if (value_as_bytearray(state.subject) != nullptr ||
       value_as_memoryview(state.subject) != nullptr) {
@@ -2347,16 +2400,14 @@ bool append_match_group(
   }
   const auto& group = state.groups[static_cast<size_t>(index)];
   if (group.matched) {
+    const auto text = match_text_view(state);
     const size_t start = state.bytes_text || state.ascii_text
         ? static_cast<size_t>(group.start)
-        : utf8_byte_offset(*state.text, static_cast<size_t>(group.start));
+        : utf8_byte_offset(text, static_cast<size_t>(group.start));
     const size_t end = state.bytes_text || state.ascii_text
         ? static_cast<size_t>(group.end)
-        : utf8_byte_offset(*state.text, static_cast<size_t>(group.end));
-    output.append(
-        *state.text,
-        start,
-        end - start);
+        : utf8_byte_offset(text, static_cast<size_t>(group.end));
+    output.append(text.data() + start, end - start);
   }
   return true;
 }
@@ -2512,7 +2563,8 @@ bool match_get_attr(const Value& self, const std::string& name, Value& out, std:
   if (name == "string") {
     out = state->subject.tag != ValueTag::Invalid
         ? state->subject
-        : (state->bytes_text ? Value::bytes(*state->text) : Value::string(*state->text));
+        : (state->bytes_text ? Value::bytes(std::string(match_text_view(*state)))
+                             : Value::string(std::string(match_text_view(*state))));
     return true;
   }
   if (name == "pos") {
@@ -2685,13 +2737,30 @@ bool match_end(
   return true;
 }
 
+bool sre_class_getitem(
+    Runtime& runtime, const Value* args, uint32_t argc,
+    Value& out, std::string& error, void*) {
+  if (argc != 2 || value_as_class(args[0]) == nullptr) {
+    error = "__class_getitem__ expects a class and one argument";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value parameters;
+  if (value_as_tuple(args[1]) != nullptr) value_assign_fast(parameters, args[1]);
+  else parameters = Value::tuple({args[1]});
+  out = Value::generic_alias(args[0], std::move(parameters));
+  return true;
+}
+
 Value make_match_type(Runtime& runtime) {
   static Value match_type = Value::invalid();
   if (match_type.tag != ValueTag::Invalid) {
     return match_type;
   }
   std::vector<std::pair<std::string, Value>> attrs;
-  attrs.push_back({"__module__", Value::string("_sre")});
+  attrs.push_back({"__module__", Value::string("re")});
+  attrs.push_back({"__class_getitem__", Value::class_method(
+      runtime.make_native_function("_sre.Match.__class_getitem__", sre_class_getitem))});
   attrs.push_back({"__repr__", runtime.make_native_function("_sre.Match.__repr__", [](Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
     if (argc != 1) {
       error = "Match.__repr__() expected no arguments";
@@ -2704,7 +2773,7 @@ Value make_match_type(Runtime& runtime) {
     const auto& whole = state->groups[0];
     const Value matched = match_group_value(*state, 0);
     out = Value::string(
-        "<_sre.SRE_Match object; span=(" + std::to_string(whole.start) + ", " +
+        "<re.Match object; span=(" + std::to_string(whole.start) + ", " +
         std::to_string(whole.end) + "), match=" + value_to_repr(matched) + ">");
     return true;
   })});
@@ -2830,7 +2899,7 @@ Value make_match_type(Runtime& runtime) {
     out = Value::tuple({Value::int64(group.start), Value::int64(group.end)});
     return true;
   })});
-  match_type = Value::class_object("SRE_Match", std::move(attrs));
+  match_type = Value::class_object("Match", std::move(attrs));
   return match_type;
 }
 
@@ -2839,7 +2908,7 @@ Value make_finditer_type(Runtime& runtime);
 
 void repair_python_repeat_captures(
     const PatternState& pattern,
-    const std::string& text,
+    std::string_view text,
     size_t byte_match_start,
     size_t byte_match_end,
     bool bytes_text,
@@ -2883,7 +2952,7 @@ void repair_python_repeat_captures(
       const std::regex branch_regex(branch, std::regex::ECMAScript);
       const auto begin = text.cbegin() + static_cast<std::ptrdiff_t>(byte_match_start);
       const auto end = text.cbegin() + static_cast<std::ptrdiff_t>(byte_match_end);
-      std::match_results<std::string::const_iterator> branch_match;
+      std::match_results<std::string_view::const_iterator> branch_match;
       auto cursor = begin;
       bool found = false;
       size_t captured_start = 0;
@@ -2975,7 +3044,7 @@ void repair_python_repeat_captures(
       const std::regex candidate_regex(candidate, std::regex::ECMAScript);
       auto cursor = text.cbegin() + static_cast<std::ptrdiff_t>(byte_match_start);
       const auto end = text.cbegin() + static_cast<std::ptrdiff_t>(byte_match_end);
-      std::match_results<std::string::const_iterator> candidate_match;
+      std::match_results<std::string_view::const_iterator> candidate_match;
       bool found = false;
       size_t captured_start = 0;
       size_t captured_end = 0;
@@ -3066,23 +3135,26 @@ void repair_python_repeat_captures(
   }
 }
 
+template <typename Iterator>
 Value make_match(
     Runtime& runtime,
     const Value& pattern,
-    const std::string& text,
+    std::string_view text,
     bool bytes_text,
-    const std::match_results<std::string::const_iterator>& match,
+    const std::match_results<Iterator>& match,
     size_t base,
     size_t pos,
     size_t endpos,
     const Value* subject = nullptr,
     std::shared_ptr<const std::string> shared_text = {},
-    bool ascii_text = false) {
+    bool ascii_text = false,
+    bool borrow_text = false) {
   Value value = Value::instance(make_match_type(runtime));
   auto* state = new MatchState();
   state->pattern = pattern;
   if (subject != nullptr) state->subject = *subject;
-  state->text = shared_text
+  state->borrowed_text = borrow_text;
+  state->text = borrow_text ? std::shared_ptr<const std::string>() : shared_text
       ? std::move(shared_text)
       : std::make_shared<const std::string>(text);
   state->bytes_text = bytes_text;
@@ -3263,10 +3335,11 @@ bool regex_unicode_word_before(std::string_view text, size_t offset) {
   return regex_unicode_word_at(text, start);
 }
 
+template <typename Iterator>
 bool match_satisfies_lookbehinds(
     const PatternState& state,
-    const std::string& text,
-    const std::match_results<std::string::const_iterator>& match,
+    std::string_view text,
+    const std::match_results<Iterator>& match,
     size_t base) {
   const size_t match_start = base + static_cast<size_t>(match.position(0));
   size_t match_end = match_start + static_cast<size_t>(match.length(0));
@@ -3306,7 +3379,7 @@ bool match_satisfies_lookbehinds(
       const auto expression_is_present = [&](const std::string& source) {
         try {
           const std::regex expression("(?:" + source + ")$", state.regex_flags);
-          std::match_results<std::string::const_iterator> expression_match;
+          std::match_results<std::string_view::const_iterator> expression_match;
           const auto expression_end =
               text.cbegin() + static_cast<std::ptrdiff_t>(std::min(anchor, text.size()));
           return std::regex_search(text.cbegin(), expression_end, expression_match, expression) &&
@@ -3365,8 +3438,16 @@ bool match_satisfies_lookbehinds(
         present = text.compare(
             anchor - assertion.literal.size(), assertion.literal.size(), assertion.literal) == 0;
       }
-    } else if (anchor >= assertion.literal.size()) {
-      present = text.compare(anchor - assertion.literal.size(), assertion.literal.size(), assertion.literal) == 0;
+    } else {
+      const auto literal_precedes_anchor = [&](std::string_view literal) {
+        return anchor >= literal.size() &&
+            text.compare(anchor - literal.size(), literal.size(), literal) == 0;
+      };
+      present = literal_precedes_anchor(assertion.literal);
+      for (const auto& alternative : assertion.literal_alternatives) {
+        if (present) break;
+        present = literal_precedes_anchor(alternative);
+      }
     }
     if (assertion.positive != present) {
       return false;
@@ -3456,6 +3537,110 @@ bool regex_retry_longer_match_at_same_start(
   return false;
 }
 
+bool regex_retry_other_alternative_at_same_start(
+    const PatternState& state, const std::string& text,
+    size_t match_start, size_t endpos, bool full,
+    std::match_results<std::string::const_iterator>& match) {
+  // Host regex does not support lookbehind. If its preferred nested branch
+  // matches but fails a deferred assertion, retry sibling branches at the same
+  // subject position. Keep each disabled branch in the expression behind an
+  // always-failing assertion so its captures retain their original numbering.
+  struct Branch { size_t begin; size_t end; };
+  struct Scope {
+    size_t branch_begin;
+    std::vector<Branch> branches;
+  };
+  std::vector<Scope> scopes;
+  const std::string_view pattern(state.engine_pattern);
+  std::vector<Scope> stack;
+  stack.push_back(Scope{0, {}});  // The implicit top-level alternation.
+  bool in_class = false;
+  bool escaped = false;
+  for (size_t i = 0; i < pattern.size(); ++i) {
+    const char ch = pattern[i];
+    if (escaped) { escaped = false; continue; }
+    if (ch == '\\') { escaped = true; continue; }
+    if (ch == '[' && !in_class) { in_class = true; continue; }
+    if (ch == ']' && in_class) { in_class = false; continue; }
+    if (in_class) continue;
+    if (ch == '(') {
+      size_t content_begin = i + 1;
+      if (i + 2 < pattern.size() && pattern[i + 1] == '?' &&
+          (pattern[i + 2] == ':' || pattern[i + 2] == '=' || pattern[i + 2] == '!')) {
+        content_begin = i + 3;
+      } else if (i + 1 < pattern.size() && pattern[i + 1] == '?') {
+        const size_t colon = pattern.find(':', i + 2);
+        const size_t close = pattern.find(')', i + 2);
+        if (colon != std::string_view::npos &&
+            (close == std::string_view::npos || colon < close)) {
+          content_begin = colon + 1;
+        }
+      }
+      stack.push_back(Scope{content_begin, {}});
+      continue;
+    }
+    if (ch == '|') {
+      auto& scope = stack.back();
+      scope.branches.push_back(Branch{scope.branch_begin, i});
+      scope.branch_begin = i + 1;
+      continue;
+    }
+    if (ch == ')' && stack.size() > 1) {
+      auto scope = std::move(stack.back());
+      stack.pop_back();
+      if (!scope.branches.empty()) {
+        scope.branches.push_back(Branch{scope.branch_begin, i});
+        scopes.push_back(std::move(scope));
+      }
+    }
+  }
+  auto root = std::move(stack.front());
+  if (!root.branches.empty()) {
+    root.branches.push_back(Branch{root.branch_begin, pattern.size()});
+    scopes.push_back(std::move(root));
+  }
+  if (scopes.empty()) return false;
+  const auto begin = text.cbegin() + static_cast<std::ptrdiff_t>(match_start);
+  const auto end = text.cbegin() + static_cast<std::ptrdiff_t>(endpos);
+  auto flags = std::regex_constants::match_continuous;
+  if (match_start != 0)
+    flags |= std::regex_constants::match_prev_avail |
+             std::regex_constants::match_not_bol;
+  for (const auto& scope : scopes) {
+    for (size_t selected = 1; selected < scope.branches.size(); ++selected) {
+      std::string alternative;
+      alternative.reserve(pattern.size() + selected * 8);
+      size_t copied = 0;
+      for (size_t branch = 0; branch < scope.branches.size(); ++branch) {
+        const auto span = scope.branches[branch];
+        if (branch < selected) {
+          alternative.append(pattern.substr(copied, span.begin - copied));
+          alternative += "(?!)(?:";
+          alternative.append(pattern.substr(span.begin, span.end - span.begin));
+          alternative += ")";
+          copied = span.end;
+        }
+      }
+      alternative.append(pattern.substr(copied));
+      try {
+        const std::regex candidate_regex(alternative, state.regex_flags);
+        std::match_results<std::string::const_iterator> candidate;
+        const bool found = full
+            ? std::regex_match(begin, end, candidate, candidate_regex, flags)
+            : std::regex_search(begin, end, candidate, candidate_regex, flags);
+        if (found && match_satisfies_lookbehinds(
+                         state, text, candidate, match_start)) {
+          match = std::move(candidate);
+          return true;
+        }
+      } catch (const std::regex_error&) {
+        return false;
+      }
+    }
+  }
+  return false;
+}
+
 bool pattern_match_impl(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, bool continuous, bool full) {
   if (argc < 2 || argc > 4) {
     error = "Pattern match/search expected string and optional positions";
@@ -3468,6 +3653,56 @@ bool pattern_match_impl(Runtime& runtime, const Value* args, uint32_t argc, Valu
   if (pattern_anchored_literal_miss(*state, args[1])) {
     value_set_none(out);
     return true;
+  }
+  // An immutable ASCII subject can be matched in place. JSON and other
+  // scanners repeatedly call Pattern.match with advancing positions; copying
+  // the full subject into each temporary Match makes that quadratic.
+  if (continuous && state->regex_available && state->lookbehinds.empty()) {
+    if (auto* string = value_as_string(args[1]);
+        string != nullptr && string_object_is_ascii(*string)) {
+      const auto view = string_object_view(*string);
+      if ((argc >= 3 && value_as_bigint(args[2]) != nullptr) ||
+          (argc >= 4 && value_as_bigint(args[3]) != nullptr)) {
+        error = "Python int too large to convert to C ssize_t";
+        runtime.raise_class_error("OverflowError", error);
+        return false;
+      }
+      size_t pos = 0;
+      if (argc >= 3 && args[2].tag == ValueTag::Int64 && args[2].as.i64 > 0) {
+        pos = std::min(static_cast<size_t>(args[2].as.i64), view.size());
+      }
+      size_t endpos = view.size();
+      if (argc >= 4 && args[3].tag == ValueTag::Int64) {
+        endpos = args[3].as.i64 < 0 ? 0
+            : std::min(static_cast<size_t>(args[3].as.i64), view.size());
+      }
+      if (pos > endpos || pos < state->minimum_match_start) {
+        value_set_none(out);
+        return true;
+      }
+      if (!ensure_pattern_regex(*state, error)) return false;
+      std::match_results<std::string_view::const_iterator> match;
+      const auto begin = view.cbegin() + static_cast<std::ptrdiff_t>(pos);
+      const auto end = view.cbegin() + static_cast<std::ptrdiff_t>(endpos);
+      bool matched = false;
+      try {
+        matched = full || state->requires_absolute_end
+            ? std::regex_match(begin, end, match, state->regex)
+            : std::regex_search(begin, end, match, state->regex,
+                                std::regex_constants::match_continuous);
+      } catch (const std::regex_error& exc) {
+        error = std::string("regular expression match failed in the native engine") +
+            ": " + exc.what();
+        return false;
+      }
+      if (!matched || !match_satisfies_lookbehinds(*state, view, match, pos)) {
+        value_set_none(out);
+        return true;
+      }
+      out = make_match(runtime, args[0], view, false, match,
+                       pos, pos, endpos, &args[1], {}, true, true);
+      return true;
+    }
   }
   std::string text;
   bool bytes_text = false;
@@ -3539,6 +3774,13 @@ bool pattern_match_impl(Runtime& runtime, const Value* args, uint32_t argc, Valu
     }
     const size_t rejected_start = cursor + static_cast<size_t>(match.position(0));
     const size_t rejected_end = rejected_start + static_cast<size_t>(match.length(0));
+    if (regex_retry_other_alternative_at_same_start(
+            *state, text, rejected_start, byte_endpos,
+            full || (continuous && state->requires_absolute_end), match)) {
+      out = make_match(runtime, args[0], text, bytes_text, match,
+                       rejected_start, pos, endpos, &args[1]);
+      return true;
+    }
     if (!state->lookbehinds.empty() && rejected_end < byte_endpos) {
       const auto retry_flags = rejected_start == 0
           ? std::regex_constants::match_default
@@ -3813,13 +4055,19 @@ bool finditer_next(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
       break;
     }
     const size_t start = state->cursor + static_cast<size_t>(match.position(0));
-    const size_t match_end = start + static_cast<size_t>(match.length(0));
+    size_t match_end = start + static_cast<size_t>(match.length(0));
+    size_t match_base = state->cursor;
     if (!match_satisfies_lookbehinds(*pattern, state->text, match, state->cursor)) {
-      state->cursor = match_end > start ? match_end : start + 1;
-      continue;
+      if (!regex_retry_other_alternative_at_same_start(
+              *pattern, state->text, start, state->endpos, false, match)) {
+        state->cursor = match_end > start ? match_end : start + 1;
+        continue;
+      }
+      match_base = start;
+      match_end = start + static_cast<size_t>(match.length(0));
     }
     out = make_match(runtime, state->pattern, state->text, state->bytes_text, match,
-                     state->cursor, state->pos, state->endpos, &state->subject);
+                     match_base, state->pos, state->endpos, &state->subject);
     state->cursor = match_end;
     state->retry_nonempty_at_cursor = start == match_end;
     return true;
@@ -4574,7 +4822,9 @@ Value make_pattern_type(Runtime& runtime) {
     return pattern_type;
   }
   std::vector<std::pair<std::string, Value>> attrs;
-  attrs.push_back({"__module__", Value::string("_sre")});
+  attrs.push_back({"__module__", Value::string("re")});
+  attrs.push_back({"__class_getitem__", Value::class_method(
+      runtime.make_native_function("_sre.Pattern.__class_getitem__", sre_class_getitem))});
   attrs.push_back({"__repr__", runtime.make_native_function("_sre.Pattern.__repr__", pattern_repr)});
   attrs.push_back({"__eq__", runtime.make_native_function("_sre.Pattern.__eq__", pattern_compare)});
   attrs.push_back({"__ne__", runtime.make_native_function("_sre.Pattern.__ne__", pattern_compare, reinterpret_cast<void*>(1))});
@@ -4602,7 +4852,7 @@ Value make_pattern_type(Runtime& runtime) {
       builtin_method_fast_adapter<pattern_sub, 4>, false, pattern_sub_kw)});
   attrs.push_back({"split", runtime.make_native_function("_sre.Pattern.split", pattern_split,
       nullptr, nullptr, nullptr, false, pattern_split_kw)});
-  pattern_type = Value::class_object("SRE_Pattern", std::move(attrs));
+  pattern_type = Value::class_object("Pattern", std::move(attrs));
   return pattern_type;
 }
 
@@ -4804,6 +5054,26 @@ bool sre_compile(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
       pattern, dot_repeat_lookbehind_width, dot_repeat_lookbehind_positive);
   const bool unsupported = regex_has_unsupported_std_construct(pattern) && !dot_repeat_lookbehind;
   std::string engine_pattern = unsupported || dot_repeat_lookbehind ? std::string() : pattern;
+  // The host engine picks the first successful branch before the deferred
+  // lookbehind assertion is checked. Put an equivalent start anchor first so
+  // it cannot shadow a valid ^ branch at the beginning of the subject.
+  for (size_t open = engine_pattern.find("(?:(?<=");
+       open != std::string::npos;
+       open = engine_pattern.find("(?:(?<=", open + 1)) {
+    size_t close = open + 7;
+    bool escaped = false;
+    for (; close < engine_pattern.size(); ++close) {
+      const char ch = engine_pattern[close];
+      if (escaped) { escaped = false; continue; }
+      if (ch == '\\') { escaped = true; continue; }
+      if (ch == ')') break;
+      if (ch == '(') break;
+    }
+    if (close >= engine_pattern.size() || engine_pattern[close] != ')' ||
+        engine_pattern.compare(close + 1, 3, "|^)") != 0) continue;
+    const std::string assertion = engine_pattern.substr(open + 3, close - open - 2);
+    engine_pattern.replace(open, close + 4 - open, "(?:^|" + assertion + ")");
+  }
   std::vector<LookbehindAssertion> lookbehinds;
   std::vector<BoundaryAssertion> boundaries;
   bool requires_absolute_start = false;
@@ -4817,14 +5087,17 @@ bool sre_compile(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
   }
   const int64_t group_count = args[3].tag == ValueTag::Int64 ? args[3].as.i64 : 0;
   std::regex::flag_type regex_flags = std::regex::ECMAScript | std::regex_constants::optimize;
-  if (group_count == 0) regex_flags |= std::regex_constants::nosubs;
+  if (group_count == 0 && std::none_of(lookbehinds.begin(), lookbehinds.end(),
+          [](const LookbehindAssertion& assertion) { return assertion.marker_group > 0; })) {
+    regex_flags |= std::regex_constants::nosubs;
+  }
   if ((flags & kFlagIgnoreCase) != 0 && pattern.find("(?-i:") == std::string::npos &&
       regex_requires_host_ignorecase(pattern)) {
     regex_flags |= std::regex::icase;
   }
-#if !defined(_MSC_VER)
-  // MSVC does not expose this standard flag; anchor behavior is already
-  // normalized above for multiline patterns on that implementation.
+#if !defined(_MSC_VER) || _MSC_VER >= 1930
+  // VS 2019's standard library lacks this flag; newer MSVC libraries
+  // expose it and need it for anchors after embedded newlines.
   if ((flags & kFlagMultiline) != 0) {
     regex_flags |= std::regex_constants::multiline;
   }

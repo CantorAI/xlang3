@@ -1,0 +1,1 @@
+200 {'error': "Unable to apply constraint 'multiple_of' to supplied value [1, 2]"}

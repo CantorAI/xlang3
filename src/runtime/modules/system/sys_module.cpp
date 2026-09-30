@@ -1619,20 +1619,59 @@ bool sys_stdio_write(Runtime& runtime, const Value* args, uint32_t argc, Value& 
     return false;
   }
   const int64_t written = static_cast<int64_t>(utf8_codepoint_count(data));
+  std::string attr_error;
+  Value newline_value;
+  std::string output_newline;
+  if (object_get_attr(args[0], "newline", newline_value, attr_error) &&
+      value_as_string(newline_value) != nullptr) {
+    output_newline = string_object_to_string(*value_as_string(newline_value));
+  } else {
+#if defined(_WIN32)
+    const char* kind = sys_stdio_kind(args[0]);
+    output_newline =
+        (kind != nullptr && std::string_view(kind) == "stderr") ||
+                runtime.uses_process_stdout()
+            ? "\r\n" : "\n";
+#else
+    output_newline = "\n";
+#endif
+  }
+  if (!output_newline.empty() && output_newline != "\n") {
+    std::string translated;
+    translated.reserve(data.size());
+    for (char ch : data) {
+      if (ch == '\n') translated += output_newline;
+      else translated.push_back(ch);
+    }
+    data = std::move(translated);
+  }
   Value encoding_value;
   Value errors_value;
   std::string encoding = "utf-8";
   std::string errors = "strict";
-  std::string attr_error;
   if (object_get_attr(args[0], "encoding", encoding_value, attr_error)) {
     if (auto* text = value_as_string(encoding_value)) encoding = string_object_to_string(*text);
   }
   if (object_get_attr(args[0], "errors", errors_value, attr_error)) {
     if (auto* text = value_as_string(errors_value)) errors = string_object_to_string(*text);
   }
+  const char* kind = sys_stdio_kind(args[0]);
+  const bool utf8_encoding = encoding == "utf-8" || encoding == "utf8" ||
+      encoding == "utf_8";
+  const bool ascii_output = std::all_of(data.begin(), data.end(), [](unsigned char ch) {
+    return ch < 0x80;
+  });
+  if (!runtime.finalizing() && kind != nullptr && std::string_view(kind) == "stdout" &&
+      runtime.uses_process_stdout() && utf8_encoding && ascii_output) {
+    // The ordinary CLI stdout sink is already UTF-8 bytes. ASCII survives every
+    // UTF-8 error policy, and newline translation above has already applied the
+    // platform rule, so bypass importing/calling codecs for this common case.
+    runtime.write_output(data);
+    value_set_int64(out, written);
+    return true;
+  }
   if (runtime.finalizing() &&
       (encoding == "utf-8" || encoding == "utf8" || encoding == "utf_8")) {
-    const char* kind = sys_stdio_kind(args[0]);
     if (kind != nullptr && std::string(kind) == "stderr") {
       std::cerr.write(data.data(), static_cast<std::streamsize>(data.size()));
     } else {
@@ -1661,7 +1700,7 @@ bool sys_stdio_write(Runtime& runtime, const Value* args, uint32_t argc, Value& 
     return false;
   }
   data = bytes_object_to_string(*encoded_bytes);
-  const char* kind = argc > 0 ? sys_stdio_kind(args[0]) : nullptr;
+  kind = argc > 0 ? sys_stdio_kind(args[0]) : nullptr;
   if (kind != nullptr && std::string(kind) == "stderr") {
     std::cerr.write(data.data(), static_cast<std::streamsize>(data.size()));
   } else {
@@ -2236,6 +2275,7 @@ Value make_sys_stdio(Runtime& runtime, const Value& klass, const char* kind) {
   sys_stdio_set_own_attr(stream, "name", Value::string(std::string("<") + kind + ">"));
   sys_stdio_set_own_attr(stream, "mode", Value::string(std::string(kind) == "stdin" ? "r" : "w"));
   sys_stdio_set_own_attr(stream, "newlines", Value::none());
+  sys_stdio_set_own_attr(stream, "newline", Value::none());
   sys_stdio_set_own_attr(stream, "write_through", Value::boolean(false));
   sys_stdio_set_own_attr(stream, "closed", Value::boolean(false));
   const bool line_buffering = std::string(kind) != "stdout";

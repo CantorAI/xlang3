@@ -1,0 +1,12 @@
+number
+number
+('sequence', 3, [4])
+('sequence', 6, [7])
+other
+other
+('mapping', 8, {'extra': 9})
+('sequence', 4, [5])
+('mapping', 7, {})
+none
+other
+TypeError

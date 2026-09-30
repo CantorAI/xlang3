@@ -1,0 +1,10 @@
+8 False
+3
+b'abc\x00' 4
+True
+6 b'abc'
+3
+b'XYZdef'
+b'123def'
+b'XYZdef'
+TypeError

@@ -290,6 +290,10 @@ X3Status host_add_module(X3PackageHost* host, const char* name, X3Module** out_m
   apply_package_metadata(*package, *module);
 
   std::string error;
+  if (!module_set_attr(module->value, "__doc__", Value::none(), error)) {
+    package->runtime->set_last_error(error);
+    return X3_STATUS_ERROR;
+  }
   const std::string module_name(name);
   auto publish = [&](const std::string& key) {
     bool recorded = false;
@@ -396,6 +400,9 @@ X3Status host_module_add_function(X3Module* module, const X3NativeFunctionDef* d
       native_function_bridge,
       thunk,
       [](void* data) { delete static_cast<NativeThunk*>(data); });
+  // Module-level native functions have the same non-binding descriptor
+  // behavior as CPython built-in functions when stored on a user class.
+  value_as_native_function(function)->bind_as_descriptor = false;
   value_as_native_function(function)->capture_expressions =
       (def->flags & X3_NATIVE_CAPTURE_EXPRESSIONS) != 0;
   value_as_native_function(function)->ipc_args_by_value =
@@ -1065,6 +1072,17 @@ bool import_native_package(Runtime& runtime, const std::string& package_name,
     return false;
   }
   if (!initialize_native_package(runtime, package_name, library_path, init, out, error)) return false;
+  const auto dot = package_name.rfind('.');
+  if (dot != std::string::npos && dot > 0 &&
+      runtime.module_registry_dict().tag != ValueTag::Invalid) {
+    Value parent;
+    std::string ignored;
+    if (mapping_get_item(runtime.module_registry_dict(),
+                         Value::string(package_name.substr(0, dot)), parent,
+                         ignored) && value_as_module(parent) != nullptr &&
+        !module_set_attr(parent, package_name.substr(dot + 1), out, error))
+      return false;
+  }
   loaded_library_handles().push_back(handle);
   return true;
 }

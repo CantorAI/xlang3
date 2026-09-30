@@ -1,0 +1,3 @@
+TypeError unsupported operand type(s) for %: 'list' and 'int'
+TypeError unsupported operand type(s) for %: 'set' and 'int'
+TypeError unsupported operand type(s) for %: 'frozenset' and 'int'

@@ -81,7 +81,10 @@ Value from_c_value(const X3Value& value, std::string& error) {
       }
       return Value::int64(static_cast<int64_t>(value.as.u64));
     case X3_TAG_DOUBLE:
-      return Value::number(value.as.f64);
+      out.tag = ValueTag::Double;
+      out.as.f64 = value.as.f64;
+      if (out.flags == 0) out.flags = next_float_identity();
+      return out;
     case X3_TAG_OBJECT:
       out.tag = ValueTag::Object;
       out.as.obj = reinterpret_cast<Object*>(value.as.obj);

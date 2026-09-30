@@ -1,0 +1,80 @@
+{
+  "pairs": [
+    {
+      "xlang3": {
+        "whole_ms": 53.436,
+        "encode_ms": 42.626,
+        "iterencode_ms": 23.579
+      },
+      "cpython314": {
+        "whole_ms": 10.878,
+        "encode_ms": 9.537,
+        "iterencode_ms": 7.598
+      }
+    },
+    {
+      "cpython314": {
+        "whole_ms": 10.631,
+        "encode_ms": 9.292,
+        "iterencode_ms": 7.278
+      },
+      "xlang3": {
+        "whole_ms": 54.733,
+        "encode_ms": 43.621,
+        "iterencode_ms": 23.984
+      }
+    },
+    {
+      "xlang3": {
+        "whole_ms": 53.939,
+        "encode_ms": 42.995,
+        "iterencode_ms": 23.826
+      },
+      "cpython314": {
+        "whole_ms": 11.95,
+        "encode_ms": 10.472,
+        "iterencode_ms": 8.287
+      }
+    },
+    {
+      "cpython314": {
+        "whole_ms": 10.817,
+        "encode_ms": 9.503,
+        "iterencode_ms": 7.529
+      },
+      "xlang3": {
+        "whole_ms": 54.678,
+        "encode_ms": 43.408,
+        "iterencode_ms": 23.944
+      }
+    },
+    {
+      "xlang3": {
+        "whole_ms": 54.005,
+        "encode_ms": 43.103,
+        "iterencode_ms": 23.811
+      },
+      "cpython314": {
+        "whole_ms": 10.578,
+        "encode_ms": 9.258,
+        "iterencode_ms": 7.324
+      }
+    }
+  ],
+  "medians_ms": {
+    "xlang3": {
+      "whole_ms": 54.005,
+      "encode_ms": 43.103,
+      "iterencode_ms": 23.826
+    },
+    "cpython314": {
+      "whole_ms": 10.817,
+      "encode_ms": 9.503,
+      "iterencode_ms": 7.529
+    }
+  },
+  "source_sha256": "732d1bc6bc10c229b34182dc0592ade8cb94f9f8018aa91d25087ef257584f4f",
+  "xlang_exe_sha256": "98cbc243329a128a56c5c30966a6c0b8fa5cadbcf02580c2b490fe19474fce37",
+  "runtime_dll_sha256": "99b313f630adcddf85553d7297aae5d4e62bccccce51b36f3bcd5c924437046c",
+  "python": "C:\\Python\\Python314\\python.exe"
+}

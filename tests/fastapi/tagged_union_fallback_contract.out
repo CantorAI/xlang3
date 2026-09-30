@@ -1,0 +1,1 @@
+200 {'payload': {'kind': 'IModel', 'int_value': 42}, 'without_warnings': {'kind': 'IModel', 'int_value': 42}, 'warnings': ['UserWarning'], 'warning_reason': True, 'error_type': 'PydanticSerializationError', 'raw_cases': [['UserWarning', 3], ['UserWarning', 3]]}

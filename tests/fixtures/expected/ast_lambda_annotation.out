@@ -1,0 +1,1 @@
+Annotated[str, AfterValidator(lambda x: x.upper())]

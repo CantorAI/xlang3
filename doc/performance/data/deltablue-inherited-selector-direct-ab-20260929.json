@@ -1,0 +1,78 @@
+{
+  "benchmark": "pyperformance 1.14.0 bm_deltablue/run_benchmark.py::delta_blue(100)",
+  "method": "9 order-balanced pairs; 5 benchmark invocations per process; direct diagnostic harness; startup excluded from timed workload; diagnostic only, not official pyperf",
+  "control_median_seconds": 0.04118478,
+  "candidate_median_seconds": 0.04114554,
+  "candidate_over_control_median": 0.9990472208422627,
+  "pairs": [
+    {
+      "pair": 1,
+      "order": "control-candidate",
+      "control_seconds": 0.04136126,
+      "candidate_seconds": 0.04098276
+    },
+    {
+      "pair": 2,
+      "order": "candidate-control",
+      "control_seconds": 0.0414424,
+      "candidate_seconds": 0.04199054
+    },
+    {
+      "pair": 3,
+      "order": "control-candidate",
+      "control_seconds": 0.04100154,
+      "candidate_seconds": 0.04090226
+    },
+    {
+      "pair": 4,
+      "order": "candidate-control",
+      "control_seconds": 0.04101038,
+      "candidate_seconds": 0.04101996
+    },
+    {
+      "pair": 5,
+      "order": "control-candidate",
+      "control_seconds": 0.04149634,
+      "candidate_seconds": 0.04650098
+    },
+    {
+      "pair": 6,
+      "order": "candidate-control",
+      "control_seconds": 0.04115048,
+      "candidate_seconds": 0.04114812
+    },
+    {
+      "pair": 7,
+      "order": "control-candidate",
+      "control_seconds": 0.04118478,
+      "candidate_seconds": 0.04114554
+    },
+    {
+      "pair": 8,
+      "order": "candidate-control",
+      "control_seconds": 0.04097184,
+      "candidate_seconds": 0.04100696
+    },
+    {
+      "pair": 9,
+      "order": "control-candidate",
+      "control_seconds": 0.04174358,
+      "candidate_seconds": 0.04125602
+    }
+  ],
+  "executables": {
+    "control_path": "build/Release/xlang3-deltablue-control.exe",
+    "control_sha256": "9311818b2259310f1216d3fd4a71a7864f34d619fdae8177093089d2deca62e1",
+    "candidate_path": "build/Release/xlang3.exe",
+    "candidate_sha256": "a4602daf1fd2dca9bb28e0c70faa581dfe7af269309277baf479169fca3a3bee"
+  },
+  "sources": {
+    "benchmark_path": "C:\\Python\\Python314\\Lib\\site-packages\\pyperformance\\data-files\\benchmarks\\bm_deltablue\\run_benchmark.py",
+    "benchmark_sha256": "70da5e16cd5b14f2f398ccc066794b83a30d997c2d91150695b8f938f934dc30",
+    "harness_path": "benchmarks/diagnostics/run_pyperformance_workload_cli_direct.py",
+    "harness_sha256": "219664751abc2d226496d72ecf8397b97abd6bed9e6b7ea7f91876d0bbff4493"
+  },
+  "host": "Windows-11-10.0.26200-SP0",
+  "python": "3.14.7",
+  "interpretation": "No measurable end-to-end improvement. Candidate included inherited self-attribute selector fast path and temporary no-op perf-name instrumentation; feature was removed from source."
+}

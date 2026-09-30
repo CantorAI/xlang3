@@ -1,0 +1,1 @@
+200 {'encoded': {'inner': {'payload': {'a': '1', 'b': 0}}}, 'serializer_calls': 2, 'validated': [1, True, 2, False]}

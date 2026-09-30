@@ -1,0 +1,1 @@
+200 {"chain": [1004, 1001], "criticality": "Criticality.CRITICAL", "failures": ["A CA extension policy must require the basicConstraints extension to be present.", "The extension policies may only be set once."], "subjects": null}

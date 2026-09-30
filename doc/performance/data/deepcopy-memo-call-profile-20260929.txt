@@ -1,0 +1,75 @@
+Deepcopy memo call-path diagnostic (2026-09-29)
+
+Purpose: locate the current pyperformance deepcopy_memo gap before changing the
+VM. This diagnostic uses the pyperformance 1.14 benchmark's exact object graph:
+
+    A = [1] * 100
+    data = {"a": (A, A, A), "b": [A] * 100}
+
+Timing method: 9 in-process samples, 25 copy.deepcopy(data) calls per sample;
+report the median per-copy elapsed time from time.perf_counter. This is a
+diagnostic, not a replacement for pyperf. Each runtime used the same script.
+
+Pre-optimization Release XLang3: median 1117.848 us per copy
+Samples (us): 1156.3, 1110.9, 1132.5, 1125.0, 1113.0, 1109.3, 1117.8, 1127.2, 1114.4
+
+CPython 3.14.7: median 21.208 us per copy
+Samples (us): 22.8, 21.3, 21.1, 20.8, 21.2, 21.2, 21.2, 21.2, 20.9
+
+Ratio: XLang3 takes about 52.7x as long in this diagnostic. The official
+pyperformance full-run result remains the authoritative suite measurement.
+
+With sys.setprofile enabled around one deepcopy(data), XLang3 reported these
+Python-level call events:
+
+    deepcopy          208
+    _keep_alive         4
+    _deepcopy_list      2
+    _deepcopy_dict      1
+    _deepcopy_tuple     1
+
+Existing VM profiling also showed the direct integer-key dict.get path is
+eligible for memo lookups. The repeated calls to the pure-Python deepcopy
+function and their frame/opcode execution are the next optimization target;
+do not replace copy.py with a C++ implementation.
+
+The fixed-baseline gate now includes this exact graph with 25 copy calls.
+The full eight-case Release check against the preserved callmethodex baseline
+passed: deepcopy_memo candidate/baseline ratio 0.992x. This is a regression
+check only, not an improvement over CPython.
+
+The standard pyperformance -p invocation could not create its XLang3 benchmark
+venv here: ensurepip/get-pip bootstrap fails because the XLang3 executable
+cannot initialize CPython 3.14's site.py. A direct runtime run with a fresh
+PYTHONPYCACHEPREFIX succeeds, and the earlier full-run pyperf data is retained
+in pyperformance-xlang3-vs-cpython314-20260928.md and its linked raw JSON.
+
+Follow-up optimization (2026-09-29): XlangVMFrame::clear_for_pop now skips
+resetting instruction-cache records whose adaptive domain is still Empty.
+Every operation that can populate global, attribute, or call-site cache data
+touches its domain first. This preserves cleanup and object-lifetime behavior
+for used records while avoiding full record/vector resets for ordinary IR
+instructions. The cache-domain invariant is documented at the cleanup site in
+src/executor/xlang_vm/xlang_frame.h.
+
+The exact pyperformance 1.14 benchmark_memo function, run with pyperf 2.10.0
+in rigorous mode, measured:
+
+    preserved XLang3 Release baseline: 1.12 ms +- 0.01 ms
+    optimized XLang3 Release candidate: 559 us +- 8 us
+    CPython 3.14.7:                     22.1 us +- 0.3 us
+
+The candidate is 2.00x faster than the preserved XLang3 baseline and remains
+about 25.3x slower than CPython. Pyperf's Windows priority and system metadata
+hooks were disabled because XLang3's psutil Windows extension does not expose
+proc_times/uptime; worker/process sampling and pyperf calibration remain in
+use. Raw runs are in pyperformance-deepcopy-memo-xlang3-baseline-rigorous-20260929.json,
+pyperformance-deepcopy-memo-xlang3-candidate-rigorous-20260929.json, and
+pyperformance-deepcopy-memo-cpython314-rigorous-final-20260929.json.
+
+The full eight-case fixed Release gate passed with a 0.497 candidate/baseline
+ratio for deepcopy_memo (21 order-balanced pairs after five warmups). Raw
+paired samples and executable/runtime hashes are in
+release-regression-deepcopy-cache-cleanup-20260929.json. Deepcopy semantics
+are checked in the benchmark preflight: deep copies are distinct and preserve
+the repeated-alias identity graph.

@@ -13,6 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 #include "xlang3/builtins.h"
+#include "xlang3/pyc_magic.h"
 
 #include "xlang3/functional_iterators.h"
 #include "xlang3/interpreter.h"
@@ -216,20 +217,43 @@ bool zipimporter_init(Runtime& runtime, const Value* args, uint32_t argc, Value&
   std::string archive_path = archive;
   std::vector<uint8_t> archive_bytes;
   std::vector<ZipArchiveEntry> entries;
+  auto select_archive = [&](const std::string& path) {
+    archive_path = path;
+    prefix = archive.substr(path.size());
+    while (!prefix.empty() && (prefix.front() == '/' || prefix.front() == '\\')) {
+      prefix.erase(prefix.begin());
+    }
+#if defined(_WIN32)
+    for (char& ch : prefix) if (ch == '/') ch = '\\';
+    if (!prefix.empty() && prefix.back() != '\\') prefix.push_back('\\');
+#else
+    for (char& ch : prefix) if (ch == '\\') ch = '/';
+    if (!prefix.empty() && prefix.back() != '/') prefix.push_back('/');
+#endif
+  };
+  // An archive can be any regular file, including a wheel. Resolve its disk
+  // boundary before reading through the VFS, which may see member paths too.
+  std::error_code filesystem_error;
+  for (auto candidate = std::filesystem::u8path(archive);
+       !candidate.empty(); candidate = candidate.parent_path()) {
+    if (std::filesystem::is_regular_file(candidate, filesystem_error)) {
+      select_archive(candidate.string());
+      break;
+    }
+    filesystem_error.clear();
+    if (candidate == candidate.parent_path()) break;
+  }
   if (!runtime.vfs().read_file(archive_path, archive_bytes, error)) {
     error.clear();
-    const auto zip_end = archive.find(".zip");
-    if (zip_end != std::string::npos && zip_end + 4 < archive.size() &&
-        (archive[zip_end + 4] == '/' || archive[zip_end + 4] == '\\')) {
-      archive_path = archive.substr(0, zip_end + 4);
-      prefix = archive.substr(zip_end + 5);
-#if defined(_WIN32)
-      for (char& ch : prefix) if (ch == '/') ch = '\\';
-      if (!prefix.empty() && prefix.back() != '\\') prefix.push_back('\\');
-#else
-      for (char& ch : prefix) if (ch == '\\') ch = '/';
-      if (!prefix.empty() && prefix.back() != '/') prefix.push_back('/');
-#endif
+    for (auto candidate = std::filesystem::u8path(archive).parent_path();
+         !candidate.empty(); candidate = candidate.parent_path()) {
+      if (runtime.vfs().read_file(candidate.string(), archive_bytes, error)) {
+        select_archive(candidate.string());
+        break;
+      }
+      archive_bytes.clear();
+      error.clear();
+      if (candidate == candidate.parent_path()) break;
     }
   }
   if (archive_bytes.empty() && !runtime.vfs().read_file(archive_path, archive_bytes, error)) {
@@ -502,7 +526,7 @@ bool zipimporter_get_code(Runtime& runtime, const Value* args, uint32_t argc, Va
     return false;
   }
   if (std::filesystem::path(member).extension() == ".pyc") {
-    if (source.size() < 16 || source.compare(0, 4, "\x3e\x58\x0d\x0a", 4) != 0) {
+    if (source.size() < 16 || source.compare(0, 4, kPycMagicView) != 0) {
       return raise_zipimport_error(runtime, "bad magic number in '" + member + "'", error);
     }
     Value marshal_module;

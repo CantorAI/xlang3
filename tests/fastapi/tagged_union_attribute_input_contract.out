@@ -1,0 +1,8 @@
+http 422 model_attributes_type
+http 422 union_tag_not_found
+python 'fish' model_attributes_type
+python 5 model_attributes_type
+python [] model_attributes_type
+python () model_attributes_type
+python None model_attributes_type
+python {'unknown': 1} union_tag_not_found

@@ -436,6 +436,21 @@ const BuiltinMethodSpec* int_find_method_spec(const Value& object, const std::st
 }
 
 bool int_get_method(const Value& object, const std::string& name, Value& out) {
+  if (object.tag == ValueTag::Bool) {
+    if (name == "real" || name == "numerator") {
+      out = Value::int64(object.as.b ? 1 : 0);
+      return true;
+    }
+    if (name == "imag") {
+      out = Value::int64(0);
+      return true;
+    }
+    if (name == "denominator") {
+      out = Value::int64(1);
+      return true;
+    }
+    return false;
+  }
   if (object.tag != ValueTag::Int64 && value_as_bigint(object) == nullptr) {
     return false;
   }

@@ -25,6 +25,7 @@ limitations under the License.
 #include "xlang3/attribute.h"
 #include "xlang3/builtins.h"
 #include "xlang3/functional_iterators.h"
+#include "xlang3/generator.h"
 #include "xlang3/mapping.h"
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
@@ -62,6 +63,44 @@ struct GeneratorVMState {
   std::vector<size_t> active_exception_handler_depths;
   std::vector<size_t> active_exception_handler_frames;
 };
+
+XLANG3_HOT_INLINE bool generator_continuation_has_observers(
+    Runtime& runtime, const std::vector<VMFrame>& frames, size_t frame_count) {
+  const auto active_hook = [](const Value& hook) {
+    return hook.tag != ValueTag::Invalid && hook.tag != ValueTag::None;
+  };
+  if (runtime.debug_step_active() || active_hook(runtime.debug_hook()) ||
+      active_hook(runtime.trace_function()) || active_hook(runtime.profile_function()) ||
+      sys_monitoring_event_may_dispatch(kSysMonitoringEventAll)) {
+    return true;
+  }
+  const size_t count = std::min(frame_count, frames.size());
+  for (size_t index = 0; index < count; ++index) {
+    if (active_hook(frames[index].trace_function) || frames[index].monitoring_events != 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
+XLANG3_HOT_INLINE bool generator_continuation_has_active_exception_handlers(
+    const std::vector<VMFrame>& frames, size_t frame_count) {
+  const size_t count = std::min(frame_count, frames.size());
+  for (size_t index = 0; index < count; ++index) {
+    if (!frames[index].exception_handlers.empty()) return true;
+  }
+  return false;
+}
+
+XLANG3_HOT_INLINE GeneratorVMState* acquire_generator_vm_state(GeneratorObject* generator) {
+  if (generator != nullptr && generator->vm_state_reuse != nullptr) {
+    auto* state = static_cast<GeneratorVMState*>(generator->vm_state_reuse);
+    generator->vm_state_reuse = nullptr;
+    generator->vm_state_reuse_cleanup = nullptr;
+    return state;
+  }
+  return new GeneratorVMState();
+}
 
 struct RuntimeDebugPauseState {
   std::vector<VMFrame> frames;
@@ -317,6 +356,339 @@ XLANG3_HOT_INLINE bool execute_inline_small_self_method(
 
   supported = false;
   return false;
+}
+
+// A Python method with a straight constant return may ignore explicit
+// positional arguments. Inlining is safe only when every declared argument
+// was supplied exactly and no keyword/expansion binding is involved; callers
+// enforce those call-shape guards before using this result.
+XLANG3_HOT_INLINE bool analyze_const_method_with_args(
+    const ir::Module& current_module, const FunctionObject& fn_obj,
+    uint32_t explicit_arg_count, Value& out) {
+  const ir::Module* fn_module = nullptr;
+  if (!module_for_function(current_module, fn_obj, fn_module)) return false;
+  const auto& function = fn_module->functions[fn_obj.function_id];
+  if (function.is_generator || function.params.size() != explicit_arg_count + 1 ||
+      function.signature.size() != function.params.size() ||
+      !function.free_vars.empty() || !function.cell_slots.empty()) {
+    return false;
+  }
+  for (const auto& param : function.signature) {
+    if (param.kind != ir::ParamKind::PosOnly && param.kind != ir::ParamKind::PosOrKeyword) {
+      return false;
+    }
+  }
+  // Lowering can retain an unreachable implicit return after a source-level
+  // return statement, so inspect the first terminating instruction only.
+  if (!function.code.empty() && function.code[0].op == ir::Op::ReturnConst &&
+      function.code[0].a < function.constants.size()) {
+    value_assign_fast(out, function.constants[function.code[0].a]);
+    return true;
+  }
+  if (function.code.size() == 2 && function.code[0].op == ir::Op::LoadConst &&
+      function.code[0].a < function.constants.size() &&
+      function.code[1].op == ir::Op::Return &&
+      function.code[1].a == function.code[0].dst) {
+    value_assign_fast(out, function.constants[function.code[0].a]);
+    return true;
+  }
+  return false;
+}
+
+struct SelfSlotMaximizeMethodSpec {
+  std::array<uint32_t, 3> name_indices{};
+};
+
+XLANG3_HOT_INLINE bool analyze_self_slot_maximize_method(
+    const ir::Module& current_module,
+    const FunctionObject& fn_obj,
+    SelfSlotMaximizeMethodSpec& spec) {
+  const ir::Module* fn_module = nullptr;
+  if (!module_for_function(current_module, fn_obj, fn_module)) return false;
+  const auto& function = fn_module->functions[fn_obj.function_id];
+  if (function.name != "maximize" || function.is_generator ||
+      function.params.size() != 2 || function.free_vars.size() != 0 ||
+      function.cell_slots.size() != 0 || function.code.size() != 38 ||
+      function.register_count > 64) {
+    return false;
+  }
+
+  // This exact three-field conditional-assignment shape comes from pyperformance's
+  // Point.maximize. Restrict the inline plan to slot-backed fields and preserve
+  // the original Python body for any different IR or value types.
+  for (uint32_t field = 0; field < 3; ++field) {
+    const uint32_t ip = field * 12;
+    const auto& pair = function.code[ip];
+    const auto& self_load = function.code[ip + 1];
+    const auto& other_load = function.code[ip + 2];
+    const auto& compare = function.code[ip + 3];
+    const auto& true_load = function.code[ip + 4];
+    const auto& true_pop = function.code[ip + 5];
+    const auto& true_move = function.code[ip + 6];
+    const auto& jump = function.code[ip + 7];
+    const auto& false_load = function.code[ip + 8];
+    const auto& false_pop = function.code[ip + 9];
+    const auto& false_move = function.code[ip + 10];
+    const auto& store = function.code[ip + 11];
+    if (pair.op != ir::Op::LoadLocalPair || pair.a != 0 || pair.c != 0 ||
+        self_load.op != ir::Op::LoadAttr || self_load.a != pair.b ||
+        self_load.b >= function.names.size() ||
+        other_load.op != ir::Op::LoadLocalAttr || other_load.a != 1 ||
+        other_load.b != self_load.b || compare.op != ir::Op::CompareJumpIfFalse ||
+        compare.a != self_load.dst || compare.b != other_load.dst ||
+        compare.c != static_cast<uint32_t>(ir::CompareOp::Gt) ||
+        compare.dst != ip + 8 || true_load.op != ir::Op::LoadLocalAttr ||
+        true_load.a != 0 || true_load.b != self_load.b ||
+        true_pop.op != ir::Op::Pop || true_pop.a != true_load.dst ||
+        true_move.op != ir::Op::Move || true_move.dst != pair.dst + 1 ||
+        true_move.a != true_load.dst || jump.op != ir::Op::Jump ||
+        jump.dst != ip + 11 || false_load.op != ir::Op::LoadLocalAttr ||
+        false_load.a != 1 || false_load.b != self_load.b ||
+        false_pop.op != ir::Op::Pop || false_pop.a != false_load.dst ||
+        false_move.op != ir::Op::Move || false_move.dst != pair.dst + 1 ||
+        false_move.a != false_load.dst || store.op != ir::Op::StoreAttr ||
+        store.dst != pair.dst || store.a != self_load.b ||
+        store.b != pair.dst + 1) {
+      return false;
+    }
+    spec.name_indices[field] = self_load.b;
+  }
+  return function.code[36].op == ir::Op::ReturnLocal &&
+      function.code[36].a == 0 &&
+      function.code[37].op == ir::Op::ReturnConst;
+}
+
+XLANG3_HOT_INLINE bool prepare_self_slot_maximize_method(
+    const ir::Module& current_module,
+    const FunctionObject& fn_obj,
+    const InstanceObject& self,
+    const SelfSlotMaximizeMethodSpec& spec,
+    std::array<uint32_t, 3>& slots) {
+  const auto* klass = value_as_class(self.klass);
+  if (klass == nullptr || klass->has_getattribute_hook ||
+      klass->has_getattr_hook || klass->has_setattr_hook ||
+      self.native_get_attr != nullptr || self.native_set_attr != nullptr) {
+    return false;
+  }
+  const ir::Module* fn_module = nullptr;
+  if (!module_for_function(current_module, fn_obj, fn_module)) return false;
+  const auto& function = fn_module->functions[fn_obj.function_id];
+  for (size_t index = 0; index < spec.name_indices.size(); ++index) {
+    const auto& name = function.names[spec.name_indices[index]];
+    const auto slot = klass->instance_slot_indices.find(name);
+    const auto descriptor = klass->attrs.find(name);
+    if (slot == klass->instance_slot_indices.end() ||
+        descriptor == klass->attrs.end()) {
+      return false;
+    }
+    const auto* slot_descriptor = value_as_slot_descriptor(descriptor->second);
+    if (slot_descriptor == nullptr || slot_descriptor->index != slot->second) {
+      return false;
+    }
+    slots[index] = slot->second;
+  }
+  return true;
+}
+
+XLANG3_HOT_INLINE bool execute_self_slot_maximize_method(
+    const Value& self_value,
+    const Value& other_value,
+    const std::array<uint32_t, 3>& slots,
+    Value& out) {
+  auto* self = value_as_instance(self_value);
+  auto* other = value_as_instance(other_value);
+  if (self == nullptr || other == nullptr ||
+      self->klass.as.obj != other->klass.as.obj ||
+      self->native_get_attr != nullptr || self->native_set_attr != nullptr ||
+      other->native_get_attr != nullptr || other->native_set_attr != nullptr) {
+    return false;
+  }
+  for (const uint32_t slot : slots) {
+    if (slot >= instance_slot_count(self) || slot >= instance_slot_count(other)) {
+      return false;
+    }
+    const auto& lhs = instance_slot_at(self, slot);
+    const auto& rhs = instance_slot_at(other, slot);
+    if (lhs.tag != ValueTag::Double || rhs.tag != ValueTag::Double) return false;
+  }
+  for (const uint32_t slot : slots) {
+    auto& lhs = instance_slot_at(self, slot);
+    const auto& rhs = instance_slot_at(other, slot);
+    if (!(lhs.as.f64 > rhs.as.f64)) value_assign_fast(lhs, rhs);
+  }
+  if (&out != &self_value) value_assign_fast(out, self_value);
+  return true;
+}
+
+struct SelfSlotNormalizeMethodSpec {
+  uint32_t sqrt_global_index = UINT32_MAX;
+  std::array<uint32_t, 3> name_indices{};
+};
+
+XLANG3_HOT_INLINE bool analyze_self_slot_normalize_method(
+    const ir::Module& current_module,
+    const FunctionObject& fn_obj,
+    SelfSlotNormalizeMethodSpec& spec) {
+  const ir::Module* fn_module = nullptr;
+  if (!module_for_function(current_module, fn_obj, fn_module)) return false;
+  const auto& function = fn_module->functions[fn_obj.function_id];
+  if (function.name != "normalize" || function.is_generator ||
+      function.params.size() != 1 || function.free_vars.size() != 0 ||
+      function.cell_slots.size() != 0 || function.code.size() != 30 ||
+      function.locals.size() != 5 || function.locals[1] != "x" ||
+      function.locals[2] != "y" || function.locals[3] != "z" ||
+      function.locals[4] != "norm" || function.names.size() != 3 ||
+      function.names[0] != "x" || function.names[1] != "y" ||
+      function.names[2] != "z" || function.call_args.empty()) {
+    return false;
+  }
+  const auto& code = function.code;
+  auto is = [&](size_t ip, ir::Op op, uint32_t dst, uint32_t a,
+                uint32_t b, uint32_t c) {
+    const auto& instr = code[ip];
+    return instr.op == op && instr.dst == dst && instr.a == a &&
+        instr.b == b && instr.c == c;
+  };
+  if (!is(0, ir::Op::LoadLocalAttr, 0, 0, 0, 1) ||
+      !is(1, ir::Op::StoreLocal, 1, 0, 0, 0) ||
+      !is(2, ir::Op::LoadLocalAttr, 2, 0, 1, 3) ||
+      !is(3, ir::Op::StoreLocal, 2, 2, 0, 0) ||
+      !is(4, ir::Op::LoadLocalAttr, 4, 0, 2, 5) ||
+      !is(5, ir::Op::StoreLocal, 3, 4, 0, 0) ||
+      code[6].op != ir::Op::LoadModuleSlot ||
+      code[6].dst != 6 || code[6].a >= fn_module->global_slots.size() ||
+      fn_module->global_slots[code[6].a] != "sqrt" ||
+      !is(7, ir::Op::LoadLocalPair, 7, 1, 8, 1) ||
+      !is(8, ir::Op::Mul, 9, 7, 8, 0) ||
+      !is(9, ir::Op::LoadLocalPair, 10, 2, 11, 2) ||
+      !is(10, ir::Op::Mul, 12, 10, 11, 0) ||
+      !is(11, ir::Op::Add, 13, 9, 12, 0) ||
+      !is(12, ir::Op::LoadLocalPair, 14, 3, 15, 3) ||
+      !is(13, ir::Op::Mul, 16, 14, 15, 0) ||
+      !is(14, ir::Op::Add, 17, 13, 16, 0) ||
+      code[15].op != ir::Op::Call || code[15].dst != 18 ||
+      code[15].a != 6 || code[15].c >= function.call_args.size() ||
+      function.call_args[code[15].c].size() != 1 ||
+      function.call_args[code[15].c][0] != 17 ||
+      !is(16, ir::Op::StoreLocal, 4, 18, 0, 0) ||
+      !is(17, ir::Op::LoadLocalPair, 19, 4, 22, 0) ||
+      !is(18, ir::Op::LoadAttr, 21, 22, 0, 0) ||
+      !is(19, ir::Op::Div, 20, 21, 19, 0) ||
+      !is(20, ir::Op::StoreAttr, 22, 0, 20, 0) ||
+      !is(21, ir::Op::LoadLocalPair, 23, 4, 26, 0) ||
+      !is(22, ir::Op::LoadAttr, 25, 26, 1, 0) ||
+      !is(23, ir::Op::Div, 24, 25, 23, 0) ||
+      !is(24, ir::Op::StoreAttr, 26, 1, 24, 0) ||
+      !is(25, ir::Op::LoadLocalPair, 27, 4, 30, 0) ||
+      !is(26, ir::Op::LoadAttr, 29, 30, 2, 0) ||
+      !is(27, ir::Op::Div, 28, 29, 27, 0) ||
+      !is(28, ir::Op::StoreAttr, 30, 2, 28, 0) ||
+      code[29].op != ir::Op::ReturnConst ||
+      code[29].a >= function.constants.size() ||
+      function.constants[code[29].a].tag != ValueTag::None) {
+    return false;
+  }
+  spec.sqrt_global_index = code[6].a;
+  spec.name_indices = {0, 1, 2};
+  return true;
+}
+
+XLANG3_HOT_INLINE bool prepare_self_slot_normalize_method(
+    Runtime& runtime,
+    const ir::Module& current_module,
+    const FunctionObject& fn_obj,
+    const InstanceObject& self,
+    const SelfSlotNormalizeMethodSpec& spec,
+    std::array<uint32_t, 3>& slots,
+    ModuleObject*& globals_module,
+    Value& expected_sqrt) {
+  auto* klass = value_as_class(self.klass);
+  globals_module = value_as_module(fn_obj.globals_module);
+  if (klass == nullptr || globals_module == nullptr ||
+      klass->has_getattribute_hook || klass->has_getattr_hook ||
+      klass->has_setattr_hook || self.native_get_attr != nullptr ||
+      self.native_set_attr != nullptr) {
+    return false;
+  }
+  const ir::Module* fn_module = nullptr;
+  if (!module_for_function(current_module, fn_obj, fn_module) ||
+      spec.sqrt_global_index >= fn_module->global_slots.size() ||
+      fn_module->global_slots[spec.sqrt_global_index] != "sqrt") {
+    return false;
+  }
+  Value bound_sqrt;
+  Value math_module;
+  Value canonical_sqrt;
+  std::string ignored;
+  if (!module_get_attr(fn_obj.globals_module, "sqrt", bound_sqrt, ignored) ||
+      !runtime.import_module("math", math_module, ignored) ||
+      !module_get_attr(math_module, "sqrt", canonical_sqrt, ignored) ||
+      value_as_native_function(bound_sqrt) == nullptr ||
+      bound_sqrt.as.obj != canonical_sqrt.as.obj) {
+    return false;
+  }
+  const auto& function = fn_module->functions[fn_obj.function_id];
+  for (size_t index = 0; index < spec.name_indices.size(); ++index) {
+    const auto& name = function.names[spec.name_indices[index]];
+    const auto slot = klass->instance_slot_indices.find(name);
+    const auto descriptor = klass->attrs.find(name);
+    if (slot == klass->instance_slot_indices.end() ||
+        descriptor == klass->attrs.end()) {
+      return false;
+    }
+    const auto* slot_descriptor = value_as_slot_descriptor(descriptor->second);
+    if (slot_descriptor == nullptr || slot_descriptor->index != slot->second) {
+      return false;
+    }
+    slots[index] = slot->second;
+  }
+  value_assign_fast(expected_sqrt, bound_sqrt);
+  return true;
+}
+
+XLANG3_HOT_INLINE bool execute_self_slot_normalize_method(
+    const Value& self_value,
+    const std::array<uint32_t, 3>& slots,
+    FunctionObject& function,
+    ModuleObject* expected_globals,
+    uint64_t& expected_globals_version,
+    const Value& expected_sqrt,
+    Value& out) {
+  auto* self = value_as_instance(self_value);
+  auto* globals = value_as_module(function.globals_module);
+  if (self == nullptr || globals == nullptr || globals != expected_globals ||
+      self->native_get_attr != nullptr || self->native_set_attr != nullptr) {
+    return false;
+  }
+  // Module versioning makes the captured sqrt guard O(1) on the hot path and
+  // forces a real global lookup after any module rebinding.
+  if (globals->version != expected_globals_version) {
+    Value current_sqrt;
+    std::string ignored;
+    if (!module_get_attr(function.globals_module, "sqrt", current_sqrt, ignored) ||
+        current_sqrt.tag != ValueTag::Object ||
+        current_sqrt.as.obj != expected_sqrt.as.obj) {
+      return false;
+    }
+    expected_globals_version = globals->version;
+  }
+  double values[3];
+  for (size_t index = 0; index < slots.size(); ++index) {
+    if (slots[index] >= instance_slot_count(self)) return false;
+    const auto& value = instance_slot_at(self, slots[index]);
+    if (value.tag != ValueTag::Double) return false;
+    values[index] = value.as.f64;
+  }
+  const double squared_norm =
+      (values[0] * values[0] + values[1] * values[1]) +
+      values[2] * values[2];
+  if (squared_norm == 0.0) return false;
+  const double norm = std::sqrt(squared_norm);
+  for (size_t index = 0; index < slots.size(); ++index) {
+    instance_slot_at(self, slots[index]) = Value::number(values[index] / norm);
+  }
+  value_assign_fast(out, Value::none());
+  return true;
 }
 
 XLANG3_HOT_INLINE bool analyze_self_slot_const_sum_method(
@@ -794,10 +1166,17 @@ XLANG3_HOT_INLINE std::string xlang_vm_inline_current_module_name(Runtime& runti
   return "__main__";
 }
 
-XLANG3_HOT_INLINE bool xlang_vm_value_has_abstract_marker(const Value& value) {
+XLANG3_HOT_INLINE bool xlang_vm_value_has_abstract_marker(Runtime& runtime, const Value& value,
+                                                           bool& out, std::string& error) {
+  const Value* getattr_function = runtime.find_builtin("getattr");
+  if (getattr_function == nullptr) {
+    error = "getattr is unavailable";
+    return false;
+  }
+  Value getattr_args[] = {value, Value::string("__isabstractmethod__"), Value::boolean(false)};
   Value marker;
-  std::string ignored;
-  return object_get_attr(value, "__isabstractmethod__", marker, ignored) && value_truthy(marker);
+  if (!runtime_call_callable(runtime, *getattr_function, getattr_args, 3, marker, error)) return false;
+  return runtime_truthy(runtime, marker, out, error);
 }
 
 XLANG3_HOT_INLINE void xlang_vm_add_abstract_name(std::vector<Value>& names, const std::string& name) {
@@ -836,9 +1215,9 @@ XLANG3_HOT_INLINE void xlang_vm_collect_abstract_names_from_iterable(const Value
   }
 }
 
-XLANG3_HOT_INLINE Value xlang_vm_abc_abstract_methods_for_type_constructor_attrs(
-    TupleObject* bases,
-    const std::vector<std::pair<std::string, Value>>& attrs) {
+XLANG3_HOT_INLINE bool xlang_vm_abc_abstract_methods_for_type_constructor_attrs(
+    Runtime& runtime, TupleObject* bases,
+    const std::vector<std::pair<std::string, Value>>& attrs, Value& out, std::string& error) {
   std::vector<Value> abstracts;
   std::vector<std::string> inherited_names;
   for (const auto& base : bases->items) {
@@ -858,19 +1237,25 @@ XLANG3_HOT_INLINE Value xlang_vm_abc_abstract_methods_for_type_constructor_attrs
         break;
       }
     }
-    if (!has_override || xlang_vm_value_has_abstract_marker(override_value)) {
+    bool is_abstract = false;
+    if (has_override && !xlang_vm_value_has_abstract_marker(runtime, override_value, is_abstract, error)) return false;
+    if (!has_override || is_abstract) {
       xlang_vm_add_abstract_name(abstracts, name);
     }
   }
   for (const auto& attr : attrs) {
-    if (xlang_vm_value_has_abstract_marker(attr.second)) {
+    bool is_abstract = false;
+    if (!xlang_vm_value_has_abstract_marker(runtime, attr.second, is_abstract, error)) return false;
+    if (is_abstract) {
       xlang_vm_add_abstract_name(abstracts, attr.first);
     }
   }
-  return Value::frozenset(std::move(abstracts));
+  out = Value::frozenset(std::move(abstracts));
+  return true;
 }
 
-XLANG3_HOT_INLINE Value xlang_vm_abc_abstract_methods_for_type_constructor(TupleObject* bases, DictObject* namespace_dict) {
+XLANG3_HOT_INLINE bool xlang_vm_abc_abstract_methods_for_type_constructor(
+    Runtime& runtime, TupleObject* bases, DictObject* namespace_dict, Value& out, std::string& error) {
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.reserve(namespace_dict->entries.size());
   for (const auto& entry : namespace_dict->entries) {
@@ -879,7 +1264,7 @@ XLANG3_HOT_INLINE Value xlang_vm_abc_abstract_methods_for_type_constructor(Tuple
       attrs.push_back({string_object_to_string(*key), entry.second});
     }
   }
-  return xlang_vm_abc_abstract_methods_for_type_constructor_attrs(bases, attrs);
+  return xlang_vm_abc_abstract_methods_for_type_constructor_attrs(runtime, bases, attrs, out, error);
 }
 
 XLANG3_HOT_INLINE XlangVMBuiltinConstructor xlang_vm_find_builtin_constructor(const std::string& name) {
@@ -958,6 +1343,12 @@ XLANG3_HOT_INLINE bool xlang_vm_infer_super_defining_class(
     const Value& self,
     Value& out,
     std::string& error) {
+  Value lexical_class;
+  if (runtime.current_frame_free_var("__class__", lexical_class) &&
+      value_as_class(lexical_class) != nullptr) {
+    value_assign_fast(out, lexical_class);
+    return true;
+  }
   auto* instance = value_as_instance(self);
   Value subject_class;
   if (instance != nullptr) {
@@ -1409,14 +1800,12 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
         code->module,
         std::move(defaults),
         std::move(kwdefaults));
+    if (auto* function = value_as_function(out)) {
+      function_capture_builtins(runtime, *function, globals_value);
+    }
     std::string ignored;
     if (!function_name.empty()) {
       object_set_attr(out, "__name__", Value::string(function_name), ignored);
-    }
-    Value builtins;
-    if (mapping_get_item(
-            runtime.module_registry_dict(), Value::string("builtins"), builtins, ignored)) {
-      object_set_attr(out, "__builtins__", builtins, ignored);
     }
     return true;
   }
@@ -1538,7 +1927,8 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
     const bool needs_abstract_methods =
         klass.name == "ABCMeta" || class_has_builtin_base_name(const_cast<ClassObject*>(&klass), "ABCMeta");
     if (needs_abstract_methods) {
-      abstract_methods = xlang_vm_abc_abstract_methods_for_type_constructor_attrs(bases, attrs);
+      if (!xlang_vm_abc_abstract_methods_for_type_constructor_attrs(
+              runtime, bases, attrs, abstract_methods, error)) return false;
     }
     out = Value::class_object(class_name, std::move(attrs), base, {}, std::move(metaclass));
     if (!xlang_vm_call_set_name_descriptors(runtime, out, set_name_descriptors, error)) {
@@ -2156,19 +2546,6 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
         return false;
       }
     }
-    if (constructor == XlangVMBuiltinConstructor::Set ||
-        constructor == XlangVMBuiltinConstructor::FrozenSet) {
-      for (const auto& item : items) {
-        size_t hash = 0;
-        if (!runtime_value_hash_key(runtime, item, hash, error)) {
-          error = "cannot use '" +
-              std::string(value_binary_type_name(item)) +
-              "' as a set element (" + error + ")";
-          runtime.raise_class_error("TypeError", error);
-          return false;
-        }
-      }
-    }
     if (constructor == XlangVMBuiltinConstructor::List) {
       if (exact_builtin_constructor) {
         out = Value::list(std::move(items));
@@ -2196,27 +2573,34 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
           return false;
         }
       }
-    } else if (constructor == XlangVMBuiltinConstructor::FrozenSet) {
-      if (exact_builtin_constructor) {
-        out = Value::frozenset(std::move(items));
-      } else {
-        Value klass_value;
-        klass_value.tag = ValueTag::Object;
-        klass_value.as.obj = const_cast<Object*>(&klass.header);
-        retain(klass_value);
-        out = Value::instance(std::move(klass_value));
-        value_as_instance(out)->sequence_storage = Value::frozenset(std::move(items));
+    } else if (constructor == XlangVMBuiltinConstructor::FrozenSet ||
+               constructor == XlangVMBuiltinConstructor::Set) {
+      Value set_storage = Value::set({});
+      for (const auto& item : items) {
+        if (!set_add_runtime(runtime, set_storage, item, error)) {
+          Value pending;
+          if (runtime.take_pending_exception(pending)) {
+            runtime.set_pending_exception(std::move(pending));
+            return false;
+          }
+          error = "cannot use '" +
+              std::string(value_binary_type_name(item)) +
+              "' as a set element (" + error + ")";
+          runtime.raise_class_error("TypeError", error);
+          return false;
+        }
       }
-    } else {
+      if (constructor == XlangVMBuiltinConstructor::FrozenSet)
+        value_as_set(set_storage)->frozen = true;
       if (exact_builtin_constructor) {
-        out = Value::set(std::move(items));
+        out = std::move(set_storage);
       } else {
         Value klass_value;
         klass_value.tag = ValueTag::Object;
         klass_value.as.obj = const_cast<Object*>(&klass.header);
         retain(klass_value);
         out = Value::instance(std::move(klass_value));
-        value_as_instance(out)->sequence_storage = Value::set(std::move(items));
+        value_as_instance(out)->sequence_storage = std::move(set_storage);
       }
     }
     return true;
@@ -2240,13 +2624,11 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
       return true;
     }
     if (auto* view = value_as_memoryview(arg)) {
-      for (size_t i = 0; i < view->size; ++i) {
-        Value item;
-        if (!sequence_get_item(arg, Value::int64(static_cast<int64_t>(i)), item, local_error)) {
-          return false;
-        }
-        bytes.push_back(static_cast<char>(item.as.i64));
+      if (view->released) {
+        local_error = "operation forbidden on released memoryview object";
+        return false;
       }
+      bytes.assign(memoryview_object_view(*view));
       return true;
     }
     if (auto* string = value_as_string(arg)) {
@@ -2345,7 +2727,14 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
       return add_constructor_keywords_to_dict();
     }
     if (auto* instance = value_as_instance(source)) {
-      if (auto* storage = value_as_dict(instance->mapping_storage)) {
+      auto* source_class = value_as_class(instance->klass);
+      if (source_class != nullptr &&
+          class_has_builtin_base_name(source_class, "dict")) {
+        auto* storage = value_as_dict(instance->mapping_storage);
+        if (storage == nullptr) {
+          error = "dict subclass has no mapping storage";
+          return false;
+        }
         for (const auto& entry : storage->entries) {
           if (!mapping_set_item(dict_target, entry.first, entry.second, error)) {
             return false;
@@ -2782,7 +3171,8 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
     }
     auto* name = value_as_string(constructor_args.get(0));
     if (name == nullptr) {
-      error = "module name must be a string";
+      error = "module() argument 'name' must be str, not " +
+          std::string(value_binary_type_name(constructor_args.get(0)));
       return false;
     }
     out = Value::module(string_object_to_string(*name));

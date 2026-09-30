@@ -1,0 +1,5 @@
+alias True True _GenericAlias
+alias-dict-schema False
+schema-type int
+error [('int_parsing', ('value',))]
+good 7

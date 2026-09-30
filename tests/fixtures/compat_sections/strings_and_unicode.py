@@ -39,6 +39,9 @@ print("a,b,c".rsplit(","))
 print("{}:{name}".format("id", name=7))
 print("{1}-{0}-{name}".format("zero", "one", name="n"))
 print("|".join(["a", "b", "c"]), "a,,b".split(","))
+single_join_value = "retained"
+print("".join([single_join_value]) is single_join_value)
+print("|".join([single_join_value]) is single_join_value)
 print("Hi".encode("utf-8").decode("utf-8"), "ASCII".encode("ascii").decode("ascii"))
 try:
     b"\xff".decode("ascii")

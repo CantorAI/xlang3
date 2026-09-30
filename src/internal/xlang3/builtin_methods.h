@@ -169,9 +169,13 @@ struct BuiltinMethodSpec {
   bool fast_releases_vm_lock = false;
   NativeKeywordFunctionCallback keyword_callback = nullptr;
   const char* text_signature = nullptr;
+  // Stable identity for VM fusions; names and user-visible bindings are not guards.
+  uint32_t specialization_id = 0;
   mutable std::once_flag function_once;
   mutable Value function = Value::invalid();
 };
+
+constexpr uint32_t kBuiltinMethodSpecializationListAppend = 1;
 
 XLANG3_HOT_INLINE void builtin_method_set_text_signature(Value& function, const char* text_signature) {
   if (text_signature == nullptr) {
@@ -276,6 +280,7 @@ bool tuple_install_class_methods(Runtime& runtime, ClassObject& tuple_class);
 bool dict_get_method(const Value& object, const std::string& name, Value& out);
 const BuiltinMethodSpec* dict_find_method_spec(const Value& object, const std::string& name);
 bool dict_install_class_methods(Runtime& runtime, ClassObject& dict_class);
+bool dict_install_view_class_methods(Runtime& runtime, ClassObject& view_class);
 bool file_get_method(const Value& object, const std::string& name, Value& out);
 bool int_get_method(const Value& object, const std::string& name, Value& out);
 const BuiltinMethodSpec* int_find_method_spec(const Value& object, const std::string& name);

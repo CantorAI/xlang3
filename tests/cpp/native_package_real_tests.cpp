@@ -83,18 +83,17 @@ int main(int argc, char** argv) {
     cursor["close"]();
     conn["close"]();
 
-    bool saw_missing_diagnostics = false;
+    bool saw_missing_module = false;
     try {
       X::Module missing(runtime, "xlang3_missing_native_package_probe");
     } catch (const std::exception& ex) {
       const std::string message = ex.what();
-      saw_missing_diagnostics =
-          message.find("native package candidates tried") != std::string::npos &&
-          message.find("xlang3_missing_native_package_probe") != std::string::npos &&
-          message.find(".x3pkg") != std::string::npos;
+      saw_missing_module = message.find(
+          "No module named 'xlang3_missing_native_package_probe'") !=
+          std::string::npos;
     }
-    if (!saw_missing_diagnostics) {
-      std::cerr << "bad missing native package diagnostics\n";
+    if (!saw_missing_module) {
+      std::cerr << "bad missing module error\n";
       return 1;
     }
   } catch (const std::exception& ex) {

@@ -1,0 +1,6 @@
+normal owner: None
+normal referrers: []
+generator owner: True
+generator referrers: ['generator']
+coroutine owner: True
+coroutine referrers: ['coroutine']

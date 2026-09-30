@@ -1,0 +1,18 @@
+basic 'one,two\r\n' 9
+special '"a,b","say ""yes""","x\ny",,12,1.5\r\n' 35
+empty '""\r\n' 4
+empty-row '\r\n' 2
+all '"a","","2"\r\n' 12
+nonnumeric '"a",2,1.5,"",""\r\n' 17
+none 'a\\,b,q\\"z,x\\\ny\r\n' 16
+strings '"a",2,,""\r\n' 11
+notnull '"a","2",,""\r\n' 13
+custom '「a中b「中「q「「z「中「x\ny「||' 20
+writerows None '1,2\r\n"a,b",\r\n'
+dialect , True
+write-result written 'a\r\n'
+no-write TypeError argument 1 must have a "write" method
+noncallable TypeError argument 1 must have a "write" method
+no-escape Error need to escape, but no escapechar set
+row-type Error iterable expected, not int
+empty-none Error single empty field record must be quoted

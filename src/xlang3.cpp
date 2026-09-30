@@ -34,6 +34,7 @@ limitations under the License.
 #include <fstream>
 #include <iostream>
 #include <memory>
+#include <optional>
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -166,7 +167,7 @@ bool consume_system_exit_result(xlang3::Runtime& runtime, const xlang3::RuntimeR
 }
 
 void print_usage() {
-  std::cerr << "usage: xlang3 [--dap-stdio] [--dump-ir] [--debug-dir <folder>] [--perf-counters] "
+  std::cerr << "usage: xlang3 [--dap-stdio] [--dump-ir] [--debug-dir <folder>] [--perf-counters] [--perf-counters-startup] "
                "[-c code | -m module | file.py] [args...]\n";
 }
 
@@ -179,6 +180,11 @@ bool parse_args(int argc, char** argv, xlang3::RunConfig& config) {
     }
     if (arg == "--perf-counters") {
       config.perf_counters = true;
+      continue;
+    }
+    if (arg == "--perf-counters-startup") {
+      config.perf_counters = true;
+      config.perf_counters_startup = true;
       continue;
     }
     if (arg == "--debug-dir") {
@@ -318,13 +324,13 @@ bool parse_args(int argc, char** argv, xlang3::RunConfig& config) {
       }
       return true;
     }
-    if (arg == "-m") {
-      if (i + 1 >= argc) {
+    if (arg == "-m" || (arg.size() > 2 && arg.rfind("-m", 0) == 0)) {
+      if (arg == "-m" && i + 1 >= argc) {
         std::cerr << "-m requires a module name\n";
         return false;
       }
       config.launch_mode = xlang3::RunConfig::LaunchMode::Module;
-      config.module_name = argv[++i];
+      config.module_name = arg == "-m" ? argv[++i] : arg.substr(2);
       config.argv.push_back(config.module_name);
       for (++i; i < argc; ++i) {
         config.argv.push_back(argv[i]);
@@ -363,6 +369,10 @@ std::filesystem::path running_executable_path(int argc, char** argv) {
   if (size != 0 && size < buffer.size()) {
     executable = std::filesystem::path(buffer.data(), buffer.data() + size);
   }
+  if (const char* launcher = std::getenv("__PYVENV_LAUNCHER__");
+      launcher != nullptr && *launcher != '\0') {
+    executable = std::filesystem::u8path(launcher);
+  }
 #endif
   if (executable.empty() && argc > 0 && argv != nullptr && argv[0] != nullptr) {
     executable = std::filesystem::u8path(argv[0]);
@@ -370,6 +380,39 @@ std::filesystem::path running_executable_path(int argc, char** argv) {
   std::error_code ec;
   auto absolute = std::filesystem::absolute(executable, ec);
   return ec ? executable : absolute;
+}
+
+struct VirtualEnvironment {
+  std::filesystem::path prefix;
+  std::filesystem::path base_executable;
+};
+
+std::optional<VirtualEnvironment> find_virtual_environment(
+    const std::filesystem::path& executable) {
+  for (const auto& directory :
+       {executable.parent_path(), executable.parent_path().parent_path()}) {
+    const auto configuration = directory / "pyvenv.cfg";
+    std::ifstream input(configuration, std::ios::binary);
+    if (!input) continue;
+    VirtualEnvironment environment{directory, executable};
+    std::string line;
+    while (std::getline(input, line)) {
+      const auto separator = line.find('=');
+      if (separator == std::string::npos) continue;
+      auto trim = [](std::string value) {
+        const auto first = value.find_first_not_of(" \t\r\n");
+        if (first == std::string::npos) return std::string{};
+        const auto last = value.find_last_not_of(" \t\r\n");
+        return value.substr(first, last - first + 1);
+      };
+      if (trim(line.substr(0, separator)) == "executable") {
+        const auto path = std::filesystem::u8path(trim(line.substr(separator + 1)));
+        if (!path.empty()) environment.base_executable = path;
+      }
+    }
+    return environment;
+  }
+  return std::nullopt;
 }
 
 bool load_pth_configuration(
@@ -484,29 +527,16 @@ bool publish_process_sys_attrs(
   if (!runtime.import_module("sys", sys, error)) {
     return false;
   }
-  std::filesystem::path executable;
-#if defined(_WIN32)
-  std::vector<wchar_t> executable_buffer(32768);
-  const DWORD executable_size = GetModuleFileNameW(
-      nullptr, executable_buffer.data(), static_cast<DWORD>(executable_buffer.size()));
-  if (executable_size != 0 && executable_size < executable_buffer.size()) {
-    executable = std::filesystem::path(
-        executable_buffer.data(), executable_buffer.data() + executable_size);
-  }
-#endif
-  if (executable.empty() && argc > 0 && argv != nullptr && argv[0] != nullptr) {
-    executable = std::filesystem::u8path(argv[0]);
-  }
-  std::error_code ec;
-  auto absolute = std::filesystem::absolute(executable, ec);
-  if (!ec) {
-    executable = std::move(absolute);
-  }
+  const auto executable = running_executable_path(argc, argv);
   const std::string executable_utf8 = path_to_utf8(executable);
   if (!xlang3::module_set_attr(sys, "executable", xlang3::Value::string(executable_utf8), error)) {
     return false;
   }
-  if (!xlang3::module_set_attr(sys, "_base_executable", xlang3::Value::string(executable_utf8), error)) {
+  const auto virtual_environment = find_virtual_environment(executable);
+  const auto base_executable = virtual_environment
+      ? path_to_utf8(virtual_environment->base_executable)
+      : executable_utf8;
+  if (!xlang3::module_set_attr(sys, "_base_executable", xlang3::Value::string(base_executable), error)) {
     return false;
   }
   std::vector<xlang3::Value> original_argv;
@@ -535,17 +565,20 @@ bool publish_process_sys_attrs(
 #endif
     }
   }
-  const auto prefix = path_to_utf8(prefix_path);
+  const auto base_prefix = path_to_utf8(prefix_path);
+  const auto prefix = virtual_environment
+      ? path_to_utf8(virtual_environment->prefix)
+      : base_prefix;
   if (!xlang3::module_set_attr(sys, "prefix", xlang3::Value::string(prefix), error)) {
     return false;
   }
-  if (!xlang3::module_set_attr(sys, "base_prefix", xlang3::Value::string(prefix), error)) {
+  if (!xlang3::module_set_attr(sys, "base_prefix", xlang3::Value::string(base_prefix), error)) {
     return false;
   }
   if (!xlang3::module_set_attr(sys, "exec_prefix", xlang3::Value::string(prefix), error)) {
     return false;
   }
-  if (!xlang3::module_set_attr(sys, "base_exec_prefix", xlang3::Value::string(prefix), error)) {
+  if (!xlang3::module_set_attr(sys, "base_exec_prefix", xlang3::Value::string(base_prefix), error)) {
     return false;
   }
   if (config.warn_default_encoding) {
@@ -1197,6 +1230,12 @@ int xlang3_main(int argc, char** argv) {
     std::cerr << "runtime: " << argv_error << "\n";
     return 1;
   }
+  // Startup profiling begins before site import so its Python-level bootstrap
+  // work is included; the default perf switch still isolates user execution.
+  if (config.perf_counters_startup) {
+    xlang3::xlang_perf_reset();
+    xlang3::xlang_perf_set_enabled(true);
+  }
   if (!config.no_site) {
     xlang3::Value site;
     if (!runtime.import_module("site", site, argv_error)) {
@@ -1215,13 +1254,11 @@ int xlang3_main(int argc, char** argv) {
       }
     }
   }
-  // Native modules are registered as import providers during runtime startup.
-  // Keep optional providers out of sys.modules until Python actually imports
-  // them, matching CPython's observable startup state.
-  runtime.hide_cached_module("_sre");
   xlang3::Interpreter interpreter(runtime);
   if (config.perf_counters) {
-    xlang3::xlang_perf_reset();
+    if (!config.perf_counters_startup) {
+      xlang3::xlang_perf_reset();
+    }
     xlang3::xlang_perf_set_enabled(true);
   }
   bool ok = false;

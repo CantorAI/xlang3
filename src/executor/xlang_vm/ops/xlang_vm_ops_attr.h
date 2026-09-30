@@ -443,6 +443,23 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_attr(
       }
     }
   }
+  if (auto* receiver_class = value_as_class(regs[in.a])) {
+    auto* metaclass = value_as_class(receiver_class->metaclass);
+    if (metaclass != nullptr && metaclass->has_getattribute_hook) {
+      const Value* getattr_builtin = runtime.find_builtin("getattr");
+      if (getattr_builtin == nullptr) {
+        return raise_runtime_error("getattr builtin is unavailable")
+            ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+      }
+      Value hook_values[2];
+      value_assign_fast(hook_values[0], regs[in.a]);
+      hook_values[1] = Value::string(attr_name);
+      return call_attr_hook(*getattr_builtin, hook_values, 2, module, module_owner,
+                            runtime, native_call_args, execution_lock, regs[in.dst],
+                            in.dst, ip, result, make_generator_if_needed, push_frame,
+                            raise_runtime_error, raise_exception_value);
+    }
+  }
   if (attr_name == "__class__" && runtime_type_of_value(runtime, regs[in.a], regs[in.dst])) {
     return XlangVMOpFlow::Next;
   }
@@ -479,10 +496,15 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_attr(
     if (hook_class != nullptr && hook_class->has_getattribute_hook &&
         object_get_class_attr_for_instance(regs[in.a], "__getattribute__", hook, hook_error) &&
         !xlang_vm_is_default_object_hook(hook, "object.__getattribute__")) {
+      const Value* getattr_builtin = runtime.find_builtin("getattr");
+      if (getattr_builtin == nullptr) {
+        return raise_runtime_error("getattr builtin is unavailable")
+            ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+      }
       Value hook_values[2];
       value_assign_fast(hook_values[0], regs[in.a]);
       hook_values[1] = Value::string(fn.names[in.b]);
-      return call_attr_hook(hook, hook_values, 2, module, module_owner, runtime, native_call_args, execution_lock,
+      return call_attr_hook(*getattr_builtin, hook_values, 2, module, module_owner, runtime, native_call_args, execution_lock,
                             regs[in.dst], in.dst, ip, result, make_generator_if_needed, push_frame,
                             raise_runtime_error, raise_exception_value);
     }
@@ -523,10 +545,25 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_attr(
       }
       if (cache.getter_inline && cache.owner == &klass->header && cache.version == klass->version) {
         std::string error;
+        if (cache.kind == AttrSiteKind::PropertyInstanceAttr) {
+          bool matched = false;
+          const bool ok = execute_property_instance_attr(
+              *instance, cache, false, nullptr, regs[in.dst], error, matched);
+          if (matched) {
+            if (!ok) return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+            return XlangVMOpFlow::Next;
+          }
+          // A materialized __dict__ or changed attribute layout makes the
+          // cached compact path unsafe; discard it and resume descriptor lookup.
+          cache.getter_inline = false;
+          cache.kind = AttrSiteKind::Empty;
+          value_set_invalid(cache.value);
+        } else {
         if (!execute_inline_property_getter(*instance, cache, regs[in.dst], error)) {
           return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
         }
         return XlangVMOpFlow::Next;
+        }
       }
     }
   }
@@ -610,6 +647,21 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_attr(
                               raise_runtime_error, raise_exception_value);
       }
     }
+    if (auto* receiver_class = value_as_class(regs[in.a])) {
+      if (value_as_class(receiver_class->metaclass) != nullptr) {
+        Value hook;
+        std::string hook_error;
+        if (class_get_bound_attr(runtime, receiver_class->metaclass,
+                                 regs[in.a], "__getattr__", hook, hook_error)) {
+          Value hook_value = Value::string(fn.names[in.b]);
+          return call_attr_hook(hook, &hook_value, 1, module, module_owner,
+                                runtime, native_call_args, execution_lock,
+                                regs[in.dst], in.dst, ip, result,
+                                make_generator_if_needed, push_frame,
+                                raise_runtime_error, raise_exception_value);
+        }
+      }
+    }
     if (value_as_module(regs[in.a]) != nullptr) {
       Value pending;
       if (runtime.take_pending_exception(pending)) {
@@ -617,6 +669,14 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_attr(
       }
       auto* module_object = value_as_module(regs[in.a]);
       if (value_as_class(module_object->klass) != nullptr) {
+        Value class_getattr;
+        std::string class_getattr_error;
+        if (object_lookup_class_attr(module_object->klass, "__getattr__",
+                                     class_getattr, class_getattr_error)) {
+          return raise_exception_value(xlang_vm_attribute_error(
+              runtime, regs[in.a], fn.names[in.b], error))
+              ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+        }
         Value descriptor;
         std::string descriptor_error;
         if (object_lookup_class_attr(
@@ -717,6 +777,13 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_attr(
       auto* instance = value_as_instance(regs[in.a]);
       auto& cache = instr_cache[ip].attr;
       if (instance != nullptr) {
+        auto* klass = value_as_class(instance->klass);
+        if (cache.getter_inline &&
+            (klass == nullptr || cache.owner != &klass->header || cache.version != klass->version)) {
+          cache.getter_inline = false;
+          cache.kind = AttrSiteKind::Empty;
+          value_set_invalid(cache.value);
+        }
         if (!cache.getter_inline) {
           InlinePropertyAccess inline_spec;
           if (analyze_property_getter(module, *fn_obj, inline_spec)) {
@@ -724,18 +791,41 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_attr(
             cache.getter_op = inline_spec.op;
             cache.getter_has_const = inline_spec.has_const;
             value_assign_fast(cache.getter_const, inline_spec.constant);
-            if (auto* klass = value_as_class(instance->klass)) {
+            if (klass != nullptr) {
               cache.owner = &klass->header;
               cache.version = klass->version;
             }
             cache.getter_inline = true;
+          } else if (analyze_property_instance_attr_accessor(module, *fn_obj, false, inline_spec)) {
+            uint32_t attr_index = 0;
+            if (klass != nullptr && prepare_property_instance_attr(
+                    *instance, *inline_spec.instance_attr_name, false, attr_index)) {
+              cache.getter_op = inline_spec.op;
+              cache.getter_has_const = inline_spec.has_const;
+              value_assign_fast(cache.getter_const, inline_spec.constant);
+              cache_property_instance_attr(cache, *klass, inline_spec, attr_index);
+              cache.getter_inline = true;
+            }
           }
         }
         if (cache.getter_inline) {
-          if (!execute_inline_property_getter(*instance, cache, regs[in.dst], error)) {
-            return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+          if (cache.kind == AttrSiteKind::PropertyInstanceAttr) {
+            bool matched = false;
+            const bool ok = execute_property_instance_attr(
+                *instance, cache, false, nullptr, regs[in.dst], error, matched);
+            if (matched) {
+              if (!ok) return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+              return XlangVMOpFlow::Next;
+            }
+            cache.getter_inline = false;
+            cache.kind = AttrSiteKind::Empty;
+            value_set_invalid(cache.value);
+          } else {
+            if (!execute_inline_property_getter(*instance, cache, regs[in.dst], error)) {
+              return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+            }
+            return XlangVMOpFlow::Next;
           }
-          return XlangVMOpFlow::Next;
         }
       }
       bool pushed_frame = false;
@@ -750,7 +840,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_attr(
               pushed_frame,
               make_generator_if_needed,
               push_frame)) {
-        return XlangVMOpFlow::ReturnResult;
+        return result.errors.empty() ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
       }
       return pushed_frame ? XlangVMOpFlow::SwitchFrame : XlangVMOpFlow::Next;
     }
@@ -930,10 +1020,23 @@ XLANG3_HOT_INLINE XlangVMOpFlow store_attr(
       auto& cache = instr_cache[ip].attr;
       if (cache.setter_inline && cache.owner == &klass->header && cache.version == klass->version) {
         std::string error;
+        if (cache.kind == AttrSiteKind::PropertyInstanceAttr) {
+          bool matched = false;
+          const bool ok = execute_property_instance_attr(
+              *instance, cache, true, &regs[in.b], regs[in.b], error, matched);
+          if (matched) {
+            if (!ok) return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+            return XlangVMOpFlow::Next;
+          }
+          cache.setter_inline = false;
+          cache.kind = AttrSiteKind::Empty;
+          value_set_invalid(cache.value);
+        } else {
         if (!execute_inline_property_setter(*instance, cache, regs[in.b], error)) {
           return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
         }
         return XlangVMOpFlow::Next;
+        }
       }
     }
   }
@@ -989,6 +1092,13 @@ XLANG3_HOT_INLINE XlangVMOpFlow store_attr(
         auto* instance = value_as_instance(regs[in.dst]);
         auto& cache = instr_cache[ip].attr;
         if (instance != nullptr) {
+          auto* klass = value_as_class(instance->klass);
+          if (cache.setter_inline &&
+              (klass == nullptr || cache.owner != &klass->header || cache.version != klass->version)) {
+            cache.setter_inline = false;
+            cache.kind = AttrSiteKind::Empty;
+            value_set_invalid(cache.value);
+          }
           if (!cache.setter_inline) {
             InlinePropertyAccess inline_spec;
             if (analyze_property_setter(module, *fn_obj, inline_spec)) {
@@ -996,18 +1106,41 @@ XLANG3_HOT_INLINE XlangVMOpFlow store_attr(
               cache.setter_op = inline_spec.op;
               cache.setter_has_const = inline_spec.has_const;
               value_assign_fast(cache.setter_const, inline_spec.constant);
-              if (auto* klass = value_as_class(instance->klass)) {
+              if (klass != nullptr) {
                 cache.owner = &klass->header;
                 cache.version = klass->version;
               }
               cache.setter_inline = true;
+            } else if (analyze_property_instance_attr_accessor(module, *fn_obj, true, inline_spec)) {
+              uint32_t attr_index = 0;
+              if (klass != nullptr && prepare_property_instance_attr(
+                      *instance, *inline_spec.instance_attr_name, true, attr_index)) {
+                cache.setter_op = inline_spec.op;
+                cache.setter_has_const = inline_spec.has_const;
+                value_assign_fast(cache.setter_const, inline_spec.constant);
+                cache_property_instance_attr(cache, *klass, inline_spec, attr_index);
+                cache.setter_inline = true;
+              }
             }
           }
           if (cache.setter_inline) {
+            if (cache.kind == AttrSiteKind::PropertyInstanceAttr) {
+              bool matched = false;
+              const bool ok = execute_property_instance_attr(
+                  *instance, cache, true, &regs[in.b], regs[in.b], error, matched);
+              if (matched) {
+                if (!ok) return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+                return XlangVMOpFlow::Next;
+              }
+              cache.setter_inline = false;
+              cache.kind = AttrSiteKind::Empty;
+              value_set_invalid(cache.value);
+            } else {
             if (!execute_inline_property_setter(*instance, cache, regs[in.b], error)) {
               return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
             }
             return XlangVMOpFlow::Next;
+            }
           }
         }
         const ir::Module* call_module = &module;
@@ -1076,7 +1209,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow store_attr(
           : XlangVMOpFlow::ReturnResult;
     }
     if (error.find("immutable type") != std::string::npos ||
-        error.rfind("__dict__ must be", 0) == 0) {
+        error.rfind("__dict__ must be", 0) == 0 ||
+        error.rfind("can only assign string to ", 0) == 0) {
       return raise_exception_value(runtime.make_exception("TypeError", error))
           ? XlangVMOpFlow::ContinueLoop
           : XlangVMOpFlow::ReturnResult;

@@ -1,0 +1,3 @@
+200 {'kind': 'http', 'url': 'http://example.com/'}
+200 {'kind': 'http', 'url': 'https://example.com/'}
+200 {'kind': 'other', 'url': 'data:text/plain,hello'}

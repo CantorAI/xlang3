@@ -12,11 +12,14 @@ Licensed under the Apache License, Version 2.0
 #include <openssl/pem.h>
 #include <openssl/rand.h>
 #include <openssl/ssl.h>
+#include <openssl/sslerr.h>
 #include <openssl/x509.h>
 #include <openssl/x509_vfy.h>
 #include <openssl/x509v3.h>
 
 #include <algorithm>
+#include <chrono>
+#include <cerrno>
 #include <cstdio>
 #include <cstdint>
 #include <cstring>
@@ -28,8 +31,11 @@ Licensed under the Apache License, Version 2.0
 #include <vector>
 
 #if defined(_WIN32)
+#include <winsock2.h>
 #include <windows.h>
 #include <wincrypt.h>
+#else
+#include <sys/select.h>
 #endif
 
 namespace {
@@ -73,6 +79,11 @@ struct SSLContextState {
   unsigned int host_flags = 0;
   bool post_handshake_auth = false;
   std::string password;
+  std::recursive_mutex password_mutex;
+  X3CallContext* active_password_call_context = nullptr;
+  X3Runtime* active_password_runtime = nullptr;
+  X3Value active_password_callable = x3_value_invalid();
+  bool password_callback_failed = false;
   X3Value sni_callback = x3_value_none();
   X3Value message_callback = x3_value_none();
   X3Value psk_client_callback = x3_value_none();
@@ -87,6 +98,7 @@ struct SSLSocketState {
   SSL* ssl = nullptr;
   X3Value context = x3_value_invalid();
   X3Value owner = x3_value_invalid();
+  X3Value socket = x3_value_none();
   bool server_side = false;
   std::string server_hostname;
   X3CallContext* active_call_context = nullptr;
@@ -141,6 +153,7 @@ void cleanup_ssl_socket(void* pointer) {
   SSL_free(state->ssl);
   state->package->host->value_release(state->context);
   state->package->host->value_release(state->owner);
+  state->package->host->value_release(state->socket);
   delete state;
 }
 
@@ -302,6 +315,8 @@ bool truth_value(X3Value value, bool* output) {
 X3Status raise_ssl_io(PackageState* state, X3CallContext* context,
                       SSL* ssl, int return_code, const char* operation) {
   const int code = SSL_get_error(ssl, return_code);
+  const unsigned long openssl_code = ERR_peek_error();
+  const long verify_result = SSL_get_verify_result(ssl);
   X3Value exception = state->ssl_error;
   const char* suffix = "SSL operation failed";
   if (code == SSL_ERROR_WANT_READ) {
@@ -313,26 +328,156 @@ X3Status raise_ssl_io(PackageState* state, X3CallContext* context,
   } else if (code == SSL_ERROR_ZERO_RETURN) {
     exception = state->ssl_zero_return_error;
     suffix = "TLS/SSL connection has been closed";
+  } else if (code == SSL_ERROR_SSL &&
+             ERR_GET_REASON(openssl_code) == SSL_R_UNEXPECTED_EOF_WHILE_READING) {
+    exception = state->ssl_eof_error;
+    suffix = "EOF occurred in violation of protocol";
+  } else if ((code == SSL_ERROR_SYSCALL || code == SSL_ERROR_SSL) &&
+             verify_result != X509_V_OK) {
+    exception = state->ssl_cert_verification_error;
+    suffix = X509_verify_cert_error_string(verify_result);
   } else if (code == SSL_ERROR_SYSCALL) {
     exception = state->ssl_syscall_error;
     suffix = "Some I/O error occurred";
-  } else if (code == SSL_ERROR_SSL) {
-    const long verify_result = SSL_get_verify_result(ssl);
-    if (verify_result != X509_V_OK) {
-      exception = state->ssl_cert_verification_error;
-      suffix = X509_verify_cert_error_string(verify_result);
-    }
   }
   std::string message = std::string(operation) + ": " + suffix;
-  const unsigned long openssl_code = ERR_get_error();
+  (void)ERR_get_error();
   if (openssl_code != 0) {
     char buffer[256]{};
     ERR_error_string_n(openssl_code, buffer, sizeof(buffer));
     message += ": ";
     message += buffer;
   }
-  state->host->raise_error(context, exception, message.c_str());
+  const bool verification_error = exception.tag == state->ssl_cert_verification_error.tag &&
+      exception.as.obj == state->ssl_cert_verification_error.as.obj;
+  const bool eof_error = exception.tag == state->ssl_eof_error.tag &&
+      exception.as.obj == state->ssl_eof_error.as.obj;
+  X3Value arguments[2] = {
+      x3_value_int64(eof_error ? 8 : (verification_error ? SSL_ERROR_SSL : code)),
+      state->host->value_string(state->host->runtime, message.c_str())};
+  if (arguments[1].tag == X3_TAG_INVALID) return X3_STATUS_ERROR;
+  X3Value instance = x3_value_invalid();
+  const X3Status constructed = state->host->call(
+      state->host->runtime, exception, arguments, 2, &instance);
+  state->host->value_release(arguments[1]);
+  if (constructed != X3_STATUS_OK) return X3_STATUS_ERROR;
+  if (verification_error) {
+    state->host->set_attr(state->host->runtime, instance, "verify_code",
+                          x3_value_int64(verify_result));
+    X3Value verify_message = state->host->value_string(state->host->runtime, suffix);
+    state->host->set_attr(state->host->runtime, instance, "verify_message", verify_message);
+    state->host->value_release(verify_message);
+  }
+  if (eof_error) {
+    X3Value reason = state->host->value_string(
+        state->host->runtime, "UNEXPECTED_EOF_WHILE_READING");
+    state->host->set_attr(state->host->runtime, instance, "reason", reason);
+    state->host->value_release(reason);
+  }
+  state->host->raise_exception(context, instance);
+  state->host->value_release(instance);
   return X3_STATUS_ERROR;
+}
+
+X3Status ssl_socket_timeout(PackageState* state, X3CallContext* context,
+                            X3Runtime* runtime, SSLSocketState* native,
+                            double* seconds) {
+  *seconds = -1.0;
+  const X3Value source = native->owner.tag != X3_TAG_NONE
+      ? native->owner : native->socket;
+  if (source.tag == X3_TAG_NONE) return X3_STATUS_OK;
+  X3Value method = x3_value_invalid();
+  X3Value timeout = x3_value_invalid();
+  if (state->host->get_attr(runtime, source, "gettimeout", &method) != X3_STATUS_OK)
+    return X3_STATUS_ERROR;
+  const X3Status called = state->host->call(runtime, method, nullptr, 0, &timeout);
+  state->host->value_release(method);
+  if (called != X3_STATUS_OK) return X3_STATUS_ERROR;
+  if (timeout.tag == X3_TAG_DOUBLE) *seconds = timeout.as.f64;
+  else if (timeout.tag == X3_TAG_INT64) *seconds = static_cast<double>(timeout.as.i64);
+  else if (timeout.tag != X3_TAG_NONE) {
+    state->host->value_release(timeout);
+    return state->host->raise_class_error(context, "TypeError", "socket timeout must be a number or None");
+  }
+  state->host->value_release(timeout);
+  return X3_STATUS_OK;
+}
+
+template <typename Operation>
+X3Status ssl_socket_io(PackageState* state, X3CallContext* context,
+                       X3Runtime* runtime, SSLSocketState* native,
+                       const char* operation_name, Operation operation) {
+  bool have_timeout = false;
+  double timeout = -1.0;
+  std::chrono::steady_clock::time_point deadline;
+  for (;;) {
+    native->active_call_context = context;
+    native->active_runtime = runtime;
+    native->callback_failed = false;
+    const int status = operation();
+    native->active_call_context = nullptr;
+    native->active_runtime = nullptr;
+    if (native->callback_failed) return X3_STATUS_ERROR;
+    if (status == 1) return X3_STATUS_OK;
+    const int reason = SSL_get_error(native->ssl, status);
+    const int descriptor = SSL_get_fd(native->ssl);
+    if ((reason != SSL_ERROR_WANT_READ && reason != SSL_ERROR_WANT_WRITE) ||
+        descriptor < 0) {
+      return raise_ssl_io(state, context, native->ssl, status, operation_name);
+    }
+    if (!have_timeout) {
+      if (ssl_socket_timeout(state, context, runtime, native, &timeout) != X3_STATUS_OK)
+        return X3_STATUS_ERROR;
+      have_timeout = true;
+      if (timeout > 0.0)
+        deadline = std::chrono::steady_clock::now() +
+            std::chrono::duration_cast<std::chrono::steady_clock::duration>(
+                std::chrono::duration<double>(timeout));
+    }
+    if (timeout == 0.0)
+      return raise_ssl_io(state, context, native->ssl, status, operation_name);
+
+    fd_set read_set;
+    fd_set write_set;
+    FD_ZERO(&read_set);
+    FD_ZERO(&write_set);
+#if defined(_WIN32)
+    const SOCKET socket = static_cast<SOCKET>(descriptor);
+#else
+    const int socket = descriptor;
+#endif
+    if (reason == SSL_ERROR_WANT_READ) FD_SET(socket, &read_set);
+    else FD_SET(socket, &write_set);
+    timeval wait_time{};
+    timeval* wait_pointer = nullptr;
+    if (timeout > 0.0) {
+      const double remaining = std::chrono::duration<double>(
+          deadline - std::chrono::steady_clock::now()).count();
+      if (remaining <= 0.0)
+        return state->host->raise_class_error(
+            context, "TimeoutError", "The operation timed out");
+      const double capped = std::min(remaining, static_cast<double>(std::numeric_limits<long>::max()));
+      wait_time.tv_sec = static_cast<long>(capped);
+      wait_time.tv_usec = static_cast<long>((capped - wait_time.tv_sec) * 1000000.0);
+      wait_pointer = &wait_time;
+    }
+#if defined(_WIN32)
+    const int ready = ::select(0, &read_set, &write_set, nullptr, wait_pointer);
+#else
+    const int ready = ::select(descriptor + 1, &read_set, &write_set, nullptr, wait_pointer);
+#endif
+    if (ready == 0)
+      return state->host->raise_class_error(
+          context, "TimeoutError", "The operation timed out");
+    if (ready < 0) {
+#if defined(_WIN32)
+      if (WSAGetLastError() == WSAEINTR) continue;
+#else
+      if (errno == EINTR) continue;
+#endif
+      return state->host->raise_class_error(context, "OSError", "socket select failed");
+    }
+  }
 }
 
 X3Value make_tuple(PackageState* state, X3Runtime* runtime,
@@ -581,6 +726,7 @@ X3Status memory_bio_write_eof(X3CallContext* context, X3Runtime*, void* user_dat
   auto* native = memory_bio(state, context, args[0]);
   if (native == nullptr) return X3_STATUS_ERROR;
   native->write_eof = true;
+  BIO_set_mem_eof_return(native->bio, 0);
   *result = x3_value_none();
   return X3_STATUS_OK;
 }
@@ -1002,10 +1148,88 @@ X3Status ssl_context_set_default_verify_paths(X3CallContext* context, X3Runtime*
 int password_callback(char* buffer, int size, int, void* user_data) {
   auto* context = static_cast<SSLContextState*>(user_data);
   if (context == nullptr || size <= 0) return 0;
+  if (context->active_password_callable.tag != X3_TAG_INVALID) {
+    X3Value resolved = x3_value_invalid();
+    auto* host = context->package->host;
+    if (host->call(context->active_password_runtime,
+                   context->active_password_callable, nullptr, 0,
+                   &resolved) != X3_STATUS_OK) {
+      context->password_callback_failed = true;
+      host->value_release(resolved);
+      return 0;
+    }
+    const char* text = nullptr;
+    const void* bytes = nullptr;
+    uint64_t length = 0;
+    if (host->value_string_data(context->active_password_runtime, resolved,
+                                &text, &length) == X3_STATUS_OK) {
+      context->password.assign(text, static_cast<size_t>(length));
+    } else if (host->value_bytes_data(context->active_password_runtime,
+                                      resolved, &bytes, &length) == X3_STATUS_OK) {
+      context->password.assign(static_cast<const char*>(bytes),
+                               static_cast<size_t>(length));
+    } else {
+      host->clear_exception(context->active_password_call_context);
+      host->raise_class_error(context->active_password_call_context,
+                              "TypeError", "password should be a string or bytes");
+      context->password_callback_failed = true;
+      host->value_release(resolved);
+      return 0;
+    }
+    host->value_release(resolved);
+  }
   const size_t count = std::min(context->password.size(), static_cast<size_t>(size - 1));
   std::copy_n(context->password.data(), count, buffer);
   buffer[count] = '\0';
   return static_cast<int>(count);
+}
+
+X3Status ssl_filesystem_path(PackageState* state, X3CallContext* context,
+                             X3Runtime* runtime, X3Value value,
+                             std::string& path) {
+  X3Value converted = x3_value_invalid();
+  const char* text = nullptr;
+  const void* bytes = nullptr;
+  uint64_t size = 0;
+  bool is_text = state->host->value_string_data(
+      runtime, value, &text, &size) == X3_STATUS_OK;
+  if (!is_text) state->host->clear_exception(context);
+  bool is_bytes = !is_text &&
+      state->host->value_object_kind(value) == X3_OBJECT_KIND_BYTES &&
+      state->host->value_bytes_data(runtime, value, &bytes, &size) == X3_STATUS_OK;
+  if (!is_text && !is_bytes) {
+    X3Value fspath = x3_value_invalid();
+    if (state->host->get_attr(runtime, value, "__fspath__", &fspath) !=
+            X3_STATUS_OK ||
+        state->host->call(runtime, fspath, nullptr, 0, &converted) !=
+            X3_STATUS_OK) {
+      state->host->value_release(fspath);
+      state->host->value_release(converted);
+      state->host->clear_exception(context);
+      return state->host->raise_class_error(
+          context, "TypeError", "expected str, bytes or os.PathLike object");
+    }
+    state->host->value_release(fspath);
+    value = converted;
+    is_text = state->host->value_string_data(
+        runtime, value, &text, &size) == X3_STATUS_OK;
+    if (!is_text) state->host->clear_exception(context);
+    is_bytes = !is_text &&
+        state->host->value_object_kind(value) == X3_OBJECT_KIND_BYTES &&
+        state->host->value_bytes_data(runtime, value, &bytes, &size) == X3_STATUS_OK;
+    if (!is_text && !is_bytes) {
+      state->host->value_release(converted);
+      return state->host->raise_class_error(
+          context, "TypeError", "__fspath__() must return str or bytes");
+    }
+  }
+  path.assign(is_text ? text : static_cast<const char*>(bytes),
+              static_cast<size_t>(size));
+  state->host->value_release(converted);
+  if (path.find('\0') != std::string::npos)
+    return state->host->raise_class_error(context, "ValueError",
+                                          "embedded null byte");
+  return X3_STATUS_OK;
 }
 
 X3Status ssl_context_load_cert_chain_kw(
@@ -1029,39 +1253,70 @@ X3Status ssl_context_load_cert_chain_kw(
       return X3_STATUS_ERROR;
     }
   }
-  const char* cert_path = state->host->value_to_cstr(runtime, certfile);
-  if (cert_path == nullptr) {
-    state->host->raise_class_error(context, "TypeError", "certfile should be a valid filesystem path");
+  std::string cert_path;
+  if (ssl_filesystem_path(state, context, runtime, certfile, cert_path) !=
+      X3_STATUS_OK)
     return X3_STATUS_ERROR;
-  }
-  const char* key_path = cert_path;
+  std::string key_path = cert_path;
   if (keyfile.tag != X3_TAG_NONE) {
-    key_path = state->host->value_to_cstr(runtime, keyfile);
-    if (key_path == nullptr) {
-      state->host->raise_class_error(context, "TypeError", "keyfile should be a valid filesystem path");
+    if (ssl_filesystem_path(state, context, runtime, keyfile, key_path) !=
+        X3_STATUS_OK)
       return X3_STATUS_ERROR;
-    }
   }
+  std::lock_guard password_lock(native->password_mutex);
   native->password.clear();
+  X3Value callable_password = x3_value_invalid();
   if (password.tag != X3_TAG_NONE) {
     const char* text = nullptr;
     uint64_t text_size = 0;
     const void* bytes = nullptr;
     uint64_t bytes_size = 0;
-    if (state->host->value_string_data(runtime, password, &text, &text_size) == X3_STATUS_OK)
+    if (state->host->value_string_data(runtime, password, &text, &text_size) == X3_STATUS_OK) {
       native->password.assign(text, static_cast<size_t>(text_size));
-    else if (state->host->value_bytes_data(runtime, password, &bytes, &bytes_size) == X3_STATUS_OK)
+    } else if (state->host->value_bytes_data(runtime, password, &bytes, &bytes_size) == X3_STATUS_OK) {
       native->password.assign(static_cast<const char*>(bytes), static_cast<size_t>(bytes_size));
-    else {
-      state->host->raise_class_error(context, "TypeError", "password should be a string or bytes");
-      return X3_STATUS_ERROR;
+    } else {
+      state->host->clear_exception(context);
+      X3Value callable_function = x3_value_invalid();
+      X3Value callable_result = x3_value_invalid();
+      const bool callable =
+          state->host->builtin_value(state->host, "callable",
+                                     &callable_function) == X3_STATUS_OK &&
+          state->host->call(runtime, callable_function, &password, 1,
+                            &callable_result) == X3_STATUS_OK &&
+          callable_result.tag == X3_TAG_BOOL && callable_result.as.b;
+      state->host->value_release(callable_function);
+      state->host->value_release(callable_result);
+      if (!callable) {
+        state->host->clear_exception(context);
+        return state->host->raise_class_error(
+            context, "TypeError", "password should be a string or bytes");
+      }
+      callable_password = password;
     }
-    SSL_CTX_set_default_passwd_cb(native->context, password_callback);
-    SSL_CTX_set_default_passwd_cb_userdata(native->context, native);
   }
-  if (SSL_CTX_use_certificate_chain_file(native->context, cert_path) != 1)
+  if (SSL_CTX_use_certificate_chain_file(native->context, cert_path.c_str()) != 1)
     return raise_openssl(state, context, "cannot load certificate chain");
-  if (SSL_CTX_use_PrivateKey_file(native->context, key_path, SSL_FILETYPE_PEM) != 1)
+  native->active_password_call_context = context;
+  native->active_password_runtime = runtime;
+  native->active_password_callable = callable_password;
+  native->password_callback_failed = false;
+  SSL_CTX_set_default_passwd_cb(native->context, password_callback);
+  SSL_CTX_set_default_passwd_cb_userdata(native->context, native);
+  const int key_loaded = SSL_CTX_use_PrivateKey_file(
+      native->context, key_path.c_str(), SSL_FILETYPE_PEM);
+  SSL_CTX_set_default_passwd_cb(native->context, nullptr);
+  SSL_CTX_set_default_passwd_cb_userdata(native->context, nullptr);
+  native->active_password_call_context = nullptr;
+  native->active_password_runtime = nullptr;
+  native->active_password_callable = x3_value_invalid();
+  std::fill(native->password.begin(), native->password.end(), '\0');
+  native->password.clear();
+  if (native->password_callback_failed) {
+    ERR_clear_error();
+    return X3_STATUS_ERROR;
+  }
+  if (key_loaded != 1)
     return raise_openssl(state, context, "cannot load private key");
   if (SSL_CTX_check_private_key(native->context) != 1)
     return raise_openssl(state, context, "private key does not match certificate");
@@ -1217,8 +1472,10 @@ X3Status ssl_context_check_hostname_set(X3CallContext* context, X3Runtime*, void
   const bool enabled = args[1].tag == X3_TAG_BOOL ? args[1].as.b != 0 :
                        args[1].tag == X3_TAG_INT64 && args[1].as.i64 != 0;
   if (enabled && native->verify_mode == 0) {
-    state->host->raise_class_error(context, "ValueError", "check_hostname needs a SSL context with CERT_OPTIONAL or CERT_REQUIRED");
-    return X3_STATUS_ERROR;
+    int openssl_mode = SSL_VERIFY_PEER;
+    if (native->protocol == 17) openssl_mode |= SSL_VERIFY_FAIL_IF_NO_PEER_CERT;
+    SSL_CTX_set_verify(native->context, openssl_mode, nullptr);
+    native->verify_mode = 2;
   }
   native->check_hostname = enabled;
   *result = x3_value_none();
@@ -1739,10 +1996,6 @@ X3Status ssl_context_wrap_bio_kw(
     state->host->raise_class_error(context, "TypeError", "server_side must be bool");
     return X3_STATUS_ERROR;
   }
-  if (server_side && hostname_value.tag != X3_TAG_NONE) {
-    state->host->raise_class_error(context, "ValueError", "server_hostname can only be specified in client mode");
-    return X3_STATUS_ERROR;
-  }
   auto native = std::make_unique<SSLSocketState>();
   native->package = state;
   native->ssl = SSL_new(context_state->context);
@@ -1761,9 +2014,10 @@ X3Status ssl_context_wrap_bio_kw(
       return X3_STATUS_ERROR;
     }
     native->server_hostname = hostname;
-    if (SSL_set_tlsext_host_name(native->ssl, hostname) != 1)
+    if (!server_side && SSL_set_tlsext_host_name(native->ssl, hostname) != 1)
       return raise_openssl(state, context, "cannot set server hostname");
-    if (context_state->check_hostname && SSL_set1_host(native->ssl, hostname) != 1)
+    if (!server_side && context_state->check_hostname &&
+        SSL_set1_host(native->ssl, hostname) != 1)
       return raise_openssl(state, context, "cannot enable hostname verification");
   } else if (!server_side && context_state->check_hostname) {
     state->host->raise_class_error(context, "ValueError", "check_hostname requires server_hostname");
@@ -1875,10 +2129,12 @@ X3Status ssl_context_wrap_socket_kw(
   }
   if (SSL_set_fd(native->ssl, static_cast<int>(descriptor)) != 1)
     return raise_openssl(state, context, "cannot attach SSL to socket");
+  if (owner_value.tag == X3_TAG_NONE) native->socket = socket_value;
   if (server_side) SSL_set_accept_state(native->ssl);
   else SSL_set_connect_state(native->ssl);
   state->host->value_retain(native->context);
   state->host->value_retain(native->owner);
+  state->host->value_retain(native->socket);
   X3Value instance = state->host->value_instance(runtime, state->ssl_socket_class);
   if (instance.tag == X3_TAG_INVALID ||
       state->host->instance_set_native_data(instance, kSSLSocketType, native.get(),
@@ -1905,14 +2161,9 @@ X3Status ssl_socket_handshake(X3CallContext* context, X3Runtime* runtime, void* 
   if (!argc_is(state, context, argc, 1, 1, "_SSLSocket.do_handshake()")) return X3_STATUS_ERROR;
   auto* native = ssl_socket(state, context, args[0]);
   if (native == nullptr) return X3_STATUS_ERROR;
-  native->active_call_context = context;
-  native->active_runtime = runtime;
-  native->callback_failed = false;
-  const int status = SSL_do_handshake(native->ssl);
-  native->active_call_context = nullptr;
-  native->active_runtime = nullptr;
-  if (native->callback_failed) return X3_STATUS_ERROR;
-  if (status != 1) return raise_ssl_io(state, context, native->ssl, status, "TLS handshake");
+  if (ssl_socket_io(state, context, runtime, native, "TLS handshake",
+                    [&] { return SSL_do_handshake(native->ssl); }) != X3_STATUS_OK)
+    return X3_STATUS_ERROR;
   *result = x3_value_none();
   return X3_STATUS_OK;
 }
@@ -1930,14 +2181,10 @@ X3Status ssl_socket_write(X3CallContext* context, X3Runtime* runtime, void* user
     return X3_STATUS_ERROR;
   }
   size_t written = 0;
-  native->active_call_context = context;
-  native->active_runtime = runtime;
-  native->callback_failed = false;
-  const int status = SSL_write_ex(native->ssl, data, static_cast<size_t>(size), &written);
-  native->active_call_context = nullptr;
-  native->active_runtime = nullptr;
-  if (native->callback_failed) return X3_STATUS_ERROR;
-  if (status != 1) return raise_ssl_io(state, context, native->ssl, status, "TLS write");
+  if (ssl_socket_io(state, context, runtime, native, "TLS write",
+                    [&] { return SSL_write_ex(native->ssl, data,
+                                               static_cast<size_t>(size), &written); }) != X3_STATUS_OK)
+    return X3_STATUS_ERROR;
   *result = x3_value_int64(static_cast<int64_t>(written));
   return X3_STATUS_OK;
 }
@@ -1997,15 +2244,10 @@ X3Status ssl_socket_read(X3CallContext* context, X3Runtime* runtime, void* user_
     return X3_STATUS_OK;
   }
   size_t read = 0;
-  native->active_call_context = context;
-  native->active_runtime = runtime;
-  native->callback_failed = false;
-  const int status = SSL_read_ex(
-      native->ssl, destination, static_cast<size_t>(requested), &read);
-  native->active_call_context = nullptr;
-  native->active_runtime = nullptr;
-  if (native->callback_failed) return X3_STATUS_ERROR;
-  if (status != 1) return raise_ssl_io(state, context, native->ssl, status, "TLS read");
+  if (ssl_socket_io(state, context, runtime, native, "TLS read",
+                    [&] { return SSL_read_ex(native->ssl, destination,
+                                              static_cast<size_t>(requested), &read); }) != X3_STATUS_OK)
+    return X3_STATUS_ERROR;
   if (has_buffer) {
     *result = x3_value_int64(static_cast<int64_t>(read));
   } else {
@@ -2365,6 +2607,30 @@ X3Status ssl_context_get_ca_certs(
   }
   *result = output;
   return X3_STATUS_OK;
+}
+
+X3Status ssl_context_get_ca_certs_kw(
+    X3CallContext* context, X3Runtime* runtime, void* user_data,
+    const X3Value* args, uint32_t argc,
+    const X3KeywordArg* kwargs, uint32_t kwargc, X3Value* result) {
+  auto* state = static_cast<PackageState*>(user_data);
+  if (kwargc == 0)
+    return ssl_context_get_ca_certs(context, runtime, user_data, args, argc, result);
+  if (argc < 1 || argc > 2) {
+    state->host->raise_class_error(context, "TypeError", "SSLContext.get_ca_certs() takes at most one argument");
+    return X3_STATUS_ERROR;
+  }
+  if (kwargc != 1 || kwargs[0].name == nullptr ||
+      std::string(kwargs[0].name) != "binary_form") {
+    state->host->raise_class_error(context, "TypeError", "get_ca_certs() got an unexpected keyword argument");
+    return X3_STATUS_ERROR;
+  }
+  if (argc == 2) {
+    state->host->raise_class_error(context, "TypeError", "get_ca_certs() got multiple values for binary_form");
+    return X3_STATUS_ERROR;
+  }
+  const X3Value positional[2] = {args[0], kwargs[0].value};
+  return ssl_context_get_ca_certs(context, runtime, user_data, positional, 2, result);
 }
 
 X3Value certificate_value(PackageState* state, X3Runtime* runtime,
@@ -3219,7 +3485,7 @@ X3Status register_module(X3PackageHost* host) {
   define_method(context_methods[8], "cert_store_stats", ssl_context_cert_store_stats, state);
   define_method(context_methods[9], "session_stats", ssl_context_session_stats, state);
   define_method(context_methods[10], "_wrap_socket", ssl_context_wrap_socket, state, ssl_context_wrap_socket_kw);
-  define_method(context_methods[11], "get_ca_certs", ssl_context_get_ca_certs, state);
+  define_method(context_methods[11], "get_ca_certs", ssl_context_get_ca_certs, state, ssl_context_get_ca_certs_kw);
   define_method(context_methods[12], "load_dh_params", ssl_context_load_dh_params, state);
   define_method(context_methods[13], "set_ecdh_curve", ssl_context_set_ecdh_curve, state);
   define_method(context_methods[14], "set_psk_client_callback",

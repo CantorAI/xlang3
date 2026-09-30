@@ -1,0 +1,2 @@
+runtime {"binary_lf": true, "pipe_errno": 32, "pipe_type": "BrokenPipeError", "pipe_winerror": 232, "text_crlf": true}
+fastapi 200 {"binary_lf": true, "pipe_errno": 32, "pipe_type": "BrokenPipeError", "pipe_winerror": 232, "text_crlf": true}

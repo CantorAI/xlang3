@@ -1,0 +1,6 @@
+lazy TypeAliasType 0 __main__ Lazy
+value True 1 True 1
+local True
+class True
+generic TypeVar list[T] Generic[int]
+recursive list[Recursive]

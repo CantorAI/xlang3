@@ -1,0 +1,7 @@
+('class', 'local', True)
+('static', 'local', True)
+('Sample', 'local', True)
+('instance', 'local', True)
+('class', 'argument', True)
+('class', 'before-class-change', True)
+('class replacement', 'after-class-change', True)

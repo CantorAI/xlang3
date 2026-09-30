@@ -1,0 +1,3 @@
+math.cos 200 {'name': 'cos'}
+foobar 422 [('import_error', "Invalid python path: No module named 'foobar'", {'error': "No module named 'foobar'"})]
+os.missing 422 [('import_error', "Invalid python path: No module named 'os.missing'; 'os' is not a package", {'error': "No module named 'os.missing'; 'os' is not a package"})]

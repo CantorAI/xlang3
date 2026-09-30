@@ -1,0 +1,4 @@
+map True True True 1
+filter True True True 1
+zip True True True (1, 2)
+enumerate True True True (0, 1)

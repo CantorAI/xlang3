@@ -1,0 +1,9 @@
+pyperf compare_to, matched focused settings
+===========================================
+Command:
+  pyperf compare_to pyperf-cpython314-gc-module-root-20260929.json pyperf-xlang3-gc-module-root-20260929.json --table
+
+Result:
+  gc_traversal: CPython 3.14 = 2.19 ms; XLang3 = 1.14 ms; XLang3 is 1.92x faster.
+
+Settings for both raw runs: --fast -p 3 -n 6 -w 2 --min-time 0.1.

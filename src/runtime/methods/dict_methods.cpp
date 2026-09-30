@@ -254,6 +254,19 @@ bool dict_contains_method(Runtime& runtime, const Value* args, uint32_t argc, Va
   return true;
 }
 
+bool dict_view_contains_method(Runtime& runtime, const Value* args, uint32_t argc,
+                               Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 2, "dict view.__contains__", error)) {
+    return raise_dict_type_error(runtime, error);
+  }
+  bool contains = false;
+  if (!mapping_contains(args[0], args[1], contains, error)) {
+    return raise_dict_type_error(runtime, error);
+  }
+  value_set_bool(out, contains);
+  return true;
+}
+
 bool dict_iter_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 1, "dict.__iter__", error)) {
     return raise_dict_type_error(runtime, error);
@@ -599,6 +612,16 @@ bool dict_fromkeys_method(Runtime& runtime, const Value* args, uint32_t argc, Va
       return true;
     }
     if (!mapping_set_item_runtime(runtime, result, key, fill, error)) {
+      Value pending;
+      if (runtime.take_pending_exception(pending)) {
+        runtime.set_pending_exception(std::move(pending));
+      } else {
+        if (error.rfind("unhashable type:", 0) == 0) {
+          error = "cannot use '" + std::string(value_binary_type_name(key)) +
+                  "' as a dict key (" + error + ")";
+        }
+        runtime.raise_class_error("TypeError", error);
+      }
       return false;
     }
   }
@@ -664,12 +687,21 @@ static BuiltinMethodSpec kMappingProxyMethods[] = {
      builtin_method_fast_adapter<dict_values_method, 1>},
 };
 
+static BuiltinMethodSpec kDictViewMethods[] = {
+    {"__contains__", "dict_keys.__contains__", dict_view_contains_method,
+     builtin_method_fast_adapter<dict_view_contains_method, 2>},
+};
+
 const BuiltinMethodSpec* dict_find_method_spec(const Value& object, const std::string& name) {
   const BuiltinMethodSpec* methods = kDictMethods;
   size_t method_count = std::size(kDictMethods);
   if (value_as_mapping_proxy(object) != nullptr) {
     methods = kMappingProxyMethods;
     method_count = std::size(kMappingProxyMethods);
+  } else if (auto* view = value_as_dict_view(object)) {
+    if (view->kind == DictIterationKind::Values) return nullptr;
+    methods = kDictViewMethods;
+    method_count = std::size(kDictViewMethods);
   } else if (value_as_dict(object) == nullptr) {
     return nullptr;
   }
@@ -682,6 +714,11 @@ const BuiltinMethodSpec* dict_find_method_spec(const Value& object, const std::s
 bool dict_get_method(const Value& object, const std::string& name, Value& out) {
   if (value_as_mapping_proxy(object) != nullptr) {
     return bind_builtin_method_from_table(object, name, kMappingProxyMethods, std::size(kMappingProxyMethods), out);
+  }
+  if (auto* view = value_as_dict_view(object)) {
+    if (view->kind == DictIterationKind::Values) return false;
+    return bind_builtin_method_from_table(object, name, kDictViewMethods,
+                                          std::size(kDictViewMethods), out);
   }
   if (value_as_dict(object) == nullptr && value_as_module(object) == nullptr) {
     return false;
@@ -703,6 +740,15 @@ bool dict_install_class_methods(Runtime& runtime, ClassObject& dict_class) {
   }
   dict_class.has_descriptors = true;
   ++dict_class.version;
+  return true;
+}
+
+bool dict_install_view_class_methods(Runtime& runtime, ClassObject& view_class) {
+  view_class.attrs["__contains__"] = runtime.make_native_function(
+      "dict view.__contains__", dict_view_contains_method, nullptr, nullptr,
+      builtin_method_fast_adapter<dict_view_contains_method, 2>);
+  view_class.has_descriptors = true;
+  ++view_class.version;
   return true;
 }
 

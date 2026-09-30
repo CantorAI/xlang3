@@ -1,0 +1,7 @@
+ready
+deep-return 23
+before-error caught-error
+before-unhandled-error
+unhandled unhandled delegated error
+parents-closed
+trace-yields 2 2

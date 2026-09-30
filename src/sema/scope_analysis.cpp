@@ -238,6 +238,8 @@ void collect_named_assignment_body(
         collect_named_assignment_expr(*assertion->message, names, seen);
     } else if (auto* assign = dynamic_cast<const ast::AssignStmt*>(&stmt)) {
       collect_named_assignment_expr(*assign->value, names, seen);
+    } else if (auto* alias = dynamic_cast<const ast::TypeAliasStmt*>(&stmt)) {
+      collect_named_assignment_expr(*alias->value, names, seen);
     } else if (auto* assign = dynamic_cast<const ast::SubscriptAssignStmt*>(&stmt)) {
       collect_named_assignment_expr(*assign->object, names, seen);
       collect_named_assignment_expr(*assign->index, names, seen);
@@ -333,6 +335,8 @@ void collect_assigned_names(const std::vector<ast::StmtPtr>& body, std::vector<s
   for (const auto& stmt : body) {
     if (auto* assign = dynamic_cast<const ast::AssignStmt*>(stmt.get())) {
       add_unique(names, seen, assign->name);
+    } else if (auto* alias = dynamic_cast<const ast::TypeAliasStmt*>(stmt.get())) {
+      add_unique(names, seen, alias->name);
     } else if (auto* assign = dynamic_cast<const ast::AnnotatedAssignStmt*>(stmt.get())) {
       collect_assigned_target(*assign->target, names, seen);
     } else if (auto* assign = dynamic_cast<const ast::UnpackAssignStmt*>(stmt.get())) {
@@ -721,12 +725,18 @@ void collect_pattern_reads(const ast::Expr& expr, std::vector<std::string>& name
   collect_reads_expr(expr, names, seen);
 }
 
-void collect_reads_body(const std::vector<ast::StmtPtr>& body, std::vector<std::string>& names, NameSet& seen) {
+void collect_reads_body(const std::vector<ast::StmtPtr>& body,
+                        std::vector<std::string>& names, NameSet& seen,
+                        bool class_annotations = false) {
   for (const auto& stmt : body) {
     if (auto* assign = dynamic_cast<const ast::AssignStmt*>(stmt.get())) {
       collect_reads_expr(*assign->value, names, seen);
+    } else if (auto* alias = dynamic_cast<const ast::TypeAliasStmt*>(stmt.get())) {
+      collect_reads_expr(*alias->value, names, seen);
     } else if (auto* assign = dynamic_cast<const ast::AnnotatedAssignStmt*>(stmt.get())) {
       collect_assignment_target_reads(*assign->target, names, seen);
+      if (class_annotations)
+        collect_reads_expr(*assign->annotation, names, seen);
       if (assign->value != nullptr) {
         collect_reads_expr(*assign->value, names, seen);
       }
@@ -772,28 +782,28 @@ void collect_reads_body(const std::vector<ast::StmtPtr>& body, std::vector<std::
       }
     } else if (auto* ifs = dynamic_cast<const ast::IfStmt*>(stmt.get())) {
       collect_reads_expr(*ifs->condition, names, seen);
-      collect_reads_body(ifs->then_body, names, seen);
-      collect_reads_body(ifs->else_body, names, seen);
+      collect_reads_body(ifs->then_body, names, seen, class_annotations);
+      collect_reads_body(ifs->else_body, names, seen, class_annotations);
     } else if (auto* try_except = dynamic_cast<const ast::TryExceptStmt*>(stmt.get())) {
-      collect_reads_body(try_except->try_body, names, seen);
+      collect_reads_body(try_except->try_body, names, seen, class_annotations);
       for (const auto& handler : try_except->handlers) {
         if (handler.type != nullptr) {
           collect_reads_expr(*handler.type, names, seen);
         }
-        collect_reads_body(handler.body, names, seen);
+        collect_reads_body(handler.body, names, seen, class_annotations);
       }
-      collect_reads_body(try_except->else_body, names, seen);
-      collect_reads_body(try_except->finally_body, names, seen);
+      collect_reads_body(try_except->else_body, names, seen, class_annotations);
+      collect_reads_body(try_except->finally_body, names, seen, class_annotations);
     } else if (auto* with = dynamic_cast<const ast::WithStmt*>(stmt.get())) {
       collect_reads_expr(*with->manager, names, seen);
-      collect_reads_body(with->body, names, seen);
+      collect_reads_body(with->body, names, seen, class_annotations);
     } else if (auto* loop = dynamic_cast<const ast::WhileStmt*>(stmt.get())) {
       collect_reads_expr(*loop->condition, names, seen);
-      collect_reads_body(loop->body, names, seen);
+      collect_reads_body(loop->body, names, seen, class_annotations);
     } else if (auto* loop = dynamic_cast<const ast::ForStmt*>(stmt.get())) {
       collect_reads_expr(*loop->iterable, names, seen);
-      collect_reads_body(loop->body, names, seen);
-      collect_reads_body(loop->else_body, names, seen);
+      collect_reads_body(loop->body, names, seen, class_annotations);
+      collect_reads_body(loop->else_body, names, seen, class_annotations);
     } else if (auto* fn = dynamic_cast<const ast::FunctionDef*>(stmt.get())) {
       for (const auto& param : fn->signature) {
         if (param.default_value != nullptr) {
@@ -824,7 +834,7 @@ void collect_reads_body(const std::vector<ast::StmtPtr>& body, std::vector<std::
       // Methods in a nested class skip the class namespace when resolving
       // free variables. Forward their reads through the enclosing function
       // so deeper method closures can capture that function's cells.
-      collect_reads_body(klass->body, names, seen);
+      collect_reads_body(klass->body, names, seen, true);
     } else if (auto* match = dynamic_cast<const ast::MatchStmt*>(stmt.get())) {
       collect_reads_expr(*match->subject, names, seen);
       for (const auto& match_case : match->cases) {
@@ -834,7 +844,7 @@ void collect_reads_body(const std::vector<ast::StmtPtr>& body, std::vector<std::
         if (match_case.guard != nullptr) {
           collect_reads_expr(*match_case.guard, names, seen);
         }
-        collect_reads_body(match_case.body, names, seen);
+        collect_reads_body(match_case.body, names, seen, class_annotations);
       }
     }
   }

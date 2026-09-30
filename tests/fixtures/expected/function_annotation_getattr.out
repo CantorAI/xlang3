@@ -1,0 +1,3 @@
+getattr True number=3
+cached True
+forward number=4

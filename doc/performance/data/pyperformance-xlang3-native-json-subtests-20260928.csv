@@ -1,0 +1,125 @@
+﻿subtest,top-level benchmark,CPython 3.14 ms,XLang3 ms,speedup (CPython / XLang3; >1 favors XLang3),XLang3 status
+2to3,2to3,251.674015,,,attempted; no matching XLang3 result
+ascii85_large,,842.14151,,,attempted; no matching XLang3 result
+ascii85_small,,15.7287544,,,attempted; no matching XLang3 result
+async_generators,async_generators,277.75564,,,attempted; no matching XLang3 result
+async_tree_cpu_io_mixed,async_tree_cpu_io_mixed,430.097115,,,attempted; no matching XLang3 result
+async_tree_cpu_io_mixed_tg,async_tree_cpu_io_mixed_tg,423.999635,,,attempted; no matching XLang3 result
+async_tree_eager,async_tree_eager,84.84337,,,attempted; no matching XLang3 result
+async_tree_eager_cpu_io_mixed,async_tree_eager_cpu_io_mixed,333.809825,,,attempted; no matching XLang3 result
+async_tree_eager_cpu_io_mixed_tg,async_tree_eager_cpu_io_mixed_tg,393.707885,,,attempted; no matching XLang3 result
+async_tree_eager_io,async_tree_eager_io,564.455315,,,attempted; no matching XLang3 result
+async_tree_eager_io_tg,async_tree_eager_io_tg,561.145115,,,attempted; no matching XLang3 result
+async_tree_eager_memoization,async_tree_eager_memoization,191.56922,,,attempted; no matching XLang3 result
+async_tree_eager_memoization_tg,async_tree_eager_memoization_tg,270.171105,,,attempted; no matching XLang3 result
+async_tree_eager_tg,async_tree_eager_tg,196.47773,,,attempted; no matching XLang3 result
+async_tree_io,async_tree_io,573.1876,,,attempted; no matching XLang3 result
+async_tree_io_tg,async_tree_io_tg,558.66878,,,attempted; no matching XLang3 result
+async_tree_memoization,async_tree_memoization,281.985215,,,attempted; no matching XLang3 result
+async_tree_memoization_tg,async_tree_memoization_tg,282.13976,,,attempted; no matching XLang3 result
+async_tree_none,async_tree,226.436295,,,attempted; no matching XLang3 result
+async_tree_none_tg,async_tree,242.23197,,,attempted; no matching XLang3 result
+asyncio_tcp,asyncio_tcp,739.77143,,,attempted; no matching XLang3 result
+asyncio_tcp_ssl,asyncio_tcp_ssl,4466.70645,,,attempted; no matching XLang3 result
+asyncio_websockets,asyncio_websockets,192.1689,,,attempted; no matching XLang3 result
+base16_large,,6.10053578,,,attempted; no matching XLang3 result
+base16_small,,0.290160381,,,attempted; no matching XLang3 result
+base32_large,,378.3794,,,attempted; no matching XLang3 result
+base32_small,,7.30979344,,,attempted; no matching XLang3 result
+base64_large,base64,7.9068775,,,attempted; no matching XLang3 result
+base64_small,base64,0.267936074,,,attempted; no matching XLang3 result
+base85_large,,295.83961,,,attempted; no matching XLang3 result
+base85_small,,5.36605781,,,attempted; no matching XLang3 result
+bench_mp_pool,,158.65799,,,attempted; no matching XLang3 result
+bench_thread_pool,,1.14478187,,,attempted; no matching XLang3 result
+bpe_tokeniser,bpe_tokeniser,3533.09046,,,attempted; no matching XLang3 result
+chameleon,chameleon,11.5539325,,,attempted; no matching XLang3 result
+chaos,chaos,46.8550975,665.75647,0.070378734,completed
+comprehensions,comprehensions,0.0136875763,0.21539249,0.063547138,completed
+connected_components,,428.43363,,,attempted; no matching XLang3 result
+coroutines,coroutines,17.438535,742.668315,0.02348092,completed
+coverage,coverage,63.455025,,,attempted; no matching XLang3 result
+create_gc_cycles,,1.56031781,,,attempted; no matching XLang3 result
+crypto_pyaes,crypto_pyaes,55.276315,,,attempted; no matching XLang3 result
+dask,dask,769.433925,,,attempted; no matching XLang3 result
+deepcopy,deepcopy,0.210038554,7.26997438,0.028891237,completed
+deepcopy_memo,deepcopy,0.0214684906,1.0948975,0.019607763,completed
+deepcopy_reduce,deepcopy,0.00220295212,0.0670089819,0.032875475,completed
+deltablue,deltablue,2.48469344,67.0160325,0.037076105,completed
+django_template,django_template,28.9841175,,,attempted; no matching XLang3 result
+docutils,docutils,1811.73456,,,attempted; no matching XLang3 result
+dulwich_log,dulwich_log,66.5561025,,,attempted; no matching XLang3 result
+fannkuch,fannkuch,312.28626,1877.30919,0.1663478,completed
+fastapi_http,fastapi,415.244545,,,attempted; no matching XLang3 result
+float,float,56.1801625,632.302585,0.088850123,completed
+gc_traversal,gc_traversal,2.36899672,83.4182825,0.028399011,completed
+generators,generators,27.0078712,992.02895,0.027224882,completed
+genshi_text,genshi,18.9623788,,,attempted; no matching XLang3 result
+genshi_xml,genshi,41.6581888,,,attempted; no matching XLang3 result
+go,go,94.2160775,1713.2987,0.05499104,completed
+hexiom,hexiom,4.92847484,78.6150275,0.062691256,completed
+html5lib,html5lib,42.3449062,,,attempted; no matching XLang3 result
+json_dumps,json_dumps,7.58351375,99.50067,0.076215705,completed
+json_loads,json_loads,0.0175438047,5.06737875,0.0034621065,completed
+k_core,,2361.5336,,,attempted; no matching XLang3 result
+logging_format,logging,0.00731574658,0.132391523,0.055258421,completed
+logging_silent,logging,6.69280663e-05,0.00305767322,0.021888561,completed
+logging_simple,logging,0.00675491943,0.133487676,0.050603319,completed
+mako,mako,7.49017906,,,attempted; no matching XLang3 result
+many_optionals,,0.668397734,10.9472087,0.061056453,completed
+mdp,mdp,975.11023,,,attempted; no matching XLang3 result
+meteor_contest,meteor_contest,87.413095,1331.01238,0.065674141,completed
+nbody,nbody,81.0380125,283.790375,0.28555589,completed
+nqueens,nqueens,73.9360775,874.222175,0.084573555,completed
+pathlib,pathlib,47.8175188,673.49699,0.07099886,completed
+pickle,pickle,0.00907842407,9.73495675,0.00093255926,completed
+pickle_dict,pickle_dict,0.0232063193,47.261452,0.00049102002,completed
+pickle_list,pickle_list,0.00395185754,5.82262425,0.00067870729,completed
+pickle_pure_python,pickle_pure_python,0.252284156,9.98756125,0.025259836,completed
+pidigits,pidigits,164.380295,384.54959,0.42746189,completed
+pprint_pformat,pprint,1180.02061,,,attempted; no matching XLang3 result
+pprint_safe_repr,pprint,575.926805,,,attempted; no matching XLang3 result
+pyflate,pyflate,328.523865,,,attempted; no matching XLang3 result
+python_startup,python_startup,31.2637288,32.8956183,0.95039189,completed
+python_startup_no_site,python_startup_no_site,24.6155054,20.5182573,1.1996879,completed
+raytrace,raytrace,217.002325,,,attempted; no matching XLang3 result
+regex_compile,regex_compile,93.640735,,,attempted; no matching XLang3 result
+regex_dna,regex_dna,132.32897,206.92165,0.63951244,completed
+regex_effbot,regex_effbot,1.79459863,13.3409845,0.13451771,completed
+regex_v8,regex_v8,16.4623281,77.254855,0.21309118,completed
+richards,richards,33.3573838,686.896595,0.048562453,completed
+richards_super,richards_super,37.3085912,816.711605,0.045681476,completed
+scimark_fft,scimark,219.316655,,,attempted; no matching XLang3 result
+scimark_lu,scimark,72.890705,,,attempted; no matching XLang3 result
+scimark_monte_carlo,scimark,50.9483237,,,attempted; no matching XLang3 result
+scimark_sor,scimark,94.2418575,,,attempted; no matching XLang3 result
+scimark_sparse_mat_mult,scimark,3.0170675,,,attempted; no matching XLang3 result
+shortest_path,,481.60911,,,attempted; no matching XLang3 result
+spectral_norm,spectral_norm,72.176055,708.774005,0.10183225,completed
+sphinx,sphinx,728.7402,,,attempted; no matching XLang3 result
+sqlalchemy_declarative,sqlalchemy_declarative,87.433355,,,attempted; no matching XLang3 result
+sqlalchemy_imperative,sqlalchemy_imperative,10.6188009,,,attempted; no matching XLang3 result
+sqlglot_v2_normalize,sqlglot_v2,85.1819475,,,attempted; no matching XLang3 result
+sqlglot_v2_optimize,sqlglot_v2_optimize,41.016345,,,attempted; no matching XLang3 result
+sqlglot_v2_parse,sqlglot_v2_parse,0.948929727,,,attempted; no matching XLang3 result
+sqlglot_v2_transpile,sqlglot_v2_transpile,1.18680496,,,attempted; no matching XLang3 result
+sqlite_synth,sqlite_synth,0.00175974442,,,attempted; no matching XLang3 result
+subparsers,,7.60108406,239.955435,0.031677066,completed
+sympy_expand,sympy,336.42096,,,attempted; no matching XLang3 result
+sympy_integrate,sympy,14.225305,,,attempted; no matching XLang3 result
+sympy_str,sympy,194.05812,,,attempted; no matching XLang3 result
+sympy_sum,sympy,100.979577,,,attempted; no matching XLang3 result
+telco,telco,5.54048531,,,attempted; no matching XLang3 result
+tomli_loads,tomli_loads,1689.29986,,,attempted; no matching XLang3 result
+tornado_http,tornado_http,232.943275,,,attempted; no matching XLang3 result
+typing_runtime_protocols,typing_runtime_protocols,0.124366953,7.80562594,0.015932989,completed
+unpack_sequence,unpack_sequence,3.54493271e-05,0.00015096582,0.23481691,completed
+unpickle,unpickle,0.00970000439,4.928434,0.0019681717,completed
+unpickle_list,unpickle_list,0.00315896033,2.09697575,0.0015064363,completed
+unpickle_pure_python,unpickle_pure_python,0.161445578,5.21674275,0.030947583,completed
+urlsafe_base64_small,,0.406181855,,,attempted; no matching XLang3 result
+xdsl_constant_fold,xdsl,32.803105,,,attempted; no matching XLang3 result
+xml_etree_generate,xml_etree,66.3036875,,,attempted; no matching XLang3 result
+xml_etree_iterparse,xml_etree,68.2501925,,,attempted; no matching XLang3 result
+xml_etree_parse,xml_etree,107.561155,,,attempted; no matching XLang3 result
+xml_etree_process,xml_etree,46.0111425,,,attempted; no matching XLang3 result

@@ -45,6 +45,7 @@ T* allocate_sequence_object(ObjectKind kind) {
   obj->header.kind = kind;
   obj->header.refcnt = 1;
   xlang_perf_count_object_alloc(kind);
+  gc_track_object(&obj->header);
   return obj;
 }
 
@@ -72,11 +73,13 @@ ListObject* allocate_list_object() {
     list_object_free_list.items.pop_back();
     obj->header.kind = ObjectKind::List;
     obj->header.refcnt = 1;
+    gc_track_object(&obj->header);
     return obj;
   }
   auto* obj = new ListObject();
   obj->header.kind = ObjectKind::List;
   obj->header.refcnt = 1;
+  gc_track_object(&obj->header);
   return obj;
 }
 
@@ -96,11 +99,13 @@ SequenceIteratorObject* allocate_sequence_iterator_object() {
     list_object_free_list.sequence_iterators.pop_back();
     obj->header.kind = ObjectKind::SequenceIterator;
     obj->header.refcnt = 1;
+    gc_track_object(&obj->header);
     return obj;
   }
   auto* obj = new SequenceIteratorObject();
   obj->header.kind = ObjectKind::SequenceIterator;
   obj->header.refcnt = 1;
+  gc_track_object(&obj->header);
   return obj;
 }
 
@@ -147,6 +152,17 @@ bool sequence_integer_index(const Value& value, int64_t& out) {
   if (value.tag == ValueTag::Bool) {
     out = value.as.b ? 1 : 0;
     return true;
+  }
+  // Integer subclasses (including IntEnum) retain their underlying value in
+  // the runtime's integer slot. An ordinary Enum has no such slot.
+  if (value_as_instance(value) != nullptr) {
+    Value integer;
+    std::string ignored;
+    if (object_get_attr(value, "__xlang3_int_value__", integer, ignored) &&
+        integer.tag == ValueTag::Int64) {
+      out = integer.as.i64;
+      return true;
+    }
   }
   return false;
 }
@@ -266,7 +282,7 @@ bool memoryview_byte_offset(
     size_t& byte_offset,
     std::string& error) {
   const size_t itemsize = memoryview_format_itemsize(view.format);
-  if (itemsize == 0 || itemsize > view.size || view.size % itemsize != 0) {
+  if (itemsize == 0 || view.size % itemsize != 0) {
     error = "unsupported memoryview format";
     return false;
   }
@@ -455,16 +471,26 @@ std::string binary_slice_text(std::string_view storage, int64_t start, int64_t s
 }
 
 std::string utf8_slice_text(std::string_view storage, int64_t start, int64_t stop, int64_t step) {
+  // Resolve byte offsets once. Repeated utf8_codepoint_at() scans from the
+  // beginning for every character and makes a slice quadratic in its length.
+  std::vector<size_t> offsets;
+  offsets.reserve(storage.size() + 1);
+  for (size_t offset = 0; offset < storage.size();) {
+    offsets.push_back(offset);
+    const size_t width = utf8_codepoint_width(static_cast<unsigned char>(storage[offset]));
+    offset += width <= storage.size() - offset ? width : 1;
+  }
+  offsets.push_back(storage.size());
   std::string text;
   if (step > 0) {
     for (int64_t i = start; i < stop; i += step) {
-      const auto ch = utf8_codepoint_at(storage, static_cast<size_t>(i));
-      text.append(ch.data(), ch.size());
+      const size_t index = static_cast<size_t>(i);
+      text.append(storage.data() + offsets[index], offsets[index + 1] - offsets[index]);
     }
   } else {
     for (int64_t i = start; i > stop; i += step) {
-      const auto ch = utf8_codepoint_at(storage, static_cast<size_t>(i));
-      text.append(ch.data(), ch.size());
+      const size_t index = static_cast<size_t>(i);
+      text.append(storage.data() + offsets[index], offsets[index + 1] - offsets[index]);
     }
   }
   return text;
@@ -730,7 +756,10 @@ bool sequence_get_iter(const Value& iterable, Value& out, std::string& error) {
   if (value_as_generator(iterable) != nullptr) {
     return generator_get_iter(iterable, out, error);
   }
-  if (value_as_range_iterator(iterable) != nullptr || value_as_sequence_iterator(iterable) != nullptr) {
+  if (value_as_range_iterator(iterable) != nullptr ||
+      value_as_sequence_iterator(iterable) != nullptr ||
+      value_as_dict_iterator(iterable) != nullptr ||
+      value_as_set_iterator(iterable) != nullptr) {
     value_assign_fast(out, iterable);
     return true;
   }
@@ -825,7 +854,9 @@ bool sequence_iter_next(Value& iterator, bool& done, Value& out, std::string& er
     }
     Value index = Value::int64(static_cast<int64_t>(seq->index));
     if (!sequence_get_item(seq->source, index, out, error)) {
-      if (error == "index out of range") {
+      if (error == "index out of range" ||
+          (value_as_memoryview(seq->source) != nullptr &&
+           error == "index out of bounds on dimension 1")) {
         error.clear();
         done = true;
         value_set_none(out);
@@ -905,8 +936,11 @@ bool sequence_iter_next(Value& iterator, bool& done, Value& out, std::string& er
   return false;
 }
 
-bool sequence_list_append(Value& list, const Value& item, std::string& error) {
-  auto* obj = value_as_list_storage(list);
+bool sequence_list_append(const Value& list, const Value& item, std::string& error) {
+  // The list object is shared mutable storage; appending changes its contents,
+  // never the Value handle. Taking a const handle avoids a retain/release copy
+  // in the cached list.append callback on every loop iteration.
+  auto* obj = value_as_mutable_list_storage(list);
   if (obj == nullptr) {
     error = "list append target is not a list: " + value_to_repr(list);
     return false;
@@ -964,9 +998,27 @@ bool sequence_get_item(
         error = "generic type argument count does not match its parameters";
         return false;
       }
+      bool substitution_failed = false;
       auto substitute = [&](auto&& self, const Value& value) -> Value {
         for (size_t i = 0; i < parameters.size(); ++i) {
-          if (value_is(value, parameters[i])) return arguments[i];
+          if (value_is(value, parameters[i])) {
+            // GenericAlias normalizes string substitutions to ForwardRef,
+            // including substitutions nested inside a union or another alias.
+            if (runtime != nullptr && value_as_string(arguments[i]) != nullptr) {
+              Value annotationlib;
+              Value forward_ref;
+              Value resolved;
+              if (!runtime->import_module("annotationlib", annotationlib, error) ||
+                  !module_get_attr(annotationlib, "ForwardRef", forward_ref, error) ||
+                  !runtime_call_callable(*runtime, forward_ref, &arguments[i], 1,
+                                         resolved, error)) {
+                substitution_failed = true;
+                return Value::invalid();
+              }
+              return resolved;
+            }
+            return arguments[i];
+          }
         }
         if (auto* tuple = value_as_tuple(value)) {
           std::vector<Value> items;
@@ -1004,7 +1056,9 @@ bool sequence_get_item(
         }
         return value;
       };
-      out = Value::generic_alias(alias->origin, substitute(substitute, alias->args));
+      Value substituted_args = substitute(substitute, alias->args);
+      if (substitution_failed) return false;
+      out = Value::generic_alias(alias->origin, std::move(substituted_args));
       auto* result_alias = value_as_generic_alias(out);
       result_alias->is_union = alias->is_union;
       value_assign_fast(result_alias->klass, alias->klass);
@@ -1014,31 +1068,47 @@ bool sequence_get_item(
       error = "union type is not subscriptable";
       return false;
     }
+    error = value_to_string(object) + " is not a generic class";
+    if (runtime != nullptr) runtime->raise_class_error("TypeError", error);
+    return false;
+  }
+  if (auto* klass = value_as_class(object);
+      klass != nullptr && runtime != nullptr &&
+      runtime->find_builtin("type") != nullptr &&
+      value_as_class(*runtime->find_builtin("type")) == klass) {
     Value args;
-    if (value_as_tuple(index) != nullptr) {
-      value_assign_fast(args, index);
-    } else {
-      args = Value::tuple({index});
-    }
-    out = Value::generic_alias(alias->origin, std::move(args));
+    if (value_as_tuple(index) != nullptr) value_assign_fast(args, index);
+    else args = Value::tuple({index});
+    out = Value::generic_alias(object, std::move(args));
     return true;
   }
-  if (value_as_class(object) != nullptr) {
+  if (auto* klass = value_as_class(object);
+      klass != nullptr && runtime != nullptr &&
+      runtime->find_builtin("Union") != nullptr &&
+      value_as_class(*runtime->find_builtin("Union")) == klass) {
     std::vector<Value> items;
     if (auto* tuple = value_as_tuple(index)) items = tuple->items;
     else items.push_back(index);
-    auto* klass = value_as_class(object);
-    const bool typing_union = klass != nullptr && klass->name == "Union";
-    if (typing_union) {
-      const Value* none_type = runtime == nullptr
-          ? nullptr : runtime->find_builtin("NoneType");
-      for (auto& item : items) {
-        if (item.tag == ValueTag::None && none_type != nullptr)
-          value_assign_fast(item, *none_type);
+    const Value* none_type = runtime->find_builtin("NoneType");
+    Value forward_ref;
+    for (auto& item : items) {
+      if (item.tag == ValueTag::None && none_type != nullptr)
+        value_assign_fast(item, *none_type);
+      if (value_as_string(item) != nullptr) {
+        if (forward_ref.tag == ValueTag::Invalid) {
+          Value annotationlib;
+          if (!runtime->import_module("annotationlib", annotationlib, error) ||
+              !module_get_attr(annotationlib, "ForwardRef", forward_ref, error))
+            return false;
+        }
+        Value converted;
+        if (!runtime_call_callable(*runtime, forward_ref, &item, 1, converted, error))
+          return false;
+        item = std::move(converted);
       }
     }
     out = Value::generic_alias(object, Value::tuple(std::move(items)));
-    if (typing_union) value_as_generic_alias(out)->is_union = true;
+    value_as_generic_alias(out)->is_union = true;
     return true;
   }
   if (auto* range = value_as_range(object)) {
@@ -1159,7 +1229,8 @@ bool sequence_get_item(
   if (object.tag == ValueTag::Object && object.as.obj != nullptr && object.as.obj->kind == ObjectKind::String) {
     auto* string = reinterpret_cast<StringObject*>(object.as.obj);
     const auto view = string_object_view(*string);
-    const auto codepoint_count = utf8_codepoint_count(view);
+    const bool ascii = string_object_is_ascii(*string);
+    const auto codepoint_count = ascii ? view.size() : utf8_codepoint_count(view);
     if (auto* slice = value_as_slice(index)) {
       int64_t start = 0;
       int64_t stop = 0;
@@ -1167,7 +1238,14 @@ bool sequence_get_item(
       if (!normalize_slice(*slice, static_cast<int64_t>(codepoint_count), start, stop, step, error)) {
         return false;
       }
-      out = Value::string(utf8_slice_text(view, start, stop, step));
+      if (ascii) {
+        out = Value::string(step == 1
+            ? std::string(view.substr(static_cast<size_t>(start),
+                                      static_cast<size_t>(std::max<int64_t>(0, stop - start))))
+            : binary_slice_text(view, start, stop, step));
+      } else {
+        out = Value::string(utf8_slice_text(view, start, stop, step));
+      }
       return true;
     }
     int64_t raw_index = 0;
@@ -1180,7 +1258,9 @@ bool sequence_get_item(
       error = "index out of range";
       return false;
     }
-    const auto ch = utf8_codepoint_at(view, static_cast<size_t>(resolved));
+    const auto ch = ascii
+        ? view.substr(static_cast<size_t>(resolved), 1)
+        : utf8_codepoint_at(view, static_cast<size_t>(resolved));
     out = Value::string_view(ch);
     return true;
   }
@@ -1290,12 +1370,6 @@ bool sequence_get_item(
     return true;
   }
   if (instance_get_native_data(object, "typing._Alias") != nullptr) {
-    value_assign_fast(out, object);
-    return true;
-  }
-  if (value_as_class(object) != nullptr ||
-      value_as_function(object) != nullptr ||
-      value_as_native_function(object) != nullptr) {
     value_assign_fast(out, object);
     return true;
   }

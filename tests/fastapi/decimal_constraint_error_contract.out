@@ -1,0 +1,5 @@
+422 decimal_max_digits Decimal input should have no more than 3 digits in total {'max_digits': 3}
+422 decimal_max_places Decimal input should have no more than 1 decimal place {'decimal_places': 1}
+422 decimal_whole_digits Decimal input should have no more than 2 digits before the decimal point {'whole_digits': 2}
+finite_number
+SchemaError ValueError: allow_inf_nan=True cannot be used with max_digits or decimal_places

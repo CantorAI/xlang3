@@ -19,8 +19,11 @@ limitations under the License.
 #include "xlang3/builtin_methods.h"
 #include "xlang3/interpreter.h"
 #include "xlang3/ir.h"
+#include "xlang3/module_object.h"
 #include "xlang3/runtime.h"
 
+#include <algorithm>
+#include <array>
 #include <cstdint>
 #include <limits>
 #include <memory>
@@ -49,12 +52,16 @@ namespace xlang3 {
 enum class CallSiteKind : uint8_t {
   Empty,
   UserFunction,
+  BoundPythonMethod,
   NativeFunction,
   BoundNativeFunction,
   UserConstructor,
   NativeConstructor,
   InlineSlotConstructor,
+  InlineMathPointConstructor,
   InlineSelfBinaryMethod,
+  InlineSelfAttrBinaryMethod,
+  InlineSelfAttrBooleanExprMethod,
   InlineArgBinaryFunction,
   InlineConditionalArgFunction,
   InlineTrivialFunction,
@@ -62,6 +69,8 @@ enum class CallSiteKind : uint8_t {
   InlineSmallSelfMethod,
   InlineSelfSlotMethod,
   InlineSelfSlotConstSumMethod,
+  InlineSelfSlotMaximizeMethod,
+  InlineSelfSlotNormalizeMethod,
   InlineFastListMethod,
   InlineCachedStringMethod,
   InlineCachedLen,
@@ -74,6 +83,7 @@ enum class AttrSiteKind : uint8_t {
   InstanceAttr,
   InstanceSlot,
   Descriptor,
+  PropertyInstanceAttr,
 };
 
 struct CallSiteCache {
@@ -90,8 +100,11 @@ struct CallSiteCache {
   uint64_t class_version = 0;
   uint32_t lhs_slot = 0;
   uint32_t rhs_slot = 0;
+  std::array<uint32_t, 3> inline_slots{};
+  ModuleObject* inline_globals_module = nullptr;
+  uint64_t inline_globals_version = 0;
   ir::Op inline_op = ir::Op::Add;
-  uint32_t inline_function_id = 0;
+  uint32_t inline_function_id = UINT32_MAX;
   uint32_t fast_method_id = 0;
   uint32_t next_arg = 0;
   ir::Op next_op = ir::Op::Add;
@@ -108,6 +121,7 @@ struct AttrSiteCache {
   AttrSiteKind kind = AttrSiteKind::Empty;
   Object* owner = nullptr;
   uint64_t version = 0;
+  const std::string* property_attr_name = nullptr;
   Value value;
   uint32_t getter_slot = 0;
   uint32_t setter_slot = 0;
@@ -170,6 +184,7 @@ struct XlangVMPreparedFunctionState {
 struct XlangVMFrame {
   const ir::Module* module = nullptr;
   const ir::Function* fn = nullptr;
+  std::unique_ptr<std::vector<Value>> closure_owner;
   const std::vector<Value>* closure = nullptr;
   Value globals_module;
   std::shared_ptr<const ir::Module> module_owner;
@@ -182,12 +197,18 @@ struct XlangVMFrame {
   Value monitoring_code;
   Value trace_function;
   Value trace_frame_object;
+  // Function definitions in one module repeatedly capture the same builtin
+  // binding; the dedicated module version invalidates this across rebinding.
+  ModuleObject* function_builtins_cache_module = nullptr;
+  uint64_t function_builtins_cache_version = 0;
+  Value function_builtins_cache;
   size_t ip = 0;
   uint32_t last_trace_line = 0;
   uint32_t last_monitoring_line = 0;
   uint32_t last_debug_line = 0;
   uint64_t monitoring_configuration_generation = 0;
   int64_t monitoring_events = 0;
+  bool monitoring_cache_touched = false;
   bool trace_call_emitted = false;
   bool trace_lines = true;
   bool trace_opcodes = false;
@@ -203,7 +224,21 @@ struct XlangVMFrame {
   std::vector<uint32_t> memoryview_registers;
   std::vector<bool> memoryview_register_flags;
   std::vector<Value> native_call_args;
+  // Reuse per-caller argument-binding storage across calls at this frame depth.
+  // The scratch is cleared immediately after the callee copies its bound locals.
+  std::vector<Value> call_binding_scratch;
   std::unordered_map<const ir::Function*, XlangVMPreparedFunctionState> prepared_functions;
+
+  void set_closure(const std::vector<Value>& frame_closure) {
+    if (frame_closure.empty()) {
+      closure_owner.reset();
+      static const std::vector<Value> empty_closure;
+      closure = &empty_closure;
+    } else {
+      closure_owner = std::make_unique<std::vector<Value>>(frame_closure);
+      closure = closure_owner.get();
+    }
+  }
 
   XlangVMFrame(
       const ir::Module& frame_module,
@@ -218,7 +253,6 @@ struct XlangVMFrame {
       Value frame_continuation_value = Value::invalid())
       : module(&frame_module),
         fn(&frame_module.functions[function_id]),
-        closure(&frame_closure),
         globals_module(std::move(frame_globals_module)),
         module_owner(std::move(frame_module_owner)),
         function_id(function_id),
@@ -230,6 +264,7 @@ struct XlangVMFrame {
         cells(fn->cell_slots.size(), Value::invalid()),
         regs(fn->register_count, Value::invalid()),
         instr_cache(fn->code.size()) {
+    set_closure(frame_closure);
     compute_register_last_use();
     for (size_t i = 0; i < args.size(); ++i) {
       value_assign_fast(locals[i], args.get(i));
@@ -267,7 +302,7 @@ struct XlangVMFrame {
     }
     module = &frame_module;
     fn = next_fn;
-    closure = &frame_closure;
+    set_closure(frame_closure);
     globals_module = std::move(frame_globals_module);
     module_owner = std::move(frame_module_owner);
     this->function_id = function_id;
@@ -280,6 +315,9 @@ struct XlangVMFrame {
     }
     value_set_invalid(trace_function);
     value_set_invalid(trace_frame_object);
+    function_builtins_cache_module = nullptr;
+    function_builtins_cache_version = 0;
+    value_set_invalid(function_builtins_cache);
     ip = 0;
     last_trace_line = 0;
     last_monitoring_line = 0;
@@ -298,6 +336,7 @@ struct XlangVMFrame {
     temps.clear();
     exception_handlers.clear();
     native_call_args.clear();
+    call_binding_scratch.clear();
     memoryview_registers.clear();
     memoryview_register_flags.clear();
 
@@ -325,10 +364,19 @@ struct XlangVMFrame {
     // Inline caches must not extend the lifetime of Python objects after the
     // frame returns. CPython's adaptive caches are non-owning; XLang3 cache
     // entries currently contain owning Values, so discard those entries while
-    // retaining the allocated cache vector for the next activation.
-    for (auto& cache : instr_cache) {
-      cache = XlangVMInstrCache{};
+    // retaining the allocated cache vector for the next activation. Function
+    // metadata lists only IR sites that can own cache state, avoiding a scan of
+    // every instruction on each Python return in call-heavy workloads.
+    const auto* cache_sites = execution_metadata == nullptr || monitoring_cache_touched
+        ? nullptr : &execution_metadata->cache_cleanup_instructions;
+    if (cache_sites != nullptr) {
+      for (uint32_t index : *cache_sites) {
+        if (index < instr_cache.size()) clear_cache_if_owned(instr_cache[index]);
+      }
+    } else {
+      for (auto& cache : instr_cache) clear_cache_if_owned(cache);
     }
+    monitoring_cache_touched = false;
     value_set_invalid(trace_function);
     value_set_invalid(trace_frame_object);
     closure = nullptr;
@@ -343,6 +391,48 @@ struct XlangVMFrame {
   }
 
 private:
+  static void clear_cache_if_owned(XlangVMInstrCache& cache) {
+    // Cache writers touch their adaptive domain before storing auxiliary
+    // values. Monitoring's negative-location mask is the sidecar state that
+    // does not use a domain, so clear those entries too. Most IR instructions
+    // never touch a cache and can skip the large record/vector reset here.
+    if (cache.domain != XlangVMCacheDomain::Empty ||
+        cache.monitoring_generation != 0 || cache.monitoring_disabled_events != 0) {
+      cache = XlangVMInstrCache{};
+    }
+  }
+
+  static bool instruction_may_own_inline_cache(ir::Op op) {
+    // Keep this set aligned with every xlang_vm_cache_touch() callsite and
+    // include fused IR ops that delegate to those cached handlers.
+    switch (op) {
+      case ir::Op::LoadModuleSlot:
+      case ir::Op::LoadGlobal:
+      case ir::Op::LoadLocalGlobal:
+      case ir::Op::LoadGlobalLocal:
+      case ir::Op::StoreGlobal:
+      case ir::Op::LoadAttr:
+      case ir::Op::LoadLocalAttr:
+      case ir::Op::LoadModuleAttr:
+      case ir::Op::StoreAttr:
+      case ir::Op::DeleteAttr:
+      case ir::Op::Len:
+      case ir::Op::GetItem:
+      case ir::Op::LoadLocalGetItem:
+      case ir::Op::Call:
+      case ir::Op::CallLocal:
+      case ir::Op::CallGlobal:
+      case ir::Op::CallEx:
+      case ir::Op::CallMethod:
+      case ir::Op::CallMethodEx:
+      case ir::Op::CallLocalMethod:
+      case ir::Op::CallModuleMethod:
+        return true;
+      default:
+        return false;
+    }
+  }
+
   template <typename Fn>
   void for_each_register_read(const ir::Instr& instr, Fn&& fn) const {
     auto one = [&](uint32_t reg) {
@@ -391,6 +481,11 @@ private:
       case ir::Op::Await:
       case ir::Op::Pop:
         one(instr.a);
+        break;
+      case ir::Op::YieldFrom:
+        one(instr.a);
+        one(instr.b);
+        one(instr.c);
         break;
       case ir::Op::LoadAttr:
       case ir::Op::LoadInstanceSlot:
@@ -484,6 +579,14 @@ private:
         one(instr.a);
         call_args(instr.c);
         break;
+      case ir::Op::CallMethodEx:
+        one(instr.a);
+        if (instr.c < this->fn->call_specs.size()) {
+          const auto& spec = this->fn->call_specs[instr.c];
+          list(spec.positional);
+          for (const auto& keyword : spec.keywords) one(keyword.value_reg);
+        }
+        break;
       case ir::Op::CallLocalMethod:
         call_args(instr.c);
         break;
@@ -576,6 +679,12 @@ private:
     }
     auto computed = std::make_shared<ir::FunctionExecutionMetadata>();
     computed->owner = fn;
+    computed->cache_cleanup_instructions.reserve(fn->code.size() / 8);
+    for (size_t ip = 0; ip < fn->code.size(); ++ip) {
+      if (instruction_may_own_inline_cache(fn->code[ip].op)) {
+        computed->cache_cleanup_instructions.push_back(static_cast<uint32_t>(ip));
+      }
+    }
     computed->register_last_use.assign(
         fn->register_count, std::numeric_limits<size_t>::max());
     computed->register_loop_carried.assign(fn->register_count, false);
@@ -605,6 +714,7 @@ private:
           case ir::Op::Call:
           case ir::Op::CallEx:
           case ir::Op::CallMethod:
+          case ir::Op::CallMethodEx:
           case ir::Op::CallLocal:
           case ir::Op::CallLocalMethod:
           case ir::Op::CallModuleMethod:
@@ -674,6 +784,38 @@ public:
     }
   }
 
+  // Guarded local arithmetic may skip its ordinary register-based fallback.
+  // Drop memoryviews left in registers written only by skipped instructions,
+  // so an earlier fallback iteration cannot extend a buffer lease.
+  void release_memoryviews_for_skipped_local_add(
+      const ir::Function& function, size_t first_instruction, size_t span) {
+    if (memoryview_registers.empty()) return;
+    const size_t end = std::min(function.code.size(), first_instruction + span);
+    for (size_t index = first_instruction; index < end; ++index) {
+      const auto& instr = function.code[index];
+      switch (instr.op) {
+        case ir::Op::LoadConst:
+        case ir::Op::LoadLocal:
+        case ir::Op::Add:
+        case ir::Op::Sub:
+        case ir::Op::Mul:
+          release_memoryview_register(instr.dst);
+          break;
+        case ir::Op::LoadLocalPair:
+        case ir::Op::LoadLocalConst:
+          release_memoryview_register(instr.dst);
+          release_memoryview_register(instr.b);
+          break;
+        case ir::Op::LoadConstPair:
+          release_memoryview_register(instr.dst);
+          release_memoryview_register(instr.b);
+          break;
+        default:
+          break;
+      }
+    }
+  }
+
   void track_memoryview_result(uint32_t reg) {
     if (reg >= regs.size() || value_as_memoryview(regs[reg]) == nullptr) return;
     if (memoryview_register_flags.empty()) {
@@ -686,6 +828,21 @@ public:
   }
 
 private:
+  void release_memoryview_register(uint32_t reg) {
+    if (reg >= memoryview_register_flags.size() || !memoryview_register_flags[reg]) return;
+    if (reg < regs.size() && value_as_memoryview(regs[reg]) != nullptr) {
+      value_set_invalid(regs[reg]);
+    }
+    memoryview_register_flags[reg] = false;
+    for (size_t index = 0; index < memoryview_registers.size(); ++index) {
+      if (memoryview_registers[index] == reg) {
+        memoryview_registers[index] = memoryview_registers.back();
+        memoryview_registers.pop_back();
+        break;
+      }
+    }
+  }
+
   void reserve_call_args() {
     uint32_t max_call_arg_count = 0;
     for (const auto& arg_regs : fn->call_args) {

@@ -1,0 +1,3 @@
+list [{'name': 'one'}, {'name': 'two', 'enabled': False, 'note': 'set'}]
+dict {'first': {'name': 'one'}, 'second': {'name': 'two', 'enabled': False, 'note': 'set'}}
+route 200 [{'name': 'one'}, {'name': 'two', 'enabled': False, 'note': 'set'}]

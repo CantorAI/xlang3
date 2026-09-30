@@ -348,10 +348,6 @@ bool winapi_startup_attr_handle(const Value& startupinfo, const char* name, HAND
   return true;
 }
 
-std::mutex g_pipe_handle_mutex;
-std::unordered_set<intptr_t> g_pipe_handles;
-std::unordered_set<intptr_t> g_auto_closed_pipe_handles;
-
 constexpr const char* kWinapiOverlappedNativeType = "_winapi.OverlappedResult";
 
 struct WinapiOverlappedState {
@@ -366,39 +362,6 @@ struct WinapiOverlappedState {
 };
 
 Value g_winapi_overlapped_class;
-
-intptr_t handle_key(HANDLE handle) {
-  return reinterpret_cast<intptr_t>(handle);
-}
-
-bool take_pipe_handle_for_duplicate(HANDLE handle) {
-  std::lock_guard<std::mutex> lock(g_pipe_handle_mutex);
-  const intptr_t key = handle_key(handle);
-  auto it = g_pipe_handles.find(key);
-  if (it == g_pipe_handles.end()) {
-    return false;
-  }
-  g_pipe_handles.erase(it);
-  g_auto_closed_pipe_handles.insert(key);
-  return true;
-}
-
-void remember_pipe_handle(HANDLE handle) {
-  std::lock_guard<std::mutex> lock(g_pipe_handle_mutex);
-  g_pipe_handles.insert(handle_key(handle));
-}
-
-bool forget_pipe_handle(HANDLE handle) {
-  std::lock_guard<std::mutex> lock(g_pipe_handle_mutex);
-  const intptr_t key = handle_key(handle);
-  g_pipe_handles.erase(key);
-  const auto auto_closed = g_auto_closed_pipe_handles.find(key);
-  if (auto_closed != g_auto_closed_pipe_handles.end()) {
-    g_auto_closed_pipe_handles.erase(auto_closed);
-    return true;
-  }
-  return false;
-}
 
 WinapiOverlappedState* winapi_overlapped_state(const Value& self, std::string& error) {
   auto* state = static_cast<WinapiOverlappedState*>(
@@ -860,10 +823,6 @@ bool winapi_close_handle(Runtime& runtime, const Value* args, uint32_t argc, Val
 #if defined(_WIN32)
   HANDLE handle = reinterpret_cast<HANDLE>(static_cast<intptr_t>(handle_value));
   if (handle_value != 0 && !CloseHandle(handle)) {
-    if (forget_pipe_handle(handle)) {
-      value_set_none(out);
-      return true;
-    }
     // Some native dependency shims, such as _overlapped during early asyncio
     // bootstrap, expose XLang3-owned pseudo handles instead of OS handles.
     if (handle_value >= 0x10000 && GetLastError() == ERROR_INVALID_HANDLE) {
@@ -872,7 +831,6 @@ bool winapi_close_handle(Runtime& runtime, const Value* args, uint32_t argc, Val
     }
     return raise_win32_error(runtime, "CloseHandle", GetLastError(), error);
   }
-  forget_pipe_handle(handle);
 #endif
   value_set_none(out);
   return true;
@@ -952,8 +910,6 @@ bool winapi_create_pipe(Runtime& runtime, const Value* args, uint32_t argc, Valu
   if (!CreatePipe(&read_handle, &write_handle, security_ptr, static_cast<DWORD>(size_value))) {
     return raise_win32_error(runtime, "CreatePipe", GetLastError(), error);
   }
-  remember_pipe_handle(read_handle);
-  remember_pipe_handle(write_handle);
   out = Value::tuple({
       Value::int64(static_cast<int64_t>(reinterpret_cast<intptr_t>(read_handle))),
       Value::int64(static_cast<int64_t>(reinterpret_cast<intptr_t>(write_handle))),
@@ -1770,15 +1726,6 @@ bool winapi_duplicate_handle(Runtime& runtime, const Value* args, uint32_t argc,
   }
 #if defined(_WIN32)
   HANDLE target_handle = nullptr;
-  const bool close_source_after_duplicate =
-      source_process == static_cast<int64_t>(reinterpret_cast<intptr_t>(GetCurrentProcess())) &&
-      target_process == static_cast<int64_t>(reinterpret_cast<intptr_t>(GetCurrentProcess())) &&
-      inherit_handle != 0 &&
-      take_pipe_handle_for_duplicate(reinterpret_cast<HANDLE>(static_cast<intptr_t>(source_handle)));
-  DWORD duplicate_options = static_cast<DWORD>(options);
-  if (close_source_after_duplicate) {
-    duplicate_options |= DUPLICATE_CLOSE_SOURCE;
-  }
   if (!DuplicateHandle(
           reinterpret_cast<HANDLE>(static_cast<intptr_t>(source_process)),
           reinterpret_cast<HANDLE>(static_cast<intptr_t>(source_handle)),
@@ -1786,7 +1733,7 @@ bool winapi_duplicate_handle(Runtime& runtime, const Value* args, uint32_t argc,
           &target_handle,
           static_cast<DWORD>(desired_access),
           inherit_handle != 0,
-          duplicate_options)) {
+          static_cast<DWORD>(options))) {
     return raise_win32_error(runtime, "DuplicateHandle", GetLastError(), error);
   }
   out = Value::int64(static_cast<int64_t>(reinterpret_cast<intptr_t>(target_handle)));
@@ -1884,7 +1831,10 @@ bool winapi_create_process(Runtime& runtime, const Value* args, uint32_t argc, V
   }
   std::wstring app = utf8_to_wide(application_name);
   std::wstring cmd = utf8_to_wide(command_line);
-  std::wstring cwd = utf8_to_wide(current_directory);
+  // os.chdir() changes XLang3's virtual working directory. A child with no
+  // explicit cwd must inherit that directory, not the host process's startup cwd.
+  std::wstring cwd = utf8_to_wide(
+      has_current_directory ? current_directory : runtime.vfs().cwd());
   STARTUPINFOEXW extended_startup{};
   std::vector<unsigned char> attribute_storage;
   bool attribute_list_initialized = false;
@@ -1925,7 +1875,7 @@ bool winapi_create_process(Runtime& runtime, const Value* args, uint32_t argc, V
           inherit_handles != 0,
           native_creation_flags,
           environment,
-          has_current_directory ? cwd.c_str() : nullptr,
+          cwd.c_str(),
           startup_pointer,
           &process);
   const DWORD create_error = created ? ERROR_SUCCESS : GetLastError();
@@ -2124,14 +2074,6 @@ bool winapi_get_module_file_name(Runtime& runtime, const Value* args, uint32_t a
 
 } // namespace
 
-void forget_winapi_pipe_handle(intptr_t handle) {
-#if defined(_WIN32)
-  (void)forget_pipe_handle(reinterpret_cast<HANDLE>(handle));
-#else
-  (void)handle;
-#endif
-}
-
 void register_winapi_module(Runtime& runtime) {
 #if defined(_WIN32)
   g_winapi_overlapped_class = make_winapi_overlapped_class(runtime);
@@ -2182,6 +2124,9 @@ void register_winapi_module(Runtime& runtime) {
       .value("SYNCHRONIZE", Value::int64(SYNCHRONIZE))
       .value("PROCESS_DUP_HANDLE", Value::int64(PROCESS_DUP_HANDLE))
       .value("FILE_TYPE_CHAR", Value::int64(FILE_TYPE_CHAR))
+      .value("FILE_TYPE_DISK", Value::int64(FILE_TYPE_DISK))
+      .value("FILE_TYPE_PIPE", Value::int64(FILE_TYPE_PIPE))
+      .value("FILE_TYPE_UNKNOWN", Value::int64(FILE_TYPE_UNKNOWN))
       .value("WAIT_OBJECT_0", Value::int64(WAIT_OBJECT_0))
       .value("WAIT_ABANDONED_0", Value::int64(WAIT_ABANDONED_0))
       .value("WAIT_TIMEOUT", Value::int64(WAIT_TIMEOUT))

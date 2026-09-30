@@ -16,6 +16,7 @@ limitations under the License.
 
 #include "xlang3/builtin_methods.h"
 #include "xlang3/builtins.h"
+#include "xlang3/functional_iterators.h"
 #include "xlang3/interpreter.h"
 #include "xlang3/object_model.h"
 #include "xlang3/perf_counters.h"
@@ -26,6 +27,7 @@ limitations under the License.
 #endif
 
 #include <algorithm>
+#include <array>
 #include <cstdint>
 #include <sstream>
 
@@ -46,6 +48,7 @@ T* allocate_generator_object(ObjectKind kind) {
   obj->header.kind = kind;
   obj->header.refcnt = 1;
   xlang_perf_count_object_alloc(kind);
+  gc_track_object(&obj->header);
   return obj;
 }
 
@@ -102,6 +105,19 @@ void clear_expected_generator_exit(Runtime& runtime) {
   }
 }
 
+void clear_generator_vm_states(GeneratorObject& generator) {
+  if (generator.vm_state_cleanup != nullptr && generator.vm_state != nullptr) {
+    generator.vm_state_cleanup(generator.vm_state);
+  }
+  if (generator.vm_state_reuse_cleanup != nullptr && generator.vm_state_reuse != nullptr) {
+    generator.vm_state_reuse_cleanup(generator.vm_state_reuse);
+  }
+  generator.vm_state = nullptr;
+  generator.vm_state_cleanup = nullptr;
+  generator.vm_state_reuse = nullptr;
+  generator.vm_state_reuse_cleanup = nullptr;
+}
+
 } // namespace
 
 Value Value::generator(
@@ -154,9 +170,7 @@ Value Value::generator(
 void generator_release_object(Object* object) {
   if (object->kind == ObjectKind::Generator) {
     auto* generator = reinterpret_cast<GeneratorObject*>(object);
-    if (generator->vm_state_cleanup != nullptr && generator->vm_state != nullptr) {
-      generator->vm_state_cleanup(generator->vm_state);
-    }
+    clear_generator_vm_states(*generator);
     delete generator;
     return;
   }
@@ -217,6 +231,117 @@ bool generator_iter_next(Value& generator, bool& done, Value& out, std::string& 
   return generator_send(generator, Value::none(), done, out, error);
 }
 
+namespace {
+
+bool generator_can_trampoline(const GeneratorObject& generator) {
+  if (generator.runtime == nullptr || generator.is_async || generator.is_coroutine ||
+      generator.has_observed_continuation ||
+      generator.has_active_suspended_exception_handlers || xlang_perf_enabled()) {
+    return false;
+  }
+  const Runtime& runtime = *generator.runtime;
+  const auto active_hook = [](const Value& hook) {
+    return hook.tag != ValueTag::Invalid && hook.tag != ValueTag::None;
+  };
+  return !runtime.debug_step_active() && !active_hook(runtime.debug_hook()) &&
+      !active_hook(runtime.trace_function()) && !active_hook(runtime.profile_function()) &&
+      !sys_monitoring_event_may_dispatch(kSysMonitoringEventAll);
+}
+
+bool try_generator_delegation_trampoline(
+    Value& root_value, Value send_value, bool& handled, bool& done, Value& out, std::string& error) {
+  handled = false;
+  auto* root = value_as_generator(root_value);
+  if (root == nullptr || !generator_can_trampoline(*root)) return true;
+
+  // Preserve the ordinary VM path whenever any continuation is observable,
+  // has an active exception handler, is async, or has already completed.
+  // In the unobserved synchronous case, a yield-from chain is only a stack of
+  // saved forwarding frames: resume its leaf directly and unwind parents only
+  // when a child finishes. This removes one interpreter entry and yield event
+  // propagation per forwarding level for each yielded item.
+  constexpr size_t kMaxDelegationDepth = 200;
+  std::array<GeneratorObject*, kMaxDelegationDepth> chain{};
+  size_t chain_size = 0;
+  GeneratorObject* current = root;
+  while (current != nullptr) {
+    if (!generator_can_trampoline(*current) || current->running || chain_size == chain.size()) {
+      return true;
+    }
+    chain[chain_size++] = current;
+    auto* child = value_as_generator(current->awaiting);
+    if (child == nullptr) break;
+    if (child->done || child->running || child->runtime != root->runtime) return true;
+    current = child;
+  }
+  if (chain_size < 2) return true;
+
+  struct RunningChainGuard {
+    std::array<GeneratorObject*, kMaxDelegationDepth>& chain;
+    size_t count;
+    ~RunningChainGuard() {
+      for (size_t i = 0; i < count; ++i) chain[i]->running = false;
+    }
+  } running_guard{chain, chain_size};
+  for (size_t i = 0; i < chain_size; ++i) {
+    chain[i]->running = true;
+    chain[i]->started = true;
+  }
+
+  handled = true;
+  size_t target_index = chain_size - 1;
+  bool forward_send = true;
+  while (true) {
+    bool target_done = false;
+    Value target_out;
+    bool resumed = false;
+    if (target_index == 0) {
+      resumed = generator_send(root_value,
+          chain[0]->delegation_trampoline_result_ready ? Value::none() : send_value,
+          target_done, target_out, error);
+    } else {
+      Value target_value;
+      value_assign_fast(target_value, chain[target_index - 1]->awaiting);
+      const Value target_send = forward_send ? send_value : Value::none();
+      resumed = generator_send(target_value, target_send, target_done, target_out, error);
+    }
+    forward_send = false;
+    if (!resumed) {
+      // With no suspended handlers, a delegated exception is unhandled at
+      // every forwarding level. Retire those continuations while preserving
+      // the original pending exception for the caller.
+      for (size_t i = 0; i <= target_index; ++i) {
+        clear_generator_vm_states(*chain[i]);
+        chain[i]->done = true;
+        chain[i]->has_pending_send = false;
+        chain[i]->delegation_trampoline_result_ready = false;
+        value_set_invalid(chain[i]->pending_send);
+        value_set_invalid(chain[i]->awaiting);
+      }
+      return false;
+    }
+    if (!target_done) {
+      done = false;
+      value_assign_fast(out, target_out);
+      return true;
+    }
+    if (target_index == 0) {
+      done = true;
+      value_assign_fast(out, target_out);
+      return true;
+    }
+
+    GeneratorObject* parent = chain[target_index - 1];
+    value_set_invalid(parent->awaiting);
+    value_assign_fast(parent->pending_send, target_out);
+    parent->has_pending_send = true;
+    parent->delegation_trampoline_result_ready = true;
+    --target_index;
+  }
+}
+
+} // namespace
+
 bool generator_send(Value& generator, Value value, bool& done, Value& out, std::string& error) {
   auto* obj = value_as_generator(generator);
   if (obj == nullptr) {
@@ -224,8 +349,15 @@ bool generator_send(Value& generator, Value value, bool& done, Value& out, std::
     return false;
   }
   if (obj->done) {
+    if (obj->is_coroutine) {
+      error = "cannot reuse already awaited coroutine";
+      Value exception = obj->runtime->make_exception("RuntimeError", error);
+      value_assign_fast(out, exception);
+      obj->runtime->set_pending_exception(std::move(exception));
+      return false;
+    }
     done = true;
-    value_assign_fast(out, obj->return_value);
+    value_set_none(out);
     return true;
   }
   if (!obj->started && value.tag != ValueTag::None) {
@@ -236,6 +368,12 @@ bool generator_send(Value& generator, Value value, bool& done, Value& out, std::
     error = "generator has invalid runtime";
     return false;
   }
+  bool trampoline_handled = false;
+  if (!try_generator_delegation_trampoline(
+          generator, value, trampoline_handled, done, out, error)) {
+    return false;
+  }
+  if (trampoline_handled) return true;
   // ``yield from`` resumes delegated generators through this native call path,
   // so each level consumes host stack even though it is a Python generator
   // frame.  Guard it before Windows exhausts its C stack.
@@ -249,27 +387,29 @@ bool generator_send(Value& generator, Value value, bool& done, Value& out, std::
   }
   GeneratorResumeGuard resume_guard;
   obj->started = true;
-  value_assign_fast(obj->pending_send, value);
-  obj->has_pending_send = true;
+  if (!obj->delegation_trampoline_result_ready) {
+    value_assign_fast(obj->pending_send, value);
+    obj->has_pending_send = true;
+  }
   Interpreter interpreter(*obj->runtime);
   obj->running = true;
   RuntimeResult result = interpreter.resume_generator(*obj, out, done);
   obj->running = false;
   if (done) {
     obj->done = true;
-    if (obj->vm_state_cleanup != nullptr && obj->vm_state != nullptr) {
-      obj->vm_state_cleanup(obj->vm_state);
-      obj->vm_state = nullptr;
-      obj->vm_state_cleanup = nullptr;
-    }
+    clear_generator_vm_states(*obj);
     value_set_invalid(obj->pending_send);
     value_set_invalid(obj->pending_throw);
     value_set_invalid(obj->awaiting);
     obj->args.clear();
     obj->has_pending_send = false;
     obj->has_pending_throw = false;
+    obj->delegated_result_ready = false;
+    obj->delegation_trampoline_result_ready = false;
+    value_set_none(obj->return_value);
   }
   if (!result.errors.empty()) {
+    clear_generator_vm_states(*obj);
     if (result.exception.tag != ValueTag::Invalid) {
       value_assign_fast(out, result.exception);
     }
@@ -289,9 +429,25 @@ bool generator_close(Value& generator, Value& out, std::string& error) {
     Value awaiting = obj->awaiting;
     Value ignored;
     std::string close_error;
-    if (!generator_close(awaiting, ignored, close_error) && !close_error.empty()) {
-      error = std::move(close_error);
-      return false;
+    if (value_as_generator(awaiting) != nullptr) {
+      if (!generator_close(awaiting, ignored, close_error)) {
+        error = std::move(close_error);
+        return false;
+      }
+    } else {
+      Value close_method;
+      if (object_get_attr(awaiting, "close", close_method, close_error)) {
+        if (!runtime_call_callable(*obj->runtime, close_method, nullptr, 0,
+                                   ignored, error)) return false;
+      } else {
+        Value pending;
+        if (obj->runtime->take_pending_exception(pending) &&
+            !exception_has_class_name(*obj->runtime, pending, "AttributeError")) {
+          obj->runtime->set_pending_exception(std::move(pending));
+          error = std::move(close_error);
+          return false;
+        }
+      }
     }
     value_set_invalid(obj->awaiting);
   }
@@ -308,6 +464,7 @@ bool generator_close(Value& generator, Value& out, std::string& error) {
     obj->running = false;
     if (!result.errors.empty()) {
       if (result.errors.front().find("GeneratorExit") == std::string::npos) {
+        clear_generator_vm_states(*obj);
         error = result.errors.front();
         return false;
       }
@@ -320,11 +477,7 @@ bool generator_close(Value& generator, Value& out, std::string& error) {
       clear_expected_generator_exit(*obj->runtime);
     }
   }
-  if (obj->vm_state_cleanup != nullptr && obj->vm_state != nullptr) {
-    obj->vm_state_cleanup(obj->vm_state);
-  }
-  obj->vm_state = nullptr;
-  obj->vm_state_cleanup = nullptr;
+  clear_generator_vm_states(*obj);
   obj->done = true;
   value_set_invalid(obj->pending_send);
   value_set_invalid(obj->pending_throw);
@@ -332,6 +485,8 @@ bool generator_close(Value& generator, Value& out, std::string& error) {
   obj->args.clear();
   obj->has_pending_send = false;
   obj->has_pending_throw = false;
+  obj->delegated_result_ready = false;
+  value_set_none(obj->return_value);
   value_set_none(out);
   return true;
 }
@@ -398,11 +553,30 @@ bool generator_throw(Value& generator, const Value* args, uint32_t argc, Value& 
           }
         }
       }
-    } else {
+    } else if (value_as_generator(awaiting) != nullptr) {
       delegated_resumed = generator_throw(awaiting, args, argc, delegated_out, delegated_error);
       if (delegated_resumed) {
         value_assign_fast(out, delegated_out);
         return true;
+      }
+    } else {
+      Value throw_method;
+      if (object_get_attr(awaiting, "throw", throw_method, delegated_error)) {
+        delegated_resumed = runtime_call_callable(
+            *obj->runtime, throw_method, args, argc, delegated_out,
+            delegated_error);
+        if (delegated_resumed) {
+          value_assign_fast(out, delegated_out);
+          return true;
+        }
+      } else {
+        Value pending;
+        if (obj->runtime->take_pending_exception(pending) &&
+            !exception_has_class_name(*obj->runtime, pending, "AttributeError")) {
+          obj->runtime->set_pending_exception(std::move(pending));
+          error = std::move(delegated_error);
+          return false;
+        }
       }
     }
     Value delegated_exception;
@@ -444,6 +618,7 @@ bool generator_throw(Value& generator, const Value* args, uint32_t argc, Value& 
   if (delegated_completed) {
     value_assign_fast(obj->pending_send, delegated_return);
     obj->has_pending_send = true;
+    obj->delegated_result_ready = true;
     value_set_invalid(obj->pending_throw);
     obj->has_pending_throw = false;
   } else {
@@ -461,19 +636,18 @@ bool generator_throw(Value& generator, const Value* args, uint32_t argc, Value& 
   obj->running = false;
   if (done) {
     obj->done = true;
-    if (obj->vm_state_cleanup != nullptr && obj->vm_state != nullptr) {
-      obj->vm_state_cleanup(obj->vm_state);
-      obj->vm_state = nullptr;
-      obj->vm_state_cleanup = nullptr;
-    }
+    clear_generator_vm_states(*obj);
     value_set_invalid(obj->pending_send);
     value_set_invalid(obj->pending_throw);
     value_set_invalid(obj->awaiting);
     obj->args.clear();
     obj->has_pending_send = false;
     obj->has_pending_throw = false;
+    obj->delegated_result_ready = false;
+    value_set_none(obj->return_value);
   }
   if (!result.errors.empty()) {
+    clear_generator_vm_states(*obj);
     if (result.exception.tag != ValueTag::Invalid) {
       value_assign_fast(out, result.exception);
     }
@@ -674,6 +848,74 @@ bool async_generator_awaitable_send_method(
   }
   raise_stop_iteration_with_value(runtime, out);
   return false;
+}
+
+bool async_generator_awaitable_throw_method(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc < 2 || argc > 4) {
+    error = "async_generator_awaitable.throw expected 1 to 3 arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* state = value_as_async_generator_awaitable(args[0]);
+  if (state == nullptr) {
+    error = "object is not an async generator awaitable";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (state->consumed) {
+    error = "cannot reuse already awaited async generator awaitable";
+    runtime.raise_class_error("RuntimeError", error);
+    return false;
+  }
+  state->started = true;
+  bool resumed = generator_throw(state->generator, args + 1, argc - 1, out, error);
+  if (!resumed) {
+    state->consumed = true;
+    if (value_as_instance(out) != nullptr) runtime.set_pending_exception(out);
+    return false;
+  }
+  auto* generator = value_as_generator(state->generator);
+  if (generator != nullptr && generator->awaiting.tag != ValueTag::Invalid) return true;
+  state->consumed = true;
+  raise_stop_iteration_with_value(runtime, out);
+  return false;
+}
+
+bool async_generator_awaitable_close_method(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (!method_check_argc(argc, 1, "async_generator_awaitable.close", error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* state = value_as_async_generator_awaitable(args[0]);
+  if (state == nullptr) {
+    error = "object is not an async generator awaitable";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (state->consumed) {
+    value_set_none(out);
+    return true;
+  }
+  state->consumed = true;
+  if (!generator_close(state->generator, out, error)) {
+    if (runtime.active_exception().tag == ValueTag::Invalid) {
+      runtime.raise_class_error("RuntimeError", error);
+    }
+    return false;
+  }
+  return true;
 }
 
 bool generator_send_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -880,9 +1122,24 @@ static BuiltinMethodSpec kAsyncGeneratorAwaitableMethods[] = {
       {"__iter__", "async_generator_awaitable.__iter__", async_generator_awaitable_await_method},
       {"__next__", "async_generator_awaitable.__next__", async_generator_awaitable_next_method},
       {"send", "async_generator_awaitable.send", async_generator_awaitable_send_method},
+      {"throw", "async_generator_awaitable.throw", async_generator_awaitable_throw_method},
+      {"close", "async_generator_awaitable.close", async_generator_awaitable_close_method},
 };
 
 } // namespace
+
+void frame_set_generator_owner(Runtime& runtime, Value& frame,
+                               const GeneratorObject& generator) {
+  auto* frame_object = value_as_frame(frame);
+  if (frame_object == nullptr ||
+      frame_object->generator_ref.tag != ValueTag::Invalid)
+    return;
+  Value borrowed;
+  borrowed.tag = ValueTag::Object;
+  borrowed.flags = kXlangValueBorrowedRefFlag;
+  borrowed.as.obj = const_cast<Object*>(&generator.header);
+  frame_object->generator_ref = make_weakref_ref(runtime, borrowed);
+}
 
 bool generator_get_method(const Value& object, const std::string& name, Value& out) {
   if (value_as_async_generator_awaitable(object) != nullptr) {
@@ -945,6 +1202,8 @@ bool generator_get_method(const Value& object, const std::string& name, Value& o
           Value::dict(std::move(entries)),
           Value::none(),
           Value::none());
+      if (generator->runtime != nullptr)
+        frame_set_generator_owner(*generator->runtime, out, *generator);
       return true;
     }
     value_set_none(out);

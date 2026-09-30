@@ -41,6 +41,7 @@ struct RunConfig {
   std::vector<std::string> argv;
   DebugConfig debug;
   bool perf_counters = false;
+  bool perf_counters_startup = false;
   bool no_debug_ranges = false;
   bool warn_default_encoding = false;
   bool dev_mode = false;

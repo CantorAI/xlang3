@@ -84,6 +84,13 @@ XLANG3_HOT_INLINE XlangVMOpFlow await_op(
   }
   if (awaited_generator != nullptr &&
       (awaited_generator->is_coroutine || awaited_generator->is_await_iterator || iterable_coroutine)) {
+    // generator_throw() can finish a delegated awaitable while handling an
+    // exception. Its return value is already in the await-result register.
+    if (active_generator != nullptr && active_generator->delegated_result_ready) {
+      active_generator->delegated_result_ready = false;
+      value_set_invalid(active_generator->awaiting);
+      return XlangVMOpFlow::Next;
+    }
     Value send_value = !awaited_generator->started || regs[in.dst].tag == ValueTag::Invalid
         ? Value::none() : regs[in.dst];
     value_set_invalid(regs[in.dst]);
@@ -92,6 +99,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow await_op(
     std::string await_error;
     Value awaited_value = regs[in.a];
     if (!generator_send(awaited_value, std::move(send_value), done, yielded_or_returned, await_error)) {
+      if (active_generator != nullptr) value_set_invalid(active_generator->awaiting);
       Value pending;
       if (runtime.take_pending_exception(pending)) {
         return raise_exception_value(std::move(pending)) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
@@ -102,14 +110,21 @@ XLANG3_HOT_INLINE XlangVMOpFlow await_op(
     }
     if (done) {
       if (active_generator != nullptr) value_set_invalid(active_generator->awaiting);
-      Value stop = runtime.make_exception("StopIteration", "");
-      std::string ignored;
-      object_set_attr(stop, "value", yielded_or_returned, ignored);
-      object_set_attr(stop, "args", yielded_or_returned.tag == ValueTag::None
-          ? Value::tuple({}) : Value::tuple({yielded_or_returned}), ignored);
-      Value event_arg = Value::tuple({runtime.exception_type(stop), stop, Value::none()});
-      if (!emit_trace_event(frame, "exception", event_arg)) {
-        return XlangVMOpFlow::ReturnResult;
+      // StopIteration here is VM control flow used to transport the coroutine
+      // result. Materialize the Python exception and trace tuple only when a
+      // trace hook can observe the event; the normal await path should be a
+      // direct value transfer with no exception-object allocation.
+      if (frame.trace_function.tag != ValueTag::Invalid &&
+          frame.trace_function.tag != ValueTag::None) {
+        Value stop = runtime.make_exception("StopIteration", "");
+        std::string ignored;
+        object_set_attr(stop, "value", yielded_or_returned, ignored);
+        object_set_attr(stop, "args", yielded_or_returned.tag == ValueTag::None
+            ? Value::tuple({}) : Value::tuple({yielded_or_returned}), ignored);
+        Value event_arg = Value::tuple({runtime.exception_type(stop), stop, Value::none()});
+        if (!emit_trace_event(frame, "exception", event_arg)) {
+          return XlangVMOpFlow::ReturnResult;
+        }
       }
       value_assign_fast(regs[in.dst], yielded_or_returned);
       return XlangVMOpFlow::Next;
@@ -126,10 +141,15 @@ XLANG3_HOT_INLINE XlangVMOpFlow await_op(
         !emit_profile_event(frame, "return", yielded_or_returned)) {
       return XlangVMOpFlow::ReturnResult;
     }
-    auto* state = new GeneratorVMState();
+    auto* state = acquire_generator_vm_state(active_generator);
     state->frames = std::move(frames);
     state->frame_count = frame_count;
     state->send_target = in.dst;
+    active_generator->has_observed_continuation =
+        active_generator->has_observed_continuation ||
+        generator_continuation_has_observers(runtime, state->frames, state->frame_count);
+    active_generator->has_active_suspended_exception_handlers =
+        generator_continuation_has_active_exception_handlers(state->frames, state->frame_count);
     if (active_generator->vm_state_cleanup != nullptr && active_generator->vm_state != nullptr) {
       active_generator->vm_state_cleanup(active_generator->vm_state);
     }
@@ -150,6 +170,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow await_op(
     if (!async_generator_awaitable_send(
             runtime, regs[in.a], std::move(send_value), done,
             yielded_or_returned, await_error)) {
+      if (active_generator != nullptr) value_set_invalid(active_generator->awaiting);
       Value pending;
       if (runtime.take_pending_exception(pending)) {
         return raise_exception_value(std::move(pending))
@@ -172,10 +193,15 @@ XLANG3_HOT_INLINE XlangVMOpFlow await_op(
         !emit_profile_event(frame, "return", yielded_or_returned)) {
       return XlangVMOpFlow::ReturnResult;
     }
-    auto* state = new GeneratorVMState();
+    auto* state = acquire_generator_vm_state(active_generator);
     state->frames = std::move(frames);
     state->frame_count = frame_count;
     state->send_target = in.dst;
+    active_generator->has_observed_continuation =
+        active_generator->has_observed_continuation ||
+        generator_continuation_has_observers(runtime, state->frames, state->frame_count);
+    active_generator->has_active_suspended_exception_handlers =
+        generator_continuation_has_active_exception_handlers(state->frames, state->frame_count);
     if (active_generator->vm_state_cleanup != nullptr && active_generator->vm_state != nullptr) {
       active_generator->vm_state_cleanup(active_generator->vm_state);
     }
@@ -188,6 +214,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow await_op(
   }
   std::string await_error;
   if (!xlang_task_await_value(runtime, regs[in.a], regs[in.dst], await_error)) {
+    if (active_generator != nullptr) value_set_invalid(active_generator->awaiting);
     Value pending;
     if (runtime.take_pending_exception(pending)) {
       return raise_exception_value(std::move(pending)) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
@@ -202,11 +229,150 @@ XLANG3_HOT_INLINE XlangVMOpFlow await_op(
   return XlangVMOpFlow::Next;
 }
 
-template <typename RaiseRuntimeError>
+template <typename EmitMonitoringEvent, typename EmitTraceEvent, typename EmitProfileEvent,
+          typename RaiseRuntimeError, typename RaiseExceptionValue>
 XLANG3_HOT_INLINE XlangVMOpFlow yield_from(
-    RaiseRuntimeError&& raise_runtime_error) {
-  return raise_runtime_error("internal yield from was not lowered") ? XlangVMOpFlow::ContinueLoop
-                                                                   : XlangVMOpFlow::ReturnResult;
+    const ir::Instr& in,
+    Runtime& runtime,
+    XlangVMSmallRegisterBuffer& regs,
+    VMFrame& frame,
+    std::vector<VMFrame>& frames,
+    size_t frame_count,
+    GeneratorObject* generator,
+    RuntimeResult& result,
+    EmitMonitoringEvent&& emit_monitoring_event,
+    EmitTraceEvent&& emit_trace_event,
+    EmitProfileEvent&& emit_profile_event,
+    RaiseRuntimeError&& raise_runtime_error,
+    RaiseExceptionValue&& raise_exception_value) {
+  if (generator == nullptr) {
+    return raise_runtime_error("yield from used outside generator")
+        ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+  }
+  // A delegated throw can finish the iterator before this instruction resumes.
+  // generator_throw places its return value in the send register in that case.
+  if (value_truthy(regs[in.c]) && generator->awaiting.tag == ValueTag::Invalid) {
+    generator->delegated_result_ready = false;
+    generator->delegation_trampoline_result_ready = false;
+    value_assign_fast(regs[in.dst], regs[in.b]);
+    value_set_bool(regs[in.c], false);
+    return XlangVMOpFlow::Next;
+  }
+
+  const Value sent = value_truthy(regs[in.c]) ? regs[in.b] : Value::none();
+  const Value* delegate = &regs[in.a];
+  if (regs[in.a].tag == ValueTag::Object && regs[in.a].as.obj != nullptr &&
+      regs[in.a].as.obj->kind == ObjectKind::ProtocolIterator) {
+    auto* protocol = reinterpret_cast<ProtocolIteratorObject*>(regs[in.a].as.obj);
+    if (!protocol->use_getitem) delegate = &protocol->iterator;
+  }
+  Value yielded_or_returned;
+  bool done = false;
+  std::string error;
+  if (value_as_generator(regs[in.a]) != nullptr) {
+    // Delegate through the generator already held in the register. Copying a
+    // Value here would add an incref/decref pair for every yield-from step,
+    // which is costly for Python encoders and other chunk-producing generators.
+    if (!generator_send(regs[in.a], sent, done, yielded_or_returned, error)) {
+      Value pending;
+      if (runtime.take_pending_exception(pending)) {
+        return raise_exception_value(std::move(pending))
+            ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+      }
+      return raise_runtime_error(error.empty() ? "yield from failed" : error)
+          ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    }
+  } else if (sent.tag == ValueTag::None && value_as_instance(*delegate) != nullptr) {
+    Value next_method;
+    if (!object_get_attr(*delegate, "__next__", next_method, error)) {
+      return raise_exception_value(runtime.make_exception("AttributeError", error))
+          ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    }
+    if (!runtime_call_callable(runtime, next_method, nullptr, 0, yielded_or_returned, error)) {
+      Value pending;
+      if (runtime.take_pending_exception(pending)) {
+        auto* exception_class = value_as_class(runtime.exception_type(pending));
+        if (exception_class != nullptr && exception_class->name == "StopIteration") {
+          std::string ignored;
+          if (!object_get_attr(pending, "value", yielded_or_returned, ignored)) {
+            value_set_none(yielded_or_returned);
+          }
+          done = true;
+        } else {
+          return raise_exception_value(std::move(pending))
+              ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+        }
+      } else {
+        return raise_runtime_error(error.empty() ? "yield from failed" : error)
+            ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+      }
+    }
+  } else if (sent.tag == ValueTag::None) {
+    if (!sequence_iter_next(regs[in.a], done, yielded_or_returned, error)) {
+      Value pending;
+      if (runtime.take_pending_exception(pending)) {
+        return raise_exception_value(std::move(pending))
+            ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+      }
+      return raise_runtime_error(error.empty() ? "yield from failed" : error)
+          ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    }
+  } else {
+    Value send_method;
+    if (!object_get_attr(*delegate, "send", send_method, error)) {
+      return raise_exception_value(runtime.make_exception("AttributeError", error))
+          ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    }
+    if (!runtime_call_callable(runtime, send_method, &sent, 1, yielded_or_returned, error)) {
+      Value pending;
+      if (runtime.take_pending_exception(pending)) {
+        auto* exception_class = value_as_class(runtime.exception_type(pending));
+        if (exception_class != nullptr && exception_class->name == "StopIteration") {
+          std::string ignored;
+          if (!object_get_attr(pending, "value", yielded_or_returned, ignored)) {
+            value_set_none(yielded_or_returned);
+          }
+          done = true;
+        } else {
+          return raise_exception_value(std::move(pending))
+              ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+        }
+      } else {
+        return raise_runtime_error(error.empty() ? "yield from failed" : error)
+            ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+      }
+    }
+  }
+  if (done) {
+    value_set_invalid(generator->awaiting);
+    value_set_bool(regs[in.c], false);
+    value_assign_fast(regs[in.dst], yielded_or_returned);
+    return XlangVMOpFlow::Next;
+  }
+  if (!emit_monitoring_event(frame, kSysMonitoringEventPyYield, &yielded_or_returned) ||
+      !emit_trace_event(frame, "return", yielded_or_returned) ||
+      !emit_profile_event(frame, "return", yielded_or_returned)) {
+    return XlangVMOpFlow::ReturnResult;
+  }
+  value_set_bool(regs[in.c], true);
+  auto* state = acquire_generator_vm_state(generator);
+  state->frames = std::move(frames);
+  state->frame_count = frame_count;
+  state->send_target = in.b;
+  generator->has_observed_continuation =
+      generator->has_observed_continuation ||
+      generator_continuation_has_observers(runtime, state->frames, state->frame_count);
+  generator->has_active_suspended_exception_handlers =
+      generator_continuation_has_active_exception_handlers(state->frames, state->frame_count);
+  if (generator->vm_state_cleanup != nullptr && generator->vm_state != nullptr) {
+    generator->vm_state_cleanup(generator->vm_state);
+  }
+  generator->vm_state = state;
+  generator->vm_state_cleanup = destroy_generator_vm_state;
+  generator->done = false;
+  value_assign_fast(generator->awaiting, *delegate);
+  value_assign_fast(result.value, yielded_or_returned);
+  return XlangVMOpFlow::ReturnResult;
 }
 
 XLANG3_HOT_INLINE void pop() {}

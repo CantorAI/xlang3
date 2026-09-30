@@ -1,0 +1,9 @@
+isfinite str TypeError must be real number, not str
+isfinite NoneType TypeError must be real number, not NoneType
+isfinite object TypeError must be real number, not object
+isinf str TypeError must be real number, not str
+isinf NoneType TypeError must be real number, not NoneType
+isinf object TypeError must be real number, not object
+isnan str TypeError must be real number, not str
+isnan NoneType TypeError must be real number, not NoneType
+isnan object TypeError must be real number, not object

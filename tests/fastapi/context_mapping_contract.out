@@ -1,0 +1,7 @@
+keys 2 ['first', 'second']
+[]
+keys ['first', 'second']
+items [('first', 10), ('second', 20)]
+values [10, 20]
+True False 10 None 99
+2 ['first', 'second'] 3

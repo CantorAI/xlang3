@@ -1,0 +1,39 @@
+import sys
+import tempfile
+from pathlib import Path
+
+
+with tempfile.TemporaryDirectory() as directory:
+    package = Path(directory) / 'xlang3_import_failure_probe'
+    package.mkdir()
+    (package / '__init__.py').write_text(
+        "def __getattr__(name):\n"
+        "    if name == 'answer':\n"
+        "        return 42\n"
+        "    if name == 'explode':\n"
+        "        raise ValueError('lazy attribute failure')\n"
+        "    raise AttributeError(name)\n",
+        encoding='utf-8',
+    )
+    (package / 'broken.py').write_text(
+        "raise ValueError('submodule body failure')\n", encoding='utf-8'
+    )
+    (package / 'missing_dependency.py').write_text(
+        'import xlang3_import_failure_probe_missing_dependency\n', encoding='utf-8'
+    )
+    sys.path.insert(0, directory)
+    try:
+        from xlang3_import_failure_probe import answer
+
+        print('answer', answer)
+        for name in ('broken', 'missing_dependency'):
+            try:
+                exec(f'from xlang3_import_failure_probe import {name}')
+            except Exception as error:
+                print(name, type(error).__name__, str(error))
+        try:
+            from xlang3_import_failure_probe import explode
+        except Exception as error:
+            print('explode', type(error).__name__, str(error))
+    finally:
+        sys.path.remove(directory)

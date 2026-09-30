@@ -38,6 +38,7 @@ bool value_is_builtin_iterator(const Value& value) {
     case ObjectKind::SetIterator:
     case ObjectKind::EnumerateIterator:
     case ObjectKind::ZipIterator:
+    case ObjectKind::ZipLongestIterator:
     case ObjectKind::MapIterator:
     case ObjectKind::FilterIterator:
     case ObjectKind::CallableIterator:

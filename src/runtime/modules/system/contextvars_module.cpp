@@ -20,6 +20,7 @@ limitations under the License.
 #include "xlang3/object_model.h"
 #include "xlang3/sequence.h"
 
+#include <array>
 #include <unordered_map>
 
 namespace xlang3 {
@@ -29,6 +30,7 @@ namespace {
 constexpr const char* kContextVarNativeType = "_contextvars.ContextVar";
 constexpr const char* kContextNativeType = "_contextvars.Context";
 constexpr const char* kTokenNativeType = "_contextvars.Token";
+constexpr const char* kContextViewNativeType = "_contextvars.ContextView";
 
 struct ContextVarState {
   std::string name;
@@ -47,9 +49,15 @@ struct ContextState {
   std::unordered_map<Object*, Value> values;
 };
 
+struct ContextViewState {
+  std::vector<Value> entries;
+  size_t index = 0;
+};
+
 thread_local std::unordered_map<Object*, Value> g_context_values;
 Value g_token_class = Value::invalid();
 Value g_missing = Value::invalid();
+std::array<Value, 3> g_context_view_classes;
 
 Value borrowed_object_value(Object* object) {
   Value out;
@@ -83,6 +91,12 @@ ContextState* context_state(const Value& self, std::string& error) {
   return state;
 }
 
+ContextViewState* context_view_state(const Value& self, std::string& error) {
+  auto* state = static_cast<ContextViewState*>(instance_get_native_data(self, kContextViewNativeType));
+  if (state == nullptr) error = "invalid Context view object";
+  return state;
+}
+
 Object* context_var_key(const Value& value, std::string& error) {
   if (context_var_state(value, error) == nullptr) {
     return nullptr;
@@ -100,6 +114,10 @@ void token_cleanup(void* data) {
 
 void context_cleanup(void* data) {
   delete static_cast<ContextState*>(data);
+}
+
+void context_view_cleanup(void* data) {
+  delete static_cast<ContextViewState*>(data);
 }
 
 bool get_string_arg(const Value& value, const char* name, std::string& out, std::string& error) {
@@ -336,22 +354,94 @@ bool context_len(Runtime&, const Value* args, uint32_t argc, Value& out, std::st
   return true;
 }
 
+bool make_context_view(const Value& context, size_t kind, Value& out, std::string& error) {
+  auto* context_data = context_state(context, error);
+  if (context_data == nullptr) return false;
+  auto* view = new ContextViewState();
+  view->entries.reserve(context_data->values.size());
+  for (const auto& entry : context_data->values) {
+    const Value key = borrowed_object_value(entry.first);
+    if (kind == 0) view->entries.emplace_back(key);
+    else if (kind == 1) view->entries.push_back(Value::tuple({key, entry.second}));
+    else view->entries.push_back(entry.second);
+  }
+  out = Value::instance(g_context_view_classes[kind]);
+  if (!instance_set_native_data(out, kContextViewNativeType, view,
+                                context_view_cleanup, error)) {
+    delete view;
+    return false;
+  }
+  return true;
+}
+
+bool context_view_method(Runtime&, const Value* args, uint32_t argc,
+                         Value& out, std::string& error, void* user_data) {
+  if (argc != 1) {
+    error = "Context view method expected self";
+    return false;
+  }
+  return make_context_view(args[0], reinterpret_cast<size_t>(user_data), out, error);
+}
+
+bool context_view_iter(Runtime&, const Value* args, uint32_t argc,
+                       Value& out, std::string& error, void*) {
+  if (argc != 1 || context_view_state(args[0], error) == nullptr) return false;
+  value_assign_fast(out, args[0]);
+  return true;
+}
+
+bool context_view_next(Runtime& runtime, const Value* args, uint32_t argc,
+                       Value& out, std::string& error, void*) {
+  if (argc != 1) return false;
+  auto* state = context_view_state(args[0], error);
+  if (state == nullptr) return false;
+  if (state->index == state->entries.size()) {
+    runtime.raise_class_error("StopIteration", "");
+    return false;
+  }
+  value_assign_fast(out, state->entries[state->index++]);
+  return true;
+}
+
+bool context_view_len(Runtime&, const Value* args, uint32_t argc,
+                      Value& out, std::string& error, void*) {
+  if (argc != 1) return false;
+  auto* state = context_view_state(args[0], error);
+  if (state == nullptr) return false;
+  out = Value::int64(static_cast<int64_t>(state->entries.size()));
+  return true;
+}
+
 bool context_iter(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
     error = "Context.__iter__ expected self";
     return false;
   }
+  (void)runtime;
+  return make_context_view(args[0], 0, out, error);
+}
+
+bool context_contains(Runtime&, const Value* args, uint32_t argc,
+                      Value& out, std::string& error, void*) {
+  if (argc != 2) return false;
   auto* state = context_state(args[0], error);
-  if (state == nullptr) {
-    return false;
-  }
-  std::vector<Value> keys;
-  keys.reserve(state->values.size());
-  for (const auto& entry : state->values) {
-    keys.push_back(borrowed_object_value(entry.first));
-  }
-  out = Value::list(std::move(keys));
-  return runtime_get_iter(runtime, out, out, error);
+  Object* key = context_var_key(args[1], error);
+  if (state == nullptr || key == nullptr) return false;
+  out = Value::boolean(state->values.find(key) != state->values.end());
+  return true;
+}
+
+bool context_get(Runtime&, const Value* args, uint32_t argc,
+                 Value& out, std::string& error, void*) {
+  if (argc < 2 || argc > 3) return false;
+  auto* state = context_state(args[0], error);
+  Object* key = context_var_key(args[1], error);
+  if (state == nullptr || key == nullptr) return false;
+  const auto found = state->values.find(key);
+  if (found != state->values.end()) value_assign_fast(out, found->second);
+  else if (argc == 3) value_assign_fast(out, args[2]);
+  else value_set_none(out);
+  return true;
 }
 
 bool context_copy(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -428,9 +518,27 @@ bool copy_context(Runtime&, const Value*, uint32_t argc, Value& out, std::string
   return true;
 }
 
+bool context_generic_class_getitem(
+    Runtime& runtime, const Value* args, uint32_t argc,
+    Value& out, std::string& error, void*) {
+  if (argc != 2 || value_as_class(args[0]) == nullptr) {
+    error = "__class_getitem__ expects a class and one argument";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value parameters;
+  if (value_as_tuple(args[1]) != nullptr) value_assign_fast(parameters, args[1]);
+  else parameters = Value::tuple({args[1]});
+  out = Value::generic_alias(args[0], std::move(parameters));
+  return true;
+}
+
 Value make_context_var_class(Runtime& runtime) {
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.push_back({"__module__", Value::string("_contextvars")});
+  attrs.push_back({"__class_getitem__", Value::class_method(
+      runtime.make_native_function("_contextvars.ContextVar.__class_getitem__",
+                                   context_generic_class_getitem))});
   attrs.push_back({"__init__", runtime.make_native_function("_contextvars.ContextVar.__init__", context_var_init, nullptr, nullptr, nullptr, false, context_var_init_kw)});
   attrs.push_back({"get", runtime.make_native_function("_contextvars.ContextVar.get", context_var_get)});
   attrs.push_back({"set", runtime.make_native_function("_contextvars.ContextVar.set", context_var_set)});
@@ -442,6 +550,9 @@ Value make_context_var_class(Runtime& runtime) {
 Value make_token_class(Runtime& runtime) {
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.push_back({"__module__", Value::string("_contextvars")});
+  attrs.push_back({"__class_getitem__", Value::class_method(
+      runtime.make_native_function("_contextvars.Token.__class_getitem__",
+                                   context_generic_class_getitem))});
   attrs.push_back({"MISSING", missing_value(runtime)});
   return Value::class_object("Token", std::move(attrs));
 }
@@ -453,6 +564,11 @@ Value make_context_class(Runtime& runtime) {
   attrs.push_back({"__getitem__", runtime.make_native_function("_contextvars.Context.__getitem__", context_getitem)});
   attrs.push_back({"__len__", runtime.make_native_function("_contextvars.Context.__len__", context_len)});
   attrs.push_back({"__iter__", runtime.make_native_function("_contextvars.Context.__iter__", context_iter)});
+  attrs.push_back({"__contains__", runtime.make_native_function("_contextvars.Context.__contains__", context_contains)});
+  attrs.push_back({"get", runtime.make_native_function("_contextvars.Context.get", context_get)});
+  attrs.push_back({"keys", runtime.make_native_function("_contextvars.Context.keys", context_view_method, reinterpret_cast<void*>(0))});
+  attrs.push_back({"items", runtime.make_native_function("_contextvars.Context.items", context_view_method, reinterpret_cast<void*>(1))});
+  attrs.push_back({"values", runtime.make_native_function("_contextvars.Context.values", context_view_method, reinterpret_cast<void*>(2))});
   attrs.push_back({"copy", runtime.make_native_function("_contextvars.Context.copy", context_copy)});
   attrs.push_back({"run", runtime.make_native_function(
       "_contextvars.Context.run", context_run, nullptr, nullptr, nullptr,
@@ -463,6 +579,15 @@ Value make_context_class(Runtime& runtime) {
 } // namespace
 
 void register_contextvars_module(Runtime& runtime) {
+  for (size_t index = 0; index < g_context_view_classes.size(); ++index) {
+    std::vector<std::pair<std::string, Value>> attrs;
+    attrs.push_back({"__module__", Value::string("builtins")});
+    attrs.push_back({"__iter__", runtime.make_native_function("_contextvars.ContextView.__iter__", context_view_iter)});
+    attrs.push_back({"__next__", runtime.make_native_function("_contextvars.ContextView.__next__", context_view_next)});
+    attrs.push_back({"__len__", runtime.make_native_function("_contextvars.ContextView.__len__", context_view_len)});
+    g_context_view_classes[index] = Value::class_object(
+        index == 0 ? "keys" : index == 1 ? "items" : "values", std::move(attrs));
+  }
   Value context_var_class = make_context_var_class(runtime);
   Value context_class = make_context_class(runtime);
   g_token_class = make_token_class(runtime);

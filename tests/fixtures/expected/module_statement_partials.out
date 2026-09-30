@@ -7,5 +7,5 @@ point-dynamic 6
 capture old
 or-capture 8
 or-wildcard
-T True True
-T type_parameter
+T True False
+T TypeVar

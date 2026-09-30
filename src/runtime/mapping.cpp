@@ -86,11 +86,13 @@ DictObject* allocate_dict_object() {
     obj->header.kind = ObjectKind::Dict;
     obj->header.refcnt = 1;
     obj->backing_module = nullptr;
+    gc_track_object(&obj->header);
     return obj;
   }
   auto* obj = new DictObject();
   obj->header.kind = ObjectKind::Dict;
   obj->header.refcnt = 1;
+  gc_track_object(&obj->header);
   return obj;
 }
 
@@ -101,11 +103,13 @@ DictIteratorObject* allocate_dict_iterator_object() {
     dict_iterator_object_free_list.items.pop_back();
     obj->header.kind = ObjectKind::DictIterator;
     obj->header.refcnt = 1;
+    gc_track_object(&obj->header);
     return obj;
   }
   auto* obj = new DictIteratorObject();
   obj->header.kind = ObjectKind::DictIterator;
   obj->header.refcnt = 1;
+  gc_track_object(&obj->header);
   return obj;
 }
 
@@ -116,11 +120,13 @@ DictViewObject* allocate_dict_view_object(ObjectKind kind) {
     dict_view_object_free_list.items.pop_back();
     obj->header.kind = kind;
     obj->header.refcnt = 1;
+    gc_track_object(&obj->header);
     return obj;
   }
   auto* obj = new DictViewObject();
   obj->header.kind = kind;
   obj->header.refcnt = 1;
+  gc_track_object(&obj->header);
   return obj;
 }
 
@@ -131,11 +137,13 @@ MappingProxyObject* allocate_mapping_proxy_object() {
     mapping_proxy_object_free_list.items.pop_back();
     obj->header.kind = ObjectKind::MappingProxy;
     obj->header.refcnt = 1;
+    gc_track_object(&obj->header);
     return obj;
   }
   auto* obj = new MappingProxyObject();
   obj->header.kind = ObjectKind::MappingProxy;
   obj->header.refcnt = 1;
+  gc_track_object(&obj->header);
   return obj;
 }
 
@@ -246,7 +254,9 @@ DictObject* dict_storage_from_value(const Value& value) {
     return dict;
   }
   if (auto* instance = value_as_instance(value)) {
-    return value_as_dict(instance->mapping_storage);
+    auto* klass = value_as_class(instance->klass);
+    if (klass != nullptr && class_has_builtin_base_name(klass, "dict"))
+      return value_as_dict(instance->mapping_storage);
   }
   return nullptr;
 }
@@ -285,7 +295,11 @@ bool module_slot_visible(const ModuleObject& module, const std::string& name, ui
 std::vector<std::pair<Value, Value>> module_entries(const ModuleObject& module) {
   std::vector<std::pair<Value, Value>> entries;
   entries.reserve(module.name_to_slot.size() + module.extra_globals.size() + 1);
-  entries.push_back({Value::string("__name__"), Value::string(module.name)});
+  const auto name_slot = module.name_to_slot.find("__name__");
+  if (module.implicit_name || (name_slot != module.name_to_slot.end() &&
+      name_slot->second < module.slots.size() && module.slots[name_slot->second].tag != ValueTag::Invalid)) {
+    entries.push_back({Value::string("__name__"), Value::string(module.name)});
+  }
   std::vector<std::pair<std::string, uint32_t>> names;
   names.reserve(module.name_to_slot.size());
   for (const auto& item : module.name_to_slot) {
@@ -305,11 +319,14 @@ std::vector<std::pair<Value, Value>> module_entries(const ModuleObject& module) 
 }
 
 bool module_entry_at(const ModuleObject& module, uint64_t index, std::pair<Value, Value>& out) {
-  if (index == 0) {
+  const auto name_slot = module.name_to_slot.find("__name__");
+  const bool has_name = module.implicit_name || (name_slot != module.name_to_slot.end() &&
+      name_slot->second < module.slots.size() && module.slots[name_slot->second].tag != ValueTag::Invalid);
+  if (has_name && index == 0) {
     out = {Value::string("__name__"), Value::string(module.name)};
     return true;
   }
-  uint64_t visible = 1;
+  uint64_t visible = has_name ? 1 : 0;
   std::vector<std::pair<std::string, uint32_t>> names;
   names.reserve(module.name_to_slot.size());
   for (const auto& item : module.name_to_slot) {
@@ -1231,6 +1248,17 @@ bool mapping_len(const Value& value, Value& out, std::string& error) {
 bool mapping_contains(const Value& container, const Value& item, bool& out, std::string& error) {
   if (const Value* source = mapping_proxy_source(container)) {
     return mapping_contains(*source, item, out, error);
+  }
+  if (auto* klass = value_as_class(container)) {
+    if (auto* string = value_as_string(item)) {
+      // Class mapping proxies are probed repeatedly by inspect.getattr_static
+      // and runtime Protocol checks. Avoid materializing every class entry
+      // just to test one string key; retain the general path below for
+      // non-string keys.
+      const std::string name = string_object_to_string(*string);
+      out = class_visible_name(name) && klass->attrs.find(name) != klass->attrs.end();
+      return true;
+    }
   }
   out = false;
   DictIterationKind kind = DictIterationKind::Keys;

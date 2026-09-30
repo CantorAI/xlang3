@@ -1,0 +1,6 @@
+(None, None, None, b'/path', b'q=1', b'part', None)
+(b'https', b'example.org', 8443, b'/a', None, None, b'u:p')
+(None, None, None, b'/memory', b'x=2', None, None)
+<URL schema: b'http', host: b'example.com', port: None, path: b'/path', query: None, fragment: None, userinfo: None>
+HttpParserInvalidURLError invalid url b'http://['
+HttpParserInvalidURLError url is too long: url length of 65536 bytes exceeds the maximum of 65535 bytes

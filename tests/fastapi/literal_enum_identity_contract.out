@@ -1,0 +1,3 @@
+200 {'single_identity': True, 'multiple_identity': True, 'single_type': 'Bar', 'multiple_type': 'Bar'}
+Foo Foo
+200 {'enum_first_type': 'int', 'int_first_type': 'int'}

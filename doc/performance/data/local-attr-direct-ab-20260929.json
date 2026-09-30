@@ -1,0 +1,193 @@
+{
+  "comprehensions": {
+    "pairs": [
+      {
+        "pair": 1,
+        "order": "control-candidate",
+        "control_seconds": 0.004282300011254847,
+        "candidate_seconds": 0.005764399946201593
+      },
+      {
+        "pair": 2,
+        "order": "candidate-control",
+        "control_seconds": 0.004467799968551844,
+        "candidate_seconds": 0.0046298999805003405
+      },
+      {
+        "pair": 3,
+        "order": "control-candidate",
+        "control_seconds": 0.00434560002759099,
+        "candidate_seconds": 0.004309700045268983
+      },
+      {
+        "pair": 4,
+        "order": "candidate-control",
+        "control_seconds": 0.005263500032015145,
+        "candidate_seconds": 0.004273500002454966
+      },
+      {
+        "pair": 5,
+        "order": "control-candidate",
+        "control_seconds": 0.004414800030644983,
+        "candidate_seconds": 0.004426800005603582
+      },
+      {
+        "pair": 6,
+        "order": "candidate-control",
+        "control_seconds": 0.004409699991811067,
+        "candidate_seconds": 0.00433809997048229
+      },
+      {
+        "pair": 7,
+        "order": "control-candidate",
+        "control_seconds": 0.004347900045104325,
+        "candidate_seconds": 0.0043110999977216125
+      },
+      {
+        "pair": 8,
+        "order": "candidate-control",
+        "control_seconds": 0.004239899979438633,
+        "candidate_seconds": 0.004243600007612258
+      },
+      {
+        "pair": 9,
+        "order": "control-candidate",
+        "control_seconds": 0.0044231999781914055,
+        "candidate_seconds": 0.004411600006278604
+      },
+      {
+        "pair": 10,
+        "order": "candidate-control",
+        "control_seconds": 0.004584799986332655,
+        "candidate_seconds": 0.004560799978207797
+      },
+      {
+        "pair": 11,
+        "order": "control-candidate",
+        "control_seconds": 0.0042928000329993665,
+        "candidate_seconds": 0.004514700034633279
+      }
+    ],
+    "loops_per_process": 20,
+    "paired_geomean_candidate_over_control": 1.0125722971106468,
+    "paired_t_95_ci": [
+      0.9367311727532618,
+      1.0945537916308887
+    ],
+    "paired_t_p_value": 0.7280934933737535,
+    "method": "Order-balanced direct workload pairs; diagnostic only, not official pyperf"
+  },
+  "pickle_pure_python": {
+    "pairs": [
+      {
+        "pair": 1,
+        "order": "control-candidate",
+        "control_seconds": 1.3310714999679476,
+        "candidate_seconds": 1.2744013000046834
+      },
+      {
+        "pair": 2,
+        "order": "candidate-control",
+        "control_seconds": 1.3073989000404254,
+        "candidate_seconds": 1.268987899995409
+      },
+      {
+        "pair": 3,
+        "order": "control-candidate",
+        "control_seconds": 1.271008100011386,
+        "candidate_seconds": 1.3450410999939777
+      },
+      {
+        "pair": 4,
+        "order": "candidate-control",
+        "control_seconds": 1.2648986999993213,
+        "candidate_seconds": 1.2761378000141121
+      },
+      {
+        "pair": 5,
+        "order": "control-candidate",
+        "control_seconds": 1.287806799984537,
+        "candidate_seconds": 1.265414800029248
+      },
+      {
+        "pair": 6,
+        "order": "candidate-control",
+        "control_seconds": 1.2744837999925949,
+        "candidate_seconds": 1.2841772000538185
+      },
+      {
+        "pair": 7,
+        "order": "control-candidate",
+        "control_seconds": 1.2610820999834687,
+        "candidate_seconds": 1.3270383999915794
+      }
+    ],
+    "loops_per_process": 10,
+    "paired_geomean_candidate_over_control": 1.0047467300950854,
+    "paired_t_95_ci": [
+      0.9696411783777832,
+      1.041123267192194
+    ],
+    "paired_t_p_value": 0.7556308670319196,
+    "method": "Order-balanced direct workload pairs; diagnostic only, not official pyperf"
+  },
+  "unpickle_pure_python": {
+    "pairs": [
+      {
+        "pair": 1,
+        "order": "control-candidate",
+        "control_seconds": 0.8327714999904856,
+        "candidate_seconds": 0.825313399953302
+      },
+      {
+        "pair": 2,
+        "order": "candidate-control",
+        "control_seconds": 0.8889425999950618,
+        "candidate_seconds": 0.822662299964577
+      },
+      {
+        "pair": 3,
+        "order": "control-candidate",
+        "control_seconds": 0.8288022999768145,
+        "candidate_seconds": 0.827878599986434
+      },
+      {
+        "pair": 4,
+        "order": "candidate-control",
+        "control_seconds": 0.8430613000527956,
+        "candidate_seconds": 0.8417881999630481
+      },
+      {
+        "pair": 5,
+        "order": "control-candidate",
+        "control_seconds": 0.8452943000011146,
+        "candidate_seconds": 0.8403403999982402
+      },
+      {
+        "pair": 6,
+        "order": "candidate-control",
+        "control_seconds": 0.8567544999532402,
+        "candidate_seconds": 0.8679614999564365
+      },
+      {
+        "pair": 7,
+        "order": "control-candidate",
+        "control_seconds": 0.8330638000043109,
+        "candidate_seconds": 0.8305854999925941
+      }
+    ],
+    "loops_per_process": 10,
+    "paired_geomean_candidate_over_control": 0.9879347265093539,
+    "paired_t_95_ci": [
+      0.96122488544724,
+      1.0153867618491694
+    ],
+    "paired_t_p_value": 0.3201143445997361,
+    "method": "Order-balanced direct workload pairs; diagnostic only, not official pyperf"
+  },
+  "runtime_dll_sha256": {
+    "control": "faea56c5a7eae769ef5aec62472b740215eac16907b6a1d90fcdfca00450a330",
+    "candidate": "ee4924ac685c17c8ae6ed53d45f742b3155c1b604e7541895334d60a68cde687"
+  },
+  "source_commit": "95993e5 docs: record neutral native type lookup probe (same runtime source as 4af0d32)"
+}

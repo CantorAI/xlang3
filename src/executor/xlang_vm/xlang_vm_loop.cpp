@@ -13,6 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 #include "xlang3/interpreter.h"
+#include "xlang3/interpreter_events.h"
 #include "xlang3/expression.h"
 
 #include "xlang_frame.h"
@@ -34,6 +35,8 @@ limitations under the License.
 #include "ops/xlang_vm_ops_fused.h"
 #include "runtime_lock.h"
 
+#include <array>
+
 #include "xlang3/attribute.h"
 #include "xlang3/builtin_methods.h"
 #include "xlang3/builtins.h"
@@ -49,6 +52,7 @@ limitations under the License.
 #include "task_objects.h"
 #endif
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <functional>
@@ -61,6 +65,26 @@ limitations under the License.
 #include "xlang_vm_inline_support.h"
 
 namespace xlang3 {
+
+void generator_vm_visit_references(
+    const GeneratorObject& generator,
+    const std::function<void(const Value&)>& visit) {
+  if (generator.vm_state == nullptr) return;
+  const auto* state = static_cast<const GeneratorVMState*>(generator.vm_state);
+  visit(state->current_exception);
+  for (const auto& value : state->previous_exceptions) visit(value);
+  const size_t count = std::min(state->frame_count, state->frames.size());
+  for (size_t index = 0; index < count; ++index) {
+    const auto& frame = state->frames[index];
+    for (size_t i = 0; i < frame.locals.size(); ++i) visit(frame.locals[i]);
+    for (size_t i = 0; i < frame.cells.size(); ++i) visit(frame.cells[i]);
+    for (size_t i = 0; i < frame.regs.size(); ++i) visit(frame.regs[i]);
+    for (const auto& value : frame.native_call_args) visit(value);
+    if (frame.closure_owner != nullptr)
+      for (const auto& value : *frame.closure_owner) visit(value);
+    visit(frame.continuation_value);
+  }
+}
 
 bool generator_vm_frame_snapshot(const GeneratorObject& generator, Value& out) {
   if (generator.vm_state == nullptr) {
@@ -120,6 +144,8 @@ bool generator_vm_frame_snapshot(const GeneratorObject& generator, Value& out) {
       Value::none(),
       Value::none(),
       frame.activation_id);
+  if (generator.runtime != nullptr)
+    frame_set_generator_owner(*generator.runtime, out, generator);
   return true;
 }
 
@@ -139,6 +165,9 @@ RuntimeResult Interpreter::run_function(
     return result;
   }
   const auto& fn = module.functions[function_id];
+  // The CLI changes this diagnostic switch only outside interpreter execution.
+  // Snapshot it once so normal opcode dispatch avoids an atomic load per op.
+  const bool count_opcode_dispatches = xlang_perf_enabled();
   const bool resuming_pause = pause_state != nullptr;
   struct CurrentGlobalsGuard {
     Runtime& runtime;
@@ -230,17 +259,17 @@ RuntimeResult Interpreter::run_function(
     }
 
     bound.assign(target_fn.params.size(), Value::invalid());
-    std::vector<Value> positional;
-    positional.reserve(values.size());
-    for (size_t i = 0; i < values.size(); ++i) {
-      positional.push_back(values.get(i));
-    }
+    // Read explicit positional arguments directly from the call view. Most
+    // calls with keywords have no `*args`; copying their arguments into a
+    // temporary vector only adds an allocation and refcount traffic before
+    // the bound frame copies them again. Keep storage only for expanded stars.
+    std::vector<Value> expanded_positional;
     auto expand_star_arg = [&](uint32_t star_reg) -> bool {
       const Value& star = values.registers[star_reg];
       if (auto* tuple = value_as_tuple(star)) {
-        for (const auto& item : tuple->items) positional.push_back(item);
+        for (const auto& item : tuple->items) expanded_positional.push_back(item);
       } else if (auto* list = value_as_list(star)) {
-        for (const auto& item : list->items) positional.push_back(item);
+        for (const auto& item : list->items) expanded_positional.push_back(item);
       } else {
         Value iterator;
         std::string iter_error;
@@ -256,7 +285,7 @@ RuntimeResult Interpreter::run_function(
           if (done) {
             break;
           }
-          positional.push_back(std::move(item));
+          expanded_positional.push_back(std::move(item));
         }
       }
       return true;
@@ -288,18 +317,23 @@ RuntimeResult Interpreter::run_function(
         kwargs_index = static_cast<int32_t>(i);
       }
     }
-    while (positional_index < positional.size()) {
+    const size_t positional_count = values.size() + expanded_positional.size();
+    while (positional_index < positional_count) {
       while (next_positional_param < signature.size() &&
              (signature[next_positional_param].kind == ir::ParamKind::KeywordOnly ||
               signature[next_positional_param].kind == ir::ParamKind::VarArgs ||
               signature[next_positional_param].kind == ir::ParamKind::KwArgs)) {
         ++next_positional_param;
       }
+      const Value& positional_value = positional_index < values.size()
+          ? values.get(positional_index)
+          : expanded_positional[positional_index - values.size()];
+      ++positional_index;
       if (next_positional_param < signature.size()) {
-        value_assign_fast(bound[next_positional_param], positional[positional_index++]);
+        value_assign_fast(bound[next_positional_param], positional_value);
         ++next_positional_param;
       } else if (varargs_index >= 0) {
-        extra_positional.push_back(positional[positional_index++]);
+        extra_positional.push_back(positional_value);
       } else {
         too_many_positional = true;
         break;
@@ -435,15 +469,15 @@ RuntimeResult Interpreter::run_function(
         expected = std::to_string(positional_capacity) + " positional argument" +
                    (positional_capacity == 1 ? "" : "s");
       }
-      std::string provided = std::to_string(positional.size());
+      std::string provided = std::to_string(positional_count);
       if (keyword_only_given != 0) {
-        provided += " positional argument" + std::string(positional.size() == 1 ? "" : "s") +
+        provided += " positional argument" + std::string(positional_count == 1 ? "" : "s") +
                     " (and " + std::to_string(keyword_only_given) + " keyword-only argument" +
                     (keyword_only_given == 1 ? "" : "s") + ")";
       }
       return bind_error(
           display_name + "() takes " + expected + " but " + provided +
-          (positional.size() == 1 && keyword_only_given == 0 ? " was given" : " were given"));
+          (positional_count == 1 && keyword_only_given == 0 ? " was given" : " were given"));
     }
     std::vector<std::string> missing_positional;
     std::vector<std::string> missing_keyword_only;
@@ -525,7 +559,12 @@ RuntimeResult Interpreter::run_function(
   }
 
   std::vector<VMFrame> frames;
-  std::vector<RuntimeFrameView> runtime_frame_views;
+  // Most generator resumes publish only their own frame. Keep those borrowed
+  // runtime views in stack storage so a short-lived vector allocation is not
+  // paid once per yielded item; retain the general vector path for deep stacks.
+  std::array<RuntimeFrameView, 8> inline_runtime_frame_views{};
+  std::vector<RuntimeFrameView> overflow_runtime_frame_views;
+  bool published_overflow_frame_views = false;
   uint64_t frame_stack_generation = 1;
   uint64_t published_frame_stack_generation = 0;
   struct CurrentFrameGuard {
@@ -575,7 +614,11 @@ RuntimeResult Interpreter::run_function(
     resumed_previous_exceptions = std::move(state->previous_exceptions);
     resumed_exception_handler_depths = std::move(state->active_exception_handler_depths);
     resumed_exception_handler_frames = std::move(state->active_exception_handler_frames);
-    delete state;
+    // Retain the continuation shell during execution. A yield can move the
+    // frame vectors back into it, amortizing state allocation across every
+    // item produced by generator-heavy Python code.
+    generator->vm_state_reuse = state;
+    generator->vm_state_reuse_cleanup = generator->vm_state_cleanup;
     generator->vm_state = nullptr;
     generator->vm_state_cleanup = nullptr;
     resumed_generator = true;
@@ -638,19 +681,15 @@ RuntimeResult Interpreter::run_function(
       }
     }
 
-    Value function_value = Value::function(
-        fn_obj->function_id,
-        fn_obj->closure,
-        fn_obj->globals_module,
-        fn_obj->module != nullptr ? fn_obj->module : module_owner,
-        fn_obj->defaults);
-    if (auto* generated_function = value_as_function(function_value)) {
-      value_assign_fast(generated_function->attrs_dict, fn_obj->attrs_dict);
-      value_assign_fast(generated_function->globals_dict, fn_obj->globals_dict);
-      generated_function->positional_defaults = fn_obj->positional_defaults;
-      generated_function->kwdefaults = fn_obj->kwdefaults;
-      generated_function->qualname = fn_obj->qualname;
-    }
+    // A generator captures the callable that was invoked. Keep that function
+    // alive directly instead of cloning its object, closure, defaults, and
+    // metadata for every coroutine/generator creation. Arguments have already
+    // been bound into args_for_generator, so later __defaults__ changes cannot
+    // affect this suspended call.
+    Value function_value;
+    function_value.tag = ValueTag::Object;
+    function_value.as.obj = &fn_obj->header;
+    retain(function_value);
     out = Value::generator(
         &runtime_,
         std::move(function_value),
@@ -681,7 +720,7 @@ RuntimeResult Interpreter::run_function(
     constexpr size_t kSafeHostFrameLimit = 1024;
     const size_t effective_recursion_limit = std::min(
         static_cast<size_t>(runtime_.recursion_limit()), kSafeHostFrameLimit);
-    if (frame_count >= effective_recursion_limit) {
+    if (frame_count + runtime_.saved_python_frame_depth() >= effective_recursion_limit) {
       deferred_frame_exception = runtime_.make_exception(
           "RecursionError", "maximum recursion depth exceeded");
       return false;
@@ -691,15 +730,20 @@ RuntimeResult Interpreter::run_function(
       return false;
     }
     const auto& call_fn = call_module.functions[call_function_id];
-    std::vector<Value> bound_args;
+    std::vector<Value>* bound_args = nullptr;
     CallArgsView frame_args = call_args;
     if (!simple_signature(call_fn) || has_dynamic_positional_defaults(call_fn, defaults) ||
         call_args.has_keywords() || call_args.has_expansion()) {
-      if (!bind_args(call_fn, call_args, defaults, bound_args)) {
+      // Binding temporaries belong to the active caller frame. Reusing this
+      // vector avoids allocating a fresh bound-argument array on each keyword
+      // call; frame initialization copies the values before we clear it.
+      bound_args = &frames[frame_count - 1].call_binding_scratch;
+      if (!bind_args(call_fn, call_args, defaults, *bound_args)) {
+        bound_args->clear();
         return false;
       }
-      frame_args.leading = bound_args.data();
-      frame_args.leading_count = static_cast<uint32_t>(bound_args.size());
+      frame_args.leading = bound_args->data();
+      frame_args.leading_count = static_cast<uint32_t>(bound_args->size());
       frame_args.registers = nullptr;
       frame_args.register_args = nullptr;
       frame_args.keyword_args = nullptr;
@@ -718,6 +762,11 @@ RuntimeResult Interpreter::run_function(
       frames.emplace_back(call_module, call_function_id, frame_args, closure, std::move(call_globals_module),
                           std::move(call_module_owner), return_dst, true, return_mode,
                           std::move(continuation_value));
+    }
+    if (bound_args != nullptr) {
+      // emplace_back may relocate the frame vector, so reacquire the caller by
+      // index. The bound values now live in the callee's locals.
+      frames[frame_count - 1].call_binding_scratch.clear();
     }
     auto& pushed = frames[frame_count];
     pushed.activation_id = runtime_.allocate_frame_activation_id();
@@ -745,14 +794,22 @@ RuntimeResult Interpreter::run_function(
   size_t published_frame_count = 0;
   auto refresh_runtime_frame_views = [&]() {
     // Keep previously published elements alive until this invocation returns.
-    // A cross-thread frame reader can briefly hold an older logical count, so
-    // shrinking the vector would poison otherwise stable capacity storage.
+    // A cross-thread reader can briefly retain an older logical count, so the
+    // inline array and overflow vector both remain alive for the whole resume.
+    const bool use_overflow = frames.size() > inline_runtime_frame_views.size();
+    RuntimeFrameView* views = inline_runtime_frame_views.data();
+    if (use_overflow) {
+      if (overflow_runtime_frame_views.size() < frames.size()) {
+        overflow_runtime_frame_views.resize(frames.size());
+      }
+      views = overflow_runtime_frame_views.data();
+    }
     const bool frame_storage_moved = published_frames_data != frames.data();
-    if (runtime_frame_views.size() < frames.size()) runtime_frame_views.resize(frames.size());
+    const bool view_storage_moved = published_overflow_frame_views != use_overflow;
     auto update_view = [&](size_t i) {
       auto& view_frame = frames[i];
       if (i >= frame_count || view_frame.fn == nullptr) {
-        runtime_frame_views[i] = RuntimeFrameView{
+        views[i] = RuntimeFrameView{
             &view_frame.module_owner,
             &view_frame.globals_module,
             nullptr,
@@ -765,10 +822,12 @@ RuntimeResult Interpreter::run_function(
             nullptr,
             0,
             nullptr,
+            view_frame.closure,
+            i == 0 ? generator : nullptr,
         };
         return;
       }
-      runtime_frame_views[i] = RuntimeFrameView{
+      views[i] = RuntimeFrameView{
           &view_frame.module_owner,
           &view_frame.globals_module,
           &view_frame.fn->locals,
@@ -781,9 +840,11 @@ RuntimeResult Interpreter::run_function(
           &view_frame.execution_metadata->register_last_use,
           view_frame.regs.size(),
           &view_frame.native_call_args,
+          view_frame.closure,
+          i == 0 ? generator : nullptr,
       };
     };
-    if (frame_storage_moved) {
+    if (frame_storage_moved || view_storage_moved) {
       for (size_t i = 0; i < frames.size(); ++i) update_view(i);
       published_frames_data = frames.data();
     } else if (frame_count > published_frame_count && frame_count != 0) {
@@ -791,7 +852,8 @@ RuntimeResult Interpreter::run_function(
       // frame views retain pointers into unchanged frame-owned storage.
       update_view(frame_count - 1);
     }
-    runtime_.set_current_frame_stack(runtime_frame_views.data(), frame_count);
+    runtime_.set_current_frame_stack(views, frame_count);
+    published_overflow_frame_views = use_overflow;
     published_frame_count = frame_count;
     published_frame_stack_generation = frame_stack_generation;
   };
@@ -885,7 +947,10 @@ RuntimeResult Interpreter::run_function(
     trace_args.leading_count = 3;
 
     auto* visible_frame = value_as_frame(trace_args_storage[0]);
-    if (visible_frame != nullptr) visible_frame->allow_line_jump = true;
+    if (visible_frame != nullptr) {
+      visible_frame->allow_line_jump = true;
+      visible_frame->source_line_is_current = true;
+    }
     runtime_.set_trace_dispatch_active(true);
     struct TraceDispatchGuard {
       Runtime& runtime;
@@ -895,7 +960,10 @@ RuntimeResult Interpreter::run_function(
     std::string trace_error;
     const bool trace_ok = runtime_call_callable(
         runtime_, hook, trace_args.leading, trace_args.leading_count, trace_result, trace_error);
-    if (visible_frame != nullptr) visible_frame->allow_line_jump = false;
+    if (visible_frame != nullptr) {
+      visible_frame->allow_line_jump = false;
+      visible_frame->source_line_is_current = false;
+    }
     if (!trace_ok) {
       result.errors.push_back(trace_error.empty() ? "trace callback failed" : trace_error);
       return false;
@@ -931,6 +999,9 @@ RuntimeResult Interpreter::run_function(
         Value::string(event_name),
         arg,
     };
+    if (auto* current = value_as_frame(profile_args_storage[0])) {
+      current->source_line_is_current = true;
+    }
 
     runtime_.set_profile_dispatch_active(true);
     struct ProfileDispatchGuard {
@@ -939,7 +1010,11 @@ RuntimeResult Interpreter::run_function(
     } profile_guard{runtime_};
     Value ignored;
     std::string profile_error;
-    if (!runtime_call_callable(runtime_, hook, profile_args_storage, 3, ignored, profile_error)) {
+    const bool profile_ok = runtime_call_callable(runtime_, hook, profile_args_storage, 3, ignored, profile_error);
+    if (auto* current = value_as_frame(profile_args_storage[0])) {
+      current->source_line_is_current = false;
+    }
+    if (!profile_ok) {
       result.errors.push_back(profile_error.empty() ? "profile callback failed" : profile_error);
       return false;
     }
@@ -966,6 +1041,9 @@ RuntimeResult Interpreter::run_function(
         runtime_.current_frame_snapshot(),
         Value::string(event_name),
     };
+    if (auto* current = value_as_frame(debug_args_storage[0])) {
+      current->source_line_is_current = true;
+    }
     CallArgsView debug_args;
     debug_args.leading = debug_args_storage;
     debug_args.leading_count = 2;
@@ -973,6 +1051,9 @@ RuntimeResult Interpreter::run_function(
     runtime_.set_debug_dispatch_active(true);
     Interpreter debug_interpreter(runtime_);
     RuntimeResult debug_result = debug_interpreter.run_function_value(hook_fn, debug_args);
+    if (auto* current = value_as_frame(debug_args_storage[0])) {
+      current->source_line_is_current = false;
+    }
     runtime_.set_debug_dispatch_active(false);
     if (!debug_result.errors.empty()) {
       result.errors.insert(result.errors.end(), debug_result.errors.begin(), debug_result.errors.end());
@@ -990,6 +1071,9 @@ RuntimeResult Interpreter::run_function(
   };
 
   auto emit_monitoring_event = [&](VMFrame& monitoring_frame, int64_t event, const Value* arg) -> bool {
+    // Branch op handlers reach this helper from the hot dispatch loop even
+    // when monitoring is off. Keep this frame-local mask check first so the
+    // disabled path avoids instruction-cache and runtime-frame work.
     if ((monitoring_frame.monitoring_events & event) == 0) {
       return true;
     }
@@ -999,6 +1083,7 @@ RuntimeResult Interpreter::run_function(
     XlangVMInstrCache* monitoring_cache = monitoring_frame.ip < monitoring_frame.instr_cache.size()
         ? &monitoring_frame.instr_cache[monitoring_frame.ip]
         : nullptr;
+    if (monitoring_cache != nullptr) monitoring_frame.monitoring_cache_touched = true;
     const uint64_t monitoring_generation = sys_monitoring_configuration_generation();
     if (monitoring_cache != nullptr) {
       if (monitoring_cache->monitoring_generation != monitoring_generation) {
@@ -1078,6 +1163,9 @@ RuntimeResult Interpreter::run_function(
     result.selected_frame = static_cast<uint32_t>(frame_count - 1);
     result.pause_file = paused_frame.module != nullptr ? paused_frame.module->source_file : std::string();
     result.pause_frame = runtime_.current_frame_snapshot();
+    if (auto* current = value_as_frame(result.pause_frame)) {
+      current->source_line_is_current = true;
+    }
 
     auto state = std::make_shared<RuntimeDebugPauseState>();
     state->reason = reason;
@@ -1507,6 +1595,8 @@ RuntimeResult Interpreter::run_function(
   uint32_t execution_lock_ticks = 0;
 
   while (frame_count != 0) {
+    // Every push or pop exits the opcode loop through switch_frame, so publish
+    // the changed stack once here instead of comparing generations per opcode.
     refresh_runtime_frame_views();
     auto& frame = frames[frame_count - 1];
     const auto& module = *frame.module;
@@ -1534,6 +1624,9 @@ RuntimeResult Interpreter::run_function(
           : Value::none();
     }
 
+    // The globals module is stable for this frame. Update it at the frame
+    // boundary; doing a Value assignment in the opcode loop retains/releases
+    // the module on every instruction and measurably slows tight loops.
     runtime_.set_current_globals_module(globals_module);
     runtime_.set_current_frame_locals(&fn.locals, locals.value_data(), locals.size());
     // The live frame-stack view owns the changing instruction pointer. Update
@@ -1615,11 +1708,24 @@ RuntimeResult Interpreter::run_function(
 
     try {
     for (;;) {
-      // Inline calls can replace frames while staying inside this dispatch
-      // loop. Publish the exact live stack before an opcode can release the
-      // execution lock and let another thread call sys._current_frames().
-      if (published_frame_stack_generation != frame_stack_generation) {
-        refresh_runtime_frame_views();
+      // Weak-reference callbacks and console signals set independent bits in
+      // one eval breaker, preserving safepoint dispatch with one acquire poll.
+      const uint32_t pending_events = interpreter_poll_pending_events();
+      if (XLANG3_UNLIKELY(pending_events != 0)) {
+        if ((pending_events & kInterpreterEventWeakrefCallbacks) != 0) {
+          weakref_dispatch_callbacks(runtime_);
+        }
+        if ((pending_events & kInterpreterEventSignals) != 0) {
+          std::string signal_error;
+          if (!signal_dispatch_pending(runtime_, signal_error)) {
+            Value exception;
+            if (!runtime_.take_pending_exception(exception)) {
+              exception = runtime_.make_exception("RuntimeError", signal_error);
+            }
+            if (!dispatch_exception(std::move(exception))) return result;
+            goto switch_frame;
+          }
+        }
       }
       if (deferred_frame_exception.tag != ValueTag::Invalid) {
         Value exception = std::move(deferred_frame_exception);
@@ -1641,7 +1747,8 @@ RuntimeResult Interpreter::run_function(
         goto switch_frame;
       }
 
-      if (XLANG3_UNLIKELY(runtime_.debug_poll_needed())) {
+      const bool debug_poll_active = runtime_.debug_poll_needed();
+      if (XLANG3_UNLIKELY(debug_poll_active)) {
         if (!poll_debug_event(frame)) {
           return result;
         }
@@ -1718,7 +1825,9 @@ RuntimeResult Interpreter::run_function(
         }
       }
       const auto& in = fn.code[ip];
-      xlang_perf_count_opcode(static_cast<uint16_t>(in.op));
+      if (count_opcode_dispatches) {
+        xlang_perf_count_opcode_enabled(static_cast<uint16_t>(in.op));
+      }
       if (!trace_dispatch_active &&
           XLANG3_UNLIKELY((frame.monitoring_events & kSysMonitoringEventInstruction) != 0)) {
         if (!emit_monitoring_event(frame, kSysMonitoringEventInstruction, nullptr)) {
@@ -1735,18 +1844,7 @@ RuntimeResult Interpreter::run_function(
       switch (in.op) {
 #include "xlang_vm_op_rows.h"
       }
-      // sys.monitoring configuration is changed through calls. Refresh after
-      // a native call returns in this frame; Python calls switch frames and
-      // refresh at the resume point above.
-      if (XLANG3_UNLIKELY(
-              in.op == ir::Op::Call || in.op == ir::Op::CallEx ||
-              in.op == ir::Op::CallMethod || in.op == ir::Op::CallModuleMethod ||
-              in.op == ir::Op::CallLocal || in.op == ir::Op::CallGlobal ||
-              in.op == ir::Op::CallLocalMethod)) {
-        refresh_monitoring_configuration(frame);
-      }
       frame.release_memoryviews_last_used_at(ip);
-      frame.track_memoryview_result(in.dst);
       ++ip;
     }
     } catch (const VMUnwind&) {

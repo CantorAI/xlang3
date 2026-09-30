@@ -19,6 +19,7 @@ limitations under the License.
 #include "xlang3/object_model.h"
 
 
+
 namespace xlang3 {
 
 XLANG3_NOINLINE bool xlang_vm_load_attr_cached(

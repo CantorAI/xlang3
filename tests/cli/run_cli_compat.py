@@ -31,6 +31,7 @@ def main():
     module = work / "cli_module_probe.py"
     module.write_text(source, encoding="utf-8")
     assert_output("module argv", repr([str(module), "red", "blue"]), [executable, "-m", "cli_module_probe", "red", "blue"], work)
+    assert_output("compact module argv", repr([str(module), "green", "yellow"]), [executable, "-mcli_module_probe", "green", "yellow"], work)
     assert_output("ignored -X", "['-c', 'gamma']", [executable, "-X", "frozen_modules=off", "-c", source, "gamma"])
     assert_output("ignored compact -X", "['-c', 'delta']", [executable, "-Xdev", "-c", source, "delta"])
     assert_output("version", "Python 3.14.7", [executable, "--version"])

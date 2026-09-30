@@ -1,0 +1,3 @@
+instance Pair(x=2, y=3)
+http {'sum': 5}
+enum 200 {'value': 'foo', 'same_hash': True}

@@ -1,0 +1,5 @@
+object_kind,before_allocations,after_allocations,before_final_releases,after_final_releases
+Function,242786,1,242784,0
+Tuple,728354,2,728354,2
+Instance,242786,2,242785,1
+Generator,242785,242785,242784,242784

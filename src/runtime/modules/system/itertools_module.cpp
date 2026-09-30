@@ -686,8 +686,14 @@ bool itertools_combinations(Runtime& runtime, const Value* args, uint32_t argc, 
     return false;
   }
   int64_t r = 0;
-  if (!int_arg(args[1], r) || r < 0) {
-    error = "combinations r must be non-negative int";
+  if (!int_arg(args[1], r)) {
+    error = "combinations r must be an integer";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (r < 0) {
+    error = "r must be non-negative";
+    runtime.raise_class_error("ValueError", error);
     return false;
   }
   std::vector<Value> pool;
@@ -726,8 +732,14 @@ bool itertools_combinations_with_replacement(Runtime& runtime, const Value* args
     return false;
   }
   int64_t r = 0;
-  if (!int_arg(args[1], r) || r < 0) {
-    error = "combinations_with_replacement r must be non-negative int";
+  if (!int_arg(args[1], r)) {
+    error = "combinations_with_replacement r must be an integer";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (r < 0) {
+    error = "r must be non-negative";
+    runtime.raise_class_error("ValueError", error);
     return false;
   }
   std::vector<Value> pool;
@@ -775,9 +787,17 @@ bool itertools_permutations(Runtime& runtime, const Value* args, uint32_t argc, 
     return false;
   }
   int64_t r = static_cast<int64_t>(pool.size());
-  if (argc == 2 && (!int_arg(args[1], r) || r < 0)) {
-    error = "permutations r must be non-negative int";
-    return false;
+  if (argc == 2) {
+    if (!int_arg(args[1], r)) {
+      error = "Expected int as r";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    if (r < 0) {
+      error = "r must be non-negative";
+      runtime.raise_class_error("ValueError", error);
+      return false;
+    }
   }
   std::vector<Value> values;
   if (static_cast<size_t>(r) <= pool.size()) {
@@ -873,31 +893,14 @@ bool itertools_zip_longest_impl(
     const Value& fillvalue,
     Value& out,
     std::string& error) {
-  if (argc == 0) {
-    out = Value::list({});
-    return true;
-  }
-  std::vector<std::vector<Value>> pools;
-  pools.reserve(argc);
-  size_t max_size = 0;
+  std::vector<Value> iterators;
+  iterators.reserve(argc);
   for (uint32_t i = 0; i < argc; ++i) {
-    pools.emplace_back();
-    if (!collect_iterable(runtime, args[i], pools.back(), error)) {
-      return false;
-    }
-    max_size = std::max(max_size, pools.back().size());
+    Value iterator;
+    if (!runtime_get_iter(runtime, args[i], iterator, error)) return false;
+    iterators.push_back(std::move(iterator));
   }
-  std::vector<Value> values;
-  values.reserve(max_size);
-  for (size_t row_index = 0; row_index < max_size; ++row_index) {
-    std::vector<Value> row;
-    row.reserve(pools.size());
-    for (const auto& pool : pools) {
-      row.push_back(row_index < pool.size() ? pool[row_index] : fillvalue);
-    }
-    values.push_back(Value::tuple(std::move(row)));
-  }
-  out = Value::list(std::move(values));
+  out = functional_zip_longest_iterator(std::move(iterators), fillvalue);
   return true;
 }
 

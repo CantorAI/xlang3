@@ -1,0 +1,1 @@
+200 {'dump': {'value': 2}, 'warning_count': 1, 'warning': 'A custom validator is returning a value other than `self`.'}

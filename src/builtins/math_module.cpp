@@ -22,6 +22,7 @@ limitations under the License.
 #include <cmath>
 #include <limits>
 #include <numeric>
+#include <utility>
 
 namespace xlang3 {
 
@@ -334,7 +335,16 @@ bool unary_math_bool_protocol(Runtime& runtime, const char* name,
   if (!require_number_arg(args[0], name, value, error)) {
     Value method;
     std::string lookup_error;
-    if (!object_get_attr(args[0], "__float__", method, lookup_error)) return false;
+    if (!object_get_attr(args[0], "__float__", method, lookup_error)) {
+      Value type;
+      std::string type_name = value_binary_type_name(args[0]);
+      if (runtime_type_of_value(runtime, args[0], type)) {
+        if (auto* klass = value_as_class(type)) type_name = klass->name;
+      }
+      error = "must be real number, not " + type_name;
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
     Value converted;
     error.clear();
     if (!runtime_call_callable(runtime, method, nullptr, 0, converted, error))
@@ -744,6 +754,284 @@ bool math_gcd(Runtime& runtime, const Value* args, uint32_t argc, Value& out, st
   return true;
 }
 
+bool math_integer_arg(Runtime& runtime, const Value& value, Value& out,
+                      std::string& error) {
+  int64_t small = 0;
+  if (value_int_like_to_i64(value, small)) {
+    out = Value::int64(small);
+    return true;
+  }
+  if (value_as_bigint(value) != nullptr) {
+    value_assign_fast(out, value);
+    return true;
+  }
+  Value index_method;
+  std::string lookup_error;
+  if (object_get_attr(value, "__index__", index_method, lookup_error)) {
+    Value indexed;
+    if (!runtime_call_callable(runtime, index_method, nullptr, 0, indexed, error))
+      return false;
+    if (value_int_like_to_i64(indexed, small)) {
+      out = Value::int64(small);
+      return true;
+    }
+    if (value_as_bigint(indexed) != nullptr) {
+      out = std::move(indexed);
+      return true;
+    }
+    error = "__index__ returned non-int";
+  } else {
+    error = "'" + std::string(value_binary_type_name(value)) +
+        "' object cannot be interpreted as an integer";
+  }
+  runtime.raise_class_error("TypeError", error);
+  return false;
+}
+
+bool math_nonnegative(Runtime& runtime, const Value& value, const char* message,
+                      std::string& error) {
+  Value negative;
+  if (!value_compare("<", value, Value::int64(0), negative, error)) return false;
+  if (value_truthy(negative)) {
+    error = message;
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
+  return true;
+}
+
+bool math_iteration_count(Runtime& runtime, const Value& value, uint64_t& count,
+                          std::string& error) {
+  if (value.tag == ValueTag::Int64 && value.as.i64 >= 0) {
+    count = static_cast<uint64_t>(value.as.i64);
+    return true;
+  }
+  if (value_bigint_to_u64(value, count)) return true;
+  error = "math argument is too large to compute";
+  runtime.raise_class_error("OverflowError", error);
+  return false;
+}
+
+bool math_factorial(Runtime& runtime, const Value* args, uint32_t argc,
+                    Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "factorial() takes exactly one argument";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value n;
+  if (!math_integer_arg(runtime, args[0], n, error) ||
+      !math_nonnegative(runtime, n, "factorial() not defined for negative values", error))
+    return false;
+  uint64_t count = 0;
+  if (!math_iteration_count(runtime, n, count, error)) return false;
+  Value result = Value::int64(1);
+  for (uint64_t i = 2; i <= count; ++i) {
+    Value product;
+    if (!value_mul(result, value_bigint_from_u64(i), product, error)) return false;
+    result = std::move(product);
+  }
+  out = std::move(result);
+  return true;
+}
+
+bool math_comb_or_perm(Runtime& runtime, const Value* args, uint32_t argc,
+                       Value& out, std::string& error, bool combination) {
+  const char* name = combination ? "comb" : "perm";
+  if (argc < 1 || argc > 2 || (combination && argc != 2)) {
+    error = std::string(name) + "() requires n and " +
+        (combination ? "k" : "an optional k");
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value n;
+  if (!math_integer_arg(runtime, args[0], n, error) ||
+      !math_nonnegative(runtime, n, "n must be a non-negative integer", error))
+    return false;
+  if (!combination && (argc == 1 || args[1].tag == ValueTag::None)) {
+    return math_factorial(runtime, &n, 1, out, error, nullptr);
+  }
+  Value k;
+  if (!math_integer_arg(runtime, args[1], k, error) ||
+      !math_nonnegative(runtime, k, "k must be a non-negative integer", error))
+    return false;
+  Value greater;
+  if (!value_compare(">", k, n, greater, error)) return false;
+  if (value_truthy(greater)) {
+    out = Value::int64(0);
+    return true;
+  }
+  if (combination) {
+    Value complement;
+    Value smaller;
+    if (!value_sub(n, k, complement, error) ||
+        !value_compare("<", complement, k, smaller, error)) return false;
+    if (value_truthy(smaller)) k = std::move(complement);
+  }
+  uint64_t count = 0;
+  if (!math_iteration_count(runtime, k, count, error)) return false;
+  Value result = Value::int64(1);
+  for (uint64_t i = 0; i < count; ++i) {
+    Value factor;
+    Value product;
+    if (!value_sub(n, value_bigint_from_u64(i), factor, error) ||
+        !value_mul(result, factor, product, error)) return false;
+    if (combination) {
+      Value quotient;
+      if (!value_floor_div(product, value_bigint_from_u64(i + 1), quotient, error))
+        return false;
+      result = std::move(quotient);
+    } else {
+      result = std::move(product);
+    }
+  }
+  out = std::move(result);
+  return true;
+}
+
+bool math_comb(Runtime& runtime, const Value* args, uint32_t argc,
+               Value& out, std::string& error, void*) {
+  return math_comb_or_perm(runtime, args, argc, out, error, true);
+}
+
+bool math_perm(Runtime& runtime, const Value* args, uint32_t argc,
+               Value& out, std::string& error, void*) {
+  return math_comb_or_perm(runtime, args, argc, out, error, false);
+}
+
+bool math_log1p(Runtime& runtime, const Value* args, uint32_t argc,
+                Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "log1p() takes exactly one argument";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  double number = 0.0;
+  if (!require_number_arg(args[0], "log1p", number, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (number <= -1.0) {
+    error = "math domain error";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
+  value_set_number(out, std::log1p(number));
+  return true;
+}
+
+bool math_isqrt(Runtime& runtime, const Value* args, uint32_t argc,
+                Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "isqrt() takes exactly one argument";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value n;
+  if (!math_integer_arg(runtime, args[0], n, error) ||
+      !math_nonnegative(runtime, n, "isqrt() argument must be nonnegative", error))
+    return false;
+  Value zero;
+  if (!value_compare("==", n, Value::int64(0), zero, error)) return false;
+  if (value_truthy(zero)) {
+    out = Value::int64(0);
+    return true;
+  }
+  uint64_t bits = 0;
+  if (n.tag == ValueTag::Int64) {
+    uint64_t magnitude = static_cast<uint64_t>(n.as.i64);
+    while (magnitude != 0) { ++bits; magnitude >>= 1u; }
+  } else {
+    bool negative = false;
+    const uint32_t* limbs = nullptr;
+    uint32_t count = 0;
+    if (!value_bigint_limb_view(n, negative, limbs, count) || count == 0) {
+      error = "isqrt() argument must be an integer";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    bits = static_cast<uint64_t>(count - 1) * 32u;
+    uint32_t top = limbs[count - 1];
+    while (top != 0) { ++bits; top >>= 1u; }
+  }
+  Value guess;
+  if (!value_shift_left(Value::int64(1),
+                        value_bigint_from_u64((bits + 1) / 2), guess, error)) return false;
+  for (;;) {
+    Value quotient, sum, next, stable;
+    if (!value_floor_div(n, guess, quotient, error) ||
+        !value_add(guess, quotient, sum, error) ||
+        !value_floor_div(sum, Value::int64(2), next, error) ||
+        !value_compare(">=", next, guess, stable, error)) return false;
+    if (value_truthy(stable)) {
+      out = std::move(guess);
+      return true;
+    }
+    guess = std::move(next);
+  }
+}
+
+bool math_prod_kw(Runtime& runtime, const Value* args, uint32_t argc,
+                  const NativeKeywordArg* kwargs, uint32_t kwargc,
+                  Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "prod() takes exactly one positional argument";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value result = Value::int64(1);
+  bool has_start = false;
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    const std::string_view keyword(kwargs[i].name == nullptr ? "" : kwargs[i].name);
+    if (keyword != "start" || has_start) {
+      error = "prod() got an unexpected or duplicate keyword argument '" +
+          std::string(keyword) + "'";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    value_assign_fast(result, *kwargs[i].value);
+    has_start = true;
+  }
+  Value iterator;
+  if (!runtime_get_iter(runtime, args[0], iterator, error)) return false;
+  for (;;) {
+    bool done = false;
+    Value item;
+    if (!sequence_iter_next(iterator, done, item, error)) return false;
+    if (done) break;
+    Value product;
+    bool implemented = false;
+    const Value* not_implemented = runtime.find_builtin("NotImplemented");
+    for (const auto& candidate : {
+             std::pair<const Value*, const char*>{&result, "__mul__"},
+             std::pair<const Value*, const char*>{&item, "__rmul__"}}) {
+      if (candidate.first->tag != ValueTag::Object) continue;
+      Value method;
+      std::string lookup_error;
+      if (!object_get_special_method(runtime, *candidate.first,
+                                     candidate.second, method, lookup_error)) continue;
+      const Value& argument = candidate.first == &result ? item : result;
+      if (!runtime_call_callable(runtime, method, &argument, 1, product, error)) return false;
+      if (not_implemented == nullptr || !value_is(product, *not_implemented)) {
+        implemented = true;
+        break;
+      }
+    }
+    if (!implemented && !value_mul(result, item, product, error)) {
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    result = std::move(product);
+  }
+  out = std::move(result);
+  return true;
+}
+
+bool math_prod(Runtime& runtime, const Value* args, uint32_t argc,
+               Value& out, std::string& error, void* user_data) {
+  return math_prod_kw(runtime, args, argc, nullptr, 0, out, error, user_data);
+}
+
 } // namespace
 
 void register_math_module(Runtime& runtime) {
@@ -770,6 +1058,8 @@ void register_math_module(Runtime& runtime) {
       .function("fabs", math_fabs, math_fabs_fast)
       .function("log2", math_log2, math_log2_fast)
       .function("log10", math_log10, math_log10_fast)
+      .function("log1p", math_log1p)
+      .function("isqrt", math_isqrt)
       .function("sqrt", math_sqrt, math_sqrt_fast)
       .function("hypot", math_hypot)
       .function("erfc", math_erfc)
@@ -789,6 +1079,10 @@ void register_math_module(Runtime& runtime) {
         return unary_math("tanh", std::tanh, args, argc, out, error);
       });
   builder.function("gcd", math_gcd);
+  builder.function("comb", math_comb)
+      .function("perm", math_perm)
+      .function("factorial", math_factorial)
+      .function("prod", math_prod, nullptr, false, math_prod_kw);
   runtime.register_module("math", builder.finish());
 }
 

@@ -251,7 +251,8 @@ private:
       node.names = {function->qualname};
       for (const auto& item : function->kwdefaults) node.names.push_back(item.first);
       node.names.insert(node.names.end(), function->type_params.begin(), function->type_params.end());
-      node.refs = {function->globals_module, function->annotations, function->doc, function->attrs_dict};
+      node.refs = {function->globals_module, function->builtins, function->annotations,
+                   function->doc, function->attrs_dict};
       node.refs.insert(node.refs.end(), function->closure.begin(), function->closure.end());
       node.refs.insert(node.refs.end(), function->defaults.begin(), function->defaults.end());
       node.refs.insert(node.refs.end(), function->positional_defaults.begin(), function->positional_defaults.end());

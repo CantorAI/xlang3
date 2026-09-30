@@ -7,7 +7,7 @@ T
 41 41
 ValueError
 23 left child yes T
-['Child', 'Left', 'Right', 'object']
+['Child', 'Left', 'Right', 'Generic', 'object']
 99 ['eval']
 8 42 ['MetaMade'] type
 18 CustomMeta CustomMeta

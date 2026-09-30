@@ -166,11 +166,12 @@ private:
   std::vector<std::unique_ptr<std::string>> owned_text_;
   std::vector<std::string> errors_;
   std::vector<uint32_t> indent_stack_{0};
+  std::vector<uint32_t> alternate_indent_stack_{0};
 };
 
 class Parser {
 public:
-  explicit Parser(LexResult lex);
+  explicit Parser(LexResult lex, std::string_view source, bool capture_expression_locations = false);
   ParseResult parse_module();
   ParseExpressionResult parse_expression_module();
 
@@ -187,7 +188,8 @@ private:
   std::vector<ast::StmtPtr> parse_suite_after_colon(const std::string& context);
   std::vector<ast::StmtPtr> parse_block();
   bool parse_dotted_name(std::string& out, const std::string& message, bool allow_leading_dots = false);
-  std::vector<std::string> consume_optional_type_params();
+  std::vector<std::string> consume_optional_type_params(
+      std::vector<std::pair<uint32_t, uint32_t>>* positions = nullptr);
   bool is_simple_statement_end() const;
   ast::ExprPtr parse_with_manager_expr();
   ast::ExprPtr parse_for_target(bool grouped_target_is_complete = false);
@@ -213,7 +215,8 @@ private:
   ast::ExprPtr parse_power();
   ast::ExprPtr parse_unary();
   ast::ExprPtr parse_call();
-  ast::ExprPtr parse_primary();
+    ast::ExprPtr parse_primary();
+    ast::ExprPtr parse_primary_impl();
   ast::ExprPtr parse_comprehension_target(std::string& first_name);
   std::vector<ast::CompClause> parse_extra_comp_clauses();
   ast::ExprPtr finish_generator_expression(ast::ExprPtr first, bool is_async = false);
@@ -222,6 +225,8 @@ private:
       std::vector<ast::FunctionDef::Param>& signature,
       ast::ExprPtr& return_annotation);
   ast::ExprPtr parse_optional_annotation();
+  ast::ExprPtr parse_annotation_expression(bool conditional_only = false);
+  std::string annotation_source_from_tokens(size_t start, size_t end) const;
 
   bool match(TokenKind kind);
   bool check(TokenKind kind) const;
@@ -234,13 +239,16 @@ private:
   void error_here(const std::string& message);
 
   std::vector<Token> tokens_;
+  std::string_view source_;
+  std::vector<size_t> line_offsets_;
   std::vector<std::unique_ptr<std::string>> owned_text_;
   size_t current_ = 0;
   std::vector<std::string> errors_;
   bool parsing_match_pattern_ = false;
+  bool capture_expression_locations_ = false;
 };
 
-ParseResult parse_source(const std::string& source);
-ParseExpressionResult parse_expression_source(const std::string& source);
+ParseResult parse_source(const std::string& source, bool capture_expression_locations = false);
+ParseExpressionResult parse_expression_source(const std::string& source, bool capture_expression_locations = false);
 
 } // namespace xlang3

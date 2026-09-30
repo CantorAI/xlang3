@@ -213,5 +213,31 @@ int main() {
         "releasing an unowned import lock must fail");
   }
 
+  {
+    std::ostringstream first_output, second_output;
+    xlang3::Runtime first(first_output);
+    xlang3::Runtime second(second_output);
+    first.acquire_import_lock();
+    second.acquire_import_lock();
+    first.acquire_import_lock();
+    xlang3::test::expect_true(result, first.import_lock_held() && second.import_lock_held(),
+        "nested runtime import locks must each remain visible");
+    xlang3::test::expect_true(result, first.release_import_lock(),
+        "a re-entered outer runtime lock must release one recursive level");
+    xlang3::test::expect_true(result, second.release_import_lock(),
+        "a nested runtime lock must release independently of the outer runtime");
+    xlang3::test::expect_true(result, first.release_import_lock() &&
+        !first.import_lock_held() && !second.import_lock_held(),
+        "releasing nested runtimes must clear both per-runtime lock states");
+    first.acquire_import_lock();
+    second.acquire_import_lock();
+    xlang3::test::expect_true(result, first.release_import_lock() &&
+        !first.import_lock_held() && second.import_lock_held(),
+        "independent runtime locks may be released out of acquisition order");
+    xlang3::test::expect_true(result, second.release_import_lock() &&
+        !second.import_lock_held(),
+        "out-of-order release must leave the remaining runtime lock valid");
+  }
+
   return xlang3::test::finish(result);
 }

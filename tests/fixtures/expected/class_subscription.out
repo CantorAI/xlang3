@@ -1,0 +1,7 @@
+TypeError type 'Plain' is not subscriptable
+True True
+True
+False True
+True True
+True
+TypeError 'function' object is not subscriptable

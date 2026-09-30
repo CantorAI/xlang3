@@ -1,0 +1,16 @@
+profiled workload comprehensions 0.021498599962797016
+profiled Python calls, grouped by source/function
+[[["run_benchmark.py","#genexpr"],150],[["run_benchmark.py","_is_big_spinny"],120],[["run_benchmark.py","_any_knobby"],90],[["<string>","__init__"],24],[["enum.py","#genexpr"],9],[["run_benchmark.py","_add_widgets"],5],[["run_benchmark.py","__init__"],5],[["enum.py","__iter__"],3],[["run_benchmark.py","make_some_widgets"],1],[["run_benchmark.py","bench_comprehensions"],1],[["profile_pyperformance_calls_direct.py","<lambda>"],1]]
+profiled benchmark function times (inclusive/self seconds)
+profile_pyperformance_calls_direct.py <lambda> 1 0.023438 7.6e-05
+run_benchmark.py bench_comprehensions 1 0.023363 0.000385
+run_benchmark.py __init__ 5 0.021192 0.000262
+run_benchmark.py _add_widgets 5 0.02093 0.008909
+run_benchmark.py _any_knobby 90 0.010118 0.007984
+run_benchmark.py #genexpr 150 0.002134 0.002134
+run_benchmark.py _is_big_spinny 120 0.001903 0.001903
+run_benchmark.py make_some_widgets 1 0.001786 0.001264
+<string> __init__ 24 0.000345 0.000345
+enum.py #genexpr 9 0.000128 0.000128
+enum.py __iter__ 3 4.8e-05 4.8e-05
+profiled benchmark-frame calls 409

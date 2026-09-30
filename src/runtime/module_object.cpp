@@ -50,6 +50,7 @@ T* allocate_module_object(ObjectKind kind) {
   obj->header.kind = kind;
   obj->header.refcnt = 1;
   xlang_perf_count_object_alloc(kind);
+  gc_track_object(&obj->header);
   return obj;
 }
 
@@ -155,7 +156,11 @@ void module_sync_namespace_dict(ModuleObject& module) {
   }
   dict->entries.clear();
   dict->entries.reserve(module.name_to_slot.size() + module.extra_globals.size() + 1);
-  dict->entries.push_back({Value::string("__name__"), Value::string(module.name)});
+  const auto name_slot = module.name_to_slot.find("__name__");
+  if (module.implicit_name || (name_slot != module.name_to_slot.end() &&
+      name_slot->second < module.slots.size() && module.slots[name_slot->second].tag != ValueTag::Invalid)) {
+    dict->entries.push_back({Value::string("__name__"), Value::string(module.name)});
+  }
   std::vector<std::pair<std::string, uint32_t>> names;
   names.reserve(module.name_to_slot.size());
   for (const auto& item : module.name_to_slot) {
@@ -252,6 +257,12 @@ bool module_get_attr(const Value& object, const std::string& name, Value& out, s
     return false;
   }
   if (name == "__name__") {
+    const auto name_slot = module->name_to_slot.find(name);
+    if (!module->implicit_name && (name_slot == module->name_to_slot.end() ||
+        name_slot->second >= module->slots.size() || module->slots[name_slot->second].tag == ValueTag::Invalid)) {
+      error = "module '" + module->name + "' has no attribute '__name__'";
+      return false;
+    }
     out = Value::string(module->name);
     return true;
   }
@@ -293,9 +304,38 @@ bool module_get_attr(const Value& object, const std::string& name, Value& out, s
             error = std::move(descriptor_error);
             return false;
           }
+        } else if (value_as_function(descriptor) != nullptr ||
+                   value_as_native_function(descriptor) != nullptr) {
+          out = Value::bound_method(object, descriptor);
+          return true;
         } else {
           value_assign_fast(out, descriptor);
           return true;
+        }
+      }
+      if (name != "__getattr__") {
+        Value fallback;
+        if (object_lookup_class_attr(module->klass, "__getattr__", fallback,
+                                     descriptor_error)) {
+          Value callable = Value::bound_method(object, fallback);
+          Value argument = Value::string(name);
+          if (runtime_call_callable(*module->runtime, callable, &argument, 1,
+                                    out, error)) {
+            return true;
+          }
+          Value pending;
+          if (module->runtime->take_pending_exception(pending)) {
+            auto* exception_class = value_as_class(
+                module->runtime->exception_type(pending));
+            if (exception_class == nullptr ||
+                (exception_class->name != "AttributeError" &&
+                 !class_has_builtin_base_name(exception_class, "AttributeError"))) {
+              module->runtime->set_pending_exception(std::move(pending));
+            } else {
+              error = value_to_string(pending);
+            }
+          }
+          return false;
         }
       }
     }
@@ -356,6 +396,7 @@ bool module_set_attr(Value& object, const std::string& name, const Value& value,
     }
   }
   ++module->version;
+  if (name == "__builtins__") ++module->builtins_version;
   module_update_namespace_entry(*module, name, value);
   return true;
 }
@@ -387,6 +428,7 @@ bool module_delete_attr(Value& object, const std::string& name, std::string& err
     module->name_to_slot.erase(it);
   }
   ++module->version;
+  if (name == "__builtins__") ++module->builtins_version;
   module_delete_namespace_entry(*module, name);
   return true;
 }

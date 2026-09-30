@@ -1,0 +1,34 @@
+profiled workload pickle_pure_python 0.07121670001652092
+profiled Python calls, grouped by source/function
+[[["pickle.py","write"],10420],[["pickle.py","commit_frame"],6140],[["pickle.py","persistent_id"],6080],[["pickle.py","save"],6080],[["pickle.py","put"],3940],[["pickle.py","memoize"],3940],[["pickle.py","save_str"],3700],[["pickle.py","get"],1360],[["pickle.py","save_long"],780],[["pickle.py","__init__"],120],[["pickle.py","_batch_setitems"],80],[["pickle.py","save_dict"],80],[["pickle.py","start_framing"],60],[["pickle.py","_batch_appends"],60],[["pickle.py","save_list"],60],[["pickle.py","end_framing"],60],[["pickle.py","dump"],60],[["pickle.py","_dumps"],60],[["pickle.py","save_tuple"],40],[["pickle.py","_getattribute"],20],[["pickle.py","whichmodule"],20],[["pickle.py","save_global"],20],[["pickle.py","save_type"],20],[["pickle.py","_save_bytes_no_memo"],20],[["pickle.py","save_bytes"],20],[["pickle.py","save_reduce"],20],[["pickle.py","encode_long"],20],[["run_benchmark.py","bench_pickle"],1],[["profile_pyperformance_calls_direct.py","<lambda>"],1]]
+profiled benchmark function times (inclusive/self seconds)
+pickle.py save 6080 0.184621 0.02674
+profile_pyperformance_calls_direct.py <lambda> 1 0.071231 1e-05
+run_benchmark.py bench_pickle 1 0.071221 8.8e-05
+pickle.py _dumps 60 0.071133 0.000287
+pickle.py dump 60 0.070691 0.000382
+pickle.py save_dict 80 0.065067 0.000332
+pickle.py _batch_setitems 80 0.064394 0.005639
+pickle.py save_list 60 0.051452 0.000211
+pickle.py _batch_appends 60 0.050988 0.000898
+pickle.py save_str 3700 0.027019 0.011514
+pickle.py memoize 3940 0.014614 0.011801
+pickle.py write 10420 0.005023 0.005023
+pickle.py save_tuple 40 0.004346 0.000192
+pickle.py commit_frame 6140 0.003195 0.003195
+pickle.py save_long 780 0.001717 0.001319
+pickle.py save_reduce 20 0.001696 0.00012
+pickle.py persistent_id 6080 0.001231 0.001231
+pickle.py put 3940 0.000892 0.000892
+pickle.py save_type 20 0.000838 3.6e-05
+pickle.py save_global 20 0.000802 0.000131
+pickle.py get 1360 0.000701 0.000701
+pickle.py end_framing 60 0.000302 0.000114
+pickle.py save_bytes 20 0.000172 4.8e-05
+pickle.py __init__ 120 0.00017 0.000154
+pickle.py whichmodule 20 8.8e-05 7e-05
+pickle.py _save_bytes_no_memo 20 5e-05 3.9e-05
+pickle.py encode_long 20 2.5e-05 2.5e-05
+pickle.py start_framing 60 2e-05 2e-05
+pickle.py _getattribute 20 1.8e-05 1.8e-05
+profiled benchmark-frame calls 43282

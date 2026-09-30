@@ -13,6 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 #include "xlang3/builtins.h"
+#include "xlang3/builtin_methods.h"
 
 #include "xlang3/attribute.h"
 #include "xlang3/functional_iterators.h"
@@ -2278,6 +2279,7 @@ bool stream_write(Runtime& runtime, const Value* args, uint32_t argc, Value& out
     return false;
   }
   const size_t input_size = data.size();
+  const size_t input_characters = state->binary ? input_size : utf8_codepoint_count(data);
   if (state->binary && !memory_stream_export_allowed(runtime, *state, error)) {
     return false;
   }
@@ -2293,7 +2295,7 @@ bool stream_write(Runtime& runtime, const Value* args, uint32_t argc, Value& out
   std::copy(data.begin(), data.end(), state->buffer.begin() + static_cast<std::ptrdiff_t>(state->cursor));
   state->cursor += data.size();
   memory_stream_update_exported_buffer(*state);
-  value_set_int64(out, static_cast<int64_t>(state->binary ? data.size() : input_size));
+  value_set_int64(out, static_cast<int64_t>(state->binary ? data.size() : input_characters));
   return true;
 }
 
@@ -3761,7 +3763,19 @@ Value make_memory_stream_class(
   attrs.push_back({"read", runtime.make_native_function(std::string("_io.") + name + ".read", stream_read, const_cast<char*>(type))});
   attrs.push_back({"readline", runtime.make_native_function(std::string("_io.") + name + ".readline", stream_readline, const_cast<char*>(type))});
   attrs.push_back({"readlines", runtime.make_native_function(std::string("_io.") + name + ".readlines", stream_readlines, const_cast<char*>(type))});
-  attrs.push_back({"write", runtime.make_native_function(std::string("_io.") + name + ".write", stream_write, const_cast<char*>(type))});
+  // The pure-Python pickler emits many small writes and tell queries to BytesIO.
+  // Preserve its Python implementation while using vectorcall-style native
+  // adapters for the exact in-memory bytes stream; other stream classes may
+  // forward into user-provided objects and keep the ordinary call path.
+  const NativeFastCallCallback write_fast_callback = std::string_view(name) == "BytesIO"
+      ? builtin_method_fast_adapter<stream_write, 2>
+      : nullptr;
+  const NativeFastCallCallback tell_fast_callback = std::string_view(name) == "BytesIO"
+      ? builtin_method_fast_adapter<stream_tell, 1>
+      : nullptr;
+  attrs.push_back({"write", runtime.make_native_function(
+      std::string("_io.") + name + ".write", stream_write, const_cast<char*>(type),
+      nullptr, write_fast_callback)});
   attrs.push_back({"writelines", runtime.make_native_function(std::string("_io.") + name + ".writelines", stream_writelines, const_cast<char*>(type))});
   attrs.push_back({"getvalue", runtime.make_native_function(std::string("_io.") + name + ".getvalue", stream_getvalue, const_cast<char*>(type))});
   if (std::string_view(name) == "BytesIO") {
@@ -3785,7 +3799,9 @@ Value make_memory_stream_class(
   attrs.push_back({"detach", runtime.make_native_function(
       std::string("_io.") + name + ".detach",
       std::string_view(name) == "TextIOWrapper" ? text_io_wrapper_detach : stream_detach)});
-  attrs.push_back({"tell", runtime.make_native_function(std::string("_io.") + name + ".tell", stream_tell, const_cast<char*>(type))});
+  attrs.push_back({"tell", runtime.make_native_function(
+      std::string("_io.") + name + ".tell", stream_tell, const_cast<char*>(type),
+      nullptr, tell_fast_callback)});
   attrs.push_back({"truncate", runtime.make_native_function(std::string("_io.") + name + ".truncate", stream_truncate, const_cast<char*>(type))});
   attrs.push_back({"close", runtime.make_native_function(std::string("_io.") + name + ".close", stream_close, const_cast<char*>(type))});
   attrs.push_back({"flush", runtime.make_native_function(std::string("_io.") + name + ".flush", stream_flush, const_cast<char*>(type))});
@@ -4188,6 +4204,22 @@ bool io_base_unsupported(Runtime& runtime, const Value*, uint32_t argc, Value&, 
   return false;
 }
 
+bool io_base_tell(Runtime& runtime, const Value* args, uint32_t argc,
+                  Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "tell() expected no arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  // BufferedIOBase.tell() delegates to seek(0, SEEK_CUR). Pure-Python
+  // compressed streams override seek() and rely on super().tell() to query
+  // their decompressed position, so do not hard-code UnsupportedOperation.
+  Value seek;
+  if (!object_get_attr(args[0], "seek", seek, error)) return false;
+  Value seek_args[] = {Value::int64(0), Value::int64(1)};
+  return runtime_call_callable(runtime, seek, seek_args, 2, out, error);
+}
+
 bool io_base_readline(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 1 || argc > 2) {
     error = "_io._IOBase.readline() expected optional limit";
@@ -4343,7 +4375,7 @@ void add_io_exports(NativeModuleBuilder& builder, Runtime& runtime, const Value&
       {"isatty", runtime.make_native_function("_io._IOBase.isatty", io_base_false_method, const_cast<char*>("isatty"))},
       {"fileno", runtime.make_native_function("_io._IOBase.fileno", io_base_unsupported, const_cast<char*>("fileno"))},
       {"seek", runtime.make_native_function("_io._IOBase.seek", io_base_unsupported, const_cast<char*>("seek"))},
-      {"tell", runtime.make_native_function("_io._IOBase.tell", io_base_unsupported, const_cast<char*>("tell"))},
+      {"tell", runtime.make_native_function("_io._IOBase.tell", io_base_tell)},
       {"truncate", runtime.make_native_function("_io._IOBase.truncate", io_base_unsupported, const_cast<char*>("truncate"))},
       {"readline", runtime.make_native_function("_io._IOBase.readline", io_base_readline)},
       {"readlines", runtime.make_native_function("_io._IOBase.readlines", io_base_readlines)},

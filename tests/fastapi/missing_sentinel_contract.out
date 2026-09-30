@@ -1,0 +1,4 @@
+/missing 200 {'dump': {}, 'json': '{}'}
+/present 200 {'dump': {'value': 7}, 'json': '{"value":7}'}
+adapter_identity True
+adapter_rejects_other True

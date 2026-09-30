@@ -225,6 +225,8 @@ bool timeout_value_seconds(const Value& value, double& timeout, std::string& err
   return true;
 }
 
+bool raise_socket_code_error(Runtime& runtime, const char* operation, int code, std::string& error);
+
 bool wait_socket_connect(Runtime& runtime, NativeSocket fd, double timeout, std::string& error) {
   if (timeout == 0.0) {
     runtime.raise_class_error("BlockingIOError", socket_last_error_text("connect"));
@@ -256,8 +258,13 @@ bool wait_socket_connect(Runtime& runtime, NativeSocket fd, double timeout, std:
     return false;
   }
   if (ready < 0) {
-    error = socket_last_error_text("select");
-    return false;
+    return raise_socket_code_error(runtime, "select",
+#ifdef _WIN32
+                                   WSAGetLastError(),
+#else
+                                   errno,
+#endif
+                                   error);
   }
 
   int socket_error = 0;
@@ -267,21 +274,30 @@ bool wait_socket_connect(Runtime& runtime, NativeSocket fd, double timeout, std:
   socklen_t option_length = sizeof(socket_error);
 #endif
   if (getsockopt(fd, SOL_SOCKET, SO_ERROR, reinterpret_cast<char*>(&socket_error), &option_length) != 0) {
-    error = socket_last_error_text("getsockopt");
-    return false;
+    return raise_socket_code_error(runtime, "getsockopt",
+#ifdef _WIN32
+                                   WSAGetLastError(),
+#else
+                                   errno,
+#endif
+                                   error);
   }
   if (socket_error != 0) {
-#ifdef _WIN32
-    error = "connect failed with WSA error " + std::to_string(socket_error);
-#else
-    error = std::string("connect failed: ") + std::strerror(socket_error);
-#endif
-    return false;
+    return raise_socket_code_error(runtime, "connect", socket_error, error);
   }
   return true;
 }
 
-NativeSocket make_native_socket(SocketState& state, std::string& error) {
+NativeSocket make_native_socket(Runtime& runtime, SocketState& state,
+                                std::string& error) {
+  if (state.closed) {
+#ifdef _WIN32
+    raise_socket_code_error(runtime, "socket", WSAENOTSOCK, error);
+#else
+    raise_socket_code_error(runtime, "socket", EBADF, error);
+#endif
+    return kInvalidSocket;
+  }
   if (!ensure_socket_runtime(error)) {
     return kInvalidSocket;
   }
@@ -304,8 +320,9 @@ NativeSocket make_native_socket(SocketState& state, std::string& error) {
   return fd;
 }
 
-bool apply_socket_blocking(SocketState& state, bool blocking, std::string& error) {
-  NativeSocket fd = make_native_socket(state, error);
+bool apply_socket_blocking(Runtime& runtime, SocketState& state,
+                           bool blocking, std::string& error) {
+  NativeSocket fd = make_native_socket(runtime, state, error);
   if (fd == kInvalidSocket) {
     return false;
   }
@@ -462,7 +479,7 @@ bool socket_value_fileno(Runtime& runtime, const Value& value, NativeSocket& fd,
 
   std::string state_error;
   if (auto* state = socket_state(value, state_error)) {
-    fd = make_native_socket(*state, error);
+    fd = make_native_socket(runtime, *state, error);
     return fd != kInvalidSocket;
   }
 
@@ -555,6 +572,22 @@ bool socket_int_arg(const Value& value, int64_t& out) {
   return false;
 }
 
+bool socket_index_arg(Runtime& runtime, const Value& value, int64_t& out,
+                      std::string& error) {
+  if (socket_int_arg(value, out)) return true;
+  Value method;
+  std::string ignored;
+  if (!object_get_special_method(runtime, value, "__index__", method, ignored)) return false;
+  Value converted;
+  if (!runtime_call_callable(runtime, method, nullptr, 0, converted, error)) return false;
+  if (!socket_int_arg(converted, out)) {
+    error = "__index__ returned a non-integer";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  return true;
+}
+
 bool contains_utf8_surrogate(std::string_view text) {
   for (size_t index = 0; index + 2 < text.size(); ++index) {
     const auto first = static_cast<unsigned char>(text[index]);
@@ -572,12 +605,30 @@ bool contains_utf8_surrogate(std::string_view text) {
 }
 
 bool raise_socket_code_error(Runtime& runtime, const char* operation, int code, std::string& error) {
+  const char* exception_class = "OSError";
 #ifdef _WIN32
   error = std::string(operation) + " failed with WSA error " + std::to_string(code);
+  switch (code) {
+    case WSAECONNREFUSED: exception_class = "ConnectionRefusedError"; break;
+    case WSAECONNRESET: exception_class = "ConnectionResetError"; break;
+    case WSAECONNABORTED: exception_class = "ConnectionAbortedError"; break;
+    case WSAETIMEDOUT: exception_class = "TimeoutError"; break;
+    case WSAEWOULDBLOCK: exception_class = "BlockingIOError"; break;
+    case WSAEINTR: exception_class = "InterruptedError"; break;
+    default: break;
+  }
 #else
   error = std::string(operation) + " failed: " + std::strerror(code);
+  switch (code) {
+    case ECONNREFUSED: exception_class = "ConnectionRefusedError"; break;
+    case ECONNRESET: exception_class = "ConnectionResetError"; break;
+    case ECONNABORTED: exception_class = "ConnectionAbortedError"; break;
+    case ETIMEDOUT: exception_class = "TimeoutError"; break;
+    case EINTR: exception_class = "InterruptedError"; break;
+    default: break;
+  }
 #endif
-  Value exception = runtime.make_exception("OSError", error);
+  Value exception = runtime.make_exception(exception_class, error);
   std::string ignored;
   object_set_attr(exception, "errno", Value::int64(code), ignored);
   object_set_attr(exception, "strerror", Value::string(error), ignored);
@@ -759,7 +810,7 @@ bool socket_init(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
       state->type = socket_type == SOCK_DGRAM ? kSockDgram : kSockStream;
     }
     if (state->proto < 0) state->proto = 0;
-  } else if (make_native_socket(*state, error) == kInvalidSocket) {
+  } else if (make_native_socket(runtime, *state, error) == kInvalidSocket) {
     delete state;
     runtime.raise_class_error("OSError", error);
     return false;
@@ -1023,7 +1074,7 @@ bool socket_detach(Runtime&, const Value* args, uint32_t argc, Value& out, std::
   return true;
 }
 
-bool socket_settimeout(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool socket_settimeout(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 2) {
     error = "socket.settimeout() expected timeout";
     return false;
@@ -1034,11 +1085,11 @@ bool socket_settimeout(Runtime&, const Value* args, uint32_t argc, Value& out, s
   }
   value_assign_fast(state->timeout, args[1]);
   if (args[1].tag == ValueTag::None) {
-    if (!apply_socket_blocking(*state, true, error)) {
+    if (!apply_socket_blocking(runtime, *state, true, error)) {
       return false;
     }
   } else {
-    if (!apply_socket_blocking(*state, false, error)) {
+    if (!apply_socket_blocking(runtime, *state, false, error)) {
       return false;
     }
   }
@@ -1046,7 +1097,7 @@ bool socket_settimeout(Runtime&, const Value* args, uint32_t argc, Value& out, s
   return true;
 }
 
-bool socket_setblocking(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool socket_setblocking(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 2) {
     error = "socket.setblocking() expected flag";
     return false;
@@ -1056,7 +1107,7 @@ bool socket_setblocking(Runtime&, const Value* args, uint32_t argc, Value& out, 
     return false;
   }
   const bool blocking = value_truthy(args[1]);
-  if (!apply_socket_blocking(*state, blocking, error)) {
+  if (!apply_socket_blocking(runtime, *state, blocking, error)) {
     return false;
   }
   if (blocking) {
@@ -1107,7 +1158,7 @@ bool socket_setsockopt(Runtime& runtime, const Value* args, uint32_t argc, Value
   if (state == nullptr) {
     return false;
   }
-  NativeSocket fd = make_native_socket(*state, error);
+  NativeSocket fd = make_native_socket(runtime, *state, error);
   if (fd == kInvalidSocket) {
     return false;
   }
@@ -1262,7 +1313,7 @@ bool socket_bind(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
       }
     }
   }
-  NativeSocket fd = make_native_socket(*state, error);
+  NativeSocket fd = make_native_socket(runtime, *state, error);
   if (fd == kInvalidSocket) {
     return false;
   }
@@ -1285,7 +1336,7 @@ bool socket_listen(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
   if (state == nullptr) {
     return false;
   }
-  NativeSocket fd = make_native_socket(*state, error);
+  NativeSocket fd = make_native_socket(runtime, *state, error);
   if (fd == kInvalidSocket) {
     return false;
   }
@@ -1302,7 +1353,7 @@ bool socket_getsockname(Runtime& runtime, const Value* args, uint32_t argc, Valu
   if (argc != 1) { error = "socket.getsockname() expected no arguments"; return false; }
   auto* state = socket_state(args[0], error);
   if (state == nullptr) return false;
-  NativeSocket fd = make_native_socket(*state, error);
+  NativeSocket fd = make_native_socket(runtime, *state, error);
   if (fd == kInvalidSocket) return false;
   SocketAddress address;
   address.length = sizeof(address.storage);
@@ -1316,7 +1367,7 @@ bool socket_getpeername(Runtime& runtime, const Value* args, uint32_t argc, Valu
   if (argc != 1) { error = "socket.getpeername() expected no arguments"; return false; }
   auto* state = socket_state(args[0], error);
   if (state == nullptr) return false;
-  NativeSocket fd = make_native_socket(*state, error);
+  NativeSocket fd = make_native_socket(runtime, *state, error);
   if (fd == kInvalidSocket) return false;
   SocketAddress address;
   address.length = sizeof(address.storage);
@@ -1406,7 +1457,7 @@ bool socket_accept(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
   if (state == nullptr) {
     return false;
   }
-  NativeSocket fd = make_native_socket(*state, error);
+  NativeSocket fd = make_native_socket(runtime, *state, error);
   if (fd == kInvalidSocket) {
     return false;
   }
@@ -1467,7 +1518,7 @@ bool socket_accept_fd(Runtime& runtime, const Value* args, uint32_t argc, Value&
   if (state == nullptr) {
     return false;
   }
-  NativeSocket fd = make_native_socket(*state, error);
+  NativeSocket fd = make_native_socket(runtime, *state, error);
   if (fd == kInvalidSocket) {
     return false;
   }
@@ -1505,7 +1556,7 @@ bool socket_connect(Runtime& runtime, const Value* args, uint32_t argc, Value& o
   if (state == nullptr) return false;
   std::string host; int64_t port = 0;
   if (!value_to_host_port(args[1], host, port, error)) return false;
-  NativeSocket fd = make_native_socket(*state, error);
+  NativeSocket fd = make_native_socket(runtime, *state, error);
   if (fd == kInvalidSocket) return false;
   SocketAddress address;
   if (!fill_socket_address(state->family, host, port, address, error)) return false;
@@ -1534,7 +1585,7 @@ bool socket_connect_ex(Runtime& runtime, const Value* args, uint32_t argc, Value
   if (state == nullptr || !value_to_host_port(args[1], host, port, error)) {
     return false;
   }
-  NativeSocket fd = make_native_socket(*state, error);
+  NativeSocket fd = make_native_socket(runtime, *state, error);
   SocketAddress address;
   if (fd == kInvalidSocket || !fill_socket_address(state->family, host, port, address, error)) return false;
   if (without_runtime_execution_lock(
@@ -1561,7 +1612,7 @@ bool socket_send_impl(Runtime& runtime, const Value* args, uint32_t argc, Value&
   if (state == nullptr) {
     return false;
   }
-  NativeSocket fd = make_native_socket(*state, error);
+  NativeSocket fd = make_native_socket(runtime, *state, error);
   if (fd == kInvalidSocket) {
     return false;
   }
@@ -1586,7 +1637,10 @@ bool socket_send_impl(Runtime& runtime, const Value* args, uint32_t argc, Value&
     const int chunk = static_cast<int>(std::min<size_t>(data.size() - total, 65536));
     const int sent = without_runtime_execution_lock(
         [&] { return ::send(fd, data.data() + total, chunk, flags); });
-    if (sent <= 0) {
+    if (sent < 0) {
+      return raise_socket_os_error(runtime, send_all ? "sendall" : "send", error);
+    }
+    if (sent == 0) {
       error = socket_last_error_text(send_all ? "sendall" : "send");
       runtime.raise_class_error("OSError", error);
       return false;
@@ -1633,13 +1687,13 @@ bool socket_sendto(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
   if (!value_to_host_port(args[address_index], host, port, error)) { runtime.raise_class_error("TypeError", error); return false; }
   SocketAddress address;
   if (!fill_socket_address(state->family, host, port, address, error)) return false;
-  NativeSocket fd = make_native_socket(*state, error);
+  NativeSocket fd = make_native_socket(runtime, *state, error);
   if (fd == kInvalidSocket) return false;
   const int sent = without_runtime_execution_lock([&] {
     return ::sendto(fd, data.data(), static_cast<int>(data.size()), flags,
                     reinterpret_cast<sockaddr*>(&address.storage), address.length);
   });
-  if (sent < 0) { error = socket_last_error_text("sendto"); runtime.raise_class_error("OSError", error); return false; }
+  if (sent < 0) return raise_socket_os_error(runtime, "sendto", error);
   value_set_int64(out, sent);
   return true;
 }
@@ -1654,7 +1708,7 @@ bool socket_getsockopt(Runtime& runtime, const Value* args, uint32_t argc, Value
   if (state == nullptr) {
     return false;
   }
-  NativeSocket fd = make_native_socket(*state, error);
+  NativeSocket fd = make_native_socket(runtime, *state, error);
   if (fd == kInvalidSocket) {
     return false;
   }
@@ -1701,7 +1755,7 @@ bool socket_recvfrom(Runtime& runtime, const Value* args, uint32_t argc, Value& 
   if (state == nullptr) {
     return false;
   }
-  NativeSocket fd = make_native_socket(*state, error);
+  NativeSocket fd = make_native_socket(runtime, *state, error);
   if (fd == kInvalidSocket || !prepare_socket_read(runtime, *state, fd, "recvfrom", error)) {
     return false;
   }
@@ -1719,13 +1773,7 @@ bool socket_recvfrom(Runtime& runtime, const Value* args, uint32_t argc, Value& 
         reinterpret_cast<sockaddr*>(&peer.storage),
         &peer.length);
   });
-  if (received < 0) {
-    if (socket_last_error_would_block()) {
-      runtime.raise_class_error("BlockingIOError", socket_last_error_text("recvfrom"));
-      return false;
-    }
-    return raise_socket_os_error(runtime, "recvfrom", error);
-  }
+  if (received < 0) return raise_socket_os_error(runtime, "recvfrom", error);
   data.resize(static_cast<size_t>(received));
   Value peer_address = socket_address_value(reinterpret_cast<const sockaddr*>(&peer.storage), peer.length);
   out = Value::tuple({
@@ -1745,7 +1793,7 @@ bool socket_recv(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
   if (state == nullptr) {
     return false;
   }
-  NativeSocket fd = make_native_socket(*state, error);
+  NativeSocket fd = make_native_socket(runtime, *state, error);
   if (fd == kInvalidSocket) {
     return false;
   }
@@ -1757,13 +1805,7 @@ bool socket_recv(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
   std::string data(static_cast<size_t>(size), '\0');
   const int received = without_runtime_execution_lock(
       [&] { return ::recv(fd, data.data(), size, flags); });
-  if (received < 0) {
-    if (socket_last_error_would_block()) {
-      runtime.raise_class_error("BlockingIOError", socket_last_error_text("recv"));
-      return false;
-    }
-    return raise_socket_os_error(runtime, "recv", error);
-  }
+  if (received < 0) return raise_socket_os_error(runtime, "recv", error);
   data.resize(static_cast<size_t>(received));
   out = Value::bytes(std::move(data));
   return true;
@@ -1778,7 +1820,7 @@ bool socket_recv_into(Runtime& runtime, const Value* args, uint32_t argc, Value&
   if (state == nullptr) {
     return false;
   }
-  NativeSocket fd = make_native_socket(*state, error);
+  NativeSocket fd = make_native_socket(runtime, *state, error);
   if (fd == kInvalidSocket) {
     return false;
   }
@@ -1835,13 +1877,7 @@ bool socket_recv_into(Runtime& runtime, const Value* args, uint32_t argc, Value&
 
   const int received = without_runtime_execution_lock(
       [&] { return ::recv(fd, data, static_cast<int>(std::min<size_t>(capacity, 65536)), flags); });
-  if (received < 0) {
-    if (socket_last_error_would_block()) {
-      runtime.raise_class_error("BlockingIOError", socket_last_error_text("recv_into"));
-      return false;
-    }
-    return raise_socket_os_error(runtime, "recv_into", error);
-  }
+  if (received < 0) return raise_socket_os_error(runtime, "recv_into", error);
   value_set_int64(out, received);
   return true;
 }
@@ -1887,7 +1923,7 @@ bool socket_recvfrom_into(Runtime& runtime, const Value* args, uint32_t argc, Va
     }
     flags = static_cast<int>(requested_flags);
   }
-  NativeSocket fd = make_native_socket(*state, error);
+  NativeSocket fd = make_native_socket(runtime, *state, error);
   if (fd == kInvalidSocket || !prepare_socket_read(runtime, *state, fd, "recvfrom_into", error)) return false;
   SocketAddress peer;
   peer.length = sizeof(peer.storage);
@@ -1900,11 +1936,7 @@ bool socket_recvfrom_into(Runtime& runtime, const Value* args, uint32_t argc, Va
         reinterpret_cast<sockaddr*>(&peer.storage),
         &peer.length);
   });
-  if (received < 0) {
-    error = socket_last_error_text("recvfrom_into");
-    runtime.raise_class_error(socket_last_error_would_block() ? "BlockingIOError" : "OSError", error);
-    return false;
-  }
+  if (received < 0) return raise_socket_os_error(runtime, "recvfrom_into", error);
   Value peer_address = socket_address_value(reinterpret_cast<const sockaddr*>(&peer.storage), peer.length);
   out = Value::tuple({
       Value::int64(received),
@@ -1922,7 +1954,7 @@ bool socket_shutdown(Runtime& runtime, const Value* args, uint32_t argc, Value& 
   if (state == nullptr) {
     return false;
   }
-  NativeSocket fd = make_native_socket(*state, error);
+  NativeSocket fd = make_native_socket(runtime, *state, error);
   if (fd == kInvalidSocket) return false;
   if (::shutdown(fd, static_cast<int>(args[1].as.i64)) != 0) {
     return raise_socket_os_error(runtime, "shutdown", error);
@@ -1950,7 +1982,7 @@ bool socket_ioctl(Runtime& runtime, const Value* args, uint32_t argc, Value& out
     runtime.raise_class_error("ValueError", error);
     return false;
   }
-  NativeSocket fd = make_native_socket(*state, error);
+  NativeSocket fd = make_native_socket(runtime, *state, error);
   if (fd == kInvalidSocket) {
     runtime.raise_class_error("OSError", error);
     return false;
@@ -2573,23 +2605,29 @@ bool socket_getaddrinfo(Runtime& runtime, const Value* args, uint32_t argc, Valu
   const char* host = nullptr;
   if (args[0].tag != ValueTag::None) {
     auto* host_string = value_as_string(args[0]);
-    if (host_string == nullptr) {
-      error = "getaddrinfo() host must be string or None";
+    if (host_string != nullptr) {
+      host_storage = string_object_to_string(*host_string);
+      if (contains_utf8_surrogate(host_storage)) {
+        error = "host name contains a surrogate character";
+        runtime.raise_class_error("UnicodeEncodeError", error);
+        return false;
+      }
+      std::string idna_host;
+      if (!socket_idna_hostname(host_storage, idna_host)) {
+        error = "host name is not valid IDNA";
+        runtime.raise_class_error("UnicodeError", error);
+        return false;
+      }
+      host_storage = std::move(idna_host);
+    } else if (auto* host_bytes = value_as_bytes(args[0])) {
+      // CPython's low-level _socket accepts encoded hostnames as bytes. The
+      // unchanged asyncio/AnyIO stack passes HTTPX's raw ASCII host here.
+      host_storage = bytes_object_to_string(*host_bytes);
+    } else {
+      error = "getaddrinfo() argument 1 must be string or None";
+      runtime.raise_class_error("TypeError", error);
       return false;
     }
-    host_storage = string_object_to_string(*host_string);
-    if (contains_utf8_surrogate(host_storage)) {
-      error = "host name contains a surrogate character";
-      runtime.raise_class_error("UnicodeEncodeError", error);
-      return false;
-    }
-    std::string idna_host;
-    if (!socket_idna_hostname(host_storage, idna_host)) {
-      error = "host name is not valid IDNA";
-      runtime.raise_class_error("UnicodeError", error);
-      return false;
-    }
-    host_storage = std::move(idna_host);
     host = host_storage.c_str();
   }
 
@@ -2616,20 +2654,20 @@ bool socket_getaddrinfo(Runtime& runtime, const Value* args, uint32_t argc, Valu
   int64_t type = 0;
   int64_t proto = 0;
   int64_t flags = 0;
-  if (argc >= 3 && !socket_int_arg(args[2], family)) {
-    error = "getaddrinfo() family must be integer";
+  if (argc >= 3 && !socket_index_arg(runtime, args[2], family, error)) {
+    if (error.empty()) error = "getaddrinfo() family must be integer";
     return false;
   }
-  if (argc >= 4 && !socket_int_arg(args[3], type)) {
-    error = "getaddrinfo() type must be integer";
+  if (argc >= 4 && !socket_index_arg(runtime, args[3], type, error)) {
+    if (error.empty()) error = "getaddrinfo() type must be integer";
     return false;
   }
-  if (argc >= 5 && !socket_int_arg(args[4], proto)) {
-    error = "getaddrinfo() proto must be integer";
+  if (argc >= 5 && !socket_index_arg(runtime, args[4], proto, error)) {
+    if (error.empty()) error = "getaddrinfo() proto must be integer";
     return false;
   }
-  if (argc >= 6 && !socket_int_arg(args[5], flags)) {
-    error = "getaddrinfo() flags must be integer";
+  if (argc >= 6 && !socket_index_arg(runtime, args[5], flags, error)) {
+    if (error.empty()) error = "getaddrinfo() flags must be integer";
     return false;
   }
 
@@ -2804,6 +2842,7 @@ void add_socket_exports(Runtime& runtime, NativeModuleBuilder& builder, const Va
       .value("SO_RCVBUF", Value::int64(SO_RCVBUF))
       .value("SO_SNDBUF", Value::int64(SO_SNDBUF))
       .value("SO_ERROR", Value::int64(SO_ERROR))
+      .value("SO_LINGER", Value::int64(SO_LINGER))
       .value("SO_TYPE", Value::int64(SO_TYPE))
       .value("SO_EXCLUSIVEADDRUSE", Value::int64(-5))
       .value("SOMAXCONN", Value::int64(128))
@@ -2816,6 +2855,15 @@ void add_socket_exports(Runtime& runtime, NativeModuleBuilder& builder, const Va
       .value("NI_NAMEREQD", Value::int64(NI_NAMEREQD))
       .value("NI_DGRAM", Value::int64(NI_DGRAM))
 #ifdef _WIN32
+      .value("EAI_AGAIN", Value::int64(WSATRY_AGAIN))
+      .value("EAI_BADFLAGS", Value::int64(WSAEINVAL))
+      .value("EAI_FAIL", Value::int64(WSANO_RECOVERY))
+      .value("EAI_FAMILY", Value::int64(WSAEAFNOSUPPORT))
+      .value("EAI_MEMORY", Value::int64(8))
+      .value("EAI_NODATA", Value::int64(WSAHOST_NOT_FOUND))
+      .value("EAI_NONAME", Value::int64(WSAHOST_NOT_FOUND))
+      .value("EAI_SERVICE", Value::int64(WSATYPE_NOT_FOUND))
+      .value("EAI_SOCKTYPE", Value::int64(WSAESOCKTNOSUPPORT))
       .value("SIO_RCVALL", Value::int64(static_cast<int64_t>(SIO_RCVALL)))
       .value("RCVALL_ON", Value::int64(static_cast<int64_t>(RCVALL_ON)))
       .value("RCVALL_OFF", Value::int64(static_cast<int64_t>(RCVALL_OFF)))

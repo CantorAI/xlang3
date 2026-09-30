@@ -128,8 +128,14 @@ bool op_and(Runtime&, const Value* args, uint32_t argc, Value& out, std::string&
   return operator_binary("and_", value_bit_and, args, argc, out, error);
 }
 
-bool op_or(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  return operator_binary("or_", value_bit_or, args, argc, out, error);
+bool op_or(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!expect_argc(argc, 2, "or_", error)) return false;
+  const Value* binary_or = runtime.find_builtin("__xlang3_binary_or__");
+  if (binary_or == nullptr) {
+    error = "binary or operator is unavailable";
+    return false;
+  }
+  return runtime_call_callable(runtime, *binary_or, args, 2, out, error);
 }
 
 bool op_xor(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -336,7 +342,11 @@ bool op_index(Runtime& runtime, const Value* args, uint32_t argc, Value& out, st
   if (!expect_argc(argc, 1, "index", error)) {
     return false;
   }
-  if (args[0].tag == ValueTag::Int64 || args[0].tag == ValueTag::Bool || value_as_bigint(args[0]) != nullptr) {
+  if (args[0].tag == ValueTag::Bool) {
+    value_set_int64(out, args[0].as.b ? 1 : 0);
+    return true;
+  }
+  if (args[0].tag == ValueTag::Int64 || value_as_bigint(args[0]) != nullptr) {
     value_assign_fast(out, args[0]);
     return true;
   }
@@ -347,14 +357,17 @@ bool op_index(Runtime& runtime, const Value* args, uint32_t argc, Value& out, st
     if (!runtime_call_callable(runtime, method, nullptr, 0, converted, error)) {
       return false;
     }
-    if (converted.tag == ValueTag::Int64 || converted.tag == ValueTag::Bool || value_as_bigint(converted) != nullptr) {
+    if (converted.tag == ValueTag::Int64 || value_as_bigint(converted) != nullptr) {
       value_assign_fast(out, converted);
       return true;
     }
-    error = "__index__ returned non-int";
+    error = "__index__ returned non-int (type " + std::string(value_binary_type_name(converted)) + ")";
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
-  error = "'object' cannot be interpreted as an integer";
+  error = "'" + std::string(value_binary_type_name(args[0])) +
+      "' object cannot be interpreted as an integer";
+  runtime.raise_class_error("TypeError", error);
   return false;
 }
 

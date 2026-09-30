@@ -1,0 +1,2 @@
+reassigned patched-socket
+fastapi 200 {"socket": "patched-socket"}

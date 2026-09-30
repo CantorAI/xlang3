@@ -37,6 +37,7 @@ void register_builtin_modules(Runtime& runtime) {
   copy_builtin(runtime, builtins, "print");
   copy_builtin(runtime, builtins, "__debug__");
   copy_builtin(runtime, builtins, "__import__");
+  copy_builtin(runtime, builtins, "breakpoint");
   copy_builtin(runtime, builtins, "_identity");
   copy_builtin(runtime, builtins, "classmethod");
   copy_builtin(runtime, builtins, "staticmethod");

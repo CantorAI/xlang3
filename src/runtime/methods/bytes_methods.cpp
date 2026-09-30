@@ -553,6 +553,22 @@ bool get_bytes_like_view(const Value& value, const char* name, std::string_view&
   return false;
 }
 
+bool bytes_len_method(Runtime& runtime, const Value* args, uint32_t argc,
+                      Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "bytes.__len__ expected no arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  std::string_view bytes;
+  if (!get_bytes_like_view(args[0], "bytes.__len__", bytes, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  out = Value::int64(static_cast<int64_t>(bytes.size()));
+  return true;
+}
+
 Value make_binary_like_result(const Value& receiver, std::string text) {
   return value_as_bytearray(receiver) != nullptr ? Value::bytearray(std::move(text)) : Value::bytes(std::move(text));
 }
@@ -2431,6 +2447,9 @@ bool bytes_splitlines_kw_method(
 } // namespace
 
 bool bytes_install_class_methods(Runtime& runtime, ClassObject& bytes_class) {
+  bytes_class.attrs["__len__"] = runtime.make_native_function(
+      bytes_class.name == "bytearray" ? "bytearray.__len__" : "bytes.__len__",
+      bytes_len_method);
   bytes_class.attrs["__getitem__"] = runtime.make_native_function("bytes.__getitem__", bytes_getitem_method);
   bytes_class.attrs["ljust"] = runtime.make_native_function("bytes.ljust", bytes_ljust_method);
   bytes_class.attrs["rjust"] = runtime.make_native_function(

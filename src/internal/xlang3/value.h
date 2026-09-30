@@ -73,6 +73,7 @@ enum class ObjectKind : uint32_t {
   SequenceIterator,
   EnumerateIterator,
   ZipIterator,
+  ZipLongestIterator,
   MapIterator,
   FilterIterator,
   CallableIterator,
@@ -102,10 +103,26 @@ enum class ObjectKind : uint32_t {
   Expression,
 };
 
+// The tracking index needs only 62 bits in practice. Share the remaining
+// state word with weakref-role bits so the no-weakref fast path does not grow
+// every heap object's header.
+constexpr uint64_t kGcObjectIndexMask = (uint64_t{1} << 62) - 1;
+constexpr uint64_t kGcObjectIndexNone = kGcObjectIndexMask;
+constexpr uint64_t kObjectWeakrefTargetFlag = uint64_t{1} << 63;
+constexpr uint64_t kObjectWeakrefReferenceFlag = uint64_t{1} << 62;
+constexpr uint64_t kObjectWeakrefFlagsMask =
+    kObjectWeakrefTargetFlag | kObjectWeakrefReferenceFlag;
+
 struct Object {
   ObjectKind kind;
   std::atomic_uint32_t refcnt;
+  // GC index (low bits) keeps O(1) removal; weakref roles (high bits) let
+  // ordinary destruction bypass the registry lock without enlarging Object.
+  std::atomic_uint64_t gc_tracking_state{kGcObjectIndexNone};
 };
+
+void gc_track_object(Object* object);
+void gc_untrack_object(Object* object);
 
 static constexpr uint32_t kXlangValueBorrowedRefFlag = 0x40000000u;
 
@@ -302,6 +319,9 @@ struct Value {
   static Value type_param(std::string name);
 };
 
+bool gc_value_is_tracked(const Value& value);
+std::vector<Value> gc_snapshot_tracked_objects();
+
 XLANG3_HOT_INLINE Value Value::invalid() {
   return {};
 }
@@ -373,9 +393,17 @@ XLANG3_HOT_INLINE Value Value::bigint_from_i64(int64_t value) {
   return value_bigint_from_i64(value);
 }
 
+XLANG3_HOT_INLINE uint32_t next_float_identity() {
+  static std::atomic<uint32_t> next{1};
+  uint32_t identity = next.fetch_add(1, std::memory_order_relaxed) & 0x3fffffffu;
+  if (identity == 0) identity = next.fetch_add(1, std::memory_order_relaxed) & 0x3fffffffu;
+  return identity;
+}
+
 XLANG3_HOT_INLINE Value Value::number(double value) {
   Value v;
   v.tag = ValueTag::Double;
+  v.flags = next_float_identity();
   v.as.f64 = value;
   return v;
 }
@@ -497,6 +525,9 @@ struct FunctionObject {
   Value annotations;
   Value doc;
   Value globals_module;
+  // Captured builtins namespace, matching function.__builtins__; keeping it
+  // separate avoids allocating an attribute dictionary for every function.
+  Value builtins;
   Value globals_dict;
   Value attrs_dict;
   std::shared_ptr<const ir::Module> module;
@@ -544,11 +575,13 @@ struct FrameObject {
   Value back;
   Value builtins;
   Value trace;
+  Value generator_ref;
   uint64_t activation_id = 0;
   int64_t owner_thread_ident = 0;
   bool trace_lines = true;
   bool trace_opcodes = false;
   bool allow_line_jump = false;
+  bool source_line_is_current = false;
   bool live = false;
   bool refresh_instruction = true;
 };
@@ -673,6 +706,16 @@ XLANG3_HOT_INLINE const char* string_object_c_str(const StringObject& value) {
 
 XLANG3_HOT_INLINE bool string_object_is_ascii(const StringObject& value) {
   return value.ascii;
+}
+
+XLANG3_HOT_INLINE void string_object_refresh_ascii(StringObject& value) {
+  value.ascii = true;
+  for (unsigned char ch : string_object_view(value)) {
+    if (ch >= 0x80u) {
+      value.ascii = false;
+      return;
+    }
+  }
 }
 
 XLANG3_HOT_INLINE size_t string_view_hash(std::string_view value) {
@@ -945,12 +988,10 @@ XLANG3_HOT_INLINE Value::Value(Value&& other) noexcept
 
 XLANG3_HOT_INLINE Value& Value::operator=(const Value& other) {
   if (this == &other) return *this;
-  release(*this);
-  tag = other.tag;
-  flags = other.flags & ~kXlangValueBorrowedRefFlag;
-  as = other.as;
-  retain(*this);
-  return *this;
+  // The source can borrow the same object currently owned by this slot.
+  // Acquire its reference before releasing the destination's reference.
+  Value retained(other);
+  return *this = std::move(retained);
 }
 
 XLANG3_HOT_INLINE Value& Value::operator=(Value&& other) noexcept {
@@ -981,6 +1022,13 @@ XLANG3_HOT_INLINE void value_assign_fast(Value& out, const Value& value) {
     return;
   }
   if (value.tag == ValueTag::Object) {
+    // Re-loading a stable cached object into its existing register must not
+    // churn the atomic refcount: either slot's current ownership is already
+    // correct when both values name the same object. Keep scalar assignments
+    // on the original branch path by checking identity only for object copies.
+    if (out.tag == ValueTag::Object && out.as.obj == value.as.obj) {
+      return;
+    }
     out = value;
     return;
   }
@@ -1054,7 +1102,7 @@ XLANG3_HOT_INLINE void value_set_int64(Value& out, int64_t value) {
 XLANG3_HOT_INLINE void value_set_number(Value& out, double value) {
   value_release_if_object(out);
   out.tag = ValueTag::Double;
-  out.flags = 0;
+  out.flags = next_float_identity();
   out.as.f64 = value;
 }
 

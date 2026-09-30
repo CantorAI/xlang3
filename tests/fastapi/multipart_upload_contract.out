@@ -1,0 +1,3 @@
+authorized 200 {"body": "hello multipart", "content_type": "text/plain", "filename": "note.txt", "label": "sample", "token": "allowed"}
+unauthorized 401 {"detail": "Not authenticated"}
+missing_file 422 {"detail": [{"input": null, "loc": ["body", "attachment"], "msg": "Field required", "type": "missing"}]}

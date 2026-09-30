@@ -1,0 +1,8 @@
+True
+False
+True
+>= 43
+== 43.*
+~= 3.6
+=== vendor
+< 43

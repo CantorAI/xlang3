@@ -84,6 +84,38 @@ XLANG3_HOT_INLINE bool inline_python_function_allowed(
       target_module, function.function_id);
 }
 
+XLANG3_HOT_INLINE bool inline_cached_arg_function_allowed(
+    Runtime& runtime,
+    const ir::Module& current_module,
+    const FunctionObject& function,
+    CallSiteCache& cache) {
+  const auto active_hook = [](const Value& hook) {
+    return hook.tag != ValueTag::Invalid && hook.tag != ValueTag::None;
+  };
+  if (runtime.debug_step_active() || active_hook(runtime.trace_function()) ||
+      active_hook(runtime.profile_function())) return false;
+  const uint64_t generation = sys_monitoring_configuration_generation();
+  if (cache.inline_function_id == function.function_id &&
+      cache.class_version == generation) {
+    return cache.fast_method_id == 0;
+  }
+  const ir::Module* target_module = function.module != nullptr
+      ? function.module.get() : &current_module;
+  const bool may_dispatch = sys_monitoring_function_may_dispatch(
+      target_module, function.function_id);
+  const uint64_t after_check_generation = sys_monitoring_configuration_generation();
+  if (generation != after_check_generation) {
+    cache.inline_function_id = UINT32_MAX;
+    return false;
+  }
+  // Cache the expensive code/event eligibility test until monitoring changes;
+  // trace/profile/debug switches remain live and are still checked per call.
+  cache.inline_function_id = function.function_id;
+  cache.class_version = generation;
+  cache.fast_method_id = may_dispatch ? 1u : 0u;
+  return !may_dispatch;
+}
+
 // Call dispatch templates below share these helpers in both directions.
 template <typename RaiseRuntimeError, typename RaiseExceptionValue>
 XLANG3_HOT_INLINE bool call_cached_native_fast(
@@ -379,11 +411,16 @@ XLANG3_HOT_INLINE bool xlang_vm_call_class_new_then_init_sync(
   }
 
   auto* instance = value_as_instance(new_result);
-  auto* instance_class = instance == nullptr ? nullptr : value_as_class(instance->klass);
+  auto* module_instance = value_as_module(new_result);
+  auto* instance_class = instance != nullptr ? value_as_class(instance->klass)
+      : module_instance != nullptr ? value_as_class(module_instance->klass) : nullptr;
   if (instance_class != nullptr && klass != nullptr && class_is_subclass(instance_class, klass)) {
     Value init;
     std::string init_error;
-    if (object_get_attr(new_result, "__init__", init, init_error) && init.tag != ValueTag::Invalid) {
+    const bool found_init = module_instance != nullptr
+        ? module_get_attr(new_result, "__init__", init, init_error)
+        : object_get_attr(new_result, "__init__", init, init_error);
+    if (found_init && init.tag != ValueTag::Invalid) {
       const NativeFunctionObject* init_native = value_as_native_function(init);
       if (auto* bound_init = value_as_bound_method(init)) {
         init_native = value_as_native_function(bound_init->function);
@@ -615,6 +652,56 @@ XLANG3_HOT_INLINE const Value* materialize_native_call_ex(
 
 
 
+XLANG3_NOINLINE inline bool xlang_vm_try_cached_call_local_accumulate(
+    const ir::Instr& in,
+    const ir::Function& fn,
+    const CallSiteCache& cache,
+    CallArgsView call_args,
+    XlangVMSmallRegisterBuffer& regs,
+    XlangVMSmallValueBuffer& locals,
+    size_t& ip) {
+  if ((in.c & ir::kCallAccumulateLocalFlag) == 0 ||
+      (in.c & ir::kCallAccumulateLocalMask) >= locals.size() ||
+      regs[in.dst].tag == ValueTag::Object || ip + 2 >= fn.code.size()) {
+    return false;
+  }
+  const uint32_t accumulator_slot = in.c & ir::kCallAccumulateLocalMask;
+  const auto& sum = fn.code[ip + 1];
+  const auto& store = fn.code[ip + 2];
+  const uint32_t accumulator_reg = sum.a == in.dst ? sum.b : sum.a;
+  if (locals[accumulator_slot].tag != ValueTag::Int64 ||
+      sum.op != ir::Op::Add || sum.dst >= regs.size() ||
+      (sum.a != in.dst && sum.b != in.dst) || accumulator_reg >= regs.size() ||
+      regs[accumulator_reg].tag != ValueTag::Int64 ||
+      regs[accumulator_reg].as.i64 != locals[accumulator_slot].as.i64 ||
+      store.op != ir::Op::StoreLocal || store.dst != accumulator_slot ||
+      store.a != sum.dst) {
+    return false;
+  }
+  ArgBinaryFunctionSpec spec;
+  spec.lhs_arg = cache.lhs_slot;
+  spec.rhs_arg = cache.rhs_slot;
+  spec.op = cache.inline_op;
+  spec.next_arg = cache.next_arg;
+  spec.next_op = cache.next_op;
+  if (cache.next_is_constant) value_assign_fast(spec.next_constant, cache.inline_const);
+  spec.has_next = cache.has_next;
+  spec.next_is_constant = cache.next_is_constant;
+  int64_t function_value = 0;
+  int64_t accumulated_value = 0;
+  if (!xlang_vm_try_arg_binary_local_accumulate_int64(
+          call_args, spec, locals[accumulator_slot],
+          function_value, accumulated_value)) {
+    return false;
+  }
+  // Keep this guarded, code-shape-specific work outlined so it does not add
+  // more machine code to ordinary calls and arithmetic dispatch.
+  value_set_int64(regs[in.dst], function_value);
+  value_set_int64(locals[accumulator_slot], accumulated_value);
+  ip += 2;
+  return true;
+}
+
 template <
     typename MakeGeneratorIfNeeded,
     typename PushFrame,
@@ -702,12 +789,17 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
       if (object_get_class_attr_for_instance(regs[in.a], "__getattribute__", hook, error) &&
           !xlang_vm_is_default_object_hook(hook, "object.__getattribute__")) {
         // Dynamic lookup can return a new callable on every access; do not cache it.
+        const Value* getattr_builtin = runtime.find_builtin("getattr");
+        if (getattr_builtin == nullptr) {
+          return raise_runtime_error("getattr builtin is unavailable")
+              ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+        }
         Value lookup_args[] = {regs[in.a], Value::string(name)};
         Value callable;
         std::vector<Value> arguments;
         arguments.reserve(call_arg_regs.size());
         for (auto index : call_arg_regs) arguments.push_back(regs[index]);
-        if (!runtime_call_callable(runtime, hook, lookup_args, 2, callable, error) ||
+        if (!runtime_call_callable(runtime, *getattr_builtin, lookup_args, 2, callable, error) ||
             !runtime_call_callable(runtime, callable, arguments.data(),
                 static_cast<uint32_t>(arguments.size()), regs[in.dst], error)) {
           Value pending;
@@ -717,6 +809,32 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
         }
         return XlangVMOpFlow::Next;
       }
+    }
+  }
+
+  if (auto* receiver_class = value_as_class(regs[in.a])) {
+    auto* metaclass = value_as_class(receiver_class->metaclass);
+    if (metaclass != nullptr && metaclass->has_getattribute_hook) {
+      const Value* getattr_builtin = runtime.find_builtin("getattr");
+      if (getattr_builtin == nullptr) {
+        return raise_runtime_error("getattr builtin is unavailable")
+            ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+      }
+      Value lookup_args[] = {regs[in.a], Value::string(name)};
+      Value callable;
+      std::string error;
+      std::vector<Value> arguments;
+      arguments.reserve(call_arg_regs.size());
+      for (auto index : call_arg_regs) arguments.push_back(regs[index]);
+      if (!runtime_call_callable(runtime, *getattr_builtin, lookup_args, 2, callable, error) ||
+          !runtime_call_callable(runtime, callable, arguments.data(),
+              static_cast<uint32_t>(arguments.size()), regs[in.dst], error)) {
+        Value pending;
+        const bool handled = runtime.take_pending_exception(pending)
+            ? raise_exception_value(std::move(pending)) : raise_runtime_error(error);
+        return handled ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+      }
+      return XlangVMOpFlow::Next;
     }
   }
 
@@ -741,6 +859,14 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
             break;
           }
         }
+      }
+      if (!receiver_has_direct_method_attr &&
+          value_as_dict(instance_attribute_storage(*instance)) != nullptr) {
+        Value dictionary_method;
+        std::string ignored_error;
+        receiver_has_direct_method_attr = mapping_get_item(
+            instance_attribute_storage(*instance), Value::string(name),
+            dictionary_method, ignored_error);
       }
     }
   }
@@ -838,6 +964,56 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
           }
           const bool allow_cached_python_inline = cache.function != nullptr &&
               inline_python_function_allowed(runtime, module, *cache.function);
+          if (allow_cached_python_inline &&
+              cache.kind == CallSiteKind::InlineSelfSlotNormalizeMethod &&
+              call_arg_regs.empty() && !call_args.has_keywords() &&
+              !call_args.has_expansion() &&
+              execute_self_slot_normalize_method(
+                  regs[in.a], cache.inline_slots, *cache.function,
+                  cache.inline_globals_module, cache.inline_globals_version,
+                  cache.inline_const, regs[in.dst])) {
+            return XlangVMOpFlow::Next;
+          }
+          if (allow_cached_python_inline &&
+              cache.kind == CallSiteKind::InlineSelfSlotMaximizeMethod &&
+              call_arg_regs.size() == 1 && !call_args.has_keywords() &&
+              !call_args.has_expansion() &&
+              execute_self_slot_maximize_method(
+                  regs[in.a], regs[call_arg_regs[0]], cache.inline_slots,
+                  regs[in.dst])) {
+            return XlangVMOpFlow::Next;
+          }
+          if (allow_cached_python_inline &&
+              cache.kind == CallSiteKind::InlineSelfAttrBooleanExprMethod &&
+              call_arg_regs.empty()) {
+            const bool output_overwrite_cannot_finalize =
+                regs[in.dst].tag != ValueTag::Object;
+            if (xlang_vm_execute_self_attr_boolean_expr_method(
+                    module, *cache.function, *instance, cache.inline_slots,
+                    static_cast<uint8_t>(cache.fast_method_id), regs[in.dst])) {
+              return output_overwrite_cannot_finalize
+                  ? XlangVMOpFlow::NextNoMonitoringRefresh
+                  : XlangVMOpFlow::Next;
+            }
+          }
+          if (allow_cached_python_inline &&
+              cache.kind == CallSiteKind::InlineSelfAttrBinaryMethod &&
+              call_arg_regs.empty()) {
+            const bool output_overwrite_cannot_finalize =
+                regs[in.dst].tag != ValueTag::Object;
+            std::string error;
+            if (xlang_vm_execute_self_attr_binary_method(
+                    module, *cache.function, *instance, cache.lhs_slot,
+                    cache.rhs_slot, cache.inline_op, regs[in.dst], error)) {
+              return output_overwrite_cannot_finalize
+                  ? XlangVMOpFlow::NextNoMonitoringRefresh
+                  : XlangVMOpFlow::Next;
+            }
+            if (!error.empty()) {
+              return raise_runtime_error(error)
+                  ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+            }
+          }
           if (allow_cached_python_inline && cache.kind == CallSiteKind::InlineSelfBinaryMethod && call_arg_regs.empty()) {
             SelfBinaryMethodSpec spec;
             spec.lhs_slot = cache.lhs_slot;
@@ -850,7 +1026,9 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
             }
             return XlangVMOpFlow::Next;
           }
-          if (allow_cached_python_inline && cache.kind == CallSiteKind::InlineConstMethod && call_arg_regs.empty()) {
+          if (allow_cached_python_inline && cache.kind == CallSiteKind::InlineConstMethod &&
+              call_arg_regs.size() == cache.lhs_slot && !call_args.has_keywords() &&
+              !call_args.has_expansion()) {
             value_assign_fast(regs[in.dst], cache.inline_const);
             return XlangVMOpFlow::Next;
           }
@@ -903,7 +1081,10 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
         }
         if (auto* fn_obj = value_as_function(method_it->second)) {
           Value const_value;
-          if (inline_python_function_allowed(runtime, module, *fn_obj) && call_arg_regs.empty() && analyze_const_method_fn(module, *fn_obj, const_value)) {
+          if (inline_python_function_allowed(runtime, module, *fn_obj) &&
+              !call_args.has_keywords() && !call_args.has_expansion() &&
+              analyze_const_method_with_args(
+                  module, *fn_obj, static_cast<uint32_t>(call_arg_regs.size()), const_value)) {
             if (!instr_cache.empty()) {
               auto& cache = instr_cache[ip].call;
               cache.callee_object = &klass->header;
@@ -911,10 +1092,73 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
               cache.function = fn_obj;
               cache.native = nullptr;
               cache.class_version = klass->version;
+              cache.lhs_slot = static_cast<uint32_t>(call_arg_regs.size());
               value_assign_fast(cache.inline_const, const_value);
             }
             value_assign_fast(regs[in.dst], const_value);
             return XlangVMOpFlow::Next;
+          }
+          XlangVMSelfAttrBinaryMethodSpec attr_inline_spec;
+          XlangVMSelfAttrBooleanExprMethodSpec bool_expr_spec;
+          if (inline_python_function_allowed(runtime, module, *fn_obj) &&
+              call_arg_regs.empty() &&
+              xlang_vm_analyze_self_attr_boolean_expr_method(
+                  module, *fn_obj, bool_expr_spec)) {
+            std::array<uint32_t, 3> slots{};
+            const bool output_overwrite_cannot_finalize =
+                regs[in.dst].tag != ValueTag::Object;
+            if (xlang_vm_prepare_self_attr_boolean_expr_method(
+                    module, *fn_obj, *instance, bool_expr_spec, slots) &&
+                xlang_vm_execute_self_attr_boolean_expr_method(
+                    module, *fn_obj, *instance, slots, bool_expr_spec.expression,
+                    regs[in.dst])) {
+              if (!instr_cache.empty()) {
+                auto& cache = instr_cache[ip].call;
+                cache.callee_object = &klass->header;
+                cache.kind = CallSiteKind::InlineSelfAttrBooleanExprMethod;
+                cache.function = fn_obj;
+                cache.native = nullptr;
+                cache.class_version = klass->version;
+                cache.inline_slots = slots;
+                cache.fast_method_id = bool_expr_spec.expression;
+              }
+              return output_overwrite_cannot_finalize
+                  ? XlangVMOpFlow::NextNoMonitoringRefresh
+                  : XlangVMOpFlow::Next;
+            }
+          }
+          if (inline_python_function_allowed(runtime, module, *fn_obj) && call_arg_regs.empty() &&
+              xlang_vm_analyze_self_attr_binary_method(module, *fn_obj, attr_inline_spec)) {
+            uint32_t lhs_attr = 0;
+            uint32_t rhs_attr = 0;
+            if (xlang_vm_prepare_self_attr_binary_method(
+                    module, *fn_obj, *instance, attr_inline_spec, lhs_attr, rhs_attr)) {
+              const bool output_overwrite_cannot_finalize =
+                  regs[in.dst].tag != ValueTag::Object;
+              std::string error;
+              if (xlang_vm_execute_self_attr_binary_method(
+                      module, *fn_obj, *instance, lhs_attr, rhs_attr,
+                      attr_inline_spec.op, regs[in.dst], error)) {
+                if (!instr_cache.empty()) {
+                  auto& cache = instr_cache[ip].call;
+                  cache.callee_object = &klass->header;
+                  cache.kind = CallSiteKind::InlineSelfAttrBinaryMethod;
+                  cache.function = fn_obj;
+                  cache.native = nullptr;
+                  cache.class_version = klass->version;
+                  cache.lhs_slot = lhs_attr;
+                  cache.rhs_slot = rhs_attr;
+                  cache.inline_op = attr_inline_spec.op;
+                }
+                return output_overwrite_cannot_finalize
+                    ? XlangVMOpFlow::NextNoMonitoringRefresh
+                    : XlangVMOpFlow::Next;
+              }
+              if (!error.empty()) {
+                return raise_runtime_error(error)
+                    ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+              }
+            }
           }
           SelfBinaryMethodSpec inline_spec;
           if (inline_python_function_allowed(runtime, module, *fn_obj) && call_arg_regs.empty() && analyze_self_binary_method_fn(module, *fn_obj, inline_spec)) {
@@ -935,6 +1179,58 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
               return XlangVMOpFlow::ReturnResult;
             }
             return XlangVMOpFlow::Next;
+          }
+          if (inline_python_function_allowed(runtime, module, *fn_obj) &&
+              call_arg_regs.size() == 1 && !call_args.has_keywords() &&
+              !call_args.has_expansion()) {
+            SelfSlotMaximizeMethodSpec maximize_spec;
+            std::array<uint32_t, 3> slots{};
+            if (analyze_self_slot_maximize_method(module, *fn_obj, maximize_spec) &&
+                prepare_self_slot_maximize_method(
+                    module, *fn_obj, *instance, maximize_spec, slots) &&
+                execute_self_slot_maximize_method(
+                    regs[in.a], regs[call_arg_regs[0]], slots, regs[in.dst])) {
+              if (!instr_cache.empty()) {
+                auto& cache = instr_cache[ip].call;
+                cache.callee_object = &klass->header;
+                cache.kind = CallSiteKind::InlineSelfSlotMaximizeMethod;
+                cache.function = fn_obj;
+                cache.native = nullptr;
+                cache.class_version = klass->version;
+                cache.inline_slots = slots;
+              }
+              return XlangVMOpFlow::Next;
+            }
+          }
+          if (inline_python_function_allowed(runtime, module, *fn_obj) &&
+              call_arg_regs.empty() && !call_args.has_keywords() &&
+              !call_args.has_expansion()) {
+            SelfSlotNormalizeMethodSpec normalize_spec;
+            std::array<uint32_t, 3> slots{};
+            ModuleObject* globals_module = nullptr;
+            Value expected_sqrt = Value::invalid();
+            if (analyze_self_slot_normalize_method(
+                    module, *fn_obj, normalize_spec) &&
+                prepare_self_slot_normalize_method(
+                    runtime, module, *fn_obj, *instance, normalize_spec,
+                    slots, globals_module, expected_sqrt) &&
+                execute_self_slot_normalize_method(
+                    regs[in.a], slots, *fn_obj, globals_module,
+                    globals_module->version, expected_sqrt, regs[in.dst])) {
+              if (!instr_cache.empty()) {
+                auto& cache = instr_cache[ip].call;
+                cache.callee_object = &klass->header;
+                cache.kind = CallSiteKind::InlineSelfSlotNormalizeMethod;
+                cache.function = fn_obj;
+                cache.native = nullptr;
+                cache.class_version = klass->version;
+                cache.inline_slots = slots;
+                cache.inline_globals_module = globals_module;
+                cache.inline_globals_version = globals_module->version;
+                value_assign_fast(cache.inline_const, expected_sqrt);
+              }
+              return XlangVMOpFlow::Next;
+            }
           }
           if (!instr_cache.empty()) {
             auto& cache = instr_cache[ip].call;
@@ -1014,7 +1310,10 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
         }
         if (auto* fn_obj = value_as_function(inherited_method)) {
           Value const_value;
-          if (inline_python_function_allowed(runtime, module, *fn_obj) && call_arg_regs.empty() && analyze_const_method_fn(module, *fn_obj, const_value)) {
+          if (inline_python_function_allowed(runtime, module, *fn_obj) &&
+              !call_args.has_keywords() && !call_args.has_expansion() &&
+              analyze_const_method_with_args(
+                  module, *fn_obj, static_cast<uint32_t>(call_arg_regs.size()), const_value)) {
             if (!instr_cache.empty()) {
               auto& cache = instr_cache[ip].call;
               cache.callee_object = &klass->header;
@@ -1022,10 +1321,39 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
               cache.function = fn_obj;
               cache.native = nullptr;
               cache.class_version = klass->version;
+              cache.lhs_slot = static_cast<uint32_t>(call_arg_regs.size());
               value_assign_fast(cache.inline_const, const_value);
             }
             value_assign_fast(regs[in.dst], const_value);
             return XlangVMOpFlow::Next;
+          }
+          XlangVMSelfAttrBooleanExprMethodSpec inherited_bool_expr_spec;
+          if (inline_python_function_allowed(runtime, module, *fn_obj) &&
+              call_arg_regs.empty() &&
+              xlang_vm_analyze_self_attr_boolean_expr_method(
+                  module, *fn_obj, inherited_bool_expr_spec)) {
+            std::array<uint32_t, 3> slots{};
+            const bool output_overwrite_cannot_finalize =
+                regs[in.dst].tag != ValueTag::Object;
+            if (xlang_vm_prepare_self_attr_boolean_expr_method(
+                    module, *fn_obj, *instance, inherited_bool_expr_spec, slots) &&
+                xlang_vm_execute_self_attr_boolean_expr_method(
+                    module, *fn_obj, *instance, slots,
+                    inherited_bool_expr_spec.expression, regs[in.dst])) {
+              if (!instr_cache.empty()) {
+                auto& cache = instr_cache[ip].call;
+                cache.callee_object = &klass->header;
+                cache.kind = CallSiteKind::InlineSelfAttrBooleanExprMethod;
+                cache.function = fn_obj;
+                cache.native = nullptr;
+                cache.class_version = klass->version;
+                cache.inline_slots = slots;
+                cache.fast_method_id = inherited_bool_expr_spec.expression;
+              }
+              return output_overwrite_cannot_finalize
+                  ? XlangVMOpFlow::NextNoMonitoringRefresh
+                  : XlangVMOpFlow::Next;
+            }
           }
           SelfBinaryMethodSpec inline_spec;
           if (inline_python_function_allowed(runtime, module, *fn_obj) && call_arg_regs.empty() && analyze_self_binary_method_fn(module, *fn_obj, inline_spec)) {
@@ -1292,8 +1620,18 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
       }
       if (pushed_frame) return XlangVMOpFlow::SwitchFrame;
     } else {
-      if (xlang_vm_raise_not_callable(runtime, raise_exception_value)) return XlangVMOpFlow::ContinueLoop;
-      return XlangVMOpFlow::ReturnResult;
+      // A classmethod may wrap any callable, including an instance with
+      // __call__. Keep the fused attribute-call path equivalent to calling
+      // the bound method returned by normal attribute lookup.
+      if (!xlang3::xlang_vm::ops::call_callable_value(
+              runtime, bound->function, bound_args, module, module_owner,
+              in.dst, ip, native_call_args, execution_lock, regs[in.dst],
+              pushed_frame, make_generator_if_needed, push_frame,
+              raise_runtime_error, raise_exception_value)) {
+        if (!result.errors.empty()) return XlangVMOpFlow::ReturnResult;
+        return XlangVMOpFlow::ContinueLoop;
+      }
+      if (pushed_frame) return XlangVMOpFlow::SwitchFrame;
     }
   } else if (auto* native = value_as_native_function(method)) {
     if (!xlang3::xlang_vm::ops::call_native_function(runtime, native, call_args, native_call_args, execution_lock, regs[in.dst], raise_runtime_error, raise_exception_value)) {
@@ -1656,6 +1994,127 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_metaclass_init_after_type_new(
   return raise_runtime_error("__init__ is not callable") ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
 }
 
+template <typename MakeGeneratorIfNeeded, typename PushFrame, typename RaiseRuntimeError,
+          typename RaiseExceptionValue>
+XLANG3_HOT_INLINE XlangVMOpFlow call_method_ex(
+    const ir::Instr& in, const ir::Function& fn, const ir::Module& module,
+    const std::shared_ptr<const ir::Module>& module_owner,
+    const Value& monitoring_code, Runtime& runtime,
+    XlangVMSmallRegisterBuffer& regs, std::vector<XlangVMInstrCache>& instr_cache,
+    std::vector<Value>& native_call_args,
+    size_t& ip, RuntimeResult& result, XlangRuntimeExecutionGuard& execution_lock,
+    MakeGeneratorIfNeeded&& make_generator_if_needed, PushFrame&& push_frame,
+    RaiseRuntimeError&& raise_runtime_error, RaiseExceptionValue&& raise_exception_value) {
+  if (in.a >= regs.size() || in.b >= fn.names.size() || in.c >= fn.call_specs.size()) {
+    result.errors.push_back("invalid keyword method call");
+    return XlangVMOpFlow::ReturnResult;
+  }
+  const auto& spec = fn.call_specs[in.c];
+  xlang_vm_cache_touch(instr_cache[ip], XlangVMCacheDomain::CallMethod);
+  auto& cache = instr_cache[ip].call;
+  CallArgsView args;
+  args.registers = regs.value_data();
+  args.register_args = &spec.positional;
+  args.keyword_args = &spec.keywords;
+
+  // Cache the function descriptor at this call site when the same ordinary
+  // instance is called repeatedly. Guard instance shadowing and class version
+  // on every hit so assignments preserve Python's normal method lookup. This
+  // avoids repeated MRO/descriptor work in wrapper-heavy loops such as
+  // json.dumps, while still entering the original Python method frame.
+  if (!args.has_expansion()) {
+    if (auto* instance = value_as_instance(regs[in.a]);
+        instance != nullptr && instance->native_get_attr == nullptr) {
+      auto* klass = value_as_class(instance->klass);
+      const bool instance_shadowed = std::any_of(
+          instance->attrs.begin(), instance->attrs.end(), [&](const auto& attr) {
+            return attr.first == fn.names[in.b];
+          });
+      if (klass != nullptr && !klass->has_getattribute_hook && !instance_shadowed &&
+          klass->instance_slot_indices.find(fn.names[in.b]) == klass->instance_slot_indices.end() &&
+          cache.kind == CallSiteKind::UserFunction && cache.function != nullptr &&
+          cache.callee_object == &klass->header && cache.class_version == klass->version &&
+          cache.arg0_object == regs[in.a].as.obj) {
+        // Cached CallMethodEx args contain only explicit arguments. Bind the
+        // current receiver as `self` on every hit, just as descriptor lookup
+        // does on the uncached path.
+        CallArgsView method_args = args;
+        method_args.leading = &regs[in.a];
+        method_args.leading_count = 1;
+        bool pushed_frame = false;
+        if (!call_user_function(cache.function, method_args, module, module_owner, in.dst, ip,
+                                regs[in.dst], pushed_frame, make_generator_if_needed, push_frame)) {
+          return result.errors.empty() ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+        }
+        return pushed_frame ? XlangVMOpFlow::SwitchFrame : XlangVMOpFlow::Next;
+      }
+    }
+  }
+
+  // Fuse attribute lookup and a keyword call: ordinary function descriptors
+  // would otherwise allocate a bound-method object before every call. Keep
+  // custom attribute hooks and shadowing on the general Python lookup path.
+  if (!args.has_expansion()) {
+    if (auto* instance = value_as_instance(regs[in.a]);
+        instance != nullptr && instance->native_get_attr == nullptr) {
+      auto* klass = value_as_class(instance->klass);
+      bool shadowed = false;
+      if (klass != nullptr && !klass->has_getattribute_hook) {
+        for (const auto& attr : instance->attrs) {
+          if (attr.first == fn.names[in.b]) { shadowed = true; break; }
+        }
+        if (!shadowed &&
+            klass->instance_slot_indices.find(fn.names[in.b]) != klass->instance_slot_indices.end()) {
+          shadowed = true;
+        }
+        if (!shadowed) {
+          Value method;
+          std::string lookup_error;
+          if (object_get_class_attr_for_instance(regs[in.a], fn.names[in.b], method, lookup_error)) {
+            if (auto* function = value_as_function(method)) {
+              cache.callee_object = &klass->header;
+              cache.arg0_object = regs[in.a].as.obj;
+              cache.kind = CallSiteKind::UserFunction;
+              cache.function = function;
+              cache.native = nullptr;
+              cache.class_version = klass->version;
+              CallArgsView method_args = args;
+              method_args.leading = &regs[in.a];
+              method_args.leading_count = 1;
+              bool pushed_frame = false;
+              if (!call_user_function(function, method_args, module, module_owner, in.dst, ip,
+                                      regs[in.dst], pushed_frame, make_generator_if_needed, push_frame)) {
+                return result.errors.empty() ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+              }
+              return pushed_frame ? XlangVMOpFlow::SwitchFrame : XlangVMOpFlow::Next;
+            }
+          }
+        }
+      }
+    }
+  }
+  Value method;
+  std::string error;
+  if (!attribute_get(regs[in.a], fn.names[in.b], method, error)) {
+    Value pending;
+    if (runtime.take_pending_exception(pending)) {
+      return raise_exception_value(std::move(pending)) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    }
+    return raise_exception_value(runtime.make_exception("AttributeError", error))
+        ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+  }
+  std::vector<NativeKeywordArg> native_keyword_args;
+  bool pushed_frame = false;
+  if (!call_callable_value_ex(runtime, method, args, module, module_owner, in.dst, ip,
+                              native_call_args, native_keyword_args, execution_lock,
+                              regs[in.dst], pushed_frame, make_generator_if_needed,
+                              push_frame, raise_runtime_error, raise_exception_value,
+                              &monitoring_code, static_cast<int64_t>(ip))) {
+    return result.errors.empty() ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+  }
+  return pushed_frame ? XlangVMOpFlow::SwitchFrame : XlangVMOpFlow::Next;
+}
+
 template <
     typename MakeGeneratorIfNeeded,
     typename PushFrame,
@@ -2000,7 +2459,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow call(
     AnalyzeSlotConstructor&& analyze_slot_constructor_fn,
     ExecuteSlotConstructor&& execute_slot_constructor_fn,
     RaiseRuntimeError&& raise_runtime_error,
-    RaiseExceptionValue&& raise_exception_value) {
+    RaiseExceptionValue&& raise_exception_value,
+    XlangVMSmallValueBuffer* locals = nullptr) {
   xlang_vm_cache_touch(instr_cache[ip], XlangVMCacheDomain::Call);
   if (in.b >= fn.call_args.size()) {
     result.errors.push_back("invalid call arg list");
@@ -2022,7 +2482,6 @@ XLANG3_HOT_INLINE XlangVMOpFlow call(
   }
   const auto& callee = *callee_value;
   bool pushed_frame = false;
-  const bool allow_inline_calls = inline_calls_allowed(runtime);
     if (!instr_cache.empty() && callee.tag == ValueTag::Object && callee.as.obj != nullptr) {
       auto& cache = instr_cache[ip].call;
       if (cache.callee_object == callee.as.obj) {
@@ -2034,6 +2493,28 @@ XLANG3_HOT_INLINE XlangVMOpFlow call(
         if (pushed_frame) return XlangVMOpFlow::SwitchFrame;
         return XlangVMOpFlow::Next;
       }
+      if (cache.kind == CallSiteKind::BoundPythonMethod) {
+        if (auto* bound = value_as_bound_method(cache.retained_callee);
+            bound != nullptr && value_as_function(bound->function) == cache.function) {
+          // `LOAD_ATTR; CALL` is the common shape for a bound Python method
+          // saved on an instance (pickle's `self.write` is a hot example).
+          // The exact callee-object guard above keeps rebinding observable;
+          // retain the bound method so its receiver and identity stay alive.
+          CallArgsView bound_args = call_args;
+          bound_args.leading = &bound->self;
+          bound_args.leading_count = 1;
+          if (!xlang3::xlang_vm::ops::call_user_function(
+                  cache.function, bound_args, module, module_owner, in.dst, ip,
+                  regs[in.dst], pushed_frame, make_generator_if_needed, push_frame)) {
+            if (!result.errors.empty()) return XlangVMOpFlow::ReturnResult;
+            return XlangVMOpFlow::ContinueLoop;
+          }
+          if (pushed_frame) return XlangVMOpFlow::SwitchFrame;
+          return XlangVMOpFlow::Next;
+        }
+        cache.kind = CallSiteKind::Empty;
+        cache.function = nullptr;
+      }
       if (cache.kind == CallSiteKind::NativeFunction) {
         if (!xlang3::xlang_vm::ops::call_native_function(runtime, cache.native, call_args, native_call_args, execution_lock, regs[in.dst], raise_runtime_error, raise_exception_value)) {
           if (!result.errors.empty()) return XlangVMOpFlow::ReturnResult;
@@ -2041,24 +2522,42 @@ XLANG3_HOT_INLINE XlangVMOpFlow call(
         }
         return XlangVMOpFlow::Next;
       }
+      const bool is_cached_arg_inline =
+          cache.kind == CallSiteKind::InlineArgBinaryFunction;
       const bool allow_cached_python_inline = cache.function != nullptr &&
-          inline_python_function_allowed(runtime, module, *cache.function);
-      if (allow_cached_python_inline && cache.kind == CallSiteKind::InlineArgBinaryFunction) {
+          (is_cached_arg_inline
+               ? inline_cached_arg_function_allowed(
+                     runtime, module, *cache.function, cache)
+               : inline_python_function_allowed(runtime, module, *cache.function));
+      if (allow_cached_python_inline && is_cached_arg_inline) {
+        if (locals != nullptr &&
+            xlang_vm_try_cached_call_local_accumulate(
+                in, fn, cache, call_args, regs, *locals, ip)) {
+          return XlangVMOpFlow::NextNoMonitoringRefresh;
+        }
         ArgBinaryFunctionSpec spec;
         spec.lhs_arg = cache.lhs_slot;
         spec.rhs_arg = cache.rhs_slot;
         spec.op = cache.inline_op;
         spec.next_arg = cache.next_arg;
         spec.next_op = cache.next_op;
-        value_assign_fast(spec.next_constant, cache.inline_const);
         spec.has_next = cache.has_next;
         spec.next_is_constant = cache.next_is_constant;
-        std::string error;
-        if (!execute_arg_binary_function_fn(call_args, spec, regs[in.dst], error)) {
-          if (raise_runtime_error(error)) return XlangVMOpFlow::ContinueLoop;
-          return XlangVMOpFlow::ReturnResult;
+        if (spec.next_is_constant) {
+          value_assign_fast(spec.next_constant, cache.inline_const);
         }
-        return XlangVMOpFlow::Next;
+        if (xlang_vm_arg_binary_inline_values_supported(call_args, spec)) {
+          const bool output_overwrite_cannot_finalize =
+              regs[in.dst].tag != ValueTag::Object;
+          std::string error;
+          if (!execute_arg_binary_function_fn(call_args, spec, regs[in.dst], error)) {
+            if (raise_runtime_error(error)) return XlangVMOpFlow::ContinueLoop;
+            return XlangVMOpFlow::ReturnResult;
+          }
+          return output_overwrite_cannot_finalize
+              ? XlangVMOpFlow::NextNoMonitoringRefresh
+              : XlangVMOpFlow::Next;
+        }
       }
       if (allow_cached_python_inline &&
           cache.kind == CallSiteKind::InlineConditionalArgFunction &&
@@ -2090,20 +2589,50 @@ XLANG3_HOT_INLINE XlangVMOpFlow call(
         }
         return XlangVMOpFlow::Next;
       }
+      // Cached Python-function specializations use their narrower per-function
+      // monitoring guard above; defer the global inline gate to constructor paths.
+      const bool allow_inline_calls = inline_calls_allowed(runtime);
       if (cache.kind == CallSiteKind::UserConstructor || cache.kind == CallSiteKind::NativeConstructor ||
-          (allow_inline_calls && cache.kind == CallSiteKind::InlineSlotConstructor)) {
+          (allow_inline_calls &&
+           (cache.kind == CallSiteKind::InlineSlotConstructor ||
+            cache.kind == CallSiteKind::InlineMathPointConstructor))) {
         auto* cached_class = value_as_class(callee);
         if (cached_class == nullptr || cache.class_version != cached_class->version) {
           cache.kind = CallSiteKind::Empty;
         } else {
+        if (allow_inline_calls &&
+            cache.kind == CallSiteKind::InlineMathPointConstructor) {
+          Value instance = Value::instance(callee);
+          if (cache.function != nullptr && cache.cached_values.size() == 1 &&
+              !call_args.has_keywords() && !call_args.has_expansion() &&
+              xlang_vm_execute_float_point_constructor(
+                  instance, callee, *cache.function, call_args,
+                  cache.inline_slots, cache.inline_globals_module,
+                  cache.inline_globals_version, cache.inline_const,
+                  cache.cached_values[0], regs[in.dst])) {
+            return XlangVMOpFlow::Next;
+          }
+          cache.kind = CallSiteKind::Empty;
+        }
         if (allow_inline_calls && cache.kind == CallSiteKind::InlineSlotConstructor) {
+          Value instance = Value::instance(callee);
+          // Inline-constructor eligibility rejects BaseException subclasses,
+          // and the class-version guard above invalidates this cache if its
+          // inheritance changes. Skip the generic exception setup here so an
+          // ordinary cached class call avoids a BaseException lookup/MRO walk.
           std::string error;
-          if (!execute_slot_constructor_fn(callee, call_args, cache.slot_constructor_args, regs[in.dst], error)) {
+          if (cache.function && execute_slot_constructor_fn(
+                  instance, module, *cache.function, call_args,
+                  cache.slot_constructor_args, regs[in.dst], error)) {
+            return XlangVMOpFlow::Next;
+          }
+          cache.kind = CallSiteKind::Empty;
+          if (!error.empty()) {
             if (raise_runtime_error(error)) return XlangVMOpFlow::ContinueLoop;
             return XlangVMOpFlow::ReturnResult;
           }
-          return XlangVMOpFlow::Next;
         }
+        if (cache.kind != CallSiteKind::Empty) {
         Value instance = Value::instance(callee);
         initialize_exception_call_args(runtime, instance, call_args);
         CallArgsView init_args = call_args;
@@ -2134,6 +2663,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow call(
         }
         value_assign_fast(regs[in.dst], instance);
         return XlangVMOpFlow::Next;
+        }
         }
       }
     }
@@ -2193,7 +2723,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow call(
     }
     ArgBinaryFunctionSpec inline_spec;
     if (inline_python_function_allowed(runtime, module, *fn_obj) &&
-        analyze_arg_binary_function_fn(module, *fn_obj, static_cast<uint32_t>(call_args.size()), inline_spec)) {
+        analyze_arg_binary_function_fn(module, *fn_obj, static_cast<uint32_t>(call_args.size()), inline_spec) &&
+        xlang_vm_arg_binary_inline_values_supported(call_args, inline_spec)) {
       if (!instr_cache.empty() && callee.tag == ValueTag::Object) {
         auto& cache = instr_cache[ip].call;
         cache.callee_object = callee.as.obj;
@@ -2211,12 +2742,16 @@ XLANG3_HOT_INLINE XlangVMOpFlow call(
         cache.has_next = inline_spec.has_next;
         cache.next_is_constant = inline_spec.next_is_constant;
       }
+      const bool output_overwrite_cannot_finalize =
+          regs[in.dst].tag != ValueTag::Object;
       std::string error;
       if (!execute_arg_binary_function_fn(call_args, inline_spec, regs[in.dst], error)) {
         if (raise_runtime_error(error)) return XlangVMOpFlow::ContinueLoop;
         return XlangVMOpFlow::ReturnResult;
       }
-      return XlangVMOpFlow::Next;
+      return output_overwrite_cannot_finalize
+          ? XlangVMOpFlow::NextNoMonitoringRefresh
+          : XlangVMOpFlow::Next;
     }
     if (!instr_cache.empty() && callee.tag == ValueTag::Object) {
       auto& cache = instr_cache[ip].call;
@@ -2236,12 +2771,23 @@ XLANG3_HOT_INLINE XlangVMOpFlow call(
     CallArgsView bound_args = call_args;
     bound_args.leading = &bound->self;
     bound_args.leading_count = 1;
+    if (auto* fn_obj = value_as_function(bound->function);
+        fn_obj != nullptr && !instr_cache.empty()) {
+      auto& cache = instr_cache[ip].call;
+      cache.callee_object = callee.as.obj;
+      value_assign_fast(cache.retained_callee, callee);
+      cache.kind = CallSiteKind::BoundPythonMethod;
+      cache.function = fn_obj;
+      cache.native = nullptr;
+      cache.class_version = 0;
+    }
     if (!xlang3::xlang_vm::ops::call_callable_value(runtime, bound->function, bound_args, module, module_owner, in.dst, ip, native_call_args, execution_lock, regs[in.dst], pushed_frame, make_generator_if_needed, push_frame, raise_runtime_error, raise_exception_value)) {
       if (!result.errors.empty()) return XlangVMOpFlow::ReturnResult;
       return XlangVMOpFlow::ContinueLoop;
     }
     if (pushed_frame) return XlangVMOpFlow::SwitchFrame;
   } else if (auto* klass = value_as_class(callee)) {
+    const bool allow_inline_calls = inline_calls_allowed(runtime);
     if (call_args.size() == 1 && !call_args.has_keywords() && !call_args.has_expansion()) {
       Value enum_member;
       if (class_try_enum_value_lookup(callee, call_args.get(0), enum_member)) {
@@ -2433,11 +2979,16 @@ XLANG3_HOT_INLINE XlangVMOpFlow call(
       if (cache.callee_object == callee.as.obj && cache.class_version == klass->version) {
         if (allow_inline_calls && cache.kind == CallSiteKind::InlineSlotConstructor) {
           std::string error;
-          if (!execute_slot_constructor_fn(callee, call_args, cache.slot_constructor_args, regs[in.dst], error)) {
+          if (cache.function && execute_slot_constructor_fn(
+                  instance, module, *cache.function, call_args,
+                  cache.slot_constructor_args, regs[in.dst], error)) {
+            return XlangVMOpFlow::Next;
+          }
+          cache.kind = CallSiteKind::Empty;
+          if (!error.empty()) {
             if (raise_runtime_error(error)) return XlangVMOpFlow::ContinueLoop;
             return XlangVMOpFlow::ReturnResult;
           }
-          return XlangVMOpFlow::Next;
         }
         if (cache.kind == CallSiteKind::UserConstructor) {
           const auto* fn_obj = cache.function;
@@ -2488,11 +3039,48 @@ XLANG3_HOT_INLINE XlangVMOpFlow call(
         }
         value_assign_fast(regs[in.dst], instance);
       } else if (auto* fn_obj = value_as_function(init_value)) {
+        if (allow_inline_calls && !call_args.has_keywords() &&
+            !call_args.has_expansion()) {
+          XlangVMFloatPointConstructorSpec point_spec;
+          std::array<uint32_t, 3> slots{};
+          ModuleObject* globals_module = nullptr;
+          Value expected_sin = Value::invalid();
+          Value expected_cos = Value::invalid();
+          if (xlang_vm_analyze_float_point_constructor(
+                  module, *fn_obj, point_spec) &&
+              xlang_vm_prepare_float_point_constructor(
+                  runtime, module, callee, *fn_obj, point_spec, slots,
+                  globals_module, expected_sin, expected_cos) &&
+              xlang_vm_execute_float_point_constructor(
+                  instance, callee, *fn_obj, call_args, slots,
+                  globals_module, globals_module->version,
+                  expected_sin, expected_cos, regs[in.dst])) {
+            if (!instr_cache.empty()) {
+              auto& cache = instr_cache[ip].call;
+              cache.callee_object = callee.as.obj;
+              value_assign_fast(cache.retained_callee, callee);
+              cache.kind = CallSiteKind::InlineMathPointConstructor;
+              cache.function = fn_obj;
+              cache.native = nullptr;
+              cache.class_version = klass->version;
+              cache.inline_slots = slots;
+              cache.inline_globals_module = globals_module;
+              cache.inline_globals_version = globals_module->version;
+              value_assign_fast(cache.inline_const, expected_sin);
+              cache.cached_values.clear();
+              cache.cached_values.push_back(expected_cos);
+            }
+            return XlangVMOpFlow::Next;
+          }
+        }
         SlotConstructorSpec slot_constructor_spec;
         if (allow_inline_calls && !call_args.has_keywords() && !call_args.has_expansion() &&
-            analyze_slot_constructor_fn(module, *fn_obj, slot_constructor_spec)) {
+            analyze_slot_constructor_fn(module, *fn_obj, slot_constructor_spec) &&
+            xlang_vm_slot_constructor_attrs_safe(module, callee, *fn_obj, slot_constructor_spec)) {
           std::string error;
-          if (execute_slot_constructor_fn(callee, call_args, slot_constructor_spec, regs[in.dst], error)) {
+          if (execute_slot_constructor_fn(
+                  instance, module, *fn_obj, call_args, slot_constructor_spec,
+                  regs[in.dst], error)) {
             if (!instr_cache.empty()) {
               auto& cache = instr_cache[ip].call;
               cache.callee_object = callee.as.obj;
@@ -3385,14 +3973,37 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_module_method(
   }
   const auto& module_value = globals_module_obj->slots[resolved_module_slot];
   auto* module_object = value_as_module(module_value);
-  if (module_object == nullptr) {
-    return raise_runtime_error("imported module binding is not a module") ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
-  }
-
   const auto& call_arg_regs = fn.call_args[in.c];
   CallArgsView call_args;
   call_args.registers = regs.value_data();
   call_args.register_args = &call_arg_regs;
+  if (module_object == nullptr) {
+    Value callee;
+    std::string attr_error;
+    const Value* getattr_builtin = runtime.find_builtin("getattr");
+    const Value getattr_args[] = {module_value, Value::string(fn.names[in.b])};
+    if (getattr_builtin == nullptr ||
+        !runtime_call_callable(runtime, *getattr_builtin, getattr_args, 2,
+                               callee, attr_error)) {
+      Value pending;
+      if (runtime.take_pending_exception(pending))
+        return raise_exception_value(std::move(pending))
+            ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+      return raise_exception_value(runtime.make_exception("AttributeError", attr_error))
+          ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    }
+    std::vector<NativeKeywordArg> native_keyword_args;
+    bool pushed_frame = false;
+    if (!call_callable_value_ex(
+            runtime, callee, call_args, module, module_owner, in.dst, ip,
+            native_call_args, native_keyword_args, execution_lock, regs[in.dst],
+            pushed_frame, make_generator_if_needed, push_frame,
+            raise_runtime_error, raise_exception_value)) {
+      return result.errors.empty()
+          ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    }
+    return pushed_frame ? XlangVMOpFlow::SwitchFrame : XlangVMOpFlow::Next;
+  }
 
   auto monitoring_event_enabled = [&](int64_t event) {
     auto* code_object = value_as_code(monitoring_code);

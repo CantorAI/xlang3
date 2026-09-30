@@ -1,0 +1,14 @@
+map versions 0 1 2
+map lookup 1 9 False
+map iter ['one', 'two'] [('one', 1), ('two', 2)]
+map remove 1 2
+map convert True
+map update [('one', 1), ('three', 3)]
+map collision a b
+map missing KeyError
+set versions 0 1 2
+set contents ['one', 'two'] False
+set remove ['two'] 2
+list versions 0 [1] [2, 1]
+list tail [1]
+list empty IndexError

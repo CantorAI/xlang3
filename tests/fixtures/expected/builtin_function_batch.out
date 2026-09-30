@@ -1,4 +1,6 @@
 [(3, 'a'), (4, 'b')]
+[(7, 'first'), (8, 'second'), (9, 'third')]
+(7, 'first') (8, 'second') False
 [(1, 'a'), (2, 'b')]
 6
 5.0

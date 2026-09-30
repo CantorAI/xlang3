@@ -25,8 +25,11 @@ limitations under the License.
 
 #include <climits>
 #include <cstring>
+#include <limits>
 #include <string>
 #include <string_view>
+#include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 namespace xlang3 {
@@ -284,13 +287,28 @@ bool pickle_write_global(Runtime& runtime, const Value& callable, std::string& o
   return true;
 }
 
+struct PickleWriterState {
+  std::unordered_map<Object*, uint32_t> memo;
+  uint32_t next_memo_index = 0;
+};
+
 bool pickle_write_value(
     Runtime& runtime,
     const Value& value,
     int protocol,
     std::string& out,
     std::string& error,
-    const Value* dispatch_table = nullptr) {
+    const Value* dispatch_table = nullptr,
+    PickleWriterState* state = nullptr);
+
+bool pickle_write_value_body(
+    Runtime& runtime,
+    const Value& value,
+    int protocol,
+    std::string& out,
+    std::string& error,
+    const Value* dispatch_table,
+    PickleWriterState* state) {
   switch (value.tag) {
     case ValueTag::None:
       out.push_back('N');
@@ -357,7 +375,7 @@ bool pickle_write_value(
     if (!list->items.empty()) {
       out.push_back('('); // MARK
       for (const auto& item : list->items) {
-        if (!pickle_write_value(runtime, item, protocol, out, error, dispatch_table)) {
+        if (!pickle_write_value(runtime, item, protocol, out, error, dispatch_table, state)) {
           return false;
         }
       }
@@ -372,7 +390,7 @@ bool pickle_write_value(
     }
     out.push_back('('); // MARK
     for (const auto& item : tuple->items) {
-      if (!pickle_write_value(runtime, item, protocol, out, error, dispatch_table)) {
+      if (!pickle_write_value(runtime, item, protocol, out, error, dispatch_table, state)) {
         return false;
       }
     }
@@ -384,8 +402,8 @@ bool pickle_write_value(
     if (!dict->entries.empty()) {
       out.push_back('('); // MARK
       for (const auto& entry : dict->entries) {
-        if (!pickle_write_value(runtime, entry.first, protocol, out, error, dispatch_table) ||
-            !pickle_write_value(runtime, entry.second, protocol, out, error, dispatch_table)) {
+        if (!pickle_write_value(runtime, entry.first, protocol, out, error, dispatch_table, state) ||
+            !pickle_write_value(runtime, entry.second, protocol, out, error, dispatch_table, state)) {
           return false;
         }
       }
@@ -398,7 +416,7 @@ bool pickle_write_value(
     if (!set->items.empty()) {
       out.push_back('('); // MARK
       for (const auto& item : set->items) {
-        if (!pickle_write_value(runtime, item, protocol, out, error, dispatch_table)) {
+        if (!pickle_write_value(runtime, item, protocol, out, error, dispatch_table, state)) {
           return false;
         }
       }
@@ -423,7 +441,7 @@ bool pickle_write_value(
     }
     if (!pickle_write_global(runtime, *getattr_function, out, error) ||
         !pickle_write_value(
-            runtime, Value::tuple({bound->self, std::move(method_name)}), protocol, out, error, dispatch_table)) {
+            runtime, Value::tuple({bound->self, std::move(method_name)}), protocol, out, error, dispatch_table, state)) {
       return false;
     }
     out.push_back('R'); // REDUCE
@@ -481,7 +499,7 @@ bool pickle_write_value(
     error += " while reducing " + value_to_repr(value);
     return false;
   }
-  if (!pickle_write_value(runtime, reduced_tuple->items[1], protocol, out, error, dispatch_table)) {
+  if (!pickle_write_value(runtime, reduced_tuple->items[1], protocol, out, error, dispatch_table, state)) {
     return false;
   }
   out.push_back('R'); // REDUCE
@@ -494,13 +512,13 @@ bool pickle_write_value(
     if (!list_items.empty()) {
       if (protocol == 0) {
         for (const auto& item : list_items) {
-          if (!pickle_write_value(runtime, item, protocol, out, error, dispatch_table)) return false;
+          if (!pickle_write_value(runtime, item, protocol, out, error, dispatch_table, state)) return false;
           out.push_back('a'); // APPEND
         }
       } else {
         out.push_back('('); // MARK
         for (const auto& item : list_items) {
-          if (!pickle_write_value(runtime, item, protocol, out, error, dispatch_table)) return false;
+          if (!pickle_write_value(runtime, item, protocol, out, error, dispatch_table, state)) return false;
         }
         out.push_back('e'); // APPENDS
       }
@@ -520,8 +538,8 @@ bool pickle_write_value(
           error = "dict items iterator must return 2-tuples";
           return false;
         }
-        if (!pickle_write_value(runtime, pair->items[0], protocol, out, error, dispatch_table) ||
-            !pickle_write_value(runtime, pair->items[1], protocol, out, error, dispatch_table)) return false;
+        if (!pickle_write_value(runtime, pair->items[0], protocol, out, error, dispatch_table, state) ||
+            !pickle_write_value(runtime, pair->items[1], protocol, out, error, dispatch_table, state)) return false;
         if (protocol == 0) out.push_back('s'); // SETITEM
       }
       if (protocol != 0) out.push_back('u'); // SETITEMS
@@ -529,7 +547,7 @@ bool pickle_write_value(
   }
 
   if (reduced_tuple->items.size() >= 3 && reduced_tuple->items[2].tag != ValueTag::None) {
-    if (!pickle_write_value(runtime, reduced_tuple->items[2], protocol, out, error, dispatch_table)) {
+    if (!pickle_write_value(runtime, reduced_tuple->items[2], protocol, out, error, dispatch_table, state)) {
       return false;
     }
     out.push_back('b'); // BUILD
@@ -583,6 +601,7 @@ struct PickleReader {
   size_t pos = 0;
   std::vector<Value> stack;
   std::vector<size_t> marks;
+  std::vector<Value> memo;
 
   bool read_byte(unsigned char& out) {
     if (pos >= data.size()) {
@@ -651,7 +670,8 @@ enum class PickleScanResult {
   Invalid,
 };
 
-PickleScanResult scan_pickle_record(std::string_view data, std::string& error) {
+PickleScanResult scan_pickle_record(
+    std::string_view data, std::string& error, bool builtin_only = false) {
   size_t pos = 0;
   auto skip = [&](size_t count) -> bool {
     if (count > data.size() - pos) {
@@ -693,6 +713,10 @@ PickleScanResult scan_pickle_record(std::string_view data, std::string& error) {
       case 0x8a: { // LONG1
         if (pos == data.size()) return PickleScanResult::Incomplete;
         const size_t size = static_cast<unsigned char>(data[pos++]);
+        if (builtin_only && size > sizeof(uint64_t)) {
+          error = "large integers require the compatible Python loader";
+          return PickleScanResult::Invalid;
+        }
         if (!skip(size)) return PickleScanResult::Incomplete;
         break;
       }
@@ -725,6 +749,14 @@ PickleScanResult scan_pickle_record(std::string_view data, std::string& error) {
         pos = newline + 1;
         break;
       }
+      case 'q': // BINPUT
+      case 'h': // BINGET
+        if (!skip(1)) return PickleScanResult::Incomplete;
+        break;
+      case 'r': // LONG_BINPUT
+      case 'j': // LONG_BINGET
+        if (!skip(4)) return PickleScanResult::Incomplete;
+        break;
       case 'N': // NONE
       case 0x88: // NEWTRUE
       case 0x89: // NEWFALSE
@@ -751,7 +783,18 @@ PickleScanResult scan_pickle_record(std::string_view data, std::string& error) {
   return PickleScanResult::Incomplete;
 }
 
-bool pickle_read_value(Runtime& runtime, std::string_view payload, Value& out, std::string& error) {
+bool pickle_is_datetime_date(Runtime& runtime, const Value& candidate) {
+  Value datetime_module;
+  Value date_class;
+  std::string ignored;
+  return runtime.import_module("datetime", datetime_module, ignored) &&
+      attribute_get(datetime_module, "date", date_class, ignored) &&
+      value_is(candidate, date_class);
+}
+
+bool pickle_read_value(
+    Runtime& runtime, std::string_view payload, Value& out, std::string& error,
+    bool builtin_only = false) {
   PickleReader reader{payload};
   while (reader.pos < reader.data.size()) {
     unsigned char opcode = 0;
@@ -768,8 +811,14 @@ bool pickle_read_value(Runtime& runtime, std::string_view payload, Value& out, s
         }
         break;
       }
-      case 0x94: // MEMOIZE
+      case 0x94: { // MEMOIZE
+        if (reader.stack.empty()) {
+          error = "pickle MEMOIZE needs a stack value";
+          return false;
+        }
+        reader.memo.push_back(reader.stack.back());
         break;
+      }
       case 0x95: { // FRAME
         uint64_t frame_size = 0;
         if (!reader.read_u64(frame_size)) {
@@ -840,6 +889,77 @@ bool pickle_read_value(Runtime& runtime, std::string_view payload, Value& out, s
           error = "truncated pickle memo index";
           return false;
         }
+        size_t index = 0;
+        for (char digit : memo_index) {
+          if (digit < '0' || digit > '9' ||
+              index > (std::numeric_limits<size_t>::max() - 9) / 10) {
+            error = "invalid pickle memo index";
+            return false;
+          }
+          index = index * 10 + static_cast<size_t>(digit - '0');
+        }
+        if (reader.stack.empty()) { error = "pickle PUT needs a stack value"; return false; }
+        if (reader.memo.size() <= index) reader.memo.resize(index + 1, Value::invalid());
+        reader.memo[index] = reader.stack.back();
+        break;
+      }
+      case 'q': { // BINPUT
+        unsigned char index = 0;
+        if (!reader.read_byte(index) || reader.stack.empty()) {
+          error = "truncated pickle BINPUT";
+          return false;
+        }
+        if (reader.memo.size() <= index) reader.memo.resize(static_cast<size_t>(index) + 1, Value::invalid());
+        reader.memo[index] = reader.stack.back();
+        break;
+      }
+      case 'r': { // LONG_BINPUT
+        uint32_t index = 0;
+        if (!reader.read_u32(index) || reader.stack.empty()) {
+          error = "truncated pickle LONG_BINPUT";
+          return false;
+        }
+        if (reader.memo.size() <= index) reader.memo.resize(static_cast<size_t>(index) + 1, Value::invalid());
+        reader.memo[index] = reader.stack.back();
+        break;
+      }
+      case 'g': { // GET
+        std::string_view memo_index;
+        if (!reader.read_line(memo_index)) { error = "truncated pickle GET"; return false; }
+        size_t index = 0;
+        for (char digit : memo_index) {
+          if (digit < '0' || digit > '9' ||
+              index > (std::numeric_limits<size_t>::max() - 9) / 10) {
+            error = "invalid pickle memo index";
+            return false;
+          }
+          index = index * 10 + static_cast<size_t>(digit - '0');
+        }
+        if (index >= reader.memo.size() || reader.memo[index].tag == ValueTag::Invalid) {
+          error = "pickle GET refers to a missing memo entry";
+          return false;
+        }
+        reader.stack.push_back(reader.memo[index]);
+        break;
+      }
+      case 'h': { // BINGET
+        unsigned char index = 0;
+        if (!reader.read_byte(index) || index >= reader.memo.size() ||
+            reader.memo[index].tag == ValueTag::Invalid) {
+          error = "pickle BINGET refers to a missing memo entry";
+          return false;
+        }
+        reader.stack.push_back(reader.memo[index]);
+        break;
+      }
+      case 'j': { // LONG_BINGET
+        uint32_t index = 0;
+        if (!reader.read_u32(index) || index >= reader.memo.size() ||
+            reader.memo[index].tag == ValueTag::Invalid) {
+          error = "pickle LONG_BINGET refers to a missing memo entry";
+          return false;
+        }
+        reader.stack.push_back(reader.memo[index]);
         break;
       }
       case 0x8a: { // LONG1
@@ -900,6 +1020,10 @@ bool pickle_read_value(Runtime& runtime, std::string_view payload, Value& out, s
           error = "truncated pickle global";
           return false;
         }
+        if (builtin_only && (module_name != "datetime" || qualified_name != "date")) {
+          error = "pickle global requires the compatible Python loader";
+          return false;
+        }
         Value global;
         if (!runtime.import_module(std::string(module_name), global, error)) {
           return false;
@@ -940,6 +1064,10 @@ bool pickle_read_value(Runtime& runtime, std::string_view payload, Value& out, s
         }
         const std::string module_name = string_object_to_string(*module_name_string);
         const std::string qualified_name = string_object_to_string(*qualified_name_string);
+        if (builtin_only && (module_name != "datetime" || qualified_name != "date")) {
+          error = "pickle STACK_GLOBAL requires the compatible Python loader";
+          return false;
+        }
         Value global;
         if (!runtime.import_module(module_name, global, error)) {
           return false;
@@ -972,6 +1100,10 @@ bool pickle_read_value(Runtime& runtime, std::string_view payload, Value& out, s
         reader.stack.pop_back();
         Value callable = reader.stack.back();
         reader.stack.pop_back();
+        if (builtin_only && !pickle_is_datetime_date(runtime, callable)) {
+          error = "pickle reducer requires the compatible Python loader";
+          return false;
+        }
         auto* tuple = value_as_tuple(arguments);
         if (tuple == nullptr) {
           error = "pickle REDUCE arguments are not a tuple";
@@ -991,6 +1123,10 @@ bool pickle_read_value(Runtime& runtime, std::string_view payload, Value& out, s
         break;
       }
       case 'b': { // BUILD
+        if (builtin_only) {
+          error = "pickle BUILD requires the compatible Python loader";
+          return false;
+        }
         if (reader.stack.size() < 2) {
           error = "pickle BUILD needs an instance and state";
           return false;
@@ -1129,7 +1265,149 @@ bool pickle_read_value(Runtime& runtime, std::string_view payload, Value& out, s
   return false;
 }
 
+// The native shortcut accepts acyclic built-in graphs and exact datetime.date
+// values. Its prewalk rejects cycles; the writer then memoizes after encoding,
+// preserving repeated-reference identity with MEMOIZE/BINGET. Other custom
+// classes and deep graphs stay on pickle.py's fully compatible path.
+bool pickle_builtin_tree_supported(
+    Runtime& runtime,
+    const Value& value,
+    std::unordered_set<Object*>& active,
+    std::unordered_set<Object*>& checked,
+    size_t depth = 0) {
+  if (depth > 900) return false;
+  if (value.tag == ValueTag::None || value.tag == ValueTag::Bool ||
+      value.tag == ValueTag::Int64 || value.tag == ValueTag::Double) {
+    return true;
+  }
+  if (value.tag != ValueTag::Object || value.as.obj == nullptr) {
+    return false;
+  }
+  Object* object = value.as.obj;
+  if (active.find(object) != active.end()) return false;
+  if (checked.find(object) != checked.end()) return true;
+
+  active.insert(object);
+  bool supported = false;
+  if (value_as_string(value) != nullptr || value_as_bytes(value) != nullptr) {
+    supported = true;
+  } else if (auto* instance = value_as_instance(value); instance != nullptr) {
+    auto* instance_class = value_as_class(instance->klass);
+    if (instance_class != nullptr && instance_class->name == "date") {
+      // datetime.date's reducer is already handled by pickle_write_value;
+      // require the actual standard-library class so arbitrary user reducers
+      // continue to use pickle.py's fully compatible writer.
+      Value date_module;
+      Value date_class;
+      Value actual_class;
+      std::string ignored;
+      supported = runtime_type_of_value(runtime, value, actual_class) &&
+          runtime.import_module("datetime", date_module, ignored) &&
+          attribute_get(date_module, "date", date_class, ignored) &&
+          value_is(actual_class, date_class);
+    }
+  }
+  if (!supported) if (auto* list = value_as_list(value)) {
+    supported = true;
+    for (const auto& item : list->items) {
+      if (!pickle_builtin_tree_supported(runtime, item, active, checked, depth + 1)) {
+        supported = false;
+        break;
+      }
+    }
+  }
+  if (!supported) if (auto* tuple = value_as_tuple(value)) {
+    supported = true;
+    for (const auto& item : tuple->items) {
+      if (!pickle_builtin_tree_supported(runtime, item, active, checked, depth + 1)) {
+        supported = false;
+        break;
+      }
+    }
+  }
+  if (!supported) if (auto* dict = value_as_dict(value)) {
+    supported = true;
+    for (const auto& [key, item] : dict->entries) {
+      if (!pickle_builtin_tree_supported(runtime, key, active, checked, depth + 1) ||
+          !pickle_builtin_tree_supported(runtime, item, active, checked, depth + 1)) {
+        supported = false;
+        break;
+      }
+    }
+  }
+  active.erase(object);
+  if (supported) checked.insert(object);
+  return supported;
+}
+
+bool pickle_dumps_builtin_tree(
+    Runtime& runtime, const Value& value, int protocol, Value& out, std::string& error) {
+  std::unordered_set<Object*> active;
+  std::unordered_set<Object*> checked;
+  if (protocol < 4 || protocol > 5 ||
+      !pickle_builtin_tree_supported(runtime, value, active, checked)) {
+    return false;
+  }
+  // Protocol 4/5 framing is optional. These small scalar/container streams
+  // need only the protocol header and STOP opcode around the existing writer.
+  std::string encoded;
+  encoded.reserve(256);
+  encoded.push_back(static_cast<char>(0x80));
+  encoded.push_back(static_cast<char>(protocol));
+  PickleWriterState writer_state;
+  if (!pickle_write_value(runtime, value, protocol, encoded, error, nullptr, &writer_state)) {
+    error.clear();
+    return false;
+  }
+  encoded.push_back('.');
+  out = Value::bytes(encoded);
+  return true;
+}
+
+bool pickle_write_value(
+    Runtime& runtime,
+    const Value& value,
+    int protocol,
+    std::string& out,
+    std::string& error,
+    const Value* dispatch_table,
+    PickleWriterState* state) {
+  Object* object = value.tag == ValueTag::Object ? value.as.obj : nullptr;
+  if (state != nullptr && object != nullptr) {
+    const auto memoized = state->memo.find(object);
+    if (memoized != state->memo.end()) {
+      const uint32_t index = memoized->second;
+      if (index <= 0xffu) {
+        out.push_back('h'); // BINGET
+        out.push_back(static_cast<char>(index));
+      } else {
+        out.push_back('j'); // LONG_BINGET
+        append_u32(out, index);
+      }
+      return true;
+    }
+  }
+
+  if (!pickle_write_value_body(runtime, value, protocol, out, error, dispatch_table, state)) {
+    return false;
+  }
+  if (state != nullptr && object != nullptr) {
+    // The eligibility walk rejects cycles, so memoizing after encoding is
+    // sufficient and preserves repeated immutable and container references.
+    state->memo.emplace(object, state->next_memo_index++);
+    out.push_back(static_cast<char>(0x94)); // MEMOIZE
+  }
+  return true;
+}
+
 bool pickle_dumps(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc == 1) {
+    if (pickle_dumps_builtin_tree(runtime, args[0], kPickleHighestProtocol, out, error)) return true;
+  } else if (argc == 2 && args[1].tag == ValueTag::Int64 &&
+             args[1].as.i64 >= 4 && args[1].as.i64 <= kPickleHighestProtocol) {
+    const int protocol = static_cast<int>(args[1].as.i64);
+    if (pickle_dumps_builtin_tree(runtime, args[0], protocol, out, error)) return true;
+  }
   return call_source_pickle(runtime, "_dumps", args, argc, nullptr, 0, out, error);
 }
 
@@ -1146,6 +1424,20 @@ bool pickle_dumps_kw(
 }
 
 bool pickle_loads(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc == 1) {
+    std::string_view payload;
+    std::string fast_error;
+    // Keep the common protocol-4/5 container path out of Python opcode dispatch.
+    // The native reader's reducer whitelist preserves compatibility fallback
+    // without executing arbitrary user reducers twice after a partial decode.
+    if (get_bytes_view(args[0], payload, fast_error) &&
+        scan_pickle_record(payload, fast_error, true) == PickleScanResult::Complete &&
+        pickle_read_value(runtime, payload, out, fast_error, true)) {
+      return true;
+    }
+    Value ignored_exception;
+    runtime.take_pending_exception(ignored_exception);
+  }
   return call_source_pickle(runtime, "_loads", args, argc, nullptr, 0, out, error);
 }
 

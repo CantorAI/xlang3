@@ -2425,16 +2425,65 @@ bool os_times(Runtime& runtime, const Value*, uint32_t argc, Value& out, std::st
   return true;
 }
 
+bool dir_entry_resolve_stat(Runtime& runtime, const Value& entry,
+                            bool follow_symlinks, VfsStat& stat,
+                            std::string& error) {
+  std::string current_path = dir_entry_path(entry);
+  if (!runtime.vfs().stat(current_path, stat, error)) return false;
+  if (!follow_symlinks) return true;
+  for (size_t depth = 0; stat.is_symlink && depth < 40; ++depth) {
+    std::string target;
+    if (!runtime.vfs().read_link(current_path, target, error)) return false;
+    const std::filesystem::path target_path = std::filesystem::u8path(target);
+    current_path = (target_path.is_absolute()
+        ? target_path
+        : std::filesystem::u8path(current_path).parent_path() / target_path)
+        .lexically_normal().u8string();
+    if (!runtime.vfs().stat(current_path, stat, error)) return false;
+    if (stat.kind == VfsNodeKind::Missing) return true;
+  }
+  if (stat.is_symlink) {
+    error = "too many levels of symbolic links: " + dir_entry_path(entry);
+    return false;
+  }
+  return true;
+}
+
+bool os_fsync(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "fsync() expected fd";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  int fd = 0;
+  if (!os_fd_arg(runtime, args[0], fd, error)) return false;
+#if defined(_WIN32)
+  if (safe_get_osfhandle(fd) == -1) {
+    error = std::strerror(EBADF);
+    return raise_os_error_with_errno(runtime, "OSError", EBADF, error);
+  }
+  const int status = _commit(fd);
+#else
+  const int status = ::fsync(fd);
+#endif
+  if (status != 0) {
+    const int error_number = errno;
+    error = std::strerror(error_number);
+    return raise_os_error_with_errno(runtime, "OSError", error_number, error);
+  }
+  value_set_none(out);
+  return true;
+}
+
 bool dir_entry_is_dir(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 1 || argc > 2) {
     error = "DirEntry.is_dir() expected optional follow_symlinks";
     return false;
   }
-  if (!object_get_attr(args[0], "_cached_is_dir", out, error)) {
-    error = "invalid DirEntry object";
-    runtime.raise_class_error("TypeError", error);
-    return false;
-  }
+  VfsStat stat;
+  if (!dir_entry_resolve_stat(runtime, args[0], argc == 1 || value_truthy(args[1]),
+                              stat, error)) return false;
+  value_set_bool(out, stat.kind == VfsNodeKind::Directory && !stat.is_symlink);
   return true;
 }
 
@@ -2442,6 +2491,10 @@ bool accept_follow_symlinks_kw(
     const NativeKeywordArg* kwargs,
     uint32_t kwargc,
     std::string& error) {
+  if (kwargc > 1) {
+    error = "DirEntry method got multiple follow_symlinks values";
+    return false;
+  }
   for (uint32_t i = 0; i < kwargc; ++i) {
     if (kwargs[i].name == nullptr || kwargs[i].value == nullptr) {
       error = "DirEntry method got invalid keyword argument";
@@ -2464,8 +2517,14 @@ bool dir_entry_is_dir_kw(
     Value& out,
     std::string& error,
     void* user_data) {
-  return accept_follow_symlinks_kw(kwargs, kwargc, error) &&
-         dir_entry_is_dir(runtime, args, argc, out, error, user_data);
+  if (!accept_follow_symlinks_kw(kwargs, kwargc, error)) return false;
+  if (kwargc == 0) return dir_entry_is_dir(runtime, args, argc, out, error, user_data);
+  if (argc != 1) {
+    error = "DirEntry.is_dir() got multiple follow_symlinks values";
+    return false;
+  }
+  const Value forwarded[2] = {args[0], *kwargs[0].value};
+  return dir_entry_is_dir(runtime, forwarded, 2, out, error, user_data);
 }
 
 bool dir_entry_is_file(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -2473,11 +2532,10 @@ bool dir_entry_is_file(Runtime& runtime, const Value* args, uint32_t argc, Value
     error = "DirEntry.is_file() expected optional follow_symlinks";
     return false;
   }
-  if (!object_get_attr(args[0], "_cached_is_file", out, error)) {
-    error = "invalid DirEntry object";
-    runtime.raise_class_error("TypeError", error);
-    return false;
-  }
+  VfsStat stat;
+  if (!dir_entry_resolve_stat(runtime, args[0], argc == 1 || value_truthy(args[1]),
+                              stat, error)) return false;
+  value_set_bool(out, stat.kind == VfsNodeKind::File && !stat.is_symlink);
   return true;
 }
 
@@ -2490,8 +2548,14 @@ bool dir_entry_is_file_kw(
     Value& out,
     std::string& error,
     void* user_data) {
-  return accept_follow_symlinks_kw(kwargs, kwargc, error) &&
-         dir_entry_is_file(runtime, args, argc, out, error, user_data);
+  if (!accept_follow_symlinks_kw(kwargs, kwargc, error)) return false;
+  if (kwargc == 0) return dir_entry_is_file(runtime, args, argc, out, error, user_data);
+  if (argc != 1) {
+    error = "DirEntry.is_file() got multiple follow_symlinks values";
+    return false;
+  }
+  const Value forwarded[2] = {args[0], *kwargs[0].value};
+  return dir_entry_is_file(runtime, forwarded, 2, out, error, user_data);
 }
 
 bool dir_entry_is_symlink(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -2543,11 +2607,20 @@ bool dir_entry_stat(Runtime& runtime, const Value* args, uint32_t argc, Value& o
     error = "DirEntry.stat() expected optional follow_symlinks";
     return false;
   }
-  if (!object_get_attr(args[0], "_cached_stat", out, error)) {
-    error = "invalid DirEntry object";
-    runtime.raise_class_error("TypeError", error);
+  auto* state = static_cast<OsModuleState*>(user_data);
+  if (state == nullptr) {
+    error = "DirEntry.stat() missing os module state";
     return false;
   }
+  VfsStat stat;
+  if (!dir_entry_resolve_stat(runtime, args[0], argc == 1 || value_truthy(args[1]),
+                              stat, error) || stat.kind == VfsNodeKind::Missing) {
+    const std::string path = dir_entry_path(args[0]);
+    if (error.empty()) error = "file not found: " + path;
+    Value filename = Value::string(path);
+    return raise_path_not_found(runtime, error, &filename);
+  }
+  out = make_stat_result(state->stat_result_class, stat);
   return true;
 }
 
@@ -2560,8 +2633,14 @@ bool dir_entry_stat_kw(
     Value& out,
     std::string& error,
     void* user_data) {
-  return accept_follow_symlinks_kw(kwargs, kwargc, error) &&
-         dir_entry_stat(runtime, args, argc, out, error, user_data);
+  if (!accept_follow_symlinks_kw(kwargs, kwargc, error)) return false;
+  if (kwargc == 0) return dir_entry_stat(runtime, args, argc, out, error, user_data);
+  if (argc != 1) {
+    error = "DirEntry.stat() got multiple follow_symlinks values";
+    return false;
+  }
+  const Value forwarded[2] = {args[0], *kwargs[0].value};
+  return dir_entry_stat(runtime, forwarded, 2, out, error, user_data);
 }
 
 bool dir_entry_inode(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -3599,6 +3678,13 @@ bool os_putenv(Runtime& runtime, const Value* args, uint32_t argc, Value& out, s
     runtime.raise_class_error("OSError", error);
     return false;
   }
+  // Native packages linked against the C runtime read getenv(), which keeps
+  // its own environment copy on Windows.
+  if (_putenv_s(name.c_str(), value.c_str()) != 0) {
+    error = "putenv failed";
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
 #else
   if (::setenv(name.c_str(), value.c_str(), 1) != 0) {
     error = "putenv failed";
@@ -3631,6 +3717,11 @@ bool os_unsetenv(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
     return false;
   }
   if (!SetEnvironmentVariableA(name.c_str(), nullptr)) {
+    error = "unsetenv failed";
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+  if (_putenv_s(name.c_str(), "") != 0) {
     error = "unsetenv failed";
     runtime.raise_class_error("OSError", error);
     return false;
@@ -4070,6 +4161,34 @@ bool os_getfullpathname(Runtime& runtime, const Value* args, uint32_t argc, Valu
   return true;
 }
 
+bool os_findfirstfile(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "nt._findfirstfile() expected one path";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  PathArg path;
+  if (!get_path_arg(runtime, args[0], "nt._findfirstfile path", path, error)) {
+    return false;
+  }
+  std::wstring wide_path;
+  if (!windows_utf8_path(runtime, path, wide_path, error)) {
+    return false;
+  }
+  WIN32_FIND_DATAW data{};
+  HANDLE handle = FindFirstFileW(wide_path.c_str(), &data);
+  if (handle == INVALID_HANDLE_VALUE) {
+    return raise_win32_os_error(runtime, GetLastError(), &args[0], error);
+  }
+  FindClose(handle);
+  std::string name;
+  if (!windows_wide_path_to_utf8(runtime, data.cFileName, name, error)) {
+    return false;
+  }
+  out = path_name_value(std::move(name), path.bytes);
+  return true;
+}
+
 bool os_getfinalpathname(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
     error = "nt._getfinalpathname() expected one path";
@@ -4088,9 +4207,7 @@ bool os_getfinalpathname(Runtime& runtime, const Value* args, uint32_t argc, Val
       wide_path.c_str(), 0, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
       nullptr, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, nullptr);
   if (handle == INVALID_HANDLE_VALUE) {
-    error = "Windows could not open the path";
-    runtime.raise_class_error("OSError", error);
-    return false;
+    return raise_win32_os_error(runtime, GetLastError(), &args[0], error);
   }
   std::wstring buffer(32768, L'\0');
   DWORD length = GetFinalPathNameByHandleW(
@@ -4102,11 +4219,13 @@ bool os_getfinalpathname(Runtime& runtime, const Value* args, uint32_t argc, Val
         handle, buffer.data(), static_cast<DWORD>(buffer.size()),
         FILE_NAME_NORMALIZED | VOLUME_NAME_DOS);
   }
+  const DWORD final_path_error = length == 0 ? GetLastError() : ERROR_SUCCESS;
   CloseHandle(handle);
   if (length == 0 || length >= buffer.size()) {
-    error = "Windows could not resolve the final path";
-    runtime.raise_class_error("OSError", error);
-    return false;
+    return raise_win32_os_error(
+        runtime,
+        final_path_error != ERROR_SUCCESS ? final_path_error : ERROR_INSUFFICIENT_BUFFER,
+        &args[0], error);
   }
   buffer.resize(static_cast<size_t>(length));
   std::string result;
@@ -4331,6 +4450,7 @@ bool os_path_isdevdrive(Runtime& runtime, const Value* args, uint32_t argc, Valu
 
 enum class WindowsPathQuery {
   Exists,
+  Lexists,
   IsDirectory,
   IsFile,
   IsLink,
@@ -4382,7 +4502,7 @@ bool os_windows_path_query(
       return true;
     }
     const DWORD file_type = GetFileType(reinterpret_cast<HANDLE>(raw_handle));
-    if (query == WindowsPathQuery::Exists) {
+    if (query == WindowsPathQuery::Exists || query == WindowsPathQuery::Lexists) {
       value_set_bool(out, file_type != FILE_TYPE_UNKNOWN || GetLastError() == NO_ERROR);
       return true;
     }
@@ -4430,7 +4550,7 @@ bool os_windows_path_query(
        (device_name.rfind("COM", 0) == 0 || device_name.rfind("LPT", 0) == 0) &&
        device_name[3] >= '1' && device_name[3] <= '9');
   if (is_dos_device) {
-    value_set_bool(out, query == WindowsPathQuery::Exists);
+    value_set_bool(out, query == WindowsPathQuery::Exists || query == WindowsPathQuery::Lexists);
     return true;
   }
   if (query == WindowsPathQuery::IsFile &&
@@ -4443,7 +4563,32 @@ bool os_windows_path_query(
   std::string vfs_error;
   if (runtime.vfs().stat(path.text, vfs_stat, vfs_error) &&
       vfs_stat.kind != VfsNodeKind::Missing) {
-    if (query == WindowsPathQuery::Exists) {
+    if (vfs_stat.is_symlink && query != WindowsPathQuery::Lexists &&
+        query != WindowsPathQuery::IsLink && query != WindowsPathQuery::IsJunction) {
+      std::string current_path = path.text;
+      for (size_t depth = 0; vfs_stat.is_symlink && depth < 40; ++depth) {
+        std::string target;
+        if (!runtime.vfs().read_link(current_path, target, vfs_error)) {
+          value_set_bool(out, false);
+          return true;
+        }
+        const std::filesystem::path target_path = std::filesystem::u8path(target);
+        current_path = (target_path.is_absolute()
+            ? target_path
+            : std::filesystem::u8path(current_path).parent_path() / target_path)
+            .lexically_normal().u8string();
+        if (!runtime.vfs().stat(current_path, vfs_stat, vfs_error) ||
+            vfs_stat.kind == VfsNodeKind::Missing) {
+          value_set_bool(out, false);
+          return true;
+        }
+      }
+      if (vfs_stat.is_symlink) {
+        value_set_bool(out, false);
+        return true;
+      }
+    }
+    if (query == WindowsPathQuery::Exists || query == WindowsPathQuery::Lexists) {
       value_set_bool(out, true);
       return true;
     }
@@ -4483,6 +4628,7 @@ bool os_windows_path_query(
   if (attributes != INVALID_FILE_ATTRIBUTES) {
     switch (query) {
       case WindowsPathQuery::Exists:
+      case WindowsPathQuery::Lexists:
         value_set_bool(out, true);
         return true;
       case WindowsPathQuery::IsDirectory:
@@ -4495,12 +4641,12 @@ bool os_windows_path_query(
       case WindowsPathQuery::IsJunction:
         break;
     }
-  } else if (query != WindowsPathQuery::Exists) {
+  } else if (query != WindowsPathQuery::Exists && query != WindowsPathQuery::Lexists) {
     value_set_bool(out, false);
     return true;
   }
 
-  if (query == WindowsPathQuery::Exists) {
+  if (query == WindowsPathQuery::Exists || query == WindowsPathQuery::Lexists) {
     std::wstring normalized = wide_path;
     std::replace(normalized.begin(), normalized.end(), L'/', L'\\');
     const size_t separator = normalized.find_last_of(L'\\');
@@ -4523,6 +4669,7 @@ bool os_windows_path_query(
 
   const DWORD flags = FILE_FLAG_BACKUP_SEMANTICS |
       ((query == WindowsPathQuery::IsLink || query == WindowsPathQuery::IsJunction)
+           || query == WindowsPathQuery::Lexists
            ? FILE_FLAG_OPEN_REPARSE_POINT
            : 0);
   HANDLE handle = CreateFileW(
@@ -4532,7 +4679,7 @@ bool os_windows_path_query(
     value_set_bool(out, false);
     return true;
   }
-  if (query == WindowsPathQuery::Exists) {
+  if (query == WindowsPathQuery::Exists || query == WindowsPathQuery::Lexists) {
     CloseHandle(handle);
     value_set_bool(out, true);
     return true;
@@ -4553,6 +4700,10 @@ bool os_windows_path_query(
 
 bool os_path_exists(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   return os_windows_path_query(runtime, args, argc, out, error, WindowsPathQuery::Exists);
+}
+
+bool os_path_lexists(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return os_windows_path_query(runtime, args, argc, out, error, WindowsPathQuery::Lexists);
 }
 
 bool os_path_isdir(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -4603,6 +4754,7 @@ bool os_windows_path_query_kw(
   }
 
 XLANG3_WINDOWS_PATH_QUERY_KW(os_path_exists_kw, WindowsPathQuery::Exists)
+XLANG3_WINDOWS_PATH_QUERY_KW(os_path_lexists_kw, WindowsPathQuery::Lexists)
 XLANG3_WINDOWS_PATH_QUERY_KW(os_path_isdir_kw, WindowsPathQuery::IsDirectory)
 XLANG3_WINDOWS_PATH_QUERY_KW(os_path_isfile_kw, WindowsPathQuery::IsFile)
 XLANG3_WINDOWS_PATH_QUERY_KW(os_path_islink_kw, WindowsPathQuery::IsLink)
@@ -4642,6 +4794,7 @@ void register_os_module(Runtime& runtime) {
       .function("urandom", os_urandom)
       .function("open", os_open, nullptr, false, os_open_kw)
       .function("close", os_close)
+      .function("fsync", os_fsync)
       .function("closerange", os_closerange)
       .function("read", os_read)
       .function("readinto", os_readinto)
@@ -4706,6 +4859,7 @@ void register_os_module(Runtime& runtime) {
       .value("P_DETACH", Value::int64(_P_DETACH))
       .function("_supports_virtual_terminal", os_supports_virtual_terminal)
       .function("_getfullpathname", os_getfullpathname, builtin_fast_adapter<os_getfullpathname, 1>, true)
+      .function("_findfirstfile", os_findfirstfile)
       .function("_getfinalpathname", os_getfinalpathname)
       .function("_getvolumepathname", os_getvolumepathname)
       .function("_getdiskusage", os_getdiskusage)
@@ -4725,7 +4879,7 @@ void register_os_module(Runtime& runtime) {
       .function("_path_islink", os_path_islink, builtin_fast_adapter<os_path_islink, 1>, true, os_path_islink_kw)
       .function("_path_isjunction", os_path_isjunction, builtin_fast_adapter<os_path_isjunction, 1>, true, os_path_isjunction_kw)
       .function("_path_exists", os_path_exists, builtin_fast_adapter<os_path_exists, 1>, true, os_path_exists_kw)
-      .function("_path_lexists", os_path_exists, builtin_fast_adapter<os_path_exists, 1>, true, os_path_exists_kw)
+      .function("_path_lexists", os_path_lexists, builtin_fast_adapter<os_path_lexists, 1>, true, os_path_lexists_kw)
 #endif
       .value("environ", env_dict)
       .value("F_OK", Value::int64(0))

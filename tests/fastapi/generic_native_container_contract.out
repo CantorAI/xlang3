@@ -1,0 +1,1 @@
+200 {'dict': {'a': 1}, 'tuple': [2, 3], 'parameters': ['~T', '+P', 'Ts'], 'inferred': 'list[T]', 'alias_error': 'list[int] is not a generic class', 'set_unique': 1}

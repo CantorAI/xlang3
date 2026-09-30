@@ -1,0 +1,16 @@
+Windows 11 / XLang3 Release / CPython 3.14.7, 2026-09-29
+
+Diagnostic script: scratch/performance/json-loads-call-split.py
+The script loads the three input payloads from pyperformance 1.14.0 bm_json_loads, then takes the median of nine runs of 600 loads per path. These are one-shot phase diagnostics, not pyperf estimates.
+
+XLang3 after the direct string-view change:
+json.loads 36.965 us/load
+decoder.decode 27.982 us/load
+decoder.raw_decode 24.157 us/load
+native scan_once 22.071 us/load
+
+CPython 3.14.7:
+json.loads 6.022 us/load
+decoder.decode 5.712 us/load
+decoder.raw_decode 5.228 us/load
+native scan_once 5.161 us/load

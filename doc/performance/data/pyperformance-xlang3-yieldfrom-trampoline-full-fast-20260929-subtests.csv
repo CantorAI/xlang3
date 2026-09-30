@@ -1,0 +1,125 @@
+﻿subtest,benchmark,CPython 3.14 seconds,XLang3 seconds,speedup CPython/XLang3 (>1 means XLang3 faster),XLang3 status,XLang3 evidence
+2to3,2to3,0.251674015004,,,failed: no pyperf measurement was saved by the runner,
+ascii85_large,,0.842141509999,,,failed: no matching measurement,
+ascii85_small,,0.0157287543752,,,failed: no matching measurement,
+async_generators,async_generators,0.277755639999,,,failed: no pyperf measurement was saved by the runner,
+async_tree_cpu_io_mixed,async_tree_cpu_io_mixed,0.430097114996,,,failed: no pyperf measurement was saved by the runner,
+async_tree_cpu_io_mixed_tg,async_tree_cpu_io_mixed_tg,0.423999635001,,,failed: no pyperf measurement was saved by the runner,
+async_tree_eager,async_tree_eager,0.084843369999,,,failed: no pyperf measurement was saved by the runner,
+async_tree_eager_cpu_io_mixed,async_tree_eager_cpu_io_mixed,0.333809825002,,,failed: no pyperf measurement was saved by the runner,
+async_tree_eager_cpu_io_mixed_tg,async_tree_eager_cpu_io_mixed_tg,0.393707884997,,,failed: no pyperf measurement was saved by the runner,
+async_tree_eager_io,async_tree_eager_io,0.564455315002,,,failed: no pyperf measurement was saved by the runner,
+async_tree_eager_io_tg,async_tree_eager_io_tg,0.561145115001,,,failed: no pyperf measurement was saved by the runner,
+async_tree_eager_memoization,async_tree_eager_memoization,0.191569219998,,,failed: no pyperf measurement was saved by the runner,
+async_tree_eager_memoization_tg,async_tree_eager_memoization_tg,0.270171104999,,,failed: no pyperf measurement was saved by the runner,
+async_tree_eager_tg,async_tree_eager_tg,0.196477729997,,,failed: no pyperf measurement was saved by the runner,
+async_tree_io,async_tree_io,0.573187599999,,,failed: no pyperf measurement was saved by the runner,
+async_tree_io_tg,async_tree_io_tg,0.558668779999,,,failed: no pyperf measurement was saved by the runner,
+async_tree_memoization,async_tree_memoization,0.281985214997,,,failed: no pyperf measurement was saved by the runner,
+async_tree_memoization_tg,async_tree_memoization_tg,0.282139759998,,,failed: no pyperf measurement was saved by the runner,
+async_tree_none,async_tree,0.226436295001,,,failed: no pyperf measurement was saved by the runner,
+async_tree_none_tg,async_tree,0.242231970001,,,failed: no pyperf measurement was saved by the runner,
+asyncio_tcp,asyncio_tcp,0.739771430001,,,failed: no pyperf measurement was saved by the runner,
+asyncio_tcp_ssl,asyncio_tcp_ssl,4.46670645001,,,failed: no pyperf measurement was saved by the runner,
+asyncio_websockets,asyncio_websockets,0.192168899997,,,failed: no pyperf measurement was saved by the runner,
+base16_large,,0.00610053578116,,,failed: no matching measurement,
+base16_small,,0.00029016038086,,,failed: no matching measurement,
+base32_large,,0.378379400003,,,failed: no matching measurement,
+base32_small,,0.00730979343734,,,failed: no matching measurement,
+base64_large,base64,0.00790687749995,,,failed: no pyperf measurement was saved by the runner,
+base64_small,base64,0.000267936074212,,,failed: no pyperf measurement was saved by the runner,
+base85_large,,0.295839609997,,,failed: no matching measurement,
+base85_small,,0.00536605781253,,,failed: no matching measurement,
+bench_mp_pool,,0.158657989997,,,failed: no matching measurement,
+bench_thread_pool,,0.001144781875,,,failed: no matching measurement,
+bpe_tokeniser,bpe_tokeniser,3.53309046,,,failed: no pyperf measurement was saved by the runner,
+chameleon,chameleon,0.0115539325001,,,failed: no pyperf measurement was saved by the runner,
+chaos,chaos,0.0468550974987,0.533758545003,0.087783321,completed,pyperf JSON
+comprehensions,comprehensions,1.36875762941e-05,0.000204693798815,0.066868544,completed,pyperf JSON
+connected_components,,0.42843363,,,failed: no matching measurement,
+coroutines,coroutines,0.0174385349999,0.372631740011,0.046798308,completed,pyperf JSON
+coverage,coverage,0.0634550250033,,,failed: no pyperf measurement was saved by the runner,
+create_gc_cycles,,0.00156031781235,,,failed: no matching measurement,
+crypto_pyaes,crypto_pyaes,0.0552763150023,,,failed: no pyperf measurement was saved by the runner,
+dask,dask,0.769433925001,,,failed: no pyperf measurement was saved by the runner,
+deepcopy,deepcopy,0.00021003855426,0.00445807952565,0.047114134,completed,pyperf JSON
+deepcopy_memo,deepcopy,2.14684906013e-05,0.000556211347623,0.038597721,completed,pyperf JSON
+deepcopy_reduce,deepcopy,2.20295211801e-06,4.39841674819e-05,0.050085116,completed,pyperf JSON
+deltablue,deltablue,0.00248469343753,0.0603485350017,0.04117239,completed,pyperf JSON
+django_template,django_template,0.0289841174996,,,failed: no pyperf measurement was saved by the runner,
+docutils,docutils,1.81173456499,,,failed: no pyperf measurement was saved by the runner,
+dulwich_log,dulwich_log,0.066556102498,,,failed: no pyperf measurement was saved by the runner,
+fannkuch,fannkuch,0.312286260002,,,failed: no pyperf measurement was saved by the runner,
+fastapi_http,fastapi,0.415244545,,,failed: no pyperf measurement was saved by the runner,
+float,float,0.0561801625001,0.0753408574965,0.74567989,completed,pyperf JSON
+gc_traversal,gc_traversal,0.00236899671922,0.00108620062476,2.1809937,completed,pyperf JSON
+generators,generators,0.0270078712496,0.35659857,0.075737464,completed,pyperf JSON
+genshi_text,genshi,0.0189623787501,,,failed: no pyperf measurement was saved by the runner,
+genshi_xml,genshi,0.0416581887501,,,failed: no pyperf measurement was saved by the runner,
+go,go,0.0942160775005,1.343851505,0.070108994,completed,pyperf JSON
+hexiom,hexiom,0.00492847484375,0.0718886925039,0.068557024,completed,pyperf JSON
+html5lib,html5lib,0.0423449062499,,,failed: no pyperf measurement was saved by the runner,
+json_dumps,json_dumps,0.00758351374998,0.0405089912507,0.18720569,completed,pyperf JSON
+json_loads,json_loads,1.75438046877e-05,9.80985664e-05,0.17883854,completed,pyperf JSON
+k_core,,2.36153360499,,,failed: no matching measurement,
+logging_format,logging,7.31574658211e-06,0.000100578609374,0.072736605,completed,pyperf JSON
+logging_silent,logging,6.69280662519e-08,1.53506793204e-06,0.043599417,completed,pyperf JSON
+logging_simple,logging,6.75491943348e-06,9.45121288987e-05,0.071471456,completed,pyperf JSON
+mako,mako,0.00749017906264,,,failed: no pyperf measurement was saved by the runner,
+many_optionals,argparse,0.000668397734376,0.00911742562512,0.073309919,completed,pyperf JSON
+mdp,mdp,0.975110230003,,,failed: no pyperf measurement was saved by the runner,
+meteor_contest,meteor_contest,0.0874130949989,1.26542633,0.06907798,completed,pyperf JSON
+nbody,nbody,0.0810380125004,0.287862094992,0.28151679,completed,pyperf JSON
+nqueens,nqueens,0.0739360774991,0.834992174999,0.08854703,completed,pyperf JSON
+pathlib,pathlib,0.0478175187505,0.661329424998,0.072305143,completed,pyperf JSON
+pickle,pickle,9.07842407237e-06,3.56522265622e-05,0.25463835,completed,pyperf JSON
+pickle_dict,pickle_dict,2.32063193351e-05,3.48465380853e-05,0.66595767,completed,pyperf JSON
+pickle_list,pickle_list,3.95185754403e-06,6.41455248982e-06,0.61607689,completed,pyperf JSON
+pickle_pure_python,pickle_pure_python,0.000252284156252,0.0065015435002,0.038803733,completed,pyperf JSON
+pidigits,pidigits,0.164380294997,0.363847499999,0.45178349,completed,pyperf JSON
+pprint_pformat,pprint,1.18002061,,,failed: no pyperf measurement was saved by the runner,
+pprint_safe_repr,pprint,0.575926805001,,,failed: no pyperf measurement was saved by the runner,
+pyflate,pyflate,0.328523864999,,,failed: no pyperf measurement was saved by the runner,
+python_startup,python_startup,0.0312637287501,,,failed: no pyperf measurement was saved by the runner,
+python_startup_no_site,python_startup_no_site,0.0246155054165,,,failed: no pyperf measurement was saved by the runner,
+raytrace,raytrace,0.217002324996,,,failed: no pyperf measurement was saved by the runner,
+regex_compile,regex_compile,0.0936407349996,1.377375125,0.067984918,completed,pyperf JSON
+regex_dna,regex_dna,0.132328969997,0.207036725004,0.63915699,completed,pyperf JSON
+regex_effbot,regex_effbot,0.00179459862506,0.0129533204995,0.13854352,completed,pyperf JSON
+regex_v8,regex_v8,0.0164623281256,0.0682802400042,0.24109945,completed,pyperf JSON
+richards,richards,0.0333573837506,0.435255550002,0.076638618,completed,pyperf JSON
+richards_super,richards_super,0.0373085912499,0.549658984996,0.067875887,completed,pyperf JSON
+scimark_fft,scimark,0.219316654994,,,failed: no pyperf measurement was saved by the runner,
+scimark_lu,scimark,0.0728907049997,,,failed: no pyperf measurement was saved by the runner,
+scimark_monte_carlo,scimark,0.0509483237489,,,failed: no pyperf measurement was saved by the runner,
+scimark_sor,scimark,0.0942418575003,,,failed: no pyperf measurement was saved by the runner,
+scimark_sparse_mat_mult,scimark,0.00301706750004,,,failed: no pyperf measurement was saved by the runner,
+shortest_path,,0.481609110002,,,failed: no matching measurement,
+spectral_norm,spectral_norm,0.0721760550026,0.457851404996,0.15764079,completed,pyperf JSON
+sphinx,sphinx,0.728740200003,,,failed: no pyperf measurement was saved by the runner,
+sqlalchemy_declarative,sqlalchemy_declarative,0.0874333550018,,,failed: no pyperf measurement was saved by the runner,
+sqlalchemy_imperative,sqlalchemy_imperative,0.0106188009371,,,failed: no pyperf measurement was saved by the runner,
+sqlglot_v2_normalize,sqlglot_v2,0.0851819474985,,,failed: no pyperf measurement was saved by the runner,
+sqlglot_v2_optimize,sqlglot_v2_optimize,0.0410163450011,,,failed: no pyperf measurement was saved by the runner,
+sqlglot_v2_parse,sqlglot_v2_parse,0.000948929726678,,,failed: no pyperf measurement was saved by the runner,
+sqlglot_v2_transpile,sqlglot_v2_transpile,0.00118680496082,,,failed: no pyperf measurement was saved by the runner,
+sqlite_synth,sqlite_synth,1.75974441528e-06,,,failed: no pyperf measurement was saved by the runner,
+subparsers,argparse_subparsers,0.0076010840623,0.181810090001,0.041807823,completed,pyperf JSON
+sympy_expand,sympy,0.33642096,,,failed: no pyperf measurement was saved by the runner,
+sympy_integrate,sympy,0.0142253049988,,,failed: no pyperf measurement was saved by the runner,
+sympy_str,sympy,0.194058119997,,,failed: no pyperf measurement was saved by the runner,
+sympy_sum,sympy,0.100979577497,,,failed: no pyperf measurement was saved by the runner,
+telco,telco,0.00554048531249,,,failed: no pyperf measurement was saved by the runner,
+tomli_loads,tomli_loads,1.68929986,,,failed: no pyperf measurement was saved by the runner,
+tornado_http,tornado_http,0.232943275002,,,failed: no pyperf measurement was saved by the runner,
+typing_runtime_protocols,typing_runtime_protocols,0.000124366953123,0.000233157246083,0.53340377,completed,pyperf JSON
+unpack_sequence,unpack_sequence,3.54493270875e-08,1.56804284664e-07,0.22607371,completed,pyperf JSON
+unpickle,unpickle,9.70000439445e-06,6.40248886702e-05,0.15150365,completed,pyperf JSON
+unpickle_list,unpickle_list,3.1589603271e-06,1.11444785162e-05,0.28345519,completed,pyperf JSON
+unpickle_pure_python,unpickle_pure_python,0.000161445578126,0.00431738562496,0.037394292,completed,pyperf JSON
+urlsafe_base64_small,,0.00040618185547,,,failed: no matching measurement,
+xdsl_constant_fold,xdsl,0.0328031049998,,,failed: no pyperf measurement was saved by the runner,
+xml_etree_generate,xml_etree,0.0663036874997,,,failed: no pyperf measurement was saved by the runner,
+xml_etree_iterparse,xml_etree,0.0682501925017,,,failed: no pyperf measurement was saved by the runner,
+xml_etree_parse,xml_etree,0.107561155,,,failed: no pyperf measurement was saved by the runner,
+xml_etree_process,xml_etree,0.0460111424993,,,failed: no pyperf measurement was saved by the runner,

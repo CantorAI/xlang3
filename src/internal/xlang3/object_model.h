@@ -17,6 +17,7 @@ limitations under the License.
 #include "xlang3/compiler.h"
 #include "xlang3/value.h"
 
+#include <atomic>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -40,6 +41,16 @@ struct ClassObject {
   std::vector<std::string> instance_slot_names;
   std::unordered_map<std::string, uint32_t> instance_slot_indices;
   uint64_t version = 1;
+  // Cached builtin-container traits for Value::instance. The version tag lets
+  // instance creation avoid repeated MRO queries while still tracking changes
+  // to this class or one of its bases.
+  uint64_t instance_container_traits_version = 0;
+  uint8_t instance_container_traits = 0;
+  // Cache the common negative __del__ lookup at the class level. The version
+  // guard makes later class or base mutations invalidate the result.
+  // Zero is uncached; otherwise low bit is presence and upper bits are the
+  // class version used for the cached answer.
+  std::atomic_uint64_t release_finalizer_cache{0};
   bool has_explicit_bases = false;
   bool has_descriptors = false;
   bool has_getattribute_hook = false;
@@ -72,6 +83,8 @@ struct InstanceObject {
   NativeInstanceSetAttr native_set_attr = nullptr;
   NativeInstanceDeleteAttr native_delete_attr = nullptr;
   bool finalizer_started = false;
+  // Lets ordinary instance recycling skip probing the native-edge registry.
+  bool native_gc_registered = false;
   Value inline_slots[8];
   std::vector<Value> overflow_slots;
   std::vector<std::pair<std::string, Value>> attrs;
@@ -180,12 +193,14 @@ XLANG3_HOT_INLINE const Value& instance_slot_at(const InstanceObject* instance, 
 }
 
 void object_model_release_object(Object* object);
+bool object_model_class_is_live(const ClassObject* klass);
 
 Value slot_descriptor(std::string owner_name, std::string name, uint32_t index);
 void slot_descriptor_set_owner_class(Value& descriptor, const Value& owner_class);
 std::string object_model_to_string(const Value& value);
 
 bool object_get_attr(const Value& object, const std::string& name, Value& out, std::string& error);
+void function_capture_builtins(Runtime& runtime, FunctionObject& function, const Value& globals);
 bool object_set_attr(Value& object, const std::string& name, const Value& value, std::string& error);
 bool object_delete_attr(Value& object, const std::string& name, std::string& error);
 bool object_get_class_attr_for_instance(const Value& object, const std::string& name, Value& out, std::string& error);

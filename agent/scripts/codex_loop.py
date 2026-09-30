@@ -1240,6 +1240,21 @@ def validate(cmake: str, xlang3: str, python_exe: str, skip_build: bool, skip_te
         print("Status: checking patch whitespace")
         checked_run(["git", "diff", "--check"])
 
+    # Performance is a separate gate, including when fixture tests are skipped.
+    # A missing baseline must not silently turn a compatibility-only check green.
+    print()
+    print("Status: checking Release performance against the preserved baseline")
+    checked_run([
+        python_exe,
+        "benchmarks/check_regression.py",
+        "--baseline",
+        config.get("repo", {}).get("performance_baseline", "scratch/performance-baseline/xlang3.exe"),
+        "--candidate",
+        xlang3,
+        "--output",
+        config.get("repo", {}).get("performance_report", "scratch/performance/latest.json"),
+    ])
+
 
 def should_resume_as_codex_done(phase: str, saved_state: dict, stageable_changes: list[str]) -> bool:
     if phase not in {"prompt_written", "codex_running", "repair_prompt_written", "repair_codex_running"}:

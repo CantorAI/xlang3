@@ -4,5 +4,11 @@
     "platform": "win32",
     "node": "tests/test_config.py::test_missing_env_file_raises",
     "reason": "CPython 3.14 fails the unchanged test on Windows: pytest.warns receives an unescaped path containing \\U as a regex and raises re.PatternError."
+  },
+  {
+    "project": "starlette",
+    "platform": "win32",
+    "node": "tests/test_staticfiles.py::test_staticfiles_with_invalid_dir_permissions_returns_401",
+    "reason": "The unchanged upstream test fails under CPython 3.14 on Windows for both asyncio and trio: chmod cannot make this directory inaccessible to the current user, so StaticFiles returns 200 rather than the test's expected 401."
   }
 ]

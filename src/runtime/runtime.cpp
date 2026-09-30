@@ -20,6 +20,7 @@ limitations under the License.
 #include "xlang3/attribute.h"
 #include "xlang3/builtins.h"
 #include "xlang3/functional_iterators.h"
+#include "xlang3/generator.h"
 #include "xlang3/ir.h"
 #if !defined(XLANG3_EMBEDDED)
 #include "xlang3/import_loader.h"
@@ -57,6 +58,10 @@ void xlang_thread_detach_runtime_daemon_threads(Runtime* runtime);
 
 namespace {
 thread_local Runtime* g_object_finalization_runtime = nullptr;
+// Track recursive acquisitions in TLS so the hot nested-import path does not
+// serialize on a second mutex; the per-runtime atomic remains available to
+// _imp.lock_held().
+thread_local std::vector<Runtime*> g_import_lock_stack;
 }
 
 Runtime* runtime_for_object_finalization() {
@@ -980,6 +985,14 @@ void Runtime::write_output(const char* data, std::size_t size) {
   output_.write(output_.context, data, size);
 }
 
+bool Runtime::uses_process_stdout() const {
+#if !defined(XLANG3_EMBEDDED)
+  return output_.write == ostream_output_write && output_.context == &std::cout;
+#else
+  return false;
+#endif
+}
+
 void Runtime::write_output(const char* text) {
   if (text == nullptr) {
     return;
@@ -1341,6 +1354,17 @@ void Runtime::set_current_frame_stack(const RuntimeFrameView* frames, size_t cou
   state.frame_stack_count = count;
 }
 
+size_t Runtime::saved_python_frame_depth() const {
+  const auto saved = current_frame_stacks().find(this);
+  if (saved == current_frame_stacks().end()) return 0;
+  size_t depth = 0;
+  for (const auto& state : saved->second) {
+    if (state.frame_stack != nullptr) depth += state.frame_stack_count;
+    else if (state.module_owner != nullptr && state.globals_module != nullptr) ++depth;
+  }
+  return depth;
+}
+
 void Runtime::publish_current_frame_for_thread_inspection() {
   publish_current_frame_state(*this);
 }
@@ -1425,6 +1449,29 @@ Value frame_locals_from_view(const RuntimeFrameView& view) {
   return locals_snapshot_from_view(view);
 }
 
+const ir::Function::LogicalFrameRange* active_logical_frame_range(const RuntimeFrameView& view) {
+  if (view.module_owner == nullptr || view.module_owner->get() == nullptr ||
+      view.instruction_index == nullptr) return nullptr;
+  const auto& module = **view.module_owner;
+  if (view.function_id >= module.functions.size()) return nullptr;
+  const uint32_t instruction = static_cast<uint32_t>(*view.instruction_index);
+  const ir::Function::LogicalFrameRange* active = nullptr;
+  for (const auto& range : module.functions[view.function_id].logical_frame_ranges) {
+    if (instruction < range.start_instruction || instruction >= range.end_instruction ||
+        range.function_id >= module.functions.size()) continue;
+    if (active == nullptr || range.end_instruction - range.start_instruction <
+        active->end_instruction - active->start_instruction) active = &range;
+  }
+  return active;
+}
+
+Value logical_frame_locals_from_view(const RuntimeFrameView& view,
+                                     const ir::Function::LogicalFrameRange& range) {
+  if (view.local_values == nullptr || range.locals_slot >= view.local_count ||
+      view.local_values[range.locals_slot].tag == ValueTag::Invalid) return Value::dict({});
+  return view.local_values[range.locals_slot];
+}
+
 void initialize_lazy_frame_locals(Value& frame_value, const RuntimeFrameView& view) {
   auto* frame = value_as_frame(frame_value);
   if (frame == nullptr) return;
@@ -1445,6 +1492,7 @@ void initialize_lazy_frame_locals(Value& frame_value, const RuntimeFrameView& vi
 }
 
 Value materialize_frame_from_stack(
+    Runtime& runtime,
     const RuntimeFrameView* frames,
     size_t index,
     const Value& builtins,
@@ -1456,7 +1504,7 @@ Value materialize_frame_from_stack(
   }
   Value back = base_back;
   if (index != 0) {
-    back = materialize_frame_from_stack(frames, index - 1, builtins, base_back);
+    back = materialize_frame_from_stack(runtime, frames, index - 1, builtins, base_back);
   }
   Value physical = Value::frame(
       *view.module_owner,
@@ -1467,24 +1515,15 @@ Value materialize_frame_from_stack(
       std::move(back),
       builtins,
       view.activation_id);
+  if (view.generator_owner != nullptr)
+    frame_set_generator_owner(runtime, physical, *view.generator_owner);
   initialize_lazy_frame_locals(physical, view);
   const auto& module = **view.module_owner;
   if (view.function_id >= module.functions.size()) {
     return physical;
   }
   const uint32_t instruction = static_cast<uint32_t>(*view.instruction_index);
-  const ir::Function::LogicalFrameRange* active_range = nullptr;
-  for (const auto& range : module.functions[view.function_id].logical_frame_ranges) {
-    if (instruction < range.start_instruction || instruction >= range.end_instruction ||
-        range.function_id >= module.functions.size()) {
-      continue;
-    }
-    if (active_range == nullptr ||
-        range.end_instruction - range.start_instruction <
-            active_range->end_instruction - active_range->start_instruction) {
-      active_range = &range;
-    }
-  }
+  const auto* active_range = active_logical_frame_range(view);
   if (active_range == nullptr) {
     return physical;
   }
@@ -1497,16 +1536,21 @@ Value materialize_frame_from_stack(
       std::move(physical),
       builtins,
       view.activation_id ^ (uint64_t{1} << 63));
-  initialize_lazy_frame_locals(logical, view);
+  if (auto* logical_frame = value_as_frame(logical)) {
+    logical_frame->locals = logical_frame_locals_from_view(view, *active_range);
+    logical_frame->local_snapshot.clear();
+    logical_frame->has_lazy_locals = false;
+  }
   return logical;
 }
 
 Value materialize_frame_state(
+    Runtime& runtime,
     const RuntimeCurrentFrameState& state,
     const Value& builtins,
     const Value& base_back) {
   if (state.frame_stack != nullptr && state.frame_stack_count != 0) {
-    return materialize_frame_from_stack(state.frame_stack, state.frame_stack_count - 1, builtins, base_back);
+    return materialize_frame_from_stack(runtime, state.frame_stack, state.frame_stack_count - 1, builtins, base_back);
   }
   if (state.module_owner == nullptr || state.globals_module == nullptr || state.module_owner->get() == nullptr) {
     return base_back;
@@ -1529,6 +1573,34 @@ Value materialize_frame_state(
 
 } // namespace
 
+void Runtime::visit_active_generator_references(
+    const GeneratorObject* generator,
+    const std::function<void(const Value&)>& visit) const {
+  const auto visit_state = [&](const RuntimeCurrentFrameState& state) {
+    if (state.frame_stack == nullptr || state.frame_stack_count == 0 ||
+        state.frame_stack[0].generator_owner != generator)
+      return;
+    for (size_t frame_index = 0; frame_index < state.frame_stack_count;
+         ++frame_index) {
+      const auto& frame = state.frame_stack[frame_index];
+      if (frame.local_values != nullptr)
+        for (size_t index = 0; index < frame.local_count; ++index)
+          visit(frame.local_values[index]);
+      if (frame.register_values != nullptr)
+        for (size_t index = 0; index < frame.register_count; ++index)
+          visit(frame.register_values[index]);
+      if (frame.native_call_args != nullptr)
+        for (const auto& value : *frame.native_call_args) visit(value);
+      if (frame.closure != nullptr)
+        for (const auto& value : *frame.closure) visit(value);
+    }
+  };
+  const auto saved_it = current_frame_stacks().find(this);
+  if (saved_it != current_frame_stacks().end())
+    for (const auto& state : saved_it->second) visit_state(state);
+  visit_state(current_frame_state(*this));
+}
+
 Value Runtime::current_frame_snapshot() const {
   const auto& state = current_frame_state(*this);
   xlang_perf_count_frame_snapshot(state.frame_stack_count);
@@ -1541,13 +1613,17 @@ Value Runtime::current_frame_snapshot() const {
   auto saved_it = current_frame_stacks().find(this);
   if (saved_it != current_frame_stacks().end()) {
     for (const auto& saved_state : saved_it->second) {
-      saved_back = materialize_frame_state(saved_state, builtins, saved_back);
+      saved_back = materialize_frame_state(
+          const_cast<Runtime&>(*this), saved_state, builtins, saved_back);
     }
   }
-  Value snapshot = materialize_frame_state(state, builtins, saved_back);
+  Value snapshot = materialize_frame_state(
+      const_cast<Runtime&>(*this), state, builtins, saved_back);
+  std::vector<Value> deferred_releases;
+  std::vector<std::vector<Value>> deferred_snapshots;
+  std::vector<Value> materialized;
   {
     std::lock_guard<std::mutex> lock(live_frame_snapshots_mutex_);
-    std::vector<Value> materialized;
     for (Value frame_value = snapshot; value_as_frame(frame_value) != nullptr;) {
       materialized.push_back(frame_value);
       auto* frame = value_as_frame(frame_value);
@@ -1578,9 +1654,17 @@ Value Runtime::current_frame_snapshot() const {
           if (same_globals && same_back) {
             tracked->instruction_index = fresh->instruction_index;
             tracked->owner_thread_ident = fresh->owner_thread_ident;
+            deferred_releases.push_back(std::move(tracked->locals));
+            deferred_snapshots.emplace_back();
+            deferred_snapshots.back().swap(tracked->local_snapshot);
+            deferred_releases.push_back(std::move(tracked->back));
+            deferred_releases.push_back(std::move(tracked->builtins));
             tracked->locals = fresh->locals;
             tracked->local_snapshot = fresh->local_snapshot;
             tracked->has_lazy_locals = fresh->has_lazy_locals;
+            if (tracked->generator_ref.tag == ValueTag::Invalid &&
+                fresh->generator_ref.tag != ValueTag::Invalid)
+              tracked->generator_ref = fresh->generator_ref;
             tracked->back = canonical_back;
             tracked->builtins = fresh->builtins;
             for (const auto& tracked_value : live_frame_snapshots_) {
@@ -1593,6 +1677,7 @@ Value Runtime::current_frame_snapshot() const {
         }
       }
       if (canonical.tag == ValueTag::Object && canonical.as.obj == materialized[index - 1].as.obj) {
+        deferred_releases.push_back(std::move(fresh->back));
         fresh->back = canonical_back;
         fresh->live = true;
         live_frame_snapshots_.push_back(canonical);
@@ -1640,13 +1725,16 @@ Value Runtime::track_live_frame_snapshot(Value frame_value) {
   return frame_value;
 }
 
-void Runtime::refresh_live_frame_snapshots(bool refresh_traceback_locals) {
+void Runtime::refresh_live_frame_snapshots(bool refresh_traceback_locals,
+                                           bool force_prune) {
   if (!has_live_frame_snapshots_.load(std::memory_order_acquire)) {
     return;
   }
   const auto& state = current_frame_state(*this);
   const int64_t current_thread_ident = runtime_current_thread_ident();
-  std::lock_guard<std::mutex> lock(live_frame_snapshots_mutex_);
+  std::vector<Value> deferred_releases;
+  std::vector<std::vector<Value>> deferred_snapshots;
+  std::unique_lock<std::mutex> lock(live_frame_snapshots_mutex_);
   if (live_frame_snapshots_.empty()) return;
   xlang_perf_count_frame_refresh(live_frame_snapshots_.size());
   for (auto& tracked_value : live_frame_snapshots_) {
@@ -1685,8 +1773,10 @@ void Runtime::refresh_live_frame_snapshots(bool refresh_traceback_locals) {
     }
     if (matching_view != nullptr) {
       if (refresh_traceback_locals) {
+        deferred_releases.push_back(std::move(tracked->locals));
+        deferred_snapshots.emplace_back();
+        deferred_snapshots.back().swap(tracked->local_snapshot);
         tracked->locals = frame_locals_from_view(*matching_view);
-        tracked->local_snapshot.clear();
         tracked->has_lazy_locals = false;
       }
       tracked->live = true;
@@ -1705,14 +1795,23 @@ void Runtime::refresh_live_frame_snapshots(bool refresh_traceback_locals) {
       current_view.local_values = state.local_values;
       current_view.local_count = state.local_count;
       if (refresh_traceback_locals) {
+        deferred_releases.push_back(std::move(tracked->locals));
+        deferred_snapshots.emplace_back();
+        deferred_snapshots.back().swap(tracked->local_snapshot);
         tracked->locals = frame_locals_from_view(current_view);
-        tracked->local_snapshot.clear();
         tracked->has_lazy_locals = false;
       }
       if (tracked->refresh_instruction) {
         tracked->instruction_index = state.instruction_index;
       }
       tracked->live = true;
+    }
+  }
+  for (const auto& value : live_frame_snapshots_) {
+    const auto* frame = value_as_frame(value);
+    if (frame == nullptr ||
+        (!frame->live && frame->owner_thread_ident == current_thread_ident)) {
+      deferred_releases.push_back(value);
     }
   }
   live_frame_snapshots_.erase(
@@ -1737,7 +1836,8 @@ void Runtime::refresh_live_frame_snapshots(bool refresh_traceback_locals) {
   // Reference-graph pruning prevents the registry from retaining a live frame
   // after Python drops its last reference. It does not need to rebuild two
   // hash tables on every nested call and return.
-  if (!refresh_traceback_locals && (++live_frame_prune_ticks_ & 0xffu) != 0) {
+  if (!refresh_traceback_locals && !force_prune &&
+      (++live_frame_prune_ticks_ & 0xffu) != 0) {
     return;
   }
 
@@ -1774,6 +1874,12 @@ void Runtime::refresh_live_frame_snapshots(bool refresh_traceback_locals) {
       current = value_as_frame(current->back);
     }
   }
+  for (const auto& value : live_frame_snapshots_) {
+    if (value.tag != ValueTag::Object ||
+        retained_objects.find(value.as.obj) == retained_objects.end()) {
+      deferred_releases.push_back(value);
+    }
+  }
   live_frame_snapshots_.erase(
       std::remove_if(
           live_frame_snapshots_.begin(),
@@ -1791,6 +1897,7 @@ void Runtime::refresh_live_frame_snapshots(bool refresh_traceback_locals) {
   }
   has_live_frame_snapshots_.store(
       !live_frame_snapshots_.empty(), std::memory_order_release);
+  lock.unlock();
 }
 
 void Runtime::retire_live_frame_snapshot(
@@ -1799,27 +1906,46 @@ void Runtime::retire_live_frame_snapshot(
     const Value* local_values,
     size_t local_count) {
   if (activation_id == 0 || !has_live_frame_snapshots_.load(std::memory_order_acquire)) return;
-  std::lock_guard<std::mutex> lock(live_frame_snapshots_mutex_);
-  const auto found = live_frame_snapshot_index_.find(activation_id);
-  if (found == live_frame_snapshot_index_.end()) return;
-  FrameObject* retired = found->second;
-  if (retired != nullptr) {
-    retired->instruction_index = instruction_index;
-    if (retired->has_lazy_locals && local_values != nullptr) {
-      retired->local_snapshot.assign(local_values, local_values + local_count);
+  std::vector<Value> old_local_snapshot;
+  std::vector<Value> retired_refs;
+  {
+    std::lock_guard<std::mutex> lock(live_frame_snapshots_mutex_);
+    const auto found = live_frame_snapshot_index_.find(activation_id);
+    if (found == live_frame_snapshot_index_.end()) return;
+    FrameObject* retired = found->second;
+    if (retired != nullptr) {
+      retired->instruction_index = instruction_index;
+      if (retired->has_lazy_locals && local_values != nullptr) {
+        old_local_snapshot.swap(retired->local_snapshot);
+        retired->local_snapshot.assign(local_values, local_values + local_count);
+        if (retired->module != nullptr &&
+            retired->function_id < retired->module->functions.size()) {
+          const auto& names = retired->module->functions[retired->function_id].locals;
+          const size_t count = names.size() < retired->local_snapshot.size()
+              ? names.size() : retired->local_snapshot.size();
+          for (size_t index = 0; index < count; ++index)
+            if (!names[index].empty() && names[index][0] == '#')
+              old_local_snapshot.push_back(
+                  std::move(retired->local_snapshot[index]));
+        }
+      }
+      retired->live = false;
     }
-    retired->live = false;
+    Object* retired_object = retired != nullptr ? &retired->header : nullptr;
+    live_frame_snapshot_index_.erase(found);
+    for (const auto& value : live_frame_snapshots_) {
+      if (value.tag == ValueTag::Object && value.as.obj == retired_object)
+        retired_refs.push_back(value);
+    }
+    live_frame_snapshots_.erase(
+        std::remove_if(
+            live_frame_snapshots_.begin(), live_frame_snapshots_.end(),
+            [&](const Value& value) {
+              return value.tag == ValueTag::Object && value.as.obj == retired_object;
+            }),
+        live_frame_snapshots_.end());
+    has_live_frame_snapshots_.store(!live_frame_snapshots_.empty(), std::memory_order_release);
   }
-  Object* retired_object = retired != nullptr ? &retired->header : nullptr;
-  live_frame_snapshot_index_.erase(found);
-  live_frame_snapshots_.erase(
-      std::remove_if(
-          live_frame_snapshots_.begin(), live_frame_snapshots_.end(),
-          [&](const Value& value) {
-            return value.tag == ValueTag::Object && value.as.obj == retired_object;
-          }),
-      live_frame_snapshots_.end());
-  has_live_frame_snapshots_.store(!live_frame_snapshots_.empty(), std::memory_order_release);
 }
 
 uint64_t Runtime::allocate_frame_activation_id() {
@@ -1842,6 +1968,12 @@ void Runtime::clear_current_frame_locals() {
 
 Value Runtime::current_locals_snapshot() const {
   const auto& state = current_frame_state(*this);
+  if (state.frame_stack != nullptr && state.frame_stack_count != 0) {
+    const auto& view = state.frame_stack[state.frame_stack_count - 1];
+    if (const auto* range = active_logical_frame_range(view)) {
+      return logical_frame_locals_from_view(view, *range);
+    }
+  }
   if (state.module_owner != nullptr && state.module_owner->get() != nullptr &&
       state.globals_module != nullptr &&
       state.function_id == state.module_owner->get()->entry) {
@@ -1869,9 +2001,13 @@ Value Runtime::current_locals_snapshot() const {
 
 namespace {
 
-Value frame_snapshot_from_state(const RuntimeCurrentFrameState& state, const Value& builtins) {
+Value frame_snapshot_from_state(Runtime& runtime,
+                                const RuntimeCurrentFrameState& state,
+                                const Value& builtins) {
   if (state.frame_stack != nullptr && state.frame_stack_count != 0) {
-    return materialize_frame_from_stack(state.frame_stack, state.frame_stack_count - 1, builtins, Value::none());
+    return materialize_frame_from_stack(runtime, state.frame_stack,
+                                        state.frame_stack_count - 1,
+                                        builtins, Value::none());
   }
   if (state.module_owner == nullptr || state.globals_module == nullptr ||
       state.module_owner->get() == nullptr) {
@@ -1916,7 +2052,8 @@ Value Runtime::current_frame_snapshots(const std::vector<int64_t>& live_thread_i
     } else if (runtime_it != g_runtime_frame_registry.end()) {
       auto frame_it = runtime_it->second.find(ident);
       if (frame_it != runtime_it->second.end()) {
-        frame = frame_snapshot_from_state(frame_it->second.state, builtins);
+        frame = frame_snapshot_from_state(const_cast<Runtime&>(*this),
+                                          frame_it->second.state, builtins);
       }
     }
     entries.push_back({Value::int64(ident), std::move(frame)});
@@ -1979,6 +2116,28 @@ const std::shared_ptr<const ir::Module>* Runtime::current_frame_module_owner() c
     return state.frame_stack[state.frame_stack_count - 1].module_owner;
   }
   return state.module_owner;
+}
+
+bool Runtime::current_frame_free_var(const std::string& name, Value& out) const {
+  const auto& state = current_frame_state(*this);
+  if (state.frame_stack == nullptr || state.frame_stack_count == 0) return false;
+  const auto& frame = state.frame_stack[state.frame_stack_count - 1];
+  if (frame.module_owner == nullptr || frame.module_owner->get() == nullptr ||
+      frame.closure == nullptr ||
+      frame.function_id >= (*frame.module_owner)->functions.size()) return false;
+  const auto& names = (*frame.module_owner)->functions[frame.function_id].free_vars;
+  for (size_t index = 0; index < names.size() && index < frame.closure->size(); ++index) {
+    if (names[index] != name) continue;
+    const Value& captured = (*frame.closure)[index];
+    if (auto* cell = value_as_cell(captured)) {
+      if (cell->value.tag == ValueTag::Invalid) return false;
+      value_assign_fast(out, cell->value);
+    } else {
+      value_assign_fast(out, captured);
+    }
+    return true;
+  }
+  return false;
 }
 
 void Runtime::register_exit_function(
@@ -2114,44 +2273,36 @@ bool Runtime::execute_raw_block(
 }
 
 void Runtime::acquire_import_lock() {
-  const auto current_thread = std::this_thread::get_id();
-  bool recursively_owned = false;
-  {
-    std::lock_guard<std::mutex> state_lock(import_lock_state_mutex_);
-    recursively_owned = import_lock_depth_ != 0 && import_lock_owner_ == current_thread;
+  // Grow before locking so allocation failure cannot strand the import mutex.
+  if (g_import_lock_stack.size() == g_import_lock_stack.capacity()) {
+    g_import_lock_stack.reserve(g_import_lock_stack.capacity() == 0
+        ? 8
+        : g_import_lock_stack.capacity() * 2);
   }
-  if (recursively_owned) {
+  // Recursive acquisitions by this thread succeed immediately. Only genuine
+  // cross-thread contention releases the VM execution token while waiting.
+  if (!import_mutex_.try_lock()) {
+    XlangRuntimeExecutionSuspension execution_suspension;
     import_mutex_.lock();
-  } else {
-    // Match CPython's fast import path: retain the VM execution token when the
-    // import lock is immediately available, and expose the thread only when
-    // another importer actually makes this acquisition block.
-    if (!import_mutex_.try_lock()) {
-      XlangRuntimeExecutionSuspension execution_suspension;
-      import_mutex_.lock();
-    }
   }
-  std::lock_guard<std::mutex> state_lock(import_lock_state_mutex_);
-  if (import_lock_depth_ == 0) import_lock_owner_ = current_thread;
-  ++import_lock_depth_;
+  g_import_lock_stack.push_back(this);
+  import_lock_depth_.fetch_add(1, std::memory_order_release);
 }
 
 bool Runtime::release_import_lock() {
-  {
-    std::lock_guard<std::mutex> state_lock(import_lock_state_mutex_);
-    if (import_lock_depth_ == 0 || import_lock_owner_ != std::this_thread::get_id()) {
-      return false;
-    }
-    --import_lock_depth_;
-    if (import_lock_depth_ == 0) import_lock_owner_ = std::thread::id{};
-  }
+  // Runtime locks are independent even when a host nests them. Remove this
+  // runtime's most recent acquisition, not only the global stack's top entry.
+  const auto acquisition = std::find(
+      g_import_lock_stack.rbegin(), g_import_lock_stack.rend(), this);
+  if (acquisition == g_import_lock_stack.rend()) return false;
+  g_import_lock_stack.erase(std::next(acquisition).base());
+  import_lock_depth_.fetch_sub(1, std::memory_order_release);
   import_mutex_.unlock();
   return true;
 }
 
 bool Runtime::import_lock_held() const {
-  std::lock_guard<std::mutex> state_lock(import_lock_state_mutex_);
-  return import_lock_depth_ != 0;
+  return import_lock_depth_.load(std::memory_order_acquire) != 0;
 }
 
 bool Runtime::import_module(const std::string& name, Value& out, std::string& error, bool* module_not_found) {
@@ -2179,8 +2330,13 @@ bool Runtime::import_module(const std::string& name, Value& out, std::string& er
     const auto parent = modules_.find(name.substr(0, dot));
     if (parent == modules_.end()) return;
     std::string ignored;
-    (void)module_set_attr(
-        parent->second, name.substr(dot + 1), module, ignored);
+    const std::string child_name = name.substr(dot + 1);
+    Value existing;
+    if (module_get_attr(parent->second, child_name, existing, ignored) &&
+        existing.tag != ValueTag::Invalid) {
+      return;
+    }
+    (void)module_set_attr(parent->second, child_name, module, ignored);
   };
   if (modules_dict_.tag != ValueTag::Invalid) {
     Value registry_module;
@@ -2330,10 +2486,25 @@ bool Runtime::import_module(const std::string& name, Value& out, std::string& er
       return true;
     }
     const bool python_source_not_found = python_error == "module '" + name + "' not found";
+    const auto missing_module_message = [&] {
+      std::string message = "No module named '" + name + "'";
+      if (dot != std::string::npos && dot > 0) {
+        const std::string parent_name = name.substr(0, dot);
+        const auto parent = modules_.find(parent_name);
+        Value path;
+        std::string ignored;
+        if (parent != modules_.end() &&
+            (!module_get_attr(parent->second, "__path__", path, ignored) ||
+             path.tag == ValueTag::Invalid || path.tag == ValueTag::None)) {
+          message += "; '" + parent_name + "' is not a package";
+        }
+      }
+      return message;
+    };
     const bool non_ascii_module_name = std::any_of(
         name.begin(), name.end(), [](unsigned char ch) { return ch >= 0x80; });
     if (python_source_not_found && non_ascii_module_name) {
-      error = std::move(python_error);
+      error = missing_module_message();
       if (module_not_found != nullptr) *module_not_found = true;
       return false;
     }
@@ -2349,7 +2520,10 @@ bool Runtime::import_module(const std::string& name, Value& out, std::string& er
         import_native_package(*this, name, NativePackageLookupMode::IncludeXlangPrefixFallback, out, prefixed_native_error, &prefixed_library_found)) {
       return true;
     }
-    if (!python_error.empty() && !native_error.empty()) {
+    if (python_source_not_found && !exact_library_found &&
+        !prefixed_library_found) {
+      error = missing_module_message();
+    } else if (!python_error.empty() && !native_error.empty()) {
       error = python_error + "; native package candidates tried:\n" + native_error + "\n" + prefixed_native_error;
     } else {
       error = native_error.empty() ? python_error : native_error;
@@ -2498,34 +2672,10 @@ bool Runtime::import_from(const std::string& module_name, const std::string& att
     }
   }
 
-  Value package_path;
-  std::string package_path_error;
-  if (!module_get_attr(module, "__path__", package_path, package_path_error)) {
-    Value module_getattr;
-    std::string getattr_error;
-    if (module_get_attr(module, "__getattr__", module_getattr, getattr_error)) {
-      Value attr_arg = Value::string(attr_name);
-      Value dynamic_attr;
-      std::string call_error;
-      if (runtime_call_callable(*this, module_getattr, &attr_arg, 1, dynamic_attr, call_error)) {
-        value_assign_fast(out, dynamic_attr);
-        return true;
-      }
-      Value ignored_pending;
-      take_pending_exception(ignored_pending);
-    }
-    describe_missing_from_import();
-    return false;
-  }
-
-  std::string submodule_error;
-  if (import_module(resolved_module.empty() ? attr_name : resolved_module + "." + attr_name, out, submodule_error)) {
-    return true;
-  }
-
-  Value ignored_pending;
-  take_pending_exception(ignored_pending);
-
+  // A package may expose a lazy attribute through PEP 562 __getattr__.
+  // Resolve it before looking for a child module, as importlib's from-list
+  // handling does.  A missing lazy attribute falls through to child import;
+  // an exception raised while computing one must reach the caller.
   Value module_getattr;
   std::string getattr_error;
   if (module_get_attr(module, "__getattr__", module_getattr, getattr_error)) {
@@ -2536,8 +2686,40 @@ bool Runtime::import_from(const std::string& module_name, const std::string& att
       value_assign_fast(out, dynamic_attr);
       return true;
     }
-    take_pending_exception(ignored_pending);
+    Value pending;
+    if (take_pending_exception(pending)) {
+      auto* klass = value_as_class(exception_type(pending));
+      const bool missing_attribute = klass != nullptr &&
+          (klass->name == "AttributeError" ||
+           class_has_builtin_base_name(klass, "AttributeError"));
+      if (!missing_attribute) {
+        set_pending_exception(std::move(pending));
+        error = call_error;
+        return false;
+      }
+    }
   }
+
+  Value package_path;
+  std::string package_path_error;
+  if (!module_get_attr(module, "__path__", package_path, package_path_error)) {
+    describe_missing_from_import();
+    return false;
+  }
+
+  std::string submodule_error;
+  bool submodule_not_found = false;
+  if (import_module(resolved_module.empty() ? attr_name : resolved_module + "." + attr_name,
+                    out, submodule_error, &submodule_not_found)) {
+    return true;
+  }
+  if (!submodule_not_found) {
+    error = submodule_error;
+    return false;
+  }
+
+  Value ignored_pending;
+  take_pending_exception(ignored_pending);
   if (!submodule_error.empty()) {
     error = submodule_error;
   }

@@ -1,0 +1,15 @@
+url '' input is empty
+url ' ' relative URL without a base
+url '\t' relative URL without a base
+url '\n' relative URL without a base
+url ' \x00 ' relative URL without a base
+url ' https://example.org ' https://example.org/
+multi-host-url '' input is empty
+multi-host-url ' ' relative URL without a base
+multi-host-url '\t' relative URL without a base
+multi-host-url '\n' relative URL without a base
+multi-host-url ' \x00 ' relative URL without a base
+multi-host-url ' https://example.org ' https://example.org/
+http '' 422 {'error': 'input is empty'}
+http ' ' 422 {'error': 'relative URL without a base'}
+http ' https://example.org ' 200 {'url': 'https://example.org/'}

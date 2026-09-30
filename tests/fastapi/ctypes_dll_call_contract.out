@@ -1,0 +1,4 @@
+process True
+codepage True
+multiply 14
+tuple-fastapi 200 {"bytes_length": 5, "result": 14, "tuple_argtypes": true}
