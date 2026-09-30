@@ -860,6 +860,14 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
           }
         }
       }
+      if (!receiver_has_direct_method_attr &&
+          value_as_dict(instance_attribute_storage(*instance)) != nullptr) {
+        Value dictionary_method;
+        std::string ignored_error;
+        receiver_has_direct_method_attr = mapping_get_item(
+            instance_attribute_storage(*instance), Value::string(name),
+            dictionary_method, ignored_error);
+      }
     }
   }
 
