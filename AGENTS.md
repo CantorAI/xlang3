@@ -45,3 +45,10 @@ Improve their performance through XLang3's compiler, IR, VM, and generic runtime
 paths. A native XLang3 module may replace a CPython module only when CPython
 itself implements that module natively; preserve its Python-visible import name
 and compatible module API/ABI.
+
+For Python method-forwarding fast paths, preserve dynamic override dispatch
+through subclasses and keep the forwarding method in error tracebacks. Require
+guards that prove both properties, with the original Python call as fallback
+for overrides or fallible operations. When a change targets a pyperformance
+case, verify its effect with that official benchmark as well as the fixed local
+regression gate; a local workload replica alone does not establish a suite win.
