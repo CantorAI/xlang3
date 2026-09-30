@@ -1,0 +1,158 @@
+2 75 312 314000
+perf: native_calls=22586 fast=22492 cached_fast=4513
+perf: native int.__new__ slow=16 fast=78
+perf: native __xlang3_build_class_from_namespace__ slow=2 fast=36
+perf: native object.__init__ slow=4 fast=15
+perf: native type.__new__ slow=16 fast=0
+perf: native str.__new__ slow=7 fast=0
+perf: native _codecs.lookup_error slow=6 fast=0
+perf: native bytearray.translate slow=5 fast=0
+perf: native sorted slow=4 fast=0
+perf: native type.__or__ slow=2 fast=0
+perf: native _functools._lru_cache_wrapper slow=1 fast=0
+perf: native _json.make_scanner slow=1 fast=0
+perf: native eval slow=1 fast=0
+perf: native generator.close slow=1 fast=0
+perf: native print slow=1 fast=0
+perf: store_local moves=30370 copies=1575
+perf: frame_snapshots calls=1 frames=2 locals=0 refresh_calls=22 refresh_items=27
+perf: opcode 0 24505
+perf: opcode 1 40854
+perf: opcode 2 43454
+perf: opcode 3 30736
+perf: opcode 4 18
+perf: opcode 5 34
+perf: opcode 6 16
+perf: opcode 7 41
+perf: opcode 8 84
+perf: opcode 9 46
+perf: opcode 10 64
+perf: opcode 11 2
+perf: opcode 12 5
+perf: opcode 13 17015
+perf: opcode 15 25
+perf: opcode 17 10
+perf: opcode 18 29805
+perf: opcode 19 407
+perf: opcode 20 18
+perf: opcode 22 48
+perf: opcode 23 5
+perf: opcode 25 4471
+perf: opcode 26 813
+perf: opcode 30 24
+perf: opcode 31 4683
+perf: opcode 33 18
+perf: opcode 35 4675
+perf: opcode 36 242
+perf: opcode 37 4185
+perf: opcode 38 30
+perf: opcode 39 272
+perf: opcode 40 160
+perf: opcode 42 908
+perf: opcode 46 728
+perf: opcode 47 1457
+perf: opcode 48 870
+perf: opcode 49 1
+perf: opcode 50 431
+perf: opcode 51 343
+perf: opcode 52 167
+perf: opcode 53 4003
+perf: opcode 54 261
+perf: opcode 55 194
+perf: opcode 56 39
+perf: opcode 60 123
+perf: opcode 62 1
+perf: opcode 63 193
+perf: opcode 64 47
+perf: opcode 65 9
+perf: opcode 66 3
+perf: opcode 70 966
+perf: opcode 71 24224
+perf: opcode 72 473
+perf: opcode 73 12052
+perf: opcode 74 4340
+perf: opcode 75 23
+perf: opcode 76 22374
+perf: opcode 77 26335
+perf: opcode 78 410
+perf: opcode 79 298
+perf: opcode 81 246
+perf: opcode 82 1
+perf: opcode 84 4
+perf: opcode 85 20
+perf: opcode 86 1
+perf: opcode 88 33
+perf: opcode 89 4016
+perf: opcode 90 9038
+perf: opcode 91 4001
+perf: opcode 92 60
+perf: opcode 93 18515
+perf: opcode 95 33
+perf: opcode 96 7
+perf: opcode 97 1083
+perf: opcode 98 12717
+perf: opcode 99 6
+perf: opcode 101 22
+perf: opcode 102 17
+perf: opcode 105 14993
+perf: opcode 106 17707
+perf: opcode 107 822
+perf: opcode 108 253
+perf: opcode 109 11
+perf: opcode 110 45811
+perf: opcode 111 90
+perf: opcode 112 219
+perf: opcode 113 360
+perf: opcode 114 576
+perf: opcode 115 41229
+perf: opcode 116 50
+perf: opcode 117 4300
+perf: opcode 118 672
+perf: opcode 119 306
+perf: opcode 120 780
+perf: opcode 121 8914
+perf: opcode 122 274
+perf: opcode 125 193
+perf: opcode 126 4257
+perf: opcode 127 95
+perf: opcode 129 23
+perf: opcode 130 12
+perf: opcode 131 349
+perf: objects kind alloc final_release incref decref
+perf: String 5899 4261 66024 70065
+perf: BigInt 11 10 190 200
+perf: Bytes 22 1 62 47
+perf: ByteArray 65 65 50 115
+perf: Slice 272 272 23 295
+perf: Tuple 5194 5013 2296 7225
+perf: List 4316 4235 17650 21865
+perf: Dict 8429 8325 34382 41655
+perf: Unknown 102 95 22 117
+perf: Set 103 79 309 387
+perf: DictValuesView 1 1 0 1
+perf: DictItemsView 20 20 0 20
+perf: DictIterator 73 73 0 73
+perf: SetIterator 9 9 0 9
+perf: Range 59 59 0 59
+perf: RangeIterator 41 41 0 41
+perf: SequenceIterator 355 355 2 357
+perf: Unknown 4 4 4 8
+perf: Unknown 1 1 1 2
+perf: Unknown 2 2 2 4
+perf: Generator 18 18 41 59
+perf: Module 20 0 66276 64955
+perf: Cell 102 73 302 369
+perf: Function 4683 4077 20234 24164
+perf: NativeFunction 70 13 81583 81336
+perf: Class 86 3 55707 55087
+perf: Instance 366 212 27797 27377
+perf: BoundMethod 4952 4942 4153 9089
+perf: StaticMethod 17 1 524 525
+perf: ClassMethod 21 0 206 205
+perf: Super 181 181 0 181
+perf: SlotDescriptor 15 0 443 443
+perf: Property 17 0 190 185
+perf: Unknown 20 20 0 20
+perf: Unknown 39 39 143 182
+perf: Unknown 33 33 39 72
+perf: Unknown 3 3 0 3

@@ -1,0 +1,17 @@
+runtime,case,calls,path,median_ms,median_us_per_call
+xlang3,EMPTY,2000,json.dumps,19.241700,9.621
+xlang3,EMPTY,2000,JSONEncoder.encode,17.004700,8.502
+xlang3,EMPTY,2000,iterencode+join,11.327100,5.664
+xlang3,EMPTY,2000,direct _json+join,2.034000,1.017
+xlang3,SIMPLE,1000,json.dumps,10.009900,10.010
+xlang3,SIMPLE,1000,JSONEncoder.encode,8.880500,8.880
+xlang3,SIMPLE,1000,iterencode+join,6.052100,6.052
+xlang3,SIMPLE,1000,direct _json+join,1.371600,1.372
+xlang3,NESTED,1000,json.dumps,10.790600,10.791
+xlang3,NESTED,1000,JSONEncoder.encode,9.622700,9.623
+xlang3,NESTED,1000,iterencode+join,6.791500,6.791
+xlang3,NESTED,1000,direct _json+join,2.019700,2.020
+xlang3,HUGE,1,json.dumps,0.671800,671.800
+xlang3,HUGE,1,JSONEncoder.encode,0.669300,669.300
+xlang3,HUGE,1,iterencode+join,0.664500,664.500
+xlang3,HUGE,1,direct _json+join,0.712500,712.500

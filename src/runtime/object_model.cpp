@@ -42,6 +42,52 @@ namespace xlang3 {
 
 namespace {
 
+std::vector<Value> function_positional_defaults_for_introspection(
+    const FunctionObject& function) {
+  if (function.module == nullptr || function.function_id >= function.module->functions.size()) {
+    return function.defaults;
+  }
+
+  const auto& fn = function.module->functions[function.function_id];
+  const bool dynamic_defaults = function.defaults.size() == fn.signature.size() + 1 &&
+      !function.defaults.empty() && function.defaults.back().tag == ValueTag::Invalid;
+  std::vector<Value> defaults;
+  if (dynamic_defaults) {
+    std::vector<size_t> positional_params;
+    positional_params.reserve(fn.signature.size());
+    for (size_t index = 0; index < fn.signature.size(); ++index) {
+      const auto kind = fn.signature[index].kind;
+      if (kind == ir::ParamKind::PosOnly || kind == ir::ParamKind::PosOrKeyword) {
+        positional_params.push_back(index);
+      }
+    }
+    // __defaults__ assignment aligns values to the trailing positional
+    // parameters; an invalid slot ends the assigned suffix.
+    size_t first = positional_params.size();
+    while (first > 0) {
+      const size_t param = positional_params[first - 1];
+      if (param >= function.defaults.size() || function.defaults[param].tag == ValueTag::Invalid) {
+        break;
+      }
+      --first;
+    }
+    defaults.reserve(positional_params.size() - first);
+    for (size_t index = first; index < positional_params.size(); ++index) {
+      defaults.push_back(function.defaults[positional_params[index]]);
+    }
+    return defaults;
+  }
+
+  defaults.reserve(fn.signature.size());
+  for (const auto& param : fn.signature) {
+    if ((param.kind == ir::ParamKind::PosOnly || param.kind == ir::ParamKind::PosOrKeyword) &&
+        param.default_reg != UINT32_MAX && param.default_reg < function.defaults.size()) {
+      defaults.push_back(function.defaults[param.default_reg]);
+    }
+  }
+  return defaults;
+}
+
 std::unordered_set<Object*>& native_gc_instances() {
   static auto* instances = new std::unordered_set<Object*>();
   return *instances;
@@ -3465,7 +3511,9 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
     }
     if (name == "__defaults__") {
       if (function->positional_defaults.empty()) {
-        value_set_none(out);
+        auto defaults = function_positional_defaults_for_introspection(*function);
+        if (defaults.empty()) value_set_none(out);
+        else out = Value::tuple(std::move(defaults));
       } else {
         out = Value::tuple(function->positional_defaults);
       }

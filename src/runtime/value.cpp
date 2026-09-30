@@ -1195,13 +1195,9 @@ Value Value::function(
   if (module != nullptr && function_id < module->functions.size()) {
     const auto& fn = module->functions[function_id];
     obj->type_params = fn.type_params;
-    for (const auto& param : fn.signature) {
-      if ((param.kind == ir::ParamKind::PosOnly || param.kind == ir::ParamKind::PosOrKeyword) &&
-          param.default_reg != UINT32_MAX &&
-          param.default_reg < obj->defaults.size()) {
-        obj->positional_defaults.push_back(obj->defaults[param.default_reg]);
-      }
-    }
+    // Calls bind from `defaults`; duplicating positional defaults here only
+    // supports the rarely inspected __defaults__ attribute. Defer that copy
+    // so repeatedly created nested functions do not allocate another vector.
   } else {
     obj->positional_defaults = obj->defaults;
   }

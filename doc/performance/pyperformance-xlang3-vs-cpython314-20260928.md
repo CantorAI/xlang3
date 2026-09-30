@@ -819,3 +819,11 @@ These results rule out per-byte string appends and generic native argument marsh
 ### Python method-forwarding VM trial (2026-09-30)
 
 A VM shortcut for methods forwarding to native built-ins was tested and removed. It did not improve the official `regex_compile` or `argparse_subparsers` benchmark reliably; the apparent 4% local subparser-gate gain came from a reproduction that timed argument-list construction omitted by the official benchmark. The broad version also bypassed list-subclass overrides and lost a forwarding frame on errors. The detailed results, semantic fixture, and raw pyperf/gate reports are in [the trial record](builtin-forwarding-method-vm-trial-20260930.md).
+
+### `json_dumps` native binder and call-path investigation (2026-09-30)
+
+The default `_json.make_encoder` binding shortcut was removed after official pyperformance measured it **1.01× slower** than control (**39.7 ms** vs **39.5 ms**); the CPython 3.14.7 reference was **7.22 ms**. A call-path split shows the repeated-small-object benchmark spends most of its XLang3 time above the native encoder, while the large one-shot output is already faster than CPython in the local diagnostic. VM counters point to repeated Python function/default construction and `iterencode` calls as generic next targets. The code-boundary, measurements, and raw files are recorded in [the focused report](json-dumps-native-binder-trial-20260930.md).
+
+### Lazy Python function defaults in the JSON VM path (2026-09-30)
+
+`MakeFunction` no longer eagerly builds a duplicate positional-default vector used only for `function.__defaults__` introspection. Calls keep binding from the original defaults; the attribute path derives the tuple on demand, and assignment semantics remain covered by the function metadata fixtures. This generic runtime change improved official `json_dumps` from **39.7 ±0.5 ms** to **38.8 ±0.5 ms** (**1.02× faster**). The candidate passed both the fixed-baseline and full pre-change 11-case Release gates. CPython 3.14.7 measured **7.22 ±0.18 ms**, so XLang3 remains **5.38× slower** on this benchmark. The implementation and raw evidence are in [the trial report](json-lazy-function-defaults-trial-20260930.md).
