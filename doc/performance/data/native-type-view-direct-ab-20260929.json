@@ -1,0 +1,167 @@
+{
+  "pickle": {
+    "benchmark": "pickle_pure_python",
+    "pairs": [
+      {
+        "pair": 1,
+        "order": "control-candidate",
+        "control_seconds": 0.1297129,
+        "candidate_seconds": 0.1302868
+      },
+      {
+        "pair": 2,
+        "order": "candidate-control",
+        "control_seconds": 0.1300826,
+        "candidate_seconds": 0.13023
+      },
+      {
+        "pair": 3,
+        "order": "control-candidate",
+        "control_seconds": 0.1296049,
+        "candidate_seconds": 0.1336442
+      },
+      {
+        "pair": 4,
+        "order": "candidate-control",
+        "control_seconds": 0.1336586,
+        "candidate_seconds": 0.1320258
+      },
+      {
+        "pair": 5,
+        "order": "control-candidate",
+        "control_seconds": 0.1310198,
+        "candidate_seconds": 0.1299747
+      },
+      {
+        "pair": 6,
+        "order": "candidate-control",
+        "control_seconds": 0.1308805,
+        "candidate_seconds": 0.1323992
+      },
+      {
+        "pair": 7,
+        "order": "control-candidate",
+        "control_seconds": 0.1311069,
+        "candidate_seconds": 0.1298918
+      },
+      {
+        "pair": 8,
+        "order": "candidate-control",
+        "control_seconds": 0.1316352,
+        "candidate_seconds": 0.1308068
+      },
+      {
+        "pair": 9,
+        "order": "control-candidate",
+        "control_seconds": 0.1330211,
+        "candidate_seconds": 0.1330897
+      },
+      {
+        "pair": 10,
+        "order": "candidate-control",
+        "control_seconds": 0.128882,
+        "candidate_seconds": 0.1282277
+      },
+      {
+        "pair": 11,
+        "order": "control-candidate",
+        "control_seconds": 0.1317716,
+        "candidate_seconds": 0.1368251
+      }
+    ],
+    "control_median": 0.1310198,
+    "candidate_median": 0.1308068,
+    "paired_geomean_candidate_over_control": 1.0040910179827942,
+    "paired_t_95_ci": [
+      0.9930746932194715,
+      1.0152295484695328
+    ],
+    "paired_t_p_value": 0.42884316386408516,
+    "method": "11 order-balanced runtime-DLL pairs, direct pyperformance workload, one benchmark loop per process; diagnostic, not official pyperf"
+  },
+  "unpickle": {
+    "benchmark": "unpickle_pure_python",
+    "pairs": [
+      {
+        "pair": 1,
+        "order": "control-candidate",
+        "control_seconds": 0.0941144,
+        "candidate_seconds": 0.0927343
+      },
+      {
+        "pair": 2,
+        "order": "candidate-control",
+        "control_seconds": 0.0944902,
+        "candidate_seconds": 0.0950788
+      },
+      {
+        "pair": 3,
+        "order": "control-candidate",
+        "control_seconds": 0.091539,
+        "candidate_seconds": 0.0963793
+      },
+      {
+        "pair": 4,
+        "order": "candidate-control",
+        "control_seconds": 0.0923369,
+        "candidate_seconds": 0.0947418
+      },
+      {
+        "pair": 5,
+        "order": "control-candidate",
+        "control_seconds": 0.0914183,
+        "candidate_seconds": 0.0915028
+      },
+      {
+        "pair": 6,
+        "order": "candidate-control",
+        "control_seconds": 0.0938431,
+        "candidate_seconds": 0.0947183
+      },
+      {
+        "pair": 7,
+        "order": "control-candidate",
+        "control_seconds": 0.0942784,
+        "candidate_seconds": 0.0926447
+      },
+      {
+        "pair": 8,
+        "order": "candidate-control",
+        "control_seconds": 0.0922592,
+        "candidate_seconds": 0.0910564
+      },
+      {
+        "pair": 9,
+        "order": "control-candidate",
+        "control_seconds": 0.0954095,
+        "candidate_seconds": 0.0924125
+      },
+      {
+        "pair": 10,
+        "order": "candidate-control",
+        "control_seconds": 0.0953587,
+        "candidate_seconds": 0.0960417
+      },
+      {
+        "pair": 11,
+        "order": "control-candidate",
+        "control_seconds": 0.0915938,
+        "candidate_seconds": 0.0913771
+      }
+    ],
+    "control_median": 0.0938431,
+    "candidate_median": 0.0927343,
+    "paired_geomean_candidate_over_control": 1.0019228424979765,
+    "paired_t_95_ci": [
+      0.9867311899944506,
+      1.0173483847458704
+    ],
+    "paired_t_p_value": 0.7850751535367383,
+    "method": "11 order-balanced runtime-DLL pairs, direct pyperformance workload, one benchmark loop per process; diagnostic, not official pyperf"
+  },
+  "runtime_dll_sha256": {
+    "control": "faea56c5a7eae769ef5aec62472b740215eac16907b6a1d90fcdfca00450a330",
+    "candidate": "2b342b2ef8fe4e7ac5bed7c56a1d782603f467cd5895de801c554d1258d4de61"
+  },
+  "source_commit": "4af0d32 perf: reuse Python call binding storage"
+}
