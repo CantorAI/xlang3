@@ -712,6 +712,12 @@ RuntimeResult Interpreter::run_function(
                         uint32_t return_dst,
                         FrameReturnMode return_mode = FrameReturnMode::StoreReturnValue,
                         Value continuation_value = Value::invalid()) -> bool {
+    // Keep ordinary Python calls on this VM frame stack and return to the same
+    // dispatch loop. CPython 3.14's CALL_PY_EXACT_ARGS follows the same shape:
+    // transfer positional arguments into a compact interpreter frame, then
+    // switch the active frame without recursively entering another evaluator.
+    // See doc/performance/cpython314-vm-comparison-20260930.md before changing
+    // this path; frame switching is a measured hot cost in pure-Python pickle.
     // Some source-backed operations still use recursive native helper paths
     // while Python frames are active.  Keep a conservative host-stack ceiling
     // in addition to the user-visible recursion limit so recursive logging and
@@ -1708,8 +1714,11 @@ RuntimeResult Interpreter::run_function(
 
     try {
     for (;;) {
-      // Weak-reference callbacks and console signals set independent bits in
-      // one eval breaker, preserving safepoint dispatch with one acquire poll.
+      // CPython 3.14 places eval-breaker handling in periodic operations such
+      // as CALL and backward jumps. XLang also bounds cross-thread event
+      // delivery to 64 IR instructions, so the ordinary per-op path must stay
+      // a TLS countdown; the helper performs the global acquire poll only at
+      // that interval. Keep event handling here at the dispatch boundary.
       const uint32_t pending_events = interpreter_poll_pending_events();
       if (XLANG3_UNLIKELY(pending_events != 0)) {
         if ((pending_events & kInterpreterEventWeakrefCallbacks) != 0) {

@@ -1,0 +1,16 @@
+Python benchmark suite 1.14.0
+
+
+==================================================
+( 1/1) creating venv for benchmark (unpickle_pure_python)
+
+(trying common venv first)
+
+[1/1] unpickle_pure_python...
+.........................................
+unpickle_pure_python: Mean +- std dev: 3.49 ms +- 0.05 ms
+
+Performance version: 1.14.0
+
+### unpickle_pure_python ###
+Mean +- std dev: 3.49 ms +- 0.05 ms

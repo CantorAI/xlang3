@@ -1,0 +1,130 @@
+function #56 load
+  qualname: _Unpickler.load
+  doc: Read a pickled object representation from the open file.
+
+        Return the reconstituted object hierarchy specified in the file.
+
+  first_line: 1294
+  generator: false
+  async: false
+  coroutine: false
+  params: %0=self
+  signature: %0=self/poskw/d4294967295
+  locals: %0=self %1=read %2=dispatch %3=key %4=stopinst %5=#return.0
+  cells:
+  free_vars:
+  registers: 76
+  constants: 10
+  names: #0=hasattr #1=__class__ #2=__name__ #3=_file_read #4=_file_readline #5=_unframer #6=read #7=readinto #8=readline #9=metastack #10=stack #11=append #12=proto #13=dispatch #14=EOFError #15=isinstance #16=AssertionError #17=value
+  call_args #0: r1 r2
+  call_args #1: r11
+  call_args #2: r15 r17
+  call_args #3: r48
+  call_args #4: r54 r55
+  call_args #5:
+  call_args #6: r64
+  tuple_items #0: r7
+  list_items #0:
+  list_items #1:
+  0: LoadGlobalLocal line=1301 pos=1301:16-1301:43 dst=0 a=0 b=1 c=0
+  1: LoadConst line=1301 pos=1301:16-1301:43 dst=2 a=0 b=0 c=0
+  2: Call line=1301 pos=1301:16-1301:43 dst=3 a=0 b=0 c=0
+  3: NotJumpIfFalse line=1301 pos=1301:9-1304:9 dst=13 a=3 b=0 c=0
+  4: LoadModuleSlot line=1302 pos=1302:19-1303:80 dst=5 a=29 b=0 c=0
+  5: LoadConst line=1302 pos=1302:35-1303:79 dst=6 a=1 b=0 c=0
+  6: LoadLocalAttr line=1303 pos=1303:54-1303:68 dst=8 a=0 b=1 c=9
+  7: LoadAttr line=1303 pos=1303:54-1303:77 dst=7 a=8 b=2 c=0
+  8: MakeTuple line=1302 pos=1302:35-1303:79 dst=10 a=0 b=0 c=0
+  9: Mod line=1302 pos=1302:35-1303:79 dst=11 a=6 b=10 c=0
+  10: Call line=1302 pos=1302:19-1303:80 dst=12 a=5 b=1 c=0
+  11: Raise line=1302 pos=1302:13-1303:156 dst=0 a=12 b=0 c=0
+  12: Jump line=1301 pos=1301:9-1304:9 dst=13 a=0 b=0 c=0
+  13: LoadLocal line=1304 pos=1304:26-1304:73 dst=13 a=0 b=0 c=0
+  14: LoadModuleSlot line=1304 pos=1304:26-1304:73 dst=14 a=103 b=0 c=0
+  15: LoadLocalAttr line=1304 pos=1304:36-1304:51 dst=15 a=0 b=3 c=16
+  16: LoadLocalAttr line=1304 pos=1304:53-1304:72 dst=17 a=0 b=4 c=18
+  17: Call line=1304 pos=1304:26-1304:73 dst=19 a=14 b=2 c=0
+  18: StoreAttr line=1304 pos=1304:26-1304:73 dst=13 a=5 b=19 c=0
+  19: LoadLocalPair line=1305 pos=1305:21-1305:40 dst=20 a=0 b=23 c=0
+  20: LoadAttr line=1305 pos=1305:21-1305:35 dst=22 a=23 b=5 c=0
+  21: LoadAttr line=1305 pos=1305:21-1305:40 dst=21 a=22 b=6 c=0
+  22: StoreAttr line=1305 pos=1305:21-1305:40 dst=20 a=6 b=21 c=0
+  23: LoadLocalPair line=1306 pos=1306:25-1306:48 dst=24 a=0 b=27 c=0
+  24: LoadAttr line=1306 pos=1306:25-1306:39 dst=26 a=27 b=5 c=0
+  25: LoadAttr line=1306 pos=1306:25-1306:48 dst=25 a=26 b=7 c=0
+  26: StoreAttr line=1306 pos=1306:25-1306:48 dst=24 a=7 b=25 c=0
+  27: LoadLocalPair line=1307 pos=1307:25-1307:48 dst=28 a=0 b=31 c=0
+  28: LoadAttr line=1307 pos=1307:25-1307:39 dst=30 a=31 b=5 c=0
+  29: LoadAttr line=1307 pos=1307:25-1307:48 dst=29 a=30 b=8 c=0
+  30: StoreAttr line=1307 pos=1307:25-1307:48 dst=28 a=8 b=29 c=0
+  31: LoadLocal line=1308 pos=1308:26-1308:28 dst=32 a=0 b=0 c=0
+  32: MakeList line=1308 pos=1308:26-1308:28 dst=33 a=0 b=0 c=0
+  33: StoreAttr line=1308 pos=1308:26-1308:28 dst=32 a=9 b=33 c=0
+  34: LoadLocal line=1309 pos=1309:22-1309:24 dst=34 a=0 b=0 c=0
+  35: MakeList line=1309 pos=1309:22-1309:24 dst=35 a=1 b=0 c=0
+  36: StoreAttr line=1309 pos=1309:22-1309:24 dst=34 a=10 b=35 c=0
+  37: LoadLocalPair line=1310 pos=1310:23-1310:40 dst=36 a=0 b=39 c=0
+  38: LoadAttr line=1310 pos=1310:23-1310:33 dst=38 a=39 b=10 c=0
+  39: LoadAttr line=1310 pos=1310:23-1310:40 dst=37 a=38 b=11 c=0
+  40: StoreAttr line=1310 pos=1310:23-1310:40 dst=36 a=11 b=37 c=0
+  41: LoadLocalConst line=1311 pos=1311:22-1311:23 dst=40 a=0 b=41 c=2
+  42: StoreAttr line=1311 pos=1311:22-1311:23 dst=40 a=12 b=41 c=0
+  43: LoadLocalAttr line=1312 pos=1312:16-1312:25 dst=42 a=0 b=6 c=43
+  44: StoreLocal line=1312 pos=1312:16-1312:25 dst=1 a=42 b=0 c=0
+  45: LoadLocalAttr line=1313 pos=1313:20-1313:33 dst=44 a=0 b=13 c=45
+  46: StoreLocal line=1313 pos=1313:20-1313:33 dst=2 a=44 b=0 c=0
+  47: SetupExcept line=1314 pos=1314:9-1325:9 dst=75 a=0 b=0 c=0
+  48: LoadConst line=1315 pos=1315:13-1321:13 dst=46 a=3 b=0 c=0
+  49: JumpIfFalse line=1315 pos=1315:13-1321:13 dst=73 a=46 b=0 c=0
+  50: LoadLocalConst line=1316 pos=1316:23-1316:30 dst=47 a=1 b=48 c=4
+  51: Call line=1316 pos=1316:23-1316:30 dst=49 a=47 b=3 c=0
+  52: StoreLocal line=1316 pos=1316:23-1316:30 dst=3 a=49 b=0 c=0
+  53: LoadLocal line=1317 pos=1317:17-1319:17 dst=50 a=3 b=0 c=0
+  54: NotJumpIfFalse line=1317 pos=1317:17-1319:17 dst=58 a=50 b=0 c=0
+  55: LoadGlobal line=1318 pos=1318:21-1318:35 dst=52 a=14 b=0 c=0
+  56: Raise line=1318 pos=1318:21-1318:35 dst=0 a=52 b=0 c=0
+  57: Jump line=1317 pos=1317:17-1319:17 dst=58 a=0 b=0 c=0
+  58: LoadGlobalLocal line=1319 pos=1319:24-1319:52 dst=53 a=15 b=54 c=3
+  59: LoadModuleSlot line=1319 pos=1319:24-1319:52 dst=55 a=22 b=0 c=0
+  60: Call line=1319 pos=1319:24-1319:52 dst=56 a=53 b=4 c=0
+  61: JumpIfFalse line=1319 pos=1319:17-1319:52 dst=63 a=56 b=0 c=0
+  62: Jump line=1319 pos=1319:17-1319:52 dst=65 a=0 b=0 c=0
+  63: CallGlobal line=1319 pos=1319:17-1319:52 dst=58 a=16 b=5 c=0
+  64: Raise line=1319 pos=1319:17-1319:52 dst=0 a=58 b=0 c=0
+  65: LoadLocalPair line=1320 pos=1320:17-1320:33 dst=59 a=2 b=60 c=3
+  66: LoadConst line=1320 pos=1320:26-1320:32 dst=61 a=5 b=0 c=0
+  67: GetItem line=1320 pos=1320:26-1320:32 dst=62 a=60 b=61 c=0
+  68: GetItem line=1320 pos=1320:17-1320:33 dst=63 a=59 b=62 c=0
+  69: LoadLocal line=1320 pos=1320:17-1320:39 dst=64 a=0 b=0 c=0
+  70: Call line=1320 pos=1320:17-1320:39 dst=65 a=63 b=6 c=0
+  71: Pop line=1320 pos=1320:17-1320:39 dst=0 a=65 b=0 c=0
+  72: Jump line=1315 pos=1315:13-1321:13 dst=48 a=0 b=0 c=0
+  73: PopExcept line=1314 pos=1314:9-1325:9 dst=0 a=0 b=0 c=0
+  74: Jump line=1314 pos=1314:9-1325:9 dst=98 a=0 b=0 c=0
+  75: LoadModuleSlot line=1314 pos=1314:9-1325:9 dst=66 a=30 b=0 c=0
+  76: MatchException line=1314 pos=1314:9-1325:9 dst=67 a=66 b=0 c=0
+  77: JumpIfFalse line=1314 pos=1314:9-1325:9 dst=97 a=67 b=0 c=0
+  78: LoadException line=1314 pos=1314:9-1325:9 dst=68 a=0 b=0 c=0
+  79: StoreLocal line=1314 pos=1314:9-1325:9 dst=4 a=68 b=0 c=0
+  80: SetupExcept line=1314 pos=1314:9-1325:9 dst=93 a=0 b=0 c=0
+  81: LoadLocalAttr line=1322 pos=1322:20-1322:34 dst=69 a=4 b=17 c=70
+  82: StoreLocal line=1322 pos=1322:13-1322:34 dst=5 a=69 b=0 c=0
+  83: LoadConst line=1322 pos=1322:13-1322:34 dst=71 a=6 b=0 c=0
+  84: StoreLocal line=1322 pos=1322:13-1322:34 dst=4 a=71 b=0 c=0
+  85: DeleteLocal line=1322 pos=1322:13-1322:34 dst=4 a=0 b=0 c=0
+  86: ReturnLocal line=1322 pos=1322:13-1322:34 dst=0 a=5 b=0 c=0
+  87: PopExcept line=1314 pos=1314:9-1325:9 dst=0 a=0 b=0 c=0
+  88: LoadConst line=1314 pos=1314:9-1325:9 dst=73 a=7 b=0 c=0
+  89: StoreLocal line=1314 pos=1314:9-1325:9 dst=4 a=73 b=0 c=0
+  90: DeleteLocal line=1314 pos=1314:9-1325:9 dst=4 a=0 b=0 c=0
+  91: ClearException line=1314 pos=1314:9-1325:9 dst=0 a=0 b=0 c=0
+  92: Jump line=1314 pos=1314:9-1325:9 dst=98 a=0 b=0 c=0
+  93: LoadConst line=1314 pos=1314:9-1325:9 dst=74 a=8 b=0 c=0
+  94: StoreLocal line=1314 pos=1314:9-1325:9 dst=4 a=74 b=0 c=0
+  95: DeleteLocal line=1314 pos=1314:9-1325:9 dst=4 a=0 b=0 c=0
+  96: Reraise line=1314 pos=1314:9-1325:9 dst=0 a=0 b=0 c=0
+  97: Reraise line=1314 pos=1314:9-1325:9 dst=0 a=0 b=0 c=0
+  98: ReturnConst line=0 pos=0:0-0:0 dst=0 a=9 b=0 c=0
+
+function #57 pop_mark
+  qualname: _Unpickler.pop_mark
