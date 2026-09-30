@@ -29,7 +29,6 @@ limitations under the License.
 #include <string>
 #include <string_view>
 #include <unordered_map>
-#include <unordered_set>
 #include <vector>
 
 namespace xlang3 {
@@ -1269,11 +1268,15 @@ bool pickle_read_value(
 // values. Its prewalk rejects cycles; the writer then memoizes after encoding,
 // preserving repeated-reference identity with MEMOIZE/BINGET. Other custom
 // classes and deep graphs stay on pickle.py's fully compatible path.
+enum class PickleTreeVisitState : uint8_t {
+  Active,
+  Supported,
+};
+
 bool pickle_builtin_tree_supported(
     Runtime& runtime,
     const Value& value,
-    std::unordered_set<Object*>& active,
-    std::unordered_set<Object*>& checked,
+    std::unordered_map<Object*, PickleTreeVisitState>& container_states,
     size_t depth = 0) {
   if (depth > 900) return false;
   if (value.tag == ValueTag::None || value.tag == ValueTag::Bool ||
@@ -1283,15 +1286,17 @@ bool pickle_builtin_tree_supported(
   if (value.tag != ValueTag::Object || value.as.obj == nullptr) {
     return false;
   }
-  Object* object = value.as.obj;
-  if (active.find(object) != active.end()) return false;
-  if (checked.find(object) != checked.end()) return true;
-
-  active.insert(object);
-  bool supported = false;
+  // Leaves cannot introduce a cycle or another subtree to re-check. Keeping
+  // strings and bytes out of the visit table avoids two hash-node allocations
+  // per leaf in the old active/checked-set prewalk; writer memoization still
+  // preserves repeated references while emitting the stream.
   if (value_as_string(value) != nullptr || value_as_bytes(value) != nullptr) {
-    supported = true;
-  } else if (auto* instance = value_as_instance(value); instance != nullptr) {
+    return true;
+  }
+
+  Object* object = value.as.obj;
+  if (auto* instance = value_as_instance(value); instance != nullptr) {
+    bool supported = false;
     auto* instance_class = value_as_class(instance->klass);
     if (instance_class != nullptr && instance_class->name == "date") {
       // datetime.date's reducer is already handled by pickle_write_value;
@@ -1306,46 +1311,53 @@ bool pickle_builtin_tree_supported(
           attribute_get(date_module, "date", date_class, ignored) &&
           value_is(actual_class, date_class);
     }
+    return supported;
   }
-  if (!supported) if (auto* list = value_as_list(value)) {
-    supported = true;
+
+  auto visit = container_states.find(object);
+  if (visit != container_states.end()) {
+    // Active means a back-edge (unsupported by this fast writer); Supported
+    // means a previously validated shared container.
+    return visit->second == PickleTreeVisitState::Supported;
+  }
+
+  auto* list = value_as_list(value);
+  auto* tuple = value_as_tuple(value);
+  auto* dict = value_as_dict(value);
+  if (list == nullptr && tuple == nullptr && dict == nullptr) {
+    return false;
+  }
+  container_states.emplace(object, PickleTreeVisitState::Active);
+
+  if (list != nullptr) {
     for (const auto& item : list->items) {
-      if (!pickle_builtin_tree_supported(runtime, item, active, checked, depth + 1)) {
-        supported = false;
-        break;
+      if (!pickle_builtin_tree_supported(runtime, item, container_states, depth + 1)) {
+        return false;
       }
     }
-  }
-  if (!supported) if (auto* tuple = value_as_tuple(value)) {
-    supported = true;
+  } else if (tuple != nullptr) {
     for (const auto& item : tuple->items) {
-      if (!pickle_builtin_tree_supported(runtime, item, active, checked, depth + 1)) {
-        supported = false;
-        break;
+      if (!pickle_builtin_tree_supported(runtime, item, container_states, depth + 1)) {
+        return false;
       }
     }
-  }
-  if (!supported) if (auto* dict = value_as_dict(value)) {
-    supported = true;
+  } else {
     for (const auto& [key, item] : dict->entries) {
-      if (!pickle_builtin_tree_supported(runtime, key, active, checked, depth + 1) ||
-          !pickle_builtin_tree_supported(runtime, item, active, checked, depth + 1)) {
-        supported = false;
-        break;
+      if (!pickle_builtin_tree_supported(runtime, key, container_states, depth + 1) ||
+          !pickle_builtin_tree_supported(runtime, item, container_states, depth + 1)) {
+        return false;
       }
     }
   }
-  active.erase(object);
-  if (supported) checked.insert(object);
-  return supported;
+  container_states.find(object)->second = PickleTreeVisitState::Supported;
+  return true;
 }
 
 bool pickle_dumps_builtin_tree(
     Runtime& runtime, const Value& value, int protocol, Value& out, std::string& error) {
-  std::unordered_set<Object*> active;
-  std::unordered_set<Object*> checked;
+  std::unordered_map<Object*, PickleTreeVisitState> container_states;
   if (protocol < 4 || protocol > 5 ||
-      !pickle_builtin_tree_supported(runtime, value, active, checked)) {
+      !pickle_builtin_tree_supported(runtime, value, container_states)) {
     return false;
   }
   // Protocol 4/5 framing is optional. These small scalar/container streams
