@@ -413,6 +413,7 @@ void recycle_instance_object(InstanceObject* instance) {
   }
   instance->overflow_slots.clear();
   instance->attrs.clear();
+  instance->has_separate_attribute_storage = false;
   instance->slot_count = 0;
   if (memory::object_caches_alive && instance_free_list.items.size() < 1024) {
     // Keep the GC index on cached zero-ref instances. Snapshotting ignores
@@ -2031,10 +2032,16 @@ Value Value::class_object(
 }
 
 // Dict subclasses keep their Python attribute dictionary separate from entries.
-// Keeping it in attrs also preserves it through the existing instance graph codec.
+// This accessor sits on hot attribute and method paths, so ordinary instances
+// use the flag to avoid a linear scan of attrs. Keep the flag synchronized in
+// every writer that can create the reserved marker; graph restore derives it
+// from the serialized attribute names. Keeping the marker in attrs also
+// preserves the separate dictionary through the existing instance graph codec.
 Value& instance_attribute_storage(InstanceObject& instance) {
-  for (auto& attr : instance.attrs) {
-    if (attr.first == "#__dict__") return attr.second;
+  if (instance.has_separate_attribute_storage) {
+    for (auto& attr : instance.attrs) {
+      if (attr.first == "#__dict__") return attr.second;
+    }
   }
   return instance.mapping_storage;
 }
@@ -2718,6 +2725,7 @@ Value Value::instance(Value klass) {
                             kInstanceHasDefaultDictBase)) != 0) {
       obj->mapping_storage = Value::dict({});
       obj->attrs.emplace_back("#__dict__", Value::dict({}));
+      obj->has_separate_attribute_storage = true;
     }
     if ((container_traits & kInstanceHasListBase) != 0) {
       obj->sequence_storage = Value::list({});
@@ -5071,6 +5079,7 @@ bool object_set_attr(Value& object, const std::string& name, const Value& value,
     for (auto& attr : instance->attrs) {
       if (attr.first == name) {
         value_assign_fast(attr.second, value);
+        if (name == "#__dict__") instance->has_separate_attribute_storage = true;
         if (value_as_dict(instance_attribute_storage(*instance)) != nullptr &&
             !exception_instance_internal_attribute(klass, name)) {
           std::string ignored;
@@ -5092,6 +5101,7 @@ bool object_set_attr(Value& object, const std::string& name, const Value& value,
       return false;
     }
     instance->attrs.push_back(std::make_pair(name, value));
+    if (name == "#__dict__") instance->has_separate_attribute_storage = true;
     if (value_as_dict(instance_attribute_storage(*instance)) != nullptr &&
         !exception_instance_internal_attribute(klass, name)) {
       std::string ignored;
@@ -5297,6 +5307,12 @@ bool object_delete_attr(Value& object, const std::string& name, std::string& err
     for (auto it = instance->attrs.begin(); it != instance->attrs.end(); ++it) {
       if (it->first == name) {
         instance->attrs.erase(it);
+        if (name == "#__dict__") {
+          instance->has_separate_attribute_storage = std::any_of(
+              instance->attrs.begin(), instance->attrs.end(), [](const auto& attr) {
+                return attr.first == "#__dict__";
+              });
+        }
         if (value_as_dict(instance_attribute_storage(*instance)) != nullptr) {
           std::string ignored;
           (void)mapping_delete_item(instance_attribute_storage(*instance), Value::string(name), ignored);

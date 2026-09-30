@@ -170,10 +170,12 @@ XLANG3_HOT_INLINE XlangVMOpFlow slot_descriptor_set(
       for (auto& attr : instance->attrs) {
         if (attr.first == descriptor.name) {
           value_assign_fast(attr.second, value);
+          if (descriptor.name == "#__dict__") instance->has_separate_attribute_storage = true;
           return XlangVMOpFlow::Next;
         }
       }
       instance->attrs.emplace_back(descriptor.name, value);
+      if (descriptor.name == "#__dict__") instance->has_separate_attribute_storage = true;
       if (value_as_dict(instance_attribute_storage(*instance)) != nullptr) {
         std::string ignored;
         mapping_set_item(
@@ -217,6 +219,12 @@ XLANG3_HOT_INLINE XlangVMOpFlow slot_descriptor_delete(
       for (auto it = instance->attrs.begin(); it != instance->attrs.end(); ++it) {
         if (it->first == descriptor.name) {
           instance->attrs.erase(it);
+          if (descriptor.name == "#__dict__") {
+            instance->has_separate_attribute_storage = std::any_of(
+                instance->attrs.begin(), instance->attrs.end(), [](const auto& attr) {
+                  return attr.first == "#__dict__";
+                });
+          }
           return XlangVMOpFlow::Next;
         }
       }

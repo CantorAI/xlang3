@@ -219,6 +219,7 @@ XLANG3_NOINLINE bool xlang_vm_store_attr_cached(
           cache.version = klass->version;
         }
         value_assign_fast(instance->attrs[attr_i].second, value);
+        if (name == "#__dict__") instance->has_separate_attribute_storage = true;
         if (value_as_dict(instance_attribute_storage(*instance)) != nullptr) {
           std::string ignored;
           mapping_set_item(instance_attribute_storage(*instance), Value::string(name), value, ignored);
@@ -231,6 +232,7 @@ XLANG3_NOINLINE bool xlang_vm_store_attr_cached(
       return false;
     }
     instance->attrs.push_back(std::make_pair(name, value));
+    if (name == "#__dict__") instance->has_separate_attribute_storage = true;
     cache.index = static_cast<uint32_t>(instance->attrs.size() - 1);
     cache.kind = AttrSiteKind::InstanceAttr;
     if (klass != nullptr) {

@@ -251,7 +251,10 @@ private:
         if (slot_count > 8) instance->overflow_slots.resize(slot_count);
         instance->slot_count = slot_count;
         for (uint32_t j = 0; j < instance->slot_count; ++j) instance_slot_at(instance, j) = ref(3 + j);
-        for (size_t j = 0; j < r.names.size() - (native ? 1 : 0); ++j) instance->attrs.emplace_back(r.names[j], ref(3 + instance->slot_count + j));
+        for (size_t j = 0; j < r.names.size() - (native ? 1 : 0); ++j) {
+          instance->attrs.emplace_back(r.names[j], ref(3 + instance->slot_count + j));
+          if (r.names[j] == "#__dict__") instance->has_separate_attribute_storage = true;
+        }
         break;
       }
       case Kind::BoundMethod: { auto* m = value_as_bound_method(v); m->self = ref(0); m->function = ref(1); break; }

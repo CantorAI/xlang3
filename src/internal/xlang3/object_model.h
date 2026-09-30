@@ -71,6 +71,12 @@ struct InstanceObject {
   Value mapping_storage;
   Value sequence_storage;
   uint32_t slot_count = 0;
+  // Dict subclasses keep Python attribute storage apart from mapping entries
+  // in an internal #__dict__ attr. Ordinary instances skip scanning attrs for
+  // that marker on hot attribute and method lookup paths. Every writer that
+  // can add the reserved name must keep this bit in sync; graph restore derives
+  // it from the serialized attribute names.
+  bool has_separate_attribute_storage = false;
   std::string native_type;
   void* native_data = nullptr;
   void* (*native_data_cast)(void*, const char*) = nullptr;
