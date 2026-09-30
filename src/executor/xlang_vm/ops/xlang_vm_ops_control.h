@@ -1225,15 +1225,38 @@ XLANG3_NOINLINE inline XlangVMOpFlow for_local_move_add_loop(
     if (!numeric(locals[move.dst]) || !numeric(locals[move.a])) safe = false;
   }
   if (safe && locals[in.a].as.i64 < bound) {
-    // Assignments are copied in their original order. Exact scalars cannot run
-    // finalizers, while overflow and any object-valued move use the old IR.
-    for (size_t offset = 0; offset < move_count; ++offset) {
-      const auto& move = fn.code[ip + 1 + offset];
-      value_assign_fast(locals[move.dst], locals[move.a]);
+    // A small batch amortizes returning through the VM dispatcher for each
+    // iteration. The exact-scalar guards prevent user callbacks/finalizers;
+    // poll the eval breaker for every logical iteration so batching does not
+    // delay weakref or signal delivery relative to ordinary VM dispatch.
+    constexpr size_t kMaxBatchIterations = 32;
+    size_t completed = 0;
+    int64_t counter = locals[in.a].as.i64;
+    while (completed < kMaxBatchIterations && counter < bound) {
+      if (completed != 0) {
+        if (runtime.debug_poll_needed()) break;
+        const uint32_t pending_events = interpreter_poll_pending_events();
+        if (pending_events != 0) {
+          interpreter_hint_pending_event_poll(pending_events);
+          break;
+        }
+      }
+      if (!xlang_vm_checked_add_i64(counter, step, next_counter)) break;
+      // Preserve assignment order: loop-carried local rotations can read a
+      // value written by an earlier assignment in the same iteration.
+      for (size_t offset = 0; offset < move_count; ++offset) {
+        const auto& move = fn.code[ip + 1 + offset];
+        value_assign_fast(locals[move.dst], locals[move.a]);
+      }
+      value_set_int64(locals[in.a], next_counter);
+      frame.release_memoryviews_for_skipped_local_add(fn, add_ip + 1, fallback_span);
+      counter = next_counter;
+      ++completed;
     }
-    value_set_int64(locals[in.a], next_counter);
-    frame.release_memoryviews_for_skipped_local_add(fn, add_ip + 1, fallback_span);
-    return XlangVMOpFlow::ContinueLoop;
+    if (completed != 0) {
+      if (counter >= bound) ip = in.dst;
+      return XlangVMOpFlow::ContinueLoop;
+    }
   }
   if (allow_guarded_fast_path && locals[in.a].tag == ValueTag::Int64 &&
       locals[in.a].as.i64 >= bound) {

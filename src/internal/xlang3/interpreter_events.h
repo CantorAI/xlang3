@@ -28,6 +28,9 @@ uint32_t interpreter_pending_events() noexcept;
 // Cheap per-op poll: local weakref callbacks remain immediate, while signals
 // and events queued by other threads are sampled at a bounded interval.
 uint32_t interpreter_poll_pending_events() noexcept;
+// Restore a poll hint after a batched opcode observes work it must hand back
+// to the VM dispatcher for delivery.
+void interpreter_hint_pending_event_poll(uint32_t event) noexcept;
 void interpreter_set_pending_event(uint32_t event) noexcept;
 void interpreter_clear_pending_event(uint32_t event) noexcept;
 

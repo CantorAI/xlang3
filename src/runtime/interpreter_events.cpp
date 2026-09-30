@@ -20,7 +20,7 @@ namespace xlang3 {
 namespace {
 
 std::atomic<uint32_t> g_interpreter_pending_events{0};
-thread_local uint32_t g_local_weakref_hint = 0;
+thread_local uint32_t g_local_event_poll_hint = 0;
 thread_local uint32_t g_global_poll_countdown = 64;
 
 } // namespace
@@ -34,8 +34,8 @@ uint32_t interpreter_poll_pending_events() noexcept {
   // last target reference. Preserve next-opcode delivery without a global
   // acquire load on every dispatch; cross-thread events are still bounded to
   // at most 64 VM instructions (and are polled at frame/control boundaries).
-  if (g_local_weakref_hint != 0) {
-    g_local_weakref_hint = 0;
+  if (g_local_event_poll_hint != 0) {
+    g_local_event_poll_hint = 0;
     return g_interpreter_pending_events.load(std::memory_order_acquire);
   }
   if (--g_global_poll_countdown != 0) return 0;
@@ -43,16 +43,20 @@ uint32_t interpreter_poll_pending_events() noexcept {
   return g_interpreter_pending_events.load(std::memory_order_acquire);
 }
 
+void interpreter_hint_pending_event_poll(uint32_t event) noexcept {
+  g_local_event_poll_hint |= event;
+}
+
 void interpreter_set_pending_event(uint32_t event) noexcept {
   if ((event & kInterpreterEventWeakrefCallbacks) != 0) {
-    g_local_weakref_hint |= event & kInterpreterEventWeakrefCallbacks;
+    g_local_event_poll_hint |= event & kInterpreterEventWeakrefCallbacks;
   }
   g_interpreter_pending_events.fetch_or(event, std::memory_order_release);
 }
 
 void interpreter_clear_pending_event(uint32_t event) noexcept {
   if ((event & kInterpreterEventWeakrefCallbacks) != 0) {
-    g_local_weakref_hint &= ~(event & kInterpreterEventWeakrefCallbacks);
+    g_local_event_poll_hint &= ~(event & kInterpreterEventWeakrefCallbacks);
   }
   g_interpreter_pending_events.fetch_and(~event, std::memory_order_acq_rel);
 }
