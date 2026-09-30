@@ -3760,7 +3760,16 @@ Value make_memory_stream_class(
   attrs.push_back({"__exit__", runtime.make_native_function(std::string("_io.") + name + ".__exit__", stream_exit, const_cast<char*>(type))});
   attrs.push_back({"__iter__", runtime.make_native_function(std::string("_io.") + name + ".__iter__", stream_iter, const_cast<char*>(type))});
   attrs.push_back({"__next__", runtime.make_native_function(std::string("_io.") + name + ".__next__", stream_next, const_cast<char*>(type))});
-  attrs.push_back({"read", runtime.make_native_function(std::string("_io.") + name + ".read", stream_read, const_cast<char*>(type))});
+  // BytesIO.read is a hot primitive in the pure-Python unpickler. Keep its
+  // Python-visible method unchanged while passing VM arguments directly to
+  // the native callback, as for BytesIO.write and tell; forwarding stream
+  // classes retain the generic path because they may invoke user code.
+  const NativeFastCallCallback read_fast_callback = std::string_view(name) == "BytesIO"
+      ? builtin_method_fast_adapter<stream_read, 3>
+      : nullptr;
+  attrs.push_back({"read", runtime.make_native_function(
+      std::string("_io.") + name + ".read", stream_read, const_cast<char*>(type),
+      nullptr, read_fast_callback)});
   attrs.push_back({"readline", runtime.make_native_function(std::string("_io.") + name + ".readline", stream_readline, const_cast<char*>(type))});
   attrs.push_back({"readlines", runtime.make_native_function(std::string("_io.") + name + ".readlines", stream_readlines, const_cast<char*>(type))});
   // The pure-Python pickler emits many small writes and tell queries to BytesIO.
