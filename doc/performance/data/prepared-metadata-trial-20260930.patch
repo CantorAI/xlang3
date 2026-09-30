@@ -1,0 +1,31 @@
+diff --git a/src/executor/xlang_vm/xlang_frame.h b/src/executor/xlang_vm/xlang_frame.h
+index 4505960..4f6cc2d 100644
+--- a/src/executor/xlang_vm/xlang_frame.h
++++ b/src/executor/xlang_vm/xlang_frame.h
+@@ -180,0 +181,2 @@ struct XlangVMPreparedFunctionState {
++  std::shared_ptr<const ir::FunctionExecutionMetadata> execution_metadata;
++  uint32_t max_call_arg_count = 0;
+@@ -227,0 +230 @@ struct XlangVMFrame {
++  uint32_t max_call_arg_count = 0;
+@@ -300,0 +304,2 @@ struct XlangVMFrame {
++      prepared->second.execution_metadata = std::move(execution_metadata);
++      prepared->second.max_call_arg_count = max_call_arg_count;
+@@ -347,0 +353,6 @@ struct XlangVMFrame {
++        // Immutable preparation belongs to the Function, not its current
++        // stack slot. Reuse it with the cached instruction storage so repeated
++        // function switches avoid an atomic shared_ptr load and an arity-table
++        // scan. The owner guard also rejects metadata inherited by IR copies.
++        execution_metadata = std::move(prepared->second.execution_metadata);
++        max_call_arg_count = prepared->second.max_call_arg_count;
+@@ -353,2 +364,6 @@ struct XlangVMFrame {
+-      compute_register_last_use();
+-      reserve_call_args();
++      if (execution_metadata == nullptr || execution_metadata->owner != fn) {
++        compute_register_last_use();
++        reserve_call_args();
++      } else if (max_call_arg_count != 0) {
++        native_call_args.reserve(static_cast<size_t>(max_call_arg_count) + 1);
++      }
+@@ -848 +863 @@ private:
+-    uint32_t max_call_arg_count = 0;
++    max_call_arg_count = 0;
