@@ -35,6 +35,8 @@ limitations under the License.
 #include "ops/xlang_vm_ops_fused.h"
 #include "runtime_lock.h"
 
+#include <array>
+
 #include "xlang3/attribute.h"
 #include "xlang3/builtin_methods.h"
 #include "xlang3/builtins.h"
@@ -552,7 +554,12 @@ RuntimeResult Interpreter::run_function(
   }
 
   std::vector<VMFrame> frames;
-  std::vector<RuntimeFrameView> runtime_frame_views;
+  // Most generator resumes publish only their own frame. Keep those borrowed
+  // runtime views in stack storage so a short-lived vector allocation is not
+  // paid once per yielded item; retain the general vector path for deep stacks.
+  std::array<RuntimeFrameView, 8> inline_runtime_frame_views{};
+  std::vector<RuntimeFrameView> overflow_runtime_frame_views;
+  bool published_overflow_frame_views = false;
   uint64_t frame_stack_generation = 1;
   uint64_t published_frame_stack_generation = 0;
   struct CurrentFrameGuard {
@@ -772,14 +779,22 @@ RuntimeResult Interpreter::run_function(
   size_t published_frame_count = 0;
   auto refresh_runtime_frame_views = [&]() {
     // Keep previously published elements alive until this invocation returns.
-    // A cross-thread frame reader can briefly hold an older logical count, so
-    // shrinking the vector would poison otherwise stable capacity storage.
+    // A cross-thread reader can briefly retain an older logical count, so the
+    // inline array and overflow vector both remain alive for the whole resume.
+    const bool use_overflow = frames.size() > inline_runtime_frame_views.size();
+    RuntimeFrameView* views = inline_runtime_frame_views.data();
+    if (use_overflow) {
+      if (overflow_runtime_frame_views.size() < frames.size()) {
+        overflow_runtime_frame_views.resize(frames.size());
+      }
+      views = overflow_runtime_frame_views.data();
+    }
     const bool frame_storage_moved = published_frames_data != frames.data();
-    if (runtime_frame_views.size() < frames.size()) runtime_frame_views.resize(frames.size());
+    const bool view_storage_moved = published_overflow_frame_views != use_overflow;
     auto update_view = [&](size_t i) {
       auto& view_frame = frames[i];
       if (i >= frame_count || view_frame.fn == nullptr) {
-        runtime_frame_views[i] = RuntimeFrameView{
+        views[i] = RuntimeFrameView{
             &view_frame.module_owner,
             &view_frame.globals_module,
             nullptr,
@@ -797,7 +812,7 @@ RuntimeResult Interpreter::run_function(
         };
         return;
       }
-      runtime_frame_views[i] = RuntimeFrameView{
+      views[i] = RuntimeFrameView{
           &view_frame.module_owner,
           &view_frame.globals_module,
           &view_frame.fn->locals,
@@ -814,7 +829,7 @@ RuntimeResult Interpreter::run_function(
           i == 0 ? generator : nullptr,
       };
     };
-    if (frame_storage_moved) {
+    if (frame_storage_moved || view_storage_moved) {
       for (size_t i = 0; i < frames.size(); ++i) update_view(i);
       published_frames_data = frames.data();
     } else if (frame_count > published_frame_count && frame_count != 0) {
@@ -822,7 +837,8 @@ RuntimeResult Interpreter::run_function(
       // frame views retain pointers into unchanged frame-owned storage.
       update_view(frame_count - 1);
     }
-    runtime_.set_current_frame_stack(runtime_frame_views.data(), frame_count);
+    runtime_.set_current_frame_stack(views, frame_count);
+    published_overflow_frame_views = use_overflow;
     published_frame_count = frame_count;
     published_frame_stack_generation = frame_stack_generation;
   };
