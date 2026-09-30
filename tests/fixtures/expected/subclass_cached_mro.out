@@ -1,0 +1,8 @@
+before (True, False, True, False)
+after (False, True, False, True)
+restored (True, False, True, False)
+diamond True True True False
+numeric False True False True
+truth-base False
+truth-mutation True
+truth-restored True

@@ -1,0 +1,25 @@
+--- a/src/runtime/object_model.cpp
++++ b/src/runtime/object_model.cpp
+@@ -5485,2 +5485,6 @@
+-bool class_is_subclass(const ClassObject* klass, const ClassObject* base) {
+-  std::vector<const ClassObject*> mro;
++XLANG3_NOINLINE bool class_is_subclass(const ClassObject* klass, const ClassObject* base) {
++  // Truth tests and other runtime protocols ask this repeatedly for stable
++  // classes. Read the version-guarded Value MRO directly: copying it to a
++  // temporary pointer vector allocated on every query. Class/base mutations
++  // invalidate the same MRO cache, so dynamic inheritance remains observable.
++  const std::vector<Value>* mro = nullptr;
+@@ -5488,4 +5492,9 @@
+-  if (!class_mro_classes(const_cast<ClassObject*>(klass), mro, error)) {
+-    return false;
+-  }
+-  return contains_class(mro, base);
++  if (!class_mro_values(const_cast<ClassObject*>(klass), mro, error)) {
++    return false;
++  }
++  for (const auto& item : *mro) {
++    // The MRO builder stores validated class Values, so membership only
++    // needs pointer identity, without checking each Value's tag/object kind.
++    if (reinterpret_cast<const ClassObject*>(item.as.obj) == base) return true;
++  }
++  return false;

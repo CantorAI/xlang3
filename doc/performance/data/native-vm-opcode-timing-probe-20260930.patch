@@ -1,0 +1,14 @@
+diff --git a/src/executor/xlang_vm/xlang_vm_loop.cpp b/src/executor/xlang_vm/xlang_vm_loop.cpp
+index b0d7917..566d888 100644
+--- a/src/executor/xlang_vm/xlang_vm_loop.cpp
++++ b/src/executor/xlang_vm/xlang_vm_loop.cpp
+@@ -36,0 +37 @@ limitations under the License.
++#include "../../../benchmarks/diagnostics/native_vm_opcode_timer.h"
+@@ -161,0 +163 @@ RuntimeResult Interpreter::run_function(
++  diagnostics::VMOpcodeTimer invocation_timer(diagnostics::kVMInvocationTimer);
+@@ -1597,0 +1600 @@ RuntimeResult Interpreter::run_function(
++    diagnostics::VMOpcodeTimer frame_switch_timer(diagnostics::kVMFrameSwitchTimer);
+@@ -1710,0 +1714 @@ RuntimeResult Interpreter::run_function(
++      diagnostics::VMOpcodeTimer loop_timer(diagnostics::kVMLoopControlTimer);
+@@ -1843,0 +1848 @@ RuntimeResult Interpreter::run_function(
++      diagnostics::VMOpcodeTimer opcode_timer(static_cast<uint16_t>(in.op));

@@ -5482,13 +5482,25 @@ bool class_get_subclasses(const Value& klass, Value& out, std::string& error) {
   return true;
 }
 
-bool class_is_subclass(const ClassObject* klass, const ClassObject* base) {
-  std::vector<const ClassObject*> mro;
+// Preserve this call boundary: focused Release A/B favored the outlined form
+// for function-call fast paths; small workloads are sensitive to code layout.
+// Recheck the official workload and full Release gate before changing inlining.
+XLANG3_NOINLINE bool class_is_subclass(const ClassObject* klass, const ClassObject* base) {
+  // Truth tests and other runtime protocols ask this repeatedly for stable
+  // classes. Reading the version-guarded Value MRO directly avoids allocating
+  // a temporary pointer vector for every query. Class/base mutations
+  // invalidate the same MRO cache, so dynamic inheritance remains observable.
+  const std::vector<Value>* mro = nullptr;
   std::string error;
-  if (!class_mro_classes(const_cast<ClassObject*>(klass), mro, error)) {
+  if (!class_mro_values(const_cast<ClassObject*>(klass), mro, error)) {
     return false;
   }
-  return contains_class(mro, base);
+  for (const auto& item : *mro) {
+    // The MRO builder stores validated class Values, so membership only
+    // needs pointer identity, without checking each Value's tag/object kind.
+    if (reinterpret_cast<const ClassObject*>(item.as.obj) == base) return true;
+  }
+  return false;
 }
 
 bool object_get_class_attr_for_instance(const Value& object, const std::string& name, Value& out, std::string& error) {

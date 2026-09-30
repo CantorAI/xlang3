@@ -1,0 +1,21 @@
+--- a/src/runtime/object_model.cpp
++++ b/src/runtime/object_model.cpp
+@@ -5486 +5486,5 @@
+-  std::vector<const ClassObject*> mro;
++  // Truth tests and other runtime protocols ask this repeatedly for stable
++  // classes. Read the version-guarded Value MRO directly: copying it to a
++  // temporary pointer vector allocated on every query. Class/base mutations
++  // invalidate the same MRO cache, so dynamic inheritance remains observable.
++  const std::vector<Value>* mro = nullptr;
+@@ -5488,4 +5492,7 @@
+-  if (!class_mro_classes(const_cast<ClassObject*>(klass), mro, error)) {
+-    return false;
+-  }
+-  return contains_class(mro, base);
++  if (!class_mro_values(const_cast<ClassObject*>(klass), mro, error)) {
++    return false;
++  }
++  for (const auto& item : *mro) {
++    if (value_as_class(item) == base) return true;
++  }
++  return false;
