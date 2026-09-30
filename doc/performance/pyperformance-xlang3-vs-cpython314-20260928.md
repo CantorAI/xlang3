@@ -827,3 +827,5 @@ The default `_json.make_encoder` binding shortcut was removed after official pyp
 ### Lazy Python function defaults in the JSON VM path (2026-09-30)
 
 `MakeFunction` no longer eagerly builds a duplicate positional-default vector used only for `function.__defaults__` introspection. Calls keep binding from the original defaults; the attribute path derives the tuple on demand, and assignment semantics remain covered by the function metadata fixtures. This generic runtime change improved official `json_dumps` from **39.7 ±0.5 ms** to **38.8 ±0.5 ms** (**1.02× faster**). The candidate passed both the fixed-baseline and full pre-change 11-case Release gates. CPython 3.14.7 measured **7.22 ±0.18 ms**, so XLang3 remains **5.38× slower** on this benchmark. The implementation and raw evidence are in [the trial report](json-lazy-function-defaults-trial-20260930.md).
+
+A follow-up experiment deferred copying nested function qualified names from IR. It passed the fixture suite but left official `json_dumps` unchanged at **1.00×** against control, so it was discarded. Its [trial note](json-lazy-qualname-trial-20260930.md) preserves the raw results.

@@ -57,7 +57,8 @@ pyperformance found no gain; its negative result is recorded in the
 [native binder investigation](json-dumps-native-binder-trial-20260930.md).
 This change instead reduces generic VM-created Python function metadata and
 was retained because the official target benchmark and paired Release gate
-both improved.
+both improved. A follow-up that deferred the function's default qualified-name
+copy was statistically neutral and removed; see the [rejected trial](json-lazy-qualname-trial-20260930.md).
 
 Raw evidence:
 
