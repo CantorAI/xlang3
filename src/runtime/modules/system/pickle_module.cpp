@@ -286,21 +286,14 @@ bool pickle_write_global(Runtime& runtime, const Value& callable, std::string& o
   return true;
 }
 
-enum class PickleTreeVisitState : uint8_t {
-  Active,
-  Supported,
-};
-
 struct PickleObjectState {
-  PickleTreeVisitState tree_state = PickleTreeVisitState::Active;
   uint32_t memo_index = 0;
   bool memoized = false;
 };
 
 struct PickleWriterState {
-  // The built-in-tree prewalk stores container state here first. Reusing those
-  // same nodes for pickle memo indices avoids a second allocation per
-  // container while retaining separate memoization for string/bytes leaves.
+  // The native writer's active entries detect cycles and completed entries
+  // preserve aliases without a separate eligibility walk over the graph.
   std::unordered_map<Object*, PickleObjectState> objects;
   uint32_t next_memo_index = 0;
 };
@@ -1278,104 +1271,56 @@ bool pickle_read_value(
   return false;
 }
 
-// The native shortcut accepts acyclic built-in graphs and exact datetime.date
-// values. Its prewalk rejects cycles; the writer then memoizes after encoding,
-// preserving repeated-reference identity with MEMOIZE/BINGET. Other custom
-// classes and deep graphs stay on pickle.py's fully compatible path.
-bool pickle_builtin_tree_supported(
-    Runtime& runtime,
-    const Value& value,
-    PickleWriterState& state,
-    size_t depth = 0) {
-  if (depth > 900) return false;
+bool pickle_builtin_value_supported(Runtime& runtime, const Value& value) {
   if (value.tag == ValueTag::None || value.tag == ValueTag::Bool ||
       value.tag == ValueTag::Int64 || value.tag == ValueTag::Double) {
     return true;
   }
-  if (value.tag != ValueTag::Object || value.as.obj == nullptr) {
-    return false;
-  }
-  // Leaves cannot introduce a cycle or another subtree to re-check. Keeping
-  // strings and bytes out of the visit table avoids two hash-node allocations
-  // per leaf in the old active/checked-set prewalk; writer memoization still
-  // preserves repeated references while emitting the stream.
-  if (value_as_string(value) != nullptr || value_as_bytes(value) != nullptr) {
+  if (value.tag != ValueTag::Object || value.as.obj == nullptr) return false;
+  if (value_as_string(value) != nullptr || value_as_bytes(value) != nullptr ||
+      value_as_list(value) != nullptr || value_as_tuple(value) != nullptr ||
+      value_as_dict(value) != nullptr) {
     return true;
   }
-
-  Object* object = value.as.obj;
   if (auto* instance = value_as_instance(value); instance != nullptr) {
-    bool supported = false;
     auto* instance_class = value_as_class(instance->klass);
-    if (instance_class != nullptr && instance_class->name == "date") {
-      // datetime.date's reducer is already handled by pickle_write_value;
-      // require the actual standard-library class so arbitrary user reducers
-      // continue to use pickle.py's fully compatible writer.
-      Value date_module;
-      Value date_class;
-      Value actual_class;
-      std::string ignored;
-      supported = runtime_type_of_value(runtime, value, actual_class) &&
-          runtime.import_module("datetime", date_module, ignored) &&
-          attribute_get(date_module, "date", date_class, ignored) &&
-          value_is(actual_class, date_class);
-    }
-    return supported;
+    if (instance_class == nullptr || instance_class->name != "date") return false;
+    // The native writer admits only the actual stdlib date class, never a
+    // same-named user class whose reducer could have side effects.
+    Value date_module;
+    Value date_class;
+    Value actual_class;
+    std::string ignored;
+    return runtime_type_of_value(runtime, value, actual_class) &&
+        runtime.import_module("datetime", date_module, ignored) &&
+        attribute_get(date_module, "date", date_class, ignored) &&
+        value_is(actual_class, date_class);
   }
-
-  auto visit = state.objects.find(object);
-  if (visit != state.objects.end()) {
-    // Active means a back-edge (unsupported by this fast writer); Supported
-    // means a previously validated shared container.
-    return visit->second.tree_state == PickleTreeVisitState::Supported;
-  }
-
-  auto* list = value_as_list(value);
-  auto* tuple = value_as_tuple(value);
-  auto* dict = value_as_dict(value);
-  if (list == nullptr && tuple == nullptr && dict == nullptr) {
-    return false;
-  }
-  state.objects.emplace(object, PickleObjectState{PickleTreeVisitState::Active});
-
-  if (list != nullptr) {
-    for (const auto& item : list->items) {
-      if (!pickle_builtin_tree_supported(runtime, item, state, depth + 1)) {
-        return false;
-      }
-    }
-  } else if (tuple != nullptr) {
-    for (const auto& item : tuple->items) {
-      if (!pickle_builtin_tree_supported(runtime, item, state, depth + 1)) {
-        return false;
-      }
-    }
-  } else {
-    for (const auto& [key, item] : dict->entries) {
-      if (!pickle_builtin_tree_supported(runtime, key, state, depth + 1) ||
-          !pickle_builtin_tree_supported(runtime, item, state, depth + 1)) {
-        return false;
-      }
-    }
-  }
-  state.objects.find(object)->second.tree_state = PickleTreeVisitState::Supported;
-  return true;
+  return false;
 }
+
+bool pickle_write_value_streaming(
+    Runtime& runtime,
+    const Value& value,
+    int protocol,
+    std::string& out,
+    std::string& error,
+    PickleWriterState& state,
+    size_t depth = 0);
 
 bool pickle_dumps_builtin_tree(
     Runtime& runtime, const Value& value, int protocol, Value& out, std::string& error) {
   PickleWriterState writer_state;
-  if (protocol < 4 || protocol > 5 ||
-      !pickle_builtin_tree_supported(runtime, value, writer_state)) {
-    return false;
-  }
-  // Protocol 4/5 framing is optional. These small scalar/container streams
-  // need only the protocol header and STOP opcode around the existing writer.
+  if (protocol < 4 || protocol > 5) return false;
+  // Keep graph validation in XLang3's native _pickle counterpart: the writer
+  // validates each exact built-in before encoding and reuses the same pass for
+  // memoization. Pure-Python pickle.py stays Python code and remains the
+  // fallback for cycles, custom objects, and deeper graphs.
   std::string encoded;
   encoded.reserve(256);
   encoded.push_back(static_cast<char>(0x80));
   encoded.push_back(static_cast<char>(protocol));
-  if (!pickle_write_value(runtime, value, protocol, encoded, error, nullptr, &writer_state)) {
+  if (!pickle_write_value_streaming(runtime, value, protocol, encoded, error, writer_state)) {
     error.clear();
     return false;
   }
@@ -1416,6 +1361,102 @@ bool pickle_write_value(
     // sufficient and preserves repeated immutable and container references.
     auto& memo = state->objects[object];
     memo.memo_index = state->next_memo_index++;
+    memo.memoized = true;
+    out.push_back(static_cast<char>(0x94)); // MEMOIZE
+  }
+  return true;
+}
+
+// The native writer checks objects before dispatch, inserts containers before
+// descending to catch cycles, then stores their memo index after the body.
+// That single pass removes the old duplicate graph traversal. A rejected
+// object or cycle only discards this private buffer; custom reducers are left
+// to the unchanged Python pickle.py fallback and are never run here.
+bool pickle_write_value_streaming(
+    Runtime& runtime,
+    const Value& value,
+    int protocol,
+    std::string& out,
+    std::string& error,
+    PickleWriterState& state,
+    size_t depth) {
+  // Integers and other immediate values need neither cycle tracking nor memo
+  // entries, so keep their common inner-loop path to the existing scalar body.
+  if (value.tag != ValueTag::Object) {
+    return pickle_write_value_body(runtime, value, protocol, out, error, nullptr, nullptr);
+  }
+  if (depth > 900) return false;
+
+  Object* object = value.as.obj;
+  if (object == nullptr) return false;
+  const auto found = state.objects.find(object);
+  if (found != state.objects.end()) {
+    if (!found->second.memoized) return false; // Active entry is a cycle.
+    const uint32_t index = found->second.memo_index;
+    if (index <= 0xffu) {
+      out.push_back('h'); // BINGET
+      out.push_back(static_cast<char>(index));
+    } else {
+      out.push_back('j'); // LONG_BINGET
+      append_u32(out, index);
+    }
+    return true;
+  }
+  if (!pickle_builtin_value_supported(runtime, value)) return false;
+  state.objects.emplace(object, PickleObjectState{});
+
+  if (auto* text = value_as_string(value)) {
+    append_pickle_string(out, string_object_view(*text));
+  } else if (auto* bytes = value_as_bytes(value)) {
+    append_pickle_bytes(out, bytes_object_view(*bytes));
+  } else if (auto* list = value_as_list(value)) {
+    out.push_back(']'); // EMPTY_LIST
+    if (!list->items.empty()) {
+      out.push_back('('); // MARK
+      for (const auto& item : list->items) {
+        if (!pickle_write_value_streaming(runtime, item, protocol, out, error, state, depth + 1)) {
+          return false;
+        }
+      }
+      out.push_back('e'); // APPENDS
+    }
+  } else if (auto* tuple = value_as_tuple(value)) {
+    if (tuple->items.empty()) {
+      out.push_back(')'); // EMPTY_TUPLE
+    } else {
+      out.push_back('('); // MARK
+      for (const auto& item : tuple->items) {
+        if (!pickle_write_value_streaming(runtime, item, protocol, out, error, state, depth + 1)) {
+          return false;
+        }
+      }
+      out.push_back('t'); // TUPLE
+    }
+  } else if (auto* dict = value_as_dict(value)) {
+    out.push_back('}'); // EMPTY_DICT
+    if (!dict->entries.empty()) {
+      out.push_back('('); // MARK
+      for (const auto& [key, item] : dict->entries) {
+        if (!pickle_write_value_streaming(runtime, key, protocol, out, error, state, depth + 1) ||
+            !pickle_write_value_streaming(runtime, item, protocol, out, error, state, depth + 1)) {
+          return false;
+        }
+      }
+      out.push_back('u'); // SETITEMS
+    }
+  } else if (value_as_instance(value) != nullptr) {
+    // The support check above proved this is exact datetime.date. Its reducer
+    // is a known stdlib operation; all generic instances were rejected first.
+    if (!pickle_write_value_body(runtime, value, protocol, out, error, nullptr, &state)) {
+      return false;
+    }
+  } else if (!pickle_write_value_body(runtime, value, protocol, out, error, nullptr, nullptr)) {
+    return false;
+  }
+
+  if (object != nullptr) {
+    auto& memo = state.objects.find(object)->second;
+    memo.memo_index = state.next_memo_index++;
     memo.memoized = true;
     out.push_back(static_cast<char>(0x94)); // MEMOIZE
   }
@@ -1893,9 +1934,10 @@ Value make_pickle_module(Runtime& runtime, const char* name) {
   buffer_attrs.push_back({"raw", runtime.make_native_function(std::string(name) + ".PickleBuffer.raw", picklebuffer_raw)});
   buffer_attrs.push_back({"release", runtime.make_native_function(std::string(name) + ".PickleBuffer.release", picklebuffer_release)});
 
-  // `_pickle` is XLang3's counterpart to CPython's native accelerator. Keep
-  // native shortcuts here only where they preserve that module's behavior;
-  // the pure-Python `pickle.py` implementation and its benchmarks stay Python.
+  // `_pickle` is XLang3's counterpart to CPython's native accelerator: preserve
+  // its import name and Python-visible API here. Keep native shortcuts inside
+  // this module; the pure-Python `pickle.py` implementation and its benchmarks
+  // stay Python and use this module only through the normal accelerator path.
   NativeModuleBuilder builder(runtime, name);
   builder.value("HIGHEST_PROTOCOL", Value::int64(kPickleHighestProtocol))
       .value("DEFAULT_PROTOCOL", Value::int64(5))

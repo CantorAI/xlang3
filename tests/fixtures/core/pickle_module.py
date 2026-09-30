@@ -59,6 +59,24 @@ import datetime
 shared_date = datetime.date(1980, 5, 7)
 date_restored = pickle.loads(pickle.dumps([shared_date, shared_date], protocol=5))
 print(date_restored[0] == shared_date, date_restored[0] is date_restored[1])
+
+class CountingReducer:
+    def __init__(self):
+        self.calls = 0
+
+    def __reduce_ex__(self, protocol):
+        self.calls += 1
+        return (dict, ())
+
+counting_reducer = CountingReducer()
+mixed_payload = {"padding": 0}
+for index in range(64):
+    mixed_payload["padding_" + str(index)] = index
+mixed_payload["date"] = shared_date
+mixed_payload["custom"] = counting_reducer
+mixed_restored = pickle.loads(pickle.dumps(mixed_payload, protocol=5))
+print(mixed_restored["date"] == shared_date, mixed_restored["custom"] == {}, counting_reducer.calls)
+
 bytearray_restored = pickle.loads(pickle.dumps(bytearray(b"mutable"), protocol=5))
 print(type(bytearray_restored).__name__, bytes(bytearray_restored))
 
