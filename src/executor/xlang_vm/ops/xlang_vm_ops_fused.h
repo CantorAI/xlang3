@@ -53,12 +53,16 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_module_attr(
       std::forward<RaiseExceptionValue>(raise_exception_value));
 }
 
-template <typename RaiseUnboundLocalError, typename RaiseRuntimeError,
+template <typename MakeGeneratorIfNeeded, typename PushFrame,
+          typename RaiseUnboundLocalError, typename RaiseRuntimeError,
           typename RaiseExceptionValue>
 XLANG3_HOT_INLINE XlangVMOpFlow load_local_get_item(
-    const ir::Instr& in, const ir::Function& fn, Runtime& runtime,
+    const ir::Instr& in, const ir::Function& fn, const ir::Module& module,
+    const std::shared_ptr<const ir::Module>& module_owner, Runtime& runtime,
     XlangVMSmallRegisterBuffer& regs, XlangVMSmallValueBuffer& locals,
-    XlangVMInstrCache& cache, RuntimeResult& result,
+    XlangVMInstrCache& cache, size_t& ip, RuntimeResult& result,
+    MakeGeneratorIfNeeded&& make_generator_if_needed,
+    PushFrame&& push_frame,
     RaiseUnboundLocalError&& raise_unbound_local_error,
     RaiseRuntimeError&& raise_runtime_error,
     RaiseExceptionValue&& raise_exception_value) {
@@ -76,7 +80,9 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_local_get_item(
   value_borrow_assign_fast(regs[in.c], locals[in.a]);
   const ir::Instr item_load{ir::Op::GetItem, in.dst, in.c, in.b, 0};
   return get_item(
-      item_load, runtime, regs, cache,
+      item_load, module, module_owner, runtime, regs, cache, ip, result,
+      std::forward<MakeGeneratorIfNeeded>(make_generator_if_needed),
+      std::forward<PushFrame>(push_frame),
       std::forward<RaiseRuntimeError>(raise_runtime_error),
       std::forward<RaiseExceptionValue>(raise_exception_value));
 }

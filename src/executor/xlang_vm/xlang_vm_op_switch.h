@@ -45,6 +45,11 @@ should treat xlang_vm_op_rows.h as the only place that maps an IR opcode to an
 op handler call. Each row must pass only the loop locals that handler actually
 uses. Do not add a catch-all context parameter just to shorten the row.
 
+Keep CPython's pure-Python standard-library modules as Python code and optimize
+them through generic XLang3 compiler/IR/VM/runtime paths. Use a native XLang3
+module only where CPython supplies a native module, preserving its Python-facing
+import name and compatible API/ABI.
+
 The row call sites may use these loop locals and helpers when needed:
 
   Instruction and code:

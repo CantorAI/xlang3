@@ -661,12 +661,19 @@ XLANG3_HOT_INLINE void maybe_specialize_get_item_int(
   }
 }
 
-template <typename RaiseRuntimeError, typename RaiseExceptionValue>
+template <typename MakeGeneratorIfNeeded, typename PushFrame,
+          typename RaiseRuntimeError, typename RaiseExceptionValue>
 XLANG3_HOT_INLINE XlangVMOpFlow get_item(
     const ir::Instr& in,
+    const ir::Module& module,
+    const std::shared_ptr<const ir::Module>& module_owner,
     Runtime& runtime,
     XlangVMSmallRegisterBuffer& regs,
     XlangVMInstrCache& cache,
+    size_t& ip,
+    RuntimeResult& result,
+    MakeGeneratorIfNeeded&& make_generator_if_needed,
+    PushFrame&& push_frame,
     RaiseRuntimeError&& raise_runtime_error,
     RaiseExceptionValue&& raise_exception_value) {
   xlang_vm_cache_touch(cache, XlangVMCacheDomain::GetItem);
@@ -812,6 +819,51 @@ XLANG3_HOT_INLINE XlangVMOpFlow get_item(
     }
   }
   std::string error;
+  if (auto* instance = value_as_instance(regs[in.a])) {
+    auto* klass = value_as_class(instance->klass);
+    if (klass != nullptr) {
+      auto& method_cache = cache.call;
+      FunctionObject* getitem = nullptr;
+      if (method_cache.kind == CallSiteKind::GetItemUserFunction &&
+          method_cache.callee_object == &klass->header &&
+          method_cache.class_version == klass->version) {
+        getitem = method_cache.function;
+      } else {
+        const auto method = klass->attrs.find("__getitem__");
+        getitem = method == klass->attrs.end()
+            ? nullptr : value_as_function(method->second);
+        if (getitem != nullptr) {
+          // Special-method lookup binds a plain class function to the object.
+          // Pass self and the index straight to the normal Python frame path,
+          // avoiding a temporary bound-method object and generic callable
+          // dispatch while leaving the Python method body authoritative.
+          method_cache.callee_object = &klass->header;
+          method_cache.kind = CallSiteKind::GetItemUserFunction;
+          method_cache.function = getitem;
+          method_cache.native = nullptr;
+          method_cache.class_version = klass->version;
+        }
+      }
+      if (getitem != nullptr) {
+        Value method_arguments[2];
+        value_borrow_assign_fast(method_arguments[0], regs[in.a]);
+        value_borrow_assign_fast(method_arguments[1], regs[in.b]);
+        CallArgsView method_args;
+        method_args.leading = method_arguments;
+        method_args.leading_count = 2;
+        bool pushed_frame = false;
+        if (!call_user_function(
+                getitem, method_args, module, module_owner, in.dst, ip,
+                regs[in.dst], pushed_frame, make_generator_if_needed,
+                push_frame)) {
+          if (!result.errors.empty()) return XlangVMOpFlow::ReturnResult;
+          return XlangVMOpFlow::ContinueLoop;
+        }
+        xlang_vm_cache_note_hit(cache);
+        return pushed_frame ? XlangVMOpFlow::SwitchFrame : XlangVMOpFlow::Next;
+      }
+    }
+  }
   if (auto* subscribed_class = value_as_class(regs[in.a])) {
     Value metaclass_getitem;
     std::string metaclass_error;

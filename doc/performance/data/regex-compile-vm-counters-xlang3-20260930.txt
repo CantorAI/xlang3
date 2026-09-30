@@ -1,0 +1,203 @@
+C:/Python/Python314/Lib/site-packages/pyperformance/data-files/benchmarks/bm_regex_compile/run_benchmark.py:33: DeprecationWarning: 'count' is passed as positional argument
+  return real_sub(regex, *args)
+direct workload regex_compile: 1.55546260002302 (1.555529500 s)
+perf: native_calls=640437 fast=607953 cached_fast=76599
+perf: native _sre.unicode_iscased slow=6126 fast=0
+perf: native functools._lru_cache_clear slow=4269 fast=0
+perf: native _sre.unicode_tolower slow=2699 fast=0
+perf: native DeprecationWarning.__init__ slow=1170 fast=0
+perf: native _warnings._acquire_lock slow=1170 fast=0
+perf: native _warnings._release_lock slow=1170 fast=0
+perf: native _warnings.warn slow=1170 fast=0
+perf: native _warnings.warn_explicit slow=1170 fast=0
+perf: native bytearray.translate slow=436 fast=0
+perf: native _sre.Pattern.split slow=257 fast=0
+perf: native int.__new__ slow=16 fast=77
+perf: native __xlang3_build_class_from_namespace__ slow=2 fast=60
+perf: native itertools.product slow=33 fast=0
+perf: native type.__new__ slow=26 fast=0
+perf: native itertools.permutations slow=24 fast=0
+perf: native memoryview.cast slow=22 fast=0
+perf: native memoryview.tolist slow=22 fast=0
+perf: native object.__init__ slow=4 fast=16
+perf: native str.__new__ slow=7 fast=0
+perf: native _codecs.lookup_error slow=6 fast=0
+perf: native sorted slow=4 fast=0
+perf: native eval slow=3 fast=0
+perf: native _codecs.register slow=2 fast=0
+perf: native _functools._lru_cache_wrapper slow=2 fast=0
+perf: native file.__enter__ slow=2 fast=0
+perf: native file.__exit__ slow=2 fast=0
+perf: native file.read slow=2 fast=0
+perf: native file.readline slow=2 fast=0
+perf: native io.open_code slow=2 fast=0
+perf: native type.__or__ slow=2 fast=0
+perf: native FileFinder.path_hook slow=1 fast=0
+perf: native KeyError.__init__ slow=1 fast=0
+perf: native __import__ slow=1 fast=0
+perf: native _io.TextIOWrapper.__enter__ slow=1 fast=0
+perf: native _io.TextIOWrapper.__exit__ slow=1 fast=0
+perf: native _io.TextIOWrapper.readlines slow=1 fast=0
+perf: native _io.TextIOWrapper.write slow=1 fast=0
+perf: native bytes.decode slow=1 fast=0
+perf: native bytes.startswith slow=1 fast=0
+perf: native compile slow=1 fast=0
+perf: native dict.update slow=1 fast=0
+perf: native exec slow=1 fast=0
+perf: native file.seek slow=1 fast=0
+perf: native generator.close slow=1 fast=0
+perf: native itertools.count slow=1 fast=0
+perf: native open slow=1 fast=0
+perf: native os.stat slow=1 fast=0
+perf: native print slow=1 fast=0
+perf: native property.setter slow=1 fast=0
+perf: native tuple.__new__ slow=1 fast=0
+perf: native zipimport.zipimporter.__init__ slow=1 fast=0
+perf: store_local moves=678345 copies=650478
+perf: frame_snapshots calls=2343 frames=2346 locals=0 refresh_calls=7987 refresh_items=43134
+perf: opcode 0 1251235
+perf: opcode 1 56956
+perf: opcode 2 860937
+perf: opcode 3 820934
+perf: opcode 4 4387
+perf: opcode 5 84640
+perf: opcode 6 5900
+perf: opcode 7 100
+perf: opcode 8 162
+perf: opcode 9 1265
+perf: opcode 10 8760
+perf: opcode 11 2
+perf: opcode 12 5
+perf: opcode 13 192738
+perf: opcode 15 1663
+perf: opcode 17 16
+perf: opcode 18 511371
+perf: opcode 19 1014
+perf: opcode 20 1248
+perf: opcode 22 160
+perf: opcode 23 6
+perf: opcode 25 59070
+perf: opcode 26 253236
+perf: opcode 30 33
+perf: opcode 31 2119
+perf: opcode 33 16
+perf: opcode 35 127279
+perf: opcode 36 51648
+perf: opcode 37 7525
+perf: opcode 38 34
+perf: opcode 39 31233
+perf: opcode 40 4088
+perf: opcode 42 1294
+perf: opcode 46 111828
+perf: opcode 47 409781
+perf: opcode 48 726913
+perf: opcode 49 91
+perf: opcode 50 218811
+perf: opcode 51 85063
+perf: opcode 52 52496
+perf: opcode 53 19533
+perf: opcode 54 101178
+perf: opcode 55 61786
+perf: opcode 56 11016
+perf: opcode 59 5632
+perf: opcode 60 124
+perf: opcode 62 1
+perf: opcode 63 122323
+perf: opcode 64 9487
+perf: opcode 65 4
+perf: opcode 66 3
+perf: opcode 70 15132
+perf: opcode 71 31673
+perf: opcode 72 281020
+perf: opcode 73 43819
+perf: opcode 74 23726
+perf: opcode 75 2240
+perf: opcode 76 1157008
+perf: opcode 77 699486
+perf: opcode 78 105296
+perf: opcode 79 102102
+perf: opcode 80 1175
+perf: opcode 81 85420
+perf: opcode 82 2
+perf: opcode 83 1
+perf: opcode 84 4
+perf: opcode 85 6008
+perf: opcode 86 1
+perf: opcode 88 9088
+perf: opcode 89 16727
+perf: opcode 90 166742
+perf: opcode 91 2343
+perf: opcode 92 1281
+perf: opcode 93 752853
+perf: opcode 95 35
+perf: opcode 96 3
+perf: opcode 97 523294
+perf: opcode 98 214227
+perf: opcode 99 6
+perf: opcode 101 4066
+perf: opcode 102 4088
+perf: opcode 105 1500707
+perf: opcode 106 288143
+perf: opcode 107 31895
+perf: opcode 108 23165
+perf: opcode 109 93
+perf: opcode 110 702105
+perf: opcode 111 51351
+perf: opcode 112 98100
+perf: opcode 113 116142
+perf: opcode 114 306077
+perf: opcode 115 103573
+perf: opcode 116 23557
+perf: opcode 117 23542
+perf: opcode 118 212463
+perf: opcode 119 99458
+perf: opcode 120 491932
+perf: opcode 121 211414
+perf: opcode 122 3682
+perf: opcode 125 32593
+perf: opcode 126 119286
+perf: opcode 127 6168
+perf: opcode 129 2478
+perf: opcode 130 401
+perf: opcode 131 114661
+perf: objects kind alloc final_release incref decref
+perf: String 26808 22728 335060 354662
+perf: BigInt 4289 4288 99289 103577
+perf: Bytes 11043 11019 21560 32558
+perf: ByteArray 7286 7286 5194 12480
+perf: MemoryView 44 44 110 154
+perf: Slice 31233 31233 11002 42235
+perf: Tuple 149203 144461 792531 936874
+perf: List 60795 60665 478533 539171
+perf: Dict 10911 10656 211813 222414
+perf: Unknown 3146 3032 3066 6098
+perf: Set 134 98 98207 98302
+perf: DictValuesView 2 2 1 3
+perf: DictItemsView 3064 3064 0 3064
+perf: DictIterator 6885 6885 0 6885
+perf: SetIterator 12 12 0 12
+perf: Range 35908 35908 20 35928
+perf: RangeIterator 19751 19751 0 19751
+perf: SequenceIterator 70055 70055 1 70056
+perf: Unknown 6 6 6 12
+perf: Unknown 1 1 1 2
+perf: Unknown 40 40 40 80
+perf: Unknown 1 0 2 2
+perf: Generator 1187 1187 1209 2396
+perf: Module 41 1 1514809 1512886
+perf: Cell 1350 1292 12627 13910
+perf: Function 2119 1260 728339 729368
+perf: NativeFunction 98 15 1119388 1119121
+perf: Class 138 3 809413 808412
+perf: Instance 48295 47988 2634994 2680284
+perf: BoundMethod 378331 378326 51352 429677
+perf: StaticMethod 22 1 26334 26335
+perf: ClassMethod 31 0 978 977
+perf: Super 191 191 0 191
+perf: SlotDescriptor 25 0 452 452
+perf: Property 31 1 29287 29283
+perf: Unknown 3549 3549 10545 14094
+perf: Unknown 34856 34856 222846 257702
+perf: Unknown 9091 9091 9097 18188
+perf: File 3 3 7155 7158
+perf: Unknown 4 4 0 4
