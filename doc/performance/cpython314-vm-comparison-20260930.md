@@ -115,6 +115,50 @@ dispatch site was already tested and discarded: it measured only 1.01x faster
 and did not materially close the gap ([raw result](data/unpickle-pure-python-exact-dict-int-getitem-fast-xlang3-20260929.json)).
 Repeating that lookup-only change is not the next target.
 
+## Why a CPython-like integer side table did not help
+
+CPython 3.14.7's [`dictobject.c`](https://github.com/python/cpython/blob/v3.14.7/Objects/dictobject.c#L2630-L2720)
+uses the integer itself as its hash, starts from the low hash bits, and uses
+the `5*i + 1 + perturb` sequence only after a collision. The dict keys object
+keeps a compact signed index array beside its entry array; the index width is
+8, 16, 32, or 64 bits according to table size, and the table is resized before
+it becomes two-thirds full. This makes the common integer lookup a cheap first
+index read while keeping insertion order in the entries.
+
+XLang3's [`DictObject`](../../src/internal/xlang3/mapping.h) keeps ordered
+`Value` key/value entries authoritative and currently maintains separate key
+indexes. The trial replaced the integer `unordered_map` with another vector
+side table storing the full integer key and an entry index. Although it copied
+CPython's integer hash and collision recurrence, it did not copy the compact
+index/entry layout: it added a separately allocated table and duplicated key
+data. The ordinary official `unpickle_pure_python` rigorous comparison showed
+no improvement, and both runs were host-noisy:
+
+| Runtime | Mean | Standard deviation |
+|---|---:|---:|
+| Parent | 3.44 ms | 0.37 ms |
+| Integer side-table candidate | 3.46 ms | 0.37 ms |
+
+Both pyperf runs reported 11% variation. The candidate is rejected and its
+runtime code was removed. The raw runs are preserved as the
+[candidate](data/integer-index-probe-candidate-rigorous-20260930.json) and
+[parent](data/integer-index-probe-parent-rigorous-20260930.json). The tested
+candidate executable/runtime hashes were
+`92D159F02A071AD625318FB614BD48E5FCA0BDD4AD601C4FC07E1298B3C05D5A` and
+`892463924AD78CEC8F957339E2A22136AC363FEAB64448E29508CAA96DDCFDFD`;
+the parent pair was
+`9F0D28ED78921385DD8763837860B2E2EDB8FF671899E5669E9694CD95FB3BB3` and
+`F8AB0AB4D59A9C5082E8C7A639E19C589E96043F3935D80DEB12979EDD479696`.
+
+This source comparison narrows the next work to the larger measured difference:
+CPython's warmed `BINARY_OP_SUBSCR_DICT` and `CALL_PY_EXACT_ARGS` paths handle
+the dispatch lookup and exact Python call at the bytecode site, while XLang3
+still spends substantial time in generic VM `GetItem`, `Call`, frame switching,
+and instruction-loop work. The earlier direct integer lookup, call-site, and
+dead-argument-transfer trials did not show a repeatable gain. A future change
+needs to reduce those shared VM costs and keep the relevant guard/invalidation
+rules explicit in the implementation.
+
 ## JSON calls also use a native XLang3 module
 
 CPython 3.14.7 `json.encoder` imports `_json.make_encoder` and delegates the
