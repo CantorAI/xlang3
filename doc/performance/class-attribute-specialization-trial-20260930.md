@@ -75,10 +75,13 @@ XLang3 candidate     40.95 ms|████████████████�
 The candidate passed the 11-case order-balanced Release regression gate
 against its immediate parent. The highest observed case ratio was 1.034× for
 `function_calls`, within the gate's 10% limit. The complete Python fixture
-runner also passed. The full 97-definition pyperformance suite has **not**
-been rerun on this candidate; its previous full-suite report is a separate
-baseline snapshot and remains the source for all-case coverage and failure
-counts.
+runner also passed. The candidate's full 97-definition `--fast` run has now
+completed: 31 definitions produced timings, 66 failed, and 35 subtests matched
+CPython. The geomean was 0.14137× CPython time/XLang3 time (about 7.07× slower).
+The [full-suite report](pyperformance-xlang3-vs-cpython314-20260930.md)
+contains the complete candidate status list, comparison CSV, chart, and raw
+log; it also retains the earlier full-suite snapshot as the before-change
+comparison.
 
 ## Reproduction data
 

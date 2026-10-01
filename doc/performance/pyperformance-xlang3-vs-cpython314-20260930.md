@@ -1,17 +1,46 @@
 # XLang3 vs CPython 3.14: full pyperformance run (2026-09-30)
 
-This report is the full-suite baseline snapshot collected before the guarded
-direct class-value cache candidate. It covers all 97 benchmark definitions in
-pyperformance 1.14.0 using the then-current XLang3 Release build and a saved
-CPython 3.14.7 full-fast reference. The XLang3 runner used `--fast` and a
-30-second cap per definition; worker deaths, missing optional packages,
-timeouts, and semantic failures stay visible in the status file. This is a
-coverage run, not a stable performance ranking: many fast-mode samples report
-host jitter. The candidate's focused results are recorded in the [class
-attribute specialization trial](class-attribute-specialization-trial-20260930.md);
-the full 97-case suite has not yet been repeated on it.
+This report contains two full-suite coverage runs against the saved CPython
+3.14.7 reference. The latest run is on the guarded direct class-value cache
+candidate; the earlier run is retained as its before-change comparison. Both
+attempt all 97 pyperformance 1.14.0 definitions in `--fast` mode with a
+30-second cap per definition. Worker deaths, missing optional packages,
+timeouts, and semantic failures remain visible. Fast-mode samples can be noisy,
+so use focused rigorous pairs for small differences.
 
-## Results
+## Latest candidate run
+
+The candidate attempted all **97** definitions. **31** produced timings and
+**66** failed: **31** timed out and **35** workers died. Of the **35** subtests
+matched against the saved CPython run, XLang3 was faster on one (`gc_traversal`,
+**1.83×**) and slower on 34. Their geometric speed ratio (CPython time divided
+by XLang3 time) was **0.14137×**, or about **7.07× slower** on average. The
+earlier full run measured **0.137×** on the same 35 matched subtests, so this
+class-attribute optimization improves DeltaBlue but does not materially
+change the suite-wide gap.
+
+| Benchmark | XLang3 candidate | CPython 3.14.7 | XLang3 speed |
+|---|---:|---:|---:|
+| `deltablue` | 39.40 ms | 2.485 ms | 0.063× (15.9× slower) |
+| `json_dumps` | 38.60 ms | 7.584 ms | 0.196× (5.09× slower) |
+| `pickle_pure_python` | 5.868 ms | 0.252 ms | 0.043× (23.3× slower) |
+| `unpickle_pure_python` | 3.645 ms | 0.161 ms | 0.044× (22.6× slower) |
+| `gc_traversal` | 1.200 ms | 2.191 ms | 1.826× faster |
+
+![Latest full 97-definition comparison against CPython 3.14.7](pyperformance-xlang3-class-value-full-fast-20260930.svg)
+
+- [All 97 benchmark statuses](data/pyperformance-xlang3-class-value-full-fast-20260930-all-97-status.csv)
+- [Subtest timings and ratios](data/pyperformance-xlang3-class-value-full-fast-20260930-subtests.csv)
+- [Candidate pyperf JSON](data/pyperformance-xlang3-class-value-full-fast-20260930.json) and [complete run log](data/pyperformance-xlang3-class-value-full-fast-20260930.log)
+- [Left-to-right ratio chart source](pyperformance-xlang3-class-value-full-fast-20260930.svg)
+- Candidate executable SHA-256: `4C7A9D288F0751BA43F4786F9E012E0944BBE9602869D12C0CE857CA65D508C3`; runtime DLL SHA-256: `FBD5C3822BB83CB04A9302D165221670C4AF7ACB0CF4A6816267CC9F63D21707`.
+
+The focused rigorous DeltaBlue and unpickle comparisons are in the [class
+attribute specialization trial](class-attribute-specialization-trial-20260930.md).
+The `json_dumps` gap is unchanged by that VM optimization and is the next
+focused target.
+
+## Earlier full-suite snapshot before the class-value cache
 
 The run reached all 97 benchmark definitions. XLang3 completed 31 definitions
 and recorded 66 failures. Across the completed definitions, 35 subtests matched
