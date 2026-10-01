@@ -87,6 +87,7 @@ bool set_init_method(Runtime& runtime, const Value* args, uint32_t argc,
   }
   set->items.clear();
   set->item_hashes.clear();
+  set_note_content_change(*set);
   if (argc == 2 && !add_iterable_items(runtime, target, args[1], error))
     return false;
   value_set_none(out);
@@ -166,30 +167,83 @@ bool set_contains_value(
   if (!set_runtime_hash(runtime, value, value_hash, error)) {
     return false;
   }
-  for (size_t index = 0; index < set.items.size(); ++index) {
+  const size_t hash = static_cast<size_t>(value_hash);
+  const auto matches_index = [&](size_t index, bool& matches) {
     Value item = set.items[index];
     if (value_is(item, value)) {
-      out = true;
+      matches = true;
       return true;
     }
-    if (set.item_hashes[index] != static_cast<size_t>(value_hash)) {
-      continue;
+    if (set.item_hashes[index] != hash) {
+      matches = false;
+      return true;
     }
     Value equal;
-    if (!runtime_value_compare(runtime, "==", item, value, equal, error)) {
-      return false;
+    if (!runtime_value_compare(runtime, "==", item, value, equal, error)) return false;
+    return runtime_truthy(runtime, equal, matches, error);
+  };
+  // Python equality may mutate the set; restart after a version change so a
+  // cached bucket never supplies stale vector positions to the next probe.
+  for (;;) {
+    const uint64_t content_version = set.content_version;
+    const bool indexed = set_prepare_membership_index(set);
+    bool restart = false;
+    if (indexed && value.tag == ValueTag::Object && value.as.obj != nullptr) {
+      for (size_t index = set_membership_identity_first(set, value);
+           index != kSetMembershipIndexEmpty;
+           index = set_membership_identity_next(set, index)) {
+        if (set.content_version != content_version) {
+          restart = true;
+          break;
+        }
+        if (value_is(set.items[index], value)) {
+          out = true;
+          return true;
+        }
+      }
     }
-    bool is_equal = false;
-    if (!runtime_truthy(runtime, equal, is_equal, error)) {
-      return false;
+    if (restart) continue;
+    if (indexed) {
+      for (size_t index = set_membership_index_first(set, hash);
+           index != kSetMembershipIndexEmpty;
+           index = set_membership_index_next(set, index)) {
+        if (set.content_version != content_version) {
+          restart = true;
+          break;
+        }
+        bool matches = false;
+        if (!matches_index(index, matches)) return false;
+        if (set.content_version != content_version) {
+          restart = true;
+          break;
+        }
+        if (matches) {
+          out = true;
+          return true;
+        }
+      }
+    } else {
+      for (size_t index = 0; index < set.items.size(); ++index) {
+        if (set.content_version != content_version) {
+          restart = true;
+          break;
+        }
+        bool matches = false;
+        if (!matches_index(index, matches)) return false;
+        if (set.content_version != content_version) {
+          restart = true;
+          break;
+        }
+        if (matches) {
+          out = true;
+          return true;
+        }
+      }
     }
-    if (is_equal) {
-      out = true;
-      return true;
-    }
+    if (restart) continue;
+    out = false;
+    return true;
   }
-  out = false;
-  return true;
 }
 
 bool iterable_all_in_set(Runtime& runtime, const Value& iterable, const SetObject& set, bool& out, std::string& error) {
@@ -238,6 +292,7 @@ bool remove_set_item(
     if (value_is(candidate, item)) {
       set->items.erase(set->items.begin() + index);
       set->item_hashes.erase(set->item_hashes.begin() + index);
+      set_note_content_change(*set);
       return true;
     }
     if (set->item_hashes[index] != static_cast<size_t>(item_hash)) {
@@ -255,6 +310,7 @@ bool remove_set_item(
       if (index < set->items.size() && value_is(set->items[index], candidate)) {
         set->items.erase(set->items.begin() + index);
         set->item_hashes.erase(set->item_hashes.begin() + index);
+        set_note_content_change(*set);
       }
       return true;
     }
@@ -277,6 +333,7 @@ bool set_clear_method(Runtime&, const Value* args, uint32_t argc, Value& out, st
   }
   set->items.clear();
   set->item_hashes.clear();
+  set_note_content_change(*set);
   value_set_none(out);
   return true;
 }
@@ -342,6 +399,7 @@ bool set_pop_method(Runtime& runtime, const Value* args, uint32_t argc, Value& o
   value_assign_fast(out, set->items.back());
   set->items.pop_back();
   set->item_hashes.pop_back();
+  set_note_content_change(*set);
   return true;
 }
 
@@ -437,6 +495,7 @@ bool set_intersection_method(Runtime& runtime, const Value* args, uint32_t argc,
     }
     result->items.clear();
     result->item_hashes.clear();
+    set_note_content_change(*result);
     for (const auto& item : keep) {
       if (!set_add_runtime(runtime, out, item, error)) {
         return false;
@@ -482,6 +541,7 @@ bool set_difference_method(Runtime& runtime, const Value* args, uint32_t argc, V
           const auto index = static_cast<size_t>(it - result->items.begin());
           result->items.erase(it);
           result->item_hashes.erase(result->item_hashes.begin() + index);
+          set_note_content_change(*result);
           break;
         }
       }
@@ -544,6 +604,7 @@ bool set_symmetric_difference_method(Runtime& runtime, const Value* args, uint32
         const auto index = static_cast<size_t>(it - result->items.begin());
         result->items.erase(it);
         result->item_hashes.erase(result->item_hashes.begin() + index);
+        set_note_content_change(*result);
         removed = true;
         break;
       }
@@ -567,6 +628,7 @@ bool set_intersection_update_method(Runtime& runtime, const Value* args, uint32_
   }
   target->items = source->items;
   target->item_hashes = source->item_hashes;
+  set_note_content_change(*target);
   value_set_none(out);
   return true;
 }
@@ -584,6 +646,7 @@ bool set_difference_update_method(Runtime& runtime, const Value* args, uint32_t 
   }
   target->items = source->items;
   target->item_hashes = source->item_hashes;
+  set_note_content_change(*target);
   value_set_none(out);
   return true;
 }
@@ -601,6 +664,7 @@ bool set_symmetric_difference_update_method(Runtime& runtime, const Value* args,
   }
   target->items = source->items;
   target->item_hashes = source->item_hashes;
+  set_note_content_change(*target);
   value_set_none(out);
   return true;
 }

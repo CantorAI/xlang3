@@ -1,0 +1,1251 @@
+Start testing: Oct 01 10:30 Pacific Daylight Time
+----------------------------------------------------------
+1/53 Testing: xlang3_import_errors
+1/53 Test: xlang3_import_errors
+Command: "D:/CantorAI/xlang3/build/Release/xlang3.exe" "D:/CantorAI/xlang3/tests/cli/import_errors.py"
+Directory: D:/CantorAI/xlang3/build
+"xlang3_import_errors" start time: Oct 01 10:30 Pacific Daylight Time
+Output:
+----------------------------------------------------------
+import-errors-passed
+<end of output>
+Test time =   0.04 sec
+----------------------------------------------------------
+Test Passed.
+"xlang3_import_errors" end time: Oct 01 10:30 Pacific Daylight Time
+"xlang3_import_errors" time elapsed: 00:00:00
+----------------------------------------------------------
+
+2/53 Testing: xlang3_bytes_split
+2/53 Test: xlang3_bytes_split
+Command: "D:/CantorAI/xlang3/build/Release/xlang3.exe" "D:/CantorAI/xlang3/tests/cli/bytes_split.py"
+Directory: D:/CantorAI/xlang3/build
+"xlang3_bytes_split" start time: Oct 01 10:30 Pacific Daylight Time
+Output:
+----------------------------------------------------------
+bytes-split-passed
+<end of output>
+Test time =   0.04 sec
+----------------------------------------------------------
+Test Passed.
+"xlang3_bytes_split" end time: Oct 01 10:30 Pacific Daylight Time
+"xlang3_bytes_split" time elapsed: 00:00:00
+----------------------------------------------------------
+
+3/53 Testing: xlang3_smoke
+3/53 Test: xlang3_smoke
+Command: "D:/CantorAI/xlang3/build/Release/xlang3_smoke.exe"
+Directory: D:/CantorAI/xlang3/build
+"xlang3_smoke" start time: Oct 01 10:30 Pacific Daylight Time
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.03 sec
+----------------------------------------------------------
+Test Passed.
+"xlang3_smoke" end time: Oct 01 10:30 Pacific Daylight Time
+"xlang3_smoke" time elapsed: 00:00:00
+----------------------------------------------------------
+
+4/53 Testing: xlang3_abi_ownership
+4/53 Test: xlang3_abi_ownership
+Command: "D:/CantorAI/xlang3/build/Release/xlang3_abi_ownership.exe"
+Directory: D:/CantorAI/xlang3/build
+"xlang3_abi_ownership" start time: Oct 01 10:30 Pacific Daylight Time
+Output:
+----------------------------------------------------------
+ABI borrowed-reference and concurrent interning tests passed
+<end of output>
+Test time =   0.03 sec
+----------------------------------------------------------
+Test Passed.
+"xlang3_abi_ownership" end time: Oct 01 10:30 Pacific Daylight Time
+"xlang3_abi_ownership" time elapsed: 00:00:00
+----------------------------------------------------------
+
+5/53 Testing: xlang3_static_runtime_shutdown
+5/53 Test: xlang3_static_runtime_shutdown
+Command: "D:/CantorAI/xlang3/build/Release/xlang3_static_runtime_shutdown.exe"
+Directory: D:/CantorAI/xlang3/build
+"xlang3_static_runtime_shutdown" start time: Oct 01 10:30 Pacific Daylight Time
+Output:
+----------------------------------------------------------
+global runtime retained until process teardown
+<end of output>
+Test time =   0.03 sec
+----------------------------------------------------------
+Test Passed.
+"xlang3_static_runtime_shutdown" end time: Oct 01 10:30 Pacific Daylight Time
+"xlang3_static_runtime_shutdown" time elapsed: 00:00:00
+----------------------------------------------------------
+
+6/53 Testing: xlang3_embedded_package_tests
+6/53 Test: xlang3_embedded_package_tests
+Command: "D:/CantorAI/xlang3/build/Release/xlang3_embedded_package_tests.exe"
+Directory: D:/CantorAI/xlang3/build
+"xlang3_embedded_package_tests" start time: Oct 01 10:30 Pacific Daylight Time
+Output:
+----------------------------------------------------------
+Embedded C++ package passed
+<end of output>
+Test time =   0.04 sec
+----------------------------------------------------------
+Test Passed.
+"xlang3_embedded_package_tests" end time: Oct 01 10:30 Pacific Daylight Time
+"xlang3_embedded_package_tests" time elapsed: 00:00:00
+----------------------------------------------------------
+
+7/53 Testing: xlang3_sdk_stream_call_tests
+7/53 Test: xlang3_sdk_stream_call_tests
+Command: "D:/CantorAI/xlang3/build/Release/xlang3_sdk_stream_call_tests.exe" "D:/CantorAI/xlang3/tests/cpp"
+Directory: D:/CantorAI/xlang3/build
+"xlang3_sdk_stream_call_tests" start time: Oct 01 10:30 Pacific Daylight Time
+Output:
+----------------------------------------------------------
+SDK streams and keyword calls passed
+<end of output>
+Test time =   0.04 sec
+----------------------------------------------------------
+Test Passed.
+"xlang3_sdk_stream_call_tests" end time: Oct 01 10:30 Pacific Daylight Time
+"xlang3_sdk_stream_call_tests" time elapsed: 00:00:00
+----------------------------------------------------------
+
+8/53 Testing: xlang3_graph_producer
+8/53 Test: xlang3_graph_producer
+Command: "D:/CantorAI/xlang3/build/Release/xlang3_graph_process_tests.exe" "write" "D:/CantorAI/xlang3/build/graph_payload.bin" "D:/CantorAI/xlang3/tests/serialize/graph_source.py" "D:/CantorAI/xlang3/build/Release/modules"
+Directory: D:/CantorAI/xlang3/build
+"xlang3_graph_producer" start time: Oct 01 10:30 Pacific Daylight Time
+Output:
+----------------------------------------------------------
+Graph producer passed
+<end of output>
+Test time =   0.04 sec
+----------------------------------------------------------
+Test Passed.
+"xlang3_graph_producer" end time: Oct 01 10:30 Pacific Daylight Time
+"xlang3_graph_producer" time elapsed: 00:00:00
+----------------------------------------------------------
+
+9/53 Testing: xlang3_graph_consumer
+9/53 Test: xlang3_graph_consumer
+Command: "D:/CantorAI/xlang3/build/Release/xlang3_graph_process_tests.exe" "read" "D:/CantorAI/xlang3/build/graph_payload.bin" "D:/CantorAI/xlang3/tests/serialize/graph_source.py" "D:/CantorAI/xlang3/build/Release/modules"
+Directory: D:/CantorAI/xlang3/build
+"xlang3_graph_consumer" start time: Oct 01 10:30 Pacific Daylight Time
+Output:
+----------------------------------------------------------
+Graph consumer passed without producer source
+<end of output>
+Test time =   0.05 sec
+----------------------------------------------------------
+Test Passed.
+"xlang3_graph_consumer" end time: Oct 01 10:30 Pacific Daylight Time
+"xlang3_graph_consumer" time elapsed: 00:00:00
+----------------------------------------------------------
+
+10/53 Testing: xlang3_graph_reject_BAD_VERSION
+10/53 Test: xlang3_graph_reject_BAD_VERSION
+Command: "D:/CantorAI/xlang3/build/Release/xlang3_graph_process_tests.exe" "reject" "D:/CantorAI/xlang3/build/graph_payload.bin" "D:/CantorAI/xlang3/tests/serialize/graph_source.py" "D:/CantorAI/xlang3/build/Release/modules"
+Directory: D:/CantorAI/xlang3/build
+"xlang3_graph_reject_BAD_VERSION" start time: Oct 01 10:30 Pacific Daylight Time
+Output:
+----------------------------------------------------------
+Native restore rejected with cleanup
+<end of output>
+Test time =   0.04 sec
+----------------------------------------------------------
+Test Passed.
+"xlang3_graph_reject_BAD_VERSION" end time: Oct 01 10:30 Pacific Daylight Time
+"xlang3_graph_reject_BAD_VERSION" time elapsed: 00:00:00
+----------------------------------------------------------
+
+11/53 Testing: xlang3_graph_reject_NO_CODEC
+11/53 Test: xlang3_graph_reject_NO_CODEC
+Command: "D:/CantorAI/xlang3/build/Release/xlang3_graph_process_tests.exe" "reject" "D:/CantorAI/xlang3/build/graph_payload.bin" "D:/CantorAI/xlang3/tests/serialize/graph_source.py" "D:/CantorAI/xlang3/build/Release/modules"
+Directory: D:/CantorAI/xlang3/build
+"xlang3_graph_reject_NO_CODEC" start time: Oct 01 10:30 Pacific Daylight Time
+Output:
+----------------------------------------------------------
+Native restore rejected with cleanup
+<end of output>
+Test time =   0.04 sec
+----------------------------------------------------------
+Test Passed.
+"xlang3_graph_reject_NO_CODEC" end time: Oct 01 10:30 Pacific Daylight Time
+"xlang3_graph_reject_NO_CODEC" time elapsed: 00:00:00
+----------------------------------------------------------
+
+12/53 Testing: xlang3_graph_reject_DECODE_FAIL
+12/53 Test: xlang3_graph_reject_DECODE_FAIL
+Command: "D:/CantorAI/xlang3/build/Release/xlang3_graph_process_tests.exe" "reject" "D:/CantorAI/xlang3/build/graph_payload.bin" "D:/CantorAI/xlang3/tests/serialize/graph_source.py" "D:/CantorAI/xlang3/build/Release/modules"
+Directory: D:/CantorAI/xlang3/build
+"xlang3_graph_reject_DECODE_FAIL" start time: Oct 01 10:30 Pacific Daylight Time
+Output:
+----------------------------------------------------------
+Native restore rejected with cleanup
+<end of output>
+Test time =   0.04 sec
+----------------------------------------------------------
+Test Passed.
+"xlang3_graph_reject_DECODE_FAIL" end time: Oct 01 10:30 Pacific Daylight Time
+"xlang3_graph_reject_DECODE_FAIL" time elapsed: 00:00:00
+----------------------------------------------------------
+
+13/53 Testing: xlang3_runtime_value_tests
+13/53 Test: xlang3_runtime_value_tests
+Command: "D:/CantorAI/xlang3/build/Release/xlang3_runtime_value_tests.exe"
+Directory: D:/CantorAI/xlang3/build
+"xlang3_runtime_value_tests" start time: Oct 01 10:30 Pacific Daylight Time
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.14 sec
+----------------------------------------------------------
+Test Passed.
+"xlang3_runtime_value_tests" end time: Oct 01 10:30 Pacific Daylight Time
+"xlang3_runtime_value_tests" time elapsed: 00:00:00
+----------------------------------------------------------
+
+14/53 Testing: xlang3_vfs_tests
+14/53 Test: xlang3_vfs_tests
+Command: "D:/CantorAI/xlang3/build/Release/xlang3_vfs_tests.exe"
+Directory: D:/CantorAI/xlang3/build
+"xlang3_vfs_tests" start time: Oct 01 10:30 Pacific Daylight Time
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.04 sec
+----------------------------------------------------------
+Test Passed.
+"xlang3_vfs_tests" end time: Oct 01 10:30 Pacific Daylight Time
+"xlang3_vfs_tests" time elapsed: 00:00:00
+----------------------------------------------------------
+
+15/53 Testing: xlang3_tensor_cpu
+15/53 Test: xlang3_tensor_cpu
+Command: "D:/CantorAI/xlang3/build/Release/xlang3_tensor_cpu_tests.exe"
+Directory: D:/CantorAI/xlang3/build
+"xlang3_tensor_cpu" start time: Oct 01 10:30 Pacific Daylight Time
+Output:
+----------------------------------------------------------
+tensor-cpu-passed
+<end of output>
+Test time =   0.23 sec
+----------------------------------------------------------
+Test Passed.
+"xlang3_tensor_cpu" end time: Oct 01 10:30 Pacific Daylight Time
+"xlang3_tensor_cpu" time elapsed: 00:00:00
+----------------------------------------------------------
+
+16/53 Testing: xlang3_tensor_cpu_graph
+16/53 Test: xlang3_tensor_cpu_graph
+Command: "D:/CantorAI/xlang3/build/Release/xlang3.exe" "D:/CantorAI/xlang3/tests/tensor/cpu_graph.py"
+Directory: D:/CantorAI/xlang3/build
+"xlang3_tensor_cpu_graph" start time: Oct 01 10:30 Pacific Daylight Time
+Output:
+----------------------------------------------------------
+tensor-created
+tensor-graph-built
+tensor-repeated-run-passed
+tensor-arithmetic-passed
+tensor-layout-matmul-passed
+tensor-dtypes-empty-passed
+tensor-fusion-passed
+tensor-cpu-graph-passed
+<end of output>
+Test time =   0.05 sec
+----------------------------------------------------------
+Test Passed.
+"xlang3_tensor_cpu_graph" end time: Oct 01 10:30 Pacific Daylight Time
+"xlang3_tensor_cpu_graph" time elapsed: 00:00:00
+----------------------------------------------------------
+
+17/53 Testing: xlang3_tensor_cpu_reference
+17/53 Test: xlang3_tensor_cpu_reference
+Command: "D:/CantorAI/xlang3/build/Release/xlang3.exe" "D:/CantorAI/xlang3/tests/tensor/cpu_reference.py"
+Directory: D:/CantorAI/xlang3/build
+"xlang3_tensor_cpu_reference" start time: Oct 01 10:30 Pacific Daylight Time
+Output:
+----------------------------------------------------------
+tensor-cpu-reference-passed 309
+<end of output>
+Test time =   0.05 sec
+----------------------------------------------------------
+Test Passed.
+"xlang3_tensor_cpu_reference" end time: Oct 01 10:30 Pacific Daylight Time
+"xlang3_tensor_cpu_reference" time elapsed: 00:00:00
+----------------------------------------------------------
+
+18/53 Testing: xlang3_ipc_capacity_tests
+18/53 Test: xlang3_ipc_capacity_tests
+Command: "D:/CantorAI/xlang3/build/Release/xlang3_ipc_capacity_tests.exe"
+Directory: D:/CantorAI/xlang3/build
+"xlang3_ipc_capacity_tests" start time: Oct 01 10:30 Pacific Daylight Time
+Output:
+----------------------------------------------------------
+IPC admission fairness passed
+<end of output>
+Test time =   0.02 sec
+----------------------------------------------------------
+Test Passed.
+"xlang3_ipc_capacity_tests" end time: Oct 01 10:30 Pacific Daylight Time
+"xlang3_ipc_capacity_tests" time elapsed: 00:00:00
+----------------------------------------------------------
+
+19/53 Testing: xlang3_memory_tests
+19/53 Test: xlang3_memory_tests
+Command: "D:/CantorAI/xlang3/build/Release/xlang3_memory_tests.exe"
+Directory: D:/CantorAI/xlang3/build
+"xlang3_memory_tests" start time: Oct 01 10:30 Pacific Daylight Time
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.02 sec
+----------------------------------------------------------
+Test Passed.
+"xlang3_memory_tests" end time: Oct 01 10:30 Pacific Daylight Time
+"xlang3_memory_tests" time elapsed: 00:00:00
+----------------------------------------------------------
+
+20/53 Testing: xlang3_parser_tests
+20/53 Test: xlang3_parser_tests
+Command: "D:/CantorAI/xlang3/build/Release/xlang3_parser_tests.exe"
+Directory: D:/CantorAI/xlang3/build
+"xlang3_parser_tests" start time: Oct 01 10:30 Pacific Daylight Time
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.02 sec
+----------------------------------------------------------
+Test Passed.
+"xlang3_parser_tests" end time: Oct 01 10:30 Pacific Daylight Time
+"xlang3_parser_tests" time elapsed: 00:00:00
+----------------------------------------------------------
+
+21/53 Testing: xlang3_interpreter_tests
+21/53 Test: xlang3_interpreter_tests
+Command: "D:/CantorAI/xlang3/build/Release/xlang3_interpreter_tests.exe"
+Directory: D:/CantorAI/xlang3/build
+"xlang3_interpreter_tests" start time: Oct 01 10:30 Pacific Daylight Time
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.16 sec
+----------------------------------------------------------
+Test Passed.
+"xlang3_interpreter_tests" end time: Oct 01 10:30 Pacific Daylight Time
+"xlang3_interpreter_tests" time elapsed: 00:00:00
+----------------------------------------------------------
+
+22/53 Testing: xlang3_debug_session_tests
+22/53 Test: xlang3_debug_session_tests
+Command: "D:/CantorAI/xlang3/build/Release/xlang3_debug_session_tests.exe"
+Directory: D:/CantorAI/xlang3/build
+"xlang3_debug_session_tests" start time: Oct 01 10:30 Pacific Daylight Time
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.04 sec
+----------------------------------------------------------
+Test Passed.
+"xlang3_debug_session_tests" end time: Oct 01 10:30 Pacific Daylight Time
+"xlang3_debug_session_tests" time elapsed: 00:00:00
+----------------------------------------------------------
+
+23/53 Testing: xlang3_dap_session_tests
+23/53 Test: xlang3_dap_session_tests
+Command: "D:/CantorAI/xlang3/build/Release/xlang3_dap_session_tests.exe"
+Directory: D:/CantorAI/xlang3/build
+"xlang3_dap_session_tests" start time: Oct 01 10:30 Pacific Daylight Time
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.05 sec
+----------------------------------------------------------
+Test Passed.
+"xlang3_dap_session_tests" end time: Oct 01 10:30 Pacific Daylight Time
+"xlang3_dap_session_tests" time elapsed: 00:00:00
+----------------------------------------------------------
+
+24/53 Testing: xlang3_module_slot_tests
+24/53 Test: xlang3_module_slot_tests
+Command: "D:/CantorAI/xlang3/build/Release/xlang3_module_slot_tests.exe"
+Directory: D:/CantorAI/xlang3/build
+"xlang3_module_slot_tests" start time: Oct 01 10:30 Pacific Daylight Time
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.05 sec
+----------------------------------------------------------
+Test Passed.
+"xlang3_module_slot_tests" end time: Oct 01 10:30 Pacific Daylight Time
+"xlang3_module_slot_tests" time elapsed: 00:00:00
+----------------------------------------------------------
+
+25/53 Testing: xlang3_task_tests
+25/53 Test: xlang3_task_tests
+Command: "D:/CantorAI/xlang3/build/Release/xlang3_task_tests.exe"
+Directory: D:/CantorAI/xlang3/build
+"xlang3_task_tests" start time: Oct 01 10:30 Pacific Daylight Time
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.04 sec
+----------------------------------------------------------
+Test Passed.
+"xlang3_task_tests" end time: Oct 01 10:30 Pacific Daylight Time
+"xlang3_task_tests" time elapsed: 00:00:00
+----------------------------------------------------------
+
+26/53 Testing: xlang3_ir_codec_tests
+26/53 Test: xlang3_ir_codec_tests
+Command: "D:/CantorAI/xlang3/build/Release/xlang3_ir_codec_tests.exe"
+Directory: D:/CantorAI/xlang3/build
+"xlang3_ir_codec_tests" start time: Oct 01 10:30 Pacific Daylight Time
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.02 sec
+----------------------------------------------------------
+Test Passed.
+"xlang3_ir_codec_tests" end time: Oct 01 10:30 Pacific Daylight Time
+"xlang3_ir_codec_tests" time elapsed: 00:00:00
+----------------------------------------------------------
+
+27/53 Testing: xlang3_native_package_real_tests
+27/53 Test: xlang3_native_package_real_tests
+Command: "D:/CantorAI/xlang3/build/Release/xlang3_native_package_real_tests.exe" "D:/CantorAI/xlang3/build/Release/modules"
+Directory: D:/CantorAI/xlang3/build
+"xlang3_native_package_real_tests" start time: Oct 01 10:30 Pacific Daylight Time
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.04 sec
+----------------------------------------------------------
+Test Passed.
+"xlang3_native_package_real_tests" end time: Oct 01 10:30 Pacific Daylight Time
+"xlang3_native_package_real_tests" time elapsed: 00:00:00
+----------------------------------------------------------
+
+28/53 Testing: xlang3_native_library_path
+28/53 Test: xlang3_native_library_path
+Command: "D:/CantorAI/xlang3/build/Release/xlang3_native_path_tests.exe" "D:/CantorAI/xlang3/build/Release/modules/xlang1_compat_sample.x3pkg.dll"
+Directory: D:/CantorAI/xlang3/build
+"xlang3_native_library_path" start time: Oct 01 10:30 Pacific Daylight Time
+Output:
+----------------------------------------------------------
+native-library-path-single-initialization-passed
+native-library-absolute-stem-passed
+<end of output>
+Test time =   0.04 sec
+----------------------------------------------------------
+Test Passed.
+"xlang3_native_library_path" end time: Oct 01 10:30 Pacific Daylight Time
+"xlang3_native_library_path" time elapsed: 00:00:00
+----------------------------------------------------------
+
+29/53 Testing: xlang3_expression_decorators
+29/53 Test: xlang3_expression_decorators
+Command: "D:/CantorAI/xlang3/build/Release/xlang3.exe" "-c" "exec(open('D:/CantorAI/xlang3/tests/cpp/expression_decorators.py').read())"
+Directory: D:/CantorAI/xlang3/build/Release/modules
+"xlang3_expression_decorators" start time: Oct 01 10:30 Pacific Daylight Time
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.05 sec
+----------------------------------------------------------
+Test Passed.
+"xlang3_expression_decorators" end time: Oct 01 10:30 Pacific Daylight Time
+"xlang3_expression_decorators" time elapsed: 00:00:00
+----------------------------------------------------------
+
+30/53 Testing: xlang3_expression_decorators_ipc
+30/53 Test: xlang3_expression_decorators_ipc
+Command: "C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe" "-NoProfile" "-ExecutionPolicy" "Bypass" "-File" "D:/CantorAI/xlang3/tests/ipc/run_lrpc_smoke.ps1" "-XLang3" "D:/CantorAI/xlang3/build/Release/xlang3.exe" "-NativeModules" "D:/CantorAI/xlang3/build/Release/modules" "-ClientScript" "expression_client.py" "-Expected" "expression_expected.out"
+Directory: D:/CantorAI/xlang3/build
+"xlang3_expression_decorators_ipc" start time: Oct 01 10:30 Pacific Daylight Time
+Output:
+----------------------------------------------------------
+ipc lrpc smoke ok
+<end of output>
+Test time =   0.81 sec
+----------------------------------------------------------
+Test Passed.
+"xlang3_expression_decorators_ipc" end time: Oct 01 10:30 Pacific Daylight Time
+"xlang3_expression_decorators_ipc" time elapsed: 00:00:00
+----------------------------------------------------------
+
+31/53 Testing: xlang3_xlang1_compat_package_tests
+31/53 Test: xlang3_xlang1_compat_package_tests
+Command: "D:/CantorAI/xlang3/build/Release/xlang3_xlang1_compat_package_tests.exe" "D:/CantorAI/xlang3/build/Release/modules"
+Directory: D:/CantorAI/xlang3/build
+"xlang3_xlang1_compat_package_tests" start time: Oct 01 10:30 Pacific Daylight Time
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.04 sec
+----------------------------------------------------------
+Test Passed.
+"xlang3_xlang1_compat_package_tests" end time: Oct 01 10:30 Pacific Daylight Time
+"xlang3_xlang1_compat_package_tests" time elapsed: 00:00:00
+----------------------------------------------------------
+
+32/53 Testing: xlang3_sdk_c_header_smoke
+32/53 Test: xlang3_sdk_c_header_smoke
+Command: "D:/CantorAI/xlang3/build/Release/xlang3_sdk_c_header_smoke.exe"
+Directory: D:/CantorAI/xlang3/build
+"xlang3_sdk_c_header_smoke" start time: Oct 01 10:30 Pacific Daylight Time
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"xlang3_sdk_c_header_smoke" end time: Oct 01 10:30 Pacific Daylight Time
+"xlang3_sdk_c_header_smoke" time elapsed: 00:00:00
+----------------------------------------------------------
+
+33/53 Testing: xlang3_cli_yaml_module_import
+33/53 Test: xlang3_cli_yaml_module_import
+Command: "D:/CantorAI/xlang3/build/Release/xlang3.exe" "D:/CantorAI/xlang3/tests/native/yaml_module.py" "D:/CantorAI/xlang3/build/Release/modules"
+Directory: D:/CantorAI/xlang3/build
+"xlang3_cli_yaml_module_import" start time: Oct 01 10:30 Pacific Daylight Time
+Output:
+----------------------------------------------------------
+xlang3
+2
+True
+1
+2
+<end of output>
+Test time =   0.04 sec
+----------------------------------------------------------
+Test Passed.
+"xlang3_cli_yaml_module_import" end time: Oct 01 10:30 Pacific Daylight Time
+"xlang3_cli_yaml_module_import" time elapsed: 00:00:00
+----------------------------------------------------------
+
+34/53 Testing: xlang3_cli_device_module_import
+34/53 Test: xlang3_cli_device_module_import
+Command: "D:/CantorAI/xlang3/build/Release/xlang3.exe" "D:/CantorAI/xlang3/tests/native/device_module.py" "D:/CantorAI/xlang3/build/Release/modules"
+Directory: D:/CantorAI/xlang3/build
+"xlang3_cli_device_module_import" start time: Oct 01 10:30 Pacific Daylight Time
+Output:
+----------------------------------------------------------
+xlang3-device
+True
+<end of output>
+Test time =   0.04 sec
+----------------------------------------------------------
+Test Passed.
+"xlang3_cli_device_module_import" end time: Oct 01 10:30 Pacific Daylight Time
+"xlang3_cli_device_module_import" time elapsed: 00:00:00
+----------------------------------------------------------
+
+35/53 Testing: xlang3_curmodule_probe_import
+35/53 Test: xlang3_curmodule_probe_import
+Command: "D:/CantorAI/xlang3/build/Release/xlang3.exe" "D:/CantorAI/xlang3/tests/native/curmodule_probe_import.py"
+Directory: D:/CantorAI/xlang3/build
+"xlang3_curmodule_probe_import" start time: Oct 01 10:30 Pacific Daylight Time
+Output:
+----------------------------------------------------------
+curModule ok
+<end of output>
+Test time =   0.04 sec
+----------------------------------------------------------
+Test Passed.
+"xlang3_curmodule_probe_import" end time: Oct 01 10:30 Pacific Daylight Time
+"xlang3_curmodule_probe_import" time elapsed: 00:00:00
+----------------------------------------------------------
+
+36/53 Testing: xlang3_cli_net_module_import
+36/53 Test: xlang3_cli_net_module_import
+Command: "D:/CantorAI/xlang3/build/Release/xlang3.exe" "D:/CantorAI/xlang3/tests/native/net/module.py" "D:/CantorAI/xlang3/build/Release/modules"
+Directory: D:/CantorAI/xlang3/build
+"xlang3_cli_net_module_import" start time: Oct 01 10:30 Pacific Daylight Time
+Output:
+----------------------------------------------------------
+ok
+direct
+True
+True
+a%20b
+a b
+4
+True
+bytes True
+True
+True
+smtp.example.invalid 2525 scope
+True
+index.html
+text/html
+<end of output>
+Test time =   0.06 sec
+----------------------------------------------------------
+Test Passed.
+"xlang3_cli_net_module_import" end time: Oct 01 10:30 Pacific Daylight Time
+"xlang3_cli_net_module_import" time elapsed: 00:00:00
+----------------------------------------------------------
+
+37/53 Testing: xlang3_cli_ssl_module
+37/53 Test: xlang3_cli_ssl_module
+Command: "C:/Python/Python314/python.exe" "D:/CantorAI/xlang3/tests/run_expected.py" "D:/CantorAI/xlang3/build/Release/xlang3.exe" "D:/CantorAI/xlang3/tests/native/ssl_module.py" "D:/CantorAI/xlang3/tests/native/ssl_module.out" "D:/CantorAI/xlang3/build/Release/modules" "C:\Python\Python314\Lib"
+Directory: D:/CantorAI/xlang3/build
+"xlang3_cli_ssl_module" start time: Oct 01 10:30 Pacific Daylight Time
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.27 sec
+----------------------------------------------------------
+Test Passed.
+"xlang3_cli_ssl_module" end time: Oct 01 10:30 Pacific Daylight Time
+"xlang3_cli_ssl_module" time elapsed: 00:00:00
+----------------------------------------------------------
+
+38/53 Testing: xlang3_cli_hashlib_module
+38/53 Test: xlang3_cli_hashlib_module
+Command: "C:/Python/Python314/python.exe" "D:/CantorAI/xlang3/tests/run_expected.py" "D:/CantorAI/xlang3/build/Release/xlang3.exe" "D:/CantorAI/xlang3/tests/native/hashlib_module.py" "D:/CantorAI/xlang3/tests/native/hashlib_module.out" "D:/CantorAI/xlang3/build/Release/modules" "C:\Python\Python314\Lib"
+Directory: D:/CantorAI/xlang3/build
+"xlang3_cli_hashlib_module" start time: Oct 01 10:30 Pacific Daylight Time
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.15 sec
+----------------------------------------------------------
+Test Passed.
+"xlang3_cli_hashlib_module" end time: Oct 01 10:30 Pacific Daylight Time
+"xlang3_cli_hashlib_module" time elapsed: 00:00:00
+----------------------------------------------------------
+
+39/53 Testing: xlang3_cli_argon2_module
+39/53 Test: xlang3_cli_argon2_module
+Command: "C:/Python/Python314/python.exe" "D:/CantorAI/xlang3/tests/run_expected.py" "D:/CantorAI/xlang3/build/Release/xlang3.exe" "D:/CantorAI/xlang3/tests/native/argon2/argon2_module.py" "D:/CantorAI/xlang3/tests/native/argon2/argon2_module.out" "D:/CantorAI/xlang3/build/Release/modules" "C:\Python\Python314\Lib"
+Directory: D:/CantorAI/xlang3/build
+"xlang3_cli_argon2_module" start time: Oct 01 10:30 Pacific Daylight Time
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.12 sec
+----------------------------------------------------------
+Test Passed.
+"xlang3_cli_argon2_module" end time: Oct 01 10:30 Pacific Daylight Time
+"xlang3_cli_argon2_module" time elapsed: 00:00:00
+----------------------------------------------------------
+
+40/53 Testing: xlang3_cli_real_native_imports
+40/53 Test: xlang3_cli_real_native_imports
+Command: "C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe" "-NoProfile" "-ExecutionPolicy" "Bypass" "-File" "D:/CantorAI/xlang3/tests/native/run_real_native_import_tests.ps1" "-XLang3" "D:/CantorAI/xlang3/build/Release/xlang3.exe"
+Directory: D:/CantorAI/xlang3/build
+"xlang3_cli_real_native_imports" start time: Oct 01 10:30 Pacific Daylight Time
+Output:
+----------------------------------------------------------
+real native import fixture ok
+<end of output>
+Test time =   0.43 sec
+----------------------------------------------------------
+Test Passed.
+"xlang3_cli_real_native_imports" end time: Oct 01 10:30 Pacific Daylight Time
+"xlang3_cli_real_native_imports" time elapsed: 00:00:00
+----------------------------------------------------------
+
+41/53 Testing: xlang3_xlang1_compat_import
+41/53 Test: xlang3_xlang1_compat_import
+Command: "C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe" "-NoProfile" "-ExecutionPolicy" "Bypass" "-File" "D:/CantorAI/xlang3/tests/native/run_xlang1_compat_import.ps1" "-XLang3" "D:/CantorAI/xlang3/build/Release/xlang3.exe"
+Directory: D:/CantorAI/xlang3/build
+"xlang3_xlang1_compat_import" start time: Oct 01 10:30 Pacific Daylight Time
+Output:
+----------------------------------------------------------
+xlang1 compat import fixture ok
+<end of output>
+Test time =   0.37 sec
+----------------------------------------------------------
+Test Passed.
+"xlang3_xlang1_compat_import" end time: Oct 01 10:30 Pacific Daylight Time
+"xlang3_xlang1_compat_import" time elapsed: 00:00:00
+----------------------------------------------------------
+
+42/53 Testing: xlang3_cli_net_module_server_client
+42/53 Test: xlang3_cli_net_module_server_client
+Command: "C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe" "-NoProfile" "-ExecutionPolicy" "Bypass" "-File" "D:/CantorAI/xlang3/tests/native/net/run_module.ps1" "-XLang3" "D:/CantorAI/xlang3/build/Release/xlang3.exe" "-NativeModules" "D:/CantorAI/xlang3/build/Release/modules"
+Directory: D:/CantorAI/xlang3/build
+"xlang3_cli_net_module_server_client" start time: Oct 01 10:30 Pacific Daylight Time
+Output:
+----------------------------------------------------------
+Starting net test server: D:\CantorAI\xlang3\tests\native\net\server.py
+Net test server is listening on 127.0.0.1:18173
+Running net test client: D:\CantorAI\xlang3\tests\native\net\client.py
+Net test client output:
+  True
+  200
+  hello
+  small
+  True
+  65536
+  True
+  4
+  True
+  True
+  True
+  True
+  200
+  hello
+  True
+  200
+Net server/client test PASS
+<end of output>
+Test time =   1.29 sec
+----------------------------------------------------------
+Test Passed.
+"xlang3_cli_net_module_server_client" end time: Oct 01 10:30 Pacific Daylight Time
+"xlang3_cli_net_module_server_client" time elapsed: 00:00:01
+----------------------------------------------------------
+
+43/53 Testing: xlang3_cli_sqlite_module_imports
+43/53 Test: xlang3_cli_sqlite_module_imports
+Command: "C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe" "-NoProfile" "-ExecutionPolicy" "Bypass" "-File" "D:/CantorAI/xlang3/tests/native/sqlite/run_sqlite_tests.ps1" "-XLang3" "D:/CantorAI/xlang3/build/Release/xlang3.exe" "-NativeModules" "D:/CantorAI/xlang3/build/Release/modules"
+Directory: D:/CantorAI/xlang3/build
+"xlang3_cli_sqlite_module_imports" start time: Oct 01 10:30 Pacific Daylight Time
+Output:
+----------------------------------------------------------
+sqlite fixture old_xlang_sqlite_api ok
+sqlite fixture python_sqlite3_api ok
+<end of output>
+Test time =   0.43 sec
+----------------------------------------------------------
+Test Passed.
+"xlang3_cli_sqlite_module_imports" end time: Oct 01 10:30 Pacific Daylight Time
+"xlang3_cli_sqlite_module_imports" time elapsed: 00:00:00
+----------------------------------------------------------
+
+44/53 Testing: xlang3_cli_fixtures
+44/53 Test: xlang3_cli_fixtures
+Command: "C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe" "-NoProfile" "-ExecutionPolicy" "Bypass" "-File" "D:/CantorAI/xlang3/tests/run_fixtures.ps1" "-XLang3" "D:/CantorAI/xlang3/build/Release/xlang3.exe"
+Directory: D:/CantorAI/xlang3/build
+"xlang3_cli_fixtures" start time: Oct 01 10:30 Pacific Daylight Time
+Output:
+----------------------------------------------------------
+fixture scalar_loop ok
+fixture functions ok
+fixture keyword_method_call ok
+fixture nested_function_no_closure ok
+fixture if_else ok
+fixture syntax_logical_lines ok
+fixture docstring_suite_execution ok
+fixture runtime_specialization_semantics ok
+fixture syntax_simple_suites ok
+fixture statement_syntax ok
+fixture module_statement_partials ok
+fixture module_subclass_constructor ok
+fixture module_subclass_import_probe ok
+fixture structural_pattern_matching ok
+fixture expression_operators ok
+fixture modulo_type_error ok
+fixture bigint_base_format ok
+fixture chained_comparisons ok
+fixture function_class_syntax ok
+fixture future_annotations ok
+fixture function_metadata ok
+fixture function_annotation_getattr ok
+fixture annotation_fake_globals ok
+fixture annotation_lambda_ast ok
+fixture generic_class_annotation_scope ok
+fixture generic_class_frame_locals ok
+fixture float_identity_containers ok
+fixture bool_numeric_properties ok
+fixture decorator_warning_line ok
+fixture breakpoint_builtin ok
+fixture deferred_annotation_closure ok
+fixture object_type_model ok
+fixture object_attribute_hooks ok
+fixture inherited_eq_ne ok
+fixture getattr_nondata_descriptor_precedence ok
+fixture set_identity_before_equality ok
+fixture dict_custom_hash_equality ok
+fixture metaclass_binary_operator ok
+fixture metaclass_dynamic_keyword_expansion ok
+fixture new_class_attribute ok
+fixture generic_union_substitution ok
+fixture optional_union_none_type ok
+fixture generic_class_parameters ok
+fixture module_subclass_descriptor ok
+fixture dict_init_mappingproxy ok
+fixture ast_runtime_parser ok
+fixture ast_assert_roundtrip ok
+fixture compile_ast_module ok
+fixture annotation_string_format ok
+fixture descriptor_protocol ok
+fixture default_object_repr ok
+fixture code_traceback_model ok
+fixture mro_model ok
+fixture property_descriptor ok
+fixture chained_object_methods ok
+fixture builtin_alias ok
+fixture builtin_function_batch ok
+fixture dynamic_execution_builtins ok
+fixture globals_locals_identity ok
+fixture iterator_protocol ok
+fixture tuples ok
+fixture tuple_methods ok
+fixture dict_views ok
+fixture slices ok
+fixture string_slice_offsets ok
+fixture regex_borrowed_ascii_match ok
+fixture abc_descriptor_abstract ok
+fixture super_replaced_method ok
+fixture functional_iterator_abc ok
+fixture metaclass_getattr ok
+fixture metaclass_getattribute ok
+fixture inspect_class_source_block ok
+fixture dict_view_contains ok
+fixture importlib_pathlike_spec ok
+fixture bytes_subclass_constructor ok
+fixture class_with_bindings ok
+fixture comprehension_iterable_scope ok
+fixture container_str_repr ok
+fixture class_attr_callable ok
+fixture vars_class_mappingproxy ok
+fixture typing_generic_class_getitem ok
+fixture builtin_type_signatures ok
+fixture deferred_nested_annotation ok
+fixture operator_or_typing_alias ok
+fixture ast_lambda_annotation ok
+fixture slots_model ok
+fixture raw_strings ok
+fixture string_compat ok
+fixture percent_mapping_protocol ok
+fixture str_subclass_add ok
+fixture str_subclass_percent ok
+fixture str_subclass_comparison ok
+fixture int_subclass_bitwise ok
+fixture module_class_constructor_frame_growth ok
+fixture binary_buffers ok
+fixture bytes_translate_delete ok
+fixture bytes_count_integer ok
+fixture set_union_bulk ok
+fixture zlib_strict_decompressor_kwargs ok
+fixture sum_start_keyword ok
+fixture int_enum_subtraction ok
+fixture gzip_missing_cleanup ok
+fixture gzip_finalizer_cleanup ok
+fixture dict_hash_index ok
+fixture bytes_isascii ok
+fixture typing_literal_union ok
+fixture sequence_contains_method ok
+fixture instance_dict_contains_dispatch ok
+fixture dict_get_missing_semantics ok
+fixture assigned_binary_special_method ok
+fixture dynamic_builtins_lookup ok
+fixture custom_getattribute_descriptor ok
+fixture multiple_inheritance_attribute_storage ok
+fixture builtin_types_edges ok
+fixture starred_expressions ok
+fixture dict_set_comprehensions ok
+fixture nested_comprehensions ok
+fixture generator_expressions ok
+fixture closure_in_raise ok
+fixture walrus_operator ok
+fixture named_expression_call_trailing_comma ok
+fixture unpacking ok
+fixture annotated_assignment ok
+fixture augmented_assignment ok
+fixture lists_for ok
+fixture sequences_index ok
+fixture dict_set ok
+fixture raw_blocks ok
+fixture re_sub_callable_none ok
+fixture re_escaped_punctuation ok
+fixture native_import ok
+fixture sha2_complete ok
+fixture json_module ok
+fixture math_module ok
+fixture time_module ok
+fixture native_sys_time_audit ok
+fixture os_process_windows ok
+fixture atexit_module ok
+fixture io_os_modules ok
+D:\CantorAI\xlang3\tests\fixtures\core\io_module_streams.py:130: ResourceWarning: unclosed buffered file
+  print([line for line in universal_lines])
+fixture io_module_streams ok
+fixture imp_stat_modules ok
+fixture pickle_module ok
+fixture collections_queue_modules ok
+fixture simple_queue_threadpool ok
+fixture types_module ok
+fixture traceback_module ok
+fixture linecache_module ok
+fixture runpy_module ok
+fixture importlib_module ok
+fixture import_cached_child_export ok
+fixture missing_module_exception ok
+fixture import_submodule_failure ok
+fixture compile_ast_decorators ok
+fixture compile_ast_class_annotations ok
+fixture compile_ast_with ok
+fixture compile_ast_unpack ok
+fixture compile_ast_scope ok
+fixture compile_ast_delete ok
+fixture compile_ast_try ok
+fixture compile_ast_yield ok
+fixture compile_ast_while ok
+fixture compile_ast_slice ok
+fixture compile_ast_list_comprehension ok
+fixture compile_ast_for ok
+fixture compile_ast_lambda_generator ok
+fixture compile_ast_ellipsis ok
+fixture compile_ast_set_dict_comprehension ok
+fixture compile_ast_starred ok
+fixture ast_leading_zero_literal ok
+fixture compile_ast_function_signature ok
+fixture compile_ast_break_continue ok
+fixture compile_ast_named_expr ok
+fixture compile_ast_await ok
+fixture class_name_assignment ok
+fixture exec_live_globals ok
+fixture exec_missing_name ok
+fixture int_subclass_copy ok
+fixture random_mt19937_state ok
+fixture init_subclass_exception ok
+fixture type_alias_statement ok
+fixture type_alias_ast ok
+fixture class_subscription ok
+fixture type_alias_union ok
+fixture generic_definition_ast ok
+fixture generic_class_base ok
+fixture generic_string_forward_ref ok
+fixture generic_alias_hash ok
+fixture generic_alias_resubscript ok
+fixture lambda_dict_unpack ok
+fixture dict_fromkeys_unhashable ok
+fixture resolved_prepare_bases ok
+fixture ast_nested_fstring_builtin ok
+fixture ast_container_format ok
+fixture builtin_generic_subclasses ok
+fixture type_parameter_repr ok
+fixture gc_class_components ok
+fixture deque_class_getitem ok
+fixture sre_class_getitem ok
+fixture exception_group_class_getitem ok
+fixture recursive_property_error ok
+fixture importlib_spec_package ok
+fixture importlib_spec_loader_keywords ok
+fixture marshal_bigint_code ok
+fixture stale_bytecode_import ok
+fixture zlib_module ok
+fixture zipfile_module ok
+fixture zipimport_module ok
+fixture weakref_module ok
+fixture weakref_thread_lifetime ok
+fixture weakref_hash_cache ok
+fixture generator_frame_referrers ok
+fixture generator_result_release ok
+fixture delegated_exception_result ok
+fixture except_target_cleanup ok
+fixture comprehension_target_lifetime ok
+fixture set_weakref_hash ok
+fixture set_hash_caching ok
+fixture math_real_type_error ok
+fixture contextvar_generic_alias ok
+fixture set_remove_key_error ok
+fixture set_hash_equality ok
+fixture instance_mapping_comparison ok
+fixture instance_dict_attribute_delete ok
+fixture class_eq_hash_rule ok
+fixture dir_instance_mapping ok
+fixture instance_dict_method_visibility ok
+fixture object_init_subclass_keywords ok
+fixture type_subclasses_descriptor ok
+fixture private_name_all_underscores ok
+fixture private_generator_name_mangling ok
+fixture subprocess_inherits_chdir ok
+fixture object_getattribute_descriptor ok
+fixture builtin_iterator_identity ok
+fixture ast_recursive_visitor ok
+fixture ast_match_patterns ok
+fixture ast_while_live_local ok
+fixture ast_traceback_multiline ok
+fixture vm_borrowed_local_overwrite ok
+fixture compile_ast_source_locations ok
+fixture match_protocol_semantics ok
+fixture inspect_module ok
+fixture sequence_int_subclass ok
+fixture memoryview_iteration ok
+fixture socket_bytes_hostname ok
+fixture dict_values_equality ok
+fixture set_constructor_custom_hash ok
+fixture format_property_field ok
+fixture mmap_native ok
+fixture regex_lookbehind_capture ok
+fixture inspect_currentframe ok
+fixture debug_frame_metadata ok
+fixture debug_frame_source_edges ok
+fixture debug_breakpoint_step ok
+fixture logging_pathlib_modules ok
+fixture socket_select_modules ok
+fixture file_import ok
+fixture global_from_import ok
+fixture package_import ok
+fixture import_system_model ok
+fixture vfs_file_io ok
+fixture file_context_open ok
+fixture file_io_compat ok
+fixture filesystem_io_edges ok
+fixture exceptions ok
+fixture runtime_error_exceptions ok
+fixture exception_unwind_with ok
+fixture typed_exceptions ok
+fixture exception_chaining_sys ok
+fixture exception_self_context ok
+fixture exception_instance_dict ok
+fixture finally_blocks ok
+fixture classes ok
+fixture class_dynamic_attrs ok
+fixture context_managers ok
+fixture context_manager_exception_traceback ok
+fixture with_assignment_targets ok
+fixture with_manager_lifetime ok
+fixture input_builtin ok
+fixture exception_group_split ok
+fixture builtin_methods ok
+fixture trace_hooks ok
+fixture trace_events ok
+fixture trace_local_and_exception ok
+fixture debug_trace_profile_edges ok
+fixture sys_command_path ok
+fixture sys_startup_config ok
+fixture task_async ok
+fixture async_syntax ok
+fixture async_generator_await_exception_unwind ok
+fixture async_await_expression_precedence ok
+fixture async_generator_suppressed_cancellation ok
+fixture threading_runtime_edges ok
+fixture thread_target_lifetime ok
+fixture signal_main_thread ok
+fixture symlink_realpath ok
+fixture asyncio_runtime_edges ok
+fixture closures ok
+fixture nonlocal_counter ok
+fixture comprehension_multiple_filters ok
+fixture csv_reader_dialect_keyword ok
+fixture array_w_unicode ok
+fixture regex_lookbehind_anchor_alternative ok
+fixture ssl_timed_socket ok
+fixture value_alias_assignment ok
+fixture ctypes_structure_layout ok
+fixture ctypes_pointer_return ok
+fixture ctypes_cast_errcheck_array ok
+fixture itertools_zip_longest_shared ok
+fixture minmax_custom_key ok
+fixture math_combinatorics ok
+fixture try_loop_exception_scope ok
+fixture native_module_function_binding ok
+fixture classmethod_attr_int_compare ok
+compat section module_and_statement_syntax ok
+compat section function_and_class_syntax ok
+compat section expression_syntax ok
+compat section core_value_and_object_model ok
+compat section functions_and_calls ok
+compat section exceptions ok
+compat section containers ok
+compat section strings_and_unicode ok
+compat section imports_and_modules ok
+compat section builtins ok
+usage: tool [--off] --mode {fast,slow} [--tag TAG] [-v] [--const]
+            [--pair PAIR PAIR] [--scale SCALE]
+tool: error: argument --mode: invalid choice: 'bad' (choose from 'fast', 'slow')
+XLang3 allocator stats
+object_blocks=0
+bucket_blocks=27672
+large_blocks=2
+D:\CantorAI\xlang3\tests\fixtures\compat_sections\standard_modules.py:2766: DeprecationWarning: Parsing a day of month without a year is deprecated
+  parsed_month_day = time.strptime("08-26", "%m-%d")
+D:\CantorAI\xlang3\tests\fixtures\compat_sections\standard_modules.py:2819: DeprecationWarning: Parsing a day of month without a year is deprecated
+  parsed_space_day = time.strptime(" 6", "%e")
+D:\CantorAI\xlang3\tests\fixtures\compat_sections\standard_modules.py:2820: DeprecationWarning: Parsing a day of month without a year is deprecated
+  parsed_space_padded_day = time.strptime(" 7", "%d")
+D:\CantorAI\xlang3\tests\fixtures\compat_sections\standard_modules.py:2821: DeprecationWarning: Parsing a day of month without a year is deprecated
+  parsed_default_year_leap_day = time.strptime("02/29", "%m/%d")
+D:\CantorAI\xlang3\tests\fixtures\compat_sections\standard_modules.py:2989: DeprecationWarning: 'java_ver' is deprecated and slated for removal in Python 3.15
+  print(len(platform.win32_ver()), len(platform.mac_ver()), len(platform.java_ver()), platform.system_alias("SunOS", "5.10", "x")[0])
+D:\CantorAI\xlang3\tests\fixtures\compat_sections\standard_modules.py:2998: DeprecationWarning: sysconfig.expand_makefile_vars is deprecated and will be removed in Python 3.16. Use sysconfig.get_paths(vars=...) instead.
+  print(sysconfig.expand_makefile_vars("$(py_version)-${SOABI}", config_vars) == sysconfig.get_config_var("py_version") + "-" + sysconfig.get_config_var("SOABI"))
+D:\CantorAI\xlang3\tests\fixtures\compat_sections\standard_modules.py:3227: ResourceWarning: unclosed scandir iterator
+  print(sorted([item.name for item in path_dir.iterdir()]))
+compat section standard_modules ok
+C:\Python\Python314\Lib\importlib\resources\_adapters.py:147: DeprecationWarning: String arguments are deprecated. Pass a Traversable instead.
+  return self.spec.loader.get_resource_reader(self.spec.name)
+compat section system_stdlib ok
+fixture uncaught_exception ok
+fixture uncaught_runtime_error ok
+fixture unset_instance_attr ok
+<end of output>
+Test time =  23.41 sec
+----------------------------------------------------------
+Test Passed.
+"xlang3_cli_fixtures" end time: Oct 01 10:30 Pacific Daylight Time
+"xlang3_cli_fixtures" time elapsed: 00:00:23
+----------------------------------------------------------
+
+45/53 Testing: xlang3_cli_compat
+45/53 Test: xlang3_cli_compat
+Command: "C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe" "-NoProfile" "-ExecutionPolicy" "Bypass" "-File" "D:/CantorAI/xlang3/tests/cli/run_cli_compat.ps1" "-XLang3" "D:/CantorAI/xlang3/build/Release/xlang3.exe" "-WorkDir" "D:/CantorAI/xlang3/build/cli_compat"
+Directory: D:/CantorAI/xlang3/build
+"xlang3_cli_compat" start time: Oct 01 10:30 Pacific Daylight Time
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.70 sec
+----------------------------------------------------------
+Test Passed.
+"xlang3_cli_compat" end time: Oct 01 10:30 Pacific Daylight Time
+"xlang3_cli_compat" time elapsed: 00:00:00
+----------------------------------------------------------
+
+46/53 Testing: xlang3_cli_pickle_interop
+46/53 Test: xlang3_cli_pickle_interop
+Command: "C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe" "-NoProfile" "-ExecutionPolicy" "Bypass" "-File" "D:/CantorAI/xlang3/tests/cli/run_pickle_interop.ps1" "-XLang3" "D:/CantorAI/xlang3/build/Release/xlang3.exe" "-WorkDir" "D:/CantorAI/xlang3/build/pickle_interop"
+Directory: D:/CantorAI/xlang3/build
+"xlang3_cli_pickle_interop" start time: Oct 01 10:30 Pacific Daylight Time
+Output:
+----------------------------------------------------------
+pickle interop ok
+<end of output>
+Test time =   0.50 sec
+----------------------------------------------------------
+Test Passed.
+"xlang3_cli_pickle_interop" end time: Oct 01 10:30 Pacific Daylight Time
+"xlang3_cli_pickle_interop" time elapsed: 00:00:00
+----------------------------------------------------------
+
+47/53 Testing: xlang3_ipc_lrpc_smoke
+47/53 Test: xlang3_ipc_lrpc_smoke
+Command: "C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe" "-NoProfile" "-ExecutionPolicy" "Bypass" "-File" "D:/CantorAI/xlang3/tests/ipc/run_lrpc_smoke.ps1" "-XLang3" "D:/CantorAI/xlang3/build/Release/xlang3.exe" "-NativeClient" "D:/CantorAI/xlang3/build/Release/xlang3_cpp_ipc_client.exe"
+Directory: D:/CantorAI/xlang3/build
+"xlang3_ipc_lrpc_smoke" start time: Oct 01 10:30 Pacific Daylight Time
+Output:
+----------------------------------------------------------
+C++ shared-memory IPC passed
+ipc lrpc smoke ok
+<end of output>
+Test time =   1.06 sec
+----------------------------------------------------------
+Test Passed.
+"xlang3_ipc_lrpc_smoke" end time: Oct 01 10:30 Pacific Daylight Time
+"xlang3_ipc_lrpc_smoke" time elapsed: 00:00:01
+----------------------------------------------------------
+
+48/53 Testing: xlang3_ipc_lrpc_server_exit
+48/53 Test: xlang3_ipc_lrpc_server_exit
+Command: "C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe" "-NoProfile" "-ExecutionPolicy" "Bypass" "-File" "D:/CantorAI/xlang3/tests/ipc/run_lrpc_server_exit.ps1" "-XLang3" "D:/CantorAI/xlang3/build/Release/xlang3.exe"
+Directory: D:/CantorAI/xlang3/build
+"xlang3_ipc_lrpc_server_exit" start time: Oct 01 10:30 Pacific Daylight Time
+Output:
+----------------------------------------------------------
+ipc lrpc server-exit ok
+<end of output>
+Test time =   0.80 sec
+----------------------------------------------------------
+Test Passed.
+"xlang3_ipc_lrpc_server_exit" end time: Oct 01 10:30 Pacific Daylight Time
+"xlang3_ipc_lrpc_server_exit" time elapsed: 00:00:00
+----------------------------------------------------------
+
+49/53 Testing: xlang3_ipc_lrpc_backpressure
+49/53 Test: xlang3_ipc_lrpc_backpressure
+Command: "C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe" "-NoProfile" "-ExecutionPolicy" "Bypass" "-File" "D:/CantorAI/xlang3/tests/ipc/run_lrpc_smoke.ps1" "-XLang3" "D:/CantorAI/xlang3/build/Release/xlang3.exe" "-ClientScript" "pressure_client.py" "-Expected" "pressure_expected.out"
+Directory: D:/CantorAI/xlang3/build
+"xlang3_ipc_lrpc_backpressure" start time: Oct 01 10:30 Pacific Daylight Time
+Output:
+----------------------------------------------------------
+ipc lrpc smoke ok
+<end of output>
+Test time =   3.63 sec
+----------------------------------------------------------
+Test Passed.
+"xlang3_ipc_lrpc_backpressure" end time: Oct 01 10:30 Pacific Daylight Time
+"xlang3_ipc_lrpc_backpressure" time elapsed: 00:00:03
+----------------------------------------------------------
+
+50/53 Testing: xlang3_ipc_lrpc_backpressure_server_exit
+50/53 Test: xlang3_ipc_lrpc_backpressure_server_exit
+Command: "C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe" "-NoProfile" "-ExecutionPolicy" "Bypass" "-File" "D:/CantorAI/xlang3/tests/ipc/run_pressure_exit.ps1" "-XLang3" "D:/CantorAI/xlang3/build/Release/xlang3.exe"
+Directory: D:/CantorAI/xlang3/build
+"xlang3_ipc_lrpc_backpressure_server_exit" start time: Oct 01 10:30 Pacific Daylight Time
+Output:
+----------------------------------------------------------
+pressure-server-exit-passed
+<end of output>
+Test time =   1.24 sec
+----------------------------------------------------------
+Test Passed.
+"xlang3_ipc_lrpc_backpressure_server_exit" end time: Oct 01 10:31 Pacific Daylight Time
+"xlang3_ipc_lrpc_backpressure_server_exit" time elapsed: 00:00:01
+----------------------------------------------------------
+
+51/53 Testing: xlang3_cli_dap_stdio_smoke
+51/53 Test: xlang3_cli_dap_stdio_smoke
+Command: "C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe" "-NoProfile" "-ExecutionPolicy" "Bypass" "-File" "D:/CantorAI/xlang3/tests/cli/run_dap_stdio_smoke.ps1" "-XLang3" "D:/CantorAI/xlang3/build/Release/xlang3.exe"
+Directory: D:/CantorAI/xlang3/build
+"xlang3_cli_dap_stdio_smoke" start time: Oct 01 10:31 Pacific Daylight Time
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.44 sec
+----------------------------------------------------------
+Test Passed.
+"xlang3_cli_dap_stdio_smoke" end time: Oct 01 10:31 Pacific Daylight Time
+"xlang3_cli_dap_stdio_smoke" time elapsed: 00:00:00
+----------------------------------------------------------
+
+52/53 Testing: xlang3_cli_debugpy_adapter_smoke
+52/53 Test: xlang3_cli_debugpy_adapter_smoke
+Command: "D:/CantorAI/xlang3/build/Release/xlang3.exe" "D:/CantorAI/xlang3/tests/cli/run_debugpy_adapter_smoke.py" "D:/CantorAI/xlang3/build/Release/xlang3.exe"
+Directory: D:/CantorAI/xlang3/build
+"xlang3_cli_debugpy_adapter_smoke" start time: Oct 01 10:31 Pacific Daylight Time
+Output:
+----------------------------------------------------------
+debugpy adapter DAP initialize/disconnect passed
+D:/CantorAI/xlang3/tests/cli/run_debugpy_adapter_smoke.py:154: ResourceWarning: unclosed buffered file
+  print("debugpy adapter DAP initialize/disconnect passed")
+D:/CantorAI/xlang3/tests/cli/run_debugpy_adapter_smoke.py:154: ResourceWarning: unclosed buffered file
+  print("debugpy adapter DAP initialize/disconnect passed")
+<end of output>
+Test time =   1.92 sec
+----------------------------------------------------------
+Test Passed.
+"xlang3_cli_debugpy_adapter_smoke" end time: Oct 01 10:31 Pacific Daylight Time
+"xlang3_cli_debugpy_adapter_smoke" time elapsed: 00:00:01
+----------------------------------------------------------
+
+53/53 Testing: xlang3_cli_visual_studio_debugpy_launch
+53/53 Test: xlang3_cli_visual_studio_debugpy_launch
+Command: "D:/CantorAI/xlang3/build/Release/xlang3.exe" "D:/CantorAI/xlang3/tests/cli/run_debugpy_launch_smoke.py" "D:/CantorAI/xlang3/build/Release/xlang3.exe"
+Directory: D:/CantorAI/xlang3/build
+"xlang3_cli_visual_studio_debugpy_launch" start time: Oct 01 10:31 Pacific Daylight Time
+Output:
+----------------------------------------------------------
+[  0.010s] adapter started with xlang3.exe (pid 47868)
+[  0.438s] initialize response
+[  0.439s] launch request sent
+[  1.781s] initialized event
+[  1.795s] configurationDone response
+[  1.795s] launch response
+[  1.894s] stopped: breakpoint
+[  1.905s] stackTrace response
+[  1.912s] scopes response
+[  1.922s] variables response
+[  1.922s] local value inspected
+[  1.942s] hover value evaluated repeatedly
+[  1.966s] hover value evaluated at second breakpoint
+[  3.004s] asynchronous pause and stackTrace response
+[  3.613s] program output and terminated event
+Visual Studio debugpy launched XLang3, stopped, inspected locals, paused, continued, and exited
+<end of output>
+Test time =   4.39 sec
+----------------------------------------------------------
+Test Passed.
+"xlang3_cli_visual_studio_debugpy_launch" end time: Oct 01 10:31 Pacific Daylight Time
+"xlang3_cli_visual_studio_debugpy_launch" time elapsed: 00:00:04
+----------------------------------------------------------
+
+End testing: Oct 01 10:31 Pacific Daylight Time

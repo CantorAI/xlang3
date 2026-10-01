@@ -19,6 +19,8 @@ limitations under the License.
 
 #include <string>
 #include <cstddef>
+#include <cstdint>
+#include <limits>
 #include <vector>
 
 namespace xlang3 {
@@ -32,7 +34,94 @@ struct SetObject {
   mutable size_t cached_hash = 0;
   std::vector<Value> items;
   std::vector<size_t> item_hashes;
+  // Keep ordered entries authoritative; this lazy index only narrows the
+  // candidates for membership, like CPython's hash-table probe. Small sets
+  // stay allocation-free, and every content mutation invalidates the index.
+  uint64_t content_version = 1;
+  mutable uint64_t membership_index_version = 0;
+  mutable size_t membership_index_mask = 0;
+  mutable std::vector<size_t> membership_index_heads;
+  mutable std::vector<size_t> membership_index_next;
+  mutable std::vector<size_t> membership_identity_heads;
+  mutable std::vector<size_t> membership_identity_next;
 };
+
+constexpr size_t kSetMembershipIndexThreshold = 8;
+constexpr size_t kSetMembershipIndexEmpty = std::numeric_limits<size_t>::max();
+
+XLANG3_HOT_INLINE void set_note_content_change(SetObject& set) {
+  ++set.content_version;
+  if (set.content_version == 0) {
+    set.content_version = 1;
+    set.membership_index_version = 0;
+  }
+}
+
+XLANG3_HOT_INLINE bool set_prepare_membership_index(const SetObject& set) {
+  const size_t item_count = set.items.size();
+  if (item_count < kSetMembershipIndexThreshold ||
+      set.item_hashes.size() != item_count ||
+      item_count > std::numeric_limits<size_t>::max() / 2) {
+    return false;
+  }
+  if (set.membership_index_version != set.content_version) {
+    size_t capacity = 8;
+    while (capacity < item_count * 2) {
+      if (capacity > std::numeric_limits<size_t>::max() / 2) return false;
+      capacity *= 2;
+    }
+    auto& heads = set.membership_index_heads;
+    auto& next = set.membership_index_next;
+    auto& identity_heads = set.membership_identity_heads;
+    auto& identity_next = set.membership_identity_next;
+    heads.assign(capacity, kSetMembershipIndexEmpty);
+    next.resize(item_count);
+    identity_heads.assign(capacity, kSetMembershipIndexEmpty);
+    identity_next.assign(item_count, kSetMembershipIndexEmpty);
+    const size_t mask = capacity - 1;
+    for (size_t index = 0; index < item_count; ++index) {
+      const size_t bucket = set.item_hashes[index] & mask;
+      next[index] = heads[bucket];
+      heads[bucket] = index;
+      const Value& item = set.items[index];
+      if (item.tag == ValueTag::Object && item.as.obj != nullptr) {
+        // Some native helpers construct a set before they have a Runtime to
+        // call an object's Python __hash__. Retain an identity chain too, so
+        // membership of that exact object keeps working when its later,
+        // runtime-aware hash differs from the construction-time hash.
+        const size_t identity = static_cast<size_t>(
+            reinterpret_cast<uintptr_t>(item.as.obj) >> 3) & mask;
+        identity_next[index] = identity_heads[identity];
+        identity_heads[identity] = index;
+      }
+    }
+    set.membership_index_mask = mask;
+    set.membership_index_version = set.content_version;
+  }
+  return true;
+}
+
+XLANG3_HOT_INLINE size_t set_membership_index_first(
+    const SetObject& set, size_t hash) {
+  return set.membership_index_heads[hash & set.membership_index_mask];
+}
+
+XLANG3_HOT_INLINE size_t set_membership_index_next(
+    const SetObject& set, size_t index) {
+  return set.membership_index_next[index];
+}
+
+XLANG3_HOT_INLINE size_t set_membership_identity_first(
+    const SetObject& set, const Value& value) {
+  const size_t identity = static_cast<size_t>(
+      reinterpret_cast<uintptr_t>(value.as.obj) >> 3);
+  return set.membership_identity_heads[identity & set.membership_index_mask];
+}
+
+XLANG3_HOT_INLINE size_t set_membership_identity_next(
+    const SetObject& set, size_t index) {
+  return set.membership_identity_next[index];
+}
 
 struct SetIteratorObject {
   Object header;

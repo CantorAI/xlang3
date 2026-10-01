@@ -2,3 +2,19 @@
 True ['second']
 ['first'] 1
 1 2
+erase False False True 14
+add True 15
+pop True 15
+update True 24
+intersection True False 8
+difference False True 8
+symmetric True False True 16
+reinitialize False True 16
+clear False 0
+eq-mutation False False False 0
+eq-mutation False True True 1
+eq-mutation True False False 0
+eq-mutation True True True 1
+collisions True False
+collision-remove False 15
+frozen True False

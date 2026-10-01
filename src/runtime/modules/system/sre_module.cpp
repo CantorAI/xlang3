@@ -23,6 +23,7 @@ limitations under the License.
 #include "xlang3/sequence.h"
 
 #include <algorithm>
+#include <atomic>
 #include <array>
 #include <cctype>
 #include <cstdio>
@@ -95,6 +96,8 @@ struct PatternState {
   std::string engine_pattern;
   bool bytes_pattern = false;
   int64_t flags = 0;
+  std::atomic_bool engine_prepared{false};
+  std::mutex engine_mutex;
   bool regex_available = true;
   bool regex_compiled = false;
   std::regex::flag_type regex_flags = std::regex::ECMAScript;
@@ -114,6 +117,8 @@ struct PatternState {
   std::mutex replacement_cache_mutex;
   std::unordered_set<std::string> validated_replacements;
 };
+
+bool prepare_pattern_engine(PatternState& state, std::string& error);
 
 bool regex_dot_repeat_lookbehind_width(std::string_view pattern, size_t& width, bool& positive) {
   if (pattern.size() < 6 || pattern.back() != ')' ||
@@ -189,6 +194,8 @@ PatternState* pattern_state(const Value& self, std::string& error) {
   auto* state = static_cast<PatternState*>(instance_get_native_data(self, kPatternNativeType));
   if (state == nullptr) {
     error = "invalid _sre.Pattern object";
+  } else if (!prepare_pattern_engine(*state, error)) {
+    return nullptr;
   }
   return state;
 }
@@ -337,6 +344,9 @@ bool pattern_anchored_literal_miss(const PatternState& state, const Value& subje
 }
 
 bool ensure_pattern_regex(PatternState& state, std::string& error) {
+  if (!prepare_pattern_engine(state, error)) {
+    return false;
+  }
   if (!state.regex_available) {
     error = "regular expression construct is not supported by the current native matcher";
     return false;
@@ -5025,6 +5035,123 @@ bool translate_scanner_sre_code(const Value& code_value, std::string& out, std::
   return !first;
 }
 
+bool prepare_pattern_engine(PatternState& state, std::string& error) {
+  if (state.engine_prepared.load(std::memory_order_acquire)) {
+    return true;
+  }
+  std::lock_guard lock(state.engine_mutex);
+  if (state.engine_prepared.load(std::memory_order_relaxed)) {
+    return true;
+  }
+
+  // re._compiler has already parsed the pattern and built its SRE program.
+  // A compile-only caller never needs our host matcher translation, so defer
+  // this compatibility work until a Pattern method first asks to match.
+  try {
+    const std::string& pattern = state.pattern;
+    const int64_t flags = state.flags;
+    const bool bytes_pattern = state.bytes_pattern;
+    const int64_t group_count = state.group_count;
+    size_t dot_repeat_lookbehind_width = 0;
+    bool dot_repeat_lookbehind_positive = false;
+    const bool dot_repeat_lookbehind = regex_dot_repeat_lookbehind_width(
+        pattern, dot_repeat_lookbehind_width, dot_repeat_lookbehind_positive);
+    const bool unsupported = regex_has_unsupported_std_construct(pattern) && !dot_repeat_lookbehind;
+    std::string engine_pattern = unsupported || dot_repeat_lookbehind ? std::string() : pattern;
+    // The host engine picks the first successful branch before the deferred
+    // lookbehind assertion is checked. Put an equivalent start anchor first so
+    // it cannot shadow a valid ^ branch at the beginning of the subject.
+    for (size_t open = engine_pattern.find("(?:(?<=");
+         open != std::string::npos;
+         open = engine_pattern.find("(?:(?<=", open + 1)) {
+      size_t close = open + 7;
+      bool escaped = false;
+      for (; close < engine_pattern.size(); ++close) {
+        const char ch = engine_pattern[close];
+        if (escaped) { escaped = false; continue; }
+        if (ch == '\\') { escaped = true; continue; }
+        if (ch == ')') break;
+        if (ch == '(') break;
+      }
+      if (close >= engine_pattern.size() || engine_pattern[close] != ')' ||
+          engine_pattern.compare(close + 1, 3, "|^)" ) != 0) continue;
+      const std::string assertion = engine_pattern.substr(open + 3, close - open - 2);
+      engine_pattern.replace(open, close + 4 - open, "(?:^|" + assertion + ")");
+    }
+    std::vector<LookbehindAssertion> lookbehinds;
+    std::vector<BoundaryAssertion> boundaries;
+    bool requires_absolute_start = false;
+    bool requires_absolute_end = false;
+    auto group_names = state.group_names;
+    if (!unsupported) {
+      engine_pattern = normalize_std_regex_pattern(
+          engine_pattern, &group_names, &lookbehinds,
+          (flags & kFlagDotAll) != 0, (flags & kFlagIgnoreCase) != 0,
+          (flags & kFlagVerbose) != 0, (flags & kFlagMultiline) != 0,
+          !bytes_pattern, !bytes_pattern && (flags & 256) == 0,
+          &requires_absolute_start, &requires_absolute_end, &boundaries);
+    }
+    std::regex::flag_type regex_flags =
+        std::regex::ECMAScript | std::regex_constants::optimize;
+    if (group_count == 0 && std::none_of(
+            lookbehinds.begin(), lookbehinds.end(),
+            [](const LookbehindAssertion& assertion) { return assertion.marker_group > 0; })) {
+      regex_flags |= std::regex_constants::nosubs;
+    }
+    if ((flags & kFlagIgnoreCase) != 0 && pattern.find("(?-i:") == std::string::npos &&
+        regex_requires_host_ignorecase(pattern)) {
+      regex_flags |= std::regex::icase;
+    }
+#if !defined(_MSC_VER) || _MSC_VER >= 1930
+    // VS 2019's standard library lacks this flag; newer MSVC libraries
+    // expose it and need it for anchors after embedded newlines.
+    if ((flags & kFlagMultiline) != 0) {
+      regex_flags |= std::regex_constants::multiline;
+    }
+#endif
+    std::vector<size_t> engine_group_for_python(
+        static_cast<size_t>(std::max<int64_t>(0, group_count)) + 1);
+    for (size_t python_group = 0; python_group < engine_group_for_python.size(); ++python_group) {
+      size_t engine_group = python_group;
+      for (const auto& assertion : lookbehinds) {
+        if (assertion.marker_group > 0 &&
+            assertion.captures_before_assertion < static_cast<int64_t>(python_group)) {
+          ++engine_group;
+        }
+      }
+      engine_group_for_python[python_group] = engine_group;
+    }
+    std::vector<std::string> fast_literals;
+    std::string fast_literal;
+    const FastRegexKind fast_kind = detect_fast_ordered_suffix(pattern, fast_literals)
+        ? FastRegexKind::OrderedSuffix
+        : detect_fast_regex(engine_pattern, fast_literal);
+    auto group_close_order = regex_group_close_order(pattern);
+
+    state.engine_pattern = std::move(engine_pattern);
+    state.regex_available = !unsupported;
+    state.regex_flags = regex_flags;
+    state.fast_kind = fast_kind;
+    state.fast_literal = std::move(fast_literal);
+    state.fast_literals = std::move(fast_literals);
+    state.group_names = std::move(group_names);
+    state.group_close_order = std::move(group_close_order);
+    state.engine_group_for_python = std::move(engine_group_for_python);
+    state.lookbehinds = std::move(lookbehinds);
+    state.boundaries = std::move(boundaries);
+    state.requires_absolute_start = requires_absolute_start;
+    state.requires_absolute_end = requires_absolute_end;
+    if (dot_repeat_lookbehind && dot_repeat_lookbehind_positive) {
+      state.minimum_match_start = dot_repeat_lookbehind_width;
+    }
+    state.engine_prepared.store(true, std::memory_order_release);
+    return true;
+  } catch (const std::exception& exc) {
+    error = std::string("failed to prepare regex matcher: ") + exc.what();
+    return false;
+  }
+}
+
 bool sre_compile(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 6) {
     error = "_sre.compile() expected pattern, flags, code, groups, groupindex, indexgroup";
@@ -5048,92 +5175,13 @@ bool sre_compile(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
       }
     }
   }
-  size_t dot_repeat_lookbehind_width = 0;
-  bool dot_repeat_lookbehind_positive = false;
-  const bool dot_repeat_lookbehind = regex_dot_repeat_lookbehind_width(
-      pattern, dot_repeat_lookbehind_width, dot_repeat_lookbehind_positive);
-  const bool unsupported = regex_has_unsupported_std_construct(pattern) && !dot_repeat_lookbehind;
-  std::string engine_pattern = unsupported || dot_repeat_lookbehind ? std::string() : pattern;
-  // The host engine picks the first successful branch before the deferred
-  // lookbehind assertion is checked. Put an equivalent start anchor first so
-  // it cannot shadow a valid ^ branch at the beginning of the subject.
-  for (size_t open = engine_pattern.find("(?:(?<=");
-       open != std::string::npos;
-       open = engine_pattern.find("(?:(?<=", open + 1)) {
-    size_t close = open + 7;
-    bool escaped = false;
-    for (; close < engine_pattern.size(); ++close) {
-      const char ch = engine_pattern[close];
-      if (escaped) { escaped = false; continue; }
-      if (ch == '\\') { escaped = true; continue; }
-      if (ch == ')') break;
-      if (ch == '(') break;
-    }
-    if (close >= engine_pattern.size() || engine_pattern[close] != ')' ||
-        engine_pattern.compare(close + 1, 3, "|^)") != 0) continue;
-    const std::string assertion = engine_pattern.substr(open + 3, close - open - 2);
-    engine_pattern.replace(open, close + 4 - open, "(?:^|" + assertion + ")");
-  }
-  std::vector<LookbehindAssertion> lookbehinds;
-  std::vector<BoundaryAssertion> boundaries;
-  bool requires_absolute_start = false;
-  bool requires_absolute_end = false;
-  if (!unsupported) {
-    engine_pattern = normalize_std_regex_pattern(engine_pattern, &group_names, &lookbehinds,
-                                                 (flags & kFlagDotAll) != 0, (flags & kFlagIgnoreCase) != 0,
-                                                 (flags & kFlagVerbose) != 0, (flags & kFlagMultiline) != 0,
-                                                 !bytes_pattern, !bytes_pattern && (flags & 256) == 0,
-                                                 &requires_absolute_start, &requires_absolute_end, &boundaries);
-  }
   const int64_t group_count = args[3].tag == ValueTag::Int64 ? args[3].as.i64 : 0;
-  std::regex::flag_type regex_flags = std::regex::ECMAScript | std::regex_constants::optimize;
-  if (group_count == 0 && std::none_of(lookbehinds.begin(), lookbehinds.end(),
-          [](const LookbehindAssertion& assertion) { return assertion.marker_group > 0; })) {
-    regex_flags |= std::regex_constants::nosubs;
-  }
-  if ((flags & kFlagIgnoreCase) != 0 && pattern.find("(?-i:") == std::string::npos &&
-      regex_requires_host_ignorecase(pattern)) {
-    regex_flags |= std::regex::icase;
-  }
-#if !defined(_MSC_VER) || _MSC_VER >= 1930
-  // VS 2019's standard library lacks this flag; newer MSVC libraries
-  // expose it and need it for anchors after embedded newlines.
-  if ((flags & kFlagMultiline) != 0) {
-    regex_flags |= std::regex_constants::multiline;
-  }
-#endif
   auto* state = new PatternState();
   state->pattern = pattern;
-  state->engine_pattern = std::move(engine_pattern);
   state->bytes_pattern = bytes_pattern;
   state->flags = flags;
-  state->regex_available = !unsupported;
-  state->regex_flags = regex_flags;
   state->group_count = group_count;
-  state->engine_group_for_python.resize(
-      static_cast<size_t>(std::max<int64_t>(0, state->group_count)) + 1);
-  for (size_t python_group = 0; python_group < state->engine_group_for_python.size(); ++python_group) {
-    size_t engine_group = python_group;
-    for (const auto& assertion : lookbehinds) {
-      if (assertion.marker_group > 0 &&
-          assertion.captures_before_assertion < static_cast<int64_t>(python_group)) {
-        ++engine_group;
-      }
-    }
-    state->engine_group_for_python[python_group] = engine_group;
-  }
-  state->group_close_order = regex_group_close_order(pattern);
-  state->fast_kind = detect_fast_ordered_suffix(pattern, state->fast_literals)
-      ? FastRegexKind::OrderedSuffix
-      : detect_fast_regex(state->engine_pattern, state->fast_literal);
   state->group_names = std::move(group_names);
-  state->lookbehinds = std::move(lookbehinds);
-  state->boundaries = std::move(boundaries);
-  state->requires_absolute_start = requires_absolute_start;
-  state->requires_absolute_end = requires_absolute_end;
-  if (dot_repeat_lookbehind && dot_repeat_lookbehind_positive) {
-    state->minimum_match_start = dot_repeat_lookbehind_width;
-  }
   try {
     out = Value::instance(make_pattern_type(runtime));
     std::string native_error;

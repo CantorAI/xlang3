@@ -1,0 +1,45 @@
+profiled workload regex_compile 0.9216029999661259
+profiled Python calls, grouped by source/function
+[[["_parser.py","__getitem__"],119012],[["_parser.py","__next"],65252],[["_parser.py","get"],48339],[["_parser.py","append"],44651],[["_parser.py","__len__"],37160],[["_parser.py","match"],25743],[["_parser.py","__init__"],24321],[["_parser.py","getwidth"],19505],[["_compiler.py","_compile"],17884],[["_parser.py","_parse"],15516],[["_parser.py","tell"],10088],[["_parser.py","groups"],8850],[["enum.py","_get_value"],8391],[["_compiler.py","isstring"],5594],[["_parser.py","_parse_sub"],5085],[["_compiler.py","_get_iscased"],4610],[["__init__.py","purge"],4267],[["__init__.py","_compile"],4267],[["__init__.py","compile"],4267],[["_parser.py","_escape"],3440],[["_compiler.py","_get_literal_prefix"],3162],[["_parser.py","fix_flags"],2797],[["_parser.py","parse"],2797],[["_compiler.py","_compile_info"],2797],[["_compiler.py","_code"],2797],[["_compiler.py","compile"],2797],[["enum.py","__new__"],2797],[["enum.py","__call__"],2797],[["enum.py","__and__"],2797],[["_parser.py","__setitem__"],2624],[["_compiler.py","_optimize_charset"],2158],[["_compiler.py","_compile_charset"],2157],[["_compiler.py","_simple"],2060],[["_compiler.py","_combine_flags"],2034],[["_parser.py","opengroup"],1625],[["_parser.py","closegroup"],1625],[["_compiler.py","_get_charset_prefix"],1448],[["_compiler.py","_generate_overlap_table"],1337],[["_parser.py","_uniq"],637],[["enum.py","value"],460],[["enum.py","__get__"],460],[["_compiler.py","_mk_bitmap"],407],[["_parser.py","_class_escape"],171],[["_parser.py","_parse_flags"],110],[["_parser.py","__delitem__"],34],[["_parser.py","getwhile"],13],[["_compiler.py","_bytes_to_codes"],13],[["_parser.py","checkgroup"],3],[["_parser.py","checklookbehindgroup"],3],[["bm_regex_compile_profile.py","bench_regex_compile"],1],[["profile_pyperformance_calls_direct.py","<lambda>"],1]]
+profiled benchmark function times (inclusive/self seconds)
+profile_pyperformance_calls_direct.py <lambda> 1 0.92162 1.3e-05
+bm_regex_compile_profile.py bench_regex_compile 1 0.921607 0.010239
+__init__.py compile 4267 0.90626 0.0063
+__init__.py _compile 4267 0.89996 0.021396
+_compiler.py compile 2797 0.850614 0.020554
+_parser.py _parse_sub 5085 0.705055 0.061119
+_parser.py _parse 15516 0.619092 0.248807
+_parser.py parse 2797 0.529229 0.014635
+_compiler.py _compile 17884 0.390139 0.136945
+_compiler.py _code 2797 0.297108 0.008566
+_compiler.py _compile_info 2797 0.105833 0.020114
+_parser.py get 48339 0.073728 0.060071
+_parser.py getwidth 19505 0.059505 0.042552
+_parser.py __getitem__ 119012 0.059111 0.058582
+_compiler.py _get_charset_prefix 1448 0.034588 0.025321
+enum.py __and__ 2797 0.025734 0.014266
+_parser.py match 25743 0.025043 0.020958
+_parser.py append 44651 0.022051 0.022051
+_parser.py __next 65252 0.018741 0.018741
+_parser.py __len__ 37160 0.016805 0.016805
+_compiler.py _optimize_charset 2158 0.016791 0.015179
+_parser.py __init__ 24321 0.011672 0.01068
+_compiler.py _get_literal_prefix 3162 0.009086 0.007433
+_parser.py closegroup 1625 0.008739 0.002188
+_compiler.py _simple 2060 0.007098 0.005309
+enum.py _get_value 8391 0.006469 0.006469
+_parser.py __setitem__ 2624 0.006187 0.004611
+_parser.py opengroup 1625 0.005726 0.004327
+__init__.py purge 4267 0.005108 0.005108
+enum.py __call__ 2797 0.004999 0.003894
+_parser.py tell 10088 0.004958 0.004958
+_parser.py _escape 3440 0.003917 0.003875
+_parser.py groups 8850 0.003824 0.003824
+_compiler.py _compile_charset 2157 0.003172 0.003172
+_compiler.py isstring 5594 0.002758 0.002758
+_parser.py fix_flags 2797 0.001722 0.001722
+_compiler.py _generate_overlap_table 1337 0.001605 0.001605
+_compiler.py _mk_bitmap 407 0.001567 0.001567
+_compiler.py _get_iscased 4610 0.001228 0.001228
+enum.py __new__ 2797 0.001105 0.001105
+profiled benchmark-frame calls 521161

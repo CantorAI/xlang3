@@ -1,0 +1,75 @@
+xlang_ir_dispatches_for_one_extra_200-regex_pass 515466
+LoadLocal 36583
+LoadLocalPair 35020
+StoreLocal 34809
+Call 31409
+LoadLocalAttr 30410
+JumpIfFalse 29457
+LoadConst 22648
+LoadLocalGlobal 21575
+Pop 21547
+Jump 21096
+LoadModuleSlot 19788
+GetItem 15662
+IsJumpIfFalse 13208
+Contains 12065
+LoadLocalConst 11681
+StoreAttr 11164
+UnpackSequence 9586
+ReturnConst 9187
+Return 8496
+LoadGlobalLocal 8324
+LoadGlobal 7954
+CallMethod 5469
+BitAnd 5420
+NotJumpIfFalse 5281
+MakeTuple 5028
+CompareJumpIfFalse 4958
+Len 4773
+IsLocalConstJumpIfFalse 4766
+JumpIfLocalConstFalse 4546
+CallLocalMethod 4334
+SetupExcept 4235
+MoveJumpIfFalse 4208
+Add 4196
+ReturnLocal 4151
+AddLocalConst 3838
+PopExcept 3698
+GetIter 3594
+SetItem 3001
+Sub 2611
+LoadAttr 2364
+CallLocal 2275
+MakeList 2214
+IterNext 2206
+Move 2104
+Not 1957
+IterNextLocal 1388
+Is 1282
+MakeSlice 1079
+StoreLocalPair 1029
+Neg 1011
+xlang_object_delta_for_one_extra_200-regex_pass alloc/final_release/incref/decref
+String 487 487 9032 9519
+BigInt 193 193 4319 4512
+Bytes 0 0 36 36
+ByteArray 270 270 193 463
+Slice 1079 1079 250 1329
+Tuple 5626 5626 29743 35369
+List 2523 2523 19938 22461
+Dict 288 288 5682 5970
+Set 0 0 4264 4264
+DictItemsView 131 131 0 131
+DictIterator 288 288 0 288
+Range 1563 1563 0 1563
+RangeIterator 834 834 0 834
+SequenceIterator 2949 2949 0 2949
+Module 0 0 54349 54349
+Function 0 0 19270 19270
+NativeFunction 0 0 45114 45114
+Class 0 0 30359 30359
+Instance 1594 1594 102515 104109
+BoundMethod 12617 12617 2237 14854
+StaticMethod 0 0 1132 1132
+ClassMethod 0 0 26 26
+Property 0 0 1230 1230

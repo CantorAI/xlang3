@@ -1,0 +1,63 @@
+WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+deepcopy: Mean +- std dev: 4.57 ms +- 0.11 ms
+WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+deepcopy_reduce: Mean +- std dev: 44.5 us +- 1.3 us
+WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+deepcopy_memo: Mean +- std dev: 588 us +- 21 us

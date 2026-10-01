@@ -1,0 +1,6 @@
+size=4 median_ns=1053.0
+size=8 median_ns=1036.5
+size=16 median_ns=1022.5
+size=32 median_ns=1066.5
+size=64 median_ns=1074.8
+size=128 median_ns=1090.9

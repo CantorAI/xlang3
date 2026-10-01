@@ -66,6 +66,13 @@ SetIteratorObject* allocate_set_iterator_object() {
 void recycle_set_object(SetObject* object) {
   object->items.clear();
   object->item_hashes.clear();
+  object->membership_index_heads.clear();
+  object->membership_index_next.clear();
+  object->membership_index_mask = 0;
+  object->membership_identity_heads.clear();
+  object->membership_identity_next.clear();
+  object->content_version = 1;
+  object->membership_index_version = 0;
   object->frozen = false;
   object->hash_cached = false;
   object->cached_hash = 0;
@@ -92,6 +99,7 @@ bool append_unique(SetObject& set, const Value& value, std::string& error) {
   }
   set.items.push_back(value);
   set.item_hashes.push_back(hash);
+  set_note_content_change(set);
   return true;
 }
 
@@ -264,6 +272,7 @@ bool set_add_runtime(Runtime& runtime, Value& set, const Value& item,
   }
   obj->items.push_back(owned_item);
   obj->item_hashes.push_back(hash);
+  set_note_content_change(*obj);
   return true;
 }
 
@@ -288,6 +297,7 @@ bool set_union_values(const Value& left, const Value& right, Value& out,
     positions.push_back(destination->items.size());
     destination->items.push_back(item);
     destination->item_hashes.push_back(hash);
+    set_note_content_change(*destination);
     return true;
   };
   for (size_t index = 0; index < lhs->items.size(); ++index) {

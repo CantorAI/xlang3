@@ -18,11 +18,22 @@ limitations under the License.
 #include <thread>
 
 #include "xlang3/module_object.h"
+#include "xlang3/object_model.h"
 #include "xlang3/runtime.h"
 #include "xlang3/sequence.h"
 #include "xlang3/set_object.h"
 #include "xlang3/value.h"
 #include "xlang3/value_hash.h"
+
+namespace {
+
+bool return_fixed_set_test_hash(xlang3::Runtime&, const xlang3::Value*, uint32_t,
+                                xlang3::Value& out, std::string&, void*) {
+  out = xlang3::Value::int64(1234);
+  return true;
+}
+
+} // namespace
 
 int main() {
   xlang3::test::CaseResult result;
@@ -122,6 +133,75 @@ int main() {
       sum += item.as.i64;
     }
     xlang3::test::expect_true(result, sum == 6, "set iterator should yield unique values");
+  }
+
+  {
+    std::ostringstream output;
+    xlang3::Runtime runtime(output);
+    std::vector<xlang3::Value> values;
+    for (int64_t value = 0; value < 16; ++value) {
+      values.push_back(xlang3::Value::int64(value));
+    }
+    xlang3::Value set = xlang3::Value::set(std::move(values));
+    auto* set_object = xlang3::value_as_set(set);
+    bool found = false;
+    error.clear();
+    xlang3::test::expect_true(
+        result,
+        xlang3::runtime_value_contains(
+            runtime, set, xlang3::Value::int64(15), found, error) && found,
+        "indexed set membership should find an existing hash candidate");
+    xlang3::test::expect_true(
+        result,
+        set_object->membership_index_version == set_object->content_version,
+        "large set membership should build a reusable hash index");
+    found = true;
+    error.clear();
+    xlang3::test::expect_true(
+        result,
+        xlang3::runtime_value_contains(
+            runtime, set, xlang3::Value::int64(99), found, error) && !found,
+        "indexed set membership should reject a missing hash candidate");
+
+    error.clear();
+    xlang3::test::expect_true(
+        result,
+        xlang3::set_add_runtime(runtime, set, xlang3::Value::int64(31), error),
+        "set mutation should succeed after the membership index is warm");
+    xlang3::test::expect_true(
+        result,
+        set_object->membership_index_version != set_object->content_version,
+        "set mutation should invalidate cached membership positions");
+    found = false;
+    error.clear();
+    xlang3::test::expect_true(
+        result,
+        xlang3::runtime_value_contains(
+            runtime, set, xlang3::Value::int64(31), found, error) && found,
+        "membership should rebuild its index after mutation");
+  }
+
+  {
+    std::ostringstream output;
+    xlang3::Runtime runtime(output);
+    auto hash_method = runtime.make_native_function(
+        "set_identity_test_hash", return_fixed_set_test_hash);
+    auto hash_class = xlang3::Value::class_object(
+        "SetIdentityHashMismatch", {{"__hash__", hash_method}});
+    auto target = xlang3::Value::instance(std::move(hash_class));
+    std::vector<xlang3::Value> values{target};
+    for (int64_t value = 0; value < 8; ++value) {
+      values.push_back(xlang3::Value::int64(value));
+    }
+    auto set = xlang3::Value::set(std::move(values));
+    auto* set_object = xlang3::value_as_set(set);
+    bool found = false;
+    error.clear();
+    xlang3::test::expect_true(
+        result,
+        set_object->item_hashes[0] != 1234 &&
+            xlang3::runtime_value_contains(runtime, set, target, found, error) && found,
+        "large set membership should preserve identity when construction and runtime hashes differ");
   }
 
   {

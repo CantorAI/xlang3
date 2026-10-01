@@ -2653,24 +2653,83 @@ bool runtime_value_contains(
     };
     int64_t item_hash = 0;
     if (!runtime_hash(item, item_hash)) return false;
-    for (size_t index = 0; index < set->items.size(); ++index) {
+    const size_t hash = static_cast<size_t>(item_hash);
+    const auto matches_index = [&](size_t index, bool& matches) {
       Value candidate = set->items[index];
       if (value_is(candidate, item)) {
-        out = true;
+        matches = true;
         return true;
       }
-      if (set->item_hashes[index] != static_cast<size_t>(item_hash)) continue;
+      if (set->item_hashes[index] != hash) {
+        matches = false;
+        return true;
+      }
       Value equal;
       if (!runtime_value_compare(runtime, "==", candidate, item, equal, error)) return false;
-      bool is_equal = false;
-      if (!runtime_truthy(runtime, equal, is_equal, error)) return false;
-      if (is_equal) {
-        out = true;
-        return true;
+      return runtime_truthy(runtime, equal, matches, error);
+    };
+    // Equality can run Python and mutate this set. Retry against the current
+    // content version before using another cached bucket position.
+    for (;;) {
+      const uint64_t content_version = set->content_version;
+      const bool indexed = set_prepare_membership_index(*set);
+      bool restart = false;
+      if (indexed && item.tag == ValueTag::Object && item.as.obj != nullptr) {
+        for (size_t index = set_membership_identity_first(*set, item);
+             index != kSetMembershipIndexEmpty;
+             index = set_membership_identity_next(*set, index)) {
+          if (set->content_version != content_version) {
+            restart = true;
+            break;
+          }
+          if (value_is(set->items[index], item)) {
+            out = true;
+            return true;
+          }
+        }
       }
+      if (restart) continue;
+      if (indexed) {
+        for (size_t index = set_membership_index_first(*set, hash);
+             index != kSetMembershipIndexEmpty;
+             index = set_membership_index_next(*set, index)) {
+          if (set->content_version != content_version) {
+            restart = true;
+            break;
+          }
+          bool matches = false;
+          if (!matches_index(index, matches)) return false;
+          if (set->content_version != content_version) {
+            restart = true;
+            break;
+          }
+          if (matches) {
+            out = true;
+            return true;
+          }
+        }
+      } else {
+        for (size_t index = 0; index < set->items.size(); ++index) {
+          if (set->content_version != content_version) {
+            restart = true;
+            break;
+          }
+          bool matches = false;
+          if (!matches_index(index, matches)) return false;
+          if (set->content_version != content_version) {
+            restart = true;
+            break;
+          }
+          if (matches) {
+            out = true;
+            return true;
+          }
+        }
+      }
+      if (restart) continue;
+      out = false;
+      return true;
     }
-    out = false;
-    return true;
   }
   Value contains_method;
   std::string ignored;

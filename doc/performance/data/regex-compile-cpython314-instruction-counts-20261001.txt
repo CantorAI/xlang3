@@ -1,0 +1,81 @@
+measured_compile_pass_seconds=5.714308300
+sampled_regexes=200
+wall_seconds=5.714375400
+counted_python_instructions=799737
+_parser.py _parse INSTRUMENTED_INSTRUCTION 168626
+_compiler.py _compile INSTRUMENTED_INSTRUCTION 133571
+_parser.py getwidth INSTRUMENTED_INSTRUCTION 106932
+_parser.py __next INSTRUMENTED_INSTRUCTION 69202
+_parser.py __getitem__ INSTRUMENTED_INSTRUCTION 60360
+_parser.py _parse_sub INSTRUMENTED_INSTRUCTION 34382
+_compiler.py _optimize_charset INSTRUMENTED_INSTRUCTION 22712
+_parser.py get INSTRUMENTED_INSTRUCTION 20475
+_parser.py __init__ INSTRUMENTED_INSTRUCTION 17686
+_parser.py append INSTRUMENTED_INSTRUCTION 16976
+_compiler.py _compile_info INSTRUMENTED_INSTRUCTION 15713
+__init__.py _compile INSTRUMENTED_INSTRUCTION 14338
+_compiler.py _get_charset_prefix INSTRUMENTED_INSTRUCTION 13769
+_parser.py match INSTRUMENTED_INSTRUCTION 10404
+_compiler.py _get_literal_prefix INSTRUMENTED_INSTRUCTION 9504
+_parser.py __len__ INSTRUMENTED_INSTRUCTION 8490
+_compiler.py compile INSTRUMENTED_INSTRUCTION 7991
+enum.py _get_value INSTRUMENTED_INSTRUCTION 6812
+_compiler.py _compile_charset INSTRUMENTED_INSTRUCTION 6498
+_parser.py parse INSTRUMENTED_INSTRUCTION 6026
+_parser.py _escape INSTRUMENTED_INSTRUCTION 5518
+enum.py __and__ INSTRUMENTED_INSTRUCTION 5371
+_compiler.py _generate_overlap_table INSTRUMENTED_INSTRUCTION 5268
+_parser.py tell INSTRUMENTED_INSTRUCTION 5089
+_compiler.py _code INSTRUMENTED_INSTRUCTION 3406
+_parser.py fix_flags INSTRUMENTED_INSTRUCTION 3144
+__init__.py purge INSTRUMENTED_INSTRUCTION 2800
+_compiler.py _mk_bitmap INSTRUMENTED_INSTRUCTION 2376
+_parser.py groups INSTRUMENTED_INSTRUCTION 2050
+_compiler.py _get_iscased INSTRUMENTED_INSTRUCTION 1854
+_compiler.py isstring INSTRUMENTED_INSTRUCTION 1834
+enum.py __call__ INSTRUMENTED_INSTRUCTION 1834
+_compiler.py _simple INSTRUMENTED_INSTRUCTION 1612
+enum.py __new__ INSTRUMENTED_INSTRUCTION 1572
+_parser.py opengroup INSTRUMENTED_INSTRUCTION 1332
+_compiler.py _combine_flags INSTRUMENTED_INSTRUCTION 940
+__init__.py compile INSTRUMENTED_INSTRUCTION 800
+_parser.py __setitem__ INSTRUMENTED_INSTRUCTION 672
+_parser.py closegroup INSTRUMENTED_INSTRUCTION 666
+_parser.py _parse_flags INSTRUMENTED_INSTRUCTION 366
+enum.py __get__ INSTRUMENTED_INSTRUCTION 231
+_parser.py _class_escape INSTRUMENTED_INSTRUCTION 218
+_parser.py _uniq INSTRUMENTED_INSTRUCTION 182
+enum.py value INSTRUMENTED_INSTRUCTION 63
+_parser.py getwhile INSTRUMENTED_INSTRUCTION 42
+_parser.py __delitem__ INSTRUMENTED_INSTRUCTION 30
+top function totals:
+_parser.py _parse 168626
+_compiler.py _compile 133571
+_parser.py getwidth 106932
+_parser.py __next 69202
+_parser.py __getitem__ 60360
+_parser.py _parse_sub 34382
+_compiler.py _optimize_charset 22712
+_parser.py get 20475
+_parser.py __init__ 17686
+_parser.py append 16976
+_compiler.py _compile_info 15713
+__init__.py _compile 14338
+_compiler.py _get_charset_prefix 13769
+_parser.py match 10404
+_compiler.py _get_literal_prefix 9504
+_parser.py __len__ 8490
+_compiler.py compile 7991
+enum.py _get_value 6812
+_compiler.py _compile_charset 6498
+_parser.py parse 6026
+_parser.py _escape 5518
+enum.py __and__ 5371
+_compiler.py _generate_overlap_table 5268
+_parser.py tell 5089
+_compiler.py _code 3406
+_parser.py fix_flags 3144
+__init__.py purge 2800
+_compiler.py _mk_bitmap 2376
+_parser.py groups 2050
+_compiler.py _get_iscased 1854
