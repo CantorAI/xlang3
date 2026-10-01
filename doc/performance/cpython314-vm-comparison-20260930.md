@@ -269,6 +269,12 @@ all pair samples, fixture and C++ tests, and the fixed-baseline gate. The
 native `BytesIO.read` and `_struct.unpack` adapters help specific calls; they
 do not explain most of the remaining gap.
 
+A CPython-guided follow-up fused the warmed `dispatch[key[0]](self)` shape.
+Combining the generic XLang3 handlers showed no pyperf gain; adding a guarded
+exact-dict-to-Python-function frame-entry path also showed no significant
+change. The trial is discarded and its opposite-order data is in
+[`pickle-dispatch-call-cpython314-trial-20260930.md`](pickle-dispatch-call-cpython314-trial-20260930.md).
+
 Two call-boundary experiments were measured and rejected. Guarded transfer of
 dead positional argument registers measured 3.36 ms for its parent and 3.42 ms
 for the candidate. A polymorphic-call-site marker measured 3.41 ms for its
