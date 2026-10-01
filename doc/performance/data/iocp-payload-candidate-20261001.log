@@ -1,0 +1,7 @@
+payload expected 1048576000 sent 1048576000 received 1048576000 reads 8000 valid True
+overlapped recv_into_bytes 1048576000
+overlapped recv_into_results 16001
+overlapped recv_into_zero_results 1
+overlapped send_bytes 1048576000
+overlapped send_requested_bytes 1048576000
+overlapped send_results 100

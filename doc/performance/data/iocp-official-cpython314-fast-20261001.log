@@ -1,0 +1,45 @@
+Benchmark dependency sites: D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages
+Python benchmark suite 1.14.0
+
+
+==================================================
+( 1/2) creating venv for benchmark (asyncio_tcp)
+
+(trying common venv first)
+
+==================================================
+( 2/2) creating venv for benchmark (asyncio_tcp_ssl)
+
+(trying common venv first)
+
+[1/2] asyncio_tcp...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+asyncio_tcp: Mean +- std dev: 824 ms +- 76 ms
+[2/2] asyncio_tcp_ssl...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+asyncio_tcp_ssl: Mean +- std dev: 4.33 sec +- 0.22 sec
+
+Performance version: 1.14.0
+
+### asyncio_tcp ###
+Mean +- std dev: 824 ms +- 76 ms
+
+### asyncio_tcp_ssl ###
+Mean +- std dev: 4.33 sec +- 0.22 sec
+

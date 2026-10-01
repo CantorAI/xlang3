@@ -1,0 +1,12 @@
+local_slots              pass         1.002x
+scalar_arithmetic        pass         0.982x
+range_for                pass         1.004x
+function_calls           pass         0.957x
+class_construct          pass         1.005x
+list_append              pass         1.020x
+property_access          pass         1.005x
+deepcopy_memo            pass         1.014x
+json_dumps               pass         1.002x
+gc_traversal             pass         0.987x
+subparsers               pass         1.016x
+Performance check: pass. Report: doc\performance\data\iocp-native-parent-regression-gate-final-20261001.json

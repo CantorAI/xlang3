@@ -1,0 +1,60 @@
+payload expected 1048576000 sent 1048576000 received 1048576000 reads 8000 valid True
+IOCP incomplete pending=0 completed=0 native=259 address=2257560364976
+Traceback (most recent call last):
+  File "benchmarks/diagnostics/asyncio_stream_payload.py", line 127, in <module>
+    main()
+    ~~~~^^
+  File "benchmarks/diagnostics/asyncio_stream_payload.py", line 119, in main
+    asyncio.run(repeat())
+    ~~~~~~~~~~~^^^^^^^^^^
+  File "C:\Python\Python314\Lib\asyncio\runners.py", line 204, in run
+        with Runner(debug=debug, loop_factory=loop_factory) as runner:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+    def _cancel_all_tasks(loop):
+    ^^^^
+  File "C:\Python\Python314\Lib\asyncio\runners.py", line 205, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "C:\Python\Python314\Lib\asyncio\runners.py", line 128, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Python\Python314\Lib\asyncio\base_events.py", line 720, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "C:\Python\Python314\Lib\asyncio\futures.py", line 208, in result
+    raise self._exception.with_traceback(self._exception_tb)
+  File "C:\Python\Python314\Lib\asyncio\tasks.py", line 291, in __step_run_and_handle_result
+    result = coro.throw(exc)
+  File "benchmarks/diagnostics/asyncio_stream_payload.py", line 118, in repeat
+    await transfer(args.chunk_size, args.chunks, not args.skip_content_check)
+  File "benchmarks/diagnostics/asyncio_stream_payload.py", line 80, in transfer
+    async with server:
+    ^^^^^^^^^^^^^^^^^^
+    ...<17 lines>...
+    expected = chunk_size * chunks
+    
+  File "benchmarks/diagnostics/asyncio_stream_payload.py", line 88, in transfer
+    data = await reader.read(chunk_size)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python\Python314\Lib\asyncio\streams.py", line 737, in read
+    await self._wait_for_data('read')
+  File "C:\Python\Python314\Lib\asyncio\streams.py", line 546, in _wait_for_data
+    await self._waiter
+  File "C:\Python\Python314\Lib\asyncio\futures.py", line 295, in __await__
+    yield self  # This tells Task to wait for completion.
+  File "C:\Python\Python314\Lib\asyncio\tasks.py", line 362, in __wakeup
+    future.result()
+    ~~~~~~~~~~~~~^^
+  File "C:\Python\Python314\Lib\asyncio\futures.py", line 208, in result
+    raise self._exception.with_traceback(self._exception_tb)
+  File "C:\Python\Python314\Lib\asyncio\proactor_events.py", line 287, in _loop_reading
+    length = fut.result()
+  File "C:\Python\Python314\Lib\asyncio\futures.py", line 208, in result
+    raise self._exception.with_traceback(self._exception_tb)
+  File "C:\Python\Python314\Lib\asyncio\windows_events.py", line 733, in _register
+    value = callback(None, None, ov)
+  File "C:\Python\Python314\Lib\asyncio\windows_events.py", line 463, in finish_socket_func
+    return ov.getresult()
+           ~~~~~~~~~~~~^^
+OSError: overlapped operation failed with Windows error 996

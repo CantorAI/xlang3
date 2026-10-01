@@ -1,0 +1,39 @@
+payload expected 1048576000 sent 1048576000 received 1048576000 reads 8000 valid True
+payload expected 1048576000 sent 1048576000 received 1048313856 reads 7998 valid True
+overlapped recv_into_bytes 2096889856
+overlapped recv_into_results 31998
+overlapped recv_into_zero_results 2
+overlapped send_bytes 2097152000
+overlapped send_requested_bytes 2097152000
+overlapped send_results 200
+Traceback (most recent call last):
+  File "benchmarks/diagnostics/asyncio_stream_payload.py", line 112, in <module>
+    main()
+    ~~~~^^
+  File "benchmarks/diagnostics/asyncio_stream_payload.py", line 104, in main
+    asyncio.run(repeat())
+    ~~~~~~~~~~~^^^^^^^^^^
+  File "C:\Python\Python314\Lib\asyncio\runners.py", line 204, in run
+        with Runner(debug=debug, loop_factory=loop_factory) as runner:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+    def _cancel_all_tasks(loop):
+    ^^^^
+  File "C:\Python\Python314\Lib\asyncio\runners.py", line 205, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "C:\Python\Python314\Lib\asyncio\runners.py", line 128, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Python\Python314\Lib\asyncio\base_events.py", line 720, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "C:\Python\Python314\Lib\asyncio\futures.py", line 208, in result
+    raise self._exception.with_traceback(self._exception_tb)
+  File "C:\Python\Python314\Lib\asyncio\tasks.py", line 289, in __step_run_and_handle_result
+    result = coro.send(None)
+  File "benchmarks/diagnostics/asyncio_stream_payload.py", line 103, in repeat
+    await transfer(args.chunk_size, args.chunks, not args.skip_content_check)
+  File "benchmarks/diagnostics/asyncio_stream_payload.py", line 86, in transfer
+    assert sent == received == expected and valid
+AssertionError
