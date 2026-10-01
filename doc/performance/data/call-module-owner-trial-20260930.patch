@@ -1,0 +1,22 @@
+diff --git a/src/executor/xlang_vm/ops/xlang_vm_ops_call.h b/src/executor/xlang_vm/ops/xlang_vm_ops_call.h
+index ed7116a..88881d8 100644
+--- a/src/executor/xlang_vm/ops/xlang_vm_ops_call.h
++++ b/src/executor/xlang_vm/ops/xlang_vm_ops_call.h
+@@ -3676,9 +3676,16 @@ XLANG3_HOT_INLINE bool call_user_function(
+     Value continuation_value) {
+   const ir::Module* call_module = &module;
+-  auto call_module_owner = module_owner;
++  std::shared_ptr<const ir::Module> call_module_owner;
+   if (fn_obj->module != nullptr) {
+     call_module = fn_obj->module.get();
+     call_module_owner = fn_obj->module;
++  } else {
++    // The FunctionObject is the lifetime owner for the common compiled-call
++    // path. Select its module before copying an owner so frame entry takes
++    // only the one reference the callee frame must keep; copying the caller's
++    // shared owner first and replacing it here adds needless refcount traffic
++    // to every Python call.
++    call_module_owner = module_owner;
+   }
+   if (fn_obj->function_id >= call_module->functions.size() ||
+       call_module->functions[fn_obj->function_id].is_generator) {
