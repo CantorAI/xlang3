@@ -4,7 +4,8 @@ This comparison checks the actual CPython 3.14.7 evaluator against XLang3's
 lowering and native VM for the same standard-library Python code. It is a
 source and bytecode diagnosis, not a performance experiment. The benchmark
 score remains the separate official pyperformance measurement documented in
-the matched pyperf files in [XLang3](data/pyperf-callsite-megamorphic-reducedfastpath-parent-rigorous-20260930.json) and [CPython 3.14.7](data/unpickle-pure-python-bytesio-read-fastcall-rigorous-cpython314-20260929.json).
+the matched pyperf files for [XLang3](data/getitem-const-candidate-rigorous-20260930.json)
+and [CPython 3.14.7](data/getitem-const-cpython314-rigorous-20260930.json).
 
 ## The workload is the same Python code
 
@@ -17,17 +18,22 @@ Its IR for this line is:
 
 ```text
 65: LoadLocalPair  ; dispatch, key
-66: LoadConst      ; index 0
-67: GetItem        ; key[0]
-68: GetItem        ; dispatch[key[0]]
-69: LoadLocal      ; self
-70: Call           ; handler(self)
-71: Pop
-72: Jump           ; loop back
+66: GetItemConst   ; key[0], with constant index 0
+67: GetItem        ; dispatch[key[0]]
+68: LoadLocal      ; self
+69: Call           ; handler(self)
+70: Pop
+71: Jump           ; loop back
 ```
 
 The full function dump is in
-[`xlang3-pickle-unpickler-load-ir-20260930.txt`](data/xlang3-pickle-unpickler-load-ir-20260930.txt).
+[`xlang3-pickle-unpickler-load-ir-getitem-const-20260930.txt`](data/xlang3-pickle-unpickler-load-ir-getitem-const-20260930.txt),
+captured from the current Release executable after constant-subscript fusion.
+That executable's SHA-256 is
+`5CDE9F716D7464C8E304DCD5963DFE63CD59499128BB6FB837DC5F9E63C16362`.
+The earlier
+[`xlang3-pickle-unpickler-load-ir-20260930.txt`](data/xlang3-pickle-unpickler-load-ir-20260930.txt)
+is the pre-fusion snapshot.
 This confirms that the comparison is not explained by a CPython fallback or a
 different pickle algorithm. XLang3 already uses indexed locals and a paired
 local-load IR instruction. Those indexes remove repeated name lookup, but they
@@ -249,12 +255,19 @@ are in the [cache-lifetime report](vm-inline-cache-cross-activation-20260930.md)
 
 ## Current benchmark status and next target
 
-The matched official rigorous result is 3.41 ms for XLang3 versus 160 μs for
-CPython 3.14.7: **21.36x longer** for XLang3, or **0.047x speed with CPython at
-1.0x**. The CPython reference is the same `unpickle_pure_python` pyperformance
-benchmark. The raw scores are [XLang3](data/pyperf-callsite-megamorphic-reducedfastpath-parent-rigorous-20260930.json) and [CPython](data/unpickle-pure-python-bytesio-read-fastcall-rigorous-cpython314-20260929.json).
-The native `BytesIO.read` and `_struct.unpack` adapters help specific calls;
-they do not explain most of the remaining gap.
+The latest accepted change fuses the constant `key[0]` subscript into one VM
+dispatch. In opposite-order official rigorous pairs, XLang3 improved from a
+pooled 3.43 ms parent to a 3.31 ms candidate, about **1.04x faster**. A fresh
+CPython 3.14.7 run measured 180 μs, leaving this XLang3 candidate **18.36x
+longer**, or at **0.054x CPython's speed**. These runs reported sample-jitter
+warnings; the two XLang3 pair orders agree on the candidate mean. The matched
+raw scores are [XLang3 candidate, first order](data/getitem-const-candidate-rigorous-20260930.json),
+[XLang3 candidate, reverse order](data/getitem-const-candidate-repeat-rigorous-20260930.json),
+and [CPython](data/getitem-const-cpython314-rigorous-20260930.json). The
+[fusion report](constant-subscript-fusion-trial-20260930.md) records parents,
+all pair samples, fixture and C++ tests, and the fixed-baseline gate. The
+native `BytesIO.read` and `_struct.unpack` adapters help specific calls; they
+do not explain most of the remaining gap.
 
 Two call-boundary experiments were measured and rejected. Guarded transfer of
 dead positional argument registers measured 3.36 ms for its parent and 3.42 ms
@@ -285,4 +298,9 @@ It matched 35 subtests; only `gc_traversal` favored XLang3 in the directional
 fast-mode sample, while the geometric mean was 0.137x CPython/XLang3. The full
 status table records 31 completed and 66 failed definitions. Until a candidate
 clears a matched pyperf A/B and the fixed Release regression gate, the
-performance goal remains open.
+performance goal remains open. The focused August comparison is consistent
+with this suite result: batching made `local_slots` 1.56x faster than CPython
+on that workload, while the all-suite geometric ratio remained 0.122x. That
+loop optimization was valuable but applied to one narrow hot path; it did not
+speed up the unrelated call, container, generator, and standard-library
+workloads. See the [August/current loop comparison and full-suite follow-up](pyperformance-xlang3-vs-cpython314-20260928.md).
