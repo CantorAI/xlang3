@@ -60,6 +60,11 @@ def parse_log(path):
 
 
 def parent_for(subtest, cases):
+    # These official definitions emit names that do not share the definition
+    # prefix. Keep their timings attached to the right full-suite status row.
+    aliases = {"many_optionals": "argparse", "subparsers": "argparse_subparsers"}
+    if subtest in aliases and aliases[subtest] in cases:
+        return aliases[subtest]
     return max((name for name in cases
                 if subtest == name or subtest.startswith(name + "_")),
                key=len, default="")
@@ -149,7 +154,9 @@ def main():
             cp_names = sorted(name for name, parent in cp_parent.items() if parent == case)
             xl_names = sorted(name for name, parent in xl_parent.items() if parent == case)
             cp_parts = [f"{name}={cp[name] * 1000:.6g}ms" for name in cp_names]
-            xl_parts = [f"{name}={xl[name] * 1000:.6g}ms ({cp[name] / xl[name]:.5g}× CP/XLang)"
+            xl_parts = [f"{name}={xl[name] * 1000:.6g}ms "
+                        + (f"({cp[name] / xl[name]:.5g}× CP/XLang)" if name in cp
+                           else "(no CPython timing)")
                         for name in xl_names]
             if xl_parts and case in failures:
                 status = "partial: " + failures[case]
@@ -183,8 +190,10 @@ def main():
     matched = ratio_chart(measurements, cases, args.chart)
     faster = sum(cp[name] > xl[name] for name in common)
     slower = len(common) - faster
-    geo_mean = math.exp(statistics.mean(math.log(cp[name] / xl[name]) for name in common))
-    print(f"attempted={len(cases)} measured_xlang_subtests={len(xl)} matched={matched} faster={faster} slower={slower} geometric_speedup={geo_mean:.5g}x")
+    geo_mean = (math.exp(statistics.mean(math.log(cp[name] / xl[name]) for name in common))
+                if common else None)
+    geo_label = f"{geo_mean:.5g}x" if geo_mean is not None else "unavailable"
+    print(f"attempted={len(cases)} measured_xlang_subtests={len(xl)} matched={matched} faster={faster} slower={slower} geometric_speedup={geo_label}")
     print(f"status_csv={status_csv}")
     print(f"subtests_csv={subtests_csv}")
     print(f"chart={args.chart}")

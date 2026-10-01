@@ -9,6 +9,7 @@ import argparse
 import os
 import subprocess
 import sys
+from pathlib import Path
 
 import pyperformance.cli as cli
 import pyperformance.run as perf_run
@@ -21,10 +22,23 @@ parser.add_argument("--benchmarks", default="all", help="Comma-separated pyperfo
 parser.add_argument("--mode", choices=("fast", "rigorous", "debug"), default="fast")
 parser.add_argument("--output", required=True, help="pyperf JSON output")
 parser.add_argument("--case-timeout", type=int, default=300)
+parser.add_argument("--dependency-site", action="append", default=[], type=Path,
+                    help="Existing CPython benchmark site-packages directory; repeatable")
 args = parser.parse_args()
 
 runtime = os.path.abspath(args.runtime)
 output = os.path.abspath(args.output)
+dependency_sites = [str(path.resolve()) for path in args.dependency_site]
+for path in dependency_sites:
+    if not Path(path).is_dir():
+        parser.error(f"dependency site is not a directory: {path}")
+if dependency_sites:
+    # Keep compatibility hooks first, then expose the same Python package
+    # sources as the reference run. XLang3's native loader accepts its own
+    # .x3pkg packages; adding this path does not install CPython extensions.
+    paths = [os.environ.get("PYTHONPATH", ""), *dependency_sites]
+    os.environ["PYTHONPATH"] = os.pathsep.join(path for path in paths if path)
+    print("Benchmark dependency sites: " + os.pathsep.join(dependency_sites), flush=True)
 
 
 class DirectXlangEnvironment:
