@@ -192,9 +192,20 @@ path for `Direction.FORWARD`.
 This profile sharpens the next target to generic VM dispatch and frame
 handoff. It does not justify repeating the already neutral instance-layout
 guard or inherited selector trials, and it does not attribute unpickle's
-timing percentages to DeltaBlue. The latest ordinary-build rigorous comparison
-is still **47.1 ± 4.5 ms** for XLang3 versus **2.73 ± 0.21 ms** for CPython
-3.14.7, about **17.25× slower**; the full performance goal remains open.
+timing percentages to DeltaBlue. The instrumented-profile build measured
+**47.1 ± 4.5 ms** for XLang3 versus **2.73 ± 0.21 ms** for CPython 3.14.7,
+about **17.25× slower**. A subsequent guarded direct class-value cache brought
+the paired DeltaBlue mean to **40.95 ms**, about **15.0× slower** than CPython;
+the full performance goal remains open. The [class-attribute trial](class-attribute-specialization-trial-20260930.md)
+records the CPython `LOAD_ATTR_CLASS` comparison, cache guards, and raw A/B
+results.
+
+A follow-up trial tested keeping safe non-owning method-call cache entries
+intact during frame return. It showed no significant change in rigorous
+DeltaBlue or pure-Python unpickle results, so that candidate was reverted.
+The [trial record](deltablue-method-cache-trial-20260930.md) preserves the
+paired data and explains why the instrumented cleanup time did not translate
+into a pyperf gain.
 
 Raw evidence and reproduction details:
 

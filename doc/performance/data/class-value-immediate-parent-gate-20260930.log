@@ -1,0 +1,12 @@
+local_slots              pass         1.012x
+scalar_arithmetic        pass         0.984x
+range_for                pass         0.993x
+function_calls           pass         1.034x
+class_construct          pass         0.995x
+list_append              pass         0.990x
+property_access          pass         1.029x
+deepcopy_memo            pass         1.025x
+json_dumps               pass         1.011x
+gc_traversal             pass         1.015x
+subparsers               pass         1.003x
+Performance check: pass. Report: doc\performance\data\class-value-immediate-parent-gate-20260930.json

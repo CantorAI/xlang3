@@ -8,3 +8,7 @@
 99 30 30
 30
 40 30
+class-value 10
+class-value-after-class-write 11
+class-value-after-metaclass-descriptor 25
+class-value-after-descriptor-delete 11

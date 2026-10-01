@@ -69,3 +69,24 @@ c = Child()
 print(c.prop1)
 Child.prop1 = 40
 print(c.prop1, b.prop1)
+
+class ValueMeta(type):
+    pass
+
+class ClassValues(metaclass=ValueMeta):
+    value = 10
+    fallback = 5
+
+def read_class_value():
+    return ClassValues.value
+
+print("class-value", read_class_value())
+for _ in range(20):
+    read_class_value()
+ClassValues.value = 11
+print("class-value-after-class-write", read_class_value())
+
+ValueMeta.value = property(lambda cls: cls.fallback + 20)
+print("class-value-after-metaclass-descriptor", read_class_value())
+del ValueMeta.value
+print("class-value-after-descriptor-delete", read_class_value())

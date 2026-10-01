@@ -467,6 +467,24 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_attr(
                             in.dst, ip, result, make_generator_if_needed, push_frame,
                             raise_runtime_error, raise_exception_value);
     }
+    // CPython's warmed LOAD_ATTR_CLASS guards the receiver and metaclass
+    // before returning a direct class value. Keep the class's mapped Value
+    // non-owningly here: unordered_map rehash preserves element references,
+    // and the two process-wide version tags invalidate replacements, deletes,
+    // base changes, metaclass descriptors, or pointer reuse. Dunder names and
+    // custom metaclass hooks stay on the generic semantics path below.
+    if (metaclass != nullptr && !metaclass->has_getattribute_hook &&
+        attr_name.rfind("__", 0) != 0) {
+      auto& cache = instr_cache[ip].attr;
+      if (cache.kind == AttrSiteKind::ClassValue &&
+          cache.owner == &metaclass->header &&
+          cache.version == metaclass->version &&
+          cache.secondary_version == receiver_class->version &&
+          cache.class_value != nullptr) {
+        value_assign_fast(regs[in.dst], *cache.class_value);
+        return XlangVMOpFlow::Next;
+      }
+    }
   }
   if (attr_name == "__class__" && runtime_type_of_value(runtime, regs[in.a], regs[in.dst])) {
     return XlangVMOpFlow::Next;
@@ -577,6 +595,32 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_attr(
   }
   if (auto* receiver_class = value_as_class(regs[in.a])) {
     auto* metaclass = value_as_class(receiver_class->metaclass);
+    if (metaclass != nullptr && !metaclass->has_getattribute_hook &&
+        attr_name.rfind("__", 0) != 0) {
+      const auto direct_attr = receiver_class->attrs.find(attr_name);
+      if (direct_attr != receiver_class->attrs.end() &&
+          direct_attr->second.tag != ValueTag::Invalid &&
+          !object_value_is_descriptor(direct_attr->second)) {
+        Value meta_descriptor;
+        std::string meta_error;
+        const bool meta_data_descriptor =
+            object_lookup_class_attr(receiver_class->metaclass, attr_name,
+                                     meta_descriptor, meta_error) &&
+            object_value_is_data_descriptor(meta_descriptor) &&
+            object_value_has_descriptor_get(meta_descriptor);
+        if (!meta_data_descriptor) {
+          auto& cache = instr_cache[ip].attr;
+          cache = AttrSiteCache{};
+          cache.kind = AttrSiteKind::ClassValue;
+          cache.owner = &metaclass->header;
+          cache.version = metaclass->version;
+          cache.secondary_version = receiver_class->version;
+          cache.class_value = &direct_attr->second;
+          value_assign_fast(regs[in.dst], direct_attr->second);
+          return XlangVMOpFlow::Next;
+        }
+      }
+    }
     Value meta_descriptor;
     std::string meta_error;
     if (metaclass != nullptr &&

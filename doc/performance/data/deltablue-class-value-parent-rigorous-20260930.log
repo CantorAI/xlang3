@@ -1,0 +1,24 @@
+Python benchmark suite 1.14.0
+
+
+==================================================
+( 1/1) creating venv for benchmark (deltablue)
+
+(trying common venv first)
+
+[1/1] deltablue...
+.........................................
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+deltablue: Mean +- std dev: 45.9 ms +- 2.4 ms
+
+Performance version: 1.14.0
+
+### deltablue ###
+Mean +- std dev: 45.9 ms +- 2.4 ms

@@ -84,6 +84,7 @@ enum class AttrSiteKind : uint8_t {
   InstanceDict,
   InstanceAttr,
   InstanceSlot,
+  ClassValue,
   Descriptor,
   PropertyInstanceAttr,
 };
@@ -128,6 +129,10 @@ struct AttrSiteCache {
   AttrSiteKind kind = AttrSiteKind::Empty;
   Object* owner = nullptr;
   uint64_t version = 0;
+  // For ClassValue, owner/version guard the metaclass, secondary_version
+  // guards the receiver class, and class_value points into that class's attrs.
+  uint64_t secondary_version = 0;
+  const Value* class_value = nullptr;
   const std::string* property_attr_name = nullptr;
   Value value;
   uint32_t getter_slot = 0;
@@ -426,14 +431,21 @@ private:
         const AttrSiteKind kind = cache.attr.kind;
         Object* owner = cache.attr.owner;
         const uint64_t version = cache.attr.version;
+        const uint64_t secondary_version = cache.attr.secondary_version;
+        const Value* class_value = cache.attr.class_value;
         cache.attr = AttrSiteCache{};
         if (kind == AttrSiteKind::InstanceAttr ||
             kind == AttrSiteKind::InstanceDict ||
-            kind == AttrSiteKind::InstanceSlot) {
+            kind == AttrSiteKind::InstanceSlot ||
+            kind == AttrSiteKind::ClassValue) {
           cache.attr.index = index;
           cache.attr.kind = kind;
           cache.attr.owner = owner;
           cache.attr.version = version;
+          if (kind == AttrSiteKind::ClassValue) {
+            cache.attr.secondary_version = secondary_version;
+            cache.attr.class_value = class_value;
+          }
         }
         break;
       }

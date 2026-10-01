@@ -1,6 +1,15 @@
 # XLang3 vs CPython 3.14: full pyperformance run (2026-09-30)
 
-This report covers all 97 benchmark definitions in pyperformance 1.14.0 using XLang3's current Release build and a saved CPython 3.14.7 full-fast reference. The XLang3 runner used `--fast` and a 30-second cap per definition; worker deaths, missing optional packages, timeouts, and semantic failures stay visible in the status file. This is a coverage run, not a stable performance ranking: many fast-mode samples report host jitter.
+This report is the full-suite baseline snapshot collected before the guarded
+direct class-value cache candidate. It covers all 97 benchmark definitions in
+pyperformance 1.14.0 using the then-current XLang3 Release build and a saved
+CPython 3.14.7 full-fast reference. The XLang3 runner used `--fast` and a
+30-second cap per definition; worker deaths, missing optional packages,
+timeouts, and semantic failures stay visible in the status file. This is a
+coverage run, not a stable performance ranking: many fast-mode samples report
+host jitter. The candidate's focused results are recorded in the [class
+attribute specialization trial](class-attribute-specialization-trial-20260930.md);
+the full 97-case suite has not yet been repeated on it.
 
 ## Results
 
