@@ -155,6 +155,18 @@ bool lru_wrapper_call(Runtime& runtime, const Value* args, uint32_t argc,
                       const NativeKeywordArg* kwargs, uint32_t kwargc,
                       Value& out, std::string& error, void* user_data) {
   auto& state = **static_cast<LruStateRef*>(user_data);
+  auto restore_cache_hash_exception = [&]() {
+    // CPython's native _lru_cache_wrapper propagates key-hash exceptions.
+    // typing._tp_cache catches TypeError to retry unhashable type arguments
+    // without caching, so preserve the exception class across this ABI.
+    Value pending;
+    if (runtime.take_pending_exception(pending)) {
+      runtime.set_pending_exception(std::move(pending));
+    } else {
+      runtime.set_pending_exception(runtime.make_exception(
+          "TypeError", error.empty() ? "unhashable cache key" : error));
+    }
+  };
   if (state.maxsize == 0) {
     {
       std::lock_guard<std::recursive_mutex> lock(state.mutex);
@@ -176,10 +188,18 @@ bool lru_wrapper_call(Runtime& runtime, const Value* args, uint32_t argc,
   Value key;
   size_t hash = 0;
   if (flat_positional_key) {
-    if (!flat_positional_tuple_hash(runtime, args, argc, hash, error)) return false;
-  } else if (!make_cache_key(runtime, state, args, argc, kwargs, kwargc, key, error) ||
-             !runtime_value_hash_key(runtime, key, hash, error)) {
-    return false;
+    if (!flat_positional_tuple_hash(runtime, args, argc, hash, error)) {
+      restore_cache_hash_exception();
+      return false;
+    }
+  } else {
+    if (!make_cache_key(runtime, state, args, argc, kwargs, kwargc, key, error)) {
+      return false;
+    }
+    if (!runtime_value_hash_key(runtime, key, hash, error)) {
+      restore_cache_hash_exception();
+      return false;
+    }
   }
   {
     std::lock_guard<std::recursive_mutex> lock(state.mutex);
