@@ -10,7 +10,7 @@ the matched pyperf files in [XLang3](data/pyperf-callsite-megamorphic-reducedfas
 
 The pure-Python pyperformance pickle case runs `pickle._Unpickler`; it does
 not select `_pickle.Unpickler`. In CPython 3.14.7,
-[`_Unpickler.load`](https://github.com/python/cpython/blob/v3.14.7/Lib/pickle.py#L1192-L1219)
+[`_Unpickler.load`](https://github.com/python/cpython/blob/v3.14.7/Lib/pickle.py#L1294-L1321)
 binds `read` and `dispatch` to locals, then executes `dispatch[key[0]](self)`.
 XLang3 compiled that same `Lib/pickle.py` from the CPython 3.14.7 installation.
 Its IR for this line is:
@@ -60,16 +60,17 @@ This is a diagnostic view of the benchmark's actual inputs, not a pyperf score.
 CPython specializes the dispatch dictionary access and keeps the one-argument
 Python call on `CALL_PY_EXACT_ARGS` for the observed workload.
 
-In CPython's 3.14.7
-[`CALL_PY_EXACT_ARGS`](https://github.com/python/cpython/blob/v3.14.7/Python/bytecodes.c#L3662-L3727)
-path, the evaluator guards the function version and argument count, pushes an
-`_PyInterpreterFrame`, transfers positional arguments into its locals, and
-switches the current frame in the same evaluator. The general Python-call path
-also pushes a frame and dispatches its code in the existing evaluator.
+In CPython 3.14.7, the
+[`CALL_PY_EXACT_ARGS` macro](https://github.com/python/cpython/blob/v3.14.7/Python/bytecodes.c#L4041-L4051)
+checks the function version, exact argument count, available frame-stack space,
+and recursion limit. Its frame initialization path
+([`_INIT_CALL_PY_EXACT_ARGS`](https://github.com/python/cpython/blob/v3.14.7/Python/bytecodes.c#L3998-L4007))
+pushes an `_PyInterpreterFrame` and transfers the argument stack references
+into its locals. The evaluator then continues in the same dispatch loop.
 CPython keeps most of these compact frames contiguous on a per-thread data
 stack for locality
 ([frame design](https://github.com/python/cpython/blob/v3.14.7/InternalDocs/frames.md#L13-L20),
-[call handling](https://github.com/python/cpython/blob/v3.14.7/InternalDocs/interpreter.md#L269-L279)).
+[call handling](https://github.com/python/cpython/blob/v3.14.7/InternalDocs/interpreter.md#L197-L230)).
 
 XLang3 also keeps Python calls on its VM frame stack and returns to the same
 opcode loop, so this is not simply “recursive C++ call versus recursive
@@ -104,7 +105,8 @@ The event helper keeps its common path to a thread-local countdown and polls
 the cross-thread event word every 64 instructions. CPython places its periodic
 eval-breaker check in operations such as `CALL`, backward jumps, and `RESUME`
 ([periodic checks](https://github.com/python/cpython/blob/v3.14.7/Python/bytecodes.c#L147-L164),
-[call and backward-jump macros](https://github.com/python/cpython/blob/v3.14.7/Python/bytecodes.c#L2686-L2695)).
+[the `CALL` macro](https://github.com/python/cpython/blob/v3.14.7/Python/bytecodes.c#L3836-L3837),
+[backward-jump macros](https://github.com/python/cpython/blob/v3.14.7/Python/bytecodes.c#L2927-L2940)).
 The XLang3 event-delivery bound is stricter than relying only on those
 operation boundaries, so any loop optimization must preserve the 64-IR-op
 bound while keeping the common path cheap.
@@ -117,13 +119,22 @@ Repeating that lookup-only change is not the next target.
 
 ## Why a CPython-like integer side table did not help
 
-CPython 3.14.7's [`dictobject.c`](https://github.com/python/cpython/blob/v3.14.7/Objects/dictobject.c#L2630-L2720)
-uses the integer itself as its hash, starts from the low hash bits, and uses
-the `5*i + 1 + perturb` sequence only after a collision. The dict keys object
-keeps a compact signed index array beside its entry array; the index width is
-8, 16, 32, or 64 bits according to table size, and the table is resized before
-it becomes two-thirds full. This makes the common integer lookup a cheap first
-index read while keeping insertion order in the entries.
+CPython 3.14.7's [`dictobject.c`](https://github.com/python/cpython/blob/v3.14.7/Objects/dictobject.c#L13-L49)
+documents the compact signed index array beside the insertion-ordered entry
+array. Its index width is 8, 16, 32, or 64 bits according to table size, and
+the table is resized before it becomes two-thirds full
+([load threshold](https://github.com/python/cpython/blob/v3.14.7/Objects/dictobject.c#L146-L149)).
+For integer keys, the integer itself is its hash; lookup starts from low hash
+bits and uses the `5*i + 1 + perturb` recurrence after collisions
+([probe sequence](https://github.com/python/cpython/blob/v3.14.7/Objects/dictobject.c#L289-L378)).
+The generic lookup routine reads the compact index, compares the matching
+entry, then advances the perturb probe sequence
+([`do_lookup`](https://github.com/python/cpython/blob/v3.14.7/Objects/dictobject.c#L1002-L1025)).
+At the bytecode site, CPython's specialized dictionary subscript checks for an
+exact dict and calls `PyDict_GetItemRef`
+([`BINARY_OP_SUBSCR_DICT`](https://github.com/python/cpython/blob/v3.14.7/Python/bytecodes.c#L1002-L1018)).
+This makes the common integer lookup a cheap first index read while keeping
+insertion order in the entries.
 
 XLang3's [`DictObject`](../../src/internal/xlang3/mapping.h) keeps ordered
 `Value` key/value entries authoritative and currently maintains separate key
