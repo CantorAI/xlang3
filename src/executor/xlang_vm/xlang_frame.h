@@ -524,6 +524,7 @@ private:
       case ir::Op::Len:
       case ir::Op::GetItem:
       case ir::Op::LoadLocalGetItem:
+      case ir::Op::GetItemConst:
       case ir::Op::Call:
       case ir::Op::CallLocal:
       case ir::Op::CallGlobal:
@@ -610,6 +611,9 @@ private:
       case ir::Op::LoadLocalGetItem:
         one(instr.b);
         one(instr.c);
+        break;
+      case ir::Op::GetItemConst:
+        one(instr.a);
         break;
       case ir::Op::DictSetConst:
         one(instr.a);

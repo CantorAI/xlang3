@@ -70,6 +70,7 @@ const char* op_name(Op op) {
     case Op::TupleFromList: return "TupleFromList";
     case Op::Len: return "Len";
     case Op::GetItem: return "GetItem";
+    case Op::GetItemConst: return "GetItemConst";
     case Op::SetItem: return "SetItem";
     case Op::DeleteItem: return "DeleteItem";
     case Op::UnpackSequence: return "UnpackSequence";

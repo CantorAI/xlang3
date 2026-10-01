@@ -2468,6 +2468,20 @@ private:
         previous.c = object_reg;
         return;
       }
+      if (op == ir::Op::GetItem && previous.op == ir::Op::LoadConst &&
+          b == previous.dst) {
+        // Keep a constant subscript and its generic lookup in one VM dispatch.
+        // The fused op still runs GetItem, so custom __getitem__ behavior and
+        // its exception/call path remain authoritative.
+        const uint32_t index_reg = previous.dst;
+        const uint32_t constant = previous.a;
+        previous.op = ir::Op::GetItemConst;
+        previous.dst = dst;
+        previous.a = a;
+        previous.b = constant;
+        previous.c = index_reg;
+        return;
+      }
       if (op == ir::Op::StoreLocal && previous.op == ir::Op::IterNext &&
           previous.dst == a && dst < fn_.locals.size() &&
           hidden_locals_.find(fn_.locals[dst]) == hidden_locals_.end()) {

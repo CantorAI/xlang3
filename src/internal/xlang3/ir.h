@@ -192,6 +192,7 @@ enum class Op : uint16_t {
   ForConstructMethodAccumulateLoop,
   ForScalarArithmeticLoop,
   ForPropertyAccessLoop,
+  GetItemConst,
 };
 
 enum class CompareOp : uint16_t {

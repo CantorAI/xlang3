@@ -91,6 +91,7 @@ XLANG3_VM_FLOW_TRACKED(TupleFromList, xlang3::xlang_vm::ops::tuple_from_list(in,
 XLANG3_VM_FLOW_TRACKED(Len, xlang3::xlang_vm::ops::len(in, runtime_, regs, instr_cache[ip], raise_runtime_error, raise_exception_value))
 XLANG3_VM_FLOW_TRACKED(GetItem, xlang3::xlang_vm::ops::get_item(in, module, module_owner, runtime_, regs, instr_cache[ip], ip, result, make_generator_if_needed, push_frame, raise_runtime_error, raise_exception_value))
 XLANG3_VM_FLOW_TRACKED(LoadLocalGetItem, xlang3::xlang_vm::ops::load_local_get_item(in, fn, module, module_owner, runtime_, regs, locals, instr_cache[ip], ip, result, make_generator_if_needed, push_frame, raise_unbound_local_error, raise_runtime_error, raise_exception_value))
+XLANG3_VM_FLOW_TRACKED(GetItemConst, xlang3::xlang_vm::ops::get_item_const(in, fn, module, module_owner, runtime_, regs, instr_cache[ip], ip, result, make_generator_if_needed, push_frame, raise_runtime_error, raise_exception_value))
 XLANG3_VM_FLOW(SetItem, xlang3::xlang_vm::ops::set_item(in, runtime_, regs, raise_runtime_error, raise_exception_value))
 XLANG3_VM_FLOW(DeleteItem, xlang3::xlang_vm::ops::delete_item(in, runtime_, regs, raise_runtime_error, raise_exception_value))
 XLANG3_VM_FLOW(UnpackSequence, xlang3::xlang_vm::ops::unpack_sequence_or_local_pair(in, fn, regs, locals, runtime_, result, ip, !frame_observability_active, frame.execution_metadata->register_last_use, raise_runtime_error, raise_exception_value))

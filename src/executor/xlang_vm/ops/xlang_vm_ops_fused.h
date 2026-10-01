@@ -87,4 +87,32 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_local_get_item(
       std::forward<RaiseExceptionValue>(raise_exception_value));
 }
 
+template <typename MakeGeneratorIfNeeded, typename PushFrame,
+          typename RaiseRuntimeError, typename RaiseExceptionValue>
+XLANG3_HOT_INLINE XlangVMOpFlow get_item_const(
+    const ir::Instr& in, const ir::Function& fn, const ir::Module& module,
+    const std::shared_ptr<const ir::Module>& module_owner, Runtime& runtime,
+    XlangVMSmallRegisterBuffer& regs, XlangVMInstrCache& cache, size_t& ip,
+    RuntimeResult& result, MakeGeneratorIfNeeded&& make_generator_if_needed,
+    PushFrame&& push_frame, RaiseRuntimeError&& raise_runtime_error,
+    RaiseExceptionValue&& raise_exception_value) {
+  if (in.c >= regs.size()) {
+    result.errors.push_back("invalid constant subscript register");
+    return XlangVMOpFlow::ReturnResult;
+  }
+  if (in.b >= fn.constants.size()) {
+    result.errors.push_back("invalid constant index");
+    return XlangVMOpFlow::ReturnResult;
+  }
+  // Preserve the eliminated LoadConst's register value for any later use.
+  value_borrow_assign_fast(regs[in.c], fn.constants[in.b]);
+  const ir::Instr item_load{ir::Op::GetItem, in.dst, in.a, in.c, 0};
+  return get_item(
+      item_load, module, module_owner, runtime, regs, cache, ip, result,
+      std::forward<MakeGeneratorIfNeeded>(make_generator_if_needed),
+      std::forward<PushFrame>(push_frame),
+      std::forward<RaiseRuntimeError>(raise_runtime_error),
+      std::forward<RaiseExceptionValue>(raise_exception_value));
+}
+
 } // namespace xlang3::xlang_vm::ops

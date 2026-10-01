@@ -43,6 +43,8 @@ int main() {
       "def gen():\n"
       "    yield x\n"
       "    yield from [1, 2]\n"
+      "def constant_subscript():\n"
+      "    return gen()[0]\n"
       "\n"
       "for item in gen():\n"
       "    x = x + item\n"
@@ -59,10 +61,17 @@ int main() {
   auto lowered = xlang3::lower_to_ir(parsed.module);
   require(lowered.errors.empty(), "lower failed");
   bool found_guarded_numeric_expr = false;
+  bool found_constant_subscript_fusion = false;
   for (const auto& function : lowered.module.functions) {
     if (!function.guarded_local_numeric_exprs.empty()) found_guarded_numeric_expr = true;
+    for (const auto& instruction : function.code) {
+      if (instruction.op == xlang3::ir::Op::GetItemConst) {
+        found_constant_subscript_fusion = true;
+      }
+    }
   }
   require(found_guarded_numeric_expr, "lowering did not emit guarded numeric expression");
+  require(found_constant_subscript_fusion, "lowering did not fuse constant subscripts");
   lowered.module.functions[0].constants.push_back(xlang3::Value::tuple({
       xlang3::Value::int64(42),
       xlang3::Value::tuple({
