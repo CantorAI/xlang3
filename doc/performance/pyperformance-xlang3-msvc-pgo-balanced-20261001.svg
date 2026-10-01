@@ -1,0 +1,144 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="1375" viewBox="0 0 1500 1375">
+<style>text{font-family:Segoe UI,Arial,sans-serif;fill:#1f2937}.title{font-size:22px;font-weight:700}.subtitle{font-size:13px;fill:#4b5563}.label{font-size:13px}.value{font-size:12px}.axis{font-size:11px;fill:#6b7280}</style>
+<rect width="100%" height="100%" fill="#fff"/>
+<text class="title" x="24" y="34">XLang3 balanced PGO vs CPython 3.14.7</text>
+<text class="subtitle" x="24" y="58">All 41 exact-name timed subtests; ratio = CPython time ÷ XLang3 time. Right of 1× is faster in XLang3.</text>
+<line x1="330.0" y1="78" x2="330.0" y2="1293" stroke="#e5e7eb" stroke-width="1"/>
+<text class="axis" x="330.0" y="1315" text-anchor="middle">0.03125×</text>
+<line x1="473.3" y1="78" x2="473.3" y2="1293" stroke="#e5e7eb" stroke-width="1"/>
+<text class="axis" x="473.3" y="1315" text-anchor="middle">0.0625×</text>
+<line x1="616.7" y1="78" x2="616.7" y2="1293" stroke="#e5e7eb" stroke-width="1"/>
+<text class="axis" x="616.7" y="1315" text-anchor="middle">0.125×</text>
+<line x1="760.0" y1="78" x2="760.0" y2="1293" stroke="#e5e7eb" stroke-width="1"/>
+<text class="axis" x="760.0" y="1315" text-anchor="middle">0.25×</text>
+<line x1="903.3" y1="78" x2="903.3" y2="1293" stroke="#e5e7eb" stroke-width="1"/>
+<text class="axis" x="903.3" y="1315" text-anchor="middle">0.5×</text>
+<line x1="1046.7" y1="78" x2="1046.7" y2="1293" stroke="#111827" stroke-width="2"/>
+<text class="axis" x="1046.7" y="1315" text-anchor="middle">1×</text>
+<line x1="1190.0" y1="78" x2="1190.0" y2="1293" stroke="#e5e7eb" stroke-width="1"/>
+<text class="axis" x="1190.0" y="1315" text-anchor="middle">2×</text>
+<text class="label" x="24" y="119">gc_traversal</text>
+<rect x="1046.7" y="107" width="131.4" height="16" rx="3" fill="#16803c"/>
+<text class="value" x="1206" y="119">1.89× faster</text>
+<text class="label" x="24" y="148">pickle_dict</text>
+<rect x="1046.7" y="136" width="3.3" height="16" rx="3" fill="#16803c"/>
+<text class="value" x="1206" y="148">1.02× faster</text>
+<text class="label" x="24" y="177">pickle_list</text>
+<rect x="1035.9" y="165" width="10.8" height="16" rx="3" fill="#bd3e36"/>
+<text class="value" x="1206" y="177">0.95× (1.1× slower)</text>
+<text class="label" x="24" y="206">float</text>
+<rect x="966.8" y="194" width="79.8" height="16" rx="3" fill="#bd3e36"/>
+<text class="value" x="1206" y="206">0.68× (1.5× slower)</text>
+<text class="label" x="24" y="235">regex_dna</text>
+<rect x="942.9" y="223" width="103.8" height="16" rx="3" fill="#bd3e36"/>
+<text class="value" x="1206" y="235">0.61× (1.7× slower)</text>
+<text class="label" x="24" y="264">typing_runtime_protocols</text>
+<rect x="912.6" y="252" width="134.0" height="16" rx="3" fill="#bd3e36"/>
+<text class="value" x="1206" y="264">0.52× (1.9× slower)</text>
+<text class="label" x="24" y="293">pickle</text>
+<rect x="844.8" y="281" width="201.8" height="16" rx="3" fill="#bd3e36"/>
+<text class="value" x="1206" y="293">0.38× (2.7× slower)</text>
+<text class="label" x="24" y="322">pidigits</text>
+<rect x="795.5" y="310" width="251.2" height="16" rx="3" fill="#bd3e36"/>
+<text class="value" x="1206" y="322">0.30× (3.4× slower)</text>
+<text class="label" x="24" y="351">nbody</text>
+<rect x="780.7" y="339" width="265.9" height="16" rx="3" fill="#bd3e36"/>
+<text class="value" x="1206" y="351">0.28× (3.6× slower)</text>
+<text class="label" x="24" y="380">unpickle_list</text>
+<rect x="742.8" y="368" width="303.8" height="16" rx="3" fill="#bd3e36"/>
+<text class="value" x="1206" y="380">0.23× (4.3× slower)</text>
+<text class="label" x="24" y="409">regex_v8</text>
+<rect x="739.4" y="397" width="307.3" height="16" rx="3" fill="#bd3e36"/>
+<text class="value" x="1206" y="409">0.23× (4.4× slower)</text>
+<text class="label" x="24" y="438">unpack_sequence</text>
+<rect x="735.0" y="426" width="311.7" height="16" rx="3" fill="#bd3e36"/>
+<text class="value" x="1206" y="438">0.22× (4.5× slower)</text>
+<text class="label" x="24" y="467">json_dumps</text>
+<rect x="729.4" y="455" width="317.3" height="16" rx="3" fill="#bd3e36"/>
+<text class="value" x="1206" y="467">0.22× (4.6× slower)</text>
+<text class="label" x="24" y="496">json_loads</text>
+<rect x="703.5" y="484" width="343.2" height="16" rx="3" fill="#bd3e36"/>
+<text class="value" x="1206" y="496">0.19× (5.3× slower)</text>
+<text class="label" x="24" y="525">spectral_norm</text>
+<rect x="667.8" y="513" width="378.9" height="16" rx="3" fill="#bd3e36"/>
+<text class="value" x="1206" y="525">0.16× (6.2× slower)</text>
+<text class="label" x="24" y="554">unpickle</text>
+<rect x="636.9" y="542" width="409.8" height="16" rx="3" fill="#bd3e36"/>
+<text class="value" x="1206" y="554">0.14× (7.3× slower)</text>
+<text class="label" x="24" y="583">regex_effbot</text>
+<rect x="614.1" y="571" width="432.6" height="16" rx="3" fill="#bd3e36"/>
+<text class="value" x="1206" y="583">0.12× (8.1× slower)</text>
+<text class="label" x="24" y="612">chaos</text>
+<rect x="590.3" y="600" width="456.3" height="16" rx="3" fill="#bd3e36"/>
+<text class="value" x="1206" y="612">0.11× (9.1× slower)</text>
+<text class="label" x="24" y="641">richards</text>
+<rect x="577.0" y="629" width="469.7" height="16" rx="3" fill="#bd3e36"/>
+<text class="value" x="1206" y="641">0.10× (9.7× slower)</text>
+<text class="label" x="24" y="670">go</text>
+<rect x="575.2" y="658" width="471.5" height="16" rx="3" fill="#bd3e36"/>
+<text class="value" x="1206" y="670">0.10× (9.8× slower)</text>
+<text class="label" x="24" y="699">many_optionals</text>
+<rect x="549.4" y="687" width="497.3" height="16" rx="3" fill="#bd3e36"/>
+<text class="value" x="1206" y="699">0.09× (11.1× slower)</text>
+<text class="label" x="24" y="728">logging_format</text>
+<rect x="535.1" y="716" width="511.6" height="16" rx="3" fill="#bd3e36"/>
+<text class="value" x="1206" y="728">0.08× (11.9× slower)</text>
+<text class="label" x="24" y="757">nqueens</text>
+<rect x="535.0" y="745" width="511.7" height="16" rx="3" fill="#bd3e36"/>
+<text class="value" x="1206" y="757">0.08× (11.9× slower)</text>
+<text class="label" x="24" y="786">hexiom</text>
+<rect x="533.1" y="774" width="513.6" height="16" rx="3" fill="#bd3e36"/>
+<text class="value" x="1206" y="786">0.08× (12.0× slower)</text>
+<text class="label" x="24" y="815">richards_super</text>
+<rect x="523.1" y="803" width="523.5" height="16" rx="3" fill="#bd3e36"/>
+<text class="value" x="1206" y="815">0.08× (12.6× slower)</text>
+<text class="label" x="24" y="844">logging_simple</text>
+<rect x="522.0" y="832" width="524.7" height="16" rx="3" fill="#bd3e36"/>
+<text class="value" x="1206" y="844">0.08× (12.6× slower)</text>
+<text class="label" x="24" y="873">fannkuch</text>
+<rect x="518.5" y="861" width="528.2" height="16" rx="3" fill="#bd3e36"/>
+<text class="value" x="1206" y="873">0.08× (12.9× slower)</text>
+<text class="label" x="24" y="902">comprehensions</text>
+<rect x="517.1" y="890" width="529.5" height="16" rx="3" fill="#bd3e36"/>
+<text class="value" x="1206" y="902">0.08× (12.9× slower)</text>
+<text class="label" x="24" y="931">generators</text>
+<rect x="488.1" y="919" width="558.6" height="16" rx="3" fill="#bd3e36"/>
+<text class="value" x="1206" y="931">0.07× (14.9× slower)</text>
+<text class="label" x="24" y="960">logging_silent</text>
+<rect x="480.9" y="948" width="565.8" height="16" rx="3" fill="#bd3e36"/>
+<text class="value" x="1206" y="960">0.06× (15.4× slower)</text>
+<text class="label" x="24" y="989">meteor_contest</text>
+<rect x="480.6" y="977" width="566.0" height="16" rx="3" fill="#bd3e36"/>
+<text class="value" x="1206" y="989">0.06× (15.4× slower)</text>
+<text class="label" x="24" y="1018">deltablue</text>
+<rect x="480.4" y="1006" width="566.3" height="16" rx="3" fill="#bd3e36"/>
+<text class="value" x="1206" y="1018">0.06× (15.5× slower)</text>
+<text class="label" x="24" y="1047">deepcopy_reduce</text>
+<rect x="460.8" y="1035" width="585.9" height="16" rx="3" fill="#bd3e36"/>
+<text class="value" x="1206" y="1047">0.06× (17.0× slower)</text>
+<text class="label" x="24" y="1076">unpickle_pure_python</text>
+<rect x="447.3" y="1064" width="599.4" height="16" rx="3" fill="#bd3e36"/>
+<text class="value" x="1206" y="1076">0.06× (18.1× slower)</text>
+<text class="label" x="24" y="1105">pathlib</text>
+<rect x="423.7" y="1093" width="623.0" height="16" rx="3" fill="#bd3e36"/>
+<text class="value" x="1206" y="1105">0.05× (20.3× slower)</text>
+<text class="label" x="24" y="1134">deepcopy</text>
+<rect x="418.4" y="1122" width="628.3" height="16" rx="3" fill="#bd3e36"/>
+<text class="value" x="1206" y="1134">0.05× (20.9× slower)</text>
+<text class="label" x="24" y="1163">subparsers</text>
+<rect x="415.5" y="1151" width="631.2" height="16" rx="3" fill="#bd3e36"/>
+<text class="value" x="1206" y="1163">0.05× (21.2× slower)</text>
+<text class="label" x="24" y="1192">pickle_pure_python</text>
+<rect x="410.0" y="1180" width="636.7" height="16" rx="3" fill="#bd3e36"/>
+<text class="value" x="1206" y="1192">0.05× (21.7× slower)</text>
+<text class="label" x="24" y="1221">deepcopy_memo</text>
+<rect x="406.9" y="1209" width="639.8" height="16" rx="3" fill="#bd3e36"/>
+<text class="value" x="1206" y="1221">0.05× (22.1× slower)</text>
+<text class="label" x="24" y="1250">regex_compile</text>
+<rect x="392.3" y="1238" width="654.4" height="16" rx="3" fill="#bd3e36"/>
+<text class="value" x="1206" y="1250">0.04× (23.7× slower)</text>
+<text class="label" x="24" y="1279">coroutines</text>
+<rect x="390.8" y="1267" width="655.9" height="16" rx="3" fill="#bd3e36"/>
+<text class="value" x="1206" y="1279">0.04× (23.9× slower)</text>
+<text class="subtitle" x="24" y="1353">Geometric mean: 0.132× CPython/XLang3 (lower than 1× means XLang3 slower).</text>
+</svg>

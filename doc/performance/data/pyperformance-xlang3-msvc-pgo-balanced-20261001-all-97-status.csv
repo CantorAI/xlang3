@@ -1,0 +1,98 @@
+benchmark,CPython 3.14 status,CPython subtests,XLang3 PGO status,XLang3 PGO subtests,failure detail
+2to3,completed,2to3=251.674ms,failed: worker died,,Benchmark process died; failure detail was not retained by pyperformance output
+argparse,completed,many_optionals=0.668398ms,completed (1 subtest(s)),many_optionals=7.40232ms (stddev 0.15ms),
+argparse_subparsers,completed,subparsers=7.60108ms,completed (1 subtest(s)),subparsers=160.861ms (stddev 11.2ms),
+async_generators,completed,async_generators=277.756ms,failed: timed out,,Benchmark timed out
+async_tree,completed,async_tree_none=226.436ms; async_tree_none_tg=242.232ms,failed: timed out,,Benchmark timed out
+async_tree_cpu_io_mixed,completed,async_tree_cpu_io_mixed=430.097ms,failed: timed out,,Benchmark timed out
+async_tree_cpu_io_mixed_tg,completed,async_tree_cpu_io_mixed_tg=424ms,failed: timed out,,Benchmark timed out
+async_tree_eager,completed,async_tree_eager=84.8434ms,failed: timed out,,Benchmark timed out
+async_tree_eager_cpu_io_mixed,completed,async_tree_eager_cpu_io_mixed=333.81ms,failed: timed out,,Benchmark timed out
+async_tree_eager_cpu_io_mixed_tg,completed,async_tree_eager_cpu_io_mixed_tg=393.708ms,failed: timed out,,Benchmark timed out
+async_tree_eager_io,completed,async_tree_eager_io=564.455ms,failed: timed out,,Benchmark timed out
+async_tree_eager_io_tg,completed,async_tree_eager_io_tg=561.145ms,failed: timed out,,Benchmark timed out
+async_tree_eager_memoization,completed,async_tree_eager_memoization=191.569ms,failed: timed out,,Benchmark timed out
+async_tree_eager_memoization_tg,completed,async_tree_eager_memoization_tg=270.171ms,failed: timed out,,Benchmark timed out
+async_tree_eager_tg,completed,async_tree_eager_tg=196.478ms,failed: timed out,,Benchmark timed out
+async_tree_io,completed,async_tree_io=573.188ms,failed: timed out,,Benchmark timed out
+async_tree_io_tg,completed,async_tree_io_tg=558.669ms,failed: timed out,,Benchmark timed out
+async_tree_memoization,completed,async_tree_memoization=281.985ms,failed: timed out,,Benchmark timed out
+async_tree_memoization_tg,completed,async_tree_memoization_tg=282.14ms,failed: timed out,,Benchmark timed out
+async_tree_tg,no CPython timing,,failed: timed out,,Benchmark timed out
+asyncio_tcp,completed,asyncio_tcp=739.771ms,failed: timed out,,Benchmark timed out
+asyncio_tcp_ssl,completed,asyncio_tcp_ssl=4466.71ms,failed: timed out,,Benchmark timed out
+asyncio_websockets,completed,asyncio_websockets=192.169ms,failed: worker died,,worker died: optional 'websockets' package missing
+base64,completed,base64_large=7.90688ms; base64_small=0.267936ms,failed: timed out,,Benchmark timed out
+bpe_tokeniser,completed,bpe_tokeniser=3533.09ms,failed: timed out,,Benchmark timed out
+chameleon,completed,chameleon=11.5539ms,failed: worker died,,worker died: optional 'chameleon' package missing
+chaos,completed,chaos=46.8551ms,completed (1 subtest(s)),chaos=425.77ms (stddev 67.3ms),
+comprehensions,completed,comprehensions=0.0136876ms,completed (1 subtest(s)),comprehensions=0.177195ms (stddev 0.00106ms),
+concurrent_imap,no CPython timing,,failed: worker died,,Benchmark process died; failure detail was not retained by pyperformance output
+coroutines,completed,coroutines=17.4385ms,completed (1 subtest(s)),coroutines=415.976ms (stddev 44.1ms),
+coverage,completed,coverage=63.455ms,failed: worker died,,Benchmark process died; failure detail was not retained by pyperformance output
+crypto_pyaes,completed,crypto_pyaes=55.2763ms,failed: worker died,,Benchmark process died; failure detail was not retained by pyperformance output
+dask,completed,dask=769.434ms,failed: worker died,,Benchmark process died; failure detail was not retained by pyperformance output
+deepcopy,completed,deepcopy=0.210039ms; deepcopy_memo=0.0214685ms; deepcopy_reduce=0.00220295ms,completed (3 subtest(s)),deepcopy=4.38403ms (stddev 0.658ms); deepcopy_memo=0.473703ms (stddev 0.00343ms); deepcopy_reduce=0.0374504ms (stddev 0.000955ms),
+deltablue,completed,deltablue=2.48469ms,completed (1 subtest(s)),deltablue=38.4255ms (stddev 4.82ms),
+django_template,completed,django_template=28.9841ms,failed: worker died,,Benchmark process died; failure detail was not retained by pyperformance output
+docutils,completed,docutils=1811.73ms,failed: worker died,,Benchmark process died; failure detail was not retained by pyperformance output
+dulwich_log,completed,dulwich_log=66.5561ms,failed: worker died,,Benchmark process died; failure detail was not retained by pyperformance output
+fannkuch,completed,fannkuch=312.286ms,completed (1 subtest(s)),fannkuch=4016.25ms (stddev 517ms),
+fastapi,completed,fastapi_http=415.245ms,failed: worker died,,Benchmark process died; failure detail was not retained by pyperformance output
+float,completed,float=56.1802ms,completed (1 subtest(s)),float=82.6575ms (stddev 4.74ms),
+gc_collect,no CPython timing,,failed: worker died,,Benchmark process died; failure detail was not retained by pyperformance output
+gc_traversal,completed,gc_traversal=2.19122ms,completed (1 subtest(s)),gc_traversal=1.16049ms (stddev 0.0313ms),
+generators,completed,generators=27.0079ms,completed (1 subtest(s)),generators=402.342ms (stddev 78.6ms),
+genshi,completed,genshi_text=18.9624ms; genshi_xml=41.6582ms,failed: worker died,,Benchmark process died; failure detail was not retained by pyperformance output
+go,completed,go=94.2161ms,completed (1 subtest(s)),go=921.287ms (stddev 120ms),
+hexiom,completed,hexiom=4.92847ms,completed (1 subtest(s)),hexiom=59.0759ms (stddev 0.534ms),
+html5lib,completed,html5lib=42.3449ms,failed: worker died,,Benchmark process died; failure detail was not retained by pyperformance output
+json_dumps,completed,json_dumps=7.58351ms,completed (1 subtest(s)),json_dumps=35.1695ms (stddev 6.02ms),
+json_loads,completed,json_loads=0.0175438ms,completed (1 subtest(s)),json_loads=0.0922185ms (stddev 0.00153ms),
+logging,completed,logging_format=0.00731575ms; logging_silent=6.69281e-05ms; logging_simple=0.00675492ms,completed (3 subtest(s)),logging_format=0.0868328ms (stddev 0.00254ms); logging_silent=0.00103249ms (stddev 2.89e-05ms); logging_simple=0.0854176ms (stddev 0.00939ms),
+mako,completed,mako=7.49018ms,failed: worker died,,Benchmark process died; failure detail was not retained by pyperformance output
+mdp,completed,mdp=975.11ms,failed: worker died,,Benchmark process died; failure detail was not retained by pyperformance output
+meteor_contest,completed,meteor_contest=87.4131ms,completed (1 subtest(s)),meteor_contest=1350.11ms (stddev 424ms),
+nbody,completed,nbody=81.038ms,completed (1 subtest(s)),nbody=293.243ms (stddev 35.4ms),
+networkx,no CPython timing,,failed: worker died,,Benchmark process died; failure detail was not retained by pyperformance output
+networkx_connected_components,no CPython timing,,failed: worker died,,Benchmark process died; failure detail was not retained by pyperformance output
+networkx_k_core,no CPython timing,,failed: worker died,,Benchmark process died; failure detail was not retained by pyperformance output
+nqueens,completed,nqueens=73.9361ms,completed (1 subtest(s)),nqueens=878.085ms (stddev 43.1ms),
+pathlib,completed,pathlib=47.8175ms,completed (1 subtest(s)),pathlib=972.599ms (stddev 487ms),
+pickle,completed,pickle=0.00907842ms,completed (1 subtest(s)),pickle=0.0240927ms (stddev 0.00339ms),
+pickle_dict,completed,pickle_dict=0.0232063ms,completed (1 subtest(s)),pickle_dict=0.0228346ms (stddev 0.000663ms),
+pickle_list,completed,pickle_list=0.00395186ms,completed (1 subtest(s)),pickle_list=0.00416354ms (stddev 0.000141ms),
+pickle_pure_python,completed,pickle_pure_python=0.252284ms,completed (1 subtest(s)),pickle_pure_python=5.48437ms (stddev 0.166ms),
+pidigits,completed,pidigits=164.38ms,completed (1 subtest(s)),pidigits=553.828ms (stddev 42.6ms),
+pprint,completed,pprint_pformat=1180.02ms; pprint_safe_repr=575.927ms,failed: timed out,,Benchmark timed out
+pyflate,completed,pyflate=328.524ms,failed: timed out,,Benchmark timed out
+python_startup,completed,python_startup=31.2637ms,failed: worker died,,Benchmark process died; failure detail was not retained by pyperformance output
+python_startup_no_site,completed,python_startup_no_site=24.6155ms,failed: worker died,,Benchmark process died; failure detail was not retained by pyperformance output
+raytrace,completed,raytrace=217.002ms,failed: timed out,,Benchmark timed out
+regex_compile,completed,regex_compile=93.6407ms,completed (1 subtest(s)),regex_compile=2216.95ms (stddev 736ms),
+regex_dna,completed,regex_dna=132.329ms,completed (1 subtest(s)),regex_dna=218.604ms (stddev 14.3ms),
+regex_effbot,completed,regex_effbot=1.7946ms,completed (1 subtest(s)),regex_effbot=14.5358ms (stddev 0.26ms),
+regex_v8,completed,regex_v8=16.4623ms,completed (1 subtest(s)),regex_v8=72.75ms (stddev 4.99ms),
+richards,completed,richards=33.3574ms,completed (1 subtest(s)),richards=323.311ms (stddev 6.01ms),
+richards_super,completed,richards_super=37.3086ms,completed (1 subtest(s)),richards_super=469.2ms (stddev 65.1ms),
+scimark,completed,scimark_fft=219.317ms; scimark_lu=72.8907ms; scimark_monte_carlo=50.9483ms; scimark_sor=94.2419ms; scimark_sparse_mat_mult=3.01707ms,failed: worker died,,worker died: slice-copy type error (object cannot be interpreted as an integer)
+spectral_norm,completed,spectral_norm=72.1761ms,completed (1 subtest(s)),spectral_norm=450.917ms (stddev 53.3ms),
+sphinx,completed,sphinx=728.74ms,failed: worker died,,Benchmark process died; failure detail was not retained by pyperformance output
+sqlalchemy_declarative,completed,sqlalchemy_declarative=87.4334ms,failed: worker died,,Benchmark process died; failure detail was not retained by pyperformance output
+sqlalchemy_imperative,completed,sqlalchemy_imperative=10.6188ms,failed: worker died,,Benchmark process died; failure detail was not retained by pyperformance output
+sqlglot_v2,completed,sqlglot_v2_normalize=85.1819ms,failed: worker died,,Benchmark process died; failure detail was not retained by pyperformance output
+sqlglot_v2_optimize,completed,sqlglot_v2_optimize=41.0163ms,failed: worker died,,Benchmark process died; failure detail was not retained by pyperformance output
+sqlglot_v2_parse,completed,sqlglot_v2_parse=0.94893ms,failed: worker died,,Benchmark process died; failure detail was not retained by pyperformance output
+sqlglot_v2_transpile,completed,sqlglot_v2_transpile=1.1868ms,failed: worker died,,Benchmark process died; failure detail was not retained by pyperformance output
+sqlite_synth,completed,sqlite_synth=0.00175974ms,failed: worker died,,worker died: Connection.create_aggregate is unavailable
+sympy,completed,sympy_expand=336.421ms; sympy_integrate=14.2253ms; sympy_str=194.058ms; sympy_sum=100.98ms,failed: worker died,,worker died: optional 'sympy' package missing
+telco,completed,telco=5.54049ms,failed: timed out,,Benchmark timed out
+tomli_loads,completed,tomli_loads=1689.3ms,failed: worker died,,worker died: optional 'tomli' package missing
+tornado_http,completed,tornado_http=232.943ms,failed: worker died,,worker died: optional 'tornado' package missing
+typing_runtime_protocols,completed,typing_runtime_protocols=0.124367ms,completed (1 subtest(s)),typing_runtime_protocols=0.237777ms (stddev 0.00642ms),
+unpack_sequence,completed,unpack_sequence=3.54493e-05ms,completed (1 subtest(s)),unpack_sequence=0.000160019ms (stddev 1.32e-05ms),
+unpickle,completed,unpickle=0.0097ms,completed (1 subtest(s)),unpickle=0.0703744ms (stddev 0.00114ms),
+unpickle_list,completed,unpickle_list=0.00315896ms,completed (1 subtest(s)),unpickle_list=0.0137295ms (stddev 0.00134ms),
+unpickle_pure_python,completed,unpickle_pure_python=0.161446ms,completed (1 subtest(s)),unpickle_pure_python=2.92966ms (stddev 0.0745ms),
+xdsl,completed,xdsl_constant_fold=32.8031ms,failed: worker died,,worker died: optional 'xdsl' package missing
+xml_etree,completed,xml_etree_generate=66.3037ms; xml_etree_iterparse=68.2502ms; xml_etree_parse=107.561ms; xml_etree_process=46.0111ms,failed: worker died,,worker died: parser reports missing end tags
