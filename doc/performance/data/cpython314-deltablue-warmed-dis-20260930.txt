@@ -1,0 +1,553 @@
+CPython 3.14.7
+benchmark_sha256=70da5e16cd5b14f2f398ccc066794b83a30d997c2d91150695b8f938f934dc30
+WARMING deltablue: 5 iterations, arguments=(100,)
+
+===== BinaryConstraint.input =====
+261           RESUME_CHECK             0
+
+262           LOAD_FAST_BORROW         0 (self)
+              LOAD_ATTR_INSTANCE_VALUE 0 (direction)
+              CACHE                    0 (counter: 832)
+              CACHE                    0 (version: 131304)
+              CACHE                    0
+              CACHE                    0 (keys_version: 24)
+              CACHE                    0
+              CACHE                    0 (descr: 0)
+              CACHE                    0
+              CACHE                    0
+              CACHE                    0
+              LOAD_GLOBAL_MODULE       2 (Direction)
+              CACHE                    0 (counter: 832)
+              CACHE                    0 (index: 90)
+              CACHE                    0 (module_keys_version: 0)
+              CACHE                    0 (builtin_keys_version: 15)
+              LOAD_ATTR_CLASS          4 (FORWARD)
+              CACHE                    0 (counter: 832)
+              CACHE                    0 (version: 131298)
+              CACHE                    0
+              CACHE                    0 (keys_version: 0)
+              CACHE                    0
+              CACHE                    0 (descr: 140709854307448)
+              CACHE                    0
+              CACHE                    0
+              CACHE                    0
+              COMPARE_OP_INT          88 (bool(==))
+              CACHE                    0 (counter: 832)
+              POP_JUMP_IF_FALSE       13 (to L1)
+              CACHE                    0 (counter: 1)
+              NOT_TAKEN
+
+263           LOAD_FAST_BORROW         0 (self)
+              LOAD_ATTR_INSTANCE_VALUE 6 (v1)
+              CACHE                    0 (counter: 832)
+              CACHE                    0 (version: 131304)
+              CACHE                    0
+              CACHE                    0 (keys_version: 56)
+              CACHE                    0
+              CACHE                    0 (descr: 0)
+              CACHE                    0
+              CACHE                    0
+              CACHE                    0
+              RETURN_VALUE
+
+265   L1:     LOAD_FAST_BORROW         0 (self)
+              LOAD_ATTR_INSTANCE_VALUE 8 (v2)
+              CACHE                    0 (counter: 32)
+              CACHE                    0 (version: 131297)
+              CACHE                    0
+              CACHE                    0 (keys_version: 40)
+              CACHE                    0
+              CACHE                    0 (descr: 0)
+              CACHE                    0
+              CACHE                    0
+              CACHE                    0
+              RETURN_VALUE
+
+===== BinaryConstraint.output =====
+267           RESUME_CHECK             0
+
+268           LOAD_FAST_BORROW         0 (self)
+              LOAD_ATTR_INSTANCE_VALUE 0 (direction)
+              CACHE                    0 (counter: 832)
+              CACHE                    0 (version: 131304)
+              CACHE                    0
+              CACHE                    0 (keys_version: 24)
+              CACHE                    0
+              CACHE                    0 (descr: 0)
+              CACHE                    0
+              CACHE                    0
+              CACHE                    0
+              LOAD_GLOBAL_MODULE       2 (Direction)
+              CACHE                    0 (counter: 832)
+              CACHE                    0 (index: 90)
+              CACHE                    0 (module_keys_version: 0)
+              CACHE                    0 (builtin_keys_version: 15)
+              LOAD_ATTR_CLASS          4 (FORWARD)
+              CACHE                    0 (counter: 832)
+              CACHE                    0 (version: 131298)
+              CACHE                    0
+              CACHE                    0 (keys_version: 0)
+              CACHE                    0
+              CACHE                    0 (descr: 140709854307448)
+              CACHE                    0
+              CACHE                    0
+              CACHE                    0
+              COMPARE_OP_INT          88 (bool(==))
+              CACHE                    0 (counter: 832)
+              POP_JUMP_IF_FALSE       13 (to L1)
+              CACHE                    0 (counter: 3)
+              NOT_TAKEN
+
+269           LOAD_FAST_BORROW         0 (self)
+              LOAD_ATTR_INSTANCE_VALUE 6 (v2)
+              CACHE                    0 (counter: 832)
+              CACHE                    0 (version: 131304)
+              CACHE                    0
+              CACHE                    0 (keys_version: 64)
+              CACHE                    0
+              CACHE                    0 (descr: 0)
+              CACHE                    0
+              CACHE                    0
+              CACHE                    0
+              RETURN_VALUE
+
+271   L1:     LOAD_FAST_BORROW         0 (self)
+              LOAD_ATTR_INSTANCE_VALUE 8 (v1)
+              CACHE                    0 (counter: 32)
+              CACHE                    0 (version: 131297)
+              CACHE                    0
+              CACHE                    0 (keys_version: 32)
+              CACHE                    0
+              CACHE                    0 (descr: 0)
+              CACHE                    0
+              CACHE                    0
+              CACHE                    0
+              RETURN_VALUE
+
+===== BinaryConstraint.recalculate =====
+273           RESUME_CHECK             0
+
+274           LOAD_FAST_BORROW         0 (self)
+              LOAD_ATTR_METHOD_WITH_VALUES 1 (input + NULL|self)
+              CACHE                    0 (counter: 832)
+              CACHE                    0 (version: 131297)
+              CACHE                    0
+              CACHE                    0 (keys_version: 93)
+              CACHE                    0
+              CACHE                    0 (descr: 2422468808368)
+              CACHE                    0
+              CACHE                    0
+              CACHE                    0
+              CALL_PY_EXACT_ARGS       0
+              CACHE                    0 (counter: 832)
+              CACHE                    0 (func_version: 2141)
+              CACHE                    0
+              STORE_FAST               1 (ihn)
+
+275           LOAD_FAST_BORROW         0 (self)
+              LOAD_ATTR_METHOD_WITH_VALUES 3 (output + NULL|self)
+              CACHE                    0 (counter: 832)
+              CACHE                    0 (version: 131297)
+              CACHE                    0
+              CACHE                    0 (keys_version: 93)
+              CACHE                    0
+              CACHE                    0 (descr: 2422468808544)
+              CACHE                    0
+              CACHE                    0
+              CACHE                    0
+              CALL_PY_EXACT_ARGS       0
+              CACHE                    0 (counter: 832)
+              CACHE                    0 (func_version: 2142)
+              CACHE                    0
+              STORE_FAST               2 (out)
+
+276           LOAD_GLOBAL_MODULE       4 (Strength)
+              CACHE                    0 (counter: 832)
+              CACHE                    0 (index: 90)
+              CACHE                    0 (module_keys_version: 0)
+              CACHE                    0 (builtin_keys_version: 10)
+              LOAD_ATTR                7 (weakest_of + NULL|self)
+              CACHE                    0 (counter: 8586)
+              CACHE                    0 (version: 0)
+              CACHE                    0
+              CACHE                    0 (keys_version: 0)
+              CACHE                    0
+              CACHE                    0 (descr: 0)
+              CACHE                    0
+              CACHE                    0
+              CACHE                    0
+
+277           LOAD_FAST_BORROW         0 (self)
+              LOAD_ATTR_INSTANCE_VALUE 8 (strength)
+              CACHE                    0 (counter: 832)
+              CACHE                    0 (version: 131297)
+              CACHE                    0
+              CACHE                    0 (keys_version: 24)
+              CACHE                    0
+              CACHE                    0 (descr: 0)
+              CACHE                    0
+              CACHE                    0
+              CACHE                    0
+              LOAD_FAST_BORROW         1 (ihn)
+              LOAD_ATTR_INSTANCE_VALUE 10 (walk_strength)
+              CACHE                    0 (counter: 832)
+              CACHE                    0 (version: 131293)
+              CACHE                    0
+              CACHE                    0 (keys_version: 72)
+              CACHE                    0
+              CACHE                    0 (descr: 0)
+              CACHE                    0
+              CACHE                    0
+              CACHE                    0
+
+276           CALL_BOUND_METHOD_EXACT_ARGS 2
+              CACHE                    0 (counter: 832)
+              CACHE                    0 (func_version: 2107)
+              CACHE                    0
+              LOAD_FAST_BORROW         2 (out)
+              STORE_ATTR_INSTANCE_VALUE 5 (walk_strength)
+              CACHE                    0 (counter: 832)
+              CACHE                    0 (version: 131293)
+              CACHE                    0
+              CACHE                    0 (index: 72)
+
+278           LOAD_FAST_BORROW         1 (ihn)
+              LOAD_ATTR_INSTANCE_VALUE 12 (stay)
+              CACHE                    0 (counter: 832)
+              CACHE                    0 (version: 131293)
+              CACHE                    0
+              CACHE                    0 (keys_version: 56)
+              CACHE                    0
+              CACHE                    0 (descr: 0)
+              CACHE                    0
+              CACHE                    0
+              CACHE                    0
+              LOAD_FAST_BORROW         2 (out)
+              STORE_ATTR_INSTANCE_VALUE 6 (stay)
+              CACHE                    0 (counter: 832)
+              CACHE                    0 (version: 131293)
+              CACHE                    0
+              CACHE                    0 (index: 56)
+
+280           LOAD_FAST_BORROW         2 (out)
+              LOAD_ATTR_INSTANCE_VALUE 12 (stay)
+              CACHE                    0 (counter: 832)
+              CACHE                    0 (version: 131293)
+              CACHE                    0
+              CACHE                    0 (keys_version: 56)
+              CACHE                    0
+              CACHE                    0 (descr: 0)
+              CACHE                    0
+              CACHE                    0
+              CACHE                    0
+              TO_BOOL_BOOL
+              CACHE                    0 (counter: 832)
+              CACHE                    0 (version: 0)
+              CACHE                    0
+              POP_JUMP_IF_FALSE       19 (to L1)
+              CACHE                    0 (counter: 65535)
+              NOT_TAKEN
+
+281           LOAD_FAST_BORROW         0 (self)
+              LOAD_ATTR_METHOD_WITH_VALUES 15 (execute + NULL|self)
+              CACHE                    0 (counter: 832)
+              CACHE                    0 (version: 131297)
+              CACHE                    0
+              CACHE                    0 (keys_version: 93)
+              CACHE                    0
+              CACHE                    0 (descr: 2422468810480)
+              CACHE                    0
+              CACHE                    0
+              CACHE                    0
+              CALL_PY_EXACT_ARGS       0
+              CACHE                    0 (counter: 832)
+              CACHE                    0 (func_version: 2155)
+              CACHE                    0
+              POP_TOP
+              LOAD_CONST_IMMORTAL      0 (None)
+              RETURN_VALUE
+
+280   L1:     LOAD_CONST_IMMORTAL      0 (None)
+              RETURN_VALUE
+
+===== ScaleConstraint.execute =====
+327           RESUME_CHECK             0
+
+328           LOAD_FAST_BORROW         0 (self)
+              LOAD_ATTR_INSTANCE_VALUE 0 (direction)
+              CACHE                    0 (counter: 832)
+              CACHE                    0 (version: 131304)
+              CACHE                    0
+              CACHE                    0 (keys_version: 24)
+              CACHE                    0
+              CACHE                    0 (descr: 0)
+              CACHE                    0
+              CACHE                    0
+              CACHE                    0
+              LOAD_GLOBAL_MODULE       2 (Direction)
+              CACHE                    0 (counter: 832)
+              CACHE                    0 (index: 90)
+              CACHE                    0 (module_keys_version: 0)
+              CACHE                    0 (builtin_keys_version: 15)
+              LOAD_ATTR_CLASS          4 (FORWARD)
+              CACHE                    0 (counter: 832)
+              CACHE                    0 (version: 131298)
+              CACHE                    0
+              CACHE                    0 (keys_version: 0)
+              CACHE                    0
+              CACHE                    0 (descr: 140709854307448)
+              CACHE                    0
+              CACHE                    0
+              CACHE                    0
+              COMPARE_OP_INT          88 (bool(==))
+              CACHE                    0 (counter: 832)
+              POP_JUMP_IF_FALSE       94 (to L1)
+              CACHE                    0 (counter: 1)
+              NOT_TAKEN
+
+329           LOAD_FAST_BORROW         0 (self)
+              LOAD_ATTR_INSTANCE_VALUE 6 (v1)
+              CACHE                    0 (counter: 832)
+              CACHE                    0 (version: 131304)
+              CACHE                    0
+              CACHE                    0 (keys_version: 56)
+              CACHE                    0
+              CACHE                    0 (descr: 0)
+              CACHE                    0
+              CACHE                    0
+              CACHE                    0
+              LOAD_ATTR_INSTANCE_VALUE 8 (value)
+              CACHE                    0 (counter: 832)
+              CACHE                    0 (version: 131293)
+              CACHE                    0
+              CACHE                    0 (keys_version: 64)
+              CACHE                    0
+              CACHE                    0 (descr: 0)
+              CACHE                    0
+              CACHE                    0
+              CACHE                    0
+              LOAD_FAST_BORROW         0 (self)
+              LOAD_ATTR_INSTANCE_VALUE 10 (scale)
+              CACHE                    0 (counter: 832)
+              CACHE                    0 (version: 131304)
+              CACHE                    0
+              CACHE                    0 (keys_version: 40)
+              CACHE                    0
+              CACHE                    0 (descr: 0)
+              CACHE                    0
+              CACHE                    0
+              CACHE                    0
+              LOAD_ATTR_INSTANCE_VALUE 8 (value)
+              CACHE                    0 (counter: 832)
+              CACHE                    0 (version: 131293)
+              CACHE                    0
+              CACHE                    0 (keys_version: 64)
+              CACHE                    0
+              CACHE                    0 (descr: 0)
+              CACHE                    0
+              CACHE                    0
+              CACHE                    0
+              BINARY_OP_MULTIPLY_INT   5 (*)
+              CACHE                    0 (counter: 832)
+              CACHE                    0 (descr: 0)
+              CACHE                    0
+              CACHE                    0
+              CACHE                    0
+              LOAD_FAST_BORROW         0 (self)
+              LOAD_ATTR_INSTANCE_VALUE 12 (offset)
+              CACHE                    0 (counter: 832)
+              CACHE                    0 (version: 131304)
+              CACHE                    0
+              CACHE                    0 (keys_version: 32)
+              CACHE                    0
+              CACHE                    0 (descr: 0)
+              CACHE                    0
+              CACHE                    0
+              CACHE                    0
+              LOAD_ATTR_INSTANCE_VALUE 8 (value)
+              CACHE                    0 (counter: 832)
+              CACHE                    0 (version: 131293)
+              CACHE                    0
+              CACHE                    0 (keys_version: 64)
+              CACHE                    0
+              CACHE                    0 (descr: 0)
+              CACHE                    0
+              CACHE                    0
+              CACHE                    0
+              BINARY_OP_ADD_INT        0 (+)
+              CACHE                    0 (counter: 832)
+              CACHE                    0 (descr: 0)
+              CACHE                    0
+              CACHE                    0
+              CACHE                    0
+              LOAD_FAST_BORROW         0 (self)
+              LOAD_ATTR_INSTANCE_VALUE 14 (v2)
+              CACHE                    0 (counter: 832)
+              CACHE                    0 (version: 131304)
+              CACHE                    0
+              CACHE                    0 (keys_version: 64)
+              CACHE                    0
+              CACHE                    0 (descr: 0)
+              CACHE                    0
+              CACHE                    0
+              CACHE                    0
+              STORE_ATTR_INSTANCE_VALUE 4 (value)
+              CACHE                    0 (counter: 832)
+              CACHE                    0 (version: 131293)
+              CACHE                    0
+              CACHE                    0 (index: 64)
+              LOAD_CONST_IMMORTAL      0 (None)
+              RETURN_VALUE
+
+332   L1:     LOAD_FAST_BORROW         0 (self)
+              LOAD_ATTR_INSTANCE_VALUE 14 (v2)
+              CACHE                    0 (counter: 832)
+              CACHE                    0 (version: 131304)
+              CACHE                    0
+              CACHE                    0 (keys_version: 64)
+              CACHE                    0
+              CACHE                    0 (descr: 0)
+              CACHE                    0
+              CACHE                    0
+              CACHE                    0
+              LOAD_ATTR_INSTANCE_VALUE 8 (value)
+              CACHE                    0 (counter: 832)
+              CACHE                    0 (version: 131293)
+              CACHE                    0
+              CACHE                    0 (keys_version: 64)
+              CACHE                    0
+              CACHE                    0 (descr: 0)
+              CACHE                    0
+              CACHE                    0
+              CACHE                    0
+              LOAD_FAST_BORROW         0 (self)
+              LOAD_ATTR_INSTANCE_VALUE 12 (offset)
+              CACHE                    0 (counter: 832)
+              CACHE                    0 (version: 131304)
+              CACHE                    0
+              CACHE                    0 (keys_version: 32)
+              CACHE                    0
+              CACHE                    0 (descr: 0)
+              CACHE                    0
+              CACHE                    0
+              CACHE                    0
+              LOAD_ATTR_INSTANCE_VALUE 8 (value)
+              CACHE                    0 (counter: 832)
+              CACHE                    0 (version: 131293)
+              CACHE                    0
+              CACHE                    0 (keys_version: 64)
+              CACHE                    0
+              CACHE                    0 (descr: 0)
+              CACHE                    0
+              CACHE                    0
+              CACHE                    0
+              BINARY_OP_SUBTRACT_INT  10 (-)
+              CACHE                    0 (counter: 832)
+              CACHE                    0 (descr: 0)
+              CACHE                    0
+              CACHE                    0
+              CACHE                    0
+              LOAD_FAST_BORROW         0 (self)
+              LOAD_ATTR_INSTANCE_VALUE 10 (scale)
+              CACHE                    0 (counter: 832)
+              CACHE                    0 (version: 131304)
+              CACHE                    0
+              CACHE                    0 (keys_version: 40)
+              CACHE                    0
+              CACHE                    0 (descr: 0)
+              CACHE                    0
+              CACHE                    0
+              CACHE                    0
+              LOAD_ATTR_INSTANCE_VALUE 8 (value)
+              CACHE                    0 (counter: 832)
+              CACHE                    0 (version: 131293)
+              CACHE                    0
+              CACHE                    0 (keys_version: 64)
+              CACHE                    0
+              CACHE                    0 (descr: 0)
+              CACHE                    0
+              CACHE                    0
+              CACHE                    0
+
+331           BINARY_OP               11 (/)
+              CACHE                    0 (counter: 1319)
+              CACHE                    0 (descr: 0)
+              CACHE                    0
+              CACHE                    0
+              CACHE                    0
+              LOAD_FAST_BORROW         0 (self)
+              LOAD_ATTR_INSTANCE_VALUE 6 (v1)
+              CACHE                    0 (counter: 832)
+              CACHE                    0 (version: 131304)
+              CACHE                    0
+              CACHE                    0 (keys_version: 56)
+              CACHE                    0
+              CACHE                    0 (descr: 0)
+              CACHE                    0
+              CACHE                    0
+              CACHE                    0
+              STORE_ATTR_INSTANCE_VALUE 4 (value)
+              CACHE                    0 (counter: 832)
+              CACHE                    0 (version: 131293)
+              CACHE                    0
+              CACHE                    0 (index: 64)
+              LOAD_CONST_IMMORTAL      0 (None)
+              RETURN_VALUE
+
+===== Strength.stronger =====
+ 44           RESUME_CHECK             0
+
+ 46           LOAD_FAST_BORROW         1 (s1)
+              LOAD_ATTR_INSTANCE_VALUE 0 (strength)
+              CACHE                    0 (counter: 832)
+              CACHE                    0 (version: 131294)
+              CACHE                    0
+              CACHE                    0 (keys_version: 32)
+              CACHE                    0
+              CACHE                    0 (descr: 0)
+              CACHE                    0
+              CACHE                    0
+              CACHE                    0
+              LOAD_FAST_BORROW         2 (s2)
+              LOAD_ATTR_INSTANCE_VALUE 0 (strength)
+              CACHE                    0 (counter: 832)
+              CACHE                    0 (version: 131294)
+              CACHE                    0
+              CACHE                    0 (keys_version: 32)
+              CACHE                    0
+              CACHE                    0 (descr: 0)
+              CACHE                    0
+              CACHE                    0
+              CACHE                    0
+              COMPARE_OP_INT           2 (<)
+              CACHE                    0 (counter: 832)
+              RETURN_VALUE
+
+===== Strength.weaker =====
+ 48           RESUME_CHECK             0
+
+ 50           LOAD_FAST_BORROW         1 (s1)
+              LOAD_ATTR_INSTANCE_VALUE 0 (strength)
+              CACHE                    0 (counter: 832)
+              CACHE                    0 (version: 131294)
+              CACHE                    0
+              CACHE                    0 (keys_version: 32)
+              CACHE                    0
+              CACHE                    0 (descr: 0)
+              CACHE                    0
+              CACHE                    0
+              CACHE                    0
+              LOAD_FAST_BORROW         2 (s2)
+              LOAD_ATTR_INSTANCE_VALUE 0 (strength)
+              CACHE                    0 (counter: 832)
+              CACHE                    0 (version: 131294)
+              CACHE                    0
+              CACHE                    0 (keys_version: 32)
+              CACHE                    0
+              CACHE                    0 (descr: 0)
+              CACHE                    0
+              CACHE                    0
+              CACHE                    0
+              COMPARE_OP_INT         132 (>)
+              CACHE                    0 (counter: 832)
+              RETURN_VALUE

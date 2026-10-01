@@ -62,3 +62,16 @@ was discarded.
 ## Hot-loop diagnosis
 
 The dedicated [CPython 3.14.7 VM comparison](cpython314-vm-comparison-20260930.md) records the warmed `unpickle_pure_python` loop and XLang3 IR. CPython specializes the dispatch dictionary access and exact-argument function call. XLang3 already uses indexed local slots and borrowed local loads; its measured cost is in VM loop control, `GetItem`, Python call dispatch, and frame switching. The fast all-suite `pickle_pure_python` / `unpickle_pure_python` values are kept separate from the focused rigorous result in that diagnosis.
+
+## DeltaBlue native VM attribution
+
+A separate per-op timer profile of the unchanged DeltaBlue body places 21.0%
+of positive exclusive VM self-time in loop control, 15.3% in frame transitions,
+16.4% in method-call opcodes, and 9.6% in `LoadModuleAttr`. These are
+instrumented diagnostic shares, not performance scores. The paired rigorous
+ordinary-build result is still about 17.25× slower than CPython 3.14.7. The
+[DeltaBlue implementation analysis](deltablue-cpython314-implementation-analysis-20260930.md)
+contains the left-to-right chart, source comparison, raw logs, and exact probe
+patch. This workload-specific profile points the next experiment at shared VM
+dispatch and frame handoff; it does not justify another name-index or
+instance-layout trial.

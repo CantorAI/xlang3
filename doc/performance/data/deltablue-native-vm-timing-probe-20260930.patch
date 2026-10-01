@@ -1,0 +1,45 @@
+diff --git a/src/executor/xlang_vm/xlang_vm_loop.cpp b/src/executor/xlang_vm/xlang_vm_loop.cpp
+index 8d36e66..e3dfc09 100644
+--- a/src/executor/xlang_vm/xlang_vm_loop.cpp
++++ b/src/executor/xlang_vm/xlang_vm_loop.cpp
+@@ -35,6 +35,8 @@ limitations under the License.
+ #include "ops/xlang_vm_ops_fused.h"
+ #include "runtime_lock.h"
+ 
++#include "../../../benchmarks/diagnostics/native_vm_opcode_timer.h"
++
+ #include <array>
+ 
+ #include "xlang3/attribute.h"
+@@ -160,6 +162,7 @@ RuntimeResult Interpreter::run_function(
+     GeneratorObject* generator,
+     std::shared_ptr<RuntimeDebugPauseState> pause_state) {
+   RuntimeResult result;
++  diagnostics::VMOpcodeTimer invocation_timer(diagnostics::kVMInvocationTimer);
+   if (function_id >= module.functions.size()) {
+     result.errors.push_back("invalid function id");
+     return result;
+@@ -1601,6 +1604,7 @@ RuntimeResult Interpreter::run_function(
+   uint32_t execution_lock_ticks = 0;
+ 
+   while (frame_count != 0) {
++    diagnostics::VMOpcodeTimer frame_switch_timer(diagnostics::kVMFrameSwitchTimer);
+     // Every push or pop exits the opcode loop through switch_frame, so publish
+     // the changed stack once here instead of comparing generations per opcode.
+     refresh_runtime_frame_views();
+@@ -1714,6 +1718,7 @@ RuntimeResult Interpreter::run_function(
+ 
+     try {
+     for (;;) {
++      diagnostics::VMOpcodeTimer loop_timer(diagnostics::kVMLoopControlTimer);
+       // CPython 3.14 places eval-breaker handling in periodic operations such
+       // as CALL and backward jumps. XLang also bounds cross-thread event
+       // delivery to 64 IR instructions, so the ordinary per-op path must stay
+@@ -1834,6 +1839,7 @@ RuntimeResult Interpreter::run_function(
+         }
+       }
+       const auto& in = fn.code[ip];
++      diagnostics::VMOpcodeTimer opcode_timer(static_cast<uint16_t>(in.op));
+       if (count_opcode_dispatches) {
+         xlang_perf_count_opcode_enabled(static_cast<uint16_t>(in.op));
+       }

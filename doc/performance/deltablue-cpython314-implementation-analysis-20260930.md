@@ -82,13 +82,11 @@ share a class key layout and its adaptive opcode guards that layout before
 loading by offset. This difference matters when thousands of repeated reads
 and method calls run inside the interpreter.
 
-The evidence therefore points to adaptive, guarded fast execution across
-ordinary instance loads, method dispatch, and small Python frames—not a C++
-port of a pure-Python library. Existing specialized operations must preserve
-the generic path for descriptors, dynamic instance attributes, subclass
-overrides, hooks, tracing, and monitoring. The next broad optimization should
-make common stable object shapes cheap at every hot read and call site, then
-measure the complete fixed Release gate and official target workload.
+The evidence points to shared VM execution costs. Any specialized operation
+must preserve descriptors, dynamic instance attributes, subclass overrides,
+hooks, tracing, and monitoring. A follow-up DeltaBlue-specific native timing
+profile below measures the loop, frame transitions, and hot IR operations in
+this workload rather than inferring their shares from unpickle.
 
 ## Validation and limits
 
@@ -115,3 +113,98 @@ pyperf pairs measure **62.8 ms to 49.6 ms**, or **1.27× faster within XLang3**;
 the candidate is still **18.2× slower than CPython 3.14.7**. The unpickle
 result and cache ownership details are in the
 [cross-activation cache report](vm-inline-cache-cross-activation-20260930.md).
+
+## Follow-up: DeltaBlue-specific native VM timing (2026-09-30)
+
+I rebuilt a separate instrumented Release executable and ran the unchanged
+pyperformance 1.14.0 `bm_deltablue/run_benchmark.py` body through the direct
+diagnostic runner. One process ran one benchmark iteration to capture startup
+and import work; a second ran 21 iterations. The table subtracts the first
+process from the second and divides by the 20 additional iterations. This
+locates native costs in DeltaBlue itself; clock scopes perturb execution, so
+these values are not benchmark scores or claimed speedups.
+
+| Exclusive VM scope | Positive self-time share | Calls per iteration | Self ms per iteration | ns per call |
+|---|---:|---:|---:|---:|
+| VM loop control | 21.02% | 411,709 | 15.538 | 37.7 |
+| VM frame switch | 15.27% | 98,090 | 11.282 | 115.0 |
+| `CallLocalMethod` | 10.75% | 41,456 | 7.947 | 191.7 |
+| `LoadModuleAttr` | 9.58% | 31,383 | 7.080 | 225.6 |
+| `CallMethod` | 5.69% | 13,526 | 4.209 | 311.2 |
+| `LoadLocalAttr` | 5.30% | 78,198 | 3.918 | 50.1 |
+| `ReturnConst` | 4.97% | 19,496 | 3.675 | 188.5 |
+| `Return` | 4.84% | 28,229 | 3.576 | 126.7 |
+| `Compare` | 4.12% | 4,770 | 3.048 | 639.0 |
+
+The horizontal bars show exclusive diagnostic self-time per DeltaBlue
+iteration; each block represents about 1 ms and longer bars run left to right.
+
+```text
+VM loop control    15.538 ms |████████████████
+VM frame switch    11.282 ms |███████████
+CallLocalMethod     7.947 ms |████████
+LoadModuleAttr      7.080 ms |███████
+CallMethod          4.209 ms |████
+LoadLocalAttr       3.918 ms |████
+ReturnConst         3.675 ms |████
+Return              3.576 ms |████
+Compare             3.048 ms |███
+```
+
+Loop control, frame transitions, and the two method-call opcodes account for
+about 53% of positive measured self-time; `LoadModuleAttr` adds another 9.6%.
+The profile recorded roughly 98,000 frame-loop entries per workload
+iteration. This is direct evidence that the gap is spread across XLang3's
+shared dispatch and call/frame path, rather than being explained by local-name
+binding alone. It does not mean that each frame-loop entry corresponds to a
+separate source-level call: the VM re-enters its frame loop on both push and
+return transitions.
+
+`LoadModuleAttr` currently expands into a module-slot load followed by a
+general attribute load in [`xlang_vm_ops_fused.h`](../../src/executor/xlang_vm/ops/xlang_vm_ops_fused.h#L26).
+The common method path checks instance overrides and hooks before reaching its
+class-version call cache in [`xlang_vm_ops_call.h`](../../src/executor/xlang_vm/ops/xlang_vm_ops_call.h#L718).
+Those guards preserve Python behavior, but they leave more per-op work than
+CPython's warmed specializations. CPython 3.14.7 guards direct instance-value
+loads by type/layout version, has a method-load specialization, and prepares
+exact-argument calls in its evaluator ([`LOAD_ATTR_INSTANCE_VALUE`](https://github.com/python/cpython/blob/v3.14.7/Python/bytecodes.c#L2148-L2170),
+[`LOAD_ATTR_CLASS`](https://github.com/python/cpython/blob/v3.14.7/Python/bytecodes.c#L2271-L2288),
+[`LOAD_ATTR_METHOD_WITH_VALUES`](https://github.com/python/cpython/blob/v3.14.7/Python/bytecodes.c#L3321-L3336),
+[`CALL_PY_EXACT_ARGS`](https://github.com/python/cpython/blob/v3.14.7/Python/bytecodes.c#L3718-L3727)). XLang3's
+indexed IR removes name decoding; it does not itself remove these dynamic
+checks, helper dispatch, or frame transitions.
+
+The actual warmed `BinaryConstraint.input` and `output` disassembly makes the
+difference concrete. CPython executes `LOAD_FAST_BORROW`,
+`LOAD_ATTR_INSTANCE_VALUE` for `self.direction`, `LOAD_GLOBAL_MODULE` for
+`Direction`, `LOAD_ATTR_CLASS` for `FORWARD`, and `COMPARE_OP_INT`; it then
+loads `v1` or `v2` with `LOAD_ATTR_INSTANCE_VALUE`. In
+`BinaryConstraint.recalculate`, the calls to `input` and `output` use
+`LOAD_ATTR_METHOD_WITH_VALUES` followed by `CALL_PY_EXACT_ARGS`. The saved
+adaptive disassembly came from five warm iterations of the same official
+benchmark source on CPython 3.14.7: [warmed DeltaBlue disassembly](data/cpython314-deltablue-warmed-dis-20260930.txt).
+The corresponding XLang3 selector IR is in
+[`deltablue-ir/run_benchmark.ir.txt`](data/deltablue-ir/run_benchmark.ir.txt).
+Thus CPython retains dynamic semantics behind compact version guards at each
+hot bytecode site, while XLang3 still dispatches the general class-attribute
+path for `Direction.FORWARD`.
+
+This profile sharpens the next target to generic VM dispatch and frame
+handoff. It does not justify repeating the already neutral instance-layout
+guard or inherited selector trials, and it does not attribute unpickle's
+timing percentages to DeltaBlue. The latest ordinary-build rigorous comparison
+is still **47.1 ± 4.5 ms** for XLang3 versus **2.73 ± 0.21 ms** for CPython
+3.14.7, about **17.25× slower**; the full performance goal remains open.
+
+Raw evidence and reproduction details:
+
+- [One-iteration diagnostic log](data/deltablue-native-vm-timing-1loop-20260930.txt)
+- [21-iteration diagnostic log](data/deltablue-native-vm-timing-21loops-20260930.txt)
+- [CPython 3.14.7 warmed DeltaBlue disassembly](data/cpython314-deltablue-warmed-dis-20260930.txt)
+- [Disassembly driver](../../benchmarks/diagnostics/dump_cpython_deltablue_dis.py); run it under CPython 3.14 with the pyperformance `bm_deltablue/run_benchmark.py` path to regenerate the warmed output.
+- [Startup-subtracted CSV](data/deltablue-native-vm-timing-delta20-20260930.csv)
+- [Startup-subtracted JSON](data/deltablue-native-vm-timing-delta20-20260930.json)
+- [Temporary instrumentation patch](data/deltablue-native-vm-timing-probe-20260930.patch)
+- Diagnostic `xlang3.exe` SHA-256: `4C7A9D288F0751BA43F4786F9E012E0944BBE9602869D12C0CE857CA65D508C3`.
+- Diagnostic `xlang3_runtime.dll` SHA-256: `2EAC15B2A11A95C07B759D2AD1364F543FBD659ABA2F416209906CE21A17CCB0`.
+- Source commit: `be989fce1a8d25aa5bc151e61b3a58f279c09cb5`; the ordinary source was restored after building the separate probe.
