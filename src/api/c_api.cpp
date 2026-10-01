@@ -37,6 +37,7 @@ limitations under the License.
 
 #include <filesystem>
 #include <fstream>
+#include <cctype>
 #include <iostream>
 #include <limits>
 #include <memory>
@@ -562,10 +563,32 @@ X3Status x3_expression_compile(X3Runtime* runtime, const char* source, X3Value* 
   auto* rt = as_runtime(runtime);
   if (result) *result = x3_value_invalid();
   if (!rt || !source || !result) return fail(rt, "null expression compilation argument");
-  auto parsed = xlang3::parse_expression_source(source);
+  // Galaxy's YAML task conditions use `GPU = 1 and VLM == 1` to reserve
+  // one GPU while checking VLM as a capability. A single `=` is not an
+  // expression operator, so capture the leading reservation separately.
+  std::string expression_source(source);
+  std::string reservation;
+  size_t pos = 0;
+  while (pos < expression_source.size() && std::isspace(static_cast<unsigned char>(expression_source[pos]))) ++pos;
+  const size_t name_start = pos;
+  if (pos < expression_source.size() &&
+      (std::isalpha(static_cast<unsigned char>(expression_source[pos])) || expression_source[pos] == '_')) {
+    ++pos;
+    while (pos < expression_source.size() &&
+           (std::isalnum(static_cast<unsigned char>(expression_source[pos])) || expression_source[pos] == '_')) ++pos;
+    const size_t name_end = pos;
+    while (pos < expression_source.size() && std::isspace(static_cast<unsigned char>(expression_source[pos]))) ++pos;
+    if (pos < expression_source.size() && expression_source[pos] == '=' &&
+        (pos + 1 == expression_source.size() || expression_source[pos + 1] != '=')) {
+      reservation = expression_source.substr(name_start, name_end - name_start);
+      expression_source.erase(0, pos + 1);
+      expression_source.erase(0, expression_source.find_first_not_of(" \t\r\n"));
+    }
+  }
+  auto parsed = xlang3::parse_expression_source(expression_source);
   if (!parsed.errors.empty()) return fail(rt, parsed.errors.front());
   if (!parsed.expression) return fail(rt, "expression is empty");
-  auto expression = xlang3::capture_expression(*parsed.expression);
+  auto expression = xlang3::capture_expression(*parsed.expression, reservation);
   const auto& root = reinterpret_cast<xlang3::ExpressionObject*>(expression.as.obj)->root;
   auto validate = [&](auto&& self, const xlang3::ExpressionNode& node) -> bool {
     if (node.op == "error") return false;
