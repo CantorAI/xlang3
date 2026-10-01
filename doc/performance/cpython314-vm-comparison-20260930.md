@@ -11,7 +11,7 @@ and [CPython 3.14.7](data/getitem-const-cpython314-rigorous-20260930.json).
 
 The pure-Python pyperformance pickle case runs `pickle._Unpickler`; it does
 not select `_pickle.Unpickler`. In CPython 3.14.7,
-[`_Unpickler.load`](https://github.com/python/cpython/blob/v3.14.7/Lib/pickle.py#L1294-L1321)
+[`_Unpickler.load`](https://github.com/python/cpython/blob/v3.14.7/Lib/pickle.py#L1192-L1219)
 binds `read` and `dispatch` to locals, then executes `dispatch[key[0]](self)`.
 XLang3 compiled that same `Lib/pickle.py` from the CPython 3.14.7 installation.
 Its IR for this line is:
@@ -67,16 +67,21 @@ CPython specializes the dispatch dictionary access and keeps the one-argument
 Python call on `CALL_PY_EXACT_ARGS` for the observed workload.
 
 In CPython 3.14.7, the
-[`CALL_PY_EXACT_ARGS` macro](https://github.com/python/cpython/blob/v3.14.7/Python/bytecodes.c#L4041-L4051)
+[`CALL_PY_EXACT_ARGS` macro](https://github.com/python/cpython/blob/v3.14.7/Python/bytecodes.c#L3718-L3727)
 checks the function version, exact argument count, available frame-stack space,
 and recursion limit. Its frame initialization path
-([`_INIT_CALL_PY_EXACT_ARGS`](https://github.com/python/cpython/blob/v3.14.7/Python/bytecodes.c#L3998-L4007))
+([`_INIT_CALL_PY_EXACT_ARGS`](https://github.com/python/cpython/blob/v3.14.7/Python/bytecodes.c#L3678-L3688))
 pushes an `_PyInterpreterFrame` and transfers the argument stack references
-into its locals. The evaluator then continues in the same dispatch loop.
+into its locals; `_PUSH_FRAME` then changes the active frame and continues the
+same evaluator loop
+([`_PUSH_FRAME`](https://github.com/python/cpython/blob/v3.14.7/Python/bytecodes.c#L3689-L3704)).
+The exact-dict subscription specialization likewise checks for an exact dict
+and calls `PyDict_GetItemRef` directly
+([`BINARY_OP_SUBSCR_DICT`](https://github.com/python/cpython/blob/v3.14.7/Python/bytecodes.c#L911-L936)).
 CPython keeps most of these compact frames contiguous on a per-thread data
 stack for locality
 ([frame design](https://github.com/python/cpython/blob/v3.14.7/InternalDocs/frames.md#L13-L20),
-[call handling](https://github.com/python/cpython/blob/v3.14.7/InternalDocs/interpreter.md#L197-L230)).
+[call handling](https://github.com/python/cpython/blob/v3.14.7/InternalDocs/interpreter.md#L169-L200)).
 
 XLang3 also keeps Python calls on its VM frame stack and returns to the same
 opcode loop, so this is not simply “recursive C++ call versus recursive
@@ -111,8 +116,8 @@ The event helper keeps its common path to a thread-local countdown and polls
 the cross-thread event word every 64 instructions. CPython places its periodic
 eval-breaker check in operations such as `CALL`, backward jumps, and `RESUME`
 ([periodic checks](https://github.com/python/cpython/blob/v3.14.7/Python/bytecodes.c#L147-L164),
-[the `CALL` macro](https://github.com/python/cpython/blob/v3.14.7/Python/bytecodes.c#L3836-L3837),
-[backward-jump macros](https://github.com/python/cpython/blob/v3.14.7/Python/bytecodes.c#L2927-L2940)).
+[the `CALL` macro](https://github.com/python/cpython/blob/v3.14.7/Python/bytecodes.c#L3533-L3534),
+[backward-jump macros](https://github.com/python/cpython/blob/v3.14.7/Python/bytecodes.c#L2686-L2695)).
 The XLang3 event-delivery bound is stricter than relying only on those
 operation boundaries, so any loop optimization must preserve the 64-IR-op
 bound while keeping the common path cheap.
@@ -159,20 +164,20 @@ Repeating that lookup-only change is not the next target.
 
 ## Why a CPython-like integer side table did not help
 
-CPython 3.14.7's [`dictobject.c`](https://github.com/python/cpython/blob/v3.14.7/Objects/dictobject.c#L13-L49)
+CPython 3.14.7's [`dictobject.c`](https://github.com/python/cpython/blob/v3.14.7/Objects/dictobject.c#L15-L45)
 documents the compact signed index array beside the insertion-ordered entry
 array. Its index width is 8, 16, 32, or 64 bits according to table size, and
 the table is resized before it becomes two-thirds full
-([load threshold](https://github.com/python/cpython/blob/v3.14.7/Objects/dictobject.c#L146-L149)).
+([load threshold](https://github.com/python/cpython/blob/v3.14.7/Objects/dictobject.c#L481-L492)).
 For integer keys, the integer itself is its hash; lookup starts from low hash
 bits and uses the `5*i + 1 + perturb` recurrence after collisions
-([probe sequence](https://github.com/python/cpython/blob/v3.14.7/Objects/dictobject.c#L289-L378)).
+([probe sequence](https://github.com/python/cpython/blob/v3.14.7/Objects/dictobject.c#L917-L957)).
 The generic lookup routine reads the compact index, compares the matching
 entry, then advances the perturb probe sequence
-([`do_lookup`](https://github.com/python/cpython/blob/v3.14.7/Objects/dictobject.c#L1002-L1025)).
+([`do_lookup`](https://github.com/python/cpython/blob/v3.14.7/Objects/dictobject.c#L917-L957)).
 At the bytecode site, CPython's specialized dictionary subscript checks for an
 exact dict and calls `PyDict_GetItemRef`
-([`BINARY_OP_SUBSCR_DICT`](https://github.com/python/cpython/blob/v3.14.7/Python/bytecodes.c#L1002-L1018)).
+([`BINARY_OP_SUBSCR_DICT`](https://github.com/python/cpython/blob/v3.14.7/Python/bytecodes.c#L911-L936)).
 This makes the common integer lookup a cheap first index read while keeping
 insertion order in the entries.
 
@@ -325,6 +330,19 @@ ownership traffic when a reused frame stayed in the same module. It measured
 change was removed. The [candidate pyperf result](data/frame-owner-candidate-unpickle-pure-python-rigorous-20260930.json)
 preserves that negative result.
 
+A type-based `PolymorphicUserFunction` call-site state modeled after CPython's
+function-type call specialization also failed its order-balanced rigorous
+check: unpickle improved by only 1% in one order and was insignificant in the
+reverse order; DeltaBlue was insignificant in both orders. The candidate was
+removed. The [trial report](polymorphic-user-function-call-trial-20260930.md)
+preserves the matched samples, binaries, and the earlier fast-screen signal.
+
+The registered native `_json` encoder's printable-ASCII run-append experiment
+also failed two opposite-order `json_dumps` checks: one was insignificant and
+the reverse order favored the control by 6%. The code and fixture were
+removed. See the [trial report](json-ascii-run-append-trial-20261001.md) and
+its four raw pyperf files.
+
 The cache-lifetime follow-up validates one CPython-inspired change, but the
 overall goal remains open. Its `CallMethod` cache does not cover generic
 `Call`, which remains the largest call cost in the unpickle profile; item
@@ -344,3 +362,71 @@ on that workload, while the all-suite geometric ratio remained 0.122x. That
 loop optimization was valuable but applied to one narrow hot path; it did not
 speed up the unrelated call, container, generator, and standard-library
 workloads. See the [August/current loop comparison and full-suite follow-up](pyperformance-xlang3-vs-cpython314-20260928.md).
+
+### Coroutine `SEND` dispatch is a separate frame-switching gap (2026-10-01)
+
+The saved balanced-PGO full-fast comparison measured `coroutines` at 17.44 ms
+on CPython 3.14.7 and 416 ms on XLang3: **0.042x CPython/XLang3**, or about
+**23.9x slower** for XLang3. The completed full-fast rerun measured 397 ms on
+XLang3 (**0.0439x**, about **22.8x slower**). Its [full 97-case report and
+horizontal ratio chart](pyperformance-xlang3-vs-cpython314-full-fast-shim-20261001.md)
+record the run, every matched subtest, and each failed or timed-out case. The
+official
+`bm_coroutines` workload recursively evaluates `fibonacci(25)` with `await`
+and repeatedly drives the root coroutine with `.send(None)`. It isolates
+coroutine chaining without an event loop or a native extension.
+
+CPython 3.14.7's exact-generator `SEND` path pushes the value directly onto
+the saved coroutine frame, links that frame to its awaiting caller, and
+continues dispatch with `DISPATCH_INLINED` in the same evaluator
+([`Python/bytecodes.c`](https://github.com/python/cpython/blob/v3.14.7/Python/bytecodes.c#L1187-L1255)).
+The generic `gen_send_ex2` path also enters `_PyEval_EvalFrame`
+([`Objects/genobject.c`](https://github.com/python/cpython/blob/v3.14.7/Objects/genobject.c#L2493-L2612)),
+but the hot `SEND` opcode can avoid that API boundary for exact coroutine
+objects.
+
+XLang3 lowers `await expr` to an `Await` VM instruction
+([`lower.cpp`](../../src/sema/lower.cpp#L6509-L6513)). Its `await_op` handler
+copies the awaited `Value`, builds send/result/error temporaries, and calls
+`generator_send` for the child coroutine
+([`xlang_vm_ops_async.h`](../../src/executor/xlang_vm/ops/xlang_vm_ops_async.h#L34-L110)).
+That path constructs an `Interpreter` and invokes `resume_generator`, which
+enters `run_function` again for each recursive await
+([`generator.cpp`](../../src/runtime/generator.cpp#L347-L399),
+[`xlang_interpreter.cpp`](../../src/executor/xlang_vm/xlang_interpreter.cpp#L263-L287)).
+Ordinary XLang3 Python calls already push frames onto the active VM stack;
+the repeated evaluator entry is specific to `Await` delegating to a coroutine.
+The synchronous delegation trampoline is not a shortcut here: it explicitly
+excludes coroutine objects ([`generator.cpp`](../../src/runtime/generator.cpp#L236-L249)).
+
+An earlier allocation probe makes the remaining work more specific: its
+coroutine workload reduced `Function` allocations from 242,786 to 1 and
+`Instance` allocations from 242,786 to 2, while `Generator` allocations stayed
+at 242,785. The matching fast sample was still **469 ms** on XLang3 versus
+**16.9 ms** on CPython (**27.7x slower**). The [allocation counts](data/coroutines-allocation-diagnostic-20260929.csv),
+[XLang3 sample](data/pyperformance-xlang3-coroutines-callframe-fast-20260929.json),
+and [CPython sample](data/pyperformance-cpython314-coroutines-current-fast-20260929.json)
+show why reducing function-wrapper traffic alone did not close this gap;
+CPython also creates coroutine objects, but its exact `SEND` path executes
+their frames on the current evaluator stack.
+
+The XLang3 path also rebuilds VM execution storage for each such fresh
+coroutine: `run_function` starts a local `std::vector<VMFrame>` and reserves
+eight entries ([`xlang_vm_loop.cpp`](../../src/executor/xlang_vm/xlang_vm_loop.cpp#L561-L565),
+[`initial frame setup`](../../src/executor/xlang_vm/xlang_vm_loop.cpp#L639-L644));
+each new `VMFrame` sizes a per-instruction cache to the function's code length
+([`xlang_frame.h`](../../src/executor/xlang_vm/xlang_frame.h#L255-L279)). The
+per-depth prepared-frame cache is owned by those VM frames, so it cannot reuse
+that storage across the 242,785 independent coroutine resumes in this
+workload. This makes repeated frame/cache construction a second concrete cost
+to measure alongside evaluator re-entry. The implementation target is
+therefore the exact-coroutine `SEND` boundary and its frame storage lifetime,
+not another allocation-count-only adjustment.
+
+This source comparison makes inline coroutine-frame switching the leading
+candidate for the coroutine and async-tree gaps, but it does not by itself
+prove the full timing cause. A retained optimization must keep exact-object
+guards and a generic fallback, preserve `.send()` results and exception
+propagation, keep monitoring/debug hooks observable, and pass fixture, C++,
+and fixed Release regression checks. It must optimize the VM frame path while
+leaving pure-Python library implementations in Python.
