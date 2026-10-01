@@ -2245,8 +2245,20 @@ X3Status ssl_socket_read(X3CallContext* context, X3Runtime* runtime, void* user_
   }
   size_t read = 0;
   if (ssl_socket_io(state, context, runtime, native, "TLS read",
-                    [&] { return SSL_read_ex(native->ssl, destination,
-                                              static_cast<size_t>(requested), &read); }) != X3_STATUS_OK)
+                    [&] {
+                      const int status = SSL_read_ex(native->ssl, destination,
+                          static_cast<size_t>(requested), &read);
+                      // CPython's _ssl read treats the peer's close_notify as
+                      // a successful zero-byte read. asyncio.SSLProtocol uses
+                      // that EOF to finish the stream without an exception.
+                      if (status == 0 &&
+                          SSL_get_error(native->ssl, status) == SSL_ERROR_ZERO_RETURN &&
+                          SSL_get_shutdown(native->ssl) == SSL_RECEIVED_SHUTDOWN) {
+                        read = 0;
+                        return 1;
+                      }
+                      return status;
+                    }) != X3_STATUS_OK)
     return X3_STATUS_ERROR;
   if (has_buffer) {
     *result = x3_value_int64(static_cast<int64_t>(read));

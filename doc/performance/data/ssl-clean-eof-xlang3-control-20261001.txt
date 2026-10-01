@@ -1,0 +1,7 @@
+Traceback (most recent call last):
+  File "benchmarks/diagnostics/ssl_clean_eof.py", line 62, in <module>
+    assert server.read(4) == b""
+           ~~~~~~~~~~~^^^
+  File "C:\Python\Python314\Lib\ssl.py", line 868, in read
+    v = self._sslobj.read(len)
+_ssl.SSLZeroReturnError: (6, 'TLS read: TLS/SSL connection has been closed')

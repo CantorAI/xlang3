@@ -1,0 +1,46 @@
+executable D:\CantorAI\xlang3\build\Release\xlang3.exe
+Task asyncio.tasks Task
+Future asyncio.futures Future
+workload 3 3 5
+Python asyncio call events 12177
+825 futures.py:Future.done
+805 base_events.py:BaseEventLoop.get_debug
+755 base_events.py:BaseEventLoop._check_closed
+515 base_events.py:BaseEventLoop.call_soon
+515 base_events.py:BaseEventLoop._call_soon
+515 events.py:Handle.__init__
+510 events.py:Handle._run
+420 coroutines.py:iscoroutine
+410 futures.py:Future.cancelled
+405 futures.py:Future.exception
+350 futures.py:Future.result
+290 futures.py:Future.__init__
+290 futures.py:Future.add_done_callback
+290 futures.py:Future.__schedule_callbacks
+275 tasks.py:Task.__step
+275 tasks.py:_enter_task
+275 tasks.py:Task.__step_run_and_handle_result
+275 tasks.py:_leave_task
+275 futures.py:Future.set_result
+275 futures.py:Future.__del__
+260 futures.py:future_add_to_awaited_by
+260 futures.py:future_discard_from_awaited_by
+225 base_futures.py:isfuture
+210 base_events.py:BaseEventLoop.create_task
+210 tasks.py:Task.__init__
+210 tasks.py:_register_task
+210 tasks.py:ensure_future
+195 tasks.py:gather.<locals>._done_callback
+195 tasks.py:Task.__del__
+130 futures.py:Future.__await__
+105 events.py:_get_running_loop
+85 futures.py:_get_loop
+85 futures.py:Future.get_loop
+80 windows_events.py:IocpProactor._poll
+75 base_events.py:BaseEventLoop._run_once
+75 windows_events.py:IocpProactor.select
+75 proactor_events.py:BaseProactorEventLoop._process_events
+75 base_events.py:BaseEventLoop.time
+65 tasks.py:gather
+65 tasks.py:current_task
+visible native _asyncio call events 0

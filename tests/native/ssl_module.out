@@ -41,5 +41,7 @@ True True TLSv1.2 TLSv1.2 [('client', None), ('server', 'xlang-client')]
 3
 b'psk'
 True
+clean-eof True 0 True True
+ragged-eof True
 True True TLSv1.3 True
 6 b'socket'

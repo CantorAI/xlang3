@@ -1,0 +1,12 @@
+local_slots              pass         0.080x
+scalar_arithmetic        pass         0.022x
+range_for                pass         0.020x
+function_calls           pass         0.007x
+class_construct          pass         0.045x
+list_append              pass         0.019x
+property_access          pass         0.004x
+deepcopy_memo            pass         0.493x
+json_dumps               pass         0.028x
+gc_traversal             pass         0.178x
+subparsers               pass         0.663x
+Performance check: pass. Report: doc\performance\data\ssl-clean-eof-regression-gate-20261001.json

@@ -1,0 +1,1 @@
+{"benchmarks":[{"runs":[{"values":[12.995710000046529]}]}],"metadata":{"duration":12.999772100010887,"loops":1,"name":"asyncio_tcp_ssl","performance_version":"1.14.0","tags":["asyncio"],"unit":"second"},"version":"1.0"}

@@ -65,3 +65,42 @@ The next experiment should target the native-compatible Task/Future state and
 resume/scheduling path, then rerun this scaled workload and the official
 `async_tree` case. The full-suite report remains
 [here](pyperformance-xlang3-await-inline-full-fast-20261001.md).
+
+## Current full-suite calibration observation
+
+The refreshed set/regex candidate run has a 60-second cap for each complete
+benchmark definition. An observed `async_tree_memoization_tg` child was a
+pyperf `--worker --calibrate-loops --values 2 --min-time 0.1 --warmups 1`
+process and had accumulated more than 11 seconds of user CPU time. The
+`asyncio_tcp` definition subsequently also had a live calibration worker.
+These observations confirm active workers, rather than a stopped suite.
+They do not prove that a benchmark is semantically stuck. The timeout covers
+calibration and all measurement workers together, so it is not itself a
+steady-state timing or evidence of one specific runtime defect.
+
+The new [call-event diagnostic](../../benchmarks/diagnostics/async_tree_call_profile.py)
+uses the existing scaled tree and counts Python asyncio call events by function.
+After the suite and the SSL validation runs terminated, it ran under both
+runtimes: 5,742 Python asyncio call events for CPython and 12,177 for XLang3,
+with matching shared event-loop callback counts. Native Task internals do not
+produce equivalent Python events, so the counts identify Python scheduling
+work rather than supply a directly comparable instruction or time metric.
+The [completion/scheduling source comparison](windows-iocp-and-task-source-comparison-20261001.md)
+records both raw traces and the separate native Windows completion diagnostic.
+
+CPython 3.14.7's
+[`Modules/_asynciomodule.c`](https://github.com/python/cpython/blob/v3.14.7/Modules/_asynciomodule.c)
+keeps Future state, result/exception, loop, and the first callback/context in
+native fields. Task extends that state with the coroutine, waiter, context,
+and cancellation counters. That is a materially broader target than the
+rejected standalone generator-send shortcut. A future XLang3 implementation
+must preserve callback order/context, cancellation and exception propagation,
+subclasses and custom awaitables, eager execution, task introspection, and
+observable tracing/monitoring behavior.
+
+XLang3 already provides `instance_set_native_gc_references` and a native clear
+callback for tracing references held by native payloads. A native Task/Future
+implementation must update those edges as waiters, callback lists, results,
+and exceptions change, so task/future/callback cycles remain collectible.
+The Python event-loop implementation stays Python; `_asyncio` is the allowed
+native accelerator boundary, matching CPython's import name and public API.

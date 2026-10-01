@@ -179,4 +179,4 @@ The [CPython source comparison](cpython314-source-comparison-followup-20261001.m
 
 The measured Release build passed all 53 CTest tests and the [complete fixed 11-case regression gate](data/regex-set-final-regression-gate-20261001.json). After this full run ended, the expanded set fixture passed under both CPython 3.14.7 and the unchanged XLang3 candidate, including warm-index mutations, collision chains, and equality that changes the probed set.
 
-The fixed gate compares with the accepted XLang3 baseline, not CPython. Its large local ratios must not be presented as CPython speedups. The prepared SSL clean-EOF and ownerless-cache candidates are separate, unvalidated follow-ups.
+The fixed gate compares with the accepted XLang3 baseline, not CPython. Its large local ratios must not be presented as CPython speedups. The [SSL clean-EOF follow-up](ssl-clean-eof-pyperformance-failure-20261001.md) was subsequently validated separately; its native package is absent from the binary measured in this report. The ownerless-cache candidate remains unbuilt and unmeasured.

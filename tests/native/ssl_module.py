@@ -333,6 +333,28 @@ psk_client_context.set_psk_client_callback(None)
 psk_server_context.set_psk_server_callback(None)
 print(True)
 
+# A peer close_notify is successful EOF for both SSLObject.read overloads.
+# Keep the abrupt-transport-close check too: it must retain its protocol error.
+try:
+    client.unwrap()
+except ssl.SSLWantReadError:
+    pass
+server_in.write(client_out.read())
+eof_buffer = bytearray(b"keep")
+print("clean-eof", server.read(4) == b"", server.read(4, eof_buffer),
+      eof_buffer == b"keep", server.read(4) == b"")
+server.unwrap()
+client_in.write(server_out.read())
+client.unwrap()
+
+resume_server_in.write_eof()
+try:
+    resume_server.read(4)
+except ssl.SSLEOFError:
+    print("ragged-eof", True)
+else:
+    print("ragged-eof", False)
+
 socket_client_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
 socket_client_context.check_hostname = False
 socket_client_context.verify_mode = ssl.CERT_NONE
