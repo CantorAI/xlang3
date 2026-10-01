@@ -14,7 +14,13 @@ def main():
 
     ir = (ROOT / "src/internal/xlang3/ir.h").read_text(encoding="utf-8")
     body = ir.split("enum class Op : uint16_t {", 1)[1].split("};", 1)[0]
-    op_names = [line.strip().rstrip(",") for line in body.splitlines() if line.strip()]
+    # Enum comments describe fused opcodes but are not entries; strip them so
+    # the printed counter ids stay aligned with the runtime's numeric op ids.
+    op_names = []
+    for line in body.splitlines():
+        entry = line.split("//", 1)[0].strip().rstrip(",")
+        if entry:
+            op_names.append(entry)
     counts = {}
     for line in args.report.read_text(encoding="utf-8-sig").splitlines():
         fields = line.split()

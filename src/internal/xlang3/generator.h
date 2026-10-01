@@ -27,6 +27,9 @@ struct GeneratorObject {
   Runtime* runtime = nullptr;
   Value function;
   std::vector<Value> args;
+  // Non-owning parent link for a coroutine whose fresh frame is executing on
+  // its caller's VM stack. The caller's frame register owns the child Value.
+  GeneratorObject* inline_parent = nullptr;
   void* vm_state = nullptr;
   void (*vm_state_cleanup)(void*) = nullptr;
   // Keep a yielded VM continuation allocation attached while the generator is

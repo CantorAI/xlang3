@@ -27,12 +27,33 @@ namespace xlang3 {
 
 namespace {
 
+bool list_index_as_i64(const Value& value, int64_t& out) {
+  if (value.tag == ValueTag::Int64) {
+    out = value.as.i64;
+    return true;
+  }
+  if (value.tag == ValueTag::Bool) {
+    out = value.as.b ? 1 : 0;
+    return true;
+  }
+  if (value_as_instance(value) != nullptr) {
+    Value integer;
+    std::string ignored;
+    if (object_get_attr(value, "__xlang3_int_value__", integer, ignored) &&
+        integer.tag == ValueTag::Int64) {
+      out = integer.as.i64;
+      return true;
+    }
+  }
+  return false;
+}
+
 bool normalize_insert_index(const Value& value, size_t size, size_t& out, std::string& error) {
-  if (value.tag != ValueTag::Int64) {
+  int64_t index = 0;
+  if (!list_index_as_i64(value, index)) {
     error = "list index must be int";
     return false;
   }
-  int64_t index = value.as.i64;
   if (index < 0) {
     index += static_cast<int64_t>(size);
   }
@@ -47,11 +68,11 @@ bool normalize_insert_index(const Value& value, size_t size, size_t& out, std::s
 }
 
 bool normalize_existing_index(const Value& value, size_t size, size_t& out, std::string& error) {
-  if (value.tag != ValueTag::Int64) {
+  int64_t index = 0;
+  if (!list_index_as_i64(value, index)) {
     error = "list index must be int";
     return false;
   }
-  int64_t index = value.as.i64;
   if (index < 0) {
     index += static_cast<int64_t>(size);
   }
@@ -531,8 +552,15 @@ static BuiltinMethodSpec kListMethods[] = {
       {"count", "list.count", list_count_method},
       {"extend", "list.extend", list_extend_method},
       {"index", "list.index", list_index_method},
-      {"insert", "list.insert", list_insert_method},
-      {"pop", "list.pop", list_pop_method},
+      // fannkuch repeatedly calls cached list methods. Keep positional args in
+      // VM registers so the native call skips materialize_native_args, as the
+      // interpreter's fast-builtin path does for this same hot loop.
+      {"insert", "list.insert", list_insert_method,
+       builtin_method_fast_adapter<list_insert_method, 3>, false, nullptr, nullptr,
+       kBuiltinMethodSpecializationListInsert},
+      {"pop", "list.pop", list_pop_method,
+       builtin_method_fast_adapter<list_pop_method, 2>, false, nullptr, nullptr,
+       kBuiltinMethodSpecializationListPop},
       {"remove", "list.remove", list_remove_method},
       {"reverse", "list.reverse", list_reverse_method},
       {"sort", "list.sort", list_sort_method, nullptr, false, list_sort_method_kw},

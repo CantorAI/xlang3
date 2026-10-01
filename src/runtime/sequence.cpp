@@ -26,6 +26,7 @@ limitations under the License.
 #include "xlang3/set_object.h"
 
 #include <algorithm>
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
@@ -181,6 +182,19 @@ int64_t range_length(int64_t start, int64_t stop, int64_t step) {
   return ((start - stop - 1) / neg_step) + 1;
 }
 
+size_t normalized_slice_length(int64_t start, int64_t stop, int64_t step) {
+  if (step > 0) {
+    if (start >= stop) return 0;
+    return static_cast<size_t>((stop - start - 1) / step + 1);
+  }
+  if (start <= stop) return 0;
+  // Avoid negating INT64_MIN; normalized slice bounds keep this distance
+  // positive and no larger than the source sequence.
+  const uint64_t step_magnitude = static_cast<uint64_t>(-(step + 1)) + 1;
+  const uint64_t distance = static_cast<uint64_t>(start - stop - 1);
+  return static_cast<size_t>(distance / step_magnitude + 1);
+}
+
 bool slice_part_to_i64(const Value& value, int64_t& out, bool& is_none, std::string& error) {
   is_none = value.tag == ValueTag::None;
   if (is_none) {
@@ -189,6 +203,11 @@ bool slice_part_to_i64(const Value& value, int64_t& out, bool& is_none, std::str
   }
   if (value.tag == ValueTag::Int64) {
     out = value.as.i64;
+    return true;
+  }
+  if (value.tag == ValueTag::Bool) {
+    // bool implements Python's integer index protocol for slices.
+    out = value.as.b ? 1 : 0;
     return true;
   }
   if (value_as_bigint(value) != nullptr) {
@@ -1149,6 +1168,9 @@ bool sequence_get_item(
         return false;
       }
       std::vector<Value> items;
+      // The slice length is known after normalization. Reserve once so a
+      // short reverse slice does not grow its backing vector geometrically.
+      items.reserve(normalized_slice_length(start, stop, step));
       if (step > 0) {
         for (int64_t i = start; i < stop; i += step) {
           items.push_back(list->items[static_cast<size_t>(i)]);
@@ -1200,6 +1222,7 @@ bool sequence_get_item(
         return false;
       }
       std::vector<Value> items;
+      items.reserve(normalized_slice_length(start, stop, step));
       if (step > 0) {
         for (int64_t i = start; i < stop; i += step) {
           items.push_back(tuple->items[static_cast<size_t>(i)]);
@@ -1387,10 +1410,22 @@ bool sequence_set_item(Value& object, const Value& index, const Value& item, std
         return false;
       }
       std::vector<Value> replacement;
+      const std::vector<Value>* replacement_items = nullptr;
       if (auto* replacement_list = value_as_list(item)) {
-        replacement = replacement_list->items;
+        if (replacement_list == list) {
+          // Self-assignment needs a snapshot because the target may overlap
+          // the source slice while it is being replaced.
+          replacement = replacement_list->items;
+          replacement_items = &replacement;
+        } else {
+          replacement_items = &replacement_list->items;
+        }
       } else if (auto* replacement_tuple = value_as_tuple(item)) {
-        replacement = replacement_tuple->items;
+        replacement.reserve(replacement_tuple->items.size());
+        for (const auto& value : replacement_tuple->items) {
+          replacement.push_back(value);
+        }
+        replacement_items = &replacement;
       } else {
         Value iterator;
         if (!sequence_get_iter(item, iterator, error)) {
@@ -1407,15 +1442,51 @@ bool sequence_set_item(Value& object, const Value& index, const Value& item, std
           }
           replacement.push_back(std::move(next));
         }
+        replacement_items = &replacement;
       }
       if (step == 1) {
+        const size_t first = static_cast<size_t>(start);
+        const size_t last = static_cast<size_t>(std::max(start, stop));
+        const size_t removed_count = last - first;
+        if (removed_count == replacement_items->size()) {
+          if (replacement_items == &replacement) {
+            // Reuse the already-materialized RHS vector as retirement storage.
+            // Old elements stay alive until every target slot is updated, and
+            // the target vector keeps its capacity on same-size slice writes.
+            for (size_t i = 0; i < removed_count; ++i) {
+              std::swap(list->items[first + i], replacement[i]);
+            }
+          } else {
+            // Match CPython's small recycle buffer: most short equal-size
+            // slice writes need no temporary heap allocation, and displaced
+            // Values stay alive until every destination slot is canonical.
+            std::array<Value, 8> retired;
+            if (removed_count <= retired.size()) {
+              for (size_t i = 0; i < removed_count; ++i) {
+                value_move_assign_fast(retired[i], list->items[first + i]);
+              }
+              for (size_t i = 0; i < removed_count; ++i) {
+                value_assign_fast(list->items[first + i], (*replacement_items)[i]);
+              }
+            } else {
+              replacement.resize(removed_count);
+              for (size_t i = 0; i < removed_count; ++i) {
+                value_move_assign_fast(replacement[i], list->items[first + i]);
+              }
+              for (size_t i = 0; i < removed_count; ++i) {
+                value_assign_fast(list->items[first + i], (*replacement_items)[i]);
+              }
+            }
+          }
+          return true;
+        }
         list->items.erase(
-            list->items.begin() + static_cast<std::ptrdiff_t>(start),
-            list->items.begin() + static_cast<std::ptrdiff_t>(stop));
+            list->items.begin() + static_cast<std::ptrdiff_t>(first),
+            list->items.begin() + static_cast<std::ptrdiff_t>(last));
         list->items.insert(
-            list->items.begin() + static_cast<std::ptrdiff_t>(start),
-            replacement.begin(),
-            replacement.end());
+            list->items.begin() + static_cast<std::ptrdiff_t>(first),
+            replacement_items->begin(),
+            replacement_items->end());
         return true;
       }
       std::vector<size_t> indexes;
@@ -1428,13 +1499,13 @@ bool sequence_set_item(Value& object, const Value& index, const Value& item, std
           indexes.push_back(static_cast<size_t>(i));
         }
       }
-      if (indexes.size() != replacement.size()) {
-        error = "attempt to assign sequence of size " + std::to_string(replacement.size()) +
+      if (indexes.size() != replacement_items->size()) {
+        error = "attempt to assign sequence of size " + std::to_string(replacement_items->size()) +
                 " to extended slice of size " + std::to_string(indexes.size());
         return false;
       }
       for (size_t i = 0; i < indexes.size(); ++i) {
-        value_assign_fast(list->items[indexes[i]], replacement[i]);
+        value_assign_fast(list->items[indexes[i]], (*replacement_items)[i]);
       }
       return true;
     }

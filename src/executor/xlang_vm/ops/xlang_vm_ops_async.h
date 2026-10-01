@@ -19,6 +19,7 @@ limitations under the License.
 
 #include "xlang3/generator.h"
 #include "xlang3/functional_iterators.h"
+#include "xlang3/builtins.h"
 
 #ifndef XLANG3_EMBEDDED
 #include "task_objects.h"
@@ -30,7 +31,7 @@ limitations under the License.
 namespace xlang3::xlang_vm::ops {
 
 template <typename EmitMonitoringEvent, typename EmitTraceEvent, typename EmitProfileEvent,
-          typename RaiseRuntimeError, typename RaiseExceptionValue>
+          typename RaiseRuntimeError, typename RaiseExceptionValue, typename PushFrame>
 XLANG3_HOT_INLINE XlangVMOpFlow await_op(
     const ir::Instr& in,
     Runtime& runtime,
@@ -38,8 +39,9 @@ XLANG3_HOT_INLINE XlangVMOpFlow await_op(
     size_t& ip,
     VMFrame& frame,
     std::vector<VMFrame>& frames,
-    size_t frame_count,
+    size_t& frame_count,
     GeneratorObject* active_generator,
+    PushFrame&& push_frame,
     RuntimeResult& result,
     EmitMonitoringEvent&& emit_monitoring_event,
     EmitTraceEvent&& emit_trace_event,
@@ -47,6 +49,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow await_op(
     RaiseRuntimeError&& raise_runtime_error,
     RaiseExceptionValue&& raise_exception_value) {
 #ifndef XLANG3_EMBEDDED
+  GeneratorObject* logical_generator = frame.coroutine_owner != nullptr
+      ? frame.coroutine_owner : active_generator;
   auto* awaited_generator = value_as_generator(regs[in.a]);
   auto* awaited_async_generator = value_as_async_generator_awaitable(regs[in.a]);
   if (awaited_generator == nullptr && awaited_async_generator == nullptr) {
@@ -86,11 +90,72 @@ XLANG3_HOT_INLINE XlangVMOpFlow await_op(
       (awaited_generator->is_coroutine || awaited_generator->is_await_iterator || iterable_coroutine)) {
     // generator_throw() can finish a delegated awaitable while handling an
     // exception. Its return value is already in the await-result register.
-    if (active_generator != nullptr && active_generator->delegated_result_ready) {
-      active_generator->delegated_result_ready = false;
-      value_set_invalid(active_generator->awaiting);
+    if (logical_generator != nullptr && logical_generator->delegated_result_ready) {
+      logical_generator->delegated_result_ready = false;
+      value_set_invalid(logical_generator->awaiting);
       return XlangVMOpFlow::Next;
     }
+#if !defined(XLANG3_DISABLE_AWAIT_COROUTINE_INLINE)
+    auto* child_function = awaited_generator->is_coroutine && awaited_generator->args_bound &&
+            awaited_generator->runtime == &runtime && !awaited_generator->started &&
+            !awaited_generator->running && !awaited_generator->done &&
+            awaited_generator->vm_state == nullptr && awaited_generator->vm_state_reuse == nullptr &&
+            awaited_generator->pending_send.tag == ValueTag::Invalid &&
+            awaited_generator->pending_throw.tag == ValueTag::Invalid &&
+            awaited_generator->awaiting.tag == ValueTag::Invalid &&
+            (awaited_generator->origin.tag == ValueTag::None ||
+             awaited_generator->origin.tag == ValueTag::Invalid) &&
+            awaited_generator->header.refcnt.load(std::memory_order_relaxed) == 1
+        ? value_as_function(awaited_generator->function) : nullptr;
+    const ir::Module* child_module = frame.module;
+    auto child_module_owner = frame.module_owner;
+    if (child_function != nullptr && child_function->module != nullptr) {
+      child_module = child_function->module.get();
+      child_module_owner = child_function->module;
+    }
+    bool observable = child_function != nullptr &&
+        (logical_generator == nullptr || active_generator == nullptr ||
+         runtime.trace_event_may_dispatch() || runtime.profile_event_may_dispatch() ||
+         sys_monitoring_code_events(child_module, child_function->function_id) != 0);
+    for (size_t index = 0; !observable && index < frame_count; ++index) {
+      const auto& live = frames[index];
+      observable = live.monitoring_events != 0 ||
+          (live.trace_function.tag != ValueTag::Invalid && live.trace_function.tag != ValueTag::None);
+    }
+    if (!observable && child_function != nullptr &&
+        child_function->function_id < child_module->functions.size() &&
+        child_module->functions[child_function->function_id].is_coroutine &&
+        awaited_generator->args.size() <= UINT32_MAX) {
+      // CPython's exact-coroutine SEND continues on its current evaluator
+      // stack. Do the same for a fresh, unaliased XLang coroutine by pushing
+      // its bound frame onto this VM stack. The reference-count and observer
+      // guards preserve the generic generator_send path for aliased objects,
+      // tracing/monitoring, and every non-exact awaitable.
+      CallArgsView child_args;
+      child_args.leading = awaited_generator->args.data();
+      child_args.leading_count = static_cast<uint32_t>(awaited_generator->args.size());
+      GeneratorObject* parent_generator = logical_generator;
+      Value child_value;
+      value_assign_fast(child_value, regs[in.a]);
+      ++ip;
+      if (!push_frame(*child_module, child_function->function_id, child_args,
+                      child_function->closure, child_function->defaults,
+                      child_function->globals_module, std::move(child_module_owner), in.dst,
+                      FrameReturnMode::StoreReturnValue, Value::invalid(), true)) {
+        return result.errors.empty()
+            ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+      }
+      auto& child_frame = frames[frame_count - 1];
+      child_frame.coroutine_owner = awaited_generator;
+      child_frame.inline_coroutine_parent = parent_generator;
+      child_frame.inline_coroutine_entry = true;
+      awaited_generator->started = true;
+      awaited_generator->running = true;
+      awaited_generator->inline_parent = parent_generator;
+      value_assign_fast(parent_generator->awaiting, child_value);
+      return XlangVMOpFlow::SwitchFrame;
+    }
+#endif
     Value send_value = !awaited_generator->started || regs[in.dst].tag == ValueTag::Invalid
         ? Value::none() : regs[in.dst];
     value_set_invalid(regs[in.dst]);
@@ -99,7 +164,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow await_op(
     std::string await_error;
     Value awaited_value = regs[in.a];
     if (!generator_send(awaited_value, std::move(send_value), done, yielded_or_returned, await_error)) {
-      if (active_generator != nullptr) value_set_invalid(active_generator->awaiting);
+      if (logical_generator != nullptr) value_set_invalid(logical_generator->awaiting);
       Value pending;
       if (runtime.take_pending_exception(pending)) {
         return raise_exception_value(std::move(pending)) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
@@ -109,7 +174,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow await_op(
                  : XlangVMOpFlow::ReturnResult;
     }
     if (done) {
-      if (active_generator != nullptr) value_set_invalid(active_generator->awaiting);
+      if (logical_generator != nullptr) value_set_invalid(logical_generator->awaiting);
       // StopIteration here is VM control flow used to transport the coroutine
       // result. Materialize the Python exception and trace tuple only when a
       // trace hook can observe the event; the normal await path should be a
@@ -142,6 +207,11 @@ XLANG3_HOT_INLINE XlangVMOpFlow await_op(
       return XlangVMOpFlow::ReturnResult;
     }
     auto* state = acquire_generator_vm_state(active_generator);
+    for (size_t index = 0; index < frame_count; ++index) {
+      auto* owner = frames[index].coroutine_owner;
+      if (owner != nullptr && owner != active_generator && owner->inline_parent != nullptr)
+        owner->running = false;
+    }
     state->frames = std::move(frames);
     state->frame_count = frame_count;
     state->send_target = in.dst;
@@ -156,7 +226,10 @@ XLANG3_HOT_INLINE XlangVMOpFlow await_op(
     active_generator->vm_state = state;
     active_generator->vm_state_cleanup = destroy_generator_vm_state;
     active_generator->done = false;
-    value_assign_fast(active_generator->awaiting, regs[in.a]);
+    if (logical_generator == active_generator)
+      value_assign_fast(active_generator->awaiting, regs[in.a]);
+    else if (logical_generator != nullptr)
+      value_assign_fast(logical_generator->awaiting, regs[in.a]);
     value_assign_fast(result.value, yielded_or_returned);
     return XlangVMOpFlow::ReturnResult;
   }
@@ -170,7 +243,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow await_op(
     if (!async_generator_awaitable_send(
             runtime, regs[in.a], std::move(send_value), done,
             yielded_or_returned, await_error)) {
-      if (active_generator != nullptr) value_set_invalid(active_generator->awaiting);
+      if (logical_generator != nullptr) value_set_invalid(logical_generator->awaiting);
       Value pending;
       if (runtime.take_pending_exception(pending)) {
         return raise_exception_value(std::move(pending))
@@ -180,7 +253,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow await_op(
           ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
     }
     if (done) {
-      if (active_generator != nullptr) value_set_invalid(active_generator->awaiting);
+      if (logical_generator != nullptr) value_set_invalid(logical_generator->awaiting);
       value_assign_fast(regs[in.dst], yielded_or_returned);
       return XlangVMOpFlow::Next;
     }
@@ -194,6 +267,11 @@ XLANG3_HOT_INLINE XlangVMOpFlow await_op(
       return XlangVMOpFlow::ReturnResult;
     }
     auto* state = acquire_generator_vm_state(active_generator);
+    for (size_t index = 0; index < frame_count; ++index) {
+      auto* owner = frames[index].coroutine_owner;
+      if (owner != nullptr && owner != active_generator && owner->inline_parent != nullptr)
+        owner->running = false;
+    }
     state->frames = std::move(frames);
     state->frame_count = frame_count;
     state->send_target = in.dst;
@@ -208,13 +286,16 @@ XLANG3_HOT_INLINE XlangVMOpFlow await_op(
     active_generator->vm_state = state;
     active_generator->vm_state_cleanup = destroy_generator_vm_state;
     active_generator->done = false;
-    value_assign_fast(active_generator->awaiting, regs[in.a]);
+    if (logical_generator == active_generator)
+      value_assign_fast(active_generator->awaiting, regs[in.a]);
+    else if (logical_generator != nullptr)
+      value_assign_fast(logical_generator->awaiting, regs[in.a]);
     value_assign_fast(result.value, yielded_or_returned);
     return XlangVMOpFlow::ReturnResult;
   }
   std::string await_error;
   if (!xlang_task_await_value(runtime, regs[in.a], regs[in.dst], await_error)) {
-    if (active_generator != nullptr) value_set_invalid(active_generator->awaiting);
+    if (logical_generator != nullptr) value_set_invalid(logical_generator->awaiting);
     Value pending;
     if (runtime.take_pending_exception(pending)) {
       return raise_exception_value(std::move(pending)) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;

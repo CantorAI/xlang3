@@ -193,6 +193,27 @@ enum class Op : uint16_t {
   ForScalarArithmeticLoop,
   ForPropertyAccessLoop,
   GetItemConst,
+  // Exact-list fast path for `values[:index + 1] = values[index::-1]`.
+  // `dst` and `a` are local slots; `c` is the number of generic fallback ops.
+  ReversePrefixSliceAssign,
+  // Exact-list integer loads from local operands; c packs the slow-path span.
+  GuardedLocalListGetItem,
+  // Exact-list integer +=/-= constant with a register-based slow path.
+  GuardedLocalListAugmentConst,
+  // Fuses a checked `while index` loop that reverses list prefixes and counts.
+  WhileReversePrefixCount,
+  // Exact cached list.pop(0) + list.insert(index, value) on the same list.
+  // `dst` is the index local, `a`/`b` are bound-method locals, `c` is fallback span.
+  ListPopFrontInsert,
+  // Batches `while r != 1: counts[r-1] = r; r -= 1` for exact list/int locals.
+  // `dst` is r, `a` is counts, and `c` is the generic body span.
+  WhileResetCount,
+  // Exact-list integer comparison with local/constant operands and IR fallback.
+  // `dst` is the result, `a` the list local, `b` an operand spec, `c` packs span/flags.
+  GuardedLocalListCompare,
+  // Advances one exact list/count permutation loop, retaining its bytecode fallback.
+  // `dst` is the index local, `a`/`b` are bound insert/pop locals, `c` indexes loop metadata.
+  WhileListPermutationAdvance,
 };
 
 enum class CompareOp : uint16_t {
@@ -252,6 +273,16 @@ constexpr uint32_t kPropertyAccessLoopLocalMask = 0x7fff0000u;
 // following Add/StoreLocal pair. High bit marks the packed local slot.
 constexpr uint32_t kCallAccumulateLocalFlag = 0x80000000u;
 constexpr uint32_t kCallAccumulateLocalMask = 0x7fffffffu;
+// GuardedLocalListGetItem packs its fallback span with this flag when `b`
+// indexes a function constant instead of a local slot.
+constexpr uint32_t kGuardedLocalListGetItemConstFlag = 0x80000000u;
+constexpr uint32_t kGuardedLocalListGetItemSpanMask = ~kGuardedLocalListGetItemConstFlag;
+constexpr uint32_t kGuardedLocalListAugmentSubtractFlag = 0x80000000u;
+constexpr uint32_t kGuardedLocalListAugmentSpanMask = ~kGuardedLocalListAugmentSubtractFlag;
+constexpr uint32_t kGuardedLocalListCompareIndexConstFlag = 0x80000000u;
+constexpr uint32_t kGuardedLocalListCompareRhsConstFlag = 0x40000000u;
+constexpr uint32_t kGuardedLocalListCompareBranchFlag = 0x20000000u;
+constexpr uint32_t kGuardedLocalListCompareSpanMask = 0x1fffffffu;
 
 enum class GuardedLocalNumericExprNodeKind : uint8_t {
   Local,

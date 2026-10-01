@@ -130,6 +130,51 @@ T* allocate_object(ObjectKind kind) {
   return obj;
 }
 
+struct SliceObjectFreeList {
+  ~SliceObjectFreeList() {
+    memory::object_caches_alive = false;
+    for (size_t i = 0; i < size; ++i) {
+      delete items[i];
+    }
+  }
+
+  std::array<SliceObject*, 256> items{};
+  size_t size = 0;
+};
+
+thread_local SliceObjectFreeList slice_object_free_list;
+
+SliceObject* allocate_slice_object() {
+  SliceObject* obj = nullptr;
+  if (memory::object_caches_alive && slice_object_free_list.size != 0) {
+    obj = slice_object_free_list.items[--slice_object_free_list.size];
+    slice_object_free_list.items[slice_object_free_list.size] = nullptr;
+  } else {
+    obj = new SliceObject();
+  }
+  // CPython keeps recently released slices on a freelist. This bounded
+  // thread-local cache avoids a heap allocation for each MakeSlice while
+  // keeping slice bounds off shared allocator locks.
+  obj->header.kind = ObjectKind::Slice;
+  obj->header.refcnt = 1;
+  xlang_perf_count_object_alloc(ObjectKind::Slice);
+  gc_track_object(&obj->header);
+  return obj;
+}
+
+void recycle_slice_object(SliceObject* obj) {
+  // Clear the bounds before caching so the freelist never keeps user values
+  // alive after the slice itself has reached zero references.
+  value_set_invalid(obj->start);
+  value_set_invalid(obj->stop);
+  value_set_invalid(obj->step);
+  if (memory::object_caches_alive && slice_object_free_list.size < slice_object_free_list.items.size()) {
+    slice_object_free_list.items[slice_object_free_list.size++] = obj;
+    return;
+  }
+  delete obj;
+}
+
 void release_string_block(StringObject* object) {
   const size_t alloc_size = object->alloc_size;
   auto* allocator = object->allocator != nullptr ? object->allocator : &memory::x3_thread_buckets();
@@ -1136,7 +1181,7 @@ char* memoryview_object_writable_data(const MemoryViewObject& view) {
 Value Value::slice(Value start, Value stop, Value step) {
   Value v;
   v.tag = ValueTag::Object;
-  auto* obj = allocate_object<SliceObject>(ObjectKind::Slice);
+  auto* obj = allocate_slice_object();
   obj->start = std::move(start);
   obj->stop = std::move(stop);
   obj->step = std::move(step);
@@ -1586,7 +1631,7 @@ void release_last_reference(const Value& value) {
       delete value_as_memoryview(value);
       break;
     case ObjectKind::Slice:
-      delete value_as_slice(value);
+      recycle_slice_object(value_as_slice(value));
       break;
     case ObjectKind::Tuple:
       recycle_tuple_object(as_tuple(value.as.obj));

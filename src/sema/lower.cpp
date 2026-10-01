@@ -2355,6 +2355,306 @@ private:
     return true;
   }
 
+  bool is_reverse_prefix_slice_assignment(
+      const ast::SubscriptAssignStmt& assign,
+      uint32_t& sequence_slot,
+      uint32_t& index_slot) const {
+    auto is_none = [](const ast::Expr* expr) {
+      if (expr == nullptr) return true;
+      auto* literal = dynamic_cast<const ast::LiteralExpr*>(expr);
+      return literal != nullptr && literal->kind == ast::LiteralExpr::Kind::None;
+    };
+    auto* target_name = dynamic_cast<const ast::NameExpr*>(assign.object.get());
+    auto* target_slice = dynamic_cast<const ast::SliceExpr*>(assign.index.get());
+    auto* rhs_subscript = dynamic_cast<const ast::SubscriptExpr*>(assign.value.get());
+    if (target_name == nullptr || target_slice == nullptr || rhs_subscript == nullptr ||
+        !is_none(target_slice->start.get()) || !is_none(target_slice->step.get())) {
+      return false;
+    }
+    auto* rhs_name = dynamic_cast<const ast::NameExpr*>(rhs_subscript->object.get());
+    auto* rhs_slice = dynamic_cast<const ast::SliceExpr*>(rhs_subscript->index.get());
+    if (rhs_name == nullptr || rhs_slice == nullptr || !is_none(rhs_slice->stop.get()) ||
+        target_name->name != rhs_name->name) {
+      return false;
+    }
+
+    // Recognize only a side-effect-free local index and the exact reverse
+    // slice. Guarded lowering can then read the two locals once; every other
+    // syntax keeps its normal Python evaluation path.
+    auto* index_name = dynamic_cast<const ast::NameExpr*>(rhs_slice->start.get());
+    auto* negative_step = dynamic_cast<const ast::UnaryExpr*>(rhs_slice->step.get());
+    auto* step_one = negative_step != nullptr
+        ? dynamic_cast<const ast::LiteralExpr*>(negative_step->expr.get())
+        : nullptr;
+    auto* target_stop = dynamic_cast<const ast::BinaryExpr*>(target_slice->stop.get());
+    auto* target_stop_name = target_stop != nullptr
+        ? dynamic_cast<const ast::NameExpr*>(target_stop->lhs.get())
+        : nullptr;
+    auto* stop_one = target_stop != nullptr
+        ? dynamic_cast<const ast::LiteralExpr*>(target_stop->rhs.get())
+        : nullptr;
+    if (index_name == nullptr || negative_step == nullptr || negative_step->op != "-" ||
+        step_one == nullptr || step_one->kind != ast::LiteralExpr::Kind::Int ||
+        step_one->text != "1" || target_stop == nullptr || target_stop->op != "+" ||
+        target_stop_name == nullptr || stop_one == nullptr ||
+        stop_one->kind != ast::LiteralExpr::Kind::Int || stop_one->text != "1" ||
+        index_name->name != target_stop_name->name) {
+      return false;
+    }
+
+    return direct_local_slot(target_name->name, sequence_slot) &&
+        direct_local_slot(index_name->name, index_slot);
+  }
+
+  bool is_list_pop_front_insert(
+      const ast::Expr& expression,
+      uint32_t& index_slot,
+      uint32_t& insert_slot,
+      uint32_t& pop_slot) const {
+    auto* insert_call = dynamic_cast<const ast::CallExpr*>(&expression);
+    auto* insert_name = insert_call != nullptr
+        ? dynamic_cast<const ast::NameExpr*>(insert_call->callee.get()) : nullptr;
+    if (insert_call == nullptr || insert_name == nullptr ||
+        insert_call->args.size() != 2 || !insert_call->call_args.empty()) {
+      return false;
+    }
+    auto* index_name = dynamic_cast<const ast::NameExpr*>(insert_call->args[0].get());
+    auto* pop_call = dynamic_cast<const ast::CallExpr*>(insert_call->args[1].get());
+    auto* pop_name = pop_call != nullptr
+        ? dynamic_cast<const ast::NameExpr*>(pop_call->callee.get()) : nullptr;
+    auto* zero = pop_call != nullptr && pop_call->args.size() == 1
+        ? dynamic_cast<const ast::LiteralExpr*>(pop_call->args[0].get()) : nullptr;
+    if (index_name == nullptr || pop_call == nullptr || pop_name == nullptr ||
+        zero == nullptr || zero->kind != ast::LiteralExpr::Kind::Int || zero->text != "0" ||
+        !pop_call->call_args.empty()) {
+      return false;
+    }
+    return direct_local_slot(index_name->name, index_slot) &&
+        direct_local_slot(insert_name->name, insert_slot) &&
+        direct_local_slot(pop_name->name, pop_slot);
+  }
+
+  bool is_list_permutation_advance_loop(
+      const ast::WhileStmt& loop,
+      uint32_t& index_slot,
+      uint32_t& limit_slot,
+      uint32_t& counts_slot,
+      uint32_t& insert_slot,
+      uint32_t& pop_slot) const {
+    if (loop.body.size() != 4) return false;
+    auto* condition = dynamic_cast<const ast::BinaryExpr*>(loop.condition.get());
+    auto* condition_index = condition != nullptr
+        ? dynamic_cast<const ast::NameExpr*>(condition->lhs.get()) : nullptr;
+    auto* condition_limit = condition != nullptr
+        ? dynamic_cast<const ast::NameExpr*>(condition->rhs.get()) : nullptr;
+    auto* rotate = dynamic_cast<const ast::ExprStmt*>(loop.body[0].get());
+    auto* decrement = dynamic_cast<const ast::AugAssignStmt*>(loop.body[1].get());
+    auto* stop_if = dynamic_cast<const ast::IfStmt*>(loop.body[2].get());
+    auto* increment = dynamic_cast<const ast::AugAssignStmt*>(loop.body[3].get());
+    auto* decrement_target = decrement != nullptr
+        ? dynamic_cast<const ast::SubscriptExpr*>(decrement->target.get()) : nullptr;
+    auto* decrement_counts = decrement_target != nullptr
+        ? dynamic_cast<const ast::NameExpr*>(decrement_target->object.get()) : nullptr;
+    auto* decrement_index = decrement_target != nullptr
+        ? dynamic_cast<const ast::NameExpr*>(decrement_target->index.get()) : nullptr;
+    auto* decrement_one = decrement != nullptr
+        ? dynamic_cast<const ast::LiteralExpr*>(decrement->value.get()) : nullptr;
+    auto* stop_condition = stop_if != nullptr
+        ? dynamic_cast<const ast::BinaryExpr*>(stop_if->condition.get()) : nullptr;
+    auto* stop_item = stop_condition != nullptr
+        ? dynamic_cast<const ast::SubscriptExpr*>(stop_condition->lhs.get()) : nullptr;
+    auto* stop_counts = stop_item != nullptr
+        ? dynamic_cast<const ast::NameExpr*>(stop_item->object.get()) : nullptr;
+    auto* stop_index = stop_item != nullptr
+        ? dynamic_cast<const ast::NameExpr*>(stop_item->index.get()) : nullptr;
+    auto* stop_zero = stop_condition != nullptr
+        ? dynamic_cast<const ast::LiteralExpr*>(stop_condition->rhs.get()) : nullptr;
+    auto* increment_index = increment != nullptr
+        ? dynamic_cast<const ast::NameExpr*>(increment->target.get()) : nullptr;
+    auto* increment_one = increment != nullptr
+        ? dynamic_cast<const ast::LiteralExpr*>(increment->value.get()) : nullptr;
+    if (condition == nullptr || condition->op != "!=" || condition_index == nullptr ||
+        condition_limit == nullptr || rotate == nullptr || rotate->expr == nullptr || decrement == nullptr ||
+        decrement->op != "-" || decrement_target == nullptr || decrement_counts == nullptr ||
+        decrement_index == nullptr || decrement_one == nullptr ||
+        decrement_one->kind != ast::LiteralExpr::Kind::Int || decrement_one->text != "1" ||
+        stop_if == nullptr || stop_condition == nullptr || stop_condition->op != ">" ||
+        stop_item == nullptr || stop_counts == nullptr || stop_index == nullptr ||
+        stop_zero == nullptr || stop_zero->kind != ast::LiteralExpr::Kind::Int ||
+        stop_zero->text != "0" || stop_if->then_body.size() != 1 ||
+        dynamic_cast<const ast::BreakStmt*>(stop_if->then_body[0].get()) == nullptr ||
+        !stop_if->else_body.empty() || increment == nullptr || increment->op != "+" ||
+        increment_index == nullptr || increment_one == nullptr ||
+        increment_one->kind != ast::LiteralExpr::Kind::Int || increment_one->text != "1" ||
+        condition_index->name != decrement_index->name ||
+        condition_index->name != stop_index->name ||
+        condition_index->name != increment_index->name ||
+        decrement_counts->name != stop_counts->name ||
+        !is_list_pop_front_insert(*rotate->expr, index_slot, insert_slot, pop_slot)) {
+      return false;
+    }
+    uint32_t condition_index_slot = 0;
+    if (!direct_local_slot(condition_index->name, condition_index_slot) ||
+        condition_index_slot != index_slot ||
+        !direct_local_slot(condition_limit->name, limit_slot) ||
+        !direct_local_slot(decrement_counts->name, counts_slot)) {
+      return false;
+    }
+    index_slot = condition_index_slot;
+    return index_slot != limit_slot && index_slot != counts_slot && limit_slot != counts_slot &&
+        insert_slot != index_slot && pop_slot != index_slot &&
+        insert_slot != counts_slot && pop_slot != counts_slot &&
+        insert_slot != limit_slot && pop_slot != limit_slot;
+  }
+
+  bool is_count_reset_loop(
+      const ast::WhileStmt& loop,
+      uint32_t& counts_slot,
+      uint32_t& index_slot) const {
+    if (loop.body.size() != 2) return false;
+    auto* condition = dynamic_cast<const ast::BinaryExpr*>(loop.condition.get());
+    auto* condition_name = condition != nullptr
+        ? dynamic_cast<const ast::NameExpr*>(condition->lhs.get()) : nullptr;
+    auto* condition_one = condition != nullptr
+        ? dynamic_cast<const ast::LiteralExpr*>(condition->rhs.get()) : nullptr;
+    auto* assignment = dynamic_cast<const ast::SubscriptAssignStmt*>(loop.body[0].get());
+    auto* counts_name = assignment != nullptr
+        ? dynamic_cast<const ast::NameExpr*>(assignment->object.get()) : nullptr;
+    auto* target_index = assignment != nullptr
+        ? dynamic_cast<const ast::BinaryExpr*>(assignment->index.get()) : nullptr;
+    auto* target_index_name = target_index != nullptr
+        ? dynamic_cast<const ast::NameExpr*>(target_index->lhs.get()) : nullptr;
+    auto* target_minus_one = target_index != nullptr
+        ? dynamic_cast<const ast::LiteralExpr*>(target_index->rhs.get()) : nullptr;
+    auto* value_name = assignment != nullptr
+        ? dynamic_cast<const ast::NameExpr*>(assignment->value.get()) : nullptr;
+    auto* decrement = dynamic_cast<const ast::AugAssignStmt*>(loop.body[1].get());
+    auto* decrement_name = decrement != nullptr
+        ? dynamic_cast<const ast::NameExpr*>(decrement->target.get()) : nullptr;
+    auto* decrement_one = decrement != nullptr
+        ? dynamic_cast<const ast::LiteralExpr*>(decrement->value.get()) : nullptr;
+    if (condition == nullptr || condition->op != "!=" || condition_name == nullptr ||
+        condition_one == nullptr || condition_one->kind != ast::LiteralExpr::Kind::Int ||
+        condition_one->text != "1" || assignment == nullptr || counts_name == nullptr ||
+        target_index == nullptr || target_index->op != "-" || target_index_name == nullptr ||
+        target_minus_one == nullptr || target_minus_one->kind != ast::LiteralExpr::Kind::Int ||
+        target_minus_one->text != "1" || value_name == nullptr || decrement == nullptr ||
+        decrement->op != "-" || decrement_name == nullptr || decrement_one == nullptr ||
+        decrement_one->kind != ast::LiteralExpr::Kind::Int || decrement_one->text != "1" ||
+        condition_name->name != target_index_name->name ||
+        condition_name->name != value_name->name ||
+        condition_name->name != decrement_name->name) {
+      return false;
+    }
+    return direct_local_slot(counts_name->name, counts_slot) &&
+        direct_local_slot(condition_name->name, index_slot) &&
+        counts_slot != index_slot;
+  }
+
+  bool guarded_local_list_compare_operands(
+      const ast::BinaryExpr& comparison,
+      uint32_t& sequence_slot,
+      uint32_t& index_operand,
+      bool& index_constant,
+      uint32_t& rhs_operand,
+      bool& rhs_constant,
+      ir::CompareOp& compare_op) {
+    if (comparison.op == "==") compare_op = ir::CompareOp::Eq;
+    else if (comparison.op == "!=") compare_op = ir::CompareOp::Ne;
+    else if (comparison.op == "<") compare_op = ir::CompareOp::Lt;
+    else if (comparison.op == "<=") compare_op = ir::CompareOp::Le;
+    else if (comparison.op == ">") compare_op = ir::CompareOp::Gt;
+    else if (comparison.op == ">=") compare_op = ir::CompareOp::Ge;
+    else return false;
+
+    auto* subscript = dynamic_cast<const ast::SubscriptExpr*>(comparison.lhs.get());
+    auto* sequence_name = subscript != nullptr
+        ? dynamic_cast<const ast::NameExpr*>(subscript->object.get()) : nullptr;
+    if (subscript == nullptr || sequence_name == nullptr ||
+        !direct_local_slot(sequence_name->name, sequence_slot)) {
+      return false;
+    }
+    auto* index_name = dynamic_cast<const ast::NameExpr*>(subscript->index.get());
+    auto* index_literal = dynamic_cast<const ast::LiteralExpr*>(subscript->index.get());
+    if (index_name != nullptr && direct_local_slot(index_name->name, index_operand)) {
+      index_constant = false;
+    } else if (index_literal != nullptr && index_literal->kind == ast::LiteralExpr::Kind::Int) {
+      const Value value = literal_value(*index_literal);
+      if (value.tag != ValueTag::Int64) return false;
+      index_operand = add_const(value);
+      index_constant = true;
+    } else {
+      return false;
+    }
+
+    auto* rhs_name = dynamic_cast<const ast::NameExpr*>(comparison.rhs.get());
+    auto* rhs_literal = dynamic_cast<const ast::LiteralExpr*>(comparison.rhs.get());
+    if (rhs_name != nullptr && direct_local_slot(rhs_name->name, rhs_operand)) {
+      rhs_constant = false;
+    } else if (rhs_literal != nullptr && rhs_literal->kind == ast::LiteralExpr::Kind::Int) {
+      const Value value = literal_value(*rhs_literal);
+      if (value.tag != ValueTag::Int64) return false;
+      rhs_operand = add_const(value);
+      rhs_constant = true;
+    } else {
+      return false;
+    }
+    return true;
+  }
+
+  bool is_reverse_prefix_count_loop(
+      const ast::WhileStmt& loop,
+      uint32_t& sequence_slot,
+      uint32_t& index_slot,
+      uint32_t& counter_slot) const {
+    if (loop.body.size() != 3) return false;
+    auto* condition = dynamic_cast<const ast::NameExpr*>(loop.condition.get());
+    auto* reverse = dynamic_cast<const ast::SubscriptAssignStmt*>(loop.body[0].get());
+    auto* increment = dynamic_cast<const ast::AugAssignStmt*>(loop.body[1].get());
+    auto* update_index = dynamic_cast<const ast::AssignStmt*>(loop.body[2].get());
+    auto* counter_name = increment != nullptr
+        ? dynamic_cast<const ast::NameExpr*>(increment->target.get())
+        : nullptr;
+    auto* increment_one = increment != nullptr
+        ? dynamic_cast<const ast::LiteralExpr*>(increment->value.get())
+        : nullptr;
+    auto* next_index = update_index != nullptr
+        ? dynamic_cast<const ast::SubscriptExpr*>(update_index->value.get())
+        : nullptr;
+    auto* next_sequence = next_index != nullptr
+        ? dynamic_cast<const ast::NameExpr*>(next_index->object.get())
+        : nullptr;
+    auto* zero = next_index != nullptr
+        ? dynamic_cast<const ast::LiteralExpr*>(next_index->index.get())
+        : nullptr;
+    auto* reverse_sequence = reverse != nullptr
+        ? dynamic_cast<const ast::NameExpr*>(reverse->object.get())
+        : nullptr;
+    if (condition == nullptr || reverse == nullptr || increment == nullptr ||
+        update_index == nullptr || counter_name == nullptr ||
+        increment->op != "+" || increment_one == nullptr ||
+        increment_one->kind != ast::LiteralExpr::Kind::Int || increment_one->text != "1" ||
+        next_index == nullptr || next_sequence == nullptr || zero == nullptr ||
+        zero->kind != ast::LiteralExpr::Kind::Int || zero->text != "0" ||
+        reverse_sequence == nullptr || update_index->name != condition->name ||
+        next_sequence->name != reverse_sequence->name ||
+        !is_reverse_prefix_slice_assignment(*reverse, sequence_slot, index_slot)) {
+      return false;
+    }
+    uint32_t condition_slot = 0;
+    if (!direct_local_slot(condition->name, condition_slot) || condition_slot != index_slot ||
+        !direct_local_slot(counter_name->name, counter_slot)) {
+      return false;
+    }
+    uint32_t next_sequence_slot = 0;
+    if (!direct_local_slot(next_sequence->name, next_sequence_slot) ||
+        next_sequence_slot != sequence_slot || sequence_slot == index_slot ||
+        sequence_slot == counter_slot || index_slot == counter_slot) {
+      return false;
+    }
+    return true;
+  }
+
   void emit(ir::Op op, uint32_t dst = 0, uint32_t a = 0, uint32_t b = 0, uint32_t c = 0) {
     const bool starts_basic_block =
         control_flow_entries_.find(static_cast<uint32_t>(fn_.code.size())) != control_flow_entries_.end();
@@ -2540,7 +2840,32 @@ private:
     if (!starts_basic_block && op == ir::Op::JumpIfFalse && !fn_.code.empty() && !fn_.source_lines.empty() &&
         fn_.source_lines.back() == current_source_line_) {
       auto& previous = fn_.code.back();
-      if (previous.op == ir::Op::Compare && previous.dst == cond &&
+      bool guarded_list_compare_fallback = false;
+      size_t guarded_list_compare_ip = SIZE_MAX;
+      size_t compare_ip = SIZE_MAX;
+      if (previous.op == ir::Op::Compare && previous.dst == cond) {
+        compare_ip = fn_.code.size() - 1;
+      } else if (previous.op == ir::Op::Move && previous.a == cond &&
+                 fn_.code.size() >= 2 && fn_.code[fn_.code.size() - 2].op == ir::Op::Compare &&
+                 fn_.code[fn_.code.size() - 2].dst == cond) {
+        // A short-circuit `and` moves its left operand before the branch.
+        // When that operand is a guarded list comparison, fuse through the
+        // resulting MoveJumpIfFalse as well as a direct if-condition branch.
+        compare_ip = fn_.code.size() - 2;
+      }
+      if (compare_ip != SIZE_MAX) {
+        for (size_t candidate_ip = compare_ip; candidate_ip-- > 0;) {
+          const auto& candidate = fn_.code[candidate_ip];
+          if (candidate.op != ir::Op::GuardedLocalListCompare || candidate.dst != cond) {
+            continue;
+          }
+          const size_t span = candidate.c & ir::kGuardedLocalListCompareSpanMask;
+          guarded_list_compare_fallback = candidate_ip + span == compare_ip;
+          if (guarded_list_compare_fallback) guarded_list_compare_ip = candidate_ip;
+          break;
+        }
+      }
+      if (!guarded_list_compare_fallback && previous.op == ir::Op::Compare && previous.dst == cond &&
           fn_.code.size() >= 2 && fn_.source_lines.size() >= 2 &&
           fn_.source_lines[fn_.source_lines.size() - 2] == current_source_line_) {
         auto& load = fn_.code[fn_.code.size() - 2];
@@ -2561,7 +2886,7 @@ private:
           return fn_.code.size() - 1;
         }
       }
-      if (previous.op == ir::Op::Compare && previous.dst == cond &&
+      if (!guarded_list_compare_fallback && previous.op == ir::Op::Compare && previous.dst == cond &&
           fn_.code.size() >= 2 && fn_.source_lines.size() >= 2 &&
           fn_.source_lines[fn_.source_lines.size() - 2] == current_source_line_) {
         auto& load = fn_.code[fn_.code.size() - 2];
@@ -2604,12 +2929,17 @@ private:
         }
       }
       if ((previous.op == ir::Op::Compare || previous.op == ir::Op::Is) &&
-          previous.dst == cond) {
+          previous.dst == cond && !guarded_list_compare_fallback) {
         previous.op = previous.op == ir::Op::Compare
             ? ir::Op::CompareJumpIfFalse
             : ir::Op::IsJumpIfFalse;
         previous.dst = 0;
         return fn_.code.size() - 1;
+      }
+      if (guarded_list_compare_fallback) {
+        auto& guarded_compare = fn_.code[guarded_list_compare_ip];
+        guarded_compare.c |= ir::kGuardedLocalListCompareBranchFlag;
+        fn_.call_args[guarded_compare.b].push_back(0);
       }
       if (previous.op == ir::Op::Not && previous.dst == cond) {
         previous.op = ir::Op::NotJumpIfFalse;
@@ -2630,6 +2960,22 @@ private:
 
   void patch_jump(size_t at, uint32_t target) {
     control_flow_entries_.insert(target);
+    if (fn_.code[at].op == ir::Op::JumpIfFalse ||
+        fn_.code[at].op == ir::Op::MoveJumpIfFalse) {
+      for (size_t candidate_ip = at; candidate_ip-- > 0;) {
+        auto& candidate = fn_.code[candidate_ip];
+        if (candidate.op != ir::Op::GuardedLocalListCompare ||
+            (candidate.c & ir::kGuardedLocalListCompareBranchFlag) == 0) {
+          continue;
+        }
+        const size_t span = candidate.c & ir::kGuardedLocalListCompareSpanMask;
+        if (candidate_ip + span + 1 == at && candidate.b < fn_.call_args.size() &&
+            fn_.call_args[candidate.b].size() == 4) {
+          fn_.call_args[candidate.b][3] = target;
+          break;
+        }
+      }
+    }
     if (fn_.code[at].op == ir::Op::JumpIfFalseLoadLocal ||
         fn_.code[at].op == ir::Op::MoveJumpIfFalse ||
         fn_.code[at].op == ir::Op::MoveJumpIfTrue) {
@@ -5115,6 +5461,36 @@ private:
   }
 
   void lower_aug_assign(const ast::AugAssignStmt& assign) {
+    size_t guarded_list_augment_ip = 0;
+    size_t guarded_list_augment_fallback_begin = fn_.code.size();
+    bool has_guarded_list_augment = false;
+    if (assign.op == "+" || assign.op == "-") {
+      auto* target = dynamic_cast<const ast::SubscriptExpr*>(assign.target.get());
+      auto* sequence_name = target != nullptr
+          ? dynamic_cast<const ast::NameExpr*>(target->object.get())
+          : nullptr;
+      auto* index_name = target != nullptr
+          ? dynamic_cast<const ast::NameExpr*>(target->index.get())
+          : nullptr;
+      auto* amount_literal = dynamic_cast<const ast::LiteralExpr*>(assign.value.get());
+      uint32_t sequence_slot = 0;
+      uint32_t index_slot = 0;
+      if (sequence_name != nullptr && index_name != nullptr && amount_literal != nullptr &&
+          amount_literal->kind == ast::LiteralExpr::Kind::Int &&
+          direct_local_slot(sequence_name->name, sequence_slot) &&
+          direct_local_slot(index_name->name, index_slot)) {
+        const Value amount = literal_value(*amount_literal);
+        if (amount.tag == ValueTag::Int64) {
+          const uint32_t flags = assign.op == "-"
+              ? ir::kGuardedLocalListAugmentSubtractFlag : 0;
+          guarded_list_augment_ip = fn_.code.size();
+          emit(ir::Op::GuardedLocalListAugmentConst, sequence_slot, index_slot,
+               add_const(amount), flags);
+          guarded_list_augment_fallback_begin = fn_.code.size();
+          has_guarded_list_augment = true;
+        }
+      }
+    }
     if (assign.op == "+") {
       auto* name = dynamic_cast<const ast::NameExpr*>(assign.target.get());
       auto* literal = dynamic_cast<const ast::LiteralExpr*>(assign.value.get());
@@ -5196,6 +5572,11 @@ private:
       emit(ir::Op::GetItem, current, object, index);
       lower_operation(current);
       emit(ir::Op::SetItem, object, index, result);
+      if (has_guarded_list_augment) {
+        const uint32_t fallback_span = static_cast<uint32_t>(
+            fn_.code.size() - guarded_list_augment_fallback_begin);
+        fn_.code[guarded_list_augment_ip].c |= fallback_span;
+      }
     }
   }
 
@@ -5314,6 +5695,22 @@ private:
       return;
     }
     if (auto* assign = dynamic_cast<const ast::SubscriptAssignStmt*>(&stmt)) {
+      uint32_t sequence_slot = 0;
+      uint32_t index_slot = 0;
+      if (is_reverse_prefix_slice_assignment(*assign, sequence_slot, index_slot)) {
+        // CPython's generic STORE_SLICE still materializes this exact reversed
+        // RHS list. Emit the guarded in-place IR form first and retain ordinary
+        // slice bytecode immediately after it for type, bounds, and error misses.
+        const size_t fast_ip = fn_.code.size();
+        emit(ir::Op::ReversePrefixSliceAssign, sequence_slot, index_slot);
+        const size_t fallback_begin = fn_.code.size();
+        const auto object = lower_expr(*assign->object);
+        const auto index = lower_expr(*assign->index);
+        const auto value = lower_expr(*assign->value);
+        emit(ir::Op::SetItem, object, index, value);
+        fn_.code[fast_ip].c = static_cast<uint32_t>(fn_.code.size() - fallback_begin);
+        return;
+      }
       const auto object = lower_expr(*assign->object);
       const auto index = lower_expr(*assign->index);
       const auto value = lower_expr(*assign->value);
@@ -5376,6 +5773,18 @@ private:
       return;
     }
     if (auto* expr_stmt = dynamic_cast<const ast::ExprStmt*>(&stmt)) {
+      uint32_t index_slot = 0;
+      uint32_t insert_slot = 0;
+      uint32_t pop_slot = 0;
+      if (is_list_pop_front_insert(*expr_stmt->expr, index_slot, insert_slot, pop_slot)) {
+        const size_t fusion_ip = fn_.code.size();
+        emit(ir::Op::ListPopFrontInsert, index_slot, insert_slot, pop_slot);
+        const size_t fallback_begin = fn_.code.size();
+        const auto reg = lower_expr(*expr_stmt->expr);
+        emit(ir::Op::Pop, 0, reg);
+        fn_.code[fusion_ip].c = static_cast<uint32_t>(fn_.code.size() - fallback_begin);
+        return;
+      }
       const auto reg = lower_expr(*expr_stmt->expr);
       emit(ir::Op::Pop, 0, reg);
       return;
@@ -5440,19 +5849,84 @@ private:
       // into an instruction before the loop, or later iterations read a stale
       // register instead of the updated local.
       control_flow_entries_.insert(start);
+      uint32_t permutation_index_slot = 0;
+      uint32_t permutation_limit_slot = 0;
+      uint32_t permutation_counts_slot = 0;
+      uint32_t permutation_insert_slot = 0;
+      uint32_t permutation_pop_slot = 0;
+      const bool permutation_advance_fusion = is_list_permutation_advance_loop(
+          *loop, permutation_index_slot, permutation_limit_slot,
+          permutation_counts_slot, permutation_insert_slot, permutation_pop_slot);
+      uint32_t permutation_advance_spec = 0;
+      size_t permutation_advance_fallback_begin = 0;
+      size_t permutation_advance_else_begin = 0;
+      if (permutation_advance_fusion) {
+        // Keep the normal condition/body/back-edge after the fused op. It is
+        // the complete semantic fallback for subclasses, non-int state, and
+        // exceptional arithmetic; exact list/int iterations can advance in
+        // bounded native batches without paying for each VM instruction.
+        permutation_advance_spec = add_call_args({permutation_counts_slot, permutation_limit_slot, 0, 0});
+        emit(ir::Op::WhileListPermutationAdvance, permutation_index_slot,
+             permutation_insert_slot, permutation_pop_slot, permutation_advance_spec);
+        permutation_advance_fallback_begin = fn_.code.size();
+      }
       size_t jf = 0;
       if (!try_emit_local_const_condition_jump(*loop->condition, jf)) {
         const auto cond = lower_expr(*loop->condition);
         jf = emit_jump(ir::Op::JumpIfFalse, cond);
       }
       push_loop_control(start);
+      uint32_t sequence_slot = 0;
+      uint32_t index_slot = 0;
+      uint32_t counter_slot = 0;
+      uint32_t reset_counts_slot = 0;
+      uint32_t reset_index_slot = 0;
+      const bool count_reset_fusion =
+          is_count_reset_loop(*loop, reset_counts_slot, reset_index_slot);
+      bool reverse_prefix_count_fusion =
+          is_reverse_prefix_count_loop(*loop, sequence_slot, index_slot, counter_slot);
+      size_t reverse_prefix_fusion_ip = 0;
+      size_t reverse_prefix_fallback_begin = 0;
+      size_t count_reset_fusion_ip = 0;
+      size_t count_reset_fallback_begin = 0;
+      if (count_reset_fusion) {
+        // This exact descending fill has no user operations for int/list
+        // inputs. Guard the list and integer slots, retaining ordinary stores
+        // for every custom type and invalid index case.
+        count_reset_fusion_ip = fn_.code.size();
+        emit(ir::Op::WhileResetCount, reset_index_slot, reset_counts_slot);
+        count_reset_fallback_begin = fn_.code.size();
+      }
+      if (reverse_prefix_count_fusion) {
+        // Keep generic loop bytecode adjacent as the type/range/overflow
+        // fallback; the guarded op at the body head can batch exact-int list
+        // prefix reversals without entering the VM dispatch for each flip.
+        reverse_prefix_fusion_ip = fn_.code.size();
+        emit(ir::Op::WhileReversePrefixCount, sequence_slot, index_slot, counter_slot);
+        reverse_prefix_fallback_begin = fn_.code.size();
+      }
       lower_body(loop->body);
+      if (reverse_prefix_count_fusion) {
+        fn_.code[reverse_prefix_fusion_ip].c = static_cast<uint32_t>(
+            fn_.code.size() - reverse_prefix_fallback_begin);
+      }
+      if (count_reset_fusion) {
+        fn_.code[count_reset_fusion_ip].c = static_cast<uint32_t>(
+            fn_.code.size() - count_reset_fallback_begin);
+      }
       auto break_jumps = pop_loop_control();
       emit(ir::Op::Jump, start);
       patch_jump(jf, static_cast<uint32_t>(fn_.code.size()));
+      permutation_advance_else_begin = fn_.code.size();
       lower_body(loop->else_body);
       for (const auto jump : break_jumps) {
         patch_jump(jump, static_cast<uint32_t>(fn_.code.size()));
+      }
+      if (permutation_advance_fusion) {
+        fn_.call_args[permutation_advance_spec][2] = static_cast<uint32_t>(
+            permutation_advance_else_begin - permutation_advance_fallback_begin);
+        fn_.call_args[permutation_advance_spec][3] = static_cast<uint32_t>(
+            fn_.code.size() - permutation_advance_else_begin);
       }
       return;
     }
@@ -6058,6 +6532,29 @@ private:
       return lower_compare_chain(*chain);
     }
     if (auto* bin = dynamic_cast<const ast::BinaryExpr*>(&expr)) {
+      uint32_t sequence_slot = 0;
+      uint32_t index_operand = 0;
+      uint32_t rhs_operand = 0;
+      bool index_constant = false;
+      bool rhs_constant = false;
+      ir::CompareOp compare_op = ir::CompareOp::Eq;
+      if (guarded_local_list_compare_operands(
+              *bin, sequence_slot, index_operand, index_constant,
+              rhs_operand, rhs_constant, compare_op)) {
+        const auto dst = new_reg();
+        const uint32_t operands = add_call_args({
+            index_operand, rhs_operand, static_cast<uint32_t>(compare_op)});
+        const size_t fast_ip = fn_.code.size();
+        uint32_t flags = (index_constant ? ir::kGuardedLocalListCompareIndexConstFlag : 0) |
+            (rhs_constant ? ir::kGuardedLocalListCompareRhsConstFlag : 0);
+        emit(ir::Op::GuardedLocalListCompare, dst, sequence_slot, operands, flags);
+        const size_t fallback_begin = fn_.code.size();
+        const auto lhs = lower_expr(*bin->lhs);
+        const auto rhs = lower_expr(*bin->rhs);
+        emit_compare_op(bin->op, dst, lhs, rhs);
+        fn_.code[fast_ip].c |= static_cast<uint32_t>(fn_.code.size() - fallback_begin);
+        return dst;
+      }
       const auto lhs = lower_expr(*bin->lhs);
       if (bin->op == "and") {
         const auto reg = new_reg();
@@ -6246,6 +6743,38 @@ private:
       return dst;
     }
     if (auto* subscript = dynamic_cast<const ast::SubscriptExpr*>(&expr)) {
+      uint32_t sequence_slot = 0;
+      uint32_t index_operand = 0;
+      bool constant_index = false;
+      auto* sequence_name = dynamic_cast<const ast::NameExpr*>(subscript->object.get());
+      auto* index_name = dynamic_cast<const ast::NameExpr*>(subscript->index.get());
+      auto* index_literal = dynamic_cast<const ast::LiteralExpr*>(subscript->index.get());
+      const bool local_sequence = sequence_name != nullptr &&
+          direct_local_slot(sequence_name->name, sequence_slot);
+      bool supported_index = local_sequence && index_name != nullptr &&
+          direct_local_slot(index_name->name, index_operand);
+      if (local_sequence && index_name == nullptr && index_literal != nullptr &&
+          index_literal->kind == ast::LiteralExpr::Kind::Int) {
+        const Value value = literal_value(*index_literal);
+        if (value.tag == ValueTag::Int64) {
+          index_operand = add_const(value);
+          constant_index = true;
+          supported_index = true;
+        }
+      }
+      if (supported_index) {
+        const auto dst = new_reg();
+        const size_t fast_ip = fn_.code.size();
+        emit(ir::Op::GuardedLocalListGetItem, dst, sequence_slot, index_operand,
+             constant_index ? ir::kGuardedLocalListGetItemConstFlag : 0);
+        const size_t fallback_begin = fn_.code.size();
+        const auto object = lower_expr(*subscript->object);
+        const auto index = lower_expr(*subscript->index);
+        emit(ir::Op::GetItem, dst, object, index);
+        const uint32_t span = static_cast<uint32_t>(fn_.code.size() - fallback_begin);
+        fn_.code[fast_ip].c |= span;
+        return dst;
+      }
       const auto object = lower_expr(*subscript->object);
       const auto index = lower_expr(*subscript->index);
       const auto dst = new_reg();

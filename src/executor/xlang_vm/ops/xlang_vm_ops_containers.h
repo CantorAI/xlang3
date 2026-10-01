@@ -25,11 +25,570 @@ limitations under the License.
 #include "xlang3/set_object.h"
 #include "xlang3/value_hash.h"
 
+#include <algorithm>
+#include <limits>
 #include <string>
 #include <utility>
 #include <vector>
 
 namespace xlang3::xlang_vm::ops {
+
+XLANG3_HOT_INLINE XlangVMOpFlow reverse_prefix_slice_assign(
+    const ir::Instr& in,
+    const ir::Function& fn,
+    XlangVMFrame& frame,
+    XlangVMSmallValueBuffer& locals,
+    size_t& ip,
+    bool allow_fast_path,
+    RuntimeResult& result) {
+  if (in.dst >= locals.size() || in.a >= locals.size()) {
+    result.errors.push_back("invalid reverse-prefix slice local slot");
+    return XlangVMOpFlow::ReturnResult;
+  }
+  const size_t fallback_span = in.c;
+  if (fallback_span == 0 || ip >= fn.code.size() ||
+      fallback_span >= fn.code.size() - ip) {
+    result.errors.push_back("invalid reverse-prefix slice fallback span");
+    return XlangVMOpFlow::ReturnResult;
+  }
+
+  const Value& sequence = locals[in.dst];
+  const Value& index_value = locals[in.a];
+  if (!allow_fast_path || index_value.tag != ValueTag::Int64 ||
+      sequence.tag != ValueTag::Object || sequence.as.obj == nullptr ||
+      sequence.as.obj->kind != ObjectKind::List ||
+      index_value.as.i64 == std::numeric_limits<int64_t>::max()) {
+    return XlangVMOpFlow::Next;
+  }
+
+  auto* list = reinterpret_cast<ListObject*>(sequence.as.obj);
+  if (list->items.size() > static_cast<size_t>(std::numeric_limits<int64_t>::max())) {
+    return XlangVMOpFlow::Next;
+  }
+  const int64_t length = static_cast<int64_t>(list->items.size());
+
+  // For exact lists and exact ints, the two slices normalize to [0:stop] and
+  // [start:-1:-1]. Only equal lengths denote a valid prefix reversal; other
+  // inputs take the normal Python slice-assignment path and preserve errors.
+  int64_t target_stop = index_value.as.i64 + 1;
+  if (target_stop < 0) {
+    target_stop += length;
+    if (target_stop < 0) target_stop = 0;
+  } else if (target_stop > length) {
+    target_stop = length;
+  }
+  int64_t source_start = index_value.as.i64;
+  if (source_start < 0) {
+    source_start += length;
+    if (source_start < 0) source_start = -1;
+  } else if (source_start >= length) {
+    source_start = length - 1;
+  }
+  const int64_t source_length = source_start < 0 ? 0 : source_start + 1;
+  if (target_stop != source_length) return XlangVMOpFlow::Next;
+
+  // CPython 3.14's generic STORE_SLICE path builds the reversed RHS list.
+  // This guarded IR form proves that exact RHS is the destination's prefix in
+  // reverse order, so reversing the existing Value slots avoids both slice
+  // objects and the temporary list while leaving all other cases generic.
+  std::reverse(list->items.begin(), list->items.begin() + target_stop);
+  frame.release_registers_for_skipped_expression_fallback(fn, ip + 1, fallback_span);
+  ip += fallback_span;
+  return XlangVMOpFlow::Next;
+}
+
+XLANG3_HOT_INLINE XlangVMOpFlow guarded_local_list_get_item(
+    const ir::Instr& in,
+    const ir::Function& fn,
+    XlangVMFrame& frame,
+    XlangVMSmallRegisterBuffer& regs,
+    XlangVMSmallValueBuffer& locals,
+    size_t& ip,
+    bool allow_fast_path,
+    RuntimeResult& result) {
+  const bool constant_index =
+      (in.c & ir::kGuardedLocalListGetItemConstFlag) != 0;
+  const size_t fallback_span = in.c & ir::kGuardedLocalListGetItemSpanMask;
+  if (in.dst >= regs.size() || in.a >= locals.size() ||
+      (constant_index ? in.b >= fn.constants.size() : in.b >= locals.size())) {
+    result.errors.push_back("invalid guarded local list subscript operand");
+    return XlangVMOpFlow::ReturnResult;
+  }
+  if (fallback_span == 0 || ip >= fn.code.size() ||
+      fallback_span >= fn.code.size() - ip) {
+    result.errors.push_back("invalid guarded local list subscript fallback span");
+    return XlangVMOpFlow::ReturnResult;
+  }
+
+  const Value& sequence = locals[in.a];
+  const Value& index = constant_index ? fn.constants[in.b] : locals[in.b];
+  if (!allow_fast_path || index.tag != ValueTag::Int64 || index.as.i64 < 0 ||
+      sequence.tag != ValueTag::Object || sequence.as.obj == nullptr ||
+      sequence.as.obj->kind != ObjectKind::List) {
+    return XlangVMOpFlow::Next;
+  }
+  auto* list = reinterpret_cast<ListObject*>(sequence.as.obj);
+  const auto position = static_cast<uint64_t>(index.as.i64);
+  if (position >= list->items.size()) return XlangVMOpFlow::Next;
+
+  // CPython 3.14 specializes exact list + nonnegative exact int subscripts.
+  // Read the local list directly, then skip register loads and generic GetItem
+  // bytecode that remains as the type and bounds fallback.
+  value_borrow_assign_fast(regs[in.dst], list->items[static_cast<size_t>(position)]);
+  frame.release_registers_for_skipped_expression_fallback(
+      fn, ip + 1, fallback_span, in.dst);
+  ip += fallback_span;
+  return XlangVMOpFlow::Next;
+}
+
+XLANG3_HOT_INLINE XlangVMOpFlow guarded_local_list_augment_const(
+    const ir::Instr& in,
+    const ir::Function& fn,
+    XlangVMFrame& frame,
+    XlangVMSmallValueBuffer& locals,
+    size_t& ip,
+    bool allow_fast_path,
+    RuntimeResult& result) {
+  const bool subtract = (in.c & ir::kGuardedLocalListAugmentSubtractFlag) != 0;
+  const size_t fallback_span = in.c & ir::kGuardedLocalListAugmentSpanMask;
+  if (in.dst >= locals.size() || in.a >= locals.size() || in.b >= fn.constants.size()) {
+    result.errors.push_back("invalid guarded local list augmented assignment operand");
+    return XlangVMOpFlow::ReturnResult;
+  }
+  if (fallback_span == 0 || ip >= fn.code.size() ||
+      fallback_span >= fn.code.size() - ip) {
+    result.errors.push_back("invalid guarded local list augmented assignment fallback span");
+    return XlangVMOpFlow::ReturnResult;
+  }
+
+  const Value& sequence = locals[in.dst];
+  const Value& index = locals[in.a];
+  const Value& amount = fn.constants[in.b];
+  if (!allow_fast_path || index.tag != ValueTag::Int64 || index.as.i64 < 0 ||
+      amount.tag != ValueTag::Int64 || sequence.tag != ValueTag::Object ||
+      sequence.as.obj == nullptr || sequence.as.obj->kind != ObjectKind::List) {
+    return XlangVMOpFlow::Next;
+  }
+  auto* list = reinterpret_cast<ListObject*>(sequence.as.obj);
+  const auto position = static_cast<uint64_t>(index.as.i64);
+  if (position >= list->items.size()) return XlangVMOpFlow::Next;
+  Value& current = list->items[static_cast<size_t>(position)];
+  if (current.tag != ValueTag::Int64) return XlangVMOpFlow::Next;
+  int64_t updated = 0;
+  const bool fits = subtract
+      ? xlang_vm_checked_sub_i64(current.as.i64, amount.as.i64, updated)
+      : xlang_vm_checked_add_i64(current.as.i64, amount.as.i64, updated);
+  if (!fits) return XlangVMOpFlow::Next;
+
+  // CPython's list/int augmented-store path avoids general subscription and
+  // arithmetic dispatch. Restrict this form to exact lists and exact ints;
+  // overflow, subclasses, and overloaded arithmetic retain the normal IR.
+  value_set_int64(current, updated);
+  frame.release_registers_for_skipped_expression_fallback(fn, ip + 1, fallback_span);
+  ip += fallback_span;
+  return XlangVMOpFlow::Next;
+}
+
+XLANG3_HOT_INLINE XlangVMOpFlow while_reverse_prefix_count(
+    const ir::Instr& in,
+    const ir::Function& fn,
+    XlangVMFrame& frame,
+    XlangVMSmallValueBuffer& locals,
+    size_t& ip,
+    bool allow_fast_path,
+    RuntimeResult& result) {
+  if (in.dst >= locals.size() || in.a >= locals.size() || in.b >= locals.size()) {
+    result.errors.push_back("invalid reverse-prefix loop local slot");
+    return XlangVMOpFlow::ReturnResult;
+  }
+  const size_t fallback_span = in.c;
+  if (fallback_span == 0 || ip >= fn.code.size() ||
+      fallback_span >= fn.code.size() - ip) {
+    result.errors.push_back("invalid reverse-prefix loop fallback span");
+    return XlangVMOpFlow::ReturnResult;
+  }
+
+  const Value& sequence = locals[in.dst];
+  const Value& index = locals[in.a];
+  const Value& counter = locals[in.b];
+  if (!allow_fast_path || index.tag != ValueTag::Int64 ||
+      counter.tag != ValueTag::Int64 ||
+      sequence.tag != ValueTag::Object || sequence.as.obj == nullptr ||
+      sequence.as.obj->kind != ObjectKind::List) {
+    return XlangVMOpFlow::Next;
+  }
+  auto* list = reinterpret_cast<ListObject*>(sequence.as.obj);
+  if (list->items.size() > static_cast<size_t>(std::numeric_limits<int64_t>::max())) {
+    return XlangVMOpFlow::Next;
+  }
+  const int64_t length = static_cast<int64_t>(list->items.size());
+  int64_t flips = counter.as.i64;
+  bool completed_iteration = false;
+  size_t fused_iterations = 0;
+
+  // The compiler emits this only for the exact three-statement loop body
+  // `values[:index + 1] = values[index::-1]; count += 1; index = values[0]`.
+  // CPython executes those as separate adaptive bytecodes and materializes a
+  // reversed list; here exact-list/exact-int guards let one VM op run several
+  // reversals. Any type, range, or overflow miss resumes the ordinary loop.
+  for (;;) {
+    // Bound each dispatch so cyclic user lists still visit the VM's event
+    // polling boundary and can be interrupted just like the generic loop.
+    if (fused_iterations >= 64 ||
+        ((fused_iterations & 15u) == 0 && interpreter_pending_events() != 0)) {
+      break;
+    }
+    const Value& current_index = locals[in.a];
+    if (current_index.tag != ValueTag::Int64) {
+      if (!completed_iteration) return XlangVMOpFlow::Next;
+      break;
+    }
+    const int64_t k = current_index.as.i64;
+    if (k == 0) {
+      if (!completed_iteration) {
+        ip += fallback_span;
+        return XlangVMOpFlow::Next;
+      }
+      break;
+    }
+    if (k < 0 || k >= length || flips == std::numeric_limits<int64_t>::max()) {
+      if (!completed_iteration) return XlangVMOpFlow::Next;
+      break;
+    }
+
+    std::reverse(list->items.begin(), list->items.begin() + (k + 1));
+    ++flips;
+    ++fused_iterations;
+    completed_iteration = true;
+    value_assign_fast(locals[in.a], list->items.front());
+  }
+
+  if (completed_iteration) {
+    value_set_int64(locals[in.b], flips);
+    frame.release_registers_for_skipped_expression_fallback(fn, ip + 1, fallback_span);
+    // Leave the loop's existing back-edge in place. It reevaluates the while
+    // condition and either exits or resumes the generic body on a guard miss.
+    ip += fallback_span;
+  }
+  return XlangVMOpFlow::Next;
+}
+
+XLANG3_HOT_INLINE XlangVMOpFlow list_pop_front_insert(
+    const ir::Instr& in,
+    const ir::Function& fn,
+    XlangVMFrame& frame,
+    XlangVMSmallValueBuffer& locals,
+    size_t& ip,
+    bool allow_fast_path,
+    RuntimeResult& result) {
+  if (in.dst >= locals.size() || in.a >= locals.size() || in.b >= locals.size()) {
+    result.errors.push_back("invalid list pop-insert local slot");
+    return XlangVMOpFlow::ReturnResult;
+  }
+  const size_t fallback_span = in.c;
+  if (fallback_span == 0 || ip >= fn.code.size() ||
+      fallback_span >= fn.code.size() - ip) {
+    result.errors.push_back("invalid list pop-insert fallback span");
+    return XlangVMOpFlow::ReturnResult;
+  }
+  if (!allow_fast_path) return XlangVMOpFlow::Next;
+
+  const Value& insert_value = locals[in.a];
+  const Value& pop_value = locals[in.b];
+  const Value& index_value = locals[in.dst];
+  auto* insert_method = value_as_bound_method(insert_value);
+  auto* pop_method = value_as_bound_method(pop_value);
+  if (insert_method == nullptr || pop_method == nullptr ||
+      insert_method->self.tag != ValueTag::Object ||
+      insert_method->self.as.obj == nullptr ||
+      insert_method->self.as.obj != pop_method->self.as.obj ||
+      index_value.tag != ValueTag::Int64 || index_value.as.i64 < 0) {
+    return XlangVMOpFlow::Next;
+  }
+  auto* insert_function = value_as_native_function(insert_method->function);
+  auto* pop_function = value_as_native_function(pop_method->function);
+  if (insert_function == nullptr || pop_function == nullptr ||
+      insert_function->specialization_id != kBuiltinMethodSpecializationListInsert ||
+      pop_function->specialization_id != kBuiltinMethodSpecializationListPop) {
+    return XlangVMOpFlow::Next;
+  }
+  auto* list = value_as_mutable_list_storage(insert_method->self);
+  if (list == nullptr || list->items.empty() ||
+      static_cast<uint64_t>(index_value.as.i64) >= list->items.size()) {
+    return XlangVMOpFlow::Next;
+  }
+
+  // Removing item zero and reinserting it at `index` rotates exactly the
+  // first index+1 elements left once. Guard builtin method identities rather
+  // than local names; custom callables and mismatched lists keep ordinary IR.
+  const size_t prefix_size = static_cast<size_t>(index_value.as.i64) + 1;
+  std::rotate(list->items.begin(), list->items.begin() + 1,
+              list->items.begin() + static_cast<std::ptrdiff_t>(prefix_size));
+  frame.release_registers_for_skipped_expression_fallback(fn, ip + 1, fallback_span);
+  ip += fallback_span;
+  return XlangVMOpFlow::Next;
+}
+
+XLANG3_HOT_INLINE XlangVMOpFlow while_list_permutation_advance(
+    const ir::Instr& in,
+    const ir::Function& fn,
+    XlangVMFrame& frame,
+    XlangVMSmallValueBuffer& locals,
+    size_t& ip,
+    bool allow_fast_path,
+    RuntimeResult& result) {
+  if (in.dst >= locals.size() || in.a >= locals.size() || in.b >= locals.size() ||
+      in.c >= fn.call_args.size() || fn.call_args[in.c].size() != 4 ||
+      fn.call_args[in.c][0] >= locals.size() || fn.call_args[in.c][1] >= locals.size()) {
+    result.errors.push_back("invalid list permutation loop operands");
+    return XlangVMOpFlow::ReturnResult;
+  }
+  const auto& spec = fn.call_args[in.c];
+  const size_t fallback_span = spec[2];
+  const size_t else_span = spec[3];
+  if (fallback_span == 0 || ip >= fn.code.size() ||
+      fallback_span >= fn.code.size() - ip ||
+      else_span >= fn.code.size() - ip - fallback_span) {
+    result.errors.push_back("invalid list permutation loop fallback span");
+    return XlangVMOpFlow::ReturnResult;
+  }
+  if (!allow_fast_path) return XlangVMOpFlow::Next;
+
+  const Value& index_value = locals[in.dst];
+  const Value& limit_value = locals[spec[1]];
+  const Value& insert_value = locals[in.a];
+  const Value& pop_value = locals[in.b];
+  if (index_value.tag != ValueTag::Int64 || limit_value.tag != ValueTag::Int64) {
+    return XlangVMOpFlow::Next;
+  }
+  auto* insert_method = value_as_bound_method(insert_value);
+  auto* pop_method = value_as_bound_method(pop_value);
+  if (insert_method == nullptr || pop_method == nullptr ||
+      insert_method->self.tag != ValueTag::Object ||
+      insert_method->self.as.obj == nullptr ||
+      insert_method->self.as.obj != pop_method->self.as.obj) {
+    return XlangVMOpFlow::Next;
+  }
+  auto* insert_function = value_as_native_function(insert_method->function);
+  auto* pop_function = value_as_native_function(pop_method->function);
+  if (insert_function == nullptr || pop_function == nullptr ||
+      insert_function->specialization_id != kBuiltinMethodSpecializationListInsert ||
+      pop_function->specialization_id != kBuiltinMethodSpecializationListPop) {
+    return XlangVMOpFlow::Next;
+  }
+  // `value_as_list` deliberately excludes list subclasses, whose overridden
+  // item or method behavior must run through the ordinary loop fallback.
+  auto* permutation = value_as_list(insert_method->self);
+  auto* counts = value_as_list(locals[spec[0]]);
+  if (permutation == nullptr || counts == nullptr) return XlangVMOpFlow::Next;
+
+  int64_t current = index_value.as.i64;
+  const int64_t limit = limit_value.as.i64;
+  size_t completed = 0;
+  bool finished = false;
+  bool loop_exhausted = false;
+  for (;;) {
+    if (current == limit) {
+      finished = true;
+      loop_exhausted = true;
+      break;
+    }
+    // Limit each native batch and poll at the same short interval used by
+    // other loop fusions, so cancellation and pending callbacks remain timely.
+    if (completed >= 64 ||
+        ((completed & 15u) == 0 && interpreter_pending_events() != 0)) {
+      break;
+    }
+    if (current < 0 || static_cast<uint64_t>(current) >= permutation->items.size() ||
+        static_cast<uint64_t>(current) >= counts->items.size()) {
+      break;
+    }
+    Value& count = counts->items[static_cast<size_t>(current)];
+    if (count.tag != ValueTag::Int64 || count.as.i64 == std::numeric_limits<int64_t>::min()) {
+      break;
+    }
+    const int64_t updated_count = count.as.i64 - 1;
+    const bool stop_on_positive_count = updated_count > 0;
+    if (!stop_on_positive_count && current == std::numeric_limits<int64_t>::max()) {
+      break;
+    }
+
+    // With exact list/method/int guards, pop(0)+insert(index, item) is a left
+    // rotation of the prefix. The counter update and break test are folded in
+    // too, replacing repeated Python-level loop dispatches with one VM op.
+    const size_t prefix_size = static_cast<size_t>(current) + 1;
+    std::rotate(permutation->items.begin(), permutation->items.begin() + 1,
+                permutation->items.begin() + static_cast<std::ptrdiff_t>(prefix_size));
+    value_set_int64(count, updated_count);
+    ++completed;
+    if (stop_on_positive_count) {
+      finished = true;
+      break;
+    }
+    ++current;
+  }
+
+  if (completed != 0) value_set_int64(locals[in.dst], current);
+  if (finished) {
+    const size_t skipped_span = fallback_span + (loop_exhausted ? 0 : else_span);
+    frame.release_registers_for_skipped_expression_fallback(fn, ip + 1, skipped_span);
+    ip += skipped_span;
+  }
+  // A partial batch resumes at the loop's condition. Guard misses therefore
+  // execute the original CPython-compatible calls, subscriptions, and errors.
+  return XlangVMOpFlow::Next;
+}
+
+XLANG3_HOT_INLINE XlangVMOpFlow while_reset_count(
+    const ir::Instr& in,
+    const ir::Function& fn,
+    XlangVMFrame& frame,
+    XlangVMSmallValueBuffer& locals,
+    size_t& ip,
+    bool allow_fast_path,
+    RuntimeResult& result) {
+  if (in.dst >= locals.size() || in.a >= locals.size()) {
+    result.errors.push_back("invalid count-reset loop local slot");
+    return XlangVMOpFlow::ReturnResult;
+  }
+  const size_t fallback_span = in.c;
+  if (fallback_span == 0 || ip >= fn.code.size() ||
+      fallback_span >= fn.code.size() - ip) {
+    result.errors.push_back("invalid count-reset loop fallback span");
+    return XlangVMOpFlow::ReturnResult;
+  }
+  if (!allow_fast_path || locals[in.dst].tag != ValueTag::Int64) {
+    return XlangVMOpFlow::Next;
+  }
+  auto* counts = value_as_mutable_list_storage(locals[in.a]);
+  if (counts == nullptr || counts->items.size() >
+          static_cast<size_t>(std::numeric_limits<int64_t>::max())) {
+    return XlangVMOpFlow::Next;
+  }
+  int64_t current = locals[in.dst].as.i64;
+  const int64_t length = static_cast<int64_t>(counts->items.size());
+  if (current <= 1 || current > length) return XlangVMOpFlow::Next;
+
+  size_t completed = 0;
+  while (current != 1 && completed < 64) {
+    if ((completed & 15u) == 0 && interpreter_pending_events() != 0) {
+      if (completed == 0) return XlangVMOpFlow::Next;
+      break;
+    }
+    if (current <= 1 || current > length) {
+      // The fast guard established a valid positive countdown. The check also
+      // keeps future edits from turning malformed locals into unchecked access.
+      break;
+    }
+    Value& item = counts->items[static_cast<size_t>(current - 1)];
+    if (item.tag != ValueTag::Int64) {
+      if (completed == 0) return XlangVMOpFlow::Next;
+      break;
+    }
+    value_set_int64(item, current);
+    --current;
+    ++completed;
+  }
+  if (completed == 0) return XlangVMOpFlow::Next;
+
+  // Exact int/list guards make each update equivalent to the generic indexed
+  // store and decrement. The bounded batch preserves VM event polling for long
+  // countdowns; type and bounds misses keep the original IR body available.
+  value_set_int64(locals[in.dst], current);
+  frame.release_registers_for_skipped_expression_fallback(fn, ip + 1, fallback_span);
+  ip += fallback_span;
+  return XlangVMOpFlow::Next;
+}
+
+XLANG3_HOT_INLINE XlangVMOpFlow guarded_local_list_compare(
+    const ir::Instr& in,
+    const ir::Function& fn,
+    XlangVMSmallRegisterBuffer& regs,
+    XlangVMFrame& frame,
+    XlangVMSmallValueBuffer& locals,
+    size_t& ip,
+    bool allow_fast_path,
+    RuntimeResult& result) {
+  const bool index_constant = (in.c & ir::kGuardedLocalListCompareIndexConstFlag) != 0;
+  const bool rhs_constant = (in.c & ir::kGuardedLocalListCompareRhsConstFlag) != 0;
+  const bool branch = (in.c & ir::kGuardedLocalListCompareBranchFlag) != 0;
+  const size_t fallback_span = in.c & ir::kGuardedLocalListCompareSpanMask;
+  if (in.dst >= regs.size() || in.a >= locals.size() || in.b >= fn.call_args.size() ||
+      fn.call_args[in.b].size() != (branch ? 4u : 3u) || fallback_span == 0 || ip >= fn.code.size() ||
+      fallback_span >= fn.code.size() - ip ||
+      (branch && (fallback_span + 1 >= fn.code.size() - ip ||
+                  (fn.code[ip + fallback_span + 1].op != ir::Op::JumpIfFalse &&
+                   fn.code[ip + fallback_span + 1].op != ir::Op::MoveJumpIfFalse) ||
+                  fn.code[ip + fallback_span + 1].a != in.dst ||
+                  (fn.code[ip + fallback_span + 1].op == ir::Op::JumpIfFalse
+                       ? fn.code[ip + fallback_span + 1].dst
+                       : fn.code[ip + fallback_span + 1].b) != fn.call_args[in.b][3] ||
+                  (fn.code[ip + fallback_span + 1].op == ir::Op::MoveJumpIfFalse &&
+                   fn.code[ip + fallback_span + 1].dst >= regs.size())))) {
+    result.errors.push_back("invalid guarded list comparison operands");
+    return XlangVMOpFlow::ReturnResult;
+  }
+  if (!allow_fast_path) return XlangVMOpFlow::Next;
+
+  const auto& spec = fn.call_args[in.b];
+  const uint32_t index_operand = spec[0];
+  const uint32_t rhs_operand = spec[1];
+  if ((index_constant ? index_operand >= fn.constants.size() : index_operand >= locals.size()) ||
+      (rhs_constant ? rhs_operand >= fn.constants.size() : rhs_operand >= locals.size()) ||
+      spec[2] > static_cast<uint32_t>(ir::CompareOp::Ge) ||
+      (branch && spec[3] > fn.code.size())) {
+    result.errors.push_back("invalid guarded list comparison spec");
+    return XlangVMOpFlow::ReturnResult;
+  }
+
+  const Value& index = index_constant ? fn.constants[index_operand] : locals[index_operand];
+  const Value& rhs = rhs_constant ? fn.constants[rhs_operand] : locals[rhs_operand];
+  auto* list = value_as_mutable_list_storage(locals[in.a]);
+  if (list == nullptr || index.tag != ValueTag::Int64 || index.as.i64 < 0 ||
+      static_cast<uint64_t>(index.as.i64) >= list->items.size()) {
+    return XlangVMOpFlow::Next;
+  }
+  const Value& lhs = list->items[static_cast<size_t>(index.as.i64)];
+  if (lhs.tag != ValueTag::Int64 || rhs.tag != ValueTag::Int64) {
+    return XlangVMOpFlow::Next;
+  }
+
+  bool value = false;
+  switch (static_cast<ir::CompareOp>(spec[2])) {
+    case ir::CompareOp::Eq: value = lhs.as.i64 == rhs.as.i64; break;
+    case ir::CompareOp::Ne: value = lhs.as.i64 != rhs.as.i64; break;
+    case ir::CompareOp::Lt: value = lhs.as.i64 < rhs.as.i64; break;
+    case ir::CompareOp::Le: value = lhs.as.i64 <= rhs.as.i64; break;
+    case ir::CompareOp::Gt: value = lhs.as.i64 > rhs.as.i64; break;
+    case ir::CompareOp::Ge: value = lhs.as.i64 >= rhs.as.i64; break;
+  }
+
+  // CPython specializes exact-list/integer subscripting and integer compares.
+  // Fuse those two operations at the local load site; bools, subclasses,
+  // negative indices, and custom values retain the ordinary comparison IR.
+  value_set_bool(regs[in.dst], value);
+  frame.release_registers_for_skipped_expression_fallback(
+      fn, ip + 1, fallback_span, in.dst);
+  if (branch) {
+    const auto& branch_instr = fn.code[ip + fallback_span + 1];
+    if (branch_instr.op == ir::Op::MoveJumpIfFalse) {
+      // Short-circuit `and` returns its left operand on both paths, so the
+      // fused branch must perform MoveJumpIfFalse's move before branching.
+      value_assign_fast(regs[branch_instr.dst], regs[in.dst]);
+    }
+    if (!value) {
+      ip = spec[3];
+      return XlangVMOpFlow::ContinueLoop;
+    }
+    // The adjacent branch is the fallback for this comparison result. A
+    // successful exact-list/int guard already computed it, including the
+    // short-circuit destination used by MoveJumpIfFalse.
+    ip += fallback_span + 1;
+    return XlangVMOpFlow::Next;
+  }
+  ip += fallback_span;
+  return XlangVMOpFlow::Next;
+}
 
 XLANG3_HOT_INLINE XlangVMOpFlow make_tuple(
     const ir::Instr& in,

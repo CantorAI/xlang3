@@ -31,6 +31,13 @@ None
 None
 ['closed']
 16
+144
+9
+nested coroutine error
+paused
+False True suspended_child
+13
+None
 10
 asend lazy
 11

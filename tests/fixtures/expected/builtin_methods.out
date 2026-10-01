@@ -4,6 +4,32 @@
 [1, 9, 2, 4, 5]
 9
 0
+[5, 4, 3, 2, 1, 0]
+5
+4
+3
+[2, 1, 0]
+[1, 2, 0, 3, 4]
+[1, 0, 2]
+[0, 9, 1, 2]
+9
+([0, 9, 1, 2], [])
+([0, 2, 3, 4], 1)
+([0, 0], True)
+IndexError
+True
+False
+True
+True
+True
+positive
+not positive
+positive
+not positive
+positive
+([1, 0, 2], [0, 1, 3], 1)
+([1, 0], [0, 1], 1)
+([0, 1], [1, 2], 2)
 1
 None
 9

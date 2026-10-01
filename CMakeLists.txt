@@ -25,6 +25,13 @@ if(MSVC)
 endif()
 
 option(XLANG3_EMBEDDED "Build the static embedded runtime subset" OFF)
+set(XLANG3_RELEASE_PGO_STAGE "OFF" CACHE STRING
+  "MSVC Release PGO mode for xlang3_runtime: OFF, INSTRUMENT, or OPTIMIZE")
+set_property(CACHE XLANG3_RELEASE_PGO_STAGE PROPERTY STRINGS OFF INSTRUMENT OPTIMIZE)
+set(XLANG3_RELEASE_PGO_EXPORTS_DEF "" CACHE FILEPATH
+  "Existing xlang3_runtime exports.def to preserve the DLL ABI in MSVC PGO builds")
+set(XLANG3_RELEASE_PGO_DATABASE "" CACHE FILEPATH
+  "MSVC PGO database path shared by INSTRUMENT and OPTIMIZE builds")
 
 if(NOT XLANG3_EMBEDDED)
 set(YAML_CPP_BUILD_CONTRIB OFF CACHE BOOL "" FORCE)
@@ -303,6 +310,41 @@ set_target_properties(xlang3_thread_runtime xlang3_task_runtime
 set_target_properties(xlang3_runtime PROPERTIES
   WINDOWS_EXPORT_ALL_SYMBOLS ON
 )
+
+if(NOT XLANG3_RELEASE_PGO_STAGE STREQUAL "OFF")
+  if(NOT MSVC OR NOT WIN32)
+    message(FATAL_ERROR "XLANG3_RELEASE_PGO_STAGE requires MSVC on Windows")
+  endif()
+  if(NOT XLANG3_RELEASE_PGO_STAGE MATCHES "^(INSTRUMENT|OPTIMIZE)$")
+    message(FATAL_ERROR "XLANG3_RELEASE_PGO_STAGE must be OFF, INSTRUMENT, or OPTIMIZE")
+  endif()
+  if(NOT EXISTS "${XLANG3_RELEASE_PGO_EXPORTS_DEF}")
+    message(FATAL_ERROR "Set XLANG3_RELEASE_PGO_EXPORTS_DEF to the current Release exports.def")
+  endif()
+  if(XLANG3_RELEASE_PGO_DATABASE STREQUAL "")
+    message(FATAL_ERROR "Set XLANG3_RELEASE_PGO_DATABASE for both MSVC PGO stages")
+  endif()
+
+  # CMake's automatic export scanner cannot inspect /GL objects. Reuse the
+  # ordinary Release export list so the PGO build changes code generation
+  # without changing the native DLL's exported ABI.
+  set_target_properties(xlang3_runtime PROPERTIES
+    WINDOWS_EXPORT_ALL_SYMBOLS OFF
+    INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE
+  )
+  target_link_options(xlang3_runtime PRIVATE
+    "/DEF:${XLANG3_RELEASE_PGO_EXPORTS_DEF}"
+  )
+  if(XLANG3_RELEASE_PGO_STAGE STREQUAL "INSTRUMENT")
+    target_link_options(xlang3_runtime PRIVATE
+      "$<$<CONFIG:Release>:/GENPROFILE:PGD=${XLANG3_RELEASE_PGO_DATABASE}>"
+    )
+  else()
+    target_link_options(xlang3_runtime PRIVATE
+      "$<$<CONFIG:Release>:/USEPROFILE:PGD=${XLANG3_RELEASE_PGO_DATABASE}>"
+    )
+  endif()
+endif()
 
 set_target_properties(xlang3_runtime_static PROPERTIES
   OUTPUT_NAME "xlang3_runtime_static"

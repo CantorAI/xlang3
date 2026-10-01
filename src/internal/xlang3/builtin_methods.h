@@ -176,6 +176,8 @@ struct BuiltinMethodSpec {
 };
 
 constexpr uint32_t kBuiltinMethodSpecializationListAppend = 1;
+constexpr uint32_t kBuiltinMethodSpecializationListInsert = 2;
+constexpr uint32_t kBuiltinMethodSpecializationListPop = 3;
 
 XLANG3_HOT_INLINE void builtin_method_set_text_signature(Value& function, const char* text_signature) {
   if (text_signature == nullptr) {
@@ -207,6 +209,9 @@ XLANG3_HOT_INLINE const Value& builtin_method_function(const BuiltinMethodSpec& 
         spec.fast_callback,
         spec.fast_releases_vm_lock,
         spec.keyword_callback);
+    if (auto* native = value_as_native_function(spec.function)) {
+      native->specialization_id = spec.specialization_id;
+    }
     builtin_method_set_text_signature(spec.function, spec.text_signature);
   });
   return spec.function;

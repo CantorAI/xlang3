@@ -87,66 +87,84 @@ void generator_vm_visit_references(
 }
 
 bool generator_vm_frame_snapshot(const GeneratorObject& generator, Value& out) {
-  if (generator.vm_state == nullptr) {
-    return false;
-  }
-  const auto* state = static_cast<const GeneratorVMState*>(generator.vm_state);
-  if (state->frame_count == 0 || state->frame_count > state->frames.size()) {
-    return false;
-  }
-  const auto& frame = state->frames[state->frame_count - 1];
-  if (frame.fn == nullptr || frame.module_owner == nullptr) {
-    return false;
-  }
-  std::vector<std::pair<Value, Value>> entries;
-  entries.reserve(frame.fn->locals.size() + frame.fn->free_vars.size());
-  for (size_t local_index = 0; local_index < frame.fn->locals.size() && local_index < frame.locals.size(); ++local_index) {
-    const auto& name = frame.fn->locals[local_index];
-    if (name.empty() || name[0] == '#') {
-      continue;
-    }
-    const Value* local_value = &frame.locals[local_index];
-    for (size_t cell_index = 0; cell_index < frame.fn->cell_slots.size() && cell_index < frame.cells.size(); ++cell_index) {
-      if (frame.fn->cell_slots[cell_index] == local_index) {
-        if (auto* cell = value_as_cell(frame.cells[cell_index])) {
-          local_value = &cell->value;
+  auto snapshot_frame = [&](const VMFrame& frame) {
+    if (frame.fn == nullptr || frame.module_owner == nullptr) return false;
+    std::vector<std::pair<Value, Value>> entries;
+    entries.reserve(frame.fn->locals.size() + frame.fn->free_vars.size());
+    for (size_t local_index = 0;
+         local_index < frame.fn->locals.size() && local_index < frame.locals.size();
+         ++local_index) {
+      const auto& name = frame.fn->locals[local_index];
+      if (name.empty() || name[0] == '#') continue;
+      const Value* local_value = &frame.locals[local_index];
+      for (size_t cell_index = 0;
+           cell_index < frame.fn->cell_slots.size() && cell_index < frame.cells.size();
+           ++cell_index) {
+        if (frame.fn->cell_slots[cell_index] == local_index) {
+          if (auto* cell = value_as_cell(frame.cells[cell_index])) local_value = &cell->value;
+          break;
         }
-        break;
+      }
+      if (local_value->tag != ValueTag::Invalid) entries.push_back({Value::string(name), *local_value});
+    }
+    if (frame.closure != nullptr) {
+      for (size_t free_index = 0;
+           free_index < frame.fn->free_vars.size() && free_index < frame.closure->size();
+           ++free_index) {
+        const auto& name = frame.fn->free_vars[free_index];
+        if (name.empty() || name[0] == '#') continue;
+        const Value* free_value = &(*frame.closure)[free_index];
+        if (auto* cell = value_as_cell(*free_value)) free_value = &cell->value;
+        if (free_value->tag != ValueTag::Invalid) entries.push_back({Value::string(name), *free_value});
       }
     }
-    if (local_value->tag != ValueTag::Invalid) {
-      entries.push_back({Value::string(name), *local_value});
+    out = Value::frame(
+        frame.module_owner,
+        frame.function_id,
+        frame.globals_module,
+        static_cast<uint32_t>(frame.ip),
+        Value::dict(std::move(entries)),
+        Value::none(),
+        Value::none(),
+        frame.activation_id);
+    if (generator.runtime != nullptr) frame_set_generator_owner(*generator.runtime, out, generator);
+    return true;
+  };
+
+  if (generator.vm_state != nullptr) {
+    const auto* state = static_cast<const GeneratorVMState*>(generator.vm_state);
+    if (state->frame_count == 0 || state->frame_count > state->frames.size()) return false;
+    return snapshot_frame(state->frames[state->frame_count - 1]);
+  }
+
+  // An inlined coroutine keeps its live frame in the awaiting parent's saved
+  // VM stack. Follow the non-owning parent chain to find that stack so cr_frame
+  // remains inspectable while the parent is suspended.
+  for (auto* parent = generator.inline_parent; parent != nullptr; parent = parent->inline_parent) {
+    if (parent->vm_state == nullptr) continue;
+    const auto* state = static_cast<const GeneratorVMState*>(parent->vm_state);
+    const size_t count = std::min(state->frame_count, state->frames.size());
+    for (size_t index = count; index > 0; --index) {
+      const auto& frame = state->frames[index - 1];
+      if (frame.inline_coroutine_entry && frame.coroutine_owner == &generator)
+        return snapshot_frame(frame);
     }
   }
-  if (frame.closure != nullptr) {
-    for (size_t free_index = 0;
-         free_index < frame.fn->free_vars.size() && free_index < frame.closure->size();
-         ++free_index) {
-      const auto& name = frame.fn->free_vars[free_index];
-      if (name.empty() || name[0] == '#') {
-        continue;
+
+  // While the parent is actively executing, materialize its current stack and
+  // locate this coroutine's entry frame by the weak generator reference.
+  if (generator.runtime != nullptr && generator.inline_parent != nullptr) {
+    Value frame_value = generator.runtime->current_frame_snapshot();
+    while (auto* frame = value_as_frame(frame_value)) {
+      Value owner;
+      if (weakref_get_target(frame->generator_ref, owner) && owner.as.obj == &generator.header) {
+        value_assign_fast(out, frame_value);
+        return true;
       }
-      const Value* free_value = &(*frame.closure)[free_index];
-      if (auto* cell = value_as_cell(*free_value)) {
-        free_value = &cell->value;
-      }
-      if (free_value->tag != ValueTag::Invalid) {
-        entries.push_back({Value::string(name), *free_value});
-      }
+      frame_value = frame->back;
     }
   }
-  out = Value::frame(
-      frame.module_owner,
-      frame.function_id,
-      frame.globals_module,
-      static_cast<uint32_t>(frame.ip),
-      Value::dict(std::move(entries)),
-      Value::none(),
-      Value::none(),
-      frame.activation_id);
-  if (generator.runtime != nullptr)
-    frame_set_generator_owner(*generator.runtime, out, generator);
-  return true;
+  return false;
 }
 
 RuntimeResult Interpreter::run_function(
@@ -646,6 +664,14 @@ RuntimeResult Interpreter::run_function(
     frames.back().activation_id = runtime_.allocate_frame_activation_id();
     frame_count = 1;
   }
+  if (generator != nullptr && frame_count != 0) {
+    if (frames[0].coroutine_owner == nullptr) frames[0].coroutine_owner = generator;
+    for (size_t index = 0; index < frame_count; ++index) {
+      auto* owner = frames[index].coroutine_owner;
+      if (owner != nullptr && owner != generator && owner->inline_parent != nullptr)
+        owner->running = true;
+    }
+  }
 
   auto make_generator_if_needed = [&](FunctionObject* fn_obj, CallArgsView call_args, Value& out, bool& made) -> bool {
     made = false;
@@ -711,7 +737,8 @@ RuntimeResult Interpreter::run_function(
                         std::shared_ptr<const ir::Module> call_module_owner,
                         uint32_t return_dst,
                         FrameReturnMode return_mode = FrameReturnMode::StoreReturnValue,
-                        Value continuation_value = Value::invalid()) -> bool {
+                        Value continuation_value = Value::invalid(),
+                        bool call_args_are_bound = false) -> bool {
     // Keep ordinary Python calls on this VM frame stack and return to the same
     // dispatch loop. CPython 3.14's CALL_PY_EXACT_ARGS follows the same shape:
     // transfer positional arguments into a compact interpreter frame, then
@@ -736,9 +763,17 @@ RuntimeResult Interpreter::run_function(
       return false;
     }
     const auto& call_fn = call_module.functions[call_function_id];
+    GeneratorObject* inherited_coroutine_owner = frame_count == 0
+        ? generator : frames[frame_count - 1].coroutine_owner;
     std::vector<Value>* bound_args = nullptr;
     CallArgsView frame_args = call_args;
-    if (!simple_signature(call_fn) || has_dynamic_positional_defaults(call_fn, defaults) ||
+    if (call_args_are_bound) {
+      if (call_args.has_keywords() || call_args.has_expansion() ||
+          call_args.size() != call_fn.params.size()) {
+        result.errors.push_back("invalid bound coroutine arguments");
+        return false;
+      }
+    } else if (!simple_signature(call_fn) || has_dynamic_positional_defaults(call_fn, defaults) ||
         call_args.has_keywords() || call_args.has_expansion()) {
       // Binding temporaries belong to the active caller frame. Reusing this
       // vector avoids allocating a fresh bound-argument array on each keyword
@@ -776,6 +811,7 @@ RuntimeResult Interpreter::run_function(
     }
     auto& pushed = frames[frame_count];
     pushed.activation_id = runtime_.allocate_frame_activation_id();
+    pushed.coroutine_owner = inherited_coroutine_owner;
     ++frame_count;
     ++frame_stack_generation;
     for (size_t i = 0; i < pushed.fn->cell_slots.size(); ++i) {
@@ -814,6 +850,9 @@ RuntimeResult Interpreter::run_function(
     const bool view_storage_moved = published_overflow_frame_views != use_overflow;
     auto update_view = [&](size_t i) {
       auto& view_frame = frames[i];
+      GeneratorObject* frame_generator_owner = i == 0 ? generator : nullptr;
+      if (i < frame_count && view_frame.inline_coroutine_entry)
+        frame_generator_owner = view_frame.coroutine_owner;
       if (i >= frame_count || view_frame.fn == nullptr) {
         views[i] = RuntimeFrameView{
             &view_frame.module_owner,
@@ -829,7 +868,7 @@ RuntimeResult Interpreter::run_function(
             0,
             nullptr,
             view_frame.closure,
-            i == 0 ? generator : nullptr,
+            frame_generator_owner,
         };
         return;
       }
@@ -847,7 +886,7 @@ RuntimeResult Interpreter::run_function(
           view_frame.regs.size(),
           &view_frame.native_call_args,
           view_frame.closure,
-          i == 0 ? generator : nullptr,
+          frame_generator_owner,
       };
     };
     if (frame_storage_moved || view_storage_moved) {
@@ -1250,6 +1289,28 @@ RuntimeResult Interpreter::run_function(
     }
   };
 
+  auto complete_inlined_coroutine = [&](VMFrame& finished) {
+    if (!finished.inline_coroutine_entry || finished.coroutine_owner == nullptr) return;
+    GeneratorObject* coroutine = finished.coroutine_owner;
+    GeneratorObject* parent = finished.inline_coroutine_parent;
+    coroutine->running = false;
+    coroutine->done = true;
+    coroutine->has_pending_send = false;
+    coroutine->has_pending_throw = false;
+    coroutine->delegated_result_ready = false;
+    coroutine->has_active_suspended_exception_handlers = false;
+    value_set_invalid(coroutine->pending_send);
+    value_set_invalid(coroutine->pending_throw);
+    value_set_invalid(coroutine->awaiting);
+    value_set_none(coroutine->return_value);
+    coroutine->args.clear();
+    coroutine->inline_parent = nullptr;
+    if (parent != nullptr && parent->awaiting.tag == ValueTag::Object &&
+        parent->awaiting.as.obj == &coroutine->header) {
+      value_set_invalid(parent->awaiting);
+    }
+  };
+
   auto finish_frame = [&](const Value& return_value) -> bool {
     Value owned_return_value;
     value_assign_fast(owned_return_value, return_value);
@@ -1283,6 +1344,7 @@ RuntimeResult Interpreter::run_function(
     while (!active_exception_handler_frames.empty() && active_exception_handler_frames.back() == frame_count) {
       restore_active_exception_context();
     }
+    complete_inlined_coroutine(finished);
     if (!has_caller) {
       value_assign_fast(result.value, owned_return_value);
       finished.clear_for_pop();
@@ -1519,6 +1581,7 @@ RuntimeResult Interpreter::run_function(
           static_cast<uint32_t>(frames[frame_count - 1].ip),
           frames[frame_count - 1].locals.value_data(),
           frames[frame_count - 1].locals.size());
+      complete_inlined_coroutine(frames[frame_count - 1]);
       frames[frame_count - 1].clear_for_pop();
       --frame_count;
       ++frame_stack_generation;

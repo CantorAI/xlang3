@@ -972,15 +972,99 @@ bool read_function(Reader& r, Function& fn, std::string& error) {
   }
   for (size_t ip = 0; ip < fn.code.size(); ++ip) {
     const auto& instr = fn.code[ip];
-    if (instr.op != Op::GuardedLocalNumericExpr) continue;
-    if (instr.a >= fn.guarded_local_numeric_exprs.size()) {
-      error = "invalid guarded local numeric expression reference";
-      return false;
-    }
-    const size_t span = fn.guarded_local_numeric_exprs[instr.a].fallback_span;
-    if (span == 0 || span >= fn.code.size() - ip) {
-      error = "invalid guarded local numeric expression fallback";
-      return false;
+    if (instr.op == Op::GuardedLocalNumericExpr) {
+      if (instr.a >= fn.guarded_local_numeric_exprs.size()) {
+        error = "invalid guarded local numeric expression reference";
+        return false;
+      }
+      const size_t span = fn.guarded_local_numeric_exprs[instr.a].fallback_span;
+      if (span == 0 || span >= fn.code.size() - ip) {
+        error = "invalid guarded local numeric expression fallback";
+        return false;
+      }
+    } else if (instr.op == Op::ReversePrefixSliceAssign) {
+      if (instr.dst >= fn.locals.size() || instr.a >= fn.locals.size() ||
+          instr.c == 0 || instr.c >= fn.code.size() - ip) {
+        error = "invalid reverse-prefix slice assignment";
+        return false;
+      }
+    } else if (instr.op == Op::GuardedLocalListGetItem) {
+      const bool constant_index =
+          (instr.c & kGuardedLocalListGetItemConstFlag) != 0;
+      const uint32_t span = instr.c & kGuardedLocalListGetItemSpanMask;
+      if (instr.dst >= fn.register_count || instr.a >= fn.locals.size() ||
+          (constant_index ? instr.b >= fn.constants.size() : instr.b >= fn.locals.size()) ||
+          span == 0 || span >= fn.code.size() - ip) {
+        error = "invalid guarded local list subscript";
+        return false;
+      }
+    } else if (instr.op == Op::GuardedLocalListAugmentConst) {
+      const uint32_t span = instr.c & kGuardedLocalListAugmentSpanMask;
+      if (instr.dst >= fn.locals.size() || instr.a >= fn.locals.size() ||
+          instr.b >= fn.constants.size() || span == 0 || span >= fn.code.size() - ip) {
+        error = "invalid guarded local list augmented assignment";
+        return false;
+      }
+    } else if (instr.op == Op::WhileReversePrefixCount) {
+      if (instr.dst >= fn.locals.size() || instr.a >= fn.locals.size() ||
+          instr.b >= fn.locals.size() || instr.c == 0 ||
+          instr.c >= fn.code.size() - ip) {
+        error = "invalid reverse-prefix loop";
+        return false;
+      }
+    } else if (instr.op == Op::ListPopFrontInsert) {
+      if (instr.dst >= fn.locals.size() || instr.a >= fn.locals.size() ||
+          instr.b >= fn.locals.size() || instr.c == 0 ||
+          instr.c >= fn.code.size() - ip) {
+        error = "invalid list pop-insert fusion";
+        return false;
+      }
+    } else if (instr.op == Op::WhileResetCount) {
+      if (instr.dst >= fn.locals.size() || instr.a >= fn.locals.size() ||
+          instr.c == 0 || instr.c >= fn.code.size() - ip) {
+        error = "invalid count-reset loop fusion";
+        return false;
+      }
+    } else if (instr.op == Op::GuardedLocalListCompare) {
+      const bool index_constant = (instr.c & kGuardedLocalListCompareIndexConstFlag) != 0;
+      const bool rhs_constant = (instr.c & kGuardedLocalListCompareRhsConstFlag) != 0;
+      const bool branch = (instr.c & kGuardedLocalListCompareBranchFlag) != 0;
+      const uint32_t span = instr.c & kGuardedLocalListCompareSpanMask;
+      if (instr.dst >= fn.register_count || instr.a >= fn.locals.size() ||
+          instr.b >= fn.call_args.size() ||
+          fn.call_args[instr.b].size() != (branch ? 4u : 3u) ||
+          (index_constant ? fn.call_args[instr.b][0] >= fn.constants.size()
+                           : fn.call_args[instr.b][0] >= fn.locals.size()) ||
+          (rhs_constant ? fn.call_args[instr.b][1] >= fn.constants.size()
+                        : fn.call_args[instr.b][1] >= fn.locals.size()) ||
+          fn.call_args[instr.b][2] > static_cast<uint32_t>(CompareOp::Ge) ||
+          (branch && fn.call_args[instr.b][3] > fn.code.size()) ||
+          (branch && (span + 1 >= fn.code.size() - ip ||
+                      (fn.code[ip + span + 1].op != Op::JumpIfFalse &&
+                       fn.code[ip + span + 1].op != Op::MoveJumpIfFalse) ||
+                      fn.code[ip + span + 1].a != instr.dst ||
+                      (fn.code[ip + span + 1].op == Op::JumpIfFalse
+                           ? fn.code[ip + span + 1].dst
+                           : fn.code[ip + span + 1].b) != fn.call_args[instr.b][3] ||
+                      (fn.code[ip + span + 1].op == Op::MoveJumpIfFalse &&
+                       fn.code[ip + span + 1].dst >= fn.register_count))) ||
+          span == 0 || span >= fn.code.size() - ip) {
+        error = "invalid guarded list comparison";
+        return false;
+      }
+    } else if (instr.op == Op::WhileListPermutationAdvance) {
+      if (instr.dst >= fn.locals.size() || instr.a >= fn.locals.size() ||
+          instr.b >= fn.locals.size() || instr.c >= fn.call_args.size() ||
+          fn.call_args[instr.c].size() != 4 ||
+          fn.call_args[instr.c][0] >= fn.locals.size() ||
+          fn.call_args[instr.c][1] >= fn.locals.size() ||
+          fn.call_args[instr.c][2] == 0 ||
+          fn.call_args[instr.c][2] >= fn.code.size() - ip ||
+          fn.call_args[instr.c][3] >=
+              fn.code.size() - ip - fn.call_args[instr.c][2]) {
+        error = "invalid list permutation loop fusion";
+        return false;
+      }
     }
   }
   if (!read_u32_vector(r, fn.source_lines, error) ||

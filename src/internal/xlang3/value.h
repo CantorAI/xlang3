@@ -163,6 +163,7 @@ using NativeFastCallCallback = bool (*)(
 struct NativeFunctionObject {
   Object header;
   uint32_t native_id = 0;
+  uint32_t specialization_id = 0;
   std::string name;
   NativeFunctionCallback callback = nullptr;
   NativeKeywordFunctionCallback keyword_callback = nullptr;

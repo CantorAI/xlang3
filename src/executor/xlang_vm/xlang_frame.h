@@ -202,6 +202,9 @@ struct XlangVMFrame {
   std::shared_ptr<const ir::Module> module_owner;
   uint32_t function_id = 0;
   uint64_t activation_id = 0;
+  GeneratorObject* coroutine_owner = nullptr;
+  GeneratorObject* inline_coroutine_parent = nullptr;
+  bool inline_coroutine_entry = false;
   uint32_t return_dst = 0;
   bool has_caller = false;
   FrameReturnMode return_mode = FrameReturnMode::StoreReturnValue;
@@ -318,6 +321,9 @@ struct XlangVMFrame {
     globals_module = std::move(frame_globals_module);
     module_owner = std::move(frame_module_owner);
     this->function_id = function_id;
+    coroutine_owner = nullptr;
+    inline_coroutine_parent = nullptr;
+    inline_coroutine_entry = false;
     return_dst = frame_return_dst;
     has_caller = frame_has_caller;
     return_mode = frame_return_mode;
@@ -373,6 +379,9 @@ struct XlangVMFrame {
   void clear_for_pop() {
     value_set_invalid(globals_module);
     value_set_invalid(continuation_value);
+    coroutine_owner = nullptr;
+    inline_coroutine_parent = nullptr;
+    inline_coroutine_entry = false;
     // Inline caches must not extend the lifetime of Python objects after the
     // frame returns. CPython's adaptive caches are non-owning; XLang3 cache
     // entries currently contain owning Values, so discard owning payloads while
@@ -930,6 +939,64 @@ public:
         case ir::Op::LoadConstPair:
           release_memoryview_register(instr.dst);
           release_memoryview_register(instr.b);
+          break;
+        default:
+          break;
+      }
+    }
+  }
+
+  // Guarded local operations can skip a small, side-effect-free expression
+  // fallback. Clear its temporary results so an earlier guard miss cannot
+  // keep a materialized slice or other temporary object alive.
+  void release_registers_for_skipped_expression_fallback(
+      const ir::Function& function,
+      size_t first_instruction,
+      size_t span,
+      uint32_t preserved_register = UINT32_MAX) {
+    const size_t end = std::min(function.code.size(), first_instruction + span);
+    auto clear = [&](uint32_t reg) {
+      if (reg >= regs.size() || reg == preserved_register) return;
+      release_memoryview_register(reg);
+      value_set_invalid(regs[reg]);
+    };
+    for (size_t index = first_instruction; index < end; ++index) {
+      const auto& instr = function.code[index];
+      switch (instr.op) {
+        case ir::Op::LoadConst:
+        case ir::Op::LoadLocal:
+        case ir::Op::Add:
+        case ir::Op::Sub:
+        case ir::Op::Neg:
+        case ir::Op::MakeSlice:
+        case ir::Op::GetItem:
+        case ir::Op::Compare:
+        case ir::Op::Call:
+        case ir::Op::CallLocal:
+        case ir::Op::CallGlobal:
+        case ir::Op::CallMethod:
+        case ir::Op::CallLocalMethod:
+        case ir::Op::CallEx:
+        case ir::Op::CallMethodEx:
+        case ir::Op::CallModuleMethod:
+          clear(instr.dst);
+          break;
+        case ir::Op::GetItemConst:
+          clear(instr.dst);
+          clear(instr.c);
+          break;
+        case ir::Op::GuardedLocalListGetItem:
+          clear(instr.dst);
+          break;
+        case ir::Op::LoadLocalPair:
+        case ir::Op::LoadLocalConst:
+        case ir::Op::LoadConstPair:
+          clear(instr.dst);
+          clear(instr.b);
+          break;
+        case ir::Op::LoadLocalGetItem:
+          clear(instr.dst);
+          clear(instr.c);
           break;
         default:
           break;

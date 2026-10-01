@@ -71,6 +71,14 @@ const char* op_name(Op op) {
     case Op::Len: return "Len";
     case Op::GetItem: return "GetItem";
     case Op::GetItemConst: return "GetItemConst";
+    case Op::ReversePrefixSliceAssign: return "ReversePrefixSliceAssign";
+    case Op::GuardedLocalListGetItem: return "GuardedLocalListGetItem";
+    case Op::GuardedLocalListAugmentConst: return "GuardedLocalListAugmentConst";
+      case Op::WhileReversePrefixCount: return "WhileReversePrefixCount";
+      case Op::ListPopFrontInsert: return "ListPopFrontInsert";
+      case Op::WhileResetCount: return "WhileResetCount";
+      case Op::GuardedLocalListCompare: return "GuardedLocalListCompare";
+      case Op::WhileListPermutationAdvance: return "WhileListPermutationAdvance";
     case Op::SetItem: return "SetItem";
     case Op::DeleteItem: return "DeleteItem";
     case Op::UnpackSequence: return "UnpackSequence";

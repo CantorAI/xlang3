@@ -256,6 +256,61 @@ async def async_main():
 
 print(asyncio.run(async_main()))
 
+# A fresh awaited coroutine can share the active VM frame stack. Keep the
+# recursive case, aliased fallback, exception path, and external suspension in
+# fixtures so changes to the guarded SEND fast path stay semantics-safe.
+async def recursive_fibonacci(n):
+    if n <= 1:
+        return n
+    return await recursive_fibonacci(n - 1) + await recursive_fibonacci(n - 2)
+
+async def recursive_fibonacci_main():
+    return await recursive_fibonacci(12)
+
+print(asyncio.run(recursive_fibonacci_main()))
+
+async def aliased_child():
+    return 9
+
+async def aliased_parent():
+    child = aliased_child()
+    return await child
+
+print(asyncio.run(aliased_parent()))
+
+async def raising_child():
+    raise ValueError("nested coroutine error")
+
+async def catching_parent():
+    try:
+        await raising_child()
+    except ValueError as error:
+        return str(error)
+
+print(asyncio.run(catching_parent()))
+
+class YieldOnce:
+    def __await__(self):
+        yield "paused"
+        return 13
+
+async def suspended_child():
+    return await YieldOnce()
+
+async def suspended_parent():
+    return await suspended_child()
+
+suspended = suspended_parent()
+print(suspended.send(None))
+inline_child = suspended.cr_await
+print(inline_child.cr_running, inline_child.cr_suspended,
+      inline_child.cr_frame.f_code.co_name)
+try:
+    suspended.send(None)
+except StopIteration as result:
+    print(result.value)
+print(inline_child.cr_frame)
+
 # Async generators expose async iteration.
 async def agen():
     yield 4
