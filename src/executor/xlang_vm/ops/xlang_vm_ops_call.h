@@ -2187,8 +2187,26 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method_ex(
     if (runtime.take_pending_exception(pending)) {
       return raise_exception_value(std::move(pending)) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
     }
-    return raise_exception_value(runtime.make_exception("AttributeError", error))
-        ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    // A fused keyword call must perform the same PEP 562 lookup as LoadAttr.
+    // Keep the hook on the miss path only: existing indexed/cached calls pay
+    // no extra lookup, and a lazy export is recomputed on every missing access
+    // rather than cached as if it were a stable module slot.
+    Value module_getattr;
+    std::string getattr_error;
+    if (value_as_module(regs[in.a]) == nullptr ||
+        !module_get_attr(regs[in.a], "__getattr__", module_getattr, getattr_error)) {
+      return raise_exception_value(runtime.make_exception("AttributeError", error))
+          ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    }
+    Value attr_arg = Value::string(fn.names[in.b]);
+    if (!runtime_call_callable(runtime, module_getattr, &attr_arg, 1, method, error)) {
+      if (runtime.take_pending_exception(pending)) {
+        return raise_exception_value(std::move(pending))
+            ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+      }
+      return raise_runtime_error(error)
+          ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    }
   }
   std::vector<NativeKeywordArg> native_keyword_args;
   bool pushed_frame = false;

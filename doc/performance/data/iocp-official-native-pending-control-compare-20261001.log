@@ -1,0 +1,9 @@
+Benchmarks with tag 'asyncio':
+==============================
+
+Benchmark hidden because not significant (2): asyncio_tcp, asyncio_tcp_ssl
+
+All benchmarks:
+===============
+
+Benchmark hidden because not significant (2): asyncio_tcp, asyncio_tcp_ssl

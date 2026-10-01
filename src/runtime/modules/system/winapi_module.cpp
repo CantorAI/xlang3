@@ -820,6 +820,10 @@ bool winapi_close_handle(Runtime& runtime, const Value* args, uint32_t argc, Val
   if (!winapi_int_arg(runtime, args[0], handle_value, 1, "CloseHandle", error)) {
     return false;
   }
+  if (close_overlapped_iocp_port(handle_value)) {
+    value_set_none(out);
+    return true;
+  }
 #if defined(_WIN32)
   HANDLE handle = reinterpret_cast<HANDLE>(static_cast<intptr_t>(handle_value));
   if (handle_value != 0 && !CloseHandle(handle)) {
@@ -1910,9 +1914,19 @@ bool winapi_wait_for_single_object(Runtime& runtime, const Value* args, uint32_t
     return false;
   }
 #if defined(_WIN32)
-  out = Value::int64(WaitForSingleObject(
-      reinterpret_cast<HANDLE>(static_cast<intptr_t>(handle_value)),
-      static_cast<DWORD>(timeout_value)));
+  DWORD status;
+  DWORD code = ERROR_SUCCESS;
+  {
+    // CPython releases its execution lock here: another Python thread may
+    // be responsible for signalling this event or completing the operation.
+    XlangRuntimeExecutionSuspension suspension;
+    status = WaitForSingleObject(
+        reinterpret_cast<HANDLE>(static_cast<intptr_t>(handle_value)),
+        static_cast<DWORD>(timeout_value));
+    if (status == WAIT_FAILED) code = GetLastError();
+  }
+  if (status == WAIT_FAILED) return raise_win32_error(runtime, "WaitForSingleObject", code, error);
+  out = Value::int64(status);
 #else
   out = Value::int64(0);
 #endif

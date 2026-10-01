@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE svg
+  PUBLIC '-//W3C//DTD SVG 1.0//EN'
+  'http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd'>
+<svg width="1000" height="380" preserveAspectRatio="xMinYMin meet" viewBox="0 0 1000 380" xmlns="http://www.w3.org/2000/svg" version="1.0" fill-rule="evenodd" xmlns:xlink="http://www.w3.org/1999/xlink">
+	<title>...</title>
+	<desc>...</desc>
+	<clipPath id="clip">
+		<rect x="0" y="0" width="1000" height="380"/>
+	</clipPath>
+	<g id="group" transform="scale(1,-1) translate(0,-380)" style="clip-path: url(#clip)">
+		<g transform="">
+			<rect x="0" y="0" width="1000" height="380" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<text x="25" y="350" style="font-family: Helvetica-Bold; font-size: 21px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,700) scale(1,-1)">Selected official asyncio results</text>
+			<text x="25" y="324" style="font-family: Times-Roman; font-size: 12px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,648) scale(1,-1)">Elapsed time relative to CPython 3.14.7 (1x); shorter is faster.</text>
+			<g transform="">
+				<g transform="">
+					<rect x="185.0" y="138.4848484848485" width="81.76470588235293" height="15.75757575757575" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(39%,45%,54%); fill-rule: evenodd;"/>
+					<rect x="185.0" y="191.8181818181818" width="81.76470588235293" height="15.75757575757575" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(39%,45%,54%); fill-rule: evenodd;"/>
+					<rect x="185.0" y="245.15151515151518" width="81.76470588235293" height="15.75757575757575" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(39%,45%,54%); fill-rule: evenodd;"/>
+					<rect x="185.0" y="159.0909090909091" width="232.96529116137498" height="15.75757575757575" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(70%,32%,3%); fill-rule: evenodd;"/>
+					<rect x="185.0" y="212.42424242424244" width="244.67755616969606" height="15.75757575757575" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(70%,32%,3%); fill-rule: evenodd;"/>
+					<rect x="185.0" y="265.75757575757575" width="600.5745420608106" height="15.75757575757575" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(70%,32%,3%); fill-rule: evenodd;"/>
+					<g transform="">
+						<g transform=" matrix(1,0,0,1,274.764706,146.363636)">
+							<text x="-11.25" y="-4.0" style="font-family: Times-Roman; font-size: 10px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,-8) scale(1,-1)">1.00x</text>
+						</g>
+						<g transform=" matrix(1,0,0,1,274.764706,199.69697)">
+							<text x="-11.25" y="-4.0" style="font-family: Times-Roman; font-size: 10px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,-8) scale(1,-1)">1.00x</text>
+						</g>
+						<g transform=" matrix(1,0,0,1,274.764706,253.030303)">
+							<text x="-11.25" y="-4.0" style="font-family: Times-Roman; font-size: 10px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,-8) scale(1,-1)">1.00x</text>
+						</g>
+						<g transform=" matrix(1,0,0,1,425.965291,166.969697)">
+							<text x="-11.25" y="-4.0" style="font-family: Times-Roman; font-size: 10px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,-8) scale(1,-1)">2.85x</text>
+						</g>
+						<g transform=" matrix(1,0,0,1,437.677556,220.30303)">
+							<text x="-11.25" y="-4.0" style="font-family: Times-Roman; font-size: 10px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,-8) scale(1,-1)">2.99x</text>
+						</g>
+						<g transform=" matrix(1,0,0,1,793.574542,273.636364)">
+							<text x="-11.25" y="-4.0" style="font-family: Times-Roman; font-size: 10px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,-8) scale(1,-1)">7.35x</text>
+						</g>
+					</g>
+				</g>
+				<g transform="">
+					<g transform="">
+						<path d="M 185,130 L 185,290 Z" style="stroke: rgb(0%,0%,0%); stroke-linecap: butt; stroke-width: 1;"/>
+					</g>
+					<g transform="">
+						<path d="M 185,130 L 180,130 Z" style="stroke: rgb(0%,0%,0%); stroke-linecap: butt; stroke-width: 1;"/>
+						<path d="M 185,183.333333 L 180,183.333333 Z" style="stroke: rgb(0%,0%,0%); stroke-linecap: butt; stroke-width: 1;"/>
+						<path d="M 185,236.666667 L 180,236.666667 Z" style="stroke: rgb(0%,0%,0%); stroke-linecap: butt; stroke-width: 1;"/>
+						<path d="M 185,290 L 180,290 Z" style="stroke: rgb(0%,0%,0%); stroke-linecap: butt; stroke-width: 1;"/>
+					</g>
+					<g transform="">
+						<g transform=" matrix(1,0,0,1,180,156.666667)">
+							<text x="-54.989" y="-4.4" style="font-family: Times-Roman; font-size: 11px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,-8) scale(1,-1)">WebSockets</text>
+						</g>
+						<g transform=" matrix(1,0,0,1,180,210)">
+							<text x="-19.558" y="-4.4" style="font-family: Times-Roman; font-size: 11px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,-8) scale(1,-1)">TLS</text>
+						</g>
+						<g transform=" matrix(1,0,0,1,180,263.333333)">
+							<text x="-20.174" y="-4.4" style="font-family: Times-Roman; font-size: 11px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,-8) scale(1,-1)">TCP</text>
+						</g>
+					</g>
+				</g>
+				<g transform="">
+					<g transform="">
+						<path d="M 185,130 L 880,130 Z" style="stroke: rgb(0%,0%,0%); stroke-linecap: butt; stroke-width: 1;"/>
+					</g>
+					<g transform="">
+						<path d="M 185,130 L 185,125 Z" style="stroke: rgb(0%,0%,0%); stroke-linecap: butt; stroke-width: 1;"/>
+						<path d="M 266.764706,130 L 266.764706,125 Z" style="stroke: rgb(0%,0%,0%); stroke-linecap: butt; stroke-width: 1;"/>
+						<path d="M 348.529412,130 L 348.529412,125 Z" style="stroke: rgb(0%,0%,0%); stroke-linecap: butt; stroke-width: 1;"/>
+						<path d="M 512.058824,130 L 512.058824,125 Z" style="stroke: rgb(0%,0%,0%); stroke-linecap: butt; stroke-width: 1;"/>
+						<path d="M 675.588235,130 L 675.588235,125 Z" style="stroke: rgb(0%,0%,0%); stroke-linecap: butt; stroke-width: 1;"/>
+						<path d="M 839.117647,130 L 839.117647,125 Z" style="stroke: rgb(0%,0%,0%); stroke-linecap: butt; stroke-width: 1;"/>
+					</g>
+					<g transform="">
+						<g transform=" matrix(1,0,0,1,185,125)">
+							<text x="-5.0" y="-10.0" style="font-family: Times-Roman; font-size: 10px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,-20) scale(1,-1)">0x</text>
+						</g>
+						<g transform=" matrix(1,0,0,1,266.764706,125)">
+							<text x="-5.0" y="-10.0" style="font-family: Times-Roman; font-size: 10px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,-20) scale(1,-1)">1x</text>
+						</g>
+						<g transform=" matrix(1,0,0,1,348.529412,125)">
+							<text x="-5.0" y="-10.0" style="font-family: Times-Roman; font-size: 10px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,-20) scale(1,-1)">2x</text>
+						</g>
+						<g transform=" matrix(1,0,0,1,512.058824,125)">
+							<text x="-5.0" y="-10.0" style="font-family: Times-Roman; font-size: 10px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,-20) scale(1,-1)">4x</text>
+						</g>
+						<g transform=" matrix(1,0,0,1,675.588235,125)">
+							<text x="-5.0" y="-10.0" style="font-family: Times-Roman; font-size: 10px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,-20) scale(1,-1)">6x</text>
+						</g>
+						<g transform=" matrix(1,0,0,1,839.117647,125)">
+							<text x="-5.0" y="-10.0" style="font-family: Times-Roman; font-size: 10px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,-20) scale(1,-1)">8x</text>
+						</g>
+					</g>
+				</g>
+			</g>
+			<rect x="190" y="93" width="15" height="10" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(39%,45%,54%); fill-rule: evenodd;"/>
+			<text x="213" y="93" style="font-family: Times-Roman; font-size: 11px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,186) scale(1,-1)">CPython 3.14.7</text>
+			<rect x="390" y="93" width="15" height="10" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(70%,32%,3%); fill-rule: evenodd;"/>
+			<text x="413" y="93" style="font-family: Times-Roman; font-size: 11px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,186) scale(1,-1)">XLang3</text>
+			<text x="25" y="65" style="font-family: Times-Roman; font-size: 10px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,130) scale(1,-1)">Fast-mode means; these are three selected cases, not a full-suite score.</text>
+			<text x="25" y="45" style="font-family: Times-Roman; font-size: 10px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,90) scale(1,-1)">XLang3 runtime SHA prefixes: TCP/TLS 87200865; WebSockets F1804355 (lazy keyword export fix).</text>
+			<text x="25" y="25" style="font-family: Times-Roman; font-size: 10px;fill: rgb(0%,0%,0%); stroke:none;" transform="translate(0,50) scale(1,-1)">Neither TCP/TLS nor WebSockets shows a statistically significant speedup over its XLang3 control.</text>
+		</g>
+	</g>
+</svg>

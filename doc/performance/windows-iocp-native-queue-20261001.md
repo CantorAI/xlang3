@@ -149,6 +149,155 @@ Two additional full transfers passed content checks, and the full CTest suite
 passed **54/54** in 43.11 seconds:
 [content output](data/iocp-payload-native-pending-content-20261001.log),
 [CTest output](data/iocp-native-pending-ctest-20261001.log).
-Both complete regression gates and official TCP/TLS measurements are running
-sequentially for this new binary. Its engine changes remain uncommitted
-pending those results; the earlier candidate's passing gates do not validate it.
+Both complete regression gates passed for the readiness candidate:
+[fixed baseline JSON](data/iocp-native-pending-fixed-gate-20261001.json),
+[fixed baseline log](data/iocp-native-pending-fixed-gate-20261001.log),
+[parent JSON](data/iocp-native-pending-parent-gate-20261001.json),
+[parent log](data/iocp-native-pending-parent-gate-20261001.log).
+The parent median time ratios ranged from 0.955x to 1.025x, with all 11 cases
+passing the unchanged threshold.
+
+Both official reruns completed with the original payload assertions:
+
+| Official benchmark | CPython 3.14.7 | Preserved XLang3 control | Readiness candidate | Candidate versus CPython |
+|---|---:|---:|---:|---:|
+| `asyncio_tcp` | 824 +/- 76 ms | 5.92 +/- 0.36 s | 6.05 +/- 0.64 s | 7.35x slower |
+| `asyncio_tcp_ssl` | 4.33 +/- 0.22 s | 12.8 +/- 0.6 s | 13.0 +/- 0.5 s | 2.99x slower |
+
+The TCP candidate's 11% standard deviation triggers pyperf's instability
+warning. Pyperf hides both candidate/control differences as statistically
+insignificant. These runs establish a correctness recovery from the first queue
+candidate, not a bulk-throughput win over the preserved control. The two-case
+geometric mean is 4.69x slower than CPython; it is not a full-suite aggregate.
+Preserved evidence: [candidate JSON](data/iocp-official-native-pending-fast-20261001.json),
+[log](data/iocp-official-native-pending-fast-20261001.log),
+[control comparison](data/iocp-official-native-pending-control-compare-20261001.log),
+[CPython comparison](data/iocp-official-native-pending-cpython314-compare-20261001.log).
+
+## CPU and scheduling evidence
+
+The unchanged 1,000 MiB payload diagnostic gained an optional `--timing` report
+around `asyncio.run()`. With content checking disabled, all length assertions
+still ran. Imports are excluded, while event-loop setup and shutdown are included.
+These are individual diagnostic runs, not official benchmark measurements:
+
+| Runtime | Wall seconds | Process CPU seconds | CPU/wall |
+|---|---:|---:|---:|
+| CPython 3.14.7 | 0.730 | 0.734 | 1.007 |
+| Preserved XLang3 control | 5.374 | 5.328 | 0.991 |
+| Readiness candidate | 5.821 | 5.672 | 0.974 |
+
+The XLang3 bulk-transfer runs spend about 97-99% of wall time using CPU. This
+supports investigating VM execution and Task/Future work next; eliminating
+polling waits alone did not materially improve this workload. It does not
+identify the fraction attributable to any individual Python function.
+Raw outputs: [CPython](data/iocp-payload-cpu-cpython314-20261001.log),
+[control](data/iocp-payload-cpu-control-20261001.log),
+[candidate](data/iocp-payload-cpu-native-pending-20261001.log).
+
+The [accelerator contract probe](../../benchmarks/diagnostics/asyncio_accelerator_contract.py)
+passes under [CPython](data/asyncio-contract-cpython314-before-native-20261001.log)
+and [XLang3](data/asyncio-contract-xlang3-before-native-20261001.log). It checks
+callback context/order/deferred scheduling, removal, pending-result errors,
+exception identity, cancellation messages/counters, eager task context,
+awaited-by tracking, and Future result-cycle collection. CPython reports native
+`_asyncio` classes while XLang3 uses the Python fallbacks. The probe separately
+records their intentional subclass-await difference and does not pretend the
+fallback supplies native accelerator behavior.
+
+## WebSocket follow-up: a generic module-call failure
+
+The official WebSocket fast run completed under CPython at 186 +/- 10 ms.
+Both XLang3 builds failed before measuring: the first keyword call to the lazy
+`concurrent.futures.ThreadPoolExecutor` export raised `AttributeError`. The
+standard-library package provides that export through Python `__getattr__`.
+Reading the attribute works; the VM's fused keyword method-call path skipped
+the hook after an attribute miss. This is a generic call-dispatch defect.
+The Python thread-pool library remains Python.
+
+The control and candidate used identical XLang3 `_hashlib`/`_blake2` packages,
+shared WebSocket 11.0.3 Python sources, and the same compatibility hooks.
+No timing or ratio is assigned to either failed XLang3 attempt.
+Evidence: [CPython JSON](data/iocp-websockets-cpython314-fast-20261001.json),
+[CPython log](data/iocp-websockets-cpython314-fast-20261001.log),
+[control failure](data/iocp-websockets-control-fast-20261001.log),
+[candidate failure](data/iocp-websockets-native-pending-fast-20261001.log),
+[shared native package hashes](data/iocp-websockets-common-native-package-hashes-20261001.txt).
+
+The follow-up adds the missing hook only on attribute lookup failure, keeping
+successful indexed/cached calls unchanged and avoiding caching computed lazy
+exports. The expanded `module_getattr_call` fixture checks repeated keyword
+access, constructors, callable objects, invalid keywords, hook exceptions, and
+a first-access thread-pool submission. It passes under CPython and the fix,
+and fails under the preserved pre-fix runtime. Both Windows and Python fixture
+runners now include this fixture. Full CTest passed **54/54** in 44.41 seconds:
+[output](data/lazy-module-keyword-ctest-20261001.log).
+The complete fixed-baseline and immediate-parent gates each passed **11/11**:
+[fixed JSON](data/lazy-module-keyword-fixed-gate-20261001.json),
+[fixed log](data/lazy-module-keyword-fixed-gate-20261001.log),
+[parent JSON](data/lazy-module-keyword-parent-gate-20261001.json),
+[parent log](data/lazy-module-keyword-parent-gate-20261001.log).
+The parent median ratios ranged from 0.983x to 1.009x.
+The expanded fixture's direct results are preserved for
+[CPython](data/lazy-module-keyword-cpython314-20261001.log),
+[pre-fix failure](data/lazy-module-keyword-parent-20261001.log), and
+[candidate](data/lazy-module-keyword-candidate-20261001.log).
+
+The official WebSocket rerun completed at **531 +/- 50 ms**, **2.85x slower**
+than CPython. A separate control applies exactly the same lazy-export fix to
+the previous polling implementation, with the same native packages and Python
+dependency sources. It completed at **562 +/- 65 ms**. Pyperf hides the
+control/candidate difference as statistically insignificant. Unblocking the
+benchmark is a correctness improvement; no throughput gain is established.
+The native-queue candidate remains slower than CPython in all three measured
+asyncio cases.
+
+| WebSocket build | Runtime DLL SHA-256 |
+|---|---|
+| Lazy-export fix with polling completion path | `173CD5B02CAA5178A66A1D491ED0D5BE81DEF02689784FDC4C6D0CA7BD34AA4D` |
+| Lazy-export fix with native queue and readiness fix | `F1804355B77C2F74E9C83AEC115E149C8A566B2BF4DB700DF923AB7BB5C1BBFA` |
+
+The candidate executable is still `C5F37B0...897B84`, and both builds use the
+same validated SSL package. The polling control was preserved in
+`scratch/performance/websockets-lazy-module-polling-control-20261001/` before
+restoring the candidate's source and validated executable/runtime DLL. No
+build or other benchmark ran concurrently with either WebSocket measurement.
+
+Raw data: [candidate JSON](data/websockets-lazy-module-native-pending-fast-20261001.json),
+[candidate log](data/websockets-lazy-module-native-pending-fast-20261001.log),
+[polling control JSON](data/websockets-lazy-module-polling-control-fast-20261001.json),
+[control log](data/websockets-lazy-module-polling-control-fast-20261001.log),
+[control comparison](data/websockets-lazy-module-control-compare-20261001.log),
+[CPython comparison](data/websockets-lazy-module-cpython314-compare-20261001.log).
+
+![Selected official asyncio elapsed-time comparison](windows-iocp-selected-asyncio-20261001.svg)
+
+The horizontal chart uses CPython elapsed time as 1x; a longer bar means more
+time and therefore slower execution. It identifies TCP/TLS and WebSockets'
+separate measured candidates. Reproduce it with
+[`plot_selected_asyncio_results.py`](../../benchmarks/diagnostics/plot_selected_asyncio_results.py)
+and ReportLab; an optional PNG preview uses pypdfium2.
+
+## Current candidate: repeated completion diagnostic
+
+After the build and official measurements finished, all three runtimes ran
+the unchanged 200-request completion diagnostic three times in different
+orders. The median latency ranges were:
+
+| Runtime | Three per-run medians (us) |
+|---|---|
+| CPython 3.14.7 | 182.45, 227.60, 110.40 |
+| XLang3 polling, with lazy-export fix | 15,183.35, 14,951.40, 15,242.10 |
+| XLang3 native queue/readiness, with lazy-export fix | 114.05, 202.70, 177.25 |
+
+The native queue removes the polling latency floor in this diagnostic. The
+CPython and native-queue medians overlap, with no consistent winner across
+the three runs. The much larger polling result than the preceding historical
+trial demonstrates sensitivity to Windows timer/thread scheduling. These
+diagnostic gains are not a full-suite score or a speedup in TCP/TLS/WebSockets.
+
+Raw runs:
+
+- CPython: [1](data/iocp-completion-latency-cpython314-readiness-20261001.txt), [2](data/iocp-completion-latency-cpython314-keyword-fix-round2-20261001.txt), [3](data/iocp-completion-latency-cpython314-keyword-fix-round3-20261001.txt).
+- Polling: [1](data/iocp-completion-latency-polling-keyword-fix-20261001.txt), [2](data/iocp-completion-latency-polling-keyword-fix-round2-20261001.txt), [3](data/iocp-completion-latency-polling-keyword-fix-round3-20261001.txt).
+- Native queue: [1](data/iocp-completion-latency-native-keyword-fix-20261001.txt), [2](data/iocp-completion-latency-native-keyword-fix-round2-20261001.txt), [3](data/iocp-completion-latency-native-keyword-fix-round3-20261001.txt).

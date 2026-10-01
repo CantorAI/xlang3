@@ -42,7 +42,11 @@ Keep both attempts and distinguish dependency import failures, runtime errors,
 and timeouts. The per-definition timeout covers calibration and all worker
 processes; it is not a measured steady-state duration. Use sufficient time
 for calibration on slow definitions before concluding that they cannot run.
-No recovered timing or completion is claimed yet.
+The WebSocket definition subsequently recovered a measurement after sharing
+these sources and fixing a generic lazy keyword-call lookup: 531 +/- 50 ms
+for XLang3 versus 186 +/- 10 ms for CPython. The
+[IOCP report](windows-iocp-native-queue-20261001.md) preserves the initial import
+failures, the module-call failures, and the successful rerun separately.
 
 The comparison generator also now maps the official subtest names
 `many_optionals` and `subparsers` to `argparse` and `argparse_subparsers`.
@@ -55,3 +59,23 @@ the suite: `--help` includes the new option, and a nonexistent dependency
 directory exits with argparse status 2 before starting a benchmark. The shell's
 default `python` uses a different environment without pyperformance; use
 `C:/Python/Python314/python.exe` for this harness on the recorded host.
+
+## Full-suite follow-up caps
+
+The harness also accepts repeatable `--case-timeout-override PATTERN=SECONDS`
+arguments. Patterns match the current official benchmark definition; the last
+match wins. This changes only the parent process's full-case deadline. It does
+not change benchmark source, workload size, loops, warmups, or pyperf samples.
+Each applied timeout is printed before the runner records the failed definition.
+
+The next full CPython/XLang3 pair uses the shared dependency site, fast mode,
+and a 600-second general cap. `--case-timeout-override 'async_tree*=120'`
+retains a shorter cap for the tree definitions because a previous XLang3 worker
+used about 3.3 GB after 90 seconds without returning a timing. Both runtimes
+receive the same caps. These capped definitions remain in the complete status
+list, with their failures and no invented speed ratios.
+
+The override was exercised with a one-second `fann*` smoke cap: the log names
+`fannkuch`, records the one-second deadline, and reports the expected timeout.
+That is a harness smoke test, not a performance result:
+[output](data/pyperformance-timeout-override-smoke-20261001.log).

@@ -635,6 +635,13 @@ add_test(
 )
 
 if(XLANG3_PYTHON314_EXECUTABLE)
+  if(WIN32)
+    add_test(NAME xlang3_cli_overlapped_completion
+      COMMAND ${XLANG3_PYTHON314_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_expected.py
+        $<TARGET_FILE:xlang3>
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/overlapped_completion.py
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/overlapped_completion.out)
+  endif()
   execute_process(
     COMMAND ${XLANG3_PYTHON314_EXECUTABLE} -c "import sysconfig; print(sysconfig.get_path('stdlib'))"
     OUTPUT_VARIABLE XLANG3_PYTHON314_STDLIB

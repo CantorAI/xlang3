@@ -1,0 +1,5 @@
+native IOCP completion diagnostic 200 requests
+median_us 182.44999228045344
+mean_us 347.6419986691326
+min_us 100.50000855699182
+max_us 28593.19996787235

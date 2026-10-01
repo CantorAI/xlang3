@@ -1,0 +1,11 @@
+implementations _asyncio _asyncio
+callbacks-context-order [('captured', 7), ('explicit', 7), ('caller', 7)]
+callback-removal True
+exception-propagation True
+future-cancellation True
+task-cancellation-counter True
+task-context True
+eager-task-current-context True
+awaited-by-tracking True
+native-await-ignores-done-override True
+future-result-cycle-collected True

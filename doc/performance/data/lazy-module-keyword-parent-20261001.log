@@ -1,0 +1,11 @@
+first 7
+second 7
+lookups ['combine', 'combine']
+Traceback (most recent call last):
+  File "tests/fixtures/core/module_getattr_call.py", line 50, in <module>
+    print("keywords-first", call_lazy_keywords())
+                            ~~~~~~~~~~~~~~~~~~^^
+  File "tests/fixtures/core/module_getattr_call.py", line 47, in call_lazy_keywords
+    return lazy.combine(left=4, right=6)
+           ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+AttributeError: module 'xlang3_lazy_call_fixture_module' has no attribute 'combine'

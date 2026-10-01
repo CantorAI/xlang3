@@ -1,0 +1,2 @@
+payload expected 1048576000 sent 1048576000 received 1048576000 reads 8000 valid True
+diagnostic-timing wall_s 5.820614399970509 process_cpu_s 5.671875 cpu_fraction 0.9744460997156481

@@ -1,0 +1,7 @@
+
+Algorithm Hash                                                             Path
+--------- ----                                                             ----
+SHA256    A0E1A98D5BFFD906798153BBF4D572FFCCD5AEC75A2F950E199AE7F7D45A9CDF D:\CantorAI\xlang3\build\Release\modules\xlang__hashlib.x3pkg.dll
+SHA256    AD92379F9878A78639B0CA7EA621A7D4F20B4A45B01BEDC6A228945DA254B142 D:\CantorAI\xlang3\build\Release\modules\xlang__blake2.x3pkg.dll
+
+

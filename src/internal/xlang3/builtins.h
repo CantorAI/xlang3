@@ -18,6 +18,9 @@ limitations under the License.
 
 namespace xlang3 {
 
+// Let _winapi.CloseHandle release the native completion-port registry too.
+bool close_overlapped_iocp_port(int64_t handle);
+
 void register_core_builtins(Runtime& runtime);
 void register_object_type_builtins(Runtime& runtime);
 bool runtime_type_of_value(Runtime& runtime, const Value& value, Value& out);

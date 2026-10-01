@@ -7,6 +7,7 @@ The official benchmark remains unchanged and is required for timing claims.
 import argparse
 import asyncio
 import collections
+import time
 
 
 def trace_overlapped():
@@ -110,14 +111,23 @@ def main():
                         help="Wrap native operations to count transfer sizes; changes timing")
     parser.add_argument("--skip-content-check", action="store_true",
                         help="Use only the official workload's length assertion to probe timing races")
+    parser.add_argument("--timing", action="store_true",
+                        help="Report diagnostic wall/process CPU time, not an official benchmark score")
     args = parser.parse_args()
     counts = trace_overlapped() if args.trace_overlapped else None
+    started_wall = time.perf_counter()
+    started_cpu = time.process_time()
     try:
         async def repeat():
             for _ in range(args.repeat):
                 await transfer(args.chunk_size, args.chunks, not args.skip_content_check)
         asyncio.run(repeat())
     finally:
+        if args.timing:
+            wall = time.perf_counter() - started_wall
+            cpu = time.process_time() - started_cpu
+            print("diagnostic-timing", "wall_s", wall, "process_cpu_s", cpu,
+                  "cpu_fraction", cpu / wall, flush=True)
         if counts is not None:
             for name, value in sorted(counts.items()):
                 print("overlapped", name, value, flush=True)

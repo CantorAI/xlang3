@@ -130,6 +130,9 @@ struct IocpCompletion {
 
 struct IocpState {
   std::deque<IocpCompletion> completions;
+#if defined(_WIN32)
+  HANDLE native = nullptr;
+#endif
 };
 
 #if defined(_WIN32)
@@ -296,7 +299,7 @@ void overlapped_finalize_socket_result(OverlappedState& state, DWORD transferred
 }
 
 bool overlapped_poll_socket(OverlappedState& state) {
-  if (!state.pending || state.socket_operation == OverlappedState::SocketOperation::None) {
+  if (state.completed || state.socket_operation == OverlappedState::SocketOperation::None) {
     return state.completed;
   }
   DWORD transferred = 0;
@@ -372,6 +375,16 @@ void post_iocp_completion(int64_t port, int64_t transferred, int64_t key, int64_
   if (port_it == g_iocp_ports.end()) {
     return;
   }
+#if defined(_WIN32)
+  if (port_it->second.native != nullptr) {
+    // Wake the same OS queue used by socket I/O, including thread-safe
+    // synthetic posts. A condition-variable notification cannot wake GQCS.
+    (void)::PostQueuedCompletionStatus(port_it->second.native,
+        static_cast<DWORD>(transferred), static_cast<ULONG_PTR>(key),
+        reinterpret_cast<OVERLAPPED*>(static_cast<intptr_t>(address)));
+    return;
+  }
+#endif
   port_it->second.completions.push_back(IocpCompletion{error_code, transferred, key, address});
   g_iocp_condition.notify_all();
 }
@@ -398,8 +411,18 @@ void overlapped_cleanup(void* data) {
     if (state->pending) {
       HANDLE operation_handle = state->handle != INVALID_HANDLE_VALUE
           ? state->handle : reinterpret_cast<HANDLE>(state->socket);
-      if (operation_handle != INVALID_HANDLE_VALUE) (void)CancelIoEx(operation_handle, &state->native);
+      if (operation_handle != INVALID_HANDLE_VALUE) {
+        const bool cancelled = CancelIoEx(operation_handle, &state->native) != FALSE;
+        DWORD transferred = 0;
+        // Cancellation is asynchronous. The OS still owns this OVERLAPPED
+        // and its buffers until completion, even if Python drops its owner.
+        // As in CPython, IOCP callers retain owners until packets are drained.
+        XlangRuntimeExecutionSuspension suspension;
+        (void)GetOverlappedResult(operation_handle, &state->native,
+                                 &transferred, cancelled ? TRUE : FALSE);
+      }
     }
+    if (state->native.hEvent != nullptr) (void)::CloseHandle(state->native.hEvent);
 #endif
     std::lock_guard<std::mutex> lock(g_iocp_mutex);
     g_overlapped_by_address.erase(state->address);
@@ -422,7 +445,13 @@ bool overlapped_init(Runtime&, const Value* args, uint32_t argc, Value& out, std
   }
   auto* state = new OverlappedState();
   state->event = argc == 2 && args[1].tag == ValueTag::Int64 ? args[1].as.i64 : 0;
+#if defined(_WIN32)
+  state->address = static_cast<int64_t>(reinterpret_cast<intptr_t>(&state->native));
+  // CPython transfers ownership of the supplied event to Overlapped.
+  state->native.hEvent = reinterpret_cast<HANDLE>(static_cast<intptr_t>(state->event));
+#else
   state->address = next_overlapped_address();
+#endif
   state->result = Value::int64(0);
   state->error = Value::none();
   {
@@ -454,7 +483,10 @@ bool overlapped_getresult(Runtime& runtime, const Value* args, uint32_t argc, Va
     return false;
   }
 #if defined(_WIN32)
-  (void)overlapped_poll_socket(*state);
+  if (!overlapped_poll_socket(*state) &&
+      state->socket_operation != OverlappedState::SocketOperation::None) {
+    return raise_overlapped_error(runtime, ERROR_IO_INCOMPLETE, error);
+  }
 #endif
   if (state->completion_error != 0) {
     return raise_overlapped_error(runtime, state->completion_error, error);
@@ -506,6 +538,7 @@ bool overlapped_begin_socket_operation(
     return false;
   }
   state.native = {};
+  state.native.hEvent = reinterpret_cast<HANDLE>(static_cast<intptr_t>(state.event));
   state.socket = file_operation ? INVALID_SOCKET : static_cast<SOCKET>(args[1].as.i64);
   state.handle = file_operation ? reinterpret_cast<HANDLE>(args[1].as.i64) : INVALID_HANDLE_VALUE;
   state.buffer.clear();
@@ -539,7 +572,7 @@ bool overlapped_begin_socket_operation(
     immediate = accept_ex(
         state.socket, static_cast<SOCKET>(args[2].as.i64), state.buffer.data(),
         0, address_size, address_size, &transferred, &state.native);
-    if (immediate) overlapped_finalize_socket_result(state, transferred);
+    if (immediate) state.pending = false;
   } else if (method == "ConnectEx") {
     if (argc != 3) {
       error = "ConnectEx expected socket handle and address";
@@ -563,7 +596,7 @@ bool overlapped_begin_socket_operation(
     immediate = connect_ex(
         state.socket, reinterpret_cast<const sockaddr*>(&address), address_length,
         nullptr, 0, &transferred, &state.native);
-    if (immediate) overlapped_finalize_socket_result(state, transferred);
+    if (immediate) state.pending = false;
   } else if (method == "ReadFile" || method == "ReadFileInto") {
     if (argc != 3) {
       error = std::string(method) + " expected a handle and buffer";
@@ -595,7 +628,7 @@ bool overlapped_begin_socket_operation(
     immediate = ::ReadFile(
         state.handle, state.buffer.data(), static_cast<DWORD>(state.buffer.size()),
         &transferred, &state.native);
-    if (immediate) overlapped_finalize_socket_result(state, transferred);
+    if (immediate) state.pending = false;
   } else if (method == "WriteFile") {
     if (argc != 3) {
       error = "WriteFile expected a handle and data";
@@ -614,7 +647,7 @@ bool overlapped_begin_socket_operation(
     immediate = ::WriteFile(
         state.handle, state.buffer.data(), static_cast<DWORD>(state.buffer.size()),
         &transferred, &state.native);
-    if (immediate) overlapped_finalize_socket_result(state, transferred);
+    if (immediate) state.pending = false;
   } else if (method == "WSARecv" || method == "WSARecvInto" ||
              method == "WSARecvFrom" || method == "WSARecvFromInto") {
     if (argc < 3) {
@@ -664,7 +697,7 @@ bool overlapped_begin_socket_operation(
                        &state.io_flags, &state.native, nullptr);
     }
     immediate = status == 0;
-    if (immediate) overlapped_finalize_socket_result(state, transferred);
+    if (immediate) state.pending = false;
   } else if (method == "WSASendTo") {
     if (argc != 5) {
       error = "WSASendTo expected socket handle, data, flags, and address";
@@ -695,7 +728,7 @@ bool overlapped_begin_socket_operation(
             : reinterpret_cast<const sockaddr*>(&state.address_storage),
         state.address_length, &state.native, nullptr);
     immediate = status == 0;
-    if (immediate) overlapped_finalize_socket_result(state, transferred);
+    if (immediate) state.pending = false;
   } else {
     if (argc < 3) {
       error = "WSASend expected socket handle and data";
@@ -716,7 +749,7 @@ bool overlapped_begin_socket_operation(
         ? static_cast<DWORD>(args[3].as.i64) : 0;
     const int status = WSASend(state.socket, &buffer, 1, &transferred, flags, &state.native, nullptr);
     immediate = status == 0;
-    if (immediate) overlapped_finalize_socket_result(state, transferred);
+    if (immediate) state.pending = false;
   }
 
   if (!immediate) {
@@ -732,6 +765,10 @@ bool overlapped_begin_socket_operation(
       state.pending = true;
     }
   }
+  // An immediate submission is ready, but its output DWORD is not the
+  // authoritative overlapped result. CPython queries GetOverlappedResult;
+  // defer publication/copying to getresult() or the completion packet so
+  // buffered reads cannot mistake a transient byte count for EOF.
   out = Value::boolean(false);
   return true;
 }
@@ -828,6 +865,14 @@ bool overlapped_get_attr(const Value& self, const std::string& name, Value& out,
     return true;
   }
   if (name == "pending") {
+#if defined(_WIN32)
+    if (state->socket_operation != OverlappedState::SocketOperation::None) {
+      // The submission return code is not a readiness notification. Like
+      // CPython, observe the native OVERLAPPED status; exposing a cached
+      // false flag lets asyncio read an unfinished operation as EOF.
+      state->pending = !HasOverlappedIoCompleted(&state->native);
+    }
+#endif
     out = Value::boolean(state->pending);
     return true;
   }
@@ -916,7 +961,7 @@ bool reset_event(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
   return set_or_reset_event(runtime, args, argc, out, error, reinterpret_cast<void*>(1));
 }
 
-bool create_iocp(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool create_iocp(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 4) {
     error = "CreateIoCompletionPort() expected handle, port, key, and concurrency";
     return false;
@@ -925,6 +970,29 @@ bool create_iocp(Runtime&, const Value* args, uint32_t argc, Value& out, std::st
   int64_t existing_port = 0;
   (void)value_to_i64(args[0], handle);
   (void)value_to_i64(args[1], existing_port);
+#if defined(_WIN32)
+  int64_t key = 0;
+  int64_t concurrency = 0;
+  if (!value_to_i64(args[2], key) || !value_to_i64(args[3], concurrency) ||
+      concurrency < 0 || concurrency > 0xffffffffLL) {
+    error = "CreateIoCompletionPort() expected integer key and DWORD concurrency";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  HANDLE native = ::CreateIoCompletionPort(
+      reinterpret_cast<HANDLE>(static_cast<intptr_t>(handle)),
+      reinterpret_cast<HANDLE>(static_cast<intptr_t>(existing_port)),
+      static_cast<ULONG_PTR>(key), static_cast<DWORD>(concurrency));
+  if (native == nullptr) return raise_overlapped_error(runtime, GetLastError(), error);
+  const int64_t port = static_cast<int64_t>(reinterpret_cast<intptr_t>(native));
+  {
+    std::lock_guard<std::mutex> lock(g_iocp_mutex);
+    g_iocp_ports[port].native = native;
+    if (handle != 0 && handle != -1) g_iocp_handle_ports[handle] = port;
+  }
+  out = Value::int64(port);
+  return true;
+#else
   std::lock_guard<std::mutex> lock(g_iocp_mutex);
   int64_t port = existing_port;
   if (port == 0) {
@@ -938,9 +1006,10 @@ bool create_iocp(Runtime&, const Value* args, uint32_t argc, Value& out, std::st
   }
   out = Value::int64(port);
   return true;
+#endif
 }
 
-bool get_queued_completion_status(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool get_queued_completion_status(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 2) {
     error = "GetQueuedCompletionStatus() expected port and timeout";
     return false;
@@ -959,6 +1028,85 @@ bool get_queued_completion_status(Runtime&, const Value* args, uint32_t argc, Va
   const auto deadline = std::chrono::steady_clock::now() +
       std::chrono::milliseconds(infinite_timeout ? 0 : timeout_ms);
   std::unique_lock<std::mutex> lock(g_iocp_mutex);
+#if defined(_WIN32)
+  // CPython's native _overlapped waits on the Windows completion queue.
+  // Polling socket state on a 1 ms timer adds a latency floor to every
+  // pending receive and scans unrelated operations. Synthetic posts wake
+  // this same queue; only legacy registered-handle waits need timed polling.
+  auto native_port = g_iocp_ports.find(port);
+  if (native_port != g_iocp_ports.end() && native_port->second.native != nullptr) {
+    const HANDLE native = native_port->second.native;
+    for (;;) {
+      bool has_registered_wait = false;
+      const auto now = std::chrono::steady_clock::now();
+      for (auto wait = g_wait_registrations.begin(); wait != g_wait_registrations.end();) {
+        if (wait->second.port != port) {
+          ++wait;
+          continue;
+        }
+        has_registered_wait = true;
+        const DWORD status = WaitForSingleObject(wait->second.handle, 0);
+        const bool timed_out = wait->second.timeout_ms != INFINITE &&
+            std::chrono::duration_cast<std::chrono::milliseconds>(now - wait->second.started).count() >=
+                wait->second.timeout_ms;
+        if (status == WAIT_OBJECT_0 || timed_out) {
+          (void)::PostQueuedCompletionStatus(native, 0, 0,
+              reinterpret_cast<OVERLAPPED*>(static_cast<intptr_t>(wait->second.address)));
+          wait = g_wait_registrations.erase(wait);
+        } else {
+          ++wait;
+        }
+      }
+      DWORD wait_ms = infinite_timeout ? INFINITE : static_cast<DWORD>(std::max<int64_t>(0,
+          std::chrono::ceil<std::chrono::milliseconds>(deadline - now).count()));
+      if (has_registered_wait) wait_ms = std::min<DWORD>(wait_ms, 1);
+      DWORD transferred = 0;
+      ULONG_PTR key = 0;
+      OVERLAPPED* address = nullptr;
+      BOOL ok;
+      DWORD code;
+      // Never hold the registry mutex or VM lock while waiting. Python
+      // producer threads must be able to post work and run socket callbacks.
+      lock.unlock();
+      {
+        XlangRuntimeExecutionSuspension suspension;
+        ok = ::GetQueuedCompletionStatus(native, &transferred, &key, &address, wait_ms);
+        code = ok ? ERROR_SUCCESS : GetLastError();
+      }
+      lock.lock();
+      if (address != nullptr) {
+        const int64_t logical_address = static_cast<int64_t>(reinterpret_cast<intptr_t>(address));
+        if (auto state_it = g_overlapped_by_address.find(logical_address);
+            state_it != g_overlapped_by_address.end()) {
+          auto& state = *state_it->second;
+          if (state.socket_operation != OverlappedState::SocketOperation::None) {
+            state.completion_error = code;
+            if (code == ERROR_BROKEN_PIPE &&
+                (state.socket_operation == OverlappedState::SocketOperation::FileRead ||
+                 state.socket_operation == OverlappedState::SocketOperation::FileReadInto)) {
+              state.completion_error = 0;
+            }
+            if (!state.completed) overlapped_finalize_socket_result(state, transferred);
+          } else {
+            code = static_cast<DWORD>(state.completion_error);
+          }
+          state.completion_delivered = true;
+          state.pending = false;
+          state.completion_key = static_cast<int64_t>(key);
+        }
+        out = Value::tuple({Value::int64(code), Value::int64(transferred),
+                           Value::int64(static_cast<int64_t>(key)), Value::int64(logical_address)});
+        return true;
+      }
+      if (code != WAIT_TIMEOUT) return raise_overlapped_error(runtime, code, error);
+      if (!has_registered_wait || timeout_ms == 0 ||
+          (!infinite_timeout && std::chrono::steady_clock::now() >= deadline)) {
+        value_set_none(out);
+        return true;
+      }
+    }
+  }
+#endif
   for (;;) {
   auto it = g_iocp_ports.find(port);
 #if defined(_WIN32)
@@ -1234,6 +1382,36 @@ void add_unimplemented_function(Runtime& runtime, NativeModuleBuilder& builder, 
 }
 
 } // namespace
+
+bool close_overlapped_iocp_port(int64_t handle) {
+#if defined(_WIN32)
+  HANDLE native = nullptr;
+#endif
+  {
+    std::lock_guard<std::mutex> lock(g_iocp_mutex);
+    auto port = g_iocp_ports.find(handle);
+    if (port == g_iocp_ports.end()) return false;
+#if defined(_WIN32)
+    native = port->second.native;
+#endif
+    g_iocp_ports.erase(port);
+    for (auto it = g_iocp_handle_ports.begin(); it != g_iocp_handle_ports.end();) {
+      if (it->second == handle) it = g_iocp_handle_ports.erase(it);
+      else ++it;
+    }
+#if defined(_WIN32)
+    for (auto it = g_wait_registrations.begin(); it != g_wait_registrations.end();) {
+      if (it->second.port == handle) it = g_wait_registrations.erase(it);
+      else ++it;
+    }
+#endif
+    g_iocp_condition.notify_all();
+  }
+#if defined(_WIN32)
+  if (native != nullptr) (void)::CloseHandle(native);
+#endif
+  return true;
+}
 
 void register_overlapped_module(Runtime& runtime) {
   NativeModuleBuilder builder(runtime, "_overlapped");
