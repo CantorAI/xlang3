@@ -117,6 +117,40 @@ The XLang3 event-delivery bound is stricter than relying only on those
 operation boundaries, so any loop optimization must preserve the 64-IR-op
 bound while keeping the common path cheap.
 
+### The per-op event-poll call was already optimized away
+
+The source initially looked like a clear loop cost: the XLang3 dispatcher
+calls `interpreter_poll_pending_events()` once per IR instruction, while
+CPython keeps its periodic checks inside the evaluator operations. I moved the
+existing TLS countdown and acquire-load body into an inline hot-path helper,
+leaving the 64-instruction bound, immediate local weakref hint, and shared
+atomic state unchanged. A Release/LTCG build produced byte-for-byte identical
+`xlang3.exe` and `xlang3_runtime.dll` files for the control and candidate
+(executable SHA-256
+`FA7053F4318A11BAAAB959F9E49EA3FA4E547B96D8F0929BBF437AF140EC4CCE`;
+runtime SHA-256
+`0612ABD05DDC41B5B50734E1DBD19CB7ABFA0D0F7419BB87F8C8282FC187595E`).
+Thus the source rewrite did not change generated binaries; link-time
+optimization already produced the same result.
+
+Two order-balanced rigorous `unpickle_pure_python` comparisons likewise did
+not provide a repeatable benefit. With control first, control measured
+3.35 ± 0.20 ms and candidate 3.36 ± 0.32 ms; `pyperf compare_to` hid the
+difference as insignificant. In the reverse order, candidate measured
+3.46 ± 0.40 ms and control 3.33 ± 0.12 ms; pyperf favored control by 1.04×.
+Because both pairs used byte-identical binaries, that order-sensitive result
+is host variation, not an effect of the source rewrite. The source change was
+reverted. Raw data: [control-first](data/event-poll-inline-control-repeat-rigorous-20260930.json),
+[candidate second](data/event-poll-inline-candidate-repeat-rigorous-20260930.json),
+[candidate-first](data/event-poll-inline-candidate-rigorous-20260930.json),
+and [control second](data/event-poll-inline-control-third-rigorous-20260930.json).
+
+This rules out adding an inline wrapper around the event poll as a speedup.
+The measured loop-control share still points to larger work: remove actual
+per-instruction checks or dispatch overhead, or reduce frame transitions,
+with a binary-level change and a matched benchmark gain as the acceptance
+criteria.
+
 The same instrumented profile measured 13.84% in `GetItem`, 12.13% in `Call`,
 and 10.86% in `CallMethod`. An exact built-in-dict/integer-key shortcut at the
 dispatch site was already tested and discarded: it measured only 1.01x faster
