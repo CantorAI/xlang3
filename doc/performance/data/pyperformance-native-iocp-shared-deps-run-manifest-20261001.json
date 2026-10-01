@@ -1,0 +1,127 @@
+{
+  "default_full_case_timeout_seconds": 600,
+  "suite": "pyperformance 1.14.0",
+  "dependency_site": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages",
+  "xlang3": [
+    {
+      "Path": "D:\\CantorAI\\xlang3\\build\\Release\\xlang3.exe",
+      "Hash": "C5F37B0A9238989B2DF678B1E2F2A00915C603A04BBC896A9B1573F71D897B84"
+    },
+    {
+      "Path": "D:\\CantorAI\\xlang3\\build\\Release\\xlang3_runtime.dll",
+      "Hash": "F1804355B77C2F74E9C83AEC115E149C8A566B2BF4DB700DF923AB7BB5C1BBFA"
+    }
+  ],
+  "cpython_version": "Python 3.14.7",
+  "source_commit": "1924e4bd9c3d351d44a052942d4e5b7a4934d839",
+  "cpython": [
+    {
+      "Path": "C:\\Python\\Python314\\python.exe",
+      "Hash": "4942B86A6597E5AEE0128DAA00050ED79BC21F6E709A78EB19CBFEB0C2F39AC9"
+    },
+    {
+      "Path": "C:\\Python\\Python314\\python314.dll",
+      "Hash": "0F9857FFDFE010FE6B99328D58C2E3C7472CE75F336BF9C2AD9BD5BCA3BCE700"
+    }
+  ],
+  "started_at": "2026-10-01T20:16:13.6834653Z",
+  "native_packages": [
+    {
+      "Path": "D:\\CantorAI\\xlang3\\build\\Release\\modules\\_argon2_cffi_bindings._ffi.x3pkg.dll",
+      "Hash": "A977BAA19EAE0FD50A38DFE4667433A415E93262822040EF4CCACBBDC1914263"
+    },
+    {
+      "Path": "D:\\CantorAI\\xlang3\\build\\Release\\modules\\_brotli.x3pkg.dll",
+      "Hash": "16AF20864F207733F77C2DD4F7239EE9C6721C8CB9CA8D13A51CADEB3950499A"
+    },
+    {
+      "Path": "D:\\CantorAI\\xlang3\\build\\Release\\modules\\_cffi_backend.x3pkg.dll",
+      "Hash": "B4C0C8A80FD8EBFC6041263D4FA1441DF50C34D62C46997A536C475E978AE9DD"
+    },
+    {
+      "Path": "D:\\CantorAI\\xlang3\\build\\Release\\modules\\_zstd.x3pkg.dll",
+      "Hash": "827E63C86D7BEF99006F9028275EED0787F4079982195F3E9CADA087982CBAC2"
+    },
+    {
+      "Path": "D:\\CantorAI\\xlang3\\build\\Release\\modules\\cryptography.hazmat.bindings._rust.x3pkg.dll",
+      "Hash": "4E600B0C68285013CEF42C0EBC118B4D55A28BEAD4DB3003DB3381828CE724DC"
+    },
+    {
+      "Path": "D:\\CantorAI\\xlang3\\build\\Release\\modules\\httptools.parser.parser.x3pkg.dll",
+      "Hash": "EB25F69A997119F3C304F64FA3053351F6651042E5375C01BDC6F322E0D56CDB"
+    },
+    {
+      "Path": "D:\\CantorAI\\xlang3\\build\\Release\\modules\\httptools.parser.url_parser.x3pkg.dll",
+      "Hash": "F01372AEF704B4FC98AA50342A37E47781921F7AB7968E07C14A8B826E4337EC"
+    },
+    {
+      "Path": "D:\\CantorAI\\xlang3\\build\\Release\\modules\\mmap.x3pkg.dll",
+      "Hash": "5D0A0D6A09A4FE349A10C5B0EF5E8C9398502C6BBDDB3E9281E4B4C699772D16"
+    },
+    {
+      "Path": "D:\\CantorAI\\xlang3\\build\\Release\\modules\\psutil._psutil_windows.x3pkg.dll",
+      "Hash": "0A8D1CF54AB6538BC8896C67F46267408D6710AC760F79AA0C617623A93FCAF6"
+    },
+    {
+      "Path": "D:\\CantorAI\\xlang3\\build\\Release\\modules\\pydantic_core._pydantic_core.x3pkg.dll",
+      "Hash": "DFE58951D8E7BDA0C65C97F96BC521220386876FA7CA5B2F4C07143AE00CBC66"
+    },
+    {
+      "Path": "D:\\CantorAI\\xlang3\\build\\Release\\modules\\rpds.rpds.x3pkg.dll",
+      "Hash": "D331C034D33EB7DB960E38D952ABC57699E16782ADC015F46B1987715465FC6E"
+    },
+    {
+      "Path": "D:\\CantorAI\\xlang3\\build\\Release\\modules\\xlang__blake2.x3pkg.dll",
+      "Hash": "AD92379F9878A78639B0CA7EA621A7D4F20B4A45B01BEDC6A228945DA254B142"
+    },
+    {
+      "Path": "D:\\CantorAI\\xlang3\\build\\Release\\modules\\xlang__hashlib.x3pkg.dll",
+      "Hash": "A0E1A98D5BFFD906798153BBF4D572FFCCD5AEC75A2F950E199AE7F7D45A9CDF"
+    },
+    {
+      "Path": "D:\\CantorAI\\xlang3\\build\\Release\\modules\\xlang__ssl.x3pkg.dll",
+      "Hash": "55F3D436D0580AE980C8C1C07E1360D4EC65B3338155FB09FCC7FFD7C8C6A8C5"
+    },
+    {
+      "Path": "D:\\CantorAI\\xlang3\\build\\Release\\modules\\xlang_curmodule_probe.x3pkg.dll",
+      "Hash": "B5D63E6DF5FEC66482DE690C4F64A8879DEF0D491392BC7B24E286379F243F3F"
+    },
+    {
+      "Path": "D:\\CantorAI\\xlang3\\build\\Release\\modules\\xlang_device.x3pkg.dll",
+      "Hash": "5ABE3769624599CD8166F73F0A7F081BE24B275C9B427FE6B8A8699E17816797"
+    },
+    {
+      "Path": "D:\\CantorAI\\xlang3\\build\\Release\\modules\\xlang_graph_native.x3pkg.dll",
+      "Hash": "25F8CE55512D153F2A80D5A455B171F55127BC99FAF0B57465B5B9B042B0F425"
+    },
+    {
+      "Path": "D:\\CantorAI\\xlang3\\build\\Release\\modules\\xlang_json.x3pkg.dll",
+      "Hash": "1CF041AE4107659673FD71CCCDA60F2379BF17131A1FE705D0B6B10A9442F0A2"
+    },
+    {
+      "Path": "D:\\CantorAI\\xlang3\\build\\Release\\modules\\xlang_net.x3pkg.dll",
+      "Hash": "B889D96AE117FF4C2F6F40A3C56408B1AE168BFF055C56B83796E44C0ABA0A8B"
+    },
+    {
+      "Path": "D:\\CantorAI\\xlang3\\build\\Release\\modules\\xlang_sqlite3.x3pkg.dll",
+      "Hash": "2539619CD342DA4208A435817AEE9C7C48E6B039E61582E6D1DFBB77218270B2"
+    },
+    {
+      "Path": "D:\\CantorAI\\xlang3\\build\\Release\\modules\\xlang_yaml.x3pkg.dll",
+      "Hash": "52AB3EAF53F4B5A99DC3B678170C10186BC8845BE8748DAC0B14A24F64934030"
+    },
+    {
+      "Path": "D:\\CantorAI\\xlang3\\build\\Release\\modules\\xlang1_compat_sample.x3pkg.dll",
+      "Hash": "6B3EAAFFB8A8A2726E62AD61914B9F5B65A888D372AA039499A2814D4566BE10"
+    },
+    {
+      "Path": "D:\\CantorAI\\xlang3\\build\\Release\\modules\\zstandard.backend_c.x3pkg.dll",
+      "Hash": "A80BBD0DFA5A73D2C70CA6FC4CA3F40D6B3F841AA10B8303632F8E2A0404FD65"
+    }
+  ],
+  "definitions": 97,
+  "timeout_overrides": {
+    "async_tree*": 120
+  },
+  "mode": "fast"
+}

@@ -122,6 +122,8 @@ def ratio_chart(measurements, cases, output):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--cpython", required=True, type=Path)
+    parser.add_argument("--cpython-log", type=Path,
+                        help="Full reference log; defaults to the JSON's .log sibling when present")
     parser.add_argument("--xlang", required=True, type=Path)
     parser.add_argument("--xlang-log", required=True, type=Path)
     parser.add_argument("--output-dir", required=True, type=Path)
@@ -131,6 +133,18 @@ def main():
 
     cases, failures, log_measurements = parse_log(args.xlang_log)
     cp = pyperf_means(args.cpython)
+    cp_log = args.cpython_log or args.cpython.with_suffix(".log")
+    cp_failures = {}
+    cp_log_measurements = {}
+    if cp_log.exists():
+        cp_cases, cp_failures, cp_log_measurements = parse_log(cp_log)
+        if cp_cases != cases:
+            raise ValueError("CPython and XLang3 logs must attempt the same 97 definitions in order")
+        # Preserve completed subtests of a later-failing reference definition,
+        # just as for XLang3. Prefer full raw JSON samples where available.
+        partial_cp = {name: value for name, (value, _parent) in cp_log_measurements.items()}
+        partial_cp.update(cp)
+        cp = partial_cp
     # Keep raw pyperf samples when the whole definition completed. If a later
     # subtest timed out, pyperformance can discard earlier successful subtests
     # from its JSON file; retain their printed pyperf means from the log.
@@ -140,8 +154,12 @@ def main():
     raw_xl = pyperf_means(args.xlang)
     xl.update(raw_xl)
     xl_sources.update({name: "pyperf JSON" for name in raw_xl})
-    cp_parent = {name: parent_for(name, cases) for name in cp}
-    xl_parent = {name: parent_for(name, cases) or log_measurements.get(name, (0, ""))[1]
+    # A printed subtest's enclosing definition is authoritative. Prefixes can
+    # misassign names such as async_tree_task_group to async_tree rather than
+    # async_tree_tg. Use static aliases only when no matching log is available.
+    cp_parent = {name: cp_log_measurements.get(name, (0, ""))[1] or parent_for(name, cases)
+                 for name in cp}
+    xl_parent = {name: log_measurements.get(name, (0, ""))[1] or parent_for(name, cases)
                  for name in xl}
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -149,7 +167,8 @@ def main():
     with status_csv.open("w", newline="", encoding="utf-8-sig") as stream:
         writer = csv.writer(stream)
         writer.writerow(["benchmark", "CPython 3.14 status", "CPython subtests",
-                         "XLang3 status", "XLang3 subtests", "failure detail"])
+                         "XLang3 status", "XLang3 subtests", "failure detail",
+                         "CPython failure detail"])
         for case in cases:
             cp_names = sorted(name for name, parent in cp_parent.items() if parent == case)
             xl_names = sorted(name for name, parent in xl_parent.items() if parent == case)
@@ -164,9 +183,13 @@ def main():
                 status = "completed"
             else:
                 status = "failed: " + failures.get(case, "no matching measurement")
-            writer.writerow([case, "completed" if cp_parts else "no CPython timing",
+            cp_status = ("partial: " + cp_failures[case] if cp_parts and case in cp_failures else
+                         "completed" if cp_parts else
+                         "failed: " + cp_failures[case] if case in cp_failures else
+                         "no CPython timing")
+            writer.writerow([case, cp_status,
                              "; ".join(cp_parts), status, "; ".join(xl_parts),
-                             failures.get(case, "")])
+                             failures.get(case, ""), cp_failures.get(case, "")])
 
     subtests_csv = args.output_dir / f"{args.stem}-subtests.csv"
     all_names = sorted(set(cp) | set(xl))
