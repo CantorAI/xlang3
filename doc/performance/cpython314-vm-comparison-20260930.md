@@ -159,6 +159,41 @@ dead-argument-transfer trials did not show a repeatable gain. A future change
 needs to reduce those shared VM costs and keep the relevant guard/invalidation
 rules explicit in the implementation.
 
+## Smaller inline VM frames were also rejected
+
+CPython's [`_PyInterpreterFrame`](https://github.com/python/cpython/blob/v3.14.7/Include/internal/pycore_interpframe.h)
+stores slots for that code object's locals-plus and evaluation stack. XLang3's
+`XlangVMFrame` instead embeds inline storage for 64 `Value` locals, 64 cells,
+and 128 registers, even for a function that uses only a few. The measured
+baseline frame size is 4,752 bytes. Reducing those capacities to 8, 8, and 32
+would shrink the fixed inline shell by 3,328 bytes (to 1,424 bytes by the same
+field-layout calculation); larger buffers still spill to their reusable
+vector storage.
+
+The candidate passed the full Python fixture runner and both C++ runtime and
+interpreter test executables. Its fast `deepcopy_memo` screen appeared 1.10x
+faster, but the rigorous comparison erased that signal: pyperf hid all three
+deepcopy subtests as statistically insignificant. `deepcopy_memo` measured
+597 ± 75 μs on the parent and 597 ± 61 μs on the candidate; total `deepcopy`
+was 4.68 ± 0.54 ms versus 4.75 ± 0.59 ms. Unpickle was likewise inconclusive
+in fast mode at 3.51 ± 0.45 ms versus 3.57 ± 0.61 ms. The candidate is
+rejected, its capacities were restored, and no full Release regression gate
+was run.
+
+The [rigorous parent](data/vm-frame-inline-parent-deepcopy-rigorous-20260930.json)
+and [candidate](data/vm-frame-inline-candidate-deepcopy-rigorous-20260930.json)
+preserve the subtests that disproved the initial signal. The fast
+[deepcopy parent](data/vm-frame-inline-parent-deepcopy-fast-20260930.json),
+[deepcopy candidate](data/vm-frame-inline-candidate-deepcopy-fast-20260930.json),
+[unpickle parent](data/vm-frame-inline-parent-unpickle-fast-20260930.json), and
+[unpickle candidate](data/vm-frame-inline-candidate-unpickle-fast-20260930.json)
+preserve the screening runs. Candidate executable/runtime hashes were
+`B72D863A730EC5A078DAC3EAFB5E1AA87DCADBC241D5F6224B4667216B5A2CAF` and
+`AD39F1DA95AFDA25D4A4B2797754F82EF871282D274C903BAF1933AEFAFCC105`;
+the parent pair was
+`9F0D28ED78921385DD8763837860B2E2EDB8FF671899E5669E9694CD95FB3BB3` and
+`F8AB0AB4D59A9C5082E8C7A639E19C589E96043F3935D80DEB12979EDD479696`.
+
 ## JSON calls also use a native XLang3 module
 
 CPython 3.14.7 `json.encoder` imports `_json.make_encoder` and delegates the
