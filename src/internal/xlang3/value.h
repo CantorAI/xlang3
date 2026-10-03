@@ -970,7 +970,11 @@ XLANG3_HOT_INLINE void release(const Value& value) {
   if (g_xlang_perf_enabled.load(std::memory_order_relaxed)) {
     xlang_perf_note_value_decref(value.as.obj->kind);
   }
-  if (value.as.obj->refcnt.fetch_sub(1, std::memory_order_acq_rel) == 1) {
+  // Publish this reference's writes with release ordering. Acquire only when
+  // this was the final owner: non-final drops are common in VM register and
+  // frame cleanup, so a fence only at zero avoids an acquire barrier for each.
+  if (value.as.obj->refcnt.fetch_sub(1, std::memory_order_release) == 1) {
+    std::atomic_thread_fence(std::memory_order_acquire);
     release_last_reference(value);
   }
 }

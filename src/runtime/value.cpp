@@ -1561,8 +1561,9 @@ void release_last_reference(const Value& value) {
           runtime->set_pending_exception(std::move(saved_exception));
         }
       }
-      if (value.as.obj->refcnt.fetch_sub(1, std::memory_order_acq_rel) != 1)
+      if (value.as.obj->refcnt.fetch_sub(1, std::memory_order_release) != 1)
         return;
+      std::atomic_thread_fence(std::memory_order_acquire);
     }
   } else if (value.as.obj->kind == ObjectKind::File) {
     auto* file = reinterpret_cast<FileObject*>(value.as.obj);
@@ -1592,9 +1593,10 @@ void release_last_reference(const Value& value) {
         if (saved_exception.tag != ValueTag::Invalid) {
           runtime->set_pending_exception(std::move(saved_exception));
         }
-        if (value.as.obj->refcnt.fetch_sub(1, std::memory_order_acq_rel) != 1) {
+        if (value.as.obj->refcnt.fetch_sub(1, std::memory_order_release) != 1) {
           return;
         }
+        std::atomic_thread_fence(std::memory_order_acquire);
       }
     }
   }
