@@ -81,6 +81,7 @@ void register_ast_module(Runtime& runtime);
 void register_binascii_module(Runtime& runtime);
 void register_bz2_module(Runtime& runtime);
 void register_cmath_module(Runtime& runtime);
+void register_decimal_module(Runtime& runtime);
 void register_io_module(Runtime& runtime);
 void register_json_module(Runtime& runtime);
 void register_functools_module(Runtime& runtime);

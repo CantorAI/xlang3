@@ -47,6 +47,7 @@ void register_core_builtins(Runtime& runtime) {
   register_bz2_module(runtime);
   register_cmath_module(runtime);
   register_json_module(runtime);
+  register_decimal_module(runtime);
   register_functools_module(runtime);
   register_csv_module(runtime);
   register_os_module(runtime);
