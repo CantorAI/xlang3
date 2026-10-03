@@ -1,0 +1,29 @@
+31251125000
+perf: native_calls=1 fast=0 cached_fast=0
+perf: native print slow=1 fast=0
+perf: store_local moves=2 copies=1
+perf: frame_snapshots calls=0 frames=0 locals=0 refresh_calls=0 refresh_items=0
+perf: opcode 0 3
+perf: opcode 2 1
+perf: opcode 3 3
+perf: opcode 5 1
+perf: opcode 18 2
+perf: opcode 19 1
+perf: opcode 31 2
+perf: opcode 54 1
+perf: opcode 76 1
+perf: opcode 93 3
+perf: opcode 97 2
+perf: opcode 106 1
+perf: opcode 118 2
+perf: opcode 121 1
+perf: opcode 135 2
+perf: objects kind alloc final_release incref decref
+perf: String 3 2 5 6
+perf: Dict 1 0 1 1
+perf: Module 1 0 22 16
+perf: Function 2 0 6 6
+perf: NativeFunction 0 0 4 4
+perf: Class 0 0 3 2
+perf: Instance 1 0 4 4
+perf: BoundMethod 1 1 0 1
