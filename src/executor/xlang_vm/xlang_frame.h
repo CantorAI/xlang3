@@ -157,8 +157,16 @@ struct GlobalSiteCache {
   uint8_t kind = 0;
 };
 
+struct FreeSiteCache {
+  // Non-owning hint. The active closure Value is compared before dereferencing
+  // this pointer; a matching, live closure cell can then skip repeated kind
+  // checks while still reading its current value on every execution.
+  CellObject* cell = nullptr;
+};
+
 struct XlangVMInstrCache : XlangVMInstrCacheCore {
   GlobalSiteCache global;
+  FreeSiteCache free;
   CallSiteCache call;
   AttrSiteCache attr;
   uint64_t monitoring_generation = 0;
