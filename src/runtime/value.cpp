@@ -1600,9 +1600,10 @@ void release_last_reference(const Value& value) {
       }
     }
   }
-  // Instance recycling keeps zero-ref objects in the thread-local cache and
-  // retains their GC index; the recycler untracks only objects it deletes.
-  if (value.as.obj->kind != ObjectKind::Instance) {
+  // These caches keep zero-ref objects in thread-local storage and retain
+  // their GC index; their recyclers untrack objects only when deleting them.
+  if (value.as.obj->kind != ObjectKind::Instance &&
+      value.as.obj->kind != ObjectKind::Generator) {
     gc_untrack_object(value.as.obj);
   }
   xlang_perf_count_object_final_release(value.as.obj->kind);

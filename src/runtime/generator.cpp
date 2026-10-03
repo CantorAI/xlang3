@@ -22,6 +22,8 @@ limitations under the License.
 #include "xlang3/perf_counters.h"
 #include "xlang3/runtime.h"
 
+#include "runtime/memory/object_cache_lifetime.h"
+
 #ifndef XLANG3_EMBEDDED
 #include "task_objects.h"
 #endif
@@ -30,12 +32,29 @@ limitations under the License.
 #include <array>
 #include <cstdint>
 #include <sstream>
+#include <type_traits>
 
 namespace xlang3 {
 
 namespace {
 
 thread_local uint32_t g_generator_resume_depth = 0;
+
+struct GeneratorFreeList {
+  ~GeneratorFreeList() {
+    memory::object_caches_alive = false;
+    for (size_t index = 0; index < size; ++index) {
+      auto* generator = items[index];
+      gc_untrack_object(&generator->header);
+      delete generator;
+    }
+  }
+
+  std::array<GeneratorObject*, 256> items{};
+  size_t size = 0;
+};
+
+thread_local GeneratorFreeList generator_free_list;
 
 struct GeneratorResumeGuard {
   GeneratorResumeGuard() { ++g_generator_resume_depth; }
@@ -44,6 +63,19 @@ struct GeneratorResumeGuard {
 
 template <typename T>
 T* allocate_generator_object(ObjectKind kind) {
+  if constexpr (std::is_same_v<T, GeneratorObject>) {
+    if (memory::object_caches_alive && generator_free_list.size != 0) {
+      auto* obj = generator_free_list.items[--generator_free_list.size];
+      generator_free_list.items[generator_free_list.size] = nullptr;
+      obj->header.kind = kind;
+      obj->header.refcnt = 1;
+      xlang_perf_count_object_alloc(kind);
+      // Recycled zero-ref generators keep their GC index, so this call is a
+      // cheap state check instead of a lock and vector insertion.
+      gc_track_object(&obj->header);
+      return obj;
+    }
+  }
   auto* obj = new T();
   obj->header.kind = kind;
   obj->header.refcnt = 1;
@@ -171,6 +203,37 @@ void generator_release_object(Object* object) {
   if (object->kind == ObjectKind::Generator) {
     auto* generator = reinterpret_cast<GeneratorObject*>(object);
     clear_generator_vm_states(*generator);
+    value_set_invalid(generator->function);
+    value_set_invalid(generator->pending_send);
+    value_set_invalid(generator->pending_throw);
+    value_set_invalid(generator->return_value);
+    value_set_invalid(generator->awaiting);
+    value_set_invalid(generator->origin);
+    generator->args.clear();
+    generator->runtime = nullptr;
+    generator->inline_parent = nullptr;
+    generator->has_pending_send = false;
+    generator->has_pending_throw = false;
+    generator->delegated_result_ready = false;
+    generator->args_bound = false;
+    generator->started = false;
+    generator->running = false;
+    generator->is_async = false;
+    generator->is_coroutine = false;
+    generator->is_await_iterator = false;
+    generator->has_observed_continuation = false;
+    generator->has_active_suspended_exception_handlers = false;
+    generator->delegation_trampoline_result_ready = false;
+    generator->done = false;
+    // Coroutine workloads create hundreds of thousands of short-lived
+    // generators. Keep a bounded thread-local cache and its GC index to avoid
+    // both heap churn and the global tracker lock on create/final release.
+    if (memory::object_caches_alive && generator->args.capacity() <= 8 &&
+        generator_free_list.size < generator_free_list.items.size()) {
+      generator_free_list.items[generator_free_list.size++] = generator;
+      return;
+    }
+    gc_untrack_object(&generator->header);
     delete generator;
     return;
   }
