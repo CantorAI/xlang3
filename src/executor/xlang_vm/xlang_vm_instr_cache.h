@@ -42,7 +42,6 @@ enum class XlangVMCacheDomain : uint8_t {
   Call,
   CallMethod,
   BinaryOp,
-  Free,
 };
 
 enum class XlangVMCacheState : uint8_t {

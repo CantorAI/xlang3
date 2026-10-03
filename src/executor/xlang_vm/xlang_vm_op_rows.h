@@ -36,7 +36,7 @@ XLANG3_VM_FLOW(InplaceAddLocalLocal, xlang3::xlang_vm::ops::inplace_add_local_lo
 XLANG3_VM_FLOW_TRACKED(LoadCell, xlang3::xlang_vm::ops::load_cell(in, fn, regs, cells, result, raise_unbound_local_error))
 XLANG3_VM_FLOW(StoreCell, xlang3::xlang_vm::ops::store_cell(in, fn, regs, locals, cells, native_call_args, frame.execution_metadata->register_last_use, frame.execution_metadata->register_loop_carried, ip, result, raise_runtime_error))
 XLANG3_VM_FAST_TRACKED(LoadCellObject, xlang3::xlang_vm::ops::load_cell_object(in, regs, cells))
-XLANG3_VM_FLOW_TRACKED(LoadFree, xlang3::xlang_vm::ops::load_free(in, fn, regs, fn_obj_closure, instr_cache[ip], result, raise_name_error))
+XLANG3_VM_FLOW_TRACKED(LoadFree, xlang3::xlang_vm::ops::load_free(in, fn, regs, fn_obj_closure, result, raise_name_error))
 XLANG3_VM_FLOW(StoreFree, xlang3::xlang_vm::ops::store_free(in, regs, fn_obj_closure, result, raise_runtime_error))
 XLANG3_VM_FAST_TRACKED(LoadFreeObject, xlang3::xlang_vm::ops::load_free_object(in, regs, fn_obj_closure))
 XLANG3_VM_FLOW_TRACKED(LoadModuleSlot, xlang3::xlang_vm::ops::load_module_slot(in, module, runtime_, regs, globals_module, globals_, instr_cache[ip], result, raise_name_error, raise_exception_value))

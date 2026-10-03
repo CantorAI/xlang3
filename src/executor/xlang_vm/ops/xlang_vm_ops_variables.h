@@ -1275,17 +1275,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_free(
     const ir::Function& fn,
     XlangVMSmallRegisterBuffer& regs,
     const std::vector<Value>& fn_obj_closure,
-    XlangVMInstrCache& instr_cache,
     RuntimeResult& result,
     RaiseNameError&& raise_name_error) {
-  // Function closure layouts are stable, but different activations may carry
-  // different cells. Compare against the current closure slot before using the
-  // cached pointer; this avoids type-dispatch on a hot LOAD_DEREF while always
-  // observing nonlocal writes and retaining the ordinary unbound-name path.
-  if (instr_cache.domain != XlangVMCacheDomain::Free) {
-    xlang_vm_cache_touch(instr_cache, XlangVMCacheDomain::Free);
-    instr_cache.free.cell = nullptr;
-  }
   if (in.a >= fn_obj_closure.size()) {
     const std::string message =
         "invalid free slot in " + std::string(fn.name.empty() ? "<function>" : fn.name) +
@@ -1294,17 +1285,11 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_free(
     result.errors.push_back(message);
     return XlangVMOpFlow::ReturnResult;
   }
-  const Value& closure_value = fn_obj_closure[in.a];
-  auto* cell = instr_cache.free.cell != nullptr &&
-          closure_value.tag == ValueTag::Object &&
-          closure_value.as.obj == reinterpret_cast<Object*>(instr_cache.free.cell)
-      ? instr_cache.free.cell
-      : value_as_cell(closure_value);
+  auto* cell = value_as_cell(fn_obj_closure[in.a]);
   if (cell == nullptr) {
     result.errors.push_back("invalid free cell");
     return XlangVMOpFlow::ReturnResult;
   }
-  instr_cache.free.cell = cell;
   if (cell->value.tag == ValueTag::Invalid) {
     const std::string name = in.a < fn.free_vars.size() ? fn.free_vars[in.a] : "?";
     return raise_name_error("free variable '" + name + "' is not defined")
