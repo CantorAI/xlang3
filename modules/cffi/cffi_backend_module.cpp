@@ -978,6 +978,8 @@ bool foreign_named(const FfiState& ffi, const std::string& name, ForeignType& ty
   return false;
 }
 
+#endif // XLANG_CFFI_HAS_LIBFFI
+
 std::string type_name_at(const FfiState& ffi, size_t index, unsigned depth = 0) {
   if (depth > 32 || index >= ffi.types.size()) return {};
   for (const auto& known : ffi.typenames)
@@ -1002,10 +1004,30 @@ std::string type_name_at(const FfiState& ffi, size_t index, unsigned depth = 0) 
     const std::string target = type_name_at(ffi, argument, depth + 1);
     return target.empty() ? "void *" : target + " *";
   }
-  ForeignType primitive;
-  if (foreign_at(ffi, index, primitive)) return primitive.name;
+  if (operation == 7u) return "void *";
+  if (operation == 1u) {
+    switch (argument) {
+      case 0: return "void";
+      case 1: case 4: case 18: case 31: return "unsigned char";
+      case 2: case 3: case 17: case 30: return "char";
+      case 6: case 16: case 20: case 33: case 50: return "unsigned short";
+      case 5: case 19: case 32: return "short";
+      case 8: case 10: case 22: case 35: case 41: case 43: case 51:
+        return "unsigned int";
+      case 7: case 9: case 21: case 34: case 40: case 42: return "int";
+      case 12: case 24: case 26: case 28: case 37: case 45: case 47:
+        return "unsigned long long";
+      case 11: case 23: case 25: case 27: case 29: case 36: case 44: case 46:
+        return "long long";
+      case 13: return "float";
+      case 14: case 15: return "double";
+      default: break;
+    }
+  }
   return {};
 }
+
+#ifdef XLANG_CFFI_HAS_LIBFFI
 
 bool numeric_foreign_value(PackageState* package, X3CallContext* call,
                            X3Runtime* runtime, X3Value value, uint64_t& output) {
@@ -1246,6 +1268,7 @@ X3Status cdata_setitem(X3CallContext* call, X3Runtime* runtime, void* user_data,
       data->element_size == 0 ||
       static_cast<uint64_t>(index) >= data->owned_size / data->element_size)
     return package->host->raise_class_error(call, "IndexError", "C data index is out of range");
+#ifdef XLANG_CFFI_HAS_LIBFFI
   ForeignType type;
   if (!data->ffi || !foreign_named(*data->ffi, data->element_name, type) ||
       type.kind == ForeignKind::Void || data->element_size > sizeof(uint64_t))
@@ -1277,6 +1300,10 @@ X3Status cdata_setitem(X3CallContext* call, X3Runtime* runtime, void* user_data,
               &storage, data->element_size);
   *result = x3_value_none();
   return X3_STATUS_OK;
+#else
+  return package->host->raise_class_error(
+      call, "NotImplementedError", "C array element assignment requires libffi");
+#endif
 }
 
 X3Status cdata_getattr(X3CallContext* call, X3Runtime* runtime, void* user_data,
@@ -1318,6 +1345,7 @@ X3Status cdata_getattr(X3CallContext* call, X3Runtime* runtime, void* user_data,
     }
     return X3_STATUS_OK;
   }
+#ifdef XLANG_CFFI_HAS_LIBFFI
   ForeignType type;
   if (!foreign_at(*data->ffi, field.type_index, type) ||
       field.layout.size > sizeof(uint64_t))
@@ -1338,6 +1366,10 @@ X3Status cdata_getattr(X3CallContext* call, X3Runtime* runtime, void* user_data,
     package->host->value_retain(args[0]);
   }
   return status;
+#else
+  return package->host->raise_class_error(
+      call, "NotImplementedError", "C scalar field access requires libffi");
+#endif
 }
 
 X3Status cdata_setattr(X3CallContext* call, X3Runtime* runtime, void* user_data,
@@ -1353,6 +1385,7 @@ X3Status cdata_setattr(X3CallContext* call, X3Runtime* runtime, void* user_data,
   if (!description || !find_struct_field(*data->ffi, *description, name, field) ||
       data->address == 0)
     return package->host->raise_class_error(call, "AttributeError", "C data field is not declared");
+#ifdef XLANG_CFFI_HAS_LIBFFI
   ForeignType type;
   if ((data->ffi->types[field.type_index] & 0xffu) == 5u ||
       !foreign_at(*data->ffi, field.type_index, type) ||
@@ -1390,6 +1423,10 @@ X3Status cdata_setattr(X3CallContext* call, X3Runtime* runtime, void* user_data,
               &storage, field.layout.size);
   *result = x3_value_none();
   return X3_STATUS_OK;
+#else
+  return package->host->raise_class_error(
+      call, "NotImplementedError", "C field assignment requires libffi");
+#endif
 }
 
 X3Status cdata_int(X3CallContext* call, X3Runtime*, void* user_data,

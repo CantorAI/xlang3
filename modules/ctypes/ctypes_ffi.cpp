@@ -609,6 +609,8 @@ bool marshal_argument(Runtime& runtime, const Value& argument, char code,
   return true;
 }
 
+#endif
+
 Value decode_result(char code, uint64_t storage) {
   switch (code) {
     case '?': return Value::boolean((storage & 0xffu) != 0);
@@ -634,7 +636,6 @@ Value decode_result(char code, uint64_t storage) {
     default: return Value::none();
   }
 }
-#endif
 
 } // namespace
 
