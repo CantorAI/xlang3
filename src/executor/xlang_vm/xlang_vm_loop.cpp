@@ -576,7 +576,49 @@ RuntimeResult Interpreter::run_function(
     return result;
   }
 
-  std::vector<VMFrame> frames;
+  // Eager asyncio tasks recursively enter the interpreter and usually finish
+  // synchronously. Reuse the cleared frame vector at each C++ interpreter
+  // nesting depth so every task does not reallocate its VMFrame stack and the
+  // per-frame locals/register/cache buffers. The pool is thread-local (never
+  // shared by concurrent interpreters), bounded to shallow nesting, and only
+  // retained when this invocation completes with no live frames; suspended,
+  // paused, or exceptional frames continue to use their existing ownership.
+  struct FrameVectorPool {
+    std::array<std::vector<VMFrame>, 32> frames;
+    size_t active_depth = 0;
+  };
+  thread_local FrameVectorPool frame_pool;
+  const size_t pool_depth = frame_pool.active_depth++;
+  std::vector<VMFrame> overflow_frames;
+  std::vector<VMFrame>* frames_ptr = pool_depth < frame_pool.frames.size()
+      ? &frame_pool.frames[pool_depth]
+      : &overflow_frames;
+  struct FrameVectorPoolGuard {
+    FrameVectorPool& pool;
+    std::vector<VMFrame>& frames;
+    bool retain = false;
+    ~FrameVectorPoolGuard() {
+      if (retain) {
+        // Keep only reusable storage: a pooled slot must not pin a code
+        // module, closure, adaptive-cache object, or function from a finished
+        // interpreter activation. VMFrame::reset rebuilds its function-bound
+        // state on the next use while preserving the backing allocations.
+        for (auto& frame : frames) {
+          frame.closure_owner.reset();
+          frame.closure = nullptr;
+          frame.module_owner.reset();
+          frame.execution_metadata.reset();
+          frame.prepared_functions.clear();
+          frame.module = nullptr;
+          frame.fn = nullptr;
+        }
+      } else {
+        frames.clear();
+      }
+      --pool.active_depth;
+    }
+  } frame_pool_guard{frame_pool, *frames_ptr};
+  std::vector<VMFrame>& frames = *frames_ptr;
   // Most generator resumes publish only their own frame. Keep those borrowed
   // runtime views in stack storage so a short-lived vector allocation is not
   // paid once per yielded item; retain the general vector path for deep stacks.
@@ -659,8 +701,13 @@ RuntimeResult Interpreter::run_function(
     // helpers (including sys.monitoring callbacks). Keep their initial frame
     // storage small and let genuinely deep Python call chains grow on demand.
     frames.reserve(8);
-    frames.emplace_back(
-        module, function_id, entry_args, fn_obj_closure, std::move(globals_module), std::move(module_owner), 0, false);
+    if (frames.empty()) {
+      frames.emplace_back(
+          module, function_id, entry_args, fn_obj_closure, std::move(globals_module), std::move(module_owner), 0, false);
+    } else {
+      frames[0].reset(
+          module, function_id, entry_args, fn_obj_closure, std::move(globals_module), std::move(module_owner), 0, false);
+    }
     frames.back().activation_id = runtime_.allocate_frame_activation_id();
     frame_count = 1;
   }
@@ -1930,6 +1977,9 @@ switch_frame:
   if (generator != nullptr) {
     generator->done = true;
   }
+  // All successful returns have passed through finish_frame(), which releases
+  // Python references while leaving reusable storage in each VMFrame slot.
+  frame_pool_guard.retain = frame_count == 0;
   return result;
 }
 
