@@ -195,6 +195,7 @@ set(XLANG3_SYSTEM_RUNTIME_SOURCES
   src/runtime/modules/system/bisect_module.cpp
   src/runtime/modules/system/bz2_module.cpp
   src/runtime/modules/system/cmath_module.cpp
+  src/runtime/modules/system/decimal_module.cpp
   src/runtime/modules/system/codecs_module.cpp
   src/runtime/modules/system/locale_module.cpp
   src/runtime/modules/system/multibytecodec_module.cpp

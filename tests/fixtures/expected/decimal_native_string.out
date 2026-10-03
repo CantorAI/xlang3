@@ -1,0 +1,6 @@
+['0.00', '-0.00', '1234567.89', '1E+6', '0E+3', '1E-7', '-1.234E+20', 'Infinity', '-Infinity', 'NaN42', '-sNaN7']
+1e+6
+123.4E+6
+1e+6
+1E+6
+subclass-decimal-string
