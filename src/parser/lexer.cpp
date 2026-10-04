@@ -35,12 +35,30 @@ std::string_view trim_left_ascii(std::string_view text) {
 }
 
 std::string_view trim_inline_comment_for_join(std::string_view line) {
+  // Match the lexer's triple-quote state before treating '#' as a comment;
+  // regex and docstring literals commonly contain both '#' and apostrophes.
   bool in_string = false;
+  bool triple_string = false;
   char quote = 0;
   bool escaped = false;
   for (size_t i = 0; i < line.size(); ++i) {
     const char ch = line[i];
     if (in_string) {
+      if (triple_string) {
+        if (ch == quote && i + 2 < line.size() &&
+            line[i + 1] == quote && line[i + 2] == quote) {
+          size_t backslashes = 0;
+          for (size_t pos = i; pos > 0 && line[pos - 1] == '\\'; --pos) {
+            ++backslashes;
+          }
+          if ((backslashes & 1u) == 0) {
+            in_string = false;
+            triple_string = false;
+            i += 2;
+          }
+        }
+        continue;
+      }
       if (escaped) {
         escaped = false;
       } else if (ch == '\\') {
@@ -56,6 +74,10 @@ std::string_view trim_inline_comment_for_join(std::string_view line) {
     if (ch == '"' || ch == '\'') {
       in_string = true;
       quote = ch;
+      if (i + 2 < line.size() && line[i + 1] == ch && line[i + 2] == ch) {
+        triple_string = true;
+        i += 2;
+      }
     }
   }
   return line;
