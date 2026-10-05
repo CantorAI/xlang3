@@ -58,7 +58,7 @@ Worker failures are not performance scores. Optional-package failures are enviro
 
 1. **Async task stepping** is the largest measured gap and the secondary variants frequently exceed even the 30-second cap. The two completed workloads remain 16–23× slower. A small `async_tree_call_profile.py` probe (levels=3, branches=3, 5 fresh event loops) counted 5,742 Python asyncio call events in CPython and 5,792 in XLang3. That near-equal count does not explain the timing gap and points toward per-operation VM cost or native task/coroutine stepping. Source inspection shows `asyncio_task.cpp:step_impl` calls `generator_send`, and `generator_send` constructs an `Interpreter` before `resume_generator`; CPython's Task path advances its native coroutine with `PyIter_Send`. This is a concrete profiling target, not yet a proven single cause. Earlier call-dispatch and event-polling trials were rejected as neutral or regressive.
 2. **Pure-Python execution overhead** is visible in pickle, subparsers, deepcopy, logging, and comprehensions. Respect the project rule: do not replace CPython pure-Python standard-library implementations with C++; optimize XLang3's interpreter and call/runtime machinery instead.
-3. **JSON native module** remains 4.4× slower on `json_dumps` and 4.3× slower on `json_loads`. CPython uses `_json`; inspect XLang3's own `_json` registration and profile its existing native path before changing it.
+3. **JSON wrapper execution** remains 4.4× slower on `json_dumps` and 4.3× slower on `json_loads`. XLang3's `_json` is registered and used. A profile of the exact 4,001-call pyperformance workload counted 4,001 `dumps`, 4,001 `encode`, and 4,001 `iterencode` Python frames in both XLang3 and CPython (12,003 frames total each). The wrapper makes the same number of calls, but XLang3 spends much longer executing them. The direct-native call-path split below confirms that the encoder itself is not the primary slowdown for small values.
 4. **Telco** improved from 185.9ms in the prior full run to 40.9ms after the Decimal signal-identity change, but remains 7.1× slower. Re-profile current `telco` before considering a separate Decimal optimization.
 
 ### JSON encoder path split
@@ -78,6 +78,10 @@ The native `_json` module is registered and serves the default encoder; the gap 
 
 This points the next JSON-related work toward general XLang3 execution of the pure-Python `json.dumps`/`JSONEncoder` wrapper and call path. Keep `json`'s pure-Python implementation in Python; optimize shared VM operations, and keep `_json` as XLang3's native counterpart to CPython's native accelerator.
 
+## August baseline check
+
+The preserved August 20 build is not a full-pyperformance baseline: it lacks imports needed by pyperformance 1.14, including `time` and `datetime`, and could not run the complete Python 3.14 suite. The same-source repeated core microbenchmarks instead show the current XLang3 Release build faster than the August artifact in all six cases (1.04–6.33×, depending on workload). The August artifact itself was built later than the August source revision and has a recorded local VM edit, so this result should be treated as a comparison to that preserved binary, not as a clean August source build. See [August core-throughput comparison](august-20-vs-current-core-throughput-20261002.md) and [repeated August microbenchmarks](august-vs-current-python314-microbench-20261004.md). Those selected core wins do not predict the broad stdlib-heavy CPython comparison above.
+
 ## Evidence files
 
 - [Horizontal speed-ratio chart](pyperformance-xlang3-main-full-fast-20261005.svg)
@@ -89,3 +93,4 @@ This points the next JSON-related work toward general XLang3 execution of the pu
 - [CPython 3.14.7 runner log](data/pyperformance-cpython314-clean-release-full-fast-20261002.log)
 - [CPython 3.14.7 JSON call-path probe](data/json-dumps-callpath-cpython314-fastprobe-20261005.csv)
 - [XLang3 JSON call-path probe](data/json-dumps-callpath-xlang3-main-fastprobe-20261005.csv)
+- JSON Python-frame count probe: `benchmarks/diagnostics/profile_json_dumps_calls.py` (both runtimes report 4,001 calls to each of `dumps`, `encode`, and `iterencode`, 12,003 total frames).
