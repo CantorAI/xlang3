@@ -47,6 +47,7 @@ The [all-97 status CSV](data/pyperformance-xlang3-current-release-all-97-vs-cpyt
 
 ## Raw evidence
 
+- [`json_dumps` wrapper call-path diagnosis](json-dumps-current-callpath-20261005.md), with reproducible CPython 3.14.7 and fixed-Release XLang3 CSVs.
 - XLang3 pyperf JSON: [`pyperformance-xlang3-current-release-all-97-vs-cpython314-fast-20261005.json`](data/pyperformance-xlang3-current-release-all-97-vs-cpython314-fast-20261005.json).
 - Runner status log: [`pyperformance-xlang3-current-release-all-97-vs-cpython314-fast-20261005-failure-summary.log`](data/pyperformance-xlang3-current-release-all-97-vs-cpython314-fast-20261005-failure-summary.log).
 - CPython 3.14.7 pyperf JSON: [`pyperformance-cpython314-clean-release-full-fast-20261002.json`](data/pyperformance-cpython314-clean-release-full-fast-20261002.json).

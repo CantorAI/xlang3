@@ -1,0 +1,17 @@
+runtime,case,calls,path,median_ms,median_us_per_call
+cpython,EMPTY,2000,json.dumps,1.710200,0.855
+cpython,EMPTY,2000,JSONEncoder.encode,1.444400,0.722
+cpython,EMPTY,2000,iterencode+join,1.235700,0.618
+cpython,EMPTY,2000,direct _json+join,0.321800,0.161
+cpython,SIMPLE,1000,json.dumps,1.443700,1.444
+cpython,SIMPLE,1000,JSONEncoder.encode,1.307000,1.307
+cpython,SIMPLE,1000,iterencode+join,1.185500,1.186
+cpython,SIMPLE,1000,direct _json+join,0.649500,0.649
+cpython,NESTED,1000,json.dumps,2.728100,2.728
+cpython,NESTED,1000,JSONEncoder.encode,2.585400,2.585
+cpython,NESTED,1000,iterencode+join,2.450800,2.451
+cpython,NESTED,1000,direct _json+join,1.829800,1.830
+cpython,HUGE,1,json.dumps,1.503300,1503.300
+cpython,HUGE,1,JSONEncoder.encode,1.406600,1406.600
+cpython,HUGE,1,iterencode+join,1.375900,1375.900
+cpython,HUGE,1,direct _json+join,1.395200,1395.200
