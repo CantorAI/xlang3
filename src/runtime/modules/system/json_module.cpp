@@ -161,19 +161,35 @@ private:
     }
   }
 
-  bool parse_string(Value& out) {
+  bool parse_string(
+      Value& out, std::string_view* unescaped_text = nullptr,
+      bool* is_unescaped = nullptr) {
     if (pos_ >= source_.size() || source_[pos_] != '"') return false;
+    if (is_unescaped != nullptr) *is_unescaped = false;
     ++pos_;
     std::string decoded;
     const size_t content_start = pos_;
+    bool has_escape = false;
     while (pos_ < source_.size()) {
       const unsigned char c = static_cast<unsigned char>(source_[pos_++]);
       if (c == '"') {
-        if (decoded.empty() && pos_ - content_start >= 1) {
-          // The source view is copied directly into XLang's owned string.
-          // Avoid constructing a temporary std::string for every unescaped
-          // JSON key/value; json_loads contains many short strings per parse.
-          out = Value::string_view(source_.substr(content_start, pos_ - content_start - 1));
+        if (!has_escape) {
+          const auto text = source_.substr(content_start, pos_ - content_start - 1);
+          if (unescaped_text != nullptr) {
+            // Object keys first probe the decoder's string-only memo by view.
+            // This avoids allocating a temporary Value for every repeated key
+            // in JSON records while preserving the canonical memoized key.
+            *unescaped_text = text;
+            if (is_unescaped != nullptr) *is_unescaped = true;
+            out = Value::invalid();
+          } else if (!text.empty()) {
+            // The source view is copied directly into XLang's owned string.
+            // Avoid constructing a temporary std::string for every unescaped
+            // JSON key/value; json_loads contains many short strings per parse.
+            out = Value::string_view(text);
+          } else {
+            out = Value::string(std::string{});
+          }
         } else {
           out = Value::string(std::move(decoded));
         }
@@ -189,6 +205,7 @@ private:
         if (!decoded.empty()) decoded.push_back(static_cast<char>(c));
         continue;
       }
+      has_escape = true;
       if (decoded.empty()) {
         decoded.assign(source_.substr(content_start, pos_ - content_start - 1));
       }
@@ -233,6 +250,22 @@ private:
     }
     ignored.clear();
     return mapping_set_item(memo_, key, key, ignored);
+  }
+
+  bool memoize_unescaped_key(std::string_view text, Value& key) {
+    Value existing;
+    std::string error;
+    if (mapping_get_string_item(memo_, text, existing, error)) {
+      key = std::move(existing);
+      return true;
+    }
+
+    // The memo contains string keys only, so the view lookup is exact. On a
+    // miss we now pay to create the owned key once; repeated keys avoid this
+    // allocation on the decoder's JSON records.
+    key = Value::string_view(text);
+    error.clear();
+    return mapping_set_item(memo_, key, key, error);
   }
 
   bool parse_number(Value& out) {
@@ -323,7 +356,14 @@ private:
     if (pos_ < source_.size() && source_[pos_] == '}') { ++pos_; return true; }
     while (true) {
       Value key;
-      if (!parse_string(key) || !memoize_key(key)) return false;
+      std::string_view unescaped_key;
+      bool is_unescaped = false;
+      if (!parse_string(key, &unescaped_key, &is_unescaped)) return false;
+      if (is_unescaped) {
+        if (!memoize_unescaped_key(unescaped_key, key)) return false;
+      } else if (!memoize_key(key)) {
+        return false;
+      }
       whitespace();
       if (pos_ >= source_.size() || source_[pos_++] != ':') return false;
       whitespace();

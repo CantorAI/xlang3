@@ -1,0 +1,13 @@
+Benchmarks with tag 'serialize':
+================================
+
+| Benchmark  | pyperformance-cpython314-jsonloads-key-view-rigorous-20261005 | pyperformance-xlang3-jsonloads-key-view-candidate-r1-rigorous-20261005 | pyperformance-xlang3-jsonloads-key-view-candidate-r2-rigorous-20261005 |
+|------------|:-------------------------------------------------------------:|:----------------------------------------------------------------------:|:----------------------------------------------------------------------:|
+| json_loads | 17.8 us                                                       | 85.0 us: 4.77x slower                                                  | 85.2 us: 4.78x slower                                                  |
+
+All benchmarks:
+===============
+
+| Benchmark  | pyperformance-cpython314-jsonloads-key-view-rigorous-20261005 | pyperformance-xlang3-jsonloads-key-view-candidate-r1-rigorous-20261005 | pyperformance-xlang3-jsonloads-key-view-candidate-r2-rigorous-20261005 |
+|------------|:-------------------------------------------------------------:|:----------------------------------------------------------------------:|:----------------------------------------------------------------------:|
+| json_loads | 17.8 us                                                       | 85.0 us: 4.77x slower                                                  | 85.2 us: 4.78x slower                                                  |
