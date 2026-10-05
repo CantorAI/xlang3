@@ -1,0 +1,58 @@
+[
+  {
+    "exe": "D:\\CantorAI\\xlang3-parent-before-fastpath\\build\\Release\\xlang3.exe",
+    "result": "direct workload richards: True (0.564510000 s)"
+  },
+  {
+    "exe": "D:\\CantorAI\\xlang3\\build\\Release\\xlang3.exe",
+    "result": "direct workload richards: True (0.459249500 s)"
+  },
+  {
+    "exe": "D:\\CantorAI\\xlang3-parent-before-fastpath\\build\\Release\\xlang3.exe",
+    "result": "direct workload richards: True (0.543255000 s)"
+  },
+  {
+    "exe": "D:\\CantorAI\\xlang3\\build\\Release\\xlang3.exe",
+    "result": "direct workload richards: True (0.450893600 s)"
+  },
+  {
+    "exe": "D:\\CantorAI\\xlang3-parent-before-fastpath\\build\\Release\\xlang3.exe",
+    "result": "direct workload richards: True (0.531309500 s)"
+  },
+  {
+    "exe": "D:\\CantorAI\\xlang3\\build\\Release\\xlang3.exe",
+    "result": "direct workload richards: True (0.446823300 s)"
+  },
+  {
+    "exe": "D:\\CantorAI\\xlang3-parent-before-fastpath\\build\\Release\\xlang3.exe",
+    "result": "direct workload richards: True (0.544754200 s)"
+  },
+  {
+    "exe": "D:\\CantorAI\\xlang3\\build\\Release\\xlang3.exe",
+    "result": "direct workload richards: True (0.447663400 s)"
+  },
+  {
+    "exe": "D:\\CantorAI\\xlang3-parent-before-fastpath\\build\\Release\\xlang3.exe",
+    "result": "direct workload richards: True (0.531848300 s)"
+  },
+  {
+    "exe": "D:\\CantorAI\\xlang3\\build\\Release\\xlang3.exe",
+    "result": "direct workload richards: True (0.442597900 s)"
+  },
+  {
+    "exe": "D:\\CantorAI\\xlang3-parent-before-fastpath\\build\\Release\\xlang3.exe",
+    "result": "direct workload richards: True (0.539048200 s)"
+  },
+  {
+    "exe": "D:\\CantorAI\\xlang3\\build\\Release\\xlang3.exe",
+    "result": "direct workload richards: True (0.451368700 s)"
+  },
+  {
+    "exe": "D:\\CantorAI\\xlang3-parent-before-fastpath\\build\\Release\\xlang3.exe",
+    "result": "direct workload richards: True (0.532811100 s)"
+  },
+  {
+    "exe": "D:\\CantorAI\\xlang3\\build\\Release\\xlang3.exe",
+    "result": "direct workload richards: True (0.444702500 s)"
+  }
+]

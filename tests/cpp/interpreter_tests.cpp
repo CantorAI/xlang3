@@ -57,6 +57,75 @@ int main() {
                               "fused cache cleanup must release its active payload owner");
   }
 
+  // A surviving non-owning guard must still release fused global owners,
+  // clear monitoring DISABLE masks, and release every owning payload when a
+  // previous specialization left one behind.
+  for (const bool owning_payload : {false, true}) {
+    for (const auto domain : {xlang3::XlangVMCacheDomain::Attr,
+                             xlang3::XlangVMCacheDomain::CallMethod}) {
+      xlang3::ir::Module module;
+      module.functions.emplace_back();
+      auto& function = module.functions.back();
+      function.register_count = 1;
+      function.call_args.emplace_back();
+      const auto op = domain == xlang3::XlangVMCacheDomain::Attr
+          ? xlang3::ir::Op::LoadModuleAttr : xlang3::ir::Op::CallModuleMethod;
+      function.code.push_back({op, 0, 0, 0, 0});
+      const std::vector<xlang3::Value> closure;
+      xlang3::XlangVMFrame frame(module, 0, xlang3::CallArgsView{}, closure,
+                                xlang3::Value::none(), {}, 0, false);
+      auto global_owner = xlang3::Value::list({});
+      auto payload_owner = xlang3::Value::list({});
+      auto guard_owner = xlang3::Value::class_object("CacheGuardOwner", {});
+      const auto global_refs = global_owner.as.obj->refcnt.load();
+      const auto payload_refs = payload_owner.as.obj->refcnt.load();
+      auto& cache = frame.instr_cache[0];
+      cache.domain = domain;
+      cache.global.value = global_owner;
+      cache.global.kind = 2;
+      cache.monitoring_generation = 19;
+      cache.monitoring_disabled_events = 17;
+      if (domain == xlang3::XlangVMCacheDomain::Attr) {
+        cache.attr.kind = xlang3::AttrSiteKind::InstanceAttr;
+        cache.attr.owner = guard_owner.as.obj;
+        cache.attr.version = 12345;
+        cache.attr.index = 7;
+        if (owning_payload) {
+          cache.attr.value = payload_owner;
+          cache.attr.getter_const = payload_owner;
+          cache.attr.setter_const = payload_owner;
+          cache.attr.deleter_const = payload_owner;
+        }
+      } else {
+        cache.call.kind = xlang3::CallSiteKind::UserFunction;
+        cache.call.callee_object = guard_owner.as.obj;
+        cache.call.class_version = 12345;
+        if (owning_payload) {
+          cache.call.retained_callee = payload_owner;
+          cache.call.inline_const = payload_owner;
+          cache.call.cached_values.push_back(payload_owner);
+        }
+      }
+      frame.clear_for_pop();
+      xlang3::test::expect_true(result,
+          global_owner.as.obj->refcnt.load() == global_refs &&
+              payload_owner.as.obj->refcnt.load() == payload_refs,
+          "surviving cache guards must not retain Python payload owners");
+      xlang3::test::expect_true(result,
+          cache.monitoring_generation == 0 && cache.monitoring_disabled_events == 0,
+          "surviving cache guards must clear activation monitoring masks");
+      const bool guard_survived = domain == xlang3::XlangVMCacheDomain::Attr
+          ? cache.attr.kind == xlang3::AttrSiteKind::InstanceAttr &&
+              cache.attr.owner == guard_owner.as.obj &&
+              cache.attr.version == 12345 && cache.attr.index == 7
+          : cache.call.kind == xlang3::CallSiteKind::UserFunction &&
+              cache.call.callee_object == guard_owner.as.obj &&
+              cache.call.class_version == 12345;
+      xlang3::test::expect_true(result, guard_survived,
+          "non-owning cache guard must survive payload cleanup");
+    }
+  }
+
   {
     std::string output;
     auto run = xlang3::test::run_source(

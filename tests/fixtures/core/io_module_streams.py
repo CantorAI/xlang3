@@ -19,6 +19,19 @@ print(s.read())
 print(s.getvalue())
 s.close()
 
+# print(file=StringIO) uses the same built-in write semantics, including the
+# newline translation and dynamic override cases needed by its VM fast path.
+print_target = _io.StringIO()
+print("fast-print", file=print_target)
+print(repr(print_target.getvalue()))
+print_target = _io.StringIO(newline="\r\n")
+print("translated", file=print_target)
+print(repr(print_target.getvalue()))
+override_target = _io.StringIO()
+override_target.write = lambda text: "ignored-write-result"
+print("override", file=override_target)
+print(repr(override_target.getvalue()))
+
 b = _io.BytesIO(b"xy")
 print(b.isatty(), _io.StringIO().isatty())
 view = b.getbuffer()

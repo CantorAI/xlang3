@@ -1,0 +1,28 @@
+profiled workload richards True
+profiled Python calls, grouped by source/function
+[[["run_benchmark.py","isTaskHoldingOrWaiting"],106604],[["run_benchmark.py","isWaitingWithPacket"],65790],[["run_benchmark.py","fn"],65790],[["run_benchmark.py","runTask"],65790],[["run_benchmark.py","findtcb"],33245],[["run_benchmark.py","waitTask"],23248],[["run_benchmark.py","addPacket"],23246],[["run_benchmark.py","qpkt"],23246],[["run_benchmark.py","append_to"],20114],[["run_benchmark.py","running"],14761],[["run_benchmark.py","release"],9999],[["run_benchmark.py","deviceInAdd"],9300],[["run_benchmark.py","hold"],9297],[["run_benchmark.py","packetPending"],8490],[["run_benchmark.py","workInAdd"],2327],[["run_benchmark.py","__init__"],32],[["run_benchmark.py","isPacketPending"],6],[["run_benchmark.py","isTaskWaiting"],6],[["run_benchmark.py","isTaskHolding"],6],[["run_benchmark.py","waitingWithPacket"],3],[["run_benchmark.py","waiting"],2],[["run_benchmark.py","schedule"],1],[["run_benchmark.py","run"],1]]
+profiled benchmark function times (inclusive/self seconds)
+run_benchmark.py run 1 24.723271 0.001082
+run_benchmark.py schedule 1 24.720796 5.955377
+run_benchmark.py runTask 65790 17.56654 6.154807
+run_benchmark.py fn 65790 10.388325 5.280413
+run_benchmark.py qpkt 23246 3.313318 2.27521
+run_benchmark.py isTaskHoldingOrWaiting 106604 1.198878 1.198878
+run_benchmark.py isWaitingWithPacket 65790 0.749823 0.749823
+run_benchmark.py addPacket 23246 0.74398 0.627902
+run_benchmark.py release 9999 0.673837 0.546279
+run_benchmark.py deviceInAdd 9300 0.576622 0.458252
+run_benchmark.py findtcb 33245 0.421684 0.421684
+run_benchmark.py waitTask 23248 0.282036 0.282036
+run_benchmark.py append_to 20114 0.264122 0.264122
+run_benchmark.py running 14761 0.173738 0.173738
+run_benchmark.py workInAdd 2327 0.144987 0.115313
+run_benchmark.py hold 9297 0.117113 0.117113
+run_benchmark.py packetPending 8490 0.09986 0.09986
+run_benchmark.py __init__ 32 0.002195 0.001116
+run_benchmark.py isPacketPending 6 7.1e-05 7.1e-05
+run_benchmark.py isTaskWaiting 6 7.1e-05 7.1e-05
+run_benchmark.py isTaskHolding 6 7e-05 7e-05
+run_benchmark.py waitingWithPacket 3 3.1e-05 3.1e-05
+run_benchmark.py waiting 2 2.1e-05 2.1e-05
+profiled benchmark-frame calls 481304

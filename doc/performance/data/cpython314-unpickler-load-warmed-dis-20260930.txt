@@ -1,0 +1,390 @@
+CPython: 3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]
+pickle.py: C:\Python\Python314\Lib\pickle.py
+pickle.py sha256: 144fdf593814627e13a5fcb0947728e8f0775ecdec181046ee4609063cf232ec
+Warm pure-Python _Unpickler.load bytecode, after 5,000 calls:
+1294            RESUME_CHECK             0
+
+1301            LOAD_GLOBAL_BUILTIN      1 (hasattr + NULL)
+                CACHE                    0 (counter: 832)
+                CACHE                    0 (index: 90)
+                CACHE                    0 (module_keys_version: 55)
+                CACHE                    0 (builtin_keys_version: 24)
+                LOAD_FAST_BORROW         0 (self)
+                LOAD_CONST_IMMORTAL      1 ('_file_read')
+                CALL_BUILTIN_FAST        2
+                CACHE                    0 (counter: 832)
+                CACHE                    0 (func_version: 0)
+                CACHE                    0
+                TO_BOOL_BOOL
+                CACHE                    0 (counter: 832)
+                CACHE                    0 (version: 0)
+                CACHE                    0
+                POP_JUMP_IF_TRUE        37 (to L1)
+                CACHE                    0 (counter: 65535)
+                NOT_TAKEN
+
+1302            LOAD_GLOBAL              3 (UnpicklingError + NULL)
+                CACHE                    0 (counter: 17)
+                CACHE                    0 (index: 0)
+                CACHE                    0 (module_keys_version: 0)
+                CACHE                    0 (builtin_keys_version: 0)
+                LOAD_CONST               2 ('Unpickler.__init__() was not called by ')
+
+1303            LOAD_FAST_BORROW         0 (self)
+                LOAD_ATTR                4 (__class__)
+                CACHE                    0 (counter: 17)
+                CACHE                    0 (version: 0)
+                CACHE                    0
+                CACHE                    0 (keys_version: 0)
+                CACHE                    0
+                CACHE                    0 (descr: 0)
+                CACHE                    0
+                CACHE                    0
+                CACHE                    0
+                LOAD_ATTR                6 (__name__)
+                CACHE                    0 (counter: 17)
+                CACHE                    0 (version: 0)
+                CACHE                    0
+                CACHE                    0 (keys_version: 0)
+                CACHE                    0
+                CACHE                    0 (descr: 0)
+                CACHE                    0
+                CACHE                    0
+                CACHE                    0
+                CONVERT_VALUE            1 (str)
+                FORMAT_SIMPLE
+                LOAD_CONST               3 ('.__init__()')
+
+1302            BUILD_STRING             3
+                CALL                     1
+                CACHE                    0 (counter: 17)
+                CACHE                    0 (func_version: 0)
+                CACHE                    0
+                RAISE_VARARGS            1
+
+1304    L1:     LOAD_GLOBAL_MODULE       9 (_Unframer + NULL)
+                CACHE                    0 (counter: 832)
+                CACHE                    0 (index: 90)
+                CACHE                    0 (module_keys_version: 0)
+                CACHE                    0 (builtin_keys_version: 106)
+                LOAD_FAST_BORROW         0 (self)
+                LOAD_ATTR_INSTANCE_VALUE 10 (_file_read)
+                CACHE                    0 (counter: 832)
+                CACHE                    0 (version: 131284)
+                CACHE                    0
+                CACHE                    0 (keys_version: 32)
+                CACHE                    0
+                CACHE                    0 (descr: 0)
+                CACHE                    0
+                CACHE                    0
+                CACHE                    0
+                LOAD_FAST_BORROW         0 (self)
+                LOAD_ATTR_INSTANCE_VALUE 12 (_file_readline)
+                CACHE                    0 (counter: 832)
+                CACHE                    0 (version: 131284)
+                CACHE                    0
+                CACHE                    0 (keys_version: 40)
+                CACHE                    0
+                CACHE                    0 (descr: 0)
+                CACHE                    0
+                CACHE                    0
+                CACHE                    0
+                CALL_ALLOC_AND_ENTER_INIT 2
+                CACHE                    0 (counter: 832)
+                CACHE                    0 (func_version: 131285)
+                CACHE                    0
+                LOAD_FAST_BORROW         0 (self)
+                STORE_ATTR_INSTANCE_VALUE 7 (_unframer)
+                CACHE                    0 (counter: 832)
+                CACHE                    0 (version: 131284)
+                CACHE                    0
+                CACHE                    0 (index: 48)
+
+1305            LOAD_FAST_BORROW         0 (self)
+                LOAD_ATTR_INSTANCE_VALUE 14 (_unframer)
+                CACHE                    0 (counter: 832)
+                CACHE                    0 (version: 131284)
+                CACHE                    0
+                CACHE                    0 (keys_version: 48)
+                CACHE                    0
+                CACHE                    0 (descr: 0)
+                CACHE                    0
+                CACHE                    0
+                CACHE                    0
+                LOAD_ATTR               16 (read)
+                CACHE                    0 (counter: 50860)
+                CACHE                    0 (version: 0)
+                CACHE                    0
+                CACHE                    0 (keys_version: 0)
+                CACHE                    0
+                CACHE                    0 (descr: 0)
+                CACHE                    0
+                CACHE                    0
+                CACHE                    0
+                LOAD_FAST_BORROW         0 (self)
+                STORE_ATTR_INSTANCE_VALUE 8 (read)
+                CACHE                    0 (counter: 832)
+                CACHE                    0 (version: 131284)
+                CACHE                    0
+                CACHE                    0 (index: 112)
+
+1306            LOAD_FAST_BORROW         0 (self)
+                LOAD_ATTR_INSTANCE_VALUE 14 (_unframer)
+                CACHE                    0 (counter: 832)
+                CACHE                    0 (version: 131284)
+                CACHE                    0
+                CACHE                    0 (keys_version: 48)
+                CACHE                    0
+                CACHE                    0 (descr: 0)
+                CACHE                    0
+                CACHE                    0
+                CACHE                    0
+                LOAD_ATTR               18 (readinto)
+                CACHE                    0 (counter: 50860)
+                CACHE                    0 (version: 0)
+                CACHE                    0
+                CACHE                    0 (keys_version: 0)
+                CACHE                    0
+                CACHE                    0 (descr: 0)
+                CACHE                    0
+                CACHE                    0
+                CACHE                    0
+                LOAD_FAST_BORROW         0 (self)
+                STORE_ATTR_INSTANCE_VALUE 9 (readinto)
+                CACHE                    0 (counter: 832)
+                CACHE                    0 (version: 131284)
+                CACHE                    0
+                CACHE                    0 (index: 120)
+
+1307            LOAD_FAST_BORROW         0 (self)
+                LOAD_ATTR_INSTANCE_VALUE 14 (_unframer)
+                CACHE                    0 (counter: 832)
+                CACHE                    0 (version: 131284)
+                CACHE                    0
+                CACHE                    0 (keys_version: 48)
+                CACHE                    0
+                CACHE                    0 (descr: 0)
+                CACHE                    0
+                CACHE                    0
+                CACHE                    0
+                LOAD_ATTR               20 (readline)
+                CACHE                    0 (counter: 50860)
+                CACHE                    0 (version: 0)
+                CACHE                    0
+                CACHE                    0 (keys_version: 0)
+                CACHE                    0
+                CACHE                    0 (descr: 0)
+                CACHE                    0
+                CACHE                    0
+                CACHE                    0
+                LOAD_FAST_BORROW         0 (self)
+                STORE_ATTR_INSTANCE_VALUE 10 (readline)
+                CACHE                    0 (counter: 832)
+                CACHE                    0 (version: 131284)
+                CACHE                    0
+                CACHE                    0 (index: 128)
+
+1308            BUILD_LIST               0
+                LOAD_FAST_BORROW         0 (self)
+                STORE_ATTR_INSTANCE_VALUE 11 (metastack)
+                CACHE                    0 (counter: 832)
+                CACHE                    0 (version: 131284)
+                CACHE                    0
+                CACHE                    0 (index: 96)
+
+1309            BUILD_LIST               0
+                LOAD_FAST_BORROW         0 (self)
+                STORE_ATTR_INSTANCE_VALUE 12 (stack)
+                CACHE                    0 (counter: 832)
+                CACHE                    0 (version: 131284)
+                CACHE                    0
+                CACHE                    0 (index: 136)
+
+1310            LOAD_FAST_BORROW         0 (self)
+                LOAD_ATTR_INSTANCE_VALUE 24 (stack)
+                CACHE                    0 (counter: 832)
+                CACHE                    0 (version: 131284)
+                CACHE                    0
+                CACHE                    0 (keys_version: 136)
+                CACHE                    0
+                CACHE                    0 (descr: 0)
+                CACHE                    0
+                CACHE                    0
+                CACHE                    0
+                LOAD_ATTR               26 (append)
+                CACHE                    0 (counter: 50860)
+                CACHE                    0 (version: 0)
+                CACHE                    0
+                CACHE                    0 (keys_version: 0)
+                CACHE                    0
+                CACHE                    0 (descr: 0)
+                CACHE                    0
+                CACHE                    0
+                CACHE                    0
+                LOAD_FAST_BORROW         0 (self)
+                STORE_ATTR_INSTANCE_VALUE 13 (append)
+                CACHE                    0 (counter: 832)
+                CACHE                    0 (version: 131284)
+                CACHE                    0
+                CACHE                    0 (index: 56)
+
+1311            LOAD_SMALL_INT           0
+                LOAD_FAST_BORROW         0 (self)
+                STORE_ATTR_INSTANCE_VALUE 14 (proto)
+                CACHE                    0 (counter: 832)
+                CACHE                    0 (version: 131284)
+                CACHE                    0
+                CACHE                    0 (index: 104)
+
+1312            LOAD_FAST_BORROW         0 (self)
+                LOAD_ATTR_INSTANCE_VALUE 16 (read)
+                CACHE                    0 (counter: 832)
+                CACHE                    0 (version: 131284)
+                CACHE                    0
+                CACHE                    0 (keys_version: 112)
+                CACHE                    0
+                CACHE                    0 (descr: 0)
+                CACHE                    0
+                CACHE                    0
+                CACHE                    0
+                STORE_FAST               1 (read)
+
+1313            LOAD_FAST_BORROW         0 (self)
+                LOAD_ATTR_NONDESCRIPTOR_WITH_VALUES 30 (dispatch)
+                CACHE                    0 (counter: 832)
+                CACHE                    0 (version: 131284)
+                CACHE                    0
+                CACHE                    0 (keys_version: 91)
+                CACHE                    0
+                CACHE                    0 (descr: 1783080860288)
+                CACHE                    0
+                CACHE                    0
+                CACHE                    0
+                STORE_FAST               2 (dispatch)
+
+1314            NOP
+
+1315    L2:     NOP
+
+1316            LOAD_FAST_BORROW         1 (read)
+                PUSH_NULL
+                LOAD_SMALL_INT           1
+                CALL_BOUND_METHOD_EXACT_ARGS 1
+                CACHE                    0 (counter: 832)
+                CACHE                    0 (func_version: 1300)
+                CACHE                    0
+                STORE_FAST               3 (key)
+
+1317            LOAD_FAST_BORROW         3 (key)
+                TO_BOOL
+                CACHE                    0 (counter: 15740)
+                CACHE                    0 (version: 0)
+                CACHE                    0
+                POP_JUMP_IF_TRUE         7 (to L5)
+                CACHE                    0 (counter: 65535)
+        L3:     NOT_TAKEN
+
+1318    L4:     LOAD_GLOBAL             32 (EOFError)
+                CACHE                    0 (counter: 17)
+                CACHE                    0 (index: 0)
+                CACHE                    0 (module_keys_version: 0)
+                CACHE                    0 (builtin_keys_version: 0)
+                RAISE_VARARGS            1
+
+1319    L5:     LOAD_GLOBAL_BUILTIN     35 (isinstance + NULL)
+                CACHE                    0 (counter: 832)
+                CACHE                    0 (index: 90)
+                CACHE                    0 (module_keys_version: 55)
+                CACHE                    0 (builtin_keys_version: 29)
+                LOAD_FAST_BORROW         3 (key)
+                LOAD_GLOBAL_MODULE      36 (bytes_types)
+                CACHE                    0 (counter: 832)
+                CACHE                    0 (index: 90)
+                CACHE                    0 (module_keys_version: 0)
+                CACHE                    0 (builtin_keys_version: 25)
+                CALL_ISINSTANCE          2
+                CACHE                    0 (counter: 832)
+                CACHE                    0 (func_version: 0)
+                CACHE                    0
+                TO_BOOL_BOOL
+                CACHE                    0 (counter: 832)
+                CACHE                    0 (version: 0)
+                CACHE                    0
+                POP_JUMP_IF_TRUE         3 (to L6)
+                CACHE                    0 (counter: 65535)
+                NOT_TAKEN
+                LOAD_COMMON_CONSTANT     0 (AssertionError)
+                RAISE_VARARGS            1
+
+1320    L6:     LOAD_FAST_BORROW_LOAD_FAST_BORROW 35 (dispatch, key)
+                LOAD_SMALL_INT           0
+                BINARY_OP               26 ([])
+                CACHE                    0 (counter: 15740)
+                CACHE                    0 (descr: 0)
+                CACHE                    0
+                CACHE                    0
+                CACHE                    0
+                BINARY_OP_SUBSCR_DICT   26 ([])
+                CACHE                    0 (counter: 832)
+                CACHE                    0 (descr: 0)
+                CACHE                    0
+                CACHE                    0
+                CACHE                    0
+                PUSH_NULL
+                LOAD_FAST_BORROW         0 (self)
+                CALL_PY_EXACT_ARGS       1
+                CACHE                    0 (counter: 512)
+                CACHE                    0 (func_version: 1373)
+                CACHE                    0
+                POP_TOP
+                JUMP_BACKWARD_NO_JIT    70 (to L2)
+                CACHE                    0 (counter: 65532)
+
+  --    L7:     PUSH_EXC_INFO
+
+1321            LOAD_GLOBAL_MODULE      38 (_Stop)
+                CACHE                    0 (counter: 832)
+                CACHE                    0 (index: 90)
+                CACHE                    0 (module_keys_version: 0)
+                CACHE                    0 (builtin_keys_version: 33)
+                CHECK_EXC_MATCH
+                POP_JUMP_IF_FALSE       23 (to L12)
+                CACHE                    0 (counter: 0)
+                NOT_TAKEN
+                STORE_FAST               4 (stopinst)
+
+1322    L8:     LOAD_FAST                4 (stopinst)
+                LOAD_ATTR               40 (value)
+                CACHE                    0 (counter: 720)
+                CACHE                    0 (version: 0)
+                CACHE                    0
+                CACHE                    0 (keys_version: 0)
+                CACHE                    0
+                CACHE                    0 (descr: 0)
+                CACHE                    0
+                CACHE                    0
+                CACHE                    0
+        L9:     SWAP                     2
+       L10:     POP_EXCEPT
+                LOAD_CONST_IMMORTAL      4 (None)
+                STORE_FAST               4 (stopinst)
+                DELETE_FAST              4 (stopinst)
+                RETURN_VALUE
+
+  --   L11:     LOAD_CONST               4 (None)
+                STORE_FAST               4 (stopinst)
+                DELETE_FAST              4 (stopinst)
+                RERAISE                  1
+
+1321   L12:     RERAISE                  0
+
+  --   L13:     COPY                     3
+                POP_EXCEPT
+                RERAISE                  1
+ExceptionTable:
+  L2 to L3 -> L7 [0]
+  L4 to L7 -> L7 [0]
+  L7 to L8 -> L13 [1] lasti
+  L8 to L9 -> L11 [1] lasti
+  L9 to L10 -> L13 [1] lasti
+  L11 to L13 -> L13 [1] lasti

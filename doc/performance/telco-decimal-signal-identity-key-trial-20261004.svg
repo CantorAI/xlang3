@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="270" viewBox="0 0 900 270" role="img" aria-labelledby="title desc">
+  <title id="title">Telco elapsed time before and after Decimal signal identity lookup</title>
+  <desc id="desc">Horizontal bars show CPython 3.14.7 at 5.95 milliseconds, the previous XLang3 Release at 208.1 milliseconds, and the new XLang3 Release at 45.2 milliseconds. Lower is faster.</desc>
+  <rect width="900" height="270" fill="#fff"/>
+  <text x="28" y="34" font-family="Segoe UI, Arial, sans-serif" font-size="20" font-weight="600" fill="#172033">pyperformance telco · elapsed time per loop</text>
+  <text x="28" y="58" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#596579">Bars extend left to right; shorter is faster. Linear scale, 0–220 ms.</text>
+  <g font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#263247">
+    <text x="28" y="105">CPython 3.14.7</text>
+    <text x="28" y="158">XLang3 previous Release</text>
+    <text x="28" y="211" font-weight="600">XLang3 candidate</text>
+  </g>
+  <g>
+    <rect x="250" y="84" width="18.4" height="28" rx="4" fill="#5b8def"/>
+    <rect x="250" y="137" width="643" height="28" rx="4" fill="#c4ccd8"/>
+    <rect x="250" y="190" width="140" height="28" rx="4" fill="#27a67a"/>
+  </g>
+  <g font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="600" fill="#172033">
+    <text x="279" y="103">5.95 ms</text>
+    <text x="879" y="156" text-anchor="end">208.1 ms</text>
+    <text x="400" y="209">45.2 ms · 4.63× faster than prior XLang3</text>
+  </g>
+  <line x1="250" y1="233" x2="893" y2="233" stroke="#7b8798" stroke-width="1"/>
+  <g font-family="Segoe UI, Arial, sans-serif" font-size="12" fill="#596579">
+    <text x="250" y="253" text-anchor="middle">0</text>
+    <text x="396" y="253" text-anchor="middle">50</text>
+    <text x="542" y="253" text-anchor="middle">100</text>
+    <text x="688" y="253" text-anchor="middle">150</text>
+    <text x="834" y="253" text-anchor="middle">200 ms</text>
+  </g>
+</svg>

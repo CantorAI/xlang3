@@ -1,0 +1,37 @@
+Benchmark dependency sites: C:\Python\Python314\Lib\site-packages
+WARNING:root:no benchmark named 'subparsers'
+parse: line 37, column 914: expected expression
+parse: line 37, column 914: expected '}' after set literal
+parse: line 65, column 12: expected 'in' after loop target
+parse: line 65, column 12: expected expression
+parse: line 128, column 1151: expected expression
+parse: line 128, column 1151: expected '}' after set literal
+Python benchmark suite 1.14.0
+
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_pythoninfo.py", line 53, in get_info
+    text = subprocess.check_output(argv, encoding="utf-8")
+  File "C:\Python\Python314\Lib\subprocess.py", line 473, in check_output
+    return run(*popenargs, stdout=PIPE, timeout=timeout, check=True,
+           ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+               **kwargs).stdout
+               ^^^^^^^^^
+  File "C:\Python\Python314\Lib\subprocess.py", line 578, in run
+    raise CalledProcessError(retcode, process.args,
+                             output=stdout, stderr=stderr)
+subprocess.CalledProcessError: Command '['D:\\CantorAI\\xlang3-perf-aug20\\build\\Release-hoisted\\xlang3.exe', 'C:\\Python\\Python314\\Lib\\site-packages\\pyperformance\\_pythoninfo.py']' returned non-zero exit status 1.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\benchmarks\diagnostics\run_pyperformance_xlang3_shimmed.py", line 238, in <module>
+    cli.cmd_run(options, benchmarks)
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\commands.py", line 181, in cmd_run
+    suite, errors = run_benchmarks(benchmarks, executable, options)
+                    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\run.py", line 78, in run_benchmarks
+    info = _pythoninfo.get_info(python)
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_pythoninfo.py", line 55, in get_info
+    raise Exception(f"could not get info for {python or sys.executable}")
+Exception: could not get info for D:\CantorAI\xlang3-perf-aug20\build\Release-hoisted\xlang3.exe

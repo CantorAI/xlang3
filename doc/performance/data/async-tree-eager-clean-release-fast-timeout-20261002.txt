@@ -1,0 +1,12 @@
+Focused official pyperformance case: async_tree_eager
+Date: 2026-10-02 UTC
+pyperformance: 1.14.0; mode: --fast; per-case timeout: 120 seconds
+Dependency site: venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages
+
+Clean Release identity: exe SHA256 EF20D5E34C5F36F7C7D40FB152311C3449CA505980DAD963CEEBC859578A94A2; DLL SHA256 BD61627CA60E44E870781C9129F9FFFB5EFECA96A14354568024E90ECB99E153
+Saved control identity: exe SHA256 3AFB3E841A8BA45AE5CB0DF05A21FA6390C786709A5DAB6B1A11CFAA0906483B; DLL SHA256 EBC04BEF7E3364B7BFCCADBE88F1E5D19690393F41103078E50B713C366088C6
+
+Saved control --fast result: completed, Mean +- std dev 1.93 sec +- 0.18 sec; 11 worker runs; total about 67 seconds. Raw pyperf JSON is async-tree-eager-saved-fastcall-fast-20261002.json.
+Clean Release --fast result: timed out after 120 seconds; runner printed "Full-case timeout: async_tree_eager exceeded 120 seconds" and "No benchmark was run". No pyperf JSON result was produced.
+
+Both exact --debug-single-value executions completed: saved control 2.420 sec, clean Release 1.881 sec. This localizes the anomaly to repeated --fast worker execution on the clean build. It does not yet identify whether the cause is accumulated Task/Future/callback state, memory pressure, or a worker/repetition path difference.

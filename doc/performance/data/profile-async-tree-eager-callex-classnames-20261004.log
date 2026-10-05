@@ -1,0 +1,169 @@
+vm-time: clock_pair_mean_ns=14
+vm-time: opcode=239 calls=65600 self_ns=1016419000 total_ns=18771314800
+vm-time: opcode=253 calls=301843 self_ns=354625100 total_ns=27235348700
+vm-time: opcode=255 calls=301843 self_ns=315958200 total_ns=26872012400
+vm-time: opcode=90 calls=647380 self_ns=305046500 total_ns=508390000
+vm-time: opcode=93 calls=271975 self_ns=300461800 total_ns=391028500
+vm-time: opcode=244 calls=467891 self_ns=192953300 total_ns=192957600
+vm-time: opcode=72 calls=121243 self_ns=93673000 total_ns=93781700
+vm-time: opcode=98 calls=363512 self_ns=74817200 total_ns=74916500
+vm-time: opcode=118 calls=400505 self_ns=69283400 total_ns=69307300
+vm-time: opcode=112 calls=443846 self_ns=66618900 total_ns=116254200
+vm-time: opcode=20 calls=594 self_ns=59678700 total_ns=956087200
+vm-time: opcode=94 calls=55989 self_ns=51547800 total_ns=69177100
+vm-time: opcode=110 calls=429215 self_ns=50453100 total_ns=50607800
+vm-time: opcode=48 calls=61357 self_ns=47200100 total_ns=49603300
+vm-time: opcode=22 calls=807 self_ns=41051900 total_ns=511852800
+vm-time: opcode=243 calls=235475 self_ns=30713000 total_ns=30871000
+vm-time: opcode=121 calls=123596 self_ns=28985800 total_ns=28985800
+vm-time: opcode=18 calls=397068 self_ns=27270000 total_ns=27270000
+vm-time: opcode=105 calls=828712 self_ns=26696500 total_ns=26696500
+vm-time: opcode=76 calls=617095 self_ns=26452200 total_ns=26969700
+vm-time: opcode=26 calls=89026 self_ns=24582600 total_ns=24679600
+vm-time: opcode=241 calls=326597 self_ns=20096500 total_ns=20096500
+vm-time: opcode=89 calls=718 self_ns=20023500 total_ns=20106400
+vm-time: opcode=111 calls=58936 self_ns=19238100 total_ns=19625300
+vm-time: opcode=240 calls=140054 self_ns=16827600 total_ns=43668900
+vm-time: opcode=122 calls=13347 self_ns=16801400 total_ns=16852700
+vm-time: opcode=0 calls=526133 self_ns=15333600 total_ns=15333600
+vm-time: opcode=254 calls=935772 self_ns=15011400 total_ns=15011400
+vm-time: opcode=77 calls=487999 self_ns=14149000 total_ns=14372200
+vm-time: opcode=91 calls=9540 self_ns=13969800 total_ns=26434300
+vm-time: opcode=3 calls=498764 self_ns=13875300 total_ns=13875300
+vm-time: opcode=10 calls=420885 self_ns=13046100 total_ns=13046100
+vm-time: opcode=25 calls=125694 self_ns=12976500 total_ns=13011300
+vm-time: opcode=2 calls=450698 self_ns=12572000 total_ns=12572000
+vm-time: opcode=131 calls=359441 self_ns=12275200 total_ns=12275200
+vm-time: opcode=23 calls=43 self_ns=11308500 total_ns=202316000
+vm-time: opcode=92 calls=188007 self_ns=10942400 total_ns=22505238400
+vm-time: opcode=237 calls=75006 self_ns=10210300 total_ns=81850100
+vm-time: opcode=97 calls=538196 self_ns=9718500 total_ns=9718500
+vm-time: opcode=245 calls=46655 self_ns=6891500 total_ns=17737900
+vm-time: opcode=31 calls=15687 self_ns=6616100 total_ns=6616100
+vm-time: opcode=51 calls=40559 self_ns=4753300 total_ns=4792600
+vm-time: opcode=7 calls=131707 self_ns=4665200 total_ns=4665200
+vm-time: opcode=13 calls=18977 self_ns=4422500 total_ns=4520000
+vm-time: opcode=126 calls=124442 self_ns=4324900 total_ns=4378800
+vm-time: opcode=8 calls=103986 self_ns=3876300 total_ns=3876300
+vm-time: opcode=47 calls=14387 self_ns=3871000 total_ns=4951200
+vm-time: opcode=101 calls=112217 self_ns=3676200 total_ns=3676200
+vm-time: opcode=238 calls=507 self_ns=3620500 total_ns=12972600
+vm-time: opcode=114 calls=119049 self_ns=3545000 total_ns=3545000
+vm-time: opcode=36 calls=39134 self_ns=3497300 total_ns=3497300
+vm-time: opcode=78 calls=61841 self_ns=3362300 total_ns=3362300
+vm-time: opcode=119 calls=4827 self_ns=3322300 total_ns=3322300
+vm-time: opcode=113 calls=59882 self_ns=3318200 total_ns=3318200
+vm-time: opcode=71 calls=115067 self_ns=2762800 total_ns=2762800
+vm-time: opcode=106 calls=85237 self_ns=2702000 total_ns=2702000
+vm-time: opcode=127 calls=11359 self_ns=2514400 total_ns=2517400
+vm-time: opcode=115 calls=65903 self_ns=2411800 total_ns=2411800
+vm-time: opcode=79 calls=62071 self_ns=2212100 total_ns=2212100
+vm-time: opcode=55 calls=57796 self_ns=2207300 total_ns=2207300
+vm-time: opcode=37 calls=11114 self_ns=2130300 total_ns=2130300
+vm-time: opcode=125 calls=29589 self_ns=2123800 total_ns=2420300
+vm-time: opcode=1 calls=64052 self_ns=2056000 total_ns=2056000
+vm-time: opcode=42 calls=7672 self_ns=2009700 total_ns=10937400
+vm-time: opcode=117 calls=60332 self_ns=1955600 total_ns=1955600
+vm-time: opcode=40 calls=57645 self_ns=1954600 total_ns=1954600
+vm-time: opcode=54 calls=9308 self_ns=1764200 total_ns=1764200
+vm-time: opcode=30 calls=148 self_ns=1635600 total_ns=1635600
+vm-time: opcode=15 calls=9735 self_ns=1582100 total_ns=1582100
+vm-time: opcode=19 calls=4895 self_ns=1506600 total_ns=1506600
+vm-time: opcode=9 calls=47895 self_ns=1502200 total_ns=1502200
+vm-time: opcode=120 calls=8624 self_ns=1401900 total_ns=1401900
+vm-time: opcode=11 calls=56005 self_ns=1312200 total_ns=1312200
+vm-time: opcode=46 calls=4776 self_ns=1036500 total_ns=1521900
+vm-time: opcode=35 calls=6459 self_ns=1035300 total_ns=1035300
+vm-time: opcode=52 calls=11575 self_ns=730900 total_ns=815600
+vm-time: opcode=38 calls=384 self_ns=708300 total_ns=708300
+vm-time: opcode=70 calls=5541 self_ns=583800 total_ns=583800
+vm-time: opcode=50 calls=6532 self_ns=483900 total_ns=510500
+vm-time: opcode=107 calls=8703 self_ns=426900 total_ns=426900
+vm-time: opcode=60 calls=810 self_ns=425400 total_ns=425400
+vm-time: opcode=242 calls=4256 self_ns=404600 total_ns=983500
+vm-time: opcode=236 calls=239 self_ns=359900 total_ns=3604480400
+vm-time: opcode=82 calls=27 self_ns=352400 total_ns=352400
+vm-time: opcode=56 calls=580 self_ns=335100 total_ns=335100
+vm-time: opcode=141 calls=5953 self_ns=245700 total_ns=245700
+vm-time: opcode=129 calls=483 self_ns=239000 total_ns=239000
+vm-time: opcode=39 calls=2284 self_ns=216600 total_ns=216600
+vm-time: opcode=63 calls=1697 self_ns=197400 total_ns=274100
+vm-time: opcode=84 calls=109 self_ns=185500 total_ns=185500
+vm-time: opcode=85 calls=258 self_ns=172200 total_ns=172200
+vm-time: opcode=17 calls=60 self_ns=143300 total_ns=143300
+vm-time: opcode=81 calls=5447 self_ns=128900 total_ns=128900
+vm-time: opcode=139 calls=883 self_ns=110100 total_ns=110100
+vm-time: opcode=73 calls=1294 self_ns=110000 total_ns=271600
+vm-time: opcode=108 calls=1996 self_ns=101000 total_ns=101000
+vm-time: opcode=64 calls=234 self_ns=94500 total_ns=111400
+vm-time: opcode=109 calls=2947 self_ns=92900 total_ns=92900
+vm-time: opcode=95 calls=822 self_ns=89100 total_ns=89100
+vm-time: opcode=41 calls=25 self_ns=85500 total_ns=85500
+vm-time: opcode=88 calls=435 self_ns=82000 total_ns=82000
+vm-time: opcode=130 calls=447 self_ns=80700 total_ns=80700
+vm-time: opcode=74 calls=1911 self_ns=76900 total_ns=78700
+vm-time: opcode=4 calls=304 self_ns=62200 total_ns=62200
+vm-time: opcode=33 calls=259 self_ns=51100 total_ns=51100
+vm-time: opcode=32 calls=64 self_ns=36300 total_ns=36300
+vm-time: opcode=43 calls=85 self_ns=33900 total_ns=33900
+vm-time: opcode=59 calls=523 self_ns=25800 total_ns=25800
+vm-time: opcode=116 calls=511 self_ns=24500 total_ns=24500
+vm-time: opcode=66 calls=39 self_ns=23800 total_ns=23800
+vm-time: opcode=53 calls=547 self_ns=18100 total_ns=18100
+vm-time: opcode=5 calls=376 self_ns=17300 total_ns=17300
+vm-time: opcode=96 calls=13 self_ns=17200 total_ns=17200
+vm-time: opcode=102 calls=159 self_ns=15700 total_ns=15700
+vm-time: opcode=99 calls=102 self_ns=13600 total_ns=13600
+vm-time: opcode=6 calls=249 self_ns=12000 total_ns=12000
+vm-time: opcode=75 calls=120 self_ns=11300 total_ns=11300
+vm-time: opcode=62 calls=29 self_ns=10600 total_ns=10600
+vm-time: opcode=146 calls=33 self_ns=5900 total_ns=5900
+vm-time: opcode=45 calls=15 self_ns=5600 total_ns=5600
+vm-time: opcode=58 calls=10 self_ns=4700 total_ns=83800
+vm-time: opcode=49 calls=1 self_ns=3200 total_ns=3200
+vm-time: opcode=80 calls=18 self_ns=2500 total_ns=2500
+vm-time: opcode=12 calls=48 self_ns=2000 total_ns=2000
+vm-time: opcode=27 calls=3 self_ns=1700 total_ns=1700
+vm-time: opcode=83 calls=9 self_ns=1300 total_ns=1300
+vm-time: opcode=65 calls=17 self_ns=900 total_ns=900
+vm-time: opcode=123 calls=7 self_ns=800 total_ns=800
+vm-time: opcode=14 calls=1 self_ns=700 total_ns=700
+vm-time: opcode=86 calls=8 self_ns=600 total_ns=600
+vm-time: opcode=61 calls=1 self_ns=500 total_ns=500
+vm-time: opcode=87 calls=1 self_ns=200 total_ns=200
+vm-time: callex_class name=Parameter calls=47
+vm-time: callex_class name=datetime calls=1
+vm-time: callex_class name=str calls=4
+vm-time: callex_class name=Traceback calls=1
+vm-time: callex_class name=Signature calls=12
+vm-time: callex_class name=type calls=19
+vm-time: callex_class name=partial calls=55
+vm-time: callex_class name=int calls=68
+vm-time: callex_class name=_Stringifier calls=8
+vm-time: callex_class name=_StringifierDict calls=4
+vm-time: callex_class name=JSONEncoder calls=1
+vm-time: callex_class name=function calls=4
+vm-time: callex_class name=Argparse calls=1
+vm-time: callex_class name=timedelta calls=8
+vm-time: callex_class name=defaultdict calls=1
+vm-time: callex_class name=Syntax calls=1
+vm-time: callex_class name=Unittest calls=1
+vm-time: callex_class name=RLock calls=4
+vm-time: callex_class name=Theme calls=1
+vm-time: callex_class name=PercentStyle calls=1
+vm-time: callex_class name=_ASN1Object calls=2
+vm-time: callex_class name=JSONDecoder calls=1
+vm-time: callex_class name=TypeVar calls=10
+vm-time: callex_class name=_SpecialGenericAlias calls=10
+vm-time: callex_class name=_DeprecatedGenericAlias calls=1
+vm-time: callex_class name=_TupleType calls=1
+vm-time: callex_class name=WindowsPath calls=5
+vm-time: callex_class name=TextIOWrapper calls=1
+vm-time: callex_class name=dict calls=2
+vm-time: callex_class name=Context calls=3
+vm-time: callex_class name=Popen calls=1
+vm-time: callex_class name=uname_result calls=1
+vm-time: callex_class name=socket calls=1
+vm-time: callex_class name=Task calls=55987
+vm-time: callex_class name=_GatheringFuture calls=9331
+vm-time: callex_class name=_OverlappedFuture calls=1

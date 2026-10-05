@@ -89,6 +89,7 @@ void register_core_builtins(Runtime& runtime) {
   register_operator_module(runtime);
   register_pickle_module(runtime);
   register_pyexpat_module(runtime);
+  register_asyncio_module(runtime);
 #if defined(_WIN32)
   register_msvcrt_module(runtime);
   register_overlapped_module(runtime);

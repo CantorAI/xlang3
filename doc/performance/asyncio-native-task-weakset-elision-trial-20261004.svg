@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="260" viewBox="0 0 920 260" role="img" aria-labelledby="title desc">
+  <title id="title">Async tree elapsed time, shorter is faster</title>
+  <desc id="desc">Horizontal elapsed-time bars from zero to 2.2 seconds. CPython 3.14.7 is 0.0866 seconds, XLang3 control is 2.03 seconds, and the WeakSet-elision candidate is 1.53 seconds.</desc>
+  <rect width="920" height="260" fill="#ffffff"/>
+  <text x="24" y="32" font-family="Segoe UI,Arial,sans-serif" font-size="20" font-weight="600" fill="#172033">async_tree_eager elapsed time</text>
+  <text x="24" y="54" font-family="Segoe UI,Arial,sans-serif" font-size="12" fill="#596579">Seconds; bars extend left to right from zero. Shorter is faster.</text>
+  <g font-family="Segoe UI,Arial,sans-serif" font-size="13" fill="#253047">
+    <text x="24" y="94">CPython 3.14.7</text>
+    <text x="24" y="144">XLang3 control</text>
+    <text x="24" y="194">XLang3 WeakSet-elision candidate</text>
+  </g>
+  <g fill="#e9edf3">
+    <rect x="250" y="76" width="600" height="24" rx="4"/>
+    <rect x="250" y="126" width="600" height="24" rx="4"/>
+    <rect x="250" y="176" width="600" height="24" rx="4"/>
+  </g>
+  <g>
+    <rect x="250" y="76" width="23.6" height="24" rx="4" fill="#32a36b"/>
+    <rect x="250" y="126" width="553.6" height="24" rx="4" fill="#8a96a8"/>
+    <rect x="250" y="176" width="416.7" height="24" rx="4" fill="#4779d0"/>
+  </g>
+  <g font-family="Segoe UI,Arial,sans-serif" font-size="13" font-weight="600" fill="#172033">
+    <text x="283" y="94">86.62 ms</text>
+    <text x="813" y="144">2.03 s</text>
+    <text x="676" y="194">1.53 s</text>
+  </g>
+  <g stroke="#718096" stroke-width="1">
+    <line x1="250" y1="218" x2="850" y2="218"/>
+    <line x1="250" y1="214" x2="250" y2="223"/>
+    <line x1="386.4" y1="214" x2="386.4" y2="223"/>
+    <line x1="522.7" y1="214" x2="522.7" y2="223"/>
+    <line x1="659.1" y1="214" x2="659.1" y2="223"/>
+    <line x1="795.5" y1="214" x2="795.5" y2="223"/>
+    <line x1="850" y1="214" x2="850" y2="223"/>
+  </g>
+  <g font-family="Segoe UI,Arial,sans-serif" font-size="11" fill="#596579" text-anchor="middle">
+    <text x="250" y="240">0</text>
+    <text x="386.4" y="240">0.5</text>
+    <text x="522.7" y="240">1.0</text>
+    <text x="659.1" y="240">1.5</text>
+    <text x="795.5" y="240">2.0</text>
+    <text x="850" y="240">2.2 s</text>
+  </g>
+</svg>

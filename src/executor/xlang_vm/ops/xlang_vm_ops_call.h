@@ -41,6 +41,24 @@ limitations under the License.
 
 namespace xlang3::xlang_vm::ops {
 
+template <typename RaiseExceptionValue>
+XLANG3_HOT_INLINE XlangVMOpFlow finish_fully_handled_native_constructor(
+    Runtime& runtime,
+    const XlangVMBuiltinConstructorError& constructor_error,
+    RaiseExceptionValue&& raise_exception_value) {
+  Value pending;
+  if (runtime.take_pending_exception(pending)) {
+    return raise_exception_value(std::move(pending))
+        ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+  }
+  if (!constructor_error.message.empty()) {
+    return raise_exception_value(runtime.make_exception(
+        constructor_error.type, constructor_error.message))
+        ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+  }
+  return XlangVMOpFlow::Next;
+}
+
 XLANG3_HOT_INLINE void initialize_exception_call_args(
     Runtime& runtime, Value& instance, const CallArgsView& call_args) {
   auto* object = value_as_instance(instance);
@@ -185,6 +203,15 @@ XLANG3_HOT_INLINE const Value* materialize_native_args(
   }
   return native_call_args.data();
 }
+
+// Reuse native-call argument capacity without turning copied arguments into
+// lifetime roots after the synchronous callback returns. This matters for
+// buffer-protocol arguments: retaining a temporary memoryview pins its mutable
+// bytearray and makes a later resize fail even after the VM's last-use cleanup.
+struct NativeCallArgsScope {
+  std::vector<Value>& values;
+  ~NativeCallArgsScope() { values.clear(); }
+};
 
 XLANG3_HOT_INLINE std::string& xlang_vm_native_error_scratch() {
   thread_local std::string error;
@@ -779,6 +806,53 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
   }
 
   bool pushed_frame = false;
+  // A warmed direct method site has already proved this function's positional
+  // signature and exact arity. Reuse that proof to enter the ordinary Python
+  // frame without rescanning parameters/defaults in push_frame; the frame is
+  // still created normally, so tracing, profiling, recursion checks, and
+  // traceback behavior remain on the standard path. Starred/keyword calls
+  // never use this CallMethod specialization.
+  auto push_exact_positional_method_frame = [&](FunctionObject* function,
+                                                CallArgsView values,
+                                                uint32_t expected_arg_count,
+                                                bool& handled) -> XlangVMOpFlow {
+    handled = false;
+    if (function == nullptr || values.has_keywords() || values.has_expansion() ||
+        values.size() != expected_arg_count) {
+      return XlangVMOpFlow::ContinueLoop;
+    }
+    const ir::Module* call_module = &module;
+    auto call_module_owner = module_owner;
+    if (function->module != nullptr) {
+      call_module = function->module.get();
+      call_module_owner = function->module;
+    }
+    if (function->function_id >= call_module->functions.size() ||
+        call_module->functions[function->function_id].is_generator) {
+      return XlangVMOpFlow::ContinueLoop;
+    }
+    ++ip;
+    handled = true;
+    if (!push_frame(*call_module, function->function_id, values, function->closure,
+                    function->defaults, function->globals_module,
+                    std::move(call_module_owner), in.dst,
+                    FrameReturnMode::StoreReturnValue, Value::invalid(), true, in.a)) {
+      return result.errors.empty() ? XlangVMOpFlow::ContinueLoop
+                                   : XlangVMOpFlow::ReturnResult;
+    }
+    pushed_frame = true;
+    return XlangVMOpFlow::SwitchFrame;
+  };
+  auto has_exact_positional_method_signature = [&](FunctionObject* function,
+                                                    uint32_t arg_count) -> bool {
+    if (function == nullptr) return false;
+    const ir::Module* call_module = function->module != nullptr
+        ? function->module.get() : &module;
+    if (function->function_id >= call_module->functions.size()) return false;
+    const auto& call_function = call_module->functions[function->function_id];
+    return !call_function.is_generator &&
+        xlang_vm_has_direct_positional_signature(call_function, arg_count);
+  };
   const bool allow_inline_calls = inline_calls_allowed(runtime);
 
   if (auto* instance = value_as_instance(regs[in.a])) {
@@ -928,23 +1002,21 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
   const bool receiver_is_super = value_as_super(regs[in.a]) != nullptr;
   bool receiver_has_direct_method_attr = false;
   if (auto* instance = value_as_instance(regs[in.a])) {
+    auto* klass = value_as_class(instance->klass);
     if (instance->native_get_attr != nullptr) {
       receiver_has_direct_method_attr = true;
     } else {
-      if (auto* klass = value_as_class(instance->klass)) {
+      if (klass != nullptr) {
         auto slot_it = klass->instance_slot_indices.find(name);
-        if (slot_it != klass->instance_slot_indices.end() &&
-            slot_it->second < instance_slot_count(instance) &&
+        if (slot_it != klass->instance_slot_indices.end() && slot_it->second < instance_slot_count(instance) &&
             instance_slot_at(instance, slot_it->second).tag != ValueTag::Invalid) {
           receiver_has_direct_method_attr = true;
         }
       }
-      if (!receiver_has_direct_method_attr) {
-        for (const auto& attr : instance->attrs) {
-          if (attr.first == name) {
-            receiver_has_direct_method_attr = true;
-            break;
-          }
+      for (const auto& attr : instance->attrs) {
+        if (attr.first == name) {
+          receiver_has_direct_method_attr = true;
+          break;
         }
       }
       if (!receiver_has_direct_method_attr &&
@@ -1030,7 +1102,14 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
       if (!instr_cache.empty()) {
         auto& cache = instr_cache[ip].call;
         if (cache.callee_object == &klass->header && cache.class_version == klass->version) {
-          if (cache.kind == CallSiteKind::UserFunction) {
+          if (cache.kind == CallSiteKind::ExactPositionalFunction) {
+            bool handled = false;
+            const auto flow = push_exact_positional_method_frame(
+                cache.function, method_args, cache.lhs_slot, handled);
+            if (handled) return flow;
+          }
+          if (cache.kind == CallSiteKind::UserFunction ||
+              cache.kind == CallSiteKind::ExactPositionalFunction) {
             if (!xlang3::xlang_vm::ops::call_user_function(cache.function, method_args, module, module_owner, in.dst, ip, regs[in.dst], pushed_frame, make_generator_if_needed, push_frame)) {
               if (!result.errors.empty()) return XlangVMOpFlow::ReturnResult;
               return XlangVMOpFlow::ContinueLoop;
@@ -1369,6 +1448,19 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
             }
             // Failed speculative execution falls through to the Python frame.
           }
+          const uint32_t exact_arg_count = static_cast<uint32_t>(method_args.size());
+          if (!method_args.has_keywords() && !method_args.has_expansion() &&
+              has_exact_positional_method_signature(fn_obj, exact_arg_count)) {
+            if (!instr_cache.empty()) {
+              auto& cache = instr_cache[ip].call;
+              cache.kind = CallSiteKind::ExactPositionalFunction;
+              cache.lhs_slot = exact_arg_count;
+            }
+            bool handled = false;
+            const auto flow = push_exact_positional_method_frame(
+                fn_obj, method_args, exact_arg_count, handled);
+            if (handled) return flow;
+          }
           if (!xlang3::xlang_vm::ops::call_user_function(fn_obj, method_args, module, module_owner, in.dst, ip, regs[in.dst], pushed_frame, make_generator_if_needed, push_frame)) {
             if (!result.errors.empty()) return XlangVMOpFlow::ReturnResult;
             return XlangVMOpFlow::ContinueLoop;
@@ -1615,6 +1707,40 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
         return XlangVMOpFlow::Next;
       }
     }
+    // PEP 562 module exports (for example asyncio's deprecated Windows
+    // event-loop policy aliases) are resolved by module-level __getattr__.
+    // A fused positional CallMethod must preserve that lookup just as LoadAttr
+    // and CallMethodEx do; keep it on the miss path so indexed module hits
+    // retain their direct fast path. Do not cache the result: module hooks may
+    // intentionally return a fresh value on each access.
+    if (value_as_module(regs[in.a]) != nullptr) {
+      Value module_getattr;
+      std::string getattr_error;
+      if (module_get_attr(regs[in.a], "__getattr__", module_getattr,
+                          getattr_error)) {
+        Value attr_arg = Value::string(name);
+        Value resolved;
+        if (!runtime_call_callable(runtime, module_getattr, &attr_arg, 1,
+                                   resolved, attr_error)) {
+          Value pending;
+          const bool handled = runtime.take_pending_exception(pending)
+              ? raise_exception_value(std::move(pending))
+              : raise_runtime_error(attr_error);
+          return handled ? XlangVMOpFlow::ContinueLoop
+                         : XlangVMOpFlow::ReturnResult;
+        }
+        if (!xlang3::xlang_vm::ops::call_callable_value(
+                runtime, resolved, call_args, module, module_owner, in.dst, ip,
+                native_call_args, execution_lock, regs[in.dst], pushed_frame,
+                make_generator_if_needed, push_frame, raise_runtime_error,
+                raise_exception_value)) {
+          if (!result.errors.empty()) return XlangVMOpFlow::ReturnResult;
+          return XlangVMOpFlow::ContinueLoop;
+        }
+        return pushed_frame ? XlangVMOpFlow::SwitchFrame
+                            : XlangVMOpFlow::Next;
+      }
+    }
     return raise_exception_value(runtime.make_exception("AttributeError", attr_error))
         ? XlangVMOpFlow::ContinueLoop
         : XlangVMOpFlow::ReturnResult;
@@ -1814,6 +1940,10 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
     }
     XlangVMBuiltinConstructorError constructor_error;
     if (call_builtin_type_constructor_fn(runtime, *klass, call_args, execution_lock, regs[in.dst], constructor_error)) {
+      if (constructor_error.fully_handled) {
+        return finish_fully_handled_native_constructor(
+            runtime, constructor_error, raise_exception_value);
+      }
       if (value_as_class(regs[in.dst]) == nullptr) {
         return XlangVMOpFlow::Next;
       }
@@ -2270,6 +2400,88 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_ex(
   bool pushed_frame = false;
   std::vector<NativeKeywordArg> native_keyword_args;
 
+  // A warmed CALL_FUNCTION_EX site often invokes the same Python function
+  // with a changing starred argument tuple (asyncio.gather in async-tree is a
+  // hot example). Guard the cached function by the live callee object, then
+  // enter through call_user_function so expansion, argument binding,
+  // monitoring, generator construction, and frame semantics stay unchanged.
+  // The fast path only removes the repeated callable-kind dispatch chain.
+  if (!instr_cache.empty() && callee.tag == ValueTag::Object &&
+      callee.as.obj != nullptr) {
+    auto& cache = instr_cache[ip].call;
+    if (cache.kind == CallSiteKind::UserFunction &&
+        cache.callee_object == callee.as.obj && cache.function != nullptr) {
+      if (!xlang3::xlang_vm::ops::call_user_function(
+              cache.function, call_args, module, module_owner, in.dst, ip,
+              regs[in.dst], pushed_frame, make_generator_if_needed, push_frame)) {
+        if (!result.errors.empty()) return XlangVMOpFlow::ReturnResult;
+        return XlangVMOpFlow::ContinueLoop;
+      }
+      if (pushed_frame) return XlangVMOpFlow::SwitchFrame;
+      return XlangVMOpFlow::Next;
+    }
+    // CALL_FUNCTION_EX can repeatedly construct the same class from starred
+    // arguments (asyncio.gather's _GatheringFuture is a hot example). Once the
+    // generic class path has established that __new__/metaclass dispatch is
+    // ordinary and a directly defined __init__ is a plain bound Python/native method, cache only
+    // that initializer. Exact class and class/metaclass version guards keep
+    // later monkey-patches on the normal lookup path; dynamic argument binding
+    // still runs for every call.
+    if (cache.callee_object == callee.as.obj &&
+        (cache.kind == CallSiteKind::UserConstructor ||
+         cache.kind == CallSiteKind::NativeConstructor)) {
+      auto* cached_class = value_as_class(callee);
+      auto* metaclass = cached_class == nullptr
+          ? nullptr : value_as_class(cached_class->metaclass);
+      if (cached_class != nullptr && metaclass != nullptr &&
+          cache.class_version == cached_class->version &&
+          cache.arg0_object == &metaclass->header &&
+          cache.secondary_class_version == metaclass->version) {
+        Value instance = Value::instance(callee);
+        initialize_exception_call_args(runtime, instance, call_args);
+        CallArgsView init_args = call_args;
+        init_args.leading = &instance;
+        init_args.leading_count = 1;
+        if (cache.kind == CallSiteKind::UserConstructor &&
+            cache.function != nullptr) {
+          auto* fn_obj = cache.function;
+          const ir::Module* call_module = &module;
+          auto call_module_owner = module_owner;
+          if (fn_obj->module != nullptr) {
+            call_module = fn_obj->module.get();
+            call_module_owner = fn_obj->module;
+          }
+          Value constructed_instance;
+          value_assign_fast(constructed_instance, instance);
+          ++ip;
+          if (!push_frame(*call_module, fn_obj->function_id, init_args,
+                          fn_obj->closure, fn_obj->defaults,
+                          fn_obj->globals_module, std::move(call_module_owner),
+                          in.dst, FrameReturnMode::StoreConstructedInstance,
+                          std::move(constructed_instance))) {
+            return result.errors.empty() ? XlangVMOpFlow::ContinueLoop
+                                         : XlangVMOpFlow::ReturnResult;
+          }
+          return XlangVMOpFlow::SwitchFrame;
+        }
+        if (cache.kind == CallSiteKind::NativeConstructor &&
+            cache.native != nullptr) {
+          Value ignored;
+          if (!xlang3::xlang_vm::ops::call_native_function(
+                  runtime, cache.native, init_args, native_call_args,
+                  execution_lock, ignored, raise_runtime_error,
+                  raise_exception_value)) {
+            if (!result.errors.empty()) return XlangVMOpFlow::ReturnResult;
+            return XlangVMOpFlow::ContinueLoop;
+          }
+          value_assign_fast(regs[in.dst], instance);
+          return XlangVMOpFlow::Next;
+        }
+      }
+      cache.kind = CallSiteKind::Empty;
+    }
+  }
+
   if (auto* bound = value_as_bound_method(callee)) {
     CallArgsView bound_args = call_args;
     bound_args.leading = &bound->self;
@@ -2280,6 +2492,15 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_ex(
     }
     if (pushed_frame) return XlangVMOpFlow::SwitchFrame;
   } else if (auto* fn_obj = value_as_function(callee)) {
+    if (!instr_cache.empty() && callee.tag == ValueTag::Object &&
+        callee.as.obj != nullptr) {
+      auto& cache = instr_cache[ip].call;
+      cache.callee_object = callee.as.obj;
+      value_assign_fast(cache.retained_callee, callee);
+      cache.kind = CallSiteKind::UserFunction;
+      cache.function = fn_obj;
+      cache.native = nullptr;
+    }
     if (!xlang3::xlang_vm::ops::call_user_function(fn_obj, call_args, module, module_owner, in.dst, ip, regs[in.dst], pushed_frame, make_generator_if_needed, push_frame)) {
       if (!result.errors.empty()) return XlangVMOpFlow::ReturnResult;
       return XlangVMOpFlow::ContinueLoop;
@@ -2327,6 +2548,27 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_ex(
         }
         if (pushed_frame) return XlangVMOpFlow::SwitchFrame;
         return XlangVMOpFlow::Next;
+      }
+    }
+    // Exact native heap types can bypass the generic __new__/__init__ adapters
+    // only while their class and base guards hold. The callback declines when
+    // monitoring/debug hooks are active or the call shape is dynamic, leaving
+    // normal descriptor dispatch to preserve Python's observable behavior.
+    if (klass->native_type_constructor != nullptr &&
+        klass->native_type_constructor_version == klass->version) {
+      bool handled = false;
+      std::string native_error;
+      const bool succeeded = klass->native_type_constructor(
+          runtime, *klass, call_args, handled, regs[in.dst], native_error);
+      if (handled) {
+        XlangVMBuiltinConstructorError constructor_error;
+        constructor_error.fully_handled = true;
+        if (!succeeded) {
+          constructor_error.set("RuntimeError", native_error.empty()
+              ? "native type constructor failed" : std::move(native_error));
+        }
+        return finish_fully_handled_native_constructor(
+            runtime, constructor_error, raise_exception_value);
       }
     }
     Value early_new_callable;
@@ -2440,6 +2682,10 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_ex(
       return XlangVMOpFlow::Next;
     }
     if (call_builtin_type_constructor_fn(runtime, *klass, call_args, execution_lock, regs[in.dst], constructor_error)) {
+      if (constructor_error.fully_handled) {
+        return finish_fully_handled_native_constructor(
+            runtime, constructor_error, raise_exception_value);
+      }
       return call_metaclass_init_after_type_new(
           callee,
           regs[in.dst],
@@ -2480,6 +2726,42 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_ex(
     Value bound_init;
     std::string init_error;
     if (class_get_bound_attr(runtime, callee, instance, "__init__", bound_init, init_error)) {
+      Value raw_init;
+      const auto raw_init_it = klass->attrs.find("__init__");
+      const bool raw_init_found = raw_init_it != klass->attrs.end();
+      if (raw_init_found) value_assign_fast(raw_init, raw_init_it->second);
+      if (auto* bound = value_as_bound_method(bound_init);
+          raw_init_found && bound != nullptr &&
+          bound->self.tag == ValueTag::Object &&
+          bound->self.as.obj == instance.as.obj && !instr_cache.empty()) {
+        auto& cache = instr_cache[ip].call;
+        if (auto* init_function = value_as_function(raw_init);
+            init_function != nullptr && init_function == value_as_function(bound->function)) {
+          cache.callee_object = callee.as.obj;
+          value_assign_fast(cache.retained_callee, callee);
+          cache.kind = CallSiteKind::UserConstructor;
+          cache.function = init_function;
+          cache.native = nullptr;
+          cache.class_version = klass->version;
+          if (auto* metaclass = value_as_class(klass->metaclass)) {
+            cache.arg0_object = &metaclass->header;
+            cache.secondary_class_version = metaclass->version;
+          }
+        } else if (auto* init_native = value_as_native_function(raw_init);
+                   init_native != nullptr && init_native->bind_as_descriptor &&
+                   init_native == value_as_native_function(bound->function)) {
+          cache.callee_object = callee.as.obj;
+          value_assign_fast(cache.retained_callee, callee);
+          cache.kind = CallSiteKind::NativeConstructor;
+          cache.function = nullptr;
+          cache.native = init_native;
+          cache.class_version = klass->version;
+          if (auto* metaclass = value_as_class(klass->metaclass)) {
+            cache.arg0_object = &metaclass->header;
+            cache.secondary_class_version = metaclass->version;
+          }
+        }
+      }
       if (!xlang3::xlang_vm::ops::call_callable_value_ex(runtime, bound_init, call_args, module, module_owner, in.dst, ip, native_call_args, native_keyword_args, execution_lock, regs[in.dst], pushed_frame, make_generator_if_needed, push_frame, raise_runtime_error, raise_exception_value)) {
         if (!result.errors.empty()) return XlangVMOpFlow::ReturnResult;
         return XlangVMOpFlow::ContinueLoop;
@@ -2985,6 +3267,10 @@ XLANG3_HOT_INLINE XlangVMOpFlow call(
           raise_exception_value);
     }
     if (call_builtin_type_constructor_fn(runtime, *klass, call_args, execution_lock, regs[in.dst], constructor_error)) {
+      if (constructor_error.fully_handled) {
+        return finish_fully_handled_native_constructor(
+            runtime, constructor_error, raise_exception_value);
+      }
       return call_metaclass_init_after_type_new(
           callee,
           regs[in.dst],
@@ -3357,6 +3643,7 @@ XLANG3_HOT_INLINE bool call_native_function(
     Value& out,
     RaiseRuntimeError&& raise_runtime_error,
     RaiseExceptionValue&& raise_exception_value) {
+  NativeCallArgsScope args_scope{native_call_args};
   std::string& error = xlang_vm_native_error_scratch();
   const bool needs_materialized_expansion = values.has_expansion();
   const bool use_fast = native->fast_callback != nullptr && !needs_materialized_expansion;
@@ -3504,14 +3791,56 @@ XLANG3_HOT_INLINE bool call_native_function_ex(
     RaiseExceptionValue&& raise_exception_value,
     const Value* monitoring_code,
     int64_t monitoring_instruction_offset) {
+  NativeCallArgsScope args_scope{native_call_args};
   std::string error;
   bool has_materialized_keywords = false;
   const bool needs_materialized_ex = values.has_keywords() || values.has_expansion();
-  const bool use_fast = native->fast_callback != nullptr && !needs_materialized_ex;
+  CallArgsView fast_values = values;
+  bool fast_empty_star_expansion = false;
+  const bool has_positional_star = values.star_arg != UINT32_MAX ||
+      (values.star_args != nullptr && !values.star_args->empty());
+  // Check for a positional expansion first: ordinary native calls take this
+  // path often and should pay only the cheap expansion-presence checks.
+  if (native->fast_callback != nullptr && has_positional_star &&
+      !values.has_keywords() &&
+      values.kw_star_arg == UINT32_MAX &&
+      (values.kw_star_args == nullptr || values.kw_star_args->empty()) &&
+      values.registers != nullptr) {
+    // `Handle._run` commonly calls `Context.run(callback, *args)` with an
+    // exact empty tuple. Expanding an exact empty list/tuple has no user-code
+    // effects, so skip iterator setup and keep this native callback on its
+    // stack-backed fast-call path. Subclasses and arbitrary iterables still
+    // take the general expansion path, where their iteration hooks run.
+    auto exact_empty_sequence = [&](uint32_t reg) {
+      const Value& value = values.registers[reg];
+      if (const auto* tuple = value_as_tuple(value)) return tuple->items.empty();
+      if (const auto* list = value_as_list(value)) return list->items.empty();
+      return false;
+    };
+    fast_empty_star_expansion = true;
+    if (values.star_args != nullptr && !values.star_args->empty()) {
+      for (uint32_t reg : *values.star_args) {
+        if (!exact_empty_sequence(reg)) {
+          fast_empty_star_expansion = false;
+          break;
+        }
+      }
+    } else if (!exact_empty_sequence(values.star_arg)) {
+      fast_empty_star_expansion = false;
+    }
+    if (fast_empty_star_expansion) {
+      fast_values.star_arg = UINT32_MAX;
+      fast_values.kw_star_arg = UINT32_MAX;
+      fast_values.star_args = nullptr;
+      fast_values.kw_star_args = nullptr;
+    }
+  }
+  const bool use_fast = native->fast_callback != nullptr &&
+      (!needs_materialized_ex || fast_empty_star_expansion);
   xlang_perf_count_native_call(use_fast);
   xlang_perf_count_native_name(native->name, use_fast);
   const Value* native_args = nullptr;
-  if (needs_materialized_ex) {
+  if (needs_materialized_ex && !fast_empty_star_expansion) {
     native_args = materialize_native_call_ex(runtime, values, native_call_args, native_keyword_args, has_materialized_keywords, error);
     if (native_args == nullptr && !error.empty()) {
       Value pending;
@@ -3585,11 +3914,11 @@ XLANG3_HOT_INLINE bool call_native_function_ex(
   if (use_fast && !native->fast_releases_vm_lock) {
     ok = native->fast_callback(
         runtime,
-        values.leading,
-        values.leading_count,
-        values.registers,
-        values.register_args == nullptr ? nullptr : values.register_args->data(),
-        values.register_args == nullptr ? 0 : static_cast<uint32_t>(values.register_args->size()),
+        fast_values.leading,
+        fast_values.leading_count,
+        fast_values.registers,
+        fast_values.register_args == nullptr ? nullptr : fast_values.register_args->data(),
+        fast_values.register_args == nullptr ? 0 : static_cast<uint32_t>(fast_values.register_args->size()),
         out,
         error,
         native->user_data);
@@ -3599,11 +3928,11 @@ XLANG3_HOT_INLINE bool call_native_function_ex(
     if (use_fast) {
       ok = native->fast_callback(
           runtime,
-          values.leading,
-          values.leading_count,
-          values.registers,
-          values.register_args == nullptr ? nullptr : values.register_args->data(),
-          values.register_args == nullptr ? 0 : static_cast<uint32_t>(values.register_args->size()),
+          fast_values.leading,
+          fast_values.leading_count,
+          fast_values.registers,
+          fast_values.register_args == nullptr ? nullptr : fast_values.register_args->data(),
+          fast_values.register_args == nullptr ? 0 : static_cast<uint32_t>(fast_values.register_args->size()),
           out,
           error,
           native->user_data);
@@ -4380,6 +4709,10 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_module_method(
       }
       XlangVMBuiltinConstructorError constructor_error;
       if (call_builtin_type_constructor(runtime, *klass, call_args, execution_lock, regs[in.dst], constructor_error)) {
+        if (constructor_error.fully_handled) {
+          return finish_fully_handled_native_constructor(
+              runtime, constructor_error, raise_exception_value);
+        }
         if (value_as_class(regs[in.dst]) == nullptr) {
           return XlangVMOpFlow::Next;
         }

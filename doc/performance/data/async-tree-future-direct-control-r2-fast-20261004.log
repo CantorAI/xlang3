@@ -1,0 +1,18 @@
+Benchmark dependency sites: C:\Python\Python314\Lib\site-packages
+Python benchmark suite 1.14.0
+
+
+==================================================
+( 1/1) creating venv for benchmark (async_tree_eager)
+
+(trying common venv first)
+
+[1/1] async_tree_eager...
+...........
+async_tree_eager: Mean +- std dev: 2.88 sec +- 0.05 sec
+
+Performance version: 1.14.0
+
+### async_tree_eager ###
+Mean +- std dev: 2.88 sec +- 0.05 sec
+

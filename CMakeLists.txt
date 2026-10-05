@@ -18,7 +18,8 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-if(MSVC)
+option(XLANG3_RELEASE_OB3 "Use MSVC /Ob3 inline expansion for Release builds" ON)
+if(MSVC AND XLANG3_RELEASE_OB3)
   string(REPLACE "/Ob2" "/Ob3" CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
   # CMake's Release defaults already contain /Ob2. Replace it so MSVC sees a
   # single inline policy instead of an overriding pair on every compilation.
@@ -201,6 +202,9 @@ set(XLANG3_SYSTEM_RUNTIME_SOURCES
   src/runtime/modules/system/multibytecodec_module.cpp
   src/runtime/modules/system/collections_module.cpp
   src/runtime/modules/system/contextvars_module.cpp
+  src/runtime/modules/system/asyncio_module.cpp
+  src/runtime/modules/system/asyncio_future.cpp
+  src/runtime/modules/system/asyncio_task.cpp
   src/runtime/modules/system/csv_module.cpp
   src/runtime/modules/system/ctypes_module.cpp
   src/runtime/modules/system/errno_module.cpp
@@ -646,6 +650,11 @@ add_test(
 )
 
 if(XLANG3_PYTHON314_EXECUTABLE)
+  add_test(NAME xlang3_cli_asyncio_accelerator
+    COMMAND ${XLANG3_PYTHON314_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_expected.py
+      $<TARGET_FILE:xlang3>
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/asyncio_accelerator.py
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/asyncio_accelerator.out)
   if(WIN32)
     add_test(NAME xlang3_cli_overlapped_completion
       COMMAND ${XLANG3_PYTHON314_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_expected.py

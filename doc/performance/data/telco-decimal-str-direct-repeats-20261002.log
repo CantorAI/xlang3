@@ -1,0 +1,16 @@
+control-1
+direct workload telco: 3.46791220002342 (3.469334500 s)
+candidate-1
+direct workload telco: 3.413828700024169 (3.415160600 s)
+control-2
+direct workload telco: 3.5758697999990545 (3.577309300 s)
+candidate-2
+direct workload telco: 3.4559295999933966 (3.457359900 s)
+control-3
+direct workload telco: 3.5307127000414766 (3.532428700 s)
+candidate-3
+direct workload telco: 3.3353040000074543 (3.336542100 s)
+control-4
+direct workload telco: 3.7805772000574507 (3.782186400 s)
+candidate-4
+direct workload telco: 3.4088662000140175 (3.410148000 s)

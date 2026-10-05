@@ -1,0 +1,4 @@
+decimal native fast/fallback counts: binary=32512/9 quantize=12507/0
+decimal context direct/fallback: 45019/0
+decimal binary fallback right_operand=9
+one_telco_loop_seconds 0.24584150000009686

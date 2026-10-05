@@ -975,6 +975,7 @@ struct XlangVMBuiltinConstructorSpec {
 struct XlangVMBuiltinConstructorError {
   std::string message;
   const char* type = "TypeError";
+  bool fully_handled = false;
 
   XLANG3_HOT_INLINE void set(const char* error_type, std::string text) {
     type = error_type;
@@ -1550,6 +1551,26 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
     XlangRuntimeExecutionGuard& execution_lock,
     Value& out,
     XlangVMBuiltinConstructorError& constructor_error) {
+  // CPython native heap types can keep a direct constructor beside their
+  // native payload implementation. Run it only while the exact class layout
+  // and its __new__/__init__ methods remain unchanged; subclasses and patched
+  // classes continue through normal class construction below.
+  if (klass.native_type_constructor != nullptr &&
+      klass.native_type_constructor_version == klass.version) {
+    bool handled = false;
+    std::string native_error;
+    const bool succeeded = klass.native_type_constructor(
+        runtime, klass, args, handled, out, native_error);
+    if (handled) {
+      constructor_error.fully_handled = true;
+      if (!succeeded) {
+        constructor_error.set("RuntimeError", native_error.empty()
+            ? "native type constructor failed" : std::move(native_error));
+      }
+      return true;
+    }
+  }
+
   auto constructor = xlang_vm_find_builtin_constructor(klass.name);
   bool exact_builtin_constructor = constructor != XlangVMBuiltinConstructor::Unknown;
   if (constructor != XlangVMBuiltinConstructor::Unknown && !xlang_vm_class_is_builtin_module_class(klass)) {

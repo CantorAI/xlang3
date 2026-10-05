@@ -61,6 +61,28 @@ generic Python function-creation/VM target, but the counters alone do not prove
 that optimizing it will help; the next trial must retain dynamic Python
 semantics and show a win in official `json_dumps` pyperformance.
 
+## Follow-up: inspect the repeated wrapper bytecode
+
+I compiled the available Python 3.13 `json/encoder.py` with XLang3's IR dump
+to tie the hot counters to their source operations. In `JSONEncoder.iterencode`,
+each call creates the `markers = {}` object at line 216 and the nested
+`floatstr` function at line 224. In `JSONEncoder.encode`, line 201 constructs
+the `(list, tuple)` argument used by `isinstance`. These match the repeated
+`MakeDict`, `MakeFunction`, and `MakeTuple` counts in the earlier VM profile.
+The encoder source creates these values before it selects the native
+`_json.make_encoder` path, so `_json` being active does not remove that Python
+wrapper work.
+
+This does not justify skipping those operations: CPython executes the same
+source-level steps, and their values can become observable when the native
+encoder is disabled or its defaults are customized. A useful optimization
+must lower the generic creation/call cost while retaining those semantics, or
+prove an exact guarded path where the temporary value cannot escape. The IR
+from the current accessible Python 3.13 library is preserved at
+[`encoder.ir.txt`](data/json-encoder-ir-probe/encoder.ir.txt); the CPython
+3.14.7 adaptive-bytecode comparison and earlier call-path measurements remain
+in the analysis above.
+
 ## Preserved reports
 
 - [Candidate pyperf JSON](data/json-makeencoder-candidate-rigorous-20260930.json)

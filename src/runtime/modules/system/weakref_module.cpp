@@ -18,6 +18,7 @@ limitations under the License.
 #include "xlang3/attribute.h"
 #include "xlang3/builtin_methods.h"
 #include "xlang3/functional_iterators.h"
+#include "xlang3/generator.h"
 #include "xlang3/mapping.h"
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
@@ -1126,9 +1127,7 @@ void visit_strong_object_edges(Object* object, Object* cycle_root, Visit visit) 
     for (uint32_t index = 0; index < value->slot_count; ++index)
       edge(instance_slot_at(value, index));
     for (const auto& item : value->attrs) edge(item.second);
-    for (auto* target : value->native_gc_references) {
-      if (target != nullptr) visit(target);
-    }
+    instance_visit_native_gc_references(*value, visit);
   } else if (auto* value = value_as_bound_method(borrowed)) {
     edge(value->self);
     edge(value->function);
@@ -1159,6 +1158,21 @@ void visit_strong_object_edges(Object* object, Object* cycle_root, Visit visit) 
   } else if (auto* value = value_as_traceback(borrowed)) {
     edge(value->frame);
     edge(value->next);
+  } else if (auto* value = value_as_generator(borrowed)) {
+    // Suspended coroutines own their locals and cells through saved VM frames.
+    // Traverse those edges so Task/Future cycles broken only by coroutine
+    // suspension remain visible to the native-payload cycle collector.
+    edge(value->function);
+    for (const auto& item : value->args) edge(item);
+    edge(value->pending_send);
+    edge(value->pending_throw);
+    edge(value->return_value);
+    edge(value->awaiting);
+    edge(value->origin);
+    generator_vm_visit_references(*value, edge);
+  } else if (auto* value = value_as_async_generator_awaitable(borrowed)) {
+    edge(value->generator);
+    for (const auto& item : value->args) edge(item);
   }
 }
 
@@ -1299,14 +1313,16 @@ uint64_t collect_isolated_function_component(FunctionObject* function) {
       break;
     }
     const auto* instance = value_as_instance(entry.second);
-    if (instance == nullptr || instance->native_gc_references.empty()) continue;
+    if (instance == nullptr || !instance_has_native_gc_references(*instance)) continue;
 
     // Most native-backed attributes do not point back to their owner.  Check
     // reachability before constructing the complete reference graph so a
     // gc.collect() remains proportional to actual cycle candidates.
     constexpr size_t kMaximumReachabilityObjects = 2048;
-    std::vector<Object*> pending(instance->native_gc_references.begin(),
-                                 instance->native_gc_references.end());
+    std::vector<Object*> pending;
+    pending.reserve(instance->native_gc_references.size() + 12);
+    instance_visit_native_gc_references(*instance,
+        [&](Object* target) { pending.push_back(target); });
     std::unordered_set<Object*> visited;
     while (!pending.empty() && visited.size() < kMaximumReachabilityObjects) {
       auto* candidate = pending.back();
@@ -1405,22 +1421,29 @@ uint64_t collect_isolated_native_instance_component(InstanceObject* instance) {
   constexpr size_t kMaximumCandidateObjects = 4096;
   auto* root = &instance->header;
   if (instance->native_data_clear == nullptr ||
-      instance->native_gc_references.empty()) return 0;
+      !instance_has_native_gc_references(*instance)) return 0;
 
   std::vector<Object*> nodes{root};
   std::unordered_map<Object*, size_t> indices{{root, 0}};
   std::vector<std::vector<size_t>> adjacency;
+  bool has_edge_to_root = false;
   for (size_t index = 0; index < nodes.size(); ++index) {
     if (nodes.size() > kMaximumCandidateObjects) return 0;
     adjacency.emplace_back();
     visit_strong_object_edges(nodes[index], root, [&](Object* target) {
       // Class-owned cycles are collected from their class root separately.
       if (target->kind == ObjectKind::Class && target != root) return;
+      has_edge_to_root |= target == root;
       auto [position, inserted] = indices.emplace(target, nodes.size());
       if (inserted) nodes.push_back(target);
       adjacency[index].push_back(position->second);
     });
   }
+  // Every reachable object has been visited above. A native instance can be
+  // part of a collectible cycle only if some traversed edge points back to
+  // its root; reject ordinary payload graphs before allocating the reverse
+  // graph and refcount vectors. Retain the one-node self-cycle case below.
+  if (!has_edge_to_root) return 0;
   std::vector<std::vector<size_t>> reverse(nodes.size());
   for (size_t source = 0; source < adjacency.size(); ++source)
     for (size_t target : adjacency[source]) reverse[target].push_back(source);
@@ -1435,7 +1458,9 @@ uint64_t collect_isolated_native_instance_component(InstanceObject* instance) {
       }
     }
   }
-  if (pending.size() <= 1) return 0;
+  // A native payload can own the sole edge back to its instance (for example
+  // Future.set_result(future)). That one-node SCC is collectible too; the
+  // reference-count check below rejects externally rooted instances.
   std::vector<uint64_t> internal_references(nodes.size(), 0);
   for (size_t source = 0; source < adjacency.size(); ++source) {
     if (!reaches_root[source]) continue;
@@ -1455,6 +1480,7 @@ uint64_t collect_isolated_native_instance_component(InstanceObject* instance) {
   value_assign_fast(keep_alive, borrowed);
   auto clear = instance->native_data_clear;
   instance->native_data_clear = nullptr;
+  instance->native_gc_traverse = nullptr;
   clear(instance->native_owner);
   instance->native_gc_references.clear();
   const uint64_t collected = static_cast<uint64_t>(pending.size());
@@ -1579,8 +1605,9 @@ uint64_t weakref_collect_cycles(Runtime& runtime) {
   for (auto* candidate : native_candidates) {
     if (native_gc_instance_registry().find(candidate) ==
         native_gc_instance_registry().end()) continue;
+    auto* candidate_instance = reinterpret_cast<InstanceObject*>(candidate);
     collected += collect_isolated_native_instance_component(
-        reinterpret_cast<InstanceObject*>(candidate));
+        candidate_instance);
   }
   std::vector<FileObject*> file_candidates;
   std::unordered_set<FileObject*> file_candidate_set;
@@ -1914,6 +1941,7 @@ uint64_t weakref_collect_cycles(Runtime& runtime) {
         if (instance->native_data_clear != nullptr && instance->native_owner != nullptr) {
           auto clear = instance->native_data_clear;
           instance->native_data_clear = nullptr;
+          instance->native_gc_traverse = nullptr;
           clear(instance->native_owner);
           instance->native_gc_references.clear();
         }

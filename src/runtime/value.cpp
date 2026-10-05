@@ -2966,11 +2966,21 @@ bool value_add(const Value& lhs, const Value& rhs, Value& out, std::string& erro
     return true;
   }
   if (auto* left_array = value_as_bytearray(lhs)) {
-    std::string right_bytes;
+    std::string_view right_bytes;
     if (auto* right = value_as_bytes(rhs)) {
-      right_bytes = bytes_object_to_string(*right);
+      right_bytes = bytes_object_view(*right);
     } else if (auto* right = value_as_bytearray(rhs)) {
       right_bytes = right->value;
+    } else if (auto* right = value_as_memoryview(rhs)) {
+      // Buffer consumers such as Tornado append each socket read as a
+      // memoryview slice. Match bytearray's buffer-protocol concatenation and
+      // copy directly into the final allocation instead of materializing an
+      // intermediate bytes/string object for every read chunk.
+      if (right->released || !right->contiguous) {
+        error = "can't concat memoryview to bytearray";
+        return false;
+      }
+      right_bytes = memoryview_object_view(*right);
     } else {
       error = "unsupported operands for +";
       return false;

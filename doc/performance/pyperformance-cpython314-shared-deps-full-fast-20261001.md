@@ -1,6 +1,6 @@
 # CPython 3.14.7 shared-dependency full reference, 2026-10-01
 
-All **97 definitions were attempted**: **92 completed**, **5 failed**, **0 partial definitions**, and **116 raw subtest timings**. This is a reference run; the paired XLang3 run is still in progress. No overall speed comparison is available yet.
+All **97 definitions were attempted**: **92 completed**, **5 failed**, **0 partial definitions**, and **116 raw subtest timings**. The paired XLang3 run has completed; see the [full comparison, chart, and 97-case status report](pyperformance-xlang3-vs-cpython314-native-iocp-shared-deps-full-fast-20261001.md).
 
 This run uses pyperformance 1.14.0 and pyperf 2.10 in fast mode. The shared dependency directory is `venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages`. Both runtimes use the same priority/host-metadata compatibility hooks, a 600-second full-definition deadline, and a 120-second `async_tree*` deadline. Deadlines cover calibration and workers; timed workloads, loop counts, warmups and sample selection are not rewritten.
 

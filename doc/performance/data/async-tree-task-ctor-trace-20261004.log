@@ -1,0 +1,2 @@
+task-ctor-trace: native type callback dispatch
+task-ctor-trace: callback entry args=1 kw=1 expansion=1

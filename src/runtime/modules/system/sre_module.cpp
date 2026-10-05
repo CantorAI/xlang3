@@ -675,6 +675,12 @@ bool regex_has_unsupported_std_construct(std::string_view pattern) {
       std::string conditional_yes;
       std::string conditional_no;
       std::string captured_negative_literal;
+      // The host std::regex engine cannot run lookbehind directly, but the
+      // normalizer defers this anchor-only assertion to XLang3's matcher.
+      // Keep it out of the unsupported-pattern fallback so pure-Python users
+      // of patterns such as sqlglot's `(?<!^)(?=[A-Z])` stay on that path.
+      const bool anchor_lookbehind = i + 5 < pattern.size() &&
+          pattern[i + 4] == '^' && pattern[i + 5] == ')';
       if (lookbehind_kind == '!' &&
           !regex_parse_fixed_literal_lookbehind(
               pattern, i, positive, close, literal, category, group_ref, literal_alternatives) &&
@@ -683,7 +689,8 @@ bool regex_has_unsupported_std_construct(std::string_view pattern) {
           !regex_parse_conditional_literal_lookbehind(
               pattern, i, positive, close, conditional_group,
               conditional_yes, conditional_no) &&
-          !regex_is_single_character_class_lookbehind(pattern, i)) {
+          !regex_is_single_character_class_lookbehind(pattern, i) &&
+          !anchor_lookbehind) {
         return true;
       }
     }

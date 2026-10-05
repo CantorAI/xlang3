@@ -1,0 +1,88 @@
+{
+  "status": "pass",
+  "ratio": 0.5549286877429602,
+  "ratio_interval_95": [
+    0.5375692384748787,
+    0.5652163817083157
+  ],
+  "baseline_median_ms": 2938.9665693214506,
+  "candidate_median_ms": 1624.834621028863,
+  "baseline_seconds": [
+    2.9374684526013186,
+    2.9557703245393983,
+    2.9389665693214506,
+    2.940761612883795,
+    2.891177189524331,
+    2.911788731809967,
+    2.9636644463644135
+  ],
+  "candidate_seconds": [
+    1.6300855136883938,
+    1.608676697154727,
+    1.579898020573259,
+    1.6694486718616326,
+    1.6341407099405594,
+    1.6248346210288631,
+    1.5909797411370346
+  ],
+  "measurement_method": "7 order-balanced paired samples; each measured pair runs both AB and BA orders",
+  "baseline": {
+    "executable": "D:\\CantorAI\\xlang3\\scratch\\performance-trials\\asyncio-task-direct-constructor-20261004\\candidate\\xlang3.exe",
+    "sha256": {
+      "xlang3.exe": "78759ac13404c2a05ed26f2ada691e094bf7944c5c58952fc4635dd4116171ac",
+      "xlang3_runtime.dll": "52c11c84d356cdf0999a59955b72f4e8ac0eb8cfa478ef4ea15e06288352cacb"
+    }
+  },
+  "candidate": {
+    "executable": "D:\\CantorAI\\xlang3\\build-repro\\Release\\xlang3.exe",
+    "sha256": {
+      "xlang3.exe": "533991326ce1ccd5a73a0a1b47f32a14ac2c8574184b37d1d6bfefe19dba328e",
+      "xlang3_runtime-telco-candidate.dll": "47d3e6162f5b5103160fd28e69749839a02086cc53a9ac35e66e95d95065e35d",
+      "xlang3_runtime-telco-context-slots.dll": "707356e5c9781bf206689f51d6242275fec62d62cf5be1f99eb046d86d4e8449",
+      "xlang3_runtime-telco-control.dll": "97dc09ea8ae773dcede06b6ae6e1705ab16efac772e2fa20d500eacfed3e253f",
+      "xlang3_runtime-telco-final-candidate.dll": "960d635bf89fb5896dc137ace207397e7d2d2585ba08e81034c33710e67f539f",
+      "xlang3_runtime.dll": "74c62feaa72f33cf2f4ba297d14dd1fa024a1a8d2d10558395549079f57ce43f"
+    }
+  },
+  "source": "D:\\CantorAI\\xlang3\\benchmarks\\diagnostics\\async_tree_eager_single_loop.py",
+  "source_sha256": "fbbce416be59a97421c01fd22a3329b72cee27f9028ae8d35d16fcfd1920bcdc",
+  "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "order_balanced_seconds": {
+    "baseline_first": [
+      2.920698000001721,
+      2.9740905000071507,
+      2.949548100004904,
+      2.939069499989273,
+      2.908470299997134,
+      2.9596425000054296,
+      2.987204800010659
+    ],
+    "baseline_second": [
+      2.9543352000182495,
+      2.937562999984948,
+      2.928422999975737,
+      2.942454699979862,
+      2.873986899998272,
+      2.86470870001358,
+      2.940309600002365
+    ],
+    "candidate_first": [
+      1.6379407999920659,
+      1.6200186000205576,
+      1.557542900001863,
+      1.6252395999908913,
+      1.6293003000027966,
+      1.6589301999774761,
+      1.5973012000031304
+    ],
+    "candidate_second": [
+      1.6222679000056814,
+      1.597414200019557,
+      1.602573999989545,
+      1.7148602999805007,
+      1.6389955000195187,
+      1.5914398000168148,
+      1.5846832999959588
+    ]
+  }
+}

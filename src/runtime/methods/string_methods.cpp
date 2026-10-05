@@ -2766,20 +2766,31 @@ bool string_split_fast_method(
     Value& out,
     std::string& error,
     void*) {
-  if (leading_count != 1 || register_arg_count > 2 || leading == nullptr ||
-      (register_arg_count != 0 && (registers == nullptr || register_args == nullptr))) {
-    error = "str.split expected 0 to 2 arguments";
+  // Keep bound calls on the allocation-free receiver-plus-register path.
+  // Unbound str.split(value, sep, maxsplit) passes all three positional values
+  // in registers, with the target at index zero.
+  const bool bound_call = leading_count == 1 && leading != nullptr &&
+      register_arg_count <= 2 &&
+      (register_arg_count == 0 || (registers != nullptr && register_args != nullptr));
+  const bool unbound_call = leading_count == 0 && register_arg_count >= 1 &&
+      register_arg_count <= 3 && registers != nullptr && register_args != nullptr;
+  if (!bound_call && !unbound_call) {
+    error = "str.split expected target, optional sep, and optional maxsplit";
     runtime.raise_class_error("TypeError", error);
     return false;
   }
+  const Value& target = bound_call ? leading[0] : registers[register_args[0]];
   memory::X3StringView text;
-  if (!get_string_view_checked(leading[0], "str.split target", text, error)) {
+  if (!get_string_view_checked(target, "str.split target", text, error)) {
     runtime.raise_class_error("TypeError", error);
     return false;
   }
   int64_t maxsplit = -1;
-  if (register_arg_count >= 2) {
-    const Value& maxsplit_value = registers[register_args[1]];
+  const uint32_t maxsplit_index = bound_call ? 1 : 2;
+  const uint32_t sep_index = bound_call ? 0 : 1;
+  if ((bound_call && register_arg_count >= 2) ||
+      (unbound_call && register_arg_count >= 3)) {
+    const Value& maxsplit_value = registers[register_args[maxsplit_index]];
     if (maxsplit_value.tag != ValueTag::Int64) {
       error = "str.split maxsplit must be int";
       runtime.raise_class_error("TypeError", error);
@@ -2787,10 +2798,11 @@ bool string_split_fast_method(
     }
     maxsplit = maxsplit_value.as.i64;
   }
-  if (register_arg_count == 0) {
+  const bool has_sep = bound_call ? register_arg_count >= 1 : register_arg_count >= 2;
+  if (!has_sep) {
     out = split_whitespace(text, maxsplit);
   } else {
-    const Value& sep_value = registers[register_args[0]];
+    const Value& sep_value = registers[register_args[sep_index]];
     if (sep_value.tag == ValueTag::None) {
       out = split_whitespace(text, maxsplit);
     } else {

@@ -2687,7 +2687,13 @@ private:
         previous.c = a;
         return;
       }
-      if (op == ir::Op::StoreLocal && previous.op == ir::Op::StoreLocal) {
+      // Comprehension target stores are rewritten to cell stores after the
+      // body is lowered, once nested generator captures are known. Keep those
+      // stores unfused until then; StoreLocalPair would hide a captured slot
+      // from the cell-conversion pass and leave the closure holding an empty
+      // cell (notably for tuple-unpacked targets).
+      if (!defer_comprehension_target_store_fusion_ &&
+          op == ir::Op::StoreLocal && previous.op == ir::Op::StoreLocal) {
         previous.op = ir::Op::StoreLocalPair;
         previous.b = dst;
         previous.c = a;
@@ -2701,7 +2707,8 @@ private:
         previous.c = a;
         return;
       }
-      if (op == ir::Op::LoadLocal && previous.op == ir::Op::StoreLocal) {
+      if (!defer_comprehension_target_store_fusion_ &&
+          op == ir::Op::LoadLocal && previous.op == ir::Op::StoreLocal) {
         previous.op = ir::Op::StoreLocalLoadLocal;
         previous.b = dst;
         previous.c = a;
@@ -6187,7 +6194,16 @@ private:
       const auto item_reg = emit_await_value(next_awaitable);
       emit(ir::Op::PopExcept);
       const size_t target_store_begin = fn_.code.size();
-      lower_unpack_assign(target_expr, item_reg);
+      {
+        struct DeferComprehensionTargetStoreFusion {
+          bool& active;
+          bool previous;
+          explicit DeferComprehensionTargetStoreFusion(bool& flag)
+              : active(flag), previous(flag) { active = true; }
+          ~DeferComprehensionTargetStoreFusion() { active = previous; }
+        } defer_store_fusion(defer_comprehension_target_store_fusion_);
+        lower_unpack_assign(target_expr, item_reg);
+      }
       const size_t target_store_end = fn_.code.size();
       size_t skip_body = 0;
       const bool has_filter = filter != nullptr;
@@ -6261,7 +6277,16 @@ private:
       emit(ir::Op::IterNext, item_reg, iterator_reg, 0);
       loop_exit = fn_.code.size() - 1;
       target_store_begin = fn_.code.size();
-      lower_unpack_assign(target_expr, item_reg);
+      {
+        struct DeferComprehensionTargetStoreFusion {
+          bool& active;
+          bool previous;
+          explicit DeferComprehensionTargetStoreFusion(bool& flag)
+              : active(flag), previous(flag) { active = true; }
+          ~DeferComprehensionTargetStoreFusion() { active = previous; }
+        } defer_store_fusion(defer_comprehension_target_store_fusion_);
+        lower_unpack_assign(target_expr, item_reg);
+      }
       target_store_end = fn_.code.size();
     }
     size_t skip_append = 0;
@@ -6998,6 +7023,7 @@ private:
   std::vector<size_t> loop_finalizer_base_counts_;
   std::unordered_set<uint32_t> control_flow_entries_;
   uint32_t next_hidden_local_ = 0;
+  bool defer_comprehension_target_store_fusion_ = false;
 };
 
 } // namespace

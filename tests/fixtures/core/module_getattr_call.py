@@ -65,8 +65,28 @@ except ValueError as exc:
     print("lookup-error", str(exc))
 print("keyword-lookups", lookups[2:])
 
-# Python 3.14 exports this class through the package's PEP 562 hook. Keep
-# the first access as a keyword call so a prior getattr cannot hide a miss.
+# Native module objects also support PEP 562. A positional call is fused to
+# CallMethod, so it must resolve the module hook on an indexed-name miss.
+import math
+def math_lazy_getattr(name):
+    lookups.append("math." + name)
+    if name == "lazy_add":
+        return lambda value: value + 2
+    raise AttributeError(name)
+math.__getattr__ = math_lazy_getattr
+print("module-call-lazy", math.lazy_add(41), lookups[-1])
+
+import asyncio
+from functools import singledispatch
+
+@singledispatch
+def future_dispatch_default(value):
+    return "object-default"
+
+print("future-mro", [base.__name__ for base in asyncio.Future.__mro__])
+print("task-mro", [base.__name__ for base in asyncio.Task.__mro__])
+print("future-dispatch", future_dispatch_default.dispatch(asyncio.Future)(None))
+
 import concurrent.futures as futures
 with futures.ThreadPoolExecutor(max_workers=1) as executor:
     print("threadpool", executor.submit(lambda: 11).result(timeout=5))

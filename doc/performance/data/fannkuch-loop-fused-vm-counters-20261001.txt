@@ -1,0 +1,52 @@
+30
+perf: native_calls=1247059 fast=1247058 cached_fast=0
+perf: native print slow=1 fast=0
+perf: store_local moves=7 copies=1122490
+perf: frame_snapshots calls=0 frames=0 locals=0 refresh_calls=0 refresh_items=0
+perf: opcode 0 2157872
+perf: opcode 1 322560
+perf: opcode 2 1418420
+perf: opcode 3 1122497
+perf: opcode 4 16
+perf: opcode 13 5
+perf: opcode 18 1
+perf: opcode 19 1
+perf: opcode 31 1
+perf: opcode 39 287280
+perf: opcode 47 287280
+perf: opcode 48 260650
+perf: opcode 54 1
+perf: opcode 55 521301
+perf: opcode 70 685440
+perf: opcode 76 1458739
+perf: opcode 77 1300320
+perf: opcode 78 623530
+perf: opcode 93 1247066
+perf: opcode 97 623530
+perf: opcode 102 260650
+perf: opcode 105 884179
+perf: opcode 106 910811
+perf: opcode 107 287280
+perf: opcode 110 2
+perf: opcode 113 623529
+perf: opcode 115 362880
+perf: opcode 118 1
+perf: opcode 119 1
+perf: opcode 121 2
+perf: opcode 130 910810
+perf: opcode 141 1596249
+perf: opcode 142 623529
+perf: opcode 143 287280
+perf: objects kind alloc final_release incref decref
+perf: String 3 2 5 6
+perf: Slice 287280 287280 0 287280
+perf: List 287283 287283 287282 574565
+perf: Dict 1 0 1 1
+perf: Range 3 3 0 3
+perf: RangeIterator 3 3 0 3
+perf: Module 1 0 19 15
+perf: Function 1 0 3 3
+perf: NativeFunction 2 0 6 6
+perf: Class 0 0 9 8
+perf: Instance 1 0 4 4
+perf: BoundMethod 3 3 0 3

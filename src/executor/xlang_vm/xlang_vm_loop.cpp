@@ -56,6 +56,7 @@ limitations under the License.
 #include <array>
 #include <cstddef>
 #include <functional>
+#include <limits>
 #include <mutex>
 #include <new>
 #include <sstream>
@@ -277,17 +278,154 @@ RuntimeResult Interpreter::run_function(
     }
 
     bound.assign(target_fn.params.size(), Value::invalid());
+    // Ordinary positional calls to fixed-arity functions need no keyword
+    // matching or expansion. Bind those locals directly and read omitted
+    // defaults from the live function defaults so changing __defaults__ keeps
+    // taking effect. This avoids the general binder's keyword/overflow scans
+    // on hot recursive Python calls such as pickle._Pickler.save().
+    if (!values.has_keywords() && !values.has_expansion() &&
+        target_fn.params.size() == signature.size() &&
+        values.size() <= signature.size()) {
+      bool simple_positional_signature = true;
+      bool all_omitted_have_defaults = true;
+      for (size_t index = 0; index < signature.size(); ++index) {
+        const auto& param = signature[index];
+        if (param.kind != ir::ParamKind::PosOnly &&
+            param.kind != ir::ParamKind::PosOrKeyword) {
+          simple_positional_signature = false;
+          break;
+        }
+        if (index >= values.size()) {
+          const bool has_default = dynamic_positional_defaults
+              ? index < defaults.size() && defaults[index].tag != ValueTag::Invalid
+              : param.default_reg != UINT32_MAX && param.default_reg < defaults.size() &&
+                    defaults[param.default_reg].tag != ValueTag::Invalid;
+          if (!has_default) all_omitted_have_defaults = false;
+        }
+      }
+      if (simple_positional_signature && all_omitted_have_defaults) {
+        for (size_t index = 0; index < signature.size(); ++index) {
+          if (index < values.size()) {
+            bound[index] = values.get(index);
+          } else if (dynamic_positional_defaults) {
+            value_assign_fast(bound[index], defaults[index]);
+          } else {
+            value_assign_fast(bound[index], defaults[signature[index].default_reg]);
+          }
+        }
+        return true;
+      }
+    }
+    // A common CALL_FUNCTION_EX-free keyword shape supplies one positional
+    // argument and names the second fixed parameter (asyncio.ensure_future's
+    // `ensure_future(coro, loop=loop)` is one hot example). Resolve this exact
+    // two-slot layout directly; expansions, duplicate/unknown names, and all
+    // other signatures still use the general binder so their Python errors
+    // and mapping side effects remain unchanged.
+    if (!dynamic_positional_defaults && !values.has_expansion() &&
+        values.size() == 1 && values.keyword_args != nullptr &&
+        values.keyword_args->size() == 1 && target_fn.params.size() == 2 &&
+        signature.size() == 2 &&
+        (signature[0].kind == ir::ParamKind::PosOnly ||
+         signature[0].kind == ir::ParamKind::PosOrKeyword) &&
+        (signature[1].kind == ir::ParamKind::PosOrKeyword ||
+         signature[1].kind == ir::ParamKind::KeywordOnly) &&
+        signature[1].name == values.keyword_args->front().name) {
+      value_assign_fast(bound[0], values.get(0));
+      value_assign_fast(
+          bound[1], values.registers[values.keyword_args->front().value_reg]);
+      return true;
+    }
+    // A fixed positional call to `f(required..., *args, **kwargs)` is a common
+    // Python method shape (for example logging.Logger.debug). When the call
+    // supplies exactly the required prefix and no expansions, bind its values
+    // directly and create the two empty variadics without running the general
+    // keyword/overflow binder. Keep both containers fresh per call because
+    // Python code can observe or mutate them.
+    if (!dynamic_positional_defaults && !values.has_keywords() &&
+        !values.has_expansion() && target_fn.params.size() == signature.size() &&
+        signature.size() >= 2 &&
+        signature[signature.size() - 2].kind == ir::ParamKind::VarArgs &&
+        signature.back().kind == ir::ParamKind::KwArgs) {
+      const size_t positional_count = signature.size() - 2;
+      bool simple_empty_variadics = values.size() == positional_count;
+      for (size_t index = 0; simple_empty_variadics && index < positional_count; ++index) {
+        const auto& param = signature[index];
+        simple_empty_variadics =
+            (param.kind == ir::ParamKind::PosOnly ||
+             param.kind == ir::ParamKind::PosOrKeyword) &&
+            param.default_reg == UINT32_MAX;
+      }
+      if (simple_empty_variadics) {
+        for (size_t index = 0; index < positional_count; ++index)
+          bound[index] = values.get(index);
+        bound[positional_count] = Value::tuple({});
+        bound[positional_count + 1] = Value::dict({});
+        return true;
+      }
+    }
+    // `asyncio.gather(*new_list)` expands one temporary exact list into a
+    // function shaped as `(*args, keyword_only=default)`. The generic binder
+    // first copies list elements into expanded_positional, then copies them
+    // again into extra_positional before building args. Preserve CPython's
+    // observable tuple identity rules, but build that one final tuple directly
+    // and copy the live keyword-only defaults. Subclasses, iterators, multiple
+    // stars, keywords, and mutable/invalid defaults retain generic binding.
+    if (!dynamic_positional_defaults && values.size() == 0 &&
+        !values.has_keywords() && values.kw_star_arg == UINT32_MAX &&
+        (values.kw_star_args == nullptr || values.kw_star_args->empty()) &&
+        target_fn.params.size() == signature.size() && signature.size() >= 2 &&
+        signature.front().kind == ir::ParamKind::VarArgs) {
+      bool fixed_keyword_only_defaults = true;
+      for (size_t index = 1; index < signature.size(); ++index) {
+        const auto& param = signature[index];
+        fixed_keyword_only_defaults = fixed_keyword_only_defaults &&
+            param.kind == ir::ParamKind::KeywordOnly &&
+            param.default_reg != UINT32_MAX && param.default_reg < defaults.size() &&
+            defaults[param.default_reg].tag != ValueTag::Invalid;
+      }
+      const bool one_star = values.star_args != nullptr && !values.star_args->empty()
+          ? values.star_args->size() == 1
+          : values.star_arg != UINT32_MAX;
+      if (fixed_keyword_only_defaults && one_star) {
+        const uint32_t star_reg = values.star_args != nullptr && !values.star_args->empty()
+            ? values.star_args->front() : values.star_arg;
+        const Value& star_value = values.registers[star_reg];
+        const auto* star_tuple = value_as_tuple(star_value);
+        const auto* star_list = value_as_list(star_value);
+        if (star_tuple != nullptr || star_list != nullptr) {
+          if (star_tuple != nullptr && star_tuple->items.empty()) {
+            // CALL_FUNCTION_EX reuses an exact empty tuple as the *args value.
+            value_assign_fast(bound[0], star_value);
+          } else if (star_tuple != nullptr) {
+            std::vector<Value> varargs;
+            varargs.reserve(star_tuple->items.size());
+            for (const auto& item : star_tuple->items) varargs.push_back(item);
+            bound[0] = Value::tuple(std::move(varargs));
+          } else {
+            std::vector<Value> varargs;
+            varargs.reserve(star_list->items.size());
+            for (const auto& item : star_list->items) varargs.push_back(item);
+            bound[0] = Value::tuple(std::move(varargs));
+          }
+          for (size_t index = 1; index < signature.size(); ++index) {
+            value_assign_fast(bound[index], defaults[signature[index].default_reg]);
+          }
+          xlang_perf_count_call_ex_varargs_kwonly_binding();
+          return true;
+        }
+      }
+    }
     // Read explicit positional arguments directly from the call view. Most
     // calls with keywords have no `*args`; copying their arguments into a
     // temporary vector only adds an allocation and refcount traffic before
     // the bound frame copies them again. Keep storage only for expanded stars.
-    std::vector<Value> expanded_positional;
-    auto expand_star_arg = [&](uint32_t star_reg) -> bool {
+    auto expand_star_arg = [&](uint32_t star_reg, std::vector<Value>& output) -> bool {
       const Value& star = values.registers[star_reg];
       if (auto* tuple = value_as_tuple(star)) {
-        for (const auto& item : tuple->items) expanded_positional.push_back(item);
+        for (const auto& item : tuple->items) output.push_back(item);
       } else if (auto* list = value_as_list(star)) {
-        for (const auto& item : list->items) expanded_positional.push_back(item);
+        for (const auto& item : list->items) output.push_back(item);
       } else {
         Value iterator;
         std::string iter_error;
@@ -303,25 +441,28 @@ RuntimeResult Interpreter::run_function(
           if (done) {
             break;
           }
-          expanded_positional.push_back(std::move(item));
+          output.push_back(std::move(item));
         }
       }
       return true;
     };
+
+    std::vector<Value> expanded_positional;
     if (values.star_args != nullptr && !values.star_args->empty()) {
       for (uint32_t star_reg : *values.star_args) {
-        if (!expand_star_arg(star_reg)) {
+        if (!expand_star_arg(star_reg, expanded_positional)) {
           return false;
         }
       }
     } else if (values.star_arg != UINT32_MAX) {
-      if (!expand_star_arg(values.star_arg)) {
+      if (!expand_star_arg(values.star_arg, expanded_positional)) {
         return false;
       }
     }
 
     int32_t varargs_index = -1;
     int32_t kwargs_index = -1;
+    uint32_t empty_tuple_varargs_identity_reg = UINT32_MAX;
     size_t next_positional_param = 0;
     size_t positional_index = 0;
     bool too_many_positional = false;
@@ -333,6 +474,37 @@ RuntimeResult Interpreter::run_function(
         varargs_index = static_cast<int32_t>(i);
       } else if (signature[i].kind == ir::ParamKind::KwArgs) {
         kwargs_index = static_cast<int32_t>(i);
+      }
+    }
+    // CPython preserves the exact empty tuple passed to a varargs-only target
+    // by CALL_FUNCTION_EX. Keep that observable identity while using the
+    // normal binder for every performance-sensitive non-empty expansion.
+    const bool defaulted_varargs_signature =
+        target_fn.params.size() == signature.size() && !signature.empty() &&
+        signature[0].kind == ir::ParamKind::VarArgs;
+    if (defaulted_varargs_signature) {
+      bool only_keyword_only_defaults = true;
+      for (size_t i = 1; i < signature.size(); ++i) {
+        const uint32_t default_reg = signature[i].default_reg;
+        only_keyword_only_defaults = only_keyword_only_defaults &&
+            signature[i].kind == ir::ParamKind::KeywordOnly &&
+            default_reg != UINT32_MAX && default_reg < defaults.size() &&
+            defaults[default_reg].tag != ValueTag::Invalid;
+      }
+      const bool no_other_operands = values.size() == 0 &&
+          !values.has_keywords() && values.kw_star_arg == UINT32_MAX &&
+          (values.kw_star_args == nullptr || values.kw_star_args->empty()) &&
+          !dynamic_positional_defaults;
+      if (only_keyword_only_defaults && no_other_operands) {
+        const uint32_t star_reg = values.star_args != nullptr && !values.star_args->empty()
+            ? (values.star_args->size() == 1 ? values.star_args->front() : UINT32_MAX)
+            : values.star_arg;
+        if (star_reg != UINT32_MAX) {
+          const auto* tuple = value_as_tuple(values.registers[star_reg]);
+          if (tuple != nullptr && tuple->items.empty()) {
+            empty_tuple_varargs_identity_reg = star_reg;
+          }
+        }
       }
     }
     const size_t positional_count = values.size() + expanded_positional.size();
@@ -358,7 +530,13 @@ RuntimeResult Interpreter::run_function(
       }
     }
     if (varargs_index >= 0) {
-      bound[static_cast<size_t>(varargs_index)] = Value::tuple(std::move(extra_positional));
+      if (empty_tuple_varargs_identity_reg != UINT32_MAX) {
+        value_assign_fast(
+            bound[static_cast<size_t>(varargs_index)],
+            values.registers[empty_tuple_varargs_identity_reg]);
+      } else {
+        bound[static_cast<size_t>(varargs_index)] = Value::tuple(std::move(extra_positional));
+      }
     }
 
     auto bind_keyword = [&](const std::string& name, const Value& value) -> bool {
@@ -775,6 +953,8 @@ RuntimeResult Interpreter::run_function(
   };
 
   Value deferred_frame_exception;
+  size_t active_dispatch_ip = std::numeric_limits<size_t>::max();
+  bool allow_call_argument_transfer = false;
   auto push_frame = [&](const ir::Module& call_module,
                         uint32_t call_function_id,
                         CallArgsView call_args,
@@ -785,7 +965,8 @@ RuntimeResult Interpreter::run_function(
                         uint32_t return_dst,
                         FrameReturnMode return_mode = FrameReturnMode::StoreReturnValue,
                         Value continuation_value = Value::invalid(),
-                        bool call_args_are_bound = false) -> bool {
+                        bool call_args_are_bound = false,
+                        uint32_t leading_argument_register = UINT32_MAX) -> bool {
     // Keep ordinary Python calls on this VM frame stack and return to the same
     // dispatch loop. CPython 3.14's CALL_PY_EXACT_ARGS follows the same shape:
     // transfer positional arguments into a compact interpreter frame, then
@@ -842,14 +1023,91 @@ RuntimeResult Interpreter::run_function(
     } else if (call_args.size() != call_fn.params.size()) {
       return bind_count_error(call_fn, call_args);
     }
+
+    // An exact positional Python call consumes each input register here. If
+    // every source register is dead at this opcode and none is loop-carried,
+    // move those owned references into the new frame instead of retaining
+    // them in the caller and copying them into callee locals. Exact cached
+    // CallMethod calls include `self` as a leading register; its explicit id
+    // lets this path transfer receiver and arguments with the same liveness
+    // proof. Debug/monitoring frames and unusual argument layouts keep copies.
+    std::array<Value, 8> moved_call_args;
+    bool moved_call_arguments = false;
+    const bool can_transfer_unbound_register_args = !call_args_are_bound &&
+        call_args.leading_count == 0;
+    const bool can_transfer_bound_method_args = call_args_are_bound &&
+        call_args.leading_count == 1 && leading_argument_register != UINT32_MAX;
+    if (allow_call_argument_transfer &&
+        (can_transfer_unbound_register_args || can_transfer_bound_method_args) &&
+        !call_args.has_keywords() && !call_args.has_expansion() &&
+        call_args.register_args != nullptr && call_args.registers != nullptr &&
+        call_args.size() != 0 &&
+        call_args.size() <= moved_call_args.size() &&
+        call_args.size() == call_fn.params.size() && simple_signature(call_fn) &&
+        !has_dynamic_positional_defaults(call_fn, defaults) && frame_count != 0) {
+      auto& caller = frames[frame_count - 1];
+      const auto& last_use = caller.execution_metadata->register_last_use;
+      const auto& loop_carried = caller.execution_metadata->register_loop_carried;
+      bool can_transfer = call_args.registers == caller.regs.value_data() &&
+          call_args.register_args->size() + call_args.leading_count == call_args.size() &&
+          active_dispatch_ip != std::numeric_limits<size_t>::max();
+      std::array<uint32_t, 8> argument_registers{};
+      size_t explicit_index = 0;
+      if (can_transfer_bound_method_args) {
+        // CallMethod's leading self is known to be a caller register. Keep its
+        // register id explicitly instead of reverse-mapping a borrowed Value*
+        // through the register buffer. The callsite's exact-arity guard makes
+        // this receiver plus the explicit register arguments the full frame.
+        argument_registers[0] = leading_argument_register;
+        can_transfer = leading_argument_register < caller.regs.size() &&
+            leading_argument_register < last_use.size() &&
+            last_use[leading_argument_register] == active_dispatch_ip &&
+            (leading_argument_register >= loop_carried.size() ||
+             !loop_carried[leading_argument_register]);
+        explicit_index = 1;
+      }
+      for (size_t index = explicit_index;
+           can_transfer && index < call_args.size(); ++index) {
+        const size_t source_index = index - explicit_index;
+        const uint32_t reg = (*call_args.register_args)[source_index];
+        if (can_transfer_bound_method_args) argument_registers[index] = reg;
+        can_transfer = reg < caller.regs.size() && reg < last_use.size() &&
+            last_use[reg] == active_dispatch_ip &&
+            (reg >= loop_carried.size() || !loop_carried[reg]);
+        if (can_transfer_bound_method_args) {
+          for (size_t prior = 0; can_transfer && prior < index; ++prior) {
+            if (argument_registers[prior] == reg) can_transfer = false;
+          }
+        } else {
+          for (size_t prior = 0; can_transfer && prior < index; ++prior) {
+            if ((*call_args.register_args)[prior] == reg) can_transfer = false;
+          }
+        }
+      }
+      if (can_transfer) {
+        for (size_t index = 0; index < call_args.size(); ++index) {
+          const uint32_t reg = can_transfer_bound_method_args
+              ? argument_registers[index]
+              : (*call_args.register_args)[index];
+          value_move_assign_fast(moved_call_args[index], caller.regs[reg]);
+        }
+        xlang_perf_count_call_argument_transfer();
+        frame_args.leading = moved_call_args.data();
+        frame_args.leading_count = static_cast<uint32_t>(call_args.size());
+        frame_args.registers = nullptr;
+        frame_args.register_args = nullptr;
+        moved_call_arguments = true;
+      }
+    }
+
     if (frame_count < frames.size()) {
       frames[frame_count].reset(call_module, call_function_id, frame_args, closure, std::move(call_globals_module),
                                 std::move(call_module_owner), return_dst, true, return_mode,
-                                std::move(continuation_value));
+                                std::move(continuation_value), moved_call_arguments);
     } else {
       frames.emplace_back(call_module, call_function_id, frame_args, closure, std::move(call_globals_module),
                           std::move(call_module_owner), return_dst, true, return_mode,
-                          std::move(continuation_value));
+                          std::move(continuation_value), moved_call_arguments);
     }
     if (bound_args != nullptr) {
       // emplace_back may relocate the frame vector, so reacquire the caller by
@@ -1883,6 +2141,9 @@ RuntimeResult Interpreter::run_function(
           !frame.trace_call_emitted || resumed_generator ||
           (frame.monitoring_events & kPerInstructionMonitoringEvents) != 0 ||
           hook_is_active(frame.trace_function);
+      active_dispatch_ip = ip;
+      allow_call_argument_transfer = !frame_observability_active &&
+          !debug_poll_active && !resumed_generator;
       if (XLANG3_UNLIKELY(frame_observability_active)) {
         // A frame without an installed local trace function cannot be executing
         // recursively inside that trace function. Avoid a TLS runtime-state
@@ -1944,6 +2205,7 @@ RuntimeResult Interpreter::run_function(
         }
       }
       const auto& in = fn.code[ip];
+      active_dispatch_ip = ip;
       if (count_opcode_dispatches) {
         xlang_perf_count_opcode_enabled(static_cast<uint16_t>(in.op));
       }

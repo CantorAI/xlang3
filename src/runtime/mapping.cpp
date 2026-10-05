@@ -569,6 +569,47 @@ bool dict_integer_key(const Value& key, int64_t& out) {
   return value_int_like_to_i64(key, out);
 }
 
+size_t dict_integer_slot(int64_t key, size_t mask) {
+  uint64_t hash = static_cast<uint64_t>(key);
+  hash ^= hash >> 30;
+  hash *= 0xbf58476d1ce4e5b9ULL;
+  hash ^= hash >> 27;
+  hash *= 0x94d049bb133111ebULL;
+  hash ^= hash >> 31;
+  if constexpr (sizeof(size_t) < sizeof(hash)) hash ^= hash >> 32;
+  return static_cast<size_t>(hash) & mask;
+}
+
+void dict_integer_index_insert_raw(
+    const DictObject& dict, int64_t key, size_t entry_index) {
+  const size_t mask = dict.integer_index.size() - 1;
+  size_t slot = dict_integer_slot(key, mask);
+  while (dict.integer_index[slot] != 0) slot = (slot + 1) & mask;
+  dict.integer_index[slot] = entry_index + 1;
+}
+
+bool dict_find_integer_index(
+    const DictObject& dict, int64_t key, size_t& index) {
+  if (dict.integer_index.empty()) return false;
+  const size_t mask = dict.integer_index.size() - 1;
+  size_t slot = dict_integer_slot(key, mask);
+  for (size_t probes = 0; probes < dict.integer_index.size(); ++probes) {
+    const size_t encoded = dict.integer_index[slot];
+    if (encoded == 0) return false;
+    const size_t candidate = encoded - 1;
+    if (candidate < dict.entries.size()) {
+      int64_t stored_key = 0;
+      if (dict_integer_key(dict.entries[candidate].first, stored_key) &&
+          stored_key == key) {
+        index = candidate;
+        return true;
+      }
+    }
+    slot = (slot + 1) & mask;
+  }
+  return false;
+}
+
 size_t dict_string_slot(size_t hash, size_t mask) {
   if constexpr (sizeof(size_t) > 4) hash ^= hash >> 32;
   return hash & mask;
@@ -583,7 +624,9 @@ void dict_string_index_insert_raw(const DictObject& dict, size_t hash, size_t en
 
 void ensure_key_indexes(const DictObject& dict) {
   if (dict.indexed_entry_count == dict.entries.size()) return;
-  dict.integer_index.clear();
+  size_t integer_capacity = 8;
+  while (integer_capacity < dict.entries.size() * 2) integer_capacity *= 2;
+  dict.integer_index.assign(integer_capacity, 0);
   size_t string_capacity = 8;
   while (string_capacity < dict.entries.size() * 2) string_capacity *= 2;
   dict.string_index.assign(string_capacity, 0);
@@ -592,7 +635,7 @@ void ensure_key_indexes(const DictObject& dict) {
   for (size_t i = 0; i < dict.entries.size(); ++i) {
     int64_t numeric_key = 0;
     if (dict_integer_key(dict.entries[i].first, numeric_key)) {
-      dict.integer_index.emplace(numeric_key, i);
+      dict_integer_index_insert_raw(dict, numeric_key, i);
     } else {
       dict.index_has_other_keys = true;
     }
@@ -603,6 +646,16 @@ void ensure_key_indexes(const DictObject& dict) {
     }
   }
   dict.indexed_entry_count = dict.entries.size();
+}
+
+void dict_integer_index_insert(
+    DictObject& dict, int64_t key, size_t entry_index) {
+  if (dict.integer_index.empty() || dict.entries.size() * 2 > dict.integer_index.size()) {
+    dict.indexed_entry_count = static_cast<size_t>(-1);
+    ensure_key_indexes(dict);
+    return;
+  }
+  dict_integer_index_insert_raw(dict, key, entry_index);
 }
 
 void dict_string_index_insert(DictObject& dict, size_t hash, size_t entry_index) {
@@ -680,8 +733,9 @@ bool mapping_get_item(const Value& object, const Value& key, Value& out, std::st
     int64_t numeric_key = 0;
     if (dict_integer_key(key, numeric_key)) {
       ensure_key_indexes(*dict);
-      if (const auto found = dict->integer_index.find(numeric_key); found != dict->integer_index.end()) {
-        value_assign_fast(out, dict->entries[found->second].second);
+      size_t found = 0;
+      if (dict_find_integer_index(*dict, numeric_key, found)) {
+        value_assign_fast(out, dict->entries[found].second);
         return true;
       }
       if (!dict->index_has_other_keys) {
@@ -737,6 +791,40 @@ bool mapping_get_item(const Value& object, const Value& key, Value& out, std::st
   }
   error = "object is not a dict: " + value_to_repr(object);
   return false;
+}
+
+bool mapping_get_integer_item_if_present(
+    const Value& object, int64_t key, Value& out) {
+  auto* dict = value_as_dict(object);
+  if (dict == nullptr) return false;
+  // A successful integer-index hit is definitive: equal Python dict keys
+  // cannot coexist. Misses deliberately fall through to runtime hashing and
+  // equality because non-integer user keys can compare equal to this integer.
+  ensure_key_indexes(*dict);
+  size_t found = 0;
+  if (!dict_find_integer_index(*dict, key, found)) return false;
+  value_assign_fast(out, dict->entries[found].second);
+  return true;
+}
+
+bool mapping_get_item_identity_key(
+    const Value& object, const Value& key, Value& out, std::string& error) {
+  // Classes and ordinary instances use stable identity hashes in this dict
+  // path. Do not skip hash computation for content-hashed objects such as
+  // tuples, whose hash can depend on the current contents of their members.
+  if ((value_as_class(key) != nullptr || value_as_instance(key) != nullptr) &&
+      value_as_mapping_proxy(object) == nullptr) {
+    auto* dict = value_as_dict(object);
+    if (dict != nullptr && dict->backing_module == nullptr) {
+      for (const auto& entry : dict->entries) {
+        if (entry.first.tag == ValueTag::Object && entry.first.as.obj == key.as.obj) {
+          value_assign_fast(out, entry.second);
+          return true;
+        }
+      }
+    }
+  }
+  return mapping_get_item(object, key, out, error);
 }
 
 bool mapping_get_string_item(
@@ -938,8 +1026,9 @@ bool mapping_set_item(Value& object, const Value& key, const Value& item, std::s
     const bool indexed_numeric_key = dict_integer_key(key, numeric_key);
     if (indexed_numeric_key) {
       ensure_key_indexes(*dict);
-      if (const auto found = dict->integer_index.find(numeric_key); found != dict->integer_index.end()) {
-        value_assign_fast(dict->entries[found->second].second, item);
+      size_t found = 0;
+      if (dict_find_integer_index(*dict, numeric_key, found)) {
+        value_assign_fast(dict->entries[found].second, item);
         return true;
       }
       if (!dict->index_has_other_keys) {
@@ -948,7 +1037,7 @@ bool mapping_set_item(Value& object, const Value& key, const Value& item, std::s
         value_assign_fast(owned_key, key);
         value_assign_fast(owned_item, item);
         dict->entries.push_back(std::make_pair(std::move(owned_key), std::move(owned_item)));
-        dict->integer_index.emplace(numeric_key, dict->entries.size() - 1);
+        dict_integer_index_insert(*dict, numeric_key, dict->entries.size() - 1);
         dict->index_has_non_string_keys = true;
         dict->indexed_entry_count = dict->entries.size();
         return true;
@@ -970,7 +1059,7 @@ bool mapping_set_item(Value& object, const Value& key, const Value& item, std::s
     dict->entries.push_back(std::make_pair(std::move(owned_key), std::move(owned_item)));
     if (dict->indexed_entry_count + 1 == dict->entries.size()) {
       if (indexed_numeric_key) {
-        dict->integer_index.emplace(numeric_key, dict->entries.size() - 1);
+        dict_integer_index_insert(*dict, numeric_key, dict->entries.size() - 1);
       } else {
         dict->index_has_other_keys = true;
       }
@@ -1011,6 +1100,27 @@ bool mapping_set_item(Value& object, const Value& key, const Value& item, std::s
   }
   error = "object does not support item assignment";
   return false;
+}
+
+bool mapping_set_item_identity_key(Value& object, const Value& key,
+                                   const Value& item, std::string& error) {
+  // Identity-hashed class/instance keys can update their existing entry
+  // directly. Decimal signal classes are the new hot use: avoid running the
+  // generic key equality path for Rounded and Inexact without changing how
+  // content-hashed dictionary keys are handled.
+  if ((value_as_class(key) != nullptr || value_as_instance(key) != nullptr) &&
+      value_as_mapping_proxy(object) == nullptr) {
+    auto* dict = value_as_dict(object);
+    if (dict != nullptr && dict->backing_module == nullptr) {
+      for (auto& entry : dict->entries) {
+        if (entry.first.tag == key.tag && entry.first.as.obj == key.as.obj) {
+          value_assign_fast(entry.second, item);
+          return true;
+        }
+      }
+    }
+  }
+  return mapping_set_item(object, key, item, error);
 }
 
 bool mapping_set_item_runtime(
@@ -1125,6 +1235,25 @@ bool mapping_delete_item(Value& object, const Value& key, std::string& error) {
   }
   error = "object does not support item deletion";
   return false;
+}
+
+bool mapping_delete_item_identity_key(Value& object, const Value& key,
+                                      std::string& error) {
+  // An existing instance key compares equal to itself by identity in the
+  // runtime's dict path. Preserve generic handling for misses and other maps.
+  if (value_as_instance(key) != nullptr && value_as_mapping_proxy(object) == nullptr) {
+    auto* dict = value_as_dict(object);
+    if (dict != nullptr && dict->backing_module == nullptr) {
+      for (size_t index = 0; index < dict->entries.size(); ++index) {
+        const auto& stored = dict->entries[index].first;
+        if (stored.tag == key.tag && stored.as.obj == key.as.obj) {
+          erase_dict_entry(*dict, index);
+          return true;
+        }
+      }
+    }
+  }
+  return mapping_delete_item(object, key, error);
 }
 
 bool mapping_get_iter(const Value& object, Value& out, std::string& error) {
@@ -1302,7 +1431,8 @@ bool mapping_contains(const Value& container, const Value& item, bool& out, std:
     int64_t numeric_key = 0;
     if (dict_integer_key(item, numeric_key)) {
       ensure_key_indexes(*dict);
-      if (dict->integer_index.find(numeric_key) != dict->integer_index.end()) {
+      size_t found = 0;
+      if (dict_find_integer_index(*dict, numeric_key, found)) {
         out = true;
         return true;
       }

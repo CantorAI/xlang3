@@ -1,0 +1,154 @@
+direct workload json_dumps: None total=0.037799200 s loops=1 per_loop=0.037799200 s
+perf: native_calls=21239 fast=21171 cached_fast=4226
+perf: native KeyError.__init__ slow=4 fast=0
+perf: native FileNotFoundError.__init__ slow=2 fast=0
+perf: native bytearray.translate slow=2 fast=0
+perf: native file.__enter__ slow=2 fast=0
+perf: native file.__exit__ slow=2 fast=0
+perf: native file.read slow=2 fast=0
+perf: native io.open_code slow=2 fast=0
+perf: native FileFinder.path_hook slow=1 fast=0
+perf: native _io.TextIOWrapper.fileno slow=1 fast=0
+perf: native compile slow=1 fast=0
+perf: native dict.update slow=1 fast=0
+perf: native eval slow=1 fast=0
+perf: native exec slow=1 fast=0
+perf: native iter slow=1 fast=0
+perf: native os.get_terminal_size slow=1 fast=0
+perf: native print slow=1 fast=0
+perf: native zipimport.zipimporter.__init__ slow=1 fast=0
+perf: store_local moves=26868 copies=2117
+perf: frame_snapshots calls=1 frames=2 locals=0 refresh_calls=14 refresh_items=17
+perf: opcode 0 22871
+perf: opcode 1 40305
+perf: opcode 2 47255
+perf: opcode 3 28225
+perf: opcode 4 31
+perf: opcode 5 48
+perf: opcode 6 36
+perf: opcode 7 40
+perf: opcode 8 82
+perf: opcode 9 62
+perf: opcode 10 27
+perf: opcode 13 16462
+perf: opcode 15 12
+perf: opcode 18 25289
+perf: opcode 19 105
+perf: opcode 20 42
+perf: opcode 22 14
+perf: opcode 25 4184
+perf: opcode 26 1777
+perf: opcode 30 2
+perf: opcode 31 4223
+perf: opcode 33 2
+perf: opcode 35 4243
+perf: opcode 36 155
+perf: opcode 37 4109
+perf: opcode 38 2
+perf: opcode 39 65
+perf: opcode 40 17
+perf: opcode 41 1
+perf: opcode 42 330
+perf: opcode 46 221
+perf: opcode 47 1243
+perf: opcode 48 173
+perf: opcode 49 8
+perf: opcode 50 300
+perf: opcode 51 219
+perf: opcode 52 122
+perf: opcode 54 864
+perf: opcode 55 169
+perf: opcode 56 30
+perf: opcode 58 1
+perf: opcode 60 7
+perf: opcode 63 171
+perf: opcode 64 16
+perf: opcode 66 12
+perf: opcode 70 234
+perf: opcode 71 24226
+perf: opcode 72 1201
+perf: opcode 73 12053
+perf: opcode 74 4062
+perf: opcode 75 12
+perf: opcode 76 22141
+perf: opcode 77 27229
+perf: opcode 78 903
+perf: opcode 79 826
+perf: opcode 80 4
+perf: opcode 81 787
+perf: opcode 82 6
+perf: opcode 83 4
+perf: opcode 85 11
+perf: opcode 88 23
+perf: opcode 89 4029
+perf: opcode 90 8471
+perf: opcode 91 4007
+perf: opcode 92 14
+perf: opcode 93 17312
+perf: opcode 95 3
+perf: opcode 97 5786
+perf: opcode 98 12397
+perf: opcode 101 16
+perf: opcode 102 14
+perf: opcode 105 14722
+perf: opcode 106 17455
+perf: opcode 107 245
+perf: opcode 108 70
+perf: opcode 110 47507
+perf: opcode 111 645
+perf: opcode 112 835
+perf: opcode 113 215
+perf: opcode 114 497
+perf: opcode 115 40244
+perf: opcode 116 46
+perf: opcode 117 4255
+perf: opcode 118 1051
+perf: opcode 119 757
+perf: opcode 120 705
+perf: opcode 121 8365
+perf: opcode 122 99
+perf: opcode 125 100
+perf: opcode 126 4149
+perf: opcode 127 41
+perf: opcode 129 59
+perf: opcode 130 55
+perf: opcode 131 663
+perf: opcode 139 54
+perf: opcode 141 281
+perf: opcode 146 6
+perf: objects kind alloc final_release incref decref
+perf: String 4775 4228 66055 70211
+perf: BigInt 7 7 252 259
+perf: Bytes 10 6 10 16
+perf: ByteArray 30 30 23 53
+perf: Slice 65 65 18 83
+perf: Tuple 4602 4555 1548 6058
+perf: List 4189 4173 17133 21303
+perf: Dict 8179 8145 33752 40884
+perf: Unknown 5 0 5 5
+perf: Set 7 6 202 208
+perf: DictItemsView 4 4 0 4
+perf: DictIterator 16 16 0 16
+perf: Range 56 56 12 68
+perf: RangeIterator 35 35 0 35
+perf: SequenceIterator 203 203 1 204
+perf: Unknown 3 3 3 6
+perf: Unknown 1 1 1 2
+perf: Unknown 2 2 2 4
+perf: Generator 1 1 1 2
+perf: Module 9 1 64646 64159
+perf: Cell 85 51 166 209
+perf: Function 4223 4006 17476 21452
+perf: NativeFunction 8 0 74206 74200
+perf: Class 40 0 50228 49966
+perf: Instance 107 87 25485 25551
+perf: BoundMethod 4473 4472 4139 8611
+perf: StaticMethod 1 0 92 92
+perf: ClassMethod 1 0 43 43
+perf: Super 8 8 0 8
+perf: SlotDescriptor 0 0 9 9
+perf: Property 3 0 72 72
+perf: Unknown 209 209 9 218
+perf: Unknown 35 35 126 161
+perf: Unknown 31 31 23 54
+perf: File 2 2 19 21

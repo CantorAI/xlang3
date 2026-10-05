@@ -298,11 +298,12 @@ bool gc_object_references_any(Runtime& runtime, const Value& source,
     for (uint32_t index = 0; index < value->slot_count; ++index)
       edge(instance_slot_at(value, index));
     for (const auto& item : value->attrs) edge(item.second);
-    for (auto* target : value->native_gc_references)
+    instance_visit_native_gc_references(*value, [&](Object* target) {
       for (uint32_t index = 0; index < target_count; ++index)
         if (targets[index].tag == ValueTag::Object &&
             targets[index].as.obj == target)
           found = true;
+    });
   } else if (auto* value = value_as_bound_method(source)) {
     edge(value->self);
     edge(value->function);

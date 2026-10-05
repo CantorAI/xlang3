@@ -18,6 +18,7 @@ limitations under the License.
 #include "xlang3/builtin_methods.h"
 #include "xlang3/functional_iterators.h"
 #include "xlang3/generator.h"
+#include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
 #include "xlang3/sequence.h"
 #include "xlang3/set_object.h"
@@ -52,6 +53,109 @@ bool value_is_callable_for_iter(const Value& value) {
 bool pending_exception_is(Runtime& runtime, const Value& exception, const char* class_name) {
   auto* klass = value_as_class(runtime.exception_type(exception));
   return klass != nullptr && klass->name == class_name;
+}
+
+bool decimal_default_str(const Value& value, Value& out) {
+  auto* instance = value_as_instance(value);
+  auto* klass = instance == nullptr ? nullptr : value_as_class(instance->klass);
+  if (klass == nullptr || klass->name != "Decimal") return false;
+
+  // pyperformance's telco prints one Decimal for each input record.  For the
+  // unmodified stdlib Decimal class, its four immutable slots already contain
+  // exactly the data __str__ walks in Python; format those slots directly and
+  // keep custom classes/methods on the normal descriptor path below.
+  auto* globals = value_as_module(klass->globals_module);
+  if (globals == nullptr) return false;
+  Value module_name;
+  std::string ignored;
+  if (!module_get_attr(klass->globals_module, "__name__", module_name, ignored) ||
+      value_as_string(module_name) == nullptr ||
+      string_object_view(*value_as_string(module_name)) != "decimal") {
+    return false;
+  }
+  Value exported_class;
+  if (!module_get_attr(klass->globals_module, "Decimal", exported_class, ignored) ||
+      value_as_class(exported_class) != klass) {
+    return false;
+  }
+  const auto str_method = klass->attrs.find("__str__");
+  auto* function = str_method == klass->attrs.end()
+      ? nullptr
+      : value_as_function(str_method->second);
+  if (function == nullptr || function->qualname != "Decimal.__str__" ||
+      value_as_module(function->globals_module) != globals) {
+    return false;
+  }
+
+  const auto exp_slot = klass->instance_slot_indices.find("_exp");
+  const auto int_slot = klass->instance_slot_indices.find("_int");
+  const auto sign_slot = klass->instance_slot_indices.find("_sign");
+  const auto special_slot = klass->instance_slot_indices.find("_is_special");
+  if (exp_slot == klass->instance_slot_indices.end() ||
+      int_slot == klass->instance_slot_indices.end() ||
+      sign_slot == klass->instance_slot_indices.end() ||
+      special_slot == klass->instance_slot_indices.end() ||
+      exp_slot->second >= instance_slot_count(instance) ||
+      int_slot->second >= instance_slot_count(instance) ||
+      sign_slot->second >= instance_slot_count(instance) ||
+      special_slot->second >= instance_slot_count(instance)) {
+    return false;
+  }
+
+  const Value& exponent = instance_slot_at(instance, exp_slot->second);
+  const Value& digits_value = instance_slot_at(instance, int_slot->second);
+  const Value& sign_value = instance_slot_at(instance, sign_slot->second);
+  const Value& special_value = instance_slot_at(instance, special_slot->second);
+  const auto* digits_object = value_as_string(digits_value);
+  if (digits_object == nullptr || sign_value.tag != ValueTag::Int64 ||
+      special_value.tag != ValueTag::Bool) {
+    return false;
+  }
+  const bool negative = sign_value.as.i64 != 0;
+  const std::string_view digits = string_object_view(*digits_object);
+  std::string result;
+  if (special_value.as.b) {
+    if (value_as_string(exponent) == nullptr) return false;
+    const std::string_view kind = string_object_view(*value_as_string(exponent));
+    if (kind == "F") result = negative ? "-Infinity" : "Infinity";
+    else if (kind == "n") result = (negative ? "-NaN" : "NaN") + std::string(digits);
+    else if (kind == "N") result = (negative ? "-sNaN" : "sNaN") + std::string(digits);
+    else return false;
+    out = noninterned_string_value(std::move(result));
+    return true;
+  }
+  if (exponent.tag != ValueTag::Int64 || digits.empty()) return false;
+  const int64_t exp = exponent.as.i64;
+  // Avoid speculative huge allocations for unusual values; the Python method
+  // remains the compatibility fallback for large exponents.
+  if (exp < -1000000 || exp > 1000000 || digits.size() > 1000000) return false;
+  const int64_t leftdigits = exp + static_cast<int64_t>(digits.size());
+  const int64_t dotplace = exp <= 0 && leftdigits > -6 ? leftdigits : 1;
+  result.reserve(digits.size() + 32 +
+      static_cast<size_t>(dotplace <= 0 ? -dotplace : 0) +
+      static_cast<size_t>(dotplace > static_cast<int64_t>(digits.size())
+          ? dotplace - static_cast<int64_t>(digits.size()) : 0));
+  if (negative) result.push_back('-');
+  if (dotplace <= 0) {
+    result += "0.";
+    result.append(static_cast<size_t>(-dotplace), '0');
+    result.append(digits);
+  } else if (dotplace >= static_cast<int64_t>(digits.size())) {
+    result.append(digits);
+    result.append(static_cast<size_t>(dotplace - static_cast<int64_t>(digits.size())), '0');
+  } else {
+    result.append(digits.substr(0, static_cast<size_t>(dotplace)));
+    result.push_back('.');
+    result.append(digits.substr(static_cast<size_t>(dotplace)));
+  }
+  if (leftdigits != dotplace) {
+    const int64_t scientific_exp = leftdigits - dotplace;
+    result.push_back('e');
+    result.push_back(scientific_exp >= 0 ? '+' : '-');
+    result += std::to_string(scientific_exp >= 0 ? scientific_exp : -scientific_exp);
+  }
+  out = noninterned_string_value(std::move(result));
+  return true;
 }
 
 void raise_stop_iteration_with_value(Runtime& runtime, const Value& return_value) {
@@ -440,6 +544,7 @@ bool builtin_str_from_value(Runtime& runtime, const Value& value, Value& out, st
       return runtime_call_callable(runtime, *repr_function, &value, 1, out, error);
     }
   }
+  if (decimal_default_str(value, out)) return true;
   if (auto* instance = value_as_instance(value)) {
     auto* klass = value_as_class(instance->klass);
     if (klass != nullptr && klass->attrs.find("__str__") == klass->attrs.end() &&

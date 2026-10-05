@@ -1,0 +1,3 @@
+native True True False
+explicit-loop True
+subclass True True

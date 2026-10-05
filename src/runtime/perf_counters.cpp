@@ -159,6 +159,10 @@ std::string xlang_perf_report() {
   }
   out << "perf: store_local moves=" << load_counter(g_perf_counters.store_local_moves)
       << " copies=" << load_counter(g_perf_counters.store_local_copies) << "\n";
+  out << "perf: call argument register transfers="
+      << load_counter(g_perf_counters.call_argument_transfers) << "\n";
+  out << "perf: CALL_FUNCTION_EX varargs+kwonly direct bindings="
+      << load_counter(g_perf_counters.call_ex_varargs_kwonly_bindings) << "\n";
   static constexpr std::array<const char*, xlang_perf_monitoring_event_count> monitoring_names = {
       "PY_START", "PY_RESUME", "PY_RETURN", "PY_YIELD", "CALL", "LINE", "INSTRUCTION",
       "JUMP", "BRANCH_LEFT", "BRANCH_RIGHT", "STOP_ITERATION", "RAISE", "EXCEPTION_HANDLED",

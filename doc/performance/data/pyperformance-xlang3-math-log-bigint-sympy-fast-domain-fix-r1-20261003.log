@@ -1,0 +1,42 @@
+Benchmark dependency sites: D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages
+Python benchmark suite 1.14.0
+
+
+==================================================
+( 1/1) creating venv for benchmark (sympy)
+
+(trying common venv first)
+
+[1/1] sympy...
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\data-files\benchmarks\bm_sympy\run_benchmark.py", line 3, in <module>
+    from sympy import expand, symbols, integrate, tan, summation
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sympy\__init__.py", line 22, in <module>
+    import mpmath
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\mpmath\__init__.py", line 5, in <module>
+    from .ctx_fp import FPContext
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\mpmath\ctx_fp.py", line 155, in <module>
+    frexp = math.frexp
+            ^^^^^^^^^^
+AttributeError: module 'math' has no attribute 'frexp'. Did you mean: 'ldexp'?
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\run.py", line 171, in run_benchmarks
+    result = bench.run(
+        bench_venv.python,
+    ...<3 lines>...
+        verbose=options.verbose,
+    )
+  File "D:\CantorAI\xlang3\benchmarks\diagnostics\run_pyperformance_xlang3_shimmed.py", line 145, in run_named_benchmark
+    return original_benchmark_run(benchmark, *positional, **keywords)
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 193, in run
+    bench = _run_perf_script(
+        python,
+    ...<4 lines>...
+        verbose=verbose,
+    )
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 250, in _run_perf_script
+    raise RuntimeError("Benchmark died")
+RuntimeError: Benchmark died
+ERROR: Benchmark sympy failed: Benchmark died
+
+ERROR: No benchmark was run

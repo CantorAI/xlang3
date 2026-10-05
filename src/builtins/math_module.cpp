@@ -61,6 +61,47 @@ bool require_number_arg(const Value& value, const char* name, double& out, std::
   return false;
 }
 
+bool math_log_value(const Value& value, double& out, std::string& error) {
+  if (value_as_bigint(value) != nullptr) {
+    bool negative = false;
+    const uint32_t* limbs = nullptr;
+    uint32_t count = 0;
+    if (!value_bigint_limb_view(value, negative, limbs, count) || count == 0 || negative) {
+      error = "math domain error";
+      return false;
+    }
+    uint32_t high_bits = 0;
+    for (uint32_t high_limb = limbs[count - 1]; high_limb != 0; high_limb >>= 1u) {
+      ++high_bits;
+    }
+    const uint64_t bit_count = static_cast<uint64_t>(count - 1) * 32u + high_bits;
+    const uint32_t kept_bits = static_cast<uint32_t>(bit_count < 53u ? bit_count : 53u);
+    const uint64_t shift = bit_count - kept_bits;
+    uint64_t leading = 0;
+    // CPython's math.log accepts arbitrary-size integers. Read only the top
+    // 53 bits needed for a double mantissa; converting the full BigInt through
+    // a decimal string would allocate and scan every digit on this native path.
+    for (uint64_t bit = bit_count; bit > shift;) {
+      --bit;
+      leading = (leading << 1u) | ((limbs[bit / 32u] >> (bit % 32u)) & 1u);
+    }
+    const double mantissa = std::ldexp(
+        static_cast<double>(leading), -static_cast<int>(kept_bits - 1u));
+    constexpr double kLn2 = 0.693147180559945309417232121458176568;
+    out = std::log(mantissa) + static_cast<double>(bit_count - 1u) * kLn2;
+    return true;
+  }
+
+  double number = 0.0;
+  if (!require_number_arg(value, "log", number, error)) return false;
+  if (number <= 0.0) {
+    error = "math domain error";
+    return false;
+  }
+  out = std::log(number);
+  return true;
+}
+
 bool unary_math(const char* name, double (*fn)(double), const Value* args, uint32_t argc, Value& out, std::string& error) {
   if (argc != 1) {
     error = std::string(name) + "() expected 1 argument";
@@ -112,6 +153,19 @@ bool math_modf(Runtime&, const Value* args, uint32_t argc, Value& out, std::stri
   double integral = 0.0;
   const double fractional = std::modf(value, &integral);
   out = Value::tuple({Value::number(fractional), Value::number(integral)});
+  return true;
+}
+
+bool math_frexp(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "frexp() expected 1 argument";
+    return false;
+  }
+  double value = 0.0;
+  if (!require_number_arg(args[0], "frexp", value, error)) return false;
+  int exponent = 0;
+  const double mantissa = std::frexp(value, &exponent);
+  out = Value::tuple({Value::number(mantissa), Value::int64(exponent)});
   return true;
 }
 
@@ -221,23 +275,28 @@ bool math_log(
     Value& out,
     std::string& error,
     void* user_data) {
-  (void)runtime;
   (void)user_data;
   if (argc < 1 || argc > 2) {
     error = "log() expected 1 or 2 arguments";
     return false;
   }
-  double value = 0.0;
-  if (!require_number_arg(args[0], "log", value, error)) {
+  double result = 0.0;
+  if (!math_log_value(args[0], result, error)) {
+    if (error == "math domain error") runtime.raise_class_error("ValueError", error);
     return false;
   }
-  double result = std::log(value);
   if (argc == 2) {
-    double base = 0.0;
-    if (!require_number_arg(args[1], "log", base, error)) {
+    double log_base = 0.0;
+    if (!math_log_value(args[1], log_base, error)) {
+      if (error == "math domain error") runtime.raise_class_error("ValueError", error);
       return false;
     }
-    result /= std::log(base);
+    if (log_base == 0.0) {
+      error = "math domain error";
+      runtime.raise_class_error("ValueError", error);
+      return false;
+    }
+    result /= log_base;
   }
   value_set_number(out, result);
   return true;
@@ -253,24 +312,31 @@ bool math_log_fast(
     Value& out,
     std::string& error,
     void* user_data) {
-  (void)runtime;
   (void)user_data;
   const uint32_t argc = leading_count + register_arg_count;
   if (argc < 1 || argc > 2) {
     error = "log() expected 1 or 2 arguments";
     return false;
   }
-  double value = 0.0;
-  if (!fast_number_arg_at("log", leading, leading_count, registers, register_args, register_arg_count, 0, value, error)) {
+  double result = 0.0;
+  if (!math_log_value(
+          fast_arg(leading, leading_count, registers, register_args, 0), result, error)) {
+    if (error == "math domain error") runtime.raise_class_error("ValueError", error);
     return false;
   }
-  double result = std::log(value);
   if (argc == 2) {
-    double base = 0.0;
-    if (!fast_number_arg_at("log", leading, leading_count, registers, register_args, register_arg_count, 1, base, error)) {
+    double log_base = 0.0;
+    if (!math_log_value(
+            fast_arg(leading, leading_count, registers, register_args, 1), log_base, error)) {
+      if (error == "math domain error") runtime.raise_class_error("ValueError", error);
       return false;
     }
-    result /= std::log(base);
+    if (log_base == 0.0) {
+      error = "math domain error";
+      runtime.raise_class_error("ValueError", error);
+      return false;
+    }
+    result /= log_base;
   }
   value_set_number(out, result);
   return true;
@@ -553,6 +619,10 @@ bool math_hypot(Runtime&, const Value* args, uint32_t argc, Value& out, std::str
 
 bool math_erfc(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   return unary_math("erfc", std::erfc, args, argc, out, error);
+}
+
+bool math_erf(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return unary_math("erf", std::erf, args, argc, out, error);
 }
 
 bool math_tan(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -1062,6 +1132,7 @@ void register_math_module(Runtime& runtime) {
       .function("isqrt", math_isqrt)
       .function("sqrt", math_sqrt, math_sqrt_fast)
       .function("hypot", math_hypot)
+      .function("erf", math_erf)
       .function("erfc", math_erfc)
       .function("tan", math_tan)
       .function("cosh", math_cosh)
@@ -1070,6 +1141,7 @@ void register_math_module(Runtime& runtime) {
       .function("fsum", math_fsum)
       .function("sumprod", math_sumprod)
       .function("modf", math_modf)
+      .function("frexp", math_frexp)
       .function("sin", math_sin, math_sin_fast)
       .function("cos", math_cos, math_cos_fast)
       .function("sinh", [](Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {

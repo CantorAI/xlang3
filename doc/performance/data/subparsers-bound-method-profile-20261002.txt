@@ -1,0 +1,250 @@
+perf: native_calls=56018 fast=50355 cached_fast=23199
+perf: native KeyError.__init__ slow=2009 fast=0
+perf: native _io.TextIOWrapper.fileno slow=1003 fast=0
+perf: native os.get_terminal_size slow=1003 fast=0
+perf: native int.__new__ slow=16 fast=77
+perf: native __xlang3_build_class_from_namespace__ slow=2 fast=76
+perf: native type.__new__ slow=19 fast=0
+perf: native str.__new__ slow=7 fast=0
+perf: native _codecs.lookup_error slow=6 fast=0
+perf: native bytearray.translate slow=4 fast=0
+perf: native sorted slow=4 fast=0
+perf: native FileNotFoundError.__init__ slow=3 fast=0
+perf: native _codecs.register slow=2 fast=0
+perf: native _functools._lru_cache_wrapper slow=2 fast=0
+perf: native eval slow=2 fast=0
+perf: native iter slow=2 fast=0
+perf: native type.__or__ slow=2 fast=0
+perf: native generator.close slow=1 fast=0
+perf: store_local moves=63141 copies=24846
+perf: frame_snapshots calls=2 frames=4 locals=0 refresh_calls=3036 refresh_items=4071
+perf: opcode 0 41898
+perf: opcode 1 10666
+perf: opcode 2 80603
+perf: opcode 3 71325
+perf: opcode 4 1557
+perf: opcode 5 1574
+perf: opcode 6 1552
+perf: opcode 7 9598
+perf: opcode 8 1173
+perf: opcode 9 1118
+perf: opcode 10 20644
+perf: opcode 11 2
+perf: opcode 12 7
+perf: opcode 13 16332
+perf: opcode 15 39
+perf: opcode 17 12
+perf: opcode 18 23344
+perf: opcode 19 618
+perf: opcode 20 1067
+perf: opcode 22 48
+perf: opcode 23 7
+perf: opcode 25 8602
+perf: opcode 26 29420
+perf: opcode 30 22
+perf: opcode 31 1975
+perf: opcode 33 25
+perf: opcode 35 12801
+perf: opcode 36 10350
+perf: opcode 37 283
+perf: opcode 38 31
+perf: opcode 39 3352
+perf: opcode 40 161
+perf: opcode 42 1255
+perf: opcode 46 7336
+perf: opcode 47 26402
+perf: opcode 48 3007
+perf: opcode 49 9
+perf: opcode 50 8163
+perf: opcode 51 7474
+perf: opcode 52 1726
+perf: opcode 53 1001
+perf: opcode 54 6071
+perf: opcode 55 2255
+perf: opcode 56 2062
+perf: opcode 60 1134
+perf: opcode 62 1
+perf: opcode 63 300
+perf: opcode 64 42
+perf: opcode 65 4
+perf: opcode 66 21
+perf: opcode 70 7181
+perf: opcode 71 1904
+perf: opcode 72 18637
+perf: opcode 73 5619
+perf: opcode 74 398
+perf: opcode 75 28
+perf: opcode 76 50263
+perf: opcode 77 46739
+perf: opcode 78 7172
+perf: opcode 79 12059
+perf: opcode 81 4471
+perf: opcode 82 2013
+perf: opcode 83 2009
+perf: opcode 84 4
+perf: opcode 85 2030
+perf: opcode 86 1
+perf: opcode 88 4058
+perf: opcode 89 5546
+perf: opcode 90 53896
+perf: opcode 91 1007
+perf: opcode 92 5082
+perf: opcode 93 48331
+perf: opcode 95 30
+perf: opcode 96 3
+perf: opcode 97 30174
+perf: opcode 98 24444
+perf: opcode 99 8
+perf: opcode 101 20
+perf: opcode 102 20
+perf: opcode 105 86720
+perf: opcode 106 33975
+perf: opcode 107 3850
+perf: opcode 108 284
+perf: opcode 109 10
+perf: opcode 110 68387
+perf: opcode 111 705
+perf: opcode 112 3004
+perf: opcode 113 1988
+perf: opcode 114 12371
+perf: opcode 115 14987
+perf: opcode 116 1578
+perf: opcode 117 6009
+perf: opcode 118 12608
+perf: opcode 119 14019
+perf: opcode 120 7134
+perf: opcode 121 24164
+perf: opcode 122 388
+perf: opcode 125 5769
+perf: opcode 126 17829
+perf: opcode 127 4140
+perf: opcode 129 78
+perf: opcode 130 3081
+perf: opcode 131 14462
+perf: opcode 139 3097
+perf: opcode 141 11273
+perf: opcode 146 6
+perf: bound_method object.__hash__@_StoreAction=6516
+perf: bound_method __init__@_StoreAction=2004
+perf: bound_method __call__@_StoreAction=1504
+perf: bound_method _match_argument@ArgumentParser=1500
+perf: bound_method _sre.Match.group@Match=1500
+perf: bound_method __get__@property=1006
+perf: bound_method __init__@HelpFormatter=1003
+perf: bound_method __init__@_Section=1003
+perf: bound_method _add_action@_ArgumentGroup=1003
+perf: bound_method _get_formatter@ArgumentParser=1003
+perf: bound_method _io.TextIOWrapper.fileno@TextIOWrapper=1003
+perf: bound_method object.__init__@terminal_size=1003
+perf: bound_method _get_optional_kwargs@ArgumentParser=1001
+perf: bound_method add_argument@ArgumentParser=1001
+perf: bound_method int.__hash__@_NamedIntConstant=341
+perf: bound_method member_descriptor.__get__@object:41=139
+perf: bound_method list.append@object:9=114
+perf: bound_method dict.__setitem__@EnumDict=84
+perf: bound_method object.__init__@_NamedIntConstant=76
+perf: bound_method __len__@SubPattern=53
+perf: bound_method match@Tokenizer=53
+perf: bound_method append@SubPattern=32
+perf: bound_method get@Tokenizer=32
+perf: bound_method property.__set_name__@object:42=24
+perf: bound_method bytearray.find@object:5=19
+perf: bound_method dict.__getitem__@EnumDict=18
+perf: bound_method __setitem__@SubPattern=16
+perf: bound_method _get_mixins_@class:EnumType=14
+perf: bound_method _find_data_type_@class:EnumType=12
+perf: bound_method object.__hash__@class:Enum=12
+perf: bound_method staticmethod.__get__@object:38=12
+perf: bound_method __call__@class:RegexFlag=8
+perf: bound_method dict.fromkeys@class:dict=8
+perf: bound_method __and__@RegexFlag=7
+perf: bound_method __prepare__@class:EnumType=7
+perf: bound_method _add_member_@class:RegexFlag=7
+perf: bound_method _check_for_existing_members_@class:EnumType=7
+perf: bound_method _find_data_repr_@class:EnumType=7
+perf: bound_method _find_new_@class:EnumType=7
+perf: bound_method dict.__init__@EnumDict=7
+perf: bound_method __setitem__@EnumDict=6
+perf: bound_method object.__hash__@class:ReprEnum=6
+perf: bound_method __delitem__@SubPattern=4
+perf: bound_method __init__@FlagBoundary=4
+perf: bound_method __init__@_ArgumentGroup=4
+perf: bound_method __set_name__@_proto_member=4
+perf: bound_method _add_member_@class:FlagBoundary=4
+perf: bound_method _match_arguments_partial@ArgumentParser=4
+perf: bound_method _sre.Match.end@Match=4
+perf: bound_method bytearray.translate@object:5=4
+perf: bound_method mappingproxy.__getitem__@object:11=4
+perf: bound_method object.__eq__@_auto_null=4
+perf: bound_method __set_name__@property=3
+perf: bound_method __init__@_HelpAction=2
+perf: bound_method _get_positional_kwargs@ArgumentParser=2
+perf: bound_method _handle_conflict_error@_ArgumentGroup=2
+perf: bound_method _sre.Match.groups@Match=2
+perf: bound_method dict.setdefault@object:10=2
+perf: bound_method list.__class_getitem__@class:list=2
+perf: bound_method object.__hash__@_HelpAction=2
+perf: bound_method object.__hash__@class:Flag=2
+perf: bound_method object.__hash__@class:StrEnum=2
+perf: bound_method object.__init__@_ArgumentGroup=2
+perf: bound_method set.__contains__@object:12=2
+perf: bound_method type.__or__@class:int=2
+perf: bound_method TypeError.__init__@TypeError=1
+perf: bound_method __call__@partial=1
+perf: bound_method __init__@ArgumentParser=1
+perf: bound_method __iter__@class:EnumCheck=1
+perf: bound_method __iter__@class:FlagBoundary=1
+perf: bound_method __iter__@class:IntFlag=1
+perf: bound_method __iter__@class:RegexFlag=1
+perf: bound_method __or__@RegexFlag=1
+perf: bound_method _handle_conflict_error@ArgumentParser=1
+perf: bound_method _iter_member_by_def_@class:RegexFlag=1
+perf: bound_method _iter_member_by_value_@class:RegexFlag=1
+perf: bound_method _m@_C=1
+perf: bound_method _missing_@class:RegexFlag=1
+perf: bound_method add_argument_group@ArgumentParser=1
+perf: bound_method function.__get__@object:33=1
+perf: bound_method generator.close@object:29=1
+perf: bound_method object.__init__@ArgumentParser=1
+perf: bound_method object.__init__@_ZeroSentinel=1
+perf: bound_method object.__init__@partial=1
+perf: bound_method object.__str__@object=1
+perf: bound_method register@class:MutableSequence=1
+perf: bound_method repr@Repr=1
+perf: objects kind alloc final_release incref decref
+perf: String 21136 11971 147889 156786
+perf: BigInt 18 17 370 387
+perf: Bytes 78 26 82 94
+perf: ByteArray 52 52 35 87
+perf: Slice 3352 3352 32 3384
+perf: Tuple 29567 29333 38611 67827
+perf: List 11955 9836 62807 72620
+perf: Dict 3625 3489 48093 51527
+perf: Unknown 102 95 22 117
+perf: Set 117 90 6471 6561
+perf: DictItemsView 21 21 1 22
+perf: DictIterator 75 75 0 75
+perf: SetIterator 9 9 0 9
+perf: Range 86 86 0 86
+perf: RangeIterator 54 54 0 54
+perf: SequenceIterator 8971 8971 3 8974
+perf: Unknown 8 8 8 16
+perf: Unknown 4 4 4 8
+perf: Unknown 4 4 4 8
+perf: Generator 16 16 38 54
+perf: Module 28 1 162201 160258
+perf: Cell 1197 1141 27029 28160
+perf: Function 1975 1083 58975 59800
+perf: NativeFunction 69 13 90839 90605
+perf: Class 133 4 165712 160784
+perf: Instance 12970 9797 1527159 1530344
+perf: BoundMethod 23267 23263 1716 24978
+perf: StaticMethod 16 1 5610 5611
+perf: ClassMethod 22 0 295 294
+perf: Super 2199 2199 0 2199
+perf: SlotDescriptor 14 0 9463 9463
+perf: Property 20 0 229 225
+perf: Unknown 1019 1019 0 1019
+perf: Unknown 6085 6085 17322 23407
+perf: Unknown 6071 6071 4067 10138
+perf: Unknown 4 4 0 4

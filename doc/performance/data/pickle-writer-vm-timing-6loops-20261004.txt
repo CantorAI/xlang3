@@ -1,0 +1,329 @@
+direct workload pickle_pure_python: 1.2539332000014838 wall=1.253970300 s loops=6 inner_loops=20
+perf: native_calls=318669 fast=292110 cached_fast=32078
+perf: native _io.BytesIO.__init__ slow=1080 fast=0
+perf: native itertools.batched slow=840 fast=0
+perf: native _io.BytesIO.getbuffer slow=360 fast=0
+perf: native _io.BytesIO.getvalue slow=360 fast=0
+perf: native weakref.ProxyType.__setattr__ slow=172 fast=0
+perf: native object.__init__ slow=61 fast=109
+perf: native int.__new__ slow=68 fast=81
+perf: native __xlang3_build_class_from_namespace__ slow=2 fast=137
+perf: native __import__ slow=121 fast=0
+perf: native int.to_bytes slow=120 fast=0
+perf: native object.__reduce_ex__ slow=120 fast=0
+perf: native _random.Random.random slow=99 fast=0
+perf: native weakref.ProxyType.__getattr__ slow=86 fast=0
+perf: native weakref.proxy slow=86 fast=0
+perf: native type.__new__ slow=41 fast=0
+perf: native _operator.index slow=38 fast=0
+perf: native itertools.product slow=33 fast=0
+perf: native itertools.permutations slow=24 fast=0
+perf: native sys.getrecursionlimit slow=20 fast=0
+perf: native eval slow=14 fast=0
+perf: native zip slow=4 fast=9
+perf: native functools._lru_cache_wrapper slow=12 fast=0
+perf: native property.__get__ slow=12 fast=0
+perf: native KeyError.__init__ slow=8 fast=0
+perf: native str.__new__ slow=7 fast=0
+perf: native _codecs.lookup_error slow=6 fast=0
+perf: native exec slow=6 fast=0
+perf: native sorted slow=6 fast=0
+perf: native _functools._lru_cache_wrapper slow=5 fast=0
+perf: native bytearray.translate slow=5 fast=0
+perf: native NotImplementedError.__init__ slow=4 fast=0
+perf: native _ast.AST.__init__ slow=4 fast=0
+perf: native function.__get__ slow=4 fast=0
+perf: native types.GenericAlias.__new__ slow=4 fast=0
+perf: native FileNotFoundError.__init__ slow=2 fast=0
+perf: native _codecs.register slow=2 fast=0
+perf: native _random.Random.seed slow=2 fast=0
+perf: native file.__enter__ slow=2 fast=0
+perf: native file.__exit__ slow=2 fast=0
+perf: native file.read slow=2 fast=0
+perf: native io.open_code slow=2 fast=0
+perf: native type.__or__ slow=2 fast=0
+perf: native FileFinder.path_hook slow=1 fast=0
+perf: native __xlang3_template_literal__ slow=1 fast=0
+perf: native _io.TextIOWrapper.fileno slow=1 fast=0
+perf: native _opcode.get_intrinsic1_descs slow=1 fast=0
+perf: native _opcode.get_intrinsic2_descs slow=1 fast=0
+perf: native _opcode.get_nb_ops slow=1 fast=0
+perf: native _zstd.set_parameter_types slow=1 fast=0
+perf: native compile slow=1 fast=0
+perf: native dict.update slow=1 fast=0
+perf: native generator.close slow=1 fast=0
+perf: native iter slow=1 fast=0
+perf: native itertools.count slow=1 fast=0
+perf: native os.get_terminal_size slow=1 fast=0
+perf: native print slow=1 fast=0
+perf: native property.setter slow=1 fast=0
+perf: native tuple.__new__ slow=1 fast=0
+perf: native zipimport.zipimporter.__init__ slow=1 fast=0
+perf: store_local moves=304934 copies=46888
+perf: call argument register transfers=87372
+perf: CALL_FUNCTION_EX varargs+kwonly direct bindings=0
+perf: frame_snapshots calls=14 frames=28 locals=0 refresh_calls=181 refresh_items=285
+perf: opcode 0 159568
+perf: opcode 1 62748
+perf: opcode 2 380174
+perf: opcode 3 307747
+perf: opcode 4 162
+perf: opcode 5 68
+perf: opcode 6 34
+perf: opcode 7 330
+perf: opcode 8 414
+perf: opcode 9 394
+perf: opcode 10 360
+perf: opcode 11 2
+perf: opcode 12 17
+perf: opcode 13 33348
+perf: opcode 15 214
+perf: opcode 17 30
+perf: opcode 18 170289
+perf: opcode 19 2547
+perf: opcode 20 167
+perf: opcode 22 210
+perf: opcode 23 15
+perf: opcode 25 4832
+perf: opcode 26 8733
+perf: opcode 30 60
+perf: opcode 31 2187
+perf: opcode 33 94
+perf: opcode 35 26839
+perf: opcode 36 743
+perf: opcode 37 1078
+perf: opcode 38 59
+perf: opcode 39 544
+perf: opcode 40 1049
+perf: opcode 41 6
+perf: opcode 42 2787
+perf: opcode 45 5
+perf: opcode 46 49367
+perf: opcode 47 11316
+perf: opcode 48 25723
+perf: opcode 49 1
+perf: opcode 50 21928
+perf: opcode 51 3140
+perf: opcode 52 2174
+perf: opcode 53 15
+perf: opcode 54 60890
+perf: opcode 55 305
+perf: opcode 56 332
+perf: opcode 58 1
+perf: opcode 59 10
+perf: opcode 60 512
+perf: opcode 61 1
+perf: opcode 62 22
+perf: opcode 63 329
+perf: opcode 64 58
+perf: opcode 66 17
+perf: opcode 67 120
+perf: opcode 70 92202
+perf: opcode 71 1382
+perf: opcode 72 25737
+perf: opcode 73 439
+perf: opcode 74 3649
+perf: opcode 75 18
+perf: opcode 76 160883
+perf: opcode 77 298224
+perf: opcode 78 22187
+perf: opcode 79 21644
+perf: opcode 80 4
+perf: opcode 81 21250
+perf: opcode 82 15
+perf: opcode 83 8
+perf: opcode 84 67
+perf: opcode 85 147
+perf: opcode 86 1
+perf: opcode 88 242
+perf: opcode 89 1274
+perf: opcode 90 347783
+perf: opcode 91 620
+perf: opcode 92 1206
+perf: opcode 93 258623
+perf: opcode 95 739
+perf: opcode 97 194602
+perf: opcode 98 96861
+perf: opcode 99 20
+perf: opcode 101 100
+perf: opcode 102 20
+perf: opcode 105 195639
+perf: opcode 106 59304
+perf: opcode 107 5053
+perf: opcode 108 1107
+perf: opcode 109 1572
+perf: opcode 110 528614
+perf: opcode 111 183
+perf: opcode 112 38517
+perf: opcode 113 26835
+perf: opcode 114 59495
+perf: opcode 115 27392
+perf: opcode 116 80
+perf: opcode 117 37622
+perf: opcode 118 129691
+perf: opcode 119 1555
+perf: opcode 120 30478
+perf: opcode 121 148508
+perf: opcode 122 1510
+perf: opcode 125 1545
+perf: opcode 126 3358
+perf: opcode 127 1055
+perf: opcode 129 439
+perf: opcode 130 80
+perf: opcode 131 103537
+perf: opcode 139 1
+perf: objects kind alloc final_release incref decref
+perf: String 12425 4391 201576 204016
+perf: BigInt 19 17 245 262
+perf: Bytes 117148 117004 290591 407430
+perf: ByteArray 426 426 405 831
+perf: MemoryView 360 360 0 360
+perf: Slice 544 544 37 581
+perf: Tuple 72820 72130 62172 133870
+perf: List 2010 1716 10128 11762
+perf: Dict 2069 1593 231118 232590
+perf: Unknown 514 502 252 712
+perf: Set 253 197 1054 1242
+perf: DictKeysView 5 5 0 5
+perf: DictValuesView 52 52 1 53
+perf: DictItemsView 545 545 485 1030
+perf: DictIterator 804 804 0 804
+perf: SetIterator 27 27 0 27
+perf: Range 181 181 2 183
+perf: RangeIterator 159 159 0 159
+perf: SequenceIterator 3868 3868 15 3883
+perf: Unknown 623 623 623 1246
+perf: Unknown 13 13 13 26
+perf: Unknown 30 30 30 60
+perf: Unknown 1 0 2 2
+perf: Generator 79 79 153 232
+perf: Module 89 8 1004502 1000063
+perf: Cell 563 282 1533 1786
+perf: Function 2191 177 107281 106721
+perf: NativeFunction 194 30 405371 404980
+perf: Class 289 7 137166 134638
+perf: Instance 3333 2871 766528 768755
+perf: BoundMethod 8152 8111 69048 77154
+perf: StaticMethod 52 2 3443 3445
+perf: ClassMethod 68 0 608 607
+perf: Super 337 337 0 337
+perf: SlotDescriptor 105 0 11609 11606
+perf: Property 134 1 1165 1161
+perf: Unknown 91 91 73 164
+perf: Unknown 465 465 2077 2542
+perf: Unknown 287 287 358 645
+perf: File 2 2 19 21
+perf: Unknown 17 16 90 106
+vm-time: clock_pair_mean_ns=15
+vm-time: opcode=255 calls=4306513 self_ns=167384500 total_ns=2873128700
+vm-time: opcode=72 calls=25791 self_ns=166762500 total_ns=166762500
+vm-time: opcode=90 calls=348034 self_ns=161971500 total_ns=163278100
+vm-time: opcode=93 calls=259329 self_ns=128914100 total_ns=1512013900
+vm-time: opcode=253 calls=1759 self_ns=105464800 total_ns=3103833200
+vm-time: opcode=118 calls=129720 self_ns=70673300 total_ns=70673300
+vm-time: opcode=110 calls=528618 self_ns=58727600 total_ns=58727600
+vm-time: opcode=20 calls=191 self_ns=31089700 total_ns=188325200
+vm-time: opcode=121 calls=148666 self_ns=28128900 total_ns=28128900
+vm-time: opcode=77 calls=298386 self_ns=22783600 total_ns=22830800
+vm-time: opcode=54 calls=60993 self_ns=22007400 total_ns=22007400
+vm-time: opcode=98 calls=97057 self_ns=18352300 total_ns=18352300
+vm-time: opcode=22 calls=251 self_ns=16095900 total_ns=128288500
+vm-time: opcode=18 calls=170698 self_ns=13329000 total_ns=13329000
+vm-time: opcode=2 calls=380987 self_ns=12955700 total_ns=12955700
+vm-time: opcode=3 calls=308149 self_ns=11194900 total_ns=11194900
+vm-time: opcode=112 calls=38518 self_ns=9002600 total_ns=9017000
+vm-time: opcode=76 calls=161291 self_ns=8703800 total_ns=9198700
+vm-time: opcode=105 calls=195949 self_ns=8475000 total_ns=8475000
+vm-time: opcode=13 calls=33643 self_ns=7430500 total_ns=7529600
+vm-time: opcode=120 calls=30515 self_ns=6240600 total_ns=6240600
+vm-time: opcode=23 calls=18 self_ns=5473200 total_ns=11504800
+vm-time: opcode=0 calls=160650 self_ns=5376200 total_ns=5376200
+vm-time: opcode=48 calls=25807 self_ns=4749800 total_ns=6394300
+vm-time: opcode=97 calls=194731 self_ns=4572700 total_ns=4572700
+vm-time: opcode=92 calls=1248 self_ns=4513500 total_ns=11058300
+vm-time: opcode=70 calls=92205 self_ns=3975700 total_ns=3975700
+vm-time: opcode=131 calls=103542 self_ns=3961600 total_ns=3961600
+vm-time: opcode=46 calls=49369 self_ns=3773000 total_ns=3855600
+vm-time: opcode=26 calls=8786 self_ns=2893600 total_ns=2893600
+vm-time: opcode=89 calls=1322 self_ns=2887000 total_ns=2887000
+vm-time: opcode=35 calls=26963 self_ns=2734700 total_ns=2734700
+vm-time: opcode=106 calls=59390 self_ns=2727000 total_ns=2727000
+vm-time: opcode=50 calls=22061 self_ns=2490300 total_ns=2522600
+vm-time: opcode=1 calls=62806 self_ns=2316100 total_ns=2316100
+vm-time: opcode=119 calls=1705 self_ns=2118000 total_ns=2118000
+vm-time: opcode=122 calls=1623 self_ns=2094600 total_ns=2094600
+vm-time: opcode=114 calls=59498 self_ns=2051500 total_ns=2051500
+vm-time: opcode=113 calls=26971 self_ns=1894900 total_ns=1894900
+vm-time: opcode=25 calls=4923 self_ns=1711200 total_ns=1711200
+vm-time: opcode=117 calls=37625 self_ns=1646300 total_ns=1646300
+vm-time: opcode=47 calls=11489 self_ns=1561900 total_ns=1639700
+vm-time: opcode=78 calls=22188 self_ns=1222000 total_ns=1222000
+vm-time: opcode=115 calls=27542 self_ns=1169400 total_ns=1169400
+vm-time: opcode=37 calls=1137 self_ns=1093900 total_ns=1093900
+vm-time: opcode=91 calls=620 self_ns=1011300 total_ns=17097000
+vm-time: opcode=31 calls=2459 self_ns=945100 total_ns=945100
+vm-time: opcode=81 calls=21281 self_ns=927000 total_ns=927000
+vm-time: opcode=42 calls=3168 self_ns=894400 total_ns=7812200
+vm-time: opcode=79 calls=21716 self_ns=853200 total_ns=853200
+vm-time: opcode=30 calls=62 self_ns=746700 total_ns=746700
+vm-time: opcode=19 calls=2790 self_ns=623100 total_ns=623100
+vm-time: opcode=51 calls=3182 self_ns=436600 total_ns=455500
+vm-time: opcode=127 calls=1140 self_ns=391800 total_ns=391800
+vm-time: opcode=52 calls=2188 self_ns=379000 total_ns=430600
+vm-time: opcode=82 calls=16 self_ns=295700 total_ns=295700
+vm-time: opcode=107 calls=5227 self_ns=252300 total_ns=252300
+vm-time: opcode=60 calls=512 self_ns=251100 total_ns=251100
+vm-time: opcode=126 calls=3460 self_ns=226000 total_ns=228800
+vm-time: opcode=74 calls=3664 self_ns=182800 total_ns=182800
+vm-time: opcode=111 calls=183 self_ns=180200 total_ns=180200
+vm-time: opcode=38 calls=66 self_ns=176800 total_ns=176800
+vm-time: opcode=125 calls=1573 self_ns=162800 total_ns=227000
+vm-time: opcode=15 calls=230 self_ns=157700 total_ns=157700
+vm-time: opcode=36 calls=769 self_ns=143700 total_ns=143700
+vm-time: opcode=63 calls=329 self_ns=135900 total_ns=135900
+vm-time: opcode=84 calls=67 self_ns=135300 total_ns=135300
+vm-time: opcode=85 calls=150 self_ns=97500 total_ns=97500
+vm-time: opcode=129 calls=439 self_ns=78200 total_ns=78200
+vm-time: opcode=95 calls=739 self_ns=71300 total_ns=71300
+vm-time: opcode=108 calls=1245 self_ns=70400 total_ns=70400
+vm-time: opcode=39 calls=550 self_ns=69700 total_ns=69700
+vm-time: opcode=71 calls=1382 self_ns=67500 total_ns=67500
+vm-time: opcode=40 calls=1158 self_ns=60000 total_ns=60000
+vm-time: opcode=109 calls=1604 self_ns=55800 total_ns=55800
+vm-time: opcode=17 calls=38 self_ns=53500 total_ns=53500
+vm-time: opcode=130 calls=80 self_ns=52600 total_ns=52600
+vm-time: opcode=101 calls=100 self_ns=51600 total_ns=51600
+vm-time: opcode=8 calls=463 self_ns=45600 total_ns=45600
+vm-time: opcode=64 calls=64 self_ns=42700 total_ns=42700
+vm-time: opcode=56 calls=332 self_ns=39300 total_ns=39300
+vm-time: opcode=73 calls=464 self_ns=31000 total_ns=57100
+vm-time: opcode=88 calls=248 self_ns=28100 total_ns=28100
+vm-time: opcode=43 calls=56 self_ns=24500 total_ns=24500
+vm-time: opcode=10 calls=444 self_ns=22800 total_ns=22800
+vm-time: opcode=33 calls=95 self_ns=22100 total_ns=22100
+vm-time: opcode=9 calls=407 self_ns=20000 total_ns=20000
+vm-time: opcode=55 calls=341 self_ns=19800 total_ns=19800
+vm-time: opcode=7 calls=331 self_ns=17900 total_ns=17900
+vm-time: opcode=67 calls=120 self_ns=13200 total_ns=13200
+vm-time: opcode=4 calls=162 self_ns=11000 total_ns=11000
+vm-time: opcode=66 calls=20 self_ns=10600 total_ns=10600
+vm-time: opcode=62 calls=22 self_ns=6300 total_ns=6300
+vm-time: opcode=116 calls=80 self_ns=6100 total_ns=6100
+vm-time: opcode=41 calls=6 self_ns=6100 total_ns=6100
+vm-time: opcode=6 calls=58 self_ns=4900 total_ns=4900
+vm-time: opcode=53 calls=48 self_ns=4200 total_ns=4200
+vm-time: opcode=5 calls=68 self_ns=3900 total_ns=3900
+vm-time: opcode=99 calls=20 self_ns=3300 total_ns=3300
+vm-time: opcode=102 calls=20 self_ns=2800 total_ns=2800
+vm-time: opcode=75 calls=18 self_ns=2600 total_ns=2600
+vm-time: opcode=59 calls=10 self_ns=2300 total_ns=2300
+vm-time: opcode=49 calls=1 self_ns=2200 total_ns=2200
+vm-time: opcode=45 calls=5 self_ns=1500 total_ns=1500
+vm-time: opcode=83 calls=9 self_ns=1400 total_ns=1400
+vm-time: opcode=12 calls=17 self_ns=1200 total_ns=1200
+vm-time: opcode=80 calls=4 self_ns=400 total_ns=400
+vm-time: opcode=58 calls=1 self_ns=300 total_ns=300
+vm-time: opcode=139 calls=1 self_ns=300 total_ns=300
+vm-time: opcode=61 calls=1 self_ns=200 total_ns=200
+vm-time: opcode=11 calls=2 self_ns=200 total_ns=200
+vm-time: opcode=86 calls=3 self_ns=200 total_ns=200

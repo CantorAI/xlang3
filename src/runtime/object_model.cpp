@@ -333,7 +333,8 @@ InstanceObject* allocate_instance_object() {
     gc_track_object(&obj->header);
     return obj;
   }
-  return allocate_object_model<InstanceObject>(ObjectKind::Instance);
+  auto* obj = allocate_object_model<InstanceObject>(ObjectKind::Instance);
+  return obj;
 }
 
 BoundMethodObject* allocate_bound_method_object() {
@@ -407,6 +408,7 @@ void recycle_instance_object(InstanceObject* instance) {
   instance->native_owner = nullptr;
   instance->native_data_cleanup = nullptr;
   instance->native_gc_references.clear();
+  instance->native_gc_traverse = nullptr;
   instance->native_data_clear = nullptr;
   instance->native_data_truthy = nullptr;
   instance->native_get_attr = nullptr;
@@ -5872,6 +5874,7 @@ bool instance_set_native_owner(Value instance, std::string native_type, void* na
   instance_obj->native_owner = owner;
   instance_obj->native_data_cleanup = native_data_cleanup;
   instance_obj->native_gc_references.clear();
+  instance_obj->native_gc_traverse = nullptr;
   instance_obj->native_data_clear = nullptr;
   instance_obj->native_data_truthy = nullptr;
   instance_obj->native_get_attr = nullptr;
@@ -5891,11 +5894,14 @@ bool instance_set_native_gc_references(Value instance, const Value* references,
     error = "native GC references are null";
     return false;
   }
-  if (instance_obj->native_gc_registered) {
-    native_gc_instances().erase(&instance_obj->header);
-    instance_obj->native_gc_registered = false;
-  }
-  std::vector<Object*> objects;
+  // Native payloads refresh tracing edges on hot state transitions such as
+  // every asyncio Task step. The mirror contains non-owning Object pointers,
+  // so replacing it does not decref Values or reenter Python; keep stable
+  // candidates registered and avoid an unordered_set erase/insert (and its
+  // node allocation) on every transition. Reuse vector capacity as well.
+  auto& objects = instance_obj->native_gc_references;
+  instance_obj->native_gc_traverse = nullptr;
+  objects.clear();
   objects.reserve(reference_count);
   for (uint32_t index = 0; index < reference_count; ++index) {
     if (references[index].tag == ValueTag::Object && references[index].as.obj != nullptr) {
@@ -5904,11 +5910,41 @@ bool instance_set_native_gc_references(Value instance, const Value* references,
       objects.push_back(references[index].as.obj);
     }
   }
-  instance_obj->native_gc_references = std::move(objects);
   instance_obj->native_data_clear = clear;
-  if (clear != nullptr && !instance_obj->native_gc_references.empty()) {
-    native_gc_instances().insert(&instance_obj->header);
-    instance_obj->native_gc_registered = true;
+  if (clear != nullptr && !objects.empty()) {
+    if (!instance_obj->native_gc_registered) {
+      native_gc_instances().insert(&instance_obj->header);
+      instance_obj->native_gc_registered = true;
+    }
+  } else if (instance_obj->native_gc_registered) {
+    native_gc_instances().erase(&instance_obj->header);
+    instance_obj->native_gc_registered = false;
+  }
+  return true;
+}
+
+bool instance_set_native_gc_traversal(Value instance,
+    NativeGCTraverse traverse, void (*clear)(void*), std::string& error) {
+  auto* instance_obj = value_as_instance(instance);
+  if (instance_obj == nullptr) {
+    error = "object is not an instance";
+    return false;
+  }
+  if (traverse != nullptr && clear == nullptr) {
+    error = "native GC traversal requires a clear callback";
+    return false;
+  }
+  instance_obj->native_gc_references.clear();
+  instance_obj->native_gc_traverse = traverse;
+  instance_obj->native_data_clear = clear;
+  if (traverse != nullptr) {
+    if (!instance_obj->native_gc_registered) {
+      native_gc_instances().insert(&instance_obj->header);
+      instance_obj->native_gc_registered = true;
+    }
+  } else if (instance_obj->native_gc_registered) {
+    native_gc_instances().erase(&instance_obj->header);
+    instance_obj->native_gc_registered = false;
   }
   return true;
 }

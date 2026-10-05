@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="360" viewBox="0 0 900 360" role="img" aria-labelledby="title desc">
+  <title id="title">August versus current XLang3 microbenchmark runtime</title>
+  <desc id="desc">Horizontal paired bars show current XLang3 runtime shorter than August in all six Python 3.14.7-timed workloads.</desc>
+  <style>
+    text { font-family: "Segoe UI", Arial, sans-serif; fill: #1d2939; }
+    .title { font-size: 20px; font-weight: 700; }
+    .label { font-size: 14px; }
+    .value { font-size: 12px; fill: #344054; }
+    .axis { font-size: 11px; fill: #667085; }
+    .aug { fill: #98a2b3; }
+    .cur { fill: #1570ef; }
+  </style>
+  <text x="28" y="34" class="title">Same workload, lower runtime is faster (timer: CPython 3.14.7)</text>
+  <rect x="570" y="49" width="13" height="13" class="aug"/><text x="589" y="60" class="axis">August</text>
+  <rect x="660" y="49" width="13" height="13" class="cur"/><text x="679" y="60" class="axis">Current</text>
+  <g class="axis"><text x="220" y="82">0</text><text x="378" y="82">200</text><text x="538" y="82">400</text><text x="698" y="82">600</text><text x="820" y="82">800 ms</text></g>
+  <g stroke="#e4e7ec" stroke-width="1"><path d="M220 88V330"/><path d="M380 88V330"/><path d="M540 88V330"/><path d="M700 88V330"/><path d="M860 88V330"/></g>
+  <g class="label">
+    <text x="28" y="117">Local slots</text><text x="28" y="157">Scalar arithmetic</text><text x="28" y="197">Range loop</text><text x="28" y="237">Function calls</text><text x="28" y="277">Class construction</text><text x="28" y="317">List append</text>
+  </g>
+  <g>
+    <rect x="220" y="96" width="302.1" height="12" rx="3" class="aug"/><rect x="220" y="111" width="142.1" height="12" rx="3" class="cur"/>
+    <rect x="220" y="136" width="603.3" height="12" rx="3" class="aug"/><rect x="220" y="151" width="95.3" height="12" rx="3" class="cur"/>
+    <rect x="220" y="176" width="76.4" height="12" rx="3" class="aug"/><rect x="220" y="191" width="35.8" height="12" rx="3" class="cur"/>
+    <rect x="220" y="216" width="125.4" height="12" rx="3" class="aug"/><rect x="220" y="231" width="34.1" height="12" rx="3" class="cur"/>
+    <rect x="220" y="256" width="110.7" height="12" rx="3" class="aug"/><rect x="220" y="271" width="105.9" height="12" rx="3" class="cur"/>
+    <rect x="220" y="296" width="43.4" height="12" rx="3" class="aug"/><rect x="220" y="311" width="28.1" height="12" rx="3" class="cur"/>
+  </g>
+  <g class="value"><text x="529" y="107">377.570</text><text x="369" y="122">177.645 (2.13×)</text><text x="830" y="147">754.153</text><text x="322" y="162">119.119 (6.33×)</text><text x="303" y="187">95.462</text><text x="263" y="202">44.704 (2.14×)</text><text x="352" y="227">156.695</text><text x="262" y="242">42.654 (3.67×)</text><text x="337" y="267">138.394</text><text x="332" y="282">132.412 (1.04×)</text><text x="270" y="307">54.230</text><text x="255" y="322">35.134 (1.54×)</text></g>
+  <text x="28" y="350" class="axis">Seven paired order-balanced repeats after two warmups; ten workload repetitions per process. Does not compare against CPython execution speed.</text>
+</svg>

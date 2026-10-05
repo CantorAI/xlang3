@@ -18,8 +18,10 @@ limitations under the License.
 #include "xlang3/value.h"
 
 #include <atomic>
+#include <memory>
 #include <string>
 #include <string_view>
+#include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -28,6 +30,14 @@ namespace xlang3 {
 using NativeInstanceGetAttr = bool (*)(const Value& self, const std::string& name, Value& out, std::string& error);
 using NativeInstanceSetAttr = bool (*)(Value& self, const std::string& name, const Value& value, std::string& error);
 using NativeInstanceDeleteAttr = bool (*)(Value& self, const std::string& name, std::string& error);
+
+struct CallArgsView;
+struct ClassObject;
+using NativeTypeConstructorCallback = bool (*)(
+    Runtime& runtime, const ClassObject& klass, const CallArgsView& args,
+    bool& handled, Value& out, std::string& error);
+
+
 
 // Class cache versions are process-wide tags, like CPython's type version
 // tags. A tag identifies both this class lifetime and its current attributes,
@@ -66,10 +76,18 @@ struct ClassObject {
   bool restrict_instance_attrs = false;
   bool allow_instance_dict = true;
   bool allow_weakref = true;
+  // Native heap types may provide a full constructor for their exact,
+  // unmodified class. The version guard leaves subclasses and monkey-patched
+  // __new__/__init__ methods on generic Python-compatible construction.
+  NativeTypeConstructorCallback native_type_constructor = nullptr;
+  uint64_t native_type_constructor_version = 0;
   std::vector<ClassObject*> subclasses;
   std::vector<Value> mro_cache;
   uint64_t mro_cache_version = 0;
 };
+
+using NativeGCReferenceVisitor = void (*)(Object*, void*);
+using NativeGCTraverse = void (*)(void*, NativeGCReferenceVisitor, void*);
 
 struct InstanceObject {
   Object header;
@@ -82,13 +100,14 @@ struct InstanceObject {
   // that marker on hot attribute and method lookup paths. Every writer that
   // can add the reserved name must keep this bit in sync; graph restore derives
   // it from the serialized attribute names.
-  bool has_separate_attribute_storage = false;
+  uint32_t has_separate_attribute_storage : 1;
   std::string native_type;
   void* native_data = nullptr;
   void* (*native_data_cast)(void*, const char*) = nullptr;
   void* native_owner = nullptr;
   void (*native_data_cleanup)(void*) = nullptr;
   std::vector<Object*> native_gc_references;
+  NativeGCTraverse native_gc_traverse = nullptr;
   void (*native_data_clear)(void*) = nullptr;
   bool (*native_data_truthy)(const void*) = nullptr;
   NativeInstanceGetAttr native_get_attr = nullptr;
@@ -101,6 +120,30 @@ struct InstanceObject {
   std::vector<Value> overflow_slots;
   std::vector<std::pair<std::string, Value>> attrs;
 };
+
+inline bool instance_has_native_gc_references(const InstanceObject& instance) {
+  return instance.native_gc_traverse != nullptr ||
+      !instance.native_gc_references.empty();
+}
+
+template <typename Visitor>
+inline void instance_visit_native_gc_references(
+    const InstanceObject& instance, Visitor&& visitor) {
+  if (instance.native_gc_traverse != nullptr) {
+    using VisitorType = std::remove_reference_t<Visitor>;
+    const auto visit = [](Object* target, void* context) {
+      if (target != nullptr)
+        (*static_cast<VisitorType*>(context))(target);
+    };
+    instance.native_gc_traverse(
+        instance.native_owner, visit, const_cast<void*>(
+            static_cast<const void*>(std::addressof(visitor))));
+    return;
+  }
+  for (auto* target : instance.native_gc_references) {
+    if (target != nullptr) visitor(target);
+  }
+}
 
 Value& instance_attribute_storage(InstanceObject& instance);
 bool runtime_value_compare(Runtime& runtime, const std::string& op, const Value& lhs, const Value& rhs, Value& out, std::string& error);
@@ -257,6 +300,8 @@ bool instance_set_native_owner(Value instance, std::string native_type, void* na
     void* owner, void (*cleanup)(void*), std::string& error);
 bool instance_set_native_gc_references(Value instance, const Value* references,
     uint32_t reference_count, void (*clear)(void*), std::string& error);
+bool instance_set_native_gc_traversal(Value instance,
+    NativeGCTraverse traverse, void (*clear)(void*), std::string& error);
 const std::unordered_set<Object*>& native_gc_instance_registry();
 void* instance_get_native_data(const Value& instance, const std::string& native_type);
 bool instance_set_native_truthy(Value instance, bool (*truthy)(const void*), std::string& error);

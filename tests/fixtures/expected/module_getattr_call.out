@@ -9,4 +9,8 @@ keyword-error True
 missing True
 lookup-error lazy export failed
 keyword-lookups ['combine', 'combine', 'constructor', 'callable', 'combine', 'missing', 'broken']
+module-call-lazy 43 math.lazy_add
+future-mro ['Future', 'object']
+task-mro ['Task', 'Future', 'object']
+future-dispatch object-default
 threadpool 11

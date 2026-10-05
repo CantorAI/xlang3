@@ -1,0 +1,183 @@
+profiled workload comprehensions 0.47094440000364557
+profiled Python calls, grouped by source/function
+[[["run_benchmark.py","#genexpr"],3000],[["run_benchmark.py","_is_big_spinny"],2400],[["run_benchmark.py","_any_knobby"],1800],[["run_benchmark.py","_add_widgets"],100],[["run_benchmark.py","__init__"],100],[["<string>","__init__"],24],[["enum.py","#genexpr"],9],[["enum.py","__iter__"],3],[["run_benchmark.py","make_some_widgets"],1],[["run_benchmark.py","bench_comprehensions"],1],[["profile_pyperformance_calls_direct.py","<lambda>"],1]]
+profiled benchmark function times (inclusive/self seconds)
+profile_pyperformance_calls_direct.py <lambda> 1 0.472947 7.5e-05
+run_benchmark.py bench_comprehensions 1 0.472872 0.006062
+run_benchmark.py __init__ 100 0.464959 0.005359
+run_benchmark.py _add_widgets 100 0.4596 0.190827
+run_benchmark.py _any_knobby 1800 0.22758 0.176434
+run_benchmark.py #genexpr 3000 0.051146 0.051146
+run_benchmark.py _is_big_spinny 2400 0.041192 0.041192
+perf: native_calls=58589 fast=50924 cached_fast=33288
+perf: native weakref.ProxyType.__setattr__ slow=30 fast=0
+perf: native object.__init__ slow=2 fast=18
+perf: native print slow=16 fast=0
+perf: native weakref.ProxyType.__getattr__ slow=15 fast=0
+perf: native weakref.proxy slow=15 fast=0
+perf: native sys.getrecursionlimit slow=5 fast=0
+perf: native functools._lru_cache_wrapper slow=3 fast=0
+perf: native exec slow=2 fast=0
+perf: native file.__enter__ slow=2 fast=0
+perf: native file.__exit__ slow=2 fast=0
+perf: native file.read slow=2 fast=0
+perf: native io.open_code slow=2 fast=0
+perf: native sorted slow=2 fast=0
+perf: native sys.setprofile slow=2 fast=0
+perf: native FileFinder.path_hook slow=1 fast=0
+perf: native _json.Encoder.__call__ slow=1 fast=0
+perf: native compile slow=1 fast=0
+perf: native dict.update slow=1 fast=0
+perf: native eval slow=1 fast=0
+perf: native function.__get__ slow=1 fast=0
+perf: native type.__new__ slow=1 fast=0
+perf: native types.SimpleNamespace.__init__ slow=1 fast=0
+run_benchmark.py make_some_widgets 1 0.001851 0.00129
+<string> __init__ 24 0.000372 0.000372
+enum.py #genexpr 9 0.000138 0.000138
+enum.py __iter__ 3 5.1e-05 5.1e-05
+profiled benchmark-frame calls 7439
+perf: native zipimport.zipimporter.__init__ slow=1 fast=0
+perf: store_local moves=46453 copies=28676
+perf: call argument register transfers=248
+perf: CALL_FUNCTION_EX varargs+kwonly direct bindings=0
+perf: frame_snapshots calls=18580 frames=103698 locals=0 refresh_calls=22331 refresh_items=275118
+perf: opcode 0 48431
+perf: opcode 1 16310
+perf: opcode 2 84813
+perf: opcode 3 63168
+perf: opcode 4 48
+perf: opcode 5 14
+perf: opcode 6 4
+perf: opcode 7 52
+perf: opcode 8 46
+perf: opcode 9 111
+perf: opcode 10 67570
+perf: opcode 12 2
+perf: opcode 13 378
+perf: opcode 15 2446
+perf: opcode 17 3
+perf: opcode 18 1146
+perf: opcode 19 109
+perf: opcode 20 39
+perf: opcode 22 13
+perf: opcode 23 1
+perf: opcode 25 18817
+perf: opcode 26 901
+perf: opcode 30 10
+perf: opcode 31 1989
+perf: opcode 33 8
+perf: opcode 35 9479
+perf: opcode 36 9758
+perf: opcode 37 269
+perf: opcode 38 11
+perf: opcode 39 59
+perf: opcode 40 16379
+perf: opcode 41 1
+perf: opcode 42 3711
+perf: opcode 46 2027
+perf: opcode 47 52296
+perf: opcode 48 29901
+perf: opcode 49 23
+perf: opcode 50 226
+perf: opcode 51 4319
+perf: opcode 52 5470
+perf: opcode 53 4
+perf: opcode 54 319
+perf: opcode 55 14922
+perf: opcode 56 14
+perf: opcode 60 10
+perf: opcode 63 63
+perf: opcode 64 6
+perf: opcode 70 19133
+perf: opcode 71 7585
+perf: opcode 72 240
+perf: opcode 73 7487
+perf: opcode 74 24159
+perf: opcode 75 2
+perf: opcode 76 32577
+perf: opcode 77 28721
+perf: opcode 78 22377
+perf: opcode 79 161
+perf: opcode 80 4
+perf: opcode 81 138
+perf: opcode 84 2
+perf: opcode 85 16
+perf: opcode 88 20
+perf: opcode 89 14902
+perf: opcode 90 45212
+perf: opcode 91 17
+perf: opcode 92 63
+perf: opcode 93 5029
+perf: opcode 95 3051
+perf: opcode 96 200
+perf: opcode 97 8172
+perf: opcode 98 4612
+perf: opcode 99 2
+perf: opcode 101 29766
+perf: opcode 102 32
+perf: opcode 105 15948
+perf: opcode 106 24515
+perf: opcode 107 7691
+perf: opcode 108 11507
+perf: opcode 109 37
+perf: opcode 110 33222
+perf: opcode 111 37
+perf: opcode 112 174
+perf: opcode 113 238
+perf: opcode 114 440
+perf: opcode 115 2681
+perf: opcode 116 27
+perf: opcode 117 29792
+perf: opcode 118 22912
+perf: opcode 119 110
+perf: opcode 120 368
+perf: opcode 121 2284
+perf: opcode 122 107
+perf: opcode 125 73
+perf: opcode 126 2517
+perf: opcode 127 2501
+perf: opcode 129 6
+perf: opcode 130 13
+perf: opcode 131 230
+perf: opcode 139 14878
+perf: opcode 141 14889
+perf: objects kind alloc final_release incref decref
+perf: String 33600 33270 205067 238296
+perf: BigInt 5 5 82 87
+perf: Bytes 2 2 2 4
+perf: ByteArray 6 6 7 13
+perf: Slice 59 59 14 73
+perf: Tuple 9695 9646 198312 207936
+perf: List 17250 17239 256676 273913
+perf: Dict 18949 18905 759510 778408
+perf: Unknown 25 21 39 54
+perf: Set 23 17 92 109
+perf: DictKeysView 1 1 0 1
+perf: DictValuesView 6 6 0 6
+perf: DictItemsView 8 8 3 11
+perf: DictIterator 31 31 1 32
+perf: SetIterator 2 2 0 2
+perf: Range 11 11 37152 37163
+perf: RangeIterator 6 6 0 6
+perf: SequenceIterator 4286 4286 1 4287
+perf: Unknown 25 25 25 50
+perf: Unknown 1 1 1 2
+perf: Unknown 2 2 2 4
+perf: Generator 1840 1840 1894 3734
+perf: Module 12 2 378847 378504
+perf: Cell 90 42 89853 89858
+perf: Function 1989 1848 186719 188504
+perf: NativeFunction 17 5 133113 133106
+perf: Class 23 0 19553 19285
+perf: Instance 6315 6265 622987 629256
+perf: BoundMethod 48688 48686 72 48758
+perf: StaticMethod 2 0 143 143
+perf: ClassMethod 3 0 45 45
+perf: Super 19 19 0 19
+perf: SlotDescriptor 23 0 1241 1241
+perf: Property 3 0 113 113
+perf: Unknown 14887 14887 111480 126367
+perf: Unknown 226182 226182 1556769 1782951
+perf: Unknown 22 22 22 44
+perf: File 2 2 19 21

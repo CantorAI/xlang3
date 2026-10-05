@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="310" viewBox="0 0 920 310" role="img" aria-labelledby="title desc">
+  <title id="title">Async tree elapsed time relative to CPython 3.14.7</title>
+  <desc id="desc">Horizontal bars: CPython 1.00 times, previous XLang3 32.68 times, candidate XLang3 31.64 times. Shorter is faster.</desc>
+  <style>
+    text { font-family: Segoe UI, Arial, sans-serif; fill: #172033; }
+    .title { font-size: 21px; font-weight: 700; }
+    .subtitle { font-size: 13px; fill: #475569; }
+    .label { font-size: 14px; }
+    .value { font-size: 14px; font-weight: 700; }
+    .tick { font-size: 12px; fill: #64748b; }
+    .grid { stroke: #dbe3ee; stroke-width: 1; }
+  </style>
+  <rect width="920" height="310" fill="#ffffff"/>
+  <text x="28" y="34" class="title">async_tree_eager elapsed time</text>
+  <text x="28" y="57" class="subtitle">Relative to CPython 3.14.7 (1×); shorter is faster. XLang3 candidate is 3.2% faster than its prior candidate.</text>
+
+  <line x1="270" y1="82" x2="270" y2="246" class="grid"/>
+  <line x1="423" y1="82" x2="423" y2="246" class="grid"/>
+  <line x1="576" y1="82" x2="576" y2="246" class="grid"/>
+  <line x1="729" y1="82" x2="729" y2="246" class="grid"/>
+  <line x1="882" y1="82" x2="882" y2="246" class="grid"/>
+  <text x="270" y="267" text-anchor="middle" class="tick">0×</text>
+  <text x="423" y="267" text-anchor="middle" class="tick">8×</text>
+  <text x="576" y="267" text-anchor="middle" class="tick">16×</text>
+  <text x="729" y="267" text-anchor="middle" class="tick">24×</text>
+  <text x="882" y="267" text-anchor="middle" class="tick">32×</text>
+
+  <text x="28" y="111" class="label">CPython 3.14.7</text>
+  <rect x="270" y="91" width="19.1" height="28" rx="4" fill="#2563eb"/>
+  <text x="298" y="110" class="value">1.00× · 86.6 ms</text>
+
+  <text x="28" y="169" class="label">XLang3 prior candidate</text>
+  <rect x="270" y="149" width="624" height="28" rx="4" fill="#94a3b8"/>
+  <text x="883" y="169" text-anchor="end" class="value" fill="#ffffff">32.68× · 2.83 s</text>
+
+  <text x="28" y="227" class="label">XLang3 live-traversal candidate</text>
+  <rect x="270" y="207" width="604.2" height="28" rx="4" fill="#16a34a"/>
+  <text x="863" y="227" text-anchor="end" class="value" fill="#ffffff">31.64× · 2.74 s</text>
+
+  <text x="28" y="296" class="subtitle">Scale is elapsed time, not speedup. At equal workload, lower is better.</text>
+</svg>

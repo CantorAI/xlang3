@@ -39,6 +39,8 @@ struct XlangPerfCounters {
   std::atomic_uint64_t native_cached_fast_calls{0};
   std::atomic_uint64_t store_local_moves{0};
   std::atomic_uint64_t store_local_copies{0};
+  std::atomic_uint64_t call_argument_transfers{0};
+  std::atomic_uint64_t call_ex_varargs_kwonly_bindings{0};
   std::array<std::atomic_uint64_t, xlang_perf_monitoring_event_count> monitoring_dispatches{};
   std::array<std::atomic_uint64_t, xlang_perf_monitoring_event_count> monitoring_callbacks{};
   std::atomic_uint64_t frame_snapshot_calls{0};
@@ -122,6 +124,18 @@ XLANG3_HOT_INLINE void xlang_perf_count_store_local(bool moved) {
     counters.store_local_moves.fetch_add(1, std::memory_order_relaxed);
   } else {
     counters.store_local_copies.fetch_add(1, std::memory_order_relaxed);
+  }
+}
+
+XLANG3_HOT_INLINE void xlang_perf_count_call_argument_transfer() {
+  if (xlang_perf_enabled()) {
+    xlang_perf_counters().call_argument_transfers.fetch_add(1, std::memory_order_relaxed);
+  }
+}
+
+XLANG3_HOT_INLINE void xlang_perf_count_call_ex_varargs_kwonly_binding() {
+  if (xlang_perf_enabled()) {
+    xlang_perf_counters().call_ex_varargs_kwonly_bindings.fetch_add(1, std::memory_order_relaxed);
   }
 }
 

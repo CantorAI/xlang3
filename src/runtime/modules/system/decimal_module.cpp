@@ -50,6 +50,65 @@ std::atomic<uint64_t> g_decimal_profile_result_ns{0};
 
 using DecimalProfileClock = std::chrono::steady_clock;
 
+struct DecimalContextFieldCache {
+  const InstanceObject* instance = nullptr;
+  const ClassObject* klass = nullptr;
+  uint64_t class_version = 0;
+  std::array<size_t, 4> indices{};
+};
+
+thread_local DecimalContextFieldCache g_decimal_context_field_cache;
+
+bool read_decimal_context_fields(
+    InstanceObject& instance,
+    ClassObject& klass,
+    Value& precision,
+    Value& emin,
+    Value& emax,
+    Value& clamp) {
+  // Context's ordinary Python attributes are stable vector entries between
+  // writes. Cache their positions per thread, but recheck the names on every
+  // hit: deleting an attribute can shift the vector and must return to normal
+  // lookup rather than reading another field by a stale index.
+  static constexpr std::array<std::string_view, 4> names = {
+      "prec", "Emin", "Emax", "clamp"};
+  auto* attributes = value_as_dict(instance_attribute_storage(instance));
+  if (attributes != nullptr) return false;  // __dict__ has normal precedence.
+
+  auto& cache = g_decimal_context_field_cache;
+  const bool same_instance = cache.instance == &instance && cache.klass == &klass &&
+      cache.class_version == klass.version;
+  bool cached_names_match = same_instance;
+  if (cached_names_match) {
+    for (size_t field = 0; field < names.size(); ++field) {
+      const size_t index = cache.indices[field];
+      if (index >= instance.attrs.size() || instance.attrs[index].first != names[field]) {
+        cached_names_match = false;
+        break;
+      }
+    }
+  }
+  if (!cached_names_match) {
+    std::array<size_t, 4> indices{};
+    for (size_t field = 0; field < names.size(); ++field) {
+      size_t index = 0;
+      while (index < instance.attrs.size() && instance.attrs[index].first != names[field]) ++index;
+      if (index == instance.attrs.size()) return false;
+      indices[field] = index;
+    }
+    cache.instance = &instance;
+    cache.klass = &klass;
+    cache.class_version = klass.version;
+    cache.indices = indices;
+  }
+  const auto& indices = cache.indices;
+  value_assign_fast(precision, instance.attrs[indices[0]].second);
+  value_assign_fast(emin, instance.attrs[indices[1]].second);
+  value_assign_fast(emax, instance.attrs[indices[2]].second);
+  value_assign_fast(clamp, instance.attrs[indices[3]].second);
+  return true;
+}
+
 void decimal_profile_add_elapsed(
     std::atomic<uint64_t>& accumulator,
     DecimalProfileClock::time_point start) {
@@ -80,6 +139,7 @@ struct DecimalModuleState {
 
 struct DecimalOperationState {
   Value decimal_class;
+  Value context_class;
   Value original;
   Value getcontext;
   Value current_context_getter;
@@ -91,6 +151,7 @@ struct DecimalOperationState {
   uint32_t int_slot = 0;
   uint32_t sign_slot = 0;
   uint32_t special_slot = 0;
+  uint64_t context_class_version = 0;
   bool multiply = false;
   bool quantize = false;
   bool context_quantize = false;
@@ -468,10 +529,28 @@ bool decimal_context_limits(
   Value emax_value;
   Value clamp_value;
   std::string ignored;
-  if (!object_get_attr(context, "prec", prec_value, ignored) ||
-      !object_get_attr(context, "Emin", emin_value, ignored) ||
-      !object_get_attr(context, "Emax", emax_value, ignored) ||
-      !object_get_attr(context, "clamp", clamp_value, ignored) ||
+  bool read_exact_context_fields = false;
+  if (auto* instance = value_as_instance(context)) {
+    auto* actual_class = value_as_class(instance->klass);
+    auto* cached_class = value_as_class(state.context_class);
+    if (actual_class != nullptr && actual_class == cached_class &&
+        actual_class->version == state.context_class_version &&
+        !actual_class->has_getattribute_hook && !actual_class->has_getattr_hook &&
+        instance->native_get_attr == nullptr) {
+      // Context is Python code, but its exact unmodified base class has no
+      // descriptors for these fields. Most instances store them in the inline
+      // attribute vector; an explicitly materialized __dict__ takes precedence
+      // just as it does in object_get_attr. Avoid four generic class lookups
+      // while leaving subclasses and customized lookup on the Python path.
+      read_exact_context_fields = read_decimal_context_fields(
+          *instance, *actual_class, prec_value, emin_value, emax_value, clamp_value);
+    }
+  }
+  if ((!read_exact_context_fields &&
+       (!object_get_attr(context, "prec", prec_value, ignored) ||
+        !object_get_attr(context, "Emin", emin_value, ignored) ||
+        !object_get_attr(context, "Emax", emax_value, ignored) ||
+        !object_get_attr(context, "clamp", clamp_value, ignored))) ||
       prec_value.tag != ValueTag::Int64 || emin_value.tag != ValueTag::Int64 ||
       emax_value.tag != ValueTag::Int64 || clamp_value.tag != ValueTag::Int64) {
     return false;
@@ -1004,12 +1083,16 @@ bool decimal_quantize_fast(
     if (!module_get_attr(state.fallback_module, "Rounded", rounded_signal, ignored) ||
         !module_get_attr(state.fallback_module, "Inexact", inexact_signal, ignored)) return false;
     Value rounded_trap;
-    if (!mapping_get_item(traps, rounded_signal, rounded_trap, ignored) || value_truthy(rounded_trap)) return false;
+    // Signal classes are stable identity keys in Context.traps/flags. Reuse an
+    // existing exact dict key directly; generic equality remains the miss path
+    // so user-replaced signal constants and custom mappings keep Python behavior.
+    if (!mapping_get_item_identity_key(traps, rounded_signal, rounded_trap, ignored) ||
+        value_truthy(rounded_trap)) return false;
     Value inexact_trap;
-    if (inexact && (!mapping_get_item(traps, inexact_signal, inexact_trap, ignored) ||
+    if (inexact && (!mapping_get_item_identity_key(traps, inexact_signal, inexact_trap, ignored) ||
         value_truthy(inexact_trap))) return false;
-    if (inexact && !mapping_set_item(flags, inexact_signal, Value::int64(1), ignored)) return false;
-    if (!mapping_set_item(flags, rounded_signal, Value::int64(1), ignored)) return false;
+    if (inexact && !mapping_set_item_identity_key(flags, inexact_signal, Value::int64(1), ignored)) return false;
+    if (!mapping_set_item_identity_key(flags, rounded_signal, Value::int64(1), ignored)) return false;
   }
   return assign_decimal_result(state, negative,
       std::move(result_digits), target_exp, out);
@@ -1107,6 +1190,7 @@ bool install_decimal_operation(
     Runtime& runtime,
     Value owner_class,
     Value decimal_class,
+    const Value& context_class,
     const Value& getcontext,
     const Value& current_context_getter,
     const Value& fallback_module,
@@ -1121,6 +1205,10 @@ bool install_decimal_operation(
   }
   auto* state = new DecimalOperationState();
   state->decimal_class = decimal_class;
+  state->context_class = context_class;
+  if (auto* context_type = value_as_class(context_class)) {
+    state->context_class_version = context_type->version;
+  }
   state->original = original;
   state->getcontext = getcontext;
   state->current_context_getter = current_context_getter;
@@ -1228,21 +1316,42 @@ bool initialize_decimal_fallback(
   // core. Out-of-range, rounded, subclass, special, and custom-context cases
   // retain the original method. This matches CPython's native _decimal
   // boundary without embedding or depending on CPython's C API.
-  if (!install_decimal_operation(runtime, decimal_class, decimal_class, getcontext,
+  if (!install_decimal_operation(runtime, decimal_class, decimal_class, context_class, getcontext,
           current_context_getter, state.fallback_module, "__mul__", true, false, error) ||
-      !install_decimal_operation(runtime, decimal_class, decimal_class, getcontext,
+      !install_decimal_operation(runtime, decimal_class, decimal_class, context_class, getcontext,
           current_context_getter, state.fallback_module, "__rmul__", true, false, error) ||
-      !install_decimal_operation(runtime, decimal_class, decimal_class, getcontext,
+      !install_decimal_operation(runtime, decimal_class, decimal_class, context_class, getcontext,
           current_context_getter, state.fallback_module, "__add__", false, false, error) ||
-      !install_decimal_operation(runtime, decimal_class, decimal_class, getcontext,
+      !install_decimal_operation(runtime, decimal_class, decimal_class, context_class, getcontext,
           current_context_getter, state.fallback_module, "__radd__", false, false, error) ||
-      !install_decimal_operation(runtime, decimal_class, decimal_class, getcontext,
+      !install_decimal_operation(runtime, decimal_class, decimal_class, context_class, getcontext,
           current_context_getter, state.fallback_module, "quantize", false, false, error) ||
-      !install_decimal_operation(runtime, context_class, decimal_class, getcontext,
+      !install_decimal_operation(runtime, context_class, decimal_class, context_class, getcontext,
           current_context_getter, state.fallback_module, "quantize", false, true, error) ||
       !install_decimal_string_operation(
           runtime, decimal_class, getcontext, current_context_getter, error)) {
     return false;
+  }
+  const auto* context_type = value_as_class(context_class);
+  if (context_type != nullptr) {
+    // Installing the native Context.quantize method above advances the class
+    // version. Refresh every callback's guard only after registration is done,
+    // so later user mutations still disable the direct dictionary read.
+    const uint64_t context_version = context_type->version;
+    auto refresh_context_version = [&](Value owner_class, const char* method) {
+      auto* owner = value_as_class(owner_class);
+      if (owner == nullptr) return;
+      const auto found = owner->attrs.find(method);
+      auto* native = found == owner->attrs.end()
+          ? nullptr : value_as_native_function(found->second);
+      auto* operation = native == nullptr
+          ? nullptr : static_cast<DecimalOperationState*>(native->user_data);
+      if (operation != nullptr) operation->context_class_version = context_version;
+    };
+    for (const char* method : {"__mul__", "__rmul__", "__add__", "__radd__", "quantize"}) {
+      refresh_context_version(decimal_class, method);
+    }
+    refresh_context_version(context_class, "quantize");
   }
   state.initialized = true;
   return true;
@@ -1306,6 +1415,12 @@ void register_decimal_module(Runtime& runtime) {
   Value module = Value::module("_decimal");
   auto* module_object = value_as_module(module);
   module_object->runtime = &runtime;
+  // `site.abs_paths()` probes these fields on every loaded module. Keep the
+  // native module's metadata local so those startup probes do not enter the
+  // lazy Python fallback and compile/import all of `_pydecimal`.
+  std::string ignored;
+  module_set_attr(module, "__file__", Value::none(), ignored);
+  module_set_attr(module, "__cached__", Value::none(), ignored);
   auto* state = new DecimalModuleState();
   state->runtime = &runtime;
   Value getattr = runtime.make_native_function(

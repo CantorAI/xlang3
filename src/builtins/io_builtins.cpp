@@ -16,6 +16,7 @@ limitations under the License.
 
 #include "xlang3/attribute.h"
 #include "xlang3/functional_iterators.h"
+#include "xlang3/io_runtime.h"
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
 #include "xlang3/vfs.h"
@@ -693,6 +694,10 @@ bool print_write_text(Runtime& runtime, const Value& file, const std::string& te
     }
     return print_write_text(runtime, stdout_stream, text, error);
   }
+  // pyperformance's telco prints each Decimal into an exact in-memory text
+  // stream. Preserve dynamic write overrides, but skip a temporary str,
+  // BoundMethod, and native call when the built-in StringIO descriptor applies.
+  if (io_stringio_write_fast(file, text)) return true;
   Value write_method;
   if (!attribute_get(file, "write", write_method, error)) {
     error = "print file must have a write method";

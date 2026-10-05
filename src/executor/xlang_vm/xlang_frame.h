@@ -52,6 +52,7 @@ namespace xlang3 {
 enum class CallSiteKind : uint8_t {
   Empty,
   UserFunction,
+  ExactPositionalFunction,
   GetItemUserFunction,
   BoundPythonMethod,
   NativeFunction,
@@ -265,7 +266,8 @@ struct XlangVMFrame {
       uint32_t frame_return_dst,
       bool frame_has_caller,
       FrameReturnMode frame_return_mode = FrameReturnMode::StoreReturnValue,
-      Value frame_continuation_value = Value::invalid())
+      Value frame_continuation_value = Value::invalid(),
+      bool frame_args_are_moved = false)
       : module(&frame_module),
         fn(&frame_module.functions[function_id]),
         globals_module(std::move(frame_globals_module)),
@@ -282,7 +284,11 @@ struct XlangVMFrame {
     set_closure(frame_closure);
     compute_register_last_use();
     for (size_t i = 0; i < args.size(); ++i) {
-      value_assign_fast(locals[i], args.get(i));
+      if (frame_args_are_moved) {
+        value_move_assign_fast(locals[i], const_cast<Value&>(args.get(i)));
+      } else {
+        value_assign_fast(locals[i], args.get(i));
+      }
     }
     reserve_call_args();
   }
@@ -297,7 +303,8 @@ struct XlangVMFrame {
       uint32_t frame_return_dst,
       bool frame_has_caller,
       FrameReturnMode frame_return_mode = FrameReturnMode::StoreReturnValue,
-      Value frame_continuation_value = Value::invalid()) {
+      Value frame_continuation_value = Value::invalid(),
+      bool frame_args_are_moved = false) {
     const ir::Module* old_module = module;
     const uint32_t old_function_id = this->function_id;
     const ir::Function* old_fn = fn;
@@ -372,7 +379,11 @@ struct XlangVMFrame {
     }
 
     for (size_t i = 0; i < args.size(); ++i) {
-      value_assign_fast(locals[i], args.get(i));
+      if (frame_args_are_moved) {
+        value_move_assign_fast(locals[i], const_cast<Value&>(args.get(i)));
+      } else {
+        value_assign_fast(locals[i], args.get(i));
+      }
     }
   }
 
@@ -436,17 +447,28 @@ private:
         // globally unique class versions prevent a freed class at a reused
         // address from satisfying an old guard. Descriptor caches own Values
         // and still reset below so a cache cannot extend Python object life.
-        const uint32_t index = cache.attr.index;
         const AttrSiteKind kind = cache.attr.kind;
+        const bool keep = kind == AttrSiteKind::InstanceAttr ||
+            kind == AttrSiteKind::InstanceDict ||
+            kind == AttrSiteKind::InstanceSlot ||
+            kind == AttrSiteKind::ClassValue;
+        // These guarded records already survive return. If their owning
+        // fields are empty, retain them in place instead of zeroing the whole
+        // payload and reconstructing its scalar guards at every activation.
+        // Global owners above and monitoring masks below still clear on pop.
+        if (keep && cache.attr.value.tag == ValueTag::Invalid &&
+            cache.attr.getter_const.tag == ValueTag::Invalid &&
+            cache.attr.setter_const.tag == ValueTag::Invalid &&
+            cache.attr.deleter_const.tag == ValueTag::Invalid) {
+          break;
+        }
+        const uint32_t index = cache.attr.index;
         Object* owner = cache.attr.owner;
         const uint64_t version = cache.attr.version;
         const uint64_t secondary_version = cache.attr.secondary_version;
         const Value* class_value = cache.attr.class_value;
         cache.attr = AttrSiteCache{};
-        if (kind == AttrSiteKind::InstanceAttr ||
-            kind == AttrSiteKind::InstanceDict ||
-            kind == AttrSiteKind::InstanceSlot ||
-            kind == AttrSiteKind::ClassValue) {
+        if (keep) {
           cache.attr.index = index;
           cache.attr.kind = kind;
           cache.attr.owner = owner;
@@ -472,6 +494,7 @@ private:
         // otherwise-dead Python objects.
         const CallSiteCache& old = cache.call;
         const bool keep = old.kind == CallSiteKind::UserFunction ||
+            old.kind == CallSiteKind::ExactPositionalFunction ||
             old.kind == CallSiteKind::NativeFunction ||
             old.kind == CallSiteKind::InlineSelfSlotMaximizeMethod ||
             old.kind == CallSiteKind::InlineSelfAttrBooleanExprMethod ||
@@ -480,6 +503,14 @@ private:
             old.kind == CallSiteKind::InlineSelfSlotMethod ||
             old.kind == CallSiteKind::InlineSmallSelfMethod ||
             old.kind == CallSiteKind::BuiltinMethodSpec;
+        // A class-version guard permits these raw method targets to remain
+        // warm. Avoid resetting and rebuilding an already ownerless payload;
+        // any retained callable, constant, or vector uses the release path.
+        if (keep && old.retained_callee.tag == ValueTag::Invalid &&
+            old.inline_const.tag == ValueTag::Invalid &&
+            old.slot_constructor_args.empty() && old.cached_values.empty()) {
+          break;
+        }
         const CallSiteKind kind = old.kind;
         Object* callee_object = old.callee_object;
         FunctionObject* function = old.function;

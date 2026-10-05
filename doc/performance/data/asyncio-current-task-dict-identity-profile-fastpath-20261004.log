@@ -1,0 +1,26 @@
+direct workload async_tree_eager loops=1 total=2.714752800 s
+vm-time: clock_pair_mean_ns=15
+vm-time: opcode=222 calls=55987 self_ns=1872097300 total_ns=15652477500
+vm-time: opcode=260 calls=55986 self_ns=366561300 total_ns=366561300
+vm-time: opcode=227 calls=55987 self_ns=118607500 total_ns=118607500
+vm-time: opcode=232 calls=55987 self_ns=99614200 total_ns=13558806400
+vm-time: opcode=230 calls=55987 self_ns=50641000 total_ns=50641000
+vm-time: opcode=235 calls=55986 self_ns=26570900 total_ns=12996810900
+vm-time: opcode=229 calls=55987 self_ns=19468000 total_ns=19468000
+vm-time: opcode=233 calls=55986 self_ns=18050300 total_ns=13457501700
+vm-time: opcode=226 calls=55987 self_ns=16491300 total_ns=13778803200
+vm-time: opcode=246 calls=55986 self_ns=7265500 total_ns=35781600
+vm-time: opcode=234 calls=55986 self_ns=6577000 total_ns=401166800
+vm-time: opcode=256 calls=111972 self_ns=6456700 total_ns=6456700
+vm-time: opcode=258 calls=111972 self_ns=6426200 total_ns=21323400
+vm-time: opcode=221 calls=55987 self_ns=5036900 total_ns=15664757100
+vm-time: opcode=257 calls=111972 self_ns=4814700 total_ns=4814700
+vm-time: opcode=259 calls=111972 self_ns=4599000 total_ns=4599000
+vm-time: opcode=263 calls=111974 self_ns=4462000 total_ns=4462000
+vm-time: opcode=225 calls=55987 self_ns=3947100 total_ns=15670446500
+vm-time: opcode=262 calls=111974 self_ns=3334000 total_ns=3334000
+vm-time: opcode=224 calls=55987 self_ns=3120100 total_ns=3120100
+vm-time: opcode=220 calls=55986 self_ns=2362600 total_ns=12968582600
+vm-time: opcode=231 calls=55987 self_ns=2116700 total_ns=2116700
+vm-time: opcode=261 calls=55986 self_ns=1100200 total_ns=1100200
+vm-time: opcode=228 calls=55987 self_ns=1083400 total_ns=1083400

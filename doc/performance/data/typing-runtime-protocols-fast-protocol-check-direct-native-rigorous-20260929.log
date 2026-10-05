@@ -1,0 +1,26 @@
+Python benchmark suite 1.14.0
+
+
+==================================================
+( 1/1) creating venv for benchmark (typing_runtime_protocols)
+
+(trying common venv first)
+
+[1/1] typing_runtime_protocols...
+.........................................
+WARNING: the benchmark result may be unstable
+* the standard deviation (66.0 us) is 26% of the mean (256 us)
+* the maximum (947 us) is 270% greater than the mean (256 us)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+typing_runtime_protocols: Mean +- std dev: 256 us +- 66 us
+
+Performance version: 1.14.0
+
+### typing_runtime_protocols ###
+Mean +- std dev: 256 us +- 66 us
+

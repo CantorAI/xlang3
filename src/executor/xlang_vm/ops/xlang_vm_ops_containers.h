@@ -1236,6 +1236,13 @@ XLANG3_HOT_INLINE XlangVMOpFlow get_item(
     RaiseRuntimeError&& raise_runtime_error,
     RaiseExceptionValue&& raise_exception_value) {
   xlang_vm_cache_touch(cache, XlangVMCacheDomain::GetItem);
+  if (value_as_dict(regs[in.a]) != nullptr &&
+      regs[in.b].tag == ValueTag::Int64 &&
+      mapping_get_integer_item_if_present(
+          regs[in.a], regs[in.b].as.i64, regs[in.dst])) {
+    xlang_vm_cache_note_hit(cache);
+    return XlangVMOpFlow::Next;
+  }
   if (value_as_dict(regs[in.a]) != nullptr && value_as_string(regs[in.b]) != nullptr) {
     std::string error;
     if (mapping_get_item(regs[in.a], regs[in.b], regs[in.dst], error)) {

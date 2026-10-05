@@ -23,7 +23,10 @@ limitations under the License.
 #include "xlang3/sequence.h"
 #include "xlang3/set_object.h"
 
+#include <atomic>
 #include <climits>
+#include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <limits>
 #include <string>
@@ -37,6 +40,11 @@ namespace {
 
 constexpr const char* kPicklerNativeType = "_pickle.Pickler";
 constexpr const char* kUnpicklerNativeType = "_pickle.Unpickler";
+
+bool pickle_trace_enabled() {
+  static const bool enabled = std::getenv("XLANG3_PICKLE_TRACE") != nullptr;
+  return enabled;
+}
 constexpr unsigned char kPickleHighestProtocol = 5;
 
 struct PicklerState {
@@ -774,10 +782,16 @@ PickleScanResult scan_pickle_record(
       case '}': // EMPTY_DICT
       case 'd': // DICT
       case ')': // EMPTY_TUPLE
+      // Date-bearing protocol-4/5 pickles use TUPLE1 for the date reducer,
+      // and dictionaries may use SETITEM. Recognizing these structural
+      // opcodes keeps the whitelisted _pickle.loads path native; GLOBAL and
+      // REDUCE remain constrained to the canonical datetime.date identity.
       case 0x8f: // EMPTY_SET
       case '(': // MARK
       case 'e': // APPENDS
+      case 's': // SETITEM
       case 't': // TUPLE
+      case 0x85: // TUPLE1
       case 'u': // SETITEMS
       case 0x90: // ADDITEMS
         break;
@@ -798,8 +812,16 @@ bool pickle_is_datetime_date(Runtime& runtime, const Value& candidate) {
       value_is(candidate, date_class);
 }
 
+bool pickle_is_allowed_datetime_date_global(
+    std::string_view module_name, std::string_view qualified_name) {
+  // XLang3's stdlib fallback reports _pydatetime.date as its defining global;
+  // accept that spelling only when resolution below proves it is datetime.date.
+  return (module_name == "datetime" || module_name == "_pydatetime") &&
+      qualified_name == "date";
+}
+
 bool pickle_read_value(
-    Runtime& runtime, std::string_view payload, Value& out, std::string& error,
+  Runtime& runtime, std::string_view payload, Value& out, std::string& error,
     bool builtin_only = false) {
   PickleReader reader{payload};
   while (reader.pos < reader.data.size()) {
@@ -1026,7 +1048,12 @@ bool pickle_read_value(
           error = "truncated pickle global";
           return false;
         }
-        if (builtin_only && (module_name != "datetime" || qualified_name != "date")) {
+        if (builtin_only && !pickle_is_allowed_datetime_date_global(module_name, qualified_name)) {
+          if (pickle_trace_enabled()) {
+            std::fprintf(stderr, "pickle restricted GLOBAL module=%.*s name=%.*s\n",
+                static_cast<int>(module_name.size()), module_name.data(),
+                static_cast<int>(qualified_name.size()), qualified_name.data());
+          }
           error = "pickle global requires the compatible Python loader";
           return false;
         }
@@ -1050,6 +1077,10 @@ bool pickle_read_value(
           }
           start = dot + 1;
         }
+        if (builtin_only && !pickle_is_datetime_date(runtime, global)) {
+          error = "pickle global is not the compatible datetime.date type";
+          return false;
+        }
         reader.stack.push_back(global);
         break;
       }
@@ -1070,7 +1101,11 @@ bool pickle_read_value(
         }
         const std::string module_name = string_object_to_string(*module_name_string);
         const std::string qualified_name = string_object_to_string(*qualified_name_string);
-        if (builtin_only && (module_name != "datetime" || qualified_name != "date")) {
+        if (builtin_only && !pickle_is_allowed_datetime_date_global(module_name, qualified_name)) {
+          if (pickle_trace_enabled()) {
+            std::fprintf(stderr, "pickle restricted STACK_GLOBAL module=%s name=%s\n",
+                module_name.c_str(), qualified_name.c_str());
+          }
           error = "pickle STACK_GLOBAL requires the compatible Python loader";
           return false;
         }
@@ -1093,6 +1128,10 @@ bool pickle_read_value(
             break;
           }
           start = dot + 1;
+        }
+        if (builtin_only && !pickle_is_datetime_date(runtime, global)) {
+          error = "pickle STACK_GLOBAL is not the compatible datetime.date type";
+          return false;
         }
         reader.stack.push_back(std::move(global));
         break;
@@ -1173,6 +1212,16 @@ bool pickle_read_value(
       case ')':
         reader.stack.push_back(Value::tuple({}));
         break;
+      case 0x85: { // TUPLE1
+        if (reader.stack.empty()) {
+          error = "pickle TUPLE1 needs one stack value";
+          return false;
+        }
+        std::vector<Value> item;
+        item.push_back(std::move(reader.stack.back()));
+        reader.stack.back() = Value::tuple(std::move(item));
+        break;
+      }
       case 0x8f:
         reader.stack.push_back(Value::set({}));
         break;
@@ -1237,6 +1286,25 @@ bool pickle_read_value(
         }
         reader.stack.resize(mark);
         reader.stack[mark - 1] = dict_value;
+        break;
+      }
+      case 's': { // SETITEM
+        if (reader.stack.size() < 3) {
+          error = "pickle SETITEM needs a dict, key, and value";
+          return false;
+        }
+        Value value = std::move(reader.stack.back());
+        reader.stack.pop_back();
+        Value key = std::move(reader.stack.back());
+        reader.stack.pop_back();
+        Value& dict = reader.stack.back();
+        if (value_as_dict(dict) == nullptr) {
+          error = "pickle SETITEM target is not dict";
+          return false;
+        }
+        if (!mapping_set_item(dict, key, value, error)) {
+          return false;
+        }
         break;
       }
       case 0x90: {
@@ -1493,9 +1561,21 @@ bool pickle_loads(Runtime& runtime, const Value* args, uint32_t argc, Value& out
     // Keep the common protocol-4/5 container path out of Python opcode dispatch.
     // The native reader's reducer whitelist preserves compatibility fallback
     // without executing arbitrary user reducers twice after a partial decode.
-    if (get_bytes_view(args[0], payload, fast_error) &&
-        scan_pickle_record(payload, fast_error, true) == PickleScanResult::Complete &&
-        pickle_read_value(runtime, payload, out, fast_error, true)) {
+    const bool has_bytes = get_bytes_view(args[0], payload, fast_error);
+    const PickleScanResult scan = has_bytes
+        ? scan_pickle_record(payload, fast_error, true)
+        : PickleScanResult::Invalid;
+    const bool decoded = scan == PickleScanResult::Complete &&
+        pickle_read_value(runtime, payload, out, fast_error, true);
+    // This opt-in trace identifies why a supposedly common built-in payload
+    // falls through to pickle.py; it is kept off the hot path unless requested.
+    static std::atomic<uint32_t> trace_count{0};
+    if (pickle_trace_enabled() && trace_count.fetch_add(1, std::memory_order_relaxed) < 8) {
+      std::fprintf(stderr, "pickle loads native-path bytes=%d scan=%d decoded=%d size=%zu error=%s\n",
+          has_bytes ? 1 : 0, static_cast<int>(scan), decoded ? 1 : 0,
+          payload.size(), fast_error.c_str());
+    }
+    if (decoded) {
       return true;
     }
     Value ignored_exception;

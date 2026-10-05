@@ -141,6 +141,8 @@ void register_operator_module(Runtime& runtime);
 void register_pickle_module(Runtime& runtime);
 void register_pyexpat_module(Runtime& runtime);
 void register_overlapped_module(Runtime& runtime);
+void register_asyncio_module(Runtime& runtime);
+void initialize_asyncio_module_compat(Runtime& runtime);
 void register_multiprocessing_module(Runtime& runtime);
 void register_winapi_module(Runtime& runtime);
 void register_winreg_module(Runtime& runtime);

@@ -1,0 +1,165 @@
+direct workload comprehensions: 0.183812700008275 wall=0.183954200 s loops=1000 inner_loops=1
+perf: native_calls=20322 fast=19189 cached_fast=274
+perf: native weakref.ProxyType.__setattr__ slow=30 fast=0
+perf: native object.__init__ slow=2 fast=21
+perf: native weakref.ProxyType.__getattr__ slow=15 fast=0
+perf: native weakref.proxy slow=15 fast=0
+perf: native sys.getrecursionlimit slow=5 fast=0
+perf: native functools._lru_cache_wrapper slow=3 fast=0
+perf: native FileNotFoundError.__init__ slow=2 fast=0
+perf: native KeyError.__init__ slow=2 fast=0
+perf: native exec slow=2 fast=0
+perf: native file.__enter__ slow=2 fast=0
+perf: native file.__exit__ slow=2 fast=0
+perf: native file.read slow=2 fast=0
+perf: native io.open_code slow=2 fast=0
+perf: native FileFinder.path_hook slow=1 fast=0
+perf: native compile slow=1 fast=0
+perf: native dict.update slow=1 fast=0
+perf: native eval slow=1 fast=0
+perf: native function.__get__ slow=1 fast=0
+perf: native print slow=1 fast=0
+perf: native type.__new__ slow=1 fast=0
+perf: native zipimport.zipimporter.__init__ slow=1 fast=0
+perf: store_local moves=9165 copies=278882
+perf: call argument register transfers=1173
+perf: CALL_FUNCTION_EX varargs+kwonly direct bindings=0
+perf: frame_snapshots calls=1 frames=2 locals=0 refresh_calls=16 refresh_items=18
+perf: opcode 0 27614
+perf: opcode 1 12266
+perf: opcode 2 87823
+perf: opcode 3 174447
+perf: opcode 4 43
+perf: opcode 5 20
+perf: opcode 6 20
+perf: opcode 7 45
+perf: opcode 8 85
+perf: opcode 9 61
+perf: opcode 10 41
+perf: opcode 12 2
+perf: opcode 13 486
+perf: opcode 15 24053
+perf: opcode 17 3
+perf: opcode 18 2205
+perf: opcode 19 156
+perf: opcode 20 48
+perf: opcode 22 16
+perf: opcode 25 36398
+perf: opcode 26 3543
+perf: opcode 30 11
+perf: opcode 31 18314
+perf: opcode 33 10
+perf: opcode 35 18262
+perf: opcode 36 22157
+perf: opcode 37 2152
+perf: opcode 38 11
+perf: opcode 39 68
+perf: opcode 40 162179
+perf: opcode 41 1
+perf: opcode 42 36416
+perf: opcode 46 19149
+perf: opcode 47 72502
+perf: opcode 48 167
+perf: opcode 50 190
+perf: opcode 51 41211
+perf: opcode 52 53150
+perf: opcode 53 4
+perf: opcode 54 292
+perf: opcode 55 84
+perf: opcode 56 18
+perf: opcode 60 15
+perf: opcode 63 103
+perf: opcode 64 8
+perf: opcode 66 12
+perf: opcode 70 42099
+perf: opcode 71 148
+perf: opcode 72 294
+perf: opcode 73 53
+perf: opcode 74 18055
+perf: opcode 75 8
+perf: opcode 76 241978
+perf: opcode 77 54155
+perf: opcode 78 122
+perf: opcode 79 132
+perf: opcode 80 4
+perf: opcode 81 90
+perf: opcode 82 4
+perf: opcode 83 2
+perf: opcode 84 2
+perf: opcode 85 16
+perf: opcode 88 27
+perf: opcode 89 34
+perf: opcode 90 151492
+perf: opcode 91 17
+perf: opcode 92 60
+perf: opcode 93 38268
+perf: opcode 95 29062
+perf: opcode 97 2547
+perf: opcode 98 42409
+perf: opcode 99 2
+perf: opcode 101 15
+perf: opcode 102 34
+perf: opcode 105 147377
+perf: opcode 106 18556
+perf: opcode 107 388
+perf: opcode 108 113212
+perf: opcode 109 37
+perf: opcode 110 175068
+perf: opcode 111 41
+perf: opcode 112 1116
+perf: opcode 113 1152
+perf: opcode 114 409
+perf: opcode 115 24336
+perf: opcode 116 18
+perf: opcode 117 124
+perf: opcode 118 3308
+perf: opcode 119 141
+perf: opcode 120 431
+perf: opcode 121 18479
+perf: opcode 122 168
+perf: opcode 125 97
+perf: opcode 126 24115
+perf: opcode 127 24113
+perf: opcode 129 9
+perf: opcode 130 12
+perf: opcode 131 123
+perf: opcode 139 1
+perf: objects kind alloc final_release incref decref
+perf: String 1183 437 1235 1593
+perf: BigInt 5 5 90 95
+perf: Bytes 6 2 2 4
+perf: ByteArray 7 7 8 15
+perf: Slice 68 68 16 84
+perf: Tuple 18507 18425 109165 127536
+perf: List 22213 22192 175811 197995
+perf: Dict 2270 2217 2954 5158
+perf: Unknown 26 21 40 55
+perf: Set 23 17 106 123
+perf: DictKeysView 1 1 0 1
+perf: DictValuesView 5 5 0 5
+perf: DictItemsView 8 8 0 8
+perf: DictIterator 30 30 0 30
+perf: SetIterator 2 2 0 2
+perf: Range 18 18 0 18
+perf: RangeIterator 12 12 0 12
+perf: SequenceIterator 41198 41198 1 41199
+perf: Unknown 3 3 3 6
+perf: Unknown 1 1 1 2
+perf: Unknown 2 2 2 4
+perf: Generator 18015 18015 18039 36054
+perf: Module 13 2 216192 215535
+perf: Cell 105 63 188 246
+perf: Function 18314 18020 37889 55848
+perf: NativeFunction 15 4 110899 110895
+perf: Class 55 0 31163 30699
+perf: Instance 1210 1156 656237 657390
+perf: BoundMethod 36402 36401 85 36486
+perf: StaticMethod 2 0 176 176
+perf: ClassMethod 3 0 75 75
+perf: Super 22 22 0 22
+perf: SlotDescriptor 23 0 1237 1237
+perf: Property 3 0 119 119
+perf: Unknown 10 10 9 19
+perf: Unknown 37 37 128 165
+perf: Unknown 33 33 29 62
+perf: File 2 2 19 21

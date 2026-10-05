@@ -10,6 +10,7 @@ large protocol rejected
 True
 True
 True True
+True True
 True True 1
 bytearray b'mutable'
 1 b'buffer'

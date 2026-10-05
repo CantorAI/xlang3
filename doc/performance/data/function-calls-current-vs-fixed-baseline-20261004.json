@@ -1,0 +1,100 @@
+{
+  "status": "pass",
+  "ratio": 1.0102277561810984,
+  "ratio_interval_95": [
+    0.9433638750420593,
+    1.0414918763030814
+  ],
+  "baseline_median_ms": 0.9073458367644379,
+  "candidate_median_ms": 0.9213817469574468,
+  "baseline_seconds": [
+    0.0008954996438652488,
+    0.0010143785676131592,
+    0.0009183779256548962,
+    0.0008995998032349764,
+    0.000907345836764438,
+    0.0009300003587907991,
+    0.0008995499682032965,
+    0.0009593516204807935,
+    0.0009002997292406118
+  ],
+  "candidate_seconds": [
+    0.0010482417786639552,
+    0.000919449967686476,
+    0.0009270755365772291,
+    0.0009213817469574468,
+    0.000944993317987584,
+    0.0009217466460098206,
+    0.0009087503459507948,
+    0.0009050176622246404,
+    0.0009176999829008541
+  ],
+  "measurement_method": "9 order-balanced paired samples; each measured pair runs both AB and BA orders",
+  "baseline": {
+    "executable": "D:\\CantorAI\\xlang3\\build-repro\\Release\\xlang3.exe",
+    "sha256": {
+      "xlang3.exe": "b70a6a046513883f808f088c43bc64b7bf7c9672728e74205f3b67aaaada52da",
+      "xlang3_runtime-telco-candidate.dll": "47d3e6162f5b5103160fd28e69749839a02086cc53a9ac35e66e95d95065e35d",
+      "xlang3_runtime-telco-context-slots.dll": "707356e5c9781bf206689f51d6242275fec62d62cf5be1f99eb046d86d4e8449",
+      "xlang3_runtime-telco-control.dll": "97dc09ea8ae773dcede06b6ae6e1705ab16efac772e2fa20d500eacfed3e253f",
+      "xlang3_runtime-telco-final-candidate.dll": "960d635bf89fb5896dc137ace207397e7d2d2585ba08e81034c33710e67f539f",
+      "xlang3_runtime.dll": "330ba0b48a931aef5b927dd0151c0adf062a9fc5a0c4bc345c51f2bf957df23f"
+    }
+  },
+  "candidate": {
+    "executable": "C:\\Users\\shaw9\\AppData\\Local\\Temp\\xlang3-loadlocal-branch-20261003-control\\Release\\Release\\xlang3.exe",
+    "sha256": {
+      "xlang3.exe": "88af60fe5ae376ffb6feddca6cd50fd9fdcc926dbb9e48762daef78bdb764671",
+      "xlang3_runtime.dll": "46dff70b4a974f950d9f6f90a0738a55278b1f1bfdb195c00be0bf8da3004856"
+    }
+  },
+  "source": "D:\\CantorAI\\xlang3\\benchmarks\\cases\\function_calls.py",
+  "source_sha256": "1c1f4935461cc230bceae7ca35bdec4ac1b5de019016f916e7889768a76cd7fa",
+  "stdout_sha256": "663992bf341412ae29f3d647674e78d744fcf4e0fe420ecd6e1db42ab4f71e16",
+  "order_balanced_seconds": {
+    "baseline_first": [
+      0.0008963000000221655,
+      0.0009092999971471727,
+      0.0009483000030741096,
+      0.0009002000006148592,
+      0.0009101000032387674,
+      0.0009518000006210059,
+      0.0008997999975690618,
+      0.0009873999952105805,
+      0.0009010000067064539
+    ],
+    "baseline_second": [
+      0.0008947000023908913,
+      0.0011316000018268824,
+      0.0008893999911379069,
+      0.0008990000060293823,
+      0.0009046000050147995,
+      0.0009087000071303919,
+      0.0008993000083137304,
+      0.0009320999961346388,
+      0.0008995999960461631
+    ],
+    "candidate_first": [
+      0.0009202000073855743,
+      0.0009191999997710809,
+      0.0009153999999398366,
+      0.0009156000014627352,
+      0.000930900001549162,
+      0.000945699997828342,
+      0.0009182999929180369,
+      0.0009126999939326197,
+      0.0009175999875878915
+    ],
+    "candidate_second": [
+      0.0011940999975195155,
+      0.0009197000035783276,
+      0.0009388999897055328,
+      0.000927200002479367,
+      0.0009592999995220453,
+      0.0008984000014606863,
+      0.0008993000083137304,
+      0.000897399993846193,
+      0.0009177999891107902
+    ]
+  }
+}

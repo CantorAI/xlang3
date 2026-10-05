@@ -20,6 +20,7 @@ limitations under the License.
 #include "xlang_vm_ops_call.h"
 
 #include "xlang3/attribute.h"
+#include "xlang3/decimal_runtime.h"
 #include "xlang3/functional_iterators.h"
 #include "xlang3/object_model.h"
 #include "xlang3/runtime.h"
@@ -465,6 +466,12 @@ XLANG3_HOT_INLINE XlangVMOpFlow binary_arithmetic_with_special_method(
   if (fast_op(lhs, rhs, regs[in.dst])) {
     return XlangVMOpFlow::Next;
   }
+  // CPython's native _decimal avoids Python bound-method allocation for each
+  // arithmetic opcode. Mirror that boundary for exact XLang3 Decimal methods;
+  // the guard sends subclasses and edited descriptors through regular lookup.
+  if (decimal_try_fast_binary(runtime, lhs, rhs, special_method_name, regs[in.dst])) {
+    return XlangVMOpFlow::Next;
+  }
   if (lhs.tag == ValueTag::Object && lhs.as.obj != nullptr) {
     const auto flow = call_binary_special_method(
         runtime,
@@ -486,6 +493,9 @@ XLANG3_HOT_INLINE XlangVMOpFlow binary_arithmetic_with_special_method(
     if (flow != XlangVMOpFlow::Next) {
       return flow;
     }
+  }
+  if (decimal_try_fast_binary(runtime, rhs, lhs, reflected_method_name, regs[in.dst])) {
+    return XlangVMOpFlow::Next;
   }
   if (rhs.tag == ValueTag::Object && rhs.as.obj != nullptr) {
     const auto flow = call_binary_special_method(

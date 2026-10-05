@@ -1,0 +1,4 @@
+class-method 42 True
+instance-shadow 42 True
+class-replaced 42 True
+future-subclass 7

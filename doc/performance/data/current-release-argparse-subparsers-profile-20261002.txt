@@ -1,0 +1,209 @@
+profiled workload subparsers None
+profiled Python calls, grouped by source/function
+perf: native_calls=332936 fast=283044 cached_fast=161616
+perf: native KeyError.__init__ slow=2009 fast=0
+perf: native _io.TextIOWrapper.fileno slow=1003 fast=0
+perf: native os.get_terminal_size slow=1003 fast=0
+perf: native print slow=45 fast=0
+perf: native FileNotFoundError.__init__ slow=3 fast=0
+perf: native iter slow=3 fast=0
+perf: native bytearray.translate slow=2 fast=0
+perf: native file.__enter__ slow=2 fast=0
+perf: native file.__exit__ slow=2 fast=0
+perf: native file.read slow=2 fast=0
+perf: native io.open_code slow=2 fast=0
+perf: native sys.setprofile slow=2 fast=0
+perf: native FileFinder.path_hook slow=1 fast=0
+perf: native _json.Encoder.__call__ slow=1 fast=0
+perf: native compile slow=1 fast=0
+perf: native dict.update slow=1 fast=0
+perf: native eval slow=1 fast=0
+perf: native exec slow=1 fast=0
+perf: native list.sort slow=1 fast=0
+perf: native sorted slow=1 fast=0
+perf: native types.SimpleNamespace.__init__ slow=1 fast=0
+perf: native zipimport.zipimporter.__init__ slow=1 fast=0
+perf: store_local moves=328351 copies=24846
+perf: frame_snapshots calls=133256 frames=1049192 locals=0 refresh_calls=173509 refresh_items=2112866
+perf: opcode 0 315635
+perf: opcode 1 106551
+perf: opcode 2 533689
+perf: opcode 3 336643
+perf: opcode 4 2025
+perf: opcode 5 1708
+[[["__init__.py","_compile"],3511],[["argparse.py","_registry_get"],3510],[["argparse.py","__init__"],3016],[["argparse.py","_add_action"],3009],[["argparse.py","_parse_optional"],3004],[["os.py","check_str"],2012],[["os.py","encodekey"],2012],[["__init__.py","compile"],2009],[["argparse.py","_get_nargs_pattern"],1504],[["argparse.py","_get_value"],1504],[["argparse.py","_check_value"],1504],[["argparse.py","_get_values"],1504],[["argparse.py","__call__"],1504],[["argparse.py","take_action"],1504],[["__init__.py","match"],1502],[["argparse.py","_match_argument"],1500],[["argparse.py","consume_optional"],1500],[["argparse.py","_pop_action_class"],1003],[["enum.py","value"],1003],[["enum.py","__get__"],1003],[["argparse.py","_metavar_formatter"],1003],[["argparse.py","format"],1003],[["argparse.py","_format_args"],1003],[["argparse.py","_check_conflict"],1003],[["argparse.py","_get_optional_kwargs"],1001],[["_parser.py","__getitem__"],75],[["_parser.py","__next"],44],[["_parser.py","__len__"],43],[["argparse.py","register"],37],[["_parser.py","get"],35],[["_parser.py","match"],35],[["_parser.py","__init__"],29],[["_parser.py","append"],27],[["_parser.py","getwidth"],22],[["_parser.py","tell"],21],[["_compiler.py","_compile"],19],[["_parser.py","groups"],16],[["enum.py","_get_value"],15],[["_compiler.py","isstring"],10],[["_compiler.py","_get_iscased"],10],[["_parser.py","__setitem__"],9],[["_parser.py","_parse"],9],[["_compiler.py","_simple"],9],[["_parser.py","_escape"],8],[["_parser.py","_parse_sub"],8],[["_compiler.py","_get_literal_prefix"],7],[["locale.py","normalize"],6],[["gettext.py","_expand_lang"],6],[["_compiler.py","_combine_flags"],6],[["_parser.py","fix_flags"],5],[["_parser.py","parse"],5],[["_compiler.py","_compile_info"],5],[["_compiler.py","_code"],5],[["_compiler.py","compile"],5],[["enum.py","__new__"],5],[["enum.py","__call__"],5],[["enum.py","__and__"],5],[["_parser.py","__delitem__"],4],[["_compiler.py","_optimize_charset"],4],[["_compiler.py","_compile_charset"],4]]
+profiled benchmark function times (inclusive/self seconds)
+argparse.py parse_args 2 2.693953 0.000383
+argparse.py parse_known_args 2 2.69357 0.000424
+argparse.py _parse_known_args2 2 2.693147 0.110329
+argparse.py _parse_known_args 2 2.582769 0.410565
+argparse.py consume_optional 1500 2.093975 0.381418
+argparse.py take_action 1504 1.056902 0.374875
+argparse.py _add_action 3009 0.85585 0.369567
+argparse.py _match_argument 1500 0.659019 0.371837
+argparse.py _get_values 1504 0.609252 0.357194
+__init__.py compile 2009 0.462468 0.15026
+__init__.py _compile 3511 0.420134 0.250227
+__init__.py match 1502 0.279038 0.171112
+os.py encodekey 2012 0.259655 0.168214
+argparse.py _format_args 1003 0.223877 0.169151
+argparse.py _get_value 1504 0.221783 0.18997
+argparse.py __init__ 3016 0.17989 0.13818
+enum.py __get__ 1003 0.112871 0.094412
+argparse.py _pop_action_class 1003 0.104044 0.088468
+os.py check_str 2012 0.091441 0.091441
+perf: opcode 6 1548
+perf: opcode 7 9576
+perf: opcode 8 1101
+perf: opcode 9 1147
+perf: opcode 10 436068
+perf: opcode 13 15611
+perf: opcode 15 24
+perf: opcode 18 22296
+perf: opcode 19 108
+perf: opcode 20 1046
+perf: opcode 22 19
+perf: opcode 23 1
+perf: opcode 25 96732
+perf: opcode 26 28946
+perf: opcode 30 2
+perf: opcode 31 1376
+perf: opcode 33 3
+perf: opcode 35 55329
+perf: opcode 36 62002
+perf: opcode 37 113
+perf: opcode 38 2
+perf: opcode 39 3093
+perf: opcode 40 149
+perf: opcode 41 1
+perf: opcode 42 330
+perf: opcode 46 6857
+perf: opcode 47 295423
+perf: opcode 48 180101
+perf: opcode 49 129
+perf: opcode 50 8105
+perf: opcode 51 7536
+perf: opcode 52 1744
+perf: opcode 53 1001
+perf: opcode 54 6334
+perf: opcode 55 90788
+perf: opcode 56 2047
+perf: opcode 59 1
+argparse.py __call__ 1504 0.072775 0.072775
+argparse.py _registry_get 3510 0.062513 0.062513
+_compiler.py compile 5 0.053624 0.001854
+argparse.py _parse_optional 3004 0.050451 0.050451
+argparse.py _get_optional_kwargs 1001 0.045537 0.045537
+_parser.py _parse_sub 8 0.04043 0.003463
+argparse.py format 1003 0.038262 0.038262
+_parser.py _parse 9 0.035632 0.012186
+_parser.py parse 5 0.032272 0.001271
+argparse.py _check_value 1504 0.030275 0.030275
+argparse.py _get_nargs_pattern 1504 0.029028 0.029028
+argparse.py consume_positionals 4 0.027033 0.001387
+argparse.py _match_arguments_partial 4 0.022281 0.001397
+_compiler.py _compile 19 0.021125 0.00736
+_compiler.py _code 5 0.018846 0.000991
+argparse.py _check_conflict 1003 0.018557 0.018557
+enum.py value 1003 0.01846 0.01846
+argparse.py _metavar_formatter 1003 0.016463 0.016463
+_compiler.py _compile_info 5 0.006862 0.002518
+_parser.py getwidth 22 0.004922 0.003107
+_parser.py __getitem__ 75 0.004501 0.004295
+profiled benchmark-frame calls 44246
+perf: opcode 60 1009
+perf: opcode 63 238
+perf: opcode 64 26
+perf: opcode 66 18
+perf: opcode 67 75
+perf: opcode 70 124218
+perf: opcode 71 50012
+perf: opcode 72 18456
+perf: opcode 73 53993
+perf: opcode 74 136852
+perf: opcode 75 21
+perf: opcode 76 94530
+perf: opcode 77 208350
+perf: opcode 78 174918
+perf: opcode 79 11887
+perf: opcode 80 4
+perf: opcode 81 4322
+perf: opcode 82 2012
+perf: opcode 83 2009
+perf: opcode 85 2021
+perf: opcode 88 4042
+perf: opcode 89 100073
+perf: opcode 90 236396
+perf: opcode 91 1014
+perf: opcode 92 5031
+perf: opcode 93 48161
+perf: opcode 95 508
+perf: opcode 96 1082
+perf: opcode 97 80485
+perf: opcode 98 24437
+perf: opcode 101 177001
+perf: opcode 102 18
+perf: opcode 105 86419
+perf: opcode 106 194813
+perf: opcode 107 46138
+perf: opcode 108 228
+perf: opcode 110 155963
+perf: opcode 111 661
+perf: opcode 112 2895
+perf: opcode 113 1791
+perf: opcode 114 12500
+perf: opcode 115 13987
+perf: opcode 116 1604
+perf: opcode 117 241132
+perf: opcode 118 180603
+perf: opcode 119 13853
+perf: opcode 120 6869
+perf: opcode 121 23623
+perf: opcode 122 102
+perf: opcode 125 5758
+perf: opcode 126 17843
+perf: opcode 127 4059
+perf: opcode 129 64
+perf: opcode 130 3444
+perf: opcode 131 14906
+perf: opcode 132 194
+perf: opcode 139 95593
+perf: opcode 141 100090
+perf: opcode 146 6
+perf: objects kind alloc final_release incref decref
+perf: String 202343 193596 2388464 2574944
+perf: BigInt 11 11 486 497
+perf: Bytes 11 7 10 17
+perf: ByteArray 30 30 55 85
+perf: Slice 3093 3093 107 3200
+perf: Tuple 70910 68690 1166261 1233653
+perf: List 107807 99732 2085013 2183728
+perf: Dict 136467 135416 5115578 5244933
+perf: Unknown 7 0 7 7
+perf: Set 10 9 284660 284669
+perf: DictValuesView 1 1 0 1
+perf: DictItemsView 7 7 3 10
+perf: DictIterator 28 28 3 31
+perf: Range 72 72 0 72
+perf: RangeIterator 45 45 0 45
+perf: SequenceIterator 8894 8894 103685 112579
+perf: Unknown 5 5 5 10
+perf: Unknown 5 5 5 10
+perf: Unknown 2 2 2 4
+perf: Generator 124 124 246 370
+perf: Module 10 1 2770286 2762701
+perf: Cell 1128 1068 700989 702015
+perf: Function 1376 1134 1365127 1366221
+perf: NativeFunction 11 1 785512 785503
+perf: Class 41 0 467376 459067
+perf: Instance 12673 8630 5771856 5768413
+perf: BoundMethod 288756 288752 103308 392060
+perf: StaticMethod 1 0 5122 5122
+perf: ClassMethod 1 0 44 44
+perf: Super 2015 2015 0 2015
+perf: SlotDescriptor 0 0 9031 9031
+perf: Property 3 0 102 102
+perf: Unknown 88717 88716 799539 888253
+perf: Unknown 1602379 1596335 11039565 12629863
+perf: Unknown 6056 6056 4042 10098
+perf: File 2 2 19 21

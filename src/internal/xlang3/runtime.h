@@ -326,6 +326,8 @@ private:
   const Value* current_local_values_ = nullptr;
   size_t current_local_count_ = 0;
   uint32_t next_native_id_ = 1;
+  bool asyncio_compat_initialized_ = false;
+  bool asyncio_compat_initializing_ = false;
   std::unordered_map<std::string, Value> builtins_;
   std::unordered_map<std::string, Value> modules_;
   mutable std::recursive_mutex import_mutex_;

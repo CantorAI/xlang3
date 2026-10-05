@@ -1,0 +1,18 @@
+{
+  "date": "2026-10-02",
+  "workload": "benchmarks/diagnostics/pickle_unpickle_pyperformance_shape_exact.py; 100 loops; six order-balanced process pairs",
+  "candidate_change": "Reserve bounded stack, mark, and memo vector capacities before parsing",
+  "control_runtime_sha256": "A3BDCD23B508D906908E280EA28A59C45C43E8E64F8E98BE10A14D688F05251B",
+  "candidate_runtime_sha256": "EC0952AF3341B4F0D68548B86FCE6AC5AD0E5CFF2467B5AA3EF3F3B12D14B2C0",
+  "executable_sha256": "0C3C75C0CBD7229900D89A7F9F50365B4E35472BC251B750AF297B6CF126B11C",
+  "pairs": [
+    {"pair": 0, "candidate_us": 4498.8, "control_us": 4702.8},
+    {"pair": 1, "candidate_us": 5153.2, "control_us": 5038.4},
+    {"pair": 2, "candidate_us": 5100.9, "control_us": 5123.5},
+    {"pair": 3, "candidate_us": 5440.8, "control_us": 5165.9},
+    {"pair": 4, "candidate_us": 5396.0, "control_us": 5190.3},
+    {"pair": 5, "candidate_us": 5204.1, "control_us": 5169.2}
+  ],
+  "median_paired_candidate_over_control": 1.0148,
+  "decision": "Discard: no measured gain; the median candidate was 1.48% slower"
+}

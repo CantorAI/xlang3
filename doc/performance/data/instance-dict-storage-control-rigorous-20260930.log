@@ -1,0 +1,227 @@
+Python benchmark suite 1.14.0
+
+
+==================================================
+( 1/2) creating venv for benchmark (pickle_pure_python)
+
+(trying common venv first)
+Installing requirements into the virtual environment D:\CantorAI\xlang3\venv\xlang33.14-d5317054b2a5-compat-31b33d68c68a
+# 'D:\CantorAI\xlang3\venv\xlang33.14-d5317054b2a5-compat-31b33d68c68a\Scripts\python.exe' -m pip install pyperf==2.10.0
+Collecting pyperf==2.10.0
+  Using cached pyperf-2.10.0-py3-none-any.whl.metadata (6.2 kB)
+Using cached pyperf-2.10.0-py3-none-any.whl (144 kB)
+Installing collected packages: pyperf
+Successfully installed pyperf-2.10.0
+Installing requirements into the virtual environment D:\CantorAI\xlang3\venv\xlang33.14-d5317054b2a5-compat-31b33d68c68a
+# 'D:\CantorAI\xlang3\venv\xlang33.14-d5317054b2a5-compat-31b33d68c68a\Scripts\python.exe' -m pip install psutil
+Collecting psutil
+  Using cached psutil-7.2.2.tar.gz (493 kB)
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+Building wheels for collected packages: psutil
+  Building wheel for psutil (pyproject.toml): started
+  Building wheel for psutil (pyproject.toml): finished with status 'error'
+  error: subprocess-exited-with-error
+  
+  × <InstallationSubprocessError: subprocess-exited-with-error>
+  ╰─> [17 lines of output]
+      running bdist_wheel
+      running build
+      running build_py
+      creating build\lib.win-amd64-xlang3-314\psutil
+      copying psutil\_common.py -> build\lib.win-amd64-xlang3-314\psutil
+      copying psutil\_ntuples.py -> build\lib.win-amd64-xlang3-314\psutil
+      copying psutil\_psaix.py -> build\lib.win-amd64-xlang3-314\psutil
+      copying psutil\_psbsd.py -> build\lib.win-amd64-xlang3-314\psutil
+      copying psutil\_pslinux.py -> build\lib.win-amd64-xlang3-314\psutil
+      copying psutil\_psosx.py -> build\lib.win-amd64-xlang3-314\psutil
+      copying psutil\_psposix.py -> build\lib.win-amd64-xlang3-314\psutil
+      copying psutil\_pssunos.py -> build\lib.win-amd64-xlang3-314\psutil
+      copying psutil\_pswindows.py -> build\lib.win-amd64-xlang3-314\psutil
+      copying psutil\__init__.py -> build\lib.win-amd64-xlang3-314\psutil
+      running build_ext
+      building 'psutil._psutil_windows' extension
+      error: Unable to find a compatible Visual Studio installation.
+      [end of output]
+  
+  note: This error originates from a subprocess, and is likely not a problem with pip.
+  ERROR: Failed building wheel for psutil
+Failed to build psutil
+error: failed-wheel-build-for-install
+
+× <InstallWheelBuildError: failed-wheel-build-for-install>
+╰─> psutil
+Command failed with exit code 1
+WARNING: failed to install psutil
+# 'D:\CantorAI\xlang3\venv\xlang33.14-d5317054b2a5-compat-31b33d68c68a\Scripts\python.exe' -m pip freeze
+packaging==26.3
+pyperf==2.10.0
+setuptools==84.0.0
+wheel==0.48.0
+
+==================================================
+( 2/2) creating venv for benchmark (unpickle_pure_python)
+
+(trying common venv first)
+Installing requirements into the virtual environment D:\CantorAI\xlang3\venv\xlang33.14-d5317054b2a5-compat-31b33d68c68a
+# 'D:\CantorAI\xlang3\venv\xlang33.14-d5317054b2a5-compat-31b33d68c68a\Scripts\python.exe' -m pip install pyperf==2.10.0
+Requirement already satisfied: pyperf==2.10.0 in .\venv\xlang33.14-d5317054b2a5-compat-31b33d68c68a\Lib\site-packages (2.10.0)
+Installing requirements into the virtual environment D:\CantorAI\xlang3\venv\xlang33.14-d5317054b2a5-compat-31b33d68c68a
+# 'D:\CantorAI\xlang3\venv\xlang33.14-d5317054b2a5-compat-31b33d68c68a\Scripts\python.exe' -m pip install psutil
+Collecting psutil
+  Using cached psutil-7.2.2.tar.gz (493 kB)
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+Building wheels for collected packages: psutil
+  Building wheel for psutil (pyproject.toml): started
+  Building wheel for psutil (pyproject.toml): finished with status 'error'
+  error: subprocess-exited-with-error
+  
+  × <InstallationSubprocessError: subprocess-exited-with-error>
+  ╰─> [17 lines of output]
+      running bdist_wheel
+      running build
+      running build_py
+      creating build\lib.win-amd64-xlang3-314\psutil
+      copying psutil\_common.py -> build\lib.win-amd64-xlang3-314\psutil
+      copying psutil\_ntuples.py -> build\lib.win-amd64-xlang3-314\psutil
+      copying psutil\_psaix.py -> build\lib.win-amd64-xlang3-314\psutil
+      copying psutil\_psbsd.py -> build\lib.win-amd64-xlang3-314\psutil
+      copying psutil\_pslinux.py -> build\lib.win-amd64-xlang3-314\psutil
+      copying psutil\_psosx.py -> build\lib.win-amd64-xlang3-314\psutil
+      copying psutil\_psposix.py -> build\lib.win-amd64-xlang3-314\psutil
+      copying psutil\_pssunos.py -> build\lib.win-amd64-xlang3-314\psutil
+      copying psutil\_pswindows.py -> build\lib.win-amd64-xlang3-314\psutil
+      copying psutil\__init__.py -> build\lib.win-amd64-xlang3-314\psutil
+      running build_ext
+      building 'psutil._psutil_windows' extension
+      error: Unable to find a compatible Visual Studio installation.
+      [end of output]
+  
+  note: This error originates from a subprocess, and is likely not a problem with pip.
+  ERROR: Failed building wheel for psutil
+Failed to build psutil
+error: failed-wheel-build-for-install
+
+× <InstallWheelBuildError: failed-wheel-build-for-install>
+╰─> psutil
+Command failed with exit code 1
+WARNING: failed to install psutil
+# 'D:\CantorAI\xlang3\venv\xlang33.14-d5317054b2a5-compat-31b33d68c68a\Scripts\python.exe' -m pip freeze
+packaging==26.3
+pyperf==2.10.0
+setuptools==84.0.0
+wheel==0.48.0
+
+[1/2] pickle_pure_python...
+# 'D:\CantorAI\xlang3\venv\xlang33.14-d5317054b2a5-compat-31b33d68c68a\Scripts\python.exe' -u 'C:\Python\Python314\Lib\site-packages\pyperformance\data-files\benchmarks\bm_pickle\run_benchmark.py' --pure-python pickle --rigorous --inherit-environ PYPERFORMANCE_RUNID,PIP_NO_DEPS --output 'C:\Users\shaw9\AppData\Local\Temp\tmp2u6if6b9'
+WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.
+pickle_pure_python: Mean +- std dev: 6.40 ms +- 0.10 ms
+[2/2] unpickle_pure_python...
+# 'D:\CantorAI\xlang3\venv\xlang33.14-d5317054b2a5-compat-31b33d68c68a\Scripts\python.exe' -u 'C:\Python\Python314\Lib\site-packages\pyperformance\data-files\benchmarks\bm_pickle\run_benchmark.py' --pure-python unpickle --rigorous --inherit-environ PYPERFORMANCE_RUNID,PIP_NO_DEPS --output 'C:\Users\shaw9\AppData\Local\Temp\tmp947rtbmz'
+WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.
+unpickle_pure_python: Mean +- std dev: 4.31 ms +- 0.05 ms
+
+Performance version: 1.14.0
+Python version: 3.14.7 (64-bit) revision 823f032
+Report on Windows-2025Server-10.0.26200
+Number of logical CPUs: 20
+Start date: 2026-09-30 05:44:47.180203
+End date: 2026-09-30 05:46:07.820200
+
+### pickle_pure_python ###
+Mean +- std dev: 6.40 ms +- 0.10 ms
+
+### unpickle_pure_python ###
+Mean +- std dev: 4.31 ms +- 0.05 ms
+

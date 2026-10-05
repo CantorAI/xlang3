@@ -13,6 +13,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 #include "xlang3/builtins.h"
+#include "xlang3/builtin_methods.h"
+#include "xlang3/contextvars_runtime.h"
 
 #include "xlang3/functional_iterators.h"
 #include "xlang3/mapping.h"
@@ -475,20 +477,32 @@ bool context_run_kw(Runtime& runtime, const Value* args, uint32_t argc,
     return false;
   }
   std::vector<std::pair<std::string, Value>> keyword_values;
-  keyword_values.reserve(kwargc);
-  for (uint32_t index = 0; index < kwargc; ++index) {
-    if (kwargs[index].name == nullptr || kwargs[index].value == nullptr) {
-      error = "Context.run() received invalid keyword argument";
-      return false;
+  if (kwargc != 0) {
+    keyword_values.reserve(kwargc);
+    for (uint32_t index = 0; index < kwargc; ++index) {
+      if (kwargs[index].name == nullptr || kwargs[index].value == nullptr) {
+        error = "Context.run() received invalid keyword argument";
+        return false;
+      }
+      keyword_values.emplace_back(kwargs[index].name, *kwargs[index].value);
     }
-    keyword_values.emplace_back(kwargs[index].name, *kwargs[index].value);
   }
-  auto previous = g_context_values;
-  g_context_values = state->values;
-  const bool ok = runtime_call_callable_kw(
-      runtime, args[1], args + 2, argc - 2, keyword_values, out, error);
-  state->values = g_context_values;
-  g_context_values = std::move(previous);
+  // Context.run is on every asyncio Task step. Transfer the thread's active
+  // bindings by swapping maps, as CPython swaps the current Context pointer;
+  // copying unordered_maps here turns every task wakeup into O(context size)
+  // hashing and allocation work. The two swaps also preserve nested Context.run
+  // calls: each invocation keeps its caller's bindings in its own local map.
+  std::unordered_map<Object*, Value> previous;
+  previous.swap(g_context_values);
+  g_context_values.swap(state->values);
+  // asyncio's Handle.run path supplies positional callback args only. Keep
+  // that per-Task path out of the general keyword-call adapter.
+  const bool ok = kwargc == 0
+      ? runtime_call_callable(runtime, args[1], args + 2, argc - 2, out, error)
+      : runtime_call_callable_kw(
+            runtime, args[1], args + 2, argc - 2, keyword_values, out, error);
+  state->values.swap(g_context_values);
+  g_context_values.swap(previous);
   return ok;
 }
 
@@ -570,13 +584,38 @@ Value make_context_class(Runtime& runtime) {
   attrs.push_back({"items", runtime.make_native_function("_contextvars.Context.items", context_view_method, reinterpret_cast<void*>(1))});
   attrs.push_back({"values", runtime.make_native_function("_contextvars.Context.values", context_view_method, reinterpret_cast<void*>(2))});
   attrs.push_back({"copy", runtime.make_native_function("_contextvars.Context.copy", context_copy)});
+  // Direct Context.run calls use the register-backed path. Asyncio's Handle
+  // also invokes it with star-expanded callback args, which remains on the
+  // generic CallMethodEx path until the VM can vectorcall expanded arguments.
   attrs.push_back({"run", runtime.make_native_function(
-      "_contextvars.Context.run", context_run, nullptr, nullptr, nullptr,
+      "_contextvars.Context.run", context_run, nullptr, nullptr,
+      builtin_method_fast_adapter<context_run, 2>,
       false, context_run_kw)});
   return Value::class_object("Context", std::move(attrs));
 }
 
 } // namespace
+
+Object* contextvar_exact_getter_key(const Value& bound_getter) {
+  auto* bound = value_as_bound_method(bound_getter);
+  auto* native_getter = bound == nullptr ? nullptr : value_as_native_function(bound->function);
+  auto* instance = bound == nullptr ? nullptr : value_as_instance(bound->self);
+  if (instance == nullptr || instance->native_type != kContextVarNativeType ||
+      instance->native_data == nullptr || native_getter == nullptr ||
+      native_getter->callback != context_var_get) return nullptr;
+  return &instance->header;
+}
+
+bool contextvar_lookup_if_set(Object* variable_key, Value& out) {
+  if (variable_key == nullptr) return false;
+  // Internal runtime clients already hold this exact ContextVar object. Read
+  // its thread-local binding directly instead of dispatching its get method
+  // for every hot Decimal operation; absent values still use the full API.
+  const auto found = g_context_values.find(variable_key);
+  if (found == g_context_values.end()) return false;
+  value_assign_fast(out, found->second);
+  return true;
+}
 
 void register_contextvars_module(Runtime& runtime) {
   for (size_t index = 0; index < g_context_view_classes.size(); ++index) {

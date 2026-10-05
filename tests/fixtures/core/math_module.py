@@ -14,8 +14,17 @@ import math
 
 print(math.sqrt(16))
 print(math.cos(0))
+print(math.erf(0))
 print(math.pi > 3)
 print(math.hypot(3, 4), math.hypot())
 print(math.erfc(0), math.tan(0), math.cosh(0), math.asin(0), math.atan(0))
 print(math.fsum([0.1, 0.2]) > 0.29, math.sumprod([1, 2], [3, 4]))
 print(math.fsum(x for x in (0.1, 0.2)) > 0.29, math.sumprod((x for x in (1, 2)), (x for x in (3, 4))))
+print(math.log(2**2048, 2))
+print(math.log(2**2048, 2**1024))
+print(math.frexp(8.0))
+for args in [(-2,), (0,), (2, 1)]:
+    try:
+        math.log(*args)
+    except ValueError:
+        print("ValueError")

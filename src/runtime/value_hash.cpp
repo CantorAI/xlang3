@@ -316,6 +316,13 @@ bool value_hash_key(const Value& value, size_t& out, std::string& error) {
       return true;
     }
     case ValueTag::Object:
+      // Class objects use identity hashing in the current runtime. Keep this
+      // hot case ahead of the generic builtin-kind probes: stdlib set lookups
+      // (notably copy.deepcopy's _atomic_types) hash these objects repeatedly.
+      if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Class) {
+        out = std::hash<const void*>{}(value.as.obj);
+        return true;
+      }
       {
         if (value_int_like_hash(value, out)) {
           return true;
@@ -443,13 +450,30 @@ bool runtime_value_hash_key(Runtime& runtime, const Value& value, size_t& out, s
   // stable slot directly on subsequent probes instead of repeating Python
   // __hash__ attribute binding and native-call dispatch for every MRO member.
   if (weakref_cached_hash(value, out)) return true;
-  if (value_as_instance(value) != nullptr) {
+  if (auto* instance = value_as_instance(value)) {
+    // CPython resolves __hash__ from the type slot, so an instance attribute
+    // named __hash__ does not replace hashing behavior. The common inherited
+    // object.__hash__ slot is exactly XLang3's identity hash; avoid binding a
+    // temporary BoundMethod and redispatching to that known native callback.
+    Value class_hash;
+    std::string class_hash_error;
+    if (object_get_class_attr_for_instance(value, "__hash__", class_hash, class_hash_error)) {
+      if (class_hash.tag == ValueTag::None) {
+        auto* klass = value_as_class(instance->klass);
+        error = "unhashable type: '" +
+            std::string(klass == nullptr ? "object" : klass->name) + "'";
+        return false;
+      }
+      auto* native_hash = value_as_native_function(class_hash);
+      if (native_hash != nullptr && native_hash->name == "object.__hash__") {
+        return value_hash_key(value, out, error);
+      }
+    }
     Value hash_method;
     std::string attr_error;
     if (object_get_attr(value, "__hash__", hash_method, attr_error)) {
       if (hash_method.tag == ValueTag::None) {
-        auto* instance = value_as_instance(value);
-        auto* klass = instance == nullptr ? nullptr : value_as_class(instance->klass);
+        auto* klass = value_as_class(instance->klass);
         error = "unhashable type: '" +
             std::string(klass == nullptr ? "object" : klass->name) + "'";
         return false;
@@ -464,6 +488,41 @@ bool runtime_value_hash_key(Runtime& runtime, const Value& value, size_t& out, s
       out = static_cast<size_t>(hash_value.as.i64);
       return true;
     }
+  }
+  if (auto* klass = value_as_class(value)) {
+    if (value_as_class(klass->metaclass) == nullptr) {
+      // Internal synthetic classes may not publish a Python metaclass; retain
+      // their pre-existing identity hash instead of attempting descriptor lookup.
+      return value_hash_key(value, out, error);
+    }
+    const Value* builtin_type = runtime.find_builtin("type");
+    if (builtin_type != nullptr && value_is(klass->metaclass, *builtin_type)) {
+      // Classes with the exact builtin metaclass use type's identity hash.
+      // This is also the guarded key shape used by copy.deepcopy's dispatch
+      // table, so keep it out of Python descriptor/call dispatch.
+      return value_hash_key(value, out, error);
+    }
+    // A custom metaclass can override hashing for its class objects. Resolve
+    // its special method through the regular descriptor and call machinery.
+    Value hash_method;
+    if (!object_get_special_method(runtime, value, "__hash__", hash_method, error)) {
+      return false;
+    }
+    if (hash_method.tag == ValueTag::None) {
+      auto* meta = value_as_class(klass->metaclass);
+      error = "unhashable type: '" + std::string(meta == nullptr ? "type" : meta->name) + "'";
+      return false;
+    }
+    Value hash_value;
+    if (!runtime_call_callable(runtime, hash_method, nullptr, 0, hash_value, error)) {
+      return false;
+    }
+    if (hash_value.tag != ValueTag::Int64) {
+      error = "__hash__ method should return an integer";
+      return false;
+    }
+    out = static_cast<size_t>(hash_value.as.i64);
+    return true;
   }
   if (const auto* tuple = value_as_tuple(value)) {
     size_t hash = 0x345678ul;

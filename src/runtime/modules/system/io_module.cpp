@@ -17,6 +17,7 @@ limitations under the License.
 
 #include "xlang3/attribute.h"
 #include "xlang3/functional_iterators.h"
+#include "xlang3/io_runtime.h"
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
 #include "xlang3/sequence.h"
@@ -4476,6 +4477,48 @@ void add_io_exports(NativeModuleBuilder& builder, Runtime& runtime, const Value&
 }
 
 } // namespace
+
+bool io_stringio_write_fast(const Value& file, std::string_view text) {
+  auto* instance = value_as_instance(file);
+  if (instance == nullptr || instance->native_type != "_io.StringIO") return false;
+  auto* klass = value_as_class(instance->klass);
+  if (klass == nullptr || klass->name != "StringIO") return false;
+  // StringIO's mutable `write` method or an instance shadow must retain the
+  // full attribute protocol used by print(file=...).
+  for (const auto& attr : instance->attrs) {
+    if (attr.first == "write") return false;
+  }
+  if (klass->attrs.find("__getattribute__") != klass->attrs.end() ||
+      klass->attrs.find("__getattr__") != klass->attrs.end()) return false;
+  const auto write_attr = klass->attrs.find("write");
+  auto* write = write_attr == klass->attrs.end()
+      ? nullptr : value_as_native_function(write_attr->second);
+  if (write == nullptr || write->callback != stream_write ||
+      write->user_data == nullptr ||
+      std::string_view(static_cast<const char*>(write->user_data)) != "_io.StringIO") return false;
+  auto* state = static_cast<MemoryStreamState*>(
+      instance_get_native_data(file, "_io.StringIO"));
+  if (state == nullptr || state->binary || state->closed) return false;
+
+  // The common default-newline case can append the print buffer directly.
+  // Other StringIO newline modes still use the same translation and newline
+  // tracking as stream_write before applying the identical cursor overwrite.
+  std::string translated;
+  std::string_view data = text;
+  if (state->newline_is_none || state->newline != "\n") {
+    translated = translate_stringio_newlines(*state, std::string(text));
+    data = translated;
+  }
+  if (state->cursor > state->buffer.size()) state->cursor = state->buffer.size();
+  if (state->cursor + data.size() > state->buffer.size()) {
+    state->buffer.resize(state->cursor + data.size(), '\0');
+  }
+  std::copy(data.begin(), data.end(),
+      state->buffer.begin() + static_cast<std::ptrdiff_t>(state->cursor));
+  state->cursor += data.size();
+  memory_stream_update_exported_buffer(*state);
+  return true;
+}
 
 void register_io_module(Runtime& runtime) {
   Value string_io = make_memory_stream_class(runtime, "StringIO", "_io.StringIO", string_io_init, string_io_init_kw);

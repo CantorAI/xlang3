@@ -12,6 +12,23 @@ def combine(first, *, second):
 print(context.run(combine, 2, second=3))
 print(marker.get(), context.run(marker.get))
 
+# Nested runs must restore the active outer context without copying its map.
+outer = copy_context()
+marker.set("outside nested")
+inner = copy_context()
+
+
+def run_inner():
+    before = marker.get()
+    inner_value = inner.run(marker.get)
+    after = marker.get()
+    marker.set("updated outer")
+    return before, inner_value, after
+
+
+print(outer.run(run_inner))
+print(marker.get(), outer.run(marker.get))
+
 
 def fail(*, reason):
     marker.set("after failure")

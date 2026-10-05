@@ -2334,6 +2334,18 @@ bool Runtime::import_module(const std::string& name, Value& out, std::string& er
     }
     return false;
   }
+#if !defined(XLANG3_EMBEDDED)
+  if (name == "_asyncio" && !asyncio_compat_initialized_ &&
+      !asyncio_compat_initializing_ && !import_roots_.empty()) {
+    // Initialize WeakSet-backed accelerator exports on first use, after the
+    // standard-library import roots exist. This keeps non-asyncio runtimes
+    // from paying Python import/startup costs for asyncio compatibility.
+    asyncio_compat_initializing_ = true;
+    initialize_asyncio_module_compat(*this);
+    asyncio_compat_initializing_ = false;
+    asyncio_compat_initialized_ = true;
+  }
+#endif
   auto bind_existing_submodule = [&](const Value& module) {
     const auto dot = name.rfind('.');
     if (dot == std::string::npos || dot == 0) return;

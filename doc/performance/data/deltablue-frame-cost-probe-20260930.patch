@@ -1,0 +1,157 @@
+diff --git a/src/executor/xlang_vm/xlang_frame.h b/src/executor/xlang_vm/xlang_frame.h
+index 840b043..1a9f693 100644
+--- a/src/executor/xlang_vm/xlang_frame.h
++++ b/src/executor/xlang_vm/xlang_frame.h
+@@ -19,6 +19,8 @@ limitations under the License.
+ #include "xlang3/builtin_methods.h"
+ #include "xlang3/interpreter.h"
+ #include "xlang3/ir.h"
++
++#include "../../../benchmarks/diagnostics/native_vm_opcode_timer.h"
+ #include "xlang3/module_object.h"
+ #include "xlang3/runtime.h"
+ 
+@@ -376,25 +378,31 @@ struct XlangVMFrame {
+     // every instruction on each Python return in call-heavy workloads.
+     const auto* cache_sites = execution_metadata == nullptr || monitoring_cache_touched
+         ? nullptr : &execution_metadata->cache_cleanup_instructions;
+-    if (cache_sites != nullptr) {
+-      for (uint32_t index : *cache_sites) {
+-        if (index < instr_cache.size()) clear_cache_if_owned(instr_cache[index]);
++    {
++      diagnostics::VMOpcodeTimer cache_cleanup_timer(diagnostics::kVMCacheCleanupTimer);
++      if (cache_sites != nullptr) {
++        for (uint32_t index : *cache_sites) {
++          if (index < instr_cache.size()) clear_cache_if_owned(instr_cache[index]);
++        }
++      } else {
++        for (auto& cache : instr_cache) clear_cache_if_owned(cache);
+       }
+-    } else {
+-      for (auto& cache : instr_cache) clear_cache_if_owned(cache);
+     }
+     monitoring_cache_touched = false;
+     value_set_invalid(trace_function);
+     value_set_invalid(trace_frame_object);
+     closure = nullptr;
+-    locals.clear_values();
+-    cells.clear_values();
+-    regs.clear_object_values();
+-    temps.clear();
+-    exception_handlers.clear();
+-    native_call_args.clear();
+-    memoryview_registers.clear();
+-    memoryview_register_flags.clear();
++    {
++      diagnostics::VMOpcodeTimer value_cleanup_timer(diagnostics::kVMValueCleanupTimer);
++      locals.clear_values();
++      cells.clear_values();
++      regs.clear_object_values();
++      temps.clear();
++      exception_handlers.clear();
++      native_call_args.clear();
++      memoryview_registers.clear();
++      memoryview_register_flags.clear();
++    }
+   }
+ 
+ private:
+diff --git a/src/executor/xlang_vm/xlang_vm_loop.cpp b/src/executor/xlang_vm/xlang_vm_loop.cpp
+index 8d36e66..ab27cee 100644
+--- a/src/executor/xlang_vm/xlang_vm_loop.cpp
++++ b/src/executor/xlang_vm/xlang_vm_loop.cpp
+@@ -35,6 +35,8 @@ limitations under the License.
+ #include "ops/xlang_vm_ops_fused.h"
+ #include "runtime_lock.h"
+ 
++#include "../../../benchmarks/diagnostics/native_vm_opcode_timer.h"
++
+ #include <array>
+ 
+ #include "xlang3/attribute.h"
+@@ -712,6 +714,7 @@ RuntimeResult Interpreter::run_function(
+                         uint32_t return_dst,
+                         FrameReturnMode return_mode = FrameReturnMode::StoreReturnValue,
+                         Value continuation_value = Value::invalid()) -> bool {
++    diagnostics::VMOpcodeTimer call_preparation_timer(diagnostics::kVMCallPreparationTimer);
+     // Keep ordinary Python calls on this VM frame stack and return to the same
+     // dispatch loop. CPython 3.14's CALL_PY_EXACT_ARGS follows the same shape:
+     // transfer positional arguments into a compact interpreter frame, then
+@@ -760,14 +763,17 @@ RuntimeResult Interpreter::run_function(
+     } else if (call_args.size() != call_fn.params.size()) {
+       return bind_count_error(call_fn, call_args);
+     }
+-    if (frame_count < frames.size()) {
+-      frames[frame_count].reset(call_module, call_function_id, frame_args, closure, std::move(call_globals_module),
+-                                std::move(call_module_owner), return_dst, true, return_mode,
+-                                std::move(continuation_value));
+-    } else {
+-      frames.emplace_back(call_module, call_function_id, frame_args, closure, std::move(call_globals_module),
+-                          std::move(call_module_owner), return_dst, true, return_mode,
+-                          std::move(continuation_value));
++    {
++      diagnostics::VMOpcodeTimer frame_reset_timer(diagnostics::kVMFrameResetTimer);
++      if (frame_count < frames.size()) {
++        frames[frame_count].reset(call_module, call_function_id, frame_args, closure, std::move(call_globals_module),
++                                  std::move(call_module_owner), return_dst, true, return_mode,
++                                  std::move(continuation_value));
++      } else {
++        frames.emplace_back(call_module, call_function_id, frame_args, closure, std::move(call_globals_module),
++                            std::move(call_module_owner), return_dst, true, return_mode,
++                            std::move(continuation_value));
++      }
+     }
+     if (bound_args != nullptr) {
+       // emplace_back may relocate the frame vector, so reacquire the caller by
+@@ -799,6 +805,7 @@ RuntimeResult Interpreter::run_function(
+   const VMFrame* published_frames_data = nullptr;
+   size_t published_frame_count = 0;
+   auto refresh_runtime_frame_views = [&]() {
++    diagnostics::VMOpcodeTimer frame_views_timer(diagnostics::kVMFrameViewsTimer);
+     // Keep previously published elements alive until this invocation returns.
+     // A cross-thread reader can briefly retain an older logical count, so the
+     // inline array and overflow vector both remain alive for the whole resume.
+@@ -1601,6 +1608,7 @@ RuntimeResult Interpreter::run_function(
+   uint32_t execution_lock_ticks = 0;
+ 
+   while (frame_count != 0) {
++    diagnostics::VMOpcodeTimer frame_switch_timer(diagnostics::kVMFrameSwitchTimer);
+     // Every push or pop exits the opcode loop through switch_frame, so publish
+     // the changed stack once here instead of comparing generations per opcode.
+     refresh_runtime_frame_views();
+@@ -1633,11 +1641,14 @@ RuntimeResult Interpreter::run_function(
+     // The globals module is stable for this frame. Update it at the frame
+     // boundary; doing a Value assignment in the opcode loop retains/releases
+     // the module on every instruction and measurably slows tight loops.
+-    runtime_.set_current_globals_module(globals_module);
+-    runtime_.set_current_frame_locals(&fn.locals, locals.value_data(), locals.size());
+-    // The live frame-stack view owns the changing instruction pointer. Update
+-    // the legacy single-frame identity once when execution switches frames.
+-    runtime_.set_current_frame(&module_owner, frame.function_id, &globals_module, ip);
++    {
++      diagnostics::VMOpcodeTimer frame_identity_timer(diagnostics::kVMFrameIdentityTimer);
++      runtime_.set_current_globals_module(globals_module);
++      runtime_.set_current_frame_locals(&fn.locals, locals.value_data(), locals.size());
++      // The live frame-stack view owns the changing instruction pointer. Update
++      // the legacy single-frame identity once when execution switches frames.
++      runtime_.set_current_frame(&module_owner, frame.function_id, &globals_module, ip);
++    }
+ 
+     auto raise_exception_value = [&](Value exception) -> bool {
+       const size_t source_frame = frame_count;
+@@ -1714,6 +1725,7 @@ RuntimeResult Interpreter::run_function(
+ 
+     try {
+     for (;;) {
++      diagnostics::VMOpcodeTimer loop_timer(diagnostics::kVMLoopControlTimer);
+       // CPython 3.14 places eval-breaker handling in periodic operations such
+       // as CALL and backward jumps. XLang also bounds cross-thread event
+       // delivery to 64 IR instructions, so the ordinary per-op path must stay
+@@ -1834,6 +1846,7 @@ RuntimeResult Interpreter::run_function(
+         }
+       }
+       const auto& in = fn.code[ip];
++      diagnostics::VMOpcodeTimer opcode_timer(static_cast<uint16_t>(in.op));
+       if (count_opcode_dispatches) {
+         xlang_perf_count_opcode_enabled(static_cast<uint16_t>(in.op));
+       }
