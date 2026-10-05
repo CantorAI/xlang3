@@ -51,8 +51,11 @@ limitations under the License.
 #include <sys/stat.h>
 #include <utime.h>
 #include <unistd.h>
+#include <sys/utsname.h>
+#include <signal.h>
 #if defined(__APPLE__)
 #include <crt_externs.h>
+#include <SystemConfiguration/SystemConfiguration.h>
 #else
 extern char** environ;
 #endif
@@ -224,6 +227,9 @@ struct OsModuleState {
   Value stat_result_class;
   Value terminal_size_class;
   Value times_result_class;
+#if !defined(_WIN32)
+  Value uname_result_class;
+#endif
 };
 
 Value make_terminal_size(const Value& klass, int64_t columns, int64_t lines);
@@ -2354,6 +2360,101 @@ Value make_terminal_size(const Value& klass, int64_t columns, int64_t lines) {
       "__xlang3_tuple_value__", Value::tuple({Value::int64(columns), Value::int64(lines)})});
   return instance;
 }
+
+#if !defined(_WIN32)
+constexpr const char* kUnameFields[] = {"sysname", "nodename", "release", "version", "machine"};
+
+bool os_uname_result_new(Runtime& runtime, const Value* args, uint32_t argc,
+                         Value& out, std::string& error, void*) {
+  if (argc < 2 || argc > 3 || value_as_class(args[0]) == nullptr) {
+    error = "posix.uname_result() expected a sequence and optional dict";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (argc == 3 && value_as_dict(args[2]) == nullptr) {
+    error = "posix.uname_result() takes a dict as second arg, if any";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  std::vector<Value> items;
+  if (!runtime_collect_iterable(runtime, args[1], items, error)) return false;
+  if (items.size() != 5) {
+    error = "posix.uname_result() takes a 5-sequence (" +
+        std::to_string(items.size()) + "-sequence given)";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  out = Value::instance(args[0]);
+  value_as_instance(out)->attrs.push_back({"__xlang3_tuple_value__", Value::tuple(std::move(items))});
+  return true;
+}
+
+bool os_uname_result_repr(Runtime&, const Value* args, uint32_t argc,
+                          Value& out, std::string& error, void*) {
+  Value values;
+  if (argc != 1 || !object_get_attr(args[0], "__xlang3_tuple_value__", values, error)) return false;
+  auto* tuple = value_as_tuple(values);
+  if (tuple == nullptr || tuple->items.size() != 5) return false;
+  std::string text = "posix.uname_result(";
+  for (size_t index = 0; index < 5; ++index) {
+    if (index) text += ", ";
+    text += std::string(kUnameFields[index]) + "=" + value_to_repr(tuple->items[index]);
+  }
+  out = Value::string(text + ")");
+  return true;
+}
+
+Value make_uname_result_class(Runtime& runtime) {
+  const Value* tuple_base = runtime.find_builtin("tuple");
+  std::vector<std::pair<std::string, Value>> attrs = {
+      {"__module__", Value::string("posix")},
+      {"__qualname__", Value::string("uname_result")},
+      {"__new__", runtime.make_native_function("posix.uname_result.__new__", os_uname_result_new)},
+      {"__repr__", runtime.make_native_function("posix.uname_result.__repr__", os_uname_result_repr)},
+      {"__str__", runtime.make_native_function("posix.uname_result.__str__", os_uname_result_repr)},
+      {"__setattr__", runtime.make_native_function("posix.uname_result.__setattr__", immutable_structseq_setattr)},
+      {"__reduce__", runtime.make_native_function("posix.uname_result.__reduce__", os_stat_result_reduce)},
+      {"__reduce_ex__", runtime.make_native_function("posix.uname_result.__reduce_ex__", os_stat_result_reduce)},
+      {"__eq__", runtime.make_native_function("posix.uname_result.__eq__", os_stat_result_equal)},
+      {"__ne__", runtime.make_native_function("posix.uname_result.__ne__", os_stat_result_equal, reinterpret_cast<void*>(1))},
+      {"n_sequence_fields", Value::int64(5)}, {"n_fields", Value::int64(5)},
+      {"n_unnamed_fields", Value::int64(0)},
+  };
+  std::vector<Value> names;
+  for (size_t index = 0; index < 5; ++index) {
+    attrs.push_back({kUnameFields[index], slot_descriptor("posix.uname_result", kUnameFields[index], index)});
+    names.push_back(Value::string(kUnameFields[index]));
+  }
+  attrs.push_back({"__match_args__", Value::tuple(std::move(names))});
+  Value result = Value::class_object("uname_result", std::move(attrs),
+                                   tuple_base != nullptr ? *tuple_base : Value::invalid());
+  auto* klass = value_as_class(result);
+  klass->restrict_instance_attrs = true;
+  klass->allow_instance_dict = false;
+  klass->has_setattr_hook = true;
+  return result;
+}
+
+bool os_uname(Runtime& runtime, const Value*, uint32_t argc, Value& out,
+              std::string& error, void* user_data) {
+  if (!no_args(argc, "os.uname", error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  struct utsname info{};
+  if (::uname(&info) != 0) {
+    const int code = errno;
+    error = std::strerror(code);
+    return raise_os_error_with_errno(runtime, "OSError", code, error);
+  }
+  auto* state = static_cast<OsModuleState*>(user_data);
+  out = Value::instance(state->uname_result_class);
+  value_as_instance(out)->attrs.push_back({"__xlang3_tuple_value__", Value::tuple({
+      Value::string(info.sysname), Value::string(info.nodename), Value::string(info.release),
+      Value::string(info.version), Value::string(info.machine)})});
+  return true;
+}
+#endif
 
 Value make_times_result_class(Runtime& runtime) {
   const Value* tuple_base = runtime.find_builtin("tuple");
@@ -4763,7 +4864,114 @@ XLANG3_WINDOWS_PATH_QUERY_KW(os_path_isjunction_kw, WindowsPathQuery::IsJunction
 #undef XLANG3_WINDOWS_PATH_QUERY_KW
 #endif
 
+#if defined(__APPLE__)
+// Match CPython's native _scproxy interface using the same macOS framework.
+struct MacProxySettings {
+  CFDictionaryRef value = SCDynamicStoreCopyProxies(nullptr);
+  ~MacProxySettings() { if (value) CFRelease(value); }
+};
+
+int32_t proxy_number(CFTypeRef value) {
+  int32_t number = 0;
+  if (value && CFGetTypeID(value) == CFNumberGetTypeID())
+    CFNumberGetValue(static_cast<CFNumberRef>(value), kCFNumberSInt32Type, &number);
+  return number;
+}
+
+bool proxy_string(CFTypeRef value, std::string& result) {
+  if (!value || CFGetTypeID(value) != CFStringGetTypeID()) return false;
+  auto text = static_cast<CFStringRef>(value);
+  const CFIndex capacity = CFStringGetMaximumSizeForEncoding(
+      CFStringGetLength(text), kCFStringEncodingUTF8) + 1;
+  std::vector<char> buffer(static_cast<size_t>(capacity));
+  if (!CFStringGetCString(text, buffer.data(), capacity, kCFStringEncodingUTF8)) return false;
+  result = buffer.data();
+  return true;
+}
+
+bool scproxy_get_settings(Runtime& runtime, const Value*, uint32_t argc,
+                           Value& out, std::string& error, void*) {
+  if (!no_args(argc, "_scproxy._get_proxy_settings", error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  MacProxySettings settings;
+  if (!settings.value) { out = Value::none(); return true; }
+  std::vector<std::pair<Value, Value>> entries = {{Value::string("exclude_simple"),
+      Value::boolean(proxy_number(CFDictionaryGetValue(settings.value,
+          kSCPropNetProxiesExcludeSimpleHostnames)) != 0)}};
+  auto exceptions = CFDictionaryGetValue(settings.value, kSCPropNetProxiesExceptionsList);
+  if (exceptions && CFGetTypeID(exceptions) == CFArrayGetTypeID()) {
+    auto array = static_cast<CFArrayRef>(exceptions);
+    std::vector<Value> values;
+    for (CFIndex index = 0; index < CFArrayGetCount(array); ++index) {
+      std::string text;
+      values.push_back(proxy_string(CFArrayGetValueAtIndex(array, index), text)
+                           ? Value::string(text) : Value::none());
+    }
+    entries.push_back({Value::string("exceptions"), Value::tuple(std::move(values))});
+  }
+  out = Value::dict(std::move(entries));
+  return true;
+}
+
+bool scproxy_get_proxies(Runtime& runtime, const Value*, uint32_t argc,
+                          Value& out, std::string& error, void*) {
+  if (!no_args(argc, "_scproxy._get_proxies", error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  MacProxySettings settings;
+  std::vector<std::pair<Value, Value>> entries;
+  if (settings.value) {
+    struct ProxyKeys { const char* protocol; CFStringRef enabled, host, port; };
+    const ProxyKeys keys[] = {
+        {"http", kSCPropNetProxiesHTTPEnable, kSCPropNetProxiesHTTPProxy, kSCPropNetProxiesHTTPPort},
+        {"https", kSCPropNetProxiesHTTPSEnable, kSCPropNetProxiesHTTPSProxy, kSCPropNetProxiesHTTPSPort},
+        {"ftp", kSCPropNetProxiesFTPEnable, kSCPropNetProxiesFTPProxy, kSCPropNetProxiesFTPPort},
+        {"gopher", kSCPropNetProxiesGopherEnable, kSCPropNetProxiesGopherProxy, kSCPropNetProxiesGopherPort},
+        {"socks", kSCPropNetProxiesSOCKSEnable, kSCPropNetProxiesSOCKSProxy, kSCPropNetProxiesSOCKSPort},
+    };
+    for (const auto& key : keys) {
+      if (!proxy_number(CFDictionaryGetValue(settings.value, key.enabled))) continue;
+      std::string host;
+      if (!proxy_string(CFDictionaryGetValue(settings.value, key.host), host)) continue;
+      std::string address = "http://" + host;
+      auto port = CFDictionaryGetValue(settings.value, key.port);
+      if (port) address += ":" + std::to_string(proxy_number(port));
+      entries.push_back({Value::string(key.protocol), Value::string(address)});
+    }
+  }
+  out = Value::dict(std::move(entries));
+  return true;
+}
+#endif
+
 } // namespace
+
+#if !defined(_WIN32)
+bool os_killpg(Runtime& runtime, const Value* args, uint32_t argc,
+               Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "expected process identifier and signal";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  int64_t pid = 0, signum = 0;
+  if (!os_index_i64(runtime, args[0], "pid", pid, error) ||
+      !os_index_i64(runtime, args[1], "signal", signum, error)) return false;
+  if (pid < std::numeric_limits<pid_t>::min() || pid > std::numeric_limits<pid_t>::max() ||
+      signum < std::numeric_limits<int>::min() || signum > std::numeric_limits<int>::max()) {
+    error = "process identifier or signal is out of range";
+    runtime.raise_class_error("OverflowError", error);
+    return false;
+  }
+  const int result = ::killpg(static_cast<pid_t>(pid), static_cast<int>(signum));
+  if (result != 0) return raise_os_error_with_errno(runtime, "OSError", errno, "signal delivery failed");
+  value_set_none(out);
+  return true;
+}
+#endif
 
 void register_os_module(Runtime& runtime) {
   Value env_dict = make_process_environ_dict();
@@ -4771,6 +4979,9 @@ void register_os_module(Runtime& runtime) {
   os_state->stat_result_class = make_stat_result_class(runtime);
   os_state->terminal_size_class = make_terminal_size_class(runtime);
   os_state->times_result_class = make_times_result_class(runtime);
+#if !defined(_WIN32)
+  os_state->uname_result_class = make_uname_result_class(runtime);
+#endif
   os_state->dir_entry_class = make_dir_entry_class(runtime, os_state);
   os_state->scandir_iterator_class = make_scandir_iterator_class(runtime);
   runtime.register_native_package_cleanup(os_state, os_module_state_cleanup);
@@ -4821,6 +5032,8 @@ void register_os_module(Runtime& runtime) {
       .function("spawnve", os_spawnve)
       .function("waitpid", os_waitpid)
       .function("waitstatus_to_exitcode", os_waitstatus_to_exitcode)
+#else
+      .function("killpg", os_killpg)
 #endif
       .function("cpu_count", os_cpu_count)
       .value("times", runtime.make_native_function("os.times", os_times, os_state))
@@ -4850,6 +5063,10 @@ void register_os_module(Runtime& runtime) {
       .function("putenv", os_putenv)
       .function("unsetenv", os_unsetenv)
       .function("_create_environ", os_create_environ)
+#if !defined(_WIN32)
+      .value("uname_result", os_state->uname_result_class)
+      .value("uname", runtime.make_native_function("os.uname", os_uname, os_state))
+#endif
       .function("fspath", os_fspath, builtin_fast_adapter<os_fspath, 1>, true)
 #if defined(_WIN32)
       .value("P_WAIT", Value::int64(_P_WAIT))
@@ -4945,6 +5162,12 @@ void register_os_module(Runtime& runtime) {
   runtime.register_module("nt", std::move(module));
 #else
   runtime.register_module("posix", std::move(module));
+#if defined(__APPLE__)
+  NativeModuleBuilder proxy_builder(runtime, "_scproxy");
+  proxy_builder.function("_get_proxy_settings", scproxy_get_settings)
+      .function("_get_proxies", scproxy_get_proxies);
+  runtime.register_module("_scproxy", proxy_builder.finish());
+#endif
 #endif
 }
 

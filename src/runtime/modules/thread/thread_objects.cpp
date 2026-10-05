@@ -921,7 +921,7 @@ bool xlang_thread_start_state(std::shared_ptr<XlangThreadState> state, std::stri
     state->started = true;
   }
 
-  state->worker = std::thread([state]() {
+  state->worker = XlangWorkerThread([state]() {
     {
       std::lock_guard<std::mutex> lock(state->mutex);
       state->ident = xlang_thread_current_ident();
@@ -994,7 +994,7 @@ bool xlang_thread_start_detached(
   value_assign_fast(state->target, target);
   state->args = std::move(args);
 
-  state->worker = std::thread([state]() {
+  state->worker = XlangWorkerThread([state]() {
     {
       std::lock_guard<std::mutex> lock(state->mutex);
       state->ident = xlang_thread_current_ident();
@@ -1082,7 +1082,7 @@ void xlang_thread_join_state(XlangThreadState& state) {
 }
 
 void xlang_thread_join_state_for(XlangThreadState& state, double timeout_seconds, bool has_timeout) {
-  std::thread worker;
+  XlangWorkerThread worker;
   {
     XlangRuntimeExecutionSuspension execution_suspension;
     std::unique_lock<std::mutex> lock(state.mutex);

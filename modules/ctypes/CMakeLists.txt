@@ -22,6 +22,19 @@ if(MSVC AND (CMAKE_VS_PLATFORM_NAME STREQUAL "x64"
   target_include_directories(xlang3_ctypes_ffi PRIVATE
     ${PROJECT_SOURCE_DIR}/modules/cffi/libffi)
   target_compile_definitions(xlang3_ctypes_ffi PRIVATE XLANG_CTYPES_HAS_LIBFFI=1)
+elseif(APPLE)
+  find_path(XLANG3_CTYPES_LIBFFI_INCLUDE_DIR ffi.h
+    HINTS "${CMAKE_OSX_SYSROOT}/usr/include/ffi" REQUIRED)
+  find_library(XLANG3_CTYPES_LIBFFI_LIBRARY ffi
+    HINTS "${CMAKE_OSX_SYSROOT}/usr/lib" REQUIRED)
+  target_include_directories(xlang3_ctypes_ffi PRIVATE ${XLANG3_CTYPES_LIBFFI_INCLUDE_DIR})
+  target_link_libraries(xlang3_ctypes_ffi PUBLIC ${XLANG3_CTYPES_LIBFFI_LIBRARY})
+  target_compile_definitions(xlang3_ctypes_ffi PRIVATE XLANG_CTYPES_HAS_LIBFFI=1)
+elseif(UNIX)
+  find_package(PkgConfig REQUIRED)
+  pkg_check_modules(XLANG3_CTYPES_LIBFFI REQUIRED IMPORTED_TARGET libffi)
+  target_link_libraries(xlang3_ctypes_ffi PUBLIC PkgConfig::XLANG3_CTYPES_LIBFFI)
+  target_compile_definitions(xlang3_ctypes_ffi PRIVATE XLANG_CTYPES_HAS_LIBFFI=1)
 endif()
 
 if(WIN32)
