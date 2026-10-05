@@ -13,6 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 #include "xlang3/builtins.h"
+#include "xlang3/charconv_compat.h"
 
 #include "xlang3/attribute.h"
 #include "xlang3/builtin_methods.h"
@@ -258,7 +259,7 @@ private:
     const auto token = source_.substr(begin, pos_ - begin);
     if (floating) {
       double number = 0.0;
-      const auto result = std::from_chars(token.data(), token.data() + token.size(), number, std::chars_format::general);
+      const auto result = compat::from_chars_double(token.data(), token.data() + token.size(), number);
       if (result.ptr != token.data() + token.size()) return false;
       if (result.ec == std::errc::result_out_of_range) {
         // from_chars reports both overflow and underflow as out_of_range. Let

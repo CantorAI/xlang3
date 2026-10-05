@@ -382,6 +382,10 @@ target_include_directories(xlang3_runtime_static PRIVATE ${CMAKE_CURRENT_SOURCE_
 target_include_directories(xlang3_system_runtime PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/third_party/nlohmann_json)
 
 target_link_libraries(xlang3_system_runtime PUBLIC ZLIB::ZLIBSTATIC bzip2static)
+if(APPLE)
+  find_package(Iconv REQUIRED)
+  target_link_libraries(xlang3_system_runtime PUBLIC Iconv::Iconv)
+endif()
 target_link_libraries(xlang3_runtime PRIVATE xlang3_thread_runtime xlang3_task_runtime xlang3_system_runtime xlang3_ctypes_ffi ZLIB::ZLIBSTATIC Threads::Threads)
 target_link_libraries(xlang3_runtime_static PRIVATE xlang3_thread_runtime xlang3_task_runtime xlang3_system_runtime xlang3_ctypes_ffi ZLIB::ZLIBSTATIC Threads::Threads)
 
@@ -391,6 +395,8 @@ if(WIN32)
 endif()
 
 add_executable(xlang3 src/xlang3.cpp)
+add_executable(xlang3_charconv_compat_tests tests/cpp/charconv_compat_tests.cpp)
+target_include_directories(xlang3_charconv_compat_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/sdk)
 target_link_libraries(xlang3 PRIVATE xlang3_runtime)
 target_compile_definitions(xlang3 PRIVATE XLANG3_USE_SHARED)
 target_include_directories(xlang3 PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/internal)

@@ -10,7 +10,8 @@ target_include_directories(xlang3_ctypes_ffi PRIVATE
 target_compile_features(xlang3_ctypes_ffi PUBLIC cxx_std_17)
 set_target_properties(xlang3_ctypes_ffi PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
-if(MSVC AND CMAKE_VS_PLATFORM_NAME STREQUAL "x64")
+if(MSVC AND (CMAKE_VS_PLATFORM_NAME STREQUAL "x64"
+    OR CMAKE_CXX_COMPILER_ARCHITECTURE_ID STREQUAL "x64"))
   enable_language(ASM_MASM)
   target_sources(xlang3_ctypes_ffi PRIVATE
     ${PROJECT_SOURCE_DIR}/modules/cffi/libffi/ffi.c

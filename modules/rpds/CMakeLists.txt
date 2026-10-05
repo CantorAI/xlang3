@@ -9,17 +9,24 @@ endif()
 
 set(RPDS_RUST_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/rust")
 set(RPDS_CARGO_TARGET_DIR "${CMAKE_CURRENT_BINARY_DIR}/cargo-target")
+set(XLANG3_RUST_TARGET "" CACHE STRING "Rust target triple for native package cross-builds")
+set(RPDS_CARGO_TARGET_ARGS)
+set(RPDS_CARGO_OUTPUT_DIR "${RPDS_CARGO_TARGET_DIR}")
+if(XLANG3_RUST_TARGET)
+  list(APPEND RPDS_CARGO_TARGET_ARGS --target "${XLANG3_RUST_TARGET}")
+  string(APPEND RPDS_CARGO_OUTPUT_DIR "/${XLANG3_RUST_TARGET}")
+endif()
 if(WIN32)
-  set(RPDS_STATIC_LIB "${RPDS_CARGO_TARGET_DIR}/release/xlang3_rpds_bridge.lib")
+  set(RPDS_STATIC_LIB "${RPDS_CARGO_OUTPUT_DIR}/release/xlang3_rpds_bridge.lib")
 else()
-  set(RPDS_STATIC_LIB "${RPDS_CARGO_TARGET_DIR}/release/libxlang3_rpds_bridge.a")
+  set(RPDS_STATIC_LIB "${RPDS_CARGO_OUTPUT_DIR}/release/libxlang3_rpds_bridge.a")
 endif()
 
 add_custom_command(
   OUTPUT "${RPDS_STATIC_LIB}"
   COMMAND ${CMAKE_COMMAND} -E env
     "CARGO_TARGET_DIR=${RPDS_CARGO_TARGET_DIR}"
-    ${XLANG3_RPDS_CARGO} build --release --locked
+    ${XLANG3_RPDS_CARGO} build --release --locked ${RPDS_CARGO_TARGET_ARGS}
     --manifest-path "${RPDS_RUST_ROOT}/Cargo.toml"
   DEPENDS "${RPDS_RUST_ROOT}/Cargo.toml"
           "${RPDS_RUST_ROOT}/Cargo.lock"

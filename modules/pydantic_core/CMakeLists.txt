@@ -8,10 +8,17 @@ endif()
 
 set(PYDANTIC_REGEX_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/rust_regex")
 set(PYDANTIC_REGEX_TARGET_DIR "${CMAKE_CURRENT_BINARY_DIR}/regex-cargo-target")
+set(XLANG3_RUST_TARGET "" CACHE STRING "Rust target triple for native package cross-builds")
+set(PYDANTIC_REGEX_TARGET_ARGS)
+set(PYDANTIC_REGEX_OUTPUT_DIR "${PYDANTIC_REGEX_TARGET_DIR}")
+if(XLANG3_RUST_TARGET)
+  list(APPEND PYDANTIC_REGEX_TARGET_ARGS --target "${XLANG3_RUST_TARGET}")
+  string(APPEND PYDANTIC_REGEX_OUTPUT_DIR "/${XLANG3_RUST_TARGET}")
+endif()
 if(WIN32)
-  set(PYDANTIC_REGEX_STATIC_LIB "${PYDANTIC_REGEX_TARGET_DIR}/release/xlang3_pydantic_regex_bridge.lib")
+  set(PYDANTIC_REGEX_STATIC_LIB "${PYDANTIC_REGEX_OUTPUT_DIR}/release/xlang3_pydantic_regex_bridge.lib")
 else()
-  set(PYDANTIC_REGEX_STATIC_LIB "${PYDANTIC_REGEX_TARGET_DIR}/release/libxlang3_pydantic_regex_bridge.a")
+  set(PYDANTIC_REGEX_STATIC_LIB "${PYDANTIC_REGEX_OUTPUT_DIR}/release/libxlang3_pydantic_regex_bridge.a")
 endif()
 
 set(PYDANTIC_REGEX_CARGO_ENV "CARGO_TARGET_DIR=${PYDANTIC_REGEX_TARGET_DIR}")
@@ -24,7 +31,7 @@ endforeach()
 add_custom_command(
   OUTPUT "${PYDANTIC_REGEX_STATIC_LIB}"
   COMMAND ${CMAKE_COMMAND} -E env ${PYDANTIC_REGEX_CARGO_ENV}
-    ${XLANG3_PYDANTIC_CARGO} build --release --locked
+    ${XLANG3_PYDANTIC_CARGO} build --release --locked ${PYDANTIC_REGEX_TARGET_ARGS}
     --manifest-path "${PYDANTIC_REGEX_ROOT}/Cargo.toml"
   DEPENDS "${PYDANTIC_REGEX_ROOT}/Cargo.toml"
           "${PYDANTIC_REGEX_ROOT}/Cargo.lock"
