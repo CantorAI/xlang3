@@ -15,6 +15,7 @@ limitations under the License.
 #pragma once
 
 #include "xlang3/runtime.h"
+#include "thread_worker.h"
 
 #include <condition_variable>
 #include <memory>
@@ -29,7 +30,7 @@ struct XlangThreadState {
   std::vector<Value> args;
   std::string name;
   bool daemon = false;
-  std::thread worker;
+  XlangWorkerThread worker;
   std::mutex mutex;
   std::condition_variable done_cv;
   bool started = false;

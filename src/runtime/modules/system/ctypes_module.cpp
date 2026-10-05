@@ -22,6 +22,8 @@ Licensed under the Apache License, Version 2.0 (the "License");
 #define WIN32_LEAN_AND_MEAN
 #endif
 #include <windows.h>
+#else
+#include <dlfcn.h>
 #endif
 
 namespace xlang3 {
@@ -529,6 +531,11 @@ void register_ctypes_module(Runtime& runtime) {
       .function("set_last_error", ctypes_set_last_error).function("LoadLibrary", ctypes_load_library)
       .function("FormatError", ctypes_format_error).function("CopyComPointer", ctypes_identity)
       .function("_check_HRESULT", ctypes_identity).function("buffer_info", ctypes_identity);
+#if !defined(_WIN32)
+  builder.value("RTLD_LOCAL", Value::int64(RTLD_LOCAL))
+      .value("RTLD_GLOBAL", Value::int64(RTLD_GLOBAL))
+      .function("dlopen", ctypes_load_library);
+#endif
   runtime.register_module("_ctypes", builder.finish());
 }
 
