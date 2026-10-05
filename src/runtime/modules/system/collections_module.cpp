@@ -22,6 +22,7 @@ limitations under the License.
 #include "xlang3/sequence.h"
 #include "xlang3/value_hash.h"
 
+#include <algorithm>
 #include <deque>
 #include <mutex>
 #include <unordered_set>
