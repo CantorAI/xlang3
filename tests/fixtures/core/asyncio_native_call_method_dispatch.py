@@ -1,4 +1,5 @@
 import asyncio
+import sys
 
 
 class MethodLoop(asyncio.SelectorEventLoop):
@@ -69,3 +70,55 @@ future_task = asyncio.Task(await_future(future), loop=future_loop)
 future_loop.call_soon(future.set_result, 7)
 print("future-subclass", future_loop.run_until_complete(future_task))
 future_loop.close()
+
+
+class SimpleAccessorLoop(asyncio.SelectorEventLoop):
+    def get_debug(self):
+        return self._debug
+
+    def is_running(self):
+        return self._thread_id is not None
+
+
+accessor_loop = SimpleAccessorLoop()
+accessor_loop.set_debug(True)
+accessor_future = asyncio.Future(loop=accessor_loop)
+print("simple-accessor-debug", accessor_future._source_traceback is not None)
+accessor_loop.close()
+
+dict_loop = SimpleAccessorLoop()
+dict_loop.__dict__["_debug"] = True
+dict_future = asyncio.Future(loop=dict_loop)
+print("simple-accessor-dict-write", dict_future._source_traceback is not None)
+dict_loop.close()
+
+
+profile_loop = asyncio.new_event_loop()
+profiled_debug = []
+
+
+def profile_get_debug(frame, event, arg):
+    if event == "call" and frame.f_code.co_name == "get_debug":
+        profiled_debug.append(frame)
+
+
+sys.setprofile(profile_get_debug)
+profiled_future = asyncio.Future(loop=profile_loop)
+sys.setprofile(None)
+print("profile-sees-get-debug", bool(profiled_debug))
+profile_loop.close()
+
+
+async def eager_accessor_task():
+    async def child():
+        return 91
+
+    task = asyncio.Task(
+        child(), loop=asyncio.get_running_loop(), eager_start=True
+    )
+    return await task
+
+
+run_loop = SimpleAccessorLoop()
+print("simple-accessor-running", run_loop.run_until_complete(eager_accessor_task()))
+run_loop.close()

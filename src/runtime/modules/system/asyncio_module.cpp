@@ -8,6 +8,7 @@ Licensed under the Apache License, Version 2.0.
 
 
 #include "xlang3/mapping.h"
+#include "xlang3/ir.h"
 #include "xlang3/set_object.h"
 #include "xlang3/sequence.h"
 
@@ -328,6 +329,130 @@ bool set_attr(Runtime& runtime, const Value& self, const char* name,
                                ignored, error);
 }
 
+enum class SimpleAccessorResult : uint8_t { Value, IsNotNone };
+
+// Native asyncio's C call sites frequently invoke tiny Python accessors on the
+// loop (notably BaseEventLoop.get_debug/is_running). Inline only an exact
+// one-attribute IR body, and only when the stored attribute lookup is known to
+// be side-effect-free. This is generic IR execution at the native-call
+// boundary, not a C++ replacement for asyncio.py; all uncertain cases retain
+// the normal Python call and its frame/traceback behavior.
+bool analyze_simple_accessor(
+    const FunctionObject& function,
+    const std::string*& attribute_name,
+    SimpleAccessorResult& result) {
+  if (function.module == nullptr ||
+      function.function_id >= function.module->functions.size() ||
+      !function.closure.empty()) return false;
+  const auto& code = function.module->functions[function.function_id];
+  if (code.is_generator || code.is_async || code.is_coroutine ||
+      code.params.size() != 1 || !code.free_vars.empty() ||
+      !code.cell_slots.empty()) return false;
+  if ((code.code.size() == 2 || code.code.size() == 3) &&
+      code.code[0].op == ir::Op::LoadLocalAttr && code.code[0].a == 0 &&
+      code.code[0].b < code.names.size() &&
+      code.code[1].op == ir::Op::Return &&
+      code.code[1].a == code.code[0].dst) {
+    if (code.code.size() == 3 &&
+        (code.code[2].op != ir::Op::ReturnConst ||
+         code.code[2].a >= code.constants.size() ||
+         code.constants[code.code[2].a].tag != ValueTag::None)) return false;
+    attribute_name = &code.names[code.code[0].b];
+    result = SimpleAccessorResult::Value;
+    return true;
+  }
+  if (code.code.size() == 5 &&
+      code.code[0].op == ir::Op::LoadLocalAttr && code.code[0].a == 0 &&
+      code.code[0].b < code.names.size() &&
+      code.code[1].op == ir::Op::LoadConst &&
+      code.code[1].a < code.constants.size() &&
+      code.constants[code.code[1].a].tag == ValueTag::None &&
+      code.code[2].op == ir::Op::Is &&
+      code.code[2].a == code.code[0].dst &&
+      code.code[2].b == code.code[1].dst &&
+      code.code[3].op == ir::Op::Return &&
+      code.code[3].a == code.code[2].dst &&
+      code.code[4].op == ir::Op::ReturnConst &&
+      code.code[4].a < code.constants.size() &&
+      code.constants[code.code[4].a].tag == ValueTag::None) {
+    attribute_name = &code.names[code.code[0].b];
+    result = SimpleAccessorResult::IsNotNone;
+    return true;
+  }
+  return false;
+}
+
+bool inline_simple_accessor(
+    Runtime& runtime,
+    const Value& receiver,
+    const FunctionObject& function,
+    Value& out) {
+  const auto active_hook = [](const Value& hook) {
+    return hook.tag != ValueTag::Invalid && hook.tag != ValueTag::None;
+  };
+  const ir::Module* module = function.module.get();
+  if (runtime.debug_step_active() || runtime.trace_event_may_dispatch() ||
+      runtime.profile_event_may_dispatch() ||
+      active_hook(runtime.trace_function()) ||
+      active_hook(runtime.profile_function()) ||
+      sys_monitoring_function_may_dispatch(module, function.function_id)) {
+    return false;
+  }
+
+  const std::string* attribute_name = nullptr;
+  SimpleAccessorResult result = SimpleAccessorResult::Value;
+  if (!analyze_simple_accessor(function, attribute_name, result)) return false;
+  auto* instance = value_as_instance(receiver);
+  auto* klass = instance == nullptr ? nullptr : value_as_class(instance->klass);
+  if (instance == nullptr || klass == nullptr ||
+      instance->native_get_attr != nullptr || klass->has_getattribute_hook ||
+      klass->has_getattr_hook) return false;
+
+  // An instance value wins only after data descriptors. Exclude any class
+  // definition of this attribute so the direct storage read has the same
+  // precedence as LOAD_ATTR; custom descriptors/getattr fall back to Python.
+  Value class_value;
+  std::string lookup_error;
+  if (object_lookup_inherited_class_attr(
+          instance->klass, *attribute_name, class_value, lookup_error) ||
+      !lookup_error.empty()) return false;
+
+  const Value* stored = nullptr;
+  const auto slot = klass->instance_slot_indices.find(*attribute_name);
+  if (slot != klass->instance_slot_indices.end() &&
+      slot->second < instance_slot_count(instance)) {
+    const Value& value = instance_slot_at(instance, slot->second);
+    if (value.tag != ValueTag::Invalid) stored = &value;
+  }
+  if (stored == nullptr) {
+    if (auto* dict = value_as_dict(instance_attribute_storage(*instance))) {
+      for (const auto& entry : dict->entries) {
+        const auto* key = value_as_string(entry.first);
+        if (key != nullptr && string_object_view(*key) == *attribute_name) {
+          stored = &entry.second;
+          break;
+        }
+      }
+    } else {
+      for (const auto& attr : instance->attrs) {
+        if (attr.first == *attribute_name) {
+          stored = &attr.second;
+          break;
+        }
+      }
+    }
+  }
+  // Missing values use the ordinary call so Python creates the canonical
+  // AttributeError with the accessor frame and any __getattr__ behavior.
+  if (stored == nullptr || stored->tag == ValueTag::Invalid) return false;
+  if (result == SimpleAccessorResult::Value) {
+    value_assign_fast(out, *stored);
+  } else {
+    value_set_bool(out, stored->tag != ValueTag::None);
+  }
+  return true;
+}
+
 bool call_method(Runtime& runtime, const Value& self, const char* name,
                   const Value* args, uint32_t argc,
                   const std::vector<std::pair<std::string, Value>>& kwargs,
@@ -371,6 +496,13 @@ bool call_method(Runtime& runtime, const Value& self, const char* name,
       std::string lookup_error;
       if (!shadowed && object_lookup_class_attr(
               instance->klass, name, raw_method, lookup_error)) {
+        if (argc == 0 && kwargs.empty()) {
+          if (const auto* function = value_as_function(raw_method);
+              function != nullptr &&
+              inline_simple_accessor(runtime, self, *function, out)) {
+            return true;
+          }
+        }
         const auto* native = value_as_native_function(raw_method);
         if (value_as_function(raw_method) != nullptr ||
             (native != nullptr && native->bind_as_descriptor)) {

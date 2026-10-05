@@ -2,3 +2,7 @@ class-method 42 True
 instance-shadow 42 True
 class-replaced 42 True
 future-subclass 7
+simple-accessor-debug True
+simple-accessor-dict-write True
+profile-sees-get-debug True
+simple-accessor-running 91

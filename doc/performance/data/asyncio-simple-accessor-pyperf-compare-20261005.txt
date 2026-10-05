@@ -1,0 +1,13 @@
+Benchmarks with tag 'asyncio':
+==============================
+
+| Benchmark        | asyncio-simple-accessor-control-merged-20261005 | asyncio-simple-accessor-candidate-merged-20261005 |
+|------------------|:-----------------------------------------------:|:-------------------------------------------------:|
+| async_tree_eager | 1.52 sec                                        | 1.39 sec: 1.09x faster                            |
+
+All benchmarks:
+===============
+
+| Benchmark        | asyncio-simple-accessor-control-merged-20261005 | asyncio-simple-accessor-candidate-merged-20261005 |
+|------------------|:-----------------------------------------------:|:-------------------------------------------------:|
+| async_tree_eager | 1.52 sec                                        | 1.39 sec: 1.09x faster                            |
