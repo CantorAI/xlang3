@@ -61,6 +61,23 @@ Worker failures are not performance scores. Optional-package failures are enviro
 3. **JSON native module** remains 4.4× slower on `json_dumps` and 4.3× slower on `json_loads`. CPython uses `_json`; inspect XLang3's own `_json` registration and profile its existing native path before changing it.
 4. **Telco** improved from 185.9ms in the prior full run to 40.9ms after the Decimal signal-identity change, but remains 7.1× slower. Re-profile current `telco` before considering a separate Decimal optimization.
 
+### JSON encoder path split
+
+The native `_json` module is registered and serves the default encoder; the gap is not a missing registration. A seven-pass median diagnostic using pyperformance 1.14's four payload shapes shows that public `json.dumps` spends much more time in XLang3's Python wrapper path for small values, while direct calls to XLang3's native encoder are close to or faster than CPython for nested and large payloads. The diagnostic is not an official score.
+
+| Payload | Path | CPython 3.14.7 | XLang3 | CPython / XLang3 |
+|---|---|---:|---:|---:|
+| Empty | `json.dumps` | 0.898 µs/call | 8.571 µs/call | 0.105× |
+| Empty | direct `_json` + join | 0.161 µs/call | 0.877 µs/call | 0.184× |
+| Simple | `json.dumps` | 1.513 µs/call | 8.920 µs/call | 0.170× |
+| Simple | direct `_json` + join | 0.655 µs/call | 1.207 µs/call | 0.543× |
+| Nested | `json.dumps` | 2.789 µs/call | 9.391 µs/call | 0.297× |
+| Nested | direct `_json` + join | 1.901 µs/call | 1.904 µs/call | 0.998× |
+| Huge (1000 shared nested objects) | `json.dumps` | 1.460 ms/call | 0.692 ms/call | 2.109× |
+| Huge (1000 shared nested objects) | direct `_json` + join | 1.424 ms/call | 0.663 ms/call | 2.147× |
+
+This points the next JSON-related work toward general XLang3 execution of the pure-Python `json.dumps`/`JSONEncoder` wrapper and call path. Keep `json`'s pure-Python implementation in Python; optimize shared VM operations, and keep `_json` as XLang3's native counterpart to CPython's native accelerator.
+
 ## Evidence files
 
 - [Horizontal speed-ratio chart](pyperformance-xlang3-main-full-fast-20261005.svg)
@@ -70,3 +87,5 @@ Worker failures are not performance scores. Optional-package failures are enviro
 - [Full XLang3 runner log](data/pyperformance-xlang3-main-full-fast-20261005.log)
 - [CPython 3.14.7 pyperf JSON](data/pyperformance-cpython314-clean-release-full-fast-20261002.json)
 - [CPython 3.14.7 runner log](data/pyperformance-cpython314-clean-release-full-fast-20261002.log)
+- [CPython 3.14.7 JSON call-path probe](data/json-dumps-callpath-cpython314-fastprobe-20261005.csv)
+- [XLang3 JSON call-path probe](data/json-dumps-callpath-xlang3-main-fastprobe-20261005.csv)
