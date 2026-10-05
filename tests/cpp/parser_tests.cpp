@@ -125,6 +125,16 @@ int main() {
       continued_triple_arg.errors.empty(),
       "parser should accept triple-quoted call arguments inside joined lines");
 
+  auto continued_triple_regex = xlang3::parse_source(R"PY(
+pattern = (
+    r"""[^!"#$%&'()*]"""  # noqa: E501
+)
+)PY");
+  xlang3::test::expect_true(
+      result,
+      continued_triple_regex.errors.empty(),
+      "comment trimming should preserve # and quotes inside a joined raw triple string");
+
   auto statements = xlang3::parse_source(
       "class Box[T](Base):\n"
       "    pass\n"

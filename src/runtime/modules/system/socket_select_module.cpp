@@ -2844,7 +2844,9 @@ void add_socket_exports(Runtime& runtime, NativeModuleBuilder& builder, const Va
       .value("SO_ERROR", Value::int64(SO_ERROR))
       .value("SO_LINGER", Value::int64(SO_LINGER))
       .value("SO_TYPE", Value::int64(SO_TYPE))
-      .value("SO_EXCLUSIVEADDRUSE", Value::int64(-5))
+#ifdef SO_EXCLUSIVEADDRUSE
+      .value("SO_EXCLUSIVEADDRUSE", Value::int64(SO_EXCLUSIVEADDRUSE))
+#endif
       .value("SOMAXCONN", Value::int64(128))
       .value("SHUT_RD", Value::int64(0))
       .value("SHUT_WR", Value::int64(1))

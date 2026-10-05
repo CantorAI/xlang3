@@ -94,8 +94,8 @@ void register_core_builtins(Runtime& runtime) {
   register_overlapped_module(runtime);
   register_multiprocessing_module(runtime);
   register_winapi_module(runtime);
-#endif
   register_winreg_module(runtime);
+#endif
   register_zlib_module(runtime);
   register_zipimport_module(runtime);
   register_socket_modules(runtime);

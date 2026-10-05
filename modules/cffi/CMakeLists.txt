@@ -5,7 +5,8 @@ add_library(xlang_cffi_backend_native_package SHARED
   cffi_backend_module.cpp
 )
 
-if(MSVC AND CMAKE_VS_PLATFORM_NAME STREQUAL "x64")
+if(MSVC AND (CMAKE_VS_PLATFORM_NAME STREQUAL "x64"
+    OR CMAKE_CXX_COMPILER_ARCHITECTURE_ID STREQUAL "x64"))
   enable_language(ASM_MASM)
   target_sources(xlang_cffi_backend_native_package PRIVATE
     libffi/ffi.c

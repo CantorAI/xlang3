@@ -609,6 +609,8 @@ bool marshal_argument(Runtime& runtime, const Value& argument, char code,
   return true;
 }
 
+#endif
+
 Value decode_result(char code, uint64_t storage) {
   switch (code) {
     case '?': return Value::boolean((storage & 0xffu) != 0);
@@ -634,7 +636,6 @@ Value decode_result(char code, uint64_t storage) {
     default: return Value::none();
   }
 }
-#endif
 
 } // namespace
 
@@ -730,8 +731,30 @@ bool ctypes_foreign_load_library(Runtime& runtime, const Value* args,
   out = Value::int64(reinterpret_cast<int64_t>(handle));
   return true;
 #else
-  (void)out;
-  return fail(runtime, "NotImplementedError", "native library loading is unavailable", error);
+  const char* library = nullptr;
+  std::string name;
+  if (args[0].tag != ValueTag::None) {
+    const auto* text = value_as_string(args[0]);
+    const auto* bytes = value_as_bytes(args[0]);
+    if (text == nullptr && bytes == nullptr)
+      return fail(runtime, "TypeError", "invalid library name", error);
+    name = text ? string_object_to_string(*text) : bytes_object_to_string(*bytes);
+    if (name.find('\0') != std::string::npos)
+      return fail(runtime, "ValueError", "embedded null character", error);
+    library = name.c_str();
+  }
+  int64_t mode = RTLD_LOCAL;
+  if (argc == 2 && !integer(args[1], mode))
+    return fail(runtime, "TypeError", "invalid library load flags", error);
+  if (mode < std::numeric_limits<int>::min() || mode > std::numeric_limits<int>::max())
+    return fail(runtime, "OverflowError", "library load flags do not fit an int", error);
+  void* handle = dlopen(library, static_cast<int>(mode) | RTLD_NOW);
+  if (handle == nullptr) {
+    const char* message = dlerror();
+    return fail(runtime, "OSError", message ? message : "cannot load native library", error);
+  }
+  out = Value::int64(reinterpret_cast<int64_t>(handle));
+  return true;
 #endif
 }
 

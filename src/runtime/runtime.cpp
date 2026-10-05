@@ -799,7 +799,17 @@ void Runtime::initialize() {
   modules_dict_ = Value::dict({});
   register_core_builtins(*this);
 #if !defined(XLANG3_EMBEDDED)
-  add_default_import_layout(*this, runtime_library_dir());
+  const auto library_dir = runtime_library_dir();
+  add_default_import_layout(*this, library_dir);
+  // Installed POSIX packages can place the runtime in bin/lib while the
+  // executables and native packages remain in bin. Embedded hosts need the
+  // same adjacent standard library as the CLI, without host environment paths.
+  if (library_dir.filename() == "lib") {
+    std::error_code ec;
+    if (std::filesystem::is_regular_file(library_dir / "python3.14" / "os.py", ec)) {
+      add_default_import_layout(*this, library_dir.parent_path());
+    }
+  }
   add_default_python_lib_roots(*this);
   auto sys_it = modules_.find("sys");
   if (sys_it != modules_.end()) {

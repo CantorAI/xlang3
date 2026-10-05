@@ -1,11 +1,13 @@
 /* Copyright (C) 2026 CantorAI Inc. and The XLang Foundation
    Licensed under the Apache License, Version 2.0. */
 #include "xlang3/xlang3.h"
+#include "xlang3/charconv_compat.h"
 
 #include <algorithm>
 #include <array>
 #include <cctype>
 #include <charconv>
+#include <climits>
 #include <cstdint>
 #include <cmath>
 #include <cstring>
@@ -4285,8 +4287,8 @@ X3Status call_base64_function(PackageState* package, X3Runtime* runtime,
 bool parse_duration_number(std::string_view text, double& value,
                            bool* trailing_characters) {
   if (text.empty()) return false;
-  const auto parsed = std::from_chars(
-      text.data(), text.data() + text.size(), value, std::chars_format::general);
+  const auto parsed = xlang3::compat::from_chars_double(
+      text.data(), text.data() + text.size(), value);
   if (trailing_characters != nullptr && parsed.ec == std::errc{} &&
       parsed.ptr != text.data() + text.size())
     *trailing_characters = true;
@@ -13633,7 +13635,7 @@ X3Status validate_value_group_2(PackageState* package, X3CallContext* context, X
       std::string text;
       double number = 0.0;
       if (string_data(package, runtime, input, text)) {
-        const auto parsed = std::from_chars(
+        const auto parsed = xlang3::compat::from_chars_double(
             text.data(), text.data() + text.size(), number);
         if (parsed.ec == std::errc{} &&
             parsed.ptr == text.data() + text.size())
