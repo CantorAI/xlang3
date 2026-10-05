@@ -118,6 +118,7 @@ public:
   }
 
   size_t position() const { return pos_; }
+  bool ascii_only() const { return ascii_only_; }
 
 private:
   void whitespace() {
@@ -179,6 +180,7 @@ private:
         return true;
       }
       if (c >= 0x80) {
+        ascii_only_ = false;
         if (!decoded.empty()) decoded.push_back(static_cast<char>(c));
         continue;
       }
@@ -359,6 +361,10 @@ private:
   bool strict_ = true;
   Runtime& runtime_;
   Value& memo_;
+  // Scanner end offsets are Python character indices. The common JSON input
+  // is ASCII, where parser byte offsets are already character offsets; track
+  // non-ASCII while scanning so the hot path avoids a second full-string pass.
+  bool ascii_only_ = true;
 };
 
 bool json_scanner_call(
@@ -371,8 +377,11 @@ bool json_scanner_call(
     return false;
   }
   const auto text = string_object_view(*value_as_string(args[0]));
-  const size_t start = utf8_byte_offset(text, static_cast<size_t>(args[1].as.i64));
-  if (static_cast<size_t>(args[1].as.i64) > utf8_codepoint_count(text)) {
+  const size_t start_index = static_cast<size_t>(args[1].as.i64);
+  // json.loads() and the normal JSONDecoder path start at index zero. Avoid
+  // counting every code point just to validate that known-valid hot offset.
+  const size_t start = start_index == 0 ? 0 : utf8_byte_offset(text, start_index);
+  if (start_index != 0 && start_index > utf8_codepoint_count(text)) {
     error = "JSON scanner index out of range";
     runtime.raise_class_error("IndexError", error);
     return false;
@@ -381,7 +390,9 @@ bool json_scanner_call(
   Value result;
   size_t end_byte = 0;
   if (!parser.parse(result, end_byte)) {
-    const size_t error_index = utf8_codepoint_count(text.substr(0, parser.position()));
+    const size_t error_index = parser.ascii_only()
+        ? start_index + (parser.position() - start)
+        : utf8_codepoint_count(text.substr(0, parser.position()));
     std::string ignored;
     (void)mapping_clear(state->memo, ignored);
     const Value* stop_iteration = runtime.find_builtin("StopIteration");
@@ -398,7 +409,9 @@ bool json_scanner_call(
   }
   std::string ignored;
   (void)mapping_clear(state->memo, ignored);
-  const size_t end = utf8_codepoint_count(text.substr(0, end_byte));
+  const size_t end = parser.ascii_only()
+      ? start_index + (end_byte - start)
+      : utf8_codepoint_count(text.substr(0, end_byte));
   out = Value::tuple({std::move(result), Value::int64(static_cast<int64_t>(end))});
   return true;
 }

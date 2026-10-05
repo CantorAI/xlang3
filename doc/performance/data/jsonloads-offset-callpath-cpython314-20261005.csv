@@ -1,0 +1,5 @@
+runtime,path,median_us_per_load,loops,samples
+cpython,json.loads,5.748,30,9
+cpython,JSONDecoder.decode,5.729,30,9
+cpython,JSONDecoder.raw_decode,5.262,30,9
+cpython,direct scan_once,5.244,30,9
