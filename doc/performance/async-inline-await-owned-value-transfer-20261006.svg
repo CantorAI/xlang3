@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="250" viewBox="0 0 900 250" role="img" aria-labelledby="title desc">
+  <title id="title">Coroutine benchmark times</title>
+  <desc id="desc">Horizontal bars compare rigorous pyperformance times. Lower times are faster. CPython 3.14.7 is 17.2 milliseconds; XLang3 control is 133 milliseconds; XLang3 candidate is 132 milliseconds.</desc>
+  <style>
+    text { font-family: Segoe UI, Arial, sans-serif; fill: #202124; }
+    .label { font-size: 16px; }
+    .value { font-size: 15px; font-weight: 600; }
+    .axis { font-size: 13px; fill: #5f6368; }
+    .grid { stroke: #dadce0; stroke-width: 1; }
+  </style>
+  <text x="24" y="30" font-size="20" font-weight="600">Official pyperformance 1.14.0 · coroutines · rigorous</text>
+  <text x="24" y="52" class="axis">Elapsed time in milliseconds · shorter is faster</text>
+  <line x1="225" y1="65" x2="225" y2="205" class="grid" />
+  <line x1="415" y1="65" x2="415" y2="205" class="grid" />
+  <line x1="605" y1="65" x2="605" y2="205" class="grid" />
+  <line x1="795" y1="65" x2="795" y2="205" class="grid" />
+  <text x="24" y="91" class="label">CPython 3.14.7</text>
+  <rect x="225" y="72" width="65.4" height="27" rx="4" fill="#5f9e6e" />
+  <text x="299" y="91" class="value">17.2 ms</text>
+  <text x="24" y="141" class="label">XLang3 control</text>
+  <rect x="225" y="122" width="505.4" height="27" rx="4" fill="#8ab4f8" />
+  <text x="738" y="141" class="value">133 ms</text>
+  <text x="24" y="191" class="label">XLang3 candidate</text>
+  <rect x="225" y="172" width="501.6" height="27" rx="4" fill="#1a73e8" />
+  <text x="734" y="191" class="value">132 ms</text>
+  <text x="220" y="225" class="axis">0</text>
+  <text x="407" y="225" class="axis">50</text>
+  <text x="595" y="225" class="axis">100</text>
+  <text x="784" y="225" class="axis">150 ms</text>
+  <text x="225" y="247" class="axis">Candidate/control: 1.01× faster · candidate/CPython: 7.63× slower</text>
+</svg>

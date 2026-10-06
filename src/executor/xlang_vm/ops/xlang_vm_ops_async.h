@@ -263,7 +263,11 @@ XLANG3_HOT_INLINE XlangVMOpFlow await_op(
       awaited_generator->started = true;
       awaited_generator->running = true;
       awaited_generator->inline_parent = parent_generator;
-      value_assign_fast(parent_generator->awaiting, child_value);
+      // child_value already owns the awaited child; transfer that ownership
+      // into the parent's suspension slot to avoid a retain/release pair on
+      // every inline coroutine await. Keep regs[in.a] intact: exception and
+      // liveness paths may still observe the original operand.
+      value_move_assign_fast(parent_generator->awaiting, child_value);
       return XlangVMOpFlow::SwitchFrame;
     }
 #endif
