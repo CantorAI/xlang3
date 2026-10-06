@@ -1,0 +1,23 @@
+Diagnostic-only counters. Not pyperf timings.
+
+Build: fixed Release runtime before temporary counters were removed.
+Python baseline/runtime: CPython 3.14.7.
+
+Command 1:
+xlang3.exe --perf-counters benchmarks/diagnostics/async_tree_scaled.py --levels 4 --branches 3 --iterations 100
+
+Selected output:
+levels=4 branches=3 iterations=100 seconds=1.358770000
+perf: coroutine await inline=0 send_fallback=0
+perf: opcode 94 8000
+
+Command 2:
+xlang3.exe --perf-counters scratch/performance/coroutines-inline-hit-probe.py
+
+Probe body: the official bm_coroutines fibonacci(25) coroutine, repeatedly
+resumed with send(None) until StopIteration.
+
+Selected output:
+perf: coroutine await inline=242784 send_fallback=0
+perf: opcode 94 242784
+perf: Generator 242785 242784 242789 485573
