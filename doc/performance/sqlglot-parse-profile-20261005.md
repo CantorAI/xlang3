@@ -34,12 +34,15 @@ allocations. The counters show a promising call/attribute path to investigate,
 but do not by themselves prove which allocations correspond to callable method
 loads or explain the entire slowdown.
 
-The next optimization should trace those BoundMethod-producing attribute
-loads back to their IR callsites, then preserve descriptor overrides and
-method identity while bypassing temporary wrappers only for proven
-immediately-called methods. Generic method lookups must keep their existing
-fallback. No SQLGlot Python source changes or C++ replacement for the pure
-Python package are appropriate.
+The first follow-up tried caching the class's slot-name lookup at warmed
+`CallMethod` sites. The fixed Release gate passed, but the official SQLGlot
+run showed no demonstrated end-to-end improvement; details are in
+[`callmethod-slot-lookup-cache-20261005.md`](callmethod-slot-lookup-cache-20261005.md).
+Do not keep extending caches based on the IP sampler alone. First measure the
+cost of instance-shadow checks, descriptor resolution, and wrapper creation at
+the actual callsites; preserve dynamic overrides, descriptor semantics, and
+method identity in any later fast path. SQLGlot remains pure Python and should
+not be replaced with C++.
 
 ## Reproduction artifacts
 
