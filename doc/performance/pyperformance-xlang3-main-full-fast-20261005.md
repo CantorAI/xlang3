@@ -2,6 +2,8 @@
 
 This run measures the current `main` Release executable against the saved CPython 3.14.7 Release reference. It attempts all 97 pyperformance definitions. The run completed 46 definitions and recorded 51 failures or timeouts. Among 50 matched subtests, XLang3 was faster in 5 and slower in 45; the geometric mean of CPython time divided by XLang3 time is **0.17324×**. Ratios above 1× favor XLang3.
 
+The follow-up run after the Future keyword-dispatch optimization is recorded in [the post-Future full-suite report](pyperformance-xlang3-main-post-future-full-fast-20261005.md). It again attempted all 97 definitions and measures the committed `c9afcfab` Release binary.
+
 ![Horizontal log-scale chart; bars right of 1× favor XLang3](pyperformance-xlang3-main-full-fast-20261005.svg)
 
 ## Run configuration
