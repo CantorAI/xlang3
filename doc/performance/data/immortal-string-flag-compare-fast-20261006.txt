@@ -1,0 +1,32 @@
+Benchmarks with tag 'asyncio':
+==============================
+
++------------------+---------------------------------+-----------------------------------+
+| Benchmark        | immortal-string-flag-control-r1 | immortal-string-flag-candidate-r1 |
++==================+=================================+===================================+
+| async_tree_eager | 1.29 sec                        | 1.32 sec: 1.02x slower            |
++------------------+---------------------------------+-----------------------------------+
+| Geometric mean   | (ref)                           | 1.01x slower                      |
++------------------+---------------------------------+-----------------------------------+
+
+Benchmark hidden because not significant (1): async_tree_none
+
+Benchmarks with tag 'serialize':
+================================
+
+Benchmark hidden because not significant (2): json_dumps, pickle_pure_python
+
+All benchmarks:
+===============
+
++------------------+---------------------------------+-----------------------------------+
+| Benchmark        | immortal-string-flag-control-r1 | immortal-string-flag-candidate-r1 |
++==================+=================================+===================================+
+| async_tree_eager | 1.29 sec                        | 1.32 sec: 1.02x slower            |
++------------------+---------------------------------+-----------------------------------+
+| logging_format   | 89.1 us                         | 92.1 us: 1.03x slower             |
++------------------+---------------------------------+-----------------------------------+
+| Geometric mean   | (ref)                           | 1.00x slower                      |
++------------------+---------------------------------+-----------------------------------+
+
+Benchmark hidden because not significant (5): async_tree_none, json_dumps, logging_silent, logging_simple, pickle_pure_python
