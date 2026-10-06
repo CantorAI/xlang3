@@ -19,6 +19,37 @@ The diagnostic profile's VM-loop share includes more than this helper; this
 trial shows that removing this one call does not improve the representative
 pickle workloads.
 
+## Broader current-main confirmation (2026-10-05)
+
+A later cross-workload check, using the current-main control and the same
+inline rewrite, again showed no benefit. This repeats the already-rejected
+implementation hypothesis and should not be treated as a new optimization
+candidate:
+
+| pyperformance case | Current-main control | Inline build | Inline / control |
+|---|---:|---:|---:|
+| `comprehensions` | 166 µs ± 1 µs | 167 µs ± 2 µs | 1.01× slower |
+| `pickle_pure_python` | 5.13 ms ± 0.08 ms | 5.15 ms ± 0.05 ms | statistically indistinguishable |
+| `argparse_subparsers` | 145 ms ± 1 ms | 144 ms ± 1 ms | statistically indistinguishable |
+| `async_tree_none` | 4.41 s ± 0.03 s | 4.44 s ± 0.03 s | 1.01× slower |
+
+These were fast-mode samples and are directional. The control executable was
+`build-repro/async-false-guard-control/xlang3.exe` (SHA-256
+`84DD7D0A2B90CFA4A1369F507E50FBDB18B85F7A498CA958771648FA4A1971DE`), with
+runtime DLL SHA-256
+`6CCA3D95F4A6CFEF94B50D68EA0873F2EA379A2094DA342743878C05BB4AFEDA`.
+
+- [Control: comprehension and pickle JSON](data/event-poll-inline-control-fast-20261005.json)
+- [Inline: comprehension and pickle JSON](data/event-poll-inline-candidate-fast-20261005.json)
+- [Control: async tree and subparsers JSON](data/event-poll-inline-control-async-fast-20261005.json)
+- [Inline: async tree and subparsers JSON](data/event-poll-inline-candidate-async-fast-20261005.json)
+
+The same-day CPython 3.14.7 references were about 14 µs, 273.5 µs, 8.15 ms,
+and 226 ms respectively. The full comparison is in the
+[97-case report](pyperformance-xlang3-sparse-instr-cache-vs-cpython314-fast-20261005.md).
+This cross-check confirms that event-poll inlining does not explain or reduce
+the large gaps.
+
 ## CPython reference and evidence
 
 Against the saved CPython **3.14.7** pyperformance 1.14.0 run, the inline
