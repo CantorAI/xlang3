@@ -70,6 +70,7 @@ report in `doc/performance/data/`.
 - [Reverse fixed-control / candidate pair](data/async-tree-sparse-cache-control-r2-fast-20261005.json) / [candidate](data/async-tree-sparse-cache-candidate-r2-fast-20261005.json)
 - [Complete fixed Release gate JSON](data/sparse-instr-cache-fixed-release-gate-20261005.json) and [log](data/sparse-instr-cache-fixed-release-gate-20261005.log)
 - [Five-tree native IP sample](data/async-tree-official-xlang3-native-samples-repeat5-20261005.json)
+- [Fresh all-97 comparison against CPython 3.14.7, with chart and complete status CSV](pyperformance-xlang3-sparse-instr-cache-vs-cpython314-fast-20261005.md)
 
 The overall goal remains open: this change does not make XLang3 faster than
 CPython on async-tree, and it does not address the remaining slow or failing
