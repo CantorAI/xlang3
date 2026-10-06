@@ -21,6 +21,34 @@ limitations under the License.
 int main() {
   xlang3::test::CaseResult result;
 
+  // Same-object owning copies should avoid refcount churn, while copying into
+  // a borrowed slot must still acquire an independent reference.
+  {
+    auto owner = xlang3::Value::list({});
+    auto alias = owner;
+    const auto shared_refs = owner.as.obj->refcnt.load();
+    alias = owner;
+    xlang3::test::expect_true(result,
+        owner.as.obj->refcnt.load() == shared_refs,
+        "same-object owning assignment must not churn the reference count");
+
+    xlang3::Value borrowed;
+    borrowed.tag = xlang3::ValueTag::Object;
+    borrowed.flags = xlang3::kXlangValueBorrowedRefFlag;
+    borrowed.as.obj = owner.as.obj;
+    borrowed = owner;
+    xlang3::test::expect_true(result,
+        (borrowed.flags & xlang3::kXlangValueBorrowedRefFlag) == 0 &&
+            owner.as.obj->refcnt.load() == shared_refs + 1,
+        "assignment into a borrowed slot must acquire an owned reference");
+    const auto borrowed_refs = owner.as.obj->refcnt.load();
+    alias = borrowed;
+    xlang3::test::expect_true(result,
+        (alias.flags & xlang3::kXlangValueBorrowedRefFlag) == 0 &&
+            owner.as.obj->refcnt.load() == borrowed_refs,
+        "copying a borrowed alias into an owning slot must preserve ownership");
+  }
+
   // Cache payloads remain sparse while monitoring's smaller DISABLE state is
   // dense: uncached IR instructions still need independent event suppression.
   {

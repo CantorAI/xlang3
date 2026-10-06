@@ -1012,6 +1012,16 @@ XLANG3_HOT_INLINE Value::Value(Value&& other) noexcept
 
 XLANG3_HOT_INLINE Value& Value::operator=(const Value& other) {
   if (this == &other) return *this;
+  if (tag == ValueTag::Object && other.tag == ValueTag::Object &&
+      as.obj == other.as.obj &&
+      (flags & kXlangValueBorrowedRefFlag) == 0) {
+    // Owning self-assignments are common when VM temporaries and container
+    // slots already hold the same object. Copy assignment would otherwise
+    // perform a redundant atomic retain/release pair. A borrowed destination
+    // must still take the general path so it acquires its own reference.
+    flags = other.flags & ~kXlangValueBorrowedRefFlag;
+    return *this;
+  }
   // The source can borrow the same object currently owned by this slot.
   // Acquire its reference before releasing the destination's reference.
   Value retained(other);
