@@ -83,11 +83,50 @@ event-loop method changes timing, so these are counts only.
 
 The workload creates the same number of scheduled operations under both
 runtimes. CPython represents the task step with its dedicated native wrapper;
-XLang3 schedules a bound native method. This makes callback invocation and
-bound-method allocation worth measuring next, while leaving open the cost of
-coroutine resume and Python `Handle` execution. The matching schedule counts
-also show that the missing timer records came from the probe setup, not from
-the benchmark bypassing native Task steps.
+XLang3 schedules a bound native method. Callback caching and bound-argument
+staging have both been tested without a repeatable end-to-end gain, so the
+remaining targets are coroutine resume and Python `Handle` execution. The
+matching schedule counts also show that the missing timer records came from
+the probe setup, not from the benchmark bypassing native Task steps.
+
+## Python frame profile and getter trial
+
+[`async_tree_official_call_profile.py`](../../benchmarks/diagnostics/async_tree_official_call_profile.py)
+ran the official 6-by-6 `NoneAsyncTree` body under `sys.setprofile` in both
+runtimes. The profiler changes timings; counts identify repeated Python work,
+not its CPU share.
+
+| Runtime | Python `asyncio` call events | Visible `_asyncio` C-call events |
+| --- | ---: | ---: |
+| CPython 3.14.7 | 1,148,050 | 130,649 |
+| XLang3 | 1,157,378 | 0 |
+
+The top Python call counts match almost exactly: `BaseEventLoop.get_debug`
+186,638; `_check_closed` 177,310; `call_soon`, `_call_soon`, and
+`Handle.__init__` 121,315 each; `Handle._run` 121,314; `create_task` and
+`ensure_future` 55,989 each; and `gather.<locals>._done_callback` 55,986.
+XLang3 enters `asyncio.futures._get_loop` 9,335 times versus 4 in CPython, but
+that difference is under one percent of the total event count. The native
+`_asyncio` profile events are not comparable because XLang3 does not expose
+its native calls through the same profile-event interface. The counts point
+toward the cost of executing the same Python operations in XLang3, not a
+large increase in Python frame count.
+
+A VM trial inlined successful one-attribute Python method getters, including
+`return self._debug`, with class/descriptor, instance-storage, trace, and
+fallback guards. Its fixture passed under both runtimes, and the fixed Release
+gate passed all 11 cases (largest ratio 1.036x). The official
+`async_tree_none` result was **4.47 s ± 0.05 s** versus the saved current-main
+control at **4.41 s**; pyperf showed no improvement. `many_optionals` and
+`pickle` were also hidden by `pyperf compare_to` as not significant. The trial
+was removed; its code is not retained as a performance win.
+
+Profile outputs are preserved for [CPython 3.14.7](data/async-tree-official-call-profile-cpython314-20261006.txt)
+and [XLang3](data/async-tree-official-call-profile-xlang3-20261006.txt). The
+candidate results and comparisons are saved for [async_tree_none](data/async-tree-simple-getter-candidate-fast-20261006.json),
+[`many_optionals`](data/argparse-simple-getter-candidate-fast-20261006.json),
+and [`pickle`](data/pickle-simple-getter-candidate-fast-20261006.json), with
+the [fixed Release gate](data/release-simple-self-attr-getter-gate-20261006.json).
 
 ## Opcode timing diagnostic
 
@@ -143,6 +182,6 @@ shows the asyncio shutdown failure.
 | RelWithDebInfo sample executable | `ADDE6540D99DFDE45B725CD076503BB0E9923738A16B61381CDEA809194ACA56` |
 | RelWithDebInfo sample runtime DLL | `7398591CF9F28E46B6BB0A29890411EF35CD33CAF8FDA4BE379266B335A63B2A` |
 
-The next experiment should isolate native Task callback invocation and shared
-VM call/frame work without changing callback semantics. The performance goal
-remains open.
+The next experiment should measure the cost of the high-frequency
+`_check_closed` and Handle scheduling paths, plus native generator resume,
+before choosing another inline pattern. The performance goal remains open.
