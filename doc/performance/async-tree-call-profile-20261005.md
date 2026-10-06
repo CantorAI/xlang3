@@ -1,9 +1,9 @@
 # Default async-tree call profile (2026-10-05)
 
 This diagnostic compares the unchanged `async_tree_scaled.py` workload at
-four levels, three branches, and one iteration under CPython 3.14.7 and the
-current Release XLang3 executable. It counts Python call events in `asyncio`
-and visible `_asyncio` C-call events; it is not a timing comparison.
+four levels, three branches, and one iteration under CPython 3.14.7 and a
+fresh Release build of current `main`. It counts Python call events in
+`asyncio` and visible `_asyncio` C-call events; it is not a timing comparison.
 
 | Runtime | Python `asyncio` call events | `_asyncio` C-call events visible to `sys.setprofile` |
 |---|---:|---:|
@@ -30,6 +30,19 @@ no significant speedup (1.41 s for both builds). Do not repeat that exact
 fallback change without a new optimization that removes meaningful work from
 the native-call path.
 
+The same fresh Release build's VM counters recorded 23,685 native calls
+(21,377 fast, 5,660 cached-fast), including 291 `_contextvars.Context.run`
+calls (165 generic and 126 fast) for the 4x3 tree. These counters show the
+empty-star `Context.run` path is active, but many non-empty callback expansions
+still use the generic path. A broader expansion shortcut was already tried
+and measured slower in the scaled workload, so it is not a new candidate. See
+the [counter log](data/async-tree-scaled-counters-xlang3-20261005.txt).
+
+A separate current-source fixture probe confirms the Future fast-keyword
+callback is enabled: the `asyncio_native_future_constructor.py` fixture
+records `_asyncio.Future.__init__ slow=1 fast=2`. See the
+[counter probe](data/future-fast-keyword-counter-probe-xlang3-20261005-rebuilt.txt).
+
 CPython 3.14.7 calls the built-in Future method directly in
 [`_asynciomodule.c`](https://github.com/python/cpython/blob/v3.14.7/Modules/_asynciomodule.c#L294-L315).
 The XLang3 fallback and prior A/B result are documented in the
@@ -47,5 +60,5 @@ $env:PYTHONPATH = 'benchmarks\diagnostics;C:\Python\Python314\Lib;C:\Python\Pyth
 Raw output: [CPython 3.14.7](data/async-tree-call-profile-cpython314-20261005.txt),
 [XLang3](data/async-tree-call-profile-xlang3-20261005.txt). The XLang3
 executable and runtime DLL SHA-256 hashes were
-`94F65647D7E3116A81CC7D1E7783D5E951E7A260101667177257F9266502E033` and
-`C60087265E4A97FEF73EC4F9CDA28BCDE02A4291FA2E4ED760E4390DB9E9BDE5`.
+`091105B9328CC1D1531E2E70FB86B9FDC23A8608E3BE8DDCBAD90BDB532A8B3F` and
+`1ED6DA293DED131E3EB07C4C019D0F3D858E0EE3815A1A90B6EF2B5E410C8486`.
