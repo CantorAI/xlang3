@@ -116,3 +116,8 @@ regressed `deepcopy`, `deepcopy_reduce`, and `pickle_pure_python`; see the
 [matched trial data](dict-get-class-key-trial-20261006.md). Continue profiling
 other object-heavy runtime operations instead of retrying generic dispatch
 shortcuts on these same paths.
+
+The follow-up four-entry `type(value)` result cache also failed to improve
+deepcopy or pickle; its extra per-site state was removed. See the
+[type-result cache trial](type-value-polymorphic-result-cache-trial-20261006.md)
+before considering another type-result cache.
