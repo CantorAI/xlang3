@@ -1,0 +1,1405 @@
+......
+.
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+async_generators: Mean +- std dev: 2.30 sec +- 0.06 sec
+[ 5/97] async_tree...
+...
+..
+...
+...
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+async_tree_none: Mean +- std dev: 3.63 sec +- 0.05 sec
+[ 6/97] async_tree_cpu_io_mixed...
+
+.Full-case timeout: async_tree_cpu_io_mixed exceeded 30 seconds
+ERROR: Benchmark async_tree_cpu_io_mixed timed out
+[ 7/97] async_tree_cpu_io_mixed_tg...
+
+.Full-case timeout: async_tree_cpu_io_mixed_tg exceeded 30 seconds
+ERROR: Benchmark async_tree_cpu_io_mixed_tg timed out
+[ 8/97] async_tree_eager...
+...
+........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+async_tree_eager: Mean +- std dev: 1.28 sec +- 0.02 sec
+[ 9/97] async_tree_eager_cpu_io_mixed...
+
+.Full-case timeout: async_tree_eager_cpu_io_mixed exceeded 30 seconds
+ERROR: Benchmark async_tree_eager_cpu_io_mixed timed out
+[10/97] async_tree_eager_cpu_io_mixed_tg...
+
+.Full-case timeout: async_tree_eager_cpu_io_mixed_tg exceeded 30 seconds
+ERROR: Benchmark async_tree_eager_cpu_io_mixed_tg timed out
+[11/97] async_tree_eager_io...
+
+Full-case timeout: async_tree_eager_io exceeded 30 seconds
+ERROR: Benchmark async_tree_eager_io timed out
+[12/97] async_tree_eager_io_tg...
+
+Full-case timeout: async_tree_eager_io_tg exceeded 30 seconds
+ERROR: Benchmark async_tree_eager_io_tg timed out
+[13/97] async_tree_eager_memoization...
+.
+.Full-case timeout: async_tree_eager_memoization exceeded 30 seconds
+ERROR: Benchmark async_tree_eager_memoization timed out
+[14/97] async_tree_eager_memoization_tg...
+.
+Full-case timeout: async_tree_eager_memoization_tg exceeded 30 seconds
+ERROR: Benchmark async_tree_eager_memoization_tg timed out
+[15/97] async_tree_eager_tg...
+..
+Full-case timeout: async_tree_eager_tg exceeded 30 seconds
+ERROR: Benchmark async_tree_eager_tg timed out
+[16/97] async_tree_io...
+
+Full-case timeout: async_tree_io exceeded 30 seconds
+ERROR: Benchmark async_tree_io timed out
+[17/97] async_tree_io_tg...
+
+Full-case timeout: async_tree_io_tg exceeded 30 seconds
+ERROR: Benchmark async_tree_io_tg timed out
+[18/97] async_tree_memoization...
+.
+Full-case timeout: async_tree_memoization exceeded 30 seconds
+ERROR: Benchmark async_tree_memoization timed out
+[19/97] async_tree_memoization_tg...
+.
+Full-case timeout: async_tree_memoization_tg exceeded 30 seconds
+ERROR: Benchmark async_tree_memoization_tg timed out
+[20/97] async_tree_tg...
+..Full-case timeout: async_tree_tg exceeded 30 seconds
+ERROR: Benchmark async_tree_tg timed out
+[21/97] asyncio_tcp...
+
+...
+..
+...
+..Full-case timeout: asyncio_tcp exceeded 120 seconds
+ERROR: Benchmark asyncio_tcp timed out
+[22/97] asyncio_tcp_ssl...
+
+.
+.
+.
+.Full-case timeout: asyncio_tcp_ssl exceeded 120 seconds
+ERROR: Benchmark asyncio_tcp_ssl timed out
+[23/97] asyncio_websockets...
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\data-files\benchmarks\bm_asyncio_websockets\run_benchmark.py", line 9, in <module>
+    import websockets.server
+ModuleNotFoundError: No module named 'websockets'
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\run.py", line 171, in run_benchmarks
+    result = bench.run(
+        bench_venv.python,
+    ...<3 lines>...
+        verbose=options.verbose,
+    )
+  File "D:\CantorAI\xlang3\benchmarks\diagnostics\run_pyperformance_xlang3_shimmed.py", line 145, in run_named_benchmark
+    return original_benchmark_run(benchmark, *positional, **keywords)
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 193, in run
+    bench = _run_perf_script(
+        python,
+    ...<4 lines>...
+        verbose=verbose,
+    )
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 250, in _run_perf_script
+    raise RuntimeError("Benchmark died")
+RuntimeError: Benchmark died
+ERROR: Benchmark asyncio_websockets failed: Benchmark died
+[24/97] base64...
+
+.
+..
+Full-case timeout: base64 exceeded 120 seconds
+ERROR: Benchmark base64 timed out
+[25/97] bpe_tokeniser...
+
+Full-case timeout: bpe_tokeniser exceeded 120 seconds
+ERROR: Benchmark bpe_tokeniser timed out
+[26/97] chameleon...
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\data-files\benchmarks\bm_chameleon\run_benchmark.py", line 5, in <module>
+    from chameleon import PageTemplate
+ModuleNotFoundError: No module named 'chameleon'
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\run.py", line 171, in run_benchmarks
+    result = bench.run(
+        bench_venv.python,
+    ...<3 lines>...
+        verbose=options.verbose,
+    )
+  File "D:\CantorAI\xlang3\benchmarks\diagnostics\run_pyperformance_xlang3_shimmed.py", line 145, in run_named_benchmark
+    return original_benchmark_run(benchmark, *positional, **keywords)
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 193, in run
+    bench = _run_perf_script(
+        python,
+    ...<4 lines>...
+        verbose=verbose,
+    )
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 250, in _run_perf_script
+    raise RuntimeError("Benchmark died")
+RuntimeError: Benchmark died
+ERROR: Benchmark chameleon failed: Benchmark died
+[27/97] chaos...
+...
+Warning: truncated output (original token count: 3829)
+Total output lines: 303
+
+........
+WARNING: the benchmark result may be unstable
+* the standard deviation (73.0 ms) is 16% of the mean (460 ms)
+* the maximum (710 ms) is 55% greater than the mean (460 ms)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+chaos: Mean +- std dev: 460 ms +- 73 ms
+[28/97] comprehensions...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+comprehensions: Mean +- std dev: 162 us +- 2 us
+[29/97] concurrent_imap...
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+    from multiprocessing.spawn import spawn_main; spawn_main(parent_pid=11564, pipe_handle=520)
+                                                  ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python\Python314\Lib\multiprocessing\spawn.py", line 122, in spawn_main
+    exitcode = _main(fd, parent_sentinel)
+  File "C:\Python\Python314\Lib\multiprocessing\spawn.py", line 127, in _main
+    with os.fdopen(fd, 'rb', closefd=True) as from_parent:
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<7 lines>...
+    return self._bootstrap(parent_sentinel)
+    
+  File "C:\Python\Python314\Lib\multiprocessing\spawn.py", line 132, in _main
+    self = reduction.pickle.load(from_parent)
+  File "C:\Python\Python314\Lib\pickle.py", line 1875, in _load
+    return _Unpickler(file, fix_imports=fix_imports, buffers=buffers,
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+          …2829 tokens truncated…thon\Python314\Lib\site-packages\pyperformance\run.py", line 171, in run_benchmarks
+    result = bench.run(
+        bench_venv.python,
+    ...<3 lines>...
+        verbose=options.verbose,
+    )
+  File "D:\CantorAI\xlang3\benchmarks\diagnostics\run_pyperformance_xlang3_shimmed.py", line 145, in run_named_benchmark
+    return original_benchmark_run(benchmark, *positional, **keywords)
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 193, in run
+    bench = _run_perf_script(
+        python,
+    ...<4 lines>...
+        verbose=verbose,
+    )
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 250, in _run_perf_script
+    raise RuntimeError("Benchmark died")
+RuntimeError: Benchmark died
+ERROR: Benchmark crypto_pyaes failed: Benchmark died
+[33/97] dask...
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\data-files\benchmarks\bm_dask\run_benchmark.py", line 7, in <module>
+    from dask.distributed import Client, Worker, Scheduler, wait
+ModuleNotFoundError: No module named 'dask'
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\run.py", line 171, in run_benchmarks
+    result = bench.run(
+        bench_venv.python,
+    ...<3 lines>...
+        verbose=options.verbose,
+    )
+ERROR: Benchmark dask failed: Benchmark died
+[34/97] deepcopy...
+  File "D:\CantorAI\xlang3\benchmarks\diagnostics\run_pyperformance_xlang3_shimmed.py", line 145, in run_named_benchmark
+    return original_benchmark_run(benchmark, *positional, **keywords)
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 193, in run
+    bench = _run_perf_script(
+        python,
+    ...<4 lines>...
+        verbose=verbose,
+    )
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 250, in _run_perf_script
+    raise RuntimeError("Benchmark died")
+RuntimeError: Benchmark died
+
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+deepcopy: Mean +- std dev: 2.70 ms +- 0.17 ms
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+deepcopy_reduce: Mean +- std dev: 28.6 us +- 0.3 us
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+deepcopy_memo: Mean +- std dev: 297 us +- 6 us
+[35/97] deltablue...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+deltablue: Mean +- std dev: 37.8 ms +- 0.6 ms
+[36/97] django_template...
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\data-files\benchmarks\bm_django_template\run_benchmark.py", line 8, in <module>
+    import django.conf
+ModuleNotFoundError: No module named 'django'
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\run.py", line 171, in run_benchmarks
+    result = bench.run(
+        bench_venv.python,
+    ...<3 lines>...
+        verbose=options.verbose,
+    )
+ERROR: Benchmark django_template failed: Benchmark died
+[37/97] docutils...
+  File "D:\CantorAI\xlang3\benchmarks\diagnostics\run_pyperformance_xlang3_shimmed.py", line 145, in run_named_benchmark
+    return original_benchmark_run(benchmark, *positional, **keywords)
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 193, in run
+    bench = _run_perf_script(
+        python,
+    ...<4 lines>...
+        verbose=verbose,
+    )
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 250, in _run_perf_script
+    raise RuntimeError("Benchmark died")
+RuntimeError: Benchmark died
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\data-files\benchmarks\bm_docutils\run_benchmark.py", line 8, in <module>
+    import docutils
+ModuleNotFoundError: No module named 'docutils'
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\run.py", line 171, in run_benchmarks
+    result = bench.run(
+        bench_venv.python,
+    ...<3 lines>...
+        verbose=options.verbose,
+    )
+  File "D:\CantorAI\xlang3\benchmarks\diagnostics\run_pyperformance_xlang3_shimmed.py", line 145, in run_named_benchmark
+    return original_benchmark_run(benchmark, *positional, **keywords)
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 193, in run
+    bench = _run_perf_script(
+        python,
+    ...<4 lines>...
+        verbose=verbose,
+    )
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 250, in _run_perf_script
+    raise RuntimeError("Benchmark died")
+RuntimeError: Benchmark died
+ERROR: Benchmark docutils failed: Benchmark died
+[38/97] dulwich_log...
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\data-files\benchmarks\bm_dulwich_log\run_benchmark.py", line 9, in <module>
+    import dulwich.repo
+ModuleNotFoundError: No module named 'dulwich'
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\run.py", line 171, in run_benchmarks
+    result = bench.run(
+        bench_venv.python,
+    ...<3 lines>...
+        verbose=options.verbose,
+    )
+  File "D:\CantorAI\xlang3\benchmarks\diagnostics\run_pyperformance_xlang3_shimmed.py", line 145, in run_named_benchmark
+    return original_benchmark_run(benchmark, *positional, **keywords)
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 193, in run
+    bench = _run_perf_script(
+        python,
+    ...<4 lines>...
+        verbose=verbose,
+    )
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 250, in _run_perf_script
+    raise RuntimeError("Benchmark died")
+RuntimeError: Benchmark died
+ERROR: Benchmark dulwich_log failed: Benchmark died
+[39/97] fannkuch...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+fannkuch: Mean +- std dev: 281 ms +- 17 ms
+[40/97] fastapi...
+
+Warning: truncated output (original token count: 1672)
+Total output lines: 127
+
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\data-files\benchmarks\bm_fastapi\run_benchmark.py", line 18, in <module>
+    import httpx
+ModuleNotFoundError: No module named 'httpx'
+Traceback (most recent call last):
+ERROR: Benchmark fastapi failed: Benchmark died
+[41/97] float...
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\run.py", line 171, in run_benchmarks
+    result = bench.run(
+        bench_venv.python,
+    ...<3 lines>...
+        verbose=options.verbose,
+    )
+  File "D:\CantorAI\xlang3\benchmarks\diagnostics\run_pyperformance_xlang3_shimmed.py", line 145, in run_named_benchmark
+    return original_benchmark_run(benchmark, *positional, **keywords)
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 193, in run
+    bench = _run_perf_script(
+        python,
+    ...<4 lines>...
+        verbose=verbose,
+    )
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 250, in _run_perf_script
+    raise RuntimeError("Benchmark died")
+RuntimeError: Benchmark died
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+float: Mean +- std dev: 75.2 ms +- 3.4 ms
+[42/97] gc_collect...
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\data-files\benchmarks\bm_gc_collect\run_benchmark.py", line 64, in <module>
+    runner.bench_time_func("create_gc_cycles", benchamark_collection, CYCLES, LINKS)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python\Python314\Lib\site-packages\pyperf\_runner.py", line 502, in bench_time_func
+    result = self._main(task)
+  File "C:\Python\Python314\Lib\site-packages\pyperf\_runner.py", line 463, in _main
+    bench = self._worker(task)
+  File "C:\Python\Python314\Lib\site-packages\pyperf\_runner.py", line 437, in _worker
+    run = task.create_run()
+  File "C:\Python\Python314\Lib\site-packages\pyperf\_worker.py", line 300, in create_run
+    self.compute()
+    ~~~~~~~~~~~~^^
+  File "C:\Python\Python314\Lib\site-packages\pyperf\_worker.py", line 364, in compute
+    WorkerTask.compute(self)
+    ~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Python\Python314\Lib\site-packages\pyperf\_worker.py", line 287, in compute
+    self.calibrate_loops()
+    ~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python\Python314\Lib\site-packages\pyperf\_worker.py", line 250, in calibrate_loops
+    self._compute_values(self.warmups, nvalue,
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+                         is_warmup=True,
+                         ^^^^^^^^^^^^^^^
+                         calibrate_loops=True)
+                         ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python\Python314\Lib\site-packages\pyperf\_worker.py", line 76, in _compute_values
+    with contex…72 tokens truncated…n\Python314\Lib\site-packages\pyperf\_runner.py", line 497, in task_func
+    return time_func(loops, *args)
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\data-files\benchmarks\bm_gc_collect\run_benchmark.py", line 56, in benchamark_collection
+    assert collected is None or collected >= cycles * (links + 1)
+AssertionError
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\data-files\benchmarks\bm_gc_collect\run_benchmark.py", line 64, in <module>
+    runner.bench_time_func("create_gc_cycles", benchamark_collection, CYCLES, LINKS)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python\Python314\Lib\site-packages\pyperf\_runner.py", line 502, in bench_time_func
+    result = self._main(task)
+  File "C:\Python\Python314\Lib\site-packages\pyperf\_runner.py", line 468, in _main
+    bench = self._manager()
+  File "C:\Python\Python314\Lib\site-packages\pyperf\_runner.py", line 681, in _manager
+    bench = Manager(self).create_bench()
+  File "C:\Python\Python314\Lib\site-packages\pyperf\_manager.py", line 243, in create_bench
+    worker_bench, run = self.create_worker_bench()
+                        ~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python\Python314\Lib\site-packages\pyperf\_manager.py", line 142, in create_worker_bench
+    suite = self.create_suite()
+  File "C:\Python\Python314\Lib\site-packages\pyperf\_manager.py", line 132, in create_suite
+    suite = self.spawn_worker(self.calibrate_loops, 0)
+  File "C:\Python\Python314\Lib\site-packages\pyperf\_manager.py", line 118, in spawn_worker
+    raise RuntimeError("%s failed with exit code %s"
+                       % (cmd[0], exitcode))
+RuntimeError: D:\CantorAI\xlang3\build-repro\Release\xlang3.exe failed with exit code 1
+Traceback (most recent call last):
+ERROR: Benchmark gc_collect failed: Benchmark died
+[43/97] gc_traversal...
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\run.py", line 171, in run_benchmarks
+    result = bench.run(
+        bench_venv.python,
+    ...<3 lines>...
+        verbose=options.verbose,
+    )
+  File "D:\CantorAI\xlang3\benchmarks\diagnostics\run_pyperformance_xlang3_shimmed.py", line 145, in run_named_benchmark
+    return original_benchmark_run(benchmark, *positional, **keywords)
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 193, in run
+    bench = _run_perf_script(
+        python,
+    ...<4 lines>...
+        verbose=verbose,
+    )
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 250, in _run_perf_script
+    raise RuntimeError("Benchmark died")
+RuntimeError: Benchmark died
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+gc_traversal: Mean +- std dev: 1.21 ms +- 0.03 ms
+[44/97] generators...
+..
+.........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+generators: Mean +- std dev: 313 ms +- 6 ms
+[45/97] genshi...
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\data-files\benchmarks\bm_genshi\run_benchmark.py", line 7, in <module>
+    from genshi.template import MarkupTemplate, NewTextTemplate
+ModuleNotFoundError: No module named 'genshi'
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\run.py", line 171, in run_benchmarks
+    result = bench.run(
+        bench_venv.python,
+    ...<3 lines>...
+        verbose=options.verbose,
+    )
+  File "D:\CantorAI\xlang3\benchmarks\diagnostics\run_pyperformance_xlang3_shimmed.py", line 145, in run_named_benchmark
+    return original_benchmark_run(benchmark, *positional, **keywords)
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 193, in run
+    bench = _run_perf_script(
+        python,
+    ...<4 lines>...
+        verbose=verbose,
+    )
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 250, in _run_perf_script
+    raise RuntimeError("Benchmark died")
+RuntimeError: Benchmark died
+ERROR: Benchmark genshi failed: Benchmark died
+[46/97] go...
+....
+.......
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+go: Mean +- std dev: 890 ms +- 32 ms
+[47/97] hexiom...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+hexiom: Mean +- std dev: 44.8 ms +- 1.8 ms
+[48/97] html5lib...
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\data-files\benchmarks\bm_html5lib\run_benchmark.py", line 9, in <module>
+    import html5lib
+ModuleNotFoundError: No module named 'html5lib'
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\run.py", line 171, in run_benchmarks
+    result = bench.run(
+        bench_venv.python,
+    ...<3 lines>...
+        verbose=options.verbose,
+    )
+ERROR: Benchmark html5lib failed: Benchmark died
+[49/97] json_dumps...
+  File "D:\CantorAI\xlang3\benchmarks\diagnostics\run_pyperformance_xlang3_shimmed.py", line 145, in run_named_benchmark
+    return original_benchmark_run(benchmark, *positional, **keywords)
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 193, in run
+    bench = _run_perf_script(
+        python,
+    ...<4 lines>...
+        verbose=verbose,
+    )
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 250, in _run_perf_script
+    raise RuntimeError("Benchmark died")
+RuntimeError: Benchmark died
+.
+..........
+WARNING: the benchmark result may be unstable
+* the standard deviation (5.34 ms) is 15% of the mean (35.1 ms)
+* the maximum (57.7 ms) is 64% greater than the mean (35.1 ms)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+json_dumps: Mean +- std dev: 35.1 ms +- 5.3 ms
+[50/97] json_loads...
+...........
+json_loads: Mean +- std dev: 83.9 us +- 0.9 us
+[51/97] logging...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+logging_format: Mean +- std dev: 91.6 us +- 1.7 us
+...........
+logging_silent: Mean +- std dev: 1.05 us +- 0.01 us
+.
+Warning: truncated output (original token count: 1606)
+Total output lines: 122
+
+..........
+WARNING: the benchmark result may be unstable
+* the standard deviation (11.6 us) is 14% of the mean (85.7 us)
+* the maximum (134 us) is 57% greater than the mean (85.7 us)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+logging_simple: Mean +- std dev: 85.7 us +- 11.6 us
+[52/97] mako...
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\data-files\benchmarks\bm_mako\run_benchmark.py", line 18, in <module>
+    import mako   # noqa
+ModuleNotFoundError: No module named 'mako'
+Traceback (most recent call last):
+ERROR: Benchmark mako failed: Benchmark died
+[53/97] mdp...
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\run.py", line 171, in run_benchmarks
+    result = bench.run(
+        bench_venv.python,
+    ...<3 lines>...
+        verbose=options.verbose,
+    )
+  File "D:\CantorAI\xlang3\benchmarks\diagnostics\run_pyperformance_xlang3_shimmed.py", line 145, in run_named_benchmark
+    return original_benchmark_run(benchmark, *positional, **keywords)
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 193, in run
+    bench = _run_perf_script(
+        python,
+    ...<4 lines>...
+        verbose=verbose,
+    )
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 250, in _run_perf_script
+    raise RuntimeError("Benchmark died")
+RuntimeError: Benchmark died
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\data-files\benchmarks\bm_mdp\run_benchmark.py", line 267, in <module>
+    runner.bench_time_func('mdp', bench_mdp)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "C:\Python\Python314\Lib\site-packages\pyperf\_runner.py", line 502, in bench_time_func
+    result = self._main(task)
+  File "C:\Python\Python314\Lib\site-packages\pyperf\_runner.py", line 463, in _main
+    bench = self._worker(task)
+  File "C:\Python\Python314\Lib\site-packages\pyperf\_runner.py", line 437, in _worker
+    run = task.create_run()
+  File "C:\Python\Python314\Lib\site-packages\pyperf\_worker.py", line 300, in create_run
+    self.compute()
+    ~~~~~~~~~~~~^^
+  File "C:\Python…406 tokens truncated…k.py", line 30, in topoSort
+    assert(current in visited)
+    ~~~~~~^^^^^^^^^^^^^^^^^^^^
+AssertionError
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\data-files\benchmarks\bm_mdp\run_benchmark.py", line 267, in <module>
+    runner.bench_time_func('mdp', bench_mdp)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "C:\Python\Python314\Lib\site-packages\pyperf\_runner.py", line 502, in bench_time_func
+    result = self._main(task)
+  File "C:\Python\Python314\Lib\site-packages\pyperf\_runner.py", line 468, in _main
+    bench = self._manager()
+  File "C:\Python\Python314\Lib\site-packages\pyperf\_runner.py", line 681, in _manager
+    bench = Manager(self).create_bench()
+  File "C:\Python\Python314\Lib\site-packages\pyperf\_manager.py", line 243, in create_bench
+    worker_bench, run = self.create_worker_bench()
+                        ~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python\Python314\Lib\site-packages\pyperf\_manager.py", line 142, in create_worker_bench
+    suite = self.create_suite()
+  File "C:\Python\Python314\Lib\site-packages\pyperf\_manager.py", line 132, in create_suite
+    suite = self.spawn_worker(self.calibrate_loops, 0)
+  File "C:\Python\Python314\Lib\site-packages\pyperf\_manager.py", line 118, in spawn_worker
+    raise RuntimeError("%s failed with exit code %s"
+                       % (cmd[0], exitcode))
+RuntimeError: D:\CantorAI\xlang3\build-repro\Release\xlang3.exe failed with exit code 1
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\run.py", line 171, in run_benchmarks
+    result = bench.run(
+        bench_venv.python,
+    ...<3 lines>...
+        verbose=options.verbose,
+    )
+  File "D:\CantorAI\xlang3\benchmarks\diagnostics\run_pyperformance_xlang3_shimmed.py", line 145, in run_named_benchmark
+    return original_benchmark_run(benchmark, *positional, **keywords)
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 193, in run
+    bench = _run_perf_script(
+        python,
+    ...<4 lines>...
+        verbose=verbose,
+    )
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 250, in _run_perf_script
+    raise RuntimeError("Benchmark died")
+RuntimeError: Benchmark died
+ERROR: Benchmark mdp failed: Benchmark died
+[54/97] meteor_contest...
+.....
+......
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+meteor_contest: Mean +- std dev: 1.25 sec +- 0.03 sec
+[55/97] nbody...
+.........
+..
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+nbody: Mean +- std dev: 295 ms +- 8 ms
+[56/97] networkx...
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\data-files\benchmarks\bm_networkx\run_benchmark.py", line 16, in <module>
+    import networkx
+ModuleNotFoundError: No module named 'networkx'
+Traceback (most recent call last):
+ERROR: Benchmark networkx failed: Benchmark died
+[57/97] networkx_connected_components...
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\run.py", line 171, in run_benchmarks
+    result = bench.run(
+        bench_venv.python,
+    ...<3 lines>...
+        verbose=options.verbose,
+    )
+  File "D:\CantorAI\xlang3\benchmarks\diagnostics\run_pyperformance_xlang3_shimmed.py", line 145, in run_named_benchmark
+    return original_benchmark_run(benchmark, *positional, **keywords)
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 193, in run
+    bench = _run_perf_script(
+        python,
+    ...<4 lines>...
+        verbose=verbose,
+    )
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 250, in _run_perf_script
+    raise RuntimeError("Benchmark died")
+RuntimeError: Benchmark died
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\data-files\benchmarks\bm_networkx\run_benchmark.py", line 16, in <module>
+    import networkx
+ModuleNotFoundError: No module named 'networkx'
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\run.py", line 171, in run_benchmarks
+    result = bench.run(
+        bench_venv.python,
+    ...<3 lines>...
+        verbose=options.verbose,
+    )
+ERROR: Benchmark networkx_connected_components failed: Benchmark died
+[58/97] networkx_k_core...
+  File "D:\CantorAI\xlang3\benchmarks\diagnostics\run_pyperformance_xlang3_shimmed.py", line 145, in run_named_benchmark
+    return original_benchmark_run(benchmark, *positional, **keywords)
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 193, in run
+    bench = _run_perf_script(
+        python,
+    ...<4 lines>...
+        verbose=verbose,
+    )
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 250, in _run_perf_script
+    raise RuntimeError("Benchmark died")
+RuntimeError: Benchmark died
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\data-files\benchmarks\bm_networkx\run_benchmark.py", line 16, in <module>
+    import networkx
+ModuleNotFoundError: No module named 'networkx'
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\run.py", line 171, in run_benchmarks
+    result = bench.run(
+        bench_venv.python,
+    ...<3 lines>...
+        verbose=options.verbose,
+    )
+ERROR: Benchmark networkx_k_core failed: Benchmark died
+[59/97] nqueens...
+  File "D:\CantorAI\xlang3\benchmarks\diagnostics\run_pyperformance_xlang3_shimmed.py", line 145, in run_named_benchmark
+    return original_benchmark_run(benchmark, *positional, **keywords)
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 193, in run
+    bench = _run_perf_script(
+        python,
+    ...<4 lines>...
+        verbose=verbose,
+    )
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 250, in _run_perf_script
+    raise RuntimeError("Benchmark died")
+RuntimeError: Benchmark died
+..........
+.
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+nqueens: Mean +- std dev: 822 ms +- 28 ms
+[60/97] pathlib...
+.........
+..
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+pathlib: Mean +- std dev: 539 ms +- 9 ms
+[61/97] pickle...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+pickle: Mean +- std dev: 17.4 us +- 0.3 us
+[62/97] pickle_dict...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+pickle_dict: Mean +- std dev: 24.3 us +- 2.4 us
+[63/97] pickle_list...
+..........
+.
+WARNING: the benchmark result may be unstable
+* the standard deviation (477 ns) is 12% of the mean (4.14 us)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+pickle_list: Mean +- std dev: 4.14 us +- 0.48 us
+[64/97] pickle_pure_python...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+pickle_pure_python: Mean +- std dev: 5.19 ms +- 0.17 ms
+[65/97] pidigits...
+...........
+pidigits: Mean +- std dev: 366 ms +- 3 ms
+[66/97] pprint...
+
+.
+.
+.
+Full-case timeout: pprint exceeded 120 seconds
+ERROR: Benchmark pprint timed out
+[67/97] pyflate...
+..
+...
+....
+..
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+pyflate: Mean +- std dev: 2.91 sec +- 0.06 sec
+[68/97] python_startup...
+.........
+..
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+python_startup: Mean +- std dev: 30.4 ms +- 1.6 ms
+[69/97] python_startup_no_site...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+python_startup_no_site: Mean +- std dev: 17.8 ms +- 0.6 ms
+[70/97] raytrace...
+.
+....
+.....
+.
+raytrace: Mean +- std dev: 2.20 sec +- 0.04 sec
+[71/97] regex_compile...
+.....
+......
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+regex_compile: Mean +- std dev: 1.18 sec +- 0.03 sec
+[72/97] regex_dna...
+.....
+......
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+regex_dna: Mean +- std dev: 206 ms +- 4 ms
+[73/97] regex_effbot...
+...........
+WARNING: the benchmark result may be unstable
+* the standard deviation (1.87 ms) is 14% of the mean (13.1 ms)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+regex_effbot: Mean +- std dev: 13.1 ms +- 1.9 ms
+[74/97] regex_v8...
+...........
+WARNING: the benchmark result may be unstable
+* the standard deviation (7.65 ms) is 12% of the mean (65.3 ms)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+regex_v8: Mean +- std dev: 65.3 ms +- 7.6 ms
+[75/97] richards...
+..
+Warning: truncated output (original token count: 1388)
+Total output lines: 105
+
+.........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+richards: Mean +- std dev: 352 ms +- 25 ms
+[76/97] richards_super...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+richards_super: Mean +- std dev: 475 ms +- 25 ms
+[77/97] scimark...
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\data-files\benchmarks\bm_scimark\run_benchmark.py", line 415, in <module>
+    runner.bench_time_func(name, *args)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Python\Python314\Lib\site-packages\pyperf\_runner.py", line 502, in bench_time_func
+    result = self._main(task)
+  File "C:\Python\Python314\Lib\site-packages\pyperf\_runner.py", line 463, in _main
+    bench = self._worker(task)
+  File "C:\Python\Python314\Lib\site-packages\pyperf\_runner.py", line 437, in _worker
+    run = task.create_run()
+  File "C:\Python\Python314\Lib\site-packages\pyperf\_worker.py", line 300, in create_run
+    self.compute()
+    ~~~~~~~~~~~~^^
+  File "C:\Python\Python314\Lib\site-packages\pyperf\_worker.py", line 364, in compute
+    WorkerTask.compute(self)
+    ~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Python\Python314\Lib\site-packages\pyperf\_worker.py", line 287, in compute
+    self.calibrate_loops()
+    ~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python\Python314\Lib\site-packages\pyperf\_worker.py", line 250, in calibrate_loops
+    self._compute_values(self.warmups, nvalue,
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+                         is_warmup=True,
+                         ^^^^^^^^^^^^^^^
+                         calibrate_loops=True)
+                         ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python\Python314\Lib\site-packages\pyperf\_worker.py", line 76, in _compute_values
+    with contextlib.ExitStack() as stack:
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    raw_value = float(raw_value)
+    
+ …88 tokens truncated…imark\run_benchmark.py", line 378, in bench_FFT
+    x = copy_vector(init_vec)
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\data-files\benchmarks\bm_scimark\run_benchmark.py", line 114, in copy_vector
+    vec2[:] = vec[:]
+              ~~~^^^
+TypeError: object cannot be interpreted as an integer
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\data-files\benchmarks\bm_scimark\run_benchmark.py", line 415, in <module>
+    runner.bench_time_func(name, *args)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Python\Python314\Lib\site-packages\pyperf\_runner.py", line 502, in bench_time_func
+    result = self._main(task)
+  File "C:\Python\Python314\Lib\site-packages\pyperf\_runner.py", line 468, in _main
+    bench = self._manager()
+  File "C:\Python\Python314\Lib\site-packages\pyperf\_runner.py", line 681, in _manager
+    bench = Manager(self).create_bench()
+  File "C:\Python\Python314\Lib\site-packages\pyperf\_manager.py", line 243, in create_bench
+    worker_bench, run = self.create_worker_bench()
+                        ~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python\Python314\Lib\site-packages\pyperf\_manager.py", line 142, in create_worker_bench
+    suite = self.create_suite()
+  File "C:\Python\Python314\Lib\site-packages\pyperf\_manager.py", line 132, in create_suite
+    suite = self.spawn_worker(self.calibrate_loops, 0)
+  File "C:\Python\Python314\Lib\site-packages\pyperf\_manager.py", line 118, in spawn_worker
+    raise RuntimeError("%s failed with exit code %s"
+                       % (cmd[0], exitcode))
+RuntimeError: D:\CantorAI\xlang3\build-repro\Release\xlang3.exe failed with exit code 1
+Traceback (most recent call last):
+ERROR: Benchmark scimark failed: Benchmark died
+[78/97] spectral_norm...
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\run.py", line 171, in run_benchmarks
+    result = bench.run(
+        bench_venv.python,
+    ...<3 lines>...
+        verbose=options.verbose,
+    )
+  File "D:\CantorAI\xlang3\benchmarks\diagnostics\run_pyperformance_xlang3_shimmed.py", line 145, in run_named_benchmark
+    return original_benchmark_run(benchmark, *positional, **keywords)
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 193, in run
+    bench = _run_perf_script(
+        python,
+    ...<4 lines>...
+        verbose=verbose,
+    )
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 250, in _run_perf_script
+    raise RuntimeError("Benchmark died")
+RuntimeError: Benchmark died
+
+Warning: truncated output (original token count: 4031)
+Total output lines: 319
+
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+spectral_norm: Mean +- std dev: 524 ms +- 37 ms
+[79/97] sphinx...
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\data-files\benchmarks\bm_sphinx\run_benchmark.py", line 11, in <module>
+    from sphinx.cmd.build import main as sphinx_main
+ModuleNotFoundError: No module named 'sphinx'
+Traceback (most recent call last):
+ERROR: Benchmark sphinx failed: Benchmark died
+[80/97] sqlalchemy_declarative...
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\run.py", line 171, in run_benchmarks
+    result = bench.run(
+        bench_venv.python,
+    ...<3 lines>...
+        verbose=options.verbose,
+    )
+  File "D:\CantorAI\xlang3\benchmarks\diagnostics\run_pyperformance_xlang3_shimmed.py", line 145, in run_named_benchmark
+    return original_benchmark_run(benchmark, *positional, **keywords)
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 193, in run
+    bench = _run_perf_script(
+        python,
+    ...<4 lines>...
+        verbose=verbose,
+    )
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 250, in _run_perf_script
+    raise RuntimeError("Benchmark died")
+RuntimeError: Benchmark died
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\data-files\benchmarks\bm_sqlalchemy_declarative\run_benchmark.py", line 3, in <module>
+    from sqlalchemy import Column, ForeignKey, Integer, String
+ModuleNotFoundError: No module named 'sqlalchemy'
+Traceback (most recent call last):
+ERROR: Benchmark sqlalchemy_declarative failed: Benchmark died
+[81/97] sqlalchemy_imperative...
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\run.py", line 171, in run_benchmarks
+    result = bench.run(
+        bench_venv.python,
+    ...<3 lines>...
+        verbose=options.verbose,
+    )
+  File "D:\CantorAI\xlang3\benchmarks\diagnostics\run_pyperformance_xlang3_shimmed.py", line 145, in run_named_benchmark
+    return original_benchmark_run(benchmark, *positional, **keywords)
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 193, in run
+    bench = _run_perf_scr…2731 tokens truncated…
+    from sympy import expand, symbols, integrate, tan, summation
+ModuleNotFoundError: No module named 'sympy'
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\run.py", line 171, in run_benchmarks
+    result = bench.run(
+        bench_venv.python,
+    ...<3 lines>...
+        verbose=options.verbose,
+    )
+ERROR: Benchmark sympy failed: Benchmark died
+[88/97] telco...
+  File "D:\CantorAI\xlang3\benchmarks\diagnostics\run_pyperformance_xlang3_shimmed.py", line 145, in run_named_benchmark
+    return original_benchmark_run(benchmark, *positional, **keywords)
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 193, in run
+    bench = _run_perf_script(
+        python,
+    ...<4 lines>...
+        verbose=verbose,
+    )
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 250, in _run_perf_script
+    raise RuntimeError("Benchmark died")
+RuntimeError: Benchmark died
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+telco: Mean +- std dev: 40.6 ms +- 0.6 ms
+[89/97] tomli_loads...
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\data-files\benchmarks\bm_tomli_loads\run_benchmark.py", line 15, in <module>
+    import tomli
+ModuleNotFoundError: No module named 'tomli'
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\run.py", line 171, in run_benchmarks
+    result = bench.run(
+        bench_venv.python,
+    ...<3 lines>...
+        verbose=options.verbose,
+    )
+ERROR: Benchmark tomli_loads failed: Benchmark died
+[90/97] tornado_http...
+  File "D:\CantorAI\xlang3\benchmarks\diagnostics\run_pyperformance_xlang3_shimmed.py", line 145, in run_named_benchmark
+    return original_benchmark_run(benchmark, *positional, **keywords)
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 193, in run
+    bench = _run_perf_script(
+        python,
+    ...<4 lines>...
+        verbose=verbose,
+    )
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 250, in _run_perf_script
+    raise RuntimeError("Benchmark died")
+RuntimeError: Benchmark died
+
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\data-files\benchmarks\bm_tornado_http\run_benchmark.py", line 14, in <module>
+    from tornado.httpclient import AsyncHTTPClient
+ModuleNotFoundError: No module named 'tornado'
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\run.py", line 171, in run_benchmarks
+    result = bench.run(
+        bench_venv.python,
+    ...<3 lines>...
+        verbose=options.verbose,
+    )
+  File "D:\CantorAI\xlang3\benchmarks\diagnostics\run_pyperformance_xlang3_shimmed.py", line 145, in run_named_benchmark
+    return original_benchmark_run(benchmark, *positional, **keywords)
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 193, in run
+    bench = _run_perf_script(
+        python,
+    ...<4 lines>...
+        verbose=verbose,
+    )
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 250, in _run_perf_script
+    raise RuntimeError("Benchmark died")
+RuntimeError: Benchmark died
+ERROR: Benchmark tornado_http failed: Benchmark died
+[91/97] typing_runtime_protocols...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+typing_runtime_protocols: Mean +- std dev: 226 us +- 7 us
+[92/97] unpack_sequence...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+unpack_sequence: Mean +- std dev: 155 ns +- 3 ns
+[93/97] unpickle...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+unpickle: Mean +- std dev: 64.3 us +- 1.8 us
+[94/97] unpickle_list...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+unpickle_list: Mean +- std dev: 10.8 us +- 0.3 us
+[95/97] unpickle_pure_python...
+
+Warning: truncated output (original token count: 2964)
+Total output lines: 334
+
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+unpickle_pure_python: Mean +- std dev: 2.29 ms +- 0.06 ms
+[96/97] xdsl...
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\data-files\benchmarks\bm_xdsl\run_benchmark.py", line 28, in <module>
+    from xdsl.context import Context
+ModuleNotFoundError: No module named 'xdsl'
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\run.py", line 171, in run_benchmarks
+    result = bench.run(
+        bench_venv.python,
+    ...<3 lines>...
+        verbose=options.verbose,
+    )
+ERROR: Benchmark xdsl failed: Benchmark died
+[97/97] xml_etree...
+  File "D:\CantorAI\xlang3\benchmarks\diagnostics\run_pyperformance_xlang3_shimmed.py", line 145, in run_named_benchmark
+    return original_benchmark_run(benchmark, *positional, **keywords)
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 193, in run
+    bench = _run_perf_script(
+        python,
+    ...<4 lines>...
+        verbose=verbose,
+    )
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 250, in _run_perf_script
+    raise RuntimeError("Benchmark died")
+RuntimeError: Benchmark died
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\data-files\benchmarks\bm_xml_etree\run_benchmark.py", line 292, in <module>
+    runner.bench_time_func(name, bench_etree, etree_module, bench_func)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python\Python314\Lib\site-packages\pyperf\_runner.py", line 502, in bench_time_func
+    result = self._main(task)
+  File "C:\Python\Python314\Lib\site-packages\pyperf\_runner.py", line 463, in _main
+    bench = self._worker(task)
+  File "C:\Python\Python314\Lib\site-packages\pyperf\_runner.py", line 437, in _worker
+    run = task.create_run()
+  File "C:\Python\Python314\Lib\site-packages\pyperf\_worker.py", line 300, in create_run
+    self.compute()
+    ~~~~~~~~~~~~^^
+  File "C:\Python\Python314\Lib\site-packages\pyperf\_worker.py", line 364, in compute
+    WorkerTask.compute(self)
+    ~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Python\Python3…1664 tokens truncated… 206 ms +- 4 ms
+
+### regex_effbot ###
+Mean +- std dev: 13.1 ms +- 1.9 ms
+
+### regex_v8 ###
+Mean +- std dev: 65.3 ms +- 7.6 ms
+
+### richards ###
+Mean +- std dev: 352 ms +- 25 ms
+
+### richards_super ###
+Mean +- std dev: 475 ms +- 25 ms
+
+### spectral_norm ###
+Mean +- std dev: 524 ms +- 37 ms
+
+### telco ###
+Mean +- std dev: 40.6 ms +- 0.6 ms
+
+### typing_runtime_protocols ###
+Mean +- std dev: 226 us +- 7 us
+
+### unpack_sequence ###
+Mean +- std dev: 155 ns +- 3 ns
+
+### unpickle ###
+Mean +- std dev: 64.3 us +- 1.8 us
+
+### unpickle_list ###
+Mean +- std dev: 10.8 us +- 0.3 us
+
+### unpickle_pure_python ###
+Mean +- std dev: 2.29 ms +- 0.06 ms
+
+51 benchmarks failed:
+- async_tree_cpu_io_mixed (Benchmark timed out)
+- async_tree_cpu_io_mixed_tg (Benchmark timed out)
+- async_tree_eager_cpu_io_mixed (Benchmark timed out)
+- async_tree_eager_cpu_io_mixed_tg (Benchmark timed out)
+- async_tree_eager_io (Benchmark timed out)
+- async_tree_eager_io_tg (Benchmark timed out)
+- async_tree_eager_memoization (Benchmark timed out)
+- async_tree_eager_memoization_tg (Benchmark timed out)
+- async_tree_eager_tg (Benchmark timed out)
+- async_tree_io (Benchmark timed out)
+- async_tree_io_tg (Benchmark timed out)
+- async_tree_memoization (Benchmark timed out)
+- async_tree_memoization_tg (Benchmark timed out)
+- async_tree_tg (Benchmark timed out)
+- asyncio_tcp (Benchmark timed out)
+- asyncio_tcp_ssl (Benchmark timed out)
+- asyncio_websockets (Benchmark died)
+- base64 (Benchmark timed out)
+- bpe_tokeniser (Benchmark timed out)
+- chameleon (Benchmark died)
+- concurrent_imap (Benchmark died)
+- coverage (Benchmark died)
+- crypto_pyaes (Benchmark died)
+- dask (Benchmark died)
+- django_template (Benchmark died)
+- docutils (Benchmark died)
+- dulwich_log (Benchmark died)
+- fastapi (Benchmark died)
+- gc_collect (Benchmark died)
+- genshi (Benchmark died)
+- html5lib (Benchmark died)
+- mako (Benchmark died)
+- mdp (Benchmark died)
+- networkx (Benchmark died)
+- networkx_connected_components (Benchmark died)
+- networkx_k_core (Benchmark died)
+- pprint (Benchmark timed out)
+- scimark (Benchmark died)
+- sphinx (Benchmark died)
+- sqlalchemy_declarative (Benchmark died)
+- sqlalchemy_imperative (Benchmark died)
+- sqlglot_v2 (Benchmark died)
+- sqlglot_v2_optimize (Benchmark died)
+- sqlglot_v2_parse (Benchmark died)
+- sqlglot_v2_transpile (Benchmark died)
+- sqlite_synth (Benchmark died)
+- sympy (Benchmark died)
+- tomli_loads (Benchmark died)
+- tornado_http (Benchmark died)
+- xdsl (Benchmark died)
+- xml_etree (Benchmark died)
+
+
