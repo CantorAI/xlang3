@@ -32,6 +32,7 @@ limitations under the License.
 #include <string>
 #include <utility>
 #include <vector>
+#include <limits>
 
 namespace xlang3::xlang_vm::ops {
 
@@ -1440,6 +1441,28 @@ XLANG3_HOT_INLINE XlangVMOpFlow yield_op(
   if (generator == nullptr) {
     return raise_runtime_error("yield used outside generator") ? XlangVMOpFlow::ContinueLoop
                                                               : XlangVMOpFlow::ReturnResult;
+  }
+
+  if (generator->consume_int_sum != nullptr) {
+    const bool can_absorb_yield =
+        regs[in.a].tag == ValueTag::Int64 && !xlang_perf_enabled() &&
+        !generator_continuation_has_observers(runtime, frames, frame_count) &&
+        !generator_continuation_has_active_exception_handlers(frames, frame_count);
+    if (can_absorb_yield) {
+      const int64_t current = *generator->consume_int_sum;
+      const int64_t item = regs[in.a].as.i64;
+      // Keep exact-int overflow on the ordinary yield path so builtin sum's
+      // existing addition promotes to BigInt at precisely the same point.
+      if (!((item > 0 && current > std::numeric_limits<int64_t>::max() - item) ||
+            (item < 0 && current < std::numeric_limits<int64_t>::min() - item))) {
+        *generator->consume_int_sum = current + item;
+        value_set_none(regs[in.dst]);
+        return XlangVMOpFlow::Next;
+      }
+    }
+    // A non-int, overflow, or newly active observer needs the ordinary yield
+    // result; permanently leave this narrow mode before exposing that value.
+    generator->consume_int_sum = nullptr;
   }
 
   // For an unobserved generator consumed by native any(), false values cannot

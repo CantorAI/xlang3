@@ -2777,6 +2777,20 @@ bool builtin_sum(
     return false;
   }
   Value total = argc == 2 ? args[1] : Value::int64(0);
+  auto* generator = value_as_generator(iterator);
+  // With the exact integer zero start, Yield can fold exact-int items directly
+  // into this live accumulator and avoid suspending/resuming the generator.
+  // Mixed values, overflow, and observable generator execution keep the normal
+  // iterator/addition path so Python's dynamic behavior is unchanged.
+  const bool consume_int_generator_in_one_vm_entry =
+      generator != nullptr && total.tag == ValueTag::Int64 && total.as.i64 == 0 &&
+      generator_begin_int_sum_consume(*generator, &total.as.i64);
+  struct SumGeneratorConsumeGuard {
+    GeneratorObject* generator;
+    ~SumGeneratorConsumeGuard() {
+      if (generator != nullptr) generator_end_int_sum_consume(*generator);
+    }
+  } consume_guard{consume_int_generator_in_one_vm_entry ? generator : nullptr};
   for (;;) {
     bool done = false;
     Value item;

@@ -54,6 +54,9 @@ struct GeneratorObject {
   // Native any() may keep an unobservable generator running across false
   // yields. This flag is set only for the duration of that guarded consume.
   bool consume_for_any = false;
+  // Native sum() can absorb exact-int yields into its active accumulator and
+  // keep the generator frame running. The pointer is valid only inside sum().
+  int64_t* consume_int_sum = nullptr;
   // A saved continuation may carry per-frame trace/monitoring hooks even
   // after the runtime-wide hooks are disabled. Keep delegation trampolining
   // off for such a generator so every observable yield still runs normally.
@@ -103,6 +106,8 @@ bool generator_truthy(const Value& value);
 bool generator_get_iter(const Value& generator, Value& out, std::string& error);
 bool generator_begin_any_consume(GeneratorObject& generator);
 void generator_end_any_consume(GeneratorObject& generator);
+bool generator_begin_int_sum_consume(GeneratorObject& generator, int64_t* accumulator);
+void generator_end_int_sum_consume(GeneratorObject& generator);
 bool generator_iter_next(Value& generator, bool& done, Value& out, std::string& error);
 bool generator_send(Value& generator, Value value, bool& done, Value& out, std::string& error);
 bool generator_close(Value& generator, Value& out, std::string& error);

@@ -221,6 +221,8 @@ void generator_release_object(Object* object) {
     generator->is_async = false;
     generator->is_coroutine = false;
     generator->is_await_iterator = false;
+    generator->consume_for_any = false;
+    generator->consume_int_sum = nullptr;
     generator->has_observed_continuation = false;
     generator->has_active_suspended_exception_handlers = false;
     generator->delegation_trampoline_result_ready = false;
@@ -419,6 +421,20 @@ bool generator_begin_any_consume(GeneratorObject& generator) {
 
 void generator_end_any_consume(GeneratorObject& generator) {
   generator.consume_for_any = false;
+}
+
+bool generator_begin_int_sum_consume(GeneratorObject& generator, int64_t* accumulator) {
+  if (accumulator == nullptr || !generator_can_trampoline(generator) ||
+      generator.has_active_suspended_exception_handlers || generator.running ||
+      generator.done) {
+    return false;
+  }
+  generator.consume_int_sum = accumulator;
+  return true;
+}
+
+void generator_end_int_sum_consume(GeneratorObject& generator) {
+  generator.consume_int_sum = nullptr;
 }
 
 bool generator_send(Value& generator, Value value, bool& done, Value& out, std::string& error) {
