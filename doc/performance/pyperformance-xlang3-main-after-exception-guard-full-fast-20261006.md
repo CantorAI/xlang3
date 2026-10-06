@@ -1,5 +1,7 @@
 # XLang3 `main` vs CPython 3.14.7: full pyperformance rerun
 
+**Superseded:** this run used only `C:\Python\Python314\Lib\site-packages` and omitted packages in the project's CPython 3.14.7 compatibility site. Its dependency-related failure inventory and aggregate do not represent the corrected full comparison. See the [corrected full run](pyperformance-xlang3-main-dependency-site-full-fast-20261006.md), which attempts all 97 definitions with that dependency site.
+
 This run validates the current pushed `main` checkpoint, including the nested
 Python-call exception-guard cleanup. It attempted all **97** pyperformance
 1.14.0 definitions in fast mode. **47** completed and **50** failed or timed

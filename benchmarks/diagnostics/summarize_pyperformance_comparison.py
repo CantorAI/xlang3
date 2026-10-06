@@ -18,11 +18,7 @@ from pathlib import Path
 
 FAILURE_LINE = re.compile(r"(?m)^- (.+?) \((Benchmark (?:timed out|died))\)$")
 CASE_LINE = re.compile(r"^\s*\[\s*\d+/\d+\]\s+(.+?)\.\.\.\s*$")
-EXCEPTION_LINE = re.compile(
-    r"^(?:TypeError|AttributeError|ImportError|ModuleNotFoundError|RuntimeError|"
-    r"KeyError|ValueError|AssertionError|OSError|NameError|OverflowError|"
-    r"IndexError|ZeroDivisionError): .+"
-)
+EXCEPTION_LINE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*(?:Error|Exception): .+")
 
 
 def load_json(path: Path) -> dict:
