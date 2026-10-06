@@ -7,6 +7,12 @@ bound-method wrappers in its native payload. The change included GC tracing for
 the cached wrappers and cleared them when the Task completed, since each
 bound method owns its Task.
 
+This repeats the same cache design tested on `async_tree_eager` in the
+[2026-10-03 callback-cache trial](asyncio-task-callback-cache-trial-20261003.md),
+which also showed no repeatable improvement. This run checked whether the
+design behaved differently on `async_tree_none`, the default async-tree case;
+it is a workload-specific replication, not a new optimization direction.
+
 The official `async_tree_none` benchmark measured **4.44 ± 0.02 s** with the
 cache and **4.38 ± 0.04 s** immediately before it. `pyperf compare_to` reports
 the candidate at **1.01× slower**. Against CPython 3.14.7's saved **227.4 ms**
