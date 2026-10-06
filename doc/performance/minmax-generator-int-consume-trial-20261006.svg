@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="820" height="250" viewBox="0 0 820 250" role="img" aria-labelledby="title desc">
+  <title id="title">Hexiom relative speed comparison</title>
+  <desc id="desc">CPython 3.14.7 is 1.00 times. The XLang3 control is 0.114 times and two min/max candidate runs are 0.110 times. Longer bars mean faster.</desc>
+  <rect width="820" height="250" fill="#fff"/>
+  <text x="24" y="34" font-family="Segoe UI, Arial, sans-serif" font-size="20" font-weight="600" fill="#172033">Hexiom relative speed · higher is faster</text>
+  <line x1="245" y1="58" x2="245" y2="218" stroke="#b8c1d1" stroke-width="1"/>
+  <text x="245" y="238" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="12" fill="#5c6678">0×</text>
+  <text x="745" y="238" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="12" fill="#5c6678">1× CPython 3.14.7</text>
+  <line x1="495" y1="58" x2="495" y2="218" stroke="#e0e5ec" stroke-width="1"/>
+  <line x1="745" y1="58" x2="745" y2="218" stroke="#e0e5ec" stroke-width="1"/>
+  <text x="24" y="88" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#172033">XLang3 control · 44.0 ms</text>
+  <rect x="245" y="69" width="57.2" height="25" rx="4" fill="#62748e"/>
+  <text x="311" y="87" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#172033">0.114×</text>
+  <text x="24" y="130" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#172033">Candidate run 1 · 45.6 ms</text>
+  <rect x="245" y="111" width="55.2" height="25" rx="4" fill="#dc8b32"/>
+  <text x="309" y="129" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#172033">0.110×</text>
+  <text x="24" y="172" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#172033">Candidate run 2 · 45.6 ms</text>
+  <rect x="245" y="153" width="55.2" height="25" rx="4" fill="#dc8b32"/>
+  <text x="309" y="171" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#172033">0.110×</text>
+  <text x="24" y="214" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#172033">CPython 3.14.7 · 5.03 ms</text>
+  <rect x="245" y="195" width="500" height="25" rx="4" fill="#25846b"/>
+  <text x="752" y="213" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#172033">1.00×</text>
+</svg>
