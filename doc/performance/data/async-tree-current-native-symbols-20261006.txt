@@ -1,0 +1,244 @@
+module=D:\CantorAI\xlang3\build-repro\RelWithDebInfo\xlang3_runtime.dll samples=786
+Top addresses:
+    22      0x42959 xlang3::release(struct xlang3::Value const &) (D:\CantorAI\xlang3\src\internal\xlang3\value.h:995:0)
+    21      0x682bf std::_Fnv1a_append_bytes (C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\type_traits:2426:0)
+    15      0x188f4  (??:0:0)
+    13     0x7d2d85 xlang3::gc_untrack_object(struct xlang3::Object *) (D:\CantorAI\xlang3\src\runtime\modules\system\gc_module.cpp:91:0)
+    12      0x428f9 xlang3::release(struct xlang3::Value const &) (D:\CantorAI\xlang3\src\internal\xlang3\value.h:981:0)
+    12      0x67636 std::_Hash<class std::_Umap_traits<class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>>, struct xlang3::Value, class std::_Uhash_compare<class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>>, struct std::hash<class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>>>, struct std::equal_to<class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>>>>, class std::allocator<struct std::pair<class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>> const, struct xlang3::Value>>, 0>>::_Find_last<class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>>>(class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>> const &, unsigned __int64) const (C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xhash:1499:0)
+    11      0x67675 std::_Hash<class std::_Umap_traits<class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>>, struct xlang3::Value, class std::_Uhash_compare<class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>>, struct std::hash<class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>>>, struct std::equal_to<class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>>>>, class std::allocator<struct std::pair<class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>> const, struct xlang3::Value>>, 0>>::_Find_last<class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>>>(class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>> const &, unsigned __int64) const (C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xhash:1506:0)
+    11      0x4932f xlang3::Value::operator=(struct xlang3::Value const &) (D:\CantorAI\xlang3\src\internal\xlang3\value.h:1028:0)
+    10     0xabbaa4 strlen (??:0:0)
+     8      0x42970 xlang3::release(struct xlang3::Value const &) (D:\CantorAI\xlang3\src\internal\xlang3\value.h:999:0)
+     8      0x682bb std::_Fnv1a_append_bytes (C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\type_traits:2426:0)
+     8     0x4a5bfd std::_Vector_val<std::_Simple_types<std::pair<unsigned int,unsigned int> > >::{ctor} (C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vector:401:0)
+     7      0x492ed xlang3::Value::{ctor} (D:\CantorAI\xlang3\src\internal\xlang3\value.h:1003:0)
+     7       0x1979  (??:0:0)
+     6     0x4a2996 std::_Vector_val<std::_Simple_types<xlang3::XlangVMRegister> >::{ctor} (C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vector:401:0)
+     6      0x40eef xlang3::Value::Value(struct xlang3::Value const &) (D:\CantorAI\xlang3\src\internal\xlang3\value.h:1004:0)
+     6     0x4a2856 std::_Vector_val<std::_Simple_types<xlang3::Value> >::{ctor} (C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vector:401:0)
+     6       0xfa10  (??:0:0)
+     5      0x42a03 xlang3::retain(struct xlang3::Value const &) (D:\CantorAI\xlang3\src\internal\xlang3\value.h:978:0)
+     5     0x4e4386 xlang3::Interpreter::run_function(struct xlang3::ir::Module const &, unsigned int, struct xlang3::CallArgsView, class std::vector<struct xlang3::Value, class std::allocator<struct xlang3::Value>> const &, class std::vector<struct xlang3::Value, class std::allocator<struct xlang3::Value>> const &, struct xlang3::Value, class std::shared_ptr<struct xlang3::ir::Module const>, struct xlang3::GeneratorObject *, class std::shared_ptr<struct xlang3::RuntimeDebugPauseState>) (D:\CantorAI\xlang3\src\executor\xlang_vm\xlang_vm_op_rows.h:27:0)
+     4      0x429a9 xlang3::retain(struct xlang3::Value const &) (D:\CantorAI\xlang3\src\internal\xlang3\value.h:966:0)
+     4      0x5be17 xlang3::value_assign_fast(struct xlang3::Value &, struct xlang3::Value const &) (D:\CantorAI\xlang3\src\internal\xlang3\value.h:1058:0)
+     4      0x4296b xlang3::release(struct xlang3::Value const &) (D:\CantorAI\xlang3\src\internal\xlang3\value.h:999:0)
+     4      0x1f7bc  (??:0:0)
+     4     0x4cb297 xlang3::XlangVMFrame::clear_cache_if_owned(struct xlang3::XlangVMInstrCache &) (D:\CantorAI\xlang3\src\executor\xlang_vm\xlang_frame.h:502:0)
+     4      0x13485  (??:0:0)
+     3      0x682b8 std::_Hash_array_representation<char>(char const *const, unsigned __int64) (C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\type_traits:2458:0)
+     3       0x80ee  (??:0:0)
+     3     0x34390e xlang3::Value::{dtor} (D:\CantorAI\xlang3\src\internal\xlang3\value.h:1044:0)
+     3      0x15483  (??:0:0)
+     3     0x4e439f xlang3::Interpreter::run_function(struct xlang3::ir::Module const &, unsigned int, struct xlang3::CallArgsView, class std::vector<struct xlang3::Value, class std::allocator<struct xlang3::Value>> const &, class std::vector<struct xlang3::Value, class std::allocator<struct xlang3::Value>> const &, struct xlang3::Value, class std::shared_ptr<struct xlang3::ir::Module const>, struct xlang3::GeneratorObject *, class std::shared_ptr<struct xlang3::RuntimeDebugPauseState>) (D:\CantorAI\xlang3\src\executor\xlang_vm\xlang_vm_op_rows.h:27:0)
+     3     0x4e2a1f xlang3::Interpreter::run_function(struct xlang3::ir::Module const &, unsigned int, struct xlang3::CallArgsView, class std::vector<struct xlang3::Value, class std::allocator<struct xlang3::Value>> const &, class std::vector<struct xlang3::Value, class std::allocator<struct xlang3::Value>> const &, struct xlang3::Value, class std::shared_ptr<struct xlang3::ir::Module const>, struct xlang3::GeneratorObject *, class std::shared_ptr<struct xlang3::RuntimeDebugPauseState>) (D:\CantorAI\xlang3\src\executor\xlang_vm\xlang_vm_loop.cpp:2115:0)
+     3      0x40b40 std::_Atomic_address_as<long, struct std::_Atomic_padded<unsigned int>>(struct std::_Atomic_padded<unsigned int> &) (C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xatomic.h:108:0)
+     3     0x32117a xlang3::Runtime::allocate_frame_activation_id(void) (D:\CantorAI\xlang3\src\runtime\runtime.cpp:1962:0)
+     3     0x222db0 xlang3::interpreter_poll_pending_events(void) (D:\CantorAI\xlang3\src\runtime\interpreter_events.cpp:37:0)
+     3      0x5bd23 xlang3::value_as_class(struct xlang3::Value const &) (D:\CantorAI\xlang3\src\internal\xlang3\object_model.h:190:0)
+     3     0xab96a7 __security_check_cookie (D:\a\_work\1\s\src\vctools\crt\vcstartup\src\gs\amd64\amdsecgs.asm:48:0)
+     3      0x15997  (??:0:0)
+     3      0x432d5 std::operator==<char, struct std::char_traits<char>, class std::allocator<char>>(class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>> const &, char const *const) (C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xstring:3397:0)
+     3     0x33b51a std::vector<xlang3::RuntimeFrameView,std::allocator<xlang3::RuntimeFrameView> >::push_back (C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vector:941:0)
+     3      0x42931 std::_Atomic_storage<bool,1>::load (C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\atomic:705:0)
+     3     0x29c89f xlang3::object_get_attr(struct xlang3::Value const &, class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>> const &, struct xlang3::Value &, class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>> &) (D:\CantorAI\xlang3\src\runtime\object_model.cpp:4712:0)
+     3     0x496ce1 std::basic_string<char,std::char_traits<char>,std::allocator<char> >::_Equal (C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xstring:2785:0)
+     2     0x4cb368 xlang3::XlangVMFrame::clear_cache_if_owned(struct xlang3::XlangVMInstrCache &) (D:\CantorAI\xlang3\src\executor\xlang_vm\xlang_frame.h:507:0)
+     2      0x429c3 xlang3::retain(struct xlang3::Value const &) (D:\CantorAI\xlang3\src\internal\xlang3\value.h:970:0)
+     2      0x428f2 xlang3::release(struct xlang3::Value const &) (D:\CantorAI\xlang3\src\internal\xlang3\value.h:980:0)
+     2     0x280225 xlang3::value_as_class (D:\CantorAI\xlang3\src\internal\xlang3\object_model.h:190:0)
+     2      0x4a0e4 std::vector<struct xlang3::Value, class std::allocator<struct xlang3::Value>>::_Tidy(void) (C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vector:2107:0)
+     2     0x450800 xlang3::xlang_vm::ops::call_method<<lambda_c6c63dfe94bbb9ebd89a35391517be50> &,<lambda_fb2c1eaa3ed3a060508b1a88d6df14d8> &,bool (__cdecl&)(xlang3::Runtime &,xlang3::ClassObject const &,xlang3::CallArgsView,xlang3::XlangRuntimeExecutionGuard &,xlang3::Value &,xlang3::XlangVMBuiltinConstructorError &),bool (__cdecl&)(xlang3::ir::Module const &,xlang3::FunctionObject const &,xlang3::Value &),bool (__cdecl&)(xlang3::ir::Module const &,xlang3::FunctionObject const &,xlang3::XlangVMSelfBinaryMethodSpec &),bool (__cdecl&)(xlang3::InstanceObject const &,xlang3::XlangVMSelfBinaryMethodSpec const &,xlang3::Value &,std::basic_string<char,std::char_traits<char>,std::allocator<char> > &),bool (__cdecl&)(xlang3::ir::Module const &,xlang3::FunctionObject const &,unsigned int &),bool (__cdecl&)(xlang3::InstanceObject const &,unsigned int,xlang3::Value &,std::basic_string<char,std::char_traits<char>,std::allocator<char> > &),bool (__cdecl&)(xlang3::ir::Module const &,xlang3::FunctionObject const &,xlang3::Value const &,unsigned int &,xlang3::Value &),bool (__cdecl&)(xlang3::InstanceObject const &,unsigned int,xlang3::Value const &,xlang3::Value &,std::basic_string<char,std::char_traits<char>,std::allocator<char> > &),<lambda_3ab665244326ba598cbdd3432bc680d7> &,<lambda_90575377fbb06bff9c6b19865a533142> &> (D:\CantorAI\xlang3\src\executor\xlang_vm\ops\xlang_vm_ops_call.h:1017:0)
+     2      0x19ec0  (??:0:0)
+     2     0x4a5ba7 xlang3::Value::{ctor} (D:\CantorAI\xlang3\src\internal\xlang3\value.h:238:0)
+     2     0xabba26 memcpy (??:0:0)
+     2     0x4983ae xlang3::Value::{dtor} (D:\CantorAI\xlang3\src\internal\xlang3\value.h:1044:0)
+     2     0x2fbe29 std::_Hash<class std::_Umap_traits<class xlang3::Runtime const *, struct xlang3::Value, class std::_Uhash_compare<class xlang3::Runtime const *, struct std::hash<class xlang3::Runtime const *>, struct std::equal_to<class xlang3::Runtime const *>>, class std::allocator<struct std::pair<class xlang3::Runtime const *const, struct xlang3::Value>>, 0>>::_Try_emplace<class xlang3::Runtime const *>(class xlang3::Runtime const *&&) (C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xhash:623:0)
+     2      0x42907 xlang3::release(struct xlang3::Value const &) (D:\CantorAI\xlang3\src\internal\xlang3\value.h:981:0)
+     2      0x67175 std::_Hash<class std::_Umap_traits<class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>>, unsigned int, class std::_Uhash_compare<class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>>, struct std::hash<class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>>>, struct std::equal_to<class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>>>>, class std::allocator<struct std::pair<class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>> const, unsigned int>>, 0>>::_Find<class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>>>(class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>> const &, unsigned __int64) const (C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xhash:1137:0)
+     2      0xc3148 std::_Hash<std::_Umap_traits<std::basic_string<char,std::char_traits<char>,std::allocator<char> >,unsigned int,std::_Uhash_compare<std::basic_string<char,std::char_traits<char>,std::allocator<char> >,std::hash<std::basic_string<char,std::char_traits<char>,std::allocator<char> > >,std::equal_to<std::basic_string<char,std::char_traits<char>,std::allocator<char> > > >,std::allocator<std::pair<std::basic_string<char,std::char_traits<char>,std::allocator<char> > const ,unsigned int> >,0> >::_Find (C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xhash:1137:0)
+     2     0x280213 xlang3::value_as_class (D:\CantorAI\xlang3\src\internal\xlang3\object_model.h:190:0)
+     2     0x26a075 std::_Hash<class std::_Uset_traits<struct xlang3::Object *, class std::_Uhash_compare<struct xlang3::Object *, struct std::hash<struct xlang3::Object *>, struct std::equal_to<struct xlang3::Object *>>, class std::allocator<struct xlang3::Object *>, 0>>::emplace<struct xlang3::Object *>(struct xlang3::Object *&&) (C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xhash:533:0)
+     2     0x34354b xlang3::Runtime::saved_python_frame_depth(void) const (D:\CantorAI\xlang3\src\runtime\runtime.cpp:1372:0)
+     2     0x2a5be3 xlang3::object_set_attr(struct xlang3::Value &, class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>> const &, struct xlang3::Value const &, class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>> &) (D:\CantorAI\xlang3\src\runtime\object_model.cpp:5165:0)
+     2     0x32794b xlang3::`anonymous namespace'::current_frame_state (D:\CantorAI\xlang3\src\runtime\runtime.cpp:157:0)
+     2     0x44f2ed xlang3::xlang_vm::ops::call_method<<lambda_c6c63dfe94bbb9ebd89a35391517be50> &,<lambda_fb2c1eaa3ed3a060508b1a88d6df14d8> &,bool (__cdecl&)(xlang3::Runtime &,xlang3::ClassObject const &,xlang3::CallArgsView,xlang3::XlangRuntimeExecutionGuard &,xlang3::Value &,xlang3::XlangVMBuiltinConstructorError &),bool (__cdecl&)(xlang3::ir::Module const &,xlang3::FunctionObject const &,xlang3::Value &),bool (__cdecl&)(xlang3::ir::Module const &,xlang3::FunctionObject const &,xlang3::XlangVMSelfBinaryMethodSpec &),bool (__cdecl&)(xlang3::InstanceObject const &,xlang3::XlangVMSelfBinaryMethodSpec const &,xlang3::Value &,std::basic_string<char,std::char_traits<char>,std::allocator<char> > &),bool (__cdecl&)(xlang3::ir::Module const &,xlang3::FunctionObject const &,unsigned int &),bool (__cdecl&)(xlang3::InstanceObject const &,unsigned int,xlang3::Value &,std::basic_string<char,std::char_traits<char>,std::allocator<char> > &),bool (__cdecl&)(xlang3::ir::Module const &,xlang3::FunctionObject const &,xlang3::Value const &,unsigned int &,xlang3::Value &),bool (__cdecl&)(xlang3::InstanceObject const &,unsigned int,xlang3::Value const &,xlang3::Value &,std::basic_string<char,std::char_traits<char>,std::allocator<char> > &),<lambda_3ab665244326ba598cbdd3432bc680d7> &,<lambda_90575377fbb06bff9c6b19865a533142> &> (D:\CantorAI\xlang3\src\executor\xlang_vm\ops\xlang_vm_ops_call.h:769:0)
+     2     0x4dcdeb std::_Ptr_base<xlang3::ir::Module const >::_Decref (C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\memory:1408:0)
+     2     0x7d2dde std::atomic<unsigned __int64>::compare_exchange_weak (C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\atomic:2257:0)
+     2      0x11464  (??:0:0)
+     2      0x5be12 xlang3::value_assign_fast(struct xlang3::Value &, struct xlang3::Value const &) (D:\CantorAI\xlang3\src\internal\xlang3\value.h:1058:0)
+     2     0x4cb280 xlang3::XlangVMFrame::clear_cache_if_owned(struct xlang3::XlangVMInstrCache &) (D:\CantorAI\xlang3\src\executor\xlang_vm\xlang_frame.h:502:0)
+     2       0x7f3b  (??:0:0)
+     2     0x4a74af std::_Ptr_base<xlang3::ir::Module const >::_Decref (C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\memory:1408:0)
+     2     0x4ac15f <lambda_4b122f56116b04ca1f237786cf8d5782>::operator() (D:\CantorAI\xlang3\src\executor\xlang_vm\xlang_vm_loop.cpp:1180:0)
+     2      0x1ab31  (??:0:0)
+     2      0x1de8a  (??:0:0)
+     2      0x1d03e  (??:0:0)
+     2      0x4933e xlang3::Value::operator=(struct xlang3::Value const &) (D:\CantorAI\xlang3\src\internal\xlang3\value.h:1028:0)
+     2      0x42913 xlang3::release(struct xlang3::Value const &) (D:\CantorAI\xlang3\src\internal\xlang3\value.h:985:0)
+     2       0x4e2b  (??:0:0)
+     2     0x33b29f std::_Ptr_base<xlang3::ir::Module const >::_Copy_construct_from (C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\memory:1363:0)
+     2     0x29c890 xlang3::object_get_attr(struct xlang3::Value const &, class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>> const &, struct xlang3::Value &, class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>> &) (D:\CantorAI\xlang3\src\runtime\object_model.cpp:4712:0)
+     2      0x43302 std::operator==<char, struct std::char_traits<char>, class std::allocator<char>>(class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>> const &, char const *const) (C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xstring:3399:0)
+Top symbols:
+    82
+    52 xlang3::release(struct xlang3::Value const &)
+    38 std::_Fnv1a_append_bytes
+    28 std::_Hash<class std::_Umap_traits<class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>>, struct xlang3::Value, class std::_Uhash_compare<class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>>, struct std::hash<class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>>>, struct std::equal_to<class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>>>>, class std::allocator<struct std::pair<class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>> const, struct xlang3::Value>>, 0>>::_Find_last<class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>>>(class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>> const &, unsigned __int64) const
+    26 xlang3::Interpreter::run_function(struct xlang3::ir::Module const &, unsigned int, struct xlang3::CallArgsView, class std::vector<struct xlang3::Value, class std::allocator<struct xlang3::Value>> const &, class std::vector<struct xlang3::Value, class std::allocator<struct xlang3::Value>> const &, struct xlang3::Value, class std::shared_ptr<struct xlang3::ir::Module const>, struct xlang3::GeneratorObject *, class std::shared_ptr<struct xlang3::RuntimeDebugPauseState>)
+    22 xlang3::object_get_attr(struct xlang3::Value const &, class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>> const &, struct xlang3::Value &, class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>> &)
+    18 xlang3::xlang_vm::ops::call_method<<lambda_c6c63dfe94bbb9ebd89a35391517be50> &,<lambda_fb2c1eaa3ed3a060508b1a88d6df14d8> &,bool (__cdecl&)(xlang3::Runtime &,xlang3::ClassObject const &,xlang3::CallArgsView,xlang3::XlangRuntimeExecutionGuard &,xlang3::Value &,xlang3::XlangVMBuiltinConstructorError &),bool (__cdecl&)(xlang3::ir::Module const &,xlang3::FunctionObject const &,xlang3::Value &),bool (__cdecl&)(xlang3::ir::Module const &,xlang3::FunctionObject const &,xlang3::XlangVMSelfBinaryMethodSpec &),bool (__cdecl&)(xlang3::InstanceObject const &,xlang3::XlangVMSelfBinaryMethodSpec const &,xlang3::Value &,std::basic_string<char,std::char_traits<char>,std::allocator<char> > &),bool (__cdecl&)(xlang3::ir::Module const &,xlang3::FunctionObject const &,unsigned int &),bool (__cdecl&)(xlang3::InstanceObject const &,unsigned int,xlang3::Value &,std::basic_string<char,std::char_traits<char>,std::allocator<char> > &),bool (__cdecl&)(xlang3::ir::Module const &,xlang3::FunctionObject const &,xlang3::Value const &,unsigned int &,xlang3::Value &),bool (__cdecl&)(xlang3::InstanceObject const &,unsigned int,xlang3::Value const &,xlang3::Value &,std::basic_string<char,std::char_traits<char>,std::allocator<char> > &),<lambda_3ab665244326ba598cbdd3432bc680d7> &,<lambda_90575377fbb06bff9c6b19865a533142> &>
+    17 xlang3::Value::operator=(struct xlang3::Value const &)
+    16 std::basic_string<char,std::char_traits<char>,std::allocator<char> >::_Equal
+    15 xlang3::gc_untrack_object(struct xlang3::Object *)
+    15 xlang3::Value::{ctor}
+    15 xlang3::XlangVMFrame::clear_cache_if_owned(struct xlang3::XlangVMInstrCache &)
+    13 xlang3::Value::{dtor}
+    13 xlang3::xlang_vm::ops::load_attr<<lambda_c6c63dfe94bbb9ebd89a35391517be50> &,<lambda_fb2c1eaa3ed3a060508b1a88d6df14d8> &,<lambda_3ab665244326ba598cbdd3432bc680d7> &,<lambda_90575377fbb06bff9c6b19865a533142> &>
+    12 xlang3::retain(struct xlang3::Value const &)
+    10 strlen
+    10 xlang3::value_as_class
+     8 std::_Vector_val<std::_Simple_types<std::pair<unsigned int,unsigned int> > >::{ctor}
+     8 std::_Vector_val<std::_Simple_types<xlang3::Value> >::{ctor}
+     8 std::operator==<char, struct std::char_traits<char>, class std::allocator<char>>(class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>> const &, char const *const)
+     7 std::_Vector_val<std::_Simple_types<xlang3::XlangVMRegister> >::{ctor}
+     7 xlang3::Value::Value(struct xlang3::Value const &)
+     6 xlang3::value_assign_fast(struct xlang3::Value &, struct xlang3::Value const &)
+     6 xlang3::`anonymous namespace'::current_frame_state
+     6 std::_Ptr_base<xlang3::ir::Module const >::_Decref
+     5 xlang3::interpreter_poll_pending_events(void)
+     5 <lambda_50df889d7ae7306238c5b7ddb0b3e655>::operator()
+     5 <lambda_fb2c1eaa3ed3a060508b1a88d6df14d8>::operator()
+     5 xlang3::XlangVMInstrCache::XlangVMInstrCache(void)
+     4 std::_Hash_array_representation<char>(char const *const, unsigned __int64)
+     4 xlang3::value_as_class(struct xlang3::Value const &)
+     4 <lambda_4b122f56116b04ca1f237786cf8d5782>::operator()
+     4 xlang3::xlang_vm_load_attr_cached(struct xlang3::Value const &, class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>> const &, struct xlang3::AttrSiteCache &, struct xlang3::Value &, class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>> &)
+     4 xlang3::value_as_instance
+     4 <lambda_9b9d33ba9cdfa9830413f055d9f7d48f>::operator()
+     4 <lambda_d0a898adbf64e5e3d29f79624f3689c5>::operator()
+     3 std::_Atomic_address_as<long, struct std::_Atomic_padded<unsigned int>>(struct std::_Atomic_padded<unsigned int> &)
+     3 xlang3::Runtime::allocate_frame_activation_id(void)
+     3 __security_check_cookie
+     3 std::vector<xlang3::RuntimeFrameView,std::allocator<xlang3::RuntimeFrameView> >::push_back
+     3 std::_Atomic_storage<bool,1>::load
+     3 std::vector<struct xlang3::Value, class std::allocator<struct xlang3::Value>>::_Tidy(void)
+     3 std::_Hash<class std::_Umap_traits<class xlang3::Runtime const *, struct xlang3::Value, class std::_Uhash_compare<class xlang3::Runtime const *, struct std::hash<class xlang3::Runtime const *>, struct std::equal_to<class xlang3::Runtime const *>>, class std::allocator<struct std::pair<class xlang3::Runtime const *const, struct xlang3::Value>>, 0>>::_Try_emplace<class xlang3::Runtime const *>(class xlang3::Runtime const *&&)
+     3 std::_Hash<std::_Umap_traits<std::basic_string<char,std::char_traits<char>,std::allocator<char> >,unsigned int,std::_Uhash_compare<std::basic_string<char,std::char_traits<char>,std::allocator<char> >,std::hash<std::basic_string<char,std::char_traits<char>,std::allocator<char> > >,std::equal_to<std::basic_string<char,std::char_traits<char>,std::allocator<char> > > >,std::allocator<std::pair<std::basic_string<char,std::char_traits<char>,std::allocator<char> > const ,unsigned int> >,0> >::_Find
+     3 std::_Hash<class std::_Uset_traits<struct xlang3::Object *, class std::_Uhash_compare<struct xlang3::Object *, struct std::hash<struct xlang3::Object *>, struct std::equal_to<struct xlang3::Object *>>, class std::allocator<struct xlang3::Object *>, 0>>::emplace<struct xlang3::Object *>(struct xlang3::Object *&&)
+     3 xlang3::object_set_attr(struct xlang3::Value &, class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>> const &, struct xlang3::Value const &, class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>> &)
+     3 std::atomic<unsigned __int64>::compare_exchange_weak
+     3 std::_Ptr_base<xlang3::ir::Module const >::_Copy_construct_from
+     3 xlang3::xlang_vm::ops::inline_calls_allowed::__l2::<lambda_a84be8bf03757bab1443e91952f3f56b>::operator()
+     3 std::vector<unsigned int,std::allocator<unsigned int> >::size
+     3 std::_Traits_equal
+     3 std::_Hash<class std::_Umap_traits<class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>>, unsigned int, class std::_Uhash_compare<class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>>, struct std::hash<class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>>>, struct std::equal_to<class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>>>>, class std::allocator<struct std::pair<class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>> const, unsigned int>>, 0>>::_Find_last<class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>>>(class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>> const &, unsigned __int64) const
+     3 xlang3::execute_inline_small_self_method(struct xlang3::ir::Module const &, struct xlang3::FunctionObject const &, struct xlang3::Value const &, struct xlang3::Value &, bool &, class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>> &)
+     3 xlang3::XlangVMFrame::clear_for_pop(void)
+     3 std::_String_val<std::_Simple_types<char> >::_Myptr
+     3 xlang3::XlangVMFrame::XlangVMFrame(struct xlang3::ir::Module const &, unsigned int, struct xlang3::CallArgsView, class std::vector<struct xlang3::Value, class std::allocator<struct xlang3::Value>> const &, struct xlang3::Value, class std::shared_ptr<struct xlang3::ir::Module const>, unsigned int, bool, enum xlang3::FrameReturnMode, struct xlang3::Value, bool)
+     3 xlang3::Value::operator=
+     2 memcpy
+     2 std::_Hash<class std::_Umap_traits<class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>>, unsigned int, class std::_Uhash_compare<class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>>, struct std::hash<class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>>>, struct std::equal_to<class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>>>>, class std::allocator<struct std::pair<class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>> const, unsigned int>>, 0>>::_Find<class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>>>(class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>> const &, unsigned __int64) const
+     2 xlang3::Runtime::saved_python_frame_depth(void) const
+     2 xlang3::xlang_vm::ops::load_const<<lambda_3ab665244326ba598cbdd3432bc680d7> &>
+     2 xlang3::Runtime::push_current_frame_state(void)
+     2 xlang3::AttrSiteCache::operator=(struct xlang3::AttrSiteCache &&)
+     2 std::vector<struct xlang3::XlangVMTempValue, class std::allocator<struct xlang3::XlangVMTempValue>>::clear(void)
+     2 xlang3::`anonymous namespace'::int_payload_value
+     2 xlang3::Value::Value(void)
+     2 xlang3::value_set_invalid
+     2 std::vector<xlang3::Value,std::allocator<xlang3::Value> >::push_back
+     2 xlang3::xlang_vm::ops::call_user_function<<lambda_c6c63dfe94bbb9ebd89a35391517be50> &,<lambda_fb2c1eaa3ed3a060508b1a88d6df14d8> &>
+     2 std::basic_string<char,std::char_traits<char>,std::allocator<char> >::{dtor}
+     2 xlang3::xlang_vm::ops::call_ex<<lambda_c6c63dfe94bbb9ebd89a35391517be50> &,<lambda_fb2c1eaa3ed3a060508b1a88d6df14d8> &,bool (__cdecl&)(xlang3::Runtime &,xlang3::ClassObject const &,xlang3::CallArgsView,xlang3::XlangRuntimeExecutionGuard &,xlang3::Value &,xlang3::XlangVMBuiltinConstructorError &),<lambda_3ab665244326ba598cbdd3432bc680d7> &,<lambda_90575377fbb06bff9c6b19865a533142> &>
+     2 xlang3::class_has_builtin_base_name(struct xlang3::ClassObject *, class std::basic_string_view<char, struct std::char_traits<char>>)
+     2 xlang3::xlang_vm::ops::delete_local(struct xlang3::ir::Instr const &, class xlang3::XlangVMSmallBuffer<struct xlang3::XlangVMRegister, 128> &, class xlang3::XlangVMSmallBuffer<struct xlang3::Value, 64> &, class std::vector<struct xlang3::Value, class std::allocator<struct xlang3::Value>> &, class std::vector<unsigned __int64, class std::allocator<unsigned __int64>> const &, class std::vector<bool, class std::allocator<bool>> const &, unsigned __int64)
+     2 xlang3::value_as_string
+     2 xlang3::gc_track_object(struct xlang3::Object *)
+     2 std::atomic<unsigned int>::operator=
+     2 xlang3::asyncio_native::state(class xlang3::Runtime &, struct xlang3::Value const &, class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char>> &, bool)
+     2 <lambda_43a9eab7de844e0027b4f1ca29614df9>::operator()
+     2 xlang3::XlangVMRegister::{ctor}
+     2 xlang3::xlang_vm::ops::call<<lambda_c6c63dfe94bbb9ebd89a35391517be50> &,<lambda_fb2c1eaa3ed3a060508b1a88d6df14d8> &,bool (__cdecl&)(xlang3::Runtime &,xlang3::ClassObject const &,xlang3::CallArgsView,xlang3::XlangRuntimeExecutionGuard &,xlang3::Value &,xlang3::XlangVMBuiltinConstructorError &),bool (__cdecl&)(xlang3::ir::Module const &,xlang3::FunctionObject const &,unsigned int,xlang3::XlangVMArgBinaryFunctionSpec &),bool (__cdecl&)(xlang3::CallArgsView,xlang3::XlangVMArgBinaryFunctionSpec const &,xlang3::Value &,std::basic_string<char,std::char_traits<char>,std::allocator<char> > &),bool (__cdecl&)(xlang3::ir::Module const &,xlang3::FunctionObject const &,std::vector<std::pair<unsigned int,unsigned int>,std::allocator<std::pair<unsigned int,unsigned int> > > &),bool (__cdecl&)(xlang3::Value &,xlang3::ir::Module const &,xlang3::FunctionObject const &,xlang3::CallArgsView,std::vector<std::pair<unsigned int,unsigned int>,std::allocator<std::pair<unsigned int,unsigned int> > > const &,xlang3::Value &,std::basic_string<char,std::char_traits<char>,std::allocator<char> > &),<lambda_3ab665244326ba598cbdd3432bc680d7> &,<lambda_90575377fbb06bff9c6b19865a533142> &>
+Top source locations:
+    29 C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\type_traits:2426:0
+    25 C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vector:401:0
+    22 D:\CantorAI\xlang3\src\internal\xlang3\value.h:995:0
+    16 D:\CantorAI\xlang3\src\internal\xlang3\value.h:1028:0
+    14 D:\CantorAI\xlang3\src\internal\xlang3\value.h:981:0
+    14 D:\CantorAI\xlang3\src\internal\xlang3\object_model.h:190:0
+    13 D:\CantorAI\xlang3\src\runtime\modules\system\gc_module.cpp:91:0
+    13 C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xhash:1499:0
+    13 D:\CantorAI\xlang3\src\internal\xlang3\value.h:1044:0
+    12 C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xhash:1506:0
+    12 D:\CantorAI\xlang3\src\internal\xlang3\value.h:999:0
+    12 D:\CantorAI\xlang3\src\internal\xlang3\value.h:1003:0
+    12 C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xstring:2785:0
+    10 D:\CantorAI\xlang3\src\executor\xlang_vm\xlang_vm_op_rows.h:27:0
+     9 C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\type_traits:2427:0
+     6 D:\CantorAI\xlang3\src\internal\xlang3\value.h:1004:0
+     6 D:\CantorAI\xlang3\src\internal\xlang3\value.h:978:0
+     6 D:\CantorAI\xlang3\src\internal\xlang3\value.h:1058:0
+     6 D:\CantorAI\xlang3\src\executor\xlang_vm\xlang_frame.h:502:0
+     6 C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\memory:1408:0
+     6 C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vector:1922:0
+     5 D:\CantorAI\xlang3\src\runtime\object_model.cpp:4712:0
+     5 C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xhash:1137:0
+     5 D:\CantorAI\xlang3\src\internal\xlang3\object_model.h:197:0
+     4 D:\CantorAI\xlang3\src\internal\xlang3\value.h:966:0
+     4 C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\type_traits:2458:0
+     4 D:\CantorAI\xlang3\src\executor\xlang_vm\xlang_vm_loop.cpp:2115:0
+     4 C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vector:941:0
+     4 C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vector:2107:0
+     4 D:\CantorAI\xlang3\src\executor\xlang_vm\ops\xlang_vm_ops_call.h:1017:0
+     4 C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xhash:623:0
+     4 D:\CantorAI\xlang3\src\runtime\runtime.cpp:157:0
+     4 C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xstring:2779:0
+     3 C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xatomic.h:108:0
+     3 D:\CantorAI\xlang3\src\runtime\runtime.cpp:1962:0
+     3 D:\CantorAI\xlang3\src\runtime\interpreter_events.cpp:37:0
+     3 D:\a\_work\1\s\src\vctools\crt\vcstartup\src\gs\amd64\amdsecgs.asm:48:0
+     3 C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xstring:3397:0
+     3 C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\atomic:705:0
+     3 D:\CantorAI\xlang3\src\internal\xlang3\value.h:238:0
+     3 C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xhash:533:0
+     3 D:\CantorAI\xlang3\src\executor\xlang_vm\ops\xlang_vm_ops_call.h:769:0
+     3 C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\atomic:2257:0
+     3 D:\CantorAI\xlang3\src\executor\xlang_vm\xlang_vm_loop.cpp:1180:0
+     3 C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\memory:1363:0
+     3 C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xstring:3399:0
+     3 D:\CantorAI\xlang3\src\executor\xlang_vm\ops\xlang_vm_ops_call.h:80:0
+     3 D:\CantorAI\xlang3\src\executor\xlang_vm\ops\xlang_vm_ops_attr.h:405:0
+     3 D:\CantorAI\xlang3\src\executor\xlang_vm\xlang_vm_loop.cpp:1212:0
+     3 C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xhash:1516:0
+     3 D:\CantorAI\xlang3\src\executor\xlang_vm\ops\xlang_vm_ops_attr.h:988:0
+     2 D:\CantorAI\xlang3\src\executor\xlang_vm\xlang_frame.h:507:0
+     2 D:\CantorAI\xlang3\src\internal\xlang3\value.h:970:0
+     2 D:\CantorAI\xlang3\src\internal\xlang3\value.h:980:0
+     2 D:\CantorAI\xlang3\src\runtime\runtime.cpp:1372:0
+     2 D:\CantorAI\xlang3\src\runtime\object_model.cpp:5165:0
+     2 D:\CantorAI\xlang3\src\internal\xlang3\value.h:985:0
+     2 D:\CantorAI\xlang3\src\executor\xlang_vm\ops\xlang_vm_ops_variables.h:601:0
+     2 C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xstring:3398:0
+     2 D:\CantorAI\xlang3\src\executor\xlang_vm\xlang_frame.h:499:0
+     2 D:\CantorAI\xlang3\src\runtime\runtime.cpp:1341:0
+     2 C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vector:1830:0
+     2 D:\CantorAI\xlang3\src\runtime\value_hash.cpp:96:0
+     2 D:\CantorAI\xlang3\src\internal\xlang3\value.h:245:0
+     2 C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\__msvc_string_view.hpp:697:0
+     2 D:\CantorAI\xlang3\src\runtime\object_model.cpp:4635:0
+     2 D:\CantorAI\xlang3\src\internal\xlang3\value.h:1027:0
+     2 D:\CantorAI\xlang3\src\internal\xlang3\value.h:1109:0
+     2 D:\CantorAI\xlang3\src\executor\xlang_vm\xlang_vm_op_rows.h:138:0
+     2 C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xstring:1433:0
+     2 D:\CantorAI\xlang3\src\runtime\object_model.cpp:1861:0
+     2 D:\CantorAI\xlang3\src\executor\xlang_vm\ops\xlang_vm_ops_attr.h:538:0
+     2 D:\CantorAI\xlang3\src\executor\xlang_vm\ops\xlang_vm_ops_variables.h:226:0
+     2 D:\CantorAI\xlang3\src\internal\xlang3\value.h:713:0
+     2 C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\atomic:2166:0
+     2 C:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vector:832:0
+     2 D:\CantorAI\xlang3\src\runtime\object_model.cpp:4119:0
+     2 D:\CantorAI\xlang3\src\executor\xlang_vm\xlang_frame.h:619:0
+     2 D:\CantorAI\xlang3\src\executor\xlang_vm\xlang_vm_loop.cpp:1501:0
+     2 D:\CantorAI\xlang3\src\executor\xlang_vm\xlang_value_buffer.h:118:0

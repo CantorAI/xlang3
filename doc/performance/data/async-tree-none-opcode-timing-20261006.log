@@ -1,0 +1,134 @@
+Benchmark dependency sites: C:\Python\Python314\Lib\site-packages
+vm-time: clock_pair_mean_ns=14
+vm-time: opcode=20 calls=403 self_ns=55186600 total_ns=789606000
+vm-time: opcode=22 calls=610 self_ns=40839100 total_ns=518652400
+vm-time: opcode=93 calls=19895 self_ns=36653700 total_ns=58223300
+vm-time: opcode=90 calls=9113 self_ns=14967300 total_ns=15535000
+vm-time: opcode=89 calls=555 self_ns=14555500 total_ns=14555500
+vm-time: opcode=23 calls=24 self_ns=10242200 total_ns=33501900
+vm-time: opcode=112 calls=4823 self_ns=5536700 total_ns=5536700
+vm-time: opcode=92 calls=789 self_ns=4918300 total_ns=11914100
+vm-time: opcode=122 calls=2846 self_ns=3246000 total_ns=3281900
+vm-time: opcode=118 calls=6970 self_ns=3088800 total_ns=3090100
+vm-time: opcode=72 calls=6829 self_ns=2941800 total_ns=3006700
+vm-time: opcode=110 calls=21270 self_ns=2835300 total_ns=2835300
+vm-time: opcode=42 calls=5300 self_ns=2804500 total_ns=6757200
+vm-time: opcode=47 calls=11064 self_ns=2214300 total_ns=2842300
+vm-time: opcode=119 calls=4130 self_ns=2107500 total_ns=2107500
+vm-time: opcode=98 calls=5754 self_ns=1947200 total_ns=2022300
+vm-time: opcode=31 calls=4696 self_ns=1795200 total_ns=1795200
+vm-time: opcode=26 calls=10789 self_ns=1612300 total_ns=1612300
+vm-time: opcode=121 calls=7494 self_ns=1527700 total_ns=1527700
+vm-time: opcode=48 calls=3467 self_ns=1484600 total_ns=1992200
+vm-time: opcode=13 calls=6983 self_ns=1398400 total_ns=1398400
+vm-time: opcode=76 calls=21697 self_ns=1323200 total_ns=1888800
+vm-time: opcode=54 calls=6956 self_ns=1154800 total_ns=1154800
+vm-time: opcode=18 calls=16818 self_ns=1151200 total_ns=1151200
+vm-time: opcode=30 calls=108 self_ns=1057300 total_ns=1057300
+vm-time: opcode=0 calls=31460 self_ns=999100 total_ns=999100
+vm-time: opcode=46 calls=3356 self_ns=985600 total_ns=1085200
+vm-time: opcode=37 calls=1201 self_ns=923900 total_ns=923900
+vm-time: opcode=120 calls=6655 self_ns=918700 total_ns=918700
+vm-time: opcode=3 calls=29927 self_ns=898400 total_ns=898400
+vm-time: opcode=77 calls=22694 self_ns=886300 total_ns=925400
+vm-time: opcode=19 calls=3909 self_ns=870000 total_ns=870000
+vm-time: opcode=105 calls=24107 self_ns=848800 total_ns=848800
+vm-time: opcode=2 calls=28642 self_ns=836700 total_ns=836700
+vm-time: opcode=25 calls=2572 self_ns=788300 total_ns=788300
+vm-time: opcode=38 calls=346 self_ns=611200 total_ns=611200
+vm-time: opcode=111 calls=2720 self_ns=575600 total_ns=575600
+vm-time: opcode=35 calls=4348 self_ns=534300 total_ns=534300
+vm-time: opcode=106 calls=13941 self_ns=524800 total_ns=524800
+vm-time: opcode=127 calls=1209 self_ns=441300 total_ns=441300
+vm-time: opcode=51 calls=2431 self_ns=405400 total_ns=417500
+vm-time: opcode=113 calls=2994 self_ns=393600 total_ns=393600
+vm-time: opcode=50 calls=4433 self_ns=345000 total_ns=358000
+vm-time: opcode=70 calls=3968 self_ns=339600 total_ns=339600
+vm-time: opcode=107 calls=6727 self_ns=307000 total_ns=307000
+vm-time: opcode=82 calls=22 self_ns=275000 total_ns=275000
+vm-time: opcode=60 calls=589 self_ns=269600 total_ns=269600
+vm-time: opcode=115 calls=6529 self_ns=244900 total_ns=244900
+vm-time: opcode=78 calls=5269 self_ns=231500 total_ns=231500
+vm-time: opcode=97 calls=12125 self_ns=224400 total_ns=224400
+vm-time: opcode=129 calls=458 self_ns=210600 total_ns=210600
+vm-time: opcode=36 calls=1358 self_ns=168700 total_ns=168700
+vm-time: opcode=125 calls=1213 self_ns=167600 total_ns=357700
+vm-time: opcode=73 calls=916 self_ns=158500 total_ns=194200
+vm-time: opcode=63 calls=1344 self_ns=158000 total_ns=158000
+vm-time: opcode=79 calls=5156 self_ns=156900 total_ns=156900
+vm-time: opcode=114 calls=4822 self_ns=155100 total_ns=155100
+vm-time: opcode=131 calls=3861 self_ns=148300 total_ns=148300
+vm-time: opcode=52 calls=1558 self_ns=147700 total_ns=154200
+vm-time: opcode=17 calls=56 self_ns=142400 total_ns=142400
+vm-time: opcode=91 calls=59 self_ns=141100 total_ns=150000
+vm-time: opcode=126 calls=2325 self_ns=140400 total_ns=150200
+vm-time: opcode=1 calls=5376 self_ns=137700 total_ns=137700
+vm-time: opcode=117 calls=3016 self_ns=135200 total_ns=135200
+vm-time: opcode=15 calls=237 self_ns=118100 total_ns=118100
+vm-time: opcode=85 calls=153 self_ns=111300 total_ns=111300
+vm-time: opcode=81 calls=4664 self_ns=109300 total_ns=109300
+vm-time: opcode=64 calls=211 self_ns=105900 total_ns=105900
+vm-time: opcode=39 calls=1140 self_ns=105400 total_ns=105400
+vm-time: opcode=96 calls=77 self_ns=93100 total_ns=330800
+vm-time: opcode=101 calls=195 self_ns=83800 total_ns=83800
+vm-time: opcode=8 calls=1058 self_ns=81300 total_ns=81300
+vm-time: opcode=41 calls=21 self_ns=78300 total_ns=78300
+vm-time: opcode=84 calls=75 self_ns=69300 total_ns=69300
+vm-time: opcode=56 calls=504 self_ns=68700 total_ns=68700
+vm-time: opcode=55 calls=1510 self_ns=68500 total_ns=68500
+vm-time: opcode=71 calls=2274 self_ns=64400 total_ns=64400
+vm-time: opcode=108 calls=1466 self_ns=63700 total_ns=63700
+vm-time: opcode=74 calls=1300 self_ns=59700 total_ns=59700
+vm-time: opcode=95 calls=480 self_ns=56200 total_ns=56200
+vm-time: opcode=40 calls=1038 self_ns=54400 total_ns=54400
+vm-time: opcode=109 calls=1829 self_ns=50100 total_ns=50100
+vm-time: opcode=7 calls=910 self_ns=40100 total_ns=40100
+vm-time: opcode=9 calls=924 self_ns=38700 total_ns=38700
+vm-time: opcode=88 calls=276 self_ns=35300 total_ns=35300
+vm-time: opcode=43 calls=85 self_ns=34400 total_ns=34400
+vm-time: opcode=32 calls=64 self_ns=34100 total_ns=34100
+vm-time: opcode=10 calls=689 self_ns=30600 total_ns=30600
+vm-time: opcode=33 calls=157 self_ns=27300 total_ns=27300
+vm-time: opcode=66 calls=37 self_ns=25100 total_ns=25100
+vm-time: opcode=116 calls=424 self_ns=19500 total_ns=19500
+vm-time: opcode=130 calls=365 self_ns=18900 total_ns=18900
+vm-time: opcode=5 calls=296 self_ns=14200 total_ns=14200
+vm-time: opcode=102 calls=129 self_ns=13400 total_ns=13400
+vm-time: opcode=6 calls=212 self_ns=12300 total_ns=12300
+vm-time: opcode=4 calls=171 self_ns=12200 total_ns=12200
+vm-time: opcode=99 calls=81 self_ns=11500 total_ns=11500
+vm-time: opcode=62 calls=26 self_ns=8300 total_ns=8300
+vm-time: opcode=59 calls=10 self_ns=8100 total_ns=8100
+vm-time: opcode=75 calls=109 self_ns=8100 total_ns=8100
+vm-time: opcode=27 calls=3 self_ns=5300 total_ns=5300
+vm-time: opcode=45 calls=11 self_ns=4700 total_ns=4700
+vm-time: opcode=53 calls=33 self_ns=4000 total_ns=4000
+vm-time: opcode=49 calls=4 self_ns=3600 total_ns=3600
+vm-time: opcode=58 calls=6 self_ns=2600 total_ns=2600
+vm-time: opcode=12 calls=38 self_ns=1400 total_ns=1400
+vm-time: opcode=80 calls=11 self_ns=1100 total_ns=1100
+vm-time: opcode=83 calls=8 self_ns=1100 total_ns=1100
+vm-time: opcode=65 calls=17 self_ns=1000 total_ns=1000
+vm-time: opcode=123 calls=7 self_ns=1000 total_ns=1000
+vm-time: opcode=11 calls=9 self_ns=800 total_ns=800
+vm-time: opcode=14 calls=1 self_ns=700 total_ns=700
+vm-time: opcode=139 calls=2 self_ns=700 total_ns=700
+vm-time: opcode=86 calls=7 self_ns=600 total_ns=600
+vm-time: opcode=87 calls=1 self_ns=300 total_ns=300
+vm-time: opcode=61 calls=1 self_ns=300 total_ns=300
+Python benchmark suite 1.14.0
+
+
+==================================================
+( 1/1) creating venv for benchmark (async_tree)
+
+(trying common venv first)
+
+[1/1] async_tree...
+.
+async_tree_none: 4.51 sec
+
+Performance version: 1.14.0
+
+### async_tree_none ###
+4.51 sec
