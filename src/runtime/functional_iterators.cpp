@@ -335,17 +335,12 @@ bool runtime_call_callable(
     CallArgsView call_args;
     call_args.leading = args;
     call_args.leading_count = argc;
-    Value caller_active_exception = runtime.active_exception();
     Interpreter interpreter(runtime);
     RuntimeResult result = interpreter.run_function_value(function, call_args);
-    // A nested Python call has its own handled-exception stack.  Restore the
-    // caller's active exception so sys.exception()/sys.exc_info() inside an
-    // outer except block survive helpers that catch exceptions internally.
-    if (caller_active_exception.tag == ValueTag::Invalid) {
-      runtime.clear_active_exception();
-    } else {
-      runtime.set_active_exception(caller_active_exception);
-    }
+    // run_function() owns the handled-exception boundary and restores the
+    // caller's active exception. Do not snapshot/restore it again here: native
+    // callbacks such as Context.run can enter this path for every event-loop
+    // callback, so the duplicate ownership work is on a hot re-entry path.
     if (!result.errors.empty()) {
       if (result.exception.tag != ValueTag::Invalid) {
         error = result.errors.front();
