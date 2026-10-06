@@ -84,22 +84,6 @@ bool current_tasks(Runtime& runtime, Value& out, std::string& error) {
   return true;
 }
 
-bool sync_python_current_task(Runtime& runtime, const Value& loop,
-                              const Value& task, bool clear,
-                              std::string& error) {
-  Value tasks;
-  if (!current_tasks(runtime, tasks, error)) return false;
-  if (clear) {
-    if (mapping_delete_item_identity_key(tasks, loop, error)) return true;
-    if (error == "key not found") {
-      error.clear();
-      return true;
-    }
-    return false;
-  }
-  return mapping_set_item_identity_key(tasks, loop, task, error);
-}
-
 bool check_loop(Runtime& runtime, const Value& loop, std::string& error) {
   Value active;
   if (!running_loop(runtime, active, error)) return false;
@@ -114,6 +98,20 @@ bool current_for_loop(Runtime& runtime, const Value& loop, Value& out,
     if (state->task.tag != ValueTag::None && value_is(state->loop, loop)) {
       value_assign_fast(out, state->task);
       return true;
+    }
+    // CPython 3.14's native _asyncio stores current_task in thread state; its
+    // private Python fallback dict remains empty during native Task steps.
+    // An empty exact dict is a definitive miss, so skip dict.get and the user
+    // key's hash method. Nonempty mappings (including Python-managed Tasks)
+    // keep the normal lookup path.
+    if (state->task.tag == ValueTag::None && value_is(state->loop, loop)) {
+      Value tasks;
+      if (!current_tasks(runtime, tasks, error)) return false;
+      auto* mapping = value_as_dict(tasks);
+      if (mapping != nullptr && mapping->entries.empty()) {
+        value_set_none(out);
+        return true;
+      }
     }
   }
   Value tasks;
@@ -597,17 +595,17 @@ bool copy_context(Runtime& runtime, Value& out, std::string& error) {
 }
 
 bool enter_task(Runtime& runtime, const Value& loop, const Value& task,
-                 std::string& error) {
+                std::string& error) {
   if (!check_loop(runtime, loop, error)) return false;
   Value current;
   if (!current_for_loop(runtime, loop, current, error)) return false;
   if (current.tag != ValueTag::None)
     return raise(runtime, "RuntimeError", "Cannot enter a task while another task is being executed", error);
   auto& state = thread_task_state(runtime);
-  // The Python asyncio.tasks.current_task implementation reads this dict.
-  // Keep its C-extension ABI view current while native callers take the TLS
-  // fast path above, so pure-Python TaskGroup and user code see the same task.
-  if (!sync_python_current_task(runtime, loop, task, false, error)) return false;
+  // CPython 3.14 keeps native Task state per thread and does not write its
+  // Python _current_tasks fallback dict on this path. asyncio.current_task and
+  // TaskGroup use the same native state below, avoiding two hash-table writes
+  // per Task transition while preserving custom key hash behavior.
   value_assign_fast(state.loop, loop);
   state.loop_pid = process_id();
   value_assign_fast(state.task, task);
@@ -621,7 +619,6 @@ bool leave_task(Runtime& runtime, const Value& loop, const Value& task,
   if (!current_for_loop(runtime, loop, current, error)) return false;
   if (current.tag != task.tag || current.as.obj != task.as.obj)
     return raise(runtime, "RuntimeError", "Invalid attempt to leave a task which is not entered", error);
-  if (!sync_python_current_task(runtime, loop, Value::none(), true, error)) return false;
   if (auto* state = find_thread_task_state(runtime); state != nullptr) {
     value_set_none(state->task);
     if (state->loop.tag == ValueTag::None) thread_task_states.erase(&runtime);
@@ -633,11 +630,6 @@ bool swap_task(Runtime& runtime, const Value& loop, const Value& task,
                 Value& previous, std::string& error) {
   if (!check_loop(runtime, loop, error) ||
       !current_for_loop(runtime, loop, previous, error)) return false;
-  if (task.tag == ValueTag::None) {
-    if (!sync_python_current_task(runtime, loop, Value::none(), true, error)) return false;
-  } else {
-    if (!sync_python_current_task(runtime, loop, task, false, error)) return false;
-  }
   auto& state = thread_task_state(runtime);
   value_assign_fast(state.loop, loop);
   state.loop_pid = process_id();
