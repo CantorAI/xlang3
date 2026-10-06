@@ -152,7 +152,7 @@ XLANG3_VM_FAST_TRACKED(LoadException, xlang3::xlang_vm::ops::load_exception(in, 
 XLANG3_VM_FAST_TRACKED(LoadExceptionType, xlang3::xlang_vm::ops::load_exception_type(in, runtime_, regs, current_exception))
 XLANG3_VM_FAST_TRACKED(MatchException, xlang3::xlang_vm::ops::match_exception(in, regs, exception_matches))
 XLANG3_VM_FAST(SetException, xlang3::xlang_vm::ops::set_exception(in, runtime_, regs, current_exception))
-XLANG3_VM_FLOW(Yield, xlang3::xlang_vm::ops::yield_op(in, regs, ip, frame, frames, frame_count, generator, result, emit_monitoring_event, emit_trace_event, emit_profile_event, raise_runtime_error))
+XLANG3_VM_FLOW(Yield, xlang3::xlang_vm::ops::yield_op(in, runtime_, regs, ip, frame, frames, frame_count, generator, result, emit_monitoring_event, emit_trace_event, emit_profile_event, raise_runtime_error))
 XLANG3_VM_FLOW(Return, xlang3::xlang_vm::ops::return_op(in, regs, generator, result, finish_frame))
 XLANG3_VM_FLOW(ReturnConst, xlang3::xlang_vm::ops::return_const(in, fn, generator, result, finish_frame))
 XLANG3_VM_FLOW(ReturnLocal, xlang3::xlang_vm::ops::return_local(in, fn, locals, generator, result, finish_frame, raise_unbound_local_error))

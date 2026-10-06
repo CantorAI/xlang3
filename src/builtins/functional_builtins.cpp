@@ -21,6 +21,7 @@ limitations under the License.
 #include "xlang3/ir.h"
 #include "xlang3/mapping.h"
 #include "xlang3/interpreter.h"
+#include "xlang3/generator.h"
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
 #include "xlang3/parser.h"
@@ -5337,6 +5338,15 @@ bool builtin_any(
     runtime.raise_class_error("TypeError", error);
     return false;
   }
+  auto* generator = value_as_generator(iterator);
+  const bool consume_generator_in_one_vm_entry =
+      generator != nullptr && generator_begin_any_consume(*generator);
+  struct AnyGeneratorConsumeGuard {
+    GeneratorObject* generator;
+    ~AnyGeneratorConsumeGuard() {
+      if (generator != nullptr) generator_end_any_consume(*generator);
+    }
+  } consume_guard{consume_generator_in_one_vm_entry ? generator : nullptr};
   for (;;) {
     bool done = false;
     Value item;

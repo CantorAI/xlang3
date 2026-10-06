@@ -407,6 +407,20 @@ bool try_generator_delegation_trampoline(
 
 } // namespace
 
+bool generator_begin_any_consume(GeneratorObject& generator) {
+  if (!generator_can_trampoline(generator) ||
+      generator.has_active_suspended_exception_handlers ||
+      generator.running || generator.done) {
+    return false;
+  }
+  generator.consume_for_any = true;
+  return true;
+}
+
+void generator_end_any_consume(GeneratorObject& generator) {
+  generator.consume_for_any = false;
+}
+
 bool generator_send(Value& generator, Value value, bool& done, Value& out, std::string& error) {
   auto* obj = value_as_generator(generator);
   if (obj == nullptr) {

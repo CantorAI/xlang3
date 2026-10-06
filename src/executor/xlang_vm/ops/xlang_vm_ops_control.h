@@ -1425,6 +1425,7 @@ XLANG3_HOT_INLINE void match_exception(
 template <typename EmitMonitoringEvent, typename EmitTraceEvent, typename EmitProfileEvent, typename RaiseRuntimeError>
 XLANG3_HOT_INLINE XlangVMOpFlow yield_op(
     const ir::Instr& in,
+    Runtime& runtime,
     XlangVMSmallRegisterBuffer& regs,
     size_t& ip,
     VMFrame& frame,
@@ -1441,6 +1442,18 @@ XLANG3_HOT_INLINE XlangVMOpFlow yield_op(
                                                               : XlangVMOpFlow::ReturnResult;
   }
 
+  // For an unobserved generator consumed by native any(), false values cannot
+  // affect the result. Continue this VM activation in place instead of saving
+  // a continuation and re-entering the interpreter for each false yield.
+  // The full guards retain normal suspension whenever Python can observe a
+  // yield, exception handler, trace/monitoring hook, or profiling counter.
+  if (generator->consume_for_any && !value_truthy(regs[in.a]) &&
+      !xlang_perf_enabled() &&
+      !generator_continuation_has_observers(runtime, frames, frame_count) &&
+      !generator_continuation_has_active_exception_handlers(frames, frame_count)) {
+    value_set_none(regs[in.dst]);
+    return XlangVMOpFlow::Next;
+  }
   Value yielded_value;
   value_assign_fast(yielded_value, regs[in.a]);
   if (!emit_monitoring_event(frame, kSysMonitoringEventPyYield, &yielded_value)) {
