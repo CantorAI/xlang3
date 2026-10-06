@@ -23,6 +23,7 @@ limitations under the License.
 #include "xlang3/sequence.h"
 
 #include <array>
+#include <atomic>
 #include <unordered_map>
 
 namespace xlang3 {
@@ -49,6 +50,7 @@ struct TokenState {
 
 struct ContextState {
   std::unordered_map<Object*, Value> values;
+  std::atomic_bool entered{false};
 };
 
 struct ContextViewState {
@@ -56,7 +58,8 @@ struct ContextViewState {
   size_t index = 0;
 };
 
-thread_local std::unordered_map<Object*, Value> g_context_values;
+thread_local std::unordered_map<Object*, Value> g_root_context_values;
+thread_local std::unordered_map<Object*, Value>* g_context_values = &g_root_context_values;
 Value g_token_class = Value::invalid();
 Value g_missing = Value::invalid();
 std::array<Value, 3> g_context_view_classes;
@@ -218,8 +221,8 @@ bool context_var_get(Runtime& runtime, const Value* args, uint32_t argc, Value& 
   if (state == nullptr) {
     return false;
   }
-  auto found = g_context_values.find(args[0].as.obj);
-  if (found != g_context_values.end()) {
+  auto found = g_context_values->find(args[0].as.obj);
+  if (found != g_context_values->end()) {
     value_assign_fast(out, found->second);
     return true;
   }
@@ -250,12 +253,12 @@ bool context_var_set(Runtime& runtime, const Value* args, uint32_t argc, Value& 
   Value token = Value::instance(g_token_class);
   auto* state = new TokenState();
   state->var = args[0];
-  auto found = g_context_values.find(key);
-  if (found != g_context_values.end()) {
+  auto found = g_context_values->find(key);
+  if (found != g_context_values->end()) {
     state->has_old_value = true;
     state->old_value = found->second;
   }
-  g_context_values[key] = args[1];
+  (*g_context_values)[key] = args[1];
   if (!instance_set_native_data(token, kTokenNativeType, state, token_cleanup, error)) {
     delete state;
     return false;
@@ -289,9 +292,9 @@ bool context_var_reset(Runtime&, const Value* args, uint32_t argc, Value& out, s
     return false;
   }
   if (token->has_old_value) {
-    g_context_values[key] = token->old_value;
+    (*g_context_values)[key] = token->old_value;
   } else {
-    g_context_values.erase(key);
+    g_context_values->erase(key);
   }
   token->used = true;
   value_set_none(out);
@@ -487,22 +490,35 @@ bool context_run_kw(Runtime& runtime, const Value* args, uint32_t argc,
       keyword_values.emplace_back(kwargs[index].name, *kwargs[index].value);
     }
   }
-  // Context.run is on every asyncio Task step. Transfer the thread's active
-  // bindings by swapping maps, as CPython swaps the current Context pointer;
-  // copying unordered_maps here turns every task wakeup into O(context size)
-  // hashing and allocation work. The two swaps also preserve nested Context.run
-  // calls: each invocation keeps its caller's bindings in its own local map.
-  std::unordered_map<Object*, Value> previous;
-  previous.swap(g_context_values);
-  g_context_values.swap(state->values);
+  // Context.run is on every asyncio Task step. Switch the thread-local active
+  // map pointer, matching CPython's current-Context pointer model. Keeping each
+  // Context's bindings in place avoids four unordered_map swaps per callback;
+  // the guard restores nested calls and clears entered state on every return.
+  bool expected_not_entered = false;
+  if (!state->entered.compare_exchange_strong(
+          expected_not_entered, true, std::memory_order_acq_rel)) {
+    error = "cannot enter context: context is already entered";
+    runtime.raise_class_error("RuntimeError", error);
+    return false;
+  }
+  struct ActiveContextGuard {
+    std::unordered_map<Object*, Value>* previous;
+    ContextState& state;
+    ActiveContextGuard(ContextState& entered_state)
+        : previous(g_context_values), state(entered_state) {
+      g_context_values = &state.values;
+    }
+    ~ActiveContextGuard() {
+      g_context_values = previous;
+      state.entered.store(false, std::memory_order_release);
+    }
+  } active_context_guard(*state);
   // asyncio's Handle.run path supplies positional callback args only. Keep
   // that per-Task path out of the general keyword-call adapter.
   const bool ok = kwargc == 0
       ? runtime_call_callable(runtime, args[1], args + 2, argc - 2, out, error)
       : runtime_call_callable_kw(
             runtime, args[1], args + 2, argc - 2, keyword_values, out, error);
-  state->values.swap(g_context_values);
-  g_context_values.swap(previous);
   return ok;
 }
 
@@ -524,7 +540,7 @@ bool copy_context(Runtime&, const Value*, uint32_t argc, Value& out, std::string
   }
   out = Value::instance(context_class);
   auto* state = new ContextState();
-  state->values = g_context_values;
+  state->values = *g_context_values;
   if (!instance_set_native_data(out, kContextNativeType, state, context_cleanup, error)) {
     delete state;
     return false;
@@ -611,8 +627,8 @@ bool contextvar_lookup_if_set(Object* variable_key, Value& out) {
   // Internal runtime clients already hold this exact ContextVar object. Read
   // its thread-local binding directly instead of dispatching its get method
   // for every hot Decimal operation; absent values still use the full API.
-  const auto found = g_context_values.find(variable_key);
-  if (found == g_context_values.end()) return false;
+  const auto found = g_context_values->find(variable_key);
+  if (found == g_context_values->end()) return false;
   value_assign_fast(out, found->second);
   return true;
 }
