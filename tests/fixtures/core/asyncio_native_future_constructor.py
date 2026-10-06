@@ -23,6 +23,14 @@ async def check_construction():
     print("subclass", derived.initialized_by_subclass,
           derived.get_loop() is running_loop)
 
+    class DerivedFutureWithLoop(native_future):
+        def __init__(self, loop):
+            super().__init__(loop=loop)
+
+    derived_with_loop = DerivedFutureWithLoop(running_loop)
+    print("subclass-explicit-loop",
+          derived_with_loop.get_loop() is running_loop)
+
 
 try:
     loop.run_until_complete(check_construction())

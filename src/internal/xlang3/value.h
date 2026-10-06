@@ -29,6 +29,9 @@ limitations under the License.
 
 namespace xlang3 {
 
+struct CallArgsView;
+class XlangRuntimeExecutionGuard;
+
 namespace ir {
 struct Module;
 }
@@ -160,6 +163,20 @@ using NativeFastCallCallback = bool (*)(
     std::string& error,
     void* user_data);
 
+// Some native keyword methods have one stable, common shape that can consume
+// VM registers directly. The predicate is side-effect free and runs before
+// monitoring events; the callback runs after the call is observable. It owns
+// lock management and must copy any VM-backed values before releasing the
+// execution lock for runtime re-entry.
+using NativeFastKeywordPredicate = bool (*)(const CallArgsView& values);
+using NativeFastKeywordCallCallback = bool (*)(
+    Runtime& runtime,
+    const CallArgsView& values,
+    XlangRuntimeExecutionGuard& execution_lock,
+    Value& out,
+    std::string& error,
+    void* user_data);
+
 struct NativeFunctionObject {
   Object header;
   uint32_t native_id = 0;
@@ -168,6 +185,8 @@ struct NativeFunctionObject {
   NativeFunctionCallback callback = nullptr;
   NativeKeywordFunctionCallback keyword_callback = nullptr;
   NativeFastCallCallback fast_callback = nullptr;
+  NativeFastKeywordPredicate fast_keyword_predicate = nullptr;
+  NativeFastKeywordCallCallback fast_keyword_callback = nullptr;
   bool fast_releases_vm_lock = false;
   bool bind_as_descriptor = true;
   bool capture_expressions = false;

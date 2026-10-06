@@ -3795,6 +3795,9 @@ XLANG3_HOT_INLINE bool call_native_function_ex(
   std::string error;
   bool has_materialized_keywords = false;
   const bool needs_materialized_ex = values.has_keywords() || values.has_expansion();
+  const bool use_fast_keyword = native->fast_keyword_predicate != nullptr &&
+      native->fast_keyword_callback != nullptr &&
+      native->fast_keyword_predicate(values);
   CallArgsView fast_values = values;
   bool fast_empty_star_expansion = false;
   const bool has_positional_star = values.star_arg != UINT32_MAX ||
@@ -3837,10 +3840,11 @@ XLANG3_HOT_INLINE bool call_native_function_ex(
   }
   const bool use_fast = native->fast_callback != nullptr &&
       (!needs_materialized_ex || fast_empty_star_expansion);
-  xlang_perf_count_native_call(use_fast);
-  xlang_perf_count_native_name(native->name, use_fast);
+  const bool use_fast_native_call = use_fast || use_fast_keyword;
+  xlang_perf_count_native_call(use_fast_native_call);
+  xlang_perf_count_native_name(native->name, use_fast_native_call);
   const Value* native_args = nullptr;
-  if (needs_materialized_ex && !fast_empty_star_expansion) {
+  if (needs_materialized_ex && !fast_empty_star_expansion && !use_fast_keyword) {
     native_args = materialize_native_call_ex(runtime, values, native_call_args, native_keyword_args, has_materialized_keywords, error);
     if (native_args == nullptr && !error.empty()) {
       Value pending;
@@ -3855,7 +3859,7 @@ XLANG3_HOT_INLINE bool call_native_function_ex(
       if (raise_runtime_error("native function '" + native->name + "' does not accept keyword arguments")) return false;
       return false;
     }
-  } else if (!use_fast) {
+  } else if (!use_fast && !use_fast_keyword) {
     native_args = materialize_native_args(values, native_call_args);
   }
   auto monitoring_event_enabled = [&](int64_t event) {
@@ -3911,7 +3915,12 @@ XLANG3_HOT_INLINE bool call_native_function_ex(
     return false;
   }
   bool ok = false;
-  if (use_fast && !native->fast_releases_vm_lock) {
+  if (use_fast_keyword) {
+    Value native_result;
+    ok = native->fast_keyword_callback(
+        runtime, values, execution_lock, native_result, error, native->user_data);
+    if (ok) out = std::move(native_result);
+  } else if (use_fast && !native->fast_releases_vm_lock) {
     ok = native->fast_callback(
         runtime,
         fast_values.leading,

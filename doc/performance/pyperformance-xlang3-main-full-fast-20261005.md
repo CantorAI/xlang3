@@ -61,6 +61,14 @@ Worker failures are not performance scores. Optional-package failures are enviro
 3. **JSON wrapper execution** remains 4.4× slower on `json_dumps` and 4.3× slower on `json_loads`. XLang3's `_json` is registered and used. A profile of the exact 4,001-call pyperformance workload counted 4,001 `dumps`, 4,001 `encode`, and 4,001 `iterencode` Python frames in both XLang3 and CPython (12,003 frames total each). The wrapper makes the same number of calls, but XLang3 spends much longer executing them. The direct-native call-path split below confirms that the encoder itself is not the primary slowdown for small values.
 4. **Telco** improved from 185.9ms in the prior full run to 40.9ms after the Decimal signal-identity change, but remains 7.1× slower. Re-profile current `telco` before considering a separate Decimal optimization.
 
+### Async Future keyword dispatch follow-up
+
+The `async_tree_eager` hotspot repeatedly enters native `_asyncio.Future.__init__` from CPython's pure-Python `_GatheringFuture.__init__` through `super().__init__(loop=loop)`. XLang3 now opts this native method into a guarded keyword fast call for exactly one explicit `loop` keyword, one bound `self`, and no argument expansion. The callback reads the existing VM register directly instead of materializing temporary positional and keyword vectors; all other argument shapes continue through the normal native keyword callback. The `asyncio` Python implementation is unchanged, and the optimization is confined to the `_asyncio` native module boundary.
+
+On the same machine and harness, rigorous pyperf 1.14 measurements against the fixed Release baseline on October 5, 2026 were 1.53 s ± 0.03 s before and 1.38 s ± 0.03 s after, or 1.11× faster for `async_tree_eager`. This improves one asyncio case; XLang3 remains about 16× slower than CPython 3.14.7's 86.62 ms full-suite result, so async stepping is still a major profiling target. The new subclass fixture covers `super().__init__(loop=loop)`. All 55 Release CTest tests passed, the full fixture runner passed, and the 11-repeat fixed-baseline gate passed all 11 cases (largest measured ratio 1.021×, under the 1.10 threshold).
+
+Raw rigorous results: [fixed baseline](data/pyperformance-async-tree-eager-baseline-rigorous-20261005.json) and [Future keyword fast path](data/pyperformance-async-tree-eager-future-init-fast-rigorous-20261005.json).
+
 ### JSON encoder path split
 
 The native `_json` module is registered and serves the default encoder; the gap is not a missing registration. A seven-pass median diagnostic using pyperformance 1.14's four payload shapes shows that public `json.dumps` spends much more time in XLang3's Python wrapper path for small values, while direct calls to XLang3's native encoder are close to or faster than CPython for nested and large payloads. The diagnostic is not an official score.

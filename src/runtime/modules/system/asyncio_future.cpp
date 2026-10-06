@@ -7,6 +7,7 @@ Licensed under the Apache License, Version 2.0.
 #include "xlang3/builtin_methods.h"
 #include "xlang3/interpreter.h"
 #include "xlang3/set_object.h"
+#include "../thread/runtime_lock.h"
 
 #include <algorithm>
 #include <cstddef>
@@ -114,6 +115,33 @@ bool future_init_kw(Runtime& runtime, const Value* args, uint32_t argc,
 bool future_init(Runtime& runtime, const Value* args, uint32_t argc,
                  Value& out, std::string& error, void* data) {
   return future_init_kw(runtime, args, argc, nullptr, 0, out, error, data);
+}
+
+// `asyncio.tasks._GatheringFuture.__init__` calls `super().__init__(loop=...)`
+// once for every gathered set. Keep this native-method shortcut restricted to
+// that exact one-keyword call shape; the regular keyword callback remains the
+// authority for all other forms and continues to produce the canonical errors.
+bool future_init_fast_keyword_shape(const CallArgsView& args) {
+  return args.leading_count == 1 && args.register_args != nullptr &&
+      args.register_args->empty() && args.registers != nullptr &&
+      args.keyword_args != nullptr && args.keyword_args->size() == 1 &&
+      args.keyword_args->front().name == "loop" && !args.has_expansion();
+}
+
+bool future_init_fast_keyword(Runtime& runtime, const CallArgsView& args,
+                              XlangRuntimeExecutionGuard& execution_lock,
+                              Value& out, std::string& error, void*) {
+  // Own both values before dropping the VM lock; call_args points into the
+  // current frame and another runtime thread could otherwise invalidate it.
+  Value self = args.leading[0];
+  const ir::CallKeywordArg& keyword = args.keyword_args->front();
+  Value loop = args.registers[keyword.value_reg];
+  NativeKeywordArg native_keyword{"loop", &loop};
+  execution_lock.unlock();
+  const bool ok = future_init_kw(runtime, &self, 1, &native_keyword, 1,
+                                 out, error, nullptr);
+  execution_lock.lock();
+  return ok;
 }
 
 bool construct_future_direct(Runtime& runtime, const ClassObject& klass,
@@ -815,12 +843,17 @@ Value iterator_class(Runtime& runtime) {
 }
 
 Value future_class(Runtime& runtime) {
+  Value init = runtime.make_native_function("_asyncio.Future.__init__", future_init,
+      nullptr, nullptr, nullptr, false, future_init_kw);
+  if (auto* native_init = value_as_native_function(init)) {
+    native_init->fast_keyword_predicate = future_init_fast_keyword_shape;
+    native_init->fast_keyword_callback = future_init_fast_keyword;
+  }
   std::vector<std::pair<std::string, Value>> attrs{
       {"__module__", Value::string("_asyncio")},
       {"__new__", runtime.make_native_function("_asyncio.Future.__new__", future_new,
           nullptr, nullptr, nullptr, false, future_new_kw)},
-      {"__init__", runtime.make_native_function("_asyncio.Future.__init__", future_init,
-          nullptr, nullptr, nullptr, false, future_init_kw)},
+      {"__init__", std::move(init)},
       {"__repr__", runtime.make_native_function("_asyncio.Future.__repr__", future_repr)},
       {"__del__", runtime.make_native_function("_asyncio.Future.__del__", future_finalize)},
       {"__class_getitem__", Value::class_method(runtime.make_native_function("_asyncio.Future.__class_getitem__", generic_alias))},
