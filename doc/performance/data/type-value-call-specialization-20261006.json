@@ -19,5 +19,26 @@
   "fixed_release_runtime_dll_sha256": "BC1B9C0A8086F7E6FB0C037516DC9C1EEA20427FA887E3AA623714BC5EF5DA8D",
   "candidate_runtime_dll_sha256": "A730369426BD222BDF99E17F4DFCA5998DC39F5E9D5B42DD1CC128F50E1A8EAB",
   "candidate_build_directory": "build-repro/tuple2-candidate/Release",
-  "official_pyperformance_candidate_run": "not completed: pyperformance's automatic candidate venv bootstrap failed in ensurepip because XLang3 lacks hashlib algorithms and mmap required by pip"
+  "official_pyperformance_fast": {
+    "runner": "benchmarks/diagnostics/run_pyperformance_xlang3_shimmed.py",
+    "candidate_exe_sha256": "193A3FADEDDDE089EA3D2B223E1BB33CAD37B0377B53A058FB5498ABB9F4141B",
+    "candidate_runtime_dll_sha256": "964A3386A56CB09AA8165BC7B43C482DA9B4D74F42264FBACD6A79A5166692F6",
+    "candidate_json": "pyperformance-deepcopy-typecache-candidate-20261006.json",
+    "cpython314_json": "pyperformance-deepcopy-cpython314-current-20261006.json",
+    "fixed_release_control_json": "pyperformance-xlang3-main-post-asyncio-thread-state-full-fast-20261006.json",
+    "compare_to": {
+      "fixed_release_geomean_slowdown": 13.08,
+      "candidate_geomean_slowdown": 12.07,
+      "relative_candidate_gain_percent": 8.4
+    },
+    "stability": "fast-mode warnings on all runs; directional values",
+    "full_97_case_candidate_run": "not yet run"
+  },
+  "discarded_scalar_tag_result_cache_trial": {
+    "purpose": "Cache the result for None/bool/int/float arguments after type(value) has warmed",
+    "type_1_us_per_call_control": [0.747, 0.745, 0.748, 0.740],
+    "type_1_us_per_call_candidate": [0.607, 0.573, 0.576, 0.601],
+    "earlier_exact_type_specialization_medians_us": [0.576, 0.584, 0.579, 0.581, 0.590],
+    "result": "no measurable improvement over exact type-call specialization; code removed"
+  }
 }
