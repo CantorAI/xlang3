@@ -17,11 +17,12 @@ run attributed only a few percent of its measured VM-op time to each of
 2.8 ms in that diagnostic run. Those opcode timings cannot explain the full
 wall-time gap, so they are not a basis for claiming a speedup.
 
-The profile also did not record XLang3's native `_asyncio.Task.step_impl` or
-`generator_send` timers in this pyperformance case, though a separate
-`asyncio.run(asyncio.sleep(0))` smoke test recorded both. This points to the
-benchmark taking a different Task-step path and needs confirmation before
-another native Task optimization is attempted.
+The earlier instrumented run did not record XLang3's native Task-step timers.
+That absence was not evidence of a different Task-step path: a follow-up
+observer around the event loop's `call_soon` confirmed that this benchmark
+schedules the native `_asyncio.Task._step` callback 55,989 times. The reason
+the timer probe missed it remains unresolved; do not use those missing timer
+rows to rule out Task dispatch as a hotspot.
 
 ## Pyperformance context
 
@@ -65,6 +66,28 @@ The [raw sample data](data/async-tree-current-native-samples-20261006.json)
 contains module addresses and sample counts. The corresponding
 [symbolizer output](data/async-tree-current-native-symbols-20261006.txt)
 preserves the source locations.
+
+## Scheduled Task callbacks
+
+[`async_tree_call_soon_profile.py`](../../benchmarks/diagnostics/async_tree_call_soon_profile.py)
+wraps `BaseEventLoop.call_soon` and counts callback types scheduled by the
+official `NoneAsyncTree` body. It was run once under each runtime; wrapping the
+event-loop method changes timing, so these are counts only.
+
+| Scheduled callback | XLang3 | CPython 3.14.7 |
+| --- | ---: | ---: |
+| Task step | 55,989 `_asyncio.Task._step` | 55,989 `_asyncio.Task.TaskStepMethWrapper` |
+| Task wakeup | 9,331 `_asyncio.Task._wakeup` | 9,331 `_asyncio.Task.task_wakeup` |
+| `gather` done callback | 55,986 | 55,986 |
+| Total `call_soon` schedules | 121,315 | 121,315 |
+
+The workload creates the same number of scheduled operations under both
+runtimes. CPython represents the task step with its dedicated native wrapper;
+XLang3 schedules a bound native method. This makes callback invocation and
+bound-method allocation worth measuring next, while leaving open the cost of
+coroutine resume and Python `Handle` execution. The matching schedule counts
+also show that the missing timer records came from the probe setup, not from
+the benchmark bypassing native Task steps.
 
 ## Opcode timing diagnostic
 
@@ -120,6 +143,6 @@ shows the asyncio shutdown failure.
 | RelWithDebInfo sample executable | `ADDE6540D99DFDE45B725CD076503BB0E9923738A16B61381CDEA809194ACA56` |
 | RelWithDebInfo sample runtime DLL | `7398591CF9F28E46B6BB0A29890411EF35CD33CAF8FDA4BE379266B335A63B2A` |
 
-The next experiment should first prove which Task-step implementation the
-official benchmark exercises, then target shared VM call/frame work. The
-performance goal remains open.
+The next experiment should isolate native Task callback invocation and shared
+VM call/frame work without changing callback semantics. The performance goal
+remains open.
