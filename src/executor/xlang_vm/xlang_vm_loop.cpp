@@ -1430,16 +1430,16 @@ RuntimeResult Interpreter::run_function(
     const int64_t monitoring_location = event == kSysMonitoringEventLine
         ? static_cast<int64_t>(source_line_for_frame(monitoring_frame))
         : static_cast<int64_t>(monitoring_frame.ip);
-    XlangVMInstrCache* monitoring_cache = monitoring_frame.ip < monitoring_frame.instr_cache.size()
-        ? &monitoring_frame.instr_cache[monitoring_frame.ip]
+    XlangVMMonitoringSiteState* monitoring_cache = monitoring_frame.ip < monitoring_frame.instr_cache.size()
+        ? &monitoring_frame.instr_cache.monitoring_at(monitoring_frame.ip)
         : nullptr;
     if (monitoring_cache != nullptr) monitoring_frame.monitoring_cache_touched = true;
     const uint64_t monitoring_generation = sys_monitoring_configuration_generation();
     if (monitoring_cache != nullptr) {
-      if (monitoring_cache->monitoring_generation != monitoring_generation) {
-        monitoring_cache->monitoring_generation = monitoring_generation;
-        monitoring_cache->monitoring_disabled_events = 0;
-      } else if ((monitoring_cache->monitoring_disabled_events & event) != 0) {
+      if (monitoring_cache->generation != monitoring_generation) {
+        monitoring_cache->generation = monitoring_generation;
+        monitoring_cache->disabled_events = 0;
+      } else if ((monitoring_cache->disabled_events & event) != 0) {
         return true;
       }
     }
@@ -1448,7 +1448,7 @@ RuntimeResult Interpreter::run_function(
             monitoring_frame.function_id,
             event,
             monitoring_location)) {
-      if (monitoring_cache != nullptr) monitoring_cache->monitoring_disabled_events |= event;
+      if (monitoring_cache != nullptr) monitoring_cache->disabled_events |= event;
       return true;
     }
 
@@ -1492,7 +1492,7 @@ RuntimeResult Interpreter::run_function(
                    monitoring_frame.function_id,
                    event,
                    monitoring_location)) {
-        monitoring_cache->monitoring_disabled_events |= event;
+        monitoring_cache->disabled_events |= event;
         if (event == kSysMonitoringEventPyStart) {
           monitoring_frame.monitoring_events &= ~event;
         }

@@ -1,8 +1,9 @@
-"""Run one official pyperformance asyncio tree workload without pyperf workers.
+"""Run the official pyperformance asyncio tree workload without workers.
 
 This preserves the benchmark's AsyncTree implementation and workload shape,
-but runs it once in-process so XLang3 VM counters can describe the full tree.
-The elapsed time is diagnostic only and must not be compared with pyperf.
+but runs it in-process so diagnostics can inspect repeated full trees without
+repeating interpreter startup. Elapsed time is diagnostic only and must not
+be compared with pyperf.
 """
 
 import argparse
@@ -17,7 +18,11 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("benchmark", choices=("none", "eager", "io", "memoization", "cpu_io_mixed"), default="none")
     parser.add_argument("--task-groups", action="store_true")
+    parser.add_argument("--repeat", type=int, default=1,
+                        help="run the same full tree repeatedly in one process")
     args = parser.parse_args()
+    if args.repeat < 1:
+        parser.error("--repeat must be positive")
 
     benchmark_path = (
         Path(pyperformance.__file__).parent
@@ -28,9 +33,10 @@ def main() -> None:
     )
     namespace = runpy.run_path(str(benchmark_path), run_name="async_tree_diagnostic")
     tree_type = namespace["BENCHMARKS"][args.benchmark]
-    tree = tree_type(use_task_groups=args.task_groups)
-    asyncio.run(tree.run())
-    print(f"completed official async_tree_{args.benchmark} task_groups={args.task_groups}")
+    for _ in range(args.repeat):
+        tree = tree_type(use_task_groups=args.task_groups)
+        asyncio.run(tree.run())
+    print(f"completed official async_tree_{args.benchmark} task_groups={args.task_groups} repeat={args.repeat}")
 
 
 if __name__ == "__main__":

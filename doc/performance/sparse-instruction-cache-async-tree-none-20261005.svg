@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="190" viewBox="0 0 760 190" role="img" aria-labelledby="title desc">
+  <title id="title">async_tree_none elapsed time</title>
+  <desc id="desc">Horizontal bars compare CPython 3.14.7 at 226 milliseconds, the fixed XLang3 parent at 5.11 seconds, and the sparse-cache XLang3 candidate at 4.49 seconds. Shorter is faster.</desc>
+  <style>
+    text { font-family: Segoe UI, Arial, sans-serif; fill: #182230; }
+    .title { font-size: 18px; font-weight: 600; }
+    .label { font-size: 13px; }
+    .value { font-size: 13px; font-weight: 600; }
+    .axis { stroke: #93a0af; stroke-width: 1; }
+    .tick { stroke: #d7dde5; stroke-width: 1; }
+  </style>
+  <text class="title" x="18" y="26">Official pyperformance 1.14.0 · async_tree_none</text>
+  <text class="label" x="18" y="62">CPython 3.14.7</text>
+  <text class="label" x="18" y="105">XLang3 fixed parent</text>
+  <text class="label" x="18" y="148">XLang3 sparse-cache candidate</text>
+  <line class="axis" x1="220" y1="165" x2="670" y2="165"/>
+  <line class="tick" x1="220" y1="42" x2="220" y2="165"/>
+  <line class="tick" x1="308" y1="42" x2="308" y2="165"/>
+  <line class="tick" x1="396" y1="42" x2="396" y2="165"/>
+  <line class="tick" x1="484" y1="42" x2="484" y2="165"/>
+  <line class="tick" x1="572" y1="42" x2="572" y2="165"/>
+  <line class="tick" x1="660" y1="42" x2="660" y2="165"/>
+  <rect x="220" y="46" width="20" height="22" rx="3" fill="#168a72"/>
+  <rect x="220" y="89" width="447" height="22" rx="3" fill="#9aa5b1"/>
+  <rect x="220" y="132" width="393" height="22" rx="3" fill="#3273c6"/>
+  <text class="value" x="247" y="62">226 ms ± 18 ms</text>
+  <text class="value" x="675" y="105">5.11 s ± 0.06 s</text>
+  <text class="value" x="621" y="148">4.49 s ± 0.05 s · 1.14× faster</text>
+  <text class="label" x="216" y="184">0</text>
+  <text class="label" x="299" y="184">1 s</text>
+  <text class="label" x="387" y="184">2 s</text>
+  <text class="label" x="475" y="184">3 s</text>
+  <text class="label" x="563" y="184">4 s</text>
+  <text class="label" x="651" y="184">5 s</text>
+</svg>

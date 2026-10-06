@@ -1,0 +1,12 @@
+local_slots              pass         1.017x
+scalar_arithmetic        pass         1.016x
+range_for                pass         0.989x
+function_calls           pass         1.034x
+class_construct          pass         1.002x
+list_append              pass         1.011x
+property_access          pass         1.022x
+deepcopy_memo            pass         0.989x
+json_dumps               pass         0.989x
+gc_traversal             pass         1.006x
+subparsers               pass         0.991x
+Performance check: pass. Report: doc\performance\data\sparse-instr-cache-fixed-release-gate-20261005.json

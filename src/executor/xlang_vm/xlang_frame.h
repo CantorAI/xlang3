@@ -24,6 +24,7 @@ limitations under the License.
 
 #include <algorithm>
 #include <array>
+#include <cassert>
 #include <cstdint>
 #include <limits>
 #include <memory>
@@ -162,8 +163,69 @@ struct XlangVMInstrCache : XlangVMInstrCacheCore {
   GlobalSiteCache global;
   CallSiteCache call;
   AttrSiteCache attr;
-  uint64_t monitoring_generation = 0;
-  int64_t monitoring_disabled_events = 0;
+};
+
+struct XlangVMMonitoringSiteState {
+  uint64_t generation = 0;
+  int64_t disabled_events = 0;
+};
+
+// Most IR instructions never touch an adaptive cache. Keep one small IP->slot
+// index per instruction, but construct the owning cache payload only at the
+// sites listed by FunctionExecutionMetadata. This avoids zero-initializing the
+// large CallSiteCache/AttrSiteCache objects for uncached instructions on each
+// Python frame activation. Monitoring DISABLE state is smaller and must remain
+// per-IP even for uncached instructions, so it lives in a separate dense array
+// instead of inflating every specialization cache payload.
+class XlangVMInstrCacheStorage {
+ public:
+  using iterator = std::vector<XlangVMInstrCache>::iterator;
+  using const_iterator = std::vector<XlangVMInstrCache>::const_iterator;
+
+  void reset(size_t instruction_count,
+             const std::vector<uint32_t>& cached_instruction_ips) {
+    cache_slot_by_ip_.assign(instruction_count, kNoCacheSlot);
+    monitoring_by_ip_.assign(instruction_count, {});
+    cache_sites_.clear();
+    cache_sites_.resize(cached_instruction_ips.size());
+    for (size_t slot = 0; slot < cached_instruction_ips.size(); ++slot) {
+      const uint32_t ip = cached_instruction_ips[slot];
+      if (ip < cache_slot_by_ip_.size())
+        cache_slot_by_ip_[ip] = static_cast<uint32_t>(slot);
+    }
+  }
+
+  size_t size() const { return cache_slot_by_ip_.size(); }
+  size_t cached_site_count() const { return cache_sites_.size(); }
+  bool empty() const { return cache_slot_by_ip_.empty(); }
+  XlangVMMonitoringSiteState& monitoring_at(size_t ip) { return monitoring_by_ip_[ip]; }
+  void clear_monitoring() {
+    std::fill(monitoring_by_ip_.begin(), monitoring_by_ip_.end(),
+              XlangVMMonitoringSiteState{});
+  }
+  iterator begin() { return cache_sites_.begin(); }
+  iterator end() { return cache_sites_.end(); }
+  const_iterator begin() const { return cache_sites_.begin(); }
+  const_iterator end() const { return cache_sites_.end(); }
+
+  XlangVMInstrCache& operator[](size_t ip) {
+    assert(ip < cache_slot_by_ip_.size());
+    const uint32_t slot = cache_slot_by_ip_[ip];
+    assert(slot != kNoCacheSlot);
+    return cache_sites_[slot];
+  }
+  const XlangVMInstrCache& operator[](size_t ip) const {
+    assert(ip < cache_slot_by_ip_.size());
+    const uint32_t slot = cache_slot_by_ip_[ip];
+    assert(slot != kNoCacheSlot);
+    return cache_sites_[slot];
+  }
+
+ private:
+  static constexpr uint32_t kNoCacheSlot = UINT32_MAX;
+  std::vector<uint32_t> cache_slot_by_ip_;
+  std::vector<XlangVMMonitoringSiteState> monitoring_by_ip_;
+  std::vector<XlangVMInstrCache> cache_sites_;
 };
 
 enum class FrameReturnMode : uint8_t {
@@ -189,7 +251,7 @@ using VMUnwind = XlangVMUnwind;
 
 struct XlangVMPreparedFunctionState {
   std::shared_ptr<const ir::Module> module_owner;
-  std::vector<XlangVMInstrCache> instr_cache;
+  XlangVMInstrCacheStorage instr_cache;
   uint64_t monitoring_configuration_generation = 0;
   int64_t monitoring_events = 0;
 };
@@ -235,7 +297,7 @@ struct XlangVMFrame {
   XlangVMTempArena temps;
 
   std::vector<ExceptionHandler> exception_handlers;
-  std::vector<XlangVMInstrCache> instr_cache;
+  XlangVMInstrCacheStorage instr_cache;
   std::shared_ptr<const ir::FunctionExecutionMetadata> execution_metadata;
   std::vector<uint32_t> memoryview_registers;
   std::vector<bool> memoryview_register_flags;
@@ -279,10 +341,10 @@ struct XlangVMFrame {
         continuation_value(std::move(frame_continuation_value)),
         locals(fn->locals.size(), Value::invalid()),
         cells(fn->cell_slots.size(), Value::invalid()),
-        regs(fn->register_count, Value::invalid()),
-        instr_cache(fn->code.size()) {
+        regs(fn->register_count, Value::invalid()) {
     set_closure(frame_closure);
     compute_register_last_use();
+    instr_cache.reset(fn->code.size(), execution_metadata->cache_cleanup_instructions);
     for (size_t i = 0; i < args.size(); ++i) {
       if (frame_args_are_moved) {
         value_move_assign_fast(locals[i], const_cast<Value&>(args.get(i)));
@@ -371,10 +433,10 @@ struct XlangVMFrame {
         instr_cache = std::move(prepared->second.instr_cache);
         monitoring_configuration_generation = prepared->second.monitoring_configuration_generation;
         monitoring_events = prepared->second.monitoring_events;
-      } else {
-        instr_cache.assign(fn->code.size(), {});
       }
       compute_register_last_use();
+      if (prepared == prepared_functions.end())
+        instr_cache.reset(fn->code.size(), execution_metadata->cache_cleanup_instructions);
       reserve_call_args();
     }
 
@@ -408,6 +470,7 @@ struct XlangVMFrame {
     } else {
       for (auto& cache : instr_cache) clear_cache_if_owned(cache);
     }
+    if (monitoring_cache_touched) instr_cache.clear_monitoring();
     monitoring_cache_touched = false;
     value_set_invalid(trace_function);
     value_set_invalid(trace_frame_object);
@@ -553,10 +616,6 @@ private:
     }
     // Len/GetItem's core owns no objects and validates the current operand
     // kind on every hit, so short activations can accumulate specialization.
-    // Preserve the previous monitoring cleanup on return: retaining the scalar
-    // core must not also retain its DISABLE mask.
-    cache.monitoring_generation = 0;
-    cache.monitoring_disabled_events = 0;
   }
 
   static bool instruction_may_own_inline_cache(ir::Op op) {

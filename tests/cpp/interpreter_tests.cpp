@@ -21,6 +21,25 @@ limitations under the License.
 int main() {
   xlang3::test::CaseResult result;
 
+  // Cache payloads remain sparse while monitoring's smaller DISABLE state is
+  // dense: uncached IR instructions still need independent event suppression.
+  {
+    xlang3::XlangVMInstrCacheStorage storage;
+    storage.reset(8, {2, 6});
+    storage[2].domain = xlang3::XlangVMCacheDomain::Call;
+    storage[6].domain = xlang3::XlangVMCacheDomain::Attr;
+    storage.monitoring_at(3).disabled_events = 1;
+    xlang3::test::expect_true(result,
+        storage.size() == 8 && storage.cached_site_count() == 2,
+        "instruction cache payloads must be allocated only for cached IPs");
+    xlang3::test::expect_true(result,
+        storage[2].domain == xlang3::XlangVMCacheDomain::Call &&
+            storage[6].domain == xlang3::XlangVMCacheDomain::Attr &&
+            storage.monitoring_at(3).disabled_events == 1 &&
+            storage.monitoring_at(4).disabled_events == 0,
+        "sparse caches and dense monitoring state must remain IP-local");
+  }
+
   // A fused site's final adaptive domain does not describe every owning
   // payload. CallGlobal and LoadModuleAttr must release the preceding global
   // value as well as the call/attribute value, without retaining either object
@@ -57,9 +76,10 @@ int main() {
                               "fused cache cleanup must release its active payload owner");
   }
 
-  // A surviving non-owning guard must still release fused global owners,
-  // clear monitoring DISABLE masks, and release every owning payload when a
-  // previous specialization left one behind.
+  // A surviving non-owning guard must still release fused global owners and
+  // every owning payload when a previous specialization left one behind. The
+  // monitoring DISABLE mask is stored separately for every IP and reset when
+  // an observed frame returns.
   for (const bool owning_payload : {false, true}) {
     for (const auto domain : {xlang3::XlangVMCacheDomain::Attr,
                              xlang3::XlangVMCacheDomain::CallMethod}) {
@@ -80,11 +100,13 @@ int main() {
       const auto global_refs = global_owner.as.obj->refcnt.load();
       const auto payload_refs = payload_owner.as.obj->refcnt.load();
       auto& cache = frame.instr_cache[0];
+      auto& monitoring = frame.instr_cache.monitoring_at(0);
       cache.domain = domain;
       cache.global.value = global_owner;
       cache.global.kind = 2;
-      cache.monitoring_generation = 19;
-      cache.monitoring_disabled_events = 17;
+      monitoring.generation = 19;
+      monitoring.disabled_events = 17;
+      frame.monitoring_cache_touched = true;
       if (domain == xlang3::XlangVMCacheDomain::Attr) {
         cache.attr.kind = xlang3::AttrSiteKind::InstanceAttr;
         cache.attr.owner = guard_owner.as.obj;
@@ -112,7 +134,7 @@ int main() {
               payload_owner.as.obj->refcnt.load() == payload_refs,
           "surviving cache guards must not retain Python payload owners");
       xlang3::test::expect_true(result,
-          cache.monitoring_generation == 0 && cache.monitoring_disabled_events == 0,
+          monitoring.generation == 0 && monitoring.disabled_events == 0,
           "surviving cache guards must clear activation monitoring masks");
       const bool guard_survived = domain == xlang3::XlangVMCacheDomain::Attr
           ? cache.attr.kind == xlang3::AttrSiteKind::InstanceAttr &&
