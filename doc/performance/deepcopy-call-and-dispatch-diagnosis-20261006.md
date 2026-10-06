@@ -110,3 +110,9 @@ pyperformance comparison and correctness coverage before retaining a change.
 
 The official full-suite status is recorded in
 [`pyperformance-xlang3-main-post-asyncio-thread-state-full-fast-20261006.md`](pyperformance-xlang3-main-post-asyncio-thread-state-full-fast-20261006.md).
+
+The follow-up exact class-key `dict.get` shortcut was rejected after it
+regressed `deepcopy`, `deepcopy_reduce`, and `pickle_pure_python`; see the
+[matched trial data](dict-get-class-key-trial-20261006.md). Continue profiling
+other object-heavy runtime operations instead of retrying generic dispatch
+shortcuts on these same paths.
