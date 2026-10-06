@@ -2909,6 +2909,14 @@ XLANG3_HOT_INLINE XlangVMOpFlow call(
         }
         return XlangVMOpFlow::Next;
       }
+      if (cache.kind == CallSiteKind::InlineBuiltinTypeValue) {
+        if (inline_calls_allowed(runtime) && call_args.size() == 1 &&
+            !call_args.has_keywords() && !call_args.has_expansion() &&
+            runtime_type_of_value(runtime, call_args.get(0), regs[in.dst])) {
+          return XlangVMOpFlow::Next;
+        }
+        cache.kind = CallSiteKind::Empty;
+      }
       const bool is_cached_arg_inline =
           cache.kind == CallSiteKind::InlineArgBinaryFunction;
       const bool allow_cached_python_inline = cache.function != nullptr &&
@@ -3175,6 +3183,28 @@ XLANG3_HOT_INLINE XlangVMOpFlow call(
     if (pushed_frame) return XlangVMOpFlow::SwitchFrame;
   } else if (auto* klass = value_as_class(callee)) {
     const bool allow_inline_calls = inline_calls_allowed(runtime);
+    // `type(value)` is a common pure-Python dispatch primitive (including
+    // copy.deepcopy). Cache its exact builtin call shape to avoid routing a
+    // one-argument query through generic class construction on every call.
+    // Monitoring/debug modes keep the ordinary path so call observability is
+    // preserved; unsupported runtime values also fall through unchanged.
+    if (allow_inline_calls && call_args.size() == 1 &&
+        !call_args.has_keywords() && !call_args.has_expansion()) {
+      const Value* builtin_type = runtime.find_builtin("type");
+      if (builtin_type != nullptr && builtin_type->tag == ValueTag::Object &&
+          builtin_type->as.obj == callee.as.obj &&
+          runtime_type_of_value(runtime, call_args.get(0), regs[in.dst])) {
+        if (!instr_cache.empty() && callee.tag == ValueTag::Object) {
+          auto& cache = instr_cache[ip].call;
+          cache.callee_object = callee.as.obj;
+          value_assign_fast(cache.retained_callee, callee);
+          cache.kind = CallSiteKind::InlineBuiltinTypeValue;
+          cache.function = nullptr;
+          cache.native = nullptr;
+        }
+        return XlangVMOpFlow::Next;
+      }
+    }
     if (call_args.size() == 1 && !call_args.has_keywords() && !call_args.has_expansion()) {
       Value enum_member;
       if (class_try_enum_value_lookup(callee, call_args.get(0), enum_member)) {

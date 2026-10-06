@@ -1,0 +1,23 @@
+{
+  "reference": "CPython 3.14.7 at C:\\Python\\Python314",
+  "benchmark": "pyperformance 1.14.0 bm_deepcopy/run_benchmark.py, called directly through benchmarks/diagnostics/run_deepcopy_body.py",
+  "body_loops": 30,
+  "body_time_seconds": {
+    "cpython314": [0.006206, 0.006108, 0.006209, 0.006145, 0.006361, 0.006109, 0.006172],
+    "xlang3_fixed_release": [0.076611, 0.081954, 0.077244, 0.076511, 0.076983, 0.077334, 0.076539],
+    "xlang3_type_value_candidate": [0.070704, 0.070877, 0.070729, 0.072231, 0.073521, 0.071995, 0.073378]
+  },
+  "type_call_microbenchmark_median_us_per_call": {
+    "calls_per_sample": 10000,
+    "repeats_per_runtime": 9,
+    "cpython314_repeated_medians": [0.041, 0.039, 0.044, 0.054, 0.041],
+    "xlang3_fixed_release_repeated_medians": [0.805, 0.728, 0.719, 0.717, 0.736],
+    "xlang3_candidate_repeated_medians": [0.576, 0.584, 0.579, 0.581, 0.590]
+  },
+  "fixed_release_exe_sha256": "A5F5028C15E145EDCE645A5AFC25C11FBCE77F51E882312B1FBE06E63C72A4AF",
+  "candidate_exe_sha256": "C34B9A85C86ABAA6417317A9EC76344D984FDD15B7A99839A18ABE660A7AF448",
+  "fixed_release_runtime_dll_sha256": "BC1B9C0A8086F7E6FB0C037516DC9C1EEA20427FA887E3AA623714BC5EF5DA8D",
+  "candidate_runtime_dll_sha256": "A730369426BD222BDF99E17F4DFCA5998DC39F5E9D5B42DD1CC128F50E1A8EAB",
+  "candidate_build_directory": "build-repro/tuple2-candidate/Release",
+  "official_pyperformance_candidate_run": "not completed: pyperformance's automatic candidate venv bootstrap failed in ensurepip because XLang3 lacks hashlib algorithms and mmap required by pip"
+}

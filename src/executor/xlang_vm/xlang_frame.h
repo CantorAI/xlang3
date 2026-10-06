@@ -69,6 +69,7 @@ enum class CallSiteKind : uint8_t {
   InlineArgBinaryFunction,
   InlineConditionalArgFunction,
   InlineTrivialFunction,
+  InlineBuiltinTypeValue,
   InlineConstMethod,
   InlineSmallSelfMethod,
   InlineSelfSlotMethod,
