@@ -646,6 +646,10 @@ bool trim_char_set_contains(std::string_view chars, uint32_t wanted) {
 }
 
 bool string_strip_body(const Value& value, const Value* chars_value, Value& out, std::string& error) {
+  // Python wrappers pass explicit None for default whitespace trimming. Normalize
+  // it once, outside the Unicode scan, so omitted and forwarded defaults share
+  // the same allocation-free character test in all native argument layouts.
+  if (chars_value != nullptr && chars_value->tag == ValueTag::None) chars_value = nullptr;
   memory::X3StringView text;
   if (!get_string_view_checked(value, "str.strip target", text, error)) {
     return false;
@@ -687,6 +691,7 @@ bool string_strip_body(const Value& value, const Value* chars_value, Value& out,
 }
 
 bool string_rstrip_body(const Value& value, const Value* chars_value, Value& out, std::string& error) {
+  if (chars_value != nullptr && chars_value->tag == ValueTag::None) chars_value = nullptr;
   memory::X3StringView text;
   if (!get_string_view_checked(value, "str.rstrip target", text, error)) {
     return false;
@@ -720,6 +725,7 @@ bool string_rstrip_body(const Value& value, const Value* chars_value, Value& out
 }
 
 bool string_lstrip_body(const Value& value, const Value* chars_value, Value& out, std::string& error) {
+  if (chars_value != nullptr && chars_value->tag == ValueTag::None) chars_value = nullptr;
   memory::X3StringView text;
   if (!get_string_view_checked(value, "str.lstrip target", text, error)) {
     return false;
@@ -1212,12 +1218,14 @@ bool string_startswith_fast_method(
     uint32_t register_arg_count,
     Value& out,
     std::string& error,
-    void*) {
+    void* user_data) {
   if (leading_count != 1 || register_arg_count < 1 || register_arg_count > 3 ||
       leading == nullptr || registers == nullptr || register_args == nullptr) {
-    error = "str.startswith expected 1 to 3 arguments";
-    runtime.raise_class_error("TypeError", error);
-    return false;
+    // Class descriptors supply self in register arguments. Keep bound
+    // receiver/register calls direct; adapt other layouts on the stack.
+    return builtin_fast_adapter<string_startswith_method, 4>(
+        runtime, leading, leading_count, registers, register_args,
+        register_arg_count, out, error, user_data);
   }
   const Value* start_value = register_arg_count >= 2 ? &registers[register_args[1]] : nullptr;
   const Value* end_value = register_arg_count >= 3 ? &registers[register_args[2]] : nullptr;
@@ -1228,18 +1236,23 @@ bool string_startswith_fast_method(
   return true;
 }
 
-bool string_endswith_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool string_endswith_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 2 || argc > 4) {
     error = "str.endswith expected 1 to 3 arguments";
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
   const Value* start_value = argc >= 3 ? &args[2] : nullptr;
   const Value* end_value = argc >= 4 ? &args[3] : nullptr;
-  return string_endswith_body(args[0], args[1], start_value, end_value, out, error);
+  if (!string_endswith_body(args[0], args[1], start_value, end_value, out, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  return true;
 }
 
 bool string_endswith_fast_method(
-    Runtime&,
+    Runtime& runtime,
     const Value* leading,
     uint32_t leading_count,
     const Value* registers,
@@ -1247,29 +1260,39 @@ bool string_endswith_fast_method(
     uint32_t register_arg_count,
     Value& out,
     std::string& error,
-    void*) {
+    void* user_data) {
   if (leading_count != 1 || register_arg_count < 1 || register_arg_count > 3 ||
       leading == nullptr || registers == nullptr || register_args == nullptr) {
-    error = "str.endswith expected 1 to 3 arguments";
-    return false;
+    return builtin_fast_adapter<string_endswith_method, 4>(
+        runtime, leading, leading_count, registers, register_args,
+        register_arg_count, out, error, user_data);
   }
   const Value* start_value = register_arg_count >= 2 ? &registers[register_args[1]] : nullptr;
   const Value* end_value = register_arg_count >= 3 ? &registers[register_args[2]] : nullptr;
-  return string_endswith_body(leading[0], registers[register_args[0]], start_value, end_value, out, error);
+  if (!string_endswith_body(leading[0], registers[register_args[0]], start_value, end_value, out, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  return true;
 }
 
-bool string_find_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool string_find_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 2 || argc > 4) {
     error = "str.find expected 1 to 3 arguments";
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
   const Value* start_value = argc >= 3 ? &args[2] : nullptr;
   const Value* end_value = argc >= 4 ? &args[3] : nullptr;
-  return string_find_body(args[0], args[1], start_value, end_value, out, error);
+  if (!string_find_body(args[0], args[1], start_value, end_value, out, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  return true;
 }
 
 bool string_find_fast_method(
-    Runtime&,
+    Runtime& runtime,
     const Value* leading,
     uint32_t leading_count,
     const Value* registers,
@@ -1277,24 +1300,34 @@ bool string_find_fast_method(
     uint32_t register_arg_count,
     Value& out,
     std::string& error,
-    void*) {
+    void* user_data) {
   if (leading_count != 1 || register_arg_count < 1 || register_arg_count > 3 ||
       leading == nullptr || registers == nullptr || register_args == nullptr) {
-    error = "str.find expected 1 to 3 arguments";
-    return false;
+    return builtin_fast_adapter<string_find_method, 4>(
+        runtime, leading, leading_count, registers, register_args,
+        register_arg_count, out, error, user_data);
   }
   const Value* start_value = register_arg_count >= 2 ? &registers[register_args[1]] : nullptr;
   const Value* end_value = register_arg_count >= 3 ? &registers[register_args[2]] : nullptr;
-  return string_find_body(leading[0], registers[register_args[0]], start_value, end_value, out, error);
-}
-
-bool string_count_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc < 2 || argc > 4) {
-    error = "str.count expected 1 to 3 arguments";
+  if (!string_find_body(leading[0], registers[register_args[0]], start_value, end_value, out, error)) {
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
-  return string_count_body(args[0], args[1], argc >= 3 ? &args[2] : nullptr,
-                           argc >= 4 ? &args[3] : nullptr, out, error);
+  return true;
+}
+
+bool string_count_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 2 || argc > 4) {
+    error = "str.count expected 1 to 3 arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (!string_count_body(args[0], args[1], argc >= 3 ? &args[2] : nullptr,
+                           argc >= 4 ? &args[3] : nullptr, out, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  return true;
 }
 
 bool string_rfind_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -1348,7 +1381,7 @@ bool string_rindex_method(Runtime& runtime, const Value* args, uint32_t argc, Va
 }
 
 bool string_count_fast_method(
-    Runtime&,
+    Runtime& runtime,
     const Value* leading,
     uint32_t leading_count,
     const Value* registers,
@@ -1356,16 +1389,21 @@ bool string_count_fast_method(
     uint32_t register_arg_count,
     Value& out,
     std::string& error,
-    void*) {
+    void* user_data) {
   if (leading_count != 1 || register_arg_count < 1 || register_arg_count > 3 ||
       leading == nullptr || registers == nullptr || register_args == nullptr) {
-    error = "str.count expected 1 to 3 arguments";
-    return false;
+    return builtin_fast_adapter<string_count_method, 4>(
+        runtime, leading, leading_count, registers, register_args,
+        register_arg_count, out, error, user_data);
   }
-  return string_count_body(leading[0], registers[register_args[0]],
+  if (!string_count_body(leading[0], registers[register_args[0]],
                            register_arg_count >= 2 ? &registers[register_args[1]] : nullptr,
                            register_arg_count >= 3 ? &registers[register_args[2]] : nullptr,
-                           out, error);
+                           out, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  return true;
 }
 
 bool string_replace_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -1410,12 +1448,14 @@ bool string_replace_fast_method(
     uint32_t register_arg_count,
     Value& out,
     std::string& error,
-    void*) {
+    void* user_data) {
   if (leading_count != 1 || (register_arg_count != 2 && register_arg_count != 3) ||
       leading == nullptr || registers == nullptr || register_args == nullptr) {
-    error = "str.replace expected 2 or 3 arguments";
-    runtime.raise_class_error("TypeError", error);
-    return false;
+    // Keep bound replacement allocation-free. Unbound/partial calls
+    // share ordinary native semantics through borrowed stack arguments.
+    return builtin_fast_adapter<string_replace_method, 4>(
+        runtime, leading, leading_count, registers, register_args,
+        register_arg_count, out, error, user_data);
   }
   memory::X3StringView text;
   if (!get_string_view_checked(leading[0], "str.replace target", text, error)) {
@@ -1493,11 +1533,11 @@ bool string_join_fast_method(
     uint32_t register_arg_count,
     Value& out,
     std::string& error,
-    void*) {
+    void* user_data) {
   if (leading_count != 1 || register_arg_count != 1 || leading == nullptr || registers == nullptr || register_args == nullptr) {
-    error = "str.join expected 1 argument";
-    runtime.raise_class_error("TypeError", error);
-    return false;
+    return builtin_fast_adapter<string_join_method, 2>(
+        runtime, leading, leading_count, registers, register_args,
+        register_arg_count, out, error, user_data);
   }
   memory::X3StringView sep;
   if (!get_string_view_checked(leading[0], "str.join separator", sep, error)) {

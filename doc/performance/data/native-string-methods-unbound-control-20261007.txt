@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "tests/fixtures/core/native_string_methods_unbound.py", line 15, in <module>
+    assert token.replace("abc", "x") == "x x"
+           ~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "tests/fixtures/core/native_string_methods_unbound.py", line 10, in replace
+    return str.replace(self, old, new, count)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: str.replace expected 2 or 3 arguments

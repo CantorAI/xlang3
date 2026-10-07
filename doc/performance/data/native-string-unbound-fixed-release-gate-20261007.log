@@ -1,0 +1,12 @@
+local_slots              pass         0.974x
+scalar_arithmetic        pass         1.003x
+range_for                pass         1.016x
+function_calls           pass         0.976x
+class_construct          pass         0.993x
+list_append              pass         1.014x
+property_access          pass         0.987x
+deepcopy_memo            pass         0.880x
+json_dumps               pass         0.975x
+gc_traversal             pass         1.003x
+subparsers               pass         0.937x
+Performance check: pass. Report: doc\performance\data\native-string-unbound-fixed-release-gate-20261007.json
