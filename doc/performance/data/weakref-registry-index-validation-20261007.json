@@ -1,0 +1,71 @@
+{
+  "status": "correctness_and_fixed_gate_passed",
+  "manager_version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+  "source_base_commit": "41b1091ef7f9e7c05bb0e96be14ea170c27c5812",
+  "source_files": {
+    "src/runtime/modules/system/weakref_module.cpp": "b17237a4f270ac911b4679c8892642667c9dae41d2938c4799d232cab0ad65ae",
+    "tests/run_fixtures.py": "4339a3205a04662423c0e093661bf5070928c273d31dd2d849f2ad966842de93",
+    "tests/fixtures/core/weakref_registry_index.py": "b8b7360369bd61551e464026c8b4c07d6290ab2c0758e434e1057b4f18b320a0",
+    "tests/fixtures/expected/weakref_registry_index.out": "d150fe4d576e918bbcdf56895463de84518359f8b895e0c37ac6002ee24ab610"
+  },
+  "sha256_start": {
+    "exe": "b1e8973ae266243f545920a83a5ac7e1686f56baaf443193514be59f43dd4afb",
+    "dll": "a9e3154ed4361275b5a22f31448812bb889a99295dbc0efa62a876a695e94768"
+  },
+  "full_fixtures": {
+    "exit_code": 0,
+    "verified_exec_session": 77347,
+    "core_cases": 356,
+    "section_cases": 11,
+    "expected_failure_cases": 3,
+    "stdout": "empty on success",
+    "fixture_normalization": "After full run, trailing whitespace removed from one blank line of the new fixture. CPython and XLang3 focused reruns pass with identical stdout; no engine changes."
+  },
+  "cpp_sdk": {
+    "exit_code": 0,
+    "tests_passed": 8,
+    "log": "weakref-registry-index-cpp-sdk-20261007.log"
+  },
+  "focused_fixture": {
+    "exit_code": 0,
+    "log": "weakref-registry-index-xlang3-fixture-r4-20261007.log",
+    "cpython_reference": "weakref-registry-index-cpython3147-reference-r4-20261007.json",
+    "preserved_control_exit_code": 0,
+    "preserved_control_log": "weakref-registry-index-preserved-control-fixture-r3-20261007.log"
+  },
+  "known_retention_gap": {
+    "status": "preexisting_failure_candidate_and_control",
+    "source": "benchmarks/diagnostics/weakref_comprehension_lifetime.py",
+    "first_fixture_control_log": "weakref-registry-index-preserved-control-fixture-20261007.log",
+    "scope": "Module-frame temporary lifetime; first factory-callback variant fails too; exact cause not established"
+  },
+  "diagnostic_scaling_log": "weakref-registry-scaling-xlang3-index-candidate-20261007.log",
+  "diagnostic_primitives_log": "typing-protocol-runtime-primitives-xlang3-index-candidate-20261007.log",
+  "fixed_gate": {
+    "status": "pass",
+    "report": "release-weakref-registry-index-fixed-gate-20261007.json",
+    "exit_code": 0,
+    "accepted": true,
+    "cases": 11,
+    "repeats": 21,
+    "warmup": 5,
+    "threshold": 0.1
+  },
+  "official_typing": {
+    "status": "finished",
+    "exit_code": 0,
+    "benchmarks": "typing_runtime_protocols,gc_traversal",
+    "report": "pyperformance-xlang3-weakref-registry-index-targeted-fast-20261007.json",
+    "provenance": "pyperformance-xlang3-weakref-registry-index-targeted-fast-20261007-provenance.json",
+    "definitions_attempted": 2,
+    "completed": 2,
+    "failed": 0,
+    "typing_runtime_protocols_status": "completed",
+    "gc_traversal_status": "completed"
+  },
+  "sha256_end": {
+    "exe": "b1e8973ae266243f545920a83a5ac7e1686f56baaf443193514be59f43dd4afb",
+    "dll": "a9e3154ed4361275b5a22f31448812bb889a99295dbc0efa62a876a695e94768"
+  },
+  "comparison": "weakref-registry-index-official-and-scaling-comparison-20261007.json"
+}

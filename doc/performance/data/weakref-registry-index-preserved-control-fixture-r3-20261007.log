@@ -1,0 +1,4 @@
+indexed ref reuse and target enumeration True
+invalidation and callback order True
+reference subclasses and dead hash True
+repeated lifetime and unrelated references True

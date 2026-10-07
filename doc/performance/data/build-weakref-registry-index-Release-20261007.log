@@ -1,0 +1,5 @@
+ninja: Entering directory `build-repro\main-verify-20261006'
+[0/2] Re-checking globbed directories...
+[1/9] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\weakref_module.cpp.obj
+[2/9] Linking CXX static library Release\xlang3_system_runtime.lib
+[3/9] Linking CXX shared library Release\xlang3_runtime.dll

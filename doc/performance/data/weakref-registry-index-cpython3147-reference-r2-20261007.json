@@ -1,0 +1,6 @@
+{
+  "version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+  "exit_code": 0,
+  "fixture_sha256": "1b9e45139018e44e281128c1375018e6234f25d89cba1332dea34946214fa3a4",
+  "stdout": "indexed ref reuse and target enumeration True\ninvalidation and callback order True\nreference subclasses and dead hash True\nrepeated lifetime and unrelated references True\n"
+}

@@ -71,6 +71,34 @@ std::vector<WeakrefEntry>& weakref_registry() {
   return *refs;
 }
 
+// These indexes contain raw pointers, just like the enumeration registry:
+// neither the referent nor the reference is kept alive. All accesses share
+// weakref_registry_mutex, and invalidation removes keys before memory reuse.
+// Keep enumeration separate so collector traversal and callback order retain
+// their existing behavior; ordinary ref reuse/dereference must not scan every
+// unrelated weak reference imported by a Python library such as inspect.
+std::unordered_map<Object*, Object*>& weakref_target_by_reference() {
+  static auto* targets = new std::unordered_map<Object*, Object*>();
+  return *targets;
+}
+
+std::unordered_map<Object*, std::vector<Object*>>& weakref_references_by_target() {
+  static auto* references = new std::unordered_map<Object*, std::vector<Object*>>();
+  return *references;
+}
+
+// Caller holds the registry lock. Erase preserves registration order within a
+// target, including the reverse registration order used for callbacks.
+void remove_weakref_target_index(Object* target, Object* reference) {
+  if (target == nullptr) return;
+  auto& index = weakref_references_by_target();
+  auto found = index.find(target);
+  if (found == index.end()) return;
+  auto& references = found->second;
+  references.erase(std::remove(references.begin(), references.end(), reference), references.end());
+  if (references.empty()) index.erase(found);
+}
+
 std::recursive_mutex& weakref_registry_mutex() {
   static auto* mutex = new std::recursive_mutex();
   return *mutex;
@@ -145,22 +173,38 @@ void register_weakref_instance(const Value& ref, const Value& target) {
   if (target_pointer != nullptr)
     target_pointer->gc_tracking_state.fetch_or(
         kObjectWeakrefTargetFlag, std::memory_order_release);
-  for (auto& existing : refs) {
-    if (existing.ref == ref_pointer) {
-      existing.target = target_pointer;
-      return;
+  auto& targets = weakref_target_by_reference();
+  auto found = targets.find(ref_pointer);
+  if (found != targets.end()) {
+    if (found->second == target_pointer) return;
+    remove_weakref_target_index(found->second, ref_pointer);
+    found->second = target_pointer;
+    // Reinitialization is rare; preserve the enumeration entry's original
+    // position instead of changing global callback registration order.
+    for (auto& existing : refs) {
+      if (existing.ref == ref_pointer) {
+        existing.target = target_pointer;
+        break;
+      }
     }
+  } else {
+    refs.push_back({ref_pointer, target_pointer});
+    targets.emplace(ref_pointer, target_pointer);
   }
-  refs.push_back({ref_pointer, target_pointer});
+  if (target_pointer != nullptr)
+    weakref_references_by_target()[target_pointer].push_back(ref_pointer);
 }
 
 std::vector<Value> weakref_candidates_for_target(Object* target) {
   std::vector<Value> candidates;
   std::lock_guard lock(weakref_registry_mutex());
-  for (const auto& entry : weakref_registry()) {
-    if (entry.target != target || entry.ref == nullptr) continue;
+  const auto& index = weakref_references_by_target();
+  const auto found = index.find(target);
+  if (found == index.end()) return candidates;
+  candidates.reserve(found->second.size());
+  for (Object* reference : found->second) {
     Value candidate;
-    if (weakref_retain_if_alive(entry.ref, candidate))
+    if (weakref_retain_if_alive(reference, candidate))
       candidates.push_back(std::move(candidate));
   }
   return candidates;
@@ -854,11 +898,9 @@ bool weakref_getweakrefcount(Runtime& runtime, const Value* args, uint32_t argc,
   int64_t count = 0;
   if (args[0].tag == ValueTag::Object) {
     std::lock_guard lock(weakref_registry_mutex());
-    for (const auto& entry : weakref_registry()) {
-      if (entry.target != nullptr && entry.target == args[0].as.obj) {
-        ++count;
-      }
-    }
+    const auto& index = weakref_references_by_target();
+    const auto found = index.find(args[0].as.obj);
+    if (found != index.end()) count = static_cast<int64_t>(found->second.size());
   }
   value_set_int64(out, count);
   return true;
@@ -951,21 +993,18 @@ Value make_weakref_ref(Runtime& runtime, const Value& target) {
 bool weakref_get_target(const Value& ref, Value& out) {
   if (ref.tag != ValueTag::Object) return false;
   std::lock_guard lock(weakref_registry_mutex());
-  for (const auto& entry : weakref_registry()) {
-    if (entry.ref == ref.as.obj && entry.target != nullptr)
-      return weakref_retain_if_alive(entry.target, out);
-  }
-  return false;
+  const auto& index = weakref_target_by_reference();
+  const auto found = index.find(ref.as.obj);
+  return found != index.end() && weakref_retain_if_alive(found->second, out);
 }
 
 bool weakref_find_ref(const Value& target, Value& out) {
   std::lock_guard lock(weakref_registry_mutex());
-  for (const auto& entry : weakref_registry()) {
-    if (entry.target != nullptr && target.tag == ValueTag::Object && entry.target == target.as.obj) {
-      return weakref_retain_if_alive(entry.ref, out);
-    }
-  }
-  return false;
+  if (target.tag != ValueTag::Object) return false;
+  const auto& index = weakref_references_by_target();
+  const auto found = index.find(target.as.obj);
+  return found != index.end() && !found->second.empty() &&
+         weakref_retain_if_alive(found->second.front(), out);
 }
 
 void weakref_invalidate_target(Object* target) {
@@ -995,9 +1034,17 @@ void weakref_invalidate_target(Object* target) {
             callback_candidates.push_back(std::move(owned));
         }
         entry->target = nullptr;
+        weakref_target_by_reference()[entry->ref] = nullptr;
       }
+      weakref_references_by_target().erase(target);
     }
     if ((roles & kObjectWeakrefReferenceFlag) != 0) {
+      auto& targets = weakref_target_by_reference();
+      auto found = targets.find(target);
+      if (found != targets.end()) {
+        remove_weakref_target_index(found->second, target);
+        targets.erase(found);
+      }
       refs.erase(
           std::remove_if(
               refs.begin(), refs.end(),
