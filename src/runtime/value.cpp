@@ -3473,6 +3473,12 @@ bool value_floor_div(const Value& lhs, const Value& rhs, Value& out, std::string
       error = "integer division by zero";
       return false;
     }
+    // Signed hardware division traps for INT64_MIN / -1. Python promotes the
+    // quotient to bigint; check before either division or remainder instruction.
+    if (lhs.as.i64 == std::numeric_limits<int64_t>::min() && rhs.as.i64 == -1) {
+      out = value_bigint_from_u64(uint64_t{1} << 63u);
+      return true;
+    }
     int64_t q = lhs.as.i64 / rhs.as.i64;
     const int64_t r = lhs.as.i64 % rhs.as.i64;
     if (r != 0 && ((r < 0) != (rhs.as.i64 < 0))) {
@@ -3510,6 +3516,10 @@ bool value_mod(const Value& lhs, const Value& rhs, Value& out, std::string& erro
     if (rhs.as.i64 == 0) {
       error = "integer modulo by zero";
       return false;
+    }
+    if (lhs.as.i64 == std::numeric_limits<int64_t>::min() && rhs.as.i64 == -1) {
+      value_set_int64(out, 0);
+      return true;
     }
     int64_t result = lhs.as.i64 % rhs.as.i64;
     if (result != 0 && ((result < 0) != (rhs.as.i64 < 0))) {

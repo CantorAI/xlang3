@@ -27,3 +27,14 @@
 /doc/performance/data/pidigits-shorter-outer-*-20261007* -text
 /benchmarks/diagnostics/pidigits_body_correctness.py text eol=lf
 /tests/cpp/bigint_multiply_operand_view_cases.h text eol=lf
+
+/doc/performance/data/bigint-division-*-20261007* -text
+/doc/performance/data/pyperformance-bigint-division-*-20261007* -text
+/doc/performance/data/release-bigint-division-*-20261007* -text
+/doc/performance/data/pidigits-division-*-20261007* -text
+/benchmarks/diagnostics/generic_bigint_divmod.py text eol=lf
+/tests/cpp/bigint_division_working_buffer_cases.h text eol=lf
+/tests/fixtures/core/bigint_division_working_buffers.py text eol=lf
+/tests/fixtures/expected/bigint_division_working_buffers.out text eol=lf
+/doc/performance/bigint-division-working-buffer-checkpoint-20261007.md text eol=lf
+/doc/performance/bigint-division-working-buffer-checkpoint-20261007.svg text eol=lf

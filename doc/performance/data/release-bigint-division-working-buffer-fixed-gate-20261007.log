@@ -1,0 +1,12 @@
+local_slots              pass         1.000x
+scalar_arithmetic        pass         1.000x
+range_for                pass         0.995x
+function_calls           pass         1.023x
+class_construct          pass         1.010x
+list_append              pass         0.985x
+property_access          pass         0.999x
+deepcopy_memo            pass         0.918x
+json_dumps               pass         1.005x
+gc_traversal             pass         0.753x
+subparsers               pass         0.952x
+Performance check: pass. Report: D:\CantorAI\xlang3\doc\performance\data\release-bigint-division-working-buffer-fixed-gate-20261007.json

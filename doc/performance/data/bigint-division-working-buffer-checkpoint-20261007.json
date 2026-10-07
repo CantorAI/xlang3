@@ -1,0 +1,201 @@
+{
+  "status": "correctness_fixed_gate_and_official_benchmark_passed",
+  "official_pidigits_seconds": {
+    "before": 0.26343571499892277,
+    "after": 0.23917115499643843,
+    "cpython3147": 0.16208696000394412
+  },
+  "binary_sha256": {
+    "before": {
+      "exe": "9f89802e3eed9431dccfe6906cd04cfede486e77dc951469fbf80cc785152bdc",
+      "dll": "a96a4fe79d36bf65945afd56789fc9eb6e15cb3141ca93d830b69f0e39ca876a"
+    },
+    "after": {
+      "exe": "9f89802e3eed9431dccfe6906cd04cfede486e77dc951469fbf80cc785152bdc",
+      "dll": "1a6375124e5e6957e9add1b80da546583bc9d9c254132d5a5bd464b0decd7c31"
+    },
+    "cpython3147": {
+      "exe": "4942b86a6597e5aee0128daa00050ed79bc21f6e709a78eb19cbfeb0c2f39ac9",
+      "dll": "0f9857ffdfe010fe6b99328d58c2e3c7472ce75f336bf9c2ad9bd5bca3bce700"
+    }
+  },
+  "official_before_over_after": 1.1014527023664107,
+  "official_time_reduction_fraction": 0.09210808793554648,
+  "cpython_over_after": 0.6777027940779807,
+  "source_sha256_raw": {
+    "src/runtime/bigint.cpp": "45a9548336ea978527dbb0132c9ab7f7156a0ef89fc65304b3090a449dd2b34f",
+    "src/runtime/value.cpp": "1ba5031aa32d4a83c303764191fb10e535b40c5f9d05bbcb23a448606ea183fa",
+    "src/executor/xlang_vm/xlang_vm_arithmetic.h": "7c55861df169632e5b25684dc0138dad414e46a0d75cb3aa430800f52893c7a8",
+    "src/builtins/functional_builtins.cpp": "f13dd00463f1cd76dfad45c46611a11511d935ac1fec599f5b2c94e5ed0a18d7",
+    "tests/cpp/bigint_division_working_buffer_cases.h": "c7e37adb473b5ce704ba7bc25c98c9dd545740d13449bb0b764b0262c86f2bba",
+    "tests/fixtures/core/bigint_division_working_buffers.py": "e459a868e3db98a9a536d6dfb9ca96a0fd411cb2ded10fb1efe74610a968f204",
+    "benchmarks/diagnostics/generic_bigint_divmod.py": "de45537ed029f8c22d38d91f064cd4961fcde7717e613f1823a78551fdd14dda"
+  },
+  "source_sha256_canonical_lf": {
+    "src/runtime/bigint.cpp": "bfe9ab0fb0e87fbf242d2547a2ba11ab4cd6cf6c138abc4d70b9e209ea25d773",
+    "src/runtime/value.cpp": "1ba5031aa32d4a83c303764191fb10e535b40c5f9d05bbcb23a448606ea183fa",
+    "src/executor/xlang_vm/xlang_vm_arithmetic.h": "5f4ada1a52ad8f2961700a75862db67820d3272e86ecfd2d70ea1ef5d12690cb",
+    "src/builtins/functional_builtins.cpp": "f13dd00463f1cd76dfad45c46611a11511d935ac1fec599f5b2c94e5ed0a18d7",
+    "tests/cpp/bigint_division_working_buffer_cases.h": "09738046d80cfcfb39b437b52de409dd5c50b9238c78133763f89954debc2aae",
+    "tests/fixtures/core/bigint_division_working_buffers.py": "e459a868e3db98a9a536d6dfb9ca96a0fd411cb2ded10fb1efe74610a968f204",
+    "benchmarks/diagnostics/generic_bigint_divmod.py": "de45537ed029f8c22d38d91f064cd4961fcde7717e613f1823a78551fdd14dda"
+  },
+  "diagnostics": [
+    {
+      "case": "small-quotient-65-floor",
+      "before_seconds": 5.439000087790191e-07,
+      "after_seconds": 3.074999840464443e-07,
+      "cpython3147_seconds": 5.1699986215680835e-08,
+      "before_over_after": 1.768780608121493,
+      "cpython_over_after": 0.16813004519659472
+    },
+    {
+      "case": "small-quotient-65-divmod",
+      "before_seconds": 1.189000002341345e-06,
+      "after_seconds": 7.062999939080328e-07,
+      "cpython3147_seconds": 6.379999103955924e-08,
+      "before_over_after": 1.6834206606211077,
+      "cpython_over_after": 0.09032987624217173
+    },
+    {
+      "case": "wide-quotient-65-floor",
+      "before_seconds": 5.259799974737689e-06,
+      "after_seconds": 7.269000052474439e-07,
+      "cpython3147_seconds": 7.159999222494662e-08,
+      "before_over_after": 7.235933328886414,
+      "cpython_over_after": 0.0985004700895184
+    },
+    {
+      "case": "wide-quotient-65-divmod",
+      "before_seconds": 1.0885600000619889e-05,
+      "after_seconds": 1.5940000012051315e-06,
+      "cpython3147_seconds": 8.89000075403601e-08,
+      "before_over_after": 6.829109154573347,
+      "cpython_over_after": 0.055771648352037594
+    },
+    {
+      "case": "small-quotient-128-floor",
+      "before_seconds": 5.560000136028975e-07,
+      "after_seconds": 3.2059999648481607e-07,
+      "cpython3147_seconds": 5.479998071677983e-08,
+      "before_over_after": 1.7342483459111024,
+      "cpython_over_after": 0.1709294489008992
+    },
+    {
+      "case": "small-quotient-128-divmod",
+      "before_seconds": 1.2128999806009233e-06,
+      "after_seconds": 7.318000134546309e-07,
+      "cpython3147_seconds": 6.78999931551516e-08,
+      "before_over_after": 1.6574200031442317,
+      "cpython_over_after": 0.09278490285155094
+    },
+    {
+      "case": "wide-quotient-128-floor",
+      "before_seconds": 5.4108999902382495e-06,
+      "after_seconds": 9.360999974887819e-07,
+      "cpython3147_seconds": 7.869998808018863e-08,
+      "before_over_after": 5.780258524467193,
+      "cpython_over_after": 0.08407220199905167
+    },
+    {
+      "case": "wide-quotient-128-divmod",
+      "before_seconds": 1.1249200004385785e-05,
+      "after_seconds": 2.0927000150550157e-06,
+      "cpython3147_seconds": 1.0730000212788582e-07,
+      "before_over_after": 5.375447949280036,
+      "cpython_over_after": 0.051273475106782075
+    },
+    {
+      "case": "small-quotient-1024-floor",
+      "before_seconds": 8.205999911297112e-07,
+      "after_seconds": 4.992999893147498e-07,
+      "cpython3147_seconds": 1.4489999739453196e-07,
+      "before_over_after": 1.6435009186679947,
+      "cpython_over_after": 0.2902062897966328
+    },
+    {
+      "case": "small-quotient-1024-divmod",
+      "before_seconds": 1.7034999909810721e-06,
+      "after_seconds": 1.1061000113841146e-06,
+      "cpython3147_seconds": 1.582999830134213e-07,
+      "before_over_after": 1.540095808198576,
+      "cpython_over_after": 0.1431154338524354
+    },
+    {
+      "case": "wide-quotient-1024-floor",
+      "before_seconds": 8.243399992352351e-06,
+      "after_seconds": 3.388900018762797e-06,
+      "cpython3147_seconds": 2.2700001136399806e-07,
+      "before_over_after": 2.4324706974866173,
+      "cpython_over_after": 0.06698338992215831
+    },
+    {
+      "case": "wide-quotient-1024-divmod",
+      "before_seconds": 1.679380002315156e-05,
+      "after_seconds": 6.965600012335926e-06,
+      "cpython3147_seconds": 2.454999776091427e-07,
+      "before_over_after": 2.410962443064504,
+      "cpython_over_after": 0.035244627479953994
+    },
+    {
+      "case": "small-quotient-4096-floor",
+      "before_seconds": 1.3734999811276793e-06,
+      "after_seconds": 9.654999885242432e-07,
+      "cpython3147_seconds": 5.247000080998987e-07,
+      "before_over_after": 1.4225789719863797,
+      "cpython_over_after": 0.5434490050092049
+    },
+    {
+      "case": "small-quotient-4096-divmod",
+      "before_seconds": 2.798899979097769e-06,
+      "after_seconds": 2.020699990680441e-06,
+      "cpython3147_seconds": 5.38099993718788e-07,
+      "before_over_after": 1.3851140654260508,
+      "cpython_over_after": 0.26629385668358946
+    },
+    {
+      "case": "wide-quotient-4096-floor",
+      "before_seconds": 1.828119999845512e-05,
+      "after_seconds": 1.0187500010943041e-05,
+      "cpython3147_seconds": 8.065000001806766e-07,
+      "before_over_after": 1.7944736175526994,
+      "cpython_over_after": 0.07916564410447742
+    },
+    {
+      "case": "wide-quotient-4096-divmod",
+      "before_seconds": 3.671899999608286e-05,
+      "after_seconds": 2.0275299990316854e-05,
+      "cpython3147_seconds": 8.19599983515218e-07,
+      "before_over_after": 1.8110212925884817,
+      "cpython_over_after": 0.04042356877119674
+    }
+  ],
+  "input_sha256": {
+    "pyperformance-bigint-division-working-buffer-pidigits-before-fast-20261007.json": "df3bb154fa13f2da1d6e5d2dd017cdde12c1325f53cede43447fa03813515c4c",
+    "pyperformance-bigint-division-working-buffer-pidigits-before-fast-20261007.log": "f70b41b57893650f51656927938c89cb305c2f1d282e11e8abe5e808c79910a8",
+    "pyperformance-bigint-division-working-buffer-pidigits-before-fast-20261007-provenance.json": "bb3bda65bd7b151cc2457c2ebafa88a1d2418d36c9472f27a07ea50a4423e506",
+    "pyperformance-bigint-division-working-buffer-pidigits-after-fast-20261007.json": "c3abb2f02924cb82588db1e3ea13fc3d1a41d4878ec85c168d81604cdacdd790",
+    "pyperformance-bigint-division-working-buffer-pidigits-after-fast-20261007.log": "86ab65a933633fc9be1369c31ee54c7a61a1e4d5c0ace7429ec85d990c8ded15",
+    "pyperformance-bigint-division-working-buffer-pidigits-after-fast-20261007-provenance.json": "974911997bcc5c28e1ee2a64ade0f4bc676cc323b388351412e15c50cf14bb95",
+    "pyperformance-bigint-division-working-buffer-pidigits-cpython3147-fast-20261007.json": "0511787a09389407a261f0ceedb9c431a72a8358a16477435ae4d5aa1e2fc237",
+    "pyperformance-bigint-division-working-buffer-pidigits-cpython3147-fast-20261007.log": "b10e6d601512c58b09d798505e36093fc90b1f45cb800b7438e6461661775ad9",
+    "pyperformance-bigint-division-working-buffer-pidigits-cpython3147-fast-20261007-provenance.json": "70d85d9a25cbe42b27d1c11d69c42caabe6bbe0b391b412ccdd96d306635dcac",
+    "bigint-division-leftover-process-20261007.json": "4fcce2e6ddb47fa3ea415770c52358c8b8ab71d5cd6b9975a019f9823ca6245e",
+    "bigint-division-diagnostic-before-20261007.json": "d2429913c102fbfb75b8d0053319a87ffd34cabb14b25facfe8435b0c1d8cee9",
+    "bigint-division-diagnostic-before-r2-20261007.json": "b7708e4e2bbe54650f01592df9e634719a15a378787753d7cf9fa4fc3ba8e6b0",
+    "bigint-division-diagnostic-before-r3-20261007.json": "1148d131a27f595159436a3a749f8609cd8f1c747efe052606d04aa8a402b437",
+    "bigint-division-diagnostic-after-r3-20261007.json": "8f5ad3e6d0a6997683cc0dbdb70c8c4330e60fcdbead74f2a309c67144be05e9",
+    "bigint-division-working-buffer-validation-20261007.json": "86a91079ff80fe99669b82fd329926008036df4f9e1cd3533f72bddf1bb93628",
+    "bigint-division-working-buffer-validation-20261007-fixtures.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bigint-division-working-buffer-validation-20261007-cpp.log": "0a5ea4722aef90e6226d65daddfd816135af59dc3db00ad7d8cd340ae7c1c7bb",
+    "release-bigint-division-working-buffer-fixed-gate-20261007.json": "ea7b2e587edb5cdad10b230176ca3c23ab13831468f6c373df229e85ec4e5a7f",
+    "release-bigint-division-working-buffer-fixed-gate-20261007.log": "dd867c34032adc38b0ed1b84a751f28e3d7ea5a85e35d8ab54f84a77dbde74e4",
+    "pidigits-division-working-buffer-body-correctness-20261007.json": "f4a295beb3113f4863c00738d730eb96ae3ab2b153fbc4d6d22f26fb5a0850bd"
+  },
+  "limitations": [
+    "Independent sequential fast-mode runs with stability warnings; not a paired significance test",
+    "Only affected official pidigits was rerun; full-suite 97-case report is unchanged",
+    "Previous fast samples may have shared CPU load from a leftover task-local Python process; this checkpoint uses a fresh before measurement after terminating it",
+    "Before diagnostic skips two recorded known boundaries; candidate and CPython validate them"
+  ]
+}

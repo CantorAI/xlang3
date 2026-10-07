@@ -1,0 +1,20 @@
+{
+  "created_utc": "2026-10-07T21:03:48.290402+00:00",
+  "manager_version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+  "sha256_start": {
+    "exe": "9f89802e3eed9431dccfe6906cd04cfede486e77dc951469fbf80cc785152bdc",
+    "dll": "a96a4fe79d36bf65945afd56789fc9eb6e15cb3141ca93d830b69f0e39ca876a"
+  },
+  "probe_sha256": "c3babce363b40a8ba9c7852f4a419595d6c4b750ca77dce546b76a98ca2f19e7",
+  "xlang3": {
+    "command": [
+      "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+      "D:\\CantorAI\\xlang3\\benchmarks\\diagnostics\\generic_bigint_divmod.py",
+      "1000",
+      "--skip-known-int64-overflow"
+    ],
+    "returncode": 1,
+    "stdout": "",
+    "stderr": "Traceback (most recent call last):\n  File \"D:\\CantorAI\\xlang3\\benchmarks\\diagnostics\\generic_bigint_divmod.py\", line 78, in <module>\n    run()\n    ~~~^^\n  File \"D:\\CantorAI\\xlang3\\benchmarks\\diagnostics\\generic_bigint_divmod.py\", line 48, in run\n    divmod(1 << 128, 0)\n    ~~~~~~^^^^^^^^^^^^^\nTypeError: unsupported operand type(s) for divmod()\n"
+  }
+}

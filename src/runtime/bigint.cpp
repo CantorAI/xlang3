@@ -303,6 +303,33 @@ BigIntPayload sub_abs(const BigIntPayload& larger, const BigIntPayload& smaller,
   return out;
 }
 
+// Division owns both working buffers and has already proved larger >= smaller.
+// Reuse the remainder storage rather than allocating/copying every subtraction.
+// Never call this on a borrowed operand view or a caller's immutable integer.
+void subtract_division_remainder(BigIntPayload& larger, const BigIntPayload& smaller) {
+  uint64_t borrow = 0;
+  for (uint32_t i = 0; i < larger.limb_count; ++i) {
+    const uint64_t a = larger.limbs[i];
+    const uint64_t b = (i < smaller.limb_count ? smaller.limbs[i] : 0) + borrow;
+    larger.limbs[i] = static_cast<uint32_t>(a - b);
+    borrow = a < b ? 1u : 0u;
+  }
+  normalize(larger);
+}
+
+// The shifted divisor is private positive scratch storage. Carry bits from high
+// to low in place; allocating another buffer for each quotient bit made large
+// integer division pay allocator and copy costs inside its arithmetic loop.
+void shift_division_divisor_right_one(BigIntPayload& value) {
+  uint32_t carry = 0;
+  for (uint32_t i = value.limb_count; i-- > 0;) {
+    const uint32_t limb = value.limbs[i];
+    value.limbs[i] = (limb >> 1u) | (carry << 31u);
+    carry = limb & 1u;
+  }
+  normalize(value);
+}
+
 BigIntPayload add_payload(const BigIntPayload& lhs, const BigIntPayload& rhs) {
   if (lhs.sign == 0) return clone_payload(rhs);
   if (rhs.sign == 0) return clone_payload(lhs);
@@ -1025,7 +1052,12 @@ bool value_int_like_divmod(const Value& lhs, const Value& rhs, Value& quotient, 
   dividend.sign = dividend.sign == 0 ? 0 : 1;
   divisor.sign = 1;
   BigIntPayload q;
-  BigIntPayload r = clone_payload(dividend);
+  // Conversion has already copied each operand, in Python callback order.
+  // Transfer that owned dividend into the remainder instead of copying again.
+  // Results are published only after arithmetic, so output/input aliases and
+  // reentrant wrapper conversion cannot expose these mutable working limbs.
+  BigIntPayload r;
+  move_assign_payload(r, dividend);
   if (compare_abs(r, divisor) >= 0) {
     const uint32_t shift = bit_length_abs(r) - bit_length_abs(divisor);
     BigIntPayload shifted_divisor = shift_left_payload(divisor, shift);
@@ -1035,13 +1067,11 @@ bool value_int_like_divmod(const Value& lhs, const Value& rhs, Value& quotient, 
     q.sign = 1;
     for (int64_t bit = static_cast<int64_t>(shift); bit >= 0; --bit) {
       if (compare_abs(r, shifted_divisor) >= 0) {
-        BigIntPayload next = sub_abs(r, shifted_divisor, 1);
-        move_assign_payload(r, next);
+        subtract_division_remainder(r, shifted_divisor);
         q.limbs[static_cast<uint32_t>(bit) / 32u] |=
             uint32_t{1} << (static_cast<uint32_t>(bit) % 32u);
       }
-      BigIntPayload next_divisor = shift_right_positive(shifted_divisor, 1);
-      move_assign_payload(shifted_divisor, next_divisor);
+      shift_division_divisor_right_one(shifted_divisor);
     }
     release_limbs(shifted_divisor);
     normalize(q);

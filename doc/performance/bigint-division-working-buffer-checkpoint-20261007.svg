@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="285" viewBox="0 0 900 285">
+<rect width="900" height="285" fill="white"/>
+<g font-family="Arial,sans-serif" fill="#0f172a">
+<text x="28" y="35" font-size="22">Official pidigits speed vs CPython 3.14.7</text>
+<text x="28" y="61" font-size="14">CPython = 1× · higher is faster · independent fast-mode runs</text>
+<text x="28" y="113" font-size="16">CPython 3.14.7</text>
+<rect x="225" y="90" width="427.27" height="32" fill="#475569"/>
+<text x="662.27" y="113" font-size="16">1.000×</text>
+<text x="28" y="165" font-size="16">XLang3 before</text>
+<rect x="225" y="142" width="262.89" height="32" fill="#94a3b8"/>
+<text x="497.89" y="165" font-size="16">0.615×</text>
+<text x="28" y="217" font-size="16">XLang3 candidate</text>
+<rect x="225" y="194" width="289.56" height="32" fill="#2563eb"/>
+<text x="524.56" y="217" font-size="16">0.678×</text>
+<text x="28" y="267" font-size="13">Targeted checkpoint; full 97-case comparison remains unchanged.</text>
+</g></svg>

@@ -5393,6 +5393,17 @@ bool builtin_divmod(Runtime& runtime, const Value* args, uint32_t argc, Value& o
   }
   Value quotient;
   Value remainder;
+  // Native numeric errors must survive the generic special-method fallback.
+  // Otherwise divmod(bigint, 0) incorrectly becomes an unsupported-type error.
+  const auto numeric = [](const Value& value) {
+    return value.tag == ValueTag::Int64 || value.tag == ValueTag::Bool ||
+        value.tag == ValueTag::Double || value_as_bigint(value) != nullptr;
+  };
+  if (numeric(args[0]) && numeric(args[1]) && !value_truthy(args[1])) {
+    error = "division or modulo by zero";
+    runtime.raise_class_error("ZeroDivisionError", error);
+    return false;
+  }
   if (value_floor_div(args[0], args[1], quotient, error) &&
       value_mod(args[0], args[1], remainder, error)) {
     out = Value::tuple({quotient, remainder});

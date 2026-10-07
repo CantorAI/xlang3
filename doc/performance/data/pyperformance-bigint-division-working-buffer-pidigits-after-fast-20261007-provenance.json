@@ -1,0 +1,37 @@
+{
+  "status": "finished",
+  "phase": "after",
+  "manager_version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+  "runtime_executable": "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+  "command": [
+    "C:\\Python\\Python314\\python.exe",
+    "benchmarks/diagnostics/run_pyperformance_xlang3_shimmed.py",
+    "--runtime",
+    "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+    "--benchmarks",
+    "pidigits",
+    "--mode",
+    "fast",
+    "--case-timeout",
+    "300",
+    "--dependency-site",
+    "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages",
+    "--output",
+    "D:\\CantorAI\\xlang3\\doc\\performance\\data\\pyperformance-bigint-division-working-buffer-pidigits-after-fast-20261007.json"
+  ],
+  "started_utc": "2026-10-07T21:08:42.368211+00:00",
+  "sha256_start": {
+    "exe": "9f89802e3eed9431dccfe6906cd04cfede486e77dc951469fbf80cc785152bdc",
+    "dll": "1a6375124e5e6957e9add1b80da546583bc9d9c254132d5a5bd464b0decd7c31"
+  },
+  "benchmark_source_sha256": "4bf89183acb8651623676ece6e10787b6c71eec549fe53ce17a62a812ef7447d",
+  "compatibility_hook_sha256": "2ffc217fe20497156bfcb1cebc7fb87203f33c6d4d3dbb6ecbcbcf91ea4cb317",
+  "compiled_engine": "division working buffer candidate",
+  "comparison": "Sequential independent fast runs after removing leftover CPU activity; same XLang3 executable path for before and after",
+  "exit_code": 0,
+  "completed_utc": "2026-10-07T21:08:55.994893+00:00",
+  "sha256_end": {
+    "exe": "9f89802e3eed9431dccfe6906cd04cfede486e77dc951469fbf80cc785152bdc",
+    "dll": "1a6375124e5e6957e9add1b80da546583bc9d9c254132d5a5bd464b0decd7c31"
+  }
+}
