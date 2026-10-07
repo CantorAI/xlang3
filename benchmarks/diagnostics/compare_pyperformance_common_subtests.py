@@ -11,6 +11,7 @@ import hashlib
 import json
 import math
 import os
+import re
 from pathlib import Path
 
 from summarize_pyperformance_comparison import benchmark_map, mean, timing
@@ -64,9 +65,12 @@ def validate_completed_provenance(provenance, reference_name):
     for kind in kinds:
         if not start.get(kind) or start[kind].lower() != end.get(kind, "").lower():
             raise ValueError(f"missing or changed after-run {kind} hash")
-    # The runners record either `python --version` or platform.python_version().
-    # Both must identify exactly the required reference version.
-    if provenance.get("manager_version") not in {"Python 3.14.7", "3.14.7"}:
+    # Runners record --version, platform.python_version(), or full sys.version.
+    # Accept those encodings of exactly 3.14.7, without accepting another patch
+    # release, a prerelease suffix, or a version embedded in arbitrary text.
+    version = str(provenance.get("manager_version", "")).strip()
+    match = re.match(r"^(?:Python )?(\d+\.\d+\.\d+)(?=$| \()", version)
+    if match is None or match.group(1) != "3.14.7":
         raise ValueError("the run manager must be CPython 3.14.7")
     if provenance.get("cpython_reference") != reference_name:
         raise ValueError("CPython reference does not match the completed run provenance")
