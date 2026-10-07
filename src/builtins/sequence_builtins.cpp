@@ -559,7 +559,25 @@ bool builtin_str_from_value(Runtime& runtime, const Value& value, Value& out, st
       if (!runtime_call_callable(runtime, str_method, nullptr, 0, result, error)) {
         return false;
       }
-      if (value_as_string(result) == nullptr) {
+      bool result_is_string = value_as_string(result) != nullptr;
+      if (!result_is_string) {
+        auto* result_instance = value_as_instance(result);
+        auto* result_class = result_instance == nullptr
+            ? nullptr : value_as_class(result_instance->klass);
+        if (result_class != nullptr && class_has_builtin_base_name(result_class, "str")) {
+          // CPython accepts and preserves a str subclass returned by __str__.
+          // Check the runtime's stored string payload directly so SafeString's
+          // common `return self` implementation keeps its identity and avoids
+          // allocating a replacement string.
+          for (const auto& attr : result_instance->attrs) {
+            if (attr.first == "__xlang3_string_value__" && value_as_string(attr.second) != nullptr) {
+              result_is_string = true;
+              break;
+            }
+          }
+        }
+      }
+      if (!result_is_string) {
         error = "__str__ returned non-string";
         runtime.raise_class_error("TypeError", error);
         return false;

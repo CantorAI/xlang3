@@ -30,6 +30,8 @@ True 7 True
 True True True
 True True True value
 True
+True True
+TypeError True
 ['MroCombined', 'MroLeft', 'MroRight', 'object']
 ['MroText', 'str', 'MroLeft', 'object']
 123 42 False True

@@ -159,6 +159,24 @@ print(hasattr(None, "__new__"), None.__new__ is None.__new__, None.__new__(type(
 text_subclass = str.__new__(TextSubclass, "value")
 print("__new__" in str.__dict__, str.__new__(str, "base") == "base", isinstance(text_subclass, TextSubclass), str(text_subclass))
 print(object.__init__(text_subclass, "value") is None)
+
+class SelfReturningText(str):
+    def __str__(self):
+        return self
+
+safe_text = SelfReturningText("safe")
+rendered_safe_text = str(safe_text)
+print(type(rendered_safe_text) is SelfReturningText, rendered_safe_text is safe_text)
+
+class InvalidStringResult:
+    def __str__(self):
+        return 1
+
+try:
+    str(InvalidStringResult())
+except TypeError as exc:
+    print(type(exc).__name__, "__str__ returned non-string" in str(exc))
+
 print([item.__name__ for item in MroCombined.__mro__])
 print([item.__name__ for item in MroText.__mro__])
 print(str(123), int("42"), bool([]), bool([1]))
