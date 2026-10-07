@@ -1,0 +1,13 @@
+CPython 3.14.7: C:\Python\Python314\python.exe
+stable dictionary: True
+mutation reaches call: True
+removing default requires argument: True
+assignment preserves dictionary: True
+external mutation reaches call: True
+
+XLang3: build-repro\main-verify-20261006\Release\xlang3.exe
+stable dictionary: False
+mutation reaches call: False
+removing default requires argument: False
+assignment preserves dictionary: False
+external mutation reaches call: False
