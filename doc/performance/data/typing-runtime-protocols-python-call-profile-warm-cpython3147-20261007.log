@@ -1,0 +1,15 @@
+diagnostic unprofiled warmup calls 1
+profiled workload typing_runtime_protocols 0.022150799981318414
+profiled Python calls, grouped by source/function
+[[["inspect.py","_shadowed_dict"],4020],[["<frozen abc>","__instancecheck__"],1300],[["typing.py","__instancecheck__"],1300],[["inspect.py","_check_instance"],1140],[["inspect.py","_check_class"],1140],[["inspect.py","getattr_static"],1140],[["run_benchmark.py","__init__"],5],[["run_benchmark.py","bench_protocols"],1],[["profile_pyperformance_calls_direct.py","<lambda>"],1]]
+profiled benchmark function times (inclusive/self seconds)
+profile_pyperformance_calls_direct.py <lambda> 1 0.022194 9e-06
+run_benchmark.py bench_protocols 1 0.022186 0.00235
+typing.py __instancecheck__ 1300 0.019829 0.004646
+inspect.py getattr_static 1140 0.014315 0.005353
+inspect.py _check_class 1140 0.006969 0.004651
+inspect.py _shadowed_dict 4020 0.003347 0.003347
+inspect.py _check_instance 1140 0.000964 0.000964
+<frozen abc> __instancecheck__ 1300 0.000869 0.000869
+run_benchmark.py __init__ 5 6e-06 6e-06
+profiled benchmark-frame calls 10047

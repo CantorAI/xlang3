@@ -1,0 +1,33 @@
+{
+  "status": "diagnostic_completed",
+  "recorded_utc": "2026-10-07T15:51:21.894348+00:00",
+  "source_commit": "15f940d4daf5c27ef00c5fe8202f729cd2dc938f",
+  "xlang3_identity": {
+    "exe": "b1e8973ae266243f545920a83a5ac7e1686f56baaf443193514be59f43dd4afb",
+    "dll": "c6ba584589bb7c740ce3f745e18d355a81a842abfbd0391b3e9a6578a99e6b8d"
+  },
+  "cpython_executable": "C:\\Python\\Python314\\python.exe",
+  "cpython_version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+  "cpython_executable_sha256": "4942b86a6597e5aee0128daa00050ed79bc21f6e709a78eb19cbfeb0c2f39ac9",
+  "profile_warmup_calls": 1,
+  "profile_body_loops": 20,
+  "primitive_loops": 20000,
+  "weakref_scaling_loops": 5000,
+  "scope": "Diagnostic call frequencies and primitive scaling, not official benchmark timings or full-suite ratios",
+  "files_sha256": {
+    "benchmarks/diagnostics/profile_pyperformance_calls_direct.py": "f5ec4cf3caab7faa1efa36aecf8208f8f7fa21ab27b4549b01932491126f785d",
+    "benchmarks/diagnostics/typing_protocol_runtime_primitives.py": "c10febc883ef9498f30d8431068606a0638fb320265f84a17a44bad1891b22fb",
+    "benchmarks/diagnostics/weakref_registry_scaling.py": "f75a39af53c3ecb15b4ea9f1f0b64db0584c3c1023c608d7938ef3dbfe498551",
+    "doc/performance/data/typing-runtime-protocols-python-call-profile-warm-cpython3147-20261007.log": "5a77816205a2b05eec34430912b801840a53e207db19314d5adb55785547d5bf",
+    "doc/performance/data/typing-runtime-protocols-python-call-profile-warm-xlang3-20261007.log": "2356f3342fc03c86b27759370673c2d9838072ab91c64fa7c6d97545f4669a49",
+    "doc/performance/data/typing-protocol-runtime-primitives-cpython3147-20261007.log": "3b9608c1b6d5beda4d53ec077aa1198a3729b69ccb35f147dc03a7bbc562f342",
+    "doc/performance/data/typing-protocol-runtime-primitives-xlang3-20261007.log": "a5138a1c4f162e872ca1363e90b0ec6b6b4728b331a6f0b2ab8a6261074b2976",
+    "doc/performance/data/weakref-registry-scaling-cpython3147-control-20261007.log": "e039b8ccc4b95ac474e3b08437dca33fc3edb70ea35f0d1acfd9029aad177abf",
+    "doc/performance/data/weakref-registry-scaling-xlang3-control-20261007.log": "671907c2904f7e1f5eee7a591c2aa5fa8526b561f9f6c3c243f1a92139600f3c"
+  },
+  "stdlib_source_sha256": {
+    "typing.py": "310f6639a30056951eb50b7b8bc4fcf781842112aaf2adec8b4f033d432ff721",
+    "inspect.py": "aff32256cad3cf3bb13c5bdca3e95bd8d2898cb13b099403844ab6d747e373a0"
+  },
+  "profile_limitations": "Profiling changes optimization eligibility; XLang3 matched profile-event totals differ from CPython, so do not treat all inclusive times or call counts as a complete cross-runtime accounting."
+}
