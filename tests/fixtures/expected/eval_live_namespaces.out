@@ -1,0 +1,20 @@
+live callback 2
+identity True
+builtins inserted True
+returned function 3 True
+locals 7 True
+frame namespaces True True
+frame builtins True
+custom len 42
+AST custom len 42
+captured function builtins 42
+captured mapping remains live 43
+active frame keeps builtins 99
+empty builtins blocks fallback
+locals builtin override 8
+callee before arguments 4
+walrus result 18
+walrus target 1 9
+dynamic locals 6 ['dynamic', 'dynamic', 'x']
+failure unwinds locals
+after failure 11

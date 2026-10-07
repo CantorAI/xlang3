@@ -272,6 +272,11 @@ struct XlangVMFrame {
   std::unique_ptr<std::vector<Value>> closure_owner;
   const std::vector<Value>* closure = nullptr;
   Value globals_module;
+  // Own the namespace selected at entry. Replacing globals['__builtins__']
+  // later must not change an active frame or a function's captured namespace.
+  // Only dict-backed execution needs this additional ownership; module frames
+  // keep their existing fast path and incur no additional object refcounts.
+  Value captured_builtins;
   std::shared_ptr<const ir::Module> module_owner;
   uint32_t function_id = 0;
   uint64_t activation_id = 0;
@@ -328,6 +333,17 @@ struct XlangVMFrame {
     }
   }
 
+  void capture_execution_builtins(CallArgsView args) {
+    value_set_invalid(captured_builtins);
+    if (!mapping_is_dict(globals_module)) return;
+    if (args.captured_builtins != nullptr && args.captured_builtins->tag != ValueTag::Invalid) {
+      value_assign_fast(captured_builtins, *args.captured_builtins);
+    } else {
+      std::string ignored;
+      mapping_get_string_item(globals_module, "__builtins__", captured_builtins, ignored);
+    }
+  }
+
   XlangVMFrame(
       const ir::Module& frame_module,
       uint32_t function_id,
@@ -353,6 +369,7 @@ struct XlangVMFrame {
         cells(fn->cell_slots.size(), Value::invalid()),
         regs(fn->register_count, Value::invalid()) {
     set_closure(frame_closure);
+    capture_execution_builtins(args);
     compute_register_last_use();
     instr_cache.reset(fn->code.size(), execution_metadata->cache_cleanup_instructions);
     for (size_t i = 0; i < args.size(); ++i) {
@@ -398,6 +415,7 @@ struct XlangVMFrame {
     fn = next_fn;
     set_closure(frame_closure);
     globals_module = std::move(frame_globals_module);
+    capture_execution_builtins(args);
     module_owner = std::move(frame_module_owner);
     this->function_id = function_id;
     coroutine_owner = nullptr;
@@ -460,6 +478,7 @@ struct XlangVMFrame {
   }
 
   void clear_for_pop() {
+    value_set_invalid(captured_builtins);
     value_set_invalid(globals_module);
     value_set_invalid(continuation_value);
     coroutine_owner = nullptr;

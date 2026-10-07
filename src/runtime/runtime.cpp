@@ -19,6 +19,7 @@ limitations under the License.
 
 #include "xlang3/attribute.h"
 #include "xlang3/builtins.h"
+#include "xlang3/eval_locals.h"
 #include "xlang3/functional_iterators.h"
 #include "xlang3/generator.h"
 #include "xlang3/ir.h"
@@ -1041,6 +1042,25 @@ const Value* Runtime::find_builtin(const std::string& name) const {
 }
 
 bool Runtime::resolve_builtin(const std::string& name, Value& out) const {
+  // Dict-backed dynamic execution supplies its own builtins namespace. Do not
+  // fall through an explicitly empty/custom namespace to the global builtins.
+  if (mapping_is_dict(current_globals_module()) && name.rfind("__xlang3_", 0) != 0) {
+    Value namespace_value;
+    std::string ignored;
+    const auto& state = current_frame_state(*this);
+    const Value* captured = state.frame_stack != nullptr && state.frame_stack_count != 0
+        ? state.frame_stack[state.frame_stack_count - 1].captured_builtins : nullptr;
+    bool found = captured != nullptr && captured->tag != ValueTag::Invalid;
+    if (found) value_assign_fast(namespace_value, *captured);
+    else found = mapping_get_string_item(current_globals_module(), "__builtins__", namespace_value, ignored);
+    if (found) {
+      if (value_as_module(namespace_value) != nullptr)
+        return module_get_attr(namespace_value, name, out, ignored);
+      if (mapping_is_dict(namespace_value))
+        return mapping_get_string_item(namespace_value, name, out, ignored);
+      return false;
+    }
+  }
   const auto module = modules_.find("builtins");
   if (module != modules_.end()) {
     std::string ignored;
@@ -1451,9 +1471,11 @@ Value locals_snapshot_from_view(const RuntimeFrameView& view) {
   return Value::dict(std::move(entries));
 }
 
-Value frame_locals_from_view(const RuntimeFrameView& view) {
+Value frame_locals_from_view(Runtime& runtime, const RuntimeFrameView& view) {
   if (view.module_owner != nullptr && view.module_owner->get() != nullptr &&
       view.globals_module != nullptr && view.function_id == view.module_owner->get()->entry) {
+    const auto* fn = &view.module_owner->get()->functions[view.function_id];
+    if (const Value* eval_locals = current_eval_locals(runtime, fn)) return *eval_locals;
     return module_namespace_dict(*view.globals_module);
   }
   return locals_snapshot_from_view(view);
@@ -1482,12 +1504,14 @@ Value logical_frame_locals_from_view(const RuntimeFrameView& view,
   return view.local_values[range.locals_slot];
 }
 
-void initialize_lazy_frame_locals(Value& frame_value, const RuntimeFrameView& view) {
+void initialize_lazy_frame_locals(Runtime& runtime, Value& frame_value, const RuntimeFrameView& view) {
   auto* frame = value_as_frame(frame_value);
   if (frame == nullptr) return;
   if (view.module_owner != nullptr && view.module_owner->get() != nullptr &&
       view.globals_module != nullptr && view.function_id == view.module_owner->get()->entry) {
-    frame->locals = module_namespace_dict(*view.globals_module);
+    const auto* fn = &view.module_owner->get()->functions[view.function_id];
+    const Value* eval_locals = current_eval_locals(runtime, fn);
+    frame->locals = eval_locals == nullptr ? module_namespace_dict(*view.globals_module) : *eval_locals;
     frame->local_snapshot.clear();
     frame->has_lazy_locals = false;
     return;
@@ -1523,11 +1547,14 @@ Value materialize_frame_from_stack(
       static_cast<uint32_t>(*view.instruction_index),
       Value::invalid(),
       std::move(back),
-      builtins,
+      view.captured_builtins != nullptr && view.captured_builtins->tag != ValueTag::Invalid
+          ? (value_as_module(*view.captured_builtins) != nullptr
+              ? module_namespace_dict(*view.captured_builtins) : *view.captured_builtins)
+          : builtins,
       view.activation_id);
   if (view.generator_owner != nullptr)
     frame_set_generator_owner(runtime, physical, *view.generator_owner);
-  initialize_lazy_frame_locals(physical, view);
+  initialize_lazy_frame_locals(runtime, physical, view);
   const auto& module = **view.module_owner;
   if (view.function_id >= module.functions.size()) {
     return physical;
@@ -1577,7 +1604,7 @@ Value materialize_frame_state(
       Value::invalid(),
       base_back,
       builtins);
-  initialize_lazy_frame_locals(frame, view);
+  initialize_lazy_frame_locals(runtime, frame, view);
   return frame;
 }
 
@@ -1786,7 +1813,7 @@ void Runtime::refresh_live_frame_snapshots(bool refresh_traceback_locals,
         deferred_releases.push_back(std::move(tracked->locals));
         deferred_snapshots.emplace_back();
         deferred_snapshots.back().swap(tracked->local_snapshot);
-        tracked->locals = frame_locals_from_view(*matching_view);
+        tracked->locals = frame_locals_from_view(*this, *matching_view);
         tracked->has_lazy_locals = false;
       }
       tracked->live = true;
@@ -1808,7 +1835,7 @@ void Runtime::refresh_live_frame_snapshots(bool refresh_traceback_locals,
         deferred_releases.push_back(std::move(tracked->locals));
         deferred_snapshots.emplace_back();
         deferred_snapshots.back().swap(tracked->local_snapshot);
-        tracked->locals = frame_locals_from_view(current_view);
+        tracked->locals = frame_locals_from_view(*this, current_view);
         tracked->has_lazy_locals = false;
       }
       if (tracked->refresh_instruction) {
@@ -2026,6 +2053,9 @@ Value Runtime::current_locals_snapshot() const {
   if (state.module_owner != nullptr && state.module_owner->get() != nullptr &&
       state.globals_module != nullptr &&
       state.function_id == state.module_owner->get()->entry) {
+    const ir::Function* function = &state.module_owner->get()->functions[state.function_id];
+    if (const Value* eval_locals = current_eval_locals(const_cast<Runtime&>(*this), function)) return *eval_locals;
+    if (mapping_is_dict(*state.globals_module)) return *state.globals_module;
     return module_namespace_dict(*state.globals_module);
   }
   if (state.local_names == nullptr || state.local_values == nullptr) {

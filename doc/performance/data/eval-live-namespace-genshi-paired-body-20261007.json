@@ -1,0 +1,575 @@
+{
+  "status": "finished",
+  "manager_version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+  "runtime_sha256": {
+    "before": {
+      "exe": "9f89802e3eed9431dccfe6906cd04cfede486e77dc951469fbf80cc785152bdc",
+      "dll": "b182715318bccf05236d82390c413020de73c8b97bfac673caa87f081a914acb"
+    },
+    "after": {
+      "exe": "72dd41692c627ccc5242eda336578cfccc4d404ba63b395cae441698b6ba16a6",
+      "dll": "b0310f599fc7576463dd27c5be00dd96fb7ab9dfe6b11665adb706d8c6114e7d"
+    }
+  },
+  "probe_sha256": "b318e6a7874e8bf9a5826f6bad6ca7193df6ac20d07cbb088ad4cb910920a475",
+  "benchmark_sha256": "1422d56533ae1ec748ba5c2b928f48408b5e4b47c189cdb24095cd508762b892",
+  "diagnostic_body_only_not_official_pyperformance": true,
+  "pairs": [
+    {
+      "variant": "text",
+      "pair": 0,
+      "order": [
+        "before",
+        "after"
+      ],
+      "runs": {
+        "before": {
+          "exit_code": 0,
+          "result": {
+            "variant": "text",
+            "repeat": 3,
+            "diagnostic_elapsed_seconds": 1.1200587000057567,
+            "characters": 112018,
+            "rows": 1000,
+            "cells": 10000,
+            "sha256_utf8": "c2e6154871cc315eadf1536e6b5f4679e3eee7aa6ed6ac3b9ea2e927ef2de810",
+            "profile": []
+          },
+          "stderr": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\astutil.py:799: DeprecationWarning: Expression.__init__ missing 1 required positional argument: 'body'. This will become an error in Python 3.15.\n  return visitor(node)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:589: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  name = _new(_ast.Name, '_lookup_name', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:590: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  namearg = _new(_ast.Name, '__data__', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:591: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.\n  strarg = _new(_ast_Str, node.id)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:592: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  node = _new(_ast.Call, name, [namearg, strarg], [])\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\astutil.py:799: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  return visitor(node)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:609: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  func = _new(_ast.Name, '_lookup_attr', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:610: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.\n  args = [self.visit(node.value), _new(_ast_Str, node.attr)]\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:611: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  return _new(_ast.Call, func, args, [])\n"
+        },
+        "after": {
+          "exit_code": 0,
+          "result": {
+            "variant": "text",
+            "repeat": 3,
+            "diagnostic_elapsed_seconds": 1.0166202000109479,
+            "characters": 112018,
+            "rows": 1000,
+            "cells": 10000,
+            "sha256_utf8": "c2e6154871cc315eadf1536e6b5f4679e3eee7aa6ed6ac3b9ea2e927ef2de810",
+            "profile": []
+          },
+          "stderr": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\astutil.py:799: DeprecationWarning: Expression.__init__ missing 1 required positional argument: 'body'. This will become an error in Python 3.15.\n  return visitor(node)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:589: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  name = _new(_ast.Name, '_lookup_name', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:590: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  namearg = _new(_ast.Name, '__data__', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:591: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.\n  strarg = _new(_ast_Str, node.id)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:592: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  node = _new(_ast.Call, name, [namearg, strarg], [])\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\astutil.py:799: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  return visitor(node)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:609: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  func = _new(_ast.Name, '_lookup_attr', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:610: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.\n  args = [self.visit(node.value), _new(_ast_Str, node.attr)]\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:611: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  return _new(_ast.Call, func, args, [])\n"
+        }
+      },
+      "before_over_after": 1.101747437237323
+    },
+    {
+      "variant": "text",
+      "pair": 1,
+      "order": [
+        "after",
+        "before"
+      ],
+      "runs": {
+        "after": {
+          "exit_code": 0,
+          "result": {
+            "variant": "text",
+            "repeat": 3,
+            "diagnostic_elapsed_seconds": 1.0259354999870993,
+            "characters": 112018,
+            "rows": 1000,
+            "cells": 10000,
+            "sha256_utf8": "c2e6154871cc315eadf1536e6b5f4679e3eee7aa6ed6ac3b9ea2e927ef2de810",
+            "profile": []
+          },
+          "stderr": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\astutil.py:799: DeprecationWarning: Expression.__init__ missing 1 required positional argument: 'body'. This will become an error in Python 3.15.\n  return visitor(node)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:589: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  name = _new(_ast.Name, '_lookup_name', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:590: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  namearg = _new(_ast.Name, '__data__', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:591: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.\n  strarg = _new(_ast_Str, node.id)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:592: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  node = _new(_ast.Call, name, [namearg, strarg], [])\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\astutil.py:799: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  return visitor(node)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:609: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  func = _new(_ast.Name, '_lookup_attr', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:610: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.\n  args = [self.visit(node.value), _new(_ast_Str, node.attr)]\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:611: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  return _new(_ast.Call, func, args, [])\n"
+        },
+        "before": {
+          "exit_code": 0,
+          "result": {
+            "variant": "text",
+            "repeat": 3,
+            "diagnostic_elapsed_seconds": 1.109559900010936,
+            "characters": 112018,
+            "rows": 1000,
+            "cells": 10000,
+            "sha256_utf8": "c2e6154871cc315eadf1536e6b5f4679e3eee7aa6ed6ac3b9ea2e927ef2de810",
+            "profile": []
+          },
+          "stderr": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\astutil.py:799: DeprecationWarning: Expression.__init__ missing 1 required positional argument: 'body'. This will become an error in Python 3.15.\n  return visitor(node)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:589: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  name = _new(_ast.Name, '_lookup_name', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:590: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  namearg = _new(_ast.Name, '__data__', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:591: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.\n  strarg = _new(_ast_Str, node.id)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:592: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  node = _new(_ast.Call, name, [namearg, strarg], [])\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\astutil.py:799: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  return visitor(node)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:609: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  func = _new(_ast.Name, '_lookup_attr', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:610: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.\n  args = [self.visit(node.value), _new(_ast_Str, node.attr)]\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:611: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  return _new(_ast.Call, func, args, [])\n"
+        }
+      },
+      "before_over_after": 1.0815103873731713
+    },
+    {
+      "variant": "text",
+      "pair": 2,
+      "order": [
+        "before",
+        "after"
+      ],
+      "runs": {
+        "before": {
+          "exit_code": 0,
+          "result": {
+            "variant": "text",
+            "repeat": 3,
+            "diagnostic_elapsed_seconds": 1.1154262999771163,
+            "characters": 112018,
+            "rows": 1000,
+            "cells": 10000,
+            "sha256_utf8": "c2e6154871cc315eadf1536e6b5f4679e3eee7aa6ed6ac3b9ea2e927ef2de810",
+            "profile": []
+          },
+          "stderr": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\astutil.py:799: DeprecationWarning: Expression.__init__ missing 1 required positional argument: 'body'. This will become an error in Python 3.15.\n  return visitor(node)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:589: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  name = _new(_ast.Name, '_lookup_name', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:590: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  namearg = _new(_ast.Name, '__data__', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:591: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.\n  strarg = _new(_ast_Str, node.id)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:592: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  node = _new(_ast.Call, name, [namearg, strarg], [])\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\astutil.py:799: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  return visitor(node)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:609: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  func = _new(_ast.Name, '_lookup_attr', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:610: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.\n  args = [self.visit(node.value), _new(_ast_Str, node.attr)]\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:611: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  return _new(_ast.Call, func, args, [])\n"
+        },
+        "after": {
+          "exit_code": 0,
+          "result": {
+            "variant": "text",
+            "repeat": 3,
+            "diagnostic_elapsed_seconds": 1.0205571000115015,
+            "characters": 112018,
+            "rows": 1000,
+            "cells": 10000,
+            "sha256_utf8": "c2e6154871cc315eadf1536e6b5f4679e3eee7aa6ed6ac3b9ea2e927ef2de810",
+            "profile": []
+          },
+          "stderr": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\astutil.py:799: DeprecationWarning: Expression.__init__ missing 1 required positional argument: 'body'. This will become an error in Python 3.15.\n  return visitor(node)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:589: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  name = _new(_ast.Name, '_lookup_name', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:590: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  namearg = _new(_ast.Name, '__data__', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:591: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.\n  strarg = _new(_ast_Str, node.id)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:592: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  node = _new(_ast.Call, name, [namearg, strarg], [])\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\astutil.py:799: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  return visitor(node)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:609: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  func = _new(_ast.Name, '_lookup_attr', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:610: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.\n  args = [self.visit(node.value), _new(_ast_Str, node.attr)]\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:611: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  return _new(_ast.Call, func, args, [])\n"
+        }
+      },
+      "before_over_after": 1.0929582479652982
+    },
+    {
+      "variant": "text",
+      "pair": 3,
+      "order": [
+        "after",
+        "before"
+      ],
+      "runs": {
+        "after": {
+          "exit_code": 0,
+          "result": {
+            "variant": "text",
+            "repeat": 3,
+            "diagnostic_elapsed_seconds": 1.0241800999792758,
+            "characters": 112018,
+            "rows": 1000,
+            "cells": 10000,
+            "sha256_utf8": "c2e6154871cc315eadf1536e6b5f4679e3eee7aa6ed6ac3b9ea2e927ef2de810",
+            "profile": []
+          },
+          "stderr": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\astutil.py:799: DeprecationWarning: Expression.__init__ missing 1 required positional argument: 'body'. This will become an error in Python 3.15.\n  return visitor(node)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:589: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  name = _new(_ast.Name, '_lookup_name', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:590: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  namearg = _new(_ast.Name, '__data__', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:591: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.\n  strarg = _new(_ast_Str, node.id)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:592: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  node = _new(_ast.Call, name, [namearg, strarg], [])\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\astutil.py:799: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  return visitor(node)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:609: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  func = _new(_ast.Name, '_lookup_attr', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:610: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.\n  args = [self.visit(node.value), _new(_ast_Str, node.attr)]\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:611: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  return _new(_ast.Call, func, args, [])\n"
+        },
+        "before": {
+          "exit_code": 0,
+          "result": {
+            "variant": "text",
+            "repeat": 3,
+            "diagnostic_elapsed_seconds": 1.117702100018505,
+            "characters": 112018,
+            "rows": 1000,
+            "cells": 10000,
+            "sha256_utf8": "c2e6154871cc315eadf1536e6b5f4679e3eee7aa6ed6ac3b9ea2e927ef2de810",
+            "profile": []
+          },
+          "stderr": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\astutil.py:799: DeprecationWarning: Expression.__init__ missing 1 required positional argument: 'body'. This will become an error in Python 3.15.\n  return visitor(node)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:589: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  name = _new(_ast.Name, '_lookup_name', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:590: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  namearg = _new(_ast.Name, '__data__', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:591: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.\n  strarg = _new(_ast_Str, node.id)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:592: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  node = _new(_ast.Call, name, [namearg, strarg], [])\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\astutil.py:799: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  return visitor(node)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:609: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  func = _new(_ast.Name, '_lookup_attr', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:610: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.\n  args = [self.visit(node.value), _new(_ast_Str, node.attr)]\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:611: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  return _new(_ast.Call, func, args, [])\n"
+        }
+      },
+      "before_over_after": 1.0913140179555545
+    },
+    {
+      "variant": "text",
+      "pair": 4,
+      "order": [
+        "before",
+        "after"
+      ],
+      "runs": {
+        "before": {
+          "exit_code": 0,
+          "result": {
+            "variant": "text",
+            "repeat": 3,
+            "diagnostic_elapsed_seconds": 1.1110011999844573,
+            "characters": 112018,
+            "rows": 1000,
+            "cells": 10000,
+            "sha256_utf8": "c2e6154871cc315eadf1536e6b5f4679e3eee7aa6ed6ac3b9ea2e927ef2de810",
+            "profile": []
+          },
+          "stderr": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\astutil.py:799: DeprecationWarning: Expression.__init__ missing 1 required positional argument: 'body'. This will become an error in Python 3.15.\n  return visitor(node)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:589: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  name = _new(_ast.Name, '_lookup_name', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:590: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  namearg = _new(_ast.Name, '__data__', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:591: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.\n  strarg = _new(_ast_Str, node.id)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:592: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  node = _new(_ast.Call, name, [namearg, strarg], [])\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\astutil.py:799: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  return visitor(node)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:609: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  func = _new(_ast.Name, '_lookup_attr', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:610: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.\n  args = [self.visit(node.value), _new(_ast_Str, node.attr)]\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:611: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  return _new(_ast.Call, func, args, [])\n"
+        },
+        "after": {
+          "exit_code": 0,
+          "result": {
+            "variant": "text",
+            "repeat": 3,
+            "diagnostic_elapsed_seconds": 1.0280168999743182,
+            "characters": 112018,
+            "rows": 1000,
+            "cells": 10000,
+            "sha256_utf8": "c2e6154871cc315eadf1536e6b5f4679e3eee7aa6ed6ac3b9ea2e927ef2de810",
+            "profile": []
+          },
+          "stderr": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\astutil.py:799: DeprecationWarning: Expression.__init__ missing 1 required positional argument: 'body'. This will become an error in Python 3.15.\n  return visitor(node)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:589: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  name = _new(_ast.Name, '_lookup_name', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:590: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  namearg = _new(_ast.Name, '__data__', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:591: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.\n  strarg = _new(_ast_Str, node.id)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:592: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  node = _new(_ast.Call, name, [namearg, strarg], [])\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\astutil.py:799: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  return visitor(node)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:609: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  func = _new(_ast.Name, '_lookup_attr', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:610: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.\n  args = [self.visit(node.value), _new(_ast_Str, node.attr)]\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:611: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  return _new(_ast.Call, func, args, [])\n"
+        }
+      },
+      "before_over_after": 1.0807227001931703
+    },
+    {
+      "variant": "text",
+      "pair": 5,
+      "order": [
+        "after",
+        "before"
+      ],
+      "runs": {
+        "after": {
+          "exit_code": 0,
+          "result": {
+            "variant": "text",
+            "repeat": 3,
+            "diagnostic_elapsed_seconds": 1.03524909997941,
+            "characters": 112018,
+            "rows": 1000,
+            "cells": 10000,
+            "sha256_utf8": "c2e6154871cc315eadf1536e6b5f4679e3eee7aa6ed6ac3b9ea2e927ef2de810",
+            "profile": []
+          },
+          "stderr": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\astutil.py:799: DeprecationWarning: Expression.__init__ missing 1 required positional argument: 'body'. This will become an error in Python 3.15.\n  return visitor(node)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:589: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  name = _new(_ast.Name, '_lookup_name', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:590: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  namearg = _new(_ast.Name, '__data__', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:591: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.\n  strarg = _new(_ast_Str, node.id)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:592: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  node = _new(_ast.Call, name, [namearg, strarg], [])\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\astutil.py:799: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  return visitor(node)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:609: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  func = _new(_ast.Name, '_lookup_attr', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:610: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.\n  args = [self.visit(node.value), _new(_ast_Str, node.attr)]\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:611: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  return _new(_ast.Call, func, args, [])\n"
+        },
+        "before": {
+          "exit_code": 0,
+          "result": {
+            "variant": "text",
+            "repeat": 3,
+            "diagnostic_elapsed_seconds": 1.1191786999988835,
+            "characters": 112018,
+            "rows": 1000,
+            "cells": 10000,
+            "sha256_utf8": "c2e6154871cc315eadf1536e6b5f4679e3eee7aa6ed6ac3b9ea2e927ef2de810",
+            "profile": []
+          },
+          "stderr": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\astutil.py:799: DeprecationWarning: Expression.__init__ missing 1 required positional argument: 'body'. This will become an error in Python 3.15.\n  return visitor(node)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:589: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  name = _new(_ast.Name, '_lookup_name', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:590: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  namearg = _new(_ast.Name, '__data__', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:591: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.\n  strarg = _new(_ast_Str, node.id)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:592: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  node = _new(_ast.Call, name, [namearg, strarg], [])\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\astutil.py:799: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  return visitor(node)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:609: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  func = _new(_ast.Name, '_lookup_attr', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:610: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.\n  args = [self.visit(node.value), _new(_ast_Str, node.attr)]\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:611: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  return _new(_ast.Call, func, args, [])\n"
+        }
+      },
+      "before_over_after": 1.0810718889020459
+    },
+    {
+      "variant": "text",
+      "pair": 6,
+      "order": [
+        "before",
+        "after"
+      ],
+      "runs": {
+        "before": {
+          "exit_code": 0,
+          "result": {
+            "variant": "text",
+            "repeat": 3,
+            "diagnostic_elapsed_seconds": 1.1214660000114236,
+            "characters": 112018,
+            "rows": 1000,
+            "cells": 10000,
+            "sha256_utf8": "c2e6154871cc315eadf1536e6b5f4679e3eee7aa6ed6ac3b9ea2e927ef2de810",
+            "profile": []
+          },
+          "stderr": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\astutil.py:799: DeprecationWarning: Expression.__init__ missing 1 required positional argument: 'body'. This will become an error in Python 3.15.\n  return visitor(node)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:589: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  name = _new(_ast.Name, '_lookup_name', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:590: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  namearg = _new(_ast.Name, '__data__', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:591: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.\n  strarg = _new(_ast_Str, node.id)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:592: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  node = _new(_ast.Call, name, [namearg, strarg], [])\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\astutil.py:799: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  return visitor(node)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:609: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  func = _new(_ast.Name, '_lookup_attr', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:610: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.\n  args = [self.visit(node.value), _new(_ast_Str, node.attr)]\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:611: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  return _new(_ast.Call, func, args, [])\n"
+        },
+        "after": {
+          "exit_code": 0,
+          "result": {
+            "variant": "text",
+            "repeat": 3,
+            "diagnostic_elapsed_seconds": 1.0272720000066329,
+            "characters": 112018,
+            "rows": 1000,
+            "cells": 10000,
+            "sha256_utf8": "c2e6154871cc315eadf1536e6b5f4679e3eee7aa6ed6ac3b9ea2e927ef2de810",
+            "profile": []
+          },
+          "stderr": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\astutil.py:799: DeprecationWarning: Expression.__init__ missing 1 required positional argument: 'body'. This will become an error in Python 3.15.\n  return visitor(node)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:589: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  name = _new(_ast.Name, '_lookup_name', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:590: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  namearg = _new(_ast.Name, '__data__', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:591: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.\n  strarg = _new(_ast_Str, node.id)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:592: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  node = _new(_ast.Call, name, [namearg, strarg], [])\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\astutil.py:799: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  return visitor(node)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:609: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  func = _new(_ast.Name, '_lookup_attr', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:610: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.\n  args = [self.visit(node.value), _new(_ast_Str, node.attr)]\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:611: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  return _new(_ast.Call, func, args, [])\n"
+        }
+      },
+      "before_over_after": 1.091693339255993
+    },
+    {
+      "variant": "xml",
+      "pair": 0,
+      "order": [
+        "before",
+        "after"
+      ],
+      "runs": {
+        "before": {
+          "exit_code": 0,
+          "result": {
+            "variant": "xml",
+            "repeat": 3,
+            "diagnostic_elapsed_seconds": 3.0729931999812834,
+            "characters": 112017,
+            "rows": 1000,
+            "cells": 10000,
+            "sha256_utf8": "61096eb9fee3ea72a4615a57e653bca545efacbad8aa8d522bb954d66d9421bc",
+            "profile": []
+          },
+          "stderr": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\astutil.py:799: DeprecationWarning: Expression.__init__ missing 1 required positional argument: 'body'. This will become an error in Python 3.15.\n  return visitor(node)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\astutil.py:799: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  return visitor(node)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:589: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  name = _new(_ast.Name, '_lookup_name', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:590: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  namearg = _new(_ast.Name, '__data__', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:591: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.\n  strarg = _new(_ast_Str, node.id)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:592: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  node = _new(_ast.Call, name, [namearg, strarg], [])\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:609: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  func = _new(_ast.Name, '_lookup_attr', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:610: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.\n  args = [self.visit(node.value), _new(_ast_Str, node.attr)]\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:611: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  return _new(_ast.Call, func, args, [])\n"
+        },
+        "after": {
+          "exit_code": 0,
+          "result": {
+            "variant": "xml",
+            "repeat": 3,
+            "diagnostic_elapsed_seconds": 2.940173200011486,
+            "characters": 112017,
+            "rows": 1000,
+            "cells": 10000,
+            "sha256_utf8": "61096eb9fee3ea72a4615a57e653bca545efacbad8aa8d522bb954d66d9421bc",
+            "profile": []
+          },
+          "stderr": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\astutil.py:799: DeprecationWarning: Expression.__init__ missing 1 required positional argument: 'body'. This will become an error in Python 3.15.\n  return visitor(node)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\astutil.py:799: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  return visitor(node)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:589: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  name = _new(_ast.Name, '_lookup_name', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:590: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  namearg = _new(_ast.Name, '__data__', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:591: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.\n  strarg = _new(_ast_Str, node.id)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:592: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  node = _new(_ast.Call, name, [namearg, strarg], [])\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:609: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  func = _new(_ast.Name, '_lookup_attr', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:610: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.\n  args = [self.visit(node.value), _new(_ast_Str, node.attr)]\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:611: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  return _new(_ast.Call, func, args, [])\n"
+        }
+      },
+      "before_over_after": 1.04517420945449
+    },
+    {
+      "variant": "xml",
+      "pair": 1,
+      "order": [
+        "after",
+        "before"
+      ],
+      "runs": {
+        "after": {
+          "exit_code": 0,
+          "result": {
+            "variant": "xml",
+            "repeat": 3,
+            "diagnostic_elapsed_seconds": 3.007802799984347,
+            "characters": 112017,
+            "rows": 1000,
+            "cells": 10000,
+            "sha256_utf8": "61096eb9fee3ea72a4615a57e653bca545efacbad8aa8d522bb954d66d9421bc",
+            "profile": []
+          },
+          "stderr": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\astutil.py:799: DeprecationWarning: Expression.__init__ missing 1 required positional argument: 'body'. This will become an error in Python 3.15.\n  return visitor(node)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\astutil.py:799: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  return visitor(node)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:589: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  name = _new(_ast.Name, '_lookup_name', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:590: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  namearg = _new(_ast.Name, '__data__', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:591: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.\n  strarg = _new(_ast_Str, node.id)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:592: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  node = _new(_ast.Call, name, [namearg, strarg], [])\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:609: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  func = _new(_ast.Name, '_lookup_attr', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:610: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.\n  args = [self.visit(node.value), _new(_ast_Str, node.attr)]\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:611: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  return _new(_ast.Call, func, args, [])\n"
+        },
+        "before": {
+          "exit_code": 0,
+          "result": {
+            "variant": "xml",
+            "repeat": 3,
+            "diagnostic_elapsed_seconds": 3.0185881999786943,
+            "characters": 112017,
+            "rows": 1000,
+            "cells": 10000,
+            "sha256_utf8": "61096eb9fee3ea72a4615a57e653bca545efacbad8aa8d522bb954d66d9421bc",
+            "profile": []
+          },
+          "stderr": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\astutil.py:799: DeprecationWarning: Expression.__init__ missing 1 required positional argument: 'body'. This will become an error in Python 3.15.\n  return visitor(node)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\astutil.py:799: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  return visitor(node)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:589: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  name = _new(_ast.Name, '_lookup_name', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:590: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  namearg = _new(_ast.Name, '__data__', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:591: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.\n  strarg = _new(_ast_Str, node.id)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:592: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  node = _new(_ast.Call, name, [namearg, strarg], [])\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:609: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  func = _new(_ast.Name, '_lookup_attr', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:610: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.\n  args = [self.visit(node.value), _new(_ast_Str, node.attr)]\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:611: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  return _new(_ast.Call, func, args, [])\n"
+        }
+      },
+      "before_over_after": 1.003585806886809
+    },
+    {
+      "variant": "xml",
+      "pair": 2,
+      "order": [
+        "before",
+        "after"
+      ],
+      "runs": {
+        "before": {
+          "exit_code": 0,
+          "result": {
+            "variant": "xml",
+            "repeat": 3,
+            "diagnostic_elapsed_seconds": 3.0191290999937337,
+            "characters": 112017,
+            "rows": 1000,
+            "cells": 10000,
+            "sha256_utf8": "61096eb9fee3ea72a4615a57e653bca545efacbad8aa8d522bb954d66d9421bc",
+            "profile": []
+          },
+          "stderr": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\astutil.py:799: DeprecationWarning: Expression.__init__ missing 1 required positional argument: 'body'. This will become an error in Python 3.15.\n  return visitor(node)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\astutil.py:799: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  return visitor(node)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:589: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  name = _new(_ast.Name, '_lookup_name', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:590: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  namearg = _new(_ast.Name, '__data__', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:591: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.\n  strarg = _new(_ast_Str, node.id)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:592: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  node = _new(_ast.Call, name, [namearg, strarg], [])\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:609: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  func = _new(_ast.Name, '_lookup_attr', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:610: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.\n  args = [self.visit(node.value), _new(_ast_Str, node.attr)]\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:611: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  return _new(_ast.Call, func, args, [])\n"
+        },
+        "after": {
+          "exit_code": 0,
+          "result": {
+            "variant": "xml",
+            "repeat": 3,
+            "diagnostic_elapsed_seconds": 2.8073123000212945,
+            "characters": 112017,
+            "rows": 1000,
+            "cells": 10000,
+            "sha256_utf8": "61096eb9fee3ea72a4615a57e653bca545efacbad8aa8d522bb954d66d9421bc",
+            "profile": []
+          },
+          "stderr": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\astutil.py:799: DeprecationWarning: Expression.__init__ missing 1 required positional argument: 'body'. This will become an error in Python 3.15.\n  return visitor(node)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\astutil.py:799: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  return visitor(node)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:589: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  name = _new(_ast.Name, '_lookup_name', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:590: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  namearg = _new(_ast.Name, '__data__', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:591: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.\n  strarg = _new(_ast_Str, node.id)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:592: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  node = _new(_ast.Call, name, [namearg, strarg], [])\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:609: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  func = _new(_ast.Name, '_lookup_attr', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:610: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.\n  args = [self.visit(node.value), _new(_ast_Str, node.attr)]\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:611: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  return _new(_ast.Call, func, args, [])\n"
+        }
+      },
+      "before_over_after": 1.0754518120306147
+    },
+    {
+      "variant": "xml",
+      "pair": 3,
+      "order": [
+        "after",
+        "before"
+      ],
+      "runs": {
+        "after": {
+          "exit_code": 0,
+          "result": {
+            "variant": "xml",
+            "repeat": 3,
+            "diagnostic_elapsed_seconds": 2.9541414999985136,
+            "characters": 112017,
+            "rows": 1000,
+            "cells": 10000,
+            "sha256_utf8": "61096eb9fee3ea72a4615a57e653bca545efacbad8aa8d522bb954d66d9421bc",
+            "profile": []
+          },
+          "stderr": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\astutil.py:799: DeprecationWarning: Expression.__init__ missing 1 required positional argument: 'body'. This will become an error in Python 3.15.\n  return visitor(node)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\astutil.py:799: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  return visitor(node)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:589: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  name = _new(_ast.Name, '_lookup_name', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:590: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  namearg = _new(_ast.Name, '__data__', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:591: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.\n  strarg = _new(_ast_Str, node.id)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:592: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  node = _new(_ast.Call, name, [namearg, strarg], [])\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:609: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  func = _new(_ast.Name, '_lookup_attr', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:610: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.\n  args = [self.visit(node.value), _new(_ast_Str, node.attr)]\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:611: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  return _new(_ast.Call, func, args, [])\n"
+        },
+        "before": {
+          "exit_code": 0,
+          "result": {
+            "variant": "xml",
+            "repeat": 3,
+            "diagnostic_elapsed_seconds": 2.975683600001503,
+            "characters": 112017,
+            "rows": 1000,
+            "cells": 10000,
+            "sha256_utf8": "61096eb9fee3ea72a4615a57e653bca545efacbad8aa8d522bb954d66d9421bc",
+            "profile": []
+          },
+          "stderr": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\astutil.py:799: DeprecationWarning: Expression.__init__ missing 1 required positional argument: 'body'. This will become an error in Python 3.15.\n  return visitor(node)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\astutil.py:799: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  return visitor(node)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:589: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  name = _new(_ast.Name, '_lookup_name', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:590: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  namearg = _new(_ast.Name, '__data__', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:591: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.\n  strarg = _new(_ast_Str, node.id)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:592: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  node = _new(_ast.Call, name, [namearg, strarg], [])\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:609: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  func = _new(_ast.Name, '_lookup_attr', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:610: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.\n  args = [self.visit(node.value), _new(_ast_Str, node.attr)]\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:611: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  return _new(_ast.Call, func, args, [])\n"
+        }
+      },
+      "before_over_after": 1.0072921693165342
+    },
+    {
+      "variant": "xml",
+      "pair": 4,
+      "order": [
+        "before",
+        "after"
+      ],
+      "runs": {
+        "before": {
+          "exit_code": 0,
+          "result": {
+            "variant": "xml",
+            "repeat": 3,
+            "diagnostic_elapsed_seconds": 3.175561599986395,
+            "characters": 112017,
+            "rows": 1000,
+            "cells": 10000,
+            "sha256_utf8": "61096eb9fee3ea72a4615a57e653bca545efacbad8aa8d522bb954d66d9421bc",
+            "profile": []
+          },
+          "stderr": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\astutil.py:799: DeprecationWarning: Expression.__init__ missing 1 required positional argument: 'body'. This will become an error in Python 3.15.\n  return visitor(node)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\astutil.py:799: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  return visitor(node)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:589: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  name = _new(_ast.Name, '_lookup_name', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:590: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  namearg = _new(_ast.Name, '__data__', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:591: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.\n  strarg = _new(_ast_Str, node.id)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:592: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  node = _new(_ast.Call, name, [namearg, strarg], [])\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:609: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  func = _new(_ast.Name, '_lookup_attr', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:610: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.\n  args = [self.visit(node.value), _new(_ast_Str, node.attr)]\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:611: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  return _new(_ast.Call, func, args, [])\n"
+        },
+        "after": {
+          "exit_code": 0,
+          "result": {
+            "variant": "xml",
+            "repeat": 3,
+            "diagnostic_elapsed_seconds": 3.0102209000033326,
+            "characters": 112017,
+            "rows": 1000,
+            "cells": 10000,
+            "sha256_utf8": "61096eb9fee3ea72a4615a57e653bca545efacbad8aa8d522bb954d66d9421bc",
+            "profile": []
+          },
+          "stderr": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\astutil.py:799: DeprecationWarning: Expression.__init__ missing 1 required positional argument: 'body'. This will become an error in Python 3.15.\n  return visitor(node)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\astutil.py:799: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  return visitor(node)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:589: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  name = _new(_ast.Name, '_lookup_name', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:590: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  namearg = _new(_ast.Name, '__data__', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:591: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.\n  strarg = _new(_ast_Str, node.id)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:592: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  node = _new(_ast.Call, name, [namearg, strarg], [])\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:609: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  func = _new(_ast.Name, '_lookup_attr', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:610: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.\n  args = [self.visit(node.value), _new(_ast_Str, node.attr)]\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:611: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  return _new(_ast.Call, func, args, [])\n"
+        }
+      },
+      "before_over_after": 1.0549264341307574
+    },
+    {
+      "variant": "xml",
+      "pair": 5,
+      "order": [
+        "after",
+        "before"
+      ],
+      "runs": {
+        "after": {
+          "exit_code": 0,
+          "result": {
+            "variant": "xml",
+            "repeat": 3,
+            "diagnostic_elapsed_seconds": 3.1609703000285663,
+            "characters": 112017,
+            "rows": 1000,
+            "cells": 10000,
+            "sha256_utf8": "61096eb9fee3ea72a4615a57e653bca545efacbad8aa8d522bb954d66d9421bc",
+            "profile": []
+          },
+          "stderr": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\astutil.py:799: DeprecationWarning: Expression.__init__ missing 1 required positional argument: 'body'. This will become an error in Python 3.15.\n  return visitor(node)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\astutil.py:799: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  return visitor(node)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:589: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  name = _new(_ast.Name, '_lookup_name', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:590: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  namearg = _new(_ast.Name, '__data__', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:591: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.\n  strarg = _new(_ast_Str, node.id)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:592: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  node = _new(_ast.Call, name, [namearg, strarg], [])\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:609: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  func = _new(_ast.Name, '_lookup_attr', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:610: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.\n  args = [self.visit(node.value), _new(_ast_Str, node.attr)]\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:611: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  return _new(_ast.Call, func, args, [])\n"
+        },
+        "before": {
+          "exit_code": 0,
+          "result": {
+            "variant": "xml",
+            "repeat": 3,
+            "diagnostic_elapsed_seconds": 3.168462500005262,
+            "characters": 112017,
+            "rows": 1000,
+            "cells": 10000,
+            "sha256_utf8": "61096eb9fee3ea72a4615a57e653bca545efacbad8aa8d522bb954d66d9421bc",
+            "profile": []
+          },
+          "stderr": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\astutil.py:799: DeprecationWarning: Expression.__init__ missing 1 required positional argument: 'body'. This will become an error in Python 3.15.\n  return visitor(node)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\astutil.py:799: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  return visitor(node)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:589: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  name = _new(_ast.Name, '_lookup_name', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:590: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  namearg = _new(_ast.Name, '__data__', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:591: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.\n  strarg = _new(_ast_Str, node.id)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:592: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  node = _new(_ast.Call, name, [namearg, strarg], [])\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:609: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  func = _new(_ast.Name, '_lookup_attr', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:610: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.\n  args = [self.visit(node.value), _new(_ast_Str, node.attr)]\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:611: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  return _new(_ast.Call, func, args, [])\n"
+        }
+      },
+      "before_over_after": 1.0023702215666588
+    },
+    {
+      "variant": "xml",
+      "pair": 6,
+      "order": [
+        "before",
+        "after"
+      ],
+      "runs": {
+        "before": {
+          "exit_code": 0,
+          "result": {
+            "variant": "xml",
+            "repeat": 3,
+            "diagnostic_elapsed_seconds": 3.183832100010477,
+            "characters": 112017,
+            "rows": 1000,
+            "cells": 10000,
+            "sha256_utf8": "61096eb9fee3ea72a4615a57e653bca545efacbad8aa8d522bb954d66d9421bc",
+            "profile": []
+          },
+          "stderr": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\astutil.py:799: DeprecationWarning: Expression.__init__ missing 1 required positional argument: 'body'. This will become an error in Python 3.15.\n  return visitor(node)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\astutil.py:799: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  return visitor(node)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:589: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  name = _new(_ast.Name, '_lookup_name', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:590: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  namearg = _new(_ast.Name, '__data__', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:591: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.\n  strarg = _new(_ast_Str, node.id)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:592: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  node = _new(_ast.Call, name, [namearg, strarg], [])\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:609: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  func = _new(_ast.Name, '_lookup_attr', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:610: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.\n  args = [self.visit(node.value), _new(_ast_Str, node.attr)]\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:611: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  return _new(_ast.Call, func, args, [])\n"
+        },
+        "after": {
+          "exit_code": 0,
+          "result": {
+            "variant": "xml",
+            "repeat": 3,
+            "diagnostic_elapsed_seconds": 2.993864799995208,
+            "characters": 112017,
+            "rows": 1000,
+            "cells": 10000,
+            "sha256_utf8": "61096eb9fee3ea72a4615a57e653bca545efacbad8aa8d522bb954d66d9421bc",
+            "profile": []
+          },
+          "stderr": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\astutil.py:799: DeprecationWarning: Expression.__init__ missing 1 required positional argument: 'body'. This will become an error in Python 3.15.\n  return visitor(node)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\astutil.py:799: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  return visitor(node)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:589: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  name = _new(_ast.Name, '_lookup_name', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:590: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  namearg = _new(_ast.Name, '__data__', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:591: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.\n  strarg = _new(_ast_Str, node.id)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:592: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  node = _new(_ast.Call, name, [namearg, strarg], [])\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:609: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  func = _new(_ast.Name, '_lookup_attr', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:610: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.\n  args = [self.visit(node.value), _new(_ast_Str, node.attr)]\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:611: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  return _new(_ast.Call, func, args, [])\n"
+        }
+      },
+      "before_over_after": 1.0634521973121742
+    }
+  ],
+  "summary": {
+    "text": {
+      "median_before_over_after": 1.0913140179555545,
+      "wins": 7
+    },
+    "xml": {
+      "median_before_over_after": 1.04517420945449,
+      "wins": 7
+    }
+  }
+}

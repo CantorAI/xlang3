@@ -183,7 +183,12 @@ void module_sync_namespace_dict(ModuleObject& module) {
 
 Value module_namespace_dict(const Value& object) {
   auto* module = value_as_module(object);
-  if (module == nullptr) return Value::dict({});
+  if (module == nullptr) {
+    // Dynamic code frames retain a dict directly. Exposing their namespace
+    // must preserve identity rather than manufacture an empty module dict.
+    if (mapping_is_dict(object)) return object;
+    return Value::dict({});
+  }
   if (value_as_dict(module->namespace_dict) == nullptr) {
     module->namespace_dict = Value::dict({});
     value_as_dict(module->namespace_dict)->backing_module = module;

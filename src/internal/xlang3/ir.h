@@ -380,6 +380,10 @@ struct Function {
 };
 
 struct Module {
+  // Lowering-only policy for code that will receive arbitrary eval/exec
+  // namespaces. Its emitted call IR keeps normal native-call specialization;
+  // an unconditional Len instruction cannot honor a supplied len binding.
+  bool dynamic_namespace_lowering = false;
   std::string source_file;
   std::vector<std::string> global_slots;
   std::vector<Function> functions;

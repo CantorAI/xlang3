@@ -44,6 +44,14 @@ XLANG3_HOT_INLINE bool load_mapping_global(
   if (!mapping_is_mapping(globals_mapping)) {
     return true;
   }
+  // Compiled expressions load the same names repeatedly. Exact-dict hits
+  // can use the stored string index without allocating a new Python key for
+  // every load. Misses retain the generic path and subclass missing hooks.
+  if (value_as_dict(globals_mapping) != nullptr &&
+      mapping_get_string_item(globals_mapping, name, out, error)) {
+    found = true;
+    return true;
+  }
   const Value key = Value::string(name);
   if (mapping_get_item(globals_mapping, key, out, error)) {
     found = true;
@@ -271,6 +279,25 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_module_slot(
   }
   const auto& name = module.global_slots[in.a];
   auto* globals_module_obj = value_as_module(globals_module);
+  if (globals_module_obj == nullptr && mapping_is_dict(globals_module)) {
+    const auto& fn = module.functions[runtime.current_frame_function_id()];
+    if (const Value* active_locals = current_eval_locals(runtime, &fn)) {
+      Value retained_locals = *active_locals;
+      std::string lookup_error;
+      if (mapping_get_item_runtime(runtime, retained_locals, Value::string(name), regs[in.dst], lookup_error))
+        return XlangVMOpFlow::Next;
+      Value pending;
+      if (runtime.take_pending_exception(pending)) {
+        const Value* key_error = runtime.find_builtin("KeyError");
+        auto* expected = key_error == nullptr ? nullptr : value_as_class(*key_error);
+        auto* actual = value_as_class(runtime.exception_type(pending));
+        if (expected == nullptr || actual == nullptr || !class_is_subclass(actual, expected))
+          return raise_exception_value(std::move(pending)) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+      } else if (lookup_error != "key not found") {
+        return raise_runtime_error(lookup_error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+      }
+    }
+  }
   if (globals_module_obj != nullptr) {
     xlang_vm_cache_touch(instr_cache, XlangVMCacheDomain::Global);
     auto& global_cache = instr_cache.global;
@@ -342,6 +369,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_module_slot(
 XLANG3_HOT_INLINE XlangVMOpFlow store_module_slot(
     const ir::Instr& in,
     const ir::Module& module,
+    Runtime& runtime,
     XlangVMSmallRegisterBuffer& regs,
     Value& globals_module,
     std::unordered_map<std::string, Value>& globals,
@@ -350,6 +378,21 @@ XLANG3_HOT_INLINE XlangVMOpFlow store_module_slot(
   if (in.dst >= module.global_slots.size() || in.a >= regs.size()) {
     result.errors.push_back("invalid module slot store");
     return XlangVMOpFlow::ReturnResult;
+  }
+  if (mapping_is_dict(globals_module)) {
+    // Entry-code walrus bindings belong to eval locals, while nested function
+    // global stores belong to the retained globals dict. Updating a separate
+    // interpreter map would silently lose the write and subsequent reads.
+    const auto& fn = module.functions[runtime.current_frame_function_id()];
+    const Value* eval_locals = current_eval_locals(runtime, &fn);
+    Value target = eval_locals == nullptr ? globals_module : *eval_locals;
+    std::string error;
+    const Value key = Value::string(module.global_slots[in.dst]);
+    const bool stored = eval_locals != nullptr
+        ? mapping_set_item_runtime(runtime, target, key, regs[in.a], error)
+        : mapping_set_item(target, key, regs[in.a], error);
+    if (!stored) { result.errors.push_back(error); return XlangVMOpFlow::ReturnResult; }
+    return XlangVMOpFlow::Next;
   }
   auto* globals_module_obj = value_as_module(globals_module);
   if (globals_module_obj != nullptr) {
@@ -411,6 +454,10 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_global(
     }
     global_cache.kind = 0;
   }
+  // A live dictionary has no module version counter. Never reuse a cached
+  // value across callback mutation or a returned function's later activation.
+  const bool live_dict_globals = mapping_is_dict(globals_module);
+  if (live_dict_globals) global_cache.kind = 0;
   if (global_cache.kind != 0 && eval_locals.tag == ValueTag::Invalid) {
     if (globals_module_obj != nullptr && global_cache.kind == 1) {
       const auto slot = global_cache.slot;
@@ -483,6 +530,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_global(
 XLANG3_HOT_INLINE XlangVMOpFlow store_global(
     const ir::Instr& in,
     const ir::Function& fn,
+    Runtime& runtime,
     XlangVMSmallRegisterBuffer& regs,
     Value& globals_module,
     std::unordered_map<std::string, Value>& globals,
@@ -493,6 +541,18 @@ XLANG3_HOT_INLINE XlangVMOpFlow store_global(
   if (in.dst >= fn.names.size() || in.a >= regs.size()) {
     result.errors.push_back("invalid global store");
     return XlangVMOpFlow::ReturnResult;
+  }
+  if (mapping_is_dict(globals_module)) {
+    const Value* eval_locals = current_eval_locals(runtime, &fn);
+    Value target = eval_locals == nullptr ? globals_module : *eval_locals;
+    std::string error;
+    const Value key = Value::string(fn.names[in.dst]);
+    const bool stored = eval_locals != nullptr
+        ? mapping_set_item_runtime(runtime, target, key, regs[in.a], error)
+        : mapping_set_item(target, key, regs[in.a], error);
+    instr_cache.global.kind = 0;
+    if (!stored) { result.errors.push_back(error); return XlangVMOpFlow::ReturnResult; }
+    return XlangVMOpFlow::Next;
   }
   if (value_as_module(globals_module) != nullptr) {
     std::string error;

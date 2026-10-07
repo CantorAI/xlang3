@@ -6711,7 +6711,8 @@ private:
         return dst;
       }
       if (auto* name = dynamic_cast<const ast::NameExpr*>(call->callee.get())) {
-        if (resolve_name(name->name) == PythonNames::builtin_len && call->args.size() == 1) {
+        if (!module_.dynamic_namespace_lowering &&
+            resolve_name(name->name) == PythonNames::builtin_len && call->args.size() == 1) {
           const auto value = lower_expr(*call->args[0]);
           const auto dst = new_reg();
           emit(ir::Op::Len, dst, value);
@@ -7029,7 +7030,12 @@ private:
 } // namespace
 
 LowerResult lower_to_ir(const ast::Module& module_ast) {
+  return lower_to_ir(module_ast, false);
+}
+
+LowerResult lower_to_ir(const ast::Module& module_ast, bool dynamic_namespace) {
   LowerResult result;
+  result.module.dynamic_namespace_lowering = dynamic_namespace;
   auto global_slots = collect_module_global_slots(module_ast);
   result.module.global_slots = global_slots.names;
   FunctionLowerer lowerer(
@@ -7054,6 +7060,7 @@ LowerResult lower_to_ir(const ast::Module& module_ast) {
   lowerer.lower_body(module_ast.body, !docstring_from_body(module_ast.body).empty());
   result.module.functions.push_back(lowerer.finish());
   result.module.entry = static_cast<uint32_t>(result.module.functions.size() - 1);
+  result.module.dynamic_namespace_lowering = false; // Policy is fully reflected in emitted IR.
   return result;
 }
 

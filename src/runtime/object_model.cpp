@@ -3298,7 +3298,7 @@ void function_capture_builtins(Runtime& runtime, FunctionObject& function, const
   bool found = false;
   if (value_as_module(globals) != nullptr) {
     found = module_get_attr(globals, "__builtins__", builtins, ignored);
-  } else if (value_as_dict(globals) != nullptr) {
+  } else if (mapping_is_dict(globals)) {
     found = mapping_get_string_item(globals, "__builtins__", builtins, ignored);
   }
   if (!found) {
@@ -3868,6 +3868,8 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
     if (name == "__globals__") {
       if (function->globals_dict.tag != ValueTag::Invalid) {
         value_assign_fast(out, function->globals_dict);
+      } else if (mapping_is_dict(function->globals_module)) {
+        value_assign_fast(out, function->globals_module);
       } else {
         out = module_namespace_dict(function->globals_module);
       }

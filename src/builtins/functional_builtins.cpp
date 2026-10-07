@@ -467,7 +467,7 @@ bool compile_source_to_code(
     if (parsed_expr.errors.empty()) {
       ast::Module eval_ast;
       eval_ast.body.push_back(std::make_unique<ast::ReturnStmt>(std::move(parsed_expr.expression)));
-      auto lowered = lower_to_ir(eval_ast);
+      auto lowered = lower_to_ir(eval_ast, true);
       if (!lowered.errors.empty()) {
         error = lowered.errors.front();
         runtime.raise_class_error("SyntaxError", error);
@@ -563,7 +563,7 @@ bool compile_source_to_code(
   if (!parsed.errors.empty()) {
     return raise_syntax_parse_error(parsed.errors.front());
   }
-  auto lowered = lower_to_ir(parsed.module);
+  auto lowered = lower_to_ir(parsed.module, true);
   if (!lowered.errors.empty()) {
     error = lowered.errors.front();
     runtime.raise_class_error("SyntaxError", error);
@@ -1985,7 +1985,7 @@ bool compile_runtime_ast_to_code(
   if (!error.empty()) {
     return raise_ast_conversion_error(runtime, error);
   }
-  auto lowered = lower_to_ir(module_ast);
+  auto lowered = lower_to_ir(module_ast, true);
   if (!lowered.errors.empty()) {
     error = lowered.errors.front();
     runtime.raise_class_error("SyntaxError", error);
@@ -4167,7 +4167,12 @@ bool builtin_globals(
   if (argc != 0) {
     return raise_type_error(runtime, "globals() expected no arguments", error);
   }
-  auto* module = value_as_module(runtime.current_globals_module());
+  const Value& active_globals = runtime.current_globals_module();
+  if (mapping_is_dict(active_globals)) {
+    value_assign_fast(out, active_globals);
+    return true;
+  }
+  auto* module = value_as_module(active_globals);
   if (module == nullptr) {
     error = "globals() has no active module";
     runtime.raise_class_error("RuntimeError", error);
@@ -4322,6 +4327,43 @@ bool builtin_eval(
     if (!compile_source_to_code(runtime, source, "<string>", "eval", 0, code_value, error)) {
       return false;
     }
+  }
+
+  // A supplied globals dict is execution storage, not a snapshot. Besides
+  // copying every binding for every tiny compiled expression, the old module
+  // conversion hid callback mutations and detached returned functions from
+  // their live globals. Keep the dict and explicit locals separate; nested
+  // function frames retain the dict but do not inherit the entry's locals.
+  auto* eval_code = value_as_code(code_value);
+  if (eval_code != nullptr && eval_code->mode == "eval" &&
+      argc >= 2 && namespace_dict_storage(args[1]) != nullptr) {
+    if (eval_code->module == nullptr || eval_code->function_id >= eval_code->module->functions.size()) {
+      error = "invalid code object";
+      runtime.raise_class_error("RuntimeError", error);
+      return false;
+    }
+    Value builtins;
+    std::string lookup_error;
+    if (!mapping_get_string_item(args[1], "__builtins__", builtins, lookup_error)) {
+      lookup_error.clear();
+      Value builtins_module;
+      if (!mapping_get_string_item(runtime.module_registry_dict(), "builtins", builtins_module, error)) return false;
+      builtins = module_namespace_dict(builtins_module);
+      Value live_globals = args[1];
+      if (!mapping_set_item(live_globals, Value::string("__builtins__"), builtins, error)) return false;
+    }
+    const Value& eval_locals = argc >= 3 && args[2].tag != ValueTag::None ? args[2] : args[1];
+    Value getitem;
+    if (!mapping_is_mapping(eval_locals) &&
+        !object_get_attr(eval_locals, "__getitem__", getitem, lookup_error)) {
+      return raise_type_error(runtime, "locals must be a mapping", error);
+    }
+    struct LiveEvalLocalsGuard {
+      Runtime& runtime;
+      ~LiveEvalLocalsGuard() { pop_eval_locals(runtime); }
+    } guard{runtime};
+    push_eval_locals(runtime, &eval_code->module->functions[eval_code->function_id], eval_locals);
+    return run_code_object(runtime, *eval_code, args[1], out, error);
   }
 
   const bool dynamic_locals = argc >= 3 && args[2].tag != ValueTag::None;

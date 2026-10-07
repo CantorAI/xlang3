@@ -1,0 +1,106 @@
+{
+  "checks": [
+    {
+      "path": "benchmarks/diagnostics/eval_live_namespace.py",
+      "match": true,
+      "cpython3147": {
+        "exit_code": 0,
+        "stdout": "{\"global_mutation_within_eval\": 2, \"builtins_inserted_into_original\": true, \"globals_identity\": true, \"nested_function_sees_later_global_mutation\": 3, \"explicit_locals_shadow_globals\": 7, \"custom_builtins\": 42}\n",
+        "stderr": ""
+      },
+      "xlang3": {
+        "exit_code": 0,
+        "stdout": "{\"global_mutation_within_eval\": 2, \"builtins_inserted_into_original\": true, \"globals_identity\": true, \"nested_function_sees_later_global_mutation\": 3, \"explicit_locals_shadow_globals\": 7, \"custom_builtins\": 42}\n",
+        "stderr": ""
+      }
+    },
+    {
+      "path": "tests/fixtures/core/eval_live_namespaces.py",
+      "match": false,
+      "cpython3147": {
+        "exit_code": 0,
+        "stdout": "live callback 2\nidentity True\nbuiltins inserted True\nreturned function 3 True\nlocals 7 True\ncustom len 42\nAST custom len 42\ncaptured function builtins 42\ncaptured mapping remains live 43\nactive frame keeps builtins 99\nempty builtins blocks fallback\nlocals builtin override 8\ncallee before arguments 4\nwalrus result 18\nwalrus target 1 9\ndynamic locals 6 ['dynamic', 'dynamic', 'x']\nfailure unwinds locals\nafter failure 11\n",
+        "stderr": ""
+      },
+      "xlang3": {
+        "exit_code": 0,
+        "stdout": "live callback 2\nidentity True\nbuiltins inserted True\nreturned function 3 True\nlocals 7 True\ncustom len 42\nAST custom len 42\ncaptured function builtins 42\ncaptured mapping remains live 43\nactive frame keeps builtins 99\nempty builtins blocks fallback\nlocals builtin override 8\ncallee before arguments 4\nwalrus result 10\nwalrus target 1 None\ndynamic locals 6 ['dynamic', 'dynamic', 'x']\nfailure unwinds locals\nafter failure 11\n",
+        "stderr": ""
+      }
+    },
+    {
+      "path": "tests/fixtures/core/eval_mapping_locals.py",
+      "match": true,
+      "cpython3147": {
+        "exit_code": 0,
+        "stdout": "3 ['x', 'x']\n9 ['x', 'x', 'y']\n7\nValueError lookup failed\n",
+        "stderr": ""
+      },
+      "xlang3": {
+        "exit_code": 0,
+        "stdout": "3 ['x', 'x']\n9 ['x', 'x', 'y']\n7\nValueError lookup failed\n",
+        "stderr": ""
+      }
+    },
+    {
+      "path": "tests/fixtures/core/dynamic_execution_builtins.py",
+      "match": true,
+      "cpython3147": {
+        "exit_code": 0,
+        "stdout": "10\n12\n9\nNone\n10\n15\n42 41 True\nTrue 5\n51 5 False\nTrue\nFalse\nsyntax\n",
+        "stderr": ""
+      },
+      "xlang3": {
+        "exit_code": 0,
+        "stdout": "10\n12\n9\nNone\n10\n15\n42 41 True\nTrue 5\n51 5 False\nTrue\nFalse\nsyntax\n",
+        "stderr": ""
+      }
+    },
+    {
+      "path": "tests/fixtures/core/compile_ast_named_expr.py",
+      "match": true,
+      "cpython3147": {
+        "exit_code": 0,
+        "stdout": "NamedExpr\n6 True 3 2\n",
+        "stderr": ""
+      },
+      "xlang3": {
+        "exit_code": 0,
+        "stdout": "NamedExpr\n6 True 3 2\n",
+        "stderr": ""
+      }
+    },
+    {
+      "path": "tests/fixtures/core/function_builtins_capture.py",
+      "match": true,
+      "cpython3147": {
+        "exit_code": 0,
+        "stdout": "dict\nTrue\nCreated from code-owned doc text.\nupdated doc\n{}\nTrue\nset readonly\ndelete readonly\nTrue\nTrue\nTrue\n",
+        "stderr": ""
+      },
+      "xlang3": {
+        "exit_code": 0,
+        "stdout": "dict\nTrue\nCreated from code-owned doc text.\nupdated doc\n{}\nTrue\nset readonly\ndelete readonly\nTrue\nTrue\nTrue\n",
+        "stderr": ""
+      }
+    },
+    {
+      "path": "tests/fixtures/core/exec_live_globals.py",
+      "match": true,
+      "cpython3147": {
+        "exit_code": 0,
+        "stdout": "True 7\nTrue True\n11\n",
+        "stderr": ""
+      },
+      "xlang3": {
+        "exit_code": 0,
+        "stdout": "True 7\nTrue True\n11\n",
+        "stderr": ""
+      }
+    }
+  ],
+  "sha256": {
+    "exe": "0c8f346f112dc633a7c62ef08892e8d60a01b377cbd43e8c56a41368fb86f652",
+    "dll": "7ba29988fb922b8bc48440e1301d9ebdc8bcf60b98ec090b35d47fb194e2c45a"
+  }
+}

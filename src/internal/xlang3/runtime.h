@@ -73,6 +73,7 @@ struct RuntimeFrameView {
   GeneratorObject* generator_owner = nullptr;
   const Value* cell_values = nullptr;
   size_t cell_count = 0;
+  const Value* captured_builtins = nullptr;
 };
 
 enum class RuntimeDebugStepMode : uint8_t {

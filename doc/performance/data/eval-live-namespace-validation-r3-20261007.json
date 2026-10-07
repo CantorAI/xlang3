@@ -1,0 +1,48 @@
+{
+  "status": "finished",
+  "manager_version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+  "completed_utc": "2026-10-07T22:38:12.656395+00:00",
+  "sha256_start": {
+    "exe": "72dd41692c627ccc5242eda336578cfccc4d404ba63b395cae441698b6ba16a6",
+    "dll": "b0310f599fc7576463dd27c5be00dd96fb7ab9dfe6b11665adb706d8c6114e7d"
+  },
+  "checks": [
+    {
+      "name": "new_fixture_reference",
+      "reference_exit_code": 0,
+      "candidate_exit_code": 0,
+      "reference_stdout": "live callback 2\nidentity True\nbuiltins inserted True\nreturned function 3 True\nlocals 7 True\nframe namespaces True True\nframe builtins True\ncustom len 42\nAST custom len 42\ncaptured function builtins 42\ncaptured mapping remains live 43\nactive frame keeps builtins 99\nempty builtins blocks fallback\nlocals builtin override 8\ncallee before arguments 4\nwalrus result 18\nwalrus target 1 9\ndynamic locals 6 ['dynamic', 'dynamic', 'x']\nfailure unwinds locals\nafter failure 11\n",
+      "candidate_stdout": "live callback 2\nidentity True\nbuiltins inserted True\nreturned function 3 True\nlocals 7 True\nframe namespaces True True\nframe builtins True\ncustom len 42\nAST custom len 42\ncaptured function builtins 42\ncaptured mapping remains live 43\nactive frame keeps builtins 99\nempty builtins blocks fallback\nlocals builtin override 8\ncallee before arguments 4\nwalrus result 18\nwalrus target 1 9\ndynamic locals 6 ['dynamic', 'dynamic', 'x']\nfailure unwinds locals\nafter failure 11\n",
+      "candidate_stderr": ""
+    },
+    {
+      "name": "fixtures",
+      "command": [
+        "C:\\Python\\Python314\\python.exe",
+        "tests/run_fixtures.py",
+        "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "cpp",
+      "command": [
+        "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\ctest.exe",
+        "--test-dir",
+        "build-repro/main-verify-20261006",
+        "-C",
+        "Release",
+        "-R",
+        "xlang3_(runtime_value_tests|interpreter_tests|sdk_stream_call_tests|graph_)",
+        "--output-on-failure"
+      ],
+      "exit_code": 0,
+      "log_sha256": "4a8d450ad8934d694863dddb5455dd49f26d54df87757a1a59fbba7f4f908655"
+    }
+  ],
+  "sha256_end": {
+    "exe": "72dd41692c627ccc5242eda336578cfccc4d404ba63b395cae441698b6ba16a6",
+    "dll": "b0310f599fc7576463dd27c5be00dd96fb7ab9dfe6b11665adb706d8c6114e7d"
+  }
+}

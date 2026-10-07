@@ -53,10 +53,12 @@ struct CallArgsView {
   const std::vector<uint32_t>* star_args = nullptr;
   const std::vector<uint32_t>* kw_star_args = nullptr;
   const Value* live_keyword_defaults = nullptr;
+  const Value* captured_builtins = nullptr;
 
   XLANG3_HOT_INLINE CallArgsView with_keyword_defaults(const FunctionObject& function) const {
     CallArgsView view = *this;
     view.live_keyword_defaults = &function.kwdefaults_dict;
+    view.captured_builtins = &function.builtins;
     return view;
   }
 

@@ -28,5 +28,6 @@ struct LowerResult {
 };
 
 LowerResult lower_to_ir(const ast::Module& module);
+LowerResult lower_to_ir(const ast::Module& module, bool dynamic_namespace);
 
 } // namespace xlang3

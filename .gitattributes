@@ -81,3 +81,11 @@
 /benchmarks/diagnostics/genshi_runtime_phases.py text eol=lf
 /benchmarks/diagnostics/eval_live_namespace.py text eol=lf
 /doc/performance/genshi-runtime-profile-20261007.md text eol=lf
+
+/doc/performance/data/eval-live-namespace-*-20261007* -text
+/doc/performance/data/pyperformance-live-eval-*-20261007* -text
+/doc/performance/data/release-live-eval-*-20261007* -text
+/tests/fixtures/core/eval_live_namespaces.py text eol=lf
+/tests/fixtures/expected/eval_live_namespaces.out text eol=lf
+/doc/performance/eval-live-namespace-checkpoint-20261007.md text eol=lf
+/doc/performance/eval-live-namespace-checkpoint-20261007.svg text eol=lf

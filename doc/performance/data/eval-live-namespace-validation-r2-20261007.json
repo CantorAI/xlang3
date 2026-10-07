@@ -1,0 +1,17 @@
+{
+  "status": "prechecking",
+  "sha256_start": {
+    "exe": "72dd41692c627ccc5242eda336578cfccc4d404ba63b395cae441698b6ba16a6",
+    "dll": "4883c1f37f2f90ce7ee0c63a11ae76faab262848e7cb405ea9545b1d4fbb06d9"
+  },
+  "checks": [
+    {
+      "name": "new_fixture_reference",
+      "reference_exit_code": 0,
+      "candidate_exit_code": 0,
+      "reference_stdout": "live callback 2\nidentity True\nbuiltins inserted True\nreturned function 3 True\nlocals 7 True\nframe namespaces True True\nframe builtins True\ncustom len 42\nAST custom len 42\ncaptured function builtins 42\ncaptured mapping remains live 43\nactive frame keeps builtins 99\nempty builtins blocks fallback\nlocals builtin override 8\ncallee before arguments 4\nwalrus result 18\nwalrus target 1 9\ndynamic locals 6 ['dynamic', 'dynamic', 'x']\nfailure unwinds locals\nafter failure 11\n",
+      "candidate_stdout": "live callback 2\nidentity True\nbuiltins inserted True\nreturned function 3 True\nlocals 7 True\nframe namespaces True False\nframe builtins True\ncustom len 42\nAST custom len 42\ncaptured function builtins 42\ncaptured mapping remains live 43\nactive frame keeps builtins 99\nempty builtins blocks fallback\nlocals builtin override 8\ncallee before arguments 4\nwalrus result 18\nwalrus target 1 9\ndynamic locals 6 ['dynamic', 'dynamic', 'x']\nfailure unwinds locals\nafter failure 11\n",
+      "candidate_stderr": ""
+    }
+  ]
+}
