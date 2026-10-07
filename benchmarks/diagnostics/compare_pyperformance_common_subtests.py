@@ -58,10 +58,15 @@ def validate_completed_provenance(provenance, reference_name):
     if provenance.get("status") not in {"finished", "finished_with_benchmark_failures"}:
         raise ValueError("the after run is not terminal; do not summarize partial results")
     start, end = provenance.get("sha256_start", {}), provenance.get("sha256_end", {})
-    for kind in ("exe", "dll"):
+    # A native package is part of the measured engine too. Older provenance
+    # records only EXE/DLL; verify any package identity recorded by newer runs.
+    kinds = ("exe", "dll", "hashlib") if start.get("hashlib") else ("exe", "dll")
+    for kind in kinds:
         if not start.get(kind) or start[kind].lower() != end.get(kind, "").lower():
             raise ValueError(f"missing or changed after-run {kind} hash")
-    if provenance.get("manager_version") != "Python 3.14.7":
+    # The runners record either `python --version` or platform.python_version().
+    # Both must identify exactly the required reference version.
+    if provenance.get("manager_version") not in {"Python 3.14.7", "3.14.7"}:
         raise ValueError("the run manager must be CPython 3.14.7")
     if provenance.get("cpython_reference") != reference_name:
         raise ValueError("CPython reference does not match the completed run provenance")

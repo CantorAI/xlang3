@@ -1,0 +1,58 @@
+{
+  "manager_version": "3.14.7",
+  "scope": "Offline reporting validation; no benchmark worker or XLang3 process started",
+  "checks": [
+    {
+      "case": "Python 3.14.7",
+      "result": "accepted"
+    },
+    {
+      "case": "3.14.7",
+      "result": "accepted"
+    },
+    {
+      "case": "matching native package",
+      "result": "accepted"
+    },
+    {
+      "case": "running suite",
+      "result": "rejected",
+      "reason": "the after run is not terminal; do not summarize partial results"
+    },
+    {
+      "case": "Python 3.13",
+      "result": "rejected",
+      "reason": "the run manager must be CPython 3.14.7"
+    },
+    {
+      "case": "wrong patch version",
+      "result": "rejected",
+      "reason": "the run manager must be CPython 3.14.7"
+    },
+    {
+      "case": "changed EXE",
+      "result": "rejected",
+      "reason": "missing or changed after-run exe hash"
+    },
+    {
+      "case": "missing DLL",
+      "result": "rejected",
+      "reason": "missing or changed after-run dll hash"
+    },
+    {
+      "case": "changed native package",
+      "result": "rejected",
+      "reason": "missing or changed after-run hashlib hash"
+    },
+    {
+      "case": "missing native package end hash",
+      "result": "rejected",
+      "reason": "missing or changed after-run hashlib hash"
+    },
+    {
+      "case": "wrong reference",
+      "result": "rejected",
+      "reason": "CPython reference does not match the completed run provenance"
+    }
+  ]
+}
