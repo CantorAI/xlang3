@@ -34,6 +34,9 @@ void copy_builtin(Runtime& runtime, Value& module, const char* name) {
 void register_builtin_modules(Runtime& runtime) {
   NativeModuleBuilder builder(runtime, "builtins");
   auto builtins = builder.finish();
+  copy_builtin(runtime, builtins, "None");
+  copy_builtin(runtime, builtins, "False");
+  copy_builtin(runtime, builtins, "True");
   copy_builtin(runtime, builtins, "print");
   copy_builtin(runtime, builtins, "__debug__");
   copy_builtin(runtime, builtins, "__import__");

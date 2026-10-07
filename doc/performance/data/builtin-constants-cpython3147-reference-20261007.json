@@ -1,0 +1,9 @@
+{
+  "manager_executable": "C:\\Python\\Python314\\python.exe",
+  "manager_version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+  "fixture": "tests\\fixtures\\core\\builtin_literal_namespace.py",
+  "source_sha256": "15a90565505f2de42849fa56c2a5dc84f9e5ef8861cf0b9a49363f6f8c92ae58",
+  "exit_code": 0,
+  "stdout": "builtin literal namespace and identity True\nPython symbol mapping retains None call arguments True\nkeyword literals remain independent of builtin rebinding True\n",
+  "stderr": ""
+}

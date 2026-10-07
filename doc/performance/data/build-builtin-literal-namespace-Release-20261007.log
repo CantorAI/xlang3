@@ -1,0 +1,5 @@
+ninja: Entering directory `build-repro\main-verify-20261006'
+[0/2] Re-checking globbed directories...
+[1/9] Building CXX object CMakeFiles\xlang3_runtime.dir\Release\src\builtins\builtin_modules.cpp.obj
+[2/9] Building CXX object CMakeFiles\xlang3_runtime.dir\Release\src\builtins\object_type_builtins.cpp.obj
+[3/9] Linking CXX shared library Release\xlang3_runtime.dll

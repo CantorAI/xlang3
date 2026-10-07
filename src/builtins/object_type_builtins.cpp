@@ -4333,6 +4333,12 @@ void register_object_type_builtins(Runtime& runtime) {
     slot_descriptor_set_owner_class(type_class->attrs["__annotations__"], type_type);
   }
   runtime.register_builtin("type", type_type);
+  // Keep keyword literals immediate in the VM, but expose their canonical
+  // values for Python code that enumerates the builtin namespace (for example
+  // AST template symbol maps). This adds no lookup to literal evaluation.
+  runtime.register_builtin("None", Value::none());
+  runtime.register_builtin("False", Value::boolean(false));
+  runtime.register_builtin("True", Value::boolean(true));
   runtime.register_builtin("__debug__", Value::boolean(true));
   runtime.register_builtin(
       "__xlang3_build_class_from_namespace__",

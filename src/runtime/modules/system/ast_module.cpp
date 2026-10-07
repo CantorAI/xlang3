@@ -634,6 +634,16 @@ Value ast_parse_simple_expr(
         column_offset + static_cast<uint32_t>(source.size()), error);
     return constant;
   }
+  // Keyword literals are constants even if their introspection entries in
+  // builtins are rebound. Keep this scalar path independent of name lookup.
+  if (source == "None" || source == "False" || source == "True") {
+    Value constant = ast_make_constant(
+        state, source == "None" ? Value::none() : Value::boolean(source == "True"), error);
+    ast_set_location(
+        constant, source_line, source_line, column_offset,
+        column_offset + static_cast<uint32_t>(source.size()), error);
+    return constant;
+  }
   bool is_identifier = !source.empty() &&
       (std::isalpha(static_cast<unsigned char>(source.front())) || source.front() == '_');
   for (char ch : source) {
