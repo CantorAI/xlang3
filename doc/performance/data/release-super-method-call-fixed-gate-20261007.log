@@ -1,0 +1,12 @@
+local_slots              pass         0.995x
+scalar_arithmetic        pass         1.064x
+range_for                pass         1.006x
+function_calls           pass         0.938x
+class_construct          pass         1.003x
+list_append              pass         1.009x
+property_access          pass         0.985x
+deepcopy_memo            pass         0.886x
+json_dumps               pass         0.991x
+gc_traversal             pass         0.732x
+subparsers               pass         0.960x
+Performance check: pass. Report: doc\performance\data\release-super-method-call-fixed-gate-20261007.json

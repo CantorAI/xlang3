@@ -1,0 +1,9 @@
+{
+  "manager_executable": "C:\\Python\\Python314\\python.exe",
+  "manager_version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+  "fixture": "tests\\fixtures\\core\\super_method_call_dispatch.py",
+  "source_sha256": "81db46e9207eb7367b13d562ce934287e60854a0220579a1d8171f69a082454b",
+  "exit_code": 0,
+  "stdout": "native, Python, saved and ordinary fallback methods True\nbase mutation and saved callable identity True\ncurrent diamond MRO dispatch True\nPython frames and native profile calls retained True\noriginal method tracebacks and native errors retained True\n",
+  "stderr": ""
+}

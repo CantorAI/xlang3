@@ -1,0 +1,38 @@
+{
+  "status": "finished",
+  "started_utc": "2026-10-07T16:59:11.231122+00:00",
+  "runtime_executable": "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+  "source_base_commit": "497d35a6d703d8c94c55cd7be32f71a11122e042",
+  "engine_source": "Uncommitted immediate super method dispatch without BoundMethod allocation",
+  "source_sha256": {
+    "src/internal/xlang3/object_model.h": "c19265954e6c941c62ceeecdc362f51144210c1cadf612949fbb981737b50b79",
+    "src/runtime/object_model.cpp": "680828a4586b6fd48431a1e4230d1a7da07e80f936e128672a7ab3f55b8e5277",
+    "src/executor/xlang_vm/ops/xlang_vm_ops_call.h": "d640742473b168c2a946d001341107d6fec70d578d74ac171d0e1b8f45c7eba7",
+    "tests/run_fixtures.py": "2b49aa7595c9b343982c3ea61043107aa14fde72db61f0355edfc590acadb0a6",
+    "tests/fixtures/core/super_method_call_dispatch.py": "b2f894c2d9be27d0ae07946f6b43a93384d1acc70d65fde657f4f0474a6160d1",
+    "tests/fixtures/expected/super_method_call_dispatch.out": "64f3897ff34b163f8af411bf9235e035d8736c332a451ddd99c226a5648b76d8"
+  },
+  "sha256_start": {
+    "exe": "46a04e33a02022374347f98dcfb4d3ef73e158f5717b92b31d1fee360a8cccef",
+    "dll": "560c7059523174fe73a45513ca1ff617be609f45e4f80b5b4254999512e58cf8",
+    "hashlib": "5910f087e300459b854dca0046ac61125287e7d62bf330a3d626631d9a74b239"
+  },
+  "manager_executable": "C:\\Python\\Python314\\python.exe",
+  "manager_version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+  "mode": "fast",
+  "benchmarks": "chameleon",
+  "expected_definitions": 1,
+  "case_timeout_seconds": 300,
+  "cpython_reference": "pyperformance-cpython314-clean-release-full-fast-20261002.json",
+  "cpython_reference_provenance_limits": "cpython3147-saved-reference-provenance-audit-20261007.json",
+  "fixed_gate": "release-super-method-call-fixed-gate-20261007.json",
+  "fixed_gate_exit_code": 0,
+  "compatibility_hook_sha256": "2ffc217fe20497156bfcb1cebc7fb87203f33c6d4d3dbb6ecbcbcf91ea4cb317",
+  "exit_code": 0,
+  "completed_utc": "2026-10-07T16:59:46.116343+00:00",
+  "sha256_end": {
+    "exe": "46a04e33a02022374347f98dcfb4d3ef73e158f5717b92b31d1fee360a8cccef",
+    "dll": "560c7059523174fe73a45513ca1ff617be609f45e4f80b5b4254999512e58cf8",
+    "hashlib": "5910f087e300459b854dca0046ac61125287e7d62bf330a3d626631d9a74b239"
+  }
+}

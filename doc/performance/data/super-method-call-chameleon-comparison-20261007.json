@@ -1,0 +1,27 @@
+{
+  "benchmark": "chameleon",
+  "xlang3_seconds": 0.15856362000486116,
+  "cpython3147_saved_seconds": 0.01185077124991949,
+  "previous_xlang3_seconds": 0.16882155499915824,
+  "original_completed_xlang3_seconds": 0.17806827999738745,
+  "previous_over_candidate_speed": 1.0646928658287607,
+  "time_reduction_percent": 6.076199804194571,
+  "original_over_candidate_speed": 1.123008417642889,
+  "original_time_reduction_percent": 10.95347245046252,
+  "cpython_over_xlang3_speed": 0.0747382738206669,
+  "xlang3_over_cpython_time": 13.380025372267513,
+  "values": {
+    "pyperformance-xlang3-super-method-call-chameleon-fast-20261007.json": 20,
+    "pyperformance-cpython314-clean-release-full-fast-20261002.json": 20,
+    "pyperformance-xlang3-super-frame-receiver-chameleon-fast-20261007.json": 20,
+    "pyperformance-xlang3-builtin-constants-chameleon-fast-20261007.json": 20
+  },
+  "nominal_fast_mode": true,
+  "input_sha256": {
+    "pyperformance-xlang3-super-method-call-chameleon-fast-20261007.json": "ffaa29cb4d1765094e8b807bb22fe1d6e64b5751fb8450488c62d23732720836",
+    "pyperformance-cpython314-clean-release-full-fast-20261002.json": "0543fa675730f019f2c9b54c18d07ae7777d2edc15e9eed60d98a3179e949dc5",
+    "pyperformance-xlang3-super-frame-receiver-chameleon-fast-20261007.json": "e9cd504bb070082ad3e949c26e92a1ec3bf48937183d4fa6cbfa15d297419e87",
+    "pyperformance-xlang3-builtin-constants-chameleon-fast-20261007.json": "c82bafab62804f06987b663e394a661f0c478eb569d3079da4cf92dbde539739"
+  },
+  "cpython_reference_provenance_limits": "cpython3147-saved-reference-provenance-audit-20261007.json"
+}

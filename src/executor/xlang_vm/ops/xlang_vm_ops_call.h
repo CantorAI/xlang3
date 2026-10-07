@@ -1005,6 +1005,28 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
   }
 
   const bool receiver_is_super = value_as_super(regs[in.a]) != nullptr;
+  if (receiver_is_super && call_args.leading_count == 0 &&
+      !call_args.has_keywords() && !call_args.has_expansion()) {
+    Value super_method;
+    Value super_receiver;
+    if (object_get_super_method_for_call(regs[in.a], name, super_method, super_receiver)) {
+      // Immediate super.method(...) needs a callable and receiver, not a heap
+      // BoundMethod. Resolve the current MRO on every call, retain both values,
+      // and use normal call dispatch so Python frames, hooks and errors remain.
+      // Descriptors, class/static methods and __new__ keep ordinary lookup.
+      CallArgsView bound_args = call_args;
+      bound_args.leading = &super_receiver;
+      bound_args.leading_count = 1;
+      if (!xlang3::xlang_vm::ops::call_callable_value(
+              runtime, super_method, bound_args, module, module_owner, in.dst, ip,
+              native_call_args, execution_lock, regs[in.dst], pushed_frame,
+              make_generator_if_needed, push_frame, raise_runtime_error, raise_exception_value)) {
+        if (!result.errors.empty()) return XlangVMOpFlow::ReturnResult;
+        return XlangVMOpFlow::ContinueLoop;
+      }
+      return pushed_frame ? XlangVMOpFlow::SwitchFrame : XlangVMOpFlow::Next;
+    }
+  }
   bool receiver_has_direct_method_attr = false;
   if (auto* instance = value_as_instance(regs[in.a])) {
     auto* klass = value_as_class(instance->klass);

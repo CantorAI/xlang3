@@ -1,0 +1,33 @@
+{
+  "purpose": "instrumented allocation counts only; do not compare timing values",
+  "command_arguments": [
+    "--perf-counters",
+    "benchmarks/diagnostics/python_super_dict_get.py",
+    "100"
+  ],
+  "rows": {
+    "control": {
+      "BoundMethod": {
+        "alloc": 5866,
+        "final_release": 5824,
+        "incref": 721,
+        "decref": 6537
+      },
+      "native_calls": 16813
+    },
+    "candidate": {
+      "BoundMethod": {
+        "alloc": 2772,
+        "final_release": 2730,
+        "incref": 721,
+        "decref": 3443
+      },
+      "native_calls": 16813
+    }
+  },
+  "input_sha256": {
+    "super-method-call-preserved-control-allocation-counters-20261007.log": "9085e4e3e909786c2d550865cd037a8c6efba2f5e7a18e6660f2aba50d57ea7c",
+    "super-method-call-candidate-allocation-counters-20261007.log": "1064dba7d6544e19d1f2db0bec0d48e26c608bbbfba8292fbcf0ba74af9898ab"
+  },
+  "bound_method_allocations_removed": 3094
+}

@@ -3313,6 +3313,121 @@ void function_capture_builtins(Runtime& runtime, FunctionObject& function, const
   }
 }
 
+namespace {
+
+bool lookup_super_attribute(
+    const SuperObject& super, const std::string& name,
+    Value& out, bool& class_attribute, std::string& error) {
+  class_attribute = false;
+  auto* klass = value_as_class(super.klass);
+  if (klass == nullptr) {
+    error = "super object has invalid class";
+    return false;
+  }
+  ClassObject* lookup_klass = klass;
+  if (auto* self_instance = value_as_instance(super.self)) {
+    if (auto* self_klass = value_as_class(self_instance->klass)) {
+      lookup_klass = self_klass;
+    }
+  } else if (super.self.tag == ValueTag::Object && super.self.as.obj != nullptr &&
+             super.self.as.obj->kind == ObjectKind::File) {
+    auto* file = reinterpret_cast<FileObject*>(super.self.as.obj);
+    if (auto* self_klass = value_as_class(file->klass)) {
+      lookup_klass = self_klass;
+    }
+  } else if (auto* self_klass = value_as_class(super.self)) {
+    lookup_klass = self_klass;
+    const std::vector<Value>* self_mro = nullptr;
+    std::string self_mro_error;
+    if (class_mro_values(self_klass, self_mro, self_mro_error)) {
+      const bool target_in_class_mro = std::any_of(
+          self_mro->begin(), self_mro->end(),
+          [klass](const Value& value) { return value_as_class(value) == klass; });
+      if (!target_in_class_mro) {
+        if (auto* metaclass = value_as_class(self_klass->metaclass)) {
+          lookup_klass = metaclass;
+        }
+      }
+    }
+  }
+  const std::vector<Value>* mro = nullptr;
+  if (!class_mro_values(lookup_klass, mro, error)) {
+    return false;
+  }
+  bool start_class_in_mro = false;
+  for (const auto& class_value : *mro) {
+    if (value_as_class(class_value) == klass) {
+      start_class_in_mro = true;
+      break;
+    }
+  }
+  if (!start_class_in_mro && lookup_klass != klass && !class_mro_values(klass, mro, error)) {
+    return false;
+  }
+  bool use_next = false;
+  Value attr;
+  bool found = false;
+  for (const auto& class_value : *mro) {
+    auto* candidate = value_as_class(class_value);
+    if (candidate == nullptr) {
+      continue;
+    }
+    if (!use_next) {
+      if (candidate == klass) {
+        use_next = true;
+      }
+      continue;
+    }
+    auto it = candidate->attrs.find(name);
+    if (it != candidate->attrs.end()) {
+      value_assign_fast(attr, it->second);
+      found = true;
+      break;
+    }
+  }
+  if (!found) {
+    if (auto* instance = value_as_instance(super.self)) {
+      for (const auto& instance_attr : instance->attrs) {
+        if (instance_attr.first == name) {
+          value_assign_fast(out, instance_attr.second);
+          return true;
+        }
+      }
+    }
+    error = "super object has no attribute '" + name + "'";
+    return false;
+  }
+  class_attribute = true;
+  value_assign_fast(out, attr);
+  return true;
+}
+
+} // namespace
+
+bool object_get_super_method_for_call(
+    const Value& object, const std::string& name, Value& method, Value& receiver) {
+  auto* super = value_as_super(object);
+  if (super == nullptr || name == "__new__" || name == "__self__" ||
+      name == "__self_class__" || name == "__thisclass__" ||
+      (value_as_instance(super->self) == nullptr &&
+       (super->self.tag != ValueTag::Object || super->self.as.obj == nullptr ||
+        super->self.as.obj->kind != ObjectKind::File))) return false;
+  Value attribute;
+  bool class_attribute = false;
+  std::string ignored;
+  if (!lookup_super_attribute(*super, name, attribute, class_attribute, ignored) ||
+      !class_attribute) return false;
+  auto* native = value_as_native_function(attribute);
+  if (value_as_function(attribute) == nullptr &&
+      (native == nullptr || !native->bind_as_descriptor)) return false;
+  // Share full attribute lookup's MRO selection; never bind an instance-stored
+  // callable or execute an arbitrary descriptor in this shortcut. No lookup
+  // result is cached across class mutation. Saved attributes still bind normally.
+  value_assign_fast(method, attribute);
+  value_assign_fast(receiver, super->self);
+  return true;
+}
+
 bool object_get_attr(const Value& object, const std::string& name, Value& out, std::string& error) {
   if (auto* slot = value_as_slot_descriptor(object)) {
     if (name == "__name__") {
@@ -4375,83 +4490,12 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       value_assign_fast(out, super->klass);
       return true;
     }
-    auto* klass = value_as_class(super->klass);
-    if (klass == nullptr) {
-      error = "super object has invalid class";
-      return false;
-    }
-    ClassObject* lookup_klass = klass;
-    if (auto* self_instance = value_as_instance(super->self)) {
-      if (auto* self_klass = value_as_class(self_instance->klass)) {
-        lookup_klass = self_klass;
-      }
-    } else if (super->self.tag == ValueTag::Object && super->self.as.obj != nullptr &&
-               super->self.as.obj->kind == ObjectKind::File) {
-      auto* file = reinterpret_cast<FileObject*>(super->self.as.obj);
-      if (auto* self_klass = value_as_class(file->klass)) {
-        lookup_klass = self_klass;
-      }
-    } else if (auto* self_klass = value_as_class(super->self)) {
-      lookup_klass = self_klass;
-      const std::vector<Value>* self_mro = nullptr;
-      std::string self_mro_error;
-      if (class_mro_values(self_klass, self_mro, self_mro_error)) {
-        const bool target_in_class_mro = std::any_of(
-            self_mro->begin(), self_mro->end(),
-            [klass](const Value& value) { return value_as_class(value) == klass; });
-        if (!target_in_class_mro) {
-          if (auto* metaclass = value_as_class(self_klass->metaclass)) {
-            lookup_klass = metaclass;
-          }
-        }
-      }
-    }
-    const std::vector<Value>* mro = nullptr;
-    if (!class_mro_values(lookup_klass, mro, error)) {
-      return false;
-    }
-    bool start_class_in_mro = false;
-    for (const auto& class_value : *mro) {
-      if (value_as_class(class_value) == klass) {
-        start_class_in_mro = true;
-        break;
-      }
-    }
-    if (!start_class_in_mro && lookup_klass != klass && !class_mro_values(klass, mro, error)) {
-      return false;
-    }
-    bool use_next = false;
     Value attr;
-    bool found = false;
-    for (const auto& class_value : *mro) {
-      auto* candidate = value_as_class(class_value);
-      if (candidate == nullptr) {
-        continue;
-      }
-      if (!use_next) {
-        if (candidate == klass) {
-          use_next = true;
-        }
-        continue;
-      }
-      auto it = candidate->attrs.find(name);
-      if (it != candidate->attrs.end()) {
-        value_assign_fast(attr, it->second);
-        found = true;
-        break;
-      }
-    }
-    if (!found) {
-      if (auto* instance = value_as_instance(super->self)) {
-        for (const auto& instance_attr : instance->attrs) {
-          if (instance_attr.first == name) {
-            value_assign_fast(out, instance_attr.second);
-            return true;
-          }
-        }
-      }
-      error = "super object has no attribute '" + name + "'";
-      return false;
+    bool class_attribute = false;
+    if (!lookup_super_attribute(*super, name, attr, class_attribute, error)) return false;
+    if (!class_attribute) {
+      value_assign_fast(out, attr);
+      return true;
     }
     Value descriptor_owner;
     if (auto* self_instance = value_as_instance(super->self)) {
