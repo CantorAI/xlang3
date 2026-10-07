@@ -10,6 +10,7 @@ import ctypes
 import ctypes.wintypes
 import fnmatch
 import os
+import re
 import subprocess
 import sys
 import time
@@ -42,6 +43,15 @@ parser.add_argument("--case-timeout-override", action="append", default=[],
                     help="Override the full-case cap; glob patterns allowed, last match wins")
 parser.add_argument("--dependency-site", action="append", default=[], type=Path,
                     help="Existing CPython benchmark site-packages directory; repeatable")
+def worker_environment_name(value):
+    if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", value) is None:
+        raise argparse.ArgumentTypeError("use a single environment-variable name")
+    return value
+
+
+parser.add_argument("--inherit-worker-env", action="append", default=[],
+                    type=worker_environment_name,
+                    help="Additional variable to inherit in timed workers (for explicit diagnostics)")
 args = parser.parse_args()
 if args.case_timeout <= 0:
     parser.error("--case-timeout must be positive")
@@ -237,11 +247,16 @@ _utils.run_cmd = run_with_timeout
 if args.case_timeout_override:
     print("Full-case timeout overrides: " + ", ".join(
         f"{pattern}={seconds}s" for pattern, seconds in args.case_timeout_override), flush=True)
+if args.inherit_worker_env:
+    print("Explicit worker environment variables: " + ", ".join(
+        dict.fromkeys(args.inherit_worker_env)), flush=True)
 mode_args = {"fast": ["--fast"], "rigorous": ["--rigorous"],
              "debug": ["--debug-single-value"]}[args.mode]
 sys.argv = ["pyperformance", "run", *mode_args, "--benchmarks", args.benchmarks,
             "--python", runtime, "--inherit-environ",
-            "PYTHONPATH,PYTHONPYCACHEPREFIX,XLANG3_PYTHON_LIB", "--output", output]
+            ",".join(dict.fromkeys([
+                "PYTHONPATH", "PYTHONPYCACHEPREFIX", "XLANG3_PYTHON_LIB",
+                *args.inherit_worker_env])), "--output", output]
 parser, options = cli.parse_args()
 benchmarks = cli._benchmarks_from_options(options)
 cli.cmd_run(options, benchmarks)

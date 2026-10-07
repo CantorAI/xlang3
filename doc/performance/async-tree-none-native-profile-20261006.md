@@ -11,18 +11,17 @@ full Python 3.14.7 fixture runner passed.
 Two separate diagnostics help narrow the remaining gap, but neither identifies
 a single cause of the roughly 4.5-second run. A user-mode sample of the exact
 pyperformance `NoneAsyncTree` body found frequent `Value` release/copy work,
-string-key hashing, and `object_get_attr`. A timer-instrumented pyperformance
-run attributed only a few percent of its measured VM-op time to each of
-`Call` and `CallMethod`; the tested `LoadLocalAttr` op contributed about
-2.8 ms in that diagnostic run. Those opcode timings cannot explain the full
-wall-time gap, so they are not a basis for claiming a speedup.
+string-key hashing, and `object_get_attr`. The opcode timer experiment did not
+reach pyperf's timed workers because the runner omitted its environment flag
+from worker inheritance. Its rows represent setup work and cannot attribute
+the benchmark body's cost or rule out any opcode as a hotspot.
 
 The earlier instrumented run did not record XLang3's native Task-step timers.
 That absence was not evidence of a different Task-step path: a follow-up
 observer around the event loop's `call_soon` confirmed that this benchmark
 schedules the native `_asyncio.Task._step` callback 55,989 times. The reason
-the timer probe missed it remains unresolved; do not use those missing timer
-rows to rule out Task dispatch as a hotspot.
+the timer probe missed it was the filtered worker environment; do not use those
+missing timer rows to rule out Task dispatch as a hotspot.
 
 ## Pyperformance context
 
@@ -36,7 +35,7 @@ paired run from this diagnostic session.
 | --- | ---: | --- |
 | CPython 3.14.7 | 227.4 ms | Saved official fast-mode reference |
 | XLang3 Release control | 4.50 s ± 0.04 s | Fresh official pyperformance fast run |
-| XLang3 timing-probe run | 4.51 s | Debug-mode score with profiling enabled; diagnostic only |
+| XLang3 timing-probe run | 4.51 s | Debug score; timer flag did not reach the worker |
 
 ## Native sample points
 
@@ -130,10 +129,13 @@ the [fixed Release gate](data/release-simple-self-attr-getter-gate-20261006.json
 
 ## Opcode timing diagnostic
 
-The timer probe ran the official `async_tree_none` body once in debug mode with
-scoped timers around each VM opcode. A clock pair averaged 14 ns. The busiest
-timed operations were imports and calls; individual local-load operations
-were inexpensive relative to total wall time.
+Correction: the timer flag was not inherited by pyperf's timed workers. The
+runner forwarded `PYTHONPATH`, `PYTHONPYCACHEPREFIX`, and `XLANG3_PYTHON_LIB`,
+but omitted `XLANG3_VM_OPCODE_TIMING`. Pyperf's `create_environ` filters out
+other variables unless they are explicitly inherited. The raw log contains
+one timer block before the benchmark starts; it cannot be used to attribute
+the `async_tree_none` body. The reported 14 ns clock pair and rows below are
+setup-process diagnostics, **not timings of the benchmark's VM work**.
 
 | Opcode | Calls | Self time |
 | --- | ---: | ---: |
@@ -145,10 +147,18 @@ were inexpensive relative to total wall time.
 | `CallLocalMethod` | 4,823 | 5.5 ms |
 | `LoadLocalAttr` | 21,270 | 2.8 ms |
 
-These are instrumented self-times, not ordinary-build costs. The raw
+These rows do not measure the timed worker. The raw
 [timing log](data/async-tree-none-opcode-timing-20261006.log) retains every
-opcode row. The probe source was removed before rebuilding the ordinary
-Release binary.
+opcode row. This explains why the native Task-step probes were absent despite
+the independently verified Task callback counts. The probe source was removed
+before rebuilding the ordinary Release binary.
+
+The runner now accepts an explicit
+`--inherit-worker-env XLANG3_VM_OPCODE_TIMING` for a separately built diagnostic
+binary. A new worker-instrumented run is still required before making opcode
+cost claims. Ordinary performance runs do not enable or inherit this flag by
+default. The [worker-environment diagnosis](pyperf-worker-diagnostic-environment-20261006.md)
+records the source evidence and reproduction.
 
 ## Rejected candidates and validation
 
