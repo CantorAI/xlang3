@@ -224,4 +224,17 @@ for include_attribute in (False, True):
     gc.collect()
     assert reference() is None, "keyword-default cycle was not traversed"
 
+# NetworkX copies _dispatchable.__dict__ into an argmap function. Like CPython
+# data descriptors, native function defaults must beat the copied shadow keys.
+def dictionary_shadow(value=3, *, target=4):
+    return value, target
+
+live_defaults = dictionary_shadow.__kwdefaults__
+dictionary_shadow.__dict__.update({"__defaults__": (99,), "__kwdefaults__": {"target": 99}})
+assert dictionary_shadow.__defaults__ == (3,)
+assert dictionary_shadow.__kwdefaults__ is live_defaults
+dictionary_shadow.__kwdefaults__["target"] = 5
+assert dictionary_shadow() == (3, 5)
+assert dictionary_shadow.__dict__["__kwdefaults__"]["target"] == 99
+
 print("function live keyword defaults ok")

@@ -3582,6 +3582,38 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       }
       return true;
     }
+    // Function defaults are data attributes: decorators can copy same-named
+    // entries into __dict__, but those entries must not shadow the real storage.
+    // In particular, mutating __kwdefaults__ must always reach the binder's dict.
+    if (name == "__defaults__") {
+      if (function->positional_defaults.empty()) {
+        auto defaults = function_positional_defaults_for_introspection(*function);
+        if (defaults.empty()) value_set_none(out);
+        else out = Value::tuple(std::move(defaults));
+      } else {
+        out = Value::tuple(function->positional_defaults);
+      }
+      return true;
+    }
+    if (name == "__kwdefaults__") {
+      if (function->kwdefaults_dict.tag != ValueTag::Invalid) {
+        value_assign_fast(out, function->kwdefaults_dict);
+        return true;
+      }
+      if (function->kwdefaults.empty()) {
+        value_set_none(out);
+      } else {
+        std::vector<std::pair<Value, Value>> entries;
+        entries.reserve(function->kwdefaults.size());
+        for (const auto& entry : function->kwdefaults) {
+          entries.push_back({Value::string(entry.first), entry.second});
+        }
+        function->kwdefaults_dict = Value::dict(std::move(entries));
+        function_clear_indexed_keyword_defaults(*function);
+        value_assign_fast(out, function->kwdefaults_dict);
+      }
+      return true;
+    }
     if (function->attrs_dict.tag != ValueTag::Invalid) {
       std::string ignored;
       if (mapping_get_item(function->attrs_dict, Value::string(name), out, ignored)) {
@@ -3636,35 +3668,6 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
         out = Value::string(function->module->functions[function->function_id].doc);
       } else {
         value_set_none(out);
-      }
-      return true;
-    }
-    if (name == "__defaults__") {
-      if (function->positional_defaults.empty()) {
-        auto defaults = function_positional_defaults_for_introspection(*function);
-        if (defaults.empty()) value_set_none(out);
-        else out = Value::tuple(std::move(defaults));
-      } else {
-        out = Value::tuple(function->positional_defaults);
-      }
-      return true;
-    }
-    if (name == "__kwdefaults__") {
-      if (function->kwdefaults_dict.tag != ValueTag::Invalid) {
-        value_assign_fast(out, function->kwdefaults_dict);
-        return true;
-      }
-      if (function->kwdefaults.empty()) {
-        value_set_none(out);
-      } else {
-        std::vector<std::pair<Value, Value>> entries;
-        entries.reserve(function->kwdefaults.size());
-        for (const auto& entry : function->kwdefaults) {
-          entries.push_back({Value::string(entry.first), entry.second});
-        }
-        function->kwdefaults_dict = Value::dict(std::move(entries));
-        function_clear_indexed_keyword_defaults(*function);
-        value_assign_fast(out, function->kwdefaults_dict);
       }
       return true;
     }

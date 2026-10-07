@@ -1,0 +1,12 @@
+local_slots              pass         0.995x
+scalar_arithmetic        pass         1.021x
+range_for                pass         1.033x
+function_calls           pass         0.957x
+class_construct          pass         0.995x
+list_append              pass         1.005x
+property_access          pass         0.959x
+deepcopy_memo            pass         0.866x
+json_dumps               pass         1.001x
+gc_traversal             pass         1.005x
+subparsers               pass         1.012x
+Performance check: pass. Report: doc\performance\data\function-defaults-precedence-fixed-release-gate-20261006.json
