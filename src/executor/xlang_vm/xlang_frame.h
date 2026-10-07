@@ -97,6 +97,7 @@ struct CallSiteCache {
   Value retained_callee;
   CallSiteKind kind = CallSiteKind::Empty;
   FunctionObject* function = nullptr;
+  uint64_t function_code_version = 0;
   NativeFunctionObject* native = nullptr;
   const BuiltinMethodSpec* builtin_method = nullptr;
   NativeFastCallCallback fast_callback = nullptr;
@@ -138,6 +139,10 @@ struct AttrSiteCache {
   const Value* class_value = nullptr;
   const std::string* property_attr_name = nullptr;
   Value value;
+  // Class versions do not change when an accessor's __code__ is replaced.
+  // Check the function generation before using names/slots from its old IR.
+  FunctionObject* accessor_function = nullptr;
+  uint64_t accessor_code_version = 0;
   uint32_t getter_slot = 0;
   uint32_t setter_slot = 0;
   uint32_t deleter_slot = 0;

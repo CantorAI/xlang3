@@ -15,7 +15,7 @@ public:
   Value run() {
     IO::require(io.number<uint32_t>() == magic, "unsupported value graph format");
     graph_version = io.number<uint32_t>();
-    IO::require(graph_version == 1 || graph_version == version, "unsupported value graph format");
+    IO::require(graph_version >= 1 && graph_version <= version, "unsupported value graph format");
     auto module_count = io.count();
     IO::require(module_count <= max_nodes, "too many code modules");
     for (uint32_t i = 0; i < module_count; ++i) {
@@ -34,7 +34,7 @@ public:
     for (uint32_t i = 0; i < count; ++i) {
       Record record;
       record.kind = static_cast<Kind>(io.number<uint8_t>());
-      IO::require(static_cast<uint8_t>(record.kind) <= static_cast<uint8_t>(Kind::BigInt), "invalid graph object kind");
+      IO::require(static_cast<uint8_t>(record.kind) <= static_cast<uint8_t>(graph_version >= 4 ? Kind::Code : Kind::BigInt), "invalid graph object kind");
       auto n = io.count();
       IO::require(io.stream.CanRead(static_cast<int64_t>(n) * 8), "truncated graph numbers");
       for (uint32_t j = 0; j < n; ++j) record.numbers.push_back(io.number<uint64_t>());
@@ -124,6 +124,21 @@ private:
       case Kind::Tuple: shape(r, 0, 0, r.refs.size()); v = Value::tuple_reserved(r.refs.size()); break;
       case Kind::Dict: shape(r, 0, 0, r.refs.size()); v = Value::dict({}); break;
       case Kind::Cell: shape(r, 0, 0, 1); v = Value::cell(Value::invalid()); break;
+      case Kind::Code: {
+        shape(r, 4, 4, 0);
+        IO::require(r.numbers[1] < modules.size(), "invalid code module");
+        const auto& module = modules[r.numbers[1]];
+        IO::require(r.numbers[0] < module->functions.size(), "invalid code function");
+        v = Value::code(module, static_cast<uint32_t>(r.numbers[0]));
+        auto* code = value_as_code(v);
+        code->first_line_override = static_cast<int64_t>(r.numbers[2]);
+        code->flags_override = static_cast<int64_t>(r.numbers[3]);
+        code->mode = r.names[0];
+        code->filename_override = r.names[1];
+        code->name_override = r.names[2];
+        code->qualname_override = r.names[3];
+        break;
+      }
       case Kind::Function: v = Value::function(0, {}); break;
       case Kind::Globals: IO::require(!r.names.empty(), "missing globals name"); v = Value::module(r.names[0]); break;
       case Kind::Class: IO::require(!r.names.empty(), "missing class name"); v = Value::class_object(r.names[0], {}); break;
@@ -193,7 +208,7 @@ private:
         auto& n = r.numbers;
         for (size_t j = 2; j < 6; ++j) IO::require(n[j] <= max_fields, "invalid function field count");
         IO::require(n[1] < modules.size() && n[0] < modules[n[1]]->functions.size(), "invalid function IR reference");
-        const size_t fixed_refs = graph_version >= 2 ? 5 : 4;
+        const size_t fixed_refs = graph_version >= 4 ? 7 : graph_version >= 3 ? 6 : graph_version >= 2 ? 5 : 4;
         IO::require(r.refs.size() == fixed_refs + n[2] + n[3] + n[4] + n[5] && r.names.size() >= 1 + n[5], "invalid function fields");
         auto* f = value_as_function(v);
         f->function_id = static_cast<uint32_t>(n[0]); f->module = modules[n[1]]; f->qualname = r.names[0];
@@ -202,6 +217,10 @@ private:
         if (graph_version >= 2) {
           f->builtins = ref(1); f->annotations = ref(2); f->doc = ref(3); f->attrs_dict = ref(4);
           cursor = 5;
+          if (graph_version >= 3) {
+            f->kwdefaults_dict = ref(cursor++);
+            if (graph_version >= 4) f->code_object = ref(cursor++);
+          }
         } else {
           f->annotations = ref(1); f->doc = ref(2); f->attrs_dict = ref(3);
           // Version 1 stored function builtins inside the user attribute dict.
@@ -299,6 +318,23 @@ private:
       if (auto* slot = value_as_slot_descriptor(values[i])) {
         auto* klass = value_as_class(slot->owner_class);
         IO::require(klass && slot->index < klass->instance_slot_names.size(), "invalid slot descriptor");
+      }
+    }
+    // A dict subclass may appear later than its function in the object table.
+    // Check it after every object is filled and class hierarchies are validated,
+    // so its restored class and mapping storage are available to the type test.
+    for (size_t i = 0; i < values.size(); ++i) {
+      if (!owned[i]) continue;
+      if (auto* function = value_as_function(values[i])) {
+        IO::require(function->kwdefaults_dict.tag == ValueTag::Invalid ||
+                    function->kwdefaults_dict.tag == ValueTag::None ||
+                    mapping_is_dict(function->kwdefaults_dict),
+                    "invalid function keyword defaults");
+        auto* code = value_as_code(function->code_object);
+        IO::require(function->code_object.tag == ValueTag::Invalid ||
+                    (code != nullptr && code->module == function->module &&
+                     code->function_id == function->function_id),
+                    "invalid function code reference");
       }
     }
   }

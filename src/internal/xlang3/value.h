@@ -537,10 +537,20 @@ struct CellObject {
 struct FunctionObject {
   Object header;
   uint32_t function_id = 0;
+  // Body-derived VM specializations retain this generation. __code__ writes
+  // advance it so cached signatures/IR plans rebuild without disabling inlining.
+  uint64_t code_version = 0;
+  // Lazily materialized identity, or the exact assigned code object (including
+  // code.replace() metadata such as CO_ITERABLE_COROUTINE).
+  Value code_object;
   std::vector<Value> closure;
   std::vector<Value> defaults;
   std::vector<Value> positional_defaults;
   std::vector<std::pair<std::string, Value>> kwdefaults;
+  // Invalid keeps ordinary definitions on indexed defaults without allocating
+  // a dict. Once exposed/assigned, this is the authoritative live dict (or
+  // None); aliases and mutations must affect the next keyword-only binding.
+  Value kwdefaults_dict;
   std::vector<std::string> type_params;
   Value annotations;
   Value doc;

@@ -269,6 +269,9 @@ RuntimeResult Interpreter::run_function(
     }
     const auto& signature = *signature_ptr;
     const bool dynamic_positional_defaults = has_dynamic_positional_defaults(target_fn, defaults);
+    const Value* live_keyword_defaults = values.live_keyword_defaults;
+    const bool dynamic_keyword_defaults = live_keyword_defaults != nullptr &&
+        live_keyword_defaults->tag != ValueTag::Invalid;
     if (target_fn.signature.empty() && !dynamic_positional_defaults &&
         !values.has_keywords() && !values.has_expansion()) {
       if (values.size() != target_fn.params.size()) {
@@ -371,7 +374,7 @@ RuntimeResult Interpreter::run_function(
     // observable tuple identity rules, but build that one final tuple directly
     // and copy the live keyword-only defaults. Subclasses, iterators, multiple
     // stars, keywords, and mutable/invalid defaults retain generic binding.
-    if (!dynamic_positional_defaults && values.size() == 0 &&
+    if (!dynamic_positional_defaults && !dynamic_keyword_defaults && values.size() == 0 &&
         !values.has_keywords() && values.kw_star_arg == UINT32_MAX &&
         (values.kw_star_args == nullptr || values.kw_star_args->empty()) &&
         target_fn.params.size() == signature.size() && signature.size() >= 2 &&
@@ -482,7 +485,7 @@ RuntimeResult Interpreter::run_function(
     const bool defaulted_varargs_signature =
         target_fn.params.size() == signature.size() && !signature.empty() &&
         signature[0].kind == ir::ParamKind::VarArgs;
-    if (defaulted_varargs_signature) {
+    if (defaulted_varargs_signature && !dynamic_keyword_defaults) {
       bool only_keyword_only_defaults = true;
       for (size_t i = 1; i < signature.size(); ++i) {
         const uint32_t default_reg = signature[i].default_reg;
@@ -679,6 +682,18 @@ RuntimeResult Interpreter::run_function(
     std::vector<std::string> missing_keyword_only;
     for (size_t i = 0; i < signature.size(); ++i) {
       if (bound[i].tag != ValueTag::Invalid) {
+        continue;
+      }
+      // Exposed keyword defaults are a shared mutable Python dictionary.
+      // Consult it only for an omitted keyword-only argument; the common
+      // unexposed path keeps direct indexed reads with no dict construction.
+      if (signature[i].kind == ir::ParamKind::KeywordOnly && dynamic_keyword_defaults) {
+        std::string ignored;
+        if (live_keyword_defaults->tag != ValueTag::None &&
+            mapping_get_string_item(*live_keyword_defaults, signature[i].name, bound[i], ignored)) {
+          continue;
+        }
+        missing_keyword_only.push_back(signature[i].name);
         continue;
       }
       if (dynamic_positional_defaults && i < defaults.size() &&
@@ -903,6 +918,7 @@ RuntimeResult Interpreter::run_function(
     if (fn_obj == nullptr) {
       return true;
     }
+    call_args = call_args.with_keyword_defaults(*fn_obj);
     const ir::Module* call_module = &module;
     if (fn_obj->module != nullptr) {
       call_module = fn_obj->module.get();

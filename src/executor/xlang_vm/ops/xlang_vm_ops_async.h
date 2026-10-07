@@ -249,7 +249,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow await_op(
       Value child_value;
       value_assign_fast(child_value, regs[in.a]);
       ++ip;
-      if (!push_frame(*child_module, child_function->function_id, child_args,
+      if (!push_frame(*child_module, child_function->function_id, child_args.with_keyword_defaults(*child_function),
                       child_function->closure, child_function->defaults,
                       child_function->globals_module, std::move(child_module_owner), in.dst,
                       FrameReturnMode::StoreReturnValue, Value::invalid(), true)) {

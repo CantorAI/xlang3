@@ -213,7 +213,7 @@ RuntimeResult Interpreter::run_function_value(FunctionObject* function, CallArgs
   result = run_function(
       *function->module,
       function->function_id,
-      args,
+      args.with_keyword_defaults(*function),
       function->closure,
       function->defaults,
       function->globals_module,
@@ -273,7 +273,7 @@ RuntimeResult Interpreter::resume_generator(GeneratorObject& generator, Value& o
   result = run_function(
       *function->module,
       function->function_id,
-      args,
+      args.with_keyword_defaults(*function),
       function->closure,
       function->defaults,
       function->globals_module,

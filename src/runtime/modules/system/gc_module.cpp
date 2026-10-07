@@ -275,6 +275,8 @@ bool gc_object_references_any(Runtime& runtime, const Value& source,
     for (const auto& item : value->defaults) edge(item);
     for (const auto& item : value->positional_defaults) edge(item);
     for (const auto& item : value->kwdefaults) edge(item.second);
+    edge(value->kwdefaults_dict);
+    edge(value->code_object);
   } else if (auto* value = value_as_native_function(source)) {
     if (value->attrs_dict != nullptr) edge(*value->attrs_dict);
   } else if (auto* value = value_as_generic_alias(source)) {

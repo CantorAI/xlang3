@@ -3713,10 +3713,15 @@ bool builtin_setattr(
     }
   }
   if (!attribute_set(target, string_object_to_string(*name), args[2], error)) {
-    const char* exception_type = error.rfind("tb_next must be", 0) == 0
+    const char* exception_type =
+        error.rfind("__defaults__ must be", 0) == 0 ||
+        error.rfind("__kwdefaults__ must be", 0) == 0 ||
+        error.rfind("__code__ must be", 0) == 0 ||
+        error.rfind("tb_next must be", 0) == 0
         ? "TypeError"
         : error.rfind("can only assign string to ", 0) == 0 ? "TypeError"
-        : error == "traceback loop detected" ? "ValueError" : "AttributeError";
+        : (error == "traceback loop detected" ||
+           error == "__code__ requires a matching number of free variables") ? "ValueError" : "AttributeError";
     runtime.raise_class_error(exception_type, error);
     return false;
   }

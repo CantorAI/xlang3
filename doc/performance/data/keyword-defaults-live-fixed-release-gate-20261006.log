@@ -1,0 +1,12 @@
+local_slots              pass         0.992x
+scalar_arithmetic        pass         0.974x
+range_for                pass         1.022x
+function_calls           pass         1.024x
+class_construct          pass         1.016x
+list_append              pass         0.994x
+property_access          pass         0.990x
+deepcopy_memo            pass         0.863x
+json_dumps               pass         0.998x
+gc_traversal             pass         0.988x
+subparsers               pass         1.001x
+Performance check: pass. Report: doc\performance\data\keyword-defaults-live-fixed-release-gate-20261006.json

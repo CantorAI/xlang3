@@ -47,6 +47,22 @@ uint64_t next_class_version_tag() noexcept {
 
 namespace {
 
+void function_clear_indexed_keyword_defaults(FunctionObject& function) {
+  if (function.module == nullptr || function.function_id >= function.module->functions.size()) return;
+  const auto& fn = function.module->functions[function.function_id];
+  const bool dynamic_defaults = function.defaults.size() == fn.signature.size() + 1 &&
+      !function.defaults.empty() && function.defaults.back().tag == ValueTag::Invalid;
+  for (size_t i = 0; i < fn.signature.size(); ++i) {
+    if (fn.signature[i].kind != ir::ParamKind::KeywordOnly) continue;
+    const size_t index = dynamic_defaults ? i : fn.signature[i].default_reg;
+    if (index < function.defaults.size()) value_set_invalid(function.defaults[index]);
+  }
+  // After materialization, only the live dict owns these defaults. Keeping
+  // stale copies would retain values removed by del/clear and break lifetime
+  // semantics even though the argument binder already ignores those slots.
+  function.kwdefaults.clear();
+}
+
 std::vector<Value> function_positional_defaults_for_introspection(
     const FunctionObject& function) {
   if (function.module == nullptr || function.function_id >= function.module->functions.size()) {
@@ -91,6 +107,37 @@ std::vector<Value> function_positional_defaults_for_introspection(
     }
   }
   return defaults;
+}
+
+void function_rebuild_indexed_defaults(FunctionObject& function) {
+  if (function.module == nullptr || function.function_id >= function.module->functions.size()) return;
+  const auto& fn = function.module->functions[function.function_id];
+  // The trailing invalid entry marks a defaults vector indexed by parameter.
+  // Rebuild only after defaults/code mutation; ordinary calls reuse this layout.
+  function.defaults.assign(fn.signature.size() + 1, Value::invalid());
+  std::vector<size_t> positional_params;
+  for (size_t i = 0; i < fn.signature.size(); ++i) {
+    if (fn.signature[i].kind == ir::ParamKind::PosOnly ||
+        fn.signature[i].kind == ir::ParamKind::PosOrKeyword) {
+      positional_params.push_back(i);
+    }
+  }
+  const size_t copy_count = std::min(positional_params.size(), function.positional_defaults.size());
+  const size_t param_start = positional_params.size() - copy_count;
+  const size_t value_start = function.positional_defaults.size() - copy_count;
+  for (size_t i = 0; i < copy_count; ++i) {
+    value_assign_fast(function.defaults[positional_params[param_start + i]],
+                      function.positional_defaults[value_start + i]);
+  }
+  for (size_t i = 0; i < fn.signature.size(); ++i) {
+    if (fn.signature[i].kind != ir::ParamKind::KeywordOnly) continue;
+    for (const auto& item : function.kwdefaults) {
+      if (item.first == fn.signature[i].name) {
+        value_assign_fast(function.defaults[i], item.second);
+        break;
+      }
+    }
+  }
 }
 
 std::unordered_set<Object*>& native_gc_instances() {
@@ -3511,6 +3558,15 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
   }
 
   if (auto* function = value_as_function(object)) {
+    if (name == "__code__") {
+      if (function->code_object.tag == ValueTag::Invalid && function->module != nullptr &&
+          function->function_id < function->module->functions.size()) {
+        function->code_object = Value::code(function->module, function->function_id);
+      }
+      if (function->code_object.tag == ValueTag::Invalid) value_set_none(out);
+      else value_assign_fast(out, function->code_object);
+      return true;
+    }
     // CPython exposes the builtins mapping captured at function creation as a
     // read-only data attribute. Store it directly instead of in __dict__, so
     // ordinary defs need no per-function attribute-dict allocation.
@@ -3594,6 +3650,10 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       return true;
     }
     if (name == "__kwdefaults__") {
+      if (function->kwdefaults_dict.tag != ValueTag::Invalid) {
+        value_assign_fast(out, function->kwdefaults_dict);
+        return true;
+      }
       if (function->kwdefaults.empty()) {
         value_set_none(out);
       } else {
@@ -3602,7 +3662,9 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
         for (const auto& entry : function->kwdefaults) {
           entries.push_back({Value::string(entry.first), entry.second});
         }
-        out = Value::dict(std::move(entries));
+        function->kwdefaults_dict = Value::dict(std::move(entries));
+        function_clear_indexed_keyword_defaults(*function);
+        value_assign_fast(out, function->kwdefaults_dict);
       }
       return true;
     }
@@ -3642,14 +3704,6 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
           function_annotate_method,
           new Value(object),
           function_annotate_cleanup);
-      return true;
-    }
-    if (name == "__code__") {
-      if (function->module == nullptr || function->function_id >= function->module->functions.size()) {
-        value_set_none(out);
-      } else {
-        out = Value::code(function->module, function->function_id);
-      }
       return true;
     }
     if (name == "__globals__") {
@@ -4840,114 +4894,69 @@ bool object_set_attr(Value& object, const std::string& name, const Value& value,
       function->qualname = string_object_to_string(*string);
       return true;
     }
-    if (name == "__defaults__") {
-      if (value.tag == ValueTag::None) {
-        function->positional_defaults.clear();
-        function->defaults.clear();
-        return true;
+    if (name == "__code__") {
+      auto* code = value_as_code(value);
+      if (code == nullptr || code->module == nullptr ||
+          code->function_id >= code->module->functions.size()) {
+        error = "__code__ must be set to a code object";
+        return false;
       }
+      const auto& replacement = code->module->functions[code->function_id];
+      if (replacement.free_vars.size() != function->closure.size()) {
+        error = "__code__ requires a matching number of free variables";
+        return false;
+      }
+      // Defaults and globals belong to the function, not the replacement code.
+      // Reindex the positional defaults against the new signature only on this
+      // cold mutation path; ordinary calls keep their existing indexed binder.
+      if (function->positional_defaults.empty()) {
+        function->positional_defaults = function_positional_defaults_for_introspection(*function);
+      }
+      Value old_kwdefaults;
+      if (!object_get_attr(object, "__kwdefaults__", old_kwdefaults, error)) return false;
+      if (function->kwdefaults_dict.tag == ValueTag::Invalid) {
+        value_assign_fast(function->kwdefaults_dict, old_kwdefaults);
+      }
+      // Preserve metadata that ordinary defs lazily read from their original IR.
+      // Existing frames keep their own shared module owner and finish the old body.
+      for (const auto* attribute : {"__name__", "__qualname__", "__doc__"}) {
+        Value existing;
+        if (!object_get_attr(object, attribute, existing, error) ||
+            !object_set_attr(object, attribute, existing, error)) return false;
+      }
+      value_assign_fast(function->code_object, value);
+      function->module = code->module;
+      function->function_id = code->function_id;
+      ++function->code_version;
+      function_rebuild_indexed_defaults(*function);
+      return true;
+    }
+    if (name == "__defaults__") {
       auto* tuple = value_as_tuple(value);
-      if (tuple == nullptr) {
+      if (value.tag != ValueTag::None && tuple == nullptr) {
         error = "__defaults__ must be set to a tuple or None";
         return false;
       }
       function->positional_defaults.clear();
-      function->positional_defaults.reserve(tuple->items.size());
-      for (const auto& item : tuple->items) {
-        function->positional_defaults.push_back(item);
-      }
-      if (function->module != nullptr && function->function_id < function->module->functions.size()) {
-        const auto& fn = function->module->functions[function->function_id];
-        // A trailing invalid entry identifies defaults assigned through the
-        // writable function.__defaults__ attribute.  The preceding entries
-        // are indexed by parameter, allowing defaults to be added to a
-        // function whose original code signature had none.
-        function->defaults.assign(fn.signature.size() + 1, Value::invalid());
-        std::vector<size_t> positional_params;
-        for (size_t i = 0; i < fn.signature.size(); ++i) {
-          if (fn.signature[i].kind == ir::ParamKind::PosOnly ||
-              fn.signature[i].kind == ir::ParamKind::PosOrKeyword) {
-            positional_params.push_back(i);
-          }
-        }
-        const size_t copy_count = std::min(positional_params.size(), function->positional_defaults.size());
-        const size_t param_start = positional_params.size() - copy_count;
-        const size_t value_start = function->positional_defaults.size() - copy_count;
-        for (size_t i = 0; i < copy_count; ++i) {
-          value_assign_fast(function->defaults[positional_params[param_start + i]],
-                            function->positional_defaults[value_start + i]);
-        }
-        for (size_t i = 0; i < fn.signature.size(); ++i) {
-          if (fn.signature[i].kind != ir::ParamKind::KeywordOnly) {
-            continue;
-          }
-          for (const auto& item : function->kwdefaults) {
-            if (item.first == fn.signature[i].name) {
-              value_assign_fast(function->defaults[i], item.second);
-              break;
-            }
-          }
+      if (tuple != nullptr) {
+        function->positional_defaults.reserve(tuple->items.size());
+        for (const auto& item : tuple->items) {
+          function->positional_defaults.push_back(item);
         }
       }
+      function_rebuild_indexed_defaults(*function);
       return true;
     }
     if (name == "__kwdefaults__") {
-      if (value.tag == ValueTag::None) {
-        function->kwdefaults.clear();
-        if (function->module != nullptr && function->function_id < function->module->functions.size()) {
-          const auto& fn = function->module->functions[function->function_id];
-          const bool dynamic_defaults =
-              function->defaults.size() == fn.signature.size() + 1 &&
-              !function->defaults.empty() && function->defaults.back().tag == ValueTag::Invalid;
-          for (size_t i = 0; i < fn.signature.size(); ++i) {
-            const auto& param = fn.signature[i];
-            const size_t default_index = dynamic_defaults ? i : param.default_reg;
-            if (param.kind == ir::ParamKind::KeywordOnly &&
-                param.default_reg != UINT32_MAX &&
-                default_index < function->defaults.size()) {
-              value_set_invalid(function->defaults[default_index]);
-            }
-          }
-        }
-        return true;
-      }
-      auto* dict = value_as_dict(value);
-      if (dict == nullptr) {
+      if (value.tag != ValueTag::None && !mapping_is_dict(value)) {
         error = "__kwdefaults__ must be set to a dict or None";
         return false;
       }
-      function->kwdefaults.clear();
-      function->kwdefaults.reserve(dict->entries.size());
-      for (const auto& entry : dict->entries) {
-        auto* key = value_as_string(entry.first);
-        if (key == nullptr) {
-          error = "__kwdefaults__ keys must be strings";
-          return false;
-        }
-        function->kwdefaults.push_back({string_object_to_string(*key), entry.second});
-      }
-      if (function->module != nullptr && function->function_id < function->module->functions.size()) {
-        const auto& fn = function->module->functions[function->function_id];
-        const bool dynamic_defaults =
-            function->defaults.size() == fn.signature.size() + 1 &&
-            !function->defaults.empty() && function->defaults.back().tag == ValueTag::Invalid;
-        for (size_t i = 0; i < fn.signature.size(); ++i) {
-          const auto& param = fn.signature[i];
-          const size_t default_index = dynamic_defaults ? i : param.default_reg;
-          if (param.kind != ir::ParamKind::KeywordOnly ||
-              param.default_reg == UINT32_MAX ||
-              default_index >= function->defaults.size()) {
-            continue;
-          }
-          value_set_invalid(function->defaults[default_index]);
-          for (const auto& item : function->kwdefaults) {
-            if (item.first == param.name) {
-              value_assign_fast(function->defaults[default_index], item.second);
-              break;
-            }
-          }
-        }
-      }
+      // Keep dictionary identity and avoid copying its entries on assignment.
+      // The binder reads this live dict for keyword-only defaults; stale
+      // indexed keyword slots must never be used after it is made observable.
+      value_assign_fast(function->kwdefaults_dict, value);
+      function_clear_indexed_keyword_defaults(*function);
       return true;
     }
     if (name == "__annotations__") {
@@ -5295,6 +5304,13 @@ bool object_delete_attr(Value& object, const std::string& name, std::string& err
     if (name == "__builtins__") {
       error = "attribute '__builtins__' of 'function' objects is not writable";
       return false;
+    }
+    if (name == "__code__") {
+      error = "__code__ must be set to a code object";
+      return false;
+    }
+    if (name == "__defaults__" || name == "__kwdefaults__") {
+      return object_set_attr(object, name, Value::none(), error);
     }
     if (name == "__module__") {
       if (function->attrs_dict.tag == ValueTag::Invalid) {

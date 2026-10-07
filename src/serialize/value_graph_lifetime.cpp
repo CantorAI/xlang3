@@ -15,6 +15,8 @@ template<class Visit> void edges(Value& value, Visit visit) {
     for (auto& v : obj->defaults) visit(v);
     for (auto& v : obj->positional_defaults) visit(v);
     for (auto& v : obj->kwdefaults) visit(v.second);
+    visit(obj->kwdefaults_dict);
+    visit(obj->code_object);
   } else if (auto* obj = value_as_class(value)) {
     visit(obj->base); visit(obj->metaclass);
     for (auto& v : obj->bases) visit(v);

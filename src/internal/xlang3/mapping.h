@@ -55,6 +55,9 @@ struct DictObject {
   mutable bool index_has_non_string_keys = false;
 };
 
+// Includes Python dict subclasses while excluding other mapping protocols.
+bool mapping_is_dict(const Value& value);
+
 struct MappingProxyObject {
   Object header;
   Value source;

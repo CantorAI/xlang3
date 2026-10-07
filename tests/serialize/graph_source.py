@@ -26,6 +26,35 @@ def make_counter(start):
 def defaults(value=5, *, scale=3):
     return (value + OFFSET) * scale
 
+def live_default(*, scale=1):
+    return scale
+
+def shared_default(*, scale=0):
+    return scale
+
+keyword_defaults = live_default.__kwdefaults__
+shared_default.__kwdefaults__ = keyword_defaults
+keyword_defaults['scale'] = 11
+
+class KeywordDefaults(dict):
+    def __getitem__(self, key):
+        raise AssertionError('default binding used __getitem__')
+
+def subclass_default(*, scale=0):
+    return scale
+
+subclass_defaults = KeywordDefaults(scale=17)
+subclass_default.__kwdefaults__ = subclass_defaults
+
+def swapped(value=5):
+    return value + OFFSET
+
+def replacement_body(value=100):
+    return value * OFFSET
+
+replacement_code = replacement_body.__code__.replace(co_filename='restored-code.py')
+swapped.__code__ = replacement_code
+
 class Base:
     def base_value(self):
         return 10
@@ -77,10 +106,22 @@ native.set(42, shared)
 
 def verify(payload):
     assert not os.path.exists(__file__)
+    assert swapped() == 35
+    assert swapped.__code__ is payload['replacement_code']
+    assert swapped.__code__.co_filename == 'restored-code.py'
     assert factorial(6) == 720
     assert even(12) and odd(13)
     assert defaults() == 36
     assert defaults(3, scale=2) == 20
+    assert live_default.__kwdefaults__ is shared_default.__kwdefaults__
+    assert live_default.__kwdefaults__ is payload['keyword_defaults']
+    assert live_default() == shared_default() == 11
+    keyword_defaults['scale'] = 33
+    assert live_default() == shared_default() == 33
+    assert subclass_default.__kwdefaults__ is payload['subclass_defaults']
+    assert subclass_default() == 17
+    subclass_defaults['scale'] = 19
+    assert subclass_default() == 19
     assert add(2) == 22
     assert current() == 22
     assert add() == 23
@@ -110,4 +151,5 @@ def verify(payload):
 
 payload = {'verify': verify, 'item': item, 'class': Item, 'bound': item.total,
            'pair': pair, 'cycle': cycle, 'blob': blob, 'add': add, 'current': current,
-           'native': native}
+           'native': native, 'keyword_defaults': keyword_defaults,
+           'subclass_defaults': subclass_defaults, 'replacement_code': replacement_code}

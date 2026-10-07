@@ -827,6 +827,10 @@ bool mapping_get_item_identity_key(
   return mapping_get_item(object, key, out, error);
 }
 
+bool mapping_is_dict(const Value& value) {
+  return dict_storage_from_value(value) != nullptr;
+}
+
 bool mapping_get_string_item(
     const Value& object,
     std::string_view key,

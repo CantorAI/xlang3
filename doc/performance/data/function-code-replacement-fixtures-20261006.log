@@ -1,0 +1,21 @@
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\tests\run_fixtures.py", line 94, in <module>
+    main()
+    ~~~~^^
+  File "D:\CantorAI\xlang3\tests\run_fixtures.py", line 85, in main
+    run_case(executable, root / "fixtures" / "core" / f"{name}.py", root / "fixtures" / "expected" / f"{name}.out", root)
+    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\tests\run_fixtures.py", line 61, in run_case
+    raise RuntimeError(f"{source.stem} failed ({result.returncode}):\n{stdout}{stderr}")
+RuntimeError: delegated_exception_result failed (1):
+Traceback (most recent call last):
+
+  File "D:\CantorAI\xlang3\tests\fixtures\core\delegated_exception_result.py", line 16, in <module>
+
+    print("first", coroutine.send(None))
+
+                   ~~~~~~~~~~~~~~^^^^^^
+
+StopIteration
+
+

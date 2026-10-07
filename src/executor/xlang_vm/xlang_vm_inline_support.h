@@ -1799,18 +1799,9 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
 
     std::vector<std::pair<std::string, Value>> kwdefaults;
     if (kwdefaults_value != nullptr && kwdefaults_value->tag != ValueTag::None) {
-      auto* dict = value_as_dict(*kwdefaults_value);
-      if (dict == nullptr) {
+      if (!mapping_is_dict(*kwdefaults_value)) {
         error = "function() argument 'kwdefaults' must be a dict";
         return false;
-      }
-      for (const auto& entry : dict->entries) {
-        auto* key = value_as_string(entry.first);
-        if (key == nullptr) {
-          error = "function() keyword-default names must be strings";
-          return false;
-        }
-        kwdefaults.push_back({string_object_to_string(*key), entry.second});
       }
     }
 
@@ -1821,7 +1812,12 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
         code->module,
         std::move(defaults),
         std::move(kwdefaults));
+    if (kwdefaults_value != nullptr &&
+        !object_set_attr(out, "__kwdefaults__", *kwdefaults_value, error)) {
+      return false;
+    }
     if (auto* function = value_as_function(out)) {
+      value_assign_fast(function->code_object, constructor_args.get(0));
       function_capture_builtins(runtime, *function, globals_value);
     }
     std::string ignored;

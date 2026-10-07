@@ -1,0 +1,23 @@
+CPython 3.14.7 — benchmarks/diagnostics/function_kwdefaults_live_probe.py
+stable dictionary: True
+mutation reaches call: True
+removing default requires argument: True
+assignment preserves dictionary: True
+external mutation reaches call: True
+
+XLang3 Release candidate — benchmarks/diagnostics/function_kwdefaults_live_probe.py
+stable dictionary: True
+mutation reaches call: True
+removing default requires argument: True
+assignment preserves dictionary: True
+external mutation reaches call: True
+
+CPython 3.14.7 — benchmarks/diagnostics/function_code_swap_probe.py
+before: ('old', 1)
+cached after: ('new', 1)
+new site after: ('new', 2)
+
+XLang3 Release candidate — benchmarks/diagnostics/function_code_swap_probe.py
+before: ('old', 1)
+cached after: ('new', 1)
+new site after: ('new', 2)

@@ -1103,6 +1103,8 @@ void visit_strong_object_edges(Object* object, Object* cycle_root, Visit visit) 
     for (const auto& item : value->defaults) edge(item);
     for (const auto& item : value->positional_defaults) edge(item);
     for (const auto& item : value->kwdefaults) edge(item.second);
+    edge(value->kwdefaults_dict);
+    edge(value->code_object);
   } else if (auto* value = value_as_native_function(borrowed)) {
     if (value->attrs_dict != nullptr) edge(*value->attrs_dict);
   } else if (auto* value = value_as_generic_alias(borrowed)) {
@@ -1293,49 +1295,57 @@ uint64_t collect_isolated_class_component(Runtime& runtime, ClassObject* klass) 
 uint64_t collect_isolated_function_component(FunctionObject* function) {
   constexpr size_t kMaximumCandidateObjects = 4096;
   auto* root = &function->header;
-  // Function attribute cycles normally leave the function with one strong
-  // reference from the cycle.  This fast rejection matters because test and
-  // framework registries can hold weak references to thousands of live
-  // functions, none of which are collection candidates.
+  // Ordinary attribute cycles normally leave one strong reference. Keep
+  // that cheap rejection for unexposed defaults: framework weak registries
+  // can hold thousands of live functions. A live keyword-default dictionary
+  // can add another back-edge, so verify its candidate component's complete
+  // internal reference counts instead of rejecting it solely at refcount > 1.
   const auto root_refcount = root->refcnt.load(std::memory_order_relaxed);
-  if (root_refcount != 1 ||
-      function->attrs_dict.tag != ValueTag::Object) {
+  if (root_refcount != 1 && function->kwdefaults_dict.tag != ValueTag::Object) {
     return 0;
   }
-  const auto* attrs_dict = value_as_dict(function->attrs_dict);
-  if (attrs_dict == nullptr) return 0;
   bool has_path_to_function = false;
-  for (const auto& entry : attrs_dict->entries) {
-    if (entry.second.tag != ValueTag::Object || entry.second.as.obj == nullptr)
-      continue;
-    if (entry.second.as.obj == root) {
-      has_path_to_function = true;
-      break;
+  const Value* dictionaries[] = {&function->attrs_dict, &function->kwdefaults_dict};
+  for (const auto* dictionary : dictionaries) {
+    const auto* attrs_dict = value_as_dict(*dictionary);
+    if (attrs_dict == nullptr && mapping_is_dict(*dictionary)) {
+      const auto* instance = value_as_instance(*dictionary);
+      if (instance != nullptr) attrs_dict = value_as_dict(instance->mapping_storage);
     }
-    const auto* instance = value_as_instance(entry.second);
-    if (instance == nullptr || !instance_has_native_gc_references(*instance)) continue;
-
-    // Most native-backed attributes do not point back to their owner.  Check
-    // reachability before constructing the complete reference graph so a
-    // gc.collect() remains proportional to actual cycle candidates.
-    constexpr size_t kMaximumReachabilityObjects = 2048;
-    std::vector<Object*> pending;
-    pending.reserve(instance->native_gc_references.size() + 12);
-    instance_visit_native_gc_references(*instance,
-        [&](Object* target) { pending.push_back(target); });
-    std::unordered_set<Object*> visited;
-    while (!pending.empty() && visited.size() < kMaximumReachabilityObjects) {
-      auto* candidate = pending.back();
-      pending.pop_back();
-      if (candidate == root) {
+    if (attrs_dict == nullptr) continue;
+    for (const auto& entry : attrs_dict->entries) {
+      if (entry.second.tag != ValueTag::Object || entry.second.as.obj == nullptr)
+        continue;
+      if (entry.second.as.obj == root) {
         has_path_to_function = true;
         break;
       }
-      if (candidate == nullptr || !visited.insert(candidate).second) continue;
-      visit_strong_object_edges(candidate, root, [&](Object* target) {
-        if (target != nullptr && visited.find(target) == visited.end())
-          pending.push_back(target);
-      });
+      const auto* instance = value_as_instance(entry.second);
+      if (instance == nullptr || !instance_has_native_gc_references(*instance)) continue;
+
+      // Most native-backed attributes do not point back to their owner.  Check
+      // reachability before constructing the complete reference graph so a
+      // gc.collect() remains proportional to actual cycle candidates.
+      constexpr size_t kMaximumReachabilityObjects = 2048;
+      std::vector<Object*> pending;
+      pending.reserve(instance->native_gc_references.size() + 12);
+      instance_visit_native_gc_references(*instance,
+          [&](Object* target) { pending.push_back(target); });
+      std::unordered_set<Object*> visited;
+      while (!pending.empty() && visited.size() < kMaximumReachabilityObjects) {
+        auto* candidate = pending.back();
+        pending.pop_back();
+        if (candidate == root) {
+          has_path_to_function = true;
+          break;
+        }
+        if (candidate == nullptr || !visited.insert(candidate).second) continue;
+        visit_strong_object_edges(candidate, root, [&](Object* target) {
+          if (target != nullptr && visited.find(target) == visited.end())
+            pending.push_back(target);
+        });
+      }
+      if (has_path_to_function) break;
     }
     if (has_path_to_function) break;
   }
@@ -1362,7 +1372,10 @@ uint64_t collect_isolated_function_component(FunctionObject* function) {
       adjacency[index].push_back(position->second);
     };
     if (index == 0) {
-      add_edge(function->attrs_dict.as.obj);
+      for (const auto* dictionary : dictionaries) {
+        if (dictionary->tag == ValueTag::Object && dictionary->as.obj != nullptr)
+          add_edge(dictionary->as.obj);
+      }
     } else {
       visit_strong_object_edges(nodes[index], root, add_edge);
     }
@@ -1403,7 +1416,13 @@ uint64_t collect_isolated_function_component(FunctionObject* function) {
       function->attrs_dict.tag == ValueTag::Object
           ? function->attrs_dict.as.obj
           : nullptr);
-  if (attrs == indices.end() || !reaches_function[attrs->second]) return 0;
+  const auto keyword_defaults = indices.find(
+      function->kwdefaults_dict.tag == ValueTag::Object
+          ? function->kwdefaults_dict.as.obj : nullptr);
+  const bool clear_attrs = attrs != indices.end() && reaches_function[attrs->second];
+  const bool clear_keyword_defaults = keyword_defaults != indices.end() &&
+      reaches_function[keyword_defaults->second];
+  if (!clear_attrs && !clear_keyword_defaults) return 0;
 
   Value borrowed;
   borrowed.tag = ValueTag::Object;
@@ -1411,7 +1430,8 @@ uint64_t collect_isolated_function_component(FunctionObject* function) {
   borrowed.as.obj = root;
   Value keep_alive;
   value_assign_fast(keep_alive, borrowed);
-  value_set_invalid(function->attrs_dict);
+  if (clear_attrs) value_set_invalid(function->attrs_dict);
+  if (clear_keyword_defaults) value_set_none(function->kwdefaults_dict);
   const uint64_t collected = static_cast<uint64_t>(pending.size());
   value_set_invalid(keep_alive);
   return collected;

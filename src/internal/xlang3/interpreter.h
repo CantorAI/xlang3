@@ -52,6 +52,13 @@ struct CallArgsView {
   uint32_t kw_star_arg = UINT32_MAX;
   const std::vector<uint32_t>* star_args = nullptr;
   const std::vector<uint32_t>* kw_star_args = nullptr;
+  const Value* live_keyword_defaults = nullptr;
+
+  XLANG3_HOT_INLINE CallArgsView with_keyword_defaults(const FunctionObject& function) const {
+    CallArgsView view = *this;
+    view.live_keyword_defaults = &function.kwdefaults_dict;
+    return view;
+  }
 
   XLANG3_HOT_INLINE size_t size() const {
     return static_cast<size_t>(leading_count) + (register_args == nullptr ? 0 : register_args->size());

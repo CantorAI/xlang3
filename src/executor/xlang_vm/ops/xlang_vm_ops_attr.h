@@ -569,7 +569,9 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_attr(
           }
         }
       }
-      if (cache.getter_inline && cache.owner == &klass->header && cache.version == klass->version) {
+      if (cache.getter_inline && cache.owner == &klass->header && cache.version == klass->version &&
+          cache.accessor_function != nullptr &&
+          cache.accessor_code_version == cache.accessor_function->code_version) {
         std::string error;
         if (cache.kind == AttrSiteKind::PropertyInstanceAttr) {
           bool matched = false;
@@ -831,7 +833,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_attr(
       if (instance != nullptr) {
         auto* klass = value_as_class(instance->klass);
         if (cache.getter_inline &&
-            (klass == nullptr || cache.owner != &klass->header || cache.version != klass->version)) {
+            (klass == nullptr || cache.owner != &klass->header || cache.version != klass->version ||
+               cache.accessor_function != fn_obj || cache.accessor_code_version != fn_obj->code_version)) {
           cache.getter_inline = false;
           cache.kind = AttrSiteKind::Empty;
           value_set_invalid(cache.value);
@@ -847,6 +850,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_attr(
               cache.owner = &klass->header;
               cache.version = klass->version;
             }
+            cache.accessor_function = fn_obj;
+            cache.accessor_code_version = fn_obj->code_version;
             cache.getter_inline = true;
           } else if (analyze_property_instance_attr_accessor(module, *fn_obj, false, inline_spec)) {
             uint32_t attr_index = 0;
@@ -856,6 +861,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_attr(
               cache.getter_has_const = inline_spec.has_const;
               value_assign_fast(cache.getter_const, inline_spec.constant);
               cache_property_instance_attr(cache, *klass, inline_spec, attr_index);
+              cache.accessor_function = fn_obj;
+              cache.accessor_code_version = fn_obj->code_version;
               cache.getter_inline = true;
             }
           }
@@ -1070,7 +1077,9 @@ XLANG3_HOT_INLINE XlangVMOpFlow store_attr(
   if (auto* instance = value_as_instance(regs[in.dst])) {
     if (auto* klass = value_as_class(instance->klass)) {
       auto& cache = instr_cache[ip].attr;
-      if (cache.setter_inline && cache.owner == &klass->header && cache.version == klass->version) {
+      if (cache.setter_inline && cache.owner == &klass->header && cache.version == klass->version &&
+          cache.accessor_function != nullptr &&
+          cache.accessor_code_version == cache.accessor_function->code_version) {
         std::string error;
         if (cache.kind == AttrSiteKind::PropertyInstanceAttr) {
           bool matched = false;
@@ -1146,7 +1155,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow store_attr(
         if (instance != nullptr) {
           auto* klass = value_as_class(instance->klass);
           if (cache.setter_inline &&
-              (klass == nullptr || cache.owner != &klass->header || cache.version != klass->version)) {
+              (klass == nullptr || cache.owner != &klass->header || cache.version != klass->version ||
+               cache.accessor_function != fn_obj || cache.accessor_code_version != fn_obj->code_version)) {
             cache.setter_inline = false;
             cache.kind = AttrSiteKind::Empty;
             value_set_invalid(cache.value);
@@ -1162,6 +1172,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow store_attr(
                 cache.owner = &klass->header;
                 cache.version = klass->version;
               }
+              cache.accessor_function = fn_obj;
+              cache.accessor_code_version = fn_obj->code_version;
               cache.setter_inline = true;
             } else if (analyze_property_instance_attr_accessor(module, *fn_obj, true, inline_spec)) {
               uint32_t attr_index = 0;
@@ -1171,6 +1183,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow store_attr(
                 cache.setter_has_const = inline_spec.has_const;
                 value_assign_fast(cache.setter_const, inline_spec.constant);
                 cache_property_instance_attr(cache, *klass, inline_spec, attr_index);
+                cache.accessor_function = fn_obj;
+                cache.accessor_code_version = fn_obj->code_version;
                 cache.setter_inline = true;
               }
             }
@@ -1202,7 +1216,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow store_attr(
           call_module_owner = fn_obj->module;
         }
         ++ip;
-        if (!push_frame(*call_module, fn_obj->function_id, property_args, fn_obj->closure, fn_obj->defaults,
+        if (!push_frame(*call_module, fn_obj->function_id, property_args.with_keyword_defaults(*fn_obj), fn_obj->closure, fn_obj->defaults,
                         fn_obj->globals_module, std::move(call_module_owner), in.b)) {
           return XlangVMOpFlow::ReturnResult;
         }
@@ -1262,6 +1276,9 @@ XLANG3_HOT_INLINE XlangVMOpFlow store_attr(
     }
     if (error.find("immutable type") != std::string::npos ||
         error.rfind("__dict__ must be", 0) == 0 ||
+        error.rfind("__defaults__ must be", 0) == 0 ||
+        error.rfind("__kwdefaults__ must be", 0) == 0 ||
+        error.rfind("__code__ must be", 0) == 0 ||
         error.rfind("can only assign string to ", 0) == 0) {
       return raise_exception_value(runtime.make_exception("TypeError", error))
           ? XlangVMOpFlow::ContinueLoop
@@ -1272,7 +1289,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow store_attr(
           ? XlangVMOpFlow::ContinueLoop
           : XlangVMOpFlow::ReturnResult;
     }
-    if (error == "traceback loop detected") {
+    if (error == "traceback loop detected" ||
+        error == "__code__ requires a matching number of free variables") {
       return raise_exception_value(runtime.make_exception("ValueError", error))
           ? XlangVMOpFlow::ContinueLoop
           : XlangVMOpFlow::ReturnResult;
@@ -1379,11 +1397,16 @@ XLANG3_HOT_INLINE XlangVMOpFlow delete_attr(
         auto* instance = value_as_instance(regs[in.dst]);
         auto& cache = instr_cache[ip].attr;
         if (instance != nullptr) {
+          if (cache.accessor_function != fn_obj || cache.accessor_code_version != fn_obj->code_version) {
+            cache.deleter_inline = false;
+          }
           if (!cache.deleter_inline) {
             InlinePropertyAccess inline_spec;
             if (analyze_property_deleter(module, *fn_obj, inline_spec)) {
               cache.deleter_slot = inline_spec.slot;
               value_assign_fast(cache.deleter_const, inline_spec.constant);
+              cache.accessor_function = fn_obj;
+              cache.accessor_code_version = fn_obj->code_version;
               cache.deleter_inline = true;
             }
           }
@@ -1401,7 +1424,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow delete_attr(
           call_module_owner = fn_obj->module;
         }
         ++ip;
-        if (!push_frame(*call_module, fn_obj->function_id, property_args, fn_obj->closure, fn_obj->defaults,
+        if (!push_frame(*call_module, fn_obj->function_id, property_args.with_keyword_defaults(*fn_obj), fn_obj->closure, fn_obj->defaults,
                         fn_obj->globals_module, std::move(call_module_owner), in.dst)) {
           return XlangVMOpFlow::ReturnResult;
         }

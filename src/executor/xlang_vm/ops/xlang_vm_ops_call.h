@@ -833,7 +833,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
     }
     ++ip;
     handled = true;
-    if (!push_frame(*call_module, function->function_id, values, function->closure,
+    if (!push_frame(*call_module, function->function_id, values.with_keyword_defaults(*function), function->closure,
                     function->defaults, function->globals_module,
                     std::move(call_module_owner), in.dst,
                     FrameReturnMode::StoreReturnValue, Value::invalid(), true, in.a)) {
@@ -925,7 +925,9 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
           cache.callee_object == &receiver_class->header &&
           cache.class_version == receiver_class->version &&
           cache.arg0_object == &metaclass->header &&
-          cache.secondary_class_version == metaclass->version;
+          cache.secondary_class_version == metaclass->version &&
+          cache.function != nullptr &&
+          cache.function_code_version == cache.function->code_version;
       if (cached_classmethod_site && cache.function != nullptr &&
           inline_python_function_allowed(runtime, module, *cache.function)) {
         const bool output_overwrite_cannot_finalize =
@@ -981,6 +983,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
                   cache.arg0_object = &metaclass->header;
                   cache.kind = CallSiteKind::InlineClassMethodAttrIntCompare;
                   cache.function = function;
+                  cache.function_code_version = function->code_version;
+                  cache.inline_function_id = UINT32_MAX;
                   cache.class_version = receiver_class->version;
                   cache.secondary_class_version = metaclass->version;
                   cache.lhs_slot = spec.attribute_name;
@@ -1101,7 +1105,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
       method_args.leading_count = 1;
       if (!instr_cache.empty()) {
         auto& cache = instr_cache[ip].call;
-        if (cache.callee_object == &klass->header && cache.class_version == klass->version) {
+        if (cache.callee_object == &klass->header && cache.class_version == klass->version &&
+            (cache.function == nullptr || cache.function_code_version == cache.function->code_version)) {
           if (cache.kind == CallSiteKind::ExactPositionalFunction) {
             bool handled = false;
             const auto flow = push_exact_positional_method_frame(
@@ -1129,6 +1134,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
             return XlangVMOpFlow::Next;
           }
           const bool allow_cached_python_inline = cache.function != nullptr &&
+          cache.function_code_version == cache.function->code_version &&
               inline_python_function_allowed(runtime, module, *cache.function);
           if (allow_cached_python_inline &&
               cache.kind == CallSiteKind::InlineSelfSlotNormalizeMethod &&
@@ -1256,6 +1262,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
               cache.callee_object = &klass->header;
               cache.kind = CallSiteKind::InlineConstMethod;
               cache.function = fn_obj;
+              cache.function_code_version = fn_obj->code_version;
+              cache.inline_function_id = UINT32_MAX;
               cache.native = nullptr;
               cache.class_version = klass->version;
               cache.lhs_slot = static_cast<uint32_t>(call_arg_regs.size());
@@ -1283,6 +1291,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
                 cache.callee_object = &klass->header;
                 cache.kind = CallSiteKind::InlineSelfAttrBooleanExprMethod;
                 cache.function = fn_obj;
+                cache.function_code_version = fn_obj->code_version;
+                cache.inline_function_id = UINT32_MAX;
                 cache.native = nullptr;
                 cache.class_version = klass->version;
                 cache.inline_slots = slots;
@@ -1310,6 +1320,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
                   cache.callee_object = &klass->header;
                   cache.kind = CallSiteKind::InlineSelfAttrBinaryMethod;
                   cache.function = fn_obj;
+                  cache.function_code_version = fn_obj->code_version;
+                  cache.inline_function_id = UINT32_MAX;
                   cache.native = nullptr;
                   cache.class_version = klass->version;
                   cache.lhs_slot = lhs_attr;
@@ -1333,6 +1345,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
               cache.callee_object = &klass->header;
               cache.kind = CallSiteKind::InlineSelfBinaryMethod;
               cache.function = fn_obj;
+              cache.function_code_version = fn_obj->code_version;
+              cache.inline_function_id = UINT32_MAX;
               cache.native = nullptr;
               cache.class_version = klass->version;
               cache.lhs_slot = inline_spec.lhs_slot;
@@ -1361,6 +1375,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
                 cache.callee_object = &klass->header;
                 cache.kind = CallSiteKind::InlineSelfSlotMaximizeMethod;
                 cache.function = fn_obj;
+                cache.function_code_version = fn_obj->code_version;
+                cache.inline_function_id = UINT32_MAX;
                 cache.native = nullptr;
                 cache.class_version = klass->version;
                 cache.inline_slots = slots;
@@ -1388,6 +1404,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
                 cache.callee_object = &klass->header;
                 cache.kind = CallSiteKind::InlineSelfSlotNormalizeMethod;
                 cache.function = fn_obj;
+                cache.function_code_version = fn_obj->code_version;
+                cache.inline_function_id = UINT32_MAX;
                 cache.native = nullptr;
                 cache.class_version = klass->version;
                 cache.inline_slots = slots;
@@ -1403,6 +1421,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
             cache.callee_object = &klass->header;
             cache.kind = CallSiteKind::UserFunction;
             cache.function = fn_obj;
+            cache.function_code_version = fn_obj->code_version;
+            cache.inline_function_id = UINT32_MAX;
             cache.native = nullptr;
             cache.class_version = klass->version;
           }
@@ -1498,6 +1518,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
               cache.callee_object = &klass->header;
               cache.kind = CallSiteKind::InlineConstMethod;
               cache.function = fn_obj;
+              cache.function_code_version = fn_obj->code_version;
+              cache.inline_function_id = UINT32_MAX;
               cache.native = nullptr;
               cache.class_version = klass->version;
               cache.lhs_slot = static_cast<uint32_t>(call_arg_regs.size());
@@ -1524,6 +1546,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
                 cache.callee_object = &klass->header;
                 cache.kind = CallSiteKind::InlineSelfAttrBooleanExprMethod;
                 cache.function = fn_obj;
+                cache.function_code_version = fn_obj->code_version;
+                cache.inline_function_id = UINT32_MAX;
                 cache.native = nullptr;
                 cache.class_version = klass->version;
                 cache.inline_slots = slots;
@@ -1541,6 +1565,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
               cache.callee_object = &klass->header;
               cache.kind = CallSiteKind::InlineSelfBinaryMethod;
               cache.function = fn_obj;
+              cache.function_code_version = fn_obj->code_version;
+              cache.inline_function_id = UINT32_MAX;
               cache.native = nullptr;
               cache.class_version = klass->version;
               cache.lhs_slot = inline_spec.lhs_slot;
@@ -1559,6 +1585,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
             cache.callee_object = &klass->header;
             cache.kind = CallSiteKind::UserFunction;
             cache.function = fn_obj;
+            cache.function_code_version = fn_obj->code_version;
+            cache.inline_function_id = UINT32_MAX;
             cache.native = nullptr;
             cache.class_version = klass->version;
           }
@@ -2046,7 +2074,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
         Value constructed_instance;
         value_assign_fast(constructed_instance, instance);
         ++ip;
-        if (!push_frame(*call_module, init_fn->function_id, init_args, init_fn->closure, init_fn->defaults, init_fn->globals_module,
+        if (!push_frame(*call_module, init_fn->function_id, init_args.with_keyword_defaults(*init_fn), init_fn->closure, init_fn->defaults, init_fn->globals_module,
                         std::move(call_module_owner), in.dst,
                         FrameReturnMode::StoreConstructedInstance, std::move(constructed_instance))) {
           return result.errors.empty() ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
@@ -2201,7 +2229,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_metaclass_init_after_type_new(
     Value continuation;
     value_assign_fast(continuation, constructed_class);
     ++ip;
-    if (!push_frame(*call_module, fn_obj->function_id, init_args, fn_obj->closure, fn_obj->defaults,
+    if (!push_frame(*call_module, fn_obj->function_id, init_args.with_keyword_defaults(*fn_obj), fn_obj->closure, fn_obj->defaults,
                     fn_obj->globals_module, std::move(call_module_owner), return_dst,
                     FrameReturnMode::StoreConstructedInstance, std::move(continuation))) {
       return result.errors.empty() ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
@@ -2293,6 +2321,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method_ex(
               cache.arg0_object = regs[in.a].as.obj;
               cache.kind = CallSiteKind::UserFunction;
               cache.function = function;
+              cache.function_code_version = function->code_version;
+              cache.inline_function_id = UINT32_MAX;
               cache.native = nullptr;
               cache.class_version = klass->version;
               CallArgsView method_args = args;
@@ -2454,7 +2484,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_ex(
           Value constructed_instance;
           value_assign_fast(constructed_instance, instance);
           ++ip;
-          if (!push_frame(*call_module, fn_obj->function_id, init_args,
+          if (!push_frame(*call_module, fn_obj->function_id, init_args.with_keyword_defaults(*fn_obj),
                           fn_obj->closure, fn_obj->defaults,
                           fn_obj->globals_module, std::move(call_module_owner),
                           in.dst, FrameReturnMode::StoreConstructedInstance,
@@ -2499,6 +2529,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_ex(
       value_assign_fast(cache.retained_callee, callee);
       cache.kind = CallSiteKind::UserFunction;
       cache.function = fn_obj;
+      cache.function_code_version = fn_obj->code_version;
+      cache.inline_function_id = UINT32_MAX;
       cache.native = nullptr;
     }
     if (!xlang3::xlang_vm::ops::call_user_function(fn_obj, call_args, module, module_owner, in.dst, ip, regs[in.dst], pushed_frame, make_generator_if_needed, push_frame)) {
@@ -2741,6 +2773,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_ex(
           value_assign_fast(cache.retained_callee, callee);
           cache.kind = CallSiteKind::UserConstructor;
           cache.function = init_function;
+          cache.function_code_version = init_function->code_version;
+          cache.inline_function_id = UINT32_MAX;
           cache.native = nullptr;
           cache.class_version = klass->version;
           if (auto* metaclass = value_as_class(klass->metaclass)) {
@@ -2920,6 +2954,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow call(
       const bool is_cached_arg_inline =
           cache.kind == CallSiteKind::InlineArgBinaryFunction;
       const bool allow_cached_python_inline = cache.function != nullptr &&
+          cache.function_code_version == cache.function->code_version &&
           (is_cached_arg_inline
                ? inline_cached_arg_function_allowed(
                      runtime, module, *cache.function, cache)
@@ -2992,7 +3027,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow call(
            (cache.kind == CallSiteKind::InlineSlotConstructor ||
             cache.kind == CallSiteKind::InlineMathPointConstructor))) {
         auto* cached_class = value_as_class(callee);
-        if (cached_class == nullptr || cache.class_version != cached_class->version) {
+        if (cached_class == nullptr || cache.class_version != cached_class->version ||
+            (cache.function != nullptr && cache.function_code_version != cache.function->code_version)) {
           cache.kind = CallSiteKind::Empty;
         } else {
         if (allow_inline_calls &&
@@ -3044,7 +3080,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow call(
           Value constructed_instance;
           value_assign_fast(constructed_instance, instance);
           ++ip;
-          if (!push_frame(*call_module, fn_obj->function_id, init_args, fn_obj->closure, fn_obj->defaults, fn_obj->globals_module,
+          if (!push_frame(*call_module, fn_obj->function_id, init_args.with_keyword_defaults(*fn_obj), fn_obj->closure, fn_obj->defaults, fn_obj->globals_module,
                           std::move(call_module_owner), in.dst,
                           FrameReturnMode::StoreConstructedInstance, std::move(constructed_instance))) {
             return result.errors.empty() ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
@@ -3077,6 +3113,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow call(
           value_assign_fast(cache.retained_callee, callee);
           cache.kind = CallSiteKind::InlineConditionalArgFunction;
           cache.function = fn_obj;
+          cache.function_code_version = fn_obj->code_version;
+          cache.inline_function_id = UINT32_MAX;
           cache.native = nullptr;
           cache.class_version = 0;
           cache.lhs_slot = conditional_spec.condition_arg;
@@ -3104,6 +3142,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow call(
         value_assign_fast(cache.retained_callee, callee);
         cache.kind = CallSiteKind::InlineTrivialFunction;
         cache.function = fn_obj;
+        cache.function_code_version = fn_obj->code_version;
+        cache.inline_function_id = UINT32_MAX;
         cache.native = nullptr;
         cache.class_version = 0;
         cache.lhs_slot = trivial_spec.argument;
@@ -3126,6 +3166,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow call(
         value_assign_fast(cache.retained_callee, callee);
         cache.kind = CallSiteKind::InlineArgBinaryFunction;
         cache.function = fn_obj;
+        cache.function_code_version = fn_obj->code_version;
+        cache.inline_function_id = UINT32_MAX;
         cache.native = nullptr;
         cache.class_version = 0;
         cache.lhs_slot = inline_spec.lhs_arg;
@@ -3154,6 +3196,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow call(
       value_assign_fast(cache.retained_callee, callee);
       cache.kind = CallSiteKind::UserFunction;
       cache.function = fn_obj;
+      cache.function_code_version = fn_obj->code_version;
+      cache.inline_function_id = UINT32_MAX;
       cache.native = nullptr;
       cache.class_version = 0;
     }
@@ -3173,6 +3217,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow call(
       value_assign_fast(cache.retained_callee, callee);
       cache.kind = CallSiteKind::BoundPythonMethod;
       cache.function = fn_obj;
+      cache.function_code_version = fn_obj->code_version;
+      cache.inline_function_id = UINT32_MAX;
       cache.native = nullptr;
       cache.class_version = 0;
     }
@@ -3397,7 +3443,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow call(
     }
     if (!instr_cache.empty()) {
       auto& cache = instr_cache[ip].call;
-      if (cache.callee_object == callee.as.obj && cache.class_version == klass->version) {
+      if (cache.callee_object == callee.as.obj && cache.class_version == klass->version &&
+          (cache.function == nullptr || cache.function_code_version == cache.function->code_version)) {
         if (allow_inline_calls && cache.kind == CallSiteKind::InlineSlotConstructor) {
           std::string error;
           if (cache.function && execute_slot_constructor_fn(
@@ -3422,7 +3469,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow call(
           Value constructed_instance;
           value_assign_fast(constructed_instance, instance);
           ++ip;
-          if (!push_frame(*call_module, fn_obj->function_id, init_args, fn_obj->closure, fn_obj->defaults, fn_obj->globals_module,
+          if (!push_frame(*call_module, fn_obj->function_id, init_args.with_keyword_defaults(*fn_obj), fn_obj->closure, fn_obj->defaults, fn_obj->globals_module,
                           std::move(call_module_owner), in.dst,
                           FrameReturnMode::StoreConstructedInstance, std::move(constructed_instance))) {
             return result.errors.empty() ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
@@ -3482,6 +3529,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow call(
               value_assign_fast(cache.retained_callee, callee);
               cache.kind = CallSiteKind::InlineMathPointConstructor;
               cache.function = fn_obj;
+              cache.function_code_version = fn_obj->code_version;
+              cache.inline_function_id = UINT32_MAX;
               cache.native = nullptr;
               cache.class_version = klass->version;
               cache.inline_slots = slots;
@@ -3508,6 +3557,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow call(
               value_assign_fast(cache.retained_callee, callee);
               cache.kind = CallSiteKind::InlineSlotConstructor;
               cache.function = fn_obj;
+              cache.function_code_version = fn_obj->code_version;
+              cache.inline_function_id = UINT32_MAX;
               cache.native = nullptr;
               cache.class_version = klass->version;
               cache.slot_constructor_args = slot_constructor_spec;
@@ -3521,6 +3572,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow call(
           value_assign_fast(cache.retained_callee, callee);
           cache.kind = CallSiteKind::UserConstructor;
           cache.function = fn_obj;
+          cache.function_code_version = fn_obj->code_version;
+          cache.inline_function_id = UINT32_MAX;
           cache.native = nullptr;
           cache.class_version = klass->version;
         }
@@ -3533,7 +3586,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow call(
         Value constructed_instance;
         value_assign_fast(constructed_instance, instance);
         ++ip;
-        if (!push_frame(*call_module, fn_obj->function_id, init_args, fn_obj->closure, fn_obj->defaults, fn_obj->globals_module,
+        if (!push_frame(*call_module, fn_obj->function_id, init_args.with_keyword_defaults(*fn_obj), fn_obj->closure, fn_obj->defaults, fn_obj->globals_module,
                         std::move(call_module_owner), in.dst,
                         FrameReturnMode::StoreConstructedInstance, std::move(constructed_instance))) {
           return result.errors.empty() ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
@@ -4081,7 +4134,7 @@ XLANG3_HOT_INLINE bool call_user_function(
     }
   }
   ++ip;
-  if (!push_frame(*call_module, fn_obj->function_id, values, fn_obj->closure, fn_obj->defaults,
+  if (!push_frame(*call_module, fn_obj->function_id, values.with_keyword_defaults(*fn_obj), fn_obj->closure, fn_obj->defaults,
                   fn_obj->globals_module, std::move(call_module_owner), return_dst, return_mode,
                   std::move(continuation_value))) {
     return false;
