@@ -1,0 +1,12 @@
+local_slots              pass         1.012x
+scalar_arithmetic        pass         0.988x
+range_for                pass         1.015x
+function_calls           pass         1.021x
+class_construct          pass         0.995x
+list_append              pass         0.972x
+property_access          pass         0.983x
+deepcopy_memo            pass         0.892x
+json_dumps               pass         1.008x
+gc_traversal             pass         0.745x
+subparsers               pass         0.946x
+Performance check: pass. Report: doc\performance\data\release-native-bytes-decode-fixed-gate-20261007.json

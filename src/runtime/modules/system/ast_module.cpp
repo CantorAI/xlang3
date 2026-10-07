@@ -573,14 +573,16 @@ Value ast_parse_simple_expr(
       }
     }
     if (call_open != std::string_view::npos && call_open > 0 && depth == 0) {
+      // This shortcut only represents an empty call. Preserve that cheap path,
+      // but let the full parser handle argument syntax instead of silently
+      // dropping it: Python AST visitors and template compilers depend on it.
+      if (!ast_trim(source.substr(call_open + 1, source.size() - call_open - 2)).empty()) {
+        return Value::invalid();
+      }
       Value function = ast_parse_simple_expr(
           state, source.substr(0, call_open), error, source_line, column_offset);
       if (function.tag == ValueTag::Invalid) {
-        error.clear();
-        function = ast_make_constant(state, Value::none(), error);
-        ast_set_location(
-            function, source_line, source_line, column_offset,
-            column_offset + static_cast<uint32_t>(call_open), error);
+        return Value::invalid();
       }
       Value call = ast_instance(state, "Call");
       if (function.tag != ValueTag::Invalid && call.tag != ValueTag::Invalid) {

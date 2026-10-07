@@ -1,0 +1,9 @@
+{
+  "manager_executable": "C:\\Python\\Python314\\python.exe",
+  "manager_version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+  "fixture": "tests\\fixtures\\core\\ast_call_arguments.py",
+  "source_sha256": "5f6ee3354b3b15d2786d5c7685bfd6b52f9a64f5045b96414203f13d1f40f9b5",
+  "exit_code": 0,
+  "stdout": "eval and exec preserve call trees True\nPython AST visitors preserve arguments and locations True\ncomplex empty callees preserve their AST True\n",
+  "stderr": ""
+}

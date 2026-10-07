@@ -530,6 +530,44 @@ bool bytes_decode_method_kw(
   return bytes_decode_method(runtime, merged, merged_argc, out, error, user_data);
 }
 
+struct BytesDecodeDescriptorState {
+  Value owner;
+  bool bytearray;
+};
+
+bool bytes_decode_descriptor_kw(
+    Runtime& runtime, const Value* args, uint32_t argc,
+    const NativeKeywordArg* kwargs, uint32_t kwargc,
+    Value& out, std::string& error, void* user_data) {
+  auto* state = static_cast<BytesDecodeDescriptorState*>(user_data);
+  const char* name = state->bytearray ? "bytearray" : "bytes";
+  bool valid = argc != 0 && (state->bytearray ? value_as_bytearray(args[0]) != nullptr
+                                             : value_as_bytes(args[0]) != nullptr);
+  if (!valid && argc != 0) {
+    if (auto* instance = value_as_instance(args[0])) {
+      valid = class_is_subclass(value_as_class(instance->klass), value_as_class(state->owner));
+    }
+  }
+  if (!valid) {
+    error = std::string("descriptor 'decode' requires a '") + name + "' object";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (!bytes_decode_method_kw(runtime, args, argc, kwargs, kwargc, out, error, nullptr)) {
+    Value pending;
+    if (runtime.take_pending_exception(pending)) runtime.set_pending_exception(std::move(pending));
+    else runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  return true;
+}
+
+bool bytes_decode_descriptor(
+    Runtime& runtime, const Value* args, uint32_t argc,
+    Value& out, std::string& error, void* user_data) {
+  return bytes_decode_descriptor_kw(runtime, args, argc, nullptr, 0, out, error, user_data);
+}
+
 bool get_bytes_like_view(const Value& value, const char* name, std::string_view& out, std::string& error) {
   if (auto* bytes = value_as_bytes(value)) {
     out = bytes_object_view(*bytes);
@@ -2476,6 +2514,22 @@ bool bytes_install_class_methods(Runtime& runtime, ClassObject& bytes_class) {
       false, bytes_translate_method_kw);
   bytes_class.attrs["maketrans"] = runtime.make_native_function("bytes.maketrans", bytes_maketrans_method);
   const bool is_bytearray = bytes_class.name == "bytearray";
+  // Expose the existing codec implementation on the type as well as instances.
+  // Saved class descriptors must keep their canonical owner when builtin names
+  // are rebound. Retain it in Runtime-owned native state, matching other native
+  // package lifetimes, and leave subclass overrides on ordinary dispatch.
+  Value owner;
+  owner.tag = ValueTag::Object;
+  owner.as.obj = &bytes_class.header;
+  retain(owner);
+  auto* decode_state = new BytesDecodeDescriptorState{std::move(owner), is_bytearray};
+  runtime.register_native_package_cleanup(decode_state, [](void* data) {
+    delete static_cast<BytesDecodeDescriptorState*>(data);
+  });
+  bytes_class.attrs["decode"] = runtime.make_native_function(
+      is_bytearray ? "bytearray.decode" : "bytes.decode", bytes_decode_descriptor,
+      decode_state, nullptr, nullptr, false, bytes_decode_descriptor_kw);
+
   const auto install = [&](const char* name, auto function) {
     bytes_class.attrs[name] = runtime.make_native_function(
         std::string(is_bytearray ? "bytearray." : "bytes.") + name, function);

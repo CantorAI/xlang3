@@ -1,0 +1,37 @@
+{
+  "status": "finished_with_benchmark_failures",
+  "started_utc": "2026-10-07T16:27:20.600873+00:00",
+  "runtime_executable": "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+  "source_base_commit": "b3f9dc567cc66aa125a052cecf0797f90d89bbb8",
+  "engine_source": "Uncommitted native bytes decode descriptors and guarded empty-call AST shortcut",
+  "source_sha256": {
+    "src/runtime/modules/system/ast_module.cpp": "ff9b77cf5bdae41ec32e0bdcb6b457eddcf3ba24699f21cf18703b0c9922c0e4",
+    "src/runtime/methods/bytes_methods.cpp": "660db7174f984c4a145bddde76cf42c8e2cacaa156c34fc52855f8db785c00af",
+    "tests/run_fixtures.py": "01beea607babc74cf9d11849dfaadfbe2d07601e1f90aff29e23da30afb5fe93",
+    "tests/fixtures/core/ast_call_arguments.py": "5f6ee3354b3b15d2786d5c7685bfd6b52f9a64f5045b96414203f13d1f40f9b5",
+    "tests/fixtures/expected/ast_call_arguments.out": "9c55ed715854e3cbe49c90c31baee493e19ee4516ea31b347e1c3d3a34146c57"
+  },
+  "sha256_start": {
+    "exe": "b1e8973ae266243f545920a83a5ac7e1686f56baaf443193514be59f43dd4afb",
+    "dll": "3480629a54b27a7aa202e55881459117e1c9fbc64e5f8c151aec52880d63d3b5",
+    "hashlib": "5910f087e300459b854dca0046ac61125287e7d62bf330a3d626631d9a74b239"
+  },
+  "manager_executable": "C:\\Python\\Python314\\python.exe",
+  "manager_version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+  "mode": "fast",
+  "benchmarks": "chameleon",
+  "expected_definitions": 1,
+  "case_timeout_seconds": 300,
+  "cpython_reference": "pyperformance-cpython314-clean-release-full-fast-20261002.json",
+  "cpython_reference_provenance_limits": "cpython3147-saved-reference-provenance-audit-20261007.json",
+  "fixed_gate": "release-native-ast-call-fixed-gate-20261007.json",
+  "fixed_gate_exit_code": 0,
+  "compatibility_hook_sha256": "2ffc217fe20497156bfcb1cebc7fb87203f33c6d4d3dbb6ecbcbcf91ea4cb317",
+  "exit_code": 1,
+  "completed_utc": "2026-10-07T16:27:27.576322+00:00",
+  "sha256_end": {
+    "exe": "b1e8973ae266243f545920a83a5ac7e1686f56baaf443193514be59f43dd4afb",
+    "dll": "3480629a54b27a7aa202e55881459117e1c9fbc64e5f8c151aec52880d63d3b5",
+    "hashlib": "5910f087e300459b854dca0046ac61125287e7d62bf330a3d626631d9a74b239"
+  }
+}

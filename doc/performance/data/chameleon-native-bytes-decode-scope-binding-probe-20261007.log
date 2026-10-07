@@ -1,0 +1,41 @@
+method type method
+bound receiver True
+direct {'table': []}
+saved {'table': []}
+generated source doc\performance\data\chameleon-native-bytes-decode-generated-source-20261007.txt
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\template.py", line 238, in render
+    self._render(
+    ~~~~~~~~~~~~^
+        stream,
+        ^^^^^^^
+    ...<2 lines>...
+        target_language=target_language
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "8da52eb831b9517ac41ba39a578398b6.py", line 98, in render
+TypeError: get_name() missing 1 required positional argument: 'key'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\template.py", line 238, in render
+    self._render(
+    ~~~~~~~~~~~~^
+        stream,
+        ^^^^^^^
+    ...<2 lines>...
+        target_language=target_language
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "8da52eb831b9517ac41ba39a578398b6.py", line 98, in render
+TypeError: get_name() missing 1 required positional argument: 'key'
+
+ - Expression: "python: options['table']"
+ - Filename:   <string>
+ - Location:   (line 3: col 20)
+ - Arguments:  options: {...} (1)
+               target_language: <NoneType ('None',) at 0x1>
+               repeat: <RepeatDict ('None',) at 0x1789f124d70>
