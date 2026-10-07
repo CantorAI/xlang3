@@ -34,7 +34,7 @@ struct HashBinaryView {
   bool readonly = true;
 };
 
-HashBinaryView hash_binary_view(const Value& value) {
+HashBinaryView hash_binary_view(const Value& value, std::string& scratch) {
   if (auto* bytes = value_as_bytes(value)) {
     const auto view = bytes_object_view(*bytes);
     return {view.data(), view.size(), true};
@@ -51,7 +51,12 @@ HashBinaryView hash_binary_view(const Value& value) {
       // Native owners can change their buffer even through a read-only view.
       return {storage.data(), storage.size(), false};
     }
-    const auto owner = hash_binary_view(memoryview->owner);
+    if (!memoryview->contiguous) {
+      std::string error;
+      if (!memoryview_copy_bytes(*memoryview, scratch, error)) return {};
+      return {scratch.data(), scratch.size(), memoryview->readonly && value_as_bytes(memoryview->owner) != nullptr};
+    }
+    const auto owner = hash_binary_view(memoryview->owner, scratch);
     if (owner.data == nullptr || memoryview->offset > owner.size || owner.size - memoryview->offset < memoryview->size) {
       return {};
     }
@@ -174,8 +179,9 @@ bool value_key_equal(const Value& lhs, const Value& rhs) {
                       lhs.flags != 0 && lhs.flags == rhs.flags);
   }
   if (is_binary_like_value(lhs) && is_binary_like_value(rhs)) {
-    const auto left = hash_binary_view(lhs);
-    const auto right = hash_binary_view(rhs);
+    std::string left_scratch, right_scratch;
+    const auto left = hash_binary_view(lhs, left_scratch);
+    const auto right = hash_binary_view(rhs, right_scratch);
     return left.data != nullptr && right.data != nullptr && left.size == right.size &&
            (left.size == 0 || std::char_traits<char>::compare(left.data, right.data, left.size) == 0);
   }
@@ -352,7 +358,8 @@ bool value_hash_key(const Value& value, size_t& out, std::string& error) {
         return true;
       }
       if (auto* view = value_as_memoryview(value)) {
-        const auto bytes = hash_binary_view(value);
+        std::string scratch;
+        const auto bytes = hash_binary_view(value, scratch);
         if (view->released || bytes.data == nullptr) {
           error = "operation forbidden on released memoryview object";
           return false;

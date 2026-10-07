@@ -1,0 +1,78 @@
+Benchmark dependency sites: D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages
+Python benchmark suite 1.14.0
+
+
+==================================================
+( 1/1) creating venv for benchmark (scimark)
+
+(trying common venv first)
+
+[1/1] scimark...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+scimark_fft: Mean +- std dev: 2.49 sec +- 0.07 sec
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+scimark_lu: Mean +- std dev: 1.95 sec +- 0.06 sec
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+scimark_monte_carlo: Mean +- std dev: 723 ms +- 22 ms
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+scimark_sor: Mean +- std dev: 1.22 sec +- 0.03 sec
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+scimark_sparse_mat_mult: Mean +- std dev: 52.7 ms +- 2.7 ms
+
+Performance version: 1.14.0
+
+### scimark_fft ###
+Mean +- std dev: 2.49 sec +- 0.07 sec
+
+### scimark_lu ###
+Mean +- std dev: 1.95 sec +- 0.06 sec
+
+### scimark_monte_carlo ###
+Mean +- std dev: 723 ms +- 22 ms
+
+### scimark_sor ###
+Mean +- std dev: 1.22 sec +- 0.03 sec
+
+### scimark_sparse_mat_mult ###
+Mean +- std dev: 52.7 ms +- 2.7 ms
+

@@ -656,7 +656,7 @@ struct BinaryCompareView {
   size_t size = 0;
 };
 
-BinaryCompareView binary_compare_view(const Value& value) {
+BinaryCompareView binary_compare_view(const Value& value, std::string& scratch) {
   if (auto* bytes = value_as_bytes(value)) {
     const auto view = bytes_object_view(*bytes);
     return {view.data(), view.size()};
@@ -667,6 +667,11 @@ BinaryCompareView binary_compare_view(const Value& value) {
   if (auto* memoryview = value_as_memoryview(value)) {
     if (memoryview->released) {
       return {};
+    }
+    if (!memoryview->contiguous) {
+      std::string error;
+      if (!memoryview_copy_bytes(*memoryview, scratch, error)) return {};
+      return {scratch.data(), scratch.size()};
     }
     const auto view = memoryview_object_view(*memoryview);
     return {view.data(), view.size()};
@@ -1228,7 +1233,7 @@ Value Value::memoryview(Value owner, size_t offset, size_t size, bool readonly) 
   return v;
 }
 
-std::string_view memoryview_object_view(const MemoryViewObject& view) {
+std::string_view memoryview_owner_view(const MemoryViewObject& view) {
   if (view.released) return {};
   std::string_view storage;
   if (view.external) {
@@ -1248,11 +1253,58 @@ std::string_view memoryview_object_view(const MemoryViewObject& view) {
     else if (auto* parent = value_as_memoryview(payload)) storage = memoryview_object_view(*parent);
     else return {};
   } else return {};
+  return storage;
+}
+
+std::string_view memoryview_object_view(const MemoryViewObject& view) {
+  if (!view.contiguous) return {};
+  const auto storage = memoryview_owner_view(view);
   if (!storage.data() || view.offset > storage.size() || view.size > storage.size() - view.offset) return {};
   return storage.substr(view.offset, view.size);
 }
 
-char* memoryview_object_writable_data(const MemoryViewObject& view) {
+bool memoryview_copy_bytes(const MemoryViewObject& view, std::string& out, std::string& error) {
+  if (view.released) { error = "operation forbidden on released memoryview object"; return false; }
+  if (view.contiguous) {
+    const auto bytes = memoryview_object_view(view);
+    if (bytes.data() == nullptr && view.size != 0) { error = "invalid memoryview storage"; return false; }
+    out.assign(bytes.data() == nullptr ? "" : bytes.data(), bytes.size());
+    return true;
+  }
+  const auto storage = memoryview_owner_view(view);
+  const size_t itemsize = memoryview_format_itemsize(view.format);
+  if (itemsize == 0 || view.size % itemsize != 0) { error = "unsupported memoryview format"; return false; }
+  out.clear();
+  out.reserve(view.size);
+  const size_t count = view.size / itemsize;
+  for (size_t logical = 0; logical < count; ++logical) {
+    size_t remaining = logical;
+    size_t offset = view.offset;
+    if (view.shape.empty()) {
+      const int64_t stride = view.strides.empty() ? static_cast<int64_t>(itemsize) : view.strides[0];
+      offset += logical * static_cast<size_t>(stride);
+    } else {
+      for (size_t dimension = view.shape.size(); dimension != 0; --dimension) {
+        const size_t extent = static_cast<size_t>(view.shape[dimension - 1]);
+        if (extent == 0) { error = "invalid memoryview shape"; return false; }
+        const size_t coordinate = remaining % extent;
+        remaining /= extent;
+        const int64_t stride = view.strides.empty() ? static_cast<int64_t>(itemsize)
+                                                    : view.strides[dimension - 1];
+        // Unsigned arithmetic expresses signed displacement without signed
+        // overflow; final owner bounds validate every selected physical item.
+        offset += coordinate * static_cast<size_t>(stride);
+      }
+    }
+    if (offset > storage.size() || itemsize > storage.size() - offset) {
+      error = "memoryview index out of range"; return false;
+    }
+    out.append(storage.data() + offset, itemsize);
+  }
+  return true;
+}
+
+char* memoryview_owner_writable_data(const MemoryViewObject& view) {
   if (view.readonly || view.released) return nullptr;
   if (!view.external && !value_as_bytearray(view.owner)) {
     if (auto* parent = value_as_memoryview(view.owner)) {
@@ -1267,7 +1319,14 @@ char* memoryview_object_writable_data(const MemoryViewObject& view) {
       }
     } else return nullptr;
   }
-  return const_cast<char*>(memoryview_object_view(view).data());
+  return const_cast<char*>(memoryview_owner_view(view).data());
+}
+
+char* memoryview_object_writable_data(const MemoryViewObject& view) {
+  if (!view.contiguous) return nullptr;
+  char* data = memoryview_owner_writable_data(view);
+  const auto span = memoryview_object_view(view);
+  return data != nullptr && span.data() != nullptr ? data + view.offset : nullptr;
 }
 
 Value Value::slice(Value start, Value stop, Value step) {
@@ -2533,7 +2592,7 @@ bool string_percent_format(
   return true;
 }
 
-bool percent_bytes_view(const Value& value, std::string_view& out) {
+bool percent_bytes_view(const Value& value, std::string_view& out, std::string& packed) {
   if (auto* bytes = value_as_bytes(value)) {
     out = bytes_object_view(*bytes);
     return true;
@@ -2543,6 +2602,12 @@ bool percent_bytes_view(const Value& value, std::string_view& out) {
     return true;
   }
   if (auto* view = value_as_memoryview(value); view != nullptr && !view->released) {
+    if (!view->contiguous) {
+      std::string error;
+      if (!memoryview_copy_bytes(*view, packed, error)) return false;
+      out = packed;
+      return true;
+    }
     out = memoryview_object_view(*view);
     return true;
   }
@@ -2653,7 +2718,8 @@ bool bytes_percent_format(const Value& lhs, const Value& rhs, Value& out, std::s
       case 'b':
       case 's': {
         std::string_view bytes;
-        if (!percent_bytes_view(argument, bytes)) {
+        std::string packed;
+        if (!percent_bytes_view(argument, bytes, packed)) {
           error = "%b requires a bytes-like object";
           return false;
         }
@@ -2668,7 +2734,8 @@ bool bytes_percent_format(const Value& lhs, const Value& rhs, Value& out, std::s
           break;
         }
         std::string_view bytes;
-        if (!percent_bytes_view(argument, bytes) || bytes.size() != 1) {
+        std::string packed;
+        if (!percent_bytes_view(argument, bytes, packed) || bytes.size() != 1) {
           error = "%c requires an integer in range(256) or a single byte";
           return false;
         }
@@ -4174,8 +4241,9 @@ bool value_compare(const std::string& op, const Value& lhs, const Value& rhs, Va
       return true;
     }
   }
-  const auto left_binary_order = binary_compare_view(lhs);
-  const auto right_binary_order = binary_compare_view(rhs);
+  std::string left_binary_scratch, right_binary_scratch;
+  const auto left_binary_order = binary_compare_view(lhs, left_binary_scratch);
+  const auto right_binary_order = binary_compare_view(rhs, right_binary_scratch);
   if (left_binary_order.data != nullptr && right_binary_order.data != nullptr) {
     const int cmp = std::memcmp(
         left_binary_order.data,
@@ -4198,8 +4266,8 @@ bool value_compare(const std::string& op, const Value& lhs, const Value& rhs, Va
     return true;
   }
   if (op == "==" || op == "!=") {
-    const auto left_binary = binary_compare_view(lhs);
-    const auto right_binary = binary_compare_view(rhs);
+    const auto left_binary = binary_compare_view(lhs, left_binary_scratch);
+    const auto right_binary = binary_compare_view(rhs, right_binary_scratch);
     if (left_binary.data != nullptr && right_binary.data != nullptr) {
       result = left_binary.size == right_binary.size &&
                (left_binary.size == 0 || std::memcmp(left_binary.data, right_binary.data, left_binary.size) == 0);

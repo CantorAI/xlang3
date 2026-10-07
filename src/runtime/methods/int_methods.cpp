@@ -295,6 +295,12 @@ bool collect_from_bytes_input(const Value& value, std::vector<uint8_t>& bytes, s
       error = "operation forbidden on released memoryview object";
       return false;
     }
+    std::string packed;
+    if (!view->contiguous) {
+      if (!memoryview_copy_bytes(*view, packed, error)) return false;
+      bytes.assign(packed.begin(), packed.end());
+      return true;
+    }
     const auto data = memoryview_object_view(*view);
     if (!data.data()) {
       error = "memoryview owner is not byte-addressable";

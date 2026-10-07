@@ -151,6 +151,7 @@ bool marshal_value(const Value& value, std::string& out, std::string& error) {
     return true;
   }
   if (auto* view = value_as_memoryview(value)) {
+    if (view->released || !view->contiguous) { error = "unmarshallable object"; return false; }
     out.push_back(static_cast<char>(MarshalTag::Bytes));
     append_bytes(out, memoryview_object_view(*view));
     return true;
@@ -444,6 +445,10 @@ bool get_data_bytes(const Value& value, std::string_view& out, std::string& erro
       error = "operation forbidden on released memoryview object";
       return false;
     }
+    if (!view->contiguous) {
+      error = "memoryview: underlying buffer is not C-contiguous";
+      return false;
+    }
     out = memoryview_object_view(*view);
     return true;
   }
@@ -623,6 +628,7 @@ bool marshal_cpython_value(const Value& value, std::string& out, std::string& er
     out.push_back('s'); append_bytes(out, bytes->value); return true;
   }
   if (auto* view = value_as_memoryview(value)) {
+    if (view->released || !view->contiguous) { error = "unmarshallable object"; return false; }
     out.push_back('s'); append_bytes(out, memoryview_object_view(*view)); return true;
   }
   if (value_as_instance(value) != nullptr) {
@@ -897,7 +903,8 @@ bool marshal_loads(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
   std::string_view data;
   if (!get_data_bytes(args[0], data, error)) {
     runtime.raise_class_error(
-        error.find("released memoryview") != std::string::npos ? "ValueError" : "TypeError",
+        error.find("released memoryview") != std::string::npos ? "ValueError" :
+        error == "memoryview: underlying buffer is not C-contiguous" ? "BufferError" : "TypeError",
         error);
     return false;
   }

@@ -52,3 +52,7 @@ def check_native_view(view):
     derived = memoryview(view)[4:8].toreadonly()
     view.release()
     return derived
+
+def strided_views():
+    data = bytearray(b'abcdef')
+    return [memoryview(data)[::2], memoryview(data)[::-2]]

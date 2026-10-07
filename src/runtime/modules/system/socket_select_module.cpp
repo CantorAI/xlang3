@@ -1206,7 +1206,15 @@ bool socket_setsockopt(Runtime& runtime, const Value* args, uint32_t argc, Value
     std::string_view value;
     if (auto* bytes = value_as_bytes(args[3])) value = bytes_object_view(*bytes);
     else if (auto* bytearray = value_as_bytearray(args[3])) value = bytearray->value;
-    else if (auto* view = value_as_memoryview(args[3])) value = memoryview_object_view(*view);
+    else if (auto* view = value_as_memoryview(args[3])) {
+      if (view->released || !view->contiguous) {
+        error = view->released ? "operation forbidden on released memoryview object" :
+            "memoryview: underlying buffer is not C-contiguous";
+        runtime.raise_class_error(view->released ? "ValueError" : "BufferError", error);
+        return false;
+      }
+      value = memoryview_object_view(*view);
+    }
     else {
       error = "socket.setsockopt() value must be an integer or bytes-like object";
       runtime.raise_class_error("TypeError", error);

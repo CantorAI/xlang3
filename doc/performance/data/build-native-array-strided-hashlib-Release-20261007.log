@@ -1,0 +1,6 @@
+ninja: Entering directory `build-repro\main-verify-20261006'
+[0/2] Re-checking globbed directories...
+[1/10] Building CXX object modules\hashlib\CMakeFiles\xlang_hashlib_native_package.dir\Release\hashlib_module.cpp.obj
+[2/10] Linking CXX shared library Release\modules\xlang__hashlib.x3pkg.dll
+[3/10] Building CXX object CMakeFiles\xlang3_runtime.dir\Release\src\api\c_api.cpp.obj
+[4/10] Linking CXX shared library Release\xlang3_runtime.dll

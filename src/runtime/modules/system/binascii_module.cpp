@@ -29,7 +29,7 @@ namespace xlang3 {
 
 namespace {
 
-bool binascii_bytes_arg(const Value& value, const char* name, std::string_view& out, std::string& owned, std::string& error) {
+bool binascii_bytes_arg(Runtime& runtime, const Value& value, const char* name, std::string_view& out, std::string& owned, std::string& error) {
   if (auto* bytes = value_as_bytes(value)) {
     out = bytes_object_view(*bytes);
     return true;
@@ -39,6 +39,11 @@ bool binascii_bytes_arg(const Value& value, const char* name, std::string_view& 
     return true;
   }
   if (auto* view = value_as_memoryview(value); view != nullptr && !view->released) {
+    if (!view->contiguous) {
+      error = "memoryview: underlying buffer is not C-contiguous";
+      runtime.raise_class_error("BufferError", error);
+      return false;
+    }
     out = memoryview_object_view(*view);
     return true;
   }
@@ -93,7 +98,7 @@ bool binascii_hexlify(Runtime& runtime, const Value* args, uint32_t argc, Value&
 
   std::string owned;
   std::string_view input;
-  if (!binascii_bytes_arg(args[0], "b2a_hex data", input, owned, error)) {
+  if (!binascii_bytes_arg(runtime, args[0], "b2a_hex data", input, owned, error)) {
     return false;
   }
 
@@ -103,7 +108,7 @@ bool binascii_hexlify(Runtime& runtime, const Value* args, uint32_t argc, Value&
   if (argc >= 2 && args[1].tag != ValueTag::None) {
     std::string sep_owned;
     std::string_view sep_view;
-    if (!binascii_bytes_arg(args[1], "b2a_hex sep", sep_view, sep_owned, error)) {
+    if (!binascii_bytes_arg(runtime, args[1], "b2a_hex sep", sep_view, sep_owned, error)) {
       return false;
     }
     if (sep_view.size() != 1) {
@@ -145,7 +150,7 @@ bool binascii_unhexlify(Runtime& runtime, const Value* args, uint32_t argc, Valu
   }
   std::string owned;
   std::string_view input;
-  if (!binascii_bytes_arg(args[0], "a2b_hex data", input, owned, error)) {
+  if (!binascii_bytes_arg(runtime, args[0], "a2b_hex data", input, owned, error)) {
     return false;
   }
   if ((input.size() & 1u) != 0) {
@@ -171,7 +176,7 @@ bool binascii_crc32(Runtime& runtime, const Value* args, uint32_t argc, Value& o
   }
   std::string owned;
   std::string_view input;
-  if (!binascii_bytes_arg(args[0], "crc32 data", input, owned, error)) {
+  if (!binascii_bytes_arg(runtime, args[0], "crc32 data", input, owned, error)) {
     return false;
   }
   uint32_t seed = 0;
@@ -205,7 +210,7 @@ bool binascii_b2a_base64_impl(
   }
   std::string owned;
   std::string_view input;
-  if (!binascii_bytes_arg(args[0], "b2a_base64 data", input, owned, error)) {
+  if (!binascii_bytes_arg(runtime, args[0], "b2a_base64 data", input, owned, error)) {
     return false;
   }
   if (argc >= 2) {
@@ -269,7 +274,7 @@ bool binascii_a2b_base64_impl(
   }
   std::string owned;
   std::string_view input;
-  if (!binascii_bytes_arg(args[0], "a2b_base64 data", input, owned, error)) {
+  if (!binascii_bytes_arg(runtime, args[0], "a2b_base64 data", input, owned, error)) {
     return false;
   }
   if (argc >= 2) {
@@ -358,7 +363,7 @@ bool binascii_b2a_uu(
   }
   std::string_view input;
   std::string owned;
-  if (!binascii_bytes_arg(args[0], "b2a_uu data", input, owned, error)) {
+  if (!binascii_bytes_arg(runtime, args[0], "b2a_uu data", input, owned, error)) {
     return binascii_raise(runtime, "TypeError", error, error);
   }
   if (input.size() > 45) {
@@ -394,7 +399,7 @@ bool binascii_a2b_uu(
   }
   std::string_view input;
   std::string owned;
-  if (!binascii_bytes_arg(args[0], "a2b_uu data", input, owned, error)) {
+  if (!binascii_bytes_arg(runtime, args[0], "a2b_uu data", input, owned, error)) {
     return binascii_raise(runtime, "TypeError", error, error);
   }
   if (input.empty()) {

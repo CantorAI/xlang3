@@ -100,6 +100,9 @@ shared = {'value': [1, 2, 3]}
 pair = (shared, shared)
 blob = bytes(range(256)) * 4096
 view = memoryview(blob)[1:257]
+forward_view = memoryview(b'abcdef')[::2]
+reverse_view = memoryview(b'abcdef')[::-2]
+long_view = memoryview(blob)[257:1:-2]
 mutable_blob = bytearray(b'abc')
 native = xlang_graph_native.Box()
 native.set(42, shared)
@@ -143,6 +146,8 @@ def verify(payload):
     assert cycle[0] is cycle
     assert len(blob) == 1048576 and blob[65537] == 1
     assert view == blob[1:257]
+    assert forward_view == b'ace' and reverse_view == b'fdb'
+    assert long_view == blob[257:1:-2]
     mutable_blob[0] = 90
     assert mutable_blob == bytearray(b'Zbc')
     assert math.sqrt(81) == 9

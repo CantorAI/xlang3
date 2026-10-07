@@ -2645,8 +2645,7 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
         local_error = "operation forbidden on released memoryview object";
         return false;
       }
-      bytes.assign(memoryview_object_view(*view));
-      return true;
+      return memoryview_copy_bytes(*view, bytes, local_error);
     }
     if (auto* string = value_as_string(arg)) {
       local_error = "string argument without an encoding";
@@ -2665,8 +2664,7 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
           return true;
         }
         if (auto* source = value_as_memoryview(payload)) {
-          bytes.assign(memoryview_object_view(*source));
-          return true;
+          return memoryview_copy_bytes(*source, bytes, local_error);
         }
       }
     }
@@ -3075,7 +3073,12 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
         constructor_error.set("ValueError", "operation forbidden on released PickleBuffer object");
         return false;
       }
-      if (object_get_attr(source, "__xlang3_bytes_value__", payload, ignored)) {
+      auto* source_instance = value_as_instance(source);
+      const bool native_array = instance_get_native_data(source, "array.array") != nullptr;
+      const bool have_payload = native_array && source_instance->native_get_attr != nullptr
+          ? source_instance->native_get_attr(source, "__xlang3_bytes_value__", payload, ignored)
+          : object_get_attr(source, "__xlang3_bytes_value__", payload, ignored);
+      if (have_payload) {
         const auto* bytes = value_as_bytes(payload);
         const auto* bytearray = value_as_bytearray(payload);
         const auto* payload_view = value_as_memoryview(payload);
@@ -3084,9 +3087,12 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
           return false;
         }
         if (bytes != nullptr || bytearray != nullptr || payload_view != nullptr) {
-          Value owner = source;
+          // Array operations and every derived view must export the same
+          // physical bytearray. Retain the logical array separately for .obj;
+          // leaving owner as an instance bypasses bytearray resize protection.
+          Value owner = native_array ? payload : source;
           Value exported_owner;
-          if (object_get_attr(source, "__xlang3_memoryview_owner__", exported_owner, ignored) &&
+          if (!native_array && object_get_attr(source, "__xlang3_memoryview_owner__", exported_owner, ignored) &&
               exported_owner.tag != ValueTag::None) {
             owner = std::move(exported_owner);
           }
@@ -3095,10 +3101,21 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
                   bytearray != nullptr ? bytearray->value.size() : payload_view->size,
               bytes != nullptr || (payload_view != nullptr && payload_view->readonly));
           Value format;
-          if (object_get_attr(source, "typecode", format, ignored)) {
+          const bool have_format = native_array && source_instance->native_get_attr != nullptr
+              ? source_instance->native_get_attr(source, "__xlang3_array_format__", format, ignored)
+              : object_get_attr(source, "typecode", format, ignored);
+          if (have_format) {
             if (auto* text = value_as_string(format)) {
               if (auto* result = value_as_memoryview(out)) {
                 result->format = string_object_to_string(*text);
+                if (native_array) {
+                  result->exporter = source;
+                  const size_t itemsize = memoryview_format_itemsize(result->format);
+                  if (itemsize != 0) {
+                    result->shape = {static_cast<int64_t>(result->size / itemsize)};
+                    result->strides = {static_cast<int64_t>(itemsize)};
+                  }
+                }
               }
             }
           }

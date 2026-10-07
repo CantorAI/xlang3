@@ -441,10 +441,13 @@ X3Status x3_value_bytes_data(X3Runtime* runtime, X3Value value, const void** dat
     return X3_STATUS_OK;
   }
   if (auto* view = xlang3::value_as_memoryview(internal)) {
-    if (view->released) {
-      return fail(rt, "memoryview is released");
-    }
-    const auto storage = xlang3::memoryview_object_view(*view);
+      if (view->released) {
+        return fail(rt, "memoryview is released");
+      }
+      if (!view->contiguous) {
+        return fail(rt, "memoryview: underlying buffer is not C-contiguous");
+      }
+      const auto storage = xlang3::memoryview_object_view(*view);
     if (storage.data()) {
       *data = storage.data();
       *size = static_cast<uint64_t>(storage.size());

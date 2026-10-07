@@ -1,0 +1,26 @@
+{
+  "status": "uncommitted_candidate",
+  "source_base_commit": "f2e76b14ce705ba596f3675990a0549aa03e919a",
+  "run_path": "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+  "exe_sha256": "4FAE0E95CCCDA038A14EC2DB6E3CD8437FA8B7F0BED0F47E3B0039FF252915C0",
+  "dll_sha256": "E53211110538BEA6C2DA116C05B70019B59A1D3BA9067C8024051F0BE47394AF",
+  "fixture_exit_code": 0,
+  "cpp_sdk_exit_code": 0,
+  "cpp_sdk_tests": 8,
+  "focused_buffer_cases_passed": 8,
+  "fixed_regression_gate": "not_yet_run_for_this_candidate",
+  "official_scimark": "not_yet_run",
+  "remaining_issue": "Generic stepped memoryview slicing creates readonly copies with wrong exporter identity; positive and negative strides fail both preserved control and candidate.",
+  "scalar_probe_only": true,
+  "scalar_reads": 256,
+  "array_lengths": [
+    256,
+    4096,
+    65536
+  ],
+  "candidate_medians_ms": [
+    0.10240002302452922,
+    0.10269999620504677,
+    0.09960000170394778
+  ]
+}

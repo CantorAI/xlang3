@@ -278,7 +278,9 @@ bool value_to_match_text(const Value& value, std::string& out, bool& is_bytes) {
     return true;
   }
   if (auto* view = value_as_memoryview(value)) {
+    if (view->released || !view->contiguous) return false;
     const auto bytes = memoryview_object_view(*view);
+    if (bytes.data() == nullptr) return false;
     out.assign(bytes.data(), bytes.size());
     is_bytes = true;
     return true;

@@ -1,0 +1,29 @@
+{
+  "status": "finished",
+  "started_utc": "2026-10-07T11:19:24.989793+00:00",
+  "sha256_start": {
+    "exe": "72F50BADAC38DCDD8E2FBD9DA5DF7958AA65D0E7E996CDF2586E9B8A35E1D603",
+    "dll": "2D2D4813D3FF4771E1AD4D0CEBBA7109DC5879F2F1C4102384B32D8A4C2EE4A4"
+  },
+  "runtime_executable": "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+  "source_base_commit": "f2e76b14ce705ba596f3675990a0549aa03e919a",
+  "source_change": "Uncommitted shared native array storage, slices/tolist, strided memoryviews, and slice overflow correction",
+  "manager_executable": "C:\\Python\\Python314\\python.exe",
+  "manager_version": "3.14.7",
+  "stdlib": "C:\\Python\\Python314\\Lib",
+  "mode": "fast",
+  "case_timeout_seconds": 300,
+  "benchmarks": "scimark",
+  "definition_count": 1,
+  "expected_subtests": 5,
+  "timing_probe_enabled": false,
+  "dependency_site": "venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages",
+  "control_reference": "pyperformance-xlang3-native-string-checkpoint-full-fast-20261007.log (scimark TypeError)",
+  "cpython_reference": "pyperformance-cpython314-clean-release-full-fast-20261002.json",
+  "completed_utc": "2026-10-07T11:23:26.090676+00:00",
+  "exit_code": 0,
+  "sha256_end": {
+    "exe": "72F50BADAC38DCDD8E2FBD9DA5DF7958AA65D0E7E996CDF2586E9B8A35E1D603",
+    "dll": "2D2D4813D3FF4771E1AD4D0CEBBA7109DC5879F2F1C4102384B32D8A4C2EE4A4"
+  }
+}

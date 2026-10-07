@@ -1484,21 +1484,16 @@ bool append_bytes_from_value(std::string& target, const Value& value, std::strin
     return true;
   }
   if (auto* view = value_as_memoryview(value)) {
-    if (view->contiguous) {
-      const std::string_view raw = memoryview_object_view(*view);
-      if (raw.empty()) return true;
-      if (raw.data() != nullptr) {
-        target.append(raw.data(), raw.size());
+    if (!view->released && view->contiguous) {
+      const auto raw = memoryview_object_view(*view);
+      if (raw.data() != nullptr || view->size == 0) {
+        if (!raw.empty()) target.append(raw.data(), raw.size());
         return true;
       }
     }
-    for (size_t i = 0; i < view->size; ++i) {
-      Value item;
-      if (!sequence_get_item(value, Value::int64(static_cast<int64_t>(i)), item, error)) {
-        return false;
-      }
-      target.push_back(static_cast<char>(item.as.i64));
-    }
+    std::string packed;
+    if (!memoryview_copy_bytes(*view, packed, error)) return false;
+    target.append(packed);
     return true;
   }
   error = "expected a bytes-like object";
@@ -1843,7 +1838,7 @@ bool memoryview_tolist_method(Runtime& runtime, const Value* args, uint32_t argc
     return false;
   }
   const size_t itemsize = memoryview_format_itemsize(view->format);
-  if (itemsize == 0 || itemsize > view->size || (view->size % itemsize) != 0) {
+  if (itemsize == 0 || (view->size % itemsize) != 0) {
     error = "unsupported memoryview format";
     return false;
   }
@@ -2058,6 +2053,10 @@ bool memoryview_cast_method(Runtime& runtime, const Value* args, uint32_t argc, 
     error = "operation forbidden on released memoryview object";
     runtime.raise_class_error("ValueError", error);
     return false;
+  }
+  if (!view->contiguous) {
+    error = "memoryview: casts are restricted to C-contiguous views";
+    runtime.raise_class_error("TypeError", error); return false;
   }
   std::string format;
   if (!get_string_arg(args[1], "memoryview.cast format", format, error)) {

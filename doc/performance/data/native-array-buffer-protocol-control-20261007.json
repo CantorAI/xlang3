@@ -1,0 +1,52 @@
+{
+  "diagnostic_only": true,
+  "timing": false,
+  "records": [
+    {
+      "check": "scalar_index_coercion",
+      "ok": true
+    },
+    {
+      "check": "slice_independent_storage",
+      "ok": false,
+      "error": "TypeError",
+      "detail": "object cannot be interpreted as an integer"
+    },
+    {
+      "check": "slice_assignment_overlap_resize",
+      "ok": false,
+      "error": "TypeError",
+      "detail": "object cannot be interpreted as an integer"
+    },
+    {
+      "check": "memoryview_element_metadata",
+      "ok": false,
+      "error": "AssertionError",
+      "detail": ""
+    },
+    {
+      "check": "memoryview_two_way_write",
+      "ok": false,
+      "error": "AssertionError",
+      "detail": ""
+    },
+    {
+      "check": "exported_resize_transaction",
+      "ok": false,
+      "error": "AssertionError",
+      "detail": "exported array was resized"
+    },
+    {
+      "check": "derived_view_release_order",
+      "ok": false,
+      "error": "AssertionError",
+      "detail": "exported array was resized"
+    },
+    {
+      "check": "tolist",
+      "ok": false,
+      "error": "AttributeError",
+      "detail": "'array' object has no attribute 'tolist'"
+    }
+  ]
+}

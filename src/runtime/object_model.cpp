@@ -3586,7 +3586,8 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       return true;
     }
     if (name == "obj") {
-      value_assign_fast(out, view->owner);
+      const bool array_exporter = instance_get_native_data(view->exporter, "array.array") != nullptr;
+      value_assign_fast(out, array_exporter ? view->exporter : view->owner);
       return true;
     }
     if (name == "c_contiguous" || name == "f_contiguous" || name == "contiguous") {

@@ -230,9 +230,18 @@ private:
       node.kind = Kind::ByteArray; node.payload = std::string_view(bytes->value.data(), bytes->value.size());
     } else if (auto* view = value_as_memoryview(value)) {
       IO::require(!view->released, "cannot serialize a released memoryview");
+      node.kind = Kind::Bytes;
+      if (!view->contiguous) {
+        std::string error;
+        const bool copied = memoryview_copy_bytes(*view, node.owned_payload, error);
+        IO::require(copied, error.c_str());
+        // Nodes move while the graph grows. Keep packed bytes owned here and
+        // form their view only when writing, including small-string storage.
+        return;
+      }
       const auto storage = memoryview_object_view(*view);
       IO::require(storage.data() != nullptr, "invalid memoryview bounds");
-      node.kind = Kind::Bytes; node.payload = storage;
+      node.payload = storage;
     } else if (auto* list = value_as_list(value)) {
       node.kind = Kind::List; node.refs = list->items;
     } else if (auto* tuple = value_as_tuple(value)) {

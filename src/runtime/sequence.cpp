@@ -195,6 +195,18 @@ size_t normalized_slice_length(int64_t start, int64_t stop, int64_t step) {
   return static_cast<size_t>(distance / step_magnitude + 1);
 }
 
+template <typename Callback>
+void for_slice_indices(int64_t start, int64_t stop, int64_t step, Callback callback) {
+  // A final i += step can overflow even when the slice contains one item.
+  // Count first and advance only when another valid index remains. This keeps
+  // huge-step list/tuple/binary oracles correct and never probes outside storage.
+  int64_t index = start;
+  for (size_t remaining = normalized_slice_length(start, stop, step); remaining != 0; --remaining) {
+    callback(index);
+    if (remaining > 1) index += step;
+  }
+}
+
 bool slice_part_to_i64(const Value& value, int64_t& out, bool& is_none, std::string& error) {
   is_none = value.tag == ValueTag::None;
   if (is_none) {
@@ -289,8 +301,8 @@ BinaryStorageView binary_storage(const Value& value) {
     if (view->released) {
       return {};
     }
-    const auto storage = memoryview_object_view(*view);
-    return BinaryStorageView{storage.data(), storage.size(), memoryview_object_writable_data(*view) == nullptr};
+    const auto storage = memoryview_owner_view(*view);
+    return BinaryStorageView{storage.data(), storage.size(), memoryview_owner_writable_data(*view) == nullptr};
   }
   return {};
 }
@@ -315,7 +327,7 @@ bool memoryview_byte_offset(
     error = "memoryview: invalid slice key";
     return false;
   }
-  byte_offset = 0;
+  byte_offset = view.offset;
   for (size_t dimension = 0; dimension < ndim; ++dimension) {
     const Value& component = tuple == nullptr ? index : tuple->items[dimension];
     int64_t raw_index = 0;
@@ -331,10 +343,9 @@ bool memoryview_byte_offset(
       error = "index out of bounds on dimension " + std::to_string(dimension + 1);
       return false;
     }
-    // Stepped slices are represented by a compact readonly snapshot while
-    // retaining the source stride as public metadata.
-    const bool compact_snapshot = !view.contiguous && value_as_bytes(view.owner) != nullptr;
-    const int64_t stride = compact_snapshot || view.strides.empty()
+    // Offsets are relative to the physical owner, including a negative stride.
+    // Never reinterpret a strided export as compact snapshot storage.
+    const int64_t stride = view.strides.empty()
         ? static_cast<int64_t>(itemsize)
         : view.strides[dimension];
     byte_offset += static_cast<size_t>(resolved) * static_cast<size_t>(stride);
@@ -349,7 +360,8 @@ bool memoryview_decode_scalar(
     Value& out,
     std::string& error) {
   const size_t itemsize = memoryview_format_itemsize(view.format);
-  if (byte_offset > view.size || itemsize > view.size - byte_offset) {
+  const auto owner_size = memoryview_owner_view(view).size();
+  if (byte_offset > owner_size || itemsize > owner_size - byte_offset) {
     error = "memoryview index out of range";
     return false;
   }
@@ -397,7 +409,8 @@ bool memoryview_encode_scalar(
     size_t byte_offset,
     std::string& error) {
   const size_t itemsize = memoryview_format_itemsize(view.format);
-  if (byte_offset > view.size || itemsize > view.size - byte_offset) {
+  const auto owner_size = memoryview_owner_view(view).size();
+  if (byte_offset > owner_size || itemsize > owner_size - byte_offset) {
     error = "memoryview index out of range";
     return false;
   }
@@ -477,15 +490,9 @@ bool struct_sequence_storage(const Value& value, Value& out) {
 
 std::string binary_slice_text(std::string_view storage, int64_t start, int64_t stop, int64_t step) {
   std::string text;
-  if (step > 0) {
-    for (int64_t i = start; i < stop; i += step) {
-      text.push_back(storage[static_cast<size_t>(i)]);
-    }
-  } else {
-    for (int64_t i = start; i > stop; i += step) {
-      text.push_back(storage[static_cast<size_t>(i)]);
-    }
-  }
+  for_slice_indices(start, stop, step, [&](int64_t i) {
+    text.push_back(storage[static_cast<size_t>(i)]);
+  });
   return text;
 }
 
@@ -1168,15 +1175,9 @@ bool sequence_get_item(
       // The slice length is known after normalization. Reserve once so a
       // short reverse slice does not grow its backing vector geometrically.
       items.reserve(normalized_slice_length(start, stop, step));
-      if (step > 0) {
-        for (int64_t i = start; i < stop; i += step) {
-          items.push_back(list->items[static_cast<size_t>(i)]);
-        }
-      } else {
-        for (int64_t i = start; i > stop; i += step) {
-          items.push_back(list->items[static_cast<size_t>(i)]);
-        }
-      }
+      for_slice_indices(start, stop, step, [&](int64_t i) {
+        items.push_back(list->items[static_cast<size_t>(i)]);
+      });
       out = Value::list(std::move(items));
       return true;
     }
@@ -1220,15 +1221,9 @@ bool sequence_get_item(
       }
       std::vector<Value> items;
       items.reserve(normalized_slice_length(start, stop, step));
-      if (step > 0) {
-        for (int64_t i = start; i < stop; i += step) {
-          items.push_back(tuple->items[static_cast<size_t>(i)]);
-        }
-      } else {
-        for (int64_t i = start; i > stop; i += step) {
-          items.push_back(tuple->items[static_cast<size_t>(i)]);
-        }
-      }
+      for_slice_indices(start, stop, step, [&](int64_t i) {
+        items.push_back(tuple->items[static_cast<size_t>(i)]);
+      });
       out = Value::tuple(std::move(items));
       return true;
     }
@@ -1337,31 +1332,29 @@ bool sequence_get_item(
       if (!normalize_slice(*slice, logical_size, start, stop, step, error)) {
         return false;
       }
-      if (object.as.obj->kind == ObjectKind::MemoryView && step == 1) {
-        const auto selected_items = stop >= start ? static_cast<size_t>(stop - start) : 0;
-        out = Value::memoryview(
-            object,
-            static_cast<size_t>(start) * itemsize,
-            selected_items * itemsize,
-            storage.readonly);
+      if (memory_view != nullptr) {
+        const size_t selected_items = normalized_slice_length(start, stop, step);
+        const size_t source_offset = memory_view->offset;
+        const int64_t source_stride = memory_view->strides.empty()
+            ? static_cast<int64_t>(itemsize) : memory_view->strides[0];
+        const std::string format = memory_view->format;
+        const bool source_contiguous = memory_view->contiguous;
+        const bool readonly = memory_view->readonly;
+        // Flattening retains both the physical buffer and logical exporter,
+        // and takes an independent export for every derived view. Size remains
+        // logical nbytes; offset/strides describe owner coordinates.
+        out = Value::memoryview(object, 0, selected_items * itemsize, readonly);
         auto* sliced = value_as_memoryview(out);
-        sliced->format = memory_view->format;
+        sliced->offset = selected_items == 0 ? source_offset
+            : source_offset + static_cast<size_t>(start) * static_cast<size_t>(source_stride);
+        sliced->format = format;
         sliced->shape = {static_cast<int64_t>(selected_items)};
-        sliced->strides = {static_cast<int64_t>(itemsize)};
-      } else if (object.as.obj->kind == ObjectKind::MemoryView) {
-        std::string text;
-        for (int64_t item_index = start;
-             step > 0 ? item_index < stop : item_index > stop;
-             item_index += step) {
-          text.append(storage_view.substr(static_cast<size_t>(item_index) * itemsize, itemsize));
-        }
-        const size_t selected_size = text.size();
-        out = Value::memoryview(Value::bytes(std::move(text)), 0, selected_size, true);
-        auto* sliced = value_as_memoryview(out);
-        sliced->format = memory_view->format;
-        sliced->shape = {static_cast<int64_t>(selected_size / itemsize)};
-        sliced->strides = {static_cast<int64_t>(itemsize * static_cast<size_t>(std::llabs(step)))};
-        sliced->contiguous = false;
+        const uint64_t stride_bits = static_cast<uint64_t>(source_stride) * static_cast<uint64_t>(step);
+        int64_t selected_stride = 0;
+        std::memcpy(&selected_stride, &stride_bits, sizeof(selected_stride));
+        sliced->strides = {selected_stride};
+        sliced->contiguous = selected_items <= 1 ||
+            (source_contiguous && selected_stride == static_cast<int64_t>(itemsize));
       } else {
         auto text = binary_slice_text(storage_view, start, stop, step);
         out = object.as.obj->kind == ObjectKind::ByteArray ? Value::bytearray(std::move(text)) : Value::bytes(std::move(text));
@@ -1485,15 +1478,9 @@ bool sequence_set_item(Value& object, const Value& index, const Value& item, std
         return true;
       }
       std::vector<size_t> indexes;
-      if (step > 0) {
-        for (int64_t i = start; i < stop; i += step) {
-          indexes.push_back(static_cast<size_t>(i));
-        }
-      } else {
-        for (int64_t i = start; i > stop; i += step) {
-          indexes.push_back(static_cast<size_t>(i));
-        }
-      }
+      for_slice_indices(start, stop, step, [&](int64_t i) {
+        indexes.push_back(static_cast<size_t>(i));
+      });
       if (indexes.size() != replacement_items->size()) {
         error = "attempt to assign sequence of size " + std::to_string(replacement_items->size()) +
                 " to extended slice of size " + std::to_string(indexes.size());
@@ -1561,15 +1548,9 @@ bool sequence_set_item(Value& object, const Value& index, const Value& item, std
         return true;
       }
       std::vector<size_t> indexes;
-      if (step > 0) {
-        for (int64_t i = start; i < stop; i += step) {
-          indexes.push_back(static_cast<size_t>(i));
-        }
-      } else {
-        for (int64_t i = start; i > stop; i += step) {
-          indexes.push_back(static_cast<size_t>(i));
-        }
-      }
+      for_slice_indices(start, stop, step, [&](int64_t i) {
+        indexes.push_back(static_cast<size_t>(i));
+      });
       if (indexes.size() != replacement.size()) {
         error = "attempt to assign bytes of size " + std::to_string(replacement.size()) +
                 " to extended slice of size " + std::to_string(indexes.size());
@@ -1606,40 +1587,44 @@ bool sequence_set_item(Value& object, const Value& index, const Value& item, std
       error = "cannot modify read-only memory";
       return false;
     }
-    char* storage = memoryview_object_writable_data(*view);
+    char* storage = memoryview_owner_writable_data(*view);
     if (storage == nullptr) {
       error = "memoryview owner is not writable";
       return false;
     }
     if (auto* slice = value_as_slice(index)) {
-      int64_t start = 0;
-      int64_t stop = 0;
-      int64_t step = 1;
-      if (!normalize_slice(*slice, static_cast<int64_t>(view->size), start, stop, step, error)) {
-        return false;
-      }
+      if (view->shape.size() > 1) { error = "multi-dimensional slicing is not implemented"; return false; }
+      const size_t itemsize = memoryview_format_itemsize(view->format);
+      if (itemsize == 0) { error = "unsupported memoryview format"; return false; }
+      int64_t start = 0, stop = 0, step = 1;
+      if (!normalize_slice(*slice, static_cast<int64_t>(memoryview_item_count(*view)), start, stop, step, error)) return false;
+      const size_t count = normalized_slice_length(start, stop, step);
       std::string replacement;
-      if (!collect_byte_replacement(item, replacement, error)) {
-        return false;
-      }
-      std::vector<size_t> indexes;
-      if (step > 0) {
-        for (int64_t i = start; i < stop; i += step) {
-          indexes.push_back(static_cast<size_t>(i));
+      if (auto* rhs = value_as_memoryview(item)) {
+        if (rhs->format != view->format || rhs->shape.size() > 1) {
+          error = "memoryview assignment: lvalue and rvalue have different structures"; return false;
         }
+        if (!memoryview_copy_bytes(*rhs, replacement, error)) return false;
       } else {
-        for (int64_t i = start; i > stop; i += step) {
-          indexes.push_back(static_cast<size_t>(i));
+        if (view->format != "B" || !collect_byte_replacement(item, replacement, error)) {
+          error = "memoryview assignment: lvalue and rvalue have different structures"; return false;
         }
       }
-      if (indexes.size() != replacement.size()) {
-        error = "memoryview assignment requires same-sized bytes-like object";
-        return false;
+      if (replacement.size() != count * itemsize) {
+        error = "memoryview assignment: lvalue and rvalue have different structures"; return false;
       }
-      for (size_t i = 0; i < indexes.size(); ++i) {
-        storage[indexes[i]] = replacement[i];
-      }
-      return true;
+      size_t input_offset = 0;
+      bool valid = true;
+      for_slice_indices(start, stop, step, [&](int64_t logical) {
+        if (!valid) return;
+        size_t physical = 0;
+        if (!memoryview_byte_offset(*view, Value::int64(logical), physical, error)) { valid = false; return; }
+        const size_t owner_size = memoryview_owner_view(*view).size();
+        if (physical > owner_size || itemsize > owner_size - physical) { error = "memoryview index out of range"; valid = false; return; }
+        std::memcpy(storage + physical, replacement.data() + input_offset, itemsize);
+        input_offset += itemsize;
+      });
+      return valid;
     }
     size_t byte_offset = 0;
     if (!memoryview_byte_offset(*view, index, byte_offset, error)) return false;
@@ -1667,15 +1652,9 @@ bool sequence_delete_item(Value& object, const Value& index, std::string& error)
         return true;
       }
       std::vector<size_t> indexes;
-      if (step > 0) {
-        for (int64_t i = start; i < stop; i += step) {
-          indexes.push_back(static_cast<size_t>(i));
-        }
-      } else {
-        for (int64_t i = start; i > stop; i += step) {
-          indexes.push_back(static_cast<size_t>(i));
-        }
-      }
+      for_slice_indices(start, stop, step, [&](int64_t i) {
+        indexes.push_back(static_cast<size_t>(i));
+      });
       std::sort(indexes.begin(), indexes.end(), [](size_t lhs, size_t rhs) { return lhs > rhs; });
       for (const auto index_to_delete : indexes) {
         list->items.erase(list->items.begin() + static_cast<std::ptrdiff_t>(index_to_delete));
@@ -1728,15 +1707,9 @@ bool sequence_delete_item(Value& object, const Value& index, std::string& error)
         return true;
       }
       std::vector<size_t> indexes;
-      if (step > 0) {
-        for (int64_t i = start; i < stop; i += step) {
-          indexes.push_back(static_cast<size_t>(i));
-        }
-      } else {
-        for (int64_t i = start; i > stop; i += step) {
-          indexes.push_back(static_cast<size_t>(i));
-        }
-      }
+      for_slice_indices(start, stop, step, [&](int64_t i) {
+        indexes.push_back(static_cast<size_t>(i));
+      });
       std::sort(indexes.begin(), indexes.end(), [](size_t lhs, size_t rhs) { return lhs > rhs; });
       if (!indexes.empty() && bytearray->buffer_exports) {
         error = "Existing exports of data: object cannot be re-sized";

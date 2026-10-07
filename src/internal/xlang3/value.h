@@ -649,6 +649,12 @@ struct MemoryViewObject {
 
 void frame_materialize_locals(FrameObject& frame);
 
+// Owner span is physical storage; object_view is only a C-contiguous buffer.
+// Strided element access uses owner coordinates, while byte conversion packs
+// logical elements explicitly instead of detaching a readonly snapshot.
+std::string_view memoryview_owner_view(const MemoryViewObject& view);
+char* memoryview_owner_writable_data(const MemoryViewObject& view);
+bool memoryview_copy_bytes(const MemoryViewObject& view, std::string& out, std::string& error);
 std::string_view memoryview_object_view(const MemoryViewObject& view);
 char* memoryview_object_writable_data(const MemoryViewObject& view);
 
@@ -667,16 +673,21 @@ XLANG3_HOT_INLINE size_t memoryview_format_itemsize(std::string_view format) {
       return 2;
     case 'I':
     case 'i':
+    case 'f':
+    case 'w':
+      return 4;
     case 'L':
     case 'l':
-    case 'f':
-      return 4;
+      return sizeof(long);
+    case 'u':
+      return sizeof(wchar_t);
     case 'Q':
     case 'q':
     case 'd':
+      return 8;
     case 'N':
     case 'n':
-      return 8;
+      return sizeof(void*);
     default:
       return 0;
   }

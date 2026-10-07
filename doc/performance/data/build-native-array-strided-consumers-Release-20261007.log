@@ -1,0 +1,17 @@
+ninja: Entering directory `build-repro\main-verify-20261006'
+[0/2] Re-checking globbed directories...
+[1/16] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\sha2_module.cpp.obj
+[2/16] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\binascii_module.cpp.obj
+[3/16] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\marshal_module.cpp.obj
+[4/16] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\overlapped_module.cpp.obj
+[5/16] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\socket_select_module.cpp.obj
+[6/16] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\sre_module.cpp.obj
+[7/16] Building CXX object CMakeFiles\xlang3_runtime.dir\Release\src\runtime\value.cpp.obj
+[8/16] Linking CXX static library Release\xlang3_system_runtime.lib
+[9/16] Building CXX object CMakeFiles\xlang3_sdk_stream_call_tests.dir\Release\tests\cpp\sdk_stream_call_tests.cpp.obj
+[10/16] Linking CXX shared library Release\xlang3_runtime.dll
+[11/16] Linking CXX executable Release\xlang3_sdk_stream_call_tests.exe
+[12/16] Linking CXX executable Release\xlang3_graph_process_tests.exe
+[13/16] Linking CXX executable Release\xlang3_runtime_value_tests.exe
+[14/16] Linking CXX executable Release\xlang3_interpreter_tests.exe
+[15/16] Linking CXX executable Release\xlang3.exe

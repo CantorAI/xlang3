@@ -173,7 +173,7 @@ bool overlapped_bytes_view(const Value& value, std::string_view& out) {
   }
   if (auto* view = value_as_memoryview(value)) {
     out = memoryview_object_view(*view);
-    return !view->released;
+    return !view->released && view->contiguous && out.data() != nullptr;
   }
   return false;
 }

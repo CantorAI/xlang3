@@ -171,6 +171,22 @@ int main(int argc, char** argv) {
       derived = X::Value();
       require(lifetime.expired(), "native memoryview owner leaked");
     }
+    auto strided = module["strided_views"]();
+    for (int index = 0; index < 2; ++index) {
+      auto view = strided[index];
+      X3Buffer* buffer = nullptr;
+      X3BufferInfo info{};
+      require(x3_buffer_acquire(runtime.get(), view.raw(), 0, &buffer, &info) == X3_STATUS_ERROR &&
+          buffer == nullptr, "contiguous buffer ABI accepted a strided view");
+      X::Stream encoded(runtime);
+      X::Value decoded;
+      require(view.ToBytes(encoded) && encoded.Rewind() && decoded.FromBytes(encoded),
+          "strided memoryview serialization failed");
+      uint64_t length = 0;
+      const auto* data = static_cast<const char*>(decoded.BytesData(&length));
+      require(data && length == 3 && std::memcmp(data, index == 0 ? "ace" : "fdb", 3) == 0,
+          "strided memoryview serialization lost logical byte order");
+    }
     int cleanups = 0;
     auto invalid_view = x3_value_memoryview(runtime.get(), nullptr, 1, 0, &cleanups,
         [](void* context) { ++*static_cast<int*>(context); });

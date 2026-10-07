@@ -159,6 +159,13 @@ bool XLangStream::MarshalToBytesImpl(const Value& value, const std::string& call
           error = "cannot marshal released memoryview";
           return false;
         }
+        if (!view->contiguous) {
+          std::string packed;
+          if (!memoryview_copy_bytes(*view, packed, error)) return false;
+          // The wire stores logical bytes, not gaps in the exporter's storage.
+          (*this) << IpcWireValueKind::Bytes << std::string_view(packed);
+          return true;
+        }
         const auto storage = memoryview_object_view(*view);
         if (storage.data()) {
           kind = IpcWireValueKind::Bytes;

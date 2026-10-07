@@ -107,6 +107,13 @@ bool bytes_data(PackageState* state, X3Runtime* runtime, X3Value value,
   return true;
 }
 
+X3Status bytes_error(PackageState* state, X3CallContext* call, X3Runtime* runtime) {
+  const char* error = state->host->runtime_last_error(runtime);
+  if (error && std::string_view(error) == "memoryview: underlying buffer is not C-contiguous")
+    return state->host->raise_class_error(call, "BufferError", error);
+  return state->host->raise_class_error(call, "TypeError", "object supporting the buffer API required");
+}
+
 bool string_data(PackageState* state, X3Runtime* runtime, X3Value value,
                  std::string* output) {
   const char* text = nullptr;
@@ -185,7 +192,7 @@ X3Status make_hash(PackageState* state, X3CallContext* call, X3Runtime* runtime,
     const unsigned char* data = nullptr;
     size_t size = 0;
     if (!bytes_data(state, runtime, initial, &data, &size))
-      return state->host->raise_class_error(call, "TypeError", "object supporting the buffer API required");
+      return bytes_error(state, call, runtime);
     if (size && EVP_DigestUpdate(native->context, data, size) != 1)
       return openssl_error(state, call, "cannot update hash");
   }
@@ -245,7 +252,7 @@ X3Status hash_update(X3CallContext* call, X3Runtime* runtime, void* user_data,
   const unsigned char* data = nullptr;
   size_t size = 0;
   if (!bytes_data(state, runtime, args[1], &data, &size))
-    return state->host->raise_class_error(call, "TypeError", "object supporting the buffer API required");
+    return bytes_error(state, call, runtime);
   if (size && EVP_DigestUpdate(native->context, data, size) != 1)
     return openssl_error(state, call, "cannot update hash");
   *result = x3_value_none();

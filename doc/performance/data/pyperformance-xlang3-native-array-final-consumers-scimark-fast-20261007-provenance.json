@@ -1,0 +1,30 @@
+{
+  "status": "finished",
+  "started_utc": "2026-10-07T11:34:52.4580492Z",
+  "sha256_start": {
+    "exe": "DC18F94D37AA662BB4F1BEF4284C79373E784781D74FFFE22205937CC5CB82CF",
+    "dll": "B3A5CF5A93AFAFBD2B462F9EDF71DB5C5AE258B2D626A8964D772B4487A23553",
+    "hashlib": "5910F087E300459B854DCA0046AC61125287E7D62BF330A3D626631D9A74B239"
+  },
+  "runtime_executable": "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+  "source_base_commit": "f2e76b14ce705ba596f3675990a0549aa03e919a",
+  "source_change": "Uncommitted shared array storage, native slices/tolist, shared strided views, logical-byte serialization and guarded native buffer consumers",
+  "manager_executable": "C:\\Python\\Python314\\python.exe",
+  "manager_version": "3.14.7",
+  "stdlib": "C:\\Python\\Python314\\Lib",
+  "mode": "fast",
+  "case_timeout_seconds": 300,
+  "benchmarks": "scimark",
+  "definition_count": 1,
+  "expected_subtests": 5,
+  "timing_probe_enabled": false,
+  "dependency_site": "venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages",
+  "cpython_reference": "pyperformance-cpython314-clean-release-full-fast-20261002.json",
+  "completed_utc": "2026-10-07T11:38:51.2072158Z",
+  "exit_code": 0,
+  "sha256_end": {
+    "exe": "DC18F94D37AA662BB4F1BEF4284C79373E784781D74FFFE22205937CC5CB82CF",
+    "dll": "B3A5CF5A93AFAFBD2B462F9EDF71DB5C5AE258B2D626A8964D772B4487A23553",
+    "hashlib": "5910F087E300459B854DCA0046AC61125287E7D62BF330A3D626631D9A74B239"
+  }
+}
