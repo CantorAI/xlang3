@@ -28,7 +28,9 @@ limitations under the License.
 #include <cstdlib>
 #include <deque>
 #include <string>
+#include <stdexcept>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 namespace xlang3 {
@@ -38,6 +40,7 @@ namespace {
 struct AstState {
   Runtime* runtime = nullptr;
   Value ast_base;
+  Value load_singleton;
   std::unordered_map<std::string, Value> classes;
   // Views refer to immutable keys in classes; unordered-map rehash preserves
   // their addresses. Retained class Values also prevent identity reuse while
@@ -74,36 +77,116 @@ std::vector<std::string> fields_for(const Value& node) {
   return fields;
 }
 
+bool ast_constructor_error(Runtime& runtime, const char* type,
+                           std::string message, std::string& error) {
+  error = std::move(message);
+  runtime.raise_class_error(type, error);
+  return false;
+}
+
+bool ast_constructor_warning(Runtime& runtime, const std::string& message, std::string& error) {
+  const Value* category = runtime.find_builtin("DeprecationWarning");
+  return category != nullptr && runtime_warn(runtime, Value::string(message), *category, 2, error);
+}
+
+bool ast_constructor_fields(Runtime& runtime, const Value& klass, const char* name,
+                            std::vector<std::string>& out, std::string& error) {
+  Value fields;
+  if (!runtime_getattr(runtime, klass, Value::string(name), fields, error)) return false;
+  const auto append_fields = [&](const auto& items) {
+    for (const auto& item : items) {
+      auto* text = value_as_string(item);
+      if (text == nullptr) return ast_constructor_error(
+          runtime, "TypeError", "AST field names must be strings", error);
+      out.push_back(string_object_to_string(*text));
+    }
+    return true;
+  };
+  if (auto* tuple = value_as_tuple(fields)) return append_fields(tuple->items);
+  if (auto* list = value_as_list(fields)) return append_fields(list->items);
+  return ast_constructor_error(runtime, "TypeError", "AST field names must be a sequence", error);
+}
+
 bool ast_node_init_kw(
-    Runtime&,
+    Runtime& runtime,
     const Value* args,
     uint32_t argc,
     const NativeKeywordArg* kwargs,
     uint32_t kwargc,
     Value& out,
     std::string& error,
-    void*) {
+    void* user_data) {
   if (argc < 1) {
     error = "AST.__init__() missing self";
     return false;
   }
   Value& self = const_cast<Value&>(args[0]);
-  auto fields = fields_for(self);
+  auto* instance = value_as_instance(self);
+  auto* klass = instance == nullptr ? nullptr : value_as_class(instance->klass);
+  if (klass == nullptr) return ast_constructor_error(runtime, "TypeError", "AST constructor requires an AST instance", error);
+  std::vector<std::string> fields;
+  if (!ast_constructor_fields(runtime, instance->klass, "_fields", fields, error)) return false;
+  std::unordered_set<std::string> remaining(fields.begin(), fields.end());
   if (argc - 1 > fields.size()) {
-    error = "AST constructor got too many positional arguments";
-    return false;
+    return ast_constructor_error(runtime, "TypeError", "AST constructor got too many positional arguments", error);
   }
   for (uint32_t i = 1; i < argc; ++i) {
-    if (!object_set_attr(self, fields[i - 1], args[i], error)) {
+    if (!runtime_setattr(runtime, self, Value::string(fields[i - 1]), args[i], error)) {
       return false;
     }
+    remaining.erase(fields[i - 1]);
   }
+  std::vector<std::string> attributes;
+  bool loaded_attributes = false;
   for (uint32_t i = 0; i < kwargc; ++i) {
     if (kwargs[i].name == nullptr || kwargs[i].value == nullptr) {
       continue;
     }
-    if (!object_set_attr(self, kwargs[i].name, *kwargs[i].value, error)) {
+    const std::string name(kwargs[i].name);
+    if (std::find(fields.begin(), fields.end(), name) != fields.end()) {
+      if (remaining.erase(name) == 0) return ast_constructor_error(
+          runtime, "TypeError", klass->name + " got multiple values for argument '" + name + "'", error);
+    } else {
+      if (!loaded_attributes) {
+        if (!ast_constructor_fields(runtime, instance->klass, "_attributes", attributes, error)) return false;
+        loaded_attributes = true;
+      }
+      if (std::find(attributes.begin(), attributes.end(), name) == attributes.end() &&
+          !ast_constructor_warning(runtime, klass->name + ".__init__ got an unexpected keyword argument '" + name +
+              "'. Support for arbitrary keyword arguments is deprecated and will be removed in Python 3.15.", error)) return false;
+    }
+    if (!runtime_setattr(runtime, self, Value::string(name), *kwargs[i].value, error)) {
       return false;
+    }
+  }
+  if (!remaining.empty()) {
+    const Value absent = Value::invalid();
+    Value types;
+    if (!runtime_getattr(runtime, instance->klass, Value::string("_field_types"), types, error, &absent)) return false;
+    if (types.tag != ValueTag::Invalid) {
+      if (value_as_dict(types) == nullptr) return ast_constructor_error(
+          runtime, "SystemError", "bad argument to internal function", error);
+      auto* state = static_cast<AstState*>(user_data);
+      for (const auto& name : fields) {
+        if (remaining.erase(name) == 0) continue;
+        Value type;
+        if (!mapping_get_string_item(types, name, type, error)) {
+          error.clear();
+          if (!ast_constructor_warning(runtime, "Field '" + name + "' is missing from " + klass->name +
+              "._field_types. This will become an error in Python 3.15.", error)) return false;
+          continue;
+        }
+        auto* alias = value_as_generic_alias(type);
+        if (alias != nullptr && alias->is_union) continue;  // Optional defaults live on the class.
+        if (alias != nullptr) {
+          // Lists belong to each constructor invocation. Sharing a class-level
+          // empty list would leak mutations between unrelated AST nodes.
+          if (!runtime_setattr(runtime, self, Value::string(name), Value::list({}), error)) return false;
+        } else if (value_is(type, state->classes.at("expr_context"))) {
+          if (!runtime_setattr(runtime, self, Value::string(name), state->load_singleton, error)) return false;
+        } else if (!ast_constructor_warning(runtime, klass->name + ".__init__ missing 1 required positional argument: '" +
+                       name + "'. This will become an error in Python 3.15.", error)) return false;
+      }
     }
   }
   value_set_none(out);
@@ -114,7 +197,7 @@ bool ast_node_init(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
   return ast_node_init_kw(runtime, args, argc, nullptr, 0, out, error, user_data);
 }
 
-Value ast_class(Runtime& runtime, const char* name, const Value& base, std::initializer_list<const char*> fields = {}) {
+Value ast_class(Runtime& runtime, const char* name, const Value& base, std::initializer_list<const char*> fields = {}, AstState* state = nullptr) {
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.push_back({"_fields", Value::tuple(field_tuple(fields))});
   const std::string_view class_name(name);
@@ -122,13 +205,14 @@ Value ast_class(Runtime& runtime, const char* name, const Value& base, std::init
       class_name == "pattern" || class_name == "type_param") {
     attrs.push_back({"_attributes", Value::tuple(field_tuple(
         {"lineno", "col_offset", "end_lineno", "end_col_offset"}))});
+    attrs.push_back({"end_lineno", Value::none()});
+    attrs.push_back({"end_col_offset", Value::none()});
   } else if (class_name == "AST") {
     attrs.push_back({"_attributes", Value::tuple({})});
   }
-  attrs.push_back({"_field_types", Value::dict({})});
   attrs.push_back({"__match_args__", Value::tuple(field_tuple(fields))});
   if (std::string(name) == "AST") {
-    attrs.push_back({"__init__", runtime.make_native_function("_ast.AST.__init__", ast_node_init, nullptr, nullptr, nullptr, false, ast_node_init_kw)});
+    attrs.push_back({"__init__", runtime.make_native_function("_ast.AST.__init__", ast_node_init, state, nullptr, nullptr, false, ast_node_init_kw)});
   }
   return Value::class_object(name, std::move(attrs), base);
 }
@@ -2351,9 +2435,75 @@ std::string_view native_ast_node_kind(const Value& node, bool class_value, void*
   return {};
 }
 
+struct NativeAstFieldSchema {
+  const char* name;
+  const char* fields;  // nullptr means the native abstract base has no schema.
+};
+#include "ast_field_schema.inc"
+
+Value ast_schema_type(Runtime& runtime, AstState* state, std::string_view text) {
+  if (text.size() > 6 && text.substr(0, 5) == "list[" && text.back() == ']') {
+    const Value* list = runtime.find_builtin("list");
+    return Value::generic_alias(*list, Value::tuple({ast_schema_type(runtime, state, text.substr(5, text.size() - 6))}));
+  }
+  if (text.find('|') != std::string_view::npos) {
+    std::vector<Value> members;
+    while (!text.empty()) {
+      const auto delimiter = text.find('|');
+      members.push_back(ast_schema_type(runtime, state, text.substr(0, delimiter)));
+      if (delimiter == std::string_view::npos) break;
+      text.remove_prefix(delimiter + 1);
+    }
+    return Value::union_type(std::move(members));
+  }
+  if (text == "NoneType") {
+    Value none_type;
+    runtime_type_of_value(runtime, Value::none(), none_type);
+    return none_type;
+  }
+  auto native_class = state->classes.find(std::string(text));
+  if (native_class != state->classes.end()) return native_class->second;
+  const Value* builtin = runtime.find_builtin(std::string(text));
+  if (builtin != nullptr) return *builtin;
+  throw std::logic_error("unresolved native AST field type: " + std::string(text));
+}
+
+void install_ast_field_schemas(Runtime& runtime, AstState* state) {
+  // Parse this generated native API metadata only at module initialization.
+  // Constructors read ordinary mutable _field_types, preserving user subclass
+  // overrides without rescanning ASDL or interpreting a schema on each node.
+  std::string error;
+  for (const auto& schema : kNativeAstFieldSchemas) {
+    Value klass = node_class(state, schema.name);
+    if (klass.tag == ValueTag::Invalid) throw std::logic_error("missing native AST class");
+    object_set_attr(klass, "__module__", Value::string("ast"), error);
+    if (schema.fields == nullptr) continue;
+    Value types = Value::dict({});
+    std::string_view fields(schema.fields);
+    while (!fields.empty()) {
+      const auto delimiter = fields.find(';');
+      const auto field = fields.substr(0, delimiter);
+      const auto equals = field.find('=');
+      const std::string name(field.substr(0, equals));
+      Value type = ast_schema_type(runtime, state, field.substr(equals + 1));
+      mapping_set_item(types, Value::string(name), type, error);
+      if (auto* alias = value_as_generic_alias(type); alias != nullptr && alias->is_union) {
+        object_set_attr(klass, name, Value::none(), error);
+      }
+      if (delimiter == std::string_view::npos) break;
+      fields.remove_prefix(delimiter + 1);
+    }
+    object_set_attr(klass, "_field_types", types, error);
+    object_set_attr(klass, "__annotations__", types, error);
+  }
+  // CPython constructors reuse Load; a per-node allocation here would add an
+  // avoidable cost to every Name/Attribute/Subscript constructed from Python.
+  state->load_singleton = Value::instance(node_class(state, "Load"));
+}
+
 void fill_ast_module(Runtime& runtime, NativeModuleBuilder& builder, AstState* state) {
   Value object_base = runtime.find_builtin("object") != nullptr ? *runtime.find_builtin("object") : Value::invalid();
-  state->ast_base = ast_class(runtime, "AST", object_base);
+  state->ast_base = ast_class(runtime, "AST", object_base, {}, state);
   Value mod = ast_class(runtime, "mod", state->ast_base);
   Value stmt = ast_class(runtime, "stmt", state->ast_base);
   Value expr = ast_class(runtime, "expr", state->ast_base);
@@ -2503,6 +2653,9 @@ void fill_ast_module(Runtime& runtime, NativeModuleBuilder& builder, AstState* s
   add_class(builder, state, "TypeVar", ast_class(runtime, "TypeVar", type_param, {"name", "bound", "default_value"}));
   add_class(builder, state, "ParamSpec", ast_class(runtime, "ParamSpec", type_param, {"name", "default_value"}));
   add_class(builder, state, "TypeVarTuple", ast_class(runtime, "TypeVarTuple", type_param, {"name", "default_value"}));
+  add_class(builder, state, "TemplateStr", ast_class(runtime, "TemplateStr", expr, {"values"}));
+  add_class(builder, state, "Interpolation", ast_class(runtime, "Interpolation", expr, {"value", "str", "conversion", "format_spec"}));
+  install_ast_field_schemas(runtime, state);
 
   builder.value("PyCF_ONLY_AST", Value::int64(0x0400))
       .value("PyCF_TYPE_COMMENTS", Value::int64(0x1000))
@@ -2524,12 +2677,24 @@ void register_ast_module(Runtime& runtime) {
   runtime.register_native_package_cleanup(private_state, [](void* data) {
     auto* state = static_cast<AstState*>(data);
     state->runtime->register_native_ast_kind_lookup(nullptr, nullptr);
+    // Release the instance while its class registry and callback state still
+    // exist; a user-added Load finalizer may re-enter native AST helpers.
+    value_set_none(state->load_singleton);
     delete state;
   });
   NativeModuleBuilder private_builder(runtime, "_ast");
   fill_ast_module(runtime, private_builder, private_state);
   runtime.register_native_ast_kind_lookup(native_ast_node_kind, private_state);
-  runtime.register_module("_ast", private_builder.finish());
+  Value private_module = private_builder.finish();
+  // Public __module__ is "ast", but these classes are owned by native _ast.
+  // Give generic cycle discovery the actual owner instead of rescanning each
+  // canonical class's metadata as a local graph on every gc.collect(). The
+  // collector still verifies that the owner holds the class; rebinding remains
+  // observable, and Runtime teardown clears module slots before this state.
+  for (const auto& entry : private_state->classes) {
+    value_assign_fast(value_as_class(entry.second)->globals_module, private_module);
+  }
+  runtime.register_module("_ast", std::move(private_module));
 }
 
 } // namespace xlang3

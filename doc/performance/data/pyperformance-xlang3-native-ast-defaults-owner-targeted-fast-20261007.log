@@ -1,0 +1,79 @@
+Benchmark dependency sites: D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages
+Python benchmark suite 1.14.0
+
+
+==================================================
+( 1/2) creating venv for benchmark (chameleon)
+
+(trying common venv first)
+
+==================================================
+( 2/2) creating venv for benchmark (gc_traversal)
+
+(trying common venv first)
+
+[1/2] chameleon...
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\data-files\benchmarks\bm_chameleon\run_benchmark.py", line 35, in <module>
+    main()
+    ~~~~^^
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\data-files\benchmarks\bm_chameleon\run_benchmark.py", line 25, in main
+    tmpl = PageTemplate(BIGTABLE_ZPT)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\zpt\template.py", line 249, in __init__
+    super().__init__(body, **config)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\template.py", line 175, in __init__
+    self.write(body)
+    ~~~~~~~~~~^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\template.py", line 293, in write
+    self.cook(body)
+    ~~~~~~~~~^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\template.py", line 211, in cook
+    program = self._cook(body, digest, names)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\template.py", line 314, in _cook
+    cooked = self.loader.build(source, filename)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\loader.py", line 157, in build
+    code = compile(source, filename, 'exec')
+  File "8da52eb831b9517ac41ba39a578398b6.py", line 3
+    __tokens = {112: (python: options['table'], 3, 20), 157: (python: row.values(), 4, 18), 200: (python: c + 1, 5, 20), 237: (python: 'column-' + str(d), 6, 22), 278: (python: d, 7, 13)}
+                            ^
+SyntaxError: line 3, column 25: expected ')' after expression
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\run.py", line 171, in run_benchmarks
+    result = bench.run(
+        bench_venv.python,
+    ...<3 lines>...
+        verbose=options.verbose,
+    )
+  File "D:\CantorAI\xlang3\benchmarks\diagnostics\run_pyperformance_xlang3_shimmed.py", line 157, in run_named_benchmark
+    return original_benchmark_run(benchmark, *positional, **keywords)
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 193, in run
+    bench = _run_perf_script(
+        python,
+    ...<4 lines>...
+        verbose=verbose,
+    )
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 250, in _run_perf_script
+    raise RuntimeError("Benchmark died")
+RuntimeError: Benchmark died
+ERROR: Benchmark chameleon failed: Benchmark died
+[2/2] gc_traversal...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+gc_traversal: Mean +- std dev: 778 us +- 29 us
+
+Performance version: 1.14.0
+
+### gc_traversal ###
+Mean +- std dev: 778 us +- 29 us
+
+1 benchmarks failed:
+- chameleon (Benchmark died)
+

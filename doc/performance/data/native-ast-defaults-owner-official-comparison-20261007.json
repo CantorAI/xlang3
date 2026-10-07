@@ -1,0 +1,27 @@
+{
+  "benchmark": "gc_traversal",
+  "means": {
+    "cpython3147_saved": {
+      "seconds": 0.002332445936917793,
+      "measurements": 20
+    },
+    "frozen_previous_full_suite": {
+      "seconds": 0.001350902617707561,
+      "measurements": 20
+    },
+    "native_ast_owner_candidate": {
+      "seconds": 0.0007775858789159429,
+      "measurements": 20
+    }
+  },
+  "speedup_vs_cpython3147": 2.99959914417367,
+  "speedup_vs_frozen_previous_full_suite": 1.7373034340475644,
+  "scope": "Nominal fast-mode means; cross-checkpoint comparison does not isolate owner repair; not a full-suite result",
+  "inputs_sha256": {
+    "pyperformance-cpython314-clean-release-full-fast-20261002.json": "0543fa675730f019f2c9b54c18d07ae7777d2edc15e9eed60d98a3179e949dc5",
+    "pyperformance-xlang3-subscription-dispatch-full-fast-20261007.json": "97ad62500717aec8f5c20372de4ef02af53fa70a922298a5c85bd1a874201a16",
+    "pyperformance-xlang3-native-ast-defaults-owner-targeted-fast-20261007.json": "01c21eec4caeff009cdacc60192339bc27e6e3d0c1343ba64897ab743fc9a5d5",
+    "pyperformance-xlang3-native-ast-defaults-owner-targeted-fast-20261007-provenance.json": "4557a9ffeb0e9877b20f6e45f485f29525550b831c499fff13fd2193b3fcfe67"
+  },
+  "cpython_provenance_limits": "cpython3147-saved-reference-provenance-audit-20261007.json"
+}

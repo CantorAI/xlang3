@@ -1,0 +1,12 @@
+local_slots              pass         1.003x
+scalar_arithmetic        pass         1.005x
+range_for                pass         1.002x
+function_calls           pass         0.982x
+class_construct          pass         0.988x
+list_append              pass         0.998x
+property_access          pass         0.921x
+deepcopy_memo            pass         0.859x
+json_dumps               pass         1.003x
+gc_traversal             pass         0.740x
+subparsers               pass         0.942x
+Performance check: pass. Report: doc\performance\data\release-native-ast-defaults-owner-fixed-gate-20261007.json

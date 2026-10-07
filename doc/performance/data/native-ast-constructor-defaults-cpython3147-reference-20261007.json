@@ -1,0 +1,7 @@
+{
+  "version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+  "exit_code": 0,
+  "stdout_matches_expected": true,
+  "source_sha256": "4395bdfdd6e9d914e8af428b6ee454705f44a246116cd9bacebe1fd831c5c8c2",
+  "expected_sha256": "d8684cded21e53b70e782a63fcddd6dc206255f1c94c8496b3318827a528f05d"
+}

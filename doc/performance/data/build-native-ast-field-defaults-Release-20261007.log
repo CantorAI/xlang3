@@ -1,0 +1,29 @@
+ninja: Entering directory `build-repro\main-verify-20261006'
+[0/2] Re-checking globbed directories...
+[1/95] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\ast_module.cpp.obj
+FAILED: [code=2] CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/ast_module.cpp.obj 
+C:\PROGRA~1\MICROS~1\18\COMMUN~1\VC\Tools\MSVC\1451~1.362\bin\Hostx64\x64\cl.exe  /nologo /TP -DXLANG3_MULTIARCH=\"\" -DCMAKE_INTDIR=\"Release\" -ID:\CantorAI\xlang3\sdk -ID:\CantorAI\xlang3\src -ID:\CantorAI\xlang3\src\internal -ID:\CantorAI\xlang3\src\runtime\modules\thread -ID:\CantorAI\xlang3\src\runtime\modules\task -ID:\CantorAI\xlang3\src\runtime\modules\system -ID:\CantorAI\xlang3\modules\ctypes -ID:\CantorAI\xlang3\third_party\nlohmann_json -ID:\CantorAI\xlang3\build-repro\main-verify-20261006\third_party\zlib -ID:\CantorAI\xlang3\third_party\zlib -ID:\CantorAI\xlang3\third_party\bzip2 /DWIN32 /D_WINDOWS /EHsc /O2 /Ob3 /DNDEBUG -std:c++17 -MD /GL /MP /showIncludes /FoCMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\ast_module.cpp.obj /FdCMakeFiles\xlang3_system_runtime.dir\Release\xlang3_system_runtime.pdb /FS -c D:\CantorAI\xlang3\src\runtime\modules\system\ast_module.cpp
+D:\CantorAI\xlang3\src\runtime\modules\system\ast_module.cpp(97): error C2440: '=': cannot convert from 'xlang3::TupleItems *' to 'const std::vector<xlang3::Value,std::allocator<xlang3::Value>> *'
+D:\CantorAI\xlang3\src\runtime\modules\system\ast_module.cpp(97): note: Types pointed to are unrelated; conversion requires reinterpret_cast, C-style cast or parenthesized function-style cast
+[2/95] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\binascii_module.cpp.obj
+[3/95] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\locale_module.cpp.obj
+[4/95] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\bisect_module.cpp.obj
+[5/95] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\cmath_module.cpp.obj
+[6/95] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\asyncio_task.cpp.obj
+[7/95] Building CXX object CMakeFiles\xlang3_task_runtime.dir\Release\src\runtime\modules\task\task_module.cpp.obj
+[8/95] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\decimal_module.cpp.obj
+[9/95] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\atexit_module.cpp.obj
+[10/95] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\abc_module.cpp.obj
+[11/95] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\contextvars_module.cpp.obj
+[12/95] Building CXX object CMakeFiles\xlang3_thread_runtime.dir\Release\src\runtime\modules\thread\thread_module.cpp.obj
+[13/95] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\csv_module.cpp.obj
+[14/95] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\faulthandler_module.cpp.obj
+[15/95] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\errno_module.cpp.obj
+[16/95] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\asyncio_module.cpp.obj
+[17/95] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\collections_module.cpp.obj
+[18/95] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\asyncio_future.cpp.obj
+[19/95] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\ctypes_module.cpp.obj
+[20/95] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\bz2_module.cpp.obj
+[21/95] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\codecs_module.cpp.obj
+[22/95] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\multibytecodec_module.cpp.obj
+ninja: build stopped: subcommand failed.

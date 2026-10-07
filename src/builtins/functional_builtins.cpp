@@ -5641,6 +5641,19 @@ bool builtin_template_literal(
 
 } // namespace
 
+bool runtime_getattr(Runtime& runtime, const Value& object, const Value& name,
+                     Value& out, std::string& error, const Value* default_value) {
+  const Value args[] = {object, name, default_value == nullptr ? Value::none() : *default_value};
+  return builtin_getattr(runtime, args, default_value == nullptr ? 2 : 3, out, error, nullptr);
+}
+
+bool runtime_setattr(Runtime& runtime, const Value& object, const Value& name,
+                     const Value& value, std::string& error) {
+  const Value args[] = {object, name, value};
+  Value ignored;
+  return builtin_setattr(runtime, args, 3, ignored, error, nullptr);
+}
+
 void register_functional_builtins(Runtime& runtime) {
   if (const auto* string_type = runtime.find_builtin("str")) {
     runtime.register_builtin("__xlang3_fstring_str__", *string_type);

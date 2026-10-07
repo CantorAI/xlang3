@@ -24,6 +24,14 @@ bool close_overlapped_iocp_port(int64_t handle);
 void register_core_builtins(Runtime& runtime);
 void register_object_type_builtins(Runtime& runtime);
 bool runtime_type_of_value(Runtime& runtime, const Value& value, Value& out);
+// Native helpers use intrinsic attribute semantics (including Python hooks),
+// without looking up a user-rebound builtin or emitting a synthetic c_call.
+bool runtime_getattr(Runtime& runtime, const Value& object, const Value& name,
+                     Value& out, std::string& error, const Value* default_value = nullptr);
+bool runtime_setattr(Runtime& runtime, const Value& object, const Value& name,
+                     const Value& value, std::string& error);
+bool runtime_warn(Runtime& runtime, const Value& message, const Value& category,
+                  int64_t stacklevel, std::string& error);
 void register_exception_builtins(Runtime& runtime);
 void register_functional_builtins(Runtime& runtime);
 void register_io_builtins(Runtime& runtime);
