@@ -1,0 +1,2146 @@
+Benchmark dependency sites: D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages
+Full-case timeout overrides: networkx*=600s
+Python benchmark suite 1.14.0
+
+
+==================================================
+( 1/97) creating venv for benchmark (2to3)
+
+(trying common venv first)
+
+==================================================
+( 2/97) creating venv for benchmark (argparse)
+
+(trying common venv first)
+
+==================================================
+( 3/97) creating venv for benchmark (argparse_subparsers)
+
+(trying common venv first)
+
+==================================================
+( 4/97) creating venv for benchmark (async_generators)
+
+(trying common venv first)
+
+==================================================
+( 5/97) creating venv for benchmark (async_tree)
+
+(trying common venv first)
+
+==================================================
+( 6/97) creating venv for benchmark (async_tree_cpu_io_mixed)
+
+(trying common venv first)
+
+==================================================
+( 7/97) creating venv for benchmark (async_tree_cpu_io_mixed_tg)
+
+(trying common venv first)
+
+==================================================
+( 8/97) creating venv for benchmark (async_tree_eager)
+
+(trying common venv first)
+
+==================================================
+( 9/97) creating venv for benchmark (async_tree_eager_cpu_io_mixed)
+
+(trying common venv first)
+
+==================================================
+(10/97) creating venv for benchmark (async_tree_eager_cpu_io_mixed_tg)
+
+(trying common venv first)
+
+==================================================
+(11/97) creating venv for benchmark (async_tree_eager_io)
+
+(trying common venv first)
+
+==================================================
+(12/97) creating venv for benchmark (async_tree_eager_io_tg)
+
+(trying common venv first)
+
+==================================================
+(13/97) creating venv for benchmark (async_tree_eager_memoization)
+
+(trying common venv first)
+
+==================================================
+(14/97) creating venv for benchmark (async_tree_eager_memoization_tg)
+
+(trying common venv first)
+
+==================================================
+(15/97) creating venv for benchmark (async_tree_eager_tg)
+
+(trying common venv first)
+
+==================================================
+(16/97) creating venv for benchmark (async_tree_io)
+
+(trying common venv first)
+
+==================================================
+(17/97) creating venv for benchmark (async_tree_io_tg)
+
+(trying common venv first)
+
+==================================================
+(18/97) creating venv for benchmark (async_tree_memoization)
+
+(trying common venv first)
+
+==================================================
+(19/97) creating venv for benchmark (async_tree_memoization_tg)
+
+(trying common venv first)
+
+==================================================
+(20/97) creating venv for benchmark (async_tree_tg)
+
+(trying common venv first)
+
+==================================================
+(21/97) creating venv for benchmark (asyncio_tcp)
+
+(trying common venv first)
+
+==================================================
+(22/97) creating venv for benchmark (asyncio_tcp_ssl)
+
+(trying common venv first)
+
+==================================================
+(23/97) creating venv for benchmark (asyncio_websockets)
+
+(trying common venv first)
+
+==================================================
+(24/97) creating venv for benchmark (base64)
+
+(trying common venv first)
+
+==================================================
+(25/97) creating venv for benchmark (bpe_tokeniser)
+
+(trying common venv first)
+
+==================================================
+(26/97) creating venv for benchmark (chameleon)
+
+(trying common venv first)
+
+==================================================
+(27/97) creating venv for benchmark (chaos)
+
+(trying common venv first)
+
+==================================================
+(28/97) creating venv for benchmark (comprehensions)
+
+(trying common venv first)
+
+==================================================
+(29/97) creating venv for benchmark (concurrent_imap)
+
+(trying common venv first)
+
+==================================================
+(30/97) creating venv for benchmark (coroutines)
+
+(trying common venv first)
+
+==================================================
+(31/97) creating venv for benchmark (coverage)
+
+(trying common venv first)
+
+==================================================
+(32/97) creating venv for benchmark (crypto_pyaes)
+
+(trying common venv first)
+
+==================================================
+(33/97) creating venv for benchmark (dask)
+
+(trying common venv first)
+
+==================================================
+(34/97) creating venv for benchmark (deepcopy)
+
+(trying common venv first)
+
+==================================================
+(35/97) creating venv for benchmark (deltablue)
+
+(trying common venv first)
+
+==================================================
+(36/97) creating venv for benchmark (django_template)
+
+(trying common venv first)
+
+==================================================
+(37/97) creating venv for benchmark (docutils)
+
+(trying common venv first)
+
+==================================================
+(38/97) creating venv for benchmark (dulwich_log)
+
+(trying common venv first)
+
+==================================================
+(39/97) creating venv for benchmark (fannkuch)
+
+(trying common venv first)
+
+==================================================
+(40/97) creating venv for benchmark (fastapi)
+
+(trying common venv first)
+
+==================================================
+(41/97) creating venv for benchmark (float)
+
+(trying common venv first)
+
+==================================================
+(42/97) creating venv for benchmark (gc_collect)
+
+(trying common venv first)
+
+==================================================
+(43/97) creating venv for benchmark (gc_traversal)
+
+(trying common venv first)
+
+==================================================
+(44/97) creating venv for benchmark (generators)
+
+(trying common venv first)
+
+==================================================
+(45/97) creating venv for benchmark (genshi)
+
+(trying common venv first)
+
+==================================================
+(46/97) creating venv for benchmark (go)
+
+(trying common venv first)
+
+==================================================
+(47/97) creating venv for benchmark (hexiom)
+
+(trying common venv first)
+
+==================================================
+(48/97) creating venv for benchmark (html5lib)
+
+(trying common venv first)
+
+==================================================
+(49/97) creating venv for benchmark (json_dumps)
+
+(trying common venv first)
+
+==================================================
+(50/97) creating venv for benchmark (json_loads)
+
+(trying common venv first)
+
+==================================================
+(51/97) creating venv for benchmark (logging)
+
+(trying common venv first)
+
+==================================================
+(52/97) creating venv for benchmark (mako)
+
+(trying common venv first)
+
+==================================================
+(53/97) creating venv for benchmark (mdp)
+
+(trying common venv first)
+
+==================================================
+(54/97) creating venv for benchmark (meteor_contest)
+
+(trying common venv first)
+
+==================================================
+(55/97) creating venv for benchmark (nbody)
+
+(trying common venv first)
+
+==================================================
+(56/97) creating venv for benchmark (networkx)
+
+(trying common venv first)
+
+==================================================
+(57/97) creating venv for benchmark (networkx_connected_components)
+
+(trying common venv first)
+
+==================================================
+(58/97) creating venv for benchmark (networkx_k_core)
+
+(trying common venv first)
+
+==================================================
+(59/97) creating venv for benchmark (nqueens)
+
+(trying common venv first)
+
+==================================================
+(60/97) creating venv for benchmark (pathlib)
+
+(trying common venv first)
+
+==================================================
+(61/97) creating venv for benchmark (pickle)
+
+(trying common venv first)
+
+==================================================
+(62/97) creating venv for benchmark (pickle_dict)
+
+(trying common venv first)
+
+==================================================
+(63/97) creating venv for benchmark (pickle_list)
+
+(trying common venv first)
+
+==================================================
+(64/97) creating venv for benchmark (pickle_pure_python)
+
+(trying common venv first)
+
+==================================================
+(65/97) creating venv for benchmark (pidigits)
+
+(trying common venv first)
+
+==================================================
+(66/97) creating venv for benchmark (pprint)
+
+(trying common venv first)
+
+==================================================
+(67/97) creating venv for benchmark (pyflate)
+
+(trying common venv first)
+
+==================================================
+(68/97) creating venv for benchmark (python_startup)
+
+(trying common venv first)
+
+==================================================
+(69/97) creating venv for benchmark (python_startup_no_site)
+
+(trying common venv first)
+
+==================================================
+(70/97) creating venv for benchmark (raytrace)
+
+(trying common venv first)
+
+==================================================
+(71/97) creating venv for benchmark (regex_compile)
+
+(trying common venv first)
+
+==================================================
+(72/97) creating venv for benchmark (regex_dna)
+
+(trying common venv first)
+
+==================================================
+(73/97) creating venv for benchmark (regex_effbot)
+
+(trying common venv first)
+
+==================================================
+(74/97) creating venv for benchmark (regex_v8)
+
+(trying common venv first)
+
+==================================================
+(75/97) creating venv for benchmark (richards)
+
+(trying common venv first)
+
+==================================================
+(76/97) creating venv for benchmark (richards_super)
+
+(trying common venv first)
+
+==================================================
+(77/97) creating venv for benchmark (scimark)
+
+(trying common venv first)
+
+==================================================
+(78/97) creating venv for benchmark (spectral_norm)
+
+(trying common venv first)
+
+==================================================
+(79/97) creating venv for benchmark (sphinx)
+
+(trying common venv first)
+
+==================================================
+(80/97) creating venv for benchmark (sqlalchemy_declarative)
+
+(trying common venv first)
+
+==================================================
+(81/97) creating venv for benchmark (sqlalchemy_imperative)
+
+(trying common venv first)
+
+==================================================
+(82/97) creating venv for benchmark (sqlglot_v2)
+
+(trying common venv first)
+
+==================================================
+(83/97) creating venv for benchmark (sqlglot_v2_optimize)
+
+(trying common venv first)
+
+==================================================
+(84/97) creating venv for benchmark (sqlglot_v2_parse)
+
+(trying common venv first)
+
+==================================================
+(85/97) creating venv for benchmark (sqlglot_v2_transpile)
+
+(trying common venv first)
+
+==================================================
+(86/97) creating venv for benchmark (sqlite_synth)
+
+(trying common venv first)
+
+==================================================
+(87/97) creating venv for benchmark (sympy)
+
+(trying common venv first)
+
+==================================================
+(88/97) creating venv for benchmark (telco)
+
+(trying common venv first)
+
+==================================================
+(89/97) creating venv for benchmark (tomli_loads)
+
+(trying common venv first)
+
+==================================================
+(90/97) creating venv for benchmark (tornado_http)
+
+(trying common venv first)
+
+==================================================
+(91/97) creating venv for benchmark (typing_runtime_protocols)
+
+(trying common venv first)
+
+==================================================
+(92/97) creating venv for benchmark (unpack_sequence)
+
+(trying common venv first)
+
+==================================================
+(93/97) creating venv for benchmark (unpickle)
+
+(trying common venv first)
+
+==================================================
+(94/97) creating venv for benchmark (unpickle_list)
+
+(trying common venv first)
+
+==================================================
+(95/97) creating venv for benchmark (unpickle_pure_python)
+
+(trying common venv first)
+
+==================================================
+(96/97) creating venv for benchmark (xdsl)
+
+(trying common venv first)
+
+==================================================
+(97/97) creating venv for benchmark (xml_etree)
+
+(trying common venv first)
+
+[ 1/97] 2to3...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+2to3: Mean +- std dev: 333 ms +- 7 ms
+[ 2/97] argparse...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+many_optionals: Mean +- std dev: 704 us +- 19 us
+[ 3/97] argparse_subparsers...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+subparsers: Mean +- std dev: 8.19 ms +- 0.21 ms
+[ 4/97] async_generators...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+async_generators: Mean +- std dev: 301 ms +- 6 ms
+[ 5/97] async_tree...
+...........
+async_tree_none: Mean +- std dev: 237 ms +- 10 ms
+[ 6/97] async_tree_cpu_io_mixed...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+async_tree_cpu_io_mixed: Mean +- std dev: 453 ms +- 10 ms
+[ 7/97] async_tree_cpu_io_mixed_tg...
+...........
+async_tree_cpu_io_mixed_tg: Mean +- std dev: 451 ms +- 7 ms
+[ 8/97] async_tree_eager...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+async_tree_eager: Mean +- std dev: 91.8 ms +- 1.9 ms
+[ 9/97] async_tree_eager_cpu_io_mixed...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+async_tree_eager_cpu_io_mixed: Mean +- std dev: 358 ms +- 10 ms
+[10/97] async_tree_eager_cpu_io_mixed_tg...
+...........
+async_tree_eager_cpu_io_mixed_tg: Mean +- std dev: 415 ms +- 13 ms
+[11/97] async_tree_eager_io...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+async_tree_eager_io: Mean +- std dev: 592 ms +- 13 ms
+[12/97] async_tree_eager_io_tg...
+...........
+async_tree_eager_io_tg: Mean +- std dev: 594 ms +- 16 ms
+[13/97] async_tree_eager_memoization...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+async_tree_eager_memoization: Mean +- std dev: 200 ms +- 7 ms
+[14/97] async_tree_eager_memoization_tg...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+async_tree_eager_memoization_tg: Mean +- std dev: 281 ms +- 11 ms
+[15/97] async_tree_eager_tg...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+async_tree_eager_tg: Mean +- std dev: 211 ms +- 10 ms
+[16/97] async_tree_io...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+async_tree_io: Mean +- std dev: 586 ms +- 14 ms
+[17/97] async_tree_io_tg...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+async_tree_io_tg: Mean +- std dev: 581 ms +- 14 ms
+[18/97] async_tree_memoization...
+...........
+async_tree_memoization: Mean +- std dev: 301 ms +- 6 ms
+[19/97] async_tree_memoization_tg...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+async_tree_memoization_tg: Mean +- std dev: 295 ms +- 6 ms
+[20/97] async_tree_tg...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+async_tree_none_tg: Mean +- std dev: 250 ms +- 8 ms
+[21/97] asyncio_tcp...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+asyncio_tcp: Mean +- std dev: 657 ms +- 21 ms
+[22/97] asyncio_tcp_ssl...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+asyncio_tcp_ssl: Mean +- std dev: 1.75 sec +- 0.03 sec
+[23/97] asyncio_websockets...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+asyncio_websockets: Mean +- std dev: 195 ms +- 8 ms
+[24/97] base64...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+base64_small: Mean +- std dev: 291 us +- 3 us
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+base64_large: Mean +- std dev: 8.39 ms +- 0.11 ms
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+urlsafe_base64_small: Mean +- std dev: 446 us +- 7 us
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+base32_small: Mean +- std dev: 8.13 ms +- 0.12 ms
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+base32_large: Mean +- std dev: 421 ms +- 8 ms
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+base16_small: Mean +- std dev: 317 us +- 5 us
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+base16_large: Mean +- std dev: 6.60 ms +- 0.10 ms
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+ascii85_small: Mean +- std dev: 17.8 ms +- 0.4 ms
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+ascii85_large: Mean +- std dev: 919 ms +- 14 ms
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+base85_small: Mean +- std dev: 5.79 ms +- 0.12 ms
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+base85_large: Mean +- std dev: 314 ms +- 6 ms
+[25/97] bpe_tokeniser...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+bpe_tokeniser: Mean +- std dev: 3.87 sec +- 0.07 sec
+[26/97] chameleon...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+chameleon: Mean +- std dev: 12.6 ms +- 0.3 ms
+[27/97] chaos...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+chaos: Mean +- std dev: 50.3 ms +- 1.7 ms
+[28/97] comprehensions...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+comprehensions: Mean +- std dev: 14.9 us +- 0.6 us
+[29/97] concurrent_imap...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+bench_mp_pool: Mean +- std dev: 147 ms +- 4 ms
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+bench_thread_pool: Mean +- std dev: 1.03 ms +- 0.02 ms
+[30/97] coroutines...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+coroutines: Mean +- std dev: 18.4 ms +- 0.4 ms
+[31/97] coverage...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+coverage: Mean +- std dev: 73.6 ms +- 2.7 ms
+[32/97] crypto_pyaes...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+crypto_pyaes: Mean +- std dev: 63.5 ms +- 0.8 ms
+[33/97] dask...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+dask: Mean +- std dev: 818 ms +- 39 ms
+[34/97] deepcopy...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+deepcopy: Mean +- std dev: 233 us +- 5 us
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+deepcopy_reduce: Mean +- std dev: 2.40 us +- 0.07 us
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+deepcopy_memo: Mean +- std dev: 23.9 us +- 1.2 us
+[35/97] deltablue...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+deltablue: Mean +- std dev: 2.79 ms +- 0.04 ms
+[36/97] django_template...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+django_template: Mean +- std dev: 32.4 ms +- 0.5 ms
+[37/97] docutils...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+docutils: Mean +- std dev: 2.01 sec +- 0.05 sec
+[38/97] dulwich_log...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+dulwich_log: Mean +- std dev: 58.1 ms +- 2.3 ms
+[39/97] fannkuch...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+fannkuch: Mean +- std dev: 323 ms +- 10 ms
+[40/97] fastapi...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+fastapi_http: Mean +- std dev: 418 ms +- 12 ms
+[41/97] float...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+float: Mean +- std dev: 59.2 ms +- 1.0 ms
+[42/97] gc_collect...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+create_gc_cycles: Mean +- std dev: 1.60 ms +- 0.04 ms
+[43/97] gc_traversal...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+gc_traversal: Mean +- std dev: 2.34 ms +- 0.07 ms
+[44/97] generators...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+generators: Mean +- std dev: 27.4 ms +- 1.3 ms
+[45/97] genshi...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+genshi_text: Mean +- std dev: 20.3 ms +- 0.7 ms
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+genshi_xml: Mean +- std dev: 46.6 ms +- 1.0 ms
+[46/97] go...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+go: Mean +- std dev: 104 ms +- 3 ms
+[47/97] hexiom...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+hexiom: Mean +- std dev: 5.57 ms +- 0.09 ms
+[48/97] html5lib...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+html5lib: Mean +- std dev: 47.3 ms +- 0.6 ms
+[49/97] json_dumps...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+json_dumps: Mean +- std dev: 8.32 ms +- 0.23 ms
+[50/97] json_loads...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+json_loads: Mean +- std dev: 19.4 us +- 0.8 us
+[51/97] logging...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+logging_format: Mean +- std dev: 7.87 us +- 0.23 us
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+logging_silent: Mean +- std dev: 69.9 ns +- 2.0 ns
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+logging_simple: Mean +- std dev: 7.48 us +- 0.11 us
+[52/97] mako...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+mako: Mean +- std dev: 8.30 ms +- 0.24 ms
+[53/97] mdp...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+mdp: Mean +- std dev: 1.04 sec +- 0.03 sec
+[54/97] meteor_contest...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+meteor_contest: Mean +- std dev: 98.0 ms +- 2.6 ms
+[55/97] nbody...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+nbody: Mean +- std dev: 84.8 ms +- 1.8 ms
+[56/97] networkx...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+shortest_path: Mean +- std dev: 433 ms +- 17 ms
+[57/97] networkx_connected_components...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+connected_components: Mean +- std dev: 382 ms +- 8 ms
+[58/97] networkx_k_core...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+k_core: Mean +- std dev: 2.15 sec +- 0.09 sec
+[59/97] nqueens...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+nqueens: Mean +- std dev: 83.5 ms +- 1.7 ms
+[60/97] pathlib...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+pathlib: Mean +- std dev: 46.0 ms +- 1.2 ms
+[61/97] pickle...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+pickle: Mean +- std dev: 10.3 us +- 0.3 us
+[62/97] pickle_dict...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+pickle_dict: Mean +- std dev: 26.4 us +- 1.0 us
+[63/97] pickle_list...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+pickle_list: Mean +- std dev: 4.41 us +- 0.10 us
+[64/97] pickle_pure_python...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+pickle_pure_python: Mean +- std dev: 279 us +- 8 us
+[65/97] pidigits...
+...........
+pidigits: Mean +- std dev: 175 ms +- 2 ms
+[66/97] pprint...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+pprint_safe_repr: Mean +- std dev: 631 ms +- 15 ms
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+pprint_pformat: Mean +- std dev: 1.30 sec +- 0.03 sec
+[67/97] pyflate...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+pyflate: Mean +- std dev: 371 ms +- 11 ms
+[68/97] python_startup...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+python_startup: Mean +- std dev: 19.4 ms +- 0.4 ms
+[69/97] python_startup_no_site...
+...........
+python_startup_no_site: Mean +- std dev: 16.0 ms +- 0.3 ms
+[70/97] raytrace...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+raytrace: Mean +- std dev: 233 ms +- 6 ms
+[71/97] regex_compile...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+regex_compile: Mean +- std dev: 101 ms +- 2 ms
+[72/97] regex_dna...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+regex_dna: Mean +- std dev: 141 ms +- 3 ms
+[73/97] regex_effbot...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+regex_effbot: Mean +- std dev: 1.94 ms +- 0.08 ms
+[74/97] regex_v8...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+regex_v8: Mean +- std dev: 17.1 ms +- 0.6 ms
+[75/97] richards...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+richards: Mean +- std dev: 37.0 ms +- 1.6 ms
+[76/97] richards_super...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+richards_super: Mean +- std dev: 41.3 ms +- 1.2 ms
+[77/97] scimark...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+scimark_fft: Mean +- std dev: 250 ms +- 8 ms
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+scimark_lu: Mean +- std dev: 81.9 ms +- 1.9 ms
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+scimark_monte_carlo: Mean +- std dev: 54.2 ms +- 1.3 ms
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+scimark_sor: Mean +- std dev: 104 ms +- 3 ms
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+scimark_sparse_mat_mult: Mean +- std dev: 3.38 ms +- 0.09 ms
+[78/97] spectral_norm...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+spectral_norm: Mean +- std dev: 81.9 ms +- 1.8 ms
+[79/97] sphinx...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+sphinx: Mean +- std dev: 800 ms +- 36 ms
+[80/97] sqlalchemy_declarative...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+sqlalchemy_declarative: Mean +- std dev: 99.4 ms +- 3.5 ms
+[81/97] sqlalchemy_imperative...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+sqlalchemy_imperative: Mean +- std dev: 12.2 ms +- 0.3 ms
+[82/97] sqlglot_v2...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+sqlglot_v2_normalize: Mean +- std dev: 93.2 ms +- 2.0 ms
+[83/97] sqlglot_v2_optimize...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+sqlglot_v2_optimize: Mean +- std dev: 44.9 ms +- 1.4 ms
+[84/97] sqlglot_v2_parse...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+sqlglot_v2_parse: Mean +- std dev: 1.04 ms +- 0.03 ms
+[85/97] sqlglot_v2_transpile...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+sqlglot_v2_transpile: Mean +- std dev: 1.30 ms +- 0.02 ms
+[86/97] sqlite_synth...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+sqlite_synth: Mean +- std dev: 1.97 us +- 0.08 us
+[87/97] sympy...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+sympy_expand: Mean +- std dev: 380 ms +- 10 ms
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+sympy_integrate: Mean +- std dev: 15.8 ms +- 0.4 ms
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+sympy_sum: Mean +- std dev: 114 ms +- 3 ms
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+sympy_str: Mean +- std dev: 219 ms +- 4 ms
+[88/97] telco...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+telco: Mean +- std dev: 6.03 ms +- 0.15 ms
+[89/97] tomli_loads...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+tomli_loads: Mean +- std dev: 1.92 sec +- 0.06 sec
+[90/97] tornado_http...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+tornado_http: Mean +- std dev: 149 ms +- 4 ms
+[91/97] typing_runtime_protocols...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+typing_runtime_protocols: Mean +- std dev: 131 us +- 4 us
+[92/97] unpack_sequence...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+unpack_sequence: Mean +- std dev: 37.5 ns +- 1.1 ns
+[93/97] unpickle...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+unpickle: Mean +- std dev: 10.2 us +- 0.3 us
+[94/97] unpickle_list...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+unpickle_list: Mean +- std dev: 3.55 us +- 0.11 us
+[95/97] unpickle_pure_python...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+unpickle_pure_python: Mean +- std dev: 177 us +- 6 us
+[96/97] xdsl...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+xdsl_constant_fold: Mean +- std dev: 36.5 ms +- 0.8 ms
+[97/97] xml_etree...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+xml_etree_parse: Mean +- std dev: 128 ms +- 5 ms
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+xml_etree_iterparse: Mean +- std dev: 79.2 ms +- 1.1 ms
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+xml_etree_generate: Mean +- std dev: 74.2 ms +- 1.5 ms
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+xml_etree_process: Mean +- std dev: 52.8 ms +- 0.7 ms
+
+Performance version: 1.14.0
+
+### 2to3 ###
+Mean +- std dev: 333 ms +- 7 ms
+
+### many_optionals ###
+Mean +- std dev: 704 us +- 19 us
+
+### subparsers ###
+Mean +- std dev: 8.19 ms +- 0.21 ms
+
+### async_generators ###
+Mean +- std dev: 301 ms +- 6 ms
+
+### async_tree_none ###
+Mean +- std dev: 237 ms +- 10 ms
+
+### async_tree_cpu_io_mixed ###
+Mean +- std dev: 453 ms +- 10 ms
+
+### async_tree_cpu_io_mixed_tg ###
+Mean +- std dev: 451 ms +- 7 ms
+
+### async_tree_eager ###
+Mean +- std dev: 91.8 ms +- 1.9 ms
+
+### async_tree_eager_cpu_io_mixed ###
+Mean +- std dev: 358 ms +- 10 ms
+
+### async_tree_eager_cpu_io_mixed_tg ###
+Mean +- std dev: 415 ms +- 13 ms
+
+### async_tree_eager_io ###
+Mean +- std dev: 592 ms +- 13 ms
+
+### async_tree_eager_io_tg ###
+Mean +- std dev: 594 ms +- 16 ms
+
+### async_tree_eager_memoization ###
+Mean +- std dev: 200 ms +- 7 ms
+
+### async_tree_eager_memoization_tg ###
+Mean +- std dev: 281 ms +- 11 ms
+
+### async_tree_eager_tg ###
+Mean +- std dev: 211 ms +- 10 ms
+
+### async_tree_io ###
+Mean +- std dev: 586 ms +- 14 ms
+
+### async_tree_io_tg ###
+Mean +- std dev: 581 ms +- 14 ms
+
+### async_tree_memoization ###
+Mean +- std dev: 301 ms +- 6 ms
+
+### async_tree_memoization_tg ###
+Mean +- std dev: 295 ms +- 6 ms
+
+### async_tree_none_tg ###
+Mean +- std dev: 250 ms +- 8 ms
+
+### asyncio_tcp ###
+Mean +- std dev: 657 ms +- 21 ms
+
+### asyncio_tcp_ssl ###
+Mean +- std dev: 1.75 sec +- 0.03 sec
+
+### asyncio_websockets ###
+Mean +- std dev: 195 ms +- 8 ms
+
+### base64_small ###
+Mean +- std dev: 291 us +- 3 us
+
+### base64_large ###
+Mean +- std dev: 8.39 ms +- 0.11 ms
+
+### urlsafe_base64_small ###
+Mean +- std dev: 446 us +- 7 us
+
+### base32_small ###
+Mean +- std dev: 8.13 ms +- 0.12 ms
+
+### base32_large ###
+Mean +- std dev: 421 ms +- 8 ms
+
+### base16_small ###
+Mean +- std dev: 317 us +- 5 us
+
+### base16_large ###
+Mean +- std dev: 6.60 ms +- 0.10 ms
+
+### ascii85_small ###
+Mean +- std dev: 17.8 ms +- 0.4 ms
+
+### ascii85_large ###
+Mean +- std dev: 919 ms +- 14 ms
+
+### base85_small ###
+Mean +- std dev: 5.79 ms +- 0.12 ms
+
+### base85_large ###
+Mean +- std dev: 314 ms +- 6 ms
+
+### bpe_tokeniser ###
+Mean +- std dev: 3.87 sec +- 0.07 sec
+
+### chameleon ###
+Mean +- std dev: 12.6 ms +- 0.3 ms
+
+### chaos ###
+Mean +- std dev: 50.3 ms +- 1.7 ms
+
+### comprehensions ###
+Mean +- std dev: 14.9 us +- 0.6 us
+
+### bench_mp_pool ###
+Mean +- std dev: 147 ms +- 4 ms
+
+### bench_thread_pool ###
+Mean +- std dev: 1.03 ms +- 0.02 ms
+
+### coroutines ###
+Mean +- std dev: 18.4 ms +- 0.4 ms
+
+### coverage ###
+Mean +- std dev: 73.6 ms +- 2.7 ms
+
+### crypto_pyaes ###
+Mean +- std dev: 63.5 ms +- 0.8 ms
+
+### dask ###
+Mean +- std dev: 818 ms +- 39 ms
+
+### deepcopy ###
+Mean +- std dev: 233 us +- 5 us
+
+### deepcopy_reduce ###
+Mean +- std dev: 2.40 us +- 0.07 us
+
+### deepcopy_memo ###
+Mean +- std dev: 23.9 us +- 1.2 us
+
+### deltablue ###
+Mean +- std dev: 2.79 ms +- 0.04 ms
+
+### django_template ###
+Mean +- std dev: 32.4 ms +- 0.5 ms
+
+### docutils ###
+Mean +- std dev: 2.01 sec +- 0.05 sec
+
+### dulwich_log ###
+Mean +- std dev: 58.1 ms +- 2.3 ms
+
+### fannkuch ###
+Mean +- std dev: 323 ms +- 10 ms
+
+### fastapi_http ###
+Mean +- std dev: 418 ms +- 12 ms
+
+### float ###
+Mean +- std dev: 59.2 ms +- 1.0 ms
+
+### create_gc_cycles ###
+Mean +- std dev: 1.60 ms +- 0.04 ms
+
+### gc_traversal ###
+Mean +- std dev: 2.34 ms +- 0.07 ms
+
+### generators ###
+Mean +- std dev: 27.4 ms +- 1.3 ms
+
+### genshi_text ###
+Mean +- std dev: 20.3 ms +- 0.7 ms
+
+### genshi_xml ###
+Mean +- std dev: 46.6 ms +- 1.0 ms
+
+### go ###
+Mean +- std dev: 104 ms +- 3 ms
+
+### hexiom ###
+Mean +- std dev: 5.57 ms +- 0.09 ms
+
+### html5lib ###
+Mean +- std dev: 47.3 ms +- 0.6 ms
+
+### json_dumps ###
+Mean +- std dev: 8.32 ms +- 0.23 ms
+
+### json_loads ###
+Mean +- std dev: 19.4 us +- 0.8 us
+
+### logging_format ###
+Mean +- std dev: 7.87 us +- 0.23 us
+
+### logging_silent ###
+Mean +- std dev: 69.9 ns +- 2.0 ns
+
+### logging_simple ###
+Mean +- std dev: 7.48 us +- 0.11 us
+
+### mako ###
+Mean +- std dev: 8.30 ms +- 0.24 ms
+
+### mdp ###
+Mean +- std dev: 1.04 sec +- 0.03 sec
+
+### meteor_contest ###
+Mean +- std dev: 98.0 ms +- 2.6 ms
+
+### nbody ###
+Mean +- std dev: 84.8 ms +- 1.8 ms
+
+### shortest_path ###
+Mean +- std dev: 433 ms +- 17 ms
+
+### connected_components ###
+Mean +- std dev: 382 ms +- 8 ms
+
+### k_core ###
+Mean +- std dev: 2.15 sec +- 0.09 sec
+
+### nqueens ###
+Mean +- std dev: 83.5 ms +- 1.7 ms
+
+### pathlib ###
+Mean +- std dev: 46.0 ms +- 1.2 ms
+
+### pickle ###
+Mean +- std dev: 10.3 us +- 0.3 us
+
+### pickle_dict ###
+Mean +- std dev: 26.4 us +- 1.0 us
+
+### pickle_list ###
+Mean +- std dev: 4.41 us +- 0.10 us
+
+### pickle_pure_python ###
+Mean +- std dev: 279 us +- 8 us
+
+### pidigits ###
+Mean +- std dev: 175 ms +- 2 ms
+
+### pprint_safe_repr ###
+Mean +- std dev: 631 ms +- 15 ms
+
+### pprint_pformat ###
+Mean +- std dev: 1.30 sec +- 0.03 sec
+
+### pyflate ###
+Mean +- std dev: 371 ms +- 11 ms
+
+### python_startup ###
+Mean +- std dev: 19.4 ms +- 0.4 ms
+
+### python_startup_no_site ###
+Mean +- std dev: 16.0 ms +- 0.3 ms
+
+### raytrace ###
+Mean +- std dev: 233 ms +- 6 ms
+
+### regex_compile ###
+Mean +- std dev: 101 ms +- 2 ms
+
+### regex_dna ###
+Mean +- std dev: 141 ms +- 3 ms
+
+### regex_effbot ###
+Mean +- std dev: 1.94 ms +- 0.08 ms
+
+### regex_v8 ###
+Mean +- std dev: 17.1 ms +- 0.6 ms
+
+### richards ###
+Mean +- std dev: 37.0 ms +- 1.6 ms
+
+### richards_super ###
+Mean +- std dev: 41.3 ms +- 1.2 ms
+
+### scimark_fft ###
+Mean +- std dev: 250 ms +- 8 ms
+
+### scimark_lu ###
+Mean +- std dev: 81.9 ms +- 1.9 ms
+
+### scimark_monte_carlo ###
+Mean +- std dev: 54.2 ms +- 1.3 ms
+
+### scimark_sor ###
+Mean +- std dev: 104 ms +- 3 ms
+
+### scimark_sparse_mat_mult ###
+Mean +- std dev: 3.38 ms +- 0.09 ms
+
+### spectral_norm ###
+Mean +- std dev: 81.9 ms +- 1.8 ms
+
+### sphinx ###
+Mean +- std dev: 800 ms +- 36 ms
+
+### sqlalchemy_declarative ###
+Mean +- std dev: 99.4 ms +- 3.5 ms
+
+### sqlalchemy_imperative ###
+Mean +- std dev: 12.2 ms +- 0.3 ms
+
+### sqlglot_v2_normalize ###
+Mean +- std dev: 93.2 ms +- 2.0 ms
+
+### sqlglot_v2_optimize ###
+Mean +- std dev: 44.9 ms +- 1.4 ms
+
+### sqlglot_v2_parse ###
+Mean +- std dev: 1.04 ms +- 0.03 ms
+
+### sqlglot_v2_transpile ###
+Mean +- std dev: 1.30 ms +- 0.02 ms
+
+### sqlite_synth ###
+Mean +- std dev: 1.97 us +- 0.08 us
+
+### sympy_expand ###
+Mean +- std dev: 380 ms +- 10 ms
+
+### sympy_integrate ###
+Mean +- std dev: 15.8 ms +- 0.4 ms
+
+### sympy_sum ###
+Mean +- std dev: 114 ms +- 3 ms
+
+### sympy_str ###
+Mean +- std dev: 219 ms +- 4 ms
+
+### telco ###
+Mean +- std dev: 6.03 ms +- 0.15 ms
+
+### tomli_loads ###
+Mean +- std dev: 1.92 sec +- 0.06 sec
+
+### tornado_http ###
+Mean +- std dev: 149 ms +- 4 ms
+
+### typing_runtime_protocols ###
+Mean +- std dev: 131 us +- 4 us
+
+### unpack_sequence ###
+Mean +- std dev: 37.5 ns +- 1.1 ns
+
+### unpickle ###
+Mean +- std dev: 10.2 us +- 0.3 us
+
+### unpickle_list ###
+Mean +- std dev: 3.55 us +- 0.11 us
+
+### unpickle_pure_python ###
+Mean +- std dev: 177 us +- 6 us
+
+### xdsl_constant_fold ###
+Mean +- std dev: 36.5 ms +- 0.8 ms
+
+### xml_etree_parse ###
+Mean +- std dev: 128 ms +- 5 ms
+
+### xml_etree_iterparse ###
+Mean +- std dev: 79.2 ms +- 1.1 ms
+
+### xml_etree_generate ###
+Mean +- std dev: 74.2 ms +- 1.5 ms
+
+### xml_etree_process ###
+Mean +- std dev: 52.8 ms +- 0.7 ms
+

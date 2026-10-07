@@ -18,6 +18,7 @@ from pathlib import Path
 
 FAILURE_LINE = re.compile(r"(?m)^- (.+?) \((Benchmark (?:timed out|died))\)$")
 CASE_LINE = re.compile(r"^\s*\[\s*\d+/\d+\]\s+(.+?)\.\.\.\s*$")
+RESULT_LINE = re.compile(r"(?m)^([^\r\n]+): Mean \+- std dev:")
 EXCEPTION_LINE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*(?:Error|Exception): .+")
 
 
@@ -92,7 +93,7 @@ def failure_details(log: str) -> tuple[dict[str, str], dict[str, str]]:
 def write_status_csv(path: Path, rows: list[dict]) -> None:
     fields = ["benchmark", "CPython 3.14 status", "CPython subtests",
               "XLang3 status", "XLang3 subtests", "failure detail",
-              "CPython failure detail"]
+              "CPython failure detail", "correctness detail"]
     with path.open("w", newline="", encoding="utf-8-sig") as stream:
         writer = csv.DictWriter(stream, fieldnames=fields)
         writer.writeheader()
@@ -140,7 +141,7 @@ def chart_svg(path: Path, comparisons: list[dict], completed: int,
         '<style>text{font-family:Arial,sans-serif;fill:#172033}.title{font-size:23px;font-weight:bold}.sub{font-size:13px;fill:#4b5563}.label{font-size:12px}.tick{font-size:11px;fill:#4b5563}.value{font-size:11px;font-weight:bold}.grid{stroke:#e5e7eb;stroke-width:1}.baseline{stroke:#111827;stroke-width:2}.slow{fill:#e58b31}.fast{fill:#169a70}</style>',
         '<rect width="100%" height="100%" fill="white"/>',
         '<text x="28" y="34" class="title">XLang3 vs CPython 3.14.7 — pyperformance fast mode</text>',
-        f'<text x="28" y="57" class="sub">{completed}/97 definitions completed; {failed}/97 failed. CPython time ÷ XLang3 time: geomean {geomean:.3f}×. Right of 1× is faster.</text>',
+        f'<text x="28" y="57" class="sub">Workers: {completed}/97 completed, {failed}/97 failed; {len(comparisons)} scored subtests. Geomean CP time ÷ XLang3 time: {geomean:.3f}×. Right of 1× is faster.</text>',
     ]
     plot_bottom = top + row_height * len(comparisons)
     for tick in ticks:
@@ -161,7 +162,7 @@ def chart_svg(path: Path, comparisons: list[dict], completed: int,
         f'<text x="{left}" y="{height-24}" class="sub">Logarithmic scale; 1× means equal time; faster ratios extend right of the vertical 1× line.</text>',
         '</svg>',
     ])
-    path.write_text("\n".join(pieces) + "\n", encoding="utf-8")
+    path.write_text("\n".join(pieces) + "\n", encoding="utf-8", newline="\n")
 
 
 def main() -> None:
@@ -181,6 +182,10 @@ def main() -> None:
     parser.add_argument("--case-timeout-override", action="append", default=[],
                         help="record an override such as async_tree*=20s")
     parser.add_argument("--xlang-stdlib", default="Python 3.14 standard library")
+    parser.add_argument("--invalid-subtest", action="append", default=[],
+                        metavar="NAME=REASON",
+                        help="retain raw timings but exclude a demonstrated incorrect workload from speed scores")
+    parser.add_argument("--correctness-evidence", type=Path)
     args = parser.parse_args()
     if args.case_timeout <= 0:
         parser.error("--case-timeout must be positive")
@@ -190,6 +195,15 @@ def main() -> None:
     cdata = load_json(args.cpython_json)
     xbench = benchmark_map(xdata)
     cbench = benchmark_map(cdata)
+    invalid_subtests = {}
+    for item in args.invalid_subtest:
+        name, separator, reason = item.partition("=")
+        if not separator or not reason.strip() or name not in xbench:
+            raise ValueError(f"invalid correctness exclusion: {item}")
+        invalid_subtests[name] = reason.strip()
+    if invalid_subtests and (args.correctness_evidence is None or
+                            not args.correctness_evidence.is_file()):
+        raise ValueError("correctness exclusions require an evidence file")
     log = args.xlang_log.read_text(encoding="utf-8", errors="replace")
     failures, details = failure_details(log)
     cp_failures, cp_details = {}, {}
@@ -221,6 +235,23 @@ def main() -> None:
                 name_to_case[name] = row["benchmark"]
         name_to_case.setdefault(row["benchmark"], row["benchmark"])
 
+    # A historical failed definition can have no subtest names in its index.
+    # Associate fresh results through their own case sections instead of
+    # treating that historical absence as a missing fresh worker outcome.
+    for runtime_log, recorded in ((log, xbench), (cp_log, cbench)):
+        if runtime_log is None:
+            continue
+        for case, section in case_sections(runtime_log).items():
+            for name in RESULT_LINE.findall(section):
+                if name not in recorded:
+                    continue
+                previous = name_to_case.setdefault(name, case)
+                if previous != case:
+                    raise ValueError(f"conflicting benchmark definition for {name}: {previous}, {case}")
+    unmapped = sorted((xbench.keys() | cbench.keys()) - name_to_case.keys())
+    if unmapped:
+        raise ValueError(f"recorded subtests lack benchmark definitions: {unmapped}")
+
     c_by_case: dict[str, list[tuple[str, float]]] = defaultdict(list)
     x_by_case: dict[str, list[tuple[str, float]]] = defaultdict(list)
     for name, benchmark in cbench.items():
@@ -246,8 +277,11 @@ def main() -> None:
         x_text_parts = []
         for name, value in x_by_case.get(case, []):
             cp = cp_values.get(name)
-            ratio = cp / value if cp is not None and value else None
-            result = "faster" if ratio is not None and ratio > 1 else "slower" if ratio is not None else "unmatched"
+            invalid_reason = invalid_subtests.get(name)
+            ratio = cp / value if cp is not None and value and not invalid_reason else None
+            result = ("invalid: " + invalid_reason if invalid_reason else
+                      "faster" if ratio is not None and ratio > 1 else
+                      "slower" if ratio is not None else "unmatched")
             x_text_parts.append(f"{name}={timing(value)}" + (f" ({ratio:.4f}× CP/XLang)" if ratio is not None else ""))
             subtest_rows.append({
                 "benchmark": case,
@@ -287,6 +321,9 @@ def main() -> None:
             "failure detail": details.get(case, failures.get(case, "")),
             "CPython failure detail": (cp_details.get(case, "") if cp_log is not None
                                        else prior.get("CPython failure detail", "")),
+            "correctness detail": "; ".join(f"{name}: {reason}" for name, reason in
+                                               invalid_subtests.items()
+                                               if name_to_case[name] == case),
         })
 
     comparisons.sort(key=lambda item: item["speedup"])
@@ -321,7 +358,7 @@ def main() -> None:
     report = [
         f"# XLang3 vs CPython 3.14.7: corrected full pyperformance run",
         "",
-        f"The XLang3 run attempted all **{len(status_rows)}** pyperformance 1.14.0 definitions in `--fast` mode. It completed **{completed}** definitions and recorded **{failed}** failures/timeouts. "
+        f"The XLang3 run attempted all **{len(status_rows)}** pyperformance 1.14.0 definitions in `--fast` mode. Its workers completed **{completed}** definitions and recorded **{failed}** failures/timeouts. "
         + ("Benchmark failures make the suite unsuccessful; every definition was attempted."
            if failed else "Every definition completed."),
         "",
@@ -344,7 +381,7 @@ def main() -> None:
     ]
     for item in worst:
         report.append(f"| `{item['subtest']}` | {timing(item['cpython'])} | {timing(item['xlang'])} | {item['speedup']:.3f}× |")
-    report.extend(["", "Measured wins:", ""])
+    report.extend(["", "Nominal timing wins (not proof of statistical significance or correctness):", ""])
     if wins:
         for item in wins:
             report.append(f"- `{item['subtest']}`: **{item['speedup']:.3f}×** ({timing(item['xlang'])} vs {timing(item['cpython'])}).")
@@ -373,7 +410,12 @@ def main() -> None:
     ])
     if args.cpython_log is not None:
         report.extend(["", f"- Fresh CPython status log: [`{args.cpython_log.name}`]({rel(args.cpython_log)})."])
-    report_path.write_text("\n".join(report) + "\n", encoding="utf-8")
+    if invalid_subtests:
+        report.extend(["", "## Workload correctness exclusions", "",
+                       "Worker completion does not prove equal work. The following raw timings remain in the CSV, but have no speed ratio and are excluded from the chart, win count and geometric mean:", ""])
+        report.extend(f"- `{name}`: {reason}." for name, reason in invalid_subtests.items())
+        report.extend(["", f"Evidence: [{args.correctness_evidence.name}]({rel(args.correctness_evidence)})."])
+    report_path.write_text("\n".join(report) + "\n", encoding="utf-8", newline="\n")
 
     print(f"Completed definitions: {completed}/97; failed: {failed}; matched subtests: {matched}; faster: {faster}; geomean CPython/XLang3: {geomean:.5f}x")
     print(f"unmapped XLang3 result names: {sorted(set(xbench) - set(name_to_case))}")

@@ -1,0 +1,12 @@
+# Preserve the exact bytes of this checkpoint's hashed benchmark evidence.
+# Historical records are deliberately outside these patterns.
+/doc/performance/data/pyperformance-xlang3-super-method-call-full-fast-20261007* -text
+/doc/performance/data/pyperformance-xlang3-super-method-call-full-fast-20261007-partial/** -text
+/doc/performance/data/pyperformance-cpython3147-super-method-full-fast-20261007* -text
+/doc/performance/data/pyperformance-xlang3-super-method-call-vs-cpython3147-full-fast-20261007* -text
+/doc/performance/data/genshi-render-correctness-20261007.json -text
+/doc/performance/data/super-method-full-common-cpython3147-20261007* -text
+/doc/performance/pyperformance-xlang3-super-method-call-vs-cpython3147-full-fast-20261007.md text eol=lf
+/doc/performance/pyperformance-xlang3-super-method-call-vs-cpython3147-full-fast-20261007.svg text eol=lf
+/benchmarks/diagnostics/summarize_pyperformance_comparison.py text eol=lf
+/benchmarks/diagnostics/genshi_render_correctness.py text eol=lf
