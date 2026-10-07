@@ -1,0 +1,13 @@
+CPython 3.14.7 — benchmarks/diagnostics/gzipfile_iteration_probe.py
+decompression works: True
+line iteration works: True
+
+XLang3 runtime-protocol candidate — benchmarks/diagnostics/gzipfile_iteration_probe.py
+decompression works: True
+line iteration works: True
+
+CPython 3.14.7 — benchmarks/diagnostics/networkx_gzip_graph_probe.py
+NetworkX compressed graph and three algorithms ok
+
+XLang3 runtime-protocol candidate — benchmarks/diagnostics/networkx_gzip_graph_probe.py
+NetworkX compressed graph and three algorithms ok

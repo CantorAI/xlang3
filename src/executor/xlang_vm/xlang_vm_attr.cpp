@@ -22,6 +22,32 @@ limitations under the License.
 
 namespace xlang3 {
 
+XLANG3_NOINLINE bool xlang_vm_resolve_method_value(
+    Runtime& runtime, const Value& object, const std::string& name,
+    Value& out, std::string& error) {
+  auto* instance = value_as_instance(object);
+  auto* klass = instance == nullptr ? nullptr : value_as_class(instance->klass);
+  Value descriptor;
+  std::string ignored;
+  if (klass != nullptr && (klass->has_getattribute_hook ||
+      (klass->has_descriptors &&
+       object_get_class_attr_for_instance(object, name, descriptor, ignored) &&
+       object_value_has_descriptor_get(descriptor)))) {
+    // CALL_METHOD must resolve a callable property/cached_property like
+    // LOAD_ATTR; CALL_FUNCTION. Keep this work on generic cache misses: ordinary
+    // function/native method hits retain their direct dispatch. Call the
+    // original attribute primitive directly, without exposing an artificial
+    // builtins.getattr C-profile event for an implicit attribute operation.
+    const Value* getattr = runtime.find_builtin("getattr");
+    auto* native = getattr == nullptr ? nullptr : value_as_native_function(*getattr);
+    if (native != nullptr && native->callback != nullptr) {
+      Value args[] = {object, Value::string(name)};
+      return native->callback(runtime, args, 2, out, error, native->user_data);
+    }
+  }
+  return attribute_get(object, name, out, error);
+}
+
 XLANG3_NOINLINE bool xlang_vm_load_attr_cached(
     const Value& object,
     const std::string& name,
@@ -54,7 +80,8 @@ XLANG3_NOINLINE bool xlang_vm_load_attr_cached(
         cache.kind == AttrSiteKind::Descriptor &&
         cache.owner == &klass->header &&
         cache.version == klass->version &&
-        object_value_is_descriptor(cache.value)) {
+        object_value_is_data_descriptor(cache.value) &&
+        object_value_has_descriptor_get(cache.value)) {
       value_assign_fast(out, cache.value);
       return true;
     }
@@ -62,7 +89,11 @@ XLANG3_NOINLINE bool xlang_vm_load_attr_cached(
       Value descriptor;
       std::string descriptor_error;
       if (object_get_class_attr_for_instance(object, name, descriptor, descriptor_error) &&
-          object_value_is_data_descriptor(descriptor)) {
+          object_value_is_data_descriptor(descriptor) &&
+          object_value_has_descriptor_get(descriptor)) {
+        // A setter-only descriptor still handles assignments, but cannot
+        // preempt instance storage on reads (NetworkX's cache resetters use
+        // this pattern). Cache a read descriptor only when it has a getter.
         cache.kind = AttrSiteKind::Descriptor;
         cache.owner = &klass->header;
         cache.version = klass->version;

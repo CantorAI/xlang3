@@ -570,6 +570,46 @@ void invalidate_class_lookup_caches(ClassObject* klass) {
   invalidate_class_lookup_caches(klass, visited);
 }
 
+void invalidate_descriptor_client_caches(ClassObject* descriptor_class, const std::string& name) {
+  if (name != "__get__" && name != "__set__" && name != "__delete__") return;
+  // Descriptor-type mutation changes read precedence in unrelated owner
+  // classes. Invalidate those owners on this cold write path, rather than
+  // adding a global generation check to every cached instance-attribute read.
+  // Hold owning Values outside the registry lock while refreshing MRO caches.
+  std::vector<Value> owners;
+  {
+    std::lock_guard lock(live_classes_mutex());
+    owners.reserve(live_classes().size());
+    for (const auto* owner : live_classes()) owners.push_back(class_value(owner));
+  }
+  std::unordered_set<ClassObject*> visited;
+  for (const auto& owner_value : owners) {
+    auto* owner = value_as_class(owner_value);
+    bool dependent = false;
+    for (const auto& attr : owner->attrs) {
+      const auto* descriptor = value_as_instance(attr.second);
+      const auto* type = descriptor == nullptr ? nullptr : value_as_class(descriptor->klass);
+      if (type != nullptr && class_is_subclass(type, descriptor_class)) {
+        dependent = true;
+        break;
+      }
+    }
+    if (!dependent) continue;
+    std::vector<ClassObject*> descendants{owner};
+    for (size_t i = 0; i < descendants.size(); ++i) {
+      auto* current = descendants[i];
+      if (current == nullptr || !visited.insert(current).second) continue;
+      // Conservative after deletion: the ordinary lookup decides whether a
+      // getter still exists. A false flag would skip a newly added descriptor.
+      current->has_descriptors = true;
+      current->mro_cache.clear();
+      current->mro_cache_version = 0;
+      current->version = next_class_version_tag();
+      descendants.insert(descendants.end(), current->subclasses.begin(), current->subclasses.end());
+    }
+  }
+}
+
 std::string class_display_name(const ClassObject& klass) {
   std::string name = klass.name;
   auto qualname_it = klass.attrs.find("__qualname__");
@@ -5283,6 +5323,7 @@ bool object_set_attr(Value& object, const std::string& name, const Value& value,
     }
     update_special_attr_flags(*klass, name);
     invalidate_class_lookup_caches(klass);
+    invalidate_descriptor_client_caches(klass, name);
     return true;
   }
   error = "object does not support attribute assignment";
@@ -5424,6 +5465,7 @@ bool object_delete_attr(Value& object, const std::string& name, std::string& err
     auto& order = klass->definition_attr_order;
     order.erase(std::remove(order.begin(), order.end(), name), order.end());
     invalidate_class_lookup_caches(klass);
+    invalidate_descriptor_client_caches(klass, name);
     return true;
   }
   error = "object does not support attribute deletion";

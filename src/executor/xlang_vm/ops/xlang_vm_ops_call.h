@@ -15,6 +15,7 @@ limitations under the License.
 #pragma once
 
 #include "../xlang_frame.h"
+#include "../xlang_vm_attr.h"
 #include "../xlang_vm_inline_call.h"
 #include "../xlang_vm_inline_support.h"
 #include "../xlang_vm_names.h"
@@ -2342,7 +2343,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method_ex(
   }
   Value method;
   std::string error;
-  if (!attribute_get(regs[in.a], fn.names[in.b], method, error)) {
+  if (!xlang_vm_resolve_method_value(runtime, regs[in.a], fn.names[in.b], method, error)) {
     Value pending;
     if (runtime.take_pending_exception(pending)) {
       return raise_exception_value(std::move(pending)) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;

@@ -36,7 +36,8 @@ struct SetObject {
   std::vector<size_t> item_hashes;
   // Keep ordered entries authoritative; this lazy index only narrows the
   // candidates for membership, like CPython's hash-table probe. Small sets
-  // stay allocation-free, and every content mutation invalidates the index.
+  // stay allocation-free. Arbitrary mutation invalidates the index; appends
+  // update a valid index until geometric growth requires one rebuild.
   uint64_t content_version = 1;
   mutable uint64_t membership_index_version = 0;
   mutable size_t membership_index_mask = 0;
@@ -99,6 +100,33 @@ XLANG3_HOT_INLINE bool set_prepare_membership_index(const SetObject& set) {
     set.membership_index_version = set.content_version;
   }
   return true;
+}
+
+XLANG3_HOT_INLINE void set_note_append(SetObject& set) {
+  const uint64_t previous_version = set.content_version;
+  const size_t index = set.items.size() - 1;
+  set_note_content_change(set);
+  if (set.membership_index_version != previous_version ||
+      set.membership_index_heads.empty() ||
+      set.membership_index_next.size() != index ||
+      set.membership_identity_next.size() != index ||
+      set.items.size() > set.membership_index_heads.size() / 2) return;
+  // A growing visited set must not rebuild all buckets after every insertion.
+  // Preserve ordered entries and both hash/identity chains in O(1); exceeding
+  // the load limit leaves the index invalid for a geometric rebuild on demand.
+  const size_t bucket = set.item_hashes[index] & set.membership_index_mask;
+  set.membership_index_next.push_back(set.membership_index_heads[bucket]);
+  set.membership_index_heads[bucket] = index;
+  const Value& item = set.items[index];
+  size_t identity_next = kSetMembershipIndexEmpty;
+  if (item.tag == ValueTag::Object && item.as.obj != nullptr) {
+    const size_t identity = static_cast<size_t>(
+        reinterpret_cast<uintptr_t>(item.as.obj) >> 3) & set.membership_index_mask;
+    identity_next = set.membership_identity_heads[identity];
+    set.membership_identity_heads[identity] = index;
+  }
+  set.membership_identity_next.push_back(identity_next);
+  set.membership_index_version = set.content_version;
 }
 
 XLANG3_HOT_INLINE size_t set_membership_index_first(
