@@ -18,6 +18,19 @@ spec.loader.exec_module(summary)
 
 
 class FullSummaryTests(unittest.TestCase):
+    def test_chart_covers_ratios_outside_original_axis(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'chart.svg'
+            summary.chart_svg(path, [{'subtest': 'slow', 'speedup': 0.0085},
+                                     {'subtest': 'gc', 'speedup': 3.124}],
+                              completed=2, failed=95, geomean=0.163)
+            chart = path.read_text(encoding='utf-8')
+            self.assertIn('>0.005×</text>', chart)
+            self.assertIn('>5×</text>', chart)
+            self.assertIn('>3.12×</text>', chart)
+            self.assertNotIn('width="1.0" height="14"', chart)
+            self.assertIn('class="baseline"', chart)
+
     def prepare(self, root):
         data = root / 'data'
         data.mkdir()

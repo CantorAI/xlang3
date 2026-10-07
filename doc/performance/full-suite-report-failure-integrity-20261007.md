@@ -13,10 +13,14 @@ historical index's statuses, and rejects missing CPython outcomes. The previous
 CSV remains an index of definition/subtest names. It does not supply fresh
 CPython outcomes. Successful runs no longer receive a hard-coded exit-1 claim.
 
-Four reporting tests use synthetic all-97 data, including partial values from
+Five reporting tests cover synthetic all-97 data and chart bounds, including partial values from
 failed workers, an incomplete fresh CPython log, a missing fresh outcome and
 an all-successful run. They verify that only the 95 jointly successful cases
 in the two-failure example contribute to its chart and geometric mean.
+
+The horizontal chart expands its logarithmic axis to include every measured
+ratio, retaining the 1× reference. A test covers 0.0085× and 3.124×: the ticks
+expand to 0.005×–5× instead of clipping both bars at the former 0.02×–2× limits.
 
 Validation command (CPython 3.14.7):
 

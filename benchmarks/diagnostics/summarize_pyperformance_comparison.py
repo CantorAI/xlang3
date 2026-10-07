@@ -117,7 +117,18 @@ def chart_svg(path: Path, comparisons: list[dict], completed: int,
     row_height = 23
     height = top + row_height * len(comparisons) + 66
     plot_width = width - left - right
-    minimum, maximum = 0.02, 2.0
+    ratios = [row["speedup"] for row in comparisons]
+    if any(not math.isfinite(ratio) or ratio <= 0 for ratio in ratios):
+        raise ValueError("chart speed ratios must be finite and positive")
+    low = min([0.02, *ratios])
+    high = max([2.0, *ratios])
+    candidates = sorted(factor * 10.0 ** exponent
+                        for exponent in range(math.floor(math.log10(low)) - 1,
+                                              math.ceil(math.log10(high)) + 2)
+                        for factor in (1, 2, 5))
+    minimum = max(tick for tick in candidates if tick <= low)
+    maximum = min(tick for tick in candidates if tick >= high)
+    ticks = [tick for tick in candidates if minimum <= tick <= maximum]
 
     def x(value: float) -> float:
         value = min(max(value, minimum), maximum)
@@ -131,7 +142,6 @@ def chart_svg(path: Path, comparisons: list[dict], completed: int,
         '<text x="28" y="34" class="title">XLang3 vs CPython 3.14.7 — pyperformance fast mode</text>',
         f'<text x="28" y="57" class="sub">{completed}/97 definitions completed; {failed}/97 failed. CPython time ÷ XLang3 time: geomean {geomean:.3f}×. Right of 1× is faster.</text>',
     ]
-    ticks = [0.02, 0.05, 0.1, 0.2, 0.5, 1.0, 2.0]
     plot_bottom = top + row_height * len(comparisons)
     for tick in ticks:
         xpos = x(tick)
