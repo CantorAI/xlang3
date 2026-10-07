@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="575" viewBox="0 0 1080 575">
+<rect width="1080" height="575" fill="white"/>
+<g font-family="Arial,sans-serif" fill="#182333">
+<text x="25" y="32" font-size="22">SciMark speed versus CPython 3.14.7</text>
+<text x="25" y="58" font-size="14">CPython = 1x. Longer bars mean faster. All five improve; CPython remains faster.</text>
+<text x="25" y="116" font-size="14">scimark_fft</text>
+<rect x="245" y="91" width="550" height="12" fill="#c5ced9"/>
+<rect x="245" y="109" width="55.310" height="12" fill="#c38331"/>
+<rect x="245" y="127" width="130.946" height="12" fill="#197aa5"/>
+<text x="810" y="102" font-size="13">CPython 1x</text>
+<text x="810" y="120" font-size="13">Parent XLang3 0.1006x</text>
+<text x="810" y="138" font-size="13">New XLang3 0.2381x</text>
+<text x="810" y="157" font-size="13">2.37x faster than parent</text>
+<text x="25" y="204" font-size="14">scimark_lu</text>
+<rect x="245" y="179" width="550" height="12" fill="#c5ced9"/>
+<rect x="245" y="197" width="21.650" height="12" fill="#c38331"/>
+<rect x="245" y="215" width="26.600" height="12" fill="#197aa5"/>
+<text x="810" y="190" font-size="13">CPython 1x</text>
+<text x="810" y="208" font-size="13">Parent XLang3 0.0394x</text>
+<text x="810" y="226" font-size="13">New XLang3 0.0484x</text>
+<text x="810" y="245" font-size="13">1.23x faster than parent</text>
+<text x="25" y="292" font-size="14">scimark_monte_carlo</text>
+<rect x="245" y="267" width="550" height="12" fill="#c5ced9"/>
+<rect x="245" y="285" width="45.873" height="12" fill="#c38331"/>
+<rect x="245" y="303" width="57.328" height="12" fill="#197aa5"/>
+<text x="810" y="278" font-size="13">CPython 1x</text>
+<text x="810" y="296" font-size="13">Parent XLang3 0.0834x</text>
+<text x="810" y="314" font-size="13">New XLang3 0.1042x</text>
+<text x="810" y="333" font-size="13">1.25x faster than parent</text>
+<text x="25" y="380" font-size="14">scimark_sor</text>
+<rect x="245" y="355" width="550" height="12" fill="#c5ced9"/>
+<rect x="245" y="373" width="47.394" height="12" fill="#c38331"/>
+<rect x="245" y="391" width="61.912" height="12" fill="#197aa5"/>
+<text x="810" y="366" font-size="13">CPython 1x</text>
+<text x="810" y="384" font-size="13">Parent XLang3 0.0862x</text>
+<text x="810" y="402" font-size="13">New XLang3 0.1126x</text>
+<text x="810" y="421" font-size="13">1.31x faster than parent</text>
+<text x="25" y="468" font-size="14">scimark_sparse_mat_mult</text>
+<rect x="245" y="443" width="550" height="12" fill="#c5ced9"/>
+<rect x="245" y="461" width="33.936" height="12" fill="#c38331"/>
+<rect x="245" y="479" width="92.994" height="12" fill="#197aa5"/>
+<text x="810" y="454" font-size="13">CPython 1x</text>
+<text x="810" y="472" font-size="13">Parent XLang3 0.0617x</text>
+<text x="810" y="490" font-size="13">New XLang3 0.1691x</text>
+<text x="810" y="509" font-size="13">2.74x faster than parent</text>
+<text x="25" y="557" font-size="13">Official fast-mode means; 20 timed values per runtime/subtest. Warmups excluded; no significance claim.</text>
+</g></svg>

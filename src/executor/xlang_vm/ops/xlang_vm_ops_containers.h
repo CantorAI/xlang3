@@ -1378,10 +1378,15 @@ XLANG3_HOT_INLINE XlangVMOpFlow get_item(
     if (klass != nullptr) {
       auto& method_cache = cache.call;
       FunctionObject* getitem = nullptr;
+      NativeFunctionObject* native_getitem = nullptr;
       if (method_cache.kind == CallSiteKind::GetItemUserFunction &&
           method_cache.callee_object == &klass->header &&
           method_cache.class_version == klass->version) {
         getitem = method_cache.function;
+      } else if (method_cache.kind == CallSiteKind::GetItemNativeFunction &&
+                 method_cache.callee_object == &klass->header &&
+                 method_cache.class_version == klass->version) {
+        native_getitem = method_cache.native;
       } else {
         const auto method = klass->attrs.find("__getitem__");
         getitem = method == klass->attrs.end()
@@ -1396,6 +1401,18 @@ XLANG3_HOT_INLINE XlangVMOpFlow get_item(
           method_cache.function = getitem;
           method_cache.native = nullptr;
           method_cache.class_version = klass->version;
+        } else if (method != klass->attrs.end()) {
+          native_getitem = value_as_native_function(method->second);
+          if (native_getitem != nullptr && native_getitem->bind_as_descriptor &&
+              !native_getitem->capture_expressions && native_getitem->callback != nullptr) {
+            method_cache.callee_object = &klass->header;
+            method_cache.kind = CallSiteKind::GetItemNativeFunction;
+            method_cache.function = nullptr;
+            method_cache.native = native_getitem;
+            method_cache.class_version = klass->version;
+          } else {
+            native_getitem = nullptr;
+          }
         }
       }
       if (getitem != nullptr) {
@@ -1415,6 +1432,27 @@ XLANG3_HOT_INLINE XlangVMOpFlow get_item(
         }
         xlang_vm_cache_note_hit(cache);
         return pushed_frame ? XlangVMOpFlow::SwitchFrame : XlangVMOpFlow::Next;
+      }
+      if (native_getitem != nullptr) {
+        // Own the callable and operands during callbacks: __index__ may mutate
+        // the class or this instruction's output may alias its source. Cache
+        // only weak targets guarded by the process-wide class version, avoiding
+        // persistent roots and per-read bound-method allocations.
+        Value callable;
+        callable.tag = ValueTag::Object;
+        callable.as.obj = &native_getitem->header;
+        retain(callable);
+        const Value arguments[2] = {regs[in.a], regs[in.b]};
+        if (runtime_call_callable(runtime, callable, arguments, 2, regs[in.dst], error)) {
+          xlang_vm_cache_note_hit(cache);
+          return XlangVMOpFlow::Next;
+        }
+        Value pending;
+        if (runtime.take_pending_exception(pending)) {
+          return raise_exception_value(std::move(pending)) ? XlangVMOpFlow::ContinueLoop
+                                                         : XlangVMOpFlow::ReturnResult;
+        }
+        return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
       }
     }
   }
@@ -1605,11 +1643,18 @@ XLANG3_HOT_INLINE XlangVMOpFlow get_item(
   return XlangVMOpFlow::Next;
 }
 
-template <typename RaiseRuntimeError, typename RaiseExceptionValue>
+template <typename MakeGeneratorIfNeeded, typename PushFrame, typename RaiseRuntimeError, typename RaiseExceptionValue>
 XLANG3_HOT_INLINE XlangVMOpFlow set_item(
     const ir::Instr& in,
+    const ir::Module& module,
+    const std::shared_ptr<const ir::Module>& module_owner,
     Runtime& runtime,
     XlangVMSmallRegisterBuffer& regs,
+    XlangVMInstrCacheStorage& caches,
+    size_t& ip,
+    RuntimeResult& result,
+    MakeGeneratorIfNeeded&& make_generator_if_needed,
+    PushFrame&& push_frame,
     RaiseRuntimeError&& raise_runtime_error,
     RaiseExceptionValue&& raise_exception_value) {
   std::string& error = xlang_vm_native_error_scratch();
@@ -1683,9 +1728,87 @@ XLANG3_HOT_INLINE XlangVMOpFlow set_item(
     }
   }
   if (value_as_instance(regs[in.dst]) != nullptr) {
+    auto* instance = value_as_instance(regs[in.dst]);
+    auto* klass = value_as_class(instance->klass);
+    FunctionObject* python_setitem = nullptr;
+    NativeFunctionObject* native_setitem = nullptr;
+    XlangVMInstrCache* cache = nullptr;
+    if (klass != nullptr) {
+      // Primitive container writes do not use this cache. Fetch its sparse
+      // payload only after the receiver is proven to need method dispatch.
+      cache = &caches[ip];
+      xlang_vm_cache_touch(*cache, XlangVMCacheDomain::Call);
+      auto& method_cache = cache->call;
+      if (method_cache.callee_object == &klass->header &&
+          method_cache.class_version == klass->version &&
+          method_cache.kind == CallSiteKind::SetItemUserFunction) {
+        python_setitem = method_cache.function;
+      } else if (method_cache.callee_object == &klass->header &&
+                 method_cache.class_version == klass->version &&
+                 method_cache.kind == CallSiteKind::SetItemNativeFunction) {
+        native_setitem = method_cache.native;
+      } else {
+        const auto method = klass->attrs.find("__setitem__");
+        if (method != klass->attrs.end()) {
+          python_setitem = value_as_function(method->second);
+          native_setitem = value_as_native_function(method->second);
+          if (native_setitem != nullptr && (!native_setitem->bind_as_descriptor ||
+              native_setitem->capture_expressions || native_setitem->callback == nullptr))
+            native_setitem = nullptr;
+          if (python_setitem != nullptr || native_setitem != nullptr) {
+            method_cache.callee_object = &klass->header;
+            method_cache.class_version = klass->version;
+            method_cache.kind = python_setitem != nullptr ? CallSiteKind::SetItemUserFunction
+                                                        : CallSiteKind::SetItemNativeFunction;
+            method_cache.function = python_setitem;
+            method_cache.native = native_setitem;
+          }
+        }
+      }
+    }
+    if (python_setitem != nullptr) {
+      // Keep Python setters in the caller's VM frame stack, as getters already
+      // are. Generic runtime re-entry more than doubled a simple setter's cost.
+      // Normal frame binding, tracing and exception propagation stay active;
+      // the frame return mode discards the result without clobbering self.
+      Value arguments[3];
+      value_borrow_assign_fast(arguments[0], regs[in.dst]);
+      value_borrow_assign_fast(arguments[1], regs[in.a]);
+      value_borrow_assign_fast(arguments[2], regs[in.b]);
+      CallArgsView args;
+      args.leading = arguments;
+      args.leading_count = 3;
+      Value ignored;
+      bool pushed_frame = false;
+      if (!call_user_function(python_setitem, args, module, module_owner, in.dst, ip,
+                              ignored, pushed_frame, make_generator_if_needed, push_frame,
+                              FrameReturnMode::DiscardReturnValue)) {
+        return !result.errors.empty() ? XlangVMOpFlow::ReturnResult : XlangVMOpFlow::ContinueLoop;
+      }
+      xlang_vm_cache_note_hit(*cache);
+      return pushed_frame ? XlangVMOpFlow::SwitchFrame : XlangVMOpFlow::Next;
+    }
+    if (native_setitem != nullptr) {
+      Value callable;
+      callable.tag = ValueTag::Object;
+      callable.as.obj = &native_setitem->header;
+      retain(callable);
+      const Value arguments[3] = {regs[in.dst], regs[in.a], regs[in.b]};
+      Value ignored;
+      if (runtime_call_callable(runtime, callable, arguments, 3, ignored, error)) {
+        xlang_vm_cache_note_hit(*cache);
+        return XlangVMOpFlow::Next;
+      }
+      Value pending;
+      if (runtime.take_pending_exception(pending)) {
+        return raise_exception_value(std::move(pending)) ? XlangVMOpFlow::ContinueLoop
+                                                       : XlangVMOpFlow::ReturnResult;
+      }
+      return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    }
     Value setitem;
     std::string attr_error;
-    if (object_get_attr(regs[in.dst], "__setitem__", setitem, attr_error)) {
+    if (object_get_special_method(runtime, regs[in.dst], "__setitem__", setitem, attr_error)) {
       Value call_args[2] = {regs[in.a], regs[in.b]};
       Value ignored;
       if (runtime_call_callable(runtime, setitem, call_args, 2, ignored, error)) {
@@ -1697,6 +1820,11 @@ XLANG3_HOT_INLINE XlangVMOpFlow set_item(
                                                          : XlangVMOpFlow::ReturnResult;
       }
       return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    }
+    Value pending;
+    if (runtime.take_pending_exception(pending)) {
+      return raise_exception_value(std::move(pending)) ? XlangVMOpFlow::ContinueLoop
+                                                     : XlangVMOpFlow::ReturnResult;
     }
   }
   const bool set_ok = value_as_dict(regs[in.dst]) != nullptr
@@ -1711,7 +1839,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow set_item(
     if (value_as_instance(regs[in.dst]) != nullptr) {
       Value setitem;
       std::string attr_error;
-      if (object_get_attr(regs[in.dst], "__setitem__", setitem, attr_error)) {
+      if (object_get_special_method(runtime, regs[in.dst], "__setitem__", setitem, attr_error)) {
         Value call_args[2] = {regs[in.a], regs[in.b]};
         Value ignored;
         if (runtime_call_callable(runtime, setitem, call_args, 2, ignored, error)) {

@@ -1,0 +1,14 @@
+{
+  "status": "finished",
+  "started_utc": "2026-10-07T12:05:58.3589226Z",
+  "source_parent_commit": "e4417566ce6f5db0b2c74cd18f8c8370a56c0d39",
+  "candidate_exe": "DC18F94D37AA662BB4F1BEF4284C79373E784781D74FFFE22205937CC5CB82CF",
+  "candidate_dll": "990237AD095D6865F54A0A5974AD94E55B95A5D29E06E3EF59AB80DFE9474FFF",
+  "cpython": "3.14.7",
+  "fixtures_exit": 0,
+  "cpp_exit": 0,
+  "paired_exit": 0,
+  "gate_exit": 0,
+  "completed_utc": "2026-10-07T12:08:50.8608271Z",
+  "sha256_end_dll": "990237AD095D6865F54A0A5974AD94E55B95A5D29E06E3EF59AB80DFE9474FFF"
+}

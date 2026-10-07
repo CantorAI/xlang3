@@ -1,0 +1,3363 @@
+{
+  "diagnostic_only": true,
+  "status": "finished",
+  "pairs": 7,
+  "operations": 100000,
+  "manager": "C:\\Python\\Python314\\python.exe",
+  "manager_version": "3.14.7",
+  "probe_sha256": "8d76b08a6822b42766853b68a879f8b7286e3536f97d02d2d41c7bf88ff982c8",
+  "started_utc": "2026-10-07T12:01:01.617388+00:00",
+  "executables": [
+    "D:\\CantorAI\\xlang3\\build-repro\\controls\\native-array-checkpoint-20261007\\xlang3.exe",
+    "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe"
+  ],
+  "sha256_start": [
+    {
+      "exe": "dc18f94d37aa662bb4f1bef4284c79373e784781d74fffe22205937cc5cb82cf",
+      "dll": "b3a5cf5a93afafbd2b462f9edf71db5c5ae258b2d626a8964d772b4487a23553"
+    },
+    {
+      "exe": "dc18f94d37aa662bb4f1bef4284c79373e784781d74fffe22205937cc5cb82cf",
+      "dll": "55125f848a7e7e2966d73b5acbfcd67d0b7c3d5f9e0b6b2a81254b62e277176f"
+    }
+  ],
+  "workers": [
+    {
+      "pair": 0,
+      "order": [
+        0,
+        1
+      ],
+      "runtime": 0,
+      "result": {
+        "diagnostic_only": true,
+        "records": [
+          {
+            "case": "array_getitem",
+            "operations": 100000,
+            "median_seconds": 0.04526730001089163,
+            "samples_seconds": [
+              0.046529199986252934,
+              0.04526730001089163,
+              0.041512299998430535
+            ]
+          },
+          {
+            "case": "array_saved_getitem",
+            "operations": 100000,
+            "median_seconds": 0.0275209000101313,
+            "samples_seconds": [
+              0.0275209000101313,
+              0.02800230000866577,
+              0.026330699998652562
+            ]
+          },
+          {
+            "case": "list_getitem",
+            "operations": 100000,
+            "median_seconds": 0.013201499998103827,
+            "samples_seconds": [
+              0.012147500005085021,
+              0.013551200012443587,
+              0.013201499998103827
+            ]
+          },
+          {
+            "case": "array_setitem",
+            "operations": 100000,
+            "median_seconds": 0.05375280001317151,
+            "samples_seconds": [
+              0.05369480000808835,
+              0.0574802000191994,
+              0.05375280001317151
+            ]
+          },
+          {
+            "case": "array_saved_setitem",
+            "operations": 100000,
+            "median_seconds": 0.024780400010058656,
+            "samples_seconds": [
+              0.024314999987836927,
+              0.024780400010058656,
+              0.02512629999546334
+            ]
+          },
+          {
+            "case": "list_setitem",
+            "operations": 100000,
+            "median_seconds": 0.009338699979707599,
+            "samples_seconds": [
+              0.008982100000139326,
+              0.009338699979707599,
+              0.009676100016804412
+            ]
+          },
+          {
+            "case": "python_getitem",
+            "operations": 100000,
+            "median_seconds": 0.08150339999701828,
+            "samples_seconds": [
+              0.08512360000167973,
+              0.07807299998239614,
+              0.08150339999701828
+            ]
+          },
+          {
+            "case": "python_saved_getitem",
+            "operations": 100000,
+            "median_seconds": 0.08886530000017956,
+            "samples_seconds": [
+              0.08909220001078211,
+              0.088119199994253,
+              0.08886530000017956
+            ]
+          },
+          {
+            "case": "python_setitem",
+            "operations": 100000,
+            "median_seconds": 0.1939497000130359,
+            "samples_seconds": [
+              0.19787270002416335,
+              0.1939497000130359,
+              0.1939284999971278
+            ]
+          },
+          {
+            "case": "python_saved_setitem",
+            "operations": 100000,
+            "median_seconds": 0.09693790000164881,
+            "samples_seconds": [
+              0.1207987000234425,
+              0.09693790000164881,
+              0.08966210001381114
+            ]
+          }
+        ]
+      },
+      "stderr": ""
+    },
+    {
+      "pair": 0,
+      "order": [
+        0,
+        1
+      ],
+      "runtime": 1,
+      "result": {
+        "diagnostic_only": true,
+        "records": [
+          {
+            "case": "array_getitem",
+            "operations": 100000,
+            "median_seconds": 0.019273399986559525,
+            "samples_seconds": [
+              0.019500299997162074,
+              0.01919130000169389,
+              0.019273399986559525
+            ]
+          },
+          {
+            "case": "array_saved_getitem",
+            "operations": 100000,
+            "median_seconds": 0.02592820001882501,
+            "samples_seconds": [
+              0.02592820001882501,
+              0.025625299982493743,
+              0.027319999993778765
+            ]
+          },
+          {
+            "case": "list_getitem",
+            "operations": 100000,
+            "median_seconds": 0.012985500012291595,
+            "samples_seconds": [
+              0.012920799985295162,
+              0.0132175000035204,
+              0.012985500012291595
+            ]
+          },
+          {
+            "case": "array_setitem",
+            "operations": 100000,
+            "median_seconds": 0.01812439999775961,
+            "samples_seconds": [
+              0.01812439999775961,
+              0.01831679997849278,
+              0.018067400000290945
+            ]
+          },
+          {
+            "case": "array_saved_setitem",
+            "operations": 100000,
+            "median_seconds": 0.02328640001360327,
+            "samples_seconds": [
+              0.02632199999061413,
+              0.02328640001360327,
+              0.022449700016295537
+            ]
+          },
+          {
+            "case": "list_setitem",
+            "operations": 100000,
+            "median_seconds": 0.009031000023242086,
+            "samples_seconds": [
+              0.008921300002839416,
+              0.009031000023242086,
+              0.009073600027477369
+            ]
+          },
+          {
+            "case": "python_getitem",
+            "operations": 100000,
+            "median_seconds": 0.0581555999815464,
+            "samples_seconds": [
+              0.05895310000050813,
+              0.0581555999815464,
+              0.05688419999205507
+            ]
+          },
+          {
+            "case": "python_saved_getitem",
+            "operations": 100000,
+            "median_seconds": 0.05700639999122359,
+            "samples_seconds": [
+              0.05700639999122359,
+              0.056851200002711266,
+              0.057039500010432675
+            ]
+          },
+          {
+            "case": "python_setitem",
+            "operations": 100000,
+            "median_seconds": 0.05957630000193603,
+            "samples_seconds": [
+              0.060104899981524795,
+              0.058851400011917576,
+              0.05957630000193603
+            ]
+          },
+          {
+            "case": "python_saved_setitem",
+            "operations": 100000,
+            "median_seconds": 0.05647979999775998,
+            "samples_seconds": [
+              0.05632589999004267,
+              0.05647979999775998,
+              0.058441300003323704
+            ]
+          }
+        ]
+      },
+      "stderr": ""
+    },
+    {
+      "pair": 0,
+      "order": [
+        1,
+        0
+      ],
+      "runtime": 1,
+      "result": {
+        "diagnostic_only": true,
+        "records": [
+          {
+            "case": "array_getitem",
+            "operations": 100000,
+            "median_seconds": 0.019956400006776676,
+            "samples_seconds": [
+              0.02037370001198724,
+              0.01992160000372678,
+              0.019956400006776676
+            ]
+          },
+          {
+            "case": "array_saved_getitem",
+            "operations": 100000,
+            "median_seconds": 0.026558100013062358,
+            "samples_seconds": [
+              0.026019200013251975,
+              0.02714910000213422,
+              0.026558100013062358
+            ]
+          },
+          {
+            "case": "list_getitem",
+            "operations": 100000,
+            "median_seconds": 0.013188599987188354,
+            "samples_seconds": [
+              0.01324109997949563,
+              0.013188599987188354,
+              0.013024999992921948
+            ]
+          },
+          {
+            "case": "array_setitem",
+            "operations": 100000,
+            "median_seconds": 0.01775549998274073,
+            "samples_seconds": [
+              0.017740000010235235,
+              0.01775549998274073,
+              0.01778240001294762
+            ]
+          },
+          {
+            "case": "array_saved_setitem",
+            "operations": 100000,
+            "median_seconds": 0.026495800004340708,
+            "samples_seconds": [
+              0.026495800004340708,
+              0.02623500002664514,
+              0.026881400001002476
+            ]
+          },
+          {
+            "case": "list_setitem",
+            "operations": 100000,
+            "median_seconds": 0.01131489998078905,
+            "samples_seconds": [
+              0.011287300003459677,
+              0.011322600010316819,
+              0.01131489998078905
+            ]
+          },
+          {
+            "case": "python_getitem",
+            "operations": 100000,
+            "median_seconds": 0.05742210001335479,
+            "samples_seconds": [
+              0.05742210001335479,
+              0.05542960000457242,
+              0.0605914999905508
+            ]
+          },
+          {
+            "case": "python_saved_getitem",
+            "operations": 100000,
+            "median_seconds": 0.05760500000906177,
+            "samples_seconds": [
+              0.05760500000906177,
+              0.058048299979418516,
+              0.05741360000683926
+            ]
+          },
+          {
+            "case": "python_setitem",
+            "operations": 100000,
+            "median_seconds": 0.060553699993761256,
+            "samples_seconds": [
+              0.060553699993761256,
+              0.057920999999623746,
+              0.062314300012076274
+            ]
+          },
+          {
+            "case": "python_saved_setitem",
+            "operations": 100000,
+            "median_seconds": 0.05697480001254007,
+            "samples_seconds": [
+              0.06235490000108257,
+              0.05483750000712462,
+              0.05697480001254007
+            ]
+          }
+        ]
+      },
+      "stderr": ""
+    },
+    {
+      "pair": 0,
+      "order": [
+        1,
+        0
+      ],
+      "runtime": 0,
+      "result": {
+        "diagnostic_only": true,
+        "records": [
+          {
+            "case": "array_getitem",
+            "operations": 100000,
+            "median_seconds": 0.060555400006705895,
+            "samples_seconds": [
+              0.06465539999771863,
+              0.05217589999665506,
+              0.060555400006705895
+            ]
+          },
+          {
+            "case": "array_saved_getitem",
+            "operations": 100000,
+            "median_seconds": 0.029065099981380627,
+            "samples_seconds": [
+              0.029065099981380627,
+              0.02933450002456084,
+              0.028873100003693253
+            ]
+          },
+          {
+            "case": "list_getitem",
+            "operations": 100000,
+            "median_seconds": 0.013909800007240847,
+            "samples_seconds": [
+              0.013568999973358586,
+              0.013985700003104284,
+              0.013909800007240847
+            ]
+          },
+          {
+            "case": "array_setitem",
+            "operations": 100000,
+            "median_seconds": 0.05110769998282194,
+            "samples_seconds": [
+              0.052554599998984486,
+              0.05090339999878779,
+              0.05110769998282194
+            ]
+          },
+          {
+            "case": "array_saved_setitem",
+            "operations": 100000,
+            "median_seconds": 0.0247160000144504,
+            "samples_seconds": [
+              0.023680999991483986,
+              0.026238100021146238,
+              0.0247160000144504
+            ]
+          },
+          {
+            "case": "list_setitem",
+            "operations": 100000,
+            "median_seconds": 0.010414399992441759,
+            "samples_seconds": [
+              0.0092898000148125,
+              0.010414399992441759,
+              0.010880099987844005
+            ]
+          },
+          {
+            "case": "python_getitem",
+            "operations": 100000,
+            "median_seconds": 0.08206260000588372,
+            "samples_seconds": [
+              0.08206260000588372,
+              0.08076270000310615,
+              0.0825126999989152
+            ]
+          },
+          {
+            "case": "python_saved_getitem",
+            "operations": 100000,
+            "median_seconds": 0.08205959998304024,
+            "samples_seconds": [
+              0.08586770002148114,
+              0.08205959998304024,
+              0.07971719998749904
+            ]
+          },
+          {
+            "case": "python_setitem",
+            "operations": 100000,
+            "median_seconds": 0.1968541000096593,
+            "samples_seconds": [
+              0.1980838000017684,
+              0.1968541000096593,
+              0.19076340002357028
+            ]
+          },
+          {
+            "case": "python_saved_setitem",
+            "operations": 100000,
+            "median_seconds": 0.08574189999490045,
+            "samples_seconds": [
+              0.08898989998851903,
+              0.08574189999490045,
+              0.08474769999156706
+            ]
+          }
+        ]
+      },
+      "stderr": ""
+    },
+    {
+      "pair": 1,
+      "order": [
+        0,
+        1
+      ],
+      "runtime": 0,
+      "result": {
+        "diagnostic_only": true,
+        "records": [
+          {
+            "case": "array_getitem",
+            "operations": 100000,
+            "median_seconds": 0.042525800003204495,
+            "samples_seconds": [
+              0.04223859999910928,
+              0.045518400002038106,
+              0.042525800003204495
+            ]
+          },
+          {
+            "case": "array_saved_getitem",
+            "operations": 100000,
+            "median_seconds": 0.0241410999733489,
+            "samples_seconds": [
+              0.024914200010243803,
+              0.0241410999733489,
+              0.02378859999589622
+            ]
+          },
+          {
+            "case": "list_getitem",
+            "operations": 100000,
+            "median_seconds": 0.012133999989600852,
+            "samples_seconds": [
+              0.012133999989600852,
+              0.012032599974190816,
+              0.01272840000456199
+            ]
+          },
+          {
+            "case": "array_setitem",
+            "operations": 100000,
+            "median_seconds": 0.050347299984423444,
+            "samples_seconds": [
+              0.050347299984423444,
+              0.04995690000941977,
+              0.05639399998472072
+            ]
+          },
+          {
+            "case": "array_saved_setitem",
+            "operations": 100000,
+            "median_seconds": 0.025294999999459833,
+            "samples_seconds": [
+              0.026050100015709177,
+              0.025294999999459833,
+              0.024804400018183514
+            ]
+          },
+          {
+            "case": "list_setitem",
+            "operations": 100000,
+            "median_seconds": 0.008500099997036159,
+            "samples_seconds": [
+              0.008832899999106303,
+              0.008500099997036159,
+              0.008300799992866814
+            ]
+          },
+          {
+            "case": "python_getitem",
+            "operations": 100000,
+            "median_seconds": 0.08542829999350943,
+            "samples_seconds": [
+              0.08542829999350943,
+              0.08778149998397566,
+              0.08117399999173358
+            ]
+          },
+          {
+            "case": "python_saved_getitem",
+            "operations": 100000,
+            "median_seconds": 0.0936068000155501,
+            "samples_seconds": [
+              0.08223090000683442,
+              0.0936068000155501,
+              0.13120770000386983
+            ]
+          },
+          {
+            "case": "python_setitem",
+            "operations": 100000,
+            "median_seconds": 0.20857919999980368,
+            "samples_seconds": [
+              0.22337140000308864,
+              0.20857919999980368,
+              0.1968817000160925
+            ]
+          },
+          {
+            "case": "python_saved_setitem",
+            "operations": 100000,
+            "median_seconds": 0.09031950001372024,
+            "samples_seconds": [
+              0.08593960001599044,
+              0.09031950001372024,
+              0.0926945999963209
+            ]
+          }
+        ]
+      },
+      "stderr": ""
+    },
+    {
+      "pair": 1,
+      "order": [
+        0,
+        1
+      ],
+      "runtime": 1,
+      "result": {
+        "diagnostic_only": true,
+        "records": [
+          {
+            "case": "array_getitem",
+            "operations": 100000,
+            "median_seconds": 0.01957619999302551,
+            "samples_seconds": [
+              0.019913899974199012,
+              0.01957619999302551,
+              0.019082500017248094
+            ]
+          },
+          {
+            "case": "array_saved_getitem",
+            "operations": 100000,
+            "median_seconds": 0.026451599987922236,
+            "samples_seconds": [
+              0.02564489998621866,
+              0.026451599987922236,
+              0.02762030001031235
+            ]
+          },
+          {
+            "case": "list_getitem",
+            "operations": 100000,
+            "median_seconds": 0.012126699992222711,
+            "samples_seconds": [
+              0.013204800023231655,
+              0.012126699992222711,
+              0.012094000005163252
+            ]
+          },
+          {
+            "case": "array_setitem",
+            "operations": 100000,
+            "median_seconds": 0.01690649997908622,
+            "samples_seconds": [
+              0.01690649997908622,
+              0.016676400002324954,
+              0.01712000000406988
+            ]
+          },
+          {
+            "case": "array_saved_setitem",
+            "operations": 100000,
+            "median_seconds": 0.0254226999823004,
+            "samples_seconds": [
+              0.02581250001094304,
+              0.024426899995887652,
+              0.0254226999823004
+            ]
+          },
+          {
+            "case": "list_setitem",
+            "operations": 100000,
+            "median_seconds": 0.011194799997610971,
+            "samples_seconds": [
+              0.011194799997610971,
+              0.011145500000566244,
+              0.011258099984843284
+            ]
+          },
+          {
+            "case": "python_getitem",
+            "operations": 100000,
+            "median_seconds": 0.059232100000372157,
+            "samples_seconds": [
+              0.055091100017307326,
+              0.059232100000372157,
+              0.060079899994889274
+            ]
+          },
+          {
+            "case": "python_saved_getitem",
+            "operations": 100000,
+            "median_seconds": 0.058986300020478666,
+            "samples_seconds": [
+              0.05989400000544265,
+              0.058986300020478666,
+              0.058676700020441785
+            ]
+          },
+          {
+            "case": "python_setitem",
+            "operations": 100000,
+            "median_seconds": 0.060912600019946694,
+            "samples_seconds": [
+              0.06182689999695867,
+              0.05839759999071248,
+              0.060912600019946694
+            ]
+          },
+          {
+            "case": "python_saved_setitem",
+            "operations": 100000,
+            "median_seconds": 0.05914450000273064,
+            "samples_seconds": [
+              0.058112200000323355,
+              0.06060779999825172,
+              0.05914450000273064
+            ]
+          }
+        ]
+      },
+      "stderr": ""
+    },
+    {
+      "pair": 1,
+      "order": [
+        1,
+        0
+      ],
+      "runtime": 1,
+      "result": {
+        "diagnostic_only": true,
+        "records": [
+          {
+            "case": "array_getitem",
+            "operations": 100000,
+            "median_seconds": 0.019002599990926683,
+            "samples_seconds": [
+              0.019475200009765103,
+              0.018960599991260096,
+              0.019002599990926683
+            ]
+          },
+          {
+            "case": "array_saved_getitem",
+            "operations": 100000,
+            "median_seconds": 0.026852300012251362,
+            "samples_seconds": [
+              0.02690430000075139,
+              0.025767199986148626,
+              0.026852300012251362
+            ]
+          },
+          {
+            "case": "list_getitem",
+            "operations": 100000,
+            "median_seconds": 0.012824400007957593,
+            "samples_seconds": [
+              0.012824400007957593,
+              0.012573400017572567,
+              0.012841300020227209
+            ]
+          },
+          {
+            "case": "array_setitem",
+            "operations": 100000,
+            "median_seconds": 0.017389000015100464,
+            "samples_seconds": [
+              0.01767679999466054,
+              0.017389000015100464,
+              0.01727989999926649
+            ]
+          },
+          {
+            "case": "array_saved_setitem",
+            "operations": 100000,
+            "median_seconds": 0.026665000012144446,
+            "samples_seconds": [
+              0.025706899992655963,
+              0.026665000012144446,
+              0.027136699995025992
+            ]
+          },
+          {
+            "case": "list_setitem",
+            "operations": 100000,
+            "median_seconds": 0.011405199998989701,
+            "samples_seconds": [
+              0.011541100015165284,
+              0.011405199998989701,
+              0.010989499976858497
+            ]
+          },
+          {
+            "case": "python_getitem",
+            "operations": 100000,
+            "median_seconds": 0.05809110001428053,
+            "samples_seconds": [
+              0.058759699983056635,
+              0.0575542000005953,
+              0.05809110001428053
+            ]
+          },
+          {
+            "case": "python_saved_getitem",
+            "operations": 100000,
+            "median_seconds": 0.059716899995692074,
+            "samples_seconds": [
+              0.05750830000033602,
+              0.06055070000002161,
+              0.059716899995692074
+            ]
+          },
+          {
+            "case": "python_setitem",
+            "operations": 100000,
+            "median_seconds": 0.0582464000035543,
+            "samples_seconds": [
+              0.0582464000035543,
+              0.05919460000586696,
+              0.057195300003513694
+            ]
+          },
+          {
+            "case": "python_saved_setitem",
+            "operations": 100000,
+            "median_seconds": 0.05750989998341538,
+            "samples_seconds": [
+              0.05750989998341538,
+              0.05801770000834949,
+              0.057283999980427325
+            ]
+          }
+        ]
+      },
+      "stderr": ""
+    },
+    {
+      "pair": 1,
+      "order": [
+        1,
+        0
+      ],
+      "runtime": 0,
+      "result": {
+        "diagnostic_only": true,
+        "records": [
+          {
+            "case": "array_getitem",
+            "operations": 100000,
+            "median_seconds": 0.043866700027137995,
+            "samples_seconds": [
+              0.043866700027137995,
+              0.0439145999844186,
+              0.04214679999859072
+            ]
+          },
+          {
+            "case": "array_saved_getitem",
+            "operations": 100000,
+            "median_seconds": 0.026962600008118898,
+            "samples_seconds": [
+              0.026962600008118898,
+              0.026698900008341298,
+              0.02714319998631254
+            ]
+          },
+          {
+            "case": "list_getitem",
+            "operations": 100000,
+            "median_seconds": 0.013006799999857321,
+            "samples_seconds": [
+              0.012757599994074553,
+              0.013096799986669794,
+              0.013006799999857321
+            ]
+          },
+          {
+            "case": "array_setitem",
+            "operations": 100000,
+            "median_seconds": 0.05085479997796938,
+            "samples_seconds": [
+              0.050086200004443526,
+              0.05085479997796938,
+              0.05266710001160391
+            ]
+          },
+          {
+            "case": "array_saved_setitem",
+            "operations": 100000,
+            "median_seconds": 0.025476699986029416,
+            "samples_seconds": [
+              0.025476699986029416,
+              0.02569989999756217,
+              0.02545670000836253
+            ]
+          },
+          {
+            "case": "list_setitem",
+            "operations": 100000,
+            "median_seconds": 0.010188799991738051,
+            "samples_seconds": [
+              0.010188799991738051,
+              0.010274600004777312,
+              0.009877600008621812
+            ]
+          },
+          {
+            "case": "python_getitem",
+            "operations": 100000,
+            "median_seconds": 0.11308109998935834,
+            "samples_seconds": [
+              0.11308109998935834,
+              0.0979700000025332,
+              0.1367675999936182
+            ]
+          },
+          {
+            "case": "python_saved_getitem",
+            "operations": 100000,
+            "median_seconds": 0.08898760000010952,
+            "samples_seconds": [
+              0.08587710000574589,
+              0.09492549998685718,
+              0.08898760000010952
+            ]
+          },
+          {
+            "case": "python_setitem",
+            "operations": 100000,
+            "median_seconds": 0.19672119998722337,
+            "samples_seconds": [
+              0.20755959997768514,
+              0.19672119998722337,
+              0.19058110000332817
+            ]
+          },
+          {
+            "case": "python_saved_setitem",
+            "operations": 100000,
+            "median_seconds": 0.08802269998705015,
+            "samples_seconds": [
+              0.08592670000507496,
+              0.08986130001721904,
+              0.08802269998705015
+            ]
+          }
+        ]
+      },
+      "stderr": ""
+    },
+    {
+      "pair": 2,
+      "order": [
+        0,
+        1
+      ],
+      "runtime": 0,
+      "result": {
+        "diagnostic_only": true,
+        "records": [
+          {
+            "case": "array_getitem",
+            "operations": 100000,
+            "median_seconds": 0.04926749999867752,
+            "samples_seconds": [
+              0.04926749999867752,
+              0.050674500002060086,
+              0.04046250000828877
+            ]
+          },
+          {
+            "case": "array_saved_getitem",
+            "operations": 100000,
+            "median_seconds": 0.027127000008476898,
+            "samples_seconds": [
+              0.025743600010173395,
+              0.028062699973816052,
+              0.027127000008476898
+            ]
+          },
+          {
+            "case": "list_getitem",
+            "operations": 100000,
+            "median_seconds": 0.012736799981212243,
+            "samples_seconds": [
+              0.012853699998231605,
+              0.012483800004702061,
+              0.012736799981212243
+            ]
+          },
+          {
+            "case": "array_setitem",
+            "operations": 100000,
+            "median_seconds": 0.052956100000301376,
+            "samples_seconds": [
+              0.052956100000301376,
+              0.056617299997014925,
+              0.05128109999350272
+            ]
+          },
+          {
+            "case": "array_saved_setitem",
+            "operations": 100000,
+            "median_seconds": 0.025271999998949468,
+            "samples_seconds": [
+              0.025271400023484603,
+              0.025271999998949468,
+              0.026165899995248765
+            ]
+          },
+          {
+            "case": "list_setitem",
+            "operations": 100000,
+            "median_seconds": 0.009893099981127307,
+            "samples_seconds": [
+              0.010127999994438142,
+              0.009888800006592646,
+              0.009893099981127307
+            ]
+          },
+          {
+            "case": "python_getitem",
+            "operations": 100000,
+            "median_seconds": 0.08044460002565756,
+            "samples_seconds": [
+              0.08044460002565756,
+              0.07883600000059232,
+              0.0910483000043314
+            ]
+          },
+          {
+            "case": "python_saved_getitem",
+            "operations": 100000,
+            "median_seconds": 0.08068229997297749,
+            "samples_seconds": [
+              0.08180990000255406,
+              0.07967929998994805,
+              0.08068229997297749
+            ]
+          },
+          {
+            "case": "python_setitem",
+            "operations": 100000,
+            "median_seconds": 0.19384309998713434,
+            "samples_seconds": [
+              0.18507690000114962,
+              0.19384309998713434,
+              0.19539999999688007
+            ]
+          },
+          {
+            "case": "python_saved_setitem",
+            "operations": 100000,
+            "median_seconds": 0.08798710000701249,
+            "samples_seconds": [
+              0.08752749999985099,
+              0.08876600000075996,
+              0.08798710000701249
+            ]
+          }
+        ]
+      },
+      "stderr": ""
+    },
+    {
+      "pair": 2,
+      "order": [
+        0,
+        1
+      ],
+      "runtime": 1,
+      "result": {
+        "diagnostic_only": true,
+        "records": [
+          {
+            "case": "array_getitem",
+            "operations": 100000,
+            "median_seconds": 0.017289200011873618,
+            "samples_seconds": [
+              0.018424899986712262,
+              0.017033199983416125,
+              0.017289200011873618
+            ]
+          },
+          {
+            "case": "array_saved_getitem",
+            "operations": 100000,
+            "median_seconds": 0.02544669999042526,
+            "samples_seconds": [
+              0.025423700019018725,
+              0.02655019998201169,
+              0.02544669999042526
+            ]
+          },
+          {
+            "case": "list_getitem",
+            "operations": 100000,
+            "median_seconds": 0.013040299993008375,
+            "samples_seconds": [
+              0.012394799996400252,
+              0.0131863999995403,
+              0.013040299993008375
+            ]
+          },
+          {
+            "case": "array_setitem",
+            "operations": 100000,
+            "median_seconds": 0.01759719999972731,
+            "samples_seconds": [
+              0.017762299976311624,
+              0.01759719999972731,
+              0.016637399996398017
+            ]
+          },
+          {
+            "case": "array_saved_setitem",
+            "operations": 100000,
+            "median_seconds": 0.023532799998065457,
+            "samples_seconds": [
+              0.023103200015611947,
+              0.023532799998065457,
+              0.024089899990940467
+            ]
+          },
+          {
+            "case": "list_setitem",
+            "operations": 100000,
+            "median_seconds": 0.010386599984485656,
+            "samples_seconds": [
+              0.010178800002904609,
+              0.010386599984485656,
+              0.010734899988165125
+            ]
+          },
+          {
+            "case": "python_getitem",
+            "operations": 100000,
+            "median_seconds": 0.056229100009659305,
+            "samples_seconds": [
+              0.0587146999896504,
+              0.056229100009659305,
+              0.05394049998722039
+            ]
+          },
+          {
+            "case": "python_saved_getitem",
+            "operations": 100000,
+            "median_seconds": 0.0559071000025142,
+            "samples_seconds": [
+              0.0559071000025142,
+              0.055747400008840486,
+              0.05721469997661188
+            ]
+          },
+          {
+            "case": "python_setitem",
+            "operations": 100000,
+            "median_seconds": 0.058412900019902736,
+            "samples_seconds": [
+              0.058412900019902736,
+              0.0549258999817539,
+              0.059359599981689826
+            ]
+          },
+          {
+            "case": "python_saved_setitem",
+            "operations": 100000,
+            "median_seconds": 0.05617920000804588,
+            "samples_seconds": [
+              0.056540099991252646,
+              0.05617920000804588,
+              0.055427500017685816
+            ]
+          }
+        ]
+      },
+      "stderr": ""
+    },
+    {
+      "pair": 2,
+      "order": [
+        1,
+        0
+      ],
+      "runtime": 1,
+      "result": {
+        "diagnostic_only": true,
+        "records": [
+          {
+            "case": "array_getitem",
+            "operations": 100000,
+            "median_seconds": 0.019728600018424913,
+            "samples_seconds": [
+              0.01957370000309311,
+              0.020464300003368407,
+              0.019728600018424913
+            ]
+          },
+          {
+            "case": "array_saved_getitem",
+            "operations": 100000,
+            "median_seconds": 0.025120200007222593,
+            "samples_seconds": [
+              0.025120200007222593,
+              0.024907499988330528,
+              0.026315299997804686
+            ]
+          },
+          {
+            "case": "list_getitem",
+            "operations": 100000,
+            "median_seconds": 0.012432599993189797,
+            "samples_seconds": [
+              0.012432599993189797,
+              0.01240549999056384,
+              0.013006699999095872
+            ]
+          },
+          {
+            "case": "array_setitem",
+            "operations": 100000,
+            "median_seconds": 0.016941500012762845,
+            "samples_seconds": [
+              0.016941500012762845,
+              0.0168441999994684,
+              0.017151899985037744
+            ]
+          },
+          {
+            "case": "array_saved_setitem",
+            "operations": 100000,
+            "median_seconds": 0.024423900002148002,
+            "samples_seconds": [
+              0.0253235999844037,
+              0.023958000005222857,
+              0.024423900002148002
+            ]
+          },
+          {
+            "case": "list_setitem",
+            "operations": 100000,
+            "median_seconds": 0.009574999974574894,
+            "samples_seconds": [
+              0.009368899976834655,
+              0.009574999974574894,
+              0.011893500020960346
+            ]
+          },
+          {
+            "case": "python_getitem",
+            "operations": 100000,
+            "median_seconds": 0.054899899987503886,
+            "samples_seconds": [
+              0.05806969999684952,
+              0.054899899987503886,
+              0.05452549998881295
+            ]
+          },
+          {
+            "case": "python_saved_getitem",
+            "operations": 100000,
+            "median_seconds": 0.057251299993367866,
+            "samples_seconds": [
+              0.058347899990621954,
+              0.057251299993367866,
+              0.05368169999564998
+            ]
+          },
+          {
+            "case": "python_setitem",
+            "operations": 100000,
+            "median_seconds": 0.05714409999200143,
+            "samples_seconds": [
+              0.05714409999200143,
+              0.05565490000299178,
+              0.057855699997162446
+            ]
+          },
+          {
+            "case": "python_saved_setitem",
+            "operations": 100000,
+            "median_seconds": 0.05580199998803437,
+            "samples_seconds": [
+              0.058009799977298826,
+              0.05580199998803437,
+              0.05450189998373389
+            ]
+          }
+        ]
+      },
+      "stderr": ""
+    },
+    {
+      "pair": 2,
+      "order": [
+        1,
+        0
+      ],
+      "runtime": 0,
+      "result": {
+        "diagnostic_only": true,
+        "records": [
+          {
+            "case": "array_getitem",
+            "operations": 100000,
+            "median_seconds": 0.04314679998788051,
+            "samples_seconds": [
+              0.04156320000765845,
+              0.04314679998788051,
+              0.044017599982907996
+            ]
+          },
+          {
+            "case": "array_saved_getitem",
+            "operations": 100000,
+            "median_seconds": 0.02534419999574311,
+            "samples_seconds": [
+              0.0269191000261344,
+              0.024634000001242384,
+              0.02534419999574311
+            ]
+          },
+          {
+            "case": "list_getitem",
+            "operations": 100000,
+            "median_seconds": 0.011886299995239824,
+            "samples_seconds": [
+              0.01264979998813942,
+              0.011886299995239824,
+              0.01167360000545159
+            ]
+          },
+          {
+            "case": "array_setitem",
+            "operations": 100000,
+            "median_seconds": 0.0481939000019338,
+            "samples_seconds": [
+              0.047939499985659495,
+              0.0481939000019338,
+              0.04892679999466054
+            ]
+          },
+          {
+            "case": "array_saved_setitem",
+            "operations": 100000,
+            "median_seconds": 0.023727599997073412,
+            "samples_seconds": [
+              0.02305230000638403,
+              0.02394699997967109,
+              0.023727599997073412
+            ]
+          },
+          {
+            "case": "list_setitem",
+            "operations": 100000,
+            "median_seconds": 0.009182399982819334,
+            "samples_seconds": [
+              0.009395900007802993,
+              0.009048700012499467,
+              0.009182399982819334
+            ]
+          },
+          {
+            "case": "python_getitem",
+            "operations": 100000,
+            "median_seconds": 0.08129470000858419,
+            "samples_seconds": [
+              0.08060820001992397,
+              0.08129470000858419,
+              0.0836033999803476
+            ]
+          },
+          {
+            "case": "python_saved_getitem",
+            "operations": 100000,
+            "median_seconds": 0.08074929998838343,
+            "samples_seconds": [
+              0.07903220001026057,
+              0.08074929998838343,
+              0.08151129999896511
+            ]
+          },
+          {
+            "case": "python_setitem",
+            "operations": 100000,
+            "median_seconds": 0.18468840001150966,
+            "samples_seconds": [
+              0.18468840001150966,
+              0.1877958000113722,
+              0.18089529999997467
+            ]
+          },
+          {
+            "case": "python_saved_setitem",
+            "operations": 100000,
+            "median_seconds": 0.08533279999392107,
+            "samples_seconds": [
+              0.09046580002177507,
+              0.08533279999392107,
+              0.08329070001491345
+            ]
+          }
+        ]
+      },
+      "stderr": ""
+    },
+    {
+      "pair": 3,
+      "order": [
+        0,
+        1
+      ],
+      "runtime": 0,
+      "result": {
+        "diagnostic_only": true,
+        "records": [
+          {
+            "case": "array_getitem",
+            "operations": 100000,
+            "median_seconds": 0.03841780000948347,
+            "samples_seconds": [
+              0.03767089999746531,
+              0.03841780000948347,
+              0.039203999971505255
+            ]
+          },
+          {
+            "case": "array_saved_getitem",
+            "operations": 100000,
+            "median_seconds": 0.025619199994252995,
+            "samples_seconds": [
+              0.025619199994252995,
+              0.026457800006028265,
+              0.02427170000737533
+            ]
+          },
+          {
+            "case": "list_getitem",
+            "operations": 100000,
+            "median_seconds": 0.015228300006128848,
+            "samples_seconds": [
+              0.01938379998318851,
+              0.015228300006128848,
+              0.013361699995584786
+            ]
+          },
+          {
+            "case": "array_setitem",
+            "operations": 100000,
+            "median_seconds": 0.051800600020214915,
+            "samples_seconds": [
+              0.051800600020214915,
+              0.05213639998692088,
+              0.04913899998064153
+            ]
+          },
+          {
+            "case": "array_saved_setitem",
+            "operations": 100000,
+            "median_seconds": 0.024211299984017387,
+            "samples_seconds": [
+              0.024599599972134456,
+              0.024211299984017387,
+              0.023130399989895523
+            ]
+          },
+          {
+            "case": "list_setitem",
+            "operations": 100000,
+            "median_seconds": 0.009517200000118464,
+            "samples_seconds": [
+              0.008761700009927154,
+              0.009517200000118464,
+              0.010643299989169464
+            ]
+          },
+          {
+            "case": "python_getitem",
+            "operations": 100000,
+            "median_seconds": 0.07504360002349131,
+            "samples_seconds": [
+              0.07504360002349131,
+              0.07651549999718554,
+              0.07350359999691136
+            ]
+          },
+          {
+            "case": "python_saved_getitem",
+            "operations": 100000,
+            "median_seconds": 0.09353109999210574,
+            "samples_seconds": [
+              0.09353109999210574,
+              0.09991739998804405,
+              0.0902815000154078
+            ]
+          },
+          {
+            "case": "python_setitem",
+            "operations": 100000,
+            "median_seconds": 0.20989140000892803,
+            "samples_seconds": [
+              0.20989140000892803,
+              0.21251010001287796,
+              0.20279340000706725
+            ]
+          },
+          {
+            "case": "python_saved_setitem",
+            "operations": 100000,
+            "median_seconds": 0.09356060001300648,
+            "samples_seconds": [
+              0.09356060001300648,
+              0.09405499999411404,
+              0.09261279998463579
+            ]
+          }
+        ]
+      },
+      "stderr": ""
+    },
+    {
+      "pair": 3,
+      "order": [
+        0,
+        1
+      ],
+      "runtime": 1,
+      "result": {
+        "diagnostic_only": true,
+        "records": [
+          {
+            "case": "array_getitem",
+            "operations": 100000,
+            "median_seconds": 0.019484299991745502,
+            "samples_seconds": [
+              0.019795200001681224,
+              0.019484299991745502,
+              0.01910840001073666
+            ]
+          },
+          {
+            "case": "array_saved_getitem",
+            "operations": 100000,
+            "median_seconds": 0.02182569997967221,
+            "samples_seconds": [
+              0.027524700009962544,
+              0.02182569997967221,
+              0.02167280000867322
+            ]
+          },
+          {
+            "case": "list_getitem",
+            "operations": 100000,
+            "median_seconds": 0.010114099975908175,
+            "samples_seconds": [
+              0.01001570001244545,
+              0.010114099975908175,
+              0.010339200001908466
+            ]
+          },
+          {
+            "case": "array_setitem",
+            "operations": 100000,
+            "median_seconds": 0.015060999983688816,
+            "samples_seconds": [
+              0.016196299984585494,
+              0.015060999983688816,
+              0.014341700007207692
+            ]
+          },
+          {
+            "case": "array_saved_setitem",
+            "operations": 100000,
+            "median_seconds": 0.021080000005895272,
+            "samples_seconds": [
+              0.02070980001008138,
+              0.021080000005895272,
+              0.023104399995645508
+            ]
+          },
+          {
+            "case": "list_setitem",
+            "operations": 100000,
+            "median_seconds": 0.010464999999385327,
+            "samples_seconds": [
+              0.010464999999385327,
+              0.010278900008415803,
+              0.01066319999517873
+            ]
+          },
+          {
+            "case": "python_getitem",
+            "operations": 100000,
+            "median_seconds": 0.054338500020094216,
+            "samples_seconds": [
+              0.05969369999365881,
+              0.05368020001333207,
+              0.054338500020094216
+            ]
+          },
+          {
+            "case": "python_saved_getitem",
+            "operations": 100000,
+            "median_seconds": 0.054671999998390675,
+            "samples_seconds": [
+              0.05661790000158362,
+              0.054671999998390675,
+              0.05189199998858385
+            ]
+          },
+          {
+            "case": "python_setitem",
+            "operations": 100000,
+            "median_seconds": 0.05117319998680614,
+            "samples_seconds": [
+              0.05620639998232946,
+              0.05117319998680614,
+              0.05108410000684671
+            ]
+          },
+          {
+            "case": "python_saved_setitem",
+            "operations": 100000,
+            "median_seconds": 0.05899019999196753,
+            "samples_seconds": [
+              0.05899019999196753,
+              0.0590745999943465,
+              0.05824759998358786
+            ]
+          }
+        ]
+      },
+      "stderr": ""
+    },
+    {
+      "pair": 3,
+      "order": [
+        1,
+        0
+      ],
+      "runtime": 1,
+      "result": {
+        "diagnostic_only": true,
+        "records": [
+          {
+            "case": "array_getitem",
+            "operations": 100000,
+            "median_seconds": 0.01874070000485517,
+            "samples_seconds": [
+              0.01874070000485517,
+              0.01768150000134483,
+              0.018950600002426654
+            ]
+          },
+          {
+            "case": "array_saved_getitem",
+            "operations": 100000,
+            "median_seconds": 0.025556600012350827,
+            "samples_seconds": [
+              0.025556600012350827,
+              0.0263414999935776,
+              0.024449899996398017
+            ]
+          },
+          {
+            "case": "list_getitem",
+            "operations": 100000,
+            "median_seconds": 0.011770499986596406,
+            "samples_seconds": [
+              0.011821299995062873,
+              0.011770499986596406,
+              0.010896399995544925
+            ]
+          },
+          {
+            "case": "array_setitem",
+            "operations": 100000,
+            "median_seconds": 0.017127899976912886,
+            "samples_seconds": [
+              0.0160160000086762,
+              0.017127899976912886,
+              0.018128399999113753
+            ]
+          },
+          {
+            "case": "array_saved_setitem",
+            "operations": 100000,
+            "median_seconds": 0.024920399999246,
+            "samples_seconds": [
+              0.022608699975535274,
+              0.025568699988070875,
+              0.024920399999246
+            ]
+          },
+          {
+            "case": "list_setitem",
+            "operations": 100000,
+            "median_seconds": 0.011303500010399148,
+            "samples_seconds": [
+              0.011303500010399148,
+              0.011144899995997548,
+              0.011338900018017739
+            ]
+          },
+          {
+            "case": "python_getitem",
+            "operations": 100000,
+            "median_seconds": 0.05638949997955933,
+            "samples_seconds": [
+              0.05651379999471828,
+              0.05638949997955933,
+              0.055099899997003376
+            ]
+          },
+          {
+            "case": "python_saved_getitem",
+            "operations": 100000,
+            "median_seconds": 0.05499239999335259,
+            "samples_seconds": [
+              0.05760030000237748,
+              0.053341399994678795,
+              0.05499239999335259
+            ]
+          },
+          {
+            "case": "python_setitem",
+            "operations": 100000,
+            "median_seconds": 0.05868779998854734,
+            "samples_seconds": [
+              0.054617100016912445,
+              0.05868779998854734,
+              0.09638250002171844
+            ]
+          },
+          {
+            "case": "python_saved_setitem",
+            "operations": 100000,
+            "median_seconds": 0.05637029997888021,
+            "samples_seconds": [
+              0.05637029997888021,
+              0.05492019999655895,
+              0.05637240002397448
+            ]
+          }
+        ]
+      },
+      "stderr": ""
+    },
+    {
+      "pair": 3,
+      "order": [
+        1,
+        0
+      ],
+      "runtime": 0,
+      "result": {
+        "diagnostic_only": true,
+        "records": [
+          {
+            "case": "array_getitem",
+            "operations": 100000,
+            "median_seconds": 0.042739099997561425,
+            "samples_seconds": [
+              0.042739099997561425,
+              0.044133099989267066,
+              0.042626299982657656
+            ]
+          },
+          {
+            "case": "array_saved_getitem",
+            "operations": 100000,
+            "median_seconds": 0.025697900011437014,
+            "samples_seconds": [
+              0.02250869999988936,
+              0.026899199991021305,
+              0.025697900011437014
+            ]
+          },
+          {
+            "case": "list_getitem",
+            "operations": 100000,
+            "median_seconds": 0.012654199992539361,
+            "samples_seconds": [
+              0.012113300006603822,
+              0.012958800012711436,
+              0.012654199992539361
+            ]
+          },
+          {
+            "case": "array_setitem",
+            "operations": 100000,
+            "median_seconds": 0.047644599981140345,
+            "samples_seconds": [
+              0.04922509999596514,
+              0.04545509998570196,
+              0.047644599981140345
+            ]
+          },
+          {
+            "case": "array_saved_setitem",
+            "operations": 100000,
+            "median_seconds": 0.024082400021143258,
+            "samples_seconds": [
+              0.02541249999194406,
+              0.023783899989211932,
+              0.024082400021143258
+            ]
+          },
+          {
+            "case": "list_setitem",
+            "operations": 100000,
+            "median_seconds": 0.009517200000118464,
+            "samples_seconds": [
+              0.00939930000458844,
+              0.009517200000118464,
+              0.009581899998011068
+            ]
+          },
+          {
+            "case": "python_getitem",
+            "operations": 100000,
+            "median_seconds": 0.08369169998331927,
+            "samples_seconds": [
+              0.08369169998331927,
+              0.08450269998866133,
+              0.08140809999895282
+            ]
+          },
+          {
+            "case": "python_saved_getitem",
+            "operations": 100000,
+            "median_seconds": 0.08338289998937398,
+            "samples_seconds": [
+              0.08406570000806823,
+              0.08338289998937398,
+              0.07934670001850463
+            ]
+          },
+          {
+            "case": "python_setitem",
+            "operations": 100000,
+            "median_seconds": 0.1894490999984555,
+            "samples_seconds": [
+              0.1954089000064414,
+              0.18756730001769029,
+              0.1894490999984555
+            ]
+          },
+          {
+            "case": "python_saved_setitem",
+            "operations": 100000,
+            "median_seconds": 0.11068699997849762,
+            "samples_seconds": [
+              0.09068229998229071,
+              0.11068699997849762,
+              0.12197330000344664
+            ]
+          }
+        ]
+      },
+      "stderr": ""
+    },
+    {
+      "pair": 4,
+      "order": [
+        0,
+        1
+      ],
+      "runtime": 0,
+      "result": {
+        "diagnostic_only": true,
+        "records": [
+          {
+            "case": "array_getitem",
+            "operations": 100000,
+            "median_seconds": 0.04371800000080839,
+            "samples_seconds": [
+              0.04371800000080839,
+              0.042668000009143725,
+              0.044131800008472055
+            ]
+          },
+          {
+            "case": "array_saved_getitem",
+            "operations": 100000,
+            "median_seconds": 0.026518699974985793,
+            "samples_seconds": [
+              0.02554890001192689,
+              0.026518699974985793,
+              0.026799999992363155
+            ]
+          },
+          {
+            "case": "list_getitem",
+            "operations": 100000,
+            "median_seconds": 0.0127210000064224,
+            "samples_seconds": [
+              0.012613600003533065,
+              0.012926399998832494,
+              0.0127210000064224
+            ]
+          },
+          {
+            "case": "array_setitem",
+            "operations": 100000,
+            "median_seconds": 0.051067200023680925,
+            "samples_seconds": [
+              0.051067200023680925,
+              0.05184469997766428,
+              0.04896310000913218
+            ]
+          },
+          {
+            "case": "array_saved_setitem",
+            "operations": 100000,
+            "median_seconds": 0.023171799984993413,
+            "samples_seconds": [
+              0.023353399999905378,
+              0.023171799984993413,
+              0.02244790000258945
+            ]
+          },
+          {
+            "case": "list_setitem",
+            "operations": 100000,
+            "median_seconds": 0.008539500006008893,
+            "samples_seconds": [
+              0.009496600017882884,
+              0.008539500006008893,
+              0.00830279997899197
+            ]
+          },
+          {
+            "case": "python_getitem",
+            "operations": 100000,
+            "median_seconds": 0.08334459998877719,
+            "samples_seconds": [
+              0.08341310001560487,
+              0.08334459998877719,
+              0.07678339999984019
+            ]
+          },
+          {
+            "case": "python_saved_getitem",
+            "operations": 100000,
+            "median_seconds": 0.07928460001130588,
+            "samples_seconds": [
+              0.07166890002554283,
+              0.07928460001130588,
+              0.082342100009555
+            ]
+          },
+          {
+            "case": "python_setitem",
+            "operations": 100000,
+            "median_seconds": 0.17486930001177825,
+            "samples_seconds": [
+              0.18963919999077916,
+              0.17270289998850785,
+              0.17486930001177825
+            ]
+          },
+          {
+            "case": "python_saved_setitem",
+            "operations": 100000,
+            "median_seconds": 0.08863929999643005,
+            "samples_seconds": [
+              0.08922190000885166,
+              0.08863929999643005,
+              0.08477799998945557
+            ]
+          }
+        ]
+      },
+      "stderr": ""
+    },
+    {
+      "pair": 4,
+      "order": [
+        0,
+        1
+      ],
+      "runtime": 1,
+      "result": {
+        "diagnostic_only": true,
+        "records": [
+          {
+            "case": "array_getitem",
+            "operations": 100000,
+            "median_seconds": 0.019255399995017797,
+            "samples_seconds": [
+              0.019353400013642386,
+              0.019255399995017797,
+              0.019204799988074228
+            ]
+          },
+          {
+            "case": "array_saved_getitem",
+            "operations": 100000,
+            "median_seconds": 0.026542400009930134,
+            "samples_seconds": [
+              0.02672069999971427,
+              0.026323099998990074,
+              0.026542400009930134
+            ]
+          },
+          {
+            "case": "list_getitem",
+            "operations": 100000,
+            "median_seconds": 0.010347000003093854,
+            "samples_seconds": [
+              0.012204500002553686,
+              0.010251700005028397,
+              0.010347000003093854
+            ]
+          },
+          {
+            "case": "array_setitem",
+            "operations": 100000,
+            "median_seconds": 0.014630699995905161,
+            "samples_seconds": [
+              0.01429739999002777,
+              0.014630699995905161,
+              0.015071400004671887
+            ]
+          },
+          {
+            "case": "array_saved_setitem",
+            "operations": 100000,
+            "median_seconds": 0.022303800011286512,
+            "samples_seconds": [
+              0.022020599979441613,
+              0.022303800011286512,
+              0.02542150000226684
+            ]
+          },
+          {
+            "case": "list_setitem",
+            "operations": 100000,
+            "median_seconds": 0.010949399991659448,
+            "samples_seconds": [
+              0.01092540001263842,
+              0.010949399991659448,
+              0.010955699981423095
+            ]
+          },
+          {
+            "case": "python_getitem",
+            "operations": 100000,
+            "median_seconds": 0.05044720001751557,
+            "samples_seconds": [
+              0.05708970001433045,
+              0.05044720001751557,
+              0.049541299988050014
+            ]
+          },
+          {
+            "case": "python_saved_getitem",
+            "operations": 100000,
+            "median_seconds": 0.05463969998527318,
+            "samples_seconds": [
+              0.05463969998527318,
+              0.055487000005086884,
+              0.053986100014299154
+            ]
+          },
+          {
+            "case": "python_setitem",
+            "operations": 100000,
+            "median_seconds": 0.05927800000063144,
+            "samples_seconds": [
+              0.059310999989975244,
+              0.05927800000063144,
+              0.05860459999530576
+            ]
+          },
+          {
+            "case": "python_saved_setitem",
+            "operations": 100000,
+            "median_seconds": 0.04976520000491291,
+            "samples_seconds": [
+              0.05140580001170747,
+              0.04845979998935945,
+              0.04976520000491291
+            ]
+          }
+        ]
+      },
+      "stderr": ""
+    },
+    {
+      "pair": 4,
+      "order": [
+        1,
+        0
+      ],
+      "runtime": 1,
+      "result": {
+        "diagnostic_only": true,
+        "records": [
+          {
+            "case": "array_getitem",
+            "operations": 100000,
+            "median_seconds": 0.015618400007952005,
+            "samples_seconds": [
+              0.015618400007952005,
+              0.015521900000749156,
+              0.01564299999154173
+            ]
+          },
+          {
+            "case": "array_saved_getitem",
+            "operations": 100000,
+            "median_seconds": 0.022728600015398115,
+            "samples_seconds": [
+              0.02207459998317063,
+              0.022728600015398115,
+              0.02394730001105927
+            ]
+          },
+          {
+            "case": "list_getitem",
+            "operations": 100000,
+            "median_seconds": 0.013752600003499538,
+            "samples_seconds": [
+              0.013752600003499538,
+              0.014047500008018687,
+              0.013635899988003075
+            ]
+          },
+          {
+            "case": "array_setitem",
+            "operations": 100000,
+            "median_seconds": 0.015631599992047995,
+            "samples_seconds": [
+              0.015631599992047995,
+              0.01518199997371994,
+              0.015769499994348735
+            ]
+          },
+          {
+            "case": "array_saved_setitem",
+            "operations": 100000,
+            "median_seconds": 0.025734900002134964,
+            "samples_seconds": [
+              0.026214700017590076,
+              0.025734900002134964,
+              0.025627800001529977
+            ]
+          },
+          {
+            "case": "list_setitem",
+            "operations": 100000,
+            "median_seconds": 0.010226699989289045,
+            "samples_seconds": [
+              0.009809100010897964,
+              0.010226699989289045,
+              0.010435400006826967
+            ]
+          },
+          {
+            "case": "python_getitem",
+            "operations": 100000,
+            "median_seconds": 0.05365310001070611,
+            "samples_seconds": [
+              0.05020140000851825,
+              0.05781030000071041,
+              0.05365310001070611
+            ]
+          },
+          {
+            "case": "python_saved_getitem",
+            "operations": 100000,
+            "median_seconds": 0.05829660000745207,
+            "samples_seconds": [
+              0.057064900000113994,
+              0.05967749998671934,
+              0.05829660000745207
+            ]
+          },
+          {
+            "case": "python_setitem",
+            "operations": 100000,
+            "median_seconds": 0.05825500001083128,
+            "samples_seconds": [
+              0.057396799995331094,
+              0.05825500001083128,
+              0.0585416000103578
+            ]
+          },
+          {
+            "case": "python_saved_setitem",
+            "operations": 100000,
+            "median_seconds": 0.05684910001582466,
+            "samples_seconds": [
+              0.05684910001582466,
+              0.05852439999580383,
+              0.056234999996377155
+            ]
+          }
+        ]
+      },
+      "stderr": ""
+    },
+    {
+      "pair": 4,
+      "order": [
+        1,
+        0
+      ],
+      "runtime": 0,
+      "result": {
+        "diagnostic_only": true,
+        "records": [
+          {
+            "case": "array_getitem",
+            "operations": 100000,
+            "median_seconds": 0.04487370001152158,
+            "samples_seconds": [
+              0.04390560000319965,
+              0.04490479998639785,
+              0.04487370001152158
+            ]
+          },
+          {
+            "case": "array_saved_getitem",
+            "operations": 100000,
+            "median_seconds": 0.025006799987750128,
+            "samples_seconds": [
+              0.024753499979851767,
+              0.025006799987750128,
+              0.025723900005687028
+            ]
+          },
+          {
+            "case": "list_getitem",
+            "operations": 100000,
+            "median_seconds": 0.012625300005311146,
+            "samples_seconds": [
+              0.012499500007834285,
+              0.012625300005311146,
+              0.012780800025211647
+            ]
+          },
+          {
+            "case": "array_setitem",
+            "operations": 100000,
+            "median_seconds": 0.050310200022067875,
+            "samples_seconds": [
+              0.05018600000767037,
+              0.05306410000775941,
+              0.050310200022067875
+            ]
+          },
+          {
+            "case": "array_saved_setitem",
+            "operations": 100000,
+            "median_seconds": 0.025558900000760332,
+            "samples_seconds": [
+              0.021876899991184473,
+              0.026373300002887845,
+              0.025558900000760332
+            ]
+          },
+          {
+            "case": "list_setitem",
+            "operations": 100000,
+            "median_seconds": 0.009767500014277175,
+            "samples_seconds": [
+              0.009635200025513768,
+              0.009767500014277175,
+              0.010078199993586168
+            ]
+          },
+          {
+            "case": "python_getitem",
+            "operations": 100000,
+            "median_seconds": 0.08190109999850392,
+            "samples_seconds": [
+              0.07862310000928119,
+              0.08190109999850392,
+              0.08354270001291297
+            ]
+          },
+          {
+            "case": "python_saved_getitem",
+            "operations": 100000,
+            "median_seconds": 0.08297590000438504,
+            "samples_seconds": [
+              0.08297590000438504,
+              0.08379509998485446,
+              0.08190580000518821
+            ]
+          },
+          {
+            "case": "python_setitem",
+            "operations": 100000,
+            "median_seconds": 0.19205589999910444,
+            "samples_seconds": [
+              0.20492859999649227,
+              0.19205589999910444,
+              0.19195189999300055
+            ]
+          },
+          {
+            "case": "python_saved_setitem",
+            "operations": 100000,
+            "median_seconds": 0.09019269997952506,
+            "samples_seconds": [
+              0.09019269997952506,
+              0.09032529999967664,
+              0.08968520001508296
+            ]
+          }
+        ]
+      },
+      "stderr": ""
+    },
+    {
+      "pair": 5,
+      "order": [
+        0,
+        1
+      ],
+      "runtime": 0,
+      "result": {
+        "diagnostic_only": true,
+        "records": [
+          {
+            "case": "array_getitem",
+            "operations": 100000,
+            "median_seconds": 0.043720000016037375,
+            "samples_seconds": [
+              0.043800000014016405,
+              0.043019200005801395,
+              0.043720000016037375
+            ]
+          },
+          {
+            "case": "array_saved_getitem",
+            "operations": 100000,
+            "median_seconds": 0.02658430000883527,
+            "samples_seconds": [
+              0.02658430000883527,
+              0.0259105000004638,
+              0.026607900013914332
+            ]
+          },
+          {
+            "case": "list_getitem",
+            "operations": 100000,
+            "median_seconds": 0.012023899995256215,
+            "samples_seconds": [
+              0.012967999995453283,
+              0.012023899995256215,
+              0.011174899991601706
+            ]
+          },
+          {
+            "case": "array_setitem",
+            "operations": 100000,
+            "median_seconds": 0.0496514999831561,
+            "samples_seconds": [
+              0.0496514999831561,
+              0.047395800007507205,
+              0.04997900000307709
+            ]
+          },
+          {
+            "case": "array_saved_setitem",
+            "operations": 100000,
+            "median_seconds": 0.02507039997726679,
+            "samples_seconds": [
+              0.025243999989470467,
+              0.024512500007404014,
+              0.02507039997726679
+            ]
+          },
+          {
+            "case": "list_setitem",
+            "operations": 100000,
+            "median_seconds": 0.009170300007099286,
+            "samples_seconds": [
+              0.009170300007099286,
+              0.008613399986643344,
+              0.009989300015149638
+            ]
+          },
+          {
+            "case": "python_getitem",
+            "operations": 100000,
+            "median_seconds": 0.08053270002710633,
+            "samples_seconds": [
+              0.0828406999935396,
+              0.08053270002710633,
+              0.07979960000375286
+            ]
+          },
+          {
+            "case": "python_saved_getitem",
+            "operations": 100000,
+            "median_seconds": 0.08298170001944527,
+            "samples_seconds": [
+              0.08298170001944527,
+              0.08066500001586974,
+              0.08318960000178777
+            ]
+          },
+          {
+            "case": "python_setitem",
+            "operations": 100000,
+            "median_seconds": 0.1910626000026241,
+            "samples_seconds": [
+              0.19011860000318848,
+              0.1910626000026241,
+              0.19488940000883304
+            ]
+          },
+          {
+            "case": "python_saved_setitem",
+            "operations": 100000,
+            "median_seconds": 0.0886459999892395,
+            "samples_seconds": [
+              0.0882454999955371,
+              0.0909424000128638,
+              0.0886459999892395
+            ]
+          }
+        ]
+      },
+      "stderr": ""
+    },
+    {
+      "pair": 5,
+      "order": [
+        0,
+        1
+      ],
+      "runtime": 1,
+      "result": {
+        "diagnostic_only": true,
+        "records": [
+          {
+            "case": "array_getitem",
+            "operations": 100000,
+            "median_seconds": 0.019960700010415167,
+            "samples_seconds": [
+              0.019209799997042865,
+              0.019960700010415167,
+              0.02014819998294115
+            ]
+          },
+          {
+            "case": "array_saved_getitem",
+            "operations": 100000,
+            "median_seconds": 0.02645840001059696,
+            "samples_seconds": [
+              0.02645840001059696,
+              0.027053399971919134,
+              0.02615449999575503
+            ]
+          },
+          {
+            "case": "list_getitem",
+            "operations": 100000,
+            "median_seconds": 0.01239359998726286,
+            "samples_seconds": [
+              0.01239359998726286,
+              0.012753299990436062,
+              0.011561300023458898
+            ]
+          },
+          {
+            "case": "array_setitem",
+            "operations": 100000,
+            "median_seconds": 0.016646300005959347,
+            "samples_seconds": [
+              0.01712000000406988,
+              0.016619500005617738,
+              0.016646300005959347
+            ]
+          },
+          {
+            "case": "array_saved_setitem",
+            "operations": 100000,
+            "median_seconds": 0.025887299998430535,
+            "samples_seconds": [
+              0.02360069999122061,
+              0.025887299998430535,
+              0.02667920000385493
+            ]
+          },
+          {
+            "case": "list_setitem",
+            "operations": 100000,
+            "median_seconds": 0.010150000016437843,
+            "samples_seconds": [
+              0.010120100021595135,
+              0.010150000016437843,
+              0.01049109999439679
+            ]
+          },
+          {
+            "case": "python_getitem",
+            "operations": 100000,
+            "median_seconds": 0.057499100017594174,
+            "samples_seconds": [
+              0.057499100017594174,
+              0.054500099999131635,
+              0.057556499989004806
+            ]
+          },
+          {
+            "case": "python_saved_getitem",
+            "operations": 100000,
+            "median_seconds": 0.05583169998135418,
+            "samples_seconds": [
+              0.05583169998135418,
+              0.05633369999122806,
+              0.048191600013524294
+            ]
+          },
+          {
+            "case": "python_setitem",
+            "operations": 100000,
+            "median_seconds": 0.056115000013960525,
+            "samples_seconds": [
+              0.056115000013960525,
+              0.053614000004017726,
+              0.05691399998613633
+            ]
+          },
+          {
+            "case": "python_saved_setitem",
+            "operations": 100000,
+            "median_seconds": 0.05071350000798702,
+            "samples_seconds": [
+              0.06155429998761974,
+              0.05071350000798702,
+              0.046134699980029836
+            ]
+          }
+        ]
+      },
+      "stderr": ""
+    },
+    {
+      "pair": 5,
+      "order": [
+        1,
+        0
+      ],
+      "runtime": 1,
+      "result": {
+        "diagnostic_only": true,
+        "records": [
+          {
+            "case": "array_getitem",
+            "operations": 100000,
+            "median_seconds": 0.018872199987526983,
+            "samples_seconds": [
+              0.015182799979811534,
+              0.018872199987526983,
+              0.020433099998626858
+            ]
+          },
+          {
+            "case": "array_saved_getitem",
+            "operations": 100000,
+            "median_seconds": 0.024079399998299778,
+            "samples_seconds": [
+              0.026037000003270805,
+              0.023622999986400828,
+              0.024079399998299778
+            ]
+          },
+          {
+            "case": "list_getitem",
+            "operations": 100000,
+            "median_seconds": 0.010490399989066646,
+            "samples_seconds": [
+              0.010490399989066646,
+              0.010272300016367808,
+              0.011256699974182993
+            ]
+          },
+          {
+            "case": "array_setitem",
+            "operations": 100000,
+            "median_seconds": 0.016943100024946034,
+            "samples_seconds": [
+              0.017416899994714186,
+              0.016943100024946034,
+              0.015878800011705607
+            ]
+          },
+          {
+            "case": "array_saved_setitem",
+            "operations": 100000,
+            "median_seconds": 0.023997799988137558,
+            "samples_seconds": [
+              0.023997799988137558,
+              0.02368809998733923,
+              0.02585559998988174
+            ]
+          },
+          {
+            "case": "list_setitem",
+            "operations": 100000,
+            "median_seconds": 0.009455299994442612,
+            "samples_seconds": [
+              0.009463800000958145,
+              0.009300800011260435,
+              0.009455299994442612
+            ]
+          },
+          {
+            "case": "python_getitem",
+            "operations": 100000,
+            "median_seconds": 0.05166650001774542,
+            "samples_seconds": [
+              0.05381579999811947,
+              0.05166650001774542,
+              0.04666150000412017
+            ]
+          },
+          {
+            "case": "python_saved_getitem",
+            "operations": 100000,
+            "median_seconds": 0.05536339999525808,
+            "samples_seconds": [
+              0.05106820000219159,
+              0.05536339999525808,
+              0.05781100000604056
+            ]
+          },
+          {
+            "case": "python_setitem",
+            "operations": 100000,
+            "median_seconds": 0.055916400015121326,
+            "samples_seconds": [
+              0.0558385000040289,
+              0.055916400015121326,
+              0.05938160000368953
+            ]
+          },
+          {
+            "case": "python_saved_setitem",
+            "operations": 100000,
+            "median_seconds": 0.05394720000913367,
+            "samples_seconds": [
+              0.05418109998572618,
+              0.05394720000913367,
+              0.05255600000964478
+            ]
+          }
+        ]
+      },
+      "stderr": ""
+    },
+    {
+      "pair": 5,
+      "order": [
+        1,
+        0
+      ],
+      "runtime": 0,
+      "result": {
+        "diagnostic_only": true,
+        "records": [
+          {
+            "case": "array_getitem",
+            "operations": 100000,
+            "median_seconds": 0.04157580001628958,
+            "samples_seconds": [
+              0.04294529999606311,
+              0.04157580001628958,
+              0.04126389999873936
+            ]
+          },
+          {
+            "case": "array_saved_getitem",
+            "operations": 100000,
+            "median_seconds": 0.026516599988099188,
+            "samples_seconds": [
+              0.026368499995442107,
+              0.027717300021322444,
+              0.026516599988099188
+            ]
+          },
+          {
+            "case": "list_getitem",
+            "operations": 100000,
+            "median_seconds": 0.011919800017494708,
+            "samples_seconds": [
+              0.01085140000213869,
+              0.013109000021358952,
+              0.011919800017494708
+            ]
+          },
+          {
+            "case": "array_setitem",
+            "operations": 100000,
+            "median_seconds": 0.045324700011406094,
+            "samples_seconds": [
+              0.04520640001283027,
+              0.045324700011406094,
+              0.04843470000196248
+            ]
+          },
+          {
+            "case": "array_saved_setitem",
+            "operations": 100000,
+            "median_seconds": 0.024005900020711124,
+            "samples_seconds": [
+              0.025721099984366447,
+              0.024005900020711124,
+              0.022220099985133857
+            ]
+          },
+          {
+            "case": "list_setitem",
+            "operations": 100000,
+            "median_seconds": 0.00915200001327321,
+            "samples_seconds": [
+              0.008909700001822785,
+              0.009361800010083243,
+              0.00915200001327321
+            ]
+          },
+          {
+            "case": "python_getitem",
+            "operations": 100000,
+            "median_seconds": 0.07764239999232814,
+            "samples_seconds": [
+              0.07764239999232814,
+              0.07589480001479387,
+              0.08268259998294525
+            ]
+          },
+          {
+            "case": "python_saved_getitem",
+            "operations": 100000,
+            "median_seconds": 0.07856249998440035,
+            "samples_seconds": [
+              0.0798398999904748,
+              0.0706687000056263,
+              0.07856249998440035
+            ]
+          },
+          {
+            "case": "python_setitem",
+            "operations": 100000,
+            "median_seconds": 0.18629099999088794,
+            "samples_seconds": [
+              0.18629099999088794,
+              0.1832826999889221,
+              0.195274600002449
+            ]
+          },
+          {
+            "case": "python_saved_setitem",
+            "operations": 100000,
+            "median_seconds": 0.07758529999409802,
+            "samples_seconds": [
+              0.08962039998732507,
+              0.07227010000497103,
+              0.07758529999409802
+            ]
+          }
+        ]
+      },
+      "stderr": ""
+    },
+    {
+      "pair": 6,
+      "order": [
+        0,
+        1
+      ],
+      "runtime": 0,
+      "result": {
+        "diagnostic_only": true,
+        "records": [
+          {
+            "case": "array_getitem",
+            "operations": 100000,
+            "median_seconds": 0.04217820000485517,
+            "samples_seconds": [
+              0.04223749999073334,
+              0.04001620001508854,
+              0.04217820000485517
+            ]
+          },
+          {
+            "case": "array_saved_getitem",
+            "operations": 100000,
+            "median_seconds": 0.02409529997385107,
+            "samples_seconds": [
+              0.026595800009090453,
+              0.02409529997385107,
+              0.021446600003400818
+            ]
+          },
+          {
+            "case": "list_getitem",
+            "operations": 100000,
+            "median_seconds": 0.011340900004142895,
+            "samples_seconds": [
+              0.010512600012589246,
+              0.011340900004142895,
+              0.01234610000392422
+            ]
+          },
+          {
+            "case": "array_setitem",
+            "operations": 100000,
+            "median_seconds": 0.04854220000561327,
+            "samples_seconds": [
+              0.050468599976738915,
+              0.04854220000561327,
+              0.0443090999906417
+            ]
+          },
+          {
+            "case": "array_saved_setitem",
+            "operations": 100000,
+            "median_seconds": 0.02206719998503104,
+            "samples_seconds": [
+              0.020546599989756942,
+              0.02206719998503104,
+              0.02428939999663271
+            ]
+          },
+          {
+            "case": "list_setitem",
+            "operations": 100000,
+            "median_seconds": 0.009043899975949898,
+            "samples_seconds": [
+              0.009043899975949898,
+              0.008800000010523945,
+              0.009316099982243031
+            ]
+          },
+          {
+            "case": "python_getitem",
+            "operations": 100000,
+            "median_seconds": 0.07291099999565631,
+            "samples_seconds": [
+              0.072434899979271,
+              0.07291099999565631,
+              0.08233899998595007
+            ]
+          },
+          {
+            "case": "python_saved_getitem",
+            "operations": 100000,
+            "median_seconds": 0.08428149999235757,
+            "samples_seconds": [
+              0.07840769999893382,
+              0.09256950000417419,
+              0.08428149999235757
+            ]
+          },
+          {
+            "case": "python_setitem",
+            "operations": 100000,
+            "median_seconds": 0.17976560001261532,
+            "samples_seconds": [
+              0.17660340000293218,
+              0.17976560001261532,
+              0.18601889998535626
+            ]
+          },
+          {
+            "case": "python_saved_setitem",
+            "operations": 100000,
+            "median_seconds": 0.08976770000299439,
+            "samples_seconds": [
+              0.08778000000165775,
+              0.0908511999878101,
+              0.08976770000299439
+            ]
+          }
+        ]
+      },
+      "stderr": ""
+    },
+    {
+      "pair": 6,
+      "order": [
+        0,
+        1
+      ],
+      "runtime": 1,
+      "result": {
+        "diagnostic_only": true,
+        "records": [
+          {
+            "case": "array_getitem",
+            "operations": 100000,
+            "median_seconds": 0.018657199980225414,
+            "samples_seconds": [
+              0.018430800002533942,
+              0.018657199980225414,
+              0.018817100004525855
+            ]
+          },
+          {
+            "case": "array_saved_getitem",
+            "operations": 100000,
+            "median_seconds": 0.02638299998943694,
+            "samples_seconds": [
+              0.026111500017577782,
+              0.02638299998943694,
+              0.02650460001314059
+            ]
+          },
+          {
+            "case": "list_getitem",
+            "operations": 100000,
+            "median_seconds": 0.01268549999804236,
+            "samples_seconds": [
+              0.013191799982450902,
+              0.01268549999804236,
+              0.012629800010472536
+            ]
+          },
+          {
+            "case": "array_setitem",
+            "operations": 100000,
+            "median_seconds": 0.016455099976155907,
+            "samples_seconds": [
+              0.017649499990511686,
+              0.015747400000691414,
+              0.016455099976155907
+            ]
+          },
+          {
+            "case": "array_saved_setitem",
+            "operations": 100000,
+            "median_seconds": 0.024110500002279878,
+            "samples_seconds": [
+              0.025835400010691956,
+              0.024110500002279878,
+              0.022889999992912635
+            ]
+          },
+          {
+            "case": "list_setitem",
+            "operations": 100000,
+            "median_seconds": 0.009658800001488999,
+            "samples_seconds": [
+              0.01036529999691993,
+              0.009658800001488999,
+              0.008963500004028901
+            ]
+          },
+          {
+            "case": "python_getitem",
+            "operations": 100000,
+            "median_seconds": 0.055777300003683195,
+            "samples_seconds": [
+              0.056316600006539375,
+              0.05555010001990013,
+              0.055777300003683195
+            ]
+          },
+          {
+            "case": "python_saved_getitem",
+            "operations": 100000,
+            "median_seconds": 0.05856000000494532,
+            "samples_seconds": [
+              0.06083449997822754,
+              0.05549490000703372,
+              0.05856000000494532
+            ]
+          },
+          {
+            "case": "python_setitem",
+            "operations": 100000,
+            "median_seconds": 0.0564625000115484,
+            "samples_seconds": [
+              0.0564625000115484,
+              0.057355299999471754,
+              0.05422649998217821
+            ]
+          },
+          {
+            "case": "python_saved_setitem",
+            "operations": 100000,
+            "median_seconds": 0.054950599995208904,
+            "samples_seconds": [
+              0.054950599995208904,
+              0.054362099996069446,
+              0.05603279999922961
+            ]
+          }
+        ]
+      },
+      "stderr": ""
+    },
+    {
+      "pair": 6,
+      "order": [
+        1,
+        0
+      ],
+      "runtime": 1,
+      "result": {
+        "diagnostic_only": true,
+        "records": [
+          {
+            "case": "array_getitem",
+            "operations": 100000,
+            "median_seconds": 0.01908289999119006,
+            "samples_seconds": [
+              0.019328599999425933,
+              0.01908289999119006,
+              0.018829999986337498
+            ]
+          },
+          {
+            "case": "array_saved_getitem",
+            "operations": 100000,
+            "median_seconds": 0.025554399995598942,
+            "samples_seconds": [
+              0.0241632999968715,
+              0.025554399995598942,
+              0.02668519999133423
+            ]
+          },
+          {
+            "case": "list_getitem",
+            "operations": 100000,
+            "median_seconds": 0.012469700013753027,
+            "samples_seconds": [
+              0.012801800010493025,
+              0.012180899997474626,
+              0.012469700013753027
+            ]
+          },
+          {
+            "case": "array_setitem",
+            "operations": 100000,
+            "median_seconds": 0.01716570000280626,
+            "samples_seconds": [
+              0.01716570000280626,
+              0.01728269999148324,
+              0.01714640000136569
+            ]
+          },
+          {
+            "case": "array_saved_setitem",
+            "operations": 100000,
+            "median_seconds": 0.02432510000653565,
+            "samples_seconds": [
+              0.023035499994875863,
+              0.02432510000653565,
+              0.02505560001009144
+            ]
+          },
+          {
+            "case": "list_setitem",
+            "operations": 100000,
+            "median_seconds": 0.010668100003385916,
+            "samples_seconds": [
+              0.010668100003385916,
+              0.010953699995297939,
+              0.01063800000702031
+            ]
+          },
+          {
+            "case": "python_getitem",
+            "operations": 100000,
+            "median_seconds": 0.05668130001868121,
+            "samples_seconds": [
+              0.057678299985127524,
+              0.053169799997704104,
+              0.05668130001868121
+            ]
+          },
+          {
+            "case": "python_saved_getitem",
+            "operations": 100000,
+            "median_seconds": 0.05619560001650825,
+            "samples_seconds": [
+              0.05619560001650825,
+              0.05482630000915378,
+              0.05652879999252036
+            ]
+          },
+          {
+            "case": "python_setitem",
+            "operations": 100000,
+            "median_seconds": 0.055415799986803904,
+            "samples_seconds": [
+              0.055415799986803904,
+              0.05423750000772998,
+              0.05614880000939593
+            ]
+          },
+          {
+            "case": "python_saved_setitem",
+            "operations": 100000,
+            "median_seconds": 0.056236400007037446,
+            "samples_seconds": [
+              0.05718529998557642,
+              0.05575850000604987,
+              0.056236400007037446
+            ]
+          }
+        ]
+      },
+      "stderr": ""
+    },
+    {
+      "pair": 6,
+      "order": [
+        1,
+        0
+      ],
+      "runtime": 0,
+      "result": {
+        "diagnostic_only": true,
+        "records": [
+          {
+            "case": "array_getitem",
+            "operations": 100000,
+            "median_seconds": 0.04072769999038428,
+            "samples_seconds": [
+              0.04056929997750558,
+              0.04072769999038428,
+              0.042242600000463426
+            ]
+          },
+          {
+            "case": "array_saved_getitem",
+            "operations": 100000,
+            "median_seconds": 0.0263072999950964,
+            "samples_seconds": [
+              0.02470879998872988,
+              0.0263072999950964,
+              0.02838319999864325
+            ]
+          },
+          {
+            "case": "list_getitem",
+            "operations": 100000,
+            "median_seconds": 0.012391900003422052,
+            "samples_seconds": [
+              0.012391900003422052,
+              0.012384000001475215,
+              0.012560799979837611
+            ]
+          },
+          {
+            "case": "array_setitem",
+            "operations": 100000,
+            "median_seconds": 0.05005399999208748,
+            "samples_seconds": [
+              0.05029199999989942,
+              0.049927999993087724,
+              0.05005399999208748
+            ]
+          },
+          {
+            "case": "array_saved_setitem",
+            "operations": 100000,
+            "median_seconds": 0.025822199997492135,
+            "samples_seconds": [
+              0.026859400008106604,
+              0.025118199991993606,
+              0.025822199997492135
+            ]
+          },
+          {
+            "case": "list_setitem",
+            "operations": 100000,
+            "median_seconds": 0.010034099977929145,
+            "samples_seconds": [
+              0.010655899997800589,
+              0.010034099977929145,
+              0.009828400012338534
+            ]
+          },
+          {
+            "case": "python_getitem",
+            "operations": 100000,
+            "median_seconds": 0.08095740000135265,
+            "samples_seconds": [
+              0.08056760000181384,
+              0.08095740000135265,
+              0.08417869999539107
+            ]
+          },
+          {
+            "case": "python_saved_getitem",
+            "operations": 100000,
+            "median_seconds": 0.0860899000253994,
+            "samples_seconds": [
+              0.09353519999422133,
+              0.0860899000253994,
+              0.0819162999978289
+            ]
+          },
+          {
+            "case": "python_setitem",
+            "operations": 100000,
+            "median_seconds": 0.20918870001332834,
+            "samples_seconds": [
+              0.20918870001332834,
+              0.19301739998627454,
+              0.21048009998048656
+            ]
+          },
+          {
+            "case": "python_saved_setitem",
+            "operations": 100000,
+            "median_seconds": 0.0828031999990344,
+            "samples_seconds": [
+              0.0829313000140246,
+              0.07667949999449775,
+              0.0828031999990344
+            ]
+          }
+        ]
+      },
+      "stderr": ""
+    }
+  ],
+  "paired_ratios_candidate_over_baseline": {
+    "array_getitem": [
+      0.3707125218579055,
+      0.4465526517973513,
+      0.40056354953381557,
+      0.47100123333053034,
+      0.39364635736887493,
+      0.4552732957921088,
+      0.45521609407270835
+    ],
+    "array_saved_getitem": [
+      0.9275492178234983,
+      1.0430536344629386,
+      0.9637077100119875,
+      0.9233238040880977,
+      0.9562449672678933,
+      0.9517315151308982,
+      1.0304508104152164
+    ],
+    "list_getitem": [
+      0.9654313881783623,
+      0.9924544967002875,
+      1.0345123079774194,
+      0.7848865762951631,
+      0.9508133335215387,
+      0.9557420099710117,
+      1.059933931258724
+    ],
+    "array_setitem": [
+      0.34216792769318527,
+      0.3388813078674361,
+      0.3414602077283928,
+      0.3236848028880532,
+      0.2985113050275172,
+      0.3536612333703446,
+      0.34099488600723155
+    ],
+    "array_saved_setitem": [
+      1.0057741571769543,
+      1.0259199516528246,
+      0.9787161528687158,
+      0.9525134748471475,
+      0.985799506829687,
+      1.016480459786567,
+      1.0114054472699947
+    ],
+    "list_setitem": [
+      1.0300104810241224,
+      1.209273954602771,
+      1.0464522553426474,
+      1.1436399366154706,
+      1.1567214703382949,
+      1.0700239592781144,
+      1.0654628396066192
+    ],
+    "python_getitem": [
+      0.7066120097871844,
+      0.5910208787330887,
+      0.6870871827294672,
+      0.6975638058762149,
+      0.6299728225075402,
+      0.6901566682867706,
+      0.7308752156034019
+    ],
+    "python_saved_getitem": [
+      0.6705365924539789,
+      0.6500922263004262,
+      0.7009680881746004,
+      0.6198740631223278,
+      0.6960184393725157,
+      0.6883261669188074,
+      0.6735614076628658
+    ],
+    "python_setitem": [
+      0.3073920980008919,
+      0.29400168375682595,
+      0.3052771037874473,
+      0.27510608108449364,
+      0.32031869167878574,
+      0.2968870577384396,
+      0.2876386762940785
+    ],
+    "python_saved_setitem": [
+      0.6210571722349333,
+      0.6541043005280976,
+      0.6460954569872074,
+      0.5648071261334101,
+      0.5961701487154,
+      0.6296088644413629,
+      0.64429750323455
+    ]
+  },
+  "sha256_end": [
+    {
+      "exe": "dc18f94d37aa662bb4f1bef4284c79373e784781d74fffe22205937cc5cb82cf",
+      "dll": "b3a5cf5a93afafbd2b462f9edf71db5c5ae258b2d626a8964d772b4487a23553"
+    },
+    {
+      "exe": "dc18f94d37aa662bb4f1bef4284c79373e784781d74fffe22205937cc5cb82cf",
+      "dll": "55125f848a7e7e2966d73b5acbfcd67d0b7c3d5f9e0b6b2a81254b62e277176f"
+    }
+  ],
+  "summary": {
+    "array_getitem": {
+      "median_time_ratio": 0.4465526517973513,
+      "baseline_time_over_candidate": 2.239377587335002
+    },
+    "array_saved_getitem": {
+      "median_time_ratio": 0.9562449672678933,
+      "baseline_time_over_candidate": 1.0457571377940111
+    },
+    "list_getitem": {
+      "median_time_ratio": 0.9654313881783623,
+      "baseline_time_over_candidate": 1.0358063889831302
+    },
+    "array_setitem": {
+      "median_time_ratio": 0.34099488600723155,
+      "baseline_time_over_candidate": 2.9325952999154152
+    },
+    "array_saved_setitem": {
+      "median_time_ratio": 1.0057741571769543,
+      "baseline_time_over_candidate": 0.9942589923038374
+    },
+    "list_setitem": {
+      "median_time_ratio": 1.0700239592781144,
+      "baseline_time_over_candidate": 0.9345585127595127
+    },
+    "python_getitem": {
+      "median_time_ratio": 0.6901566682867706,
+      "baseline_time_over_candidate": 1.4489463710933599
+    },
+    "python_saved_getitem": {
+      "median_time_ratio": 0.6735614076628658,
+      "baseline_time_over_candidate": 1.4846456293715167
+    },
+    "python_setitem": {
+      "median_time_ratio": 0.2968870577384396,
+      "baseline_time_over_candidate": 3.368284247947951
+    },
+    "python_saved_setitem": {
+      "median_time_ratio": 0.6296088644413629,
+      "baseline_time_over_candidate": 1.5882876758529703
+    }
+  },
+  "completed_utc": "2026-10-07T12:02:00.541809+00:00"
+}

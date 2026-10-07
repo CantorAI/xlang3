@@ -99,7 +99,7 @@ XLANG3_VM_FLOW(ListPopFrontInsert, xlang3::xlang_vm::ops::list_pop_front_insert(
 XLANG3_VM_FLOW(WhileResetCount, xlang3::xlang_vm::ops::while_reset_count(in, fn, frame, locals, ip, !debug_poll_active && !frame_observability_active, result))
 XLANG3_VM_FLOW(GuardedLocalListCompare, xlang3::xlang_vm::ops::guarded_local_list_compare(in, fn, regs, frame, locals, ip, !debug_poll_active && !frame_observability_active, result))
 XLANG3_VM_FLOW(WhileListPermutationAdvance, xlang3::xlang_vm::ops::while_list_permutation_advance(in, fn, frame, locals, ip, !debug_poll_active && !frame_observability_active, result))
-XLANG3_VM_FLOW(SetItem, xlang3::xlang_vm::ops::set_item(in, runtime_, regs, raise_runtime_error, raise_exception_value))
+XLANG3_VM_FLOW(SetItem, xlang3::xlang_vm::ops::set_item(in, module, module_owner, runtime_, regs, instr_cache, ip, result, make_generator_if_needed, push_frame, raise_runtime_error, raise_exception_value))
 XLANG3_VM_FLOW(ReversePrefixSliceAssign, xlang3::xlang_vm::ops::reverse_prefix_slice_assign(in, fn, frame, locals, ip, !debug_poll_active && !frame_observability_active, result))
 XLANG3_VM_FLOW(DeleteItem, xlang3::xlang_vm::ops::delete_item(in, runtime_, regs, raise_runtime_error, raise_exception_value))
 XLANG3_VM_FLOW(UnpackSequence, xlang3::xlang_vm::ops::unpack_sequence_or_local_pair(in, fn, regs, locals, runtime_, result, ip, !frame_observability_active, frame.execution_metadata->register_last_use, raise_runtime_error, raise_exception_value))

@@ -55,6 +55,9 @@ enum class CallSiteKind : uint8_t {
   UserFunction,
   ExactPositionalFunction,
   GetItemUserFunction,
+  GetItemNativeFunction,
+  SetItemUserFunction,
+  SetItemNativeFunction,
   BoundPythonMethod,
   NativeFunction,
   BoundNativeFunction,
@@ -236,6 +239,7 @@ class XlangVMInstrCacheStorage {
 
 enum class FrameReturnMode : uint8_t {
   StoreReturnValue,
+  DiscardReturnValue,
   StoreConstructedInstance,
   StoreBoolean,
   StoreNegatedBoolean,
@@ -640,6 +644,9 @@ private:
       case ir::Op::DeleteAttr:
       case ir::Op::Len:
       case ir::Op::GetItem:
+      // SetItem now resolves guarded Python/native setters. Sparse storage
+      // must allocate its payload before the opcode handler indexes the cache.
+      case ir::Op::SetItem:
       case ir::Op::LoadLocalGetItem:
       case ir::Op::GetItemConst:
       case ir::Op::Call:

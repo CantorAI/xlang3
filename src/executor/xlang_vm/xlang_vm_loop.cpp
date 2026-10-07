@@ -1676,6 +1676,16 @@ RuntimeResult Interpreter::run_function(
     finished.clear_for_pop();
     --frame_count;
     ++frame_stack_generation;
+    // Subscription assignment invokes a normal Python frame but ignores its
+    // result. Never overwrite the container register with __setitem__'s return.
+    if (return_mode == FrameReturnMode::DiscardReturnValue) {
+      auto& caller = frames[frame_count - 1];
+      // The pushed frame skips the opcode loop's normal post-instruction
+      // retirement. Release consumed temporary exports after the setter has
+      // returned, before the caller attempts a resize in its next statement.
+      if (caller.ip != 0) caller.release_memoryviews_last_used_at(caller.ip - 1);
+      return true;
+    }
     Value& target = frames[frame_count - 1].regs[return_dst];
     if (return_mode == FrameReturnMode::StoreConstructedInstance) {
       value_assign_fast(target, continuation_value);

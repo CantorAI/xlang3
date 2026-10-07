@@ -5682,6 +5682,19 @@ bool class_get_bound_attr(
     out = Value::bound_method(instance, out);
     return true;
   }
+  if (auto* property = value_as_property(out)) {
+    // Native property objects expose __get__ through the builtin-method API,
+    // rather than object_get_attr. Bind their real Python getter directly,
+    // retaining it while callbacks can mutate the descriptor's owning class.
+    Value getter;
+    value_assign_fast(getter, property->fget);
+    if (getter.tag == ValueTag::None || getter.tag == ValueTag::Invalid) {
+      error = "unreadable attribute";
+      runtime.raise_class_error("AttributeError", error);
+      return false;
+    }
+    return runtime_call_callable(runtime, getter, &instance, 1, out, error);
+  }
   if (!object_value_has_descriptor_get(out)) {
     return true;
   }

@@ -68,6 +68,32 @@ int main() {
         "sparse caches and dense monitoring state must remain IP-local");
   }
 
+  // Setter dispatch now uses a sparse cache. Its metadata must allocate the
+  // site before the handler accesses it, and clean any owners on frame return.
+  {
+    xlang3::ir::Module module;
+    module.functions.emplace_back();
+    auto& function = module.functions.back();
+    function.register_count = 3;
+    function.code.push_back({xlang3::ir::Op::SetItem, 0, 1, 2, 0});
+    const std::vector<xlang3::Value> closure;
+    xlang3::XlangVMFrame frame(module, 0, xlang3::CallArgsView{}, closure,
+                              xlang3::Value::none(), {}, 0, false);
+    const bool allocated = frame.instr_cache.cached_site_count() == 1;
+    xlang3::test::expect_true(result, allocated,
+                              "SetItem metadata must allocate its sparse dispatch cache");
+    if (allocated) {
+      auto owner = xlang3::Value::list({});
+      const auto refs = owner.as.obj->refcnt.load();
+      auto& cache = frame.instr_cache[0];
+      cache.domain = xlang3::XlangVMCacheDomain::Call;
+      cache.call.retained_callee = owner;
+      frame.clear_for_pop();
+      xlang3::test::expect_true(result, owner.as.obj->refcnt.load() == refs,
+                                "SetItem metadata must clean owning cache payloads");
+    }
+  }
+
   // A fused site's final adaptive domain does not describe every owning
   // payload. CallGlobal and LoadModuleAttr must release the preceding global
   // value as well as the call/attribute value, without retaining either object

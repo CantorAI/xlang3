@@ -37,12 +37,24 @@ def write_method(method, count):
     return None
 
 
+class Wrapper:
+    def __init__(self, values):
+        self.values = values
+
+    def __getitem__(self, index):
+        return self.values[index]
+
+    def __setitem__(self, index, value):
+        self.values[index] = value
+
+
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("--operations", type=int, default=100000)
 parser.add_argument("--repeats", type=int, default=7)
 args = parser.parse_args()
 values = array.array("d", [1.0] * 256)
 items = [1.0] * 256
+wrapped = Wrapper(values)
 cases = (
     ("array_getitem", read_subscription, values, float(args.operations)),
     ("array_saved_getitem", read_method, values.__getitem__, float(args.operations)),
@@ -50,6 +62,10 @@ cases = (
     ("array_setitem", write_subscription, values, 1.0),
     ("array_saved_setitem", write_method, values.__setitem__, None),
     ("list_setitem", write_subscription, items, 1.0),
+    ("python_getitem", read_subscription, wrapped, float(args.operations)),
+    ("python_saved_getitem", read_method, wrapped.__getitem__, float(args.operations)),
+    ("python_setitem", write_subscription, wrapped, 1.0),
+    ("python_saved_setitem", write_method, wrapped.__setitem__, None),
 )
 records = []
 for name, body, operand, expected in cases:
