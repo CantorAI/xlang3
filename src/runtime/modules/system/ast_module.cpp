@@ -39,6 +39,10 @@ struct AstState {
   Runtime* runtime = nullptr;
   Value ast_base;
   std::unordered_map<std::string, Value> classes;
+  // Views refer to immutable keys in classes; unordered-map rehash preserves
+  // their addresses. Retained class Values also prevent identity reuse while
+  // the lookup is installed on this Runtime.
+  std::unordered_map<const ClassObject*, std::string_view> kinds_by_class;
 };
 
 std::vector<Value> field_tuple(std::initializer_list<const char*> names) {
@@ -2321,8 +2325,30 @@ Value make_node_visitor_class(Runtime& runtime) {
 }
 
 void add_class(NativeModuleBuilder& builder, AstState* state, const char* name, Value klass) {
-  state->classes[name] = klass;
+  const auto canonical = state->classes.insert_or_assign(name, klass).first;
+  state->kinds_by_class[value_as_class(klass)] = canonical->first;
   builder.value(name, std::move(klass));
+}
+
+std::string_view native_ast_node_kind(const Value& node, bool class_value, void* context) {
+  auto* instance = value_as_instance(node);
+  auto* klass = class_value ? value_as_class(node)
+      : instance == nullptr ? nullptr : value_as_class(instance->klass);
+  if (klass == nullptr) return {};
+  const auto* state = static_cast<const AstState*>(context);
+  const auto exact = state->kinds_by_class.find(klass);
+  if (exact != state->kinds_by_class.end()) return exact->second;
+  // Normal nodes take one identity lookup. User subclasses take the cached
+  // MRO path, selecting their actual canonical node base without importing a
+  // module, calling Python, or accepting an unrelated class with that name.
+  const std::vector<Value>* mro = nullptr;
+  std::string error;
+  if (!class_get_mro_values(klass, mro, error)) return {};
+  for (const auto& base : *mro) {
+    const auto known = state->kinds_by_class.find(value_as_class(base));
+    if (known != state->kinds_by_class.end()) return known->second;
+  }
+  return {};
 }
 
 void fill_ast_module(Runtime& runtime, NativeModuleBuilder& builder, AstState* state) {
@@ -2495,9 +2521,14 @@ void fill_ast_module(Runtime& runtime, NativeModuleBuilder& builder, AstState* s
 void register_ast_module(Runtime& runtime) {
   auto* private_state = new AstState();
   private_state->runtime = &runtime;
-  runtime.register_native_package_cleanup(private_state, [](void* data) { delete static_cast<AstState*>(data); });
+  runtime.register_native_package_cleanup(private_state, [](void* data) {
+    auto* state = static_cast<AstState*>(data);
+    state->runtime->register_native_ast_kind_lookup(nullptr, nullptr);
+    delete state;
+  });
   NativeModuleBuilder private_builder(runtime, "_ast");
   fill_ast_module(runtime, private_builder, private_state);
+  runtime.register_native_ast_kind_lookup(native_ast_node_kind, private_state);
   runtime.register_module("_ast", private_builder.finish());
 }
 

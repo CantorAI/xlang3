@@ -54,6 +54,8 @@ struct NativeSerializationCodec {
 
 struct GeneratorObject;
 
+using NativeAstKindLookup = std::string_view (*)(const Value&, bool, void*);
+
 struct RuntimeFrameView {
   const std::shared_ptr<const ir::Module>* module_owner = nullptr;
   const Value* globals_module = nullptr;
@@ -163,6 +165,18 @@ public:
   void hide_cached_module(const std::string& name);
   const Value& module_registry_dict() const { return modules_dict_; }
   void register_native_package_cleanup(void* data, void (*cleanup)(void*));
+  void register_native_ast_kind_lookup(NativeAstKindLookup lookup, void* context) {
+    native_ast_kind_lookup_ = lookup;
+    native_ast_kind_context_ = context;
+  }
+  std::string_view native_ast_node_kind(const Value& node) const {
+    return native_ast_kind_lookup_ == nullptr ? std::string_view{}
+        : native_ast_kind_lookup_(node, false, native_ast_kind_context_);
+  }
+  std::string_view native_ast_class_kind(const Value& klass) const {
+    return native_ast_kind_lookup_ == nullptr ? std::string_view{}
+        : native_ast_kind_lookup_(klass, true, native_ast_kind_context_);
+  }
   void retain_serialized_objects(std::vector<Value> objects);
   uint64_t collect_serialized_objects(bool force = false);
   void register_raw_block_handler(std::string language, std::string provider, RawBlockHandler handler);
@@ -343,6 +357,10 @@ private:
   std::unordered_map<std::string, PythonImportDirectoryCacheEntry> python_import_directory_cache_;
   Value modules_dict_;
   std::vector<std::pair<void*, void (*)(void*)>> native_package_cleanups_;
+  // The native AST package owns the retained canonical classes. Its private
+  // lookup remains stable when Python rebinds _ast.AST or another public name.
+  NativeAstKindLookup native_ast_kind_lookup_ = nullptr;
+  void* native_ast_kind_context_ = nullptr;
   std::vector<Value> serialized_objects_;
   std::unordered_map<std::string, Value> native_symbols_;
   std::mutex code_objects_mutex_;

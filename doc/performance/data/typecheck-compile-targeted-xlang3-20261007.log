@@ -1,0 +1,31 @@
+CASE primitive_typecheck_dispatch exit=0 matches_expected=True
+primitive typecheck dispatch True
+
+CASE runtime_protocol_fastcheck exit=0 matches_expected=True
+True
+False
+False
+False
+True
+True
+True
+non-runtime protocol error True
+custom instancecheck True
+python protocol hook True True
+
+CASE compile_source_identity exit=1 matches_expected=False
+native sources and subclasses True
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\tests\fixtures\core\compile_source_identity.py", line 62, in <module>
+    raise AssertionError("compile ignored the source's __class__ lookup error")
+AssertionError: compile ignored the source's __class__ lookup error
+
+COMPILE_PROBE exit=0
+PASS native-str
+PASS str-subclass
+PASS bytes-subclass
+PASS bytearray-subclass
+PASS bytes-source-encoding
+PASS fake-source-identities
+PASS ast-module-rebinding
+PASS ast-root-subclass

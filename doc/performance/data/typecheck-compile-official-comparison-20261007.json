@@ -1,0 +1,58 @@
+{
+  "scope": "Nominal fast-mode raw means; typing before uses forbidden native shortcut, after executes Python; Chameleon failed and has no score",
+  "rows": [
+    {
+      "subtest": "scimark_fft",
+      "old_seconds": 0.9965318599977764,
+      "new_seconds": 0.981728324998403,
+      "cpython_seconds": 0.25056057499605233,
+      "old_over_new": 1.0150790545840647,
+      "cpython_over_new": 0.2552239439525797
+    },
+    {
+      "subtest": "scimark_lu",
+      "old_seconds": 1.5101651049990323,
+      "new_seconds": 1.403009704996657,
+      "cpython_seconds": 0.0766406900002039,
+      "old_over_new": 1.076375380455854,
+      "cpython_over_new": 0.05462591579178457
+    },
+    {
+      "subtest": "scimark_monte_carlo",
+      "old_seconds": 0.5713000550007564,
+      "new_seconds": 0.5695768199977465,
+      "cpython_seconds": 0.06026090999803273,
+      "old_over_new": 1.0030254654727992,
+      "cpython_over_new": 0.10579944246725341
+    },
+    {
+      "subtest": "scimark_sor",
+      "old_seconds": 0.8653976699963095,
+      "new_seconds": 0.8760872850034502,
+      "cpython_seconds": 0.10524818500271067,
+      "old_over_new": 0.9877984589091501,
+      "cpython_over_new": 0.12013435967432877
+    },
+    {
+      "subtest": "scimark_sparse_mat_mult",
+      "old_seconds": 0.01824054687494936,
+      "new_seconds": 0.017809336250320485,
+      "cpython_seconds": 0.003249371796982814,
+      "old_over_new": 1.0242126162686784,
+      "cpython_over_new": 0.18245327907289866
+    },
+    {
+      "subtest": "typing_runtime_protocols",
+      "old_seconds": 0.00025272478516455974,
+      "new_seconds": 0.003269725312475202,
+      "cpython_seconds": 0.00013239447754074263,
+      "old_over_new": 0.07729235975888309,
+      "cpython_over_new": 0.040491009148569485
+    }
+  ],
+  "input_sha256": {
+    "old": "97ad62500717aec8f5c20372de4ef02af53fa70a922298a5c85bd1a874201a16",
+    "new": "06903ee83d4c626dc046369a4deeb208f29ccc48aa001f8b5eecf0cb4dbd30d6",
+    "cp": "0543fa675730f019f2c9b54c18d07ae7777d2edc15e9eed60d98a3179e949dc5"
+  }
+}

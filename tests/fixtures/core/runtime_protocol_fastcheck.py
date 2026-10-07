@@ -1,3 +1,4 @@
+import sys
 from typing import Protocol, runtime_checkable
 
 
@@ -43,6 +44,8 @@ class CustomGetattribute:
     value = 42
 
     def __getattribute__(self, name):
+        if name == "__class__":
+            return type(self)  # The native ABC check legitimately reads this.
         raise AssertionError("runtime protocol checks must use static lookup")
 
 
@@ -80,3 +83,23 @@ def custom_instancecheck(cls, instance):
 protocol_meta.__instancecheck__ = custom_instancecheck
 print("custom instancecheck", isinstance(None, HasRun))
 protocol_meta.__instancecheck__ = original_instancecheck
+
+# The library hook must remain Python code, including during profiling.
+# A native replacement of its member loop used to hide this call entirely.
+protocol_calls = []
+protocol_filename = original_instancecheck.__code__.co_filename
+
+
+def record_protocol_calls(frame, event, arg):
+    if (event == "call" and frame.f_code.co_name == "__instancecheck__"
+            and frame.f_code.co_filename == protocol_filename):
+        protocol_calls.append(frame.f_code.co_name)
+
+
+subject = ValuePresent()
+sys.setprofile(record_protocol_calls)
+try:
+    profile_result = isinstance(subject, HasValue)
+finally:
+    sys.setprofile(None)
+print("python protocol hook", profile_result, protocol_calls == ["__instancecheck__"])

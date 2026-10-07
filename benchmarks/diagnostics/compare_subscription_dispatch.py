@@ -29,6 +29,7 @@ parser.add_argument("--candidate", required=True)
 parser.add_argument("--output", required=True, type=Path)
 parser.add_argument("--pairs", type=int, default=7)
 parser.add_argument("--operations", type=int, default=100000)
+parser.add_argument("--primitive-row-checks", action="store_true")
 args = parser.parse_args()
 if platform.python_version() != "3.14.7":
     parser.error("use the CPython 3.14.7 comparison manager")
@@ -38,6 +39,7 @@ probe = Path(__file__).with_name("native_subscription_dispatch_probe.py").resolv
 executables = [str(Path(args.baseline).resolve()), str(Path(args.candidate).resolve())]
 report = {"diagnostic_only": True, "status": "running", "pairs": args.pairs,
           "operations": args.operations, "manager": sys.executable,
+          "primitive_row_checks": args.primitive_row_checks,
           "manager_version": platform.python_version(),
           "probe_sha256": hashlib.sha256(probe.read_bytes()).hexdigest(),
           "started_utc": datetime.now(timezone.utc).isoformat(),
@@ -55,12 +57,15 @@ try:
         observations = [[], []]
         for order in ((0, 1), (1, 0)):
             for which in order:
-                run = subprocess.run([executables[which], str(probe),
-                                      "--operations", str(args.operations), "--repeats", "3"],
+                command = [executables[which], str(probe),
+                           "--operations", str(args.operations), "--repeats", "3"]
+                if args.primitive_row_checks:
+                    command.append("--primitive-row-checks")
+                run = subprocess.run(command,
                                      capture_output=True, text=True, timeout=120, check=True)
                 result = json.loads(run.stdout)
                 records = {r["case"]: r for r in result["records"]}
-                assert len(records) == 10
+                assert len(records) == (15 if args.primitive_row_checks else 10)
                 assert all(r["operations"] == args.operations and
                            math.isfinite(r["median_seconds"]) and r["median_seconds"] > 0
                            for r in records.values())

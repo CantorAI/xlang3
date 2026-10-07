@@ -288,6 +288,10 @@ bool object_construct(Value klass, const Value* args, uint32_t argc, Value& out,
 bool class_set_base(Value klass, Value base, std::string& error);
 bool class_get_subclasses(const Value& klass, Value& out, std::string& error);
 bool class_is_subclass(const ClassObject* klass, const ClassObject* base);
+// Borrow the version-validated MRO without allocating a tuple/pointer vector.
+// The view is invalidated by class/base mutation; do not keep it across Python
+// callbacks or other operations that can change the class hierarchy.
+bool class_get_mro_values(ClassObject* klass, const std::vector<Value>*& out, std::string& error);
 bool class_has_builtin_base_name(ClassObject* klass, std::string_view name);
 bool class_try_enum_value_lookup(const Value& klass, const Value& value, Value& out);
 bool instance_set_native_data(

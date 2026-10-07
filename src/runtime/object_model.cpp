@@ -5610,6 +5610,10 @@ bool class_get_subclasses(const Value& klass, Value& out, std::string& error) {
   return true;
 }
 
+bool class_get_mro_values(ClassObject* klass, const std::vector<Value>*& out, std::string& error) {
+  return class_mro_values(klass, out, error);
+}
+
 // Preserve this call boundary: focused Release A/B favored the outlined form
 // for function-call fast paths; small workloads are sensitive to code layout.
 // Recheck the official workload and full Release gate before changing inlining.

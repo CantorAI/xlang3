@@ -1,0 +1,12 @@
+local_slots              pass         1.002x
+scalar_arithmetic        pass         1.005x
+range_for                pass         0.997x
+function_calls           pass         1.041x
+class_construct          pass         1.019x
+list_append              pass         0.967x
+property_access          pass         0.995x
+deepcopy_memo            pass         0.903x
+json_dumps               pass         0.995x
+gc_traversal             pass         1.009x
+subparsers               pass         0.934x
+Performance check: pass. Report: doc\performance\data\release-typecheck-compile-fixed-gate-20261007.json

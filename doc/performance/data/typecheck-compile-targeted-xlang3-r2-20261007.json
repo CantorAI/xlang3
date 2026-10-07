@@ -1,0 +1,33 @@
+{
+  "scope": "Focused correctness checks; not a performance gate",
+  "manager_version": "3.14.7",
+  "runtime": "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+  "cases": [
+    {
+      "case": "primitive_typecheck_dispatch",
+      "exit_code": 0,
+      "stdout_matches_expected": true,
+      "source_sha256": "b60e61d41a10bbe5f4c549d1e2f908ad7a3e513bae23280993d7cc55648f129c",
+      "expected_sha256": "e5b60990c7dcd5e9a5e3c6d59c1ce7427ea44759989ccb1ab455e2a47a681237"
+    },
+    {
+      "case": "runtime_protocol_fastcheck",
+      "exit_code": 0,
+      "stdout_matches_expected": true,
+      "source_sha256": "8a2d3a80b2a2944cd418179a1c53ae77e618f3a4ad33251731b91a7f39119133",
+      "expected_sha256": "b79508466d23c569f3bb2807bf0814ff412a0ed2c9852441fdcfe6757bbf7816"
+    },
+    {
+      "case": "compile_source_identity",
+      "exit_code": 0,
+      "stdout_matches_expected": true,
+      "source_sha256": "ce88ecc8f5795768776e9f71867fa854748d1cf1a8e5934e576210a406f6d8c5",
+      "expected_sha256": "63667fde2ffe83875dd27f51e9192d9201590e9514a936b34b5980d953d2572c"
+    }
+  ],
+  "compile_probe_exit_code": 0,
+  "sha256": {
+    "exe": "c92464e9c138cafc8c73791f1d1d81c1e93aa060be244d6fa6b56a55f2e876d2",
+    "dll": "0dad7d89887b1a156c11c0a082e61b17739deff071d6a0becc1008935b7f995c"
+  }
+}

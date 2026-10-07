@@ -1,0 +1,186 @@
+Benchmark dependency sites: D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages
+Python benchmark suite 1.14.0
+
+
+==================================================
+( 1/3) creating venv for benchmark (chameleon)
+
+(trying common venv first)
+
+==================================================
+( 2/3) creating venv for benchmark (scimark)
+
+(trying common venv first)
+
+==================================================
+( 3/3) creating venv for benchmark (typing_runtime_protocols)
+
+(trying common venv first)
+
+[1/3] chameleon...
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\data-files\benchmarks\bm_chameleon\run_benchmark.py", line 35, in <module>
+    main()
+    ~~~~^^
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\data-files\benchmarks\bm_chameleon\run_benchmark.py", line 25, in main
+    tmpl = PageTemplate(BIGTABLE_ZPT)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\zpt\template.py", line 249, in __init__
+    super().__init__(body, **config)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\template.py", line 175, in __init__
+    self.write(body)
+    ~~~~~~~~~~^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\template.py", line 293, in write
+    self.cook(body)
+    ~~~~~~~~~^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\template.py", line 211, in cook
+    program = self._cook(body, digest, names)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\template.py", line 308, in _cook
+    source = self._compile(body, builtins)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\template.py", line 344, in _compile
+    compiler = Compiler(
+        self.engine,
+    ...<4 lines>...
+        strict=self.strict
+    )
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\compiler.py", line 1073, in __init__
+    generator = Generator(module)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\codegen.py", line 142, in __init__
+    code = unparse(tree)
+  File "C:\Python\Python314\Lib\ast.py", line 624, in unparse
+    return unparser.visit(ast_obj)
+           ~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Python\Python314\Lib\_ast_unparse.py", line 193, in visit
+    self.traverse(node)
+    ~~~~~~~~~~~~~^^^^^^
+  File "C:\Python\Python314\Lib\_ast_unparse.py", line 184, in traverse
+    super().visit(node)
+    ~~~~~~~~~~~~~^^^^^^
+  File "C:\Python\Python314\Lib\ast.py", line 506, in visit
+    return visitor(node)
+  File "C:\Python\Python314\Lib\_ast_unparse.py", line 209, in visit_Module
+    self._write_docstring_and_traverse_body(node)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Python\Python314\Lib\_ast_unparse.py", line 201, in _write_docstring_and_traverse_body
+    self.traverse(node.body)
+    ~~~~~~~~~~~~~^^^^^^^^^^^
+  File "C:\Python\Python314\Lib\_ast_unparse.py", line 182, in traverse
+    self.traverse(item)
+    ~~~~~~~~~~~~~^^^^^^
+  File "C:\Python\Python314\Lib\_ast_unparse.py", line 184, in traverse
+    super().visit(node)
+    ~~~~~~~~~~~~~^^^^^^
+  File "C:\Python\Python314\Lib\ast.py", line 506, in visit
+    return visitor(node)
+  File "C:\Python\Python314\Lib\_ast_unparse.py", line 260, in visit_Assign
+    if type_comment := self.get_type_comment(node):
+                       ~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Python\Python314\Lib\_ast_unparse.py", line 175, in get_type_comment
+    comment = self._type_ignores.get(node.lineno) or node.type_comment
+                                                     ^^^^^^^^^^^^^^^^^
+AttributeError: 'Assign' object has no attribute 'type_comment'
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\run.py", line 171, in run_benchmarks
+    result = bench.run(
+        bench_venv.python,
+    ...<3 lines>...
+        verbose=options.verbose,
+    )
+  File "D:\CantorAI\xlang3\benchmarks\diagnostics\run_pyperformance_xlang3_shimmed.py", line 157, in run_named_benchmark
+    return original_benchmark_run(benchmark, *positional, **keywords)
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 193, in run
+    bench = _run_perf_script(
+        python,
+    ...<4 lines>...
+        verbose=verbose,
+    )
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 250, in _run_perf_script
+    raise RuntimeError("Benchmark died")
+RuntimeError: Benchmark died
+ERROR: Benchmark chameleon failed: Benchmark died
+[2/3] scimark...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+scimark_fft: Mean +- std dev: 982 ms +- 24 ms
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+scimark_lu: Mean +- std dev: 1.40 sec +- 0.04 sec
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+scimark_monte_carlo: Mean +- std dev: 570 ms +- 16 ms
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+scimark_sor: Mean +- std dev: 876 ms +- 17 ms
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+scimark_sparse_mat_mult: Mean +- std dev: 17.8 ms +- 0.3 ms
+[3/3] typing_runtime_protocols...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+typing_runtime_protocols: Mean +- std dev: 3.27 ms +- 0.08 ms
+
+Performance version: 1.14.0
+
+### scimark_fft ###
+Mean +- std dev: 982 ms +- 24 ms
+
+### scimark_lu ###
+Mean +- std dev: 1.40 sec +- 0.04 sec
+
+### scimark_monte_carlo ###
+Mean +- std dev: 570 ms +- 16 ms
+
+### scimark_sor ###
+Mean +- std dev: 876 ms +- 17 ms
+
+### scimark_sparse_mat_mult ###
+Mean +- std dev: 17.8 ms +- 0.3 ms
+
+### typing_runtime_protocols ###
+Mean +- std dev: 3.27 ms +- 0.08 ms
+
+1 benchmarks failed:
+- chameleon (Benchmark died)
+

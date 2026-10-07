@@ -1,0 +1,31 @@
+{
+  "status": "finished",
+  "started_utc": "2026-10-07T14:57:27.3000493Z",
+  "runtime_executable": "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+  "source_base_commit": "331643bb27ede25c56442d5c92b717d29c539525",
+  "engine_source": "Uncommitted generic type-check/compile fixes; compiled source identities in typecheck-compile-validation-20261007.json",
+  "sha256_start": {
+    "exe": "C92464E9C138CAFC8C73791F1D1D81C1E93AA060BE244D6FA6B56A55F2E876D2",
+    "dll": "0DAD7D89887B1A156C11C0A082E61B17739DEFF071D6A0BECC1008935B7F995C",
+    "hashlib": "5910F087E300459B854DCA0046AC61125287E7D62BF330A3D626631D9A74B239"
+  },
+  "manager_executable": "C:\\Python\\Python314\\python.exe",
+  "manager_version": "3.14.7",
+  "stdlib": "C:\\Python\\Python314\\Lib",
+  "mode": "fast",
+  "benchmarks": "chameleon,scimark,typing_runtime_protocols",
+  "expected_definitions": 3,
+  "case_timeout_seconds": 300,
+  "cpython_reference": "pyperformance-cpython314-clean-release-full-fast-20261002.json",
+  "cpython_reference_provenance_limits": "cpython3147-saved-reference-provenance-audit-20261007.json",
+  "fixed_gate": "release-typecheck-compile-fixed-gate-20261007.json",
+  "fixed_gate_exit_code": 0,
+  "timing_probe_enabled": false,
+  "completed_utc": "2026-10-07T15:00:16.7617711Z",
+  "exit_code": 1,
+  "sha256_end": {
+    "exe": "C92464E9C138CAFC8C73791F1D1D81C1E93AA060BE244D6FA6B56A55F2E876D2",
+    "dll": "0DAD7D89887B1A156C11C0A082E61B17739DEFF071D6A0BECC1008935B7F995C",
+    "hashlib": "5910F087E300459B854DCA0046AC61125287E7D62BF330A3D626631D9A74B239"
+  }
+}

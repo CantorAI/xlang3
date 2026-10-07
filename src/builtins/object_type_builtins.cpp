@@ -747,14 +747,6 @@ const Value* find_builtin_type(Runtime& runtime, const char* name) {
   return name == nullptr ? nullptr : runtime.find_builtin(name);
 }
 
-bool try_runtime_protocol_instancecheck(
-    Runtime& runtime,
-    const Value& classinfo,
-    const Value& instance_value,
-    bool& handled,
-    bool& out,
-    std::string& error);
-
 bool call_class_check_hook(
     Runtime& runtime,
     const Value& classinfo,
@@ -764,17 +756,9 @@ bool call_class_check_hook(
     bool& out,
     std::string& error) {
   applied = false;
-  if (std::string_view(hook_name) == "__instancecheck__") {
-    bool protocol_handled = false;
-    if (!try_runtime_protocol_instancecheck(
-            runtime, classinfo, hook_arg, protocol_handled, out, error)) {
-      return false;
-    }
-    if (protocol_handled) {
-      applied = true;
-      return true;
-    }
-  }
+  // Python-defined hooks, including typing.Protocol, must execute their Python
+  // body. Keep optimizations in generic dispatch instead of translating a
+  // pure-Python library's member loop into a native implementation.
   Value hook;
   std::string hook_error;
   const Value* hook_owner = &classinfo;
@@ -831,129 +815,6 @@ bool call_class_check_hook(
 
   applied = true;
   out = value_truthy(result);
-  return true;
-}
-
-// Runtime-checkable typing Protocols are currently implemented in typing.py.
-// Their hot __instancecheck__ loop is a small, stable operation, so keep the
-// standard ABC result and inspect.getattr_static semantics but perform the
-// common ordinary-instance path without interpreting that Python loop on every
-// isinstance call. Objects with custom native attribute storage retain the
-// regular hook, which is important because static lookup must not invoke user
-// descriptors or __getattribute__ implementations.
-bool try_runtime_protocol_instancecheck(
-    Runtime& runtime,
-    const Value& classinfo,
-    const Value& instance_value,
-    bool& handled,
-    bool& out,
-    std::string& error) {
-  handled = false;
-  auto* protocol = value_as_class(classinfo);
-  if (protocol == nullptr) return true;
-  auto* metaclass = value_as_class(protocol->metaclass);
-  if (metaclass == nullptr || metaclass->name != "_ProtocolMeta") return true;
-
-  Value metaclass_module;
-  std::string ignored;
-  if (!object_get_attr(protocol->metaclass, "__module__", metaclass_module, ignored)) return true;
-  auto* module_name = value_as_string(metaclass_module);
-  if (module_name == nullptr || string_object_to_string(*module_name) != "typing") return true;
-  // _ProtocolMeta defines this hook directly. Read that exact slot instead of
-  // doing a general MRO lookup on every isinstance call; replacements still
-  // miss the recognized function-name guard below and use normal dispatch.
-  auto standard_hook = metaclass->attrs.find("__instancecheck__");
-  if (standard_hook == metaclass->attrs.end()) return true;
-  const Value& standard_instancecheck = standard_hook->second;
-  auto* standard_function = value_as_function(standard_instancecheck);
-  if (standard_function == nullptr ||
-      standard_function->qualname != "_ProtocolMeta.__instancecheck__") {
-    return true;
-  }
-
-  Value is_protocol;
-  Value is_runtime_protocol;
-  if (!object_get_attr(classinfo, "_is_protocol", is_protocol, ignored) ||
-      !value_truthy(is_protocol)) {
-    return true;
-  }
-  if (!object_get_attr(classinfo, "_is_runtime_protocol", is_runtime_protocol, ignored) ||
-      !value_truthy(is_runtime_protocol)) {
-    return true;  // Let typing.py raise its exact TypeError for non-runtime protocols.
-  }
-
-  auto* subject = value_as_instance(instance_value);
-  if (subject == nullptr || subject->native_get_attr != nullptr) return true;
-
-  Value protocol_attrs_value;
-  Value noncallable_attrs_value;
-  if (!object_get_attr(classinfo, "__protocol_attrs__", protocol_attrs_value, ignored) ||
-      !object_get_attr(classinfo, "__non_callable_proto_members__", noncallable_attrs_value, ignored)) {
-    return true;
-  }
-  auto* protocol_attrs = value_as_set(protocol_attrs_value);
-  auto* noncallable_attrs = value_as_set(noncallable_attrs_value);
-  if (protocol_attrs == nullptr || noncallable_attrs == nullptr) return true;
-
-  // typing._ProtocolMeta first honors ABC virtual/nominal registrations.
-  Value abc_instancecheck;
-  if (!module_get_attr(standard_function->globals_module, "_abc_instancecheck", abc_instancecheck, error)) {
-    return false;
-  }
-  Value abc_args[] = {classinfo, instance_value};
-  Value abc_result;
-  if (!runtime_call_callable(runtime, abc_instancecheck, abc_args, 2, abc_result, error)) return false;
-  handled = true;
-  if (value_truthy(abc_result)) {
-    out = true;
-    return true;
-  }
-
-  for (const Value& member_value : protocol_attrs->items) {
-    auto* member = value_as_string(member_value);
-    if (member == nullptr) {
-      handled = false;
-      return true;
-    }
-    const std::string member_name = string_object_to_string(*member);
-
-    // getattr_static(instance, name): data descriptors win, then the instance
-    // dictionary, then the raw class attribute. Never call the descriptor.
-    Value raw_class_attr;
-    std::string lookup_error;
-    const bool has_class_attr = object_lookup_class_attr(
-        subject->klass, member_name, raw_class_attr, lookup_error);
-    if (!has_class_attr) lookup_error.clear();
-    Value instance_attr;
-    const Value& instance_dict = instance_attribute_storage(*subject);
-    const bool has_instance_attr = value_as_dict(instance_dict) != nullptr &&
-        mapping_get_string_item(instance_dict, member_name, instance_attr, lookup_error);
-    const bool class_data_descriptor = has_class_attr &&
-        object_value_is_data_descriptor(raw_class_attr);
-    const bool found = class_data_descriptor || has_instance_attr || has_class_attr;
-    if (!found) {
-      out = false;
-      return true;
-    }
-    const Value& static_value = class_data_descriptor
-        ? raw_class_attr
-        : (has_instance_attr ? instance_attr : raw_class_attr);
-    if (static_value.tag == ValueTag::None) {
-      bool noncallable_member = false;
-      for (const Value& item : noncallable_attrs->items) {
-        auto* item_name = value_as_string(item);
-        if (item_name != nullptr && string_object_to_string(*item_name) == member_name) {
-          noncallable_member = true;
-          break;
-        }
-      }
-      if (!noncallable_member) {
-        out = false;
-        return true;
-      }
-    }
-  }
-  out = true;
   return true;
 }
 
@@ -1148,6 +1009,15 @@ bool builtin_isinstance_values(
   bool result = false;
   if (!class_tuple_matches(runtime, object, actual_type, class_info, false, result, error)) {
     return false;
+  }
+  // Immediate values cannot override __class__ or carry instance attributes.
+  // In particular, an integer row index failing isinstance(index, tuple) must
+  // not pay for a failed _spec_class lookup on every Python __getitem__ call.
+  // Run the complete class-info/hook check first: custom __instancecheck__,
+  // tuple/union ordering, and errors remain observable for these values too.
+  if (!result && object.tag != ValueTag::Object) {
+    out = Value::boolean(false);
+    return true;
   }
   if (!result) {
     if (auto* instance = value_as_instance(object)) {
