@@ -1,0 +1,11 @@
+{
+  "purpose": "New storage lifetime tests first validated against existing 07674515 engine",
+  "command": [
+    "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3_runtime_value_tests.exe"
+  ],
+  "exit_code": 0,
+  "runtime_dll_sha256": "d425ba688e3a09896eb35f3bc3164af9f8d09fbf785484dab9bf5f357eee0d3a",
+  "test_exe_sha256": "475b7cd7007335eafdd52c4fc88e3a01ab6b566ecfd3cfe659273007ed498464",
+  "test_source_sha256": "5a65e6f4e173065b9e3a228e5edfd75ac78a758faecab8eb1792e93b8d981eef",
+  "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

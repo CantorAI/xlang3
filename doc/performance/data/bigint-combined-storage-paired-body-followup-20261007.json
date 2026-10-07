@@ -1,0 +1,271 @@
+{
+  "status": "passed",
+  "started_utc": "2026-10-07T21:44:59.621063+00:00",
+  "purpose": "Measure combined-storage lifetime change with alternating complete-body measurements; diagnostic, not official suite score",
+  "cpu_affinity": [
+    0
+  ],
+  "benchmark_source_sha256": "4bf89183acb8651623676ece6e10787b6c71eec549fe53ce17a62a812ef7447d",
+  "probe_sha256": "6cc2390358a37e89feee39047d423eed4ddb30e5686ea155c33972ce5ab25159",
+  "pairs": [
+    {
+      "index": 0,
+      "order": [
+        "before",
+        "after"
+      ],
+      "measurements": {
+        "before": {
+          "returncode": 0,
+          "result": {
+            "seconds": [
+              0.21873980000964366,
+              0.216479700000491,
+              0.21717920000082813
+            ],
+            "median_seconds": 0.21717920000082813,
+            "digits_sha256": "e7cb4bbb129d29f035c29cf1f088673788a82ebbbd61b466257e12ece4871aac",
+            "purpose": "diagnostic only; unchanged official body"
+          },
+          "dll_sha256": "d425ba688e3a09896eb35f3bc3164af9f8d09fbf785484dab9bf5f357eee0d3a"
+        },
+        "after": {
+          "returncode": 0,
+          "result": {
+            "seconds": [
+              0.21968109998852015,
+              0.22052699999767356,
+              0.21772829999099486
+            ],
+            "median_seconds": 0.21968109998852015,
+            "digits_sha256": "e7cb4bbb129d29f035c29cf1f088673788a82ebbbd61b466257e12ece4871aac",
+            "purpose": "diagnostic only; unchanged official body"
+          },
+          "dll_sha256": "f326f4beb61179e0c8698ca0ff745f866658a254e78a4a964ff11802e23a4f84"
+        }
+      }
+    },
+    {
+      "index": 1,
+      "order": [
+        "after",
+        "before"
+      ],
+      "measurements": {
+        "after": {
+          "returncode": 0,
+          "result": {
+            "seconds": [
+              0.21288300000014715,
+              0.2209636999759823,
+              0.21664139998028986
+            ],
+            "median_seconds": 0.21664139998028986,
+            "digits_sha256": "e7cb4bbb129d29f035c29cf1f088673788a82ebbbd61b466257e12ece4871aac",
+            "purpose": "diagnostic only; unchanged official body"
+          },
+          "dll_sha256": "f326f4beb61179e0c8698ca0ff745f866658a254e78a4a964ff11802e23a4f84"
+        },
+        "before": {
+          "returncode": 0,
+          "result": {
+            "seconds": [
+              0.21941489999881014,
+              0.22282469997298904,
+              0.22686219998286106
+            ],
+            "median_seconds": 0.22282469997298904,
+            "digits_sha256": "e7cb4bbb129d29f035c29cf1f088673788a82ebbbd61b466257e12ece4871aac",
+            "purpose": "diagnostic only; unchanged official body"
+          },
+          "dll_sha256": "d425ba688e3a09896eb35f3bc3164af9f8d09fbf785484dab9bf5f357eee0d3a"
+        }
+      }
+    },
+    {
+      "index": 2,
+      "order": [
+        "before",
+        "after"
+      ],
+      "measurements": {
+        "before": {
+          "returncode": 0,
+          "result": {
+            "seconds": [
+              0.2182557999913115,
+              0.2158103999972809,
+              0.22809119999874383
+            ],
+            "median_seconds": 0.2182557999913115,
+            "digits_sha256": "e7cb4bbb129d29f035c29cf1f088673788a82ebbbd61b466257e12ece4871aac",
+            "purpose": "diagnostic only; unchanged official body"
+          },
+          "dll_sha256": "d425ba688e3a09896eb35f3bc3164af9f8d09fbf785484dab9bf5f357eee0d3a"
+        },
+        "after": {
+          "returncode": 0,
+          "result": {
+            "seconds": [
+              0.21317840000847355,
+              0.2113660000031814,
+              0.21415240000351332
+            ],
+            "median_seconds": 0.21317840000847355,
+            "digits_sha256": "e7cb4bbb129d29f035c29cf1f088673788a82ebbbd61b466257e12ece4871aac",
+            "purpose": "diagnostic only; unchanged official body"
+          },
+          "dll_sha256": "f326f4beb61179e0c8698ca0ff745f866658a254e78a4a964ff11802e23a4f84"
+        }
+      }
+    },
+    {
+      "index": 3,
+      "order": [
+        "after",
+        "before"
+      ],
+      "measurements": {
+        "after": {
+          "returncode": 0,
+          "result": {
+            "seconds": [
+              0.2138998000009451,
+              0.21610029999283142,
+              0.21570899998187087
+            ],
+            "median_seconds": 0.21570899998187087,
+            "digits_sha256": "e7cb4bbb129d29f035c29cf1f088673788a82ebbbd61b466257e12ece4871aac",
+            "purpose": "diagnostic only; unchanged official body"
+          },
+          "dll_sha256": "f326f4beb61179e0c8698ca0ff745f866658a254e78a4a964ff11802e23a4f84"
+        },
+        "before": {
+          "returncode": 0,
+          "result": {
+            "seconds": [
+              0.2167374000127893,
+              0.23183020000578836,
+              0.22338609999860637
+            ],
+            "median_seconds": 0.22338609999860637,
+            "digits_sha256": "e7cb4bbb129d29f035c29cf1f088673788a82ebbbd61b466257e12ece4871aac",
+            "purpose": "diagnostic only; unchanged official body"
+          },
+          "dll_sha256": "d425ba688e3a09896eb35f3bc3164af9f8d09fbf785484dab9bf5f357eee0d3a"
+        }
+      }
+    },
+    {
+      "index": 4,
+      "order": [
+        "before",
+        "after"
+      ],
+      "measurements": {
+        "before": {
+          "returncode": 0,
+          "result": {
+            "seconds": [
+              0.21721120001166128,
+              0.22072880002087913,
+              0.2188363000168465
+            ],
+            "median_seconds": 0.2188363000168465,
+            "digits_sha256": "e7cb4bbb129d29f035c29cf1f088673788a82ebbbd61b466257e12ece4871aac",
+            "purpose": "diagnostic only; unchanged official body"
+          },
+          "dll_sha256": "d425ba688e3a09896eb35f3bc3164af9f8d09fbf785484dab9bf5f357eee0d3a"
+        },
+        "after": {
+          "returncode": 0,
+          "result": {
+            "seconds": [
+              0.22513499998603947,
+              0.2215284999983851,
+              0.2116855000203941
+            ],
+            "median_seconds": 0.2215284999983851,
+            "digits_sha256": "e7cb4bbb129d29f035c29cf1f088673788a82ebbbd61b466257e12ece4871aac",
+            "purpose": "diagnostic only; unchanged official body"
+          },
+          "dll_sha256": "f326f4beb61179e0c8698ca0ff745f866658a254e78a4a964ff11802e23a4f84"
+        }
+      }
+    },
+    {
+      "index": 5,
+      "order": [
+        "after",
+        "before"
+      ],
+      "measurements": {
+        "after": {
+          "returncode": 0,
+          "result": {
+            "seconds": [
+              0.2139354000100866,
+              0.21379919999162666,
+              0.21155609999550506
+            ],
+            "median_seconds": 0.21379919999162666,
+            "digits_sha256": "e7cb4bbb129d29f035c29cf1f088673788a82ebbbd61b466257e12ece4871aac",
+            "purpose": "diagnostic only; unchanged official body"
+          },
+          "dll_sha256": "f326f4beb61179e0c8698ca0ff745f866658a254e78a4a964ff11802e23a4f84"
+        },
+        "before": {
+          "returncode": 0,
+          "result": {
+            "seconds": [
+              0.22087620000820607,
+              0.21897419999004342,
+              0.2221193999866955
+            ],
+            "median_seconds": 0.22087620000820607,
+            "digits_sha256": "e7cb4bbb129d29f035c29cf1f088673788a82ebbbd61b466257e12ece4871aac",
+            "purpose": "diagnostic only; unchanged official body"
+          },
+          "dll_sha256": "d425ba688e3a09896eb35f3bc3164af9f8d09fbf785484dab9bf5f357eee0d3a"
+        }
+      }
+    },
+    {
+      "index": 6,
+      "order": [
+        "before",
+        "after"
+      ],
+      "measurements": {
+        "before": {
+          "returncode": 0,
+          "result": {
+            "seconds": [
+              0.22252420001314022,
+              0.22073319999617524,
+              0.22161140001844615
+            ],
+            "median_seconds": 0.22161140001844615,
+            "digits_sha256": "e7cb4bbb129d29f035c29cf1f088673788a82ebbbd61b466257e12ece4871aac",
+            "purpose": "diagnostic only; unchanged official body"
+          },
+          "dll_sha256": "d425ba688e3a09896eb35f3bc3164af9f8d09fbf785484dab9bf5f357eee0d3a"
+        },
+        "after": {
+          "returncode": 0,
+          "result": {
+            "seconds": [
+              0.2208528000046499,
+              0.2148274999926798,
+              0.21411539998371154
+            ],
+            "median_seconds": 0.2148274999926798,
+            "digits_sha256": "e7cb4bbb129d29f035c29cf1f088673788a82ebbbd61b466257e12ece4871aac",
+            "purpose": "diagnostic only; unchanged official body"
+          },
+          "dll_sha256": "f326f4beb61179e0c8698ca0ff745f866658a254e78a4a964ff11802e23a4f84"
+        }
+      }
+    }
+  ]
+}

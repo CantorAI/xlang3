@@ -52,3 +52,15 @@
 /doc/performance/bigint-add-compare-operand-view-checkpoint-20261007.svg text eol=lf
 /doc/performance/bigint-add-compare-reference-helper-checkpoint-20261007.md text eol=lf
 /doc/performance/bigint-add-compare-reference-helper-checkpoint-20261007.svg text eol=lf
+
+/doc/performance/data/bigint-combined-storage-*-20261007* -text
+/doc/performance/data/pyperformance-bigint-combined-storage-*-20261007* -text
+/doc/performance/data/release-bigint-combined-storage-*-20261007* -text
+/doc/performance/data/pidigits-combined-storage-*-20261007* -text
+/doc/performance/data/pyexpat-namespace-streaming-baseline-20261007.json -text
+/tests/cpp/bigint_storage_lifetime_cases.h text eol=lf
+/benchmarks/diagnostics/bigint_result_allocation.py text eol=lf
+/benchmarks/diagnostics/pyexpat_namespace_streaming.py text eol=lf
+/doc/performance/bigint-combined-storage-checkpoint-20261007.md text eol=lf
+/doc/performance/bigint-combined-storage-checkpoint-20261007.svg text eol=lf
+/doc/performance/pyexpat-namespace-streaming-baseline-20261007.md text eol=lf

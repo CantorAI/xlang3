@@ -1,0 +1,12 @@
+local_slots              pass         0.993x
+scalar_arithmetic        pass         0.996x
+range_for                pass         1.015x
+function_calls           pass         0.979x
+class_construct          pass         1.003x
+list_append              pass         0.984x
+property_access          pass         0.957x
+deepcopy_memo            pass         0.869x
+json_dumps               pass         0.999x
+gc_traversal             pass         0.757x
+subparsers               pass         0.944x
+Performance check: pass. Report: D:\CantorAI\xlang3\doc\performance\data\release-bigint-combined-storage-fixed-gate-20261007.json
