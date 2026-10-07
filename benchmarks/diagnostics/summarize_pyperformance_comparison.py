@@ -184,6 +184,15 @@ def main() -> None:
     with args.canonical_status.open(newline="", encoding="utf-8-sig") as stream:
         canonical = list(csv.DictReader(stream))
     case_order = [row["benchmark"] for row in canonical]
+    if len(case_order) != 97 or len(set(case_order)) != 97:
+        raise ValueError("the full-run index must contain 97 unique benchmark definitions")
+    attempted = set(case_sections(log))
+    missing = set(case_order) - attempted
+    unexpected = attempted - set(case_order)
+    if missing or unexpected:
+        raise ValueError(
+            "the log is not a complete all-97 run: "
+            f"missing={sorted(missing)}, unexpected={sorted(unexpected)}")
     name_to_case: dict[str, str] = {}
     for row in canonical:
         for column in ("CPython subtests", "XLang3 subtests"):
@@ -233,10 +242,13 @@ def main() -> None:
                                     "speedup": ratio})
 
         cp_status = "completed" if cp_values else prior.get("CPython 3.14 status", "not recorded")
-        if x_values:
-            x_status = "completed"
-        elif case in failures:
+        if case in failures:
+            # A multi-subtest definition may publish some results before its
+            # later worker fails. Keep those measurements, but do not turn
+            # the failed definition into a completed one in the coverage list.
             x_status = f"failed: {failures[case]}"
+        elif x_values:
+            x_status = "completed"
         else:
             x_status = "not recorded"
         status_rows.append({
@@ -250,6 +262,10 @@ def main() -> None:
         })
 
     comparisons.sort(key=lambda item: item["speedup"])
+    unknown_outcomes = [row["benchmark"] for row in status_rows
+                        if row["XLang3 status"] == "not recorded"]
+    if unknown_outcomes:
+        raise ValueError(f"benchmark outcomes are missing: {unknown_outcomes}")
     matched = len(comparisons)
     faster = sum(1 for item in comparisons if item["speedup"] > 1)
     geomean = math.exp(statistics.fmean(math.log(item["speedup"]) for item in comparisons)) if comparisons else 0.0
