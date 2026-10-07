@@ -3184,9 +3184,16 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
       value_assign_fast(klass, constructor_args.get(0));
       value_assign_fast(self, constructor_args.get(1));
     } else {
-      Value locals = runtime.current_locals_snapshot();
-      if (!xlang_vm_current_super_first_argument(runtime, locals, self)) {
-        error = "super(): no current instance or class";
+      if (!runtime.try_current_frame_first_argument(self)) {
+        Value locals = runtime.current_locals_snapshot();
+        if (!xlang_vm_current_super_first_argument(runtime, locals, self)) {
+          error = "super(): no current instance or class";
+          return false;
+        }
+      }
+      if (self.tag == ValueTag::Invalid) {
+        error = "super(): arg[0] deleted";
+        runtime.raise_class_error("RuntimeError", error);
         return false;
       }
       if (!xlang_vm_infer_super_defining_class(runtime, self, klass, error)) {

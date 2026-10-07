@@ -1,0 +1,52 @@
+{
+  "purpose": "diagnostic only, loop/call overhead included; separate sequential five-sample passes",
+  "source_sha256": "7408b17e90db1161734843257a52678f54ee9f0d3d6acb58cd512bacd0b12a8c",
+  "input_sha256": {
+    "python-super-dict-get-xlang3-frame-receiver-20261007.log": "dc2e5b1d795b457a772b2bd701a21459c858436d1388f9612e5ef0bd14380974",
+    "python-super-dict-get-preserved-control-current-20261007.log": "3be8f0d3579e567607283f95184a83ed122b488f37a7970dd8aec86978d988eb",
+    "python-super-dict-get-xlang3-builtin-constants-20261007.log": "b5f25fbc30043971b09452f039de1d832aaaa612b1815dc9f38cd34cb8fce0da",
+    "python-super-dict-get-cpython3147-20261007.log": "bf5c94bcaa9efa76f5cc7d93d454b9564f709316a9d1ccd6aee1dd08b477709e"
+  },
+  "comparisons": [
+    {
+      "case": "native bound dict.get",
+      "candidate_seconds": 0.008637500024633482,
+      "preserved_control_current_seconds": 0.01073720000567846,
+      "previous_checkpoint_seconds": 0.0074007000075653195,
+      "cpython3147_seconds": 0.0005601999873761088,
+      "current_control_over_candidate": 1.2430911693264017
+    },
+    {
+      "case": "native bound super.get",
+      "candidate_seconds": 0.00925420000567101,
+      "preserved_control_current_seconds": 0.00948810001136735,
+      "previous_checkpoint_seconds": 0.008771900000283495,
+      "cpython3147_seconds": 0.0006480999873019755,
+      "current_control_over_candidate": 1.0252750108656616
+    },
+    {
+      "case": "Python direct dict.get wrapper",
+      "candidate_seconds": 0.025352900003781542,
+      "preserved_control_current_seconds": 0.02707040001405403,
+      "previous_checkpoint_seconds": 0.0245295999920927,
+      "cpython3147_seconds": 0.0013999999791849405,
+      "current_control_over_candidate": 1.0677437299092534
+    },
+    {
+      "case": "Python zero-argument super.get",
+      "candidate_seconds": 0.032435400004033,
+      "preserved_control_current_seconds": 0.0458517000079155,
+      "previous_checkpoint_seconds": 0.04432539999834262,
+      "cpython3147_seconds": 0.002631500014103949,
+      "current_control_over_candidate": 1.4136314027949193
+    },
+    {
+      "case": "Python explicit super.get",
+      "candidate_seconds": 0.03063359999214299,
+      "preserved_control_current_seconds": 0.03134610000415705,
+      "previous_checkpoint_seconds": 0.030392600019695237,
+      "cpython3147_seconds": 0.0025462000048719347,
+      "current_control_over_candidate": 1.0232587750769353
+    }
+  ]
+}

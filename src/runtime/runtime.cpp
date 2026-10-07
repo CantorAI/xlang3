@@ -1976,6 +1976,45 @@ void Runtime::clear_current_frame_locals() {
   state.local_count = 0;
 }
 
+bool Runtime::try_current_frame_first_argument(Value& out) const {
+  const auto& state = current_frame_state(*this);
+  const RuntimeFrameView* frame = nullptr;
+  if (state.frame_stack != nullptr && state.frame_stack_count != 0) {
+    const auto& view = state.frame_stack[state.frame_stack_count - 1];
+    // Inlined logical frames keep a separate locals mapping. Do not confuse
+    // their receiver with the first parameter of the enclosing physical frame.
+    if (active_logical_frame_range(view) != nullptr ||
+        view.module_owner != state.module_owner || view.function_id != state.function_id ||
+        view.local_values != state.local_values) return false;
+    frame = &view;
+  }
+  if (state.module_owner == nullptr || state.module_owner->get() == nullptr ||
+      state.local_names == nullptr || state.local_values == nullptr ||
+      state.local_count == 0 || state.local_names->empty()) return false;
+  const auto& module = **state.module_owner;
+  if (state.function_id == module.entry || state.function_id >= module.functions.size()) return false;
+  const auto& function = module.functions[state.function_id];
+  if (function.params.empty() || function.params[0].empty() ||
+      (*state.local_names)[0] != function.params[0]) return false;
+  const Value* receiver = &state.local_values[0];
+  for (size_t index = 0; index < function.cell_slots.size(); ++index) {
+    if (function.cell_slots[index] != 0) continue;
+    if (frame == nullptr || frame->cell_values == nullptr || index >= frame->cell_count) return false;
+    auto* cell = value_as_cell(frame->cell_values[index]);
+    if (cell == nullptr) return false;
+    // A nested nonlocal assignment updates the cell, not the stale local copy.
+    receiver = &cell->value;
+    break;
+  }
+  // Parameter binding puts the first argument in local slot zero. Prove that
+  // layout above and retain only this live value: zero-argument super() must not
+  // allocate/hash a dictionary containing every local on each Python call.
+  // Unusual frame layouts use the existing snapshot path. An invalid live
+  // value reports deletion to the caller instead of reviving a stale receiver.
+  value_assign_fast(out, *receiver);
+  return true;
+}
+
 Value Runtime::current_locals_snapshot() const {
   const auto& state = current_frame_state(*this);
   if (state.frame_stack != nullptr && state.frame_stack_count != 0) {

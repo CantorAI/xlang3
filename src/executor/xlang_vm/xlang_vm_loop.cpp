@@ -1208,6 +1208,8 @@ RuntimeResult Interpreter::run_function(
           &view_frame.native_call_args,
           view_frame.closure,
           frame_generator_owner,
+          view_frame.cells.value_data(),
+          view_frame.cells.size(),
       };
     };
     if (frame_storage_moved || view_storage_moved) {

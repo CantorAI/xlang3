@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "tests/fixtures/core/super_live_receiver.py", line 64, in <module>
+    assert first.captured(second) == 'second'
+AssertionError

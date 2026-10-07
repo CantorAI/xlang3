@@ -1,0 +1,4 @@
+live receiver, classmethod, cells and suspended frames True
+lexical class preserved for reassigned methods True
+deleted local and cell receivers rejected True
+traced Python forwarding executes original frames True

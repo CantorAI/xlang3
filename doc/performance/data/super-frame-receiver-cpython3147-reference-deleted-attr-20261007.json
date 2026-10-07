@@ -1,0 +1,9 @@
+{
+  "manager_executable": "C:\\Python\\Python314\\python.exe",
+  "manager_version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+  "fixture": "tests\\fixtures\\core\\super_live_receiver.py",
+  "source_sha256": "2d6c20ae4fe1127afb0a155e8963f3f2d2cbd993a8613a9af46f3b99827f152b",
+  "exit_code": 1,
+  "stdout": "live receiver, classmethod, cells and suspended frames True\nlexical class preserved for reassigned methods True\n",
+  "stderr": "Traceback (most recent call last):\n  File \"D:\\CantorAI\\xlang3\\tests\\fixtures\\core\\super_live_receiver.py\", line 80, in <module>\n    function()\n    ~~~~~~~~^^\n  File \"D:\\CantorAI\\xlang3\\tests\\fixtures\\core\\super_live_receiver.py\", line 32, in deleted\n    return super().value()\n           ~~~~~^^\nUnboundLocalError: cannot access local variable 'receiver' where it is not associated with a value\n"
+}

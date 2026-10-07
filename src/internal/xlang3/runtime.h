@@ -71,6 +71,8 @@ struct RuntimeFrameView {
   std::vector<Value>* native_call_args = nullptr;
   const std::vector<Value>* closure = nullptr;
   GeneratorObject* generator_owner = nullptr;
+  const Value* cell_values = nullptr;
+  size_t cell_count = 0;
 };
 
 enum class RuntimeDebugStepMode : uint8_t {
@@ -260,6 +262,7 @@ public:
   uint32_t current_frame_function_id() const;
   const std::shared_ptr<const ir::Module>* current_frame_module_owner() const;
   bool current_frame_free_var(const std::string& name, Value& out) const;
+  bool try_current_frame_first_argument(Value& out) const;
   void set_current_frame_locals(const std::vector<std::string>* names, const Value* values, size_t count);
   void clear_current_frame_locals();
   Value current_locals_snapshot() const;

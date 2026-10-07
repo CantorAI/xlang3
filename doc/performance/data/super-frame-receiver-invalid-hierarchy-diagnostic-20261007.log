@@ -1,0 +1,12 @@
+live receiver, classmethod, cells and suspended frames True
+Traceback (most recent call last):
+  File "benchmarks/diagnostics/super_receiver_initial_edges.py", line 63, in <module>
+    Sibling().value()
+    ~~~~~~~~~~~~~~~^^
+  File "benchmarks/diagnostics/super_receiver_initial_edges.py", line 17, in value
+    return super().value(), extra
+           ~~~~~~~~~~~~~^^
+  File "benchmarks/diagnostics/super_receiver_initial_edges.py", line 7, in value
+    return self.tag
+           ^^^^^^^^
+AttributeError: 'Sibling' object has no attribute 'tag'

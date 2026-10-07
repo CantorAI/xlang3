@@ -2395,9 +2395,16 @@ bool builtin_super(
     value_assign_fast(klass, args[0]);
     value_assign_fast(self, args[1]);
   } else {
-    Value locals = runtime.current_locals_snapshot();
-    if (!current_super_first_argument(runtime, locals, self)) {
-      return raise_type_error(runtime, "super(): no current instance", error);
+    if (!runtime.try_current_frame_first_argument(self)) {
+      Value locals = runtime.current_locals_snapshot();
+      if (!current_super_first_argument(runtime, locals, self)) {
+        return raise_type_error(runtime, "super(): no current instance", error);
+      }
+    }
+    if (self.tag == ValueTag::Invalid) {
+      error = "super(): arg[0] deleted";
+      runtime.raise_class_error("RuntimeError", error);
+      return false;
     }
     if (!infer_super_defining_class(runtime, self, klass, error)) {
       std::string message = error;
