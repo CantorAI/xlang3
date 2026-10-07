@@ -1,0 +1,39 @@
+{
+  "status": "finished",
+  "source_base_commit": "36a5ef4be1d3689564b27c8d62865e2ef071bd69",
+  "started_utc": "2026-10-07T20:32:06.385064+00:00",
+  "manager_version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+  "expected_definitions": 1,
+  "benchmarks": "pidigits",
+  "mode": "fast",
+  "case_timeout_seconds": 300,
+  "runtime_executable": "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+  "sha256_start": {
+    "exe": "9f89802e3eed9431dccfe6906cd04cfede486e77dc951469fbf80cc785152bdc",
+    "dll": "9c838947e6e6cd22a1035f6a427e90df7e9c67cea1f343fd9fec196a4f30a487"
+  },
+  "benchmark_source_sha256": "4bf89183acb8651623676ece6e10787b6c71eec549fe53ce17a62a812ef7447d",
+  "compatibility_hook_sha256": "2ffc217fe20497156bfcb1cebc7fb87203f33c6d4d3dbb6ecbcbcf91ea4cb317",
+  "command": [
+    "C:\\Python\\Python314\\python.exe",
+    "benchmarks/diagnostics/run_pyperformance_xlang3_shimmed.py",
+    "--runtime",
+    "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+    "--benchmarks",
+    "pidigits",
+    "--mode",
+    "fast",
+    "--case-timeout",
+    "300",
+    "--dependency-site",
+    "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages",
+    "--output",
+    "D:\\CantorAI\\xlang3\\doc\\performance\\data\\pyperformance-bigint-operand-view-pidigits-before-fast-20261007.json"
+  ],
+  "exit_code": 0,
+  "completed_utc": "2026-10-07T20:32:25.737748+00:00",
+  "sha256_end": {
+    "exe": "9f89802e3eed9431dccfe6906cd04cfede486e77dc951469fbf80cc785152bdc",
+    "dll": "9c838947e6e6cd22a1035f6a427e90df7e9c67cea1f343fd9fec196a4f30a487"
+  }
+}

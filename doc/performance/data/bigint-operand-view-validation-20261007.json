@@ -1,0 +1,15 @@
+{
+  "status": "finished",
+  "completed_utc": "2026-10-07T20:36:47.188139+00:00",
+  "manager_version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+  "fixture_exit_code": 0,
+  "fixture_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "sha256_start": {
+    "exe": "9f89802e3eed9431dccfe6906cd04cfede486e77dc951469fbf80cc785152bdc",
+    "dll": "95efe92248f085a53be84e819ce436238efc36cccf7b368324182cf4f0b05117"
+  },
+  "sha256_end": {
+    "exe": "9f89802e3eed9431dccfe6906cd04cfede486e77dc951469fbf80cc785152bdc",
+    "dll": "95efe92248f085a53be84e819ce436238efc36cccf7b368324182cf4f0b05117"
+  }
+}

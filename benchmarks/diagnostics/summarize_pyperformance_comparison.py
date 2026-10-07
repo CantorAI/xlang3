@@ -27,7 +27,16 @@ def load_json(path: Path) -> dict:
 
 
 def benchmark_map(data: dict) -> dict[str, dict]:
-    return {item["metadata"]["name"]: item for item in data.get("benchmarks", [])}
+    result = {}
+    for item in data.get("benchmarks", []):
+        # pyperf moves metadata shared by every benchmark to the document
+        # level. Single-case files commonly store their name there too.
+        metadata = {**data.get("metadata", {}), **item.get("metadata", {})}
+        name = metadata.get("name")
+        if not isinstance(name, str) or not name or name in result:
+            raise ValueError(f"missing or duplicate benchmark name: {name!r}")
+        result[name] = item
+    return result
 
 
 def values(benchmark: dict) -> list[float]:

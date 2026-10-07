@@ -20,3 +20,10 @@
 /benchmarks/diagnostics/generic_bigint_multiply.py text eol=lf
 /tests/fixtures/core/math_factorial_owned_limbs.py text eol=lf
 /tests/fixtures/expected/math_factorial_owned_limbs.out text eol=lf
+/doc/performance/data/bigint-operand-view-*-20261007* -text
+/doc/performance/data/pyperformance-bigint-operand-view-*-20261007* -text
+/doc/performance/data/release-bigint-operand-view-*-20261007* -text
+/doc/performance/data/pidigits-operand-view-*-20261007* -text
+/doc/performance/data/pidigits-shorter-outer-*-20261007* -text
+/benchmarks/diagnostics/pidigits_body_correctness.py text eol=lf
+/tests/cpp/bigint_multiply_operand_view_cases.h text eol=lf

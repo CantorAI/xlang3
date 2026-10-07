@@ -18,6 +18,24 @@ spec.loader.exec_module(summary)
 
 
 class FullSummaryTests(unittest.TestCase):
+    def test_single_case_name_can_be_in_document_metadata(self):
+        item = {'runs': [{'values': [0.4, 0.5]}]}
+        payload = {'metadata': {'name': 'pidigits', 'unit': 'second'},
+                   'benchmarks': [item]}
+        self.assertEqual(summary.benchmark_map(payload), {'pidigits': item})
+
+    def test_benchmark_metadata_overrides_document_metadata(self):
+        item = {'metadata': {'name': 'local'}, 'runs': []}
+        self.assertEqual(summary.benchmark_map({'metadata': {'name': 'global'},
+                                                'benchmarks': [item]}), {'local': item})
+
+    def test_missing_or_duplicate_names_are_rejected(self):
+        with self.assertRaisesRegex(ValueError, 'missing or duplicate'):
+            summary.benchmark_map({'benchmarks': [{'runs': []}]})
+        with self.assertRaisesRegex(ValueError, 'missing or duplicate'):
+            summary.benchmark_map({'metadata': {'name': 'same'},
+                                   'benchmarks': [{'runs': []}, {'runs': []}]})
+
     def test_chart_covers_ratios_outside_original_axis(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / 'chart.svg'

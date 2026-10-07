@@ -38,6 +38,19 @@ struct BigIntPayload {
   size_t limb_bytes = 0;
 };
 
+// Operand views never own, resize, normalize or release their limbs. Keeping
+// them distinct from BigIntPayload prevents borrowed input storage from being
+// passed accidentally to an owned-payload cleanup or compaction operation.
+struct BigIntOperandView {
+  int8_t sign = 0;
+  uint32_t limb_count = 0;
+  const uint32_t* limbs = nullptr;
+};
+
+BigIntOperandView operand_view(const BigIntPayload& value) {
+  return {value.sign, value.limb_count, value.limbs};
+}
+
 BigIntPayload* payload(BigIntObject* object) {
   return object == nullptr ? nullptr : static_cast<BigIntPayload*>(object->impl);
 }
@@ -202,6 +215,29 @@ bool value_to_payload(const Value& value, BigIntPayload& out) {
   return false;
 }
 
+bool intrinsic_integer_operand_view(const Value& value, uint32_t (&scalar_limbs)[2],
+                                    BigIntOperandView& out) {
+  uint64_t magnitude = 0;
+  bool negative = false;
+  if (value.tag == ValueTag::Int64) {
+    negative = value.as.i64 < 0;
+    magnitude = negative ? static_cast<uint64_t>(-(value.as.i64 + 1)) + 1u
+                         : static_cast<uint64_t>(value.as.i64);
+  } else if (value.tag == ValueTag::Bool) {
+    magnitude = value.as.b ? 1u : 0u;
+  } else if (const auto* bigint = value_as_bigint(value)) {
+    out = operand_view(*payload(bigint));
+    return true;
+  } else {
+    return false;
+  }
+  scalar_limbs[0] = static_cast<uint32_t>(magnitude);
+  scalar_limbs[1] = static_cast<uint32_t>(magnitude >> 32u);
+  out = {static_cast<int8_t>(magnitude == 0 ? 0 : negative ? -1 : 1),
+         magnitude == 0 ? 0u : scalar_limbs[1] == 0 ? 1u : 2u, scalar_limbs};
+  return true;
+}
+
 int compare_abs(const BigIntPayload& lhs, const BigIntPayload& rhs) {
   if (lhs.limb_count != rhs.limb_count) {
     return lhs.limb_count < rhs.limb_count ? -1 : 1;
@@ -286,10 +322,16 @@ BigIntPayload negate_payload(const BigIntPayload& value) {
   return out;
 }
 
-BigIntPayload mul_payload(const BigIntPayload& lhs, const BigIntPayload& rhs) {
+BigIntPayload mul_payload(BigIntOperandView lhs, BigIntOperandView rhs) {
   if (lhs.sign == 0 || rhs.sign == 0) {
     return make_zero_payload();
   }
+  // Put the shorter operand in the outer loop, as CPython's integer multiply
+  // does. A bigint times a single-limb scalar then uses one contiguous inner
+  // pass and one final carry, rather than restarting carry propagation for
+  // every bigint limb. Only immutable views are swapped; wrapper conversion
+  // order and Python callbacks have already been handled by the caller.
+  if (lhs.limb_count > rhs.limb_count) std::swap(lhs, rhs);
   BigIntPayload out;
   out.sign = lhs.sign == rhs.sign ? 1 : -1;
   ensure_capacity(out, lhs.limb_count + rhs.limb_count);
@@ -313,6 +355,10 @@ BigIntPayload mul_payload(const BigIntPayload& lhs, const BigIntPayload& rhs) {
   }
   normalize(out);
   return out;
+}
+
+BigIntPayload mul_payload(const BigIntPayload& lhs, const BigIntPayload& rhs) {
+  return mul_payload(operand_view(lhs), operand_view(rhs));
 }
 
 void mul_small_inplace(BigIntPayload& value, uint32_t factor) {
@@ -928,6 +974,23 @@ bool value_int_like_sub(const Value& lhs, const Value& rhs, Value& out) {
 }
 
 bool value_int_like_mul(const Value& lhs, const Value& rhs, Value& out) {
+  uint32_t left_scalar_limbs[2];
+  uint32_t right_scalar_limbs[2];
+  BigIntOperandView left_view;
+  BigIntOperandView right_view;
+  if (intrinsic_integer_operand_view(lhs, left_scalar_limbs, left_view) &&
+      intrinsic_integer_operand_view(rhs, right_scalar_limbs, right_view)) {
+    // Exact integer operands cannot execute Python callbacks during conversion
+    // or multiplication, so their immutable limbs can be read without clones.
+    // Finish the independent result before assigning out: out may alias lhs,
+    // rhs, or both, and assignment can release the last input owner.
+    BigIntPayload result = mul_payload(left_view, right_view);
+    out = compact_payload(result);
+    return true;
+  }
+  // Wrapper/subclass conversion may invoke attribute hooks that replace an
+  // earlier operand. Keep the original owned conversion, in operand order,
+  // so no borrowed storage survives such reentry.
   BigIntPayload left;
   BigIntPayload right;
   if (!value_to_payload(lhs, left) || !value_to_payload(rhs, right)) {
