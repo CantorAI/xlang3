@@ -1554,6 +1554,24 @@ bool bytearray_extend_method(Runtime& runtime, const Value* args, uint32_t argc,
   return true;
 }
 
+// Keep bytearray += on the native mutable-buffer path. Falling through to
+// value_add copies the entire accumulated buffer on every append (quadratic
+// work in loops such as Lib/base64.py's Base32 encoder); __iadd__ must extend
+// in place and return the same object, as CPython's native bytearray does.
+bool bytearray_iadd_method(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (!bytearray_extend_method(runtime, args, argc, out, error, nullptr)) {
+    return false;
+  }
+  value_assign_fast(out, args[0]);
+  return true;
+}
+
 bool bytearray_clear_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 1, "bytearray.clear", error)) {
     return false;
@@ -2549,6 +2567,7 @@ bool bytearray_get_method(const Value& object, const std::string& name, Value& o
     return false;
   }
   static BuiltinMethodSpec methods[] = {
+      {"__iadd__", "bytearray.__iadd__", bytearray_iadd_method},
       {"append", "bytearray.append", bytearray_append_method},
       {"capitalize", "bytearray.capitalize", bytes_capitalize_method},
       {"clear", "bytearray.clear", bytearray_clear_method},
@@ -2596,6 +2615,16 @@ bool bytearray_get_method(const Value& object, const std::string& name, Value& o
       {"upper", "bytearray.upper", bytes_upper_method},
   };
   return bind_builtin_method_from_table(object, name, methods, std::size(methods), out);
+}
+
+bool bytearray_inplace_add(
+    Runtime& runtime,
+    const Value& target,
+    const Value& addition,
+    Value& out,
+    std::string& error) {
+  Value args[2] = {target, addition};
+  return bytearray_iadd_method(runtime, args, 2, out, error, nullptr);
 }
 
 bool memoryview_get_method(const Value& object, const std::string& name, Value& out) {

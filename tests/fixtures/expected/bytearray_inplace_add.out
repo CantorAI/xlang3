@@ -1,0 +1,6 @@
+bytes-iadd (b'abc', True)
+bytearray-iadd (b'abc', True)
+memoryview-iadd (b'abc', True)
+self-iadd b'xx' True
+exported-iadd b'a'
+empty-exported-iadd b'a'

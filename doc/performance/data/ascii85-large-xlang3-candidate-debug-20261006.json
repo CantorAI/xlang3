@@ -1,0 +1,1 @@
+{"benchmarks":[{"runs":[{"values":[4.3349737000098685]}]}],"metadata":{"description":"Official pyperformance bm_base64 ascii85_large, isolated from other subtests","duration":4.335447800011025,"loops":1,"name":"ascii85_large","unit":"second"},"version":"1.0"}

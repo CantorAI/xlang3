@@ -2500,6 +2500,12 @@ bool builtin_inplace_add(
   if (is_builtin_number(args[0]) && is_builtin_number(args[1])) {
     return value_add(args[0], args[1], out, error);
   }
+  // Builtin bytearray special methods are exposed through the attribute layer,
+  // but object_get_special_method does not resolve that synthetic method table.
+  // Dispatch here so += mutates the buffer instead of copying its full prefix.
+  if (value_as_bytearray(args[0]) != nullptr) {
+    return bytearray_inplace_add(runtime, args[0], args[1], out, error);
+  }
   bool implemented = false;
   if (!call_binary_method_if_implemented(
           runtime, args[0], args[1], "__iadd__", implemented, out, error)) {
