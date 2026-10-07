@@ -159,6 +159,8 @@ def main() -> None:
     parser.add_argument("--xlang-json", type=Path, required=True)
     parser.add_argument("--cpython-json", type=Path, required=True)
     parser.add_argument("--xlang-log", type=Path, required=True)
+    parser.add_argument("--cpython-log", type=Path,
+                        help="fresh full-run status log; use it instead of historical CPython statuses")
     parser.add_argument("--canonical-status", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--prefix", required=True)
@@ -180,6 +182,11 @@ def main() -> None:
     cbench = benchmark_map(cdata)
     log = args.xlang_log.read_text(encoding="utf-8", errors="replace")
     failures, details = failure_details(log)
+    cp_failures, cp_details = {}, {}
+    cp_log = None
+    if args.cpython_log is not None:
+        cp_log = args.cpython_log.read_text(encoding="utf-8", errors="replace")
+        cp_failures, cp_details = failure_details(cp_log)
 
     with args.canonical_status.open(newline="", encoding="utf-8-sig") as stream:
         canonical = list(csv.DictReader(stream))
@@ -193,6 +200,10 @@ def main() -> None:
         raise ValueError(
             "the log is not a complete all-97 run: "
             f"missing={sorted(missing)}, unexpected={sorted(unexpected)}")
+    if cp_log is not None:
+        cp_attempted = set(case_sections(cp_log))
+        if cp_attempted != set(case_order):
+            raise ValueError("the CPython log is not a complete all-97 run")
     name_to_case: dict[str, str] = {}
     for row in canonical:
         for column in ("CPython subtests", "XLang3 subtests"):
@@ -205,12 +216,12 @@ def main() -> None:
     for name, benchmark in cbench.items():
         case = name_to_case.get(name)
         value = mean(benchmark)
-        if case and value is not None:
+        if case and case not in cp_failures and value is not None:
             c_by_case[case].append((name, value))
     for name, benchmark in xbench.items():
         case = name_to_case.get(name)
         value = mean(benchmark)
-        if case and value is not None:
+        if case and case not in failures and value is not None:
             x_by_case[case].append((name, value))
 
     canonical_by_case = {row["benchmark"]: row for row in canonical}
@@ -241,11 +252,17 @@ def main() -> None:
                                     "cpython": cp, "xlang": value,
                                     "speedup": ratio})
 
-        cp_status = "completed" if cp_values else prior.get("CPython 3.14 status", "not recorded")
+        if case in cp_failures:
+            cp_status = f"failed: {cp_failures[case]}"
+        elif cp_values:
+            cp_status = "completed"
+        elif cp_log is not None:
+            cp_status = "not recorded"
+        else:
+            cp_status = prior.get("CPython 3.14 status", "not recorded")
         if case in failures:
-            # A multi-subtest definition may publish some results before its
-            # later worker fails. Keep those measurements, but do not turn
-            # the failed definition into a completed one in the coverage list.
+            # Failed definitions can contain earlier subtest values. Preserve
+            # them only in raw evidence, never as chart/aggregate speed scores.
             x_status = f"failed: {failures[case]}"
         elif x_values:
             x_status = "completed"
@@ -258,7 +275,8 @@ def main() -> None:
             "XLang3 status": x_status,
             "XLang3 subtests": "; ".join(x_text_parts),
             "failure detail": details.get(case, failures.get(case, "")),
-            "CPython failure detail": prior.get("CPython failure detail", ""),
+            "CPython failure detail": (cp_details.get(case, "") if cp_log is not None
+                                       else prior.get("CPython failure detail", "")),
         })
 
     comparisons.sort(key=lambda item: item["speedup"])
@@ -266,6 +284,11 @@ def main() -> None:
                         if row["XLang3 status"] == "not recorded"]
     if unknown_outcomes:
         raise ValueError(f"benchmark outcomes are missing: {unknown_outcomes}")
+    if cp_log is not None:
+        cp_unknown = [row["benchmark"] for row in status_rows
+                      if row["CPython 3.14 status"] == "not recorded"]
+        if cp_unknown:
+            raise ValueError(f"CPython benchmark outcomes are missing: {cp_unknown}")
     matched = len(comparisons)
     faster = sum(1 for item in comparisons if item["speedup"] > 1)
     geomean = math.exp(statistics.fmean(math.log(item["speedup"]) for item in comparisons)) if comparisons else 0.0
@@ -288,7 +311,9 @@ def main() -> None:
     report = [
         f"# XLang3 vs CPython 3.14.7: corrected full pyperformance run",
         "",
-        f"The corrected XLang3 run attempted all **{len(status_rows)}** pyperformance 1.14.0 definitions in `--fast` mode. It completed **{completed}** definitions and recorded **{failed}** failures/timeouts. The command returned exit code 1 because pyperformance treats those benchmark failures as an unsuccessful suite; every definition was attempted.",
+        f"The XLang3 run attempted all **{len(status_rows)}** pyperformance 1.14.0 definitions in `--fast` mode. It completed **{completed}** definitions and recorded **{failed}** failures/timeouts. "
+        + ("Benchmark failures make the suite unsuccessful; every definition was attempted."
+           if failed else "Every definition completed."),
         "",
         f"Of **{matched}** matched subtests, XLang3 was faster on **{faster}**. The geometric mean of CPython time divided by XLang3 time was **{geomean:.5f}×**; values over 1× favor XLang3. Fast-mode samples carry stability warnings and are directional evidence.",
         "",
@@ -325,6 +350,7 @@ def main() -> None:
     report.extend([
         "",
         "The [all-97 status CSV](" + rel(status_path) + ") retains every benchmark definition and failure status. The [matched subtest CSV](" + rel(subtest_path) + ") contains raw per-subtest means and speed ratios.",
+        "Partial values from failed definitions remain in raw evidence and are excluded from timing tables, speed ratios and aggregate statistics.",
         "",
         "## Raw evidence",
         "",
@@ -335,6 +361,8 @@ def main() -> None:
         "",
         "Benchmark worker failures have several causes, including unavailable optional benchmark dependencies, XLang3 native-module gaps, and interpreter compatibility bugs. The status CSV gives case-level failure details, and the runner log preserves worker tracebacks when available. A worker death is not a performance score; inspect its case-specific cause before treating it as a speed result.",
     ])
+    if args.cpython_log is not None:
+        report.extend(["", f"- Fresh CPython status log: [`{args.cpython_log.name}`]({rel(args.cpython_log)})."])
     report_path.write_text("\n".join(report) + "\n", encoding="utf-8")
 
     print(f"Completed definitions: {completed}/97; failed: {failed}; matched subtests: {matched}; faster: {faster}; geomean CPython/XLang3: {geomean:.5f}x")
