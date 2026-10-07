@@ -70,6 +70,46 @@ and reads their payload without calling an overridden `__str__`. See
 The eight-case probe covers a subset of this contract; passing it alone
 would not establish complete compile compatibility.
 
+Additional CPython 3.14.7 reference checks while preparing the source fix
+showed that `PyAST_Check` observes an ordinary instance's reported
+`__class__`. A string subclass's class-lookup exception therefore propagates
+before payload conversion. A proxy reporting a canonical AST class can also
+be a valid AST input. Canonical identity must coexist with that dynamic
+lookup; it cannot simply forbid all `__getattribute__` calls or require only
+nominal inheritance. The expanded compile fixture covers both behaviors.
+
+The [CPython fixture reference log](data/typecheck-compile-fixture-cpython3147-reference-20261007.log)
+records passing primitive type-check, Python Protocol-hook, and compile-source
+identity fixtures. This is correctness reference evidence, not an XLang3
+validation result or a benchmark score. The original Protocol fixture also
+needed to allow the ABC check's legitimate `__class__` access while forbidding
+dynamic lookup of protocol members. Profiling now distinguishes the typing
+hook from ABC's separate Python hook by its source filename.
+
+The compile fixture also distinguishes a valid empty buffer from a released
+or noncontiguous view. CPython 3.14.7 accepts the empty view in `exec` mode
+and rejects the other two with `TypeError`. The reference record includes
+source and expected-output hashes for all three fixtures; no XLang3 result
+is implied by these CPython checks.
+
+## Pure-Python implementation policy
+
+The measured `23d1d443` binary still contains
+`try_runtime_protocol_instancecheck`, a native translation of the member
+loop in `typing._ProtocolMeta.__instancecheck__`. This conflicts with the
+project rule that pure-Python standard-library algorithms remain Python.
+Its full-run `typing_runtime_protocols` result must be identified as using
+that shortcut, rather than presented as evidence for compliant Python
+execution. The raw result should remain in the complete benchmark record.
+
+The pending source removes that shortcut and exercises the original Python
+hook through generic dispatch. A separate generic guard avoids failed
+instance-attribute probing for immediate values after the complete
+`isinstance` class-info and metaclass-hook checks. Neither pending change
+has been built into the ongoing full-run executable. Both require XLang3
+correctness tests, the unchanged performance gate, and official targeted
+benchmarks before acceptance.
+
 ## Requirements for the next change
 
 1. Preserve raw native source paths without importing AST or allocating

@@ -1,0 +1,23 @@
+CASE primitive_typecheck_dispatch exit=0
+primitive typecheck dispatch True
+
+CASE runtime_protocol_fastcheck exit=0
+True
+False
+False
+False
+True
+True
+True
+non-runtime protocol error True
+custom instancecheck True
+python protocol hook True True
+
+CASE compile_source_identity exit=0
+native sources and subclasses True
+source class lookup exception True
+source encoding and NUL True
+canonical AST identities and subclasses True
+reported canonical AST class True
+AST field hooks and descriptors True
+source and nested AST impostors rejected True

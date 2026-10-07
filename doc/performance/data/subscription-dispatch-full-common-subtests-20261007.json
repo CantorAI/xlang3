@@ -1,0 +1,25 @@
+{
+  "common_subtests": 68,
+  "before_cpython_speed_geomean": 0.1415190533591889,
+  "after_cpython_speed_geomean": 0.13734353057807044,
+  "before_over_after_speed_geomean": 0.9704949780117554,
+  "before_nominal_cpython_wins": 5,
+  "after_nominal_cpython_wins": 4,
+  "after_cpython_matched_outside_common": [
+    "scimark_fft",
+    "scimark_lu",
+    "scimark_monte_carlo",
+    "scimark_sor",
+    "scimark_sparse_mat_mult"
+  ],
+  "before_cpython_matched_outside_common": [
+    "async_tree_cpu_io_mixed",
+    "async_tree_cpu_io_mixed_tg"
+  ],
+  "inputs": {
+    "doc\\performance\\data\\pyperformance-xlang3-native-string-checkpoint-full-fast-20261007.json": "3e46e57ce0740892ca47296b321fe127084a266a737ce802c98b168b3f5d129d",
+    "doc\\performance\\data\\pyperformance-xlang3-subscription-dispatch-full-fast-20261007.json": "97ad62500717aec8f5c20372de4ef02af53fa70a922298a5c85bd1a874201a16",
+    "doc\\performance\\data\\pyperformance-cpython314-clean-release-full-fast-20261002.json": "0543fa675730f019f2c9b54c18d07ae7777d2edc15e9eed60d98a3179e949dc5",
+    "doc\\performance\\data\\pyperformance-xlang3-subscription-dispatch-full-fast-20261007-provenance.json": "5612e1f1fac2e4cc974ef04c66e69589e1205a04aaa8880303e718cb6870dc53"
+  }
+}
