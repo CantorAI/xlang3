@@ -343,6 +343,13 @@ XLANG3_HOT_INLINE XlangVMOpFlow mod(
     }
     std::string error;
     if (!value_mod_runtime(runtime, lhs, rhs, regs[in.dst], error)) {
+      // Formatting can call Python __repr__. Preserve its actual exception;
+      // converting it to RuntimeError would hide user errors and type checks.
+      Value pending;
+      if (runtime.take_pending_exception(pending)) {
+        return raise_exception_value(std::move(pending))
+            ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+      }
       if (error == "integer modulo by zero" || error == "float modulo by zero") {
         return raise_zero_division(runtime, error.c_str(), std::forward<RaiseExceptionValue>(raise_exception_value));
       }
@@ -410,6 +417,13 @@ XLANG3_HOT_INLINE XlangVMOpFlow mod_const(
     }
     std::string error;
     if (!value_mod_runtime(runtime, lhs, rhs, regs[in.dst], error)) {
+      // Formatting can call Python __repr__. Preserve its actual exception;
+      // converting it to RuntimeError would hide user errors and type checks.
+      Value pending;
+      if (runtime.take_pending_exception(pending)) {
+        return raise_exception_value(std::move(pending))
+            ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+      }
       if (error == "integer modulo by zero" || error == "float modulo by zero") {
         return raise_zero_division(runtime, error.c_str(), std::forward<RaiseExceptionValue>(raise_exception_value));
       }

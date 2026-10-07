@@ -1,0 +1,10 @@
+nested native and Python repr True
+ASCII conversion and precision True
+type slots and intrinsic lookup True
+recursive container formatting True
+Traceback (most recent call last):
+  File "tests/fixtures/core/format_repr_runtime.py", line 85, in <module>
+    conversion(Bad())
+    ~~~~~~~~~~^^^^^^^
+  File "tests/fixtures/core/format_repr_runtime.py", line 2, in <lambda>
+RuntimeError: __repr__ returned non-string

@@ -2463,24 +2463,13 @@ bool string_percent_format(
         break;
       case 'r':
       case 'a':
-        if (runtime != nullptr && value_as_instance(arg) != nullptr) {
-          Value repr_method;
+        if (runtime != nullptr) {
+          // A container can contain Python objects even when its own tag is
+          // native. Runtime-free rendering loses nested __repr__ dispatch and
+          // string-subclass quoting; use the shared intrinsic instead.
           Value repr_result;
-          std::string attr_error;
-          if (!attribute_get(arg, "__repr__", repr_method, attr_error)) {
-            formatted = value_to_repr(arg);
-            break;
-          }
-          if (!runtime_call_callable(*runtime, repr_method, nullptr, 0, repr_result, error)) {
-            return false;
-          }
-          auto* repr_string = value_as_string(repr_result);
-          if (repr_string == nullptr) {
-            error = "__repr__ returned non-string";
-            runtime->raise_class_error("TypeError", error);
-            return false;
-          }
-          formatted = string_object_to_string(*repr_string);
+          if (!runtime_repr(*runtime, arg, repr_result, error, format[i] == 'a')) return false;
+          formatted = string_object_to_string(*value_as_string(repr_result));
         } else {
           formatted = value_to_repr(arg);
         }
@@ -2624,7 +2613,7 @@ bool percent_bytes_view(const Value& value, std::string_view& out, std::string& 
   return false;
 }
 
-bool bytes_percent_format(const Value& lhs, const Value& rhs, Value& out, std::string& error) {
+bool bytes_percent_format(Runtime* runtime, const Value& lhs, const Value& rhs, Value& out, std::string& error) {
   auto* format_object = value_as_bytes(lhs);
   if (format_object == nullptr) return false;
   const auto format = bytes_object_view(*format_object);
@@ -2785,7 +2774,14 @@ bool bytes_percent_format(const Value& lhs, const Value& rhs, Value& out, std::s
       }
       case 'r':
       case 'a':
-        formatted = value_to_repr(argument);
+        if (runtime != nullptr) {
+          Value repr_result;
+          // Bytes %r and %a both use ASCII-escaped repr, before precision.
+          if (!runtime_repr(*runtime, argument, repr_result, error, true)) return false;
+          formatted = string_object_to_string(*value_as_string(repr_result));
+        } else {
+          formatted = value_to_repr(argument);
+        }
         if (has_precision && precision < static_cast<int64_t>(formatted.size()))
           formatted.resize(static_cast<size_t>(precision));
         break;
@@ -3504,7 +3500,7 @@ bool value_mod(const Value& lhs, const Value& rhs, Value& out, std::string& erro
     if (!error.empty()) return false;
   }
   if (value_as_bytes(lhs) != nullptr) {
-    return bytes_percent_format(lhs, rhs, out, error);
+    return bytes_percent_format(nullptr, lhs, rhs, out, error);
   }
   if (value_as_bigint(lhs) != nullptr || value_as_bigint(rhs) != nullptr) {
     Value quotient;
@@ -3544,6 +3540,7 @@ bool value_mod_runtime(Runtime& runtime, const Value& lhs, const Value& rhs, Val
     if (string_percent_format(&runtime, lhs, rhs, out, error)) return true;
     if (!error.empty()) return false;
   }
+  if (value_as_bytes(lhs) != nullptr) return bytes_percent_format(&runtime, lhs, rhs, out, error);
   return value_mod(lhs, rhs, out, error);
 }
 

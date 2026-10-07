@@ -32,6 +32,8 @@ bool runtime_setattr(Runtime& runtime, const Value& object, const Value& name,
                      const Value& value, std::string& error);
 bool runtime_warn(Runtime& runtime, const Value& message, const Value& category,
                   int64_t stacklevel, std::string& error);
+bool runtime_repr(Runtime& runtime, const Value& value, Value& out,
+                  std::string& error, bool ascii_only = false);
 void register_exception_builtins(Runtime& runtime);
 void register_functional_builtins(Runtime& runtime);
 void register_io_builtins(Runtime& runtime);

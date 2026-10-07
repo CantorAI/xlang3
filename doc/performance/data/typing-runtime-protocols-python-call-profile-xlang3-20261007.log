@@ -1,0 +1,45 @@
+profiled workload typing_runtime_protocols 0.28224739999859594
+profiled Python calls, grouped by source/function
+[[["inspect.py","_shadowed_dict"],201],[["typing.py","_proto_hook"],90],[["__init__.py","#genexpr"],70],[["abc.py","__instancecheck__"],65],[["inspect.py","_check_instance"],57],[["inspect.py","_check_class"],57],[["_parser.py","__next"],54],[["_parser.py","__getitem__"],48],[["__init__.py","escape"],48],[["_parser.py","get"],47],[["enum.py","_is_private"],45],[["enum.py","_is_sunder"],45],[["enum.py","__setitem__"],45],[["enum.py","_is_dunder"],42],[["_parser.py","match"],40],[["enum.py","_is_single_bit"],36],[["enum.py","__init__"],31],[["enum.py","_is_descriptor"],28],[["enum.py","_is_internal_class"],28],[["enum.py","_add_member_"],28],[["enum.py","__set_name__"],28],[["_parser.py","__len__"],24],[["_parser.py","append"],20],[["typing.py","__instancecheck__"],20],[["tokenize.py","group"],19],[["_parser.py","tell"],17],[["_parser.py","__init__"],15],[["inspect.py","_shadowed_dict_from_weakref_mro_tuple"],15],[["annotationlib.py","_make_binop"],13],[["annotationlib.py","_make_rbinop"],13],[["inspect.py","getattr_static"],12],[["<string>","<module>"],11],[["__init__.py","namedtuple"],11],[["_parser.py","getwidth"],11],[["_compiler.py","_compile"],10],[["_parser.py","_class_escape"],8],[["enum.py","_find_data_type_"],6],[["enum.py","_get_mixins_"],6],[["annotationlib.py","_make_compare"],6],[["_parser.py","_uniq"],6],[["_parser.py","__setitem__"],6],[["_parser.py","groups"],6],[["_compiler.py","_optimize_charset"],6],[["_compiler.py","_compile_charset"],6],[["enum.py","_get_value"],6],[["enum.py","#genexpr"],6],[["run_benchmark.py","__init__"],5],[["enum.py","__new__"],5],[["_parser.py","_parse"],5],[["_compiler.py","_simple"],5],[["enum.py","__members__"],5],[["inspect.py","__new__"],5],[["_compiler.py","isstring"],4],[["_parser.py","_parse_sub"],4],[["enum.py","_check_for_existing_members_"],3],[["enum.py","__prepare__"],3],[["enum.py","_find_new_"],3],[["enum.py","_find_data_repr_"],3],[["annotationlib.py","_make_unary_op"],3],[["_compiler.py","_mk_bitmap"],3]]
+profiled benchmark function times (inclusive/self seconds)
+typing.py _lazy_load_getattr_static 1 0.186406 0.001756
+inspect.py <module> 1 0.18465 0.008421
+tokenize.py <module> 1 0.070658 0.010401
+__init__.py compile 2 0.052548 0.000389
+__init__.py _compile 2 0.052158 0.001347
+_compiler.py compile 2 0.048585 0.001214
+_parser.py _parse_sub 4 0.042057 0.002563
+_parser.py _parse 5 0.038676 0.016626
+_parser.py parse 2 0.033717 0.000845
+dis.py <module> 1 0.032436 0.003626
+enum.py __new__ 5 0.031176 0.007544
+inspect.py _check_class 57 0.030024 0.020426
+enum.py __setitem__ 45 0.024617 0.014414
+opcode.py <module> 1 0.02394 0.023832
+enum.py __set_name__ 28 0.02206 0.014757
+abc.py __instancecheck__ 65 0.019482 0.006634
+typing.py __instancecheck__ 20 0.018243 0.002886
+inspect.py _shadowed_dict 201 0.016447 0.014511
+_compiler.py _compile 10 0.016116 0.005819
+annotationlib.py <module> 1 0.015551 0.00431
+__init__.py namedtuple 11 0.014483 0.012945
+_compiler.py _code 2 0.013401 0.000581
+typing.py _proto_hook 90 0.012848 0.012848
+inspect.py getattr_static 12 0.011376 0.004147
+enum.py _add_member_ 28 0.0057 0.0057
+_parser.py get 47 0.005369 0.004339
+enum.py __prepare__ 3 0.003382 0.001004
+inspect.py _check_instance 57 0.003376 0.003376
+_parser.py __getitem__ 48 0.002907 0.002789
+enum.py _is_private 45 0.002748 0.002748
+enum.py _is_descriptor 28 0.002717 0.002717
+_compiler.py _compile_info 2 0.002546 0.000703
+_parser.py getwidth 11 0.002356 0.001782
+__init__.py escape 48 0.002068 0.002068
+inspect.py _shadowed_dict_from_weakref_mro_tuple 15 0.001936 0.001936
+token.py <module> 1 0.001904 0.001904
+enum.py _is_sunder 45 0.001902 0.001902
+_compiler.py _simple 5 0.001889 0.00141
+_compiler.py _optimize_charset 6 0.001816 0.001527
+enum.py __and__ 2 0.001701 0.00112
+profiled benchmark-frame calls 1520

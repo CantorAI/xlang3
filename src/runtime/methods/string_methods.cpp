@@ -1970,14 +1970,8 @@ std::string format_replacement_value(
       if (!builtin_str_from_value(runtime, value, converted_value, error)) {
         return {};
       }
-    } else if (value_as_instance(value) != nullptr) {
-      Value repr_method;
-      if (!object_get_attr(value, "__repr__", repr_method, error) ||
-          !runtime_call_callable(runtime, repr_method, nullptr, 0, converted_value, error)) {
-        return {};
-      }
-    } else {
-      converted_value = Value::string(value_to_repr(value));
+    } else if (!runtime_repr(runtime, value, converted_value, error, conversion == 'a')) {
+      return {};
     }
     auto* converted_string = value_as_string(converted_value);
     if (converted_string == nullptr) {

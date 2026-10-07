@@ -1,0 +1,6 @@
+{
+  "version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+  "exit_code": 0,
+  "fixture_sha256": "9f7805dbcf6a0141df6ef4eefbb247dda07713b3a4885319f47636a047da6c6e",
+  "stdout": "nested native and Python repr True\nASCII conversion and precision True\ntype slots and intrinsic lookup True\nrecursive container formatting True\nrepr errors preserved True\n"
+}

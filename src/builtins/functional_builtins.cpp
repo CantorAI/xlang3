@@ -4782,7 +4782,7 @@ bool builtin_repr(
   if (value_as_instance(args[0]) != nullptr) {
     Value repr_method;
     std::string attr_error;
-    if (attribute_get(args[0], "__repr__", repr_method, attr_error)) {
+    if (object_get_special_method(runtime, args[0], "__repr__", repr_method, attr_error)) {
       Value result;
       if (!runtime_call_callable(runtime, repr_method, nullptr, 0, result, error)) {
         return false;
@@ -5640,6 +5640,15 @@ bool builtin_template_literal(
 }
 
 } // namespace
+
+bool runtime_repr(Runtime& runtime, const Value& value, Value& out,
+                  std::string& error, bool ascii_only) {
+  // Share repr recursion and Python type dispatch with the builtin. Calling
+  // its implementation directly avoids mutable builtin-name lookup and an
+  // artificial c_call event for each formatting conversion.
+  return ascii_only ? builtin_ascii(runtime, &value, 1, out, error, nullptr)
+                    : builtin_repr(runtime, &value, 1, out, error, nullptr);
+}
 
 bool runtime_getattr(Runtime& runtime, const Value& object, const Value& name,
                      Value& out, std::string& error, const Value* default_value) {

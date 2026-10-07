@@ -1,0 +1,28 @@
+{
+  "benchmark": "typing_runtime_protocols",
+  "means": {
+    "saved_cpython3147": {
+      "seconds": 0.00013239447754074263,
+      "measurements": 20
+    },
+    "preceding_python_hook_candidate": {
+      "seconds": 0.003269725312475202,
+      "measurements": 20
+    },
+    "current_repr_candidate": {
+      "seconds": 0.003349023750070046,
+      "measurements": 20
+    }
+  },
+  "cpython_over_xlang3_speed": 0.039532259972170566,
+  "xlang3_over_cpython_time": 25.295796412954072,
+  "prior_over_current_speed": 0.9763219243837297,
+  "scope": "Fast mode nominal means; Python library algorithm remains Python; no typing speed gain claimed",
+  "inputs_sha256": {
+    "pyperformance-cpython314-clean-release-full-fast-20261002.json": "0543fa675730f019f2c9b54c18d07ae7777d2edc15e9eed60d98a3179e949dc5",
+    "pyperformance-xlang3-typecheck-compile-targeted-fast-20261007.json": "06903ee83d4c626dc046369a4deeb208f29ccc48aa001f8b5eecf0cb4dbd30d6",
+    "pyperformance-xlang3-format-repr-runtime-targeted-fast-20261007.json": "0cd49d6075e6cee894f13e982fdca69f2dcc6e088945e301b81e9a9c15bf5e63",
+    "pyperformance-xlang3-format-repr-runtime-targeted-fast-20261007-provenance.json": "3b063871d54f76b595b80a479f3d900fdf2a790cb4668b44d2e4f5e732d5519d"
+  },
+  "cpython_provenance_limits": "cpython3147-saved-reference-provenance-audit-20261007.json"
+}

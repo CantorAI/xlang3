@@ -1,0 +1,5 @@
+nested native and Python repr True
+ASCII conversion and precision True
+type slots and intrinsic lookup True
+recursive container formatting True
+repr errors preserved True

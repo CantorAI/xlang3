@@ -1,0 +1,5 @@
+repr "python: options['table']"
+base repr "python: options['table']"
+tuple repr ("python: options['table']", 3, 20)
+percent tuple (python: options['table'], 3, 20)
+percent value "python: options['table']"
