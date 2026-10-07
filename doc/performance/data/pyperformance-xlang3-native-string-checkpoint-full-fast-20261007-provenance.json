@@ -1,0 +1,30 @@
+{
+  "status": "finished_with_benchmark_failures",
+  "manager_executable": "C:\\Python\\Python314\\python.exe",
+  "manager_version": "Python 3.14.7",
+  "source_checkpoint": "003b3882d5d2f2c330d448846dc57d0c4254520c",
+  "benchmarks": "all",
+  "definition_count": 97,
+  "mode": "fast",
+  "case_timeout_seconds": 300,
+  "case_timeout_overrides": [
+    "networkx*=600"
+  ],
+  "started_utc": "2026-10-07T06:40:08.0800739Z",
+  "runtime_executable": "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+  "build_configuration": "Release",
+  "stdlib": "C:\\Python\\Python314\\Lib",
+  "dependency_site": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages",
+  "cpython_reference": "pyperformance-cpython314-clean-release-full-fast-20261002.json",
+  "timing_probe_enabled": false,
+  "sha256_start": {
+    "dll": "29431877C4306B05E43ABA818CB96A6CFEA548D90D55189FB21B8DE6AD0758F3",
+    "exe": "303F2E8BDCA58C4B555D13ADD7BFC41EEF9E0019F4780A0C9729596CE07DF177"
+  },
+  "sha256_end": {
+    "dll": "29431877C4306B05E43ABA818CB96A6CFEA548D90D55189FB21B8DE6AD0758F3",
+    "exe": "303F2E8BDCA58C4B555D13ADD7BFC41EEF9E0019F4780A0C9729596CE07DF177"
+  },
+  "exit_code": 1,
+  "completed_utc": "2026-10-07T09:00:10.2030683Z"
+}

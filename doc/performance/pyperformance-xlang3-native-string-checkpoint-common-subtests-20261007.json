@@ -1,0 +1,31 @@
+{
+  "common_subtests": 56,
+  "before_cpython_speed_geomean": 0.15654416366509488,
+  "after_cpython_speed_geomean": 0.16192110258159872,
+  "before_over_after_speed_geomean": 1.0343477443720421,
+  "before_nominal_cpython_wins": 5,
+  "after_nominal_cpython_wins": 5,
+  "after_cpython_matched_outside_common": [
+    "async_tree_cpu_io_mixed",
+    "async_tree_cpu_io_mixed_tg",
+    "async_tree_eager_cpu_io_mixed",
+    "async_tree_eager_memoization",
+    "async_tree_eager_memoization_tg",
+    "async_tree_eager_tg",
+    "async_tree_memoization",
+    "async_tree_memoization_tg",
+    "async_tree_none",
+    "async_tree_none_tg",
+    "asyncio_tcp",
+    "connected_components",
+    "html5lib",
+    "shortest_path"
+  ],
+  "before_cpython_matched_outside_common": [],
+  "inputs": {
+    "doc\\performance\\data\\pyperformance-xlang3-bytearray-iadd-full-fast-20261006.json": "518fc36fdcb3be2c96cd48e9581eaefa8a413a13acced04b055bcabe1d65b73f",
+    "doc\\performance\\data\\pyperformance-xlang3-native-string-checkpoint-full-fast-20261007.json": "3e46e57ce0740892ca47296b321fe127084a266a737ce802c98b168b3f5d129d",
+    "doc\\performance\\data\\pyperformance-cpython314-clean-release-full-fast-20261002.json": "0543fa675730f019f2c9b54c18d07ae7777d2edc15e9eed60d98a3179e949dc5",
+    "doc\\performance\\data\\pyperformance-xlang3-native-string-checkpoint-full-fast-20261007-provenance.json": "efb0e09a9a252770fc57a3515510370794244231ba6caa1a42e47500852efc64"
+  }
+}
