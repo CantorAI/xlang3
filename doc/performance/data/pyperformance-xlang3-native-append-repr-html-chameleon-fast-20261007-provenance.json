@@ -1,0 +1,22 @@
+{
+  "manager_version": "Python 3.14.7",
+  "sha256_start": {
+    "dll": "E9171EFFCFF5FA9CB472798EB32F8FE3380B850218254B375CC242487BF6432F",
+    "exe": "303F2E8BDCA58C4B555D13ADD7BFC41EEF9E0019F4780A0C9729596CE07DF177"
+  },
+  "started_utc": "2026-10-07T06:25:07.7941888Z",
+  "case_timeout_seconds": 300,
+  "candidate_kind": "local native append argument adapter and concrete repr slot preservation",
+  "mode": "fast",
+  "benchmarks": [
+    "html5lib",
+    "chameleon"
+  ],
+  "source_checkpoint": "5993884d",
+  "sha256_end": {
+    "dll": "E9171EFFCFF5FA9CB472798EB32F8FE3380B850218254B375CC242487BF6432F",
+    "exe": "303F2E8BDCA58C4B555D13ADD7BFC41EEF9E0019F4780A0C9729596CE07DF177"
+  },
+  "exit_code": 1,
+  "completed_utc": "2026-10-07T06:25:44.4599666Z"
+}

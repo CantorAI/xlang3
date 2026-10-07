@@ -1,0 +1,27 @@
+[
+  {
+    "check": "string_subclass_repr",
+    "ok": true,
+    "detail": "{'class': 'table'}"
+  },
+  {
+    "check": "class_mapping_loop",
+    "ok": true,
+    "detail": "PARENS|PERIOD"
+  },
+  {
+    "check": "unbound_append",
+    "ok": true,
+    "detail": "[0, 1, 2, 3, 4]"
+  },
+  {
+    "check": "native_array_slice",
+    "ok": true,
+    "detail": "[1.25, 4.5]"
+  },
+  {
+    "check": "attribute_named_of",
+    "ok": true,
+    "detail": "valid identifier and comparison"
+  }
+]

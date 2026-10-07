@@ -5,7 +5,7 @@
     "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe": "303F2E8BDCA58C4B555D13ADD7BFC41EEF9E0019F4780A0C9729596CE07DF177",
     "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3_runtime.dll": "4AA9D085D74402A8AF62A7F4E4605B45B0840B28D895225778DD74C7F7FD8FD1"
   },
-  "started_utc": "2026-10-07T05:48:29.1858650Z",
+  "started_utc": "2026-10-07T05:48:29.185865Z",
   "manager_version": "Python 3.14.7",
   "benchmarks": [
     "networkx",
@@ -14,5 +14,11 @@
   ],
   "source_checkpoint": "ab9fc62c2aabf2949e24c955defa019015cfdbec",
   "candidate_kind": "same immutable runtime used for committed checkpoint validation",
-  "case_timeout_seconds": 600
+  "case_timeout_seconds": 600,
+  "sha256_end": {
+    "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe": "303F2E8BDCA58C4B555D13ADD7BFC41EEF9E0019F4780A0C9729596CE07DF177",
+    "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3_runtime.dll": "4AA9D085D74402A8AF62A7F4E4605B45B0840B28D895225778DD74C7F7FD8FD1"
+  },
+  "exit_code": 1,
+  "completed_utc": "2026-10-07T06:14:04.3697692Z"
 }

@@ -4652,6 +4652,11 @@ void register_object_type_builtins(Runtime& runtime) {
     const Value* type_value = runtime.find_builtin(type_name);
     auto* type_class = type_value == nullptr ? nullptr : value_as_class(*type_value);
     if (type_class == nullptr) return;
+    // Native method tables already installed concrete slots such as str's
+    // __repr__. Keep their payload-aware implementation: an object fallback
+    // makes string-subclass keys produce invalid generated Python literals.
+    // Decide once at bootstrap rather than adding checks to every repr call.
+    if (type_class->attrs.find("__repr__") != type_class->attrs.end()) return;
     type_class->attrs["__repr__"] = Value::native_function(
         0, std::string(type_name) + ".__repr__", builtin_object_repr);
     type_class->version = next_class_version_tag();

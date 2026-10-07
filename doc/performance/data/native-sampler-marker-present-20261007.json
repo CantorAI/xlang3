@@ -1,0 +1,168 @@
+{
+  "command": [
+    "C:\\Python\\Python314\\python.exe",
+    "build-repro/main-verify-20261006/native-sampler-marker-smoke-20261007.py",
+    "present",
+    "build-repro/main-verify-20261006/native-sampler-present-20261007.ready"
+  ],
+  "return_code": 0,
+  "sample_after_file": "build-repro\\main-verify-20261006\\native-sampler-present-20261007.ready",
+  "start_marker_seen": true,
+  "sampling_started_seconds": 0.26740280000376515,
+  "sample_interval_ms": 5.0,
+  "modules": [
+    {
+      "path": "C:\\Python\\Python314\\python.exe",
+      "base": 140694679126016,
+      "size": 106496
+    },
+    {
+      "path": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "base": 140725774450688,
+      "size": 2519040
+    },
+    {
+      "path": "C:\\WINDOWS\\System32\\KERNEL32.DLL",
+      "base": 140725766914048,
+      "size": 831488
+    },
+    {
+      "path": "C:\\WINDOWS\\System32\\KERNELBASE.dll",
+      "base": 140725729427456,
+      "size": 4202496
+    },
+    {
+      "path": "C:\\WINDOWS\\System32\\ucrtbase.dll",
+      "base": 140725727002624,
+      "size": 1359872
+    },
+    {
+      "path": "C:\\Python\\Python314\\python314.dll",
+      "base": 140722626756608,
+      "size": 7299072
+    },
+    {
+      "path": "C:\\Python\\Python314\\VCRUNTIME140.dll",
+      "base": 140724380762112,
+      "size": 180224
+    },
+    {
+      "path": "C:\\WINDOWS\\System32\\WS2_32.dll",
+      "base": 140725768945664,
+      "size": 524288
+    },
+    {
+      "path": "C:\\WINDOWS\\System32\\RPCRT4.dll",
+      "base": 140725767766016,
+      "size": 1146880
+    },
+    {
+      "path": "C:\\WINDOWS\\SYSTEM32\\VERSION.dll",
+      "base": 140725550055424,
+      "size": 45056
+    },
+    {
+      "path": "C:\\WINDOWS\\System32\\ADVAPI32.dll",
+      "base": 140725740830720,
+      "size": 770048
+    },
+    {
+      "path": "C:\\WINDOWS\\System32\\msvcrt.dll",
+      "base": 140725766062080,
+      "size": 692224
+    },
+    {
+      "path": "C:\\WINDOWS\\System32\\sechost.dll",
+      "base": 140725750530048,
+      "size": 692224
+    },
+    {
+      "path": "C:\\WINDOWS\\SYSTEM32\\bcrypt.dll",
+      "base": 140725725102080,
+      "size": 172032
+    },
+    {
+      "path": "C:\\WINDOWS\\System32\\bcryptprimitives.dll",
+      "base": 140725728641024,
+      "size": 704512
+    }
+  ],
+  "sample_count": 13,
+  "failures": {
+    "context_unavailable": 17
+  },
+  "samples": [
+    {
+      "thread_id": 16220,
+      "module": "C:\\Python\\Python314\\python314.dll",
+      "rva": "0x28143",
+      "samples": 2
+    },
+    {
+      "thread_id": 16220,
+      "module": "C:\\Python\\Python314\\python314.dll",
+      "rva": "0x11cdeb",
+      "samples": 1
+    },
+    {
+      "thread_id": 16220,
+      "module": "C:\\Python\\Python314\\python314.dll",
+      "rva": "0x280cd",
+      "samples": 1
+    },
+    {
+      "thread_id": 16220,
+      "module": "C:\\Python\\Python314\\python314.dll",
+      "rva": "0x28191",
+      "samples": 1
+    },
+    {
+      "thread_id": 16220,
+      "module": "C:\\Python\\Python314\\python314.dll",
+      "rva": "0x40695",
+      "samples": 1
+    },
+    {
+      "thread_id": 16220,
+      "module": "C:\\Python\\Python314\\python314.dll",
+      "rva": "0x11cd8c",
+      "samples": 1
+    },
+    {
+      "thread_id": 16220,
+      "module": "C:\\Python\\Python314\\python314.dll",
+      "rva": "0x11cdc0",
+      "samples": 1
+    },
+    {
+      "thread_id": 16220,
+      "module": "C:\\Python\\Python314\\python314.dll",
+      "rva": "0x404b3",
+      "samples": 1
+    },
+    {
+      "thread_id": 16220,
+      "module": "C:\\Python\\Python314\\python314.dll",
+      "rva": "0xbe068",
+      "samples": 1
+    },
+    {
+      "thread_id": 16220,
+      "module": "C:\\Python\\Python314\\python314.dll",
+      "rva": "0x2812c",
+      "samples": 1
+    },
+    {
+      "thread_id": 16220,
+      "module": "C:\\Python\\Python314\\python314.dll",
+      "rva": "0x40470",
+      "samples": 1
+    },
+    {
+      "thread_id": 16220,
+      "module": "C:\\Python\\Python314\\python314.dll",
+      "rva": "0x40485",
+      "samples": 1
+    }
+  ]
+}

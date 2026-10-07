@@ -74,7 +74,7 @@ completed six worker batches but reached the 300-second full-case cap before
 publishing a result. The preceding runtime-protocol candidate also timed out
 in all three cases at that cap. Repeated graph loading takes about 34 CPU
 seconds per process, so a longer-cap retry is needed to obtain final samples.
-A 600-second fast-mode retry is running on the same unchanged binary, only
+A 600-second fast-mode retry ran on the same unchanged binary, only
 after the earlier run and its descendants ended. The longer cap changes the
 full-case time allowance; timed bodies, pyperf sampling, and workers are
 unchanged. Its [provenance](data/pyperformance-xlang3-set-growing-networkx-long-fast-20261007-provenance.json)
@@ -84,7 +84,18 @@ records the reason and binary hashes. Its first completed result is
 **0.272x CPython speed**. The
 [captured stdout](data/networkx-set-growing-shortest-fast-result-20261007.txt)
 includes pyperf's fast-mode sample-stability warning. Connected-components
-and k-core are still running, so the final merged raw JSON is pending.
+also completed at **1.58 seconds +/- 0.02 seconds**, versus 423 ms for CPython
+3.14.7: approximately **3.7x slower**, or **0.268x CPython speed**. Its
+[captured stdout](data/networkx-set-growing-connected-fast-result-20261007.txt)
+retains the same sample-stability warning. K-core exceeded its 600-second cap
+and contributes no score. The final
+[merged pyperf JSON](data/pyperformance-xlang3-set-growing-networkx-long-fast-20261007.json)
+contains 20 values each for the two completed subtests. The
+[comparison CSV](data/networkx-set-growing-cpython3147-comparison-20261007.csv)
+uses exact raw means: shortest-path 1.728712 s vs 0.469990 s (0.271873x), and
+connected-components 1.581106 s vs 0.423194 s (0.267657x).
+The run returned exit code 1 because of k-core, and its final provenance
+confirms unchanged executable/DLL hashes. All three definitions were attempted.
 Earlier failed attempts provide no valid per-call timing to divide by this
 result. No whole-suite improvement is claimed yet.
 

@@ -1,0 +1,19 @@
+{
+  "command": [
+    "C:\\Python\\Python314\\python.exe",
+    "build-repro/main-verify-20261006/native-sampler-marker-smoke-20261007.py",
+    "missing",
+    "build-repro/main-verify-20261006/native-sampler-missing-20261007.ready"
+  ],
+  "return_code": 0,
+  "sample_after_file": "build-repro\\main-verify-20261006\\native-sampler-missing-20261007.ready",
+  "start_marker_seen": false,
+  "sampling_started_seconds": null,
+  "sample_interval_ms": 5.0,
+  "modules": [],
+  "sample_count": 0,
+  "failures": {
+    "start_marker_not_seen": 1
+  },
+  "samples": []
+}

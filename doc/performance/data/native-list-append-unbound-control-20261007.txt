@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "tests/fixtures/core/native_list_append_unbound.py", line 15, in <module>
+    values.append(index)
+    ~~~~~~~~~~~~~^^^^^^^
+  File "tests/fixtures/core/native_list_append_unbound.py", line 7, in append
+    list.append(self, item)
+    ~~~~~~~~~~~^^^^^^^^^^^^
+RuntimeError: list.append expected 1 argument
