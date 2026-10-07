@@ -66,13 +66,27 @@ graph producer/consumer also pass.
 The [complete unchanged fixed Release gate](data/set-growing-index-fixed-release-gate-20261006.json)
 passes all 11 cases with 21 repeats, 5 warmups, and the original 10% threshold.
 Its largest candidate/baseline ratio is 1.035; none exceeds the threshold.
-The official NetworkX rerun is still running. Its
+The [official 300-second NetworkX rerun](data/pyperformance-xlang3-set-growing-networkx-fast-20261006.log)
+is terminal: all three definitions timed out and no completed timings were
+published. Its
 [shortest-path attempt](data/networkx-set-growing-shortest-300s-timeout-20261006.txt)
 completed six worker batches but reached the 300-second full-case cap before
 publishing a result. The preceding runtime-protocol candidate also timed out
 in all three cases at that cap. Repeated graph loading takes about 34 CPU
 seconds per process, so a longer-cap retry is needed to obtain final samples.
-No official graph timing or whole-suite improvement is claimed yet.
+A 600-second fast-mode retry is running on the same unchanged binary, only
+after the earlier run and its descendants ended. The longer cap changes the
+full-case time allowance; timed bodies, pyperf sampling, and workers are
+unchanged. Its [provenance](data/pyperformance-xlang3-set-growing-networkx-long-fast-20261007-provenance.json)
+records the reason and binary hashes. Its first completed result is
+**shortest_path: 1.73 seconds +/- 0.05 seconds**, compared with approximately
+470 ms in the CPython 3.14.7 full-fast reference: about **3.7x slower**, or
+**0.272x CPython speed**. The
+[captured stdout](data/networkx-set-growing-shortest-fast-result-20261007.txt)
+includes pyperf's fast-mode sample-stability warning. Connected-components
+and k-core are still running, so the final merged raw JSON is pending.
+Earlier failed attempts provide no valid per-call timing to divide by this
+result. No whole-suite improvement is claimed yet.
 
 The executable path remains
 `D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3.exe`;
