@@ -1,0 +1,9 @@
+{
+  "source_checkpoint": "003b3882",
+  "copied_utc": "2026-10-07T06:59:07.2180472Z",
+  "control_directory": "D:\\CantorAI\\xlang3\\build-repro\\controls\\native-string-checkpoint-20261007",
+  "exe_sha256": "303F2E8BDCA58C4B555D13ADD7BFC41EEF9E0019F4780A0C9729596CE07DF177",
+  "dll_sha256": "29431877C4306B05E43ABA818CB96A6CFEA548D90D55189FB21B8DE6AD0758F3",
+  "candidate_run_path_unchanged": true,
+  "import_library_sha256": "80092356C5ECF530E9DD63EEAB0A56B9D9344CC61DD40DC05018D1ADB45AE248"
+}

@@ -1,0 +1,8 @@
+PASS native-str
+FAIL str-subclass TypeError expected Expression node, got Token
+FAIL bytes-subclass TypeError expected Expression node, got ByteToken
+FAIL bytearray-subclass TypeError expected Expression node, got MutableToken
+FAIL bytes-source-encoding TypeError expected Module node, got ByteToken
+FAIL fake-source-identities AssertionError compile accepted an unrelated source object
+PASS ast-module-rebinding
+FAIL ast-root-subclass TypeError expected Expression node, got DerivedExpression

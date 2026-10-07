@@ -1,0 +1,4 @@
+Complete fixture runner: C:\Python\Python314\python.exe tests/run_fixtures.py build-repro/main-verify-20261006/Release/xlang3.exe
+XLANG3_PYTHON_LIB=C:\Python\Python314\Lib
+Exit code: 0
+The runner emitted no stdout/stderr on success.

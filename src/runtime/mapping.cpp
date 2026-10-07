@@ -1306,47 +1306,69 @@ bool mapping_iter_next(Value& iterator, bool& done, Value& out, std::string& err
     value_assign_fast(it->source, *source);
   }
   auto* dict = dict_storage_from_value(it->source);
+  const auto finish = [&]() {
+    // Invalidate the iterator's source before replacing out: out may be the
+    // iterator's sole owner. Moving the source keeps teardown after the old
+    // output is released, without retaining another reference on exhaustion.
+    Value source = std::move(it->source);
+    done = true;
+    value_set_none(out);
+    return true;
+  };
+  if (dict != nullptr) {
+    if (it->index >= dict->entries.size()) return finish();
+    const auto& entry = dict->entries[static_cast<size_t>(it->index)];
+    Value yielded;
+    // Key/value iteration must not copy the whole entry. Graph traversals
+    // yield keys while values are owning objects; copying that unused value
+    // adds an atomic retain/release pair per edge. Retain only the selected
+    // result, then move it so borrowed/same-object outputs acquire ownership.
+    switch (it->kind) {
+      case DictIterationKind::Keys:
+        value_assign_fast(yielded, entry.first);
+        break;
+      case DictIterationKind::Values:
+        value_assign_fast(yielded, entry.second);
+        break;
+      case DictIterationKind::Items:
+        yielded = Value::tuple({entry.first, entry.second});
+        break;
+    }
+    // The destination can destroy the source or iterator. Advance before that
+    // assignment, and keep the result owning its data rather than borrowing
+    // an entry whose storage can disappear during destination cleanup.
+    ++it->index;
+    done = false;
+    value_move_assign_fast(out, yielded);
+    return true;
+  }
   auto* module = value_as_module(it->source);
   auto* klass = value_as_class(it->source);
-  if (dict == nullptr && module == nullptr && klass == nullptr) {
+  if (module == nullptr && klass == nullptr) {
     error = "dict iterator source is invalid";
     return false;
   }
   std::pair<Value, Value> entry;
-  if (dict != nullptr) {
-    if (it->index >= dict->entries.size()) {
-      done = true;
-      value_set_none(out);
-      value_set_invalid(it->source);
-      return true;
-    }
-    entry = dict->entries[static_cast<size_t>(it->index)];
-  } else if (module != nullptr) {
-    if (!module_entry_at(*module, it->index, entry)) {
-      done = true;
-      value_set_none(out);
-      value_set_invalid(it->source);
-      return true;
-    }
+  if (module != nullptr) {
+    if (!module_entry_at(*module, it->index, entry)) return finish();
   } else if (!class_entry_at(*klass, it->index, entry)) {
-    done = true;
-    value_set_none(out);
-    value_set_invalid(it->source);
-    return true;
+    return finish();
   }
+  Value yielded;
   switch (it->kind) {
     case DictIterationKind::Keys:
-      value_assign_fast(out, entry.first);
+      value_move_assign_fast(yielded, entry.first);
       break;
     case DictIterationKind::Values:
-      value_assign_fast(out, entry.second);
+      value_move_assign_fast(yielded, entry.second);
       break;
     case DictIterationKind::Items:
-      out = Value::tuple({entry.first, entry.second});
+      yielded = Value::tuple({entry.first, entry.second});
       break;
   }
   ++it->index;
   done = false;
+  value_move_assign_fast(out, yielded);
   return true;
 }
 

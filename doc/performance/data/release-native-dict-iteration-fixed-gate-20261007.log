@@ -1,0 +1,12 @@
+local_slots              pass         1.006x
+scalar_arithmetic        pass         0.994x
+range_for                pass         1.054x
+function_calls           pass         0.996x
+class_construct          pass         1.009x
+list_append              pass         1.024x
+property_access          pass         0.989x
+deepcopy_memo            pass         0.905x
+json_dumps               pass         1.015x
+gc_traversal             pass         0.986x
+subparsers               pass         0.949x
+Performance check: pass. Report: doc\performance\data\release-native-dict-iteration-fixed-gate-20261007.json

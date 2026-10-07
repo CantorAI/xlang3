@@ -1,9 +1,10 @@
 # Dictionary iteration and compile source dispatch: source audit
 
 This audit identifies the next generic runtime changes from measured evidence.
-It does not claim a timing gain. The all-97 run of checkpoint `003b3882` is
-still using its unchanged Release executable and DLL; no engine changes or
-builds were made during that run.
+It does not claim a timing gain. The all-97 run of checkpoint `003b3882`
+finished with unchanged executable/DLL hashes; its [complete evidence](pyperformance-xlang3-native-string-checkpoint-full-fast-20261007.md)
+is committed in `20dc9e95`. The dictionary candidate was built only after
+collection finished. The original benchmark and preserved control are intact.
 
 ## Dictionary iteration
 
@@ -13,7 +14,7 @@ The profile excludes graph construction and leaves Python profiling hooks
 disabled. It is a target-selection diagnostic, not a speed measurement or
 an estimate of total inclusive cost.
 
-In `src/runtime/mapping.cpp`, `mapping_iter_next` copies
+In the preserved checkpoint's `src/runtime/mapping.cpp`, `mapping_iter_next` copies
 `dict->entries[index]` into an owning `std::pair<Value, Value>` before
 checking whether this is a key, value, or item iterator. A key iterator thus
 retains and releases an unrequested object value. For object keys it also
@@ -75,6 +76,29 @@ payload. Validate positional and keyword compile calls, AST-only and normal
 code modes, native string/bytes subclasses, and genuine/custom AST nodes
 before the official Chameleon retry.
 
+`class_has_builtin_base_name` is insufficient as the genuine-base guard:
+its implementation compares MRO class **names**, so an unrelated class named
+`str` can match. The source conversion should use `class_is_subclass` with the
+runtime's actual builtin class identity, then read the native payload without
+calling a user descriptor or `__str__`. AST membership likewise needs the
+original native `_ast.AST` identity retained independently of reassignable
+module attributes. The module's `AstState::ast_base` currently holds that
+identity privately; rebinding `_ast.AST` or naming a class `Expression` must
+not change compile's classification.
+
+`benchmarks/diagnostics/compile_source_identity_probe.py` prepares independent
+checks for native strings, string/bytes/bytearray subclasses, original payload
+use despite overridden `__str__`, a byte-source encoding declaration, fake
+source identities, AST module-attribute rebinding, and an AST root subclass.
+It reports each case independently so one classification failure cannot hide
+the remaining results. This draft probe is not registered in the main fixture
+suite. It passed all eight checks under CPython 3.14.7; the preserved control
+passed two and failed six: source subclasses, byte-source encoding, fake source
+identity rejection, and an AST root subclass. Native strings and AST module
+rebinding passed. The [CPython log](data/compile-source-identity-cpython3147-20261007.log)
+and [control log](data/compile-source-identity-control-20261007.log) retain those
+results. No compile implementation change has been made yet.
+
 Both candidates belong in the generic compiler/runtime. CPython pure-Python
 package sources remain Python. This is an audit for subsequent implementation;
 the checkpoint benchmark binary contains neither proposed change.
@@ -108,9 +132,37 @@ in a temporary directory and are not benchmark evidence.
 
 Ownership tests for the proposed dictionary optimization have been prepared
 in `tests/fixtures/core/dict_iterator_ownership.py` and
-`tests/cpp/mapping_iterator_ownership_cases.h`. They are not yet registered,
-executed, or committed with an engine change. Validation awaits the end of
-the current timing run so it can proceed without competing runtime tests or
-builds. The C++ cases include a borrowed destination already pointing to the
+`tests/cpp/mapping_iterator_ownership_cases.h`. They are registered locally in the
+fixture/C++ runners. The Python fixture passed on CPython 3.14.7 and the
+preserved control. After building the candidate, the complete fixture suite
+and all eight selected C++/SDK/serialization tests passed, including the new
+ownership cases. The C++ cases include a borrowed destination already pointing to the
 selected object, which must acquire an owned result before source owners
 are destroyed.
+
+The candidate source now has the direct dictionary branch and moves only
+the selected owned result. Its index advances before destination cleanup;
+exhaustion moves the source out before clearing an aliased output. Module/class
+paths still synthesize entries and now also advance before output cleanup.
+The [preserved-control identity](data/native-dict-iteration-preserved-control-20261007.json)
+records the validated executable and root DLLs copied before editing. The
+benchmark's original binary hashes still identify checkpoint `003b3882`.
+The candidate runtime DLL SHA-256 is
+`1791D6F683B78E27933EBA459AB4C7B96D27FD94BFBB7576D334D88283CE04F1`.
+The [complete fixed Release gate](data/release-native-dict-iteration-fixed-gate-20261007.json)
+passed with exit 0: all 11 default cases, 21 paired repeats, five warmups, and
+the unchanged 10% tolerance. The [official NetworkX comparison](native-dict-iteration-networkx-20261007.md)
+then completed both cases: shortest-path measured 1.1185x the control speed,
+connected-components 1.1111x. Both still lag CPython, at 0.3024x and 0.2892x
+of its speed respectively. `pyperf compare_to` reports both improvements;
+the separate fast-mode runs do not establish a whole-suite win.
+
+The standalone C++ ownership probe accepts `--control` to test the preserved
+runtime without invoking the old self-replacement paths: source inspection
+shows those paths access the iterator after its sole owner is destroyed.
+This diagnostic mode still checks borrowed-output ownership and namespace
+proxy results. The regular C++ runtime suite always exercises all cases,
+including self-replacement on yield and exhaustion. The preserved-control
+probe compiled successfully and returned exit 1 with exactly two borrowed-
+output ownership failures. It did not execute the known undefined self-
+replacement paths. The regular candidate suite exercised all cases and passed.

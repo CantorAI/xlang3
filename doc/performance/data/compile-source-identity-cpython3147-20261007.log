@@ -1,0 +1,8 @@
+PASS native-str
+PASS str-subclass
+PASS bytes-subclass
+PASS bytearray-subclass
+PASS bytes-source-encoding
+PASS fake-source-identities
+PASS ast-module-rebinding
+PASS ast-root-subclass

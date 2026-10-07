@@ -81,3 +81,8 @@ Benchmark worker failures have several causes, including unavailable optional be
   identifies repeated whole-source UTF-8 scans on its 16.8 MB input containing
   only 68 non-ASCII characters. A generic string-indexing candidate still
   needs implementation, correctness checks, and official benchmark evidence.
+
+The later [validated dictionary-iteration comparison](native-dict-iteration-networkx-20261007.md)
+records new engine results for the two completed NetworkX cases. Those scores
+remain separate from this frozen full-suite dataset; they have not been mixed
+into its chart or geometric mean.

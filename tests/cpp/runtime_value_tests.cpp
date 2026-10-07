@@ -13,6 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 #include "test_harness.h"
+#include "mapping_iterator_ownership_cases.h"
 #include <atomic>
 #include <chrono>
 #include <thread>
@@ -39,6 +40,8 @@ int main() {
   xlang3::test::CaseResult result;
   std::string error;
   xlang3::Value out;
+
+  xlang3::test::check_mapping_iterator_ownership(result);
 
   {
     xlang3::Value escaped_set, escaped_iterator;
