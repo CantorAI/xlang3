@@ -1,0 +1,101 @@
+{
+  "status": "correctness_fixed_gate_and_valid_official_workload_passed",
+  "source_base_commit": "26682db3f00ac5ca506100328688e6cd9a2f806d",
+  "binary_sha256": {
+    "xlang3": {
+      "exe": "9f89802e3eed9431dccfe6906cd04cfede486e77dc951469fbf80cc785152bdc",
+      "dll": "b182715318bccf05236d82390c413020de73c8b97bfac673caa87f081a914acb"
+    },
+    "cpython3147": {
+      "exe": "4942b86a6597e5aee0128daa00050ed79bc21f6e709a78eb19cbfeb0c2f39ac9",
+      "dll": "0f9857ffdfe010fe6b99328d58c2e3c7472ce75f336bf9c2ad9bd5bca3bce700"
+    }
+  },
+  "genshi_rendered_rows": [
+    {
+      "variant": "xml",
+      "characters": 112017,
+      "sha256_utf8": "61096eb9fee3ea72a4615a57e653bca545efacbad8aa8d522bb954d66d9421bc",
+      "table_rows": 1000,
+      "table_cells": 10000,
+      "first_value_cells": 1000,
+      "last_value_cells": 1000,
+      "start": "<table>\n<tr>\n<td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td><td>7</td><td>8</td><td>9</td><td>10</td>\n</tr><tr>\n<td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td><td>7</td><td>8",
+      "end": "d><td>4</td><td>5</td><td>6</td><td>7</td><td>8</td><td>9</td><td>10</td>\n</tr><tr>\n<td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td><td>7</td><td>8</td><td>9</td><td>10</td>\n</tr>\n</table>"
+    },
+    {
+      "variant": "text",
+      "characters": 112018,
+      "sha256_utf8": "c2e6154871cc315eadf1536e6b5f4679e3eee7aa6ed6ac3b9ea2e927ef2de810",
+      "table_rows": 1000,
+      "table_cells": 10000,
+      "first_value_cells": 1000,
+      "last_value_cells": 1000,
+      "start": "<table>\n<tr>\n<td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td><td>7</td><td>8</td><td>9</td><td>10</td>\n</tr><tr>\n<td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td><td>7</td><td>8",
+      "end": "><td>4</td><td>5</td><td>6</td><td>7</td><td>8</td><td>9</td><td>10</td>\n</tr><tr>\n<td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td><td>7</td><td>8</td><td>9</td><td>10</td>\n</tr>\n</table>\n"
+    }
+  ],
+  "timings": [
+    {
+      "benchmark": "genshi_text",
+      "cpython3147_seconds": 0.02209406312485953,
+      "xlang3_seconds": 0.4117908500033082,
+      "cpython_over_xlang3": 0.053653603825053506
+    },
+    {
+      "benchmark": "genshi_xml",
+      "cpython3147_seconds": 0.046676142501382856,
+      "xlang3_seconds": 1.1441914350027218,
+      "cpython_over_xlang3": 0.040793997467103764
+    }
+  ],
+  "before_xml_timing_status": "invalid_output_excluded_not_comparable",
+  "source_sha256_raw": {
+    "src/runtime/modules/system/pyexpat_module.cpp": "e7cc0094f5c916bd28dc351caf8cdba43f85995436308c06d20e5b64cbc58243",
+    "tests/fixtures/core/pyexpat_namespace_incremental.py": "0dafcb7b2646417650d5faeb69d283d5d68098233a027183a9f437aeac3cb5e8",
+    "tests/fixtures/expected/pyexpat_namespace_incremental.out": "07cb2f778ff4a99a9edde4be1ceef6aec99c88fc2ac842a8fd92deabe7662864"
+  },
+  "source_sha256_canonical_lf": {
+    "src/runtime/modules/system/pyexpat_module.cpp": "375342907c6f18080c4575ba55bb38a5e66ac778561dd92c4d5291189359ed85",
+    "tests/fixtures/core/pyexpat_namespace_incremental.py": "0dafcb7b2646417650d5faeb69d283d5d68098233a027183a9f437aeac3cb5e8",
+    "tests/fixtures/expected/pyexpat_namespace_incremental.out": "809421abae020168cc7798daf5a632999100102b915cb1e97ae560062ae6bba7"
+  },
+  "input_sha256": {
+    "pyperformance-pyexpat-namespace-genshi-final-xlang3-fast-20261007.json": "4899798aa6e885db5f1ac85ae14e7bb7bc00705ae9cdc7383653165ccefe1bbf",
+    "pyperformance-pyexpat-namespace-genshi-final-xlang3-fast-20261007.log": "7f2ce3a026f3500c9e3b4c2e9a1b5f5c3dc95b76c105a184323ba65b39287a6b",
+    "pyperformance-pyexpat-namespace-genshi-final-xlang3-fast-20261007-provenance.json": "82c4c2191c3a14f0dcbe61ef349d9a943c6ac4758e38d91afb94444cfab92b70",
+    "pyperformance-pyexpat-namespace-genshi-final-cpython3147-fast-20261007.json": "3353ab418529f3eb27a4da83e63c7bb4f5255900b041139372621a9cfcaaf3b3",
+    "pyperformance-pyexpat-namespace-genshi-final-cpython3147-fast-20261007.log": "277db4214a633cf7af44606e7ce43b15f3f6e46d5523ebe093bff39ec3fb97a5",
+    "pyperformance-pyexpat-namespace-genshi-final-cpython3147-fast-20261007-provenance.json": "59c4dcb3ad02910628e3c0bce0c219148a91617fb03fe5c08afc8b9e8ded218c",
+    "pyexpat-namespace-incremental-final-validation-20261007.json": "039ececeb25dd87e54db45d2896e790b284ac40aea2a8d1534eba31582b42b5a",
+    "pyexpat-namespace-incremental-final-validation-20261007-fixtures.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "pyexpat-namespace-incremental-final-validation-20261007-cpp.log": "2a6fee756cd48f9c3361eabf83e5364bb49c937b318df0fae21fb87b9fb722f0",
+    "release-pyexpat-namespace-incremental-final-fixed-gate-20261007.json": "ecbd774fe7bf111494e3992458ac2a68ee260587ba5de42d939b19805c3075ed",
+    "release-pyexpat-namespace-incremental-final-fixed-gate-20261007.log": "3aacf0b5e3bf6748dc55b21da338d0d6a2aaed44439021a3bc6f55ee283d1576",
+    "pyexpat-namespace-final-correctness-20261007.json": "1656b0db5626a3edf0ca63507c30f93e920e375d03ccddd05ad9b8556a3b30f7",
+    "pyexpat-namespace-streaming-baseline-20261007.json": "0ede92241dad92bf38cca77e7ec16d7527c039a2ccdbcd47216fb25de12098cf",
+    "pyexpat-namespace-incremental-reference-20261007.json": "959aa27afaf0ef8ba25ff21fab9603ba4bb925ac4399761041f13fefcd944283",
+    "pyexpat-namespace-incremental-reference-final-20261007.json": "a985b7a63dfc325aecb3ed50941af96cfaaeec32c72c5cb66c3077e83be4fb6c",
+    "pyexpat-namespace-incremental-precheck-20261007.json": "fa11d5f8c212ea15725e5408b1a1e65671a4e6eaadc0e81f4866acc4fc73f7d6",
+    "pyexpat-namespace-incremental-precheck-r2-20261007.json": "e3db6bbfb50e05ecd108a07f5abdd9a1e74ff3abee071d265c1b0a61ccf235af",
+    "pyexpat-namespace-incremental-validation-20261007.json": "3d68ec3413fb1a81021c22b306e748efcac7687532e76bc8bb8cc398e64b3fb3",
+    "pyexpat-namespace-incremental-validation-20261007-fixtures.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "pyexpat-namespace-incremental-validation-20261007-cpp.log": "87473f1b9d62f6f93bcc173dea8892fc75430e9eb6276991bdbad3a3a4a6828d",
+    "release-pyexpat-namespace-incremental-fixed-gate-20261007.json": "9f4d0577db84d7a0afbada66046a58538c8317bf66a34f77b38449acab224713",
+    "release-pyexpat-namespace-incremental-fixed-gate-20261007.log": "1fa4ba98220b209c502b94f25acea0e898f78d5b8ae9cd3ed13284180aff744f",
+    "pyperformance-pyexpat-namespace-genshi-xlang3-fast-20261007.json": "5eacad69b0d9731f26d145c05763eddd11f2a4ef2edc6370daef22cb0a74babc",
+    "pyperformance-pyexpat-namespace-genshi-xlang3-fast-20261007.log": "036036e612916bc763f79a3e50b00b6cc485fcd2128a59652ea6725e552df70d",
+    "pyperformance-pyexpat-namespace-genshi-xlang3-fast-20261007-provenance.json": "9ad44b37e917126fd8cbbafff40300a9b17c782dfcc0c31831aa6b82f69d3f98",
+    "pyperformance-pyexpat-namespace-genshi-cpython3147-fast-20261007.json": "896b3e76ba38ac8eee6177b9d1f5135f7c084c12c2b546bf00f1abbd2960c916",
+    "pyperformance-pyexpat-namespace-genshi-cpython3147-fast-20261007.log": "201372e959a5c940ddb436a4d330a97147d172f1d283f3d1ae3ccd7ebc1ba9c0",
+    "pyperformance-pyexpat-namespace-genshi-cpython3147-fast-20261007-provenance.json": "06230ba51ac1c31798f7bc374644caeb189aa5753d319bb803a4d6d387d012bd"
+  },
+  "scope": "Native parser correctness establishes valid XML workload; Genshi/Python libraries unchanged",
+  "limitations": [
+    "Independent fast samples with stability warnings",
+    "No before/after speed ratio for historically incorrect XML work",
+    "Only official genshi definition rerun; historical full 97-case comparison unchanged",
+    "Initial fixture-reference record predates additional whitespace/CDATA/reserved-prefix tests; final correctness record hashes final fixture and expected output",
+    "Existing native parser limitations outside tested namespace/incremental-input behavior remain; this is not complete Expat conformance"
+  ]
+}

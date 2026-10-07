@@ -1,0 +1,24 @@
+single [["ns+", null, "u"], ["ns+", "p", "v"], ["start", "u|r", {"v|a": "1", "a": "2"}], ["start", "v|c", {}], ["end", "v|c"], ["end", "u|r"], ["ns-", "p"], ["ns-", null]]
+final-empty [["ns+", null, "u"], ["ns+", "p", "v"], ["start", "u|r", {"v|a": "1", "a": "2"}], ["start", "v|c", {}], ["end", "v|c"], ["end", "u|r"], ["ns-", "p"], ["ns-", null]]
+split [["ns+", null, "u"], ["ns+", "p", "v"], ["start", "u|r", {"v|a": "1", "a": "2"}], ["start", "v|c", {}], ["end", "v|c"], ["end", "u|r"], ["ns-", "p"], ["ns-", null]]
+scope [["ns+", null, "u"], ["ns+", "p", "v"], ["start", "u|r", {}], ["ns+", "p", "w"], ["start", "w|c", {}], ["end", "w|c"], ["ns-", "p"], ["start", "v|d", {}], ["end", "v|d"], ["ns+", null, null], ["start", "x", {}], ["end", "x"], ["ns-", null], ["end", "u|r"], ["ns-", "p"], ["ns-", null]]
+ordered-prefixes [["ns+", null, "u"], ["ns+", "p", "v"], ["start", "u|r", ["v|a|p", "1", "a", "2"]], ["start", "v|c|p", []], ["end", "v|c|p"], ["end", "u|r"], ["ns-", "p"], ["ns-", null]]
+disabled [["start", "r", {"xmlns": "u", "xmlns:p": "v", "p:a": "1", "a": "2"}], ["start", "p:c", {}], ["end", "p:c"], ["end", "r"]]
+empty-separator [["ns+", null, "u"], ["ns+", "p", "v"], ["start", "ur", {"va": "1", "a": "2"}], ["start", "vc", {}], ["end", "vc"], ["end", "ur"], ["ns-", "p"], ["ns-", null]]
+quoted-close [["start", "r", {"a": "x>y"}], ["end", "r"]]
+unicode [["ns+", "p", "u"], ["start", "r", {}], ["start", "u|\u540d\u5b57", {}], ["end", "u|\u540d\u5b57"], ["end", "r"], ["ns-", "p"]]
+split-entity [["start", "r", {}], ["text", "A&B"], ["end", "r"]]
+outside-whitespace [["start", "r", {}], ["end", "r"]]
+cdata [["start", "r", {}], ["text", "A&amp;B"], ["end", "r"]]
+after-final 36
+namespace-error 27
+namespace-error 8
+bad-separator ValueError
+bad-separator ValueError
+bad-separator ValueError
+reserved-or-malformed 38
+reserved-or-malformed 39
+reserved-or-malformed 28
+reserved-or-malformed 40
+reserved-or-malformed 40
+reserved-or-malformed 4

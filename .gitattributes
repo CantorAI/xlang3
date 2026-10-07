@@ -64,3 +64,11 @@
 /doc/performance/bigint-combined-storage-checkpoint-20261007.md text eol=lf
 /doc/performance/bigint-combined-storage-checkpoint-20261007.svg text eol=lf
 /doc/performance/pyexpat-namespace-streaming-baseline-20261007.md text eol=lf
+
+/doc/performance/data/pyexpat-namespace-*-20261007* -text
+/doc/performance/data/pyperformance-pyexpat-namespace-*-20261007* -text
+/doc/performance/data/release-pyexpat-namespace-*-20261007* -text
+/tests/fixtures/core/pyexpat_namespace_incremental.py text eol=lf
+/tests/fixtures/expected/pyexpat_namespace_incremental.out text eol=lf
+/doc/performance/pyexpat-namespace-incremental-checkpoint-20261007.md text eol=lf
+/doc/performance/pyexpat-namespace-incremental-checkpoint-20261007.svg text eol=lf

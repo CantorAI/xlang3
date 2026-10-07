@@ -1,0 +1,42 @@
+{
+  "status": "finished",
+  "started_utc": "2026-10-07T22:06:38.592525+00:00",
+  "manager_version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+  "runtime_executable": "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+  "command": [
+    "C:\\Python\\Python314\\python.exe",
+    "benchmarks/diagnostics/run_pyperformance_xlang3_shimmed.py",
+    "--runtime",
+    "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+    "--benchmarks",
+    "genshi",
+    "--mode",
+    "fast",
+    "--case-timeout",
+    "300",
+    "--dependency-site",
+    "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages",
+    "--output",
+    "D:\\CantorAI\\xlang3\\doc\\performance\\data\\pyperformance-pyexpat-namespace-genshi-xlang3-fast-20261007.json"
+  ],
+  "mode": "fast",
+  "benchmark_definition": "genshi",
+  "expected_subtests": [
+    "genshi_text",
+    "genshi_xml"
+  ],
+  "source_base_commit": "26682db3f00ac5ca506100328688e6cd9a2f806d",
+  "sha256_start": {
+    "exe": "9f89802e3eed9431dccfe6906cd04cfede486e77dc951469fbf80cc785152bdc",
+    "dll": "dd3d6871928065539f0ac0859d5a8340b4b0498cec43a13b72ca9e8fe49ffa3a"
+  },
+  "benchmark_source_sha256": "1422d56533ae1ec748ba5c2b928f48408b5e4b47c189cdb24095cd508762b892",
+  "native_source_sha256": "a3e9da0f5b5af7ea60b8ec0d12245ee295c98cdbbcf6da6adfa01fa6484d4ac8",
+  "scope": "Correct rendered workload; previous invalid XML timing excluded",
+  "exit_code": 0,
+  "completed_utc": "2026-10-07T22:07:36.798971+00:00",
+  "sha256_end": {
+    "exe": "9f89802e3eed9431dccfe6906cd04cfede486e77dc951469fbf80cc785152bdc",
+    "dll": "dd3d6871928065539f0ac0859d5a8340b4b0498cec43a13b72ca9e8fe49ffa3a"
+  }
+}

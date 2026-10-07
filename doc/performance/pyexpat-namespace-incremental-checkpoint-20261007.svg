@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="335" viewBox="0 0 960 335">
+<rect width="960" height="335" fill="white"/>
+<g font-family="Arial,sans-serif" fill="#0f172a">
+<text x="24" y="34" font-size="22">Valid Genshi speed vs CPython 3.14.7</text>
+<text x="24" y="59" font-size="14">CPython = 1× · higher is faster · exact rendered outputs verified</text>
+<text x="24" y="112" font-size="16">CPython 3.14.7</text>
+<rect x="265" y="89" width="550.00" height="32" fill="#475569"/>
+<text x="825.00" y="112" font-size="16">1.0000×</text>
+<text x="24" y="173" font-size="16">genshi_text (XLang3)</text>
+<rect x="265" y="150" width="29.51" height="32" fill="#2563eb"/>
+<text x="304.51" y="173" font-size="16">0.0537×</text>
+<text x="24" y="234" font-size="16">genshi_xml (XLang3)</text>
+<rect x="265" y="211" width="22.44" height="32" fill="#2563eb"/>
+<text x="297.44" y="234" font-size="16">0.0408×</text>
+<text x="24" y="291" font-size="13">Previous XML timing excluded: template was unexpanded and delivered twice.</text>
+<text x="24" y="315" font-size="13">Targeted fast-mode comparison; historical full 97-case report remains unchanged.</text>
+</g></svg>

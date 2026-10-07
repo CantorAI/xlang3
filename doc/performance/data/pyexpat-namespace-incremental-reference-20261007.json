@@ -1,0 +1,8 @@
+{
+  "reference_executable": "C:\\Python\\Python314\\python.exe",
+  "reference_version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+  "source_sha256": "0ab988e242410805ae46f965803e6dc2b0adf01b5481f769d7726f427cdc6f52",
+  "expected_output_sha256": "fe1e0e5305ca1e89d4248ee2127ae1e6b2428f552f1ec35769a071f64907d1ac",
+  "reference_returncode": 0,
+  "control_runtime_dll_sha256": "d425ba688e3a09896eb35f3bc3164af9f8d09fbf785484dab9bf5f357eee0d3a"
+}
