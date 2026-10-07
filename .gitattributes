@@ -38,3 +38,17 @@
 /tests/fixtures/expected/bigint_division_working_buffers.out text eol=lf
 /doc/performance/bigint-division-working-buffer-checkpoint-20261007.md text eol=lf
 /doc/performance/bigint-division-working-buffer-checkpoint-20261007.svg text eol=lf
+
+/doc/performance/data/bigint-add-compare-*-20261007* -text
+/doc/performance/data/pyperformance-bigint-add-compare-*-20261007* -text
+/doc/performance/data/release-bigint-add-compare-*-20261007* -text
+/doc/performance/data/pidigits-add-compare-*-20261007* -text
+/benchmarks/diagnostics/generic_bigint_add_compare.py text eol=lf
+/benchmarks/diagnostics/pidigits_body_timing.py text eol=lf
+/tests/cpp/bigint_add_compare_operand_view_cases.h text eol=lf
+/tests/fixtures/core/bigint_add_compare_operand_views.py text eol=lf
+/tests/fixtures/expected/bigint_add_compare_operand_views.out text eol=lf
+/doc/performance/bigint-add-compare-operand-view-checkpoint-20261007.md text eol=lf
+/doc/performance/bigint-add-compare-operand-view-checkpoint-20261007.svg text eol=lf
+/doc/performance/bigint-add-compare-reference-helper-checkpoint-20261007.md text eol=lf
+/doc/performance/bigint-add-compare-reference-helper-checkpoint-20261007.svg text eol=lf

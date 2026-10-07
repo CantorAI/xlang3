@@ -122,7 +122,12 @@ BigIntPayload make_payload_from_u64(uint64_t magnitude, int8_t sign) {
   return out;
 }
 
-BigIntPayload clone_payload(const BigIntPayload& value) {
+// These private read-only kernels accept either an owned payload or an
+// immutable operand view by reference. Owned-buffer callers (division, shifts,
+// parsing) must not construct/copy views just to invoke the original kernel.
+// Every arithmetic result remains an independent owned BigIntPayload.
+template <typename IntegerOperand>
+BigIntPayload clone_payload(const IntegerOperand& value) {
   BigIntPayload out;
   out.sign = value.sign;
   if (value.limb_count != 0) {
@@ -238,7 +243,8 @@ bool intrinsic_integer_operand_view(const Value& value, uint32_t (&scalar_limbs)
   return true;
 }
 
-int compare_abs(const BigIntPayload& lhs, const BigIntPayload& rhs) {
+template <typename IntegerOperand>
+int compare_abs(const IntegerOperand& lhs, const IntegerOperand& rhs) {
   if (lhs.limb_count != rhs.limb_count) {
     return lhs.limb_count < rhs.limb_count ? -1 : 1;
   }
@@ -250,7 +256,8 @@ int compare_abs(const BigIntPayload& lhs, const BigIntPayload& rhs) {
   return 0;
 }
 
-int compare_payload(const BigIntPayload& lhs, const BigIntPayload& rhs) {
+template <typename IntegerOperand>
+int compare_payload(const IntegerOperand& lhs, const IntegerOperand& rhs) {
   if (lhs.sign != rhs.sign) {
     return lhs.sign < rhs.sign ? -1 : 1;
   }
@@ -261,7 +268,8 @@ int compare_payload(const BigIntPayload& lhs, const BigIntPayload& rhs) {
   return lhs.sign > 0 ? abs_cmp : -abs_cmp;
 }
 
-BigIntPayload add_abs(const BigIntPayload& lhs, const BigIntPayload& rhs, int8_t sign) {
+template <typename IntegerOperand>
+BigIntPayload add_abs(const IntegerOperand& lhs, const IntegerOperand& rhs, int8_t sign) {
   BigIntPayload out;
   out.sign = sign;
   const uint32_t count = std::max(lhs.limb_count, rhs.limb_count);
@@ -282,7 +290,8 @@ BigIntPayload add_abs(const BigIntPayload& lhs, const BigIntPayload& rhs, int8_t
   return out;
 }
 
-BigIntPayload sub_abs(const BigIntPayload& larger, const BigIntPayload& smaller, int8_t sign) {
+template <typename IntegerOperand>
+BigIntPayload sub_abs(const IntegerOperand& larger, const IntegerOperand& smaller, int8_t sign) {
   BigIntPayload out;
   out.sign = sign;
   ensure_capacity(out, larger.limb_count);
@@ -330,7 +339,8 @@ void shift_division_divisor_right_one(BigIntPayload& value) {
   normalize(value);
 }
 
-BigIntPayload add_payload(const BigIntPayload& lhs, const BigIntPayload& rhs) {
+template <typename IntegerOperand>
+BigIntPayload add_payload(const IntegerOperand& lhs, const IntegerOperand& rhs) {
   if (lhs.sign == 0) return clone_payload(rhs);
   if (rhs.sign == 0) return clone_payload(lhs);
   if (lhs.sign == rhs.sign) {
@@ -946,16 +956,31 @@ bool value_int_like_hash(const Value& value, size_t& out) {
 }
 
 bool value_int_like_compare(const std::string& op, const Value& lhs, const Value& rhs, Value& out) {
-  BigIntPayload left;
-  BigIntPayload right;
-  if (!value_to_payload(lhs, left) || !value_to_payload(rhs, right)) {
+  uint32_t left_scalar_limbs[2];
+  uint32_t right_scalar_limbs[2];
+  BigIntOperandView left_view;
+  BigIntOperandView right_view;
+  int cmp;
+  if (intrinsic_integer_operand_view(lhs, left_scalar_limbs, left_view) &&
+      intrinsic_integer_operand_view(rhs, right_scalar_limbs, right_view)) {
+    // Comparison only reads limbs. Cloning both intrinsic inputs made even a
+    // sign/length comparison pay two allocations and copies. Read everything
+    // before publishing a bool that may replace either input's sole owner.
+    cmp = compare_payload(left_view, right_view);
+  } else {
+    // Conversion hooks may destroy the earlier input. Preserve its owned
+    // snapshot and the original callback order whenever either hook can run.
+    BigIntPayload left;
+    BigIntPayload right;
+    if (!value_to_payload(lhs, left) || !value_to_payload(rhs, right)) {
+      release_limbs(left);
+      release_limbs(right);
+      return false;
+    }
+    cmp = compare_payload(left, right);
     release_limbs(left);
     release_limbs(right);
-    return false;
   }
-  const int cmp = compare_payload(left, right);
-  release_limbs(left);
-  release_limbs(right);
   bool result = false;
   if (op == "==") result = cmp == 0;
   else if (op == "!=") result = cmp != 0;
@@ -969,6 +994,18 @@ bool value_int_like_compare(const std::string& op, const Value& lhs, const Value
 }
 
 bool value_int_like_add(const Value& lhs, const Value& rhs, Value& out) {
+  uint32_t left_scalar_limbs[2];
+  uint32_t right_scalar_limbs[2];
+  BigIntOperandView left_view;
+  BigIntOperandView right_view;
+  if (intrinsic_integer_operand_view(lhs, left_scalar_limbs, left_view) &&
+      intrinsic_integer_operand_view(rhs, right_scalar_limbs, right_view)) {
+    // Read immutable inputs and allocate only the result. Even addition by
+    // zero must create independent storage before output can replace an input.
+    BigIntPayload result = add_payload(left_view, right_view);
+    out = compact_payload(result);
+    return true;
+  }
   BigIntPayload left;
   BigIntPayload right;
   if (!value_to_payload(lhs, left) || !value_to_payload(rhs, right)) {
@@ -984,6 +1021,19 @@ bool value_int_like_add(const Value& lhs, const Value& rhs, Value& out) {
 }
 
 bool value_int_like_sub(const Value& lhs, const Value& rhs, Value& out) {
+  uint32_t left_scalar_limbs[2];
+  uint32_t right_scalar_limbs[2];
+  BigIntOperandView left_view;
+  BigIntOperandView right_view;
+  if (intrinsic_integer_operand_view(lhs, left_scalar_limbs, left_view) &&
+      intrinsic_integer_operand_view(rhs, right_scalar_limbs, right_view)) {
+    // Negate only the local view's sign, never the caller's payload. Avoid
+    // allocating another operand copy just to express subtraction as addition.
+    right_view.sign = static_cast<int8_t>(-right_view.sign);
+    BigIntPayload result = add_payload(left_view, right_view);
+    out = compact_payload(result);
+    return true;
+  }
   BigIntPayload left;
   BigIntPayload right;
   if (!value_to_payload(lhs, left) || !value_to_payload(rhs, right)) {

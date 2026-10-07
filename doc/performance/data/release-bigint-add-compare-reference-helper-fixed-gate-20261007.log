@@ -1,0 +1,12 @@
+local_slots              pass         1.005x
+scalar_arithmetic        pass         1.008x
+range_for                pass         1.019x
+function_calls           pass         1.023x
+class_construct          pass         1.007x
+list_append              pass         0.981x
+property_access          pass         0.993x
+deepcopy_memo            pass         0.881x
+json_dumps               pass         1.003x
+gc_traversal             pass         0.772x
+subparsers               pass         0.950x
+Performance check: pass. Report: D:\CantorAI\xlang3\doc\performance\data\release-bigint-add-compare-reference-helper-fixed-gate-20261007.json

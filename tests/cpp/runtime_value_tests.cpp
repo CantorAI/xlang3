@@ -18,6 +18,7 @@ limitations under the License.
 #include "strided_memoryview_serialization_cases.h"
 #include "bigint_multiply_operand_view_cases.h"
 #include "bigint_division_working_buffer_cases.h"
+#include "bigint_add_compare_operand_view_cases.h"
 #include <atomic>
 #include <chrono>
 #include <thread>
@@ -50,6 +51,7 @@ int main() {
   xlang3::test::check_strided_memoryview_ipc(result);
   xlang3::test::check_bigint_multiply_operand_views(result);
   xlang3::test::check_bigint_division_working_buffers(result);
+  xlang3::test::check_bigint_add_compare_operand_views(result);
 
   {
     xlang3::Value escaped_set, escaped_iterator;
