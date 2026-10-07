@@ -20,6 +20,8 @@ import pyperformance.cli as cli
 import pyperformance.run as perf_run
 from pyperformance import _benchmark, _utils
 
+from preserve_pyperformance_partial import preserve_partial_output
+
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("--runtime", required=True, help="XLang3 executable")
@@ -163,6 +165,18 @@ def run_named_benchmark(benchmark, *positional, **keywords):
 _benchmark.Benchmark.run = run_named_benchmark
 
 
+def preserve_failed_output(argv, exit_code):
+    # This runs only after failure/worker cleanup, never inside a timed body.
+    # Upstream deletes --output's temporary file when Benchmark.run raises.
+    try:
+        record = preserve_partial_output(argv, output, current_benchmark, exit_code)
+    except Exception as error:
+        print(f"Could not preserve partial benchmark output: {error}", flush=True)
+    else:
+        if record is not None:
+            print(f"Preserved partial failed-definition output: {record['partial_output']}", flush=True)
+
+
 def run_with_timeout(argv, *, env=None, capture=None, verbose=True):
     global current_benchmark_timeout_reported
     if os.path.normcase(os.path.abspath(argv[0])) != os.path.normcase(runtime):
@@ -174,6 +188,7 @@ def run_with_timeout(argv, *, env=None, capture=None, verbose=True):
         if current_benchmark and not current_benchmark_timeout_reported:
             print(f"Full-case timeout: {current_benchmark} exceeded {current_benchmark_timeout_seconds} seconds", flush=True)
             current_benchmark_timeout_reported = True
+        preserve_failed_output(argv, 124)
         return 124, "", ""
     child_env = dict(os.environ if env is None else env)
     if current_benchmark in {"python_startup", "python_startup_no_site"} and "-c" in argv:
@@ -236,10 +251,13 @@ def run_with_timeout(argv, *, env=None, capture=None, verbose=True):
                 for stream in (process.stdout, process.stderr):
                     if stream is not None:
                         stream.close()
+        preserve_failed_output(argv, 124)
         return 124, stdout, stderr
     finally:
         if kill_job:
             kill_job[0].CloseHandle(kill_job[1])
+    if process.returncode != 0:
+        preserve_failed_output(argv, process.returncode)
     return process.returncode, stdout, stderr
 
 
