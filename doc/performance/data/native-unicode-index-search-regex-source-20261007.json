@@ -1,0 +1,17 @@
+{
+  "source_base_commit": "52f3472ab9f32fa394ce061c55a91544d874553c",
+  "exe_sha256": "0CC12A955922714F9322076F0B372DFC409524F2A45FB6EF199DB8C3D35D3C6B",
+  "dll_sha256": "4B06422A606C2F13CA8302BBCB9F362695208F91FFD0D024292A2ACF661C5920",
+  "files_sha256": {
+    "src/internal/xlang3/value.h": "e1040881106aec4996ff8bf13506944f6a49c8c79aebe0cb76ebf9887462f67e",
+    "src/runtime/value.cpp": "6bcf6a643c7d24987933e91fbb53c2126bc09c8e1136b0290b3415baa6a6af9c",
+    "src/runtime/sequence.cpp": "caf06afef8a58f9bde17591e27e5e8ee63aaa301f80131af6e5924076050d50f",
+    "src/executor/xlang_vm/ops/xlang_vm_ops_containers.h": "803db26873cddee52ffd706cbf199f2d038dfb58d7ac9d0aea14d8ebd2ff632f",
+    "src/runtime/methods/string_methods.cpp": "3293bc223746e6c8a5996fd19a0b6d14b0583105bef7dde473a5db66f4bcc54c",
+    "src/runtime/modules/system/weakref_module.cpp": "ddf04675acea4a538bb76ca878b8516d4144822b1b6f256da013f13c89c2d6f9",
+    "src/runtime/modules/system/sre_module.cpp": "d9b251b67f41e06fb536e8d51cdb8aaee627c75075c12d315b934173cb7e5d45",
+    "tests/cpp/unicode_index_cache_cases.h": "9aa2966ec4841c9c5499ba51abaeda64d853057f6baf3060494e4e3af1fbd2b0",
+    "tests/fixtures/core/unicode_index_cache.py": "d28b181dddf95369db7808fb10247de587adc5d0275438876d74e9161c93abcf"
+  },
+  "note": "Hashes identify working files compiled/tested for the Unicode indexing/search/regex candidate, including file line endings; unrelated working-tree edits remain outside this checkpoint."
+}

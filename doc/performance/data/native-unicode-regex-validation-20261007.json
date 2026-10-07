@@ -1,0 +1,23 @@
+{
+  "source_base_commit": "52f3472ab9f32fa394ce061c55a91544d874553c",
+  "manager": "C:/Python/Python314/python.exe",
+  "manager_version": "3.14.7",
+  "build_exit_code": 0,
+  "fixture_exit_code": 0,
+  "cpp_sdk_serialization_exit_code": 0,
+  "cpp_sdk_serialization_tests": 8,
+  "fixed_gate_exit_code": 0,
+  "fixed_gate_file": "release-native-unicode-regex-fixed-gate-20261007.json",
+  "fixed_gate_cases": 11,
+  "fixed_gate_repeats": 21,
+  "fixed_gate_warmup": 5,
+  "fixed_gate_threshold": 0.1,
+  "exe_sha256": "0CC12A955922714F9322076F0B372DFC409524F2A45FB6EF199DB8C3D35D3C6B",
+  "dll_sha256": "4B06422A606C2F13CA8302BBCB9F362695208F91FFD0D024292A2ACF661C5920",
+  "diagnostic_rows_matched": 9,
+  "diagnostic_only": true,
+  "build_log": "build-native-unicode-regex-Release-20261007.log",
+  "fixture_log": "native-unicode-regex-fixtures-20261007.log",
+  "cpp_log": "native-unicode-regex-cpp-sdk-serialization-20261007.log",
+  "diagnostic_kind": "native regex positions, capture ownership, and extraction"
+}

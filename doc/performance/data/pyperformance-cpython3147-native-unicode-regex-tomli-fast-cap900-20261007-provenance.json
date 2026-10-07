@@ -1,0 +1,32 @@
+{
+  "status": "finished",
+  "manager_executable": "C:\\Python\\Python314\\python.exe",
+  "manager_version": "3.14.7",
+  "source_base_commit": "52f3472ab9f32fa394ce061c55a91544d874553c",
+  "source_change": "CPython 3.14.7 reference with the same shim, dependency site, fast workload and cap900",
+  "runtime_executable": "C:\\Python\\Python314\\python.exe",
+  "stdlib": "C:\\Python\\Python314\\Lib",
+  "dependency_site": "venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages",
+  "mode": "fast",
+  "benchmarks": "tomli_loads",
+  "definition_count": 1,
+  "case_timeout_seconds": 900,
+  "timing_probe_enabled": false,
+  "started_utc": "2026-10-07T10:19:10.911611+00:00",
+  "sha256_start": {
+    "exe": "4942B86A6597E5AEE0128DAA00050ED79BC21F6E709A78EB19CBFEB0C2F39AC9",
+    "dll": "0F9857FFDFE010FE6B99328D58C2E3C7472CE75F336BF9C2AD9BD5BCA3BCE700"
+  },
+  "control_reference": "pyperformance-xlang3-native-string-checkpoint-full-fast-20261007.log (tomli_loads timeout300)",
+  "stage1_reference": "pyperformance-xlang3-native-unicode-index-tomli-fast-20261007.log (timeout300)",
+  "cpython_reference": "pyperformance-cpython314-clean-release-full-fast-20261002.json",
+  "stage2_reference": "pyperformance-xlang3-native-unicode-search-tomli-fast-20261007.log (timeout300)",
+  "runtime_kind": "cpython3147",
+  "reason_for_longer_cap": "The candidate finished calibration and three workers at cap300, but full fast-mode sample collection requires a longer complete-case allowance; run both runtimes at cap900.",
+  "completed_utc": "2026-10-07T10:20:16.713394+00:00",
+  "exit_code": 0,
+  "sha256_end": {
+    "exe": "4942B86A6597E5AEE0128DAA00050ED79BC21F6E709A78EB19CBFEB0C2F39AC9",
+    "dll": "0F9857FFDFE010FE6B99328D58C2E3C7472CE75F336BF9C2AD9BD5BCA3BCE700"
+  }
+}

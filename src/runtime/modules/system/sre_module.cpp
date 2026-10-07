@@ -2261,6 +2261,16 @@ size_t utf8_byte_offset(std::string_view text, size_t codepoint_offset) {
   return i;
 }
 
+size_t match_group_byte_offset(const MatchState& state, std::string_view text, size_t index) {
+  if (state.bytes_text || state.ascii_text) return index;
+  if (state.borrowed_text) {
+    if (const auto* string = value_as_string(state.subject)) {
+      return string_object_byte_offset(*string, index);
+    }
+  }
+  return utf8_byte_offset(text, index);
+}
+
 Value match_group_value(const MatchState& state, size_t index) {
   if (index >= state.groups.size() || !state.groups[index].matched) {
     return Value::none();
@@ -2277,12 +2287,8 @@ Value match_group_value(const MatchState& state, size_t index) {
       current_bytes = live_bytes;
     }
   }
-  const size_t raw_start = state.bytes_text || state.ascii_text
-      ? static_cast<size_t>(group.start)
-      : utf8_byte_offset(current_text, static_cast<size_t>(group.start));
-  const size_t raw_end = state.bytes_text || state.ascii_text
-      ? static_cast<size_t>(group.end)
-      : utf8_byte_offset(current_text, static_cast<size_t>(group.end));
+  const size_t raw_start = match_group_byte_offset(state, current_text, static_cast<size_t>(group.start));
+  const size_t raw_end = match_group_byte_offset(state, current_text, static_cast<size_t>(group.end));
   const size_t start = std::min(raw_start, current_text.size());
   const size_t end = std::max(start, std::min(raw_end, current_text.size()));
   std::string text(current_text.substr(start, end - start));
@@ -2418,12 +2424,8 @@ bool append_match_group(
   const auto& group = state.groups[static_cast<size_t>(index)];
   if (group.matched) {
     const auto text = match_text_view(state);
-    const size_t start = state.bytes_text || state.ascii_text
-        ? static_cast<size_t>(group.start)
-        : utf8_byte_offset(text, static_cast<size_t>(group.start));
-    const size_t end = state.bytes_text || state.ascii_text
-        ? static_cast<size_t>(group.end)
-        : utf8_byte_offset(text, static_cast<size_t>(group.end));
+    const size_t start = match_group_byte_offset(state, text, static_cast<size_t>(group.start));
+    const size_t end = match_group_byte_offset(state, text, static_cast<size_t>(group.end));
     output.append(text.data() + start, end - start);
   }
   return true;
@@ -2929,7 +2931,12 @@ void repair_python_repeat_captures(
     size_t byte_match_start,
     size_t byte_match_end,
     bool bytes_text,
-    std::vector<MatchGroup>& groups) {
+    std::vector<MatchGroup>& groups,
+    const StringObject* subject_string) {
+  const auto character_index = [&](size_t byte_offset) {
+    return subject_string != nullptr ? string_object_character_index(*subject_string, byte_offset)
+                                     : utf8_codepoint_count(text, byte_offset);
+  };
   const auto followed_by_repeat_many = [&](size_t close) {
     if (close + 1 >= pattern.pattern.size()) return false;
     const char quantifier = pattern.pattern[close + 1];
@@ -2989,8 +2996,8 @@ void repair_python_repeat_captures(
       if (found) {
         auto& group = groups[static_cast<size_t>(group_index)];
         group.matched = true;
-        group.start = static_cast<int64_t>(bytes_text ? captured_start : utf8_codepoint_count(text, captured_start));
-        group.end = static_cast<int64_t>(bytes_text ? captured_end : utf8_codepoint_count(text, captured_end));
+        group.start = static_cast<int64_t>(bytes_text ? captured_start : character_index(captured_start));
+        group.end = static_cast<int64_t>(bytes_text ? captured_end : character_index(captured_end));
       }
     } catch (const std::regex_error&) {
     }
@@ -3078,8 +3085,8 @@ void repair_python_repeat_captures(
       if (found) {
         auto& group = groups[static_cast<size_t>(capture.index)];
         group.matched = true;
-        group.start = static_cast<int64_t>(bytes_text ? captured_start : utf8_codepoint_count(text, captured_start));
-        group.end = static_cast<int64_t>(bytes_text ? captured_end : utf8_codepoint_count(text, captured_end));
+        group.start = static_cast<int64_t>(bytes_text ? captured_start : character_index(captured_start));
+        group.end = static_cast<int64_t>(bytes_text ? captured_end : character_index(captured_end));
       }
     } catch (const std::regex_error&) {
     }
@@ -3117,7 +3124,7 @@ void repair_python_repeat_captures(
     auto& group = groups[static_cast<size_t>(capture.index)];
     group.matched = true;
     group.start = group.end = static_cast<int64_t>(
-        bytes_text ? byte_match_end : utf8_codepoint_count(text, byte_match_end));
+        bytes_text ? byte_match_end : character_index(byte_match_end));
   }
 
   for (size_t open = 0; open < pattern.pattern.size(); ++open) {
@@ -3148,7 +3155,7 @@ void repair_python_repeat_captures(
     auto& group = groups[static_cast<size_t>(group_index)];
     group.matched = true;
     group.start = group.end = static_cast<int64_t>(
-        bytes_text ? empty_at : utf8_codepoint_count(text, empty_at));
+        bytes_text ? empty_at : character_index(empty_at));
   }
 }
 
@@ -3183,6 +3190,11 @@ Value make_match(
   const size_t public_group_count = compiled != nullptr
       ? static_cast<size_t>(std::max<int64_t>(0, compiled->group_count)) + 1
       : match.size();
+  const auto* subject_string = borrow_text ? value_as_string(state->subject) : nullptr;
+  const auto character_index = [&](size_t byte_offset) {
+    return subject_string != nullptr ? string_object_character_index(*subject_string, byte_offset)
+                                     : utf8_codepoint_count(text, byte_offset);
+  };
   state->groups.reserve(public_group_count);
   for (size_t i = 0; i < public_group_count; ++i) {
     const size_t engine_index = compiled != nullptr && i < compiled->engine_group_for_python.size()
@@ -3193,9 +3205,9 @@ Value make_match(
       const size_t byte_start = base + static_cast<size_t>(match.position(engine_index));
       const size_t byte_end = byte_start + static_cast<size_t>(match.length(engine_index));
       group.start = static_cast<int64_t>(
-          bytes_text || ascii_text ? byte_start : utf8_codepoint_count(text, byte_start));
+          bytes_text || ascii_text ? byte_start : character_index(byte_start));
       group.end = static_cast<int64_t>(
-          bytes_text || ascii_text ? byte_end : utf8_codepoint_count(text, byte_end));
+          bytes_text || ascii_text ? byte_end : character_index(byte_end));
     }
     state->groups.push_back(group);
   }
@@ -3205,7 +3217,7 @@ Value make_match(
     const size_t byte_match_end = byte_match_start + static_cast<size_t>(match.length(0));
     repair_python_repeat_captures(
         *compiled, text, byte_match_start, byte_match_end,
-        bytes_text || ascii_text, state->groups);
+        bytes_text || ascii_text, state->groups, subject_string);
   }
   (void)instance_set_native_data(value, kMatchNativeType, state, match_cleanup, error);
   (void)instance_set_native_attr_hooks(value, match_get_attr, nullptr, nullptr, error);
@@ -3671,13 +3683,17 @@ bool pattern_match_impl(Runtime& runtime, const Value* args, uint32_t argc, Valu
     value_set_none(out);
     return true;
   }
-  // An immutable ASCII subject can be matched in place. JSON and other
-  // scanners repeatedly call Pattern.match with advancing positions; copying
-  // the full subject into each temporary Match makes that quadratic.
+  // Match exact immutable subjects in place, including sparse Unicode. Tomli
+  // repeatedly matches numbers in a large source containing a few multibyte
+  // characters: copying the full source or rescanning prefixes per capture
+  // makes parsing quadratic. The Match retains its subject; cached positions
+  // preserve Python codepoint spans while the regex engine uses UTF-8 bytes.
+  // Keep mutable bytes, subclasses, and deferred lookbehinds on their fallback.
   if (continuous && state->regex_available && state->lookbehinds.empty()) {
     if (auto* string = value_as_string(args[1]);
-        string != nullptr && string_object_is_ascii(*string)) {
+        string != nullptr && !state->bytes_pattern) {
       const auto view = string_object_view(*string);
+      const size_t public_length = string_object_length(*string);
       if ((argc >= 3 && value_as_bigint(args[2]) != nullptr) ||
           (argc >= 4 && value_as_bigint(args[3]) != nullptr)) {
         error = "Python int too large to convert to C ssize_t";
@@ -3686,21 +3702,23 @@ bool pattern_match_impl(Runtime& runtime, const Value* args, uint32_t argc, Valu
       }
       size_t pos = 0;
       if (argc >= 3 && args[2].tag == ValueTag::Int64 && args[2].as.i64 > 0) {
-        pos = std::min(static_cast<size_t>(args[2].as.i64), view.size());
+        pos = std::min(static_cast<size_t>(args[2].as.i64), public_length);
       }
-      size_t endpos = view.size();
+      size_t endpos = public_length;
       if (argc >= 4 && args[3].tag == ValueTag::Int64) {
         endpos = args[3].as.i64 < 0 ? 0
-            : std::min(static_cast<size_t>(args[3].as.i64), view.size());
+            : std::min(static_cast<size_t>(args[3].as.i64), public_length);
       }
-      if (pos > endpos || pos < state->minimum_match_start) {
+      const size_t byte_pos = string_object_byte_offset(*string, pos);
+      const size_t byte_endpos = string_object_byte_offset(*string, endpos);
+      if (pos > endpos || byte_pos < state->minimum_match_start) {
         value_set_none(out);
         return true;
       }
       if (!ensure_pattern_regex(*state, error)) return false;
       std::match_results<std::string_view::const_iterator> match;
-      const auto begin = view.cbegin() + static_cast<std::ptrdiff_t>(pos);
-      const auto end = view.cbegin() + static_cast<std::ptrdiff_t>(endpos);
+      const auto begin = view.cbegin() + static_cast<std::ptrdiff_t>(byte_pos);
+      const auto end = view.cbegin() + static_cast<std::ptrdiff_t>(byte_endpos);
       bool matched = false;
       try {
         matched = full || state->requires_absolute_end
@@ -3712,12 +3730,12 @@ bool pattern_match_impl(Runtime& runtime, const Value* args, uint32_t argc, Valu
             ": " + exc.what();
         return false;
       }
-      if (!matched || !match_satisfies_lookbehinds(*state, view, match, pos)) {
+      if (!matched || !match_satisfies_lookbehinds(*state, view, match, byte_pos)) {
         value_set_none(out);
         return true;
       }
       out = make_match(runtime, args[0], view, false, match,
-                       pos, pos, endpos, &args[1], {}, true, true);
+                       byte_pos, pos, endpos, &args[1], {}, string_object_is_ascii(*string), true);
       return true;
     }
   }

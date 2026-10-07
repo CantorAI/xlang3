@@ -1,0 +1,28 @@
+{
+  "status": "finished_with_benchmark_failures",
+  "manager_executable": "C:\\Python\\Python314\\python.exe",
+  "manager_version": "Python 3.14.7",
+  "source_base_commit": "52f3472ab9f32fa394ce061c55a91544d874553c",
+  "source_change": "Uncommitted immutable Unicode indexing metadata, length, slices, and related subclass/error fixes",
+  "runtime_executable": "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+  "stdlib": "C:\\Python\\Python314\\Lib",
+  "dependency_site": "venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages",
+  "mode": "fast",
+  "benchmarks": "tomli_loads",
+  "definition_count": 1,
+  "case_timeout_seconds": 300,
+  "timing_probe_enabled": false,
+  "control_reference": "pyperformance-xlang3-native-string-checkpoint-full-fast-20261007.log (tomli_loads timeout300)",
+  "cpython_reference": "pyperformance-cpython314-clean-release-full-fast-20261002.json",
+  "started_utc": "2026-10-07T09:49:12.8127915Z",
+  "sha256_start": {
+    "exe": "7AFA62288F062A6766C1A6B1F7F6EC503D9B87B5A43164114319C30DBDB19FA3",
+    "dll": "07146AA08545A52892BD9CC97D2CF8FABC19779128A2274A7D1605C798AA5562"
+  },
+  "sha256_end": {
+    "exe": "7AFA62288F062A6766C1A6B1F7F6EC503D9B87B5A43164114319C30DBDB19FA3",
+    "dll": "07146AA08545A52892BD9CC97D2CF8FABC19779128A2274A7D1605C798AA5562"
+  },
+  "completed_utc": "2026-10-07T09:54:13.3984006Z",
+  "exit_code": 1
+}

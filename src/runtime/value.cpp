@@ -62,7 +62,61 @@ limitations under the License.
 
 namespace xlang3 {
 
+struct StringUnicodeIndex {
+  static constexpr size_t stride = 128;
+  uint32_t characters = 0;
+  bool sparse = true;
+  std::vector<std::pair<uint32_t, uint32_t>> corrections;
+  std::vector<uint32_t> checkpoints;
+};
+static_assert(alignof(StringUnicodeIndex) >= 4);
+
 namespace {
+
+const StringUnicodeIndex& unicode_index(const StringObject& string) {
+  uintptr_t observed = string.unicode_metadata.load(std::memory_order_acquire);
+  if (const auto* cached = reinterpret_cast<const StringUnicodeIndex*>(observed & ~kStringMetadataFlags)) {
+    return *cached;
+  }
+  auto fresh = std::make_unique<StringUnicodeIndex>();
+  const auto text = string_object_view(string);
+  fresh->checkpoints.reserve(text.size() / StringUnicodeIndex::stride + 1);
+  uint32_t extra_bytes = 0;
+  for (size_t offset = 0; offset < text.size();) {
+    if (fresh->characters % StringUnicodeIndex::stride == 0) {
+      fresh->checkpoints.push_back(static_cast<uint32_t>(offset));
+    }
+    size_t width = utf8_codepoint_width(static_cast<unsigned char>(text[offset]));
+    if (width > text.size() - offset) width = 1;
+    offset += width;
+    ++fresh->characters;
+    if (width > 1) {
+      extra_bytes += static_cast<uint32_t>(width - 1);
+      if (fresh->sparse) {
+        if (fresh->corrections.size() < 128) {
+          fresh->corrections.emplace_back(fresh->characters, extra_bytes);
+        } else {
+          fresh->sparse = false;
+          std::vector<std::pair<uint32_t, uint32_t>>().swap(fresh->corrections);
+        }
+      }
+    }
+  }
+  if (fresh->sparse) std::vector<uint32_t>().swap(fresh->checkpoints);
+  // Rare multibyte characters should not force a table for every ASCII byte.
+  // Dense text uses bounded checkpoints; all later reads walk at most 127
+  // characters. Publish the completed immutable index to concurrent readers.
+  for (;;) {
+    if (const auto* cached = reinterpret_cast<const StringUnicodeIndex*>(observed & ~kStringMetadataFlags)) {
+      return *cached;
+    }
+    const uintptr_t desired = reinterpret_cast<uintptr_t>(fresh.get()) | (observed & kStringMetadataFlags);
+    if (string.unicode_metadata.compare_exchange_weak(
+            observed, desired, std::memory_order_acq_rel, std::memory_order_acquire)) {
+      return *fresh.release();
+    }
+  }
+}
 
 std::mutex g_file_resource_warning_mutex;
 std::vector<std::string> g_file_resource_warnings;
@@ -178,6 +232,8 @@ void recycle_slice_object(SliceObject* obj) {
 void release_string_block(StringObject* object) {
   const size_t alloc_size = object->alloc_size;
   auto* allocator = object->allocator != nullptr ? object->allocator : &memory::x3_thread_buckets();
+  delete reinterpret_cast<StringUnicodeIndex*>(
+      object->unicode_metadata.load(std::memory_order_relaxed) & ~kStringMetadataFlags);
   object->~StringObject();
   allocator->release(object, alloc_size);
 }
@@ -233,8 +289,7 @@ Value ascii_character_value(unsigned char character) {
     for (size_t i = 0; i < cache->size(); ++i) {
       const char byte = static_cast<char>(i);
       (*cache)[i] = make_plain_string(std::string_view(&byte, 1));
-      reinterpret_cast<StringObject*>((*cache)[i].as.obj)->immortal.store(
-          true, std::memory_order_relaxed);
+      string_object_set_immortal(*reinterpret_cast<StringObject*>((*cache)[i].as.obj), true);
     }
     return cache;
   }();
@@ -378,14 +433,14 @@ Value intern_string_view(std::string_view value, bool immortal = true) {
   if (auto found = find_interned_string(table, value); found != table.end()) {
     if (immortal) {
       if (auto* string = value_as_string(found->second)) {
-        string->immortal.store(true, std::memory_order_release);
+        string_object_set_immortal(*string, true);
       }
     }
     return found->second;
   }
   Value interned = make_plain_string(value);
   if (auto* string = value_as_string(interned)) {
-    string->immortal.store(immortal, std::memory_order_relaxed);
+    if (immortal) string_object_set_immortal(*string, true);
   }
   table.emplace(string_object_hash(*value_as_string(interned)), interned);
   return interned;
@@ -498,13 +553,14 @@ void recycle_tuple_object(TupleObject* object) {
 }
 
 void string_object_set_bytes(StringObject* object, const char* source, size_t size) {
-  object->ascii = true;
+  bool ascii = true;
   for (size_t i = 0; i < size; ++i) {
     if ((static_cast<unsigned char>(source[i]) & 0x80u) != 0) {
-      object->ascii = false;
+      ascii = false;
       break;
     }
   }
+  string_object_set_ascii(*object, ascii);
   if (object->size != 0) {
     std::memcpy(string_object_mutable_data(*object), source, object->size);
   }
@@ -984,6 +1040,42 @@ std::string format_f64(double value) {
 
 } // namespace
 
+size_t string_object_unicode_length(const StringObject& value) {
+  return unicode_index(value).characters;
+}
+
+size_t string_object_unicode_index(const StringObject& value, size_t byte_offset) {
+  const auto& cached = unicode_index(value);
+  if (byte_offset >= value.size) return cached.characters;
+  if (cached.sparse) {
+    auto found = std::upper_bound(cached.corrections.begin(), cached.corrections.end(), byte_offset,
+        [](size_t position, const std::pair<uint32_t, uint32_t>& entry) {
+          return position < static_cast<size_t>(entry.first) + entry.second;
+        });
+    return byte_offset - (found == cached.corrections.begin() ? 0 : (--found)->second);
+  }
+  auto found = std::upper_bound(cached.checkpoints.begin(), cached.checkpoints.end(), byte_offset);
+  --found; // Every nonempty dense string has a checkpoint at byte zero.
+  const size_t offset = *found;
+  const size_t index = static_cast<size_t>(found - cached.checkpoints.begin()) * StringUnicodeIndex::stride;
+  return index + utf8_codepoint_count(string_object_view(value).substr(offset, byte_offset - offset));
+}
+
+size_t string_object_unicode_offset(const StringObject& value, size_t index) {
+  const auto& cached = unicode_index(value);
+  if (index >= cached.characters) return value.size;
+  if (cached.sparse) {
+    auto found = std::upper_bound(cached.corrections.begin(), cached.corrections.end(), index,
+        [](size_t position, const std::pair<uint32_t, uint32_t>& entry) {
+          return position < entry.first;
+        });
+    return index + (found == cached.corrections.begin() ? 0 : (--found)->second);
+  }
+  const size_t offset = cached.checkpoints[index / StringUnicodeIndex::stride];
+  return offset + utf8_byte_offset(string_object_view(value).substr(offset),
+                                  index % StringUnicodeIndex::stride);
+}
+
 Value Value::complex(double real, double imag) {
   Value value;
   value.tag = ValueTag::Object;
@@ -1032,7 +1124,7 @@ Value intern_string_value(const Value& value) {
   std::lock_guard<std::mutex> lock(interned_string_mutex());
   auto& table = interned_string_table();
   if (auto found = find_interned_string(table, text); found != table.end()) return found->second;
-  string->immortal.store(false, std::memory_order_relaxed);
+  string_object_set_immortal(*string, false);
   table.emplace(string_object_hash(*string), value);
   return value;
 }
@@ -1051,7 +1143,7 @@ bool string_value_is_interned(const Value& value) {
 
 bool string_value_is_immortal_interned(const Value& value) {
   auto* string = value_as_string(value);
-  if (!string || !string->immortal.load(std::memory_order_acquire)) return false;
+  if (!string || !string_object_is_immortal(*string)) return false;
   const auto text = string_object_view(*string);
   if (text.size() == 1 && static_cast<unsigned char>(text[0]) < 128) {
     return value_is(ascii_character_value(static_cast<unsigned char>(text[0])), value);
@@ -1071,7 +1163,7 @@ int64_t immortal_interned_string_count() {
   int64_t count = 0;
   for (const auto& item : interned_string_table()) {
     auto* string = value_as_string(item.second);
-    if (string != nullptr && string->immortal.load(std::memory_order_relaxed)) {
+    if (string != nullptr && string_object_is_immortal(*string)) {
       ++count;
     }
   }
@@ -2942,8 +3034,8 @@ bool value_add(const Value& lhs, const Value& rhs, Value& out, std::string& erro
     if (!right.empty()) {
       std::memcpy(target + left.size(), right.data(), right.size());
     }
-    string->ascii = string_object_is_ascii(*as_string(lhs.as.obj)) &&
-                    string_object_is_ascii(*as_string(rhs.as.obj));
+    string_object_set_ascii(*string, string_object_is_ascii(*as_string(lhs.as.obj)) &&
+                    string_object_is_ascii(*as_string(rhs.as.obj)));
     return true;
   }
   if (lhs.tag == ValueTag::Object && rhs.tag == ValueTag::Object &&

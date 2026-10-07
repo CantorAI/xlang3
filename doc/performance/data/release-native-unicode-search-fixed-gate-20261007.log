@@ -1,0 +1,12 @@
+local_slots              pass         1.001x
+scalar_arithmetic        pass         1.008x
+range_for                pass         1.000x
+function_calls           pass         1.006x
+class_construct          pass         0.991x
+list_append              pass         1.014x
+property_access          pass         0.951x
+deepcopy_memo            pass         0.894x
+json_dumps               pass         1.017x
+gc_traversal             pass         0.974x
+subparsers               pass         0.936x
+Performance check: pass. Report: doc\performance\data\release-native-unicode-search-fixed-gate-20261007.json

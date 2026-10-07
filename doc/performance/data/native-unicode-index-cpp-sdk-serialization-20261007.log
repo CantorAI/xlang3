@@ -1,0 +1,21 @@
+Test project D:/CantorAI/xlang3/build-repro/main-verify-20261006
+    Start  7: xlang3_sdk_stream_call_tests
+1/8 Test  #7: xlang3_sdk_stream_call_tests ......   Passed    0.12 sec
+    Start  8: xlang3_graph_producer
+2/8 Test  #8: xlang3_graph_producer .............   Passed    0.14 sec
+    Start  9: xlang3_graph_consumer
+3/8 Test  #9: xlang3_graph_consumer .............   Passed    0.04 sec
+    Start 10: xlang3_graph_reject_BAD_VERSION
+4/8 Test #10: xlang3_graph_reject_BAD_VERSION ...   Passed    0.04 sec
+    Start 11: xlang3_graph_reject_NO_CODEC
+5/8 Test #11: xlang3_graph_reject_NO_CODEC ......   Passed    0.04 sec
+    Start 12: xlang3_graph_reject_DECODE_FAIL
+6/8 Test #12: xlang3_graph_reject_DECODE_FAIL ...   Passed    0.04 sec
+    Start 13: xlang3_runtime_value_tests
+7/8 Test #13: xlang3_runtime_value_tests ........   Passed    0.23 sec
+    Start 21: xlang3_interpreter_tests
+8/8 Test #21: xlang3_interpreter_tests ..........   Passed    0.25 sec
+
+100% tests passed, 0 tests failed out of 8
+
+Total Test time (real) =   0.91 sec

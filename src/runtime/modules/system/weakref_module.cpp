@@ -79,7 +79,7 @@ std::recursive_mutex& weakref_registry_mutex() {
 bool weakref_retain_if_alive(Object* object, Value& out) {
   if (object == nullptr) return false;
   if (object->kind == ObjectKind::String &&
-      reinterpret_cast<StringObject*>(object)->immortal.load(std::memory_order_relaxed)) {
+      string_object_is_immortal(*reinterpret_cast<StringObject*>(object))) {
     Value retained;
     retained.tag = ValueTag::Object;
     retained.flags = 0;

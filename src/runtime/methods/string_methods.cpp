@@ -98,7 +98,8 @@ bool string_getitem_method(Runtime& runtime, const Value* args, uint32_t argc, V
   if (sequence_get_item(target, args[1], out, error)) {
     return true;
   }
-  runtime.raise_class_error(error == "index out of range" ? "IndexError" : "TypeError", error);
+  runtime.raise_class_error(error == "index out of range" ? "IndexError" :
+      error == "slice step cannot be zero" ? "ValueError" : "TypeError", error);
   return false;
 }
 
@@ -779,9 +780,16 @@ bool string_index_arg(const Value& value, int64_t default_value, int64_t length,
   return true;
 }
 
-bool string_bounds_from_args(memory::X3StringView text, const Value* start_value, const Value* end_value, size_t& start, size_t& end, std::string& error) {
+bool string_bounds_from_args(const Value& value, memory::X3StringView text, const Value* start_value, const Value* end_value, size_t& start, size_t& end, bool& valid, std::string& error) {
   const auto view = as_view(text);
-  const int64_t length = static_cast<int64_t>(utf8_codepoint_count(view));
+  // Bounds and result positions must share the immutable string index. Walking
+  // the entire UTF-8 source here makes repeated str.index(..., pos) quadratic
+  // even when memchr searches only a few bytes (the Tomli parser exposed this).
+  // Exact strings use O(1) ASCII positions or sparse/bounded Unicode lookups;
+  // subclass extraction and dispatch retain their existing fallback semantics.
+  const auto* string = value_as_string(value);
+  const int64_t length = static_cast<int64_t>(string != nullptr
+      ? string_object_length(*string) : utf8_codepoint_count(view));
   int64_t start_i = 0;
   int64_t end_i = length;
   if (start_value != nullptr && !string_index_arg(*start_value, 0, length, start_i, error)) {
@@ -790,11 +798,14 @@ bool string_bounds_from_args(memory::X3StringView text, const Value* start_value
   if (end_value != nullptr && !string_index_arg(*end_value, length, length, end_i, error)) {
     return false;
   }
-  if (end_i < start_i) {
-    end_i = start_i;
-  }
-  start = utf8_byte_offset(view, static_cast<size_t>(start_i));
-  end = utf8_byte_offset(view, static_cast<size_t>(end_i));
+  // CPython rejects a start past the end even for an empty needle/prefix.
+  valid = !(start_value != nullptr && start_value->tag == ValueTag::Int64 && start_value->as.i64 > length)
+      && end_i >= start_i;
+  if (end_i < start_i) end_i = start_i;
+  start = string != nullptr ? string_object_byte_offset(*string, static_cast<size_t>(start_i))
+                            : utf8_byte_offset(view, static_cast<size_t>(start_i));
+  end = string != nullptr ? string_object_byte_offset(*string, static_cast<size_t>(end_i))
+                          : utf8_byte_offset(view, static_cast<size_t>(end_i));
   return true;
 }
 
@@ -811,7 +822,8 @@ bool string_startswith_body(
   }
   size_t start = 0;
   size_t end = text.size;
-  if (!string_bounds_from_args(text, start_value, end_value, start, end, error)) {
+  bool valid = true;
+  if (!string_bounds_from_args(value, text, start_value, end_value, start, end, valid, error)) {
     return false;
   }
   const size_t span = end - start;
@@ -822,7 +834,7 @@ bool string_startswith_body(
       if (!get_string_view_checked(tuple->items[i], "str.startswith prefix", prefix, error)) {
         return false;
       }
-      if (prefix.size <= span &&
+      if (valid && prefix.size <= span &&
           (prefix.size == 0 || std::memcmp(span_data, prefix.data, prefix.size) == 0)) {
         value_set_bool(out, true);
         return true;
@@ -835,7 +847,7 @@ bool string_startswith_body(
   if (!get_string_view_checked(prefix_value, "str.startswith prefix", prefix, error)) {
     return false;
   }
-  value_set_bool(out, prefix.size <= span &&
+  value_set_bool(out, valid && prefix.size <= span &&
                           (prefix.size == 0 || std::memcmp(span_data, prefix.data, prefix.size) == 0));
   return true;
 }
@@ -853,7 +865,8 @@ bool string_endswith_body(
   }
   size_t start = 0;
   size_t end = text.size;
-  if (!string_bounds_from_args(text, start_value, end_value, start, end, error)) {
+  bool valid = true;
+  if (!string_bounds_from_args(value, text, start_value, end_value, start, end, valid, error)) {
     return false;
   }
   const size_t span = end - start;
@@ -864,7 +877,7 @@ bool string_endswith_body(
       if (!get_string_view_checked(tuple->items[i], "str.endswith suffix", suffix, error)) {
         return false;
       }
-      if (suffix.size <= span &&
+      if (valid && suffix.size <= span &&
           (suffix.size == 0 ||
            std::memcmp(span_data + (span - suffix.size), suffix.data, suffix.size) == 0)) {
         value_set_bool(out, true);
@@ -878,10 +891,16 @@ bool string_endswith_body(
   if (!get_string_view_checked(suffix_value, "str.endswith suffix", suffix, error)) {
     return false;
   }
-  value_set_bool(out, suffix.size <= span &&
+  value_set_bool(out, valid && suffix.size <= span &&
                           (suffix.size == 0 ||
                            std::memcmp(span_data + (span - suffix.size), suffix.data, suffix.size) == 0));
   return true;
+}
+
+size_t string_search_character_index(const Value& value, memory::X3StringView text, size_t byte_offset) {
+  const auto* string = value_as_string(value);
+  return string != nullptr ? string_object_character_index(*string, byte_offset)
+                           : utf8_codepoint_count(as_view(text).substr(0, byte_offset));
 }
 
 bool string_find_body(
@@ -901,8 +920,13 @@ bool string_find_body(
   }
   size_t start = 0;
   size_t end = text.size;
-  if (!string_bounds_from_args(text, start_value, end_value, start, end, error)) {
+  bool valid = true;
+  if (!string_bounds_from_args(value, text, start_value, end_value, start, end, valid, error)) {
     return false;
+  }
+  if (!valid) {
+    value_set_int64(out, -1);
+    return true;
   }
   const auto span = memory::X3StringView{text.data == nullptr ? nullptr : text.data + start, static_cast<uint32_t>(end - start)};
   if (needle.size == 1) {
@@ -913,7 +937,7 @@ bool string_find_body(
     value_set_int64(
         out, byte_pos == std::string::npos
             ? -1
-            : static_cast<int64_t>(utf8_codepoint_count(as_view(text).substr(0, byte_pos))));
+            : static_cast<int64_t>(string_search_character_index(value, text, byte_pos)));
     return true;
   }
   const auto pos = as_view(span).find(as_view(needle));
@@ -921,7 +945,7 @@ bool string_find_body(
   value_set_int64(
       out, byte_pos == std::string::npos
           ? -1
-          : static_cast<int64_t>(utf8_codepoint_count(as_view(text).substr(0, byte_pos))));
+          : static_cast<int64_t>(string_search_character_index(value, text, byte_pos)));
   return true;
 }
 
@@ -942,8 +966,13 @@ bool string_rfind_body(
   }
   size_t start = 0;
   size_t end = text.size;
-  if (!string_bounds_from_args(text, start_value, end_value, start, end, error)) {
+  bool valid = true;
+  if (!string_bounds_from_args(value, text, start_value, end_value, start, end, valid, error)) {
     return false;
+  }
+  if (!valid) {
+    value_set_int64(out, -1);
+    return true;
   }
   const auto span = memory::X3StringView{text.data == nullptr ? nullptr : text.data + start, static_cast<uint32_t>(end - start)};
   const auto pos = as_view(span).rfind(as_view(needle));
@@ -951,7 +980,7 @@ bool string_rfind_body(
   value_set_int64(
       out, byte_pos == std::string::npos
           ? -1
-          : static_cast<int64_t>(utf8_codepoint_count(as_view(text).substr(0, byte_pos))));
+          : static_cast<int64_t>(string_search_character_index(value, text, byte_pos)));
   return true;
 }
 
@@ -972,13 +1001,20 @@ bool string_count_body(
   }
   size_t start_bound = 0;
   size_t end_bound = text.size;
-  if (!string_bounds_from_args(text, start_value, end_value, start_bound, end_bound, error)) {
+  bool valid = true;
+  if (!string_bounds_from_args(value, text, start_value, end_value, start_bound, end_bound, valid, error)) {
     return false;
+  }
+  if (!valid) {
+    value_set_int64(out, 0);
+    return true;
   }
   auto text_view = as_view(text).substr(start_bound, end_bound - start_bound);
   auto needle_view = as_view(needle);
   if (needle_view.empty()) {
-    value_set_int64(out, static_cast<int64_t>(utf8_codepoint_count(text_view) + 1));
+    const size_t characters = string_search_character_index(value, text, end_bound)
+        - string_search_character_index(value, text, start_bound);
+    value_set_int64(out, static_cast<int64_t>(characters + 1));
     return true;
   }
   if (needle.size == 1) {

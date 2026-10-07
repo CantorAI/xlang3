@@ -14,6 +14,7 @@ limitations under the License.
 */
 #include "test_harness.h"
 #include "mapping_iterator_ownership_cases.h"
+#include "unicode_index_cache_cases.h"
 #include <atomic>
 #include <chrono>
 #include <thread>
@@ -42,6 +43,7 @@ int main() {
   xlang3::Value out;
 
   xlang3::test::check_mapping_iterator_ownership(result);
+  xlang3::test::check_unicode_index_cache(result);
 
   {
     xlang3::Value escaped_set, escaped_iterator;

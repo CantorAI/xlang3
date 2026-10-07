@@ -196,6 +196,10 @@ struct NativeFunctionObject {
   Value* attrs_dict = nullptr;
 };
 
+inline constexpr uintptr_t kStringAsciiFlag = 1;
+inline constexpr uintptr_t kStringImmortalFlag = 2;
+inline constexpr uintptr_t kStringMetadataFlags = 3;
+
 struct StringObject {
   Object header;
   uint32_t size = 0;
@@ -204,8 +208,11 @@ struct StringObject {
   // Strings are immutable after construction. Cache their hash so repeated
   // mapping and set lookups do not rescan the bytes.
   mutable std::atomic_size_t cached_hash{static_cast<size_t>(-1)};
-  std::atomic_bool immortal{false};
-  bool ascii = false;
+  // Keep the lazy Unicode index in the former flags/padding word. Growing
+  // every ASCII string header just to accelerate rare Unicode inputs would
+  // penalize allocations across otherwise unrelated Python workloads.
+  // Index pointers are aligned; only their two low bits hold ASCII/immortal.
+  mutable std::atomic_uintptr_t unicode_metadata{0};
   // Immutable string bytes follow this object in the same allocation block.
 };
 
@@ -735,17 +742,37 @@ XLANG3_HOT_INLINE const char* string_object_c_str(const StringObject& value) {
 }
 
 XLANG3_HOT_INLINE bool string_object_is_ascii(const StringObject& value) {
-  return value.ascii;
+  return (value.unicode_metadata.load(std::memory_order_relaxed) & kStringAsciiFlag) != 0;
+}
+
+XLANG3_HOT_INLINE bool string_object_is_immortal(const StringObject& value) {
+  return (value.unicode_metadata.load(std::memory_order_relaxed) & kStringImmortalFlag) != 0;
+}
+
+XLANG3_HOT_INLINE void string_object_set_immortal(StringObject& value, bool immortal) {
+  if (immortal) value.unicode_metadata.fetch_or(kStringImmortalFlag, std::memory_order_release);
+  else value.unicode_metadata.fetch_and(~kStringImmortalFlag, std::memory_order_relaxed);
+}
+
+XLANG3_HOT_INLINE void string_object_set_ascii(StringObject& value, bool ascii) {
+  const uintptr_t bit = ascii ? kStringAsciiFlag : 0;
+  const uintptr_t metadata = value.unicode_metadata.load(std::memory_order_relaxed);
+  if ((metadata & kStringAsciiFlag) == bit) return;
+  // A changed ASCII flag belongs to unfinished construction: published bytes
+  // are immutable. Unchanged published results can retain an existing index.
+  // Construction needs no atomic read-modify-write on every ASCII allocation.
+  value.unicode_metadata.store((metadata & ~kStringAsciiFlag) | bit, std::memory_order_relaxed);
 }
 
 XLANG3_HOT_INLINE void string_object_refresh_ascii(StringObject& value) {
-  value.ascii = true;
+  bool ascii = true;
   for (unsigned char ch : string_object_view(value)) {
     if (ch >= 0x80u) {
-      value.ascii = false;
-      return;
+      ascii = false;
+      break;
     }
   }
+  string_object_set_ascii(value, ascii);
 }
 
 XLANG3_HOT_INLINE size_t string_view_hash(std::string_view value) {
@@ -814,6 +841,38 @@ XLANG3_HOT_INLINE std::string_view utf8_codepoint_at(std::string_view text, size
   }
   const size_t width = utf8_codepoint_width(static_cast<unsigned char>(text[offset]));
   return text.substr(offset, (width <= text.size() - offset) ? width : 1);
+}
+
+size_t string_object_unicode_length(const StringObject& value);
+size_t string_object_unicode_offset(const StringObject& value, size_t index);
+size_t string_object_unicode_index(const StringObject& value, size_t byte_offset);
+
+XLANG3_HOT_INLINE size_t string_object_length(const StringObject& value) {
+  if (string_object_is_ascii(value)) return value.size;
+  // Tiny strings do not need another allocation just to examine a few bytes.
+  if (value.size <= 64) return utf8_codepoint_count(string_object_view(value));
+  return string_object_unicode_length(value);
+}
+
+XLANG3_HOT_INLINE size_t string_object_byte_offset(const StringObject& value, size_t index) {
+  if (string_object_is_ascii(value)) return index < value.size ? index : value.size;
+  if (value.size <= 64) return utf8_byte_offset(string_object_view(value), index);
+  return string_object_unicode_offset(value, index);
+}
+
+XLANG3_HOT_INLINE size_t string_object_character_index(const StringObject& value, size_t byte_offset) {
+  if (byte_offset > value.size) byte_offset = value.size;
+  if (string_object_is_ascii(value)) return byte_offset;
+  if (value.size <= 64) return utf8_codepoint_count(string_object_view(value).substr(0, byte_offset));
+  return string_object_unicode_index(value, byte_offset);
+}
+
+XLANG3_HOT_INLINE std::string_view string_object_codepoint_at(const StringObject& value, size_t index) {
+  const auto text = string_object_view(value);
+  const size_t offset = string_object_byte_offset(value, index);
+  if (offset >= text.size()) return {};
+  const size_t width = utf8_codepoint_width(static_cast<unsigned char>(text[offset]));
+  return text.substr(offset, width <= text.size() - offset ? width : 1);
 }
 
 XLANG3_HOT_INLINE BytesObject* value_as_bytes(const Value& value) {
@@ -978,7 +1037,7 @@ XLANG3_HOT_INLINE void retain(const Value& value) {
     return;
   }
   if (value.as.obj->kind == ObjectKind::String &&
-      reinterpret_cast<StringObject*>(value.as.obj)->immortal.load(std::memory_order_relaxed)) {
+      string_object_is_immortal(*reinterpret_cast<StringObject*>(value.as.obj))) {
     return;
   }
   if (g_xlang_perf_enabled.load(std::memory_order_relaxed)) {
@@ -993,7 +1052,7 @@ XLANG3_HOT_INLINE void release(const Value& value) {
     return;
   }
   if (value.as.obj->kind == ObjectKind::String &&
-      reinterpret_cast<StringObject*>(value.as.obj)->immortal.load(std::memory_order_relaxed)) {
+      string_object_is_immortal(*reinterpret_cast<StringObject*>(value.as.obj))) {
     return;
   }
   if (g_xlang_perf_enabled.load(std::memory_order_relaxed)) {

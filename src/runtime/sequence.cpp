@@ -489,30 +489,27 @@ std::string binary_slice_text(std::string_view storage, int64_t start, int64_t s
   return text;
 }
 
-std::string utf8_slice_text(std::string_view storage, int64_t start, int64_t stop, int64_t step) {
-  // Resolve byte offsets once. Repeated utf8_codepoint_at() scans from the
-  // beginning for every character and makes a slice quadratic in its length.
-  std::vector<size_t> offsets;
-  offsets.reserve(storage.size() + 1);
-  for (size_t offset = 0; offset < storage.size();) {
-    offsets.push_back(offset);
-    const size_t width = utf8_codepoint_width(static_cast<unsigned char>(storage[offset]));
-    offset += width <= storage.size() - offset ? width : 1;
+std::string utf8_slice_text(const StringObject& storage, int64_t start, int64_t stop, int64_t step) {
+  const auto text = string_object_view(storage);
+  if (step == 1) {
+    if (stop <= start) return {};
+    const size_t first = string_object_byte_offset(storage, static_cast<size_t>(start));
+    const size_t last = string_object_byte_offset(storage, static_cast<size_t>(stop));
+    return std::string(text.substr(first, last - first));
   }
-  offsets.push_back(storage.size());
-  std::string text;
-  if (step > 0) {
-    for (int64_t i = start; i < stop; i += step) {
-      const size_t index = static_cast<size_t>(i);
-      text.append(storage.data() + offsets[index], offsets[index + 1] - offsets[index]);
-    }
-  } else {
-    for (int64_t i = start; i > stop; i += step) {
-      const size_t index = static_cast<size_t>(i);
-      text.append(storage.data() + offsets[index], offsets[index + 1] - offsets[index]);
-    }
+  // A tiny slice must not build offsets for every character of its source.
+  // Reuse immutable indexing metadata; count selected elements so enormous
+  // positive/negative steps never overflow while advancing past the last one.
+  if ((step > 0 && start >= stop) || (step < 0 && start <= stop)) return {};
+  const uint64_t distance = static_cast<uint64_t>(step > 0 ? stop - start : start - stop);
+  const uint64_t magnitude = step > 0 ? static_cast<uint64_t>(step) : 0 - static_cast<uint64_t>(step);
+  uint64_t remaining = (distance - 1) / magnitude + 1;
+  std::string result;
+  for (int64_t index = start; remaining != 0; --remaining) {
+    result.append(string_object_codepoint_at(storage, static_cast<size_t>(index)));
+    if (remaining > 1) index += step;
   }
-  return text;
+  return result;
 }
 
 bool int_to_byte(const Value& value, unsigned char& out, std::string& error) {
@@ -1253,7 +1250,7 @@ bool sequence_get_item(
     auto* string = reinterpret_cast<StringObject*>(object.as.obj);
     const auto view = string_object_view(*string);
     const bool ascii = string_object_is_ascii(*string);
-    const auto codepoint_count = ascii ? view.size() : utf8_codepoint_count(view);
+    const auto codepoint_count = string_object_length(*string);
     if (auto* slice = value_as_slice(index)) {
       int64_t start = 0;
       int64_t stop = 0;
@@ -1267,7 +1264,7 @@ bool sequence_get_item(
                                       static_cast<size_t>(std::max<int64_t>(0, stop - start))))
             : binary_slice_text(view, start, stop, step));
       } else {
-        out = Value::string(utf8_slice_text(view, start, stop, step));
+        out = Value::string(utf8_slice_text(*string, start, stop, step));
       }
       return true;
     }
@@ -1281,9 +1278,7 @@ bool sequence_get_item(
       error = "index out of range";
       return false;
     }
-    const auto ch = ascii
-        ? view.substr(static_cast<size_t>(resolved), 1)
-        : utf8_codepoint_at(view, static_cast<size_t>(resolved));
+    const auto ch = string_object_codepoint_at(*string, static_cast<size_t>(resolved));
     out = Value::string_view(ch);
     return true;
   }
@@ -1796,7 +1791,7 @@ bool sequence_len(const Value& value, Value& out, std::string& error) {
   }
   if (value.tag == ValueTag::Object && value.as.obj != nullptr && value.as.obj->kind == ObjectKind::String) {
     auto* string = reinterpret_cast<StringObject*>(value.as.obj);
-    value_set_int64(out, static_cast<int64_t>(utf8_codepoint_count(string_object_view(*string))));
+    value_set_int64(out, static_cast<int64_t>(string_object_length(*string)));
     return true;
   }
   if (value.tag == ValueTag::Object && value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Bytes) {
@@ -1839,7 +1834,14 @@ bool sequence_len(const Value& value, Value& out, std::string& error) {
     Value string_payload;
     if (object_get_attr(value, "__xlang3_string_value__", string_payload, ignored)) {
       if (auto* string = value_as_string(string_payload)) {
-        value_set_int64(out, static_cast<int64_t>(utf8_codepoint_count(string_object_view(*string))));
+        Value override;
+        if (object_lookup_class_attr_before_base(instance->klass, "__len__", "str", override, ignored)) {
+          // Let the caller dispatch a subclass override instead of bypassing
+          // it with the native payload's cached character count.
+          error = "object has no len()";
+          return false;
+        }
+        value_set_int64(out, static_cast<int64_t>(string_object_length(*string)));
         return true;
       }
     }

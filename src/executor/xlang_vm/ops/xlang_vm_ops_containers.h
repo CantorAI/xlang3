@@ -1019,9 +1019,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow len_unprofiled(
           auto* string = reinterpret_cast<StringObject*>(regs[in.a].as.obj);
           value_set_int64(
               regs[in.dst],
-              static_cast<int64_t>(string_object_is_ascii(*string)
-                  ? string_object_view(*string).size()
-                  : utf8_codepoint_count(string_object_view(*string))));
+              static_cast<int64_t>(string_object_length(*string)));
           xlang_vm_cache_note_hit(cache);
           return XlangVMOpFlow::Next;
           }
@@ -1066,9 +1064,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow len_unprofiled(
       case ObjectKind::String:
         {
         auto* string = value_as_string(regs[in.a]);
-        value_set_int64(regs[in.dst], static_cast<int64_t>(string_object_is_ascii(*string)
-            ? string_object_view(*string).size()
-            : utf8_codepoint_count(string_object_view(*string))));
+        value_set_int64(regs[in.dst], static_cast<int64_t>(string_object_length(*string)));
         xlang_vm_cache_note_hit(cache);
         if (cache.state == XlangVMCacheState::Adaptive && cache.hit_count >= 8 && cache.miss_count == 0) {
           xlang_vm_cache_specialize(cache, XlangVMSpecializationId::LenObjectKind, kind);
@@ -1277,14 +1273,10 @@ XLANG3_HOT_INLINE XlangVMOpFlow get_item(
         }
         case XlangVMSpecializationId::GetItemStringInt: {
           auto* string = reinterpret_cast<StringObject*>(object);
-          const auto view = string_object_view(*string);
-          const auto codepoint_count = string_object_is_ascii(*string)
-              ? view.size() : utf8_codepoint_count(view);
+          const auto codepoint_count = string_object_length(*string);
           int64_t index = raw_index < 0 ? raw_index + static_cast<int64_t>(codepoint_count) : raw_index;
           if (index >= 0 && index < static_cast<int64_t>(codepoint_count)) {
-            const auto item = string_object_is_ascii(*string)
-                ? view.substr(static_cast<size_t>(index), 1)
-                : utf8_codepoint_at(view, static_cast<size_t>(index));
+            const auto item = string_object_codepoint_at(*string, static_cast<size_t>(index));
             regs[in.dst] = Value::string_view(item);
             xlang_vm_cache_note_hit(cache);
             return XlangVMOpFlow::Next;
@@ -1338,14 +1330,10 @@ XLANG3_HOT_INLINE XlangVMOpFlow get_item(
       }
     } else if (object->kind == ObjectKind::String) {
       auto* string = value_as_string(regs[in.a]);
-      const auto view = string_object_view(*string);
-      const auto codepoint_count = string_object_is_ascii(*string)
-          ? view.size() : utf8_codepoint_count(view);
+      const auto codepoint_count = string_object_length(*string);
       int64_t index = raw_index < 0 ? raw_index + static_cast<int64_t>(codepoint_count) : raw_index;
       if (index >= 0 && index < static_cast<int64_t>(codepoint_count)) {
-        const auto item = string_object_is_ascii(*string)
-            ? view.substr(static_cast<size_t>(index), 1)
-            : utf8_codepoint_at(view, static_cast<size_t>(index));
+        const auto item = string_object_codepoint_at(*string, static_cast<size_t>(index));
         regs[in.dst] = Value::string_view(item);
         xlang_vm_cache_note_hit(cache);
         maybe_specialize_get_item_int(cache, object->kind);
@@ -1571,6 +1559,10 @@ XLANG3_HOT_INLINE XlangVMOpFlow get_item(
     if (error == "sequence index must be int") {
       return raise_exception_value(runtime.make_exception("TypeError", error)) ? XlangVMOpFlow::ContinueLoop
                                                                                : XlangVMOpFlow::ReturnResult;
+    }
+    if (error == "slice step cannot be zero") {
+      return raise_exception_value(runtime.make_exception("ValueError", error))
+          ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
     }
     if (error == "object is not subscriptable") {
       std::string message = error;

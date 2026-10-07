@@ -1,0 +1,11 @@
+{
+  "source_checkpoint": "52f3472ab9f32fa394ce061c55a91544d874553c",
+  "copied_utc": "2026-10-07T09:31:43.1957602Z",
+  "control_directory": "D:\\CantorAI\\xlang3\\build-repro\\controls\\native-dict-iteration-checkpoint-20261007",
+  "runtime_run_path_unchanged": true,
+  "hashes": {
+    "xlang3_runtime.dll": "1791D6F683B78E27933EBA459AB4C7B96D27FD94BFBB7576D334D88283CE04F1",
+    "xlang3.exe": "303F2E8BDCA58C4B555D13ADD7BFC41EEF9E0019F4780A0C9729596CE07DF177",
+    "xlang3_runtime.lib": "80092356C5ECF530E9DD63EEAB0A56B9D9344CC61DD40DC05018D1ADB45AE248"
+  }
+}
