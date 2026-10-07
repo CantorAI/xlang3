@@ -1,0 +1,15 @@
+{
+  "common_subtests": 2,
+  "before_cpython_speed_geomean": 0.5,
+  "after_cpython_speed_geomean": 0.5,
+  "before_over_after_speed_geomean": 1.0,
+  "before_nominal_cpython_wins": 0,
+  "after_nominal_cpython_wins": 0,
+  "after_cpython_matched_outside_common": [
+    "new_only"
+  ],
+  "before_cpython_matched_outside_common": [
+    "old_only"
+  ]
+}
+common-set ratios, population exclusions, warmup exclusion, sample counts, input hashes, and provenance rejection: pass

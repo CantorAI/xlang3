@@ -78,3 +78,39 @@ before the official Chameleon retry.
 Both candidates belong in the generic compiler/runtime. CPython pure-Python
 package sources remain Python. This is an audit for subsequent implementation;
 the checkpoint benchmark binary contains neither proposed change.
+
+## Comparing full runs without changing the timed population
+
+`benchmarks/diagnostics/compare_pyperformance_common_subtests.py` produces a
+companion comparison after the full run finishes. It intersects completed
+subtest names from the before, after, and CPython-reference JSONs, and uses
+that same set for both CPython-relative geometric means and the old/new
+XLang3 ratio. Previously missing scores stay outside this comparison; the
+complete all-97 report remains the source for statuses and newly completed
+cases. Above 1x in the old/new column means a faster new XLang3 result, while
+above 1x in the CPython/new-XLang3 column means beating CPython.
+
+The helper rejects an active after run, missing/changed candidate hashes,
+a manager other than Python 3.14.7, or a reference filename that differs
+from the completed-run provenance. The report records raw-input SHA-256s,
+measurement counts, and excluded names. It does not infer significance from
+nominal ratios or substitute these shared-set ratios for the whole suite.
+
+The [synthetic validation](data/common-subtest-comparison-validation-20261007.log)
+checks two shared cases whose means change from 10 to 5 seconds and 20 to
+40 seconds, respectively, against CPython means of 5 and 10 seconds. Their
+old/new geometric mean is exactly 1x and both CPython-relative geometric
+means are 0.5x. Adding an old-only and a new-only result does not alter those
+values. Deliberately large warmup values are excluded; measurement counts
+and raw-input hashes are retained. Active-run, changed-binary, wrong-manager,
+and mismatched-reference records are rejected. Synthetic files were created
+in a temporary directory and are not benchmark evidence.
+
+Ownership tests for the proposed dictionary optimization have been prepared
+in `tests/fixtures/core/dict_iterator_ownership.py` and
+`tests/cpp/mapping_iterator_ownership_cases.h`. They are not yet registered,
+executed, or committed with an engine change. Validation awaits the end of
+the current timing run so it can proceed without competing runtime tests or
+builds. The C++ cases include a borrowed destination already pointing to the
+selected object, which must acquire an owned result before source owners
+are destroyed.
