@@ -1,0 +1,2102 @@
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\tests\run_fixtures.py", line 94, in <module>
+    main()
+    ~~~~^^
+  File "D:\CantorAI\xlang3\tests\run_fixtures.py", line 87, in main
+    run_case(executable, root / "fixtures" / "compat_sections" / f"{name}.py", root / "fixtures" / "expected" / "compat_sections" / f"{name}.out", root)
+    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\tests\run_fixtures.py", line 68, in run_case
+    raise RuntimeError(f"{source.stem} output mismatch\n--- expected ---\n{expected}\n--- actual ---\n{actual}")
+RuntimeError: standard_modules output mismatch
+--- expected ---
+errno-native True True True True True True True
+bisect-native _bisect built-in True 1 3 [1, 2, 2, 2, 3] ['a', 'bb', 'ccc'] [1, 3, 3, 5] 1 3
+cmath-native built-in True True True True True True True
+winapi-native True True True True True True True
+2 hello UserWarning
+native
+original doc text True 5
+original doc text True
+7
+True (2,) False
+managed_value managed doc managed_value
+changed doc
+123 123
+True True True True
+[1, 2, 3]
+2 2 4 6 2
+[1, 2, 3, 1] CacheInfo(hits=1, misses=4, maxsize=2, currsize=2)
+CacheInfo(hits=0, misses=0, maxsize=2, currsize=0)
+6 6 CacheInfo(hits=1, misses=1, maxsize=None, currsize=1) {'maxsize': None, 'typed': False}
+1 1 2
+[(1, 2), (True, 2)] CacheInfo(hits=1, misses=2, maxsize=4, currsize=2)
+1 2 [3, 3] CacheInfo(hits=0, misses=2, maxsize=0, currsize=0)
+<input> <module> True
+True True
+['a.py', 'c.py']
+['b.txt']
+True a[*][[]b][?]
+True True True
+abc XYZ 0123456789 True
+8 True True
+fmt-7 009
+('a', 'name', '>4', 'r')
+y
+2 5 5 2 x
+Point(x=2, y=5)
+True
+True True x 5
+ctx
+null
+True False
+True
+suppressed
+stacked
+['enter', 'callback', 'exit']
+True True True True ellipsis builtins
+copy-singletons True True True
+types-runtime-aliases True True True True True True True True True True True
+7 True bob
+True keep fast ['a', 'b'] 2 False C ['x', 'y'] 2.5
+slow ['--unknown', 'value'] True True
+argparse-error True
+9 left 6
+BinOp(left=Constant(value=9), op=Add(), right=Constant(value=4))
+True Expression
+['seen']
+abc abc abc _abc ABCMeta ABC True True
+abc-class-docs True True True False
+abc-function-docs False True True True True True True
+abc-meta-method-docs True True True
+abc-abstract-descriptor-markers True True True
+abstractmethod register _abc_init True True
+True True
+True True
+True True True
+True True True
+True False True
+ReferenceType weakref True
+False False
+True True
+True True True
+False False
+0 0 True
+0 0 0 True
+True NotImplementedType
+True True False
+True True
+False False False
+True True
+False
+True True
+True True
+True
+0 True
+True True 0
+abc-cycle True
+True True
+True True 0 True True
+False False False
+True
+True
+abc-decorator-keyword True True abstractclassmethod True True
+abc-decorator-keyword abstractstaticmethod True True abstractproperty True missing abstractproperty True
+abc-abstractproperty-marker True True True abstract doc
+abc-abstractproperty-doc getter doc replacement doc explicit doc replacement doc
+abc-abstractproperty-name abstract_doc_property abstract_doc_replacement abstract_doc_replacement abstract_doc_property False empty_name
+abc-abstractproperty-method-diagnostic getter-missing True
+abc-abstractproperty-method-diagnostic getter-extra True
+abc-abstractproperty-method-diagnostic getter-keyword True
+abc-abstractproperty-method-diagnostic getter-receiver True
+abc-abstractproperty-method-diagnostic setter-missing True
+abc-abstractproperty-method-diagnostic setter-extra True
+abc-abstractproperty-method-diagnostic setter-keyword True
+abc-abstractproperty-method-diagnostic setter-receiver True
+abc-abstractproperty-method-diagnostic deleter-missing True
+abc-abstractproperty-method-diagnostic deleter-extra True
+abc-abstractproperty-method-diagnostic deleter-keyword True
+abc-abstractproperty-method-diagnostic deleter-receiver True
+abc-abstractmethod-attr True
+abc-abstractmethod-attr True
+abc-abstractmethod-attr True
+abc-abstractmethod-attr True
+abc-abstractmethod-attr True
+abc-abstractmethod-immutable-type True True
+abc-abstractmethod-immutable-type True True
+abc-abstractmethod-immutable-type True True
+abc-abstractmethod-immutable-type True True
+abc-abstractmethod-immutable-type True True
+abc-abstractmethod-immutable-type True True
+abstractclassmethod True True AbstractDescriptorProbe
+abstractstaticmethod True True static
+abstractproperty True missing prop
+True 1 frozenset False
+True True
+abc-abstract-instantiation True True
+True 0 concrete
+True 0 frozenset
+True True 1 True
+abc-updated-abstract True True
+True 0 restored
+True False 42
+False
+None True 1
+abc-direct-init True True
+0 0 0 True
+ConstructedABC abc True 1
+True
+True True True
+abc-init-type True
+abc-helper-type True
+abc-helper-type True
+abc-helper-type True
+abc-helper-type True
+abc-helper-type True
+abc-helper-type True
+abc-helper-type True
+abc-helper-type True
+abc-helper-type True
+abc-helper-arity-names True
+abc-helper-keyword get_cache_token True
+abc-helper-keyword _abc_init True
+abc-helper-keyword _abc_register True
+abc-helper-keyword _abc_subclasscheck True
+abc-helper-keyword _abc_instancecheck True
+abc-helper-keyword _get_dump True
+abc-helper-keyword _reset_registry True
+abc-helper-keyword _reset_caches True
+abc-helper-keyword-names True
+abc-update-keyword True
+True True True
+True True True
+True False True
+True True True
+T 2 True True object True
+5 UserId int
+x List Union
+FinalClass True True False
+annotations 3 None 16777216
+True True True
+RED 1 BLUE 2
+True True True
+[<Color.RED: 1>, <Color.BLUE: 2>] True ['RED', 'BLUE']
+THREE True True
+unique-error
+READ|WRITE 3 <Perm.READ|WRITE: 3> Perm.READ|WRITE
+True True True
+R|X 5 True True
+True True .
+GetPassWarning True
+1234.5 1234.5 1234 1234.5
+True True 127
+utf-8 utf-8 True True
+sys True True True True True True
+sys-module-doc True True True True
+register_readline register_readline site _baserepl _baserepl sys True True True
+sys-hook-aliases True True True True
+sys-startup-hook-args True
+sys-startup-hook-args True
+sys-startup-hook-keyword __interactivehook__ True
+sys-startup-hook-keyword _baserepl True
+True True True True True
+sys-meta-path-bootstrap ['BuiltinImporter', 'FrozenImporter', 'PathFinder'] ['_frozen_importlib', '_frozen_importlib', '_frozen_importlib_external'] ["<class '_frozen_importlib.BuiltinImporter'>", "<class '_frozen_importlib.FrozenImporter'>", "<class '_frozen_importlib_external.PathFinder'>"] True
+sys-meta-path-metatype ['type', 'type', 'type'] ['builtins', 'builtins', 'builtins'] ['type', 'type', 'type']
+class-metadata-module-qualname builtins type builtins object builtins int builtins BaseException builtins SystemExit __main__ SysClassMetadataProbe __main__ SysTypeConstructedMetadataProbe
+sys-path-hooks-zipimporter True True zipimport <class 'zipimport.zipimporter'>
+sys-getsizeof-protocol-overhead 155 99
+sys-getsizeof-negative True
+sys-getsizeof-return-type True
+sys-getsizeof-noncallable True
+sys-getsizeof-bool-overhead 33 33
+sys-getsizeof-typeerror-subclass-reraises True
+sys-getsizeof-typeerror-subclass-default 404
+99 101
+155 202 303
+sys-getsizeof-reraises True
+sys-getsizeof-arity True True
+sys-getsizeof-arity True True
+sys-getsizeof-keyword keyword-missing True
+sys-getsizeof-keyword keyword-extra True
+sys-getsizeof-keyword keyword-duplicate-object True
+sys-getsizeof-keyword keyword-duplicate-default True
+sys-getsizeof-keyword keyword-unexpected True
+True True False
+True True True True
+True True True True True True True
+sys-stdlib-module-names True True True True True True True True
+sys-getunicodeinternedsize-only-immortal True True True True True
+sys-getunicodeinternedsize-keyword True True
+sys-getunicodeinternedsize-diagnostic two-pos True True
+sys-getunicodeinternedsize-diagnostic two-keyword True True
+sys-is-interned-type True True
+sys-is-interned-arity True True
+sys-is-interned-keyword True
+sys-intern-type True True
+sys-intern-type True True
+sys-intern-arity True True True
+sys-intern-arity True True True
+sys-intern-keyword True
+True True True True False
+sys-is-immortal-arity True True
+sys-is-immortal-arity True
+sys-is-immortal-keyword True
+True True True
+sys-getallocatedblocks-keyword True
+sys-getrefcount-arity True True
+sys-getrefcount-arity True
+sys-getrefcount-keyword True
+sys-helper-docs True True True True
+sys-interner-size-text-signatures True True
+True False True 2 False False False False
+True True True
+True TextIOWrapper _io TextIOWrapper <class '_io.TextIOWrapper'>
+('<stdin>', 'r', True, False, None) ('<stdout>', 'w', False, False, None) ('<stderr>', 'w', True, False, None)
+sys-stdio-keyword-typeerrors 30 30
+sys-stdio-positional-diagnostic read-many True
+sys-stdio-positional-diagnostic read-type True
+sys-stdio-positional-diagnostic readline-many True
+sys-stdio-positional-diagnostic readline-type True
+sys-stdio-positional-diagnostic write-zero True
+sys-stdio-positional-diagnostic write-many True
+sys-stdio-positional-diagnostic write-type True
+sys-stdio-capability-arity stdin-readable True
+sys-stdio-capability-arity stdin-writable True
+sys-stdio-capability-arity stdout-isatty True
+sys-stdio-capability-arity stderr-seekable True
+3 14 7 xlang3-314
+sys-version-shape True True True True
+CPython True 3 True True short
+sys-vpath-metadata True
+sys-git-metadata True
+True True True True True
+True True True True
+SimpleNamespace types SimpleNamespace True True
+True False False False False
+True
+True True True True
+is_available is_available sys._jit True is_enabled is_enabled sys._jit True is_active is_active sys._jit True
+sys-jit-text-signatures True True True
+True True True True
+0 1 2 5 0 32 16 262144
+SimpleNamespace types True True True
+True True True
+monitoring-text-signatures True
+True True fixture-monitor
+0 True 48
+True True fixture-monitor-bool
+True 1 True True
+monitoring-c-event True
+monitoring-c-event-pair True
+0 True 32
+monitoring-local-c-event-pair True
+True True
+True True
+True True True True 0 0
+True True True
+True fixture-monitor-clear 0 0 True
+monitoring-tool-id True
+monitoring-tool-name True
+monitoring-unused-tool True
+monitoring-unused-local-tool True
+monitoring-event-set True
+monitoring-code-type True
+monitoring-callback-event True
+monitoring-arity use0 True
+monitoring-arity use3 True
+monitoring-arity free0 True
+monitoring-arity free2 True
+monitoring-arity get_tool0 True
+monitoring-arity clear2 True
+monitoring-arity set_events1 True
+monitoring-arity get_events0 True
+monitoring-arity set_local2 True
+monitoring-arity get_local1 True
+monitoring-arity callback2 True
+monitoring-keyword use_tool_id True
+monitoring-keyword free_tool_id True
+monitoring-keyword clear_tool_id True
+monitoring-keyword get_tool True
+monitoring-keyword set_events True
+monitoring-keyword get_events True
+monitoring-keyword set_local_events True
+monitoring-keyword get_local_events True
+monitoring-keyword register_callback True
+monitoring-keyword restart_events True
+monitoring-keyword _all_events True
+True
+True True
+True monitoring-live
+sys_monitoring_live_target True 0 sys_monitoring_live_target True 1 monitoring-live
+True
+True True
+True monitoring-yield
+monitoring-generator-stop monitoring-return
+2 ('sys_monitoring_generator_target', True, 1, 'monitoring-yield') ('sys_monitoring_generator_target', True, 0, None)
+True
+True
+throw-start True monitoring-throw
+1 ('sys_monitoring_throw_target', True, 'ValueError', 'monitoring-throw')
+True
+True
+local-throw-start other-throw-start True local-monitoring-throw other-monitoring-throw
+1 ('sys_monitoring_local_throw_target', True, 'ValueError', 'local-monitoring-throw')
+True
+True True
+True monitoring-local monitoring-other
+2 sys_monitoring_local_target True 0 sys_monitoring_local_target True 1 monitoring-local
+True
+True
+True line
+True True True
+True
+True
+True local-line other-line
+True True False
+True
+True
+True 5
+True True True
+True
+True
+True 7 8
+True True False
+True
+True True True
+True left right 1
+True True True
+True
+True True
+True local-left local-right other-left
+True False
+True
+True True True
+True fixture-monitor-c
+True True True
+True
+True True
+True monitoring-caught
+2 ('sys_monitoring_exception_target', True, 'ValueError', 'monitoring-boom') ('sys_monitoring_exception_target', True, 'ValueError', 'monitoring-boom')
+True
+True
+True ('sys_monitoring_reraise_target', True, 'ValueError', 'monitoring-reraise')
+True
+True
+2 ('sys_monitoring_unwind_inner', True, 'ValueError', 'monitoring-unwind') ('sys_monitoring_unwind_outer', True, 'ValueError', 'monitoring-unwind')
+0 0 False True
+sys.version_info(major=3, minor=14, micro=7, releaselevel='final', serial=0) True True True
+False 0 1 0
+18 21 1 0 0 18
+5 major 21 gil
+sys-structseq-type-metadata True True
+('major', 'minor', 'micro', 'releaselevel', 'serial') int_max_str_digits 18 True
+member_descriptor builtins True 3 True True True
+2 53 64 True
+11 width 3 name
+max cutoff ('name', 'lock', 'version')
+True 1 3 3
+sys-structseq-method-diagnostic count-missing True
+sys-structseq-method-diagnostic count-extra True
+sys-structseq-method-diagnostic count-keyword True
+sys-structseq-method-diagnostic count-unbound-missing True
+sys-structseq-method-diagnostic count-receiver True
+sys-structseq-method-diagnostic index-missing True
+sys-structseq-method-diagnostic index-extra True
+sys-structseq-method-diagnostic index-keyword True
+sys-structseq-method-diagnostic index-unbound-missing True
+sys-structseq-method-diagnostic index-receiver True
+sys-structseq-method-diagnostic repr-extra True
+sys-structseq-method-diagnostic repr-keyword True
+sys-structseq-method-diagnostic repr-unbound-missing True
+sys-structseq-method-diagnostic repr-receiver True
+True True 17 True
+1 17 4300
+sys-flags-index-error True
+True 1 9 1
+sys-float-info-repr-precision True True True True True True
+True 5 True
+True 0 1
+1114111 True True True
+True True True
+sys-builtin-module-names True True True True True
+True True True True True
+True True True True True True True
+True True True True
+sys-windowsversion-fields True 5 10 True
+sys-windowsversion-type getwindowsversion sys getwindowsversion <class 'sys.getwindowsversion'>
+sys-windowsversion-descriptor 10 platform_version
+sys-windowsversion-major True
+sys-windowsversion-tuple True 1 True
+sys-windowsversion-repr True True
+True True True
+True True
+stack-trampoline True
+sys-stack-trampoline-diagnostic missing True
+sys-stack-trampoline-diagnostic extra True
+sys-stack-trampoline-diagnostic type True
+True False
+sys-stack-trampoline-docs True
+True 4300 4300 4300 640
+True
+switchinterval-bool True
+sys-switchinterval-diagnostic missing True
+sys-switchinterval-diagnostic extra True
+sys-switchinterval-diagnostic type True
+recursionlimit-bool True
+recursionlimit-bool True
+sys-recursionlimit-diagnostic missing True
+sys-recursionlimit-diagnostic extra True
+sys-recursionlimit-diagnostic type True
+sys-runtime-helper-docs True True True True True True True True True True
+640 640 640 4300 640
+0 0 0
+0 0 0
+sys-int-max-str-digits-keyword True True True
+sys-int-max-str-digits-keyword True True True
+int-max-str-digits-bool True True
+sys-int-max-str-digits-diagnostic missing True
+sys-int-max-str-digits-diagnostic extra True
+sys-int-max-str-digits-diagnostic type True
+sys-int-max-str-digits-diagnostic keyword-missing True
+sys-int-max-str-digits-diagnostic keyword-duplicate True
+sys-int-max-str-digits-diagnostic keyword-extra True
+int-max-str-digits True True
+True False
+True True True
+profile-return
+True True False True
+True True True
+True
+True True True
+True 7 True
+True True True
+call-tracing-type True
+sys-traceprofile-arity settrace0 True
+sys-traceprofile-arity settrace2 True
+sys-traceprofile-arity gettrace1 True
+sys-traceprofile-arity setprofile0 True
+sys-traceprofile-arity setprofile2 True
+sys-traceprofile-arity getprofile1 True
+sys-traceprofile-arity settraceall0 True
+sys-traceprofile-arity settraceall2 True
+sys-traceprofile-arity setprofileall0 True
+sys-traceprofile-arity setprofileall2 True
+sys-traceprofile-arity call_tracing0 True
+sys-traceprofile-arity call_tracing1 True
+sys-traceprofile-arity call_tracing3 True
+sys-traceprofile-docs True True True True True True True
+sys-setter-keyword setrecursionlimit True
+sys-setter-keyword setswitchinterval True
+sys-setter-keyword settrace True
+sys-setter-keyword _settraceallthreads True
+sys-setter-keyword setprofile True
+sys-setter-keyword _setprofileallthreads True
+sys-setter-keyword call_tracing True
+sys-setter-keyword activate_stack_trampoline True
+True True True
+__main__ True
+sys-getframemodulename-keyword True
+True True
+True True
+True True
+sys-getframe-bool-depth True
+sys-getframe-depth True
+sys-getframemodulename-type True
+sys-getframe-diagnostic frame-type True
+sys-getframe-diagnostic module-type True
+sys-getframe-diagnostic frame-extra True
+sys-getframe-diagnostic module-extra True
+sys-getframe-keyword True
+sys-getframemodulename-keyword-diagnostic unexpected True
+sys-getframemodulename-keyword-diagnostic duplicate True
+sys-getframemodulename-keyword-diagnostic extra-keyword True
+sys-gil-args True
+sys-audit-arity True True
+sys-audit-event-type True True
+sys-audit-event-type True True
+sys-audit-event-type True True
+sys-addaudithook-arity True True
+sys-addaudithook-arity True True
+True xlang3.fixture (1, 'a')
+True
+sys-audit-keyword-hook True
+sys-audit-keyword-diagnostic addaudit-unexpected True
+sys-audit-keyword-diagnostic addaudit-extra-kw True
+sys-audit-keyword-diagnostic audit-keyword True
+('sys_frame_probe', '<module>', '__main__', True)
+1 1 True True True
+True True True
+sys-frame-helper-docs True True True True
+True True True True
+True True True True True False
+True True True
+True True True False
+True True True True
+True True True -1 False 0
+sys-noarg-keyword exc_info True
+sys-noarg-keyword exception True
+sys-noarg-keyword getdefaultencoding True
+sys-noarg-keyword getfilesystemencoding True
+sys-noarg-keyword getfilesystemencodeerrors True
+sys-noarg-keyword getrecursionlimit True
+sys-noarg-keyword gettrace True
+sys-noarg-keyword getprofile True
+sys-noarg-keyword getswitchinterval True
+sys-noarg-keyword get_int_max_str_digits True
+sys-noarg-keyword is_finalizing True
+sys-noarg-keyword _clear_internal_caches True
+sys-noarg-keyword _clear_type_cache True
+sys-noarg-keyword _get_cpu_count_config True
+sys-noarg-keyword is_remote_debug_enabled True
+sys-noarg-keyword _is_gil_enabled True
+sys-noarg-keyword deactivate_stack_trampoline True
+sys-noarg-keyword is_stack_trampoline_active True
+sys-noarg-keyword getwindowsversion True
+sys-noarg-keyword _enablelegacywindowsfsencoding True
+sys-noarg-keyword _debugmallocstats True
+sys-noarg-keyword get_coroutine_origin_tracking_depth True
+sys-noarg-keyword get_asyncgen_hooks True
+sys-noarg-keyword _current_frames True
+sys-noarg-keyword _current_exceptions True
+sys-noarg-keyword _jit.is_available True
+sys-noarg-keyword _jit.is_enabled True
+sys-noarg-keyword _jit.is_active True
+True True
+True True True
+True True
+True True
+True True
+sys-dump-tracelets-diagnostic missing True
+sys-dump-tracelets-diagnostic extra True
+sys-dump-tracelets-diagnostic duplicate-keyword True
+sys-dump-tracelets-diagnostic extra-keyword True
+sys-dump-tracelets-diagnostic unexpected-keyword True
+sys-dump-tracelets-diagnostic type True
+sys-clear-type-descriptors-arity True True
+sys-clear-type-descriptors-arity True True
+sys-clear-type-descriptors-keyword True
+sys-clear-type-descriptors-type True True
+sys-clear-type-descriptors-immutable True
+2
+0
+True 1
+True 0
+coroutine-origin-depth-keyword True 1
+coroutine-origin-depth True
+coroutine-origin-diagnostic missing True
+coroutine-origin-diagnostic extra True
+coroutine-origin-diagnostic type True
+coroutine-origin-diagnostic keyword-missing True
+coroutine-origin-diagnostic keyword-duplicate True
+coroutine-origin-diagnostic keyword-extra True
+asyncgen_hooks 2 True True
+builtins ('firstiter', 'finalizer')
+True 2 0
+True
+True True True firstiter
+True True True
+True True True
+True
+asyncgen-hooks-keyword True True
+asyncgen-hooks True True True
+asyncgen-hooks True True True
+asyncgen-hooks-diagnostic extra True
+asyncgen-hooks-diagnostic keyword True
+asyncgen-hooks-diagnostic duplicate True
+asyncgen-hooks-diagnostic too-many-keywords True
+asyncgen-hooks-diagnostic keyword-firstiter-type True
+asyncgen-hooks-diagnostic keyword-finalizer-type True
+True True True
+sys-runtime-text-signatures True
+sys-noarg-typeerrors True
+sys-noarg-diagnostic allocated True True
+sys-noarg-diagnostic encoding True True
+sys-noarg-diagnostic cpu True True
+sys-noarg-diagnostic clear_type_cache True True
+sys-noarg-diagnostic jit True True
+sys-noarg-diagnostic unicodeinterned True
+True True
+True
+sys-exception-state-arity exc_info True True
+sys-exception-state-arity exception True True
+sys-exit-empty True True True
+sys-exit-code 5 5 True
+sys-exit-tuple 0 True True
+sys-exit-tuple 1 True True
+sys-exit-tuple 2 True True
+system-exit-constructor True True True True
+sys-exit-arity True True
+sys-exit-keyword True
+4 42 'hook\ntext' True underscore-probe True 2 True True True
+sys-hook-type displayhook True
+sys-hook-type __displayhook__ True
+sys-hook-type excepthook True
+sys-hook-type __excepthook__ True
+sys-hook-type unraisablehook True
+sys-hook-type __unraisablehook__ True
+sys-hook-keyword displayhook True
+sys-hook-keyword __displayhook__ True
+sys-hook-keyword excepthook True
+sys-hook-keyword __excepthook__ True
+sys-hook-keyword unraisablehook True
+sys-hook-keyword __unraisablehook__ True
+sys-displayhook-repr-type True True
+sys-hook-docs True True True True
+sys-exception-exit-docs True True True True
+True True True True True
+True False True True
+SimpleNamespace types SimpleNamespace True True True True True
+time-clock-info-windows True True True True True True True True
+True True True
+time-docs True True True True True True True
+time-text-signatures True True
+time-clock-info-diagnostic missing True
+time-clock-info-diagnostic extra True
+time-clock-info-diagnostic keyword True
+time-clock-info-diagnostic type True
+time-clock-info-diagnostic unknown True
+True True True True
+time-clock-arity time True True True
+time-clock-keyword time True True
+time-clock-arity time_ns True True True
+time-clock-keyword time_ns True True
+time-clock-arity monotonic True True True
+time-clock-keyword monotonic True True
+time-clock-arity monotonic_ns True True True
+time-clock-keyword monotonic_ns True True
+time-clock-arity perf_counter True True True
+time-clock-keyword perf_counter True True
+time-clock-arity perf_counter_ns True True True
+time-clock-keyword perf_counter_ns True True
+time-clock-arity process_time True True True
+time-clock-keyword process_time True True
+time-clock-arity process_time_ns True True True
+time-clock-keyword process_time_ns True True
+time-clock-arity thread_time True True True
+time-clock-keyword thread_time True True
+time-clock-arity thread_time_ns True True True
+time-clock-keyword thread_time_ns True True
+True
+time-sleep-diagnostic missing True
+time-sleep-diagnostic extra True
+time-sleep-diagnostic keyword True
+time-sleep-diagnostic type True
+time-sleep-diagnostic negative True
+True 1970 1 1 1970
+True True True
+1 0 1 0 True True
+time-timestamp-diagnostic local-extra True
+time-timestamp-diagnostic local-keyword True
+time-timestamp-diagnostic local-type True
+time-timestamp-diagnostic gmt-extra True
+time-timestamp-diagnostic gmt-keyword True
+time-timestamp-diagnostic gmt-type True
+time-timestamp-diagnostic ctime-extra True
+time-timestamp-diagnostic ctime-keyword True
+time-timestamp-diagnostic ctime-type True
+time-timestamp-nonfinite local-nan True
+time-timestamp-nonfinite gmt-inf True
+time-timestamp-nonfinite ctime-neginf True
+time-mktime-diagnostic missing True
+time-mktime-diagnostic extra True
+time-mktime-diagnostic keyword True
+time-mktime-diagnostic type True
+time-mktime-diagnostic list-type True
+time-mktime-diagnostic attr-instance-type True
+time-mktime-diagnostic tuple-short True
+time-mktime-diagnostic tuple-long True
+time-mktime-diagnostic field-type True
+Wed Aug  6 01:02:03 2026 Sun Aug 16 01:02:03 2026
+time-asctime-diagnostic extra True
+time-asctime-diagnostic keyword True
+time-asctime-diagnostic type True
+time-asctime-diagnostic list-type True
+time-asctime-diagnostic attr-instance-type True
+time-asctime-diagnostic tuple-short True
+time-asctime-diagnostic tuple-long True
+time-asctime-diagnostic field-type True
+time-asctime-default True True True True True True True
+Wed Jan  1 00:01:00 2026 2026 01 01 00 01 00 001 True
+Thu Aug  6 09:02:03 2026 09:02:03 AM 09:02:03 PM
+time-strftime-diagnostic missing True
+time-strftime-diagnostic extra True
+time-strftime-diagnostic keyword True
+time-strftime-diagnostic format-type True
+time-strftime-diagnostic tuple-type True
+time-strftime-diagnostic list-type True
+time-strftime-diagnostic attr-instance-type True
+time-strftime-diagnostic tuple-short True
+time-strftime-diagnostic tuple-long True
+time-strftime-diagnostic field-type True
+strftime-invalid True
+strftime-invalid True
+strftime-invalid True
+strftime-invalid True
+strftime-invalid True
+strftime-invalid True
+strftime-invalid True
+strftime-invalid True
+lambda-container-literals LD 12 True
+1970 9 9 [1970, 1, 1]
+11 0 True True
+time struct_time True 11 9 0 True True
+11 True
+('tm_year', 'tm_mon', 'tm_mday', 'tm_hour', 'tm_min', 'tm_sec', 'tm_wday', 'tm_yday', 'tm_isdst') tm_year tm_isdst
+member_descriptor builtins True 2026 Z True True
+struct-time-new 2026 NEW 987 __new__ struct_time.__new__ True
+struct-time-str-repr True True True
+sys-displayhook-struct-time True True True
+struct-time-getnewargs True 1 True 9 __getnewargs__ tuple.__getnewargs__ True True
+struct-time-reduce True True X 123 True
+struct-time-reduce-metadata __reduce__ struct_time.__reduce__ True True __reduce_ex__ object.__reduce_ex__ True True
+struct-time-getnewargs-diagnostic extra True
+struct-time-getnewargs-diagnostic keyword True
+struct-time-getnewargs-diagnostic unbound-missing True
+struct-time-getnewargs-diagnostic receiver True
+struct-time-reduce-diagnostic reduce-extra True
+struct-time-reduce-diagnostic reduce-keyword True
+struct-time-reduce-diagnostic reduce-unbound-missing True
+struct-time-reduce-diagnostic reduce-receiver True
+struct-time-reduce-diagnostic reduce-ex-missing-proto True
+struct-time-reduce-diagnostic reduce-ex-extra True
+struct-time-reduce-diagnostic reduce-ex-keyword True
+struct-time-reduce-diagnostic reduce-ex-type True
+struct-time-new-diagnostic missing True
+struct-time-new-diagnostic class-only True
+struct-time-new-diagnostic extra True
+struct-time-new-diagnostic type True
+struct-time-new-diagnostic unexpected True
+struct-time-new-diagnostic duplicate True
+struct-time-new-diagnostic dict-extra-field True
+struct-time-new-diagnostic kw-extra True
+dict-init-diagnostic missing True
+dict-init-diagnostic extra True
+dict-init-diagnostic receiver True
+dict-init-diagnostic source-type True
+time-strptime-diagnostic missing True
+time-strptime-diagnostic extra True
+time-strptime-diagnostic keyword True
+time-strptime-diagnostic text-type True
+time-strptime-diagnostic format-type True
+2026 8 2026 8 26
+struct-time-keyword 2026 True True KW 789
+dict-init-direct True DI 654
+struct-time-dict-subclass DS 321
+(2026, 1, 1, 0, 0, 0, 3, 1, -1) (1900, 8, 26, 0, 0, 0, 6, 238, -1) (1900, 1, 1, 1, 2, 3, 0, 1, -1)
+(2026, 8, 27, 0, 0, 0, 3, 239, -1) 8 27 239
+(2027, 1, 1, 0, 0, 0, 4, 366, -1) (2024, 12, 31, 0, 0, 0, 1, 366, -1)
+(2026, 8, 28, 0, 0, 0, 4, 240, -1) 8 28 240
+True 19800 UTC True 0
+utc gmt 0 0
+True True True
+True True True
+19845 19845 0
+86400 -86400 359999
+(2068, 1, 2, 0, 0, 0, 0, 2, -1) (1969, 1, 2, 0, 0, 0, 3, 2, -1)
+0 12 13 0
+9 21 0
+(2026, 8, 26, 1, 2, 3, 2, 238, -1) (2026, 8, 26, 1, 2, 3, 2, 238, -1)
+(2026, 9, 2, 0, 0, 0, 2, 245, -1) (2026, 8, 26, 0, 0, 0, 2, 238, -1) (2026, 9, 6, 0, 0, 0, 6, 249, -1)
+(2025, 12, 28, 0, 0, 0, 6, 362, -1) (2026, 1, 4, 0, 0, 0, 6, 4, -1) (2027, 1, 4, 0, 0, 0, 0, 369, -1)
+(2026, 8, 26, 0, 0, 0, 2, 238, -1) (2026, 8, 26, 0, 0, 0, 2, 238, -1) (2021, 1, 3, 0, 0, 0, 6, 3, -1)
+(2026, 8, 26, 1, 2, 3, 2, 238, -1) (2026, 8, 26, 0, 0, 0, 2, 238, -1) (1900, 1, 1, 1, 2, 3, 0, 1, -1) 6 7
+(2026, 8, 6, 1, 2, 3, 2, 218, -1) (2026, 8, 26, 0, 0, 0, 2, 238, -1)
+(1900, 1, 1, 1, 2, 0, 0, 1, -1) (1900, 1, 1, 1, 2, 3, 0, 1, -1) 13 0
+1 1 1 1 1 13 1
+(1900, 2, 29, 0, 0, 0, 3, 60, -1) 2 29 60
+(2026, 8, 26) (2026, 8, 26)
+(2026, 8, 26) (2026, 8, 6)
+11 True True X 123
+Y 456 9 11
+time.struct_time(tm_year=2026, tm_mon=8, tm_mday=26, tm_hour=1, tm_min=2, tm_sec=3, tm_wday=2, tm_yday=238, tm_isdst=-1) True
+True
+(9, 999, -1) 9 999
+weekday weekday
+True 1 2 7 6
+0 1
+struct-time-method-diagnostic count-missing True
+struct-time-method-diagnostic count-extra True
+struct-time-method-diagnostic count-keyword True
+struct-time-method-diagnostic count-unbound-missing True
+struct-time-method-diagnostic count-receiver True
+struct-time-method-diagnostic index-missing True
+struct-time-method-diagnostic index-extra True
+struct-time-method-diagnostic index-keyword True
+struct-time-method-diagnostic index-unbound-missing True
+struct-time-method-diagnostic index-receiver True
+struct-time-method-diagnostic repr-extra True
+struct-time-method-diagnostic repr-keyword True
+struct-time-method-diagnostic repr-unbound-missing True
+struct-time-method-diagnostic repr-receiver True
+struct-time-index-missing True
+struct-time-diagnostic missing True
+struct-time-diagnostic extra-args True
+struct-time-diagnostic sequence-type True
+struct-time-diagnostic dict-type True
+struct-time-diagnostic dict-extra-field True
+struct-time-diagnostic short-sequence True
+struct-time-diagnostic long-sequence True
+struct-time-diagnostic sequence-keyword-missing True
+struct-time-diagnostic unexpected-keyword True
+struct-time-diagnostic duplicate-sequence-keyword True
+struct-time-diagnostic extra-keywords True
+struct-time-diagnostic duplicate-dict-keyword True
+struct-time-extra True
+struct-time-extra True
+struct-time-extra True
+strptime-trailing True
+strptime-trailing True
+strptime-trailing True
+strptime-trailing True
+strptime-trailing True
+strptime-trailing True
+strptime-trailing True
+strptime-trailing True
+strptime-trailing True
+strptime-trailing True
+strptime-trailing True
+strptime-trailing True
+strptime-trailing True
+strptime-trailing True
+strptime-trailing True
+strptime-trailing True
+strptime-trailing True
+strptime-trailing True
+strptime-trailing True
+strptime-trailing True
+strptime-trailing True
+strptime-trailing True
+strptime-trailing True
+strptime-iso-error True
+strptime-iso-error True
+strptime-iso-error True
+strptime-iso-error True
+strptime-iso-error True
+strptime-iso-error True
+strptime-year-range True
+strptime-bad-directive True
+strptime-bad-directive True
+strptime-bad-directive True
+strptime-bad-directive True
+strptime-bad-directive True
+strptime-bad-directive True
+True True True
+True True True True
+True True 3.14
+True True False
+True True True
+True posix_home True
+CPython 3 True
+True True True True
+4 3 4 Solaris
+CPython True
+True True
+True
+82 RESUME 43 69 ==
+68 True 1 a 55 = 0
+iso-8859-1 name True
+utf-8 value =
+['# note', '# tail'] 2 2
+True True
+2147483649 131097 1 None
+True True True
+['a', 'b'] a False
+4 True sample
+doc text True
+https example.com /a/b p q=1 frag
+6 example.com https://example.com/a/b;p?q=1#frag
+https /a/b 5 /a/b https://example.com/a/b?q=1#frag
+https://example.com/a/b;p?q=1#frag
+https://example.com/a/b?q=1#frag
+https://e.com/a/d?q=1
+[('a', '1'), ('b', 'two words'), ('a', '3')]
+['1', '3']
+a=two+words&b=3
+a%20b/c a+b%2Fc
+a b a b
+9 9 feff01020000787901
+(-2, 513, b'xy', True)
+258 b'abcd'
+None
+3030443322113030 287454020
+[(1,), (2,), (3,)]
+<hI 6 (-1, 7)
+error
+id42 id ('id', '42') (2, 4)
+abc abc True
+['1', '22'] ['a', 'b', 'c'] a#b#
+re.ASCII re.ASCII re.NOFLAG re.VERBOSE re.VERBOSE RegexFlag
+b'abc'
+utf-8 codec b'hi'
+idna example.com
+a 1 True False
+b'abc' True True
+True
+False True True
+[2] Terminated
+keyboard
+{"a":[2,3],"b":1}
+True
+z3
+n:42
+True 9
+[1, 2] {
+x True True True
+stream 5
+TypeError
+ValueError
+two False 5
+p
+2
+True False 1 [('start', 'root', '7'), ('text', 'hi'), ('end', 'root')]
+demo.echo 7 rpc
+200 Not Found 80
+True True True
+True True
+alpha_ True
+True True
+('alpha/beta', 'gamma.txt') alpha/beta
+alpha/gamma beta.txt alpha
+True False True True
+True 3 True
+os-stat-result stat_result os True True 10 20 10 3 True True False True os stat_result ('st_mode', 'st_ino', 'st_dev', 'st_nlink', 'st_uid', 'st_gid', 'st_size')
+True 3 True
+True True
+True True True
+scandir-closed
+True False False True True True
+True
+True True True
+xlang3_pathlib_section.txt xlang3_pathlib_section .txt ['.txt']
+xlang3_pathlib_section.bin renamed.txt xlang3_pathlib_section.txt
+9 path text
+2 b'xy' True True False
+True True deep True
+['root.txt', 'sub']
+['root.txt'] ['note.txt', 'root.txt']
+True True True
+True True
+['xlang3_glob_case/a.py']
+['xlang3_glob_case/a.py', 'xlang3_glob_case/sub/c.py']
+['xlang3_glob_case/b.txt']
+['a.py']
+['.hidden.py', 'a.py']
+.hidden.py ['a.py']
+True [b'b.txt']
+True http.client
+True True True True
+True resource-data
+7 haha 3 2
+True True True 8
+(3, 5)
+inner box:inner
+[8, 5] True True True True
+2 2 1
+[1, 2] xy 2 5 5
+8 6 True 7
+13 True -3 -4
+[1, 3]
+[0, 1]
+[0, 1, 2]
+[1, 2]
+[5, 3]
+[1, 3]
+['a', 'c'] ['x', 'x', 'x']
+['a', 'b', 'a', 'b', 'a'] []
+[5, 5, 5]
+[1, 2, 3, 4] 9 10 [1, 2] [(1, 2), (3, 4), (5,)]
+[(1, 'a'), (1, 'b'), (2, 'a'), (2, 'b')]
+[(1, 2), (1, 3), (2, 3)] [('x', 'x'), ('x', 'y'), ('y', 'y')]
+[(1, 2), (1, 3), (2, 1), (2, 3), (3, 1), (3, 2)]
+[1, 3, 6, 10] [3, 7]
+[(1, 'a'), (2, None)]
+[1, 2]
+[1, 2] [(1, 'x'), (2, 'x')]
+[(1, 2), (1, 3), (2, 3)] [(1, 2), (2, 1)]
+[1, 3, 6] [11]
+[(1, 2), (2, 3), (3, 4)] 4 [5, 6] [4, 5, 6]
+[('a', ['a', 'a', 'a']), ('b', ['b', 'b']), ('c', ['c'])] [(1, [1, 3]), (0, [2, 4]), (1, [5])]
+7 8 ('left', 'right')
+2 2 2 -1 0
+5 [('a', 2), ('b', 2)]
+['a', 'a', 'b', 'b', 'c', 'c']
+[0, 1, 2, 3] 0 3 True
+['a', 'b'] [1, 2] [('a', 1), ('b', 2)]
+1 2 3 7 True 3
+['a', 'b', 'c'] [('a', 1), ('b', 2), ('c', 3)] 99 2
+4 0 True
+True 2 first second True
+empty
+2 1
+(1, 'a') (2, 'b')
+full
+True
+kw
+before
+shutdown-empty
+shutdown-put
+socket-loopback b'pong' b'ping' True True True True True
+socket-addrinfo True True True 127.0.0.1 80
+socket-address-helpers 127.0.0.1 4 127.0.0.1
+selectors-readiness 1 r True True
+socketpair-makefile b'line1\n'
+socket-create-connection b'hi' True
+http-client-loopback 200 b'ok' True
+True 0 xlang3-subprocess
+0 True
+0 0
+7 exit 7 True
+shell-ok
+env-copy-ok env-mapping-ok
+stdin-ok
+merged-error
+True 0 True True True
+True
+True True
+True
+sys-audit-bad-hook True
+--- actual ---
+errno-native True True True True True True True
+bisect-native _bisect built-in True 1 3 [1, 2, 2, 2, 3] ['a', 'bb', 'ccc'] [1, 3, 3, 5] 1 3
+cmath-native built-in True True True True True True True
+winapi-native True True True True True True True
+2 hello UserWarning
+native
+original doc text True 5
+original doc text True
+7
+True (2,) False
+managed_value managed doc managed_value
+changed doc
+123 123
+True True True True
+[1, 2, 3]
+2 2 4 6 2
+[1, 2, 3, 1] CacheInfo(hits=1, misses=4, maxsize=2, currsize=2)
+CacheInfo(hits=0, misses=0, maxsize=2, currsize=0)
+6 6 CacheInfo(hits=1, misses=1, maxsize=None, currsize=1) {'maxsize': None, 'typed': False}
+1 1 2
+[(1, 2), (True, 2)] CacheInfo(hits=1, misses=2, maxsize=4, currsize=2)
+1 2 [3, 3] CacheInfo(hits=0, misses=2, maxsize=0, currsize=0)
+<input> <module> True
+True True
+['a.py', 'c.py']
+['b.txt']
+True a[*][[]b][?]
+True True True
+abc XYZ 0123456789 True
+8 True True
+fmt-7 009
+('a', 'name', '>4', 'r')
+y
+2 5 5 2 x
+Point(x=2, y=5)
+True
+True True x 5
+ctx
+null
+True False
+True
+suppressed
+stacked
+['enter', 'callback', 'exit']
+True True True True ellipsis builtins
+copy-singletons True True True
+types-runtime-aliases True True True True True True True True True True True
+7 True bob
+True keep fast ['a', 'b'] 2 False C ['x', 'y'] 2.5
+slow ['--unknown', 'value'] True True
+argparse-error True
+9 left 6
+BinOp(left=Constant(value=9), op=Add(), right=Constant(value=4))
+True Expression
+['seen']
+abc abc abc _abc ABCMeta ABC True True
+abc-class-docs True True True False
+abc-function-docs False True True True True True True
+abc-meta-method-docs True True True
+abc-abstract-descriptor-markers True True True
+abstractmethod register _abc_init True True
+True True
+True True
+True True True
+True True True
+True False True
+ReferenceType weakref True
+False False
+True True
+True True True
+False False
+0 0 True
+0 0 0 True
+True NotImplementedType
+True True False
+True True
+False False False
+True True
+False
+True True
+True True
+True
+0 True
+True True 0
+abc-cycle True
+True True
+True True 0 True True
+False False False
+True
+True
+abc-decorator-keyword True True abstractclassmethod True True
+abc-decorator-keyword abstractstaticmethod True True abstractproperty True missing abstractproperty True
+abc-abstractproperty-marker True True True abstract doc
+abc-abstractproperty-doc getter doc replacement doc explicit doc replacement doc
+abc-abstractproperty-name abstract_doc_property abstract_doc_replacement abstract_doc_replacement abstract_doc_property False empty_name
+abc-abstractproperty-method-diagnostic getter-missing True
+abc-abstractproperty-method-diagnostic getter-extra True
+abc-abstractproperty-method-diagnostic getter-keyword True
+abc-abstractproperty-method-diagnostic getter-receiver True
+abc-abstractproperty-method-diagnostic setter-missing True
+abc-abstractproperty-method-diagnostic setter-extra True
+abc-abstractproperty-method-diagnostic setter-keyword True
+abc-abstractproperty-method-diagnostic setter-receiver True
+abc-abstractproperty-method-diagnostic deleter-missing True
+abc-abstractproperty-method-diagnostic deleter-extra True
+abc-abstractproperty-method-diagnostic deleter-keyword True
+abc-abstractproperty-method-diagnostic deleter-receiver True
+abc-abstractmethod-attr True
+abc-abstractmethod-attr True
+abc-abstractmethod-attr True
+abc-abstractmethod-attr True
+abc-abstractmethod-attr True
+abc-abstractmethod-immutable-type True True
+abc-abstractmethod-immutable-type True True
+abc-abstractmethod-immutable-type True True
+abc-abstractmethod-immutable-type True True
+abc-abstractmethod-immutable-type True True
+abc-abstractmethod-immutable-type True True
+abstractclassmethod True True AbstractDescriptorProbe
+abstractstaticmethod True True static
+abstractproperty True missing prop
+True 1 frozenset False
+True True
+abc-abstract-instantiation True True
+True 0 concrete
+True 0 frozenset
+True True 1 True
+abc-updated-abstract True True
+True 0 restored
+True False 42
+False
+None True 1
+abc-direct-init True True
+0 0 0 True
+ConstructedABC abc True 1
+True
+True True True
+abc-init-type True
+abc-helper-type True
+abc-helper-type True
+abc-helper-type True
+abc-helper-type True
+abc-helper-type True
+abc-helper-type True
+abc-helper-type True
+abc-helper-type True
+abc-helper-type True
+abc-helper-arity-names True
+abc-helper-keyword get_cache_token True
+abc-helper-keyword _abc_init True
+abc-helper-keyword _abc_register True
+abc-helper-keyword _abc_subclasscheck True
+abc-helper-keyword _abc_instancecheck True
+abc-helper-keyword _get_dump True
+abc-helper-keyword _reset_registry True
+abc-helper-keyword _reset_caches True
+abc-helper-keyword-names True
+abc-update-keyword True
+True True True
+True True True
+True False True
+True True True
+T 2 True True object True
+5 UserId int
+x List Union
+FinalClass True True False
+annotations 3 None 16777216
+True True True
+RED 1 BLUE 2
+True True True
+[<Color.RED: 1>, <Color.BLUE: 2>] True ['RED', 'BLUE']
+THREE True True
+unique-error
+READ|WRITE 3 <Perm.READ|WRITE: 3> Perm.READ|WRITE
+True True True
+R|X 5 True True
+True True .
+GetPassWarning True
+1234.5 1234.5 1234 1234.5
+True True 127
+utf-8 utf-8 True True
+sys True True True True True True
+sys-module-doc True True True True
+register_readline register_readline site _baserepl _baserepl sys True True True
+sys-hook-aliases True True True True
+sys-startup-hook-args True
+sys-startup-hook-args True
+sys-startup-hook-keyword __interactivehook__ True
+sys-startup-hook-keyword _baserepl True
+True True True True True
+sys-meta-path-bootstrap ['BuiltinImporter', 'FrozenImporter', 'PathFinder'] ['_frozen_importlib', '_frozen_importlib', '_frozen_importlib_external'] ["<class '_frozen_importlib.BuiltinImporter'>", "<class '_frozen_importlib.FrozenImporter'>", "<class '_frozen_importlib_external.PathFinder'>"] True
+sys-meta-path-metatype ['type', 'type', 'type'] ['builtins', 'builtins', 'builtins'] ['type', 'type', 'type']
+class-metadata-module-qualname builtins type builtins object builtins int builtins BaseException builtins SystemExit __main__ SysClassMetadataProbe __main__ SysTypeConstructedMetadataProbe
+sys-path-hooks-zipimporter True True zipimport <class 'zipimport.zipimporter'>
+sys-getsizeof-protocol-overhead 155 99
+sys-getsizeof-negative True
+sys-getsizeof-return-type True
+sys-getsizeof-noncallable True
+sys-getsizeof-bool-overhead 33 33
+sys-getsizeof-typeerror-subclass-reraises True
+sys-getsizeof-typeerror-subclass-default 404
+99 101
+155 202 303
+sys-getsizeof-reraises True
+sys-getsizeof-arity True True
+sys-getsizeof-arity True True
+sys-getsizeof-keyword keyword-missing True
+sys-getsizeof-keyword keyword-extra True
+sys-getsizeof-keyword keyword-duplicate-object True
+sys-getsizeof-keyword keyword-duplicate-default True
+sys-getsizeof-keyword keyword-unexpected True
+True True False
+True True True True
+True True True True True True True
+sys-stdlib-module-names True True True True True True True True
+sys-getunicodeinternedsize-only-immortal True True True True True
+sys-getunicodeinternedsize-keyword True True
+sys-getunicodeinternedsize-diagnostic two-pos True True
+sys-getunicodeinternedsize-diagnostic two-keyword True True
+sys-is-interned-type True True
+sys-is-interned-arity True True
+sys-is-interned-keyword True
+sys-intern-type True True
+sys-intern-type True True
+sys-intern-arity True True True
+sys-intern-arity True True True
+sys-intern-keyword True
+True True True True False
+sys-is-immortal-arity True True
+sys-is-immortal-arity True
+sys-is-immortal-keyword True
+True True True
+sys-getallocatedblocks-keyword True
+sys-getrefcount-arity True True
+sys-getrefcount-arity True
+sys-getrefcount-keyword True
+sys-helper-docs True True True True
+sys-interner-size-text-signatures True True
+True False True 2 False False False False
+True True True
+True TextIOWrapper _io TextIOWrapper <class '_io.TextIOWrapper'>
+('<stdin>', 'r', True, False, None) ('<stdout>', 'w', False, False, None) ('<stderr>', 'w', True, False, None)
+sys-stdio-keyword-typeerrors 30 30
+sys-stdio-positional-diagnostic read-many True
+sys-stdio-positional-diagnostic read-type True
+sys-stdio-positional-diagnostic readline-many True
+sys-stdio-positional-diagnostic readline-type True
+sys-stdio-positional-diagnostic write-zero True
+sys-stdio-positional-diagnostic write-many True
+sys-stdio-positional-diagnostic write-type True
+sys-stdio-capability-arity stdin-readable True
+sys-stdio-capability-arity stdin-writable True
+sys-stdio-capability-arity stdout-isatty True
+sys-stdio-capability-arity stderr-seekable True
+3 14 7 xlang3-314
+sys-version-shape True True True True
+CPython True 3 True True short
+sys-vpath-metadata True
+sys-git-metadata True
+True True True True True
+True True True True
+SimpleNamespace types SimpleNamespace True True
+True False False False False
+True
+True True True True
+is_available is_available sys._jit True is_enabled is_enabled sys._jit True is_active is_active sys._jit True
+sys-jit-text-signatures True True True
+True True True True
+0 1 2 5 0 32 16 262144
+SimpleNamespace types True True True
+True True True
+monitoring-text-signatures True
+True True fixture-monitor
+0 True 48
+True True fixture-monitor-bool
+True 1 True True
+monitoring-c-event True
+monitoring-c-event-pair True
+0 True 32
+monitoring-local-c-event-pair True
+True True
+True True
+True True True True 0 0
+True True True
+True fixture-monitor-clear 0 0 True
+monitoring-tool-id True
+monitoring-tool-name True
+monitoring-unused-tool True
+monitoring-unused-local-tool True
+monitoring-event-set True
+monitoring-code-type True
+monitoring-callback-event True
+monitoring-arity use0 True
+monitoring-arity use3 True
+monitoring-arity free0 True
+monitoring-arity free2 True
+monitoring-arity get_tool0 True
+monitoring-arity clear2 True
+monitoring-arity set_events1 True
+monitoring-arity get_events0 True
+monitoring-arity set_local2 True
+monitoring-arity get_local1 True
+monitoring-arity callback2 True
+monitoring-keyword use_tool_id True
+monitoring-keyword free_tool_id True
+monitoring-keyword clear_tool_id True
+monitoring-keyword get_tool True
+monitoring-keyword set_events True
+monitoring-keyword get_events True
+monitoring-keyword set_local_events True
+monitoring-keyword get_local_events True
+monitoring-keyword register_callback True
+monitoring-keyword restart_events True
+monitoring-keyword _all_events True
+True
+True True
+True monitoring-live
+sys_monitoring_live_target True 0 sys_monitoring_live_target True 1 monitoring-live
+True
+True True
+True monitoring-yield
+monitoring-generator-stop monitoring-return
+2 ('sys_monitoring_generator_target', True, 1, 'monitoring-yield') ('sys_monitoring_generator_target', True, 0, None)
+True
+True
+throw-start True monitoring-throw
+1 ('sys_monitoring_throw_target', True, 'ValueError', 'monitoring-throw')
+True
+True
+local-throw-start other-throw-start True local-monitoring-throw other-monitoring-throw
+1 ('sys_monitoring_local_throw_target', True, 'ValueError', 'local-monitoring-throw')
+True
+True True
+True monitoring-local monitoring-other
+2 sys_monitoring_local_target True 0 sys_monitoring_local_target True 1 monitoring-local
+True
+True
+True line
+True True True
+True
+True
+True local-line other-line
+True True False
+True
+True
+True 5
+True True True
+True
+True
+True 7 8
+True True False
+True
+True True True
+True left right 1
+True True True
+True
+True True
+True local-left local-right other-left
+True False
+True
+True True True
+True fixture-monitor-c
+True True True
+True
+True True
+True monitoring-caught
+2 ('sys_monitoring_exception_target', True, 'ValueError', 'monitoring-boom') ('sys_monitoring_exception_target', True, 'ValueError', 'monitoring-boom')
+True
+True
+True ('sys_monitoring_reraise_target', True, 'ValueError', 'monitoring-reraise')
+True
+True
+2 ('sys_monitoring_unwind_inner', True, 'ValueError', 'monitoring-unwind') ('sys_monitoring_unwind_outer', True, 'ValueError', 'monitoring-unwind')
+0 0 False True
+sys.version_info(major=3, minor=14, micro=7, releaselevel='final', serial=0) True True True
+False 0 1 0
+18 21 1 0 0 18
+5 major 21 gil
+sys-structseq-type-metadata True True
+('major', 'minor', 'micro', 'releaselevel', 'serial') int_max_str_digits 18 True
+member_descriptor builtins True 3 True True True
+2 53 64 True
+11 width 3 name
+max cutoff ('name', 'lock', 'version')
+True 1 3 3
+sys-structseq-method-diagnostic count-missing True
+sys-structseq-method-diagnostic count-extra True
+sys-structseq-method-diagnostic count-keyword True
+sys-structseq-method-diagnostic count-unbound-missing True
+sys-structseq-method-diagnostic count-receiver True
+sys-structseq-method-diagnostic index-missing True
+sys-structseq-method-diagnostic index-extra True
+sys-structseq-method-diagnostic index-keyword True
+sys-structseq-method-diagnostic index-unbound-missing True
+sys-structseq-method-diagnostic index-receiver True
+sys-structseq-method-diagnostic repr-extra True
+sys-structseq-method-diagnostic repr-keyword True
+sys-structseq-method-diagnostic repr-unbound-missing True
+sys-structseq-method-diagnostic repr-receiver True
+True True 17 True
+1 17 4300
+sys-flags-index-error True
+True 1 9 1
+sys-float-info-repr-precision True True True True True True
+True 5 True
+True 0 1
+1114111 True True True
+True False True
+sys-builtin-module-names True True True True True
+True True True True True
+True True True True True True True
+True True True True
+sys-windowsversion-fields True 5 10 True
+sys-windowsversion-type getwindowsversion sys getwindowsversion <class 'sys.getwindowsversion'>
+sys-windowsversion-descriptor 10 platform_version
+sys-windowsversion-major True
+sys-windowsversion-tuple True 1 True
+sys-windowsversion-repr True True
+True True True
+True True
+stack-trampoline True
+sys-stack-trampoline-diagnostic missing True
+sys-stack-trampoline-diagnostic extra True
+sys-stack-trampoline-diagnostic type True
+True False
+sys-stack-trampoline-docs True
+True 4300 4300 4300 640
+True
+switchinterval-bool True
+sys-switchinterval-diagnostic missing True
+sys-switchinterval-diagnostic extra True
+sys-switchinterval-diagnostic type True
+recursionlimit-bool True
+recursionlimit-bool True
+sys-recursionlimit-diagnostic missing True
+sys-recursionlimit-diagnostic extra True
+sys-recursionlimit-diagnostic type True
+sys-runtime-helper-docs True True True True True True True True True True
+640 640 640 4300 640
+0 0 0
+0 0 0
+sys-int-max-str-digits-keyword True True True
+sys-int-max-str-digits-keyword True True True
+int-max-str-digits-bool True True
+sys-int-max-str-digits-diagnostic missing True
+sys-int-max-str-digits-diagnostic extra True
+sys-int-max-str-digits-diagnostic type True
+sys-int-max-str-digits-diagnostic keyword-missing True
+sys-int-max-str-digits-diagnostic keyword-duplicate True
+sys-int-max-str-digits-diagnostic keyword-extra True
+int-max-str-digits True True
+True False
+True True True
+profile-return
+True True False True
+True True True
+True
+True True True
+True 7 True
+True True True
+call-tracing-type True
+sys-traceprofile-arity settrace0 True
+sys-traceprofile-arity settrace2 True
+sys-traceprofile-arity gettrace1 True
+sys-traceprofile-arity setprofile0 True
+sys-traceprofile-arity setprofile2 True
+sys-traceprofile-arity getprofile1 True
+sys-traceprofile-arity settraceall0 True
+sys-traceprofile-arity settraceall2 True
+sys-traceprofile-arity setprofileall0 True
+sys-traceprofile-arity setprofileall2 True
+sys-traceprofile-arity call_tracing0 True
+sys-traceprofile-arity call_tracing1 True
+sys-traceprofile-arity call_tracing3 True
+sys-traceprofile-docs True True True True True True True
+sys-setter-keyword setrecursionlimit True
+sys-setter-keyword setswitchinterval True
+sys-setter-keyword settrace True
+sys-setter-keyword _settraceallthreads True
+sys-setter-keyword setprofile True
+sys-setter-keyword _setprofileallthreads True
+sys-setter-keyword call_tracing True
+sys-setter-keyword activate_stack_trampoline True
+True True True
+__main__ True
+sys-getframemodulename-keyword True
+True True
+True True
+True True
+sys-getframe-bool-depth True
+sys-getframe-depth True
+sys-getframemodulename-type True
+sys-getframe-diagnostic frame-type True
+sys-getframe-diagnostic module-type True
+sys-getframe-diagnostic frame-extra True
+sys-getframe-diagnostic module-extra True
+sys-getframe-keyword True
+sys-getframemodulename-keyword-diagnostic unexpected True
+sys-getframemodulename-keyword-diagnostic duplicate True
+sys-getframemodulename-keyword-diagnostic extra-keyword True
+sys-gil-args True
+sys-audit-arity True True
+sys-audit-event-type True True
+sys-audit-event-type True True
+sys-audit-event-type True True
+sys-addaudithook-arity True True
+sys-addaudithook-arity True True
+True xlang3.fixture (1, 'a')
+True
+sys-audit-keyword-hook True
+sys-audit-keyword-diagnostic addaudit-unexpected True
+sys-audit-keyword-diagnostic addaudit-extra-kw True
+sys-audit-keyword-diagnostic audit-keyword True
+('sys_frame_probe', '<module>', '__main__', True)
+1 1 True True True
+True True True
+sys-frame-helper-docs True True True True
+True True True True
+True True True True True False
+True True True
+True True True False
+True True True True
+True True True -1 False 0
+sys-noarg-keyword exc_info True
+sys-noarg-keyword exception True
+sys-noarg-keyword getdefaultencoding True
+sys-noarg-keyword getfilesystemencoding True
+sys-noarg-keyword getfilesystemencodeerrors True
+sys-noarg-keyword getrecursionlimit True
+sys-noarg-keyword gettrace True
+sys-noarg-keyword getprofile True
+sys-noarg-keyword getswitchinterval True
+sys-noarg-keyword get_int_max_str_digits True
+sys-noarg-keyword is_finalizing True
+sys-noarg-keyword _clear_internal_caches True
+sys-noarg-keyword _clear_type_cache True
+sys-noarg-keyword _get_cpu_count_config True
+sys-noarg-keyword is_remote_debug_enabled True
+sys-noarg-keyword _is_gil_enabled True
+sys-noarg-keyword deactivate_stack_trampoline True
+sys-noarg-keyword is_stack_trampoline_active True
+sys-noarg-keyword getwindowsversion True
+sys-noarg-keyword _enablelegacywindowsfsencoding True
+sys-noarg-keyword _debugmallocstats True
+sys-noarg-keyword get_coroutine_origin_tracking_depth True
+sys-noarg-keyword get_asyncgen_hooks True
+sys-noarg-keyword _current_frames True
+sys-noarg-keyword _current_exceptions True
+sys-noarg-keyword _jit.is_available True
+sys-noarg-keyword _jit.is_enabled True
+sys-noarg-keyword _jit.is_active True
+True True
+True True True
+True True
+True True
+True True
+sys-dump-tracelets-diagnostic missing True
+sys-dump-tracelets-diagnostic extra True
+sys-dump-tracelets-diagnostic duplicate-keyword True
+sys-dump-tracelets-diagnostic extra-keyword True
+sys-dump-tracelets-diagnostic unexpected-keyword True
+sys-dump-tracelets-diagnostic type True
+sys-clear-type-descriptors-arity True True
+sys-clear-type-descriptors-arity True True
+sys-clear-type-descriptors-keyword True
+sys-clear-type-descriptors-type True True
+sys-clear-type-descriptors-immutable True
+2
+0
+True 1
+True 0
+coroutine-origin-depth-keyword True 1
+coroutine-origin-depth True
+coroutine-origin-diagnostic missing True
+coroutine-origin-diagnostic extra True
+coroutine-origin-diagnostic type True
+coroutine-origin-diagnostic keyword-missing True
+coroutine-origin-diagnostic keyword-duplicate True
+coroutine-origin-diagnostic keyword-extra True
+asyncgen_hooks 2 True True
+builtins ('firstiter', 'finalizer')
+True 2 0
+True
+True True True firstiter
+True True True
+True True True
+True
+asyncgen-hooks-keyword True True
+asyncgen-hooks True True True
+asyncgen-hooks True True True
+asyncgen-hooks-diagnostic extra True
+asyncgen-hooks-diagnostic keyword True
+asyncgen-hooks-diagnostic duplicate True
+asyncgen-hooks-diagnostic too-many-keywords True
+asyncgen-hooks-diagnostic keyword-firstiter-type True
+asyncgen-hooks-diagnostic keyword-finalizer-type True
+True True True
+sys-runtime-text-signatures True
+sys-noarg-typeerrors True
+sys-noarg-diagnostic allocated True True
+sys-noarg-diagnostic encoding True True
+sys-noarg-diagnostic cpu True True
+sys-noarg-diagnostic clear_type_cache True True
+sys-noarg-diagnostic jit True True
+sys-noarg-diagnostic unicodeinterned True
+True True
+True
+sys-exception-state-arity exc_info True True
+sys-exception-state-arity exception True True
+sys-exit-empty True True True
+sys-exit-code 5 5 True
+sys-exit-tuple 0 True True
+sys-exit-tuple 1 True True
+sys-exit-tuple 2 True True
+system-exit-constructor True True True True
+sys-exit-arity True True
+sys-exit-keyword True
+4 42 'hook\ntext' True underscore-probe True 2 True True True
+sys-hook-type displayhook True
+sys-hook-type __displayhook__ True
+sys-hook-type excepthook True
+sys-hook-type __excepthook__ True
+sys-hook-type unraisablehook True
+sys-hook-type __unraisablehook__ True
+sys-hook-keyword displayhook True
+sys-hook-keyword __displayhook__ True
+sys-hook-keyword excepthook True
+sys-hook-keyword __excepthook__ True
+sys-hook-keyword unraisablehook True
+sys-hook-keyword __unraisablehook__ True
+sys-displayhook-repr-type True True
+sys-hook-docs True True True True
+sys-exception-exit-docs True True True True
+True True True True True
+True False True True
+SimpleNamespace types SimpleNamespace True True True True True
+time-clock-info-windows True True True True True True True True
+True True True
+time-docs True True True True True True True
+time-text-signatures True True
+time-clock-info-diagnostic missing True
+time-clock-info-diagnostic extra True
+time-clock-info-diagnostic keyword True
+time-clock-info-diagnostic type True
+time-clock-info-diagnostic unknown True
+True True True True
+time-clock-arity time True True True
+time-clock-keyword time True True
+time-clock-arity time_ns True True True
+time-clock-keyword time_ns True True
+time-clock-arity monotonic True True True
+time-clock-keyword monotonic True True
+time-clock-arity monotonic_ns True True True
+time-clock-keyword monotonic_ns True True
+time-clock-arity perf_counter True True True
+time-clock-keyword perf_counter True True
+time-clock-arity perf_counter_ns True True True
+time-clock-keyword perf_counter_ns True True
+time-clock-arity process_time True True True
+time-clock-keyword process_time True True
+time-clock-arity process_time_ns True True True
+time-clock-keyword process_time_ns True True
+time-clock-arity thread_time True True True
+time-clock-keyword thread_time True True
+time-clock-arity thread_time_ns True True True
+time-clock-keyword thread_time_ns True True
+True
+time-sleep-diagnostic missing True
+time-sleep-diagnostic extra True
+time-sleep-diagnostic keyword True
+time-sleep-diagnostic type True
+time-sleep-diagnostic negative True
+True 1970 1 1 1970
+True True True
+1 0 1 0 True True
+time-timestamp-diagnostic local-extra True
+time-timestamp-diagnostic local-keyword True
+time-timestamp-diagnostic local-type True
+time-timestamp-diagnostic gmt-extra True
+time-timestamp-diagnostic gmt-keyword True
+time-timestamp-diagnostic gmt-type True
+time-timestamp-diagnostic ctime-extra True
+time-timestamp-diagnostic ctime-keyword True
+time-timestamp-diagnostic ctime-type True
+time-timestamp-nonfinite local-nan True
+time-timestamp-nonfinite gmt-inf True
+time-timestamp-nonfinite ctime-neginf True
+time-mktime-diagnostic missing True
+time-mktime-diagnostic extra True
+time-mktime-diagnostic keyword True
+time-mktime-diagnostic type True
+time-mktime-diagnostic list-type True
+time-mktime-diagnostic attr-instance-type True
+time-mktime-diagnostic tuple-short True
+time-mktime-diagnostic tuple-long True
+time-mktime-diagnostic field-type True
+Wed Aug  6 01:02:03 2026 Sun Aug 16 01:02:03 2026
+time-asctime-diagnostic extra True
+time-asctime-diagnostic keyword True
+time-asctime-diagnostic type True
+time-asctime-diagnostic list-type True
+time-asctime-diagnostic attr-instance-type True
+time-asctime-diagnostic tuple-short True
+time-asctime-diagnostic tuple-long True
+time-asctime-diagnostic field-type True
+time-asctime-default True True True True True True True
+Wed Jan  1 00:01:00 2026 2026 01 01 00 01 00 001 True
+Thu Aug  6 09:02:03 2026 09:02:03 AM 09:02:03 PM
+time-strftime-diagnostic missing True
+time-strftime-diagnostic extra True
+time-strftime-diagnostic keyword True
+time-strftime-diagnostic format-type True
+time-strftime-diagnostic tuple-type True
+time-strftime-diagnostic list-type True
+time-strftime-diagnostic attr-instance-type True
+time-strftime-diagnostic tuple-short True
+time-strftime-diagnostic tuple-long True
+time-strftime-diagnostic field-type True
+strftime-invalid True
+strftime-invalid True
+strftime-invalid True
+strftime-invalid True
+strftime-invalid True
+strftime-invalid True
+strftime-invalid True
+strftime-invalid True
+lambda-container-literals LD 12 True
+1970 9 9 [1970, 1, 1]
+11 0 True True
+time struct_time True 11 9 0 True True
+11 True
+('tm_year', 'tm_mon', 'tm_mday', 'tm_hour', 'tm_min', 'tm_sec', 'tm_wday', 'tm_yday', 'tm_isdst') tm_year tm_isdst
+member_descriptor builtins True 2026 Z True True
+struct-time-new 2026 NEW 987 __new__ struct_time.__new__ True
+struct-time-str-repr True True True
+sys-displayhook-struct-time True True True
+struct-time-getnewargs True 1 True 9 __getnewargs__ tuple.__getnewargs__ True True
+struct-time-reduce True True X 123 True
+struct-time-reduce-metadata __reduce__ struct_time.__reduce__ True True __reduce_ex__ object.__reduce_ex__ True True
+struct-time-getnewargs-diagnostic extra True
+struct-time-getnewargs-diagnostic keyword True
+struct-time-getnewargs-diagnostic unbound-missing True
+struct-time-getnewargs-diagnostic receiver True
+struct-time-reduce-diagnostic reduce-extra True
+struct-time-reduce-diagnostic reduce-keyword True
+struct-time-reduce-diagnostic reduce-unbound-missing True
+struct-time-reduce-diagnostic reduce-receiver True
+struct-time-reduce-diagnostic reduce-ex-missing-proto True
+struct-time-reduce-diagnostic reduce-ex-extra True
+struct-time-reduce-diagnostic reduce-ex-keyword True
+struct-time-reduce-diagnostic reduce-ex-type True
+struct-time-new-diagnostic missing True
+struct-time-new-diagnostic class-only True
+struct-time-new-diagnostic extra True
+struct-time-new-diagnostic type True
+struct-time-new-diagnostic unexpected True
+struct-time-new-diagnostic duplicate True
+struct-time-new-diagnostic dict-extra-field True
+struct-time-new-diagnostic kw-extra True
+dict-init-diagnostic missing True
+dict-init-diagnostic extra True
+dict-init-diagnostic receiver True
+dict-init-diagnostic source-type True
+time-strptime-diagnostic missing True
+time-strptime-diagnostic extra True
+time-strptime-diagnostic keyword True
+time-strptime-diagnostic text-type True
+time-strptime-diagnostic format-type True
+2026 8 2026 8 26
+struct-time-keyword 2026 True True KW 789
+dict-init-direct True DI 654
+struct-time-dict-subclass DS 321
+(2026, 1, 1, 0, 0, 0, 3, 1, -1) (1900, 8, 26, 0, 0, 0, 6, 238, -1) (1900, 1, 1, 1, 2, 3, 0, 1, -1)
+(2026, 8, 27, 0, 0, 0, 3, 239, -1) 8 27 239
+(2027, 1, 1, 0, 0, 0, 4, 366, -1) (2024, 12, 31, 0, 0, 0, 1, 366, -1)
+(2026, 8, 28, 0, 0, 0, 4, 240, -1) 8 28 240
+True 19800 UTC True 0
+utc gmt 0 0
+True True True
+True True True
+19845 19845 0
+86400 -86400 359999
+(2068, 1, 2, 0, 0, 0, 0, 2, -1) (1969, 1, 2, 0, 0, 0, 3, 2, -1)
+0 12 13 0
+9 21 0
+(2026, 8, 26, 1, 2, 3, 2, 238, -1) (2026, 8, 26, 1, 2, 3, 2, 238, -1)
+(2026, 9, 2, 0, 0, 0, 2, 245, -1) (2026, 8, 26, 0, 0, 0, 2, 238, -1) (2026, 9, 6, 0, 0, 0, 6, 249, -1)
+(2025, 12, 28, 0, 0, 0, 6, 362, -1) (2026, 1, 4, 0, 0, 0, 6, 4, -1) (2027, 1, 4, 0, 0, 0, 0, 369, -1)
+(2026, 8, 26, 0, 0, 0, 2, 238, -1) (2026, 8, 26, 0, 0, 0, 2, 238, -1) (2021, 1, 3, 0, 0, 0, 6, 3, -1)
+(2026, 8, 26, 1, 2, 3, 2, 238, -1) (2026, 8, 26, 0, 0, 0, 2, 238, -1) (1900, 1, 1, 1, 2, 3, 0, 1, -1) 6 7
+(2026, 8, 6, 1, 2, 3, 2, 218, -1) (2026, 8, 26, 0, 0, 0, 2, 238, -1)
+(1900, 1, 1, 1, 2, 0, 0, 1, -1) (1900, 1, 1, 1, 2, 3, 0, 1, -1) 13 0
+1 1 1 1 1 13 1
+(1900, 2, 29, 0, 0, 0, 3, 60, -1) 2 29 60
+(2026, 8, 26) (2026, 8, 26)
+(2026, 8, 26) (2026, 8, 6)
+11 True True X 123
+Y 456 9 11
+time.struct_time(tm_year=2026, tm_mon=8, tm_mday=26, tm_hour=1, tm_min=2, tm_sec=3, tm_wday=2, tm_yday=238, tm_isdst=-1) True
+True
+(9, 999, -1) 9 999
+weekday weekday
+True 1 2 7 6
+0 1
+struct-time-method-diagnostic count-missing True
+struct-time-method-diagnostic count-extra True
+struct-time-method-diagnostic count-keyword True
+struct-time-method-diagnostic count-unbound-missing True
+struct-time-method-diagnostic count-receiver True
+struct-time-method-diagnostic index-missing True
+struct-time-method-diagnostic index-extra True
+struct-time-method-diagnostic index-keyword True
+struct-time-method-diagnostic index-unbound-missing True
+struct-time-method-diagnostic index-receiver True
+struct-time-method-diagnostic repr-extra True
+struct-time-method-diagnostic repr-keyword True
+struct-time-method-diagnostic repr-unbound-missing True
+struct-time-method-diagnostic repr-receiver True
+struct-time-index-missing True
+struct-time-diagnostic missing True
+struct-time-diagnostic extra-args True
+struct-time-diagnostic sequence-type True
+struct-time-diagnostic dict-type True
+struct-time-diagnostic dict-extra-field True
+struct-time-diagnostic short-sequence True
+struct-time-diagnostic long-sequence True
+struct-time-diagnostic sequence-keyword-missing True
+struct-time-diagnostic unexpected-keyword True
+struct-time-diagnostic duplicate-sequence-keyword True
+struct-time-diagnostic extra-keywords True
+struct-time-diagnostic duplicate-dict-keyword True
+struct-time-extra True
+struct-time-extra True
+struct-time-extra True
+strptime-trailing True
+strptime-trailing True
+strptime-trailing True
+strptime-trailing True
+strptime-trailing True
+strptime-trailing True
+strptime-trailing True
+strptime-trailing True
+strptime-trailing True
+strptime-trailing True
+strptime-trailing True
+strptime-trailing True
+strptime-trailing True
+strptime-trailing True
+strptime-trailing True
+strptime-trailing True
+strptime-trailing True
+strptime-trailing True
+strptime-trailing True
+strptime-trailing True
+strptime-trailing True
+strptime-trailing True
+strptime-trailing True
+strptime-iso-error True
+strptime-iso-error True
+strptime-iso-error True
+strptime-iso-error True
+strptime-iso-error True
+strptime-iso-error True
+strptime-year-range True
+strptime-bad-directive True
+strptime-bad-directive True
+strptime-bad-directive True
+strptime-bad-directive True
+strptime-bad-directive True
+strptime-bad-directive True
+True True True
+True True True True
+True True 3.14
+True True False
+True True True
+True posix_home True
+CPython 3 True
+True True True True
+4 3 4 Solaris
+CPython True
+True True
+True
+82 RESUME 43 69 ==
+68 True 1 a 55 = 0
+iso-8859-1 name True
+utf-8 value =
+['# note', '# tail'] 2 2
+True True
+2147483649 131097 1 None
+True True True
+['a', 'b'] a False
+4 True sample
+doc text True
+https example.com /a/b p q=1 frag
+6 example.com https://example.com/a/b;p?q=1#frag
+https /a/b 5 /a/b https://example.com/a/b?q=1#frag
+https://example.com/a/b;p?q=1#frag
+https://example.com/a/b?q=1#frag
+https://e.com/a/d?q=1
+[('a', '1'), ('b', 'two words'), ('a', '3')]
+['1', '3']
+a=two+words&b=3
+a%20b/c a+b%2Fc
+a b a b
+9 9 feff01020000787901
+(-2, 513, b'xy', True)
+258 b'abcd'
+None
+3030443322113030 287454020
+[(1,), (2,), (3,)]
+<hI 6 (-1, 7)
+error
+id42 id ('id', '42') (2, 4)
+abc abc True
+['1', '22'] ['a', 'b', 'c'] a#b#
+re.ASCII re.ASCII re.NOFLAG re.VERBOSE re.VERBOSE RegexFlag
+b'abc'
+utf-8 codec b'hi'
+idna example.com
+a 1 True False
+b'abc' True True
+True
+False True True
+[2] Terminated
+keyboard
+{"a":[2,3],"b":1}
+True
+z3
+n:42
+True 9
+[1, 2] {
+x True True True
+stream 5
+TypeError
+ValueError
+two False 5
+p
+2
+True False 1 [('start', 'root', '7'), ('text', 'hi'), ('end', 'root')]
+demo.echo 7 rpc
+200 Not Found 80
+True True True
+True True
+alpha_ True
+True True
+('alpha/beta', 'gamma.txt') alpha/beta
+alpha/gamma beta.txt alpha
+True False True True
+True 3 True
+os-stat-result stat_result os True True 10 20 10 3 True True False True os stat_result ('st_mode', 'st_ino', 'st_dev', 'st_nlink', 'st_uid', 'st_gid', 'st_size')
+True 3 True
+True True
+True True True
+scandir-closed
+True False False True True True
+True
+True True True
+xlang3_pathlib_section.txt xlang3_pathlib_section .txt ['.txt']
+xlang3_pathlib_section.bin renamed.txt xlang3_pathlib_section.txt
+9 path text
+2 b'xy' True True False
+True True deep True
+['root.txt', 'sub']
+['root.txt'] ['note.txt', 'root.txt']
+True True True
+True True
+['xlang3_glob_case/a.py']
+['xlang3_glob_case/a.py', 'xlang3_glob_case/sub/c.py']
+['xlang3_glob_case/b.txt']
+['a.py']
+['.hidden.py', 'a.py']
+.hidden.py ['a.py']
+True [b'b.txt']
+True http.client
+True True True True
+True resource-data
+7 haha 3 2
+True True True 8
+(3, 5)
+inner box:inner
+[8, 5] True True True True
+2 2 1
+[1, 2] xy 2 5 5
+8 6 True 7
+13 True -3 -4
+[1, 3]
+[0, 1]
+[0, 1, 2]
+[1, 2]
+[5, 3]
+[1, 3]
+['a', 'c'] ['x', 'x', 'x']
+['a', 'b', 'a', 'b', 'a'] []
+[5, 5, 5]
+[1, 2, 3, 4] 9 10 [1, 2] [(1, 2), (3, 4), (5,)]
+[(1, 'a'), (1, 'b'), (2, 'a'), (2, 'b')]
+[(1, 2), (1, 3), (2, 3)] [('x', 'x'), ('x', 'y'), ('y', 'y')]
+[(1, 2), (1, 3), (2, 1), (2, 3), (3, 1), (3, 2)]
+[1, 3, 6, 10] [3, 7]
+[(1, 'a'), (2, None)]
+[1, 2]
+[1, 2] [(1, 'x'), (2, 'x')]
+[(1, 2), (1, 3), (2, 3)] [(1, 2), (2, 1)]
+[1, 3, 6] [11]
+[(1, 2), (2, 3), (3, 4)] 4 [5, 6] [4, 5, 6]
+[('a', ['a', 'a', 'a']), ('b', ['b', 'b']), ('c', ['c'])] [(1, [1, 3]), (0, [2, 4]), (1, [5])]
+7 8 ('left', 'right')
+2 2 2 -1 0
+5 [('a', 2), ('b', 2)]
+['a', 'a', 'b', 'b', 'c', 'c']
+[0, 1, 2, 3] 0 3 True
+['a', 'b'] [1, 2] [('a', 1), ('b', 2)]
+1 2 3 7 True 3
+['a', 'b', 'c'] [('a', 1), ('b', 2), ('c', 3)] 99 2
+4 0 True
+True 2 first second True
+empty
+2 1
+(1, 'a') (2, 'b')
+full
+True
+kw
+before
+shutdown-empty
+shutdown-put
+socket-loopback b'pong' b'ping' True True True True True
+socket-addrinfo True True True 127.0.0.1 80
+socket-address-helpers 127.0.0.1 4 127.0.0.1
+selectors-readiness 1 r True True
+socketpair-makefile b'line1\n'
+socket-create-connection b'hi' True
+http-client-loopback 200 b'ok' True
+True 0 xlang3-subprocess
+0 True
+0 0
+7 exit 7 True
+shell-ok
+env-copy-ok env-mapping-ok
+stdin-ok
+merged-error
+True 0 True True True
+True
+True True
+True
+sys-audit-bad-hook True

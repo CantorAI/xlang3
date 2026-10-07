@@ -23,6 +23,7 @@ limitations under the License.
 #include <limits>
 #include <numeric>
 #include <utility>
+#include <vector>
 
 namespace xlang3 {
 
@@ -882,6 +883,51 @@ bool math_iteration_count(Runtime& runtime, const Value& value, uint64_t& count,
   return false;
 }
 
+bool math_factorial_owned_limbs(uint32_t count, Value& out, std::string& error) {
+  // math.factorial is a native CPython function, so its XLang3 counterpart
+  // can compute directly on private limbs. The former Value multiply loop
+  // cloned both operands and published a new bigint at every step; factorial
+  // has no observable intermediate results or Python arithmetic callbacks.
+  // Keep this accumulator private and publish only the final immutable Value.
+  std::vector<uint32_t> limbs;
+  limbs.reserve(8);
+  limbs.push_back(1);
+  auto multiply_chunk = [&limbs](uint32_t factor) {
+    uint64_t carry = 0;
+    for (uint32_t& limb : limbs) {
+      const uint64_t product = static_cast<uint64_t>(limb) * factor + carry;
+      limb = static_cast<uint32_t>(product);
+      carry = product >> 32u;
+    }
+    if (carry != 0) limbs.push_back(static_cast<uint32_t>(carry));
+  };
+
+  // Batch consecutive factors while their product fits a 32-bit multiplier.
+  // The test product fits uint64_t because each operand is at most UINT32_MAX;
+  // it avoids a division in each iteration and reduces full-limb traversals.
+  uint64_t chunk = 1;
+  for (uint64_t factor = 2; factor <= count; ++factor) {
+    const uint64_t next = chunk * factor;
+    if (next > std::numeric_limits<uint32_t>::max()) {
+      multiply_chunk(static_cast<uint32_t>(chunk));
+      chunk = factor;
+    } else {
+      chunk = next;
+    }
+  }
+  multiply_chunk(static_cast<uint32_t>(chunk));
+#if defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+  // The existing bigint import API takes little-endian limb bytes, even on
+  // a big-endian host; it converts those bytes back to native limb storage.
+  for (uint32_t& limb : limbs) {
+    limb = (limb << 24u) | ((limb & 0x0000ff00u) << 8u) |
+        ((limb & 0x00ff0000u) >> 8u) | (limb >> 24u);
+  }
+#endif
+  return value_bigint_from_binary_limbs(limbs.data(), limbs.size() * sizeof(uint32_t),
+                                        false, out, error);
+}
+
 bool math_factorial(Runtime& runtime, const Value* args, uint32_t argc,
                     Value& out, std::string& error, void*) {
   if (argc != 1) {
@@ -895,6 +941,26 @@ bool math_factorial(Runtime& runtime, const Value* args, uint32_t argc,
     return false;
   uint64_t count = 0;
   if (!math_iteration_count(runtime, n, count, error)) return false;
+  // CPython uses the platform C long range before doing any factorial work.
+  // In particular, Windows must reject 2**31 rather than enter a huge loop.
+  if (count > static_cast<uint64_t>(std::numeric_limits<long>::max())) {
+    error = "factorial() argument should not exceed " +
+        std::to_string(std::numeric_limits<long>::max());
+    runtime.raise_class_error("OverflowError", error);
+    return false;
+  }
+  static constexpr int64_t small_factorials[] = {
+      1, 1, 2, 6, 24, 120, 720, 5040, 40320, 362880, 3628800, 39916800,
+      479001600, 6227020800LL, 87178291200LL, 1307674368000LL,
+      20922789888000LL, 355687428096000LL, 6402373705728000LL,
+      121645100408832000LL, 2432902008176640000LL};
+  if (count <= 20) {
+    out = Value::int64(small_factorials[count]);
+    return true;
+  }
+  if (count <= std::numeric_limits<uint32_t>::max())
+    return math_factorial_owned_limbs(static_cast<uint32_t>(count), out, error);
+  // On platforms with 64-bit C long, preserve the wider accepted input range.
   Value result = Value::int64(1);
   for (uint64_t i = 2; i <= count; ++i) {
     Value product;

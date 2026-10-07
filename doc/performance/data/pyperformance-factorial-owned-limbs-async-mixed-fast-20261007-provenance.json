@@ -1,0 +1,47 @@
+{
+  "status": "finished",
+  "started_utc": "2026-10-07T20:18:23.117379+00:00",
+  "manager_version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+  "expected_definitions": 2,
+  "benchmarks": "async_tree_eager_cpu_io_mixed,async_tree_cpu_io_mixed",
+  "mode": "fast",
+  "case_timeout_seconds": 300,
+  "scope": "targeted official benchmarks; not a full-suite rerun",
+  "runtime_executable": "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+  "sha256_start": {
+    "exe": "9f89802e3eed9431dccfe6906cd04cfede486e77dc951469fbf80cc785152bdc",
+    "dll": "9c838947e6e6cd22a1035f6a427e90df7e9c67cea1f343fd9fec196a4f30a487",
+    "hashlib": "5910f087e300459b854dca0046ac61125287e7d62bf330a3d626631d9a74b239"
+  },
+  "native_source_sha256": "c6ae3cf370d35f92eaf14ce195ba97a781a28f709c615edb7bb9200ddb39d62d",
+  "benchmark_source_sha256": "7c1493bc27c5c41f70f51cbf46a33c77b791915364ce619231461441f042178b",
+  "compatibility_hook_sha256": "2ffc217fe20497156bfcb1cebc7fb87203f33c6d4d3dbb6ecbcbcf91ea4cb317",
+  "before_xlang_json": "pyperformance-xlang3-super-method-call-full-fast-20261007.json",
+  "before_xlang_log": "pyperformance-xlang3-super-method-call-full-fast-20261007.log",
+  "cpython_reference": "pyperformance-cpython3147-super-method-full-fast-20261007.json",
+  "preserved_before_control": "build-repro/controls/super-method-call-checkpoint-20261007",
+  "command": [
+    "C:\\Python\\Python314\\python.exe",
+    "benchmarks/diagnostics/run_pyperformance_xlang3_shimmed.py",
+    "--runtime",
+    "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+    "--benchmarks",
+    "async_tree_eager_cpu_io_mixed,async_tree_cpu_io_mixed",
+    "--mode",
+    "fast",
+    "--case-timeout",
+    "300",
+    "--dependency-site",
+    "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages",
+    "--output",
+    "D:\\CantorAI\\xlang3\\doc\\performance\\data\\pyperformance-factorial-owned-limbs-async-mixed-fast-20261007.json"
+  ],
+  "manager_child_pid": 20732,
+  "exit_code": 0,
+  "completed_utc": "2026-10-07T20:23:15.145349+00:00",
+  "sha256_end": {
+    "exe": "9f89802e3eed9431dccfe6906cd04cfede486e77dc951469fbf80cc785152bdc",
+    "dll": "9c838947e6e6cd22a1035f6a427e90df7e9c67cea1f343fd9fec196a4f30a487",
+    "hashlib": "5910f087e300459b854dca0046ac61125287e7d62bf330a3d626631d9a74b239"
+  }
+}

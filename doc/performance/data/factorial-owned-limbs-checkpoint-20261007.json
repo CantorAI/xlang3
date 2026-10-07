@@ -1,0 +1,98 @@
+{
+  "status": "correctness_fixed_gate_and_targeted_official_passed",
+  "scope": "Native math.factorial checkpoint; targeted official results do not replace the all-97 report",
+  "binary_sha256": {
+    "exe": "9f89802e3eed9431dccfe6906cd04cfede486e77dc951469fbf80cc785152bdc",
+    "dll": "9c838947e6e6cd22a1035f6a427e90df7e9c67cea1f343fd9fec196a4f30a487",
+    "hashlib": "5910f087e300459b854dca0046ac61125287e7d62bf330a3d626631d9a74b239"
+  },
+  "native_source_sha256_raw": "c6ae3cf370d35f92eaf14ce195ba97a781a28f709c615edb7bb9200ddb39d62d",
+  "native_source_sha256_canonical_lf": "4cc39f9ce864fbbac35ad6029b4c6e98eddb3e995901449a2443bd2f270985dc",
+  "official_benchmarks": [
+    {
+      "benchmark": "async_tree_cpu_io_mixed",
+      "before_seconds": null,
+      "after_seconds": 5.5033296900001005,
+      "cpython3147_seconds": 0.4534167050005635,
+      "cpython_over_after": 0.08238952244210454,
+      "before_over_after": null,
+      "before_status": "failed: Benchmark timed out"
+    },
+    {
+      "benchmark": "async_tree_eager_cpu_io_mixed",
+      "before_seconds": 7.040031460000319,
+      "after_seconds": 3.082894939996186,
+      "cpython3147_seconds": 0.35760893000115174,
+      "cpython_over_after": 0.11599776734577734,
+      "before_over_after": 2.2835781293309427,
+      "before_status": "completed"
+    }
+  ],
+  "diagnostic_factorial": [
+    {
+      "n": 0,
+      "before_seconds_per_call": 1.9099999917671085e-07,
+      "after_seconds_per_call": 2.0974999642930925e-07,
+      "cpython3147_seconds_per_call": 1.899999915622175e-08,
+      "before_over_after": 0.9106078780844338,
+      "cpython_over_after": 0.09058402612476421
+    },
+    {
+      "n": 20,
+      "before_seconds_per_call": 3.3750002330634744e-07,
+      "after_seconds_per_call": 2.077499812003225e-07,
+      "cpython3147_seconds_per_call": 7.949995051603764e-08,
+      "before_over_after": 1.6245489956550885,
+      "cpython_over_after": 0.3826712765830769
+    },
+    {
+      "n": 100,
+      "before_seconds_per_call": 1.7616249970160424e-05,
+      "after_seconds_per_call": 5.824999971082434e-07,
+      "cpython3147_seconds_per_call": 4.964999970979989e-07,
+      "before_over_after": 30.242489369295008,
+      "cpython_over_after": 0.8523605142709322
+    },
+    {
+      "n": 500,
+      "before_seconds_per_call": 0.00015755524997075555,
+      "after_seconds_per_call": 4.40050003817305e-06,
+      "cpython3147_seconds_per_call": 6.380499980878085e-06,
+      "before_over_after": 35.80394241654582,
+      "cpython_over_after": 1.449948852523376
+    },
+    {
+      "n": 1000,
+      "before_seconds_per_call": 0.00043223550004768186,
+      "after_seconds_per_call": 1.921050003147684e-05,
+      "cpython3147_seconds_per_call": 2.2993499878793955e-05,
+      "before_over_after": 22.499960924466006,
+      "cpython_over_after": 1.1969235491589798
+    },
+    {
+      "n": 5000,
+      "before_seconds_per_call": 0.008900369999901158,
+      "after_seconds_per_call": 0.0010859900001378264,
+      "cpython3147_seconds_per_call": 0.0005009524997149128,
+      "before_over_after": 8.195627951244104,
+      "cpython_over_after": 0.46128647561334396
+    }
+  ],
+  "input_sha256": {
+    "native-arithmetic-baseline-20261007.json": "e133f9ea2be6db74d2c6524db62eb96fb3dfbc12148064838ea2e11caa905aca",
+    "native-factorial-owned-limbs-after-20261007.json": "f86348dd7e4d636f282e6f46fb58e97e0e17c7d1c17ee86373ca53c7bc1dbc71",
+    "factorial-platform-range-before-20261007.json": "9d6791558446cdf12dc00bb67ab502d660aa74c467f459b9ff3573b1686ca29e",
+    "factorial-owned-limbs-validation-20261007.json": "8135901466271586c26388be871aa712e647a2d8b471ee68af0317504d5dae2d",
+    "factorial-owned-limbs-validation-20261007-fixtures.log": "42ce35596f4ef75f991b4d8d2c4a9660ddc7bd497c3de5d61441535660182343",
+    "factorial-owned-limbs-validation-environment-fixed-20261007.json": "ac41895500b8455192548252508a36ce78ec153fd37bfb0f6e380693d6d2d0d3",
+    "factorial-owned-limbs-validation-environment-fixed-20261007-fixtures.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "factorial-owned-limbs-validation-environment-fixed-20261007-cpp.log": "b65e75a05b3822af823dc6b5da436a6712a8f2cab25d8d438b8378d5193e3188",
+    "release-factorial-owned-limbs-fixed-gate-20261007.json": "f60ad79b629584240dbe39e09788d6e34f1844eecd90b230e4c8ef56bd822fe6",
+    "release-factorial-owned-limbs-fixed-gate-20261007.log": "a824524a967254f89af42d6326400d35c7341b91c9bbbd7bd426ebcc059c0e73",
+    "pyperformance-factorial-owned-limbs-async-mixed-fast-20261007.json": "9019bd6c4d0224331ac0ae5742b04295ecc5057ea59853c937d5e150f56fe1c0",
+    "pyperformance-factorial-owned-limbs-async-mixed-fast-20261007.log": "34c033799e97ad515534f5fd9336237780f521deb7d51b0d6e36f383c58e42cf",
+    "pyperformance-factorial-owned-limbs-async-mixed-fast-20261007-provenance.json": "c4213d14a602aa9046125a9697d9e1591f0b577b259ba2a4a516e8d84895c3b4",
+    "pyperformance-xlang3-super-method-call-full-fast-20261007.json": "09db99bfc93ac0f06e1fcf9a492e5f3c1655ade8fcfb177a01d264f37df01b0d",
+    "pyperformance-cpython3147-super-method-full-fast-20261007.json": "2b2434d235fb1ca717d0f4fd376b242551e50cd0baf80c802b75c096dbc46129"
+  }
+}

@@ -10,3 +10,13 @@
 /doc/performance/pyperformance-xlang3-super-method-call-vs-cpython3147-full-fast-20261007.svg text eol=lf
 /benchmarks/diagnostics/summarize_pyperformance_comparison.py text eol=lf
 /benchmarks/diagnostics/genshi_render_correctness.py text eol=lf
+/doc/performance/data/native-arithmetic-baseline-20261007.json -text
+/doc/performance/data/native-factorial-owned-limbs-after-20261007.json -text
+/doc/performance/data/factorial-platform-range-before-20261007.json -text
+/doc/performance/data/factorial-owned-limbs-*-20261007* -text
+/doc/performance/data/release-factorial-owned-limbs-fixed-gate-20261007* -text
+/doc/performance/data/pyperformance-factorial-owned-limbs-async-mixed-fast-20261007* -text
+/benchmarks/diagnostics/native_math_factorial.py text eol=lf
+/benchmarks/diagnostics/generic_bigint_multiply.py text eol=lf
+/tests/fixtures/core/math_factorial_owned_limbs.py text eol=lf
+/tests/fixtures/expected/math_factorial_owned_limbs.out text eol=lf

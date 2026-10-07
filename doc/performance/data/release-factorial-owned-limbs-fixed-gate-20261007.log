@@ -1,0 +1,12 @@
+local_slots              pass         0.988x
+scalar_arithmetic        pass         0.988x
+range_for                pass         1.027x
+function_calls           pass         0.988x
+class_construct          pass         0.999x
+list_append              pass         0.991x
+property_access          pass         0.971x
+deepcopy_memo            pass         0.897x
+json_dumps               pass         0.996x
+gc_traversal             pass         0.739x
+subparsers               pass         0.946x
+Performance check: pass. Report: D:\CantorAI\xlang3\doc\performance\data\release-factorial-owned-limbs-fixed-gate-20261007.json
