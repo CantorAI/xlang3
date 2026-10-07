@@ -72,3 +72,12 @@
 /tests/fixtures/expected/pyexpat_namespace_incremental.out text eol=lf
 /doc/performance/pyexpat-namespace-incremental-checkpoint-20261007.md text eol=lf
 /doc/performance/pyexpat-namespace-incremental-checkpoint-20261007.svg text eol=lf
+
+/doc/performance/data/genshi-render-*-20261007* -text
+/doc/performance/data/genshi-runtime-phases-20261007.json -text
+/doc/performance/data/genshi-grouped-profiler-validation-20261007.json -text
+/doc/performance/data/eval-live-namespace-baseline-20261007.json -text
+/benchmarks/diagnostics/genshi_render_profile.py text eol=lf
+/benchmarks/diagnostics/genshi_runtime_phases.py text eol=lf
+/benchmarks/diagnostics/eval_live_namespace.py text eol=lf
+/doc/performance/genshi-runtime-profile-20261007.md text eol=lf

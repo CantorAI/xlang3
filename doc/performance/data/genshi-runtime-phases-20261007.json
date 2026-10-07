@@ -1,0 +1,287 @@
+{
+  "manager_version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+  "probe_sha256": "19af24888def3847550edd7925e171c7249e38326f29d929b20a38166ac6af3a",
+  "runtime_sha256": {
+    "exe": "9f89802e3eed9431dccfe6906cd04cfede486e77dc951469fbf80cc785152bdc",
+    "dll": "b182715318bccf05236d82390c413020de73c8b97bfac673caa87f081a914acb"
+  },
+  "diagnostic_only": true,
+  "runs": [
+    {
+      "repeat": 0,
+      "runtime": "cpython3147",
+      "exit_code": 0,
+      "stdout": "{\"diagnostic_only\": true, \"rows\": [{\"phase\": \"text_generate_events\", \"elapsed_per_pass\": 0.018703600003694493, \"events\": 32002}, {\"phase\": \"xml_generate_events\", \"elapsed_per_pass\": 0.02414916666263404, \"events\": 34004}, {\"phase\": \"context_get\", \"elapsed_per_pass\": 0.0012721999955829233, \"calls\": 10000, \"checksum\": 10000}, {\"phase\": \"lookup_name\", \"elapsed_per_pass\": 0.0016751000075601041, \"calls\": 10000, \"checksum\": 10000}, {\"phase\": \"compiled_eval\", \"elapsed_per_pass\": 0.0037728000024799258, \"calls\": 10000, \"checksum\": 10000}, {\"phase\": \"expression_evaluate\", \"elapsed_per_pass\": 0.006829399993875995, \"calls\": 10000, \"checksum\": 10000}]}\n",
+      "stderr": "",
+      "result": {
+        "diagnostic_only": true,
+        "rows": [
+          {
+            "phase": "text_generate_events",
+            "elapsed_per_pass": 0.018703600003694493,
+            "events": 32002
+          },
+          {
+            "phase": "xml_generate_events",
+            "elapsed_per_pass": 0.02414916666263404,
+            "events": 34004
+          },
+          {
+            "phase": "context_get",
+            "elapsed_per_pass": 0.0012721999955829233,
+            "calls": 10000,
+            "checksum": 10000
+          },
+          {
+            "phase": "lookup_name",
+            "elapsed_per_pass": 0.0016751000075601041,
+            "calls": 10000,
+            "checksum": 10000
+          },
+          {
+            "phase": "compiled_eval",
+            "elapsed_per_pass": 0.0037728000024799258,
+            "calls": 10000,
+            "checksum": 10000
+          },
+          {
+            "phase": "expression_evaluate",
+            "elapsed_per_pass": 0.006829399993875995,
+            "calls": 10000,
+            "checksum": 10000
+          }
+        ]
+      }
+    },
+    {
+      "repeat": 0,
+      "runtime": "xlang3",
+      "exit_code": 0,
+      "stdout": "{\"diagnostic_only\": true, \"rows\": [{\"phase\": \"text_generate_events\", \"elapsed_per_pass\": 0.31390900000891026, \"events\": 32002}, {\"phase\": \"xml_generate_events\", \"elapsed_per_pass\": 0.3897389000048861, \"events\": 34004}, {\"phase\": \"context_get\", \"elapsed_per_pass\": 0.026790100004291162, \"calls\": 10000, \"checksum\": 10000}, {\"phase\": \"lookup_name\", \"elapsed_per_pass\": 0.03229870001086965, \"calls\": 10000, \"checksum\": 10000}, {\"phase\": \"compiled_eval\", \"elapsed_per_pass\": 0.097550999984378, \"calls\": 10000, \"checksum\": 10000}, {\"phase\": \"expression_evaluate\", \"elapsed_per_pass\": 0.13513229999807663, \"calls\": 10000, \"checksum\": 10000}]}\n",
+      "stderr": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\astutil.py:799: DeprecationWarning: Expression.__init__ missing 1 required positional argument: 'body'. This will become an error in Python 3.15.\n  return visitor(node)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:589: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  name = _new(_ast.Name, '_lookup_name', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:590: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  namearg = _new(_ast.Name, '__data__', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:591: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.\n  strarg = _new(_ast_Str, node.id)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:592: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  node = _new(_ast.Call, name, [namearg, strarg], [])\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\astutil.py:799: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  return visitor(node)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:609: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  func = _new(_ast.Name, '_lookup_attr', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:610: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.\n  args = [self.visit(node.value), _new(_ast_Str, node.attr)]\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:611: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  return _new(_ast.Call, func, args, [])\n",
+      "result": {
+        "diagnostic_only": true,
+        "rows": [
+          {
+            "phase": "text_generate_events",
+            "elapsed_per_pass": 0.31390900000891026,
+            "events": 32002
+          },
+          {
+            "phase": "xml_generate_events",
+            "elapsed_per_pass": 0.3897389000048861,
+            "events": 34004
+          },
+          {
+            "phase": "context_get",
+            "elapsed_per_pass": 0.026790100004291162,
+            "calls": 10000,
+            "checksum": 10000
+          },
+          {
+            "phase": "lookup_name",
+            "elapsed_per_pass": 0.03229870001086965,
+            "calls": 10000,
+            "checksum": 10000
+          },
+          {
+            "phase": "compiled_eval",
+            "elapsed_per_pass": 0.097550999984378,
+            "calls": 10000,
+            "checksum": 10000
+          },
+          {
+            "phase": "expression_evaluate",
+            "elapsed_per_pass": 0.13513229999807663,
+            "calls": 10000,
+            "checksum": 10000
+          }
+        ]
+      }
+    },
+    {
+      "repeat": 1,
+      "runtime": "cpython3147",
+      "exit_code": 0,
+      "stdout": "{\"diagnostic_only\": true, \"rows\": [{\"phase\": \"text_generate_events\", \"elapsed_per_pass\": 0.019360099996750552, \"events\": 32002}, {\"phase\": \"xml_generate_events\", \"elapsed_per_pass\": 0.024017300000802305, \"events\": 34004}, {\"phase\": \"context_get\", \"elapsed_per_pass\": 0.0012170000118203461, \"calls\": 10000, \"checksum\": 10000}, {\"phase\": \"lookup_name\", \"elapsed_per_pass\": 0.0015574000135529786, \"calls\": 10000, \"checksum\": 10000}, {\"phase\": \"compiled_eval\", \"elapsed_per_pass\": 0.0034561999782454222, \"calls\": 10000, \"checksum\": 10000}, {\"phase\": \"expression_evaluate\", \"elapsed_per_pass\": 0.006430600013118237, \"calls\": 10000, \"checksum\": 10000}]}\n",
+      "stderr": "",
+      "result": {
+        "diagnostic_only": true,
+        "rows": [
+          {
+            "phase": "text_generate_events",
+            "elapsed_per_pass": 0.019360099996750552,
+            "events": 32002
+          },
+          {
+            "phase": "xml_generate_events",
+            "elapsed_per_pass": 0.024017300000802305,
+            "events": 34004
+          },
+          {
+            "phase": "context_get",
+            "elapsed_per_pass": 0.0012170000118203461,
+            "calls": 10000,
+            "checksum": 10000
+          },
+          {
+            "phase": "lookup_name",
+            "elapsed_per_pass": 0.0015574000135529786,
+            "calls": 10000,
+            "checksum": 10000
+          },
+          {
+            "phase": "compiled_eval",
+            "elapsed_per_pass": 0.0034561999782454222,
+            "calls": 10000,
+            "checksum": 10000
+          },
+          {
+            "phase": "expression_evaluate",
+            "elapsed_per_pass": 0.006430600013118237,
+            "calls": 10000,
+            "checksum": 10000
+          }
+        ]
+      }
+    },
+    {
+      "repeat": 1,
+      "runtime": "xlang3",
+      "exit_code": 0,
+      "stdout": "{\"diagnostic_only\": true, \"rows\": [{\"phase\": \"text_generate_events\", \"elapsed_per_pass\": 0.319877999999638, \"events\": 32002}, {\"phase\": \"xml_generate_events\", \"elapsed_per_pass\": 0.3799926333304029, \"events\": 34004}, {\"phase\": \"context_get\", \"elapsed_per_pass\": 0.027948700007982552, \"calls\": 10000, \"checksum\": 10000}, {\"phase\": \"lookup_name\", \"elapsed_per_pass\": 0.0399619999807328, \"calls\": 10000, \"checksum\": 10000}, {\"phase\": \"compiled_eval\", \"elapsed_per_pass\": 0.09853250000742264, \"calls\": 10000, \"checksum\": 10000}, {\"phase\": \"expression_evaluate\", \"elapsed_per_pass\": 0.13996400000178255, \"calls\": 10000, \"checksum\": 10000}]}\n",
+      "stderr": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\astutil.py:799: DeprecationWarning: Expression.__init__ missing 1 required positional argument: 'body'. This will become an error in Python 3.15.\n  return visitor(node)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:589: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  name = _new(_ast.Name, '_lookup_name', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:590: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  namearg = _new(_ast.Name, '__data__', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:591: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.\n  strarg = _new(_ast_Str, node.id)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:592: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  node = _new(_ast.Call, name, [namearg, strarg], [])\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\astutil.py:799: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  return visitor(node)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:609: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  func = _new(_ast.Name, '_lookup_attr', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:610: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.\n  args = [self.visit(node.value), _new(_ast_Str, node.attr)]\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:611: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  return _new(_ast.Call, func, args, [])\n",
+      "result": {
+        "diagnostic_only": true,
+        "rows": [
+          {
+            "phase": "text_generate_events",
+            "elapsed_per_pass": 0.319877999999638,
+            "events": 32002
+          },
+          {
+            "phase": "xml_generate_events",
+            "elapsed_per_pass": 0.3799926333304029,
+            "events": 34004
+          },
+          {
+            "phase": "context_get",
+            "elapsed_per_pass": 0.027948700007982552,
+            "calls": 10000,
+            "checksum": 10000
+          },
+          {
+            "phase": "lookup_name",
+            "elapsed_per_pass": 0.0399619999807328,
+            "calls": 10000,
+            "checksum": 10000
+          },
+          {
+            "phase": "compiled_eval",
+            "elapsed_per_pass": 0.09853250000742264,
+            "calls": 10000,
+            "checksum": 10000
+          },
+          {
+            "phase": "expression_evaluate",
+            "elapsed_per_pass": 0.13996400000178255,
+            "calls": 10000,
+            "checksum": 10000
+          }
+        ]
+      }
+    },
+    {
+      "repeat": 2,
+      "runtime": "cpython3147",
+      "exit_code": 0,
+      "stdout": "{\"diagnostic_only\": true, \"rows\": [{\"phase\": \"text_generate_events\", \"elapsed_per_pass\": 0.018859533331124112, \"events\": 32002}, {\"phase\": \"xml_generate_events\", \"elapsed_per_pass\": 0.02436920000279012, \"events\": 34004}, {\"phase\": \"context_get\", \"elapsed_per_pass\": 0.0012858999834861606, \"calls\": 10000, \"checksum\": 10000}, {\"phase\": \"lookup_name\", \"elapsed_per_pass\": 0.0017031000170391053, \"calls\": 10000, \"checksum\": 10000}, {\"phase\": \"compiled_eval\", \"elapsed_per_pass\": 0.0043738000094890594, \"calls\": 10000, \"checksum\": 10000}, {\"phase\": \"expression_evaluate\", \"elapsed_per_pass\": 0.007272000017110258, \"calls\": 10000, \"checksum\": 10000}]}\n",
+      "stderr": "",
+      "result": {
+        "diagnostic_only": true,
+        "rows": [
+          {
+            "phase": "text_generate_events",
+            "elapsed_per_pass": 0.018859533331124112,
+            "events": 32002
+          },
+          {
+            "phase": "xml_generate_events",
+            "elapsed_per_pass": 0.02436920000279012,
+            "events": 34004
+          },
+          {
+            "phase": "context_get",
+            "elapsed_per_pass": 0.0012858999834861606,
+            "calls": 10000,
+            "checksum": 10000
+          },
+          {
+            "phase": "lookup_name",
+            "elapsed_per_pass": 0.0017031000170391053,
+            "calls": 10000,
+            "checksum": 10000
+          },
+          {
+            "phase": "compiled_eval",
+            "elapsed_per_pass": 0.0043738000094890594,
+            "calls": 10000,
+            "checksum": 10000
+          },
+          {
+            "phase": "expression_evaluate",
+            "elapsed_per_pass": 0.007272000017110258,
+            "calls": 10000,
+            "checksum": 10000
+          }
+        ]
+      }
+    },
+    {
+      "repeat": 2,
+      "runtime": "xlang3",
+      "exit_code": 0,
+      "stdout": "{\"diagnostic_only\": true, \"rows\": [{\"phase\": \"text_generate_events\", \"elapsed_per_pass\": 0.3139120333362371, \"events\": 32002}, {\"phase\": \"xml_generate_events\", \"elapsed_per_pass\": 0.3754227333314096, \"events\": 34004}, {\"phase\": \"context_get\", \"elapsed_per_pass\": 0.027316599996993318, \"calls\": 10000, \"checksum\": 10000}, {\"phase\": \"lookup_name\", \"elapsed_per_pass\": 0.033865600009448826, \"calls\": 10000, \"checksum\": 10000}, {\"phase\": \"compiled_eval\", \"elapsed_per_pass\": 0.09732309999526478, \"calls\": 10000, \"checksum\": 10000}, {\"phase\": \"expression_evaluate\", \"elapsed_per_pass\": 0.1340030999854207, \"calls\": 10000, \"checksum\": 10000}]}\n",
+      "stderr": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\astutil.py:799: DeprecationWarning: Expression.__init__ missing 1 required positional argument: 'body'. This will become an error in Python 3.15.\n  return visitor(node)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:589: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  name = _new(_ast.Name, '_lookup_name', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:590: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  namearg = _new(_ast.Name, '__data__', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:591: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.\n  strarg = _new(_ast_Str, node.id)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:592: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  node = _new(_ast.Call, name, [namearg, strarg], [])\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\astutil.py:799: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  return visitor(node)\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:609: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.\n  func = _new(_ast.Name, '_lookup_attr', _ast.Load())\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:610: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.\n  args = [self.visit(node.value), _new(_ast_Str, node.attr)]\nD:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\genshi\\template\\eval.py:611: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.\n  return _new(_ast.Call, func, args, [])\n",
+      "result": {
+        "diagnostic_only": true,
+        "rows": [
+          {
+            "phase": "text_generate_events",
+            "elapsed_per_pass": 0.3139120333362371,
+            "events": 32002
+          },
+          {
+            "phase": "xml_generate_events",
+            "elapsed_per_pass": 0.3754227333314096,
+            "events": 34004
+          },
+          {
+            "phase": "context_get",
+            "elapsed_per_pass": 0.027316599996993318,
+            "calls": 10000,
+            "checksum": 10000
+          },
+          {
+            "phase": "lookup_name",
+            "elapsed_per_pass": 0.033865600009448826,
+            "calls": 10000,
+            "checksum": 10000
+          },
+          {
+            "phase": "compiled_eval",
+            "elapsed_per_pass": 0.09732309999526478,
+            "calls": 10000,
+            "checksum": 10000
+          },
+          {
+            "phase": "expression_evaluate",
+            "elapsed_per_pass": 0.1340030999854207,
+            "calls": 10000,
+            "checksum": 10000
+          }
+        ]
+      }
+    }
+  ]
+}

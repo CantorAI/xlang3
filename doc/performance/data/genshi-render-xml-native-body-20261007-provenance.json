@@ -1,0 +1,40 @@
+{
+  "manager_version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+  "runtime_hashes": {
+    "exe": "9f89802e3eed9431dccfe6906cd04cfede486e77dc951469fbf80cc785152bdc",
+    "dll": "b182715318bccf05236d82390c413020de73c8b97bfac673caa87f081a914acb"
+  },
+  "probe_sha256": "96e27deb9d6916dacbf924ed17d01d9191ac6713af2af57e224c87ddd842041b",
+  "benchmark_sha256": "1422d56533ae1ec748ba5c2b928f48408b5e4b47c189cdb24095cd508762b892",
+  "result": {
+    "variant": "xml",
+    "repeat": 20,
+    "diagnostic_elapsed_seconds": 19.879727899999125,
+    "characters": 112017,
+    "rows": 1000,
+    "cells": 10000,
+    "sha256_utf8": "61096eb9fee3ea72a4615a57e653bca545efacbad8aa8d522bb954d66d9421bc",
+    "profile": []
+  },
+  "command": [
+    "C:\\Python\\Python314\\python.exe",
+    "benchmarks/diagnostics/sample_native_windows.py",
+    "--output",
+    "D:\\CantorAI\\xlang3\\doc\\performance\\data\\genshi-render-xml-native-body-20261007.json",
+    "--interval-ms",
+    "2",
+    "--sample-after-file",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\genshi-render-xml-native-body-20261007.marker",
+    "--",
+    "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+    "D:\\CantorAI\\xlang3\\benchmarks\\diagnostics\\genshi_render_profile.py",
+    "C:\\Python\\Python314\\Lib\\site-packages\\pyperformance\\data-files\\benchmarks\\bm_genshi\\run_benchmark.py",
+    "--variant",
+    "xml",
+    "--repeat",
+    "20",
+    "--start-marker",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\genshi-render-xml-native-body-20261007.marker"
+  ],
+  "diagnostic_only": true
+}

@@ -1,0 +1,58 @@
+{
+  "manager_version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+  "probe_sha256": "7ce6bafedb6d146f79b1d17dbcc8879c59ee683483b199294e1340b23a09cfa1",
+  "binary_hashes": {
+    "exe": "9f89802e3eed9431dccfe6906cd04cfede486e77dc951469fbf80cc785152bdc",
+    "dll": "b182715318bccf05236d82390c413020de73c8b97bfac673caa87f081a914acb"
+  },
+  "runs": [
+    {
+      "runtime": "cpython3147",
+      "exit_code": 0,
+      "result": {
+        "global_mutation_within_eval": 2,
+        "builtins_inserted_into_original": true,
+        "globals_identity": true,
+        "nested_function_sees_later_global_mutation": 3,
+        "explicit_locals_shadow_globals": 7,
+        "custom_builtins": 42
+      },
+      "stderr": ""
+    },
+    {
+      "runtime": "xlang3",
+      "exit_code": 0,
+      "result": {
+        "global_mutation_within_eval": 1,
+        "builtins_inserted_into_original": false,
+        "globals_identity": false,
+        "nested_function_sees_later_global_mutation": 2,
+        "explicit_locals_shadow_globals": 7,
+        "custom_builtins": 2
+      },
+      "stderr": ""
+    }
+  ],
+  "differences": {
+    "global_mutation_within_eval": {
+      "cpython3147": 2,
+      "xlang3": 1
+    },
+    "builtins_inserted_into_original": {
+      "cpython3147": true,
+      "xlang3": false
+    },
+    "globals_identity": {
+      "cpython3147": true,
+      "xlang3": false
+    },
+    "nested_function_sees_later_global_mutation": {
+      "cpython3147": 3,
+      "xlang3": 2
+    },
+    "custom_builtins": {
+      "cpython3147": 42,
+      "xlang3": 2
+    }
+  }
+}
