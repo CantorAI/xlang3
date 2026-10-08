@@ -40,6 +40,16 @@ The September 2026 slowdown is still under investigation. A current-build
 baseline prevents further degradation; it does not mean August performance
 has been restored. Do not replace the historical comparisons with this gate.
 
+Before starting a performance experiment, search `doc/performance` for the
+affected function, fields, and mechanism, and read prior matching trials.
+Check the preserved patches as well as their titles. A different spelling,
+new test coverage, or a new measurement protocol does not make the same
+runtime optimization a new hypothesis. Revisit a rejected mechanism only
+with concrete evidence explaining why its expected effect has changed.
+In particular, callee-module owner selection at Python call entry was
+rejected on September 30; see
+`doc/performance/call-module-owner-call-entry-trial-20260930.md`.
+
 Keep CPython pure-Python standard-library modules implemented in Python.
 Improve their performance through XLang3's compiler, IR, VM, and generic runtime
 paths. A native XLang3 module may replace a CPython module only when CPython

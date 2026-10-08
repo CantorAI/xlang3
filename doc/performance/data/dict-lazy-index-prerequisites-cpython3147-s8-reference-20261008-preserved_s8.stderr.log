@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\scratch\performance\dict-lazy-index-prerequisites-fixture-proposed-20261008.py", line 10, in <module>
+    assert list(mapping) == ["kept", "changed", "added", "keyword"]
+AssertionError

@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\scratch\performance\runtime-frame-context-coalesced-proposed-20261008-candidates\tests\fixtures\core\runtime_frame_context.py", line 27, in <module>
+    assert [frame.f_locals["later"] for frame in saved] == list(range(1, 9))
+            ~~~~~~~~~~~~~~^^^^^^^^^
+KeyError: 'later'

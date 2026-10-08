@@ -1,0 +1,151 @@
+{
+  "status": "frozen_doc_only_actual_reference_metadata",
+  "references": [
+    {
+      "label": "frame_context",
+      "actual_receipt": "doc/performance/data/runtime-frame-context-cpython3147-s8-correctness-r2-20261008.json",
+      "actual_receipt_sha256": "159f7294d3ff4e1395722145e3bc8ef72a6ed47834989798cd588af0b5af7d41",
+      "actual_terminal_status": "terminal_strict_python_reference_failed",
+      "hashes_unchanged": true,
+      "groups_expected": 4,
+      "actual_cpython_groups_passed": 4,
+      "actual_s8_pass_groups": 0,
+      "actual_s8_failure": "S8 failed before first PASS: line27 missing later in escaped f_locals",
+      "later_s8_groups": "unreached and unknown in this capture",
+      "executed_manager_source": "scratch/performance/capture-runtime-frame-context-cpython3147-s8-correctness-r2-proposed-20261008.py",
+      "executed_manager_sha256": "ad44cade810cecdd1fbc7e567d5fbb9a67b905d247e857713e2b463e1a099b8d",
+      "strict_source_original": "D:\\CantorAI\\xlang3\\scratch\\performance\\runtime-frame-context-coalesced-proposed-20261008-candidates\\tests\\fixtures\\core\\runtime_frame_context.py",
+      "strict_source_sha256": "fd942dfb3981c01b6464f623ebb1b37640772c532b18ad7381abebf2d9e5ffc7",
+      "expected_original": "D:\\CantorAI\\xlang3\\scratch\\performance\\runtime-frame-context-coalesced-proposed-20261008-candidates\\tests\\fixtures\\expected\\runtime_frame_context.out",
+      "expected_sha256": "97d5a6c2764deb48e4f217f09d148f13b4f8332d88b6f930f14ba12ede9e065d",
+      "control_manifest_sha256": "67449b0b9ecd5a1b4c9669acef85d8b89eb28c7b31df60b7a4653ad5a7c79b56",
+      "cpython_executable": "C:\\Python\\Python314\\python.exe",
+      "cpython_executable_sha256": "4942b86a6597e5aee0128daa00050ed79bc21f6e709a78eb19cbfeb0c2f39ac9",
+      "cpython_dll_sha256": "0f9857ffdfe010fe6b99328d58c2e3c7472ce75f336bf9c2ad9bd5bca3bce700",
+      "raw_phases": [
+        {
+          "runtime": "cpython3147",
+          "command": [
+            "C:\\Python\\Python314\\python.exe",
+            "-I",
+            "-u",
+            "-X",
+            "faulthandler",
+            "-c",
+            "import runpy,sys; assert sys.implementation.name == \"cpython\" and sys.version_info[:3] == (3,14,7) and sys.flags.optimize == 0; sys.pycache_prefix=sys.argv[2]; runpy.run_path(sys.argv[1],run_name=\"__main__\")",
+            "D:\\CantorAI\\xlang3\\scratch\\performance\\runtime-frame-context-coalesced-proposed-20261008-candidates\\tests\\fixtures\\core\\runtime_frame_context.py",
+            "D:\\CantorAI\\xlang3\\scratch\\performance\\pycache-runtime-frame-context-cpython3147-s8-correctness-r2-20261008-cpython3147"
+          ],
+          "timeout_seconds": 120,
+          "timeout": false,
+          "passed": true,
+          "stdout_log": "runtime-frame-context-cpython3147-s8-correctness-r2-20261008-cpython3147.stdout.log",
+          "stderr_log": "runtime-frame-context-cpython3147-s8-correctness-r2-20261008-cpython3147.stderr.log",
+          "pid": 26468,
+          "exit_code": 0,
+          "output_matches_expected": true,
+          "stdout_sha256": "0e2b9174689d9bcfb21d784171e0411861791e11af1cbc1b725f103aa7fd6e5d",
+          "stdout_bytes": 149,
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_bytes": 0
+        },
+        {
+          "runtime": "preserved_s8",
+          "command": [
+            "D:\\CantorAI\\xlang3\\build-repro\\controls\\sorted-exact-int-s8-validated-checkpoint-20261008\\xlang3.exe",
+            "D:\\CantorAI\\xlang3\\scratch\\performance\\runtime-frame-context-coalesced-proposed-20261008-candidates\\tests\\fixtures\\core\\runtime_frame_context.py"
+          ],
+          "timeout_seconds": 120,
+          "timeout": false,
+          "passed": false,
+          "stdout_log": "runtime-frame-context-cpython3147-s8-correctness-r2-20261008-preserved_s8.stdout.log",
+          "stderr_log": "runtime-frame-context-cpython3147-s8-correctness-r2-20261008-preserved_s8.stderr.log",
+          "pid": 31372,
+          "exit_code": 1,
+          "output_matches_expected": false,
+          "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdout_bytes": 0,
+          "stderr_sha256": "9e78ecced87f2b58c7db1e64d4069ddb83f712a864d5fbea73d76fed5499bb43",
+          "stderr_bytes": 347
+        }
+      ],
+      "scope": "Inspection of actual CP/S8 correctness references only; no native implementation/repair/public performance claim"
+    },
+    {
+      "label": "dict_prerequisites",
+      "actual_receipt": "doc/performance/data/dict-lazy-index-prerequisites-cpython3147-s8-reference-20261008.json",
+      "actual_receipt_sha256": "2266464a276cf086c990441426b8f3f2de6173828e9f1bc2e9c0f2c590d8692e",
+      "actual_terminal_status": "terminal_strict_python_reference_failed",
+      "hashes_unchanged": true,
+      "groups_expected": 4,
+      "actual_cpython_groups_passed": 4,
+      "actual_s8_pass_groups": 0,
+      "actual_s8_failure": "S8 failed before first PASS: line10 dict.__init__ incorrectly cleared existing entries",
+      "later_s8_groups": "unreached and unknown in this capture",
+      "executed_manager_source": "scratch/performance/capture-dict-lazy-index-prerequisites-cpython3147-s8-proposed-20261008.py",
+      "executed_manager_sha256": "287a43aa2178542242889c99d18363cd01c713af694dc335cdcf3d63b8d8e0d7",
+      "strict_source_original": "D:\\CantorAI\\xlang3\\scratch\\performance\\dict-lazy-index-prerequisites-fixture-proposed-20261008.py",
+      "strict_source_sha256": "d26e25f1ad8bcc2c643031dd67e250d43f27dd72dee34595b20aeb1ab1221c8d",
+      "expected_original": "D:\\CantorAI\\xlang3\\scratch\\performance\\dict-lazy-index-prerequisites-expected-proposed-20261008.out",
+      "expected_sha256": "364a27ba20ecd350f136fbb3694004517081484cf374b71f10454f183b319f25",
+      "control_manifest_sha256": "67449b0b9ecd5a1b4c9669acef85d8b89eb28c7b31df60b7a4653ad5a7c79b56",
+      "cpython_executable": "C:\\Python\\Python314\\python.exe",
+      "cpython_executable_sha256": "4942b86a6597e5aee0128daa00050ed79bc21f6e709a78eb19cbfeb0c2f39ac9",
+      "cpython_dll_sha256": "0f9857ffdfe010fe6b99328d58c2e3c7472ce75f336bf9c2ad9bd5bca3bce700",
+      "raw_phases": [
+        {
+          "runtime": "cpython3147",
+          "command": [
+            "C:\\Python\\Python314\\python.exe",
+            "-I",
+            "-u",
+            "-X",
+            "faulthandler",
+            "-c",
+            "import runpy,sys; assert sys.implementation.name == \"cpython\" and sys.version_info[:3] == (3,14,7) and sys.flags.optimize == 0; sys.pycache_prefix=sys.argv[2]; runpy.run_path(sys.argv[1],run_name=\"__main__\")",
+            "D:\\CantorAI\\xlang3\\scratch\\performance\\dict-lazy-index-prerequisites-fixture-proposed-20261008.py",
+            "D:\\CantorAI\\xlang3\\scratch\\performance\\pycache-dict-lazy-index-prerequisites-cpython3147-s8-reference-20261008-cpython3147"
+          ],
+          "timeout_seconds": 120,
+          "timeout": false,
+          "passed": true,
+          "stdout_log": "dict-lazy-index-prerequisites-cpython3147-s8-reference-20261008-cpython3147.stdout.log",
+          "stderr_log": "dict-lazy-index-prerequisites-cpython3147-s8-reference-20261008-cpython3147.stderr.log",
+          "pid": 29252,
+          "exit_code": 0,
+          "output_matches_expected": true,
+          "stdout_sha256": "127ba8a7a9c8eb7d947dbb9f0373d5ed95b2b2cd99a8c4eb8e098c75c829ec95",
+          "stdout_bytes": 178,
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_bytes": 0
+        },
+        {
+          "runtime": "preserved_s8",
+          "command": [
+            "D:\\CantorAI\\xlang3\\build-repro\\controls\\sorted-exact-int-s8-validated-checkpoint-20261008\\xlang3.exe",
+            "D:\\CantorAI\\xlang3\\scratch\\performance\\dict-lazy-index-prerequisites-fixture-proposed-20261008.py"
+          ],
+          "timeout_seconds": 120,
+          "timeout": false,
+          "passed": false,
+          "stdout_log": "dict-lazy-index-prerequisites-cpython3147-s8-reference-20261008-preserved_s8.stdout.log",
+          "stderr_log": "dict-lazy-index-prerequisites-cpython3147-s8-reference-20261008-preserved_s8.stderr.log",
+          "pid": 30636,
+          "exit_code": 1,
+          "output_matches_expected": false,
+          "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdout_bytes": 0,
+          "stderr_sha256": "235e60856010f89ed1f66792e4684ae7f97afcec20cbfbd8f7f849ea889e58f6",
+          "stderr_bytes": 251
+        }
+      ],
+      "scope": "Inspection of actual CP/S8 correctness references only; no native implementation/repair/public performance claim"
+    }
+  ],
+  "live_engine_or_test_paths_copied": false,
+  "unexecuted_repair_code_included": false,
+  "binary_files_included": false,
+  "performance_claim": "none",
+  "original_receipts_and_source_bytes_unchanged": true,
+  "publication_requires_root_review": true
+}

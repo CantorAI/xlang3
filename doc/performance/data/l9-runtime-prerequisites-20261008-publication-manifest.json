@@ -1,0 +1,1171 @@
+{
+  "status": "frozen_doc_and_instruction_only_root_review_no_publication",
+  "parent_head": "04372c18e74e9e31bc8229acf20403aa1e071c74",
+  "preserved_parent_union": "scratch/performance/l9-runtime-prerequisites-publication-proposed-20261008-manifest.json",
+  "preserved_parent_union_sha256": "d0ddf02e895e3f668298f4b9d38c6b5d8644c36dd32d48f1433fde5f98d9f20a",
+  "parent_l9_plan": "scratch/performance/native-entry-layout-l9-rejected-publication-plan-proposed-20261008.json",
+  "parent_l9_plan_sha256": "6672de74ff7015829094b96168454042b59ceb67625d71cca54d1826a93ec207",
+  "unchanged_l9_report_sha256": "18db5b312c5af36ed70b99d1198c4f697833c6892971e130b71ec24ae42e1b92",
+  "unchanged_original_l9_rows": 122,
+  "scope": "Rejected L9 evidence, actual CP4-pass/S8 escaped-locals failure and CP4-pass/S8 dict-init failure with later S8 groups unknown, source-only DictSet diagnosis, actual unmeasured R10 duplicate withdrawal and exact S8 restoration, and instruction-only history-audit rule",
+  "row_count": 144,
+  "files": [
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008.json",
+      "destination": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008.json",
+      "sha256": "f7868c0920a403c5b333df6dd63171570a15a042431194ea72819a870d8ce21c",
+      "bytes": 364971,
+      "role": "actual_receipt"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-01-control.stdout.log",
+      "destination": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-01-control.stdout.log",
+      "sha256": "1b87b32e5d4b5791b3bdf0e4ad9d8b25921d3e486ba1c4a635ecb9f85c4e6faa",
+      "bytes": 885,
+      "role": "raw_paired_stdout"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-01-control.stderr.log",
+      "destination": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-01-control.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "role": "raw_paired_stderr"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-01-control.external-process-observations.jsonl",
+      "destination": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-01-control.external-process-observations.jsonl",
+      "sha256": "9cc5a8092f54c0b1de01c065f452cb19a121139d4352708ff4183d4c087acf25",
+      "bytes": 65,
+      "role": "raw_timing_watcher"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-01-candidate.stdout.log",
+      "destination": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-01-candidate.stdout.log",
+      "sha256": "d50f0034bf072bdff65ec8a423f3aa346723bb20e960674895ddec0bc6ac7a22",
+      "bytes": 884,
+      "role": "raw_paired_stdout"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-01-candidate.stderr.log",
+      "destination": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-01-candidate.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "role": "raw_paired_stderr"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-01-candidate.external-process-observations.jsonl",
+      "destination": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-01-candidate.external-process-observations.jsonl",
+      "sha256": "8a3aaa6c018d3277db5f182f932cf72214d4324d1348b1a2abe8c08179ea953b",
+      "bytes": 65,
+      "role": "raw_timing_watcher"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-02-candidate.stdout.log",
+      "destination": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-02-candidate.stdout.log",
+      "sha256": "d3c50b8047b4325008937dbd4e8508f77040076ef894a252e1447c558637319e",
+      "bytes": 880,
+      "role": "raw_paired_stdout"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-02-candidate.stderr.log",
+      "destination": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-02-candidate.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "role": "raw_paired_stderr"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-02-candidate.external-process-observations.jsonl",
+      "destination": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-02-candidate.external-process-observations.jsonl",
+      "sha256": "2c07d669e79f02f92fcc800ba153d3e18aca11414d792b485385f1be33c9f864",
+      "bytes": 65,
+      "role": "raw_timing_watcher"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-02-control.stdout.log",
+      "destination": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-02-control.stdout.log",
+      "sha256": "54ad4847209ec3955afee167abe2875e0d513f2cf194d22ed63beb2999e20324",
+      "bytes": 886,
+      "role": "raw_paired_stdout"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-02-control.stderr.log",
+      "destination": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-02-control.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "role": "raw_paired_stderr"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-02-control.external-process-observations.jsonl",
+      "destination": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-02-control.external-process-observations.jsonl",
+      "sha256": "f9c078ef2ef3cb93294bf9ec1b8ffd238447944e0385cdb186b31a4fcb0151ea",
+      "bytes": 65,
+      "role": "raw_timing_watcher"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-03-control.stdout.log",
+      "destination": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-03-control.stdout.log",
+      "sha256": "54fb9044664bcfeb3f5aff240411846c6eeaf870dd9b0c8229f7cf3bba58dd8a",
+      "bytes": 887,
+      "role": "raw_paired_stdout"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-03-control.stderr.log",
+      "destination": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-03-control.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "role": "raw_paired_stderr"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-03-control.external-process-observations.jsonl",
+      "destination": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-03-control.external-process-observations.jsonl",
+      "sha256": "e7ad3ebc66f3d319a7df94013cebdc2bfba93e283f6cb45385bf2c5f8050ba8e",
+      "bytes": 65,
+      "role": "raw_timing_watcher"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-03-candidate.stdout.log",
+      "destination": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-03-candidate.stdout.log",
+      "sha256": "bb60a0a4faebdec8f12d677c165461ee2a18e4cefab1f4e217a2a953133b6ff2",
+      "bytes": 879,
+      "role": "raw_paired_stdout"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-03-candidate.stderr.log",
+      "destination": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-03-candidate.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "role": "raw_paired_stderr"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-03-candidate.external-process-observations.jsonl",
+      "destination": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-03-candidate.external-process-observations.jsonl",
+      "sha256": "caf5fa6300274bb04f82b8af4c078ed0ccde7e51e623ab7f6096a93ba4506c9c",
+      "bytes": 65,
+      "role": "raw_timing_watcher"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-04-candidate.stdout.log",
+      "destination": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-04-candidate.stdout.log",
+      "sha256": "5923c817553d189084eba430c61cc0735feab09e062951623f037a5741d1a724",
+      "bytes": 886,
+      "role": "raw_paired_stdout"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-04-candidate.stderr.log",
+      "destination": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-04-candidate.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "role": "raw_paired_stderr"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-04-candidate.external-process-observations.jsonl",
+      "destination": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-04-candidate.external-process-observations.jsonl",
+      "sha256": "eb719ce41aa80216b09e81648e7dda4791e6b762264b3684f31cb1878eaaf49a",
+      "bytes": 65,
+      "role": "raw_timing_watcher"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-04-control.stdout.log",
+      "destination": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-04-control.stdout.log",
+      "sha256": "5751842d8cb30aaf8087cc47c3459daa355a4e4fc595bee08f59a75594305490",
+      "bytes": 883,
+      "role": "raw_paired_stdout"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-04-control.stderr.log",
+      "destination": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-04-control.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "role": "raw_paired_stderr"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-04-control.external-process-observations.jsonl",
+      "destination": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-04-control.external-process-observations.jsonl",
+      "sha256": "87549a0b575ee21a16144787672090459f2191ab7abe0cbd9f96736ebafef5a8",
+      "bytes": 65,
+      "role": "raw_timing_watcher"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-05-control.stdout.log",
+      "destination": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-05-control.stdout.log",
+      "sha256": "cdecbc18a2e809387067a044fe044120eb09a350ed11d78051777612f1937e0c",
+      "bytes": 885,
+      "role": "raw_paired_stdout"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-05-control.stderr.log",
+      "destination": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-05-control.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "role": "raw_paired_stderr"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-05-control.external-process-observations.jsonl",
+      "destination": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-05-control.external-process-observations.jsonl",
+      "sha256": "55da48c548065e4cb03aae2301cc8bb82a2aabaaad60e62f0bbd9a3310d97678",
+      "bytes": 65,
+      "role": "raw_timing_watcher"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-05-candidate.stdout.log",
+      "destination": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-05-candidate.stdout.log",
+      "sha256": "7238b13c698fa4a3beec3785ed937b9667d55c26526a09b609849c5c8033380c",
+      "bytes": 885,
+      "role": "raw_paired_stdout"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-05-candidate.stderr.log",
+      "destination": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-05-candidate.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "role": "raw_paired_stderr"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-05-candidate.external-process-observations.jsonl",
+      "destination": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-05-candidate.external-process-observations.jsonl",
+      "sha256": "97806c4589cd93e468910fdda811531f0e27912ddba9fb0a84f2750d2edf53ed",
+      "bytes": 65,
+      "role": "raw_timing_watcher"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-06-candidate.stdout.log",
+      "destination": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-06-candidate.stdout.log",
+      "sha256": "2f620c4d89c54a6ac8ed010a50f6a90a289bac0626b6d275bffa9f207e09f1a3",
+      "bytes": 885,
+      "role": "raw_paired_stdout"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-06-candidate.stderr.log",
+      "destination": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-06-candidate.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "role": "raw_paired_stderr"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-06-candidate.external-process-observations.jsonl",
+      "destination": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-06-candidate.external-process-observations.jsonl",
+      "sha256": "5510689194e38b91dab9a5bd0de346c07d087ca4de5233da24c101286a48120c",
+      "bytes": 65,
+      "role": "raw_timing_watcher"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-06-control.stdout.log",
+      "destination": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-06-control.stdout.log",
+      "sha256": "78e8cb449508dc39a2b227f7d48ba1c6006290080387384e6b141093ca72040f",
+      "bytes": 886,
+      "role": "raw_paired_stdout"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-06-control.stderr.log",
+      "destination": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-06-control.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "role": "raw_paired_stderr"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-06-control.external-process-observations.jsonl",
+      "destination": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-06-control.external-process-observations.jsonl",
+      "sha256": "08dd91a70ecb949c343f2b9bd86c2b8ee9ab9670f03ab69d33894014746a01b7",
+      "bytes": 65,
+      "role": "raw_timing_watcher"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-07-control.stdout.log",
+      "destination": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-07-control.stdout.log",
+      "sha256": "bfd6153d0d2468dc8db52435fc19aaa25a92cabfd071f6d2b3487ddb011715a6",
+      "bytes": 880,
+      "role": "raw_paired_stdout"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-07-control.stderr.log",
+      "destination": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-07-control.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "role": "raw_paired_stderr"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-07-control.external-process-observations.jsonl",
+      "destination": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-07-control.external-process-observations.jsonl",
+      "sha256": "7b2b7c718b0599c2c0edb908b1c998bf36c9a89b2b6c5b2044f65fddf5e1dcfc",
+      "bytes": 65,
+      "role": "raw_timing_watcher"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-07-candidate.stdout.log",
+      "destination": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-07-candidate.stdout.log",
+      "sha256": "2e59f60653e4ecf2191f17e40e9e0d6c828317cf8f46a704cb6b24c2cd023fa5",
+      "bytes": 881,
+      "role": "raw_paired_stdout"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-07-candidate.stderr.log",
+      "destination": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-07-candidate.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "role": "raw_paired_stderr"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-07-candidate.external-process-observations.jsonl",
+      "destination": "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-07-candidate.external-process-observations.jsonl",
+      "sha256": "d21bab007cf06e977cbce4e5072d6ce79e39afda1586c50fbc02f1b095bc826a",
+      "bytes": 65,
+      "role": "raw_timing_watcher"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008.json",
+      "destination": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008.json",
+      "sha256": "ba43a6c73441242ba02a0949339b0720f052a753853e8b84e7753600d3825c1b",
+      "bytes": 290756,
+      "role": "actual_receipt"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-cpp.stdout.log",
+      "destination": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-cpp.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "role": "raw_focused_stdout"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-cpp.stderr.log",
+      "destination": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-cpp.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "role": "raw_focused_stderr"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-sorted7.stdout.log",
+      "destination": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-sorted7.stdout.log",
+      "sha256": "939c6c84234cd99856677eef773b17492d75b17ea6960edd9cc73292ae541180",
+      "bytes": 214,
+      "role": "raw_focused_stdout"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-sorted7.stderr.log",
+      "destination": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-sorted7.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "role": "raw_focused_stderr"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-iteration4.stdout.log",
+      "destination": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-iteration4.stdout.log",
+      "sha256": "a0c2c09f6e77ee777042193ead87ea945e0ff4747161fe4b4c75dc970a92700c",
+      "bytes": 136,
+      "role": "raw_focused_stdout"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-iteration4.stderr.log",
+      "destination": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-iteration4.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "role": "raw_focused_stderr"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-nested1.stdout.log",
+      "destination": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-nested1.stdout.log",
+      "sha256": "92ca4b59af1fa87ef558a34cc96baebbb62cdaaaaac5e97b3d52d4ab88e0967f",
+      "bytes": 29,
+      "role": "raw_focused_stdout"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-nested1.stderr.log",
+      "destination": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-nested1.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "role": "raw_focused_stderr"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-canonical10.stdout.log",
+      "destination": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-canonical10.stdout.log",
+      "sha256": "07760154040ced80af10cb9c3b1f59b1f901902d8fcf659dd28fbac1eb9cffef",
+      "bytes": 512,
+      "role": "raw_focused_stdout"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-canonical10.stderr.log",
+      "destination": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-canonical10.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "role": "raw_focused_stderr"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-fallback3.stdout.log",
+      "destination": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-fallback3.stdout.log",
+      "sha256": "13904a28d4a0572e4b7ac04d1aea1076789001420430ec95596dbbd6b26a19e7",
+      "bytes": 111,
+      "role": "raw_focused_stdout"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-fallback3.stderr.log",
+      "destination": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-fallback3.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "role": "raw_focused_stderr"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-ownership2.stdout.log",
+      "destination": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-ownership2.stdout.log",
+      "sha256": "b72adc0d6c3afd2476d3fc871732e8d8b84fe4fa17ffadffd3ec533d8ee780ee",
+      "bytes": 85,
+      "role": "raw_focused_stdout"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-ownership2.stderr.log",
+      "destination": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-ownership2.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "role": "raw_focused_stderr"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-owner2.stdout.log",
+      "destination": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-owner2.stdout.log",
+      "sha256": "9d046602c9c3f2fd6a0a60db38d72e49d5f4bd873d2b16c4cdf040568c4ddcce",
+      "bytes": 75,
+      "role": "raw_focused_stdout"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-owner2.stderr.log",
+      "destination": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-owner2.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "role": "raw_focused_stderr"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-namespace4.stdout.log",
+      "destination": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-namespace4.stdout.log",
+      "sha256": "2033429997cf99317bbb0c7ed4e963475f864303452e7db1e206941a009d99a9",
+      "bytes": 205,
+      "role": "raw_focused_stdout"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-namespace4.stderr.log",
+      "destination": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-namespace4.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "role": "raw_focused_stderr"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-profile3.stdout.log",
+      "destination": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-profile3.stdout.log",
+      "sha256": "99e1a62179c2b818a9922b7bcd485b5e0fc3cbdd9bc80f3e67ac90bd5b1fe586",
+      "bytes": 135,
+      "role": "raw_focused_stdout"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-profile3.stderr.log",
+      "destination": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-profile3.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "role": "raw_focused_stderr"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-annotation2.stdout.log",
+      "destination": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-annotation2.stdout.log",
+      "sha256": "2faf359688c218da44fcdc3d32ceeb46724c067be9b5cd5376a62db04ef2c743",
+      "bytes": 137,
+      "role": "raw_focused_stdout"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-annotation2.stderr.log",
+      "destination": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-annotation2.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "role": "raw_focused_stderr"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-threading.stdout.log",
+      "destination": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-threading.stdout.log",
+      "sha256": "f4901cf3ef8c3ca6a81013ca6f821bc6b45441ac17e7d6b29b9b7a87c534138a",
+      "bytes": 769,
+      "role": "raw_focused_stdout"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-threading.stderr.log",
+      "destination": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-threading.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "role": "raw_focused_stderr"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-module_binding6.stdout.log",
+      "destination": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-module_binding6.stdout.log",
+      "sha256": "390a9a78ed001d9058b6f122a5edc1b89b0ec28b20a6b5469648a42e2e44f1d7",
+      "bytes": 186,
+      "role": "raw_focused_stdout"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-module_binding6.stderr.log",
+      "destination": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-module_binding6.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "role": "raw_focused_stderr"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-integer_sort7.stdout.log",
+      "destination": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-integer_sort7.stdout.log",
+      "sha256": "141030e2acb698dc9f9efc6cb3b4963a4de22c2f79544fa820a66631254bfba4",
+      "bytes": 304,
+      "role": "raw_focused_stdout"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-integer_sort7.stderr.log",
+      "destination": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-integer_sort7.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "role": "raw_focused_stderr"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-generator_resume.stdout.log",
+      "destination": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-generator_resume.stdout.log",
+      "sha256": "4a6ca24916721cb22e4d5fe801b878201a2b1eead2d909e100c6ea159848f741",
+      "bytes": 64,
+      "role": "raw_focused_stdout"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-generator_resume.stderr.log",
+      "destination": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-generator_resume.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "role": "raw_focused_stderr"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-debug_frames.stdout.log",
+      "destination": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-debug_frames.stdout.log",
+      "sha256": "10f5933b246818447e6bcb94efd7ae042c65b0794aa451d3904d6053ad32c392",
+      "bytes": 329,
+      "role": "raw_focused_stdout"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-debug_frames.stderr.log",
+      "destination": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-debug_frames.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "role": "raw_focused_stderr"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-monitoring.stdout.log",
+      "destination": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-monitoring.stdout.log",
+      "sha256": "9b113c1832cd48587fe3a60a5a364e2afa8656593ad1f472a1b5429f40e1fb16",
+      "bytes": 422,
+      "role": "raw_focused_stdout"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-monitoring.stderr.log",
+      "destination": "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-monitoring.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "role": "raw_focused_stderr"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-focused-20261008.json",
+      "destination": "doc/performance/data/native-entry-layout-l9-focused-20261008.json",
+      "sha256": "eb61e201e289fb81ad8f001c013e50e9d4b459c4af72d5d0768fc1647d2883c9",
+      "bytes": 268665,
+      "role": "actual_receipt"
+    },
+    {
+      "source": "doc/performance/data/verified-idle-msbuild-l9-20261008-capture.json",
+      "destination": "doc/performance/data/verified-idle-msbuild-l9-20261008-capture.json",
+      "sha256": "ffc651cd0f0a4f44fa395981fa004e33f6fa87454e09d31c501d55ae01818bd1",
+      "bytes": 57115,
+      "role": "actual_receipt"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-rejected-restored-s8-20261008.json",
+      "destination": "doc/performance/data/native-entry-layout-l9-rejected-restored-s8-20261008.json",
+      "sha256": "19aeef8e42af7df304ce04f1318249ae356b5db435564873f26ae0c3be8aae6b",
+      "bytes": 55650,
+      "role": "actual_receipt"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-applied-source-20261008.json",
+      "destination": "doc/performance/data/native-entry-layout-l9-applied-source-20261008.json",
+      "sha256": "b4fdcbcb4dbcea8eb263411e306a475b5321d50a311f9c2bc7f9c7425d1cc4ec",
+      "bytes": 41797,
+      "role": "actual_receipt"
+    },
+    {
+      "source": "doc/performance/data/native-entry-layout-l9-build-20261008.log",
+      "destination": "doc/performance/data/native-entry-layout-l9-build-20261008.log",
+      "sha256": "2a2b1df6b42d3d5534e9edca0706b547a617b6e8702fecd2fb7fd9c6e2d7f4c9",
+      "bytes": 8726,
+      "role": "raw_build_log"
+    },
+    {
+      "source": "build-repro/controls/native-entry-layout-l9-rejected-restored-s8-20261008/preserved-release-provenance.json",
+      "destination": "doc/performance/data/native-entry-layout-l9-rejected-inspection-20261008/rejected-control-manifest.json",
+      "sha256": "35bc0ef56cc1a9587dea44993e94b077d97ad06e792b858beba9b3996f7b0800",
+      "bytes": 51778,
+      "role": "hashes_only_no_binaries"
+    },
+    {
+      "source": "build-repro/controls/native-entry-layout-l9-rejected-restored-s8-20261008/source-snapshot/src/internal/xlang3/ir.h",
+      "destination": "doc/performance/data/native-entry-layout-l9-rejected-inspection-20261008/measured-source/src/internal/xlang3/ir.h",
+      "sha256": "f464276e8966cea85ab18591c1dd894eb1c6a9d9727987cae2684751fa946035",
+      "bytes": 12714,
+      "role": "rejected_measured_source_inspection_only"
+    },
+    {
+      "source": "scratch/performance/native-python-entry-immutable-layout-proposed-20261008-candidates/src/internal/xlang3/ir.h",
+      "destination": "doc/performance/data/native-entry-layout-l9-rejected-inspection-20261008/proposed-source/src/internal/xlang3/ir.h",
+      "sha256": "f464276e8966cea85ab18591c1dd894eb1c6a9d9727987cae2684751fa946035",
+      "bytes": 12714,
+      "role": "proposal_inspection_only"
+    },
+    {
+      "source": "build-repro/controls/native-entry-layout-l9-rejected-restored-s8-20261008/source-snapshot/src/executor/xlang_vm/xlang_frame.h",
+      "destination": "doc/performance/data/native-entry-layout-l9-rejected-inspection-20261008/measured-source/src/executor/xlang_vm/xlang_frame.h",
+      "sha256": "39616ecd374ed6525b23c1dbe7d382ccac4ed9ee9db603442fc0a9b08e033e6d",
+      "bytes": 43375,
+      "role": "rejected_measured_source_inspection_only"
+    },
+    {
+      "source": "scratch/performance/native-python-entry-immutable-layout-proposed-20261008-candidates/src/executor/xlang_vm/xlang_frame.h",
+      "destination": "doc/performance/data/native-entry-layout-l9-rejected-inspection-20261008/proposed-source/src/executor/xlang_vm/xlang_frame.h",
+      "sha256": "39616ecd374ed6525b23c1dbe7d382ccac4ed9ee9db603442fc0a9b08e033e6d",
+      "bytes": 43375,
+      "role": "proposal_inspection_only"
+    },
+    {
+      "source": "build-repro/controls/native-entry-layout-l9-rejected-restored-s8-20261008/source-snapshot/src/executor/xlang_vm/xlang_interpreter.cpp",
+      "destination": "doc/performance/data/native-entry-layout-l9-rejected-inspection-20261008/measured-source/src/executor/xlang_vm/xlang_interpreter.cpp",
+      "sha256": "c91fc621b92ba035914bd45f6e780744c8cd535783e5ae4a9fd54eb2fead961a",
+      "bytes": 24633,
+      "role": "rejected_measured_source_inspection_only"
+    },
+    {
+      "source": "scratch/performance/native-python-entry-immutable-layout-proposed-20261008-candidates/src/executor/xlang_vm/xlang_interpreter.cpp",
+      "destination": "doc/performance/data/native-entry-layout-l9-rejected-inspection-20261008/proposed-source/src/executor/xlang_vm/xlang_interpreter.cpp",
+      "sha256": "c91fc621b92ba035914bd45f6e780744c8cd535783e5ae4a9fd54eb2fead961a",
+      "bytes": 24633,
+      "role": "proposal_inspection_only"
+    },
+    {
+      "source": "build-repro/controls/native-entry-layout-l9-rejected-restored-s8-20261008/source-snapshot/src/executor/xlang_vm/xlang_vm_loop.cpp",
+      "destination": "doc/performance/data/native-entry-layout-l9-rejected-inspection-20261008/measured-source/src/executor/xlang_vm/xlang_vm_loop.cpp",
+      "sha256": "38671c79b9379a149c9845529b2b7ea61178b981058de49384debabec931c3cd",
+      "bytes": 103785,
+      "role": "rejected_measured_source_inspection_only"
+    },
+    {
+      "source": "scratch/performance/native-python-entry-immutable-layout-proposed-20261008-candidates/src/executor/xlang_vm/xlang_vm_loop.cpp",
+      "destination": "doc/performance/data/native-entry-layout-l9-rejected-inspection-20261008/proposed-source/src/executor/xlang_vm/xlang_vm_loop.cpp",
+      "sha256": "38671c79b9379a149c9845529b2b7ea61178b981058de49384debabec931c3cd",
+      "bytes": 103785,
+      "role": "proposal_inspection_only"
+    },
+    {
+      "source": "build-repro/controls/native-entry-layout-l9-rejected-restored-s8-20261008/source-snapshot/tests/cpp/interpreter_tests.cpp",
+      "destination": "doc/performance/data/native-entry-layout-l9-rejected-inspection-20261008/measured-source/tests/cpp/interpreter_tests.cpp",
+      "sha256": "18057402f2ffb7e209a4d7931e6834d022a3e2452baa40395630684abfa36a01",
+      "bytes": 30569,
+      "role": "rejected_measured_source_inspection_only"
+    },
+    {
+      "source": "scratch/performance/native-python-entry-immutable-layout-proposed-20261008-candidates/tests/cpp/interpreter_tests.cpp",
+      "destination": "doc/performance/data/native-entry-layout-l9-rejected-inspection-20261008/proposed-source/tests/cpp/interpreter_tests.cpp",
+      "sha256": "18057402f2ffb7e209a4d7931e6834d022a3e2452baa40395630684abfa36a01",
+      "bytes": 30569,
+      "role": "proposal_inspection_only"
+    },
+    {
+      "source": "build-repro/controls/native-entry-layout-l9-rejected-restored-s8-20261008/source-snapshot/tests/cpp/immutable_entry_layout_cases.h",
+      "destination": "doc/performance/data/native-entry-layout-l9-rejected-inspection-20261008/measured-source/tests/cpp/immutable_entry_layout_cases.h",
+      "sha256": "ef6158e795c37368e79bc34b89234a27614461eecd4d0ff088e32d13cae73360",
+      "bytes": 7844,
+      "role": "rejected_measured_source_inspection_only"
+    },
+    {
+      "source": "scratch/performance/native-python-entry-immutable-layout-proposed-20261008-candidates/tests/cpp/immutable_entry_layout_cases.h",
+      "destination": "doc/performance/data/native-entry-layout-l9-rejected-inspection-20261008/proposed-source/tests/cpp/immutable_entry_layout_cases.h",
+      "sha256": "ef6158e795c37368e79bc34b89234a27614461eecd4d0ff088e32d13cae73360",
+      "bytes": 7844,
+      "role": "proposal_inspection_only"
+    },
+    {
+      "source": "scratch/performance/native-python-entry-immutable-layout-proposed-20261008-inputs/src/internal/xlang3/ir.h",
+      "destination": "doc/performance/data/native-entry-layout-l9-rejected-inspection-20261008/proposal-input/src/internal/xlang3/ir.h",
+      "sha256": "b6417aea98ee8169aa551d849492fd2dfdfca6300a6b491fe7cce85c3242f064",
+      "bytes": 12380,
+      "role": "proposal_input_inspection_only"
+    },
+    {
+      "source": "scratch/performance/native-python-entry-immutable-layout-proposed-20261008-inputs/src/executor/xlang_vm/xlang_frame.h",
+      "destination": "doc/performance/data/native-entry-layout-l9-rejected-inspection-20261008/proposal-input/src/executor/xlang_vm/xlang_frame.h",
+      "sha256": "c144ecfa382778c73b9f4ad3a34a2644dae080afdcde307855cd961623400ff2",
+      "bytes": 42421,
+      "role": "proposal_input_inspection_only"
+    },
+    {
+      "source": "scratch/performance/native-python-entry-immutable-layout-proposed-20261008-inputs/src/executor/xlang_vm/xlang_interpreter.cpp",
+      "destination": "doc/performance/data/native-entry-layout-l9-rejected-inspection-20261008/proposal-input/src/executor/xlang_vm/xlang_interpreter.cpp",
+      "sha256": "f309acf74a45f5d212d97f0f0b51b65ed7ff9b86a56bbbdf0ae5047125341ab8",
+      "bytes": 23829,
+      "role": "proposal_input_inspection_only"
+    },
+    {
+      "source": "scratch/performance/native-python-entry-immutable-layout-proposed-20261008-inputs/src/executor/xlang_vm/xlang_vm_loop.cpp",
+      "destination": "doc/performance/data/native-entry-layout-l9-rejected-inspection-20261008/proposal-input/src/executor/xlang_vm/xlang_vm_loop.cpp",
+      "sha256": "edf6c52d37cc85990a1cfd995b769786773e13bdf70bc8908bd52d3d803da30d",
+      "bytes": 103656,
+      "role": "proposal_input_inspection_only"
+    },
+    {
+      "source": "scratch/performance/native-python-entry-immutable-layout-proposed-20261008-inputs/tests/cpp/interpreter_tests.cpp",
+      "destination": "doc/performance/data/native-entry-layout-l9-rejected-inspection-20261008/proposal-input/tests/cpp/interpreter_tests.cpp",
+      "sha256": "59bdb1c2e85079d28ad7359ebdc3b0e76c0c56bf3880e79c8da6384418b2d172",
+      "bytes": 29888,
+      "role": "proposal_input_inspection_only"
+    },
+    {
+      "source": "scratch/performance/native-python-entry-immutable-layout-proposed-20261008.patch",
+      "destination": "doc/performance/data/native-entry-layout-l9-rejected-inspection-20261008/controllers-and-proofs/native-python-entry-immutable-layout-proposed-20261008.patch",
+      "sha256": "f5a1cf0588369abe0ed15e007dbf34fb101eafabca6d50ac08b4df4a83950e83",
+      "bytes": 19498,
+      "role": "frozen_inspection_not_execution_claim"
+    },
+    {
+      "source": "scratch/performance/native-python-entry-immutable-layout-proposed-20261008-provenance.json",
+      "destination": "doc/performance/data/native-entry-layout-l9-rejected-inspection-20261008/controllers-and-proofs/native-python-entry-immutable-layout-proposed-20261008-provenance.json",
+      "sha256": "bde7e4fa9b891e60eef8886107675df34c0e6905b94259c59a6c2574b7e2e797",
+      "bytes": 17414,
+      "role": "frozen_inspection_not_execution_claim"
+    },
+    {
+      "source": "scratch/performance/native-python-entry-immutable-layout-proposed-20261008-apply-check.log",
+      "destination": "doc/performance/data/native-entry-layout-l9-rejected-inspection-20261008/controllers-and-proofs/native-python-entry-immutable-layout-proposed-20261008-apply-check.log",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "bytes": 1,
+      "role": "frozen_inspection_not_execution_claim"
+    },
+    {
+      "source": "scratch/performance/native-python-entry-immutable-layout-design-r2-20261008.md",
+      "destination": "doc/performance/data/native-entry-layout-l9-rejected-inspection-20261008/controllers-and-proofs/native-python-entry-immutable-layout-design-r2-20261008.md",
+      "sha256": "830c4f4827379369128c8adcd38bbd43db2a2bb50821f9b269a9d7ce914b1264",
+      "bytes": 7277,
+      "role": "frozen_inspection_not_execution_claim"
+    },
+    {
+      "source": "scratch/performance/freeze-native-python-entry-immutable-layout-proposed-20261008.ps1",
+      "destination": "doc/performance/data/native-entry-layout-l9-rejected-inspection-20261008/controllers-and-proofs/freeze-native-python-entry-immutable-layout-proposed-20261008.ps1",
+      "sha256": "d44383b397f9adb658441b0e8b56e4f10d8491fa8d07d40e45c69df6f654012c",
+      "bytes": 6363,
+      "role": "frozen_inspection_not_execution_claim"
+    },
+    {
+      "source": "scratch/performance/apply-native-entry-layout-l9-20261008.py",
+      "destination": "doc/performance/data/native-entry-layout-l9-rejected-inspection-20261008/controllers-and-proofs/apply-native-entry-layout-l9-20261008.py",
+      "sha256": "be17ddf027458800f0498b371da595c313df9d5d522ad8ba18c5c3181f087589",
+      "bytes": 4719,
+      "role": "frozen_inspection_not_execution_claim"
+    },
+    {
+      "source": "scratch/performance/build-native-entry-layout-l9-20261008.cmd",
+      "destination": "doc/performance/data/native-entry-layout-l9-rejected-inspection-20261008/controllers-and-proofs/build-native-entry-layout-l9-20261008.cmd",
+      "sha256": "9b81c1e82784cbea67bb30e3dbd69f793d5b7079722de1f328fa7488b0d76665",
+      "bytes": 415,
+      "role": "frozen_inspection_not_execution_claim"
+    },
+    {
+      "source": "scratch/performance/check-immutable-entry-layout-focused-20261008.py",
+      "destination": "doc/performance/data/native-entry-layout-l9-rejected-inspection-20261008/controllers-and-proofs/check-immutable-entry-layout-focused-20261008.py",
+      "sha256": "846b868bde49d85869f3b4b6497845a2f2239eb8b07a5c1277e877359976dd8c",
+      "bytes": 11111,
+      "role": "frozen_inspection_not_execution_claim"
+    },
+    {
+      "source": "scratch/performance/check-immutable-entry-layout-focused-r2-20261008.py",
+      "destination": "doc/performance/data/native-entry-layout-l9-rejected-inspection-20261008/controllers-and-proofs/check-immutable-entry-layout-focused-r2-20261008.py",
+      "sha256": "4b5d28ec1fd6ec59ebfbc9b7baa40f2c3b879e5f332da0cacf7ef0806fb42517",
+      "bytes": 11522,
+      "role": "frozen_inspection_not_execution_claim"
+    },
+    {
+      "source": "scratch/performance/measure-immutable-entry-layout-paired-20261008.py",
+      "destination": "doc/performance/data/native-entry-layout-l9-rejected-inspection-20261008/controllers-and-proofs/measure-immutable-entry-layout-paired-20261008.py",
+      "sha256": "c5fac38572f38752d062f75cf9ed45fb31ab46d1969c4d77e2fac9158851aa83",
+      "bytes": 19266,
+      "role": "frozen_inspection_not_execution_claim"
+    },
+    {
+      "source": "scratch/performance/measure-immutable-entry-layout-paired-r2-20261008.py",
+      "destination": "doc/performance/data/native-entry-layout-l9-rejected-inspection-20261008/controllers-and-proofs/measure-immutable-entry-layout-paired-r2-20261008.py",
+      "sha256": "640725fd35a8f062333332ca6f2dabbac76735f5412dc798d65af1fe245c0b7a",
+      "bytes": 19269,
+      "role": "frozen_inspection_not_execution_claim"
+    },
+    {
+      "source": "scratch/performance/immutable-entry-layout-trial-plan-20261008.md",
+      "destination": "doc/performance/data/native-entry-layout-l9-rejected-inspection-20261008/controllers-and-proofs/immutable-entry-layout-trial-plan-20261008.md",
+      "sha256": "6b48389170ae9879127073d4ded149806c1189b9ccc40b663552a41449145c63",
+      "bytes": 7135,
+      "role": "frozen_inspection_not_execution_claim"
+    },
+    {
+      "source": "scratch/performance/immutable-entry-layout-trial-plan-r2-20261008.md",
+      "destination": "doc/performance/data/native-entry-layout-l9-rejected-inspection-20261008/controllers-and-proofs/immutable-entry-layout-trial-plan-r2-20261008.md",
+      "sha256": "b4cd4ec4d0a1899219b3bd64994123fd5f8bf76a3e4518f131ed674b8209cee6",
+      "bytes": 7538,
+      "role": "frozen_inspection_not_execution_claim"
+    },
+    {
+      "source": "scratch/performance/immutable-entry-layout-trial-controllers-provenance-20261008.json",
+      "destination": "doc/performance/data/native-entry-layout-l9-rejected-inspection-20261008/controllers-and-proofs/immutable-entry-layout-trial-controllers-provenance-20261008.json",
+      "sha256": "2f7267f95c13c8b839f0dc41b38c74e380d73bbcef87ccb89eae4564d31a2f69",
+      "bytes": 1670,
+      "role": "frozen_inspection_not_execution_claim"
+    },
+    {
+      "source": "scratch/performance/immutable-entry-layout-trial-controllers-r2-provenance-20261008.json",
+      "destination": "doc/performance/data/native-entry-layout-l9-rejected-inspection-20261008/controllers-and-proofs/immutable-entry-layout-trial-controllers-r2-provenance-20261008.json",
+      "sha256": "2fef11e0632893422263d03e71ae978c63c1bc3a8906d47d951eb6222fe938a2",
+      "bytes": 1710,
+      "role": "frozen_inspection_not_execution_claim"
+    },
+    {
+      "source": "scratch/performance/capture-verified-idle-msbuild-worker-proposed-20261008.py",
+      "destination": "doc/performance/data/native-entry-layout-l9-rejected-inspection-20261008/controllers-and-proofs/capture-verified-idle-msbuild-worker-proposed-20261008.py",
+      "sha256": "227b2a68bb0607d35ac42495e03a98d9bea90a59e89e0f7bd46501abb60adc0a",
+      "bytes": 7656,
+      "role": "frozen_inspection_not_execution_claim"
+    },
+    {
+      "source": "scratch/performance/reject-immutable-entry-layout-l9-20261008.py",
+      "destination": "doc/performance/data/native-entry-layout-l9-rejected-inspection-20261008/controllers-and-proofs/reject-immutable-entry-layout-l9-20261008.py",
+      "sha256": "7cbd16fbf04cf939ac04e787032c00516a2c9fbf9b18c7361faa2ee008720a99",
+      "bytes": 16002,
+      "role": "frozen_inspection_not_execution_claim"
+    },
+    {
+      "source": "scratch/performance/reject-immutable-entry-layout-l9-20261008-provenance.json",
+      "destination": "doc/performance/data/native-entry-layout-l9-rejected-inspection-20261008/controllers-and-proofs/reject-immutable-entry-layout-l9-20261008-provenance.json",
+      "sha256": "9b0273a5a3771770ede24b0f1d5f2f36c02f4413fb13fa2ea80372a1a1be5b7b",
+      "bytes": 2224,
+      "role": "frozen_inspection_not_execution_claim"
+    },
+    {
+      "source": "scratch/performance/run-pickle-immutable-entry-layout-l9-control-body-r3-20261008.py",
+      "destination": "doc/performance/data/native-entry-layout-l9-rejected-inspection-20261008/controllers-and-proofs/run-pickle-immutable-entry-layout-l9-control-body-r3-20261008.py",
+      "sha256": "afa67473a5f48cf1f06fdf340e3b48a35d5873901a307957d1443412a0db2d12",
+      "bytes": 30969,
+      "role": "frozen_inspection_not_execution_claim"
+    },
+    {
+      "source": "scratch/performance/native-entry-layout-l9-owned-attributes-proposed-20261008.txt",
+      "destination": "doc/performance/data/native-entry-layout-l9-rejected-inspection-20261008/controllers-and-proofs/native-entry-layout-l9-owned-attributes-proposed-20261008.txt",
+      "sha256": "d260489b57fc54e45aa07de3b1748119ccd4d0ed8385285814ab06ec73b2bf26",
+      "bytes": 393,
+      "role": "frozen_inspection_not_execution_claim"
+    },
+    {
+      "source": "scratch/performance/native-entry-layout-l9-rejected-outcome-proposed-20261008.md",
+      "destination": "doc/performance/native-entry-layout-l9-rejected-20261008.md",
+      "sha256": "18db5b312c5af36ed70b99d1198c4f697833c6892971e130b71ec24ae42e1b92",
+      "bytes": 3809,
+      "role": "report"
+    },
+    {
+      "source": "scratch/performance/native-entry-layout-l9-rejected-publication-plan-proposed-20261008.json",
+      "destination": "doc/performance/data/native-entry-layout-l9-rejected-20261008-publication-manifest.json",
+      "sha256": "6672de74ff7015829094b96168454042b59ceb67625d71cca54d1826a93ec207",
+      "bytes": 58566,
+      "role": "unchanged_l9_publication_manifest"
+    },
+    {
+      "source": "doc/performance/data/runtime-frame-context-cpython3147-s8-correctness-r2-20261008.json",
+      "destination": "doc/performance/data/runtime-frame-context-cpython3147-s8-correctness-r2-20261008.json",
+      "sha256": "159f7294d3ff4e1395722145e3bc8ef72a6ed47834989798cd588af0b5af7d41",
+      "bytes": 322488,
+      "role": "actual_cp_s8_correctness_receipt"
+    },
+    {
+      "source": "doc/performance/data/runtime-frame-context-cpython3147-s8-correctness-r2-20261008-cpython3147.stdout.log",
+      "destination": "doc/performance/data/runtime-frame-context-cpython3147-s8-correctness-r2-20261008-cpython3147.stdout.log",
+      "sha256": "0e2b9174689d9bcfb21d784171e0411861791e11af1cbc1b725f103aa7fd6e5d",
+      "bytes": 149,
+      "role": "raw_reference_stdout"
+    },
+    {
+      "source": "doc/performance/data/runtime-frame-context-cpython3147-s8-correctness-r2-20261008-cpython3147.stderr.log",
+      "destination": "doc/performance/data/runtime-frame-context-cpython3147-s8-correctness-r2-20261008-cpython3147.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "role": "raw_reference_stderr"
+    },
+    {
+      "source": "doc/performance/data/runtime-frame-context-cpython3147-s8-correctness-r2-20261008-preserved_s8.stdout.log",
+      "destination": "doc/performance/data/runtime-frame-context-cpython3147-s8-correctness-r2-20261008-preserved_s8.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "role": "raw_reference_stdout"
+    },
+    {
+      "source": "doc/performance/data/runtime-frame-context-cpython3147-s8-correctness-r2-20261008-preserved_s8.stderr.log",
+      "destination": "doc/performance/data/runtime-frame-context-cpython3147-s8-correctness-r2-20261008-preserved_s8.stderr.log",
+      "sha256": "9e78ecced87f2b58c7db1e64d4069ddb83f712a864d5fbea73d76fed5499bb43",
+      "bytes": 347,
+      "role": "raw_reference_stderr"
+    },
+    {
+      "source": "scratch/performance/runtime-frame-context-coalesced-proposed-20261008-candidates/tests/fixtures/core/runtime_frame_context.py",
+      "destination": "doc/performance/data/l9-runtime-prerequisites-inspection-20261008/fixtures/runtime_frame_context.py",
+      "sha256": "fd942dfb3981c01b6464f623ebb1b37640772c532b18ad7381abebf2d9e5ffc7",
+      "bytes": 3403,
+      "role": "byte_exact_cp_passed_source_inspection"
+    },
+    {
+      "source": "scratch/performance/runtime-frame-context-coalesced-proposed-20261008-candidates/tests/fixtures/expected/runtime_frame_context.out",
+      "destination": "doc/performance/data/l9-runtime-prerequisites-inspection-20261008/fixtures/runtime_frame_context.out",
+      "sha256": "97d5a6c2764deb48e4f217f09d148f13b4f8332d88b6f930f14ba12ede9e065d",
+      "bytes": 145,
+      "role": "byte_exact_cp_passed_expected_inspection"
+    },
+    {
+      "source": "doc/performance/data/dict-lazy-index-prerequisites-cpython3147-s8-reference-20261008.json",
+      "destination": "doc/performance/data/dict-lazy-index-prerequisites-cpython3147-s8-reference-20261008.json",
+      "sha256": "2266464a276cf086c990441426b8f3f2de6173828e9f1bc2e9c0f2c590d8692e",
+      "bytes": 270455,
+      "role": "actual_cp_s8_correctness_receipt"
+    },
+    {
+      "source": "doc/performance/data/dict-lazy-index-prerequisites-cpython3147-s8-reference-20261008-cpython3147.stdout.log",
+      "destination": "doc/performance/data/dict-lazy-index-prerequisites-cpython3147-s8-reference-20261008-cpython3147.stdout.log",
+      "sha256": "127ba8a7a9c8eb7d947dbb9f0373d5ed95b2b2cd99a8c4eb8e098c75c829ec95",
+      "bytes": 178,
+      "role": "raw_reference_stdout"
+    },
+    {
+      "source": "doc/performance/data/dict-lazy-index-prerequisites-cpython3147-s8-reference-20261008-cpython3147.stderr.log",
+      "destination": "doc/performance/data/dict-lazy-index-prerequisites-cpython3147-s8-reference-20261008-cpython3147.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "role": "raw_reference_stderr"
+    },
+    {
+      "source": "doc/performance/data/dict-lazy-index-prerequisites-cpython3147-s8-reference-20261008-preserved_s8.stdout.log",
+      "destination": "doc/performance/data/dict-lazy-index-prerequisites-cpython3147-s8-reference-20261008-preserved_s8.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "role": "raw_reference_stdout"
+    },
+    {
+      "source": "doc/performance/data/dict-lazy-index-prerequisites-cpython3147-s8-reference-20261008-preserved_s8.stderr.log",
+      "destination": "doc/performance/data/dict-lazy-index-prerequisites-cpython3147-s8-reference-20261008-preserved_s8.stderr.log",
+      "sha256": "235e60856010f89ed1f66792e4684ae7f97afcec20cbfbd8f7f849ea889e58f6",
+      "bytes": 251,
+      "role": "raw_reference_stderr"
+    },
+    {
+      "source": "scratch/performance/dict-lazy-index-prerequisites-fixture-proposed-20261008.py",
+      "destination": "doc/performance/data/l9-runtime-prerequisites-inspection-20261008/fixtures/dict_native_semantic_prerequisites.py",
+      "sha256": "d26e25f1ad8bcc2c643031dd67e250d43f27dd72dee34595b20aeb1ab1221c8d",
+      "bytes": 3084,
+      "role": "byte_exact_cp_passed_source_inspection"
+    },
+    {
+      "source": "scratch/performance/dict-lazy-index-prerequisites-expected-proposed-20261008.out",
+      "destination": "doc/performance/data/l9-runtime-prerequisites-inspection-20261008/fixtures/dict_native_semantic_prerequisites.out",
+      "sha256": "364a27ba20ecd350f136fbb3694004517081484cf374b71f10454f183b319f25",
+      "bytes": 174,
+      "role": "byte_exact_cp_passed_expected_inspection"
+    },
+    {
+      "source": "scratch/performance/capture-runtime-frame-context-cpython3147-s8-correctness-r2-proposed-20261008.py",
+      "destination": "doc/performance/data/l9-runtime-prerequisites-inspection-20261008/executed-managers/capture-runtime-frame-context-cpython3147-s8-correctness-r2-proposed-20261008.py",
+      "sha256": "ad44cade810cecdd1fbc7e567d5fbb9a67b905d247e857713e2b463e1a099b8d",
+      "bytes": 12671,
+      "role": "executed_correctness_manager_inspection"
+    },
+    {
+      "source": "scratch/performance/capture-dict-lazy-index-prerequisites-cpython3147-s8-proposed-20261008.py",
+      "destination": "doc/performance/data/l9-runtime-prerequisites-inspection-20261008/executed-managers/capture-dict-lazy-index-prerequisites-cpython3147-s8-proposed-20261008.py",
+      "sha256": "287a43aa2178542242889c99d18363cd01c713af694dc335cdcf3d63b8d8e0d7",
+      "bytes": 12759,
+      "role": "executed_correctness_manager_inspection"
+    },
+    {
+      "source": "scratch/performance/l9-runtime-prerequisites-publication-proposed-20261008-reference-proof-metadata.json",
+      "destination": "doc/performance/data/l9-runtime-prerequisites-inspection-20261008/reference-proof-metadata.json",
+      "sha256": "ea6b436ffe7184245a3222eeb9da55f0da6576122089951c3dd683ab7d082351",
+      "bytes": 9182,
+      "role": "bounded_actual_reference_metadata"
+    },
+    {
+      "source": "scratch/performance/dict-set-int64-official-source-diagnosis-20261008.md",
+      "destination": "doc/performance/data/l9-runtime-prerequisites-inspection-20261008/dict-set-int64-official-source-diagnosis-20261008.md",
+      "sha256": "20eb8e23f594256067ec5bc82fecd70e261e07f370fdd1bef8d8b44261b3b755",
+      "bytes": 5852,
+      "role": "source_only_next_action_no_execution_or_speed_claim"
+    },
+    {
+      "source": "scratch/performance/l9-runtime-prerequisites-next-actions-r2-proposed-20261008.md",
+      "destination": "doc/performance/native-runtime-prerequisites-after-l9-20261008.md",
+      "sha256": "950020e1d430f900dfefb157eb15f6bbd05ab55043f7de1f292dc817765bb7cd",
+      "bytes": 4665,
+      "role": "current_scope_and_next_actions_report"
+    },
+    {
+      "source": "scratch/performance/l9-runtime-prerequisites-publication-r2-proposed-20261008-owned-attributes.txt",
+      "destination": "doc/performance/data/l9-runtime-prerequisites-inspection-20261008/owned-attributes.txt",
+      "sha256": "6516648b1b5fd4abce7f75c61155b08138fc3fbb63e13bf05b6444f232f61f47",
+      "bytes": 1015,
+      "role": "owned_raw_byte_attribute_policy"
+    },
+    {
+      "source": "doc/performance/data/callee-module-owner-r10-withdrawn-unmeasured-duplicate-restored-s8-20261008.json",
+      "destination": "doc/performance/data/callee-module-owner-r10-withdrawn-unmeasured-duplicate-restored-s8-20261008.json",
+      "sha256": "876cac9e56405c9566aa29a7419d4a6acf2cc9ab6f83f6d3190ea6a4d38f25eb",
+      "bytes": 80863,
+      "role": "actual_unmeasured_duplicate_withdrawal_and_exact_restoration_receipt"
+    }
+  ],
+  "plan_publication_destination": "doc/performance/data/l9-runtime-prerequisites-20261008-publication-manifest.json",
+  "all_source_bytes_checked": true,
+  "duplicate_destinations": 0,
+  "preexisting_destinations_with_identical_bytes": [
+    "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008.json",
+    "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-01-control.stdout.log",
+    "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-01-control.stderr.log",
+    "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-01-control.external-process-observations.jsonl",
+    "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-01-candidate.stdout.log",
+    "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-01-candidate.stderr.log",
+    "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-01-candidate.external-process-observations.jsonl",
+    "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-02-candidate.stdout.log",
+    "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-02-candidate.stderr.log",
+    "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-02-candidate.external-process-observations.jsonl",
+    "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-02-control.stdout.log",
+    "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-02-control.stderr.log",
+    "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-02-control.external-process-observations.jsonl",
+    "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-03-control.stdout.log",
+    "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-03-control.stderr.log",
+    "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-03-control.external-process-observations.jsonl",
+    "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-03-candidate.stdout.log",
+    "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-03-candidate.stderr.log",
+    "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-03-candidate.external-process-observations.jsonl",
+    "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-04-candidate.stdout.log",
+    "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-04-candidate.stderr.log",
+    "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-04-candidate.external-process-observations.jsonl",
+    "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-04-control.stdout.log",
+    "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-04-control.stderr.log",
+    "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-04-control.external-process-observations.jsonl",
+    "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-05-control.stdout.log",
+    "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-05-control.stderr.log",
+    "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-05-control.external-process-observations.jsonl",
+    "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-05-candidate.stdout.log",
+    "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-05-candidate.stderr.log",
+    "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-05-candidate.external-process-observations.jsonl",
+    "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-06-candidate.stdout.log",
+    "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-06-candidate.stderr.log",
+    "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-06-candidate.external-process-observations.jsonl",
+    "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-06-control.stdout.log",
+    "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-06-control.stderr.log",
+    "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-06-control.external-process-observations.jsonl",
+    "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-07-control.stdout.log",
+    "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-07-control.stderr.log",
+    "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-07-control.external-process-observations.jsonl",
+    "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-07-candidate.stdout.log",
+    "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-07-candidate.stderr.log",
+    "doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008-pair-07-candidate.external-process-observations.jsonl",
+    "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008.json",
+    "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-cpp.stdout.log",
+    "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-cpp.stderr.log",
+    "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-sorted7.stdout.log",
+    "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-sorted7.stderr.log",
+    "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-iteration4.stdout.log",
+    "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-iteration4.stderr.log",
+    "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-nested1.stdout.log",
+    "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-nested1.stderr.log",
+    "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-canonical10.stdout.log",
+    "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-canonical10.stderr.log",
+    "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-fallback3.stdout.log",
+    "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-fallback3.stderr.log",
+    "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-ownership2.stdout.log",
+    "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-ownership2.stderr.log",
+    "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-owner2.stdout.log",
+    "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-owner2.stderr.log",
+    "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-namespace4.stdout.log",
+    "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-namespace4.stderr.log",
+    "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-profile3.stdout.log",
+    "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-profile3.stderr.log",
+    "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-annotation2.stdout.log",
+    "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-annotation2.stderr.log",
+    "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-threading.stdout.log",
+    "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-threading.stderr.log",
+    "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-module_binding6.stdout.log",
+    "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-module_binding6.stderr.log",
+    "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-integer_sort7.stdout.log",
+    "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-integer_sort7.stderr.log",
+    "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-generator_resume.stdout.log",
+    "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-generator_resume.stderr.log",
+    "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-debug_frames.stdout.log",
+    "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-debug_frames.stderr.log",
+    "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-monitoring.stdout.log",
+    "doc/performance/data/native-entry-layout-l9-focused-correctness-r2-20261008-monitoring.stderr.log",
+    "doc/performance/data/native-entry-layout-l9-focused-20261008.json",
+    "doc/performance/data/verified-idle-msbuild-l9-20261008-capture.json",
+    "doc/performance/data/native-entry-layout-l9-rejected-restored-s8-20261008.json",
+    "doc/performance/data/native-entry-layout-l9-applied-source-20261008.json",
+    "doc/performance/data/native-entry-layout-l9-build-20261008.log",
+    "doc/performance/data/runtime-frame-context-cpython3147-s8-correctness-r2-20261008.json",
+    "doc/performance/data/runtime-frame-context-cpython3147-s8-correctness-r2-20261008-cpython3147.stdout.log",
+    "doc/performance/data/runtime-frame-context-cpython3147-s8-correctness-r2-20261008-cpython3147.stderr.log",
+    "doc/performance/data/runtime-frame-context-cpython3147-s8-correctness-r2-20261008-preserved_s8.stdout.log",
+    "doc/performance/data/runtime-frame-context-cpython3147-s8-correctness-r2-20261008-preserved_s8.stderr.log",
+    "doc/performance/data/dict-lazy-index-prerequisites-cpython3147-s8-reference-20261008.json",
+    "doc/performance/data/dict-lazy-index-prerequisites-cpython3147-s8-reference-20261008-cpython3147.stdout.log",
+    "doc/performance/data/dict-lazy-index-prerequisites-cpython3147-s8-reference-20261008-cpython3147.stderr.log",
+    "doc/performance/data/dict-lazy-index-prerequisites-cpython3147-s8-reference-20261008-preserved_s8.stdout.log",
+    "doc/performance/data/dict-lazy-index-prerequisites-cpython3147-s8-reference-20261008-preserved_s8.stderr.log",
+    "doc/performance/data/callee-module-owner-r10-withdrawn-unmeasured-duplicate-restored-s8-20261008.json"
+  ],
+  "collision_policy": "Copy only absent destinations or skip verified identical bytes; reject differing destinations",
+  "owned_attributes_additions": "scratch/performance/l9-runtime-prerequisites-publication-r2-proposed-20261008-owned-attributes.txt",
+  "owned_attributes_additions_sha256": "6516648b1b5fd4abce7f75c61155b08138fc3fbb63e13bf05b6444f232f61f47",
+  "attributes_index_candidate": "scratch/performance/l9-runtime-prerequisites-publication-r2-proposed-20261008-gitattributes-owned-index.txt",
+  "attributes_index_candidate_sha256": "aac318d0ec164bd92eabad87204b88291a5de75edfb342f23f50cc9032922926",
+  "attributes_head_blob": "81ede491caaa40846a185b7261db9aea63e97878",
+  "working_attributes_sha256": "18dfe8adf6dd1ba6d8f86807a3fa94a9c83b936c782d9cacb3f85bcb6849c2a1",
+  "unrelated_working_attribute_patterns_preserved": [
+    "/doc/performance/data/pprint-c1-native-cpu-* -text",
+    "/doc/performance/data/ordinary-canonical-slot-constructor-c3-* -text",
+    "/doc/performance/data/pprint-canonical-constructor-c3-* -text"
+  ],
+  "attribute_policy": "Stage HEAD plus only owned additions from exact index candidate; do not replace or git-add dirty working .gitattributes",
+  "instruction_owned_stage": {
+    "path": "AGENTS.md",
+    "sha256": "0f991fd32ee2ae774d11790dd7c62dc83bbaadca40e9a6c7e238e3e42e9860c5",
+    "head_blob": "cf3764634f700ba1614b96ead2a104cd8537ceac",
+    "role": "Root-authorized instruction-only mechanism-and-patch history-audit rule",
+    "copy_or_rewrite": false
+  },
+  "current_source_identity": {
+    "inventory": "doc/performance/data/sorted-exact-int-s8-registered-source-20261008.json",
+    "sha256": "f20c304e32b0874c929d22dc72018cbd6d5fd9d124844c1d66d8edcc6a231556",
+    "count": 110
+  },
+  "actual_withdrawal": {
+    "receipt": "doc/performance/data/callee-module-owner-r10-withdrawn-unmeasured-duplicate-restored-s8-20261008.json",
+    "sha256": "876cac9e56405c9566aa29a7419d4a6acf2cc9ab6f83f6d3190ea6a4d38f25eb",
+    "status": "withdrawn_unmeasured_duplicate_r10_preserved_exact_s8_restored",
+    "preserved_manifest_sha256": "27a44d1a57c2832dd053def0ebd6eb1114fd797ab5e33484fe21d14692133427",
+    "timed_children": 0,
+    "performance_result": null,
+    "restoration_complete": true,
+    "no_control_rejection_claim": true
+  },
+  "engine_stage_count": 0,
+  "live_test_stage_count": 0,
+  "binary_stage_count": 0,
+  "unexecuted_repair_code_count": 0,
+  "instruction_stage_count": 1,
+  "r10_engine_code_included": false,
+  "r10_speed_claim": false,
+  "whole_suite_refresh_claim": false,
+  "publication_executed": false,
+  "source_or_test_edits": false,
+  "git_mutation": false,
+  "link_policy": "Report links resolve to owned destinations or existing S8 and Sep30 report/patch; original receipts remain byte-exact",
+  "doc_only_stage_pathspec": "scratch/performance/l9-runtime-prerequisites-publication-r2-proposed-20261008-doc-paths.nul",
+  "stage_scope": "145 document paths, separately pinned AGENTS.md, and exact HEAD-plus-owned .gitattributes index blob; no live engine/tests/binaries",
+  "created_utc": "2026-10-08T22:24:53.8960677Z"
+}

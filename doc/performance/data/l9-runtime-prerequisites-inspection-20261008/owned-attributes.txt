@@ -1,0 +1,14 @@
+
+# Preserve rejected L9 evidence bytes; engine changes and binary controls are excluded.
+/doc/performance/data/native-entry-layout-l9-* -text
+/doc/performance/data/native-entry-layout-l9-rejected-inspection-20261008/** -text
+/doc/performance/data/native-entry-layout-l9-rejected-20261008-publication-manifest.json -text
+/doc/performance/native-entry-layout-l9-rejected-20261008.md text eol=lf
+
+# Preserve actual untimed CP/S8 prerequisite reference bytes; no repairs or binaries.
+/doc/performance/data/runtime-frame-context-cpython3147-s8-correctness-r2-20261008* -text
+/doc/performance/data/dict-lazy-index-prerequisites-cpython3147-s8-reference-20261008* -text
+/doc/performance/data/l9-runtime-prerequisites-inspection-20261008/** -text
+/doc/performance/data/l9-runtime-prerequisites-20261008-publication-manifest.json -text
+/doc/performance/native-runtime-prerequisites-after-l9-20261008.md text eol=lf
+/doc/performance/data/callee-module-owner-r10-withdrawn-unmeasured-duplicate-restored-s8-20261008.json -text

@@ -1,0 +1,23 @@
+{
+  "status": "frozen_scratch_only_controllers_unexecuted_unparsed",
+  "artifacts_sha256": {
+    "scratch/performance/check-immutable-entry-layout-focused-20261008.py": "846b868bde49d85869f3b4b6497845a2f2239eb8b07a5c1277e877359976dd8c",
+    "scratch/performance/measure-immutable-entry-layout-paired-20261008.py": "c5fac38572f38752d062f75cf9ed45fb31ab46d1969c4d77e2fac9158851aa83",
+    "scratch/performance/immutable-entry-layout-trial-plan-20261008.md": "6b48389170ae9879127073d4ded149806c1189b9ccc40b663552a41449145c63"
+  },
+  "candidate_patch_sha256": "f5a1cf0588369abe0ed15e007dbf34fb101eafabca6d50ac08b4df4a83950e83",
+  "candidate_proof_sha256": "bde7e4fa9b891e60eef8886107675df34c0e6905b94259c59a6c2574b7e2e797",
+  "actual_applied_source": "doc/performance/data/native-entry-layout-l9-applied-source-20261008.json",
+  "actual_applied_source_sha256": "b4fdcbcb4dbcea8eb263411e306a475b5321d50a311f9c2bc7f9c7425d1cc4ec",
+  "actual_source_count": 111,
+  "actual_sources_match": true,
+  "root_build_status": "in_progress_session62765_at_static_freeze",
+  "runtime_ast_build_execution_by_author": false,
+  "source_or_test_changes_by_author": false,
+  "control": "build-repro/controls/sorted-exact-int-s8-validated-checkpoint-20261008",
+  "control_manifest_sha256": "67449b0b9ecd5a1b4c9669acef85d8b89eb28c7b31df60b7a4653ad5a7c79b56",
+  "manager_python": "C:/Python/Python314/python.exe",
+  "decision": "Pprint median >1.02 and lower95CI >1; callback control median >=1/1.05; pickle parity required but neutral timing allowed",
+  "pickle_control_controller": "Suite separate preparation, no guessed artifact hash",
+  "no_measured_trial_gain": true
+}

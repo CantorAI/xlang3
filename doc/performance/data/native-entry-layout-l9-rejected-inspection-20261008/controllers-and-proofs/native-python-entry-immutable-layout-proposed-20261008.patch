@@ -1,0 +1,405 @@
+diff --git a/src/internal/xlang3/ir.h b/src/internal/xlang3/ir.h
+index d155d462..ec2fd957 100644
+--- a/src/internal/xlang3/ir.h
++++ b/src/internal/xlang3/ir.h
+@@ -329,6 +329,11 @@ struct FunctionExecutionMetadata {
+   std::vector<bool> identity_operand_retirement_safe;
+   // Precomputed IR sites whose execution may populate an owning inline cache.
+   std::vector<uint32_t> cache_cleanup_instructions;
++  // Immutable activation layout, shared only while a frame owns this metadata.
++  // Empty cache-site sets need no dense no-slot mapping. Mutable cache payloads
++  // and monitoring state remain frame-owned and are reset on every activation.
++  std::vector<uint32_t> cache_slot_by_instruction;
++  uint32_t max_native_call_arg_count = 0;
+ };
+ 
+ struct Function {
+diff --git a/src/executor/xlang_vm/xlang_frame.h b/src/executor/xlang_vm/xlang_frame.h
+index d9ba15ef..3d645e1d 100644
+--- a/src/executor/xlang_vm/xlang_frame.h
++++ b/src/executor/xlang_vm/xlang_frame.h
+@@ -197,21 +197,29 @@ class XlangVMInstrCacheStorage {
+   using const_iterator = std::vector<XlangVMInstrCache>::const_iterator;
+ 
+   void reset(size_t instruction_count,
+-             const std::vector<uint32_t>& cached_instruction_ips) {
+-    cache_slot_by_ip_.assign(instruction_count, kNoCacheSlot);
++             const std::vector<uint32_t>& cached_instruction_ips,
++             const std::vector<uint32_t>& immutable_slot_layout) {
++    bind_layout(instruction_count, immutable_slot_layout);
+     monitoring_by_ip_.assign(instruction_count, {});
+     cache_sites_.clear();
+     cache_sites_.resize(cached_instruction_ips.size());
+-    for (size_t slot = 0; slot < cached_instruction_ips.size(); ++slot) {
+-      const uint32_t ip = cached_instruction_ips[slot];
+-      if (ip < cache_slot_by_ip_.size())
+-        cache_slot_by_ip_[ip] = static_cast<uint32_t>(slot);
+-    }
+   }
+ 
+-  size_t size() const { return cache_slot_by_ip_.size(); }
++  // A current frame owns the metadata backing this view. Saved prepared caches
++  // own no metadata, so unbind before saving and rebind after current metadata
++  // acquisition on restore. Neither operation retires a cache Value.
++  void bind_layout(size_t instruction_count,
++                   const std::vector<uint32_t>& immutable_slot_layout) {
++    assert(immutable_slot_layout.empty() || immutable_slot_layout.size() == instruction_count);
++    instruction_count_ = instruction_count;
++    cache_slot_by_ip_ = immutable_slot_layout.data();
++    slot_layout_size_ = immutable_slot_layout.size();
++  }
++  void unbind_layout() { cache_slot_by_ip_ = nullptr; slot_layout_size_ = 0; }
++
++  size_t size() const { return instruction_count_; }
+   size_t cached_site_count() const { return cache_sites_.size(); }
+-  bool empty() const { return cache_slot_by_ip_.empty(); }
++  bool empty() const { return instruction_count_ == 0; }
+   XlangVMMonitoringSiteState& monitoring_at(size_t ip) { return monitoring_by_ip_[ip]; }
+   void clear_monitoring() {
+     std::fill(monitoring_by_ip_.begin(), monitoring_by_ip_.end(),
+@@ -223,13 +231,13 @@ class XlangVMInstrCacheStorage {
+   const_iterator end() const { return cache_sites_.end(); }
+ 
+   XlangVMInstrCache& operator[](size_t ip) {
+-    assert(ip < cache_slot_by_ip_.size());
++    assert(cache_slot_by_ip_ != nullptr && ip < slot_layout_size_);
+     const uint32_t slot = cache_slot_by_ip_[ip];
+     assert(slot != kNoCacheSlot);
+     return cache_sites_[slot];
+   }
+   const XlangVMInstrCache& operator[](size_t ip) const {
+-    assert(ip < cache_slot_by_ip_.size());
++    assert(cache_slot_by_ip_ != nullptr && ip < slot_layout_size_);
+     const uint32_t slot = cache_slot_by_ip_[ip];
+     assert(slot != kNoCacheSlot);
+     return cache_sites_[slot];
+@@ -237,7 +245,9 @@ class XlangVMInstrCacheStorage {
+ 
+  private:
+   static constexpr uint32_t kNoCacheSlot = UINT32_MAX;
+-  std::vector<uint32_t> cache_slot_by_ip_;
++  size_t instruction_count_ = 0;
++  const uint32_t* cache_slot_by_ip_ = nullptr;
++  size_t slot_layout_size_ = 0;
+   std::vector<XlangVMMonitoringSiteState> monitoring_by_ip_;
+   std::vector<XlangVMInstrCache> cache_sites_;
+ };
+@@ -376,7 +386,8 @@ struct XlangVMFrame {
+     set_closure(frame_closure);
+     capture_execution_builtins(args);
+     compute_register_last_use();
+-    instr_cache.reset(fn->code.size(), execution_metadata->cache_cleanup_instructions);
++    instr_cache.reset(fn->code.size(), execution_metadata->cache_cleanup_instructions,
++                      execution_metadata->cache_slot_by_instruction);
+     for (size_t i = 0; i < args.size(); ++i) {
+       if (frame_args_are_moved) {
+         value_move_assign_fast(locals[i], const_cast<Value&>(args.get(i)));
+@@ -404,6 +415,7 @@ struct XlangVMFrame {
+     const ir::Function* old_fn = fn;
+     const ir::Function* next_fn = &frame_module.functions[function_id];
+     if (old_fn != nullptr && old_fn != next_fn) {
++      instr_cache.unbind_layout();
+       auto prepared = prepared_functions.find(old_fn);
+       if (prepared == prepared_functions.end()) {
+         if (prepared_functions.size() >= 32) {
+@@ -468,8 +480,12 @@ struct XlangVMFrame {
+         monitoring_events = prepared->second.monitoring_events;
+       }
+       compute_register_last_use();
+-      if (prepared == prepared_functions.end())
+-        instr_cache.reset(fn->code.size(), execution_metadata->cache_cleanup_instructions);
++      if (prepared == prepared_functions.end()) {
++        instr_cache.reset(fn->code.size(), execution_metadata->cache_cleanup_instructions,
++                          execution_metadata->cache_slot_by_instruction);
++      } else {
++        instr_cache.bind_layout(fn->code.size(), execution_metadata->cache_slot_by_instruction);
++      }
+       reserve_call_args();
+     }
+ 
+@@ -482,6 +498,11 @@ struct XlangVMFrame {
+     }
+   }
+ 
++  void unbind_instruction_cache_layouts() {
++    instr_cache.unbind_layout();
++    for (auto& prepared : prepared_functions) prepared.second.instr_cache.unbind_layout();
++  }
++
+   void clear_for_pop() {
+     value_set_invalid(captured_builtins);
+     value_set_invalid(globals_module);
+@@ -1135,12 +1156,7 @@ private:
+   }
+ 
+   void reserve_call_args() {
+-    uint32_t max_call_arg_count = 0;
+-    for (const auto& arg_regs : fn->call_args) {
+-      if (arg_regs.size() > max_call_arg_count) {
+-        max_call_arg_count = static_cast<uint32_t>(arg_regs.size());
+-      }
+-    }
++    const uint32_t max_call_arg_count = execution_metadata->max_native_call_arg_count;
+     if (max_call_arg_count != 0) {
+       native_call_args.reserve(static_cast<size_t>(max_call_arg_count) + 1);
+     }
+diff --git a/src/executor/xlang_vm/xlang_interpreter.cpp b/src/executor/xlang_vm/xlang_interpreter.cpp
+index 4f5893f8..f2b980f0 100644
+--- a/src/executor/xlang_vm/xlang_interpreter.cpp
++++ b/src/executor/xlang_vm/xlang_interpreter.cpp
+@@ -69,6 +69,20 @@ void XlangVMFrame::compute_register_last_use_slow(
+       computed->cache_cleanup_instructions.push_back(static_cast<uint32_t>(ip));
+     }
+   }
++  // Native Python callbacks re-enter with fresh frame identity even when the
++  // same live code repeats. Build only immutable layout/capacity here; caching
++  // it must not keep any Python cache owner or mutable monitoring state alive.
++  if (!computed->cache_cleanup_instructions.empty()) {
++    computed->cache_slot_by_instruction.assign(fn->code.size(), UINT32_MAX);
++    for (size_t slot = 0; slot < computed->cache_cleanup_instructions.size(); ++slot) {
++      const uint32_t ip = computed->cache_cleanup_instructions[slot];
++      computed->cache_slot_by_instruction[ip] = static_cast<uint32_t>(slot);
++    }
++  }
++  for (const auto& arg_regs : fn->call_args) {
++    computed->max_native_call_arg_count = std::max(
++        computed->max_native_call_arg_count, static_cast<uint32_t>(arg_regs.size()));
++  }
+   computed->register_last_use.assign(
+       fn->register_count, std::numeric_limits<size_t>::max());
+   computed->register_loop_carried.assign(fn->register_count, false);
+diff --git a/src/executor/xlang_vm/xlang_vm_loop.cpp b/src/executor/xlang_vm/xlang_vm_loop.cpp
+index dc6e2a1c..2d5df41d 100644
+--- a/src/executor/xlang_vm/xlang_vm_loop.cpp
++++ b/src/executor/xlang_vm/xlang_vm_loop.cpp
+@@ -797,6 +797,7 @@ RuntimeResult Interpreter::run_function(
+         // interpreter activation. VMFrame::reset rebuilds its function-bound
+         // state on the next use while preserving the backing allocations.
+         for (auto& frame : frames) {
++          frame.unbind_instruction_cache_layouts();
+           frame.closure_owner.reset();
+           frame.closure = nullptr;
+           frame.module_owner.reset();
+@@ -806,6 +807,7 @@ RuntimeResult Interpreter::run_function(
+           frame.fn = nullptr;
+         }
+       } else {
++        for (auto& frame : frames) frame.unbind_instruction_cache_layouts();
+         frames.clear();
+       }
+       --pool.active_depth;
+diff --git a/tests/cpp/interpreter_tests.cpp b/tests/cpp/interpreter_tests.cpp
+index ef6dda86..8cd4f1fb 100644
+--- a/tests/cpp/interpreter_tests.cpp
++++ b/tests/cpp/interpreter_tests.cpp
+@@ -27,6 +27,7 @@ limitations under the License.
+ #include "scoped_sorted_key_cases.h"
+ #include "ordinary_canonical_slot_constructor_cases.h"
+ #include "class_method_annotation_capture_cases.h"
++#include "immutable_entry_layout_cases.h"
+ 
+ #include "xlang3/object_model.h"
+ #include "xlang3/sequence.h"
+@@ -48,6 +49,7 @@ int main(int argc, char** argv) {
+   xlang3::test::check_scoped_sorted_key_cases(result);
+   xlang3::test::check_ordinary_canonical_slot_constructor(result);
+   xlang3::test::check_class_method_annotation_capture(result);
++  xlang3::test::check_immutable_entry_layout(result);
+ 
+   // Same-object owning copies should avoid refcount churn, while copying into
+   // a borrowed slot must still acquire an independent reference.
+@@ -80,8 +82,12 @@ int main(int argc, char** argv) {
+   // Cache payloads remain sparse while monitoring's smaller DISABLE state is
+   // dense: uncached IR instructions still need independent event suppression.
+   {
++    const std::vector<uint32_t> layout = {
++        UINT32_MAX, UINT32_MAX, 0, UINT32_MAX,
++        UINT32_MAX, UINT32_MAX, 1, UINT32_MAX};
++    const std::vector<uint32_t> uncached_layout;
+     xlang3::XlangVMInstrCacheStorage storage;
+-    storage.reset(8, {2, 6});
++    storage.reset(8, {2, 6}, layout);
+     storage[2].domain = xlang3::XlangVMCacheDomain::Call;
+     storage[6].domain = xlang3::XlangVMCacheDomain::Attr;
+     storage.monitoring_at(3).disabled_events = 1;
+@@ -94,6 +100,13 @@ int main(int argc, char** argv) {
+             storage.monitoring_at(3).disabled_events == 1 &&
+             storage.monitoring_at(4).disabled_events == 0,
+         "sparse caches and dense monitoring state must remain IP-local");
++    storage.unbind_layout();
++    storage.reset(9, {}, uncached_layout);
++    xlang3::test::expect_true(result,
++        storage.size() == 9 && storage.cached_site_count() == 0 &&
++            storage.monitoring_at(3).disabled_events == 0 &&
++            storage.monitoring_at(8).disabled_events == 0,
++        "empty borrowed layouts keep logical IP bounds and freshly reset dense monitoring");
+   }
+ 
+   // Setter dispatch now uses a sparse cache. Its metadata must allocate the
+diff --git a/tests/cpp/immutable_entry_layout_cases.h b/tests/cpp/immutable_entry_layout_cases.h
+new file mode 100644
+index 0000000..cee63c5b5138e88b328a5922cf684af23a2066ee
+--- /dev/null
++++ b/tests/cpp/immutable_entry_layout_cases.h
+@@ -0,0 +1,161 @@
++/*
++Copyright (C) 2026 CantorAI Inc. and The XLang Foundation
++Licensed under the Apache License, Version 2.0 (the "License");
++you may not use this file except in compliance with the License.
++You may obtain a copy of the License at
++
++    http://www.apache.org/licenses/LICENSE-2.0
++
++Unless required by applicable law or agreed to in writing, software
++distributed under the License is distributed on an "AS IS" BASIS,
++WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++See the License for the specific language governing permissions and
++limitations under the License.
++*/
++#pragma once
++
++#include "test_harness.h"
++#include "xlang3/functional_iterators.h"
++#include "xlang3/object_model.h"
++
++#include <atomic>
++
++namespace xlang3::test {
++namespace immutable_entry_layout_cases {
++
++inline bool probe(Runtime&, const Value* args, uint32_t argc, Value& out,
++    std::string& error, void*) {
++  if (argc == 0) { error = "immutable layout probe requires an argument"; return false; }
++  if (args[0].tag == ValueTag::Int64) out = Value::int64(args[0].as.i64 + argc);
++  else value_assign_fast(out, args[0]);
++  error.clear(); return true;
++}
++
++inline std::shared_ptr<ir::Module> make_module() {
++  auto module = std::make_shared<ir::Module>();
++  module->source_file = "immutable_entry_layout_public_api.py";
++  module->functions.resize(4);
++  for (uint32_t index = 0; index < 3; ++index) {
++    auto& fn = module->functions[index];
++    fn.name = index == 0 ? "layout_a" : index == 1 ? "layout_zero" : "layout_b";
++    fn.params = {"value"}; fn.locals = {"value"}; fn.register_count = 3;
++  }
++  auto& a = module->functions[0];
++  a.constants = {Value::native_function(0, "layout_probe", probe, nullptr)};
++  a.call_args = {{0}, {0, 0, 0, 0, 0}};
++  a.code = {{ir::Op::LoadLocal, 0, 0, 0, 0},
++      {ir::Op::LoadConst, 1, 0, 0, 0}, {ir::Op::Call, 2, 1, 0, 0},
++      {ir::Op::Return, 0, 2, 0, 0}};
++  // This nontrivial uncached IR must enter a real frame, between two cached
++  // functions at the same depth. It is neither a two-op return nor arithmetic.
++  auto& zero = module->functions[1];
++  zero.code = {{ir::Op::LoadLocal, 0, 0, 0, 0},
++      {ir::Op::Move, 1, 0, 0, 0}, {ir::Op::Move, 2, 1, 0, 0},
++      {ir::Op::Return, 0, 2, 0, 0}};
++  auto& b = module->functions[2];
++  b.constants = {Value::native_function(0, "layout_probe", probe, nullptr)};
++  b.call_args = {{0, 0, 0}};
++  b.code = a.code;
++  auto& driver = module->functions[3];
++  driver.name = "layout_driver";
++  driver.params = {"a", "zero", "b", "value"}; driver.locals = driver.params;
++  driver.register_count = 9;
++  driver.call_args = {{1}, {2}, {4}, {6}};
++  driver.code = {{ir::Op::LoadLocal, 0, 0, 0, 0},
++      {ir::Op::LoadLocal, 1, 3, 0, 0}, {ir::Op::Call, 2, 0, 0, 0},
++      {ir::Op::LoadLocal, 3, 1, 0, 0}, {ir::Op::Call, 4, 3, 1, 0},
++      {ir::Op::LoadLocal, 5, 2, 0, 0}, {ir::Op::Call, 6, 5, 2, 0},
++      {ir::Op::LoadLocal, 7, 0, 0, 0}, {ir::Op::Call, 8, 7, 3, 0},
++      {ir::Op::Return, 0, 8, 0, 0}};
++  return module;
++}
++
++inline std::shared_ptr<const ir::FunctionExecutionMetadata> metadata(const ir::Function& fn) {
++  return std::atomic_load_explicit(&fn.execution_metadata, std::memory_order_acquire);
++}
++
++} // namespace immutable_entry_layout_cases
++
++inline void check_immutable_entry_layout(CaseResult& result) {
++  using namespace immutable_entry_layout_cases;
++  std::ostringstream output;
++  Runtime runtime(output);
++  auto module = make_module();
++  Value a = Value::function(0, {}, Value::none(), module);
++  Value zero = Value::function(1, {}, Value::none(), module);
++  Value b = Value::function(2, {}, Value::none(), module);
++  Value driver = Value::function(3, {}, Value::none(), module);
++  Value args[4] = {a, zero, b, Value::int64(10)};
++  std::string error;
++  bool entries_ok = true;
++  for (unsigned i = 0; i < 32; ++i) {
++    Value out;
++    const bool called = runtime_call_callable(runtime, driver, args, 4, out, error);
++    entries_ok &= called && out.tag == ValueTag::Int64 && out.as.i64 == 15;
++    if (!called) break;
++  }
++  expect_true(result, entries_ok, "32 real native entries execute A/uncached/B/A prepared-frame restores");
++  const auto a_metadata = metadata(module->functions[0]);
++  const auto zero_metadata = metadata(module->functions[1]);
++  const auto b_metadata = metadata(module->functions[2]);
++  const auto driver_metadata = metadata(module->functions[3]);
++  expect_true(result, a_metadata != nullptr && zero_metadata != nullptr &&
++      b_metadata != nullptr && driver_metadata != nullptr,
++      "every cached and uncached function actually entered the public DLL frame path");
++  if (!a_metadata || !zero_metadata || !b_metadata || !driver_metadata) return;
++  const std::vector<uint32_t> expected_layout = {UINT32_MAX, UINT32_MAX, 0, UINT32_MAX};
++  expect_true(result, a_metadata->owner == &module->functions[0] &&
++      a_metadata->cache_slot_by_instruction == expected_layout &&
++      a_metadata->cache_cleanup_instructions == std::vector<uint32_t>{2} &&
++      a_metadata->max_native_call_arg_count == 5 &&
++      b_metadata->cache_slot_by_instruction == expected_layout &&
++      b_metadata->max_native_call_arg_count == 3 &&
++      zero_metadata->cache_slot_by_instruction.empty() &&
++      zero_metadata->cache_cleanup_instructions.empty() &&
++      zero_metadata->max_native_call_arg_count == 0,
++      "actual prepared metadata provides exact immutable slots/capacity and an empty uncached layout");
++  const auto* layout_data = a_metadata->cache_slot_by_instruction.data();
++  const auto driver_refs = driver.as.obj->refcnt.load();
++  Value token = Value::list({Value::int64(42)});
++  args[3] = token;
++  const auto token_refs = token.as.obj->refcnt.load();
++  bool owners_ok = true;
++  for (unsigned i = 0; i < 32; ++i) {
++    {
++      Value out;
++      owners_ok &= runtime_call_callable(runtime, driver, args, 4, out, error) && value_is(out, token);
++    }
++    owners_ok &= token.as.obj->refcnt.load() == token_refs;
++  }
++  expect_true(result, owners_ok && driver.as.obj->refcnt.load() == driver_refs &&
++      metadata(module->functions[0]).get() == a_metadata.get() &&
++      a_metadata->cache_slot_by_instruction.data() == layout_data,
++      "repeated public entries reuse only immutable layout and release all argument/function cache owners");
++
++  Value replacement_code = Value::code(module, 2);
++  error.clear();
++  const bool replaced = object_set_attr(a, "__code__", replacement_code, error);
++  args[3] = Value::int64(10);
++  Value replaced_out;
++  const bool replaced_called = replaced && runtime_call_callable(runtime, driver, args, 4, replaced_out, error);
++  expect_true(result, replaced_called && replaced_out.tag == ValueTag::Int64 &&
++      replaced_out.as.i64 == 19 && value_as_function(a)->function_id == 2 &&
++      metadata(module->functions[2]).get() == b_metadata.get(),
++      "live code replacement binds the current function layout/capacity without a stale saved association");
++
++  // An IR copy inherits the old metadata pointer. Existing owner validation
++  // must rebuild its immutable layout for the actual copied Function object.
++  auto copy = std::make_shared<ir::Module>(*module);
++  Value copied_a = Value::function(0, {}, Value::none(), copy);
++  Value input = Value::int64(3), copied_out;
++  const bool copied_called = runtime_call_callable(runtime, copied_a, &input, 1, copied_out, error);
++  const auto copied_metadata = metadata(copy->functions[0]);
++  expect_true(result, copied_called && copied_out.tag == ValueTag::Int64 && copied_out.as.i64 == 4 &&
++      copied_metadata != nullptr && copied_metadata->owner == &copy->functions[0] &&
++      copied_metadata.get() != a_metadata.get() &&
++      copied_metadata->cache_slot_by_instruction == expected_layout &&
++      copied_metadata->max_native_call_arg_count == 5,
++      "copied code rejects inherited metadata ownership and builds its own current immutable layout");
++}
++
++} // namespace xlang3::test
