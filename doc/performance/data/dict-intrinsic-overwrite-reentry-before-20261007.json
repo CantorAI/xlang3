@@ -1,0 +1,32 @@
+{
+  "probe_sha256": "513159bfb01d20f5e272aec4824ac91caee630991b6b6c24b13e9d72620f6c3e",
+  "observations": [
+    {
+      "runtime": "cpython3147",
+      "executable": "C:\\Python\\Python314\\python.exe",
+      "exit_code": 0,
+      "stdout": "replacement published before finalizer; callback writes preserved: OK\r\n",
+      "stderr": "",
+      "exe_sha256": "4942b86a6597e5aee0128daa00050ed79bc21f6e709a78eb19cbfeb0c2f39ac9",
+      "dll_sha256": null
+    },
+    {
+      "runtime": "candidate",
+      "executable": "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+      "exit_code": 3221225477,
+      "stdout": "",
+      "stderr": "",
+      "exe_sha256": "dbc20688f5363819cb4a539619d28be885c9d0e0e6e3140e24ecb0112c534248",
+      "dll_sha256": "79f1b528f3e51bdf71daaad035ab7dcdb14b0c2f36b06fb34ae427f6529800c5"
+    },
+    {
+      "runtime": "accepted_control",
+      "executable": "D:\\CantorAI\\xlang3\\build-repro\\controls\\live-eval-checkpoint-20261007\\xlang3.exe",
+      "exit_code": 3221225477,
+      "stdout": "",
+      "stderr": "",
+      "exe_sha256": "72dd41692c627ccc5242eda336578cfccc4d404ba63b395cae441698b6ba16a6",
+      "dll_sha256": "b0310f599fc7576463dd27c5be00dd96fb7ab9dfe6b11665adb706d8c6114e7d"
+    }
+  ]
+}

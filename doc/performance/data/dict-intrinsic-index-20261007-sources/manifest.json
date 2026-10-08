@@ -1,0 +1,24 @@
+{
+  "scope": "Exact archived diagnostic scripts; hardcoded one-off controllers must not be replayed",
+  "files_sha256": {
+    "dict-composite-scaling-probe-20261007.py": "8fdc71f472464c997b1766841a296bfc3de9cb4182762d454abfc379bfa8cc1a",
+    "bpe-official-body-once-20261007.py": "6670786d33eabce98de6362e12a42ae7321e8691c086c3eeb8f95a49ceedd0d2",
+    "observe-bpe-official-body-20261007.py": "645cc51d08518087d1a930d5c5a01eb0b8ddc509e65662f6a8f9493043826d68",
+    "bpe-phase-diagnostic-20261007.py": "ee6753946e3f56856f61f10d96b82e0c610fac0416ec38d53057dd6f2aaa6909",
+    "observe-bpe-phases-20261007.py": "03fcf04d54d4436a42d4ac6eebeb1e126146915268159304d5cb72691c7a4025",
+    "dict-intrinsic-overwrite-reentry-20261007.py": "513159bfb01d20f5e272aec4824ac91caee630991b6b6c24b13e9d72620f6c3e",
+    "observe-dict-overwrite-reentry-20261007.py": "6d2ed44908aa41b35e3f0543c2d1fbbddefd2d64f19199be35ad6e1a85432504",
+    "validate-dict-native-key-index-20261007.py": "b52bb786efc58998dcec814177cc3a0b3f23a24ca03699fb98d6285efd601084",
+    "run-dict-index-official-bpe-r3-20261007.py": "cb1436f79be6a45897e267fb77510a284651f73f0d2c3b9cc96a60dc7bcc8de2",
+    "validate-dict-native-read-index-20261007.py": "0a9a0a8e484626952ae0655be859d10b38700651264bf5d1393bbb0285914c83",
+    "validate-dict-native-index-final-20261007.py": "14e18519654b79101efaba27914a80ed9e73417abdb07dd4177236e249825d73",
+    "export-dict-index-diagnostic-data-20261007.py": "e0602f61c1e640c38511bb79936a3787082de5facb3a1a75c1bfb43244ac0c76",
+    "verify-dict-index-evidence-20261007.py": "c809f9154d3d0d64eecf9572b0dda3d07866bf1c0b7ecc100b4f65de0ae0f32d",
+    "dict-callback-boundary-probe-20261007.py": "4a5cb7358005574fc2426db47c430caac7d7b1b7c453ec386b991c350402a47b",
+    "minmax-streaming-order-probe-20261007.py": "2ec2139baa39873d03dc1166a7db6703575e23003b7cc87693df5a73aca7bdc8",
+    "inherited-subscript-dispatch-probe-20261007.py": "bdd6e1d6b3852e57cb7c9daabdd9f935b1cdd1acdbf021d6e79fe8c431ab8f9c",
+    "observe-dict-dispatch-followups-20261007.py": "48fb2b2a39fd1215666b2895522a6ce817f4a6ad7fcda8a261d59f440c9dcbf1",
+    "summarize-dict-dispatch-followups-20261007.py": "b6adad1462fe4914a9972c36197be8de5829b0d8b4c0661b466cb76c4b9b71e1"
+  },
+  "baseline_sha256": "e9acaf31bf99dfa8fac4e1e9cc3da5b7aac0961f4545ec972d8ba9ffc339fde2"
+}

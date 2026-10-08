@@ -1,0 +1,52 @@
+{
+  "status": "terminal",
+  "scope": "full unchanged official body, diagnostic only; no calibration or suite score",
+  "probe_sha256": "6670786d33eabce98de6362e12a42ae7321e8691c086c3eeb8f95a49ceedd0d2",
+  "observations": [
+    {
+      "runtime": "cpython3147",
+      "executable": "C:\\Python\\Python314\\python.exe",
+      "exe_sha256": "4942b86a6597e5aee0128daa00050ed79bc21f6e709a78eb19cbfeb0c2f39ac9",
+      "exit_code": 0,
+      "log": "bpe-official-body-dict-index-observations-20261007-cpython3147.log",
+      "log_sha256": "7b008c198c11f123decc61baca1655aa969a3fb9ed6bdd61d51ce1218d18944e",
+      "result": {
+        "purpose": "one unchanged official body pass, diagnostic only",
+        "python_version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+        "benchmark_source_sha256": "c7255345499e118181785370b0996e8cc1056491b9678b3fbeb02421e3f9b2df",
+        "benchmark_data_sha256": "6607193e67b7b459d082f5f2aea724e470615643d63ad2e205123b3076223da4",
+        "loops": 1,
+        "body_seconds": 3.622598799993284,
+        "official_roundtrip_assertion": "passed"
+      }
+    },
+    {
+      "runtime": "candidate",
+      "executable": "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+      "exe_sha256": "dbc20688f5363819cb4a539619d28be885c9d0e0e6e3140e24ecb0112c534248",
+      "dll_sha256": "79f1b528f3e51bdf71daaad035ab7dcdb14b0c2f36b06fb34ae427f6529800c5",
+      "exit_code": 0,
+      "log": "bpe-official-body-dict-index-observations-20261007-candidate.log",
+      "log_sha256": "9a77ed35cdedea486b8678b14ac70e4e2623e7b27ff7588af7581637cc76a3cb",
+      "result": {
+        "purpose": "one unchanged official body pass, diagnostic only",
+        "python_version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+        "benchmark_source_sha256": "c7255345499e118181785370b0996e8cc1056491b9678b3fbeb02421e3f9b2df",
+        "benchmark_data_sha256": "6607193e67b7b459d082f5f2aea724e470615643d63ad2e205123b3076223da4",
+        "loops": 1,
+        "body_seconds": 44.129279900022084,
+        "official_roundtrip_assertion": "passed"
+      }
+    },
+    {
+      "runtime": "accepted_control",
+      "executable": "D:\\CantorAI\\xlang3\\build-repro\\controls\\live-eval-checkpoint-20261007\\xlang3.exe",
+      "exe_sha256": "72dd41692c627ccc5242eda336578cfccc4d404ba63b395cae441698b6ba16a6",
+      "dll_sha256": "b0310f599fc7576463dd27c5be00dd96fb7ab9dfe6b11665adb706d8c6114e7d",
+      "exit_code": null,
+      "timeout_seconds": 180,
+      "log": "bpe-official-body-dict-index-observations-20261007-accepted_control.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ]
+}

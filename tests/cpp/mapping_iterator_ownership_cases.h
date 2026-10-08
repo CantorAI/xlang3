@@ -23,6 +23,52 @@ namespace xlang3::test {
 
 inline void check_mapping_iterator_ownership(CaseResult& result,
                                              bool test_self_replacing_iterator = true) {
+  {
+    std::string error;
+    Value source = Value::dict({});
+    Value key = Value::tuple({Value::bytes("indexed"), Value::int64(1)});
+    const bool inserted = mapping_set_item(source, key, Value::int64(7), error);
+    auto* dict = value_as_dict(source);
+    expect_true(result, inserted && dict != nullptr &&
+        dict->intrinsic_hash_keys_only &&
+        dict->runtime_hash_indexed_entry_count == 1 &&
+        dict->intrinsic_hash_checked_entry_count == 1,
+        "intrinsic tuple writes must populate and retain a valid hash index");
+    expect_true(result, key.as.obj->refcnt.load(std::memory_order_relaxed) == 2,
+        "hash buckets must store scalar locations, not additional key owners");
+    Value equal = Value::tuple({Value::bytes("indexed"), Value::boolean(true)});
+    const bool updated = mapping_set_item(source, equal, Value::int64(9), error);
+    expect_true(result, updated && dict->entries.size() == 1 &&
+        value_is(dict->entries.front().first, key),
+        "equal distinct intrinsic keys must update the original ordered entry");
+
+    // Floating and protocol keys are deliberately outside the intrinsic guard.
+    // A rejected key set is cached for repeated writes, then reconsidered after
+    // deletion changes entry locations; it must not become a permanent fallback.
+    mapping_set_item(source, Value::number(0.5), Value::int64(10), error);
+    mapping_set_item(source, equal, Value::int64(11), error);
+    expect_true(result, !dict->intrinsic_hash_keys_only &&
+        dict->intrinsic_hash_checked_entry_count == dict->entries.size(),
+        "mixed key sets must reject and cache intrinsic-index eligibility");
+    mapping_delete_item(source, Value::number(0.5), error);
+    expect_true(result, dict->intrinsic_hash_checked_entry_count == static_cast<size_t>(-1),
+        "entry compaction must invalidate intrinsic-index eligibility");
+    mapping_set_item(source, equal, Value::int64(12), error);
+    expect_true(result, dict->intrinsic_hash_keys_only &&
+        dict->runtime_hash_indexed_entry_count == dict->entries.size(),
+        "removing a mixed key must permit the guarded index again");
+    const size_t capacity = dict->entries.capacity();
+    mapping_clear(source, error);
+    expect_true(result, dict->entries.empty() && dict->entries.capacity() == capacity &&
+        dict->runtime_hash_indexed_entry_count == 0 &&
+        dict->intrinsic_hash_checked_entry_count == 0,
+        "ordinary clear must reset indices while retaining entry capacity");
+    mapping_set_item(source, key, Value::int64(13), error);
+    Value popped;
+    mapping_popitem(source, popped, error);
+    expect_true(result, dict->intrinsic_hash_checked_entry_count == static_cast<size_t>(-1),
+        "popitem must invalidate cached scalar entry locations");
+  }
   const auto make_source = [] {
     return Value::dict({{
         Value::tuple({Value::int64(3), Value::int64(5)}),

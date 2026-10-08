@@ -1,0 +1,313 @@
+{
+  "status": "correctness_and_gate_passed_official_failed",
+  "candidate_binary_sha256": {
+    "exe": "dbc20688f5363819cb4a539619d28be885c9d0e0e6e3140e24ecb0112c534248",
+    "dll": "10f79613a21077fe280f55477e6f960b0b2484b7b97d395161fc4f66e1d73863"
+  },
+  "source_sha256": {
+    "src/runtime/mapping.cpp": "47dc1b34488db34ada2e87d715ea8bc00497493c9788fa7ac9b6dc30aa7f00a8",
+    "src/internal/xlang3/mapping.h": "fe980eda4083aad5472a4eca1c5466edac4c2014c2bf680d4b72aa0235d0100f",
+    "tests/fixtures/core/dict_intrinsic_write_index.py": "aaf3ba4b277140de03f56908f067d2955cf526d5a7e81f5d6ed78662713a5d13",
+    "tests/cpp/mapping_iterator_ownership_cases.h": "5d7c11f42a4898a6a5c8fa764cd3fce5661a34dde2f249fbcf9b7597f0ee4fe2"
+  },
+  "phases": [
+    {
+      "name": "fixtures",
+      "command": [
+        "C:\\Python\\Python314\\python.exe",
+        "tests/run_fixtures.py",
+        "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe"
+      ],
+      "exit_code": 0,
+      "log": "dict-native-index-final-validation-20261007-fixtures.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "cpp",
+      "command": [
+        "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\ctest.exe",
+        "--test-dir",
+        "build-repro/main-verify-20261006",
+        "-C",
+        "Release",
+        "-R",
+        "xlang3_(runtime_value_tests|interpreter_tests|sdk_stream_call_tests|graph_)",
+        "--output-on-failure"
+      ],
+      "exit_code": 0,
+      "log": "dict-native-index-final-validation-20261007-cpp.log",
+      "sha256": "7daa16de6cb2ed7d28fb7c2a3eddae85960731a465cc665b0743215136e4f25b"
+    },
+    {
+      "name": "scaling",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\dict-composite-scaling-probe-20261007.py"
+      ],
+      "exit_code": 0,
+      "log": "dict-native-index-final-validation-20261007-scaling.log",
+      "sha256": "e184413ba6b53b7ea7c0c0c96eb6763124844aad1b89682f8bee02e60f3d206c"
+    },
+    {
+      "name": "gate",
+      "command": [
+        "C:\\Python\\Python314\\python.exe",
+        "benchmarks/check_regression.py",
+        "--baseline",
+        "D:\\CantorAI\\xlang3\\build-repro\\Release\\xlang3.exe",
+        "--candidate",
+        "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+        "--output",
+        "D:\\CantorAI\\xlang3\\doc\\performance\\data\\release-dict-native-index-final-fixed-gate-20261007.json"
+      ],
+      "exit_code": 0,
+      "log": "dict-native-index-final-validation-20261007-gate.log",
+      "sha256": "0d30c22d0c45006ba751806202ebdd4749cb33a20c007ef1e2f8517d3bc5e137"
+    },
+    {
+      "name": "official-bpe",
+      "command": [
+        "C:\\Python\\Python314\\python.exe",
+        "benchmarks/diagnostics/run_pyperformance_xlang3_shimmed.py",
+        "--runtime",
+        "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+        "--benchmarks",
+        "bpe_tokeniser",
+        "--mode",
+        "fast",
+        "--case-timeout",
+        "1200",
+        "--dependency-site",
+        "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages",
+        "--output",
+        "D:\\CantorAI\\xlang3\\doc\\performance\\data\\pyperformance-dict-native-index-final-bpe-fast-20261007.json"
+      ],
+      "exit_code": 1,
+      "log": "dict-native-index-final-validation-20261007-official-bpe.log",
+      "sha256": "ea14f4878d1f65ba9fb5079f0e4a2c53486ef1c46331885497e0341d7460a8ab"
+    }
+  ],
+  "fixture_counts": {
+    "core": 367,
+    "compatibility_sections": 11,
+    "expected_failures": 3
+  },
+  "scaling_probe_sha256": "8fdc71f472464c997b1766841a296bfc3de9cb4182762d454abfc379bfa8cc1a",
+  "scaling_rows": [
+    {
+      "checksums": [
+        256,
+        256,
+        256
+      ],
+      "counter": false,
+      "fresh_pair": false,
+      "key_count": 64,
+      "samples_seconds": [
+        0.00025749998167157173,
+        0.0002555999963078648,
+        0.0002570000069681555
+      ],
+      "shape": "bytes",
+      "updates": 256
+    },
+    {
+      "checksums": [
+        1024,
+        1024,
+        1024
+      ],
+      "counter": false,
+      "fresh_pair": false,
+      "key_count": 256,
+      "samples_seconds": [
+        0.0010077999904751778,
+        0.0010119999933522195,
+        0.0010269999911542982
+      ],
+      "shape": "bytes",
+      "updates": 1024
+    },
+    {
+      "checksums": [
+        4096,
+        4096,
+        4096
+      ],
+      "counter": false,
+      "fresh_pair": false,
+      "key_count": 1024,
+      "samples_seconds": [
+        0.0042384999978821725,
+        0.004084399988641962,
+        0.004168499988736585
+      ],
+      "shape": "bytes",
+      "updates": 4096
+    },
+    {
+      "checksums": [
+        256,
+        256,
+        256
+      ],
+      "counter": false,
+      "fresh_pair": false,
+      "key_count": 64,
+      "samples_seconds": [
+        0.0004697999975178391,
+        0.00046960002509877086,
+        0.00047400000039488077
+      ],
+      "shape": "tuple_bytes",
+      "updates": 256
+    },
+    {
+      "checksums": [
+        1024,
+        1024,
+        1024
+      ],
+      "counter": false,
+      "fresh_pair": false,
+      "key_count": 256,
+      "samples_seconds": [
+        0.0018666000105440617,
+        0.0020120000117458403,
+        0.0020004000107292086
+      ],
+      "shape": "tuple_bytes",
+      "updates": 1024
+    },
+    {
+      "checksums": [
+        4096,
+        4096,
+        4096
+      ],
+      "counter": false,
+      "fresh_pair": false,
+      "key_count": 1024,
+      "samples_seconds": [
+        0.0075413000013213605,
+        0.00757549999980256,
+        0.007543499988969415
+      ],
+      "shape": "tuple_bytes",
+      "updates": 4096
+    },
+    {
+      "checksums": [
+        256,
+        256,
+        256
+      ],
+      "counter": false,
+      "fresh_pair": true,
+      "key_count": 64,
+      "samples_seconds": [
+        0.0006584999791812152,
+        0.0006595999875571579,
+        0.0006592999852728099
+      ],
+      "shape": "tuple_bytes",
+      "updates": 256
+    },
+    {
+      "checksums": [
+        1024,
+        1024,
+        1024
+      ],
+      "counter": false,
+      "fresh_pair": true,
+      "key_count": 256,
+      "samples_seconds": [
+        0.0026416000036988407,
+        0.0026168999902438372,
+        0.0026076000067405403
+      ],
+      "shape": "tuple_bytes",
+      "updates": 1024
+    },
+    {
+      "checksums": [
+        4096,
+        4096,
+        4096
+      ],
+      "counter": false,
+      "fresh_pair": true,
+      "key_count": 1024,
+      "samples_seconds": [
+        0.010993200005032122,
+        0.010891700017964467,
+        0.010838599991984665
+      ],
+      "shape": "tuple_bytes",
+      "updates": 4096
+    },
+    {
+      "checksums": [
+        256,
+        256,
+        256
+      ],
+      "counter": true,
+      "fresh_pair": true,
+      "key_count": 64,
+      "samples_seconds": [
+        0.0008205000194720924,
+        0.000820100016426295,
+        0.0008127999899443239
+      ],
+      "shape": "tuple_bytes",
+      "updates": 256
+    },
+    {
+      "checksums": [
+        1024,
+        1024,
+        1024
+      ],
+      "counter": true,
+      "fresh_pair": true,
+      "key_count": 256,
+      "samples_seconds": [
+        0.0032691999804228544,
+        0.00332620000699535,
+        0.003338899987284094
+      ],
+      "shape": "tuple_bytes",
+      "updates": 1024
+    },
+    {
+      "checksums": [
+        4096,
+        4096,
+        4096
+      ],
+      "counter": true,
+      "fresh_pair": true,
+      "key_count": 1024,
+      "samples_seconds": [
+        0.013388799998210743,
+        0.013720699993427843,
+        0.014048100012587383
+      ],
+      "shape": "tuple_bytes",
+      "updates": 4096
+    }
+  ],
+  "fixed_gate": {
+    "output": "release-dict-native-index-final-fixed-gate-20261007.json",
+    "sha256": "5cb4647a8220b20838cc6d1536824390fb8a02be25642d35d6f3cde49f749f8e",
+    "exit_code": 0
+  },
+  "compatibility_hook_sha256": "2ffc217fe20497156bfcb1cebc7fb87203f33c6d4d3dbb6ecbcbcf91ea4cb317",
+  "official_bpe": {
+    "output": "pyperformance-dict-native-index-final-bpe-fast-20261007.json",
+    "sha256": null,
+    "exit_code": 1
+  }
+}

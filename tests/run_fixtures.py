@@ -9,6 +9,7 @@ import tempfile
 
 
 CORE_CASES = """
+dict_intrinsic_write_index
 eval_live_namespaces
 pyexpat_namespace_incremental
 bigint_add_compare_operand_views

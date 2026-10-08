@@ -1,0 +1,12 @@
+local_slots              pass         0.998x
+scalar_arithmetic        pass         0.982x
+range_for                pass         1.019x
+function_calls           pass         0.988x
+class_construct          pass         1.009x
+list_append              pass         0.996x
+property_access          pass         0.995x
+deepcopy_memo            pass         0.919x
+json_dumps               pass         1.004x
+gc_traversal             pass         0.748x
+subparsers               pass         0.947x
+Performance check: pass. Report: D:\CantorAI\xlang3\doc\performance\data\release-dict-native-index-final-fixed-gate-20261007.json

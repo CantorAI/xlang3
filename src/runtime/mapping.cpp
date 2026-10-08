@@ -157,6 +157,8 @@ void recycle_dict_object(DictObject* object) {
   object->integer_index.clear();
   object->runtime_hash_index.clear();
   object->runtime_hash_indexed_entry_count = static_cast<size_t>(-1);
+  object->intrinsic_hash_checked_entry_count = static_cast<size_t>(-1);
+  object->intrinsic_hash_keys_only = false;
   object->string_index.clear();
   object->indexed_entry_count = static_cast<size_t>(-1);
   object->index_has_other_keys = false;
@@ -209,12 +211,61 @@ bool runtime_mapping_hash(Runtime& runtime, const Value& value, int64_t& hash, s
   return true;
 }
 
+bool intrinsic_index_key(const Value& key, unsigned depth = 0) {
+  if (key.tag == ValueTag::None || key.tag == ValueTag::Bool ||
+      key.tag == ValueTag::Int64) return true;
+  if (key.tag != ValueTag::Object || key.as.obj == nullptr) return false;
+  switch (key.as.obj->kind) {
+    case ObjectKind::String:
+    case ObjectKind::Bytes:
+    case ObjectKind::BigInt:
+      return true;
+    case ObjectKind::Tuple: {
+      if (depth >= 64) return false;
+      for (const auto& item : value_as_tuple(key)->items)
+        if (!intrinsic_index_key(item, depth + 1)) return false;
+      return true;
+    }
+    default:
+      // Subclasses, user objects, buffers and other key protocols retain the
+      // original path. Do not bypass __hash__/__eq__ or buffer lifetime rules.
+      return false;
+  }
+}
+
+bool ensure_intrinsic_hash_index(DictObject& dict) {
+  if (dict.intrinsic_hash_checked_entry_count == dict.entries.size()) {
+    if (!dict.intrinsic_hash_keys_only) return false;
+    if (dict.runtime_hash_indexed_entry_count == dict.entries.size()) return true;
+  }
+  std::unordered_map<int64_t, std::vector<size_t>> rebuilt;
+  rebuilt.reserve(dict.entries.size());
+  for (size_t index = 0; index < dict.entries.size(); ++index) {
+    const auto& key = dict.entries[index].first;
+    size_t hash = 0;
+    std::string ignored;
+    if (!intrinsic_index_key(key) || !value_hash_key(key, hash, ignored)) {
+      dict.intrinsic_hash_checked_entry_count = dict.entries.size();
+      dict.intrinsic_hash_keys_only = false;
+      return false;
+    }
+    rebuilt[static_cast<int64_t>(hash)].push_back(index);
+  }
+  dict.runtime_hash_index = std::move(rebuilt);
+  dict.runtime_hash_indexed_entry_count = dict.entries.size();
+  dict.intrinsic_hash_checked_entry_count = dict.entries.size();
+  dict.intrinsic_hash_keys_only = true;
+  return true;
+}
+
 bool ensure_runtime_hash_index(Runtime& runtime, DictObject& dict,
                                std::string& error) {
   if (dict.runtime_hash_indexed_entry_count == dict.entries.size()) return true;
   std::unordered_map<int64_t, std::vector<size_t>> rebuilt;
   rebuilt.reserve(dict.entries.size());
+  bool intrinsic_keys_only = true;
   for (size_t index = 0; index < dict.entries.size(); ++index) {
+    intrinsic_keys_only = intrinsic_keys_only && intrinsic_index_key(dict.entries[index].first);
     int64_t hash = 0;
     if (!runtime_mapping_hash(runtime, dict.entries[index].first, hash, error))
       return false;
@@ -222,6 +273,8 @@ bool ensure_runtime_hash_index(Runtime& runtime, DictObject& dict,
   }
   dict.runtime_hash_index = std::move(rebuilt);
   dict.runtime_hash_indexed_entry_count = dict.entries.size();
+  dict.intrinsic_hash_checked_entry_count = dict.entries.size();
+  dict.intrinsic_hash_keys_only = intrinsic_keys_only;
   return true;
 }
 
@@ -691,11 +744,13 @@ bool dict_find_string_index(
 }
 
 void erase_dict_entry(DictObject& dict, size_t index) {
-  value_set_invalid(dict.entries[index].first);
-  value_set_invalid(dict.entries[index].second);
+  // Detach before decref: a removed value's finalizer may reenter this dict.
+  // All entry locations must already describe the post-removal dictionary.
+  auto removed = std::move(dict.entries[index]);
   dict.entries.erase(dict.entries.begin() + static_cast<std::ptrdiff_t>(index));
   dict.indexed_entry_count = static_cast<size_t>(-1);
   dict.runtime_hash_indexed_entry_count = static_cast<size_t>(-1);
+  dict.intrinsic_hash_checked_entry_count = static_cast<size_t>(-1);
 }
 
 bool mapping_get_item(const Value& object, const Value& key, Value& out, std::string& error) {
@@ -892,7 +947,16 @@ bool mapping_get_item_runtime(
     }
     return mapping_get_item(object, key, out, error);
   }
-  if (!ensure_hashable(key, error)) return false;
+  const bool intrinsic_lookup = dict->intrinsic_hash_keys_only &&
+      dict->intrinsic_hash_checked_entry_count == dict->entries.size() &&
+      dict->runtime_hash_indexed_entry_count == dict->entries.size() &&
+      intrinsic_index_key(key);
+  // Counter's read/modify/write loop needs one hash and an intrinsic equality
+  // check, not a validation hash followed by Python comparison dispatch. Both
+  // the query AND every stored key must be callback-free; mixed dictionaries
+  // retain the runtime path. Subclass overrides above and __missing__ below
+  // still run. Invalidated indices are rebuilt through the original path.
+  if (!intrinsic_lookup && !ensure_hashable(key, error)) return false;
   if (auto* string_key = value_as_string(key)) {
     size_t found = 0;
     if (dict_find_string_index(
@@ -913,25 +977,42 @@ bool mapping_get_item_runtime(
       return false;
     }
   }
-  int64_t key_hash = 0;
-  if (!runtime_mapping_hash(runtime, key, key_hash, error)) return false;
-  if (!ensure_runtime_hash_index(runtime, *dict, error)) return false;
-  const auto candidates = dict->runtime_hash_index.find(key_hash);
-  if (candidates != dict->runtime_hash_index.end()) {
-    for (size_t index : candidates->second) {
-      Value candidate_key = dict->entries[index].first;
-      Value candidate_value = dict->entries[index].second;
-      if (value_is(candidate_key, key)) {
-        value_assign_fast(out, candidate_value);
-        return true;
+  if (intrinsic_lookup) {
+    size_t hash = 0;
+    if (!value_hash_key(key, hash, error)) return false;
+    const auto candidates = dict->runtime_hash_index.find(static_cast<int64_t>(hash));
+    if (candidates != dict->runtime_hash_index.end()) {
+      for (size_t index : candidates->second) {
+        if (value_key_equal(dict->entries[index].first, key)) {
+          // Replacing out can release a finalizer that mutates this dictionary.
+          // Own the result before releasing out and never reuse entry references.
+          Value candidate_value = dict->entries[index].second;
+          value_assign_fast(out, candidate_value);
+          return true;
+        }
       }
-      Value equal;
-      if (!runtime_value_compare(runtime, "==", candidate_key, key, equal, error)) return false;
-      bool is_equal = false;
-      if (!runtime_truthy(runtime, equal, is_equal, error)) return false;
-      if (is_equal) {
-        value_assign_fast(out, candidate_value);
-        return true;
+    }
+  } else {
+    int64_t key_hash = 0;
+    if (!runtime_mapping_hash(runtime, key, key_hash, error)) return false;
+    if (!ensure_runtime_hash_index(runtime, *dict, error)) return false;
+    const auto candidates = dict->runtime_hash_index.find(key_hash);
+    if (candidates != dict->runtime_hash_index.end()) {
+      for (size_t index : candidates->second) {
+        Value candidate_key = dict->entries[index].first;
+        Value candidate_value = dict->entries[index].second;
+        if (value_is(candidate_key, key)) {
+          value_assign_fast(out, candidate_value);
+          return true;
+        }
+        Value equal;
+        if (!runtime_value_compare(runtime, "==", candidate_key, key, equal, error)) return false;
+        bool is_equal = false;
+        if (!runtime_truthy(runtime, equal, is_equal, error)) return false;
+        if (is_equal) {
+          value_assign_fast(out, candidate_value);
+          return true;
+        }
       }
     }
   }
@@ -1046,6 +1127,46 @@ bool mapping_set_item(Value& object, const Value& key, const Value& item, std::s
         dict->indexed_entry_count = dict->entries.size();
         return true;
       }
+    }
+    // Tuple/bytes-heavy Python loops (including Counter updates) used to scan
+    // every entry on every write, making construction and updates quadratic.
+    // Keep strings/integers on their existing fast paths; reuse the read hash
+    // buckets for other intrinsic keys, with entries as the sole value owners.
+    // The whole-key-set guard proves that probing cannot reenter Python while
+    // holding bucket/entry references. Mixed or callback-bearing keys fall back.
+    if (!has_indexed_string_key && !indexed_numeric_key &&
+        intrinsic_index_key(key) && ensure_intrinsic_hash_index(*dict)) {
+      size_t raw_hash = 0;
+      if (!value_hash_key(key, raw_hash, error)) return false;
+      const auto hash = static_cast<int64_t>(raw_hash);
+      const auto candidates = dict->runtime_hash_index.find(hash);
+      if (candidates != dict->runtime_hash_index.end()) {
+        for (const size_t index : candidates->second) {
+          if (value_key_equal(dict->entries[index].first, key)) {
+            if (dict->entries[index].second.tag == ValueTag::Object) {
+              // Publish before releasing the old owner: its finalizer may clear
+              // or grow this dictionary. Retain aliased items first, detach the
+              // old value, then assign into an invalid slot without callbacks.
+              Value owned_item = item;
+              Value replaced = std::move(dict->entries[index].second);
+              dict->entries[index].second = std::move(owned_item);
+              return true;
+            }
+            value_assign_fast(dict->entries[index].second, item);
+            return true;
+          }
+        }
+      }
+      Value owned_key;
+      Value owned_item;
+      value_assign_fast(owned_key, key);
+      value_assign_fast(owned_item, item);
+      dict->entries.emplace_back(std::move(owned_key), std::move(owned_item));
+      dict->runtime_hash_index[hash].push_back(dict->entries.size() - 1);
+      dict->runtime_hash_indexed_entry_count = dict->entries.size();
+      dict->intrinsic_hash_checked_entry_count = dict->entries.size();
+      dict->indexed_entry_count = static_cast<size_t>(-1);
+      return true;
     }
     if (!has_indexed_string_key && !indexed_numeric_key && !ensure_hashable(key, error)) {
       return false;
@@ -1506,14 +1627,23 @@ bool mapping_clear(Value& value, std::string& error) {
       module_value.as.obj = &dict->backing_module->header;
       return mapping_clear(module_value, error);
     }
-    dict->entries.clear();
+    // Publish the empty dictionary before releasing values that can finalize
+    // and insert new entries. Their writes must survive clear() and see fresh
+    // indices, rather than a vector partway through destroying its contents.
+    auto removed = std::move(dict->entries);
     dict->integer_index.clear();
     dict->runtime_hash_index.clear();
     dict->runtime_hash_indexed_entry_count = 0;
+    dict->intrinsic_hash_checked_entry_count = 0;
+    dict->intrinsic_hash_keys_only = true;
     dict->string_index.clear();
     dict->indexed_entry_count = 0;
     dict->index_has_other_keys = false;
     dict->index_has_non_string_keys = false;
+    removed.clear();
+    // Ordinary clear/reuse loops should keep their entry capacity. Restore it
+    // only if finalizers did not leave new entries in the published dictionary.
+    if (dict->entries.empty()) dict->entries.swap(removed);
     return true;
   }
   if (auto* module = value_as_module(value)) {
@@ -1555,6 +1685,7 @@ bool mapping_popitem(Value& value, Value& out, std::string& error) {
     dict->entries.pop_back();
     dict->indexed_entry_count = static_cast<size_t>(-1);
     dict->runtime_hash_indexed_entry_count = static_cast<size_t>(-1);
+    dict->intrinsic_hash_checked_entry_count = static_cast<size_t>(-1);
     out = Value::tuple({entry.first, entry.second});
     return true;
   }

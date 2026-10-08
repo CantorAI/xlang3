@@ -1,0 +1,16 @@
+{
+  "scope": "Diagnostic samples only; no official BPE result or full-suite score is assigned",
+  "shared_probe_sha256": "8fdc71f472464c997b1766841a296bfc3de9cb4182762d454abfc379bfa8cc1a",
+  "outputs": [
+    {
+      "path": "dict-intrinsic-index-20261007-diagnostic-medians.csv",
+      "rows": 60,
+      "sha256": "b21df3316da54090fac43a8ad448e4b2ff451ee50654cfe2863300bb3b6eff11"
+    },
+    {
+      "path": "dict-intrinsic-index-20261007-diagnostic-samples.csv",
+      "rows": 180,
+      "sha256": "342fb46446cc1316de08fa630f3d4a7708d4f77139d7437be88f8d49b1f81ded"
+    }
+  ]
+}

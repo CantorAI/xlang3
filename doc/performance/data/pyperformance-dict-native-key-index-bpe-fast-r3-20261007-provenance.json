@@ -1,0 +1,31 @@
+{
+  "status": "finished_with_benchmark_failure",
+  "command": [
+    "C:\\Python\\Python314\\python.exe",
+    "benchmarks/diagnostics/run_pyperformance_xlang3_shimmed.py",
+    "--runtime",
+    "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+    "--benchmarks",
+    "bpe_tokeniser",
+    "--mode",
+    "fast",
+    "--case-timeout",
+    "300",
+    "--dependency-site",
+    "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages",
+    "--output",
+    "D:\\CantorAI\\xlang3\\doc\\performance\\data\\pyperformance-dict-native-key-index-bpe-fast-r3-20261007.json"
+  ],
+  "candidate_binary_sha256": {
+    "exe": "dbc20688f5363819cb4a539619d28be885c9d0e0e6e3140e24ecb0112c534248",
+    "dll": "f23777781864c12383cb4b7b779e14ccb323de5bb503b9889fcc5658fed8cebb"
+  },
+  "compatibility_hook_sha256": "2ffc217fe20497156bfcb1cebc7fb87203f33c6d4d3dbb6ecbcbcf91ea4cb317",
+  "stdlib": "C:\\Python\\Python314\\Lib",
+  "reused_validation": "dict-native-key-index-validation-r2-20261007.json",
+  "reused_validation_sha256": "3d7c46a305f69aacdd126b127c9a76f022eb499e267b2ec495644504055243bd",
+  "scope": "Retry only the affected official case; preserve prior harness failure; no repeated build/gate",
+  "exit_code": 1,
+  "log_sha256": "a4befe15bd90b777521555c8594c191925ec326211dfb347dd07bc2ae59d2c63",
+  "output_sha256": null
+}

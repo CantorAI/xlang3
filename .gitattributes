@@ -98,3 +98,16 @@
 /doc/performance/data/gc-traversal-coverage-exclusion-20261007.json -text
 /doc/performance/pyperformance-xlang3-live-eval-vs-cpython3147-full-fast-20261007.md text eol=lf
 /doc/performance/pyperformance-xlang3-live-eval-vs-cpython3147-full-fast-20261007.svg text eol=lf
+
+/doc/performance/data/dict-native-*-20261007* -text
+/doc/performance/data/pyperformance-dict-native-*-20261007* -text
+/doc/performance/data/release-dict-native-*-20261007* -text
+/doc/performance/data/bpe-official-body-dict-index-*-20261007* -text
+/doc/performance/data/bpe-dict-index-*-20261007* -text
+/doc/performance/data/dict-intrinsic-overwrite-*-20261007* -text
+/doc/performance/data/dict-composite-scaling-baseline-20261007.json -text
+/doc/performance/data/dict-intrinsic-index-20261007-sources/** -text
+/doc/performance/data/dict-intrinsic-index-20261007-diagnostic-* -text
+/doc/performance/dict-intrinsic-index-checkpoint-20261007.md text eol=lf
+/tests/fixtures/core/dict_intrinsic_write_index.py text eol=lf
+/tests/fixtures/expected/dict_intrinsic_write_index.out text eol=lf
