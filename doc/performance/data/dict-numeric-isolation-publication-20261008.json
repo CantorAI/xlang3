@@ -1,0 +1,29 @@
+{
+  "scope": "Document-only numeric-isolation checkpoint; no engine changes or speed claim",
+  "receipt_sha256": "4b3cf998941f18789617849eb2a289bb83844639b651227b8115d05b13a36294",
+  "files_sha256": {
+    "doc/performance/dict-numeric-construction-prerequisites-20261008.md": "3b914fbcd9339cc3fdda3e67e360a9d595e39474a9de677d6b019b9a3b578601",
+    "doc/performance/data/dict-numeric-isolated-cpython3147-s8-reference-20261008-cpython3147-equivalent.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "doc/performance/data/dict-numeric-isolated-cpython3147-s8-reference-20261008-cpython3147-equivalent.stdout.log": "cfa1ddc13d64495c5486e33101f01f0db215820cd5d5bef65ac8da98d4a2f20f",
+    "doc/performance/data/dict-numeric-isolated-cpython3147-s8-reference-20261008-cpython3147-subclass.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "doc/performance/data/dict-numeric-isolated-cpython3147-s8-reference-20261008-cpython3147-subclass.stdout.log": "5828d83a2b09ade09255ba70ec515837fd9ff5190b8ff483ccc41bf4cac1d247",
+    "doc/performance/data/dict-numeric-isolated-cpython3147-s8-reference-20261008-preserved_s8-equivalent.stderr.log": "c521f54fb9e641e01881fb3212783071537f93362517f72248ec9c5908ce84e6",
+    "doc/performance/data/dict-numeric-isolated-cpython3147-s8-reference-20261008-preserved_s8-equivalent.stdout.log": "69ea1262ed50dc40505583306c9ebd574528e9ad54dbdea08ae4aba2992b074c",
+    "doc/performance/data/dict-numeric-isolated-cpython3147-s8-reference-20261008-preserved_s8-subclass.stderr.log": "780b95e7117a2343aebf180722a2954fc98d2a2e61def97a57687424dd553173",
+    "doc/performance/data/dict-numeric-isolated-cpython3147-s8-reference-20261008-preserved_s8-subclass.stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "doc/performance/data/dict-numeric-isolated-cpython3147-s8-reference-20261008.json": "4b3cf998941f18789617849eb2a289bb83844639b651227b8115d05b13a36294",
+    "doc/performance/data/dict-numeric-isolation-inspection-20261008/capture-dict-numeric-isolated-cpython3147-s8-reference-proposed-20261008.py": "bae94d263bcfdc9a5930fd2451496c62213e59ee7a178b00450fa54a612f3bda",
+    "doc/performance/data/dict-numeric-isolation-inspection-20261008/copied-files.json": "55a0b0310176fe64234315416ed582793adc9640c8704f5d6bedc770d87488c3",
+    "doc/performance/data/dict-numeric-isolation-inspection-20261008/dict-equivalent-numeric-keys-isolated-expected-proposed-20261008.out": "8212a05ac357300f8f56a74e9757e09886db23c4d5f2e404487dce337835e0fc",
+    "doc/performance/data/dict-numeric-isolation-inspection-20261008/dict-equivalent-numeric-keys-isolated-proposed-20261008.py": "68b60af33ad30dd54cd50030444d40fcd135e7cb48bef582a10acbedf8690a3f",
+    "doc/performance/data/dict-numeric-isolation-inspection-20261008/dict-numeric-isolated-reference-manager-provenance-proposed-20261008.json": "054436c53060875a371d89fcb61f946646f31c0de85129e0bcf4d3adf19e690e",
+    "doc/performance/data/dict-numeric-isolation-inspection-20261008/dict-numeric-prerequisites-isolation-provenance-proposed-20261008.json": "344c42dc2987161eab830b2a41077a17b59c36d05b844034047c82995dc96769",
+    "doc/performance/data/dict-numeric-isolation-inspection-20261008/dict-numeric-subclass-equality-isolated-expected-proposed-20261008.out": "20f1cfc11e25e59188e0c3103676dfe6cd267dc08706cf3a34c16acc0ba9acb1",
+    "doc/performance/data/dict-numeric-isolation-inspection-20261008/dict-numeric-subclass-equality-isolated-proposed-20261008.py": "862049741c3e5191368b91c7ca0761d7ae1d862fc2d555450d1180eebecb5aea",
+    ".gitattributes": "eae0a99d66fef645196ee3d7e228aabdce8de6828f3529a7997e5dd666e19861"
+  },
+  "raw_file_count": 17,
+  "source_copies_verified": true,
+  "unrelated_working_attributes_preserved_as_exact_prefix": true,
+  "index_initially_empty": true
+}

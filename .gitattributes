@@ -670,3 +670,6 @@
 /doc/performance/data/l9-runtime-prerequisites-20261008-publication-manifest.json -text
 /doc/performance/native-runtime-prerequisites-after-l9-20261008.md text eol=lf
 /doc/performance/data/callee-module-owner-r10-withdrawn-unmeasured-duplicate-restored-s8-20261008.json -text
+/doc/performance/data/dict-numeric-isolated-cpython3147-s8-reference-20261008* -text
+/doc/performance/data/dict-numeric-isolation-inspection-20261008/** -text
+/doc/performance/data/dict-numeric-isolation-publication-20261008.json -text
