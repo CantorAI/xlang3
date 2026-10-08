@@ -144,6 +144,10 @@ bool mapping_get_string_item(
 bool mapping_get_item_runtime(Runtime& runtime, const Value& object, const Value& key,
                               Value& out, std::string& error,
                               bool dispatch_override = true);
+// Type-based dict-subclass __missing__ dispatch. An absent method returns
+// false with "key not found"; descriptor/call failures retain their exception.
+bool mapping_call_missing(Runtime& runtime, const Value& object, const Value& key,
+                          Value& out, std::string& error);
 bool mapping_set_item(Value& object, const Value& key, const Value& item, std::string& error);
 // Update or erase an existing exact object-identity key without repeating the
 // generic hash/equality path. Missing keys retain ordinary dict behavior.

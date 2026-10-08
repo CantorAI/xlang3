@@ -916,6 +916,42 @@ bool mapping_get_string_item(
   return false;
 }
 
+bool mapping_call_missing(
+    Runtime& runtime, const Value& object, const Value& key,
+    Value& out, std::string& error) {
+  auto* instance = value_as_instance(object);
+  if (instance == nullptr) {
+    error = "key not found";
+    return false;
+  }
+  Value method;
+  error.clear();
+  if (!object_get_class_attr_for_instance(object, "__missing__", method, error)) {
+    if (error.empty()) error = "key not found";
+    return false;
+  }
+  // CPython dict_subscript uses type lookup: instance attributes and custom
+  // __getattribute__ cannot replace this protocol. Ordinary Python methods
+  // (including Counter.__missing__) need no allocated BoundMethod or argument
+  // vector. Own method/self/key across callbacks and retain generic Python
+  // entry so code replacement, tracing, errors and nontrivial bodies work.
+  const auto* native = value_as_native_function(method);
+  if (value_as_function(method) != nullptr ||
+      (native != nullptr && native->bind_as_descriptor)) {
+    const Value args[2] = {object, key};
+    return runtime_call_callable(runtime, method, args, 2, out, error);
+  }
+  // Static/class methods and user descriptors keep the existing class-based
+  // binding path. A binding exception is a failure, never a missing key.
+  const Value owner = instance->klass;
+  Value bound;
+  if (!class_get_bound_attr(runtime, owner, object, "__missing__", bound, error)) {
+    return false;
+  }
+  const Value argument = key;
+  return runtime_call_callable(runtime, bound, &argument, 1, out, error);
+}
+
 bool mapping_get_item_runtime(
     Runtime& runtime,
     const Value& object,
@@ -967,11 +1003,7 @@ bool mapping_get_item_runtime(
     }
     if (!dict->index_has_non_string_keys) {
       if (dispatch_override && value_as_instance(object) != nullptr) {
-        Value missing;
-        std::string attr_error;
-        if (object_get_attr(object, "__missing__", missing, attr_error)) {
-          return runtime_call_callable(runtime, missing, &key, 1, out, error);
-        }
+        return mapping_call_missing(runtime, object, key, out, error);
       }
       error = "key not found";
       return false;
@@ -1017,11 +1049,7 @@ bool mapping_get_item_runtime(
     }
   }
   if (dispatch_override && value_as_instance(object) != nullptr) {
-    Value missing;
-    std::string attr_error;
-    if (object_get_attr(object, "__missing__", missing, attr_error)) {
-      return runtime_call_callable(runtime, missing, &key, 1, out, error);
-    }
+    return mapping_call_missing(runtime, object, key, out, error);
   }
   error = "key not found";
   return false;

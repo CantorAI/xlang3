@@ -1,0 +1,79 @@
+{
+  "exit_code": 0,
+  "probe_sha256": "2f88e8c942cdc9bfb6dbacf4575d9f269178763522dce4630a342fd76f7a899c",
+  "binary_sha256": {
+    "exe": "86a61b2033c9c7d475e55b7337af559fa0422a57576729dd9a0c411ef3f55ec3",
+    "dll": "52e54c97b0833947a21f5e4f973317e5cfb7a8f6e13983a44ec06295cd2374d7"
+  },
+  "stdout": "{\"custom_descriptor_composite\": {\"value\": [\"Custom\", \"composite\"]}, \"custom_descriptor_string\": {\"value\": [\"Custom\", \"string\"]}, \"descriptor_error_composite\": {\"error\": \"LookupError\", \"message\": \"descriptor binding failed\"}, \"descriptor_error_string\": {\"error\": \"LookupError\", \"message\": \"descriptor binding failed\"}, \"getattribute_hook_composite\": {\"value\": [\"type\", \"composite\"]}, \"getattribute_hook_string\": {\"value\": [\"type\", \"string\"]}, \"instance_override_composite\": {\"value\": [\"type\", \"composite\"]}, \"instance_override_string\": {\"value\": [\"type\", \"string\"]}}\r\n{\"contains\": {\"value\": false}, \"explicit_getitem\": {\"value\": [\"type\", \"absent\"]}, \"get\": {\"value\": 7}, \"pop\": {\"value\": 7}, \"setdefault\": {\"value\": 7}}\r\n",
+  "stderr": "",
+  "results": [
+    {
+      "custom_descriptor_composite": {
+        "value": [
+          "Custom",
+          "composite"
+        ]
+      },
+      "custom_descriptor_string": {
+        "value": [
+          "Custom",
+          "string"
+        ]
+      },
+      "descriptor_error_composite": {
+        "error": "LookupError",
+        "message": "descriptor binding failed"
+      },
+      "descriptor_error_string": {
+        "error": "LookupError",
+        "message": "descriptor binding failed"
+      },
+      "getattribute_hook_composite": {
+        "value": [
+          "type",
+          "composite"
+        ]
+      },
+      "getattribute_hook_string": {
+        "value": [
+          "type",
+          "string"
+        ]
+      },
+      "instance_override_composite": {
+        "value": [
+          "type",
+          "composite"
+        ]
+      },
+      "instance_override_string": {
+        "value": [
+          "type",
+          "string"
+        ]
+      }
+    },
+    {
+      "contains": {
+        "value": false
+      },
+      "explicit_getitem": {
+        "value": [
+          "type",
+          "absent"
+        ]
+      },
+      "get": {
+        "value": 7
+      },
+      "pop": {
+        "value": 7
+      },
+      "setdefault": {
+        "value": 7
+      }
+    }
+  ],
+  "matches_cpython3147": true
+}

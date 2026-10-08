@@ -1,0 +1,336 @@
+{
+  "status": "validated",
+  "candidate_binary_sha256": {
+    "exe": "86a61b2033c9c7d475e55b7337af559fa0422a57576729dd9a0c411ef3f55ec3",
+    "dll": "52e54c97b0833947a21f5e4f973317e5cfb7a8f6e13983a44ec06295cd2374d7"
+  },
+  "source_sha256": {
+    "src/runtime/mapping.cpp": "1212400ba44ab5f3eb532e6da218de0d2708bcc43b39e6965a403c5ff06cb162",
+    "src/internal/xlang3/mapping.h": "6e98c7d588e993411619d4bb6deb65b2906bccaf2cb2cb5c89393385a10bacc9",
+    "src/runtime/methods/dict_methods.cpp": "6a6ffbc5ad2a9c1c394fe2993cb5994120f425e33203b11c3576b773369d55a7",
+    "tests/fixtures/core/dict_missing_special_lookup.py": "5ab5272efcd763df6696ea2762728b8a9913cd48e3135add111217335ddde884",
+    "tests/fixtures/expected/dict_missing_special_lookup.out": "491db83103e30443504c5d72a465e0d80e82cfe8f45a5166f48edf31aa00be68",
+    "tests/run_fixtures.py": "11f352dac3720cffebca656cd309a90f7118e398dbdc15b604c575886f1187c6"
+  },
+  "phases": [
+    {
+      "name": "protocol",
+      "command": [
+        "C:\\Python\\Python314\\python.exe",
+        "scratch/performance/verify-dict-missing-special-result-20261007.py"
+      ],
+      "exit_code": 0,
+      "log": "dict-missing-special-lookup-validation-20261007-protocol.log",
+      "sha256": "1760a1163ff1a11b10b24ac713f08aae3f6f6671654424bd5598f263fc5bc54e"
+    },
+    {
+      "name": "fixtures",
+      "command": [
+        "C:\\Python\\Python314\\python.exe",
+        "tests/run_fixtures.py",
+        "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe"
+      ],
+      "exit_code": 0,
+      "log": "dict-missing-special-lookup-validation-20261007-fixtures.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "cpp",
+      "command": [
+        "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\ctest.exe",
+        "--test-dir",
+        "build-repro/main-verify-20261006",
+        "-C",
+        "Release",
+        "-R",
+        "xlang3_(runtime_value_tests|interpreter_tests|sdk_stream_call_tests|graph_)",
+        "--output-on-failure"
+      ],
+      "exit_code": 0,
+      "log": "dict-missing-special-lookup-validation-20261007-cpp.log",
+      "sha256": "a9f43716d6b87a4d36d21607b7db301297a2cc541492ff0bb6dbd9be27fc07d0"
+    },
+    {
+      "name": "scaling",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\dict-composite-scaling-probe-20261007.py"
+      ],
+      "exit_code": 0,
+      "log": "dict-missing-special-lookup-validation-20261007-scaling.log",
+      "sha256": "d1475cfa5d194f125ee529debe26e4e733daeff073bf6d600c2a75e2d3fae804"
+    },
+    {
+      "name": "paired-callbacks",
+      "command": [
+        "C:\\Python\\Python314\\python.exe",
+        "scratch/performance/compare-dict-missing-special-trial-20261007.py"
+      ],
+      "exit_code": 0,
+      "log": "dict-missing-special-lookup-validation-20261007-paired-callbacks.log",
+      "sha256": "551b83a50c5693c6f19bd8b6fba7a3340c1c2244d667aa6051bff602f9b02fb4"
+    },
+    {
+      "name": "gate",
+      "command": [
+        "C:\\Python\\Python314\\python.exe",
+        "benchmarks/check_regression.py",
+        "--baseline",
+        "D:\\CantorAI\\xlang3\\build-repro\\Release\\xlang3.exe",
+        "--candidate",
+        "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+        "--output",
+        "D:\\CantorAI\\xlang3\\doc\\performance\\data\\release-dict-missing-special-lookup-fixed-gate-20261007.json"
+      ],
+      "exit_code": 0,
+      "log": "dict-missing-special-lookup-validation-20261007-gate.log",
+      "sha256": "a55400e482a9f1d36a2ed6559718f526735a1ba3918f6da2abb906c73c0af2e5"
+    },
+    {
+      "name": "official-bpe",
+      "command": [
+        "C:\\Python\\Python314\\python.exe",
+        "benchmarks/diagnostics/run_pyperformance_xlang3_shimmed.py",
+        "--runtime",
+        "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+        "--benchmarks",
+        "bpe_tokeniser",
+        "--mode",
+        "fast",
+        "--case-timeout",
+        "1800",
+        "--dependency-site",
+        "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages",
+        "--output",
+        "D:\\CantorAI\\xlang3\\doc\\performance\\data\\pyperformance-dict-missing-special-lookup-bpe-fast-20261007.json"
+      ],
+      "exit_code": 0,
+      "log": "dict-missing-special-lookup-validation-20261007-official-bpe.log",
+      "sha256": "cc94f8406835ef488e07c74799851eb2c77319bb3f650b7e89a34fdb8f1f19d3"
+    }
+  ],
+  "fixture_counts": {
+    "core": 372,
+    "compatibility_sections": 11,
+    "expected_failures": 3
+  },
+  "scaling_probe_sha256": "8fdc71f472464c997b1766841a296bfc3de9cb4182762d454abfc379bfa8cc1a",
+  "scaling_rows": [
+    {
+      "checksums": [
+        256,
+        256,
+        256
+      ],
+      "counter": false,
+      "fresh_pair": false,
+      "key_count": 64,
+      "samples_seconds": [
+        0.00026240001898258924,
+        0.0002707999956328422,
+        0.0002660999889485538
+      ],
+      "shape": "bytes",
+      "updates": 256
+    },
+    {
+      "checksums": [
+        1024,
+        1024,
+        1024
+      ],
+      "counter": false,
+      "fresh_pair": false,
+      "key_count": 256,
+      "samples_seconds": [
+        0.0010414999851491302,
+        0.0010399000020697713,
+        0.0010406999790575355
+      ],
+      "shape": "bytes",
+      "updates": 1024
+    },
+    {
+      "checksums": [
+        4096,
+        4096,
+        4096
+      ],
+      "counter": false,
+      "fresh_pair": false,
+      "key_count": 1024,
+      "samples_seconds": [
+        0.004220599977998063,
+        0.0041708000062499195,
+        0.004462199984118342
+      ],
+      "shape": "bytes",
+      "updates": 4096
+    },
+    {
+      "checksums": [
+        256,
+        256,
+        256
+      ],
+      "counter": false,
+      "fresh_pair": false,
+      "key_count": 64,
+      "samples_seconds": [
+        0.0004935999750159681,
+        0.0005020000098738819,
+        0.0004948999849148095
+      ],
+      "shape": "tuple_bytes",
+      "updates": 256
+    },
+    {
+      "checksums": [
+        1024,
+        1024,
+        1024
+      ],
+      "counter": false,
+      "fresh_pair": false,
+      "key_count": 256,
+      "samples_seconds": [
+        0.001973599981283769,
+        0.0019681999983731657,
+        0.002181499992730096
+      ],
+      "shape": "tuple_bytes",
+      "updates": 1024
+    },
+    {
+      "checksums": [
+        4096,
+        4096,
+        4096
+      ],
+      "counter": false,
+      "fresh_pair": false,
+      "key_count": 1024,
+      "samples_seconds": [
+        0.007886199979111552,
+        0.008094799995888025,
+        0.008265699987532571
+      ],
+      "shape": "tuple_bytes",
+      "updates": 4096
+    },
+    {
+      "checksums": [
+        256,
+        256,
+        256
+      ],
+      "counter": false,
+      "fresh_pair": true,
+      "key_count": 64,
+      "samples_seconds": [
+        0.0006965000065974891,
+        0.0006985999934840947,
+        0.0006809000042267144
+      ],
+      "shape": "tuple_bytes",
+      "updates": 256
+    },
+    {
+      "checksums": [
+        1024,
+        1024,
+        1024
+      ],
+      "counter": false,
+      "fresh_pair": true,
+      "key_count": 256,
+      "samples_seconds": [
+        0.0028802999877370894,
+        0.002895499987062067,
+        0.002841300010913983
+      ],
+      "shape": "tuple_bytes",
+      "updates": 1024
+    },
+    {
+      "checksums": [
+        4096,
+        4096,
+        4096
+      ],
+      "counter": false,
+      "fresh_pair": true,
+      "key_count": 1024,
+      "samples_seconds": [
+        0.011712299979990348,
+        0.011168500001076609,
+        0.010983699990902096
+      ],
+      "shape": "tuple_bytes",
+      "updates": 4096
+    },
+    {
+      "checksums": [
+        256,
+        256,
+        256
+      ],
+      "counter": true,
+      "fresh_pair": true,
+      "key_count": 64,
+      "samples_seconds": [
+        0.0007260999991558492,
+        0.0007146999996621162,
+        0.0007263000006787479
+      ],
+      "shape": "tuple_bytes",
+      "updates": 256
+    },
+    {
+      "checksums": [
+        1024,
+        1024,
+        1024
+      ],
+      "counter": true,
+      "fresh_pair": true,
+      "key_count": 256,
+      "samples_seconds": [
+        0.0028423999901860952,
+        0.002845699986210093,
+        0.0028369000065140426
+      ],
+      "shape": "tuple_bytes",
+      "updates": 1024
+    },
+    {
+      "checksums": [
+        4096,
+        4096,
+        4096
+      ],
+      "counter": true,
+      "fresh_pair": true,
+      "key_count": 1024,
+      "samples_seconds": [
+        0.012388600007398054,
+        0.013522100023692474,
+        0.012899199995445088
+      ],
+      "shape": "tuple_bytes",
+      "updates": 4096
+    }
+  ],
+  "paired_callbacks": "dict-missing-special-lookup-paired-20261007.json",
+  "fixed_gate": {
+    "output": "release-dict-missing-special-lookup-fixed-gate-20261007.json",
+    "sha256": "4b24a48d943e296f3cfd5e1b385169c1d7c8475c348608c682a38d294f1e0ffe",
+    "exit_code": 0
+  },
+  "compatibility_hook_sha256": "2ffc217fe20497156bfcb1cebc7fb87203f33c6d4d3dbb6ecbcbcf91ea4cb317",
+  "official_bpe": {
+    "output": "pyperformance-dict-missing-special-lookup-bpe-fast-20261007.json",
+    "sha256": "ba034c35dcff5e04313e98355d22ecc2bc2f57ecbc202707bee2db13f5e22a09",
+    "exit_code": 0
+  }
+}

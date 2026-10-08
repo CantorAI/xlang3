@@ -139,3 +139,11 @@
 /doc/performance/native-trivial-callback-checkpoint-20261007.md text eol=lf
 /tests/fixtures/core/native_trivial_callback.py text eol=lf
 /tests/fixtures/expected/native_trivial_callback.out text eol=lf
+
+/doc/performance/data/dict-missing-special-lookup-* -text
+/doc/performance/data/dict-missing-special-lookup-20261007-sources/** -text
+/doc/performance/data/release-dict-missing-special-lookup-fixed-gate-20261007.json -text
+/doc/performance/data/pyperformance-dict-missing-special-lookup-bpe-fast-20261007* -text
+/doc/performance/dict-missing-special-lookup-checkpoint-20261007.md text eol=lf
+/tests/fixtures/core/dict_missing_special_lookup.py text eol=lf
+/tests/fixtures/expected/dict_missing_special_lookup.out text eol=lf

@@ -204,17 +204,13 @@ bool dict_getitem_method(Runtime& runtime, const Value* args, uint32_t argc, Val
   if (value_as_instance(args[0]) == nullptr) {
     return raise_dict_key_error(runtime, args[1], error);
   }
-  Value missing;
-  std::string missing_error;
-  if (!object_get_attr(args[0], "__missing__", missing, missing_error)) {
+  if (mapping_call_missing(runtime, args[0], args[1], out, error)) {
+    return true;
+  }
+  if (is_key_miss_error(error)) {
     return raise_dict_key_error(runtime, args[1], error);
   }
-  error.clear();
-  Value key_arg = args[1];
-  if (!runtime_call_callable(runtime, missing, &key_arg, 1, out, error)) {
-    return false;
-  }
-  return true;
+  return false;
 }
 
 bool dict_delitem_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -241,7 +237,7 @@ bool dict_contains_method(Runtime& runtime, const Value* args, uint32_t argc, Va
   }
   Value ignored;
   std::string get_error;
-  if (mapping_get_item_runtime(runtime, args[0], args[1], ignored, get_error)) {
+  if (mapping_get_item_runtime(runtime, args[0], args[1], ignored, get_error, false)) {
     value_set_bool(out, true);
     return true;
   }
@@ -406,7 +402,10 @@ bool dict_setdefault_method(Runtime& runtime, const Value* args, uint32_t argc, 
     return raise_dict_type_error(runtime, error);
   }
   Value target = args[0];
-  if (mapping_get_item_runtime(runtime, target, args[1], out, error)) {
+  // Native setdefault queries storage, not Python __getitem__/__missing__.
+  // Sharing the subscript dispatcher here would both allocate callbacks and
+  // return a missing-hook result without inserting the requested default.
+  if (mapping_get_item_runtime(runtime, target, args[1], out, error, false)) {
     return true;
   }
   if (!is_key_miss_error(error)) {

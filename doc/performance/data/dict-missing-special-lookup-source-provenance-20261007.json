@@ -1,0 +1,18 @@
+{
+  "compiler_input_sha256": {
+    "src/runtime/mapping.cpp": "1212400ba44ab5f3eb532e6da218de0d2708bcc43b39e6965a403c5ff06cb162",
+    "src/internal/xlang3/mapping.h": "6e98c7d588e993411619d4bb6deb65b2906bccaf2cb2cb5c89393385a10bacc9",
+    "src/runtime/methods/dict_methods.cpp": "6a6ffbc5ad2a9c1c394fe2993cb5994120f425e33203b11c3576b773369d55a7",
+    "tests/fixtures/core/dict_missing_special_lookup.py": "5ab5272efcd763df6696ea2762728b8a9913cd48e3135add111217335ddde884",
+    "tests/fixtures/expected/dict_missing_special_lookup.out": "491db83103e30443504c5d72a465e0d80e82cfe8f45a5166f48edf31aa00be68",
+    "tests/run_fixtures.py": "11f352dac3720cffebca656cd309a90f7118e398dbdc15b604c575886f1187c6"
+  },
+  "repository_lf_sha256": {
+    "src/runtime/mapping.cpp": "b3c92dbe1ca8a35320a81bfb99a71475b2613de3ce549473488fe78535319e83",
+    "src/internal/xlang3/mapping.h": "b2e6f2bba40a01706a0a61f2019160cefe5a656594855977b9050d3ebab8c832",
+    "src/runtime/methods/dict_methods.cpp": "9bde73437ef26852f40f9d6651745d5a03b8850c19c17b9a6d9bf92d8441d901",
+    "tests/fixtures/core/dict_missing_special_lookup.py": "5ab5272efcd763df6696ea2762728b8a9913cd48e3135add111217335ddde884",
+    "tests/fixtures/expected/dict_missing_special_lookup.out": "491db83103e30443504c5d72a465e0d80e82cfe8f45a5166f48edf31aa00be68",
+    "tests/run_fixtures.py": "11f352dac3720cffebca656cd309a90f7118e398dbdc15b604c575886f1187c6"
+  }
+}

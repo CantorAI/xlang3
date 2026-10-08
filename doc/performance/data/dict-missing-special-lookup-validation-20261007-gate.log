@@ -1,0 +1,12 @@
+local_slots              pass         0.999x
+scalar_arithmetic        pass         1.022x
+range_for                pass         1.009x
+function_calls           pass         0.982x
+class_construct          pass         1.015x
+list_append              pass         0.992x
+property_access          pass         0.986x
+deepcopy_memo            pass         0.890x
+json_dumps               pass         1.014x
+gc_traversal             pass         0.741x
+subparsers               pass         0.950x
+Performance check: pass. Report: D:\CantorAI\xlang3\doc\performance\data\release-dict-missing-special-lookup-fixed-gate-20261007.json
