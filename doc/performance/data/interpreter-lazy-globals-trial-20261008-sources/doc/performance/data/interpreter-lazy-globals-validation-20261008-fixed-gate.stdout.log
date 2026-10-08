@@ -1,0 +1,12 @@
+local_slots              pass         0.999x
+scalar_arithmetic        pass         1.004x
+range_for                pass         1.004x
+function_calls           pass         0.976x
+class_construct          pass         1.016x
+list_append              pass         0.967x
+property_access          pass         0.957x
+deepcopy_memo            pass         0.929x
+json_dumps               pass         1.029x
+gc_traversal             pass         0.764x
+subparsers               pass         0.937x
+Performance check: pass. Report: D:\CantorAI\xlang3\doc\performance\data\interpreter-lazy-globals-validation-20261008-fixed-gate.json

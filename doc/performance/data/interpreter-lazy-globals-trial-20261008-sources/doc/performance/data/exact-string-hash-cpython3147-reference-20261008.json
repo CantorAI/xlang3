@@ -1,0 +1,15 @@
+{
+  "exit_code": 0,
+  "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\exact-string-hash-fixture-proposed-20261008.py",
+  "source_sha256": "8c5661caca2694b1c821e39700a69d2621cdf7b4e67c0b66bcc316566f5aa635",
+  "cpython_version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+  "stdout_lines": [
+    "exact text variants pass",
+    "str subclass callback preserved",
+    "Python hash callbacks preserved",
+    "hash failures preserved",
+    "builtin rebinding preserved"
+  ],
+  "stdout_sha256": "ed8793bedad4f781d719b81cddb118bcf1cefc7cd6127be9de888cd090c380e2",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

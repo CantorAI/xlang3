@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "status": "scratch-only-unexecuted",
+  "head": "a09f84f547d082f51bf9e5d03bcc2a7c488978dd",
+  "patch": "D:\\CantorAI\\xlang3\\scratch\\performance\\interpreter-lazy-globals-zeroargc-actual-rebased-20261008.patch",
+  "patch_sha256": "353afa8c500b6ec142af0f8b5944e0582ed3cabef860dd038c29b71f18d56331",
+  "source_root": "D:\\CantorAI\\xlang3\\scratch\\performance\\interpreter-lazy-globals-zeroargc-actual-rebased-20261008-sources",
+  "candidate_root": "D:\\CantorAI\\xlang3\\scratch\\performance\\interpreter-lazy-globals-zeroargc-actual-rebased-20261008-candidates",
+  "actual_source_sha256_before": {
+    "src/internal/xlang3/interpreter.h": "d16f9cdcca9fc26ba33d8e4a0889ffe00f338fe6be9fb218223a2c0d67ad9bef",
+    "src/executor/xlang_vm/ops/xlang_vm_ops_variables.h": "76b3c926a5f8e4b1e76a5946e57c4f6eb78db81d8f03f7acc023c3baa124e22e",
+    "src/executor/xlang_vm/ops/xlang_vm_ops_import_raw.h": "44e642d4887558699ae46e51df7ea249dfe7b142ef0b8f826cb134c8243d5671",
+    "src/executor/xlang_vm/ops/xlang_vm_ops_fused.h": "b309a2ab1d0cae05e0798f6ae534955df8af546f4e75c830f34b6c3a4a586105",
+    "src/executor/xlang_vm/ops/xlang_vm_ops_call.h": "987c9baf0e489ce661cfaab4e6e968484f7ada8ffad391b4677c7a3e17cfc8a6",
+    "tests/cpp/interpreter_tests.cpp": "18dc3fd05fed74b605788dc71f494967aec8b595b0e76d1779977d6c15590309"
+  },
+  "actual_source_sha256_after": {
+    "src/internal/xlang3/interpreter.h": "d16f9cdcca9fc26ba33d8e4a0889ffe00f338fe6be9fb218223a2c0d67ad9bef",
+    "src/executor/xlang_vm/ops/xlang_vm_ops_variables.h": "76b3c926a5f8e4b1e76a5946e57c4f6eb78db81d8f03f7acc023c3baa124e22e",
+    "src/executor/xlang_vm/ops/xlang_vm_ops_import_raw.h": "44e642d4887558699ae46e51df7ea249dfe7b142ef0b8f826cb134c8243d5671",
+    "src/executor/xlang_vm/ops/xlang_vm_ops_fused.h": "b309a2ab1d0cae05e0798f6ae534955df8af546f4e75c830f34b6c3a4a586105",
+    "src/executor/xlang_vm/ops/xlang_vm_ops_call.h": "987c9baf0e489ce661cfaab4e6e968484f7ada8ffad391b4677c7a3e17cfc8a6",
+    "tests/cpp/interpreter_tests.cpp": "18dc3fd05fed74b605788dc71f494967aec8b595b0e76d1779977d6c15590309"
+  },
+  "candidate_source_sha256": {
+    "src/internal/xlang3/interpreter.h": "d55111a0d91d75c478cb3667385062184dcdb067f48b6ad69cb45f40cbb11075",
+    "src/executor/xlang_vm/ops/xlang_vm_ops_variables.h": "c0b88427362c1e030d224858371ee9cc3cb649bc630f16bfdd0f35f3e7af3b2c",
+    "src/executor/xlang_vm/ops/xlang_vm_ops_import_raw.h": "0e1bdbdc9ad4ec527f4802458e4320cb7fb13c0b4a43204a93e2ecb05b91d7f9",
+    "src/executor/xlang_vm/ops/xlang_vm_ops_fused.h": "0b13af74cff836d2150cd1e3fd5b748ef47057e2e81b90a3c547a87aff606f15",
+    "src/executor/xlang_vm/ops/xlang_vm_ops_call.h": "fb936c1d9386363ccc549013101ea02586b07d9454dd15085858f7eb3d7ee26b",
+    "tests/cpp/interpreter_tests.cpp": "ea61f898bb43b4037e828aa6bd41e103d58ae51639f8c85e92c365aa0bb969c3",
+    "tests/cpp/interpreter_lazy_globals_cases.h": "10d67008d9120eaa8d9afab47fe7764673f7ef119c31d6fc06d728841b32a917"
+  },
+  "git_apply_check_exit": 0,
+  "dependency": "Current actually applied zeroargc bd0fefd6 plus registered gc.collect test integration repair; validation54807 remains live/unaccepted",
+  "root_source_inventory": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\native-bound-zero-args-final-source-20261008.json",
+  "root_source_inventory_sha256": "7a48d6fab69bd8754d6da838cc4e0186f88b4766c20fe61c5f0a3346bfe6d48a",
+  "root_source_inventory_count": 35,
+  "original_r2_patch_sha256": "cf2fdba359483bebb5d2b5e40ebac19f426da9f7abe06f898160b805c723425b",
+  "zeroargc_patch_sha256": "bd0fefd6fa25011a4364b2310fdb2771bfd4b30de2f127c0d493c4b1f7830c98",
+  "allocation_test_scope": "Optional storage materialization contract only; no cross-DLL malloc counter claim",
+  "executions": [
+    "PowerShell scratch copies/text transformations/hashes",
+    "git diff --no-index",
+    "git apply --check read-only"
+  ],
+  "tests_run": false,
+  "runtime_run": false,
+  "build_run": false
+}

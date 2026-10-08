@@ -1,0 +1,53 @@
+{
+  "status": "failed_candidate-focused",
+  "scope": "Own native _sqlite3 aggregate bridge; Python library and aggregate remain Python",
+  "source_sha256": {
+    "sdk/xlang3/abi/xmodule.h": "7aa4ae5bcbfd266741ce592d1b2821f112a21ceb1a6ebdeaedea8ddf1d7cbded",
+    "src/import/native_package_loader.cpp": "c3196390d2ca48d4e67a6492277ddf98ad1a3c05c1ce01f53d4cc341cfbd6a00",
+    "modules/sqlite/sqlite_package.cpp": "20c8b0a89bd21d232798f9d431bdb94e98523017a51366a7dce40bc5de8c5867",
+    "modules/sqlite/sqlite_values.cpp": "c691c90ba6b7a43c12bce47dfef75101b22b76732303a196ac30b9d6ad3533dc",
+    "tests/cpp/interpreter_tests.cpp": "4b711ad8d56b8fff2cff8731d46ff01ec3e7caec131dfc1f6de14fd9e1110ef3",
+    "tests/run_fixtures.py": "57bd59b17b68b9f448a21fd559d7b551e7cb542462c798f8f1740adbda09b078",
+    "tests/run_fixtures.ps1": "49c36fefa4f1ea6cdf12412150c860064efb64df2628ccb7d482303a61c238b1",
+    "tests/cpp/sqlite_aggregate_abi_cases.h": "424debac1951802dba2619736f4d935502ad261cc82bc13247beb27adac69f0a",
+    "tests/cpp/sqlite_aggregate_sdk_probe.py": "318c0a6e64b6c1cbb4f4a6cfa2b49b6186d271ae4bbfc09e04109d606649bc18",
+    "tests/fixtures/core/sqlite_native_aggregate.py": "5e8b444a8f47eae17d597bbea7455f0b8301102ffe89c016b76fde1474a9a650",
+    "tests/fixtures/expected/sqlite_native_aggregate.out": "8f6ebc7a41de49cbe5f10eb5562fa88587df0bed67240dba4a7f5fc5f9edb2ba"
+  },
+  "binaries_sha256": {
+    "build-repro/main-verify-20261006/Release/xlang3.exe": "31f9a848f78c7dfae4c59dc6cd0016815549d6d67409276fcaecadae504d5958",
+    "build-repro/main-verify-20261006/Release/xlang3_runtime.dll": "ccda58d254c5978cd3d55d733c6999311317098a429e2f97c937f1c0bb0bca45",
+    "build-repro/main-verify-20261006/Release/xlang3_interpreter_tests.exe": "620a73569b10866a806b810dcb856151e47e4cbde0de68c54388ec5c20320860",
+    "build-repro/main-verify-20261006/Release/modules/xlang_sqlite3.x3pkg.dll": "be9d3de3aff25863de6ea708e1307962305077ac1d1c03066fbcde04e2f3495c"
+  },
+  "accepted_control_manifest_sha256": "4b997e4dc069393dcd0b08556918494a4bcc63a884af69bed9467a2d5d081bae",
+  "benchmark_source_sha256": "dcba7a6889e66f08480f4332860208d624678fc42a03be5c8f3b6f1f894231fd",
+  "cpython3147_binary_sha256": "4942b86a6597e5aee0128daa00050ed79bc21f6e709a78eb19cbfeb0c2f39ac9",
+  "phases": [
+    {
+      "name": "cpython3147-focused",
+      "command": [
+        "C:\\Python\\Python314\\python.exe",
+        "D:\\CantorAI\\xlang3\\tests\\fixtures\\core\\sqlite_native_aggregate.py"
+      ],
+      "exit_code": 0,
+      "timeout": false,
+      "log": "sqlite-aggregate-r5-validation-20261008-cpython3147-focused.log",
+      "sha256": "8f6ebc7a41de49cbe5f10eb5562fa88587df0bed67240dba4a7f5fc5f9edb2ba"
+    },
+    {
+      "name": "candidate-focused",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\tests\\fixtures\\core\\sqlite_native_aggregate.py"
+      ],
+      "exit_code": 1,
+      "timeout": false,
+      "log": "sqlite-aggregate-r5-validation-20261008-candidate-focused.log",
+      "sha256": "30a4a947704ec6f8e45c5e14536138b905caa90b4cabad8fbbba728b2e3aa6ca"
+    }
+  ],
+  "error": "AssertionError: candidate-focused",
+  "hashes_unchanged": true,
+  "terminal": true
+}

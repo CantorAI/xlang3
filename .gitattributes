@@ -213,3 +213,10 @@
 /doc/performance/native-bound-zero-args-checkpoint-20261008.md text eol=lf
 /tests/fixtures/core/native_bound_zero_args.py text eol=lf
 /tests/fixtures/expected/native_bound_zero_args.out text eol=lf
+
+/doc/performance/data/interpreter-lazy-globals-trial-20261008* -text
+/doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/** -text
+/doc/performance/data/interpreter-lazy-globals-restoration-20261008.json -text
+/doc/performance/charts/interpreter-lazy-globals-trial-20261008.svg -text
+/doc/performance/interpreter-lazy-globals-trial-20261008.md text eol=lf
+/doc/performance/interpreter-lazy-globals-outcome-20261008.md text eol=lf
