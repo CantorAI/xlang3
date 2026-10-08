@@ -1,0 +1,12 @@
+probe,mapping,path,median_control_over_candidate_speedup,favorable_pairs,total_pairs
+trivial,,direct_constant,0.9741867136279818,0,7
+trivial,,native_max_constant_key,5.856740161002038,7,7
+trivial,,counter_missing,1.565586368558193,7,7
+trivial,,direct_counter_missing,0.9953623172691399,3,7
+trivial,,dict_get_default,0.9815852583645363,3,7
+nontrivial,dict,direct_lookup,0.9952235946203231,2,7
+nontrivial,dict,python_call,0.9900564660901449,3,7
+nontrivial,dict,native_callback,0.9949883191600337,2,7
+nontrivial,Counter,direct_lookup,0.9958036029549047,3,7
+nontrivial,Counter,python_call,1.003147246893703,4,7
+nontrivial,Counter,native_callback,0.9912170856015511,3,7

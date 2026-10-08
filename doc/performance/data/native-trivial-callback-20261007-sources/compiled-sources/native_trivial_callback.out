@@ -1,0 +1,9 @@
+native constant and argument returns preserve identity and ties: OK
+defaults and unsupported signatures use normal argument binding: OK
+captures, generators and coroutines retain normal entry: OK
+missing-key overrides and descriptor binding remain dynamic: OK
+current code replacement and error traceback are preserved: OK
+caller handled-exception state survives native reentry: OK
+trace observes every native Python callback: OK
+profile observes every native Python callback: OK
+local monitoring observes native callback start and return: OK

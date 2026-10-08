@@ -1,0 +1,19 @@
+{
+  "compiler_input_sha256": {
+    "src/runtime/functional_iterators.cpp": "d5cd9a052b6be4bdaf2dfdc702a244c90375828f258323475f1eb84dd15b752b",
+    "src/executor/xlang_vm/xlang_vm_inline_call.h": "14a6a6bba0da125329f1cf00a99b11189bf4c0bad3ba92014cec57a0fddb58f1",
+    "src/executor/xlang_vm/ops/xlang_vm_ops_call.h": "03cb3d3bd1c3a1438eadd1fb9d8ab2d9692ec4e7d5377d4c8375a8f0f71b5277",
+    "tests/fixtures/core/native_trivial_callback.py": "58623f16671e1beb8feac4299eae05ca55546903216b897c88ac408f27c998ad",
+    "tests/fixtures/expected/native_trivial_callback.out": "7374aa374889ec515d3fe9f55d69b40cd25a917deb062531d5af17586fba2254",
+    "tests/run_fixtures.py": "1839c9e0cb41f1414f3f0ef95bf3f551d3788757b7e631d4350258aea10775e4"
+  },
+  "repository_lf_sha256": {
+    "src/runtime/functional_iterators.cpp": "dc645c2cba63443243c2b3d4d0255416587f63f208ca66b1b706aafc58a8c05f",
+    "src/executor/xlang_vm/xlang_vm_inline_call.h": "4cac453d09feecabe0020d83a0786bb76334f187756da95605accf922ee23371",
+    "src/executor/xlang_vm/ops/xlang_vm_ops_call.h": "593344dc2ca646430c0c01641bbca2e94f82093819f179da9411f591cdf331d8",
+    "tests/fixtures/core/native_trivial_callback.py": "58623f16671e1beb8feac4299eae05ca55546903216b897c88ac408f27c998ad",
+    "tests/fixtures/expected/native_trivial_callback.out": "7374aa374889ec515d3fe9f55d69b40cd25a917deb062531d5af17586fba2254",
+    "tests/run_fixtures.py": "1839c9e0cb41f1414f3f0ef95bf3f551d3788757b7e631d4350258aea10775e4"
+  },
+  "note": "Archived compiler input bytes are exact; repository hashes refer to Git LF-normalized equivalents."
+}

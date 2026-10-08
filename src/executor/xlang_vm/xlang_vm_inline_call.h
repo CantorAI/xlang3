@@ -17,6 +17,7 @@ limitations under the License.
 #include "xlang_vm_arithmetic.h"
 
 #include "xlang3/interpreter.h"
+#include "xlang3/builtins.h"
 #include "xlang3/object_model.h"
 
 #include <algorithm>
@@ -24,6 +25,22 @@ limitations under the License.
 #include <cmath>
 
 namespace xlang3 {
+
+XLANG3_HOT_INLINE bool xlang_vm_inline_python_function_allowed(
+    Runtime& runtime,
+    const ir::Module& current_module,
+    const FunctionObject& function) {
+  const auto active_hook = [](const Value& hook) {
+    return hook.tag != ValueTag::Invalid && hook.tag != ValueTag::None;
+  };
+  if (runtime.debug_step_active() || active_hook(runtime.trace_function()) ||
+      active_hook(runtime.profile_function())) {
+    return false;
+  }
+  const ir::Module* target_module = function.module != nullptr
+      ? function.module.get() : &current_module;
+  return !sys_monitoring_function_may_dispatch(target_module, function.function_id);
+}
 
 struct XlangVMSelfBinaryMethodSpec {
   uint32_t lhs_slot = 0;

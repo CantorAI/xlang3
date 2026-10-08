@@ -1,0 +1,23 @@
+{
+  "warning": "Historical one-off scripts; do not replay unchanged.",
+  "files": {
+    "native-trivial-callback-probe-20261007.py": "5e9d74ed22141a9aa96e86293a42cb4d76eb2cb38252330273a87d368cfbcc67",
+    "observe-native-trivial-callback-baseline-20261007.py": "d91f676ea85902bbaf3159acdf2b2f5f795dba2d831c81293d758fcec74a55f0",
+    "preserve-native-trivial-callback-control-20261007.py": "eeee2c6ca632f4efe1deca343fa1666926871ef2db3c8b97b922d87a004868cf",
+    "native-trivial-callback-fixture-next-20261007.py": "58623f16671e1beb8feac4299eae05ca55546903216b897c88ac408f27c998ad",
+    "dict-callback-boundary-probe-20261007.py": "4a5cb7358005574fc2426db47c430caac7d7b1b7c453ec386b991c350402a47b",
+    "compare-native-trivial-callback-trial-20261007.py": "fca37f6262ceff15e1abb0ed31c51f9f5e851641729c53f4e987632a0301a29a",
+    "prepare-native-trivial-callback-validation-20261007.py": "4ea90437884ac3023ca0ba8492fbf8ace3a4a248058d91b96490106e91f74b88",
+    "validate-native-trivial-callback-20261007.py": "84e34078815682d9fc3a330e6e3176e0c9568c73d166afc79e50db7808e6ca88",
+    "export-native-trivial-callback-pairs-20261007.py": "de0816dfd657391b558f92b1d577b0b3c123eac4d9bbee5adb0131412d0fca83",
+    "finalize-native-trivial-callback-evidence-20261007.py": "9e488f7768682de2e4954f42dffe96671e4f6d81c131ac481d39a22e7b758af1",
+    "prepare-native-trivial-callback-staging-20261007.py": "fdd0e4a07a019588c21566b048418e99f3a2a34d80881ca66051b43de4e74818",
+    "stage-native-trivial-callback-checkpoint-20261007.py": "24d0f451e87301170f9c8afe94b179fc9cc61d67acaae1788da2b47a63960712",
+    "compiled-sources/functional_iterators.cpp": "d5cd9a052b6be4bdaf2dfdc702a244c90375828f258323475f1eb84dd15b752b",
+    "compiled-sources/xlang_vm_inline_call.h": "14a6a6bba0da125329f1cf00a99b11189bf4c0bad3ba92014cec57a0fddb58f1",
+    "compiled-sources/xlang_vm_ops_call.h": "03cb3d3bd1c3a1438eadd1fb9d8ab2d9692ec4e7d5377d4c8375a8f0f71b5277",
+    "compiled-sources/native_trivial_callback.py": "58623f16671e1beb8feac4299eae05ca55546903216b897c88ac408f27c998ad",
+    "compiled-sources/native_trivial_callback.out": "7374aa374889ec515d3fe9f55d69b40cd25a917deb062531d5af17586fba2254",
+    "compiled-sources/run_fixtures.py": "1839c9e0cb41f1414f3f0ef95bf3f551d3788757b7e631d4350258aea10775e4"
+  }
+}

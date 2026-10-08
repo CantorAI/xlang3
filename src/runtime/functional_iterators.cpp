@@ -17,6 +17,7 @@ limitations under the License.
 #include "xlang3/builtins.h"
 #include "xlang3/generator.h"
 #include "xlang3/interpreter.h"
+#include "xlang3/interpreter_events.h"
 #include "xlang3/attribute.h"
 #include "xlang3/mapping.h"
 #include "xlang3/module_object.h"
@@ -24,6 +25,7 @@ limitations under the License.
 #include "xlang3/perf_counters.h"
 #include "xlang3/sequence.h"
 #include "xlang3/value_hash.h"
+#include "../executor/xlang_vm/xlang_vm_inline_call.h"
 
 #include <utility>
 
@@ -335,6 +337,25 @@ bool runtime_call_callable(
     CallArgsView call_args;
     call_args.leading = args;
     call_args.leading_count = argc;
+    if (function->module != nullptr &&
+        function->function_id < function->module->functions.size()) {
+      const auto& target = function->module->functions[function->function_id];
+      XlangVMTrivialFunctionSpec spec;
+      // Native callbacks use the same guarded IR shortcut as ordinary VM calls.
+      // Counter.__missing__ and constant-key callbacks otherwise construct an
+      // interpreter/frame for every key. Keep Python authoritative: inspect the
+      // current code/signature, require a capture-free trivial body, and retain
+      // normal entry for async/generators, argument errors and observability.
+      // Native loops lack the surrounding VM safepoint: queued asynchronous
+      // work must also take normal entry so it cannot be starved by inlining.
+      // This is generic function optimization, not a native library replacement.
+      if (!target.is_generator && !target.is_async && !target.is_coroutine &&
+          xlang_vm_analyze_trivial_function(*function->module, *function, argc, spec) &&
+          interpreter_pending_events() == 0 &&
+          xlang_vm_inline_python_function_allowed(runtime, *function->module, *function)) {
+        return xlang_vm_execute_trivial_function(call_args, spec, out);
+      }
+    }
     Interpreter interpreter(runtime);
     RuntimeResult result = interpreter.run_function_value(function, call_args);
     // run_function() owns the handled-exception boundary and restores the

@@ -131,3 +131,11 @@
 /tests/fixtures/expected/minmax_streaming.out text eol=lf
 /tests/fixtures/core/global_delete_temporaries.py text eol=lf
 /tests/fixtures/expected/global_delete_temporaries.out text eol=lf
+
+/doc/performance/data/native-trivial-callback-* -text
+/doc/performance/data/native-trivial-callback-20261007-sources/** -text
+/doc/performance/data/release-native-trivial-callback-fixed-gate-20261007.json -text
+/doc/performance/data/pyperformance-native-trivial-callback-bpe-fast-20261007* -text
+/doc/performance/native-trivial-callback-checkpoint-20261007.md text eol=lf
+/tests/fixtures/core/native_trivial_callback.py text eol=lf
+/tests/fixtures/expected/native_trivial_callback.out text eol=lf
