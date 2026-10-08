@@ -5364,7 +5364,12 @@ bool object_set_attr(Value& object, const std::string& name, const Value& value,
     if (klass->attrs.find(name) == klass->attrs.end()) {
       klass->definition_attr_order.push_back(name);
     }
-    klass->attrs[name] = value;
+    // Publish the replacement and invalidate weak method-cache targets before
+    // releasing the old owner. A descriptor finalizer or function weakref
+    // callback can reenter a subclass's subscript operation during decref.
+    Value incoming = value;
+    Value replaced = std::move(klass->attrs[name]);
+    klass->attrs[name] = std::move(incoming);
     if (object_value_is_descriptor(value)) {
       klass->has_descriptors = true;
     }
@@ -5508,6 +5513,9 @@ bool object_delete_attr(Value& object, const std::string& name, std::string& err
       error = "type object '" + klass->name + "' has no attribute '" + name + "'";
       return false;
     }
+    // Detach first so reentrant decref observes both the new attribute set and
+    // invalidated subclass caches, rather than a dead cached function pointer.
+    Value removed = std::move(it->second);
     klass->attrs.erase(it);
     auto& order = klass->definition_attr_order;
     order.erase(std::remove(order.begin(), order.end(), name), order.end());

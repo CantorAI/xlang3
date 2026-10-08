@@ -1,0 +1,12 @@
+local_slots              pass         0.987x
+scalar_arithmetic        pass         1.002x
+range_for                pass         1.003x
+function_calls           pass         0.978x
+class_construct          pass         1.013x
+list_append              pass         1.012x
+property_access          pass         0.953x
+deepcopy_memo            pass         0.889x
+json_dumps               pass         1.007x
+gc_traversal             pass         0.748x
+subparsers               pass         0.940x
+Performance check: pass. Report: D:\CantorAI\xlang3\doc\performance\data\release-inherited-subscript-cache-fixed-gate-20261007.json

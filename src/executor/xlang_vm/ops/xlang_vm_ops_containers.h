@@ -1388,9 +1388,21 @@ XLANG3_HOT_INLINE XlangVMOpFlow get_item(
                  method_cache.class_version == klass->version) {
         native_getitem = method_cache.native;
       } else {
-        const auto method = klass->attrs.find("__getitem__");
-        getitem = method == klass->attrs.end()
-            ? nullptr : value_as_function(method->second);
+        Value inherited_method;
+        std::string lookup_error;
+        const Value* method = nullptr;
+        const auto direct_method = klass->attrs.find("__getitem__");
+        if (direct_method != klass->attrs.end()) {
+          method = &direct_method->second;
+        } else if (object_get_class_attr_for_instance(
+                       regs[in.a], "__getitem__", inherited_method, lookup_error)) {
+          method = &inherited_method;
+        }
+        // Inherited Python/native methods use the same call path as direct
+        // methods. Counter previously allocated a bound method and argument
+        // vector for every read. Cache only raw functions, never descriptors;
+        // base mutations invalidate subclass version tags before decref.
+        getitem = method == nullptr ? nullptr : value_as_function(*method);
         if (getitem != nullptr) {
           // Special-method lookup binds a plain class function to the object.
           // Pass self and the index straight to the normal Python frame path,
@@ -1401,8 +1413,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow get_item(
           method_cache.function = getitem;
           method_cache.native = nullptr;
           method_cache.class_version = klass->version;
-        } else if (method != klass->attrs.end()) {
-          native_getitem = value_as_native_function(method->second);
+        } else if (method != nullptr) {
+          native_getitem = value_as_native_function(*method);
           if (native_getitem != nullptr && native_getitem->bind_as_descriptor &&
               !native_getitem->capture_expressions && native_getitem->callback != nullptr) {
             method_cache.callee_object = &klass->header;
@@ -1748,10 +1760,22 @@ XLANG3_HOT_INLINE XlangVMOpFlow set_item(
                  method_cache.kind == CallSiteKind::SetItemNativeFunction) {
         native_setitem = method_cache.native;
       } else {
-        const auto method = klass->attrs.find("__setitem__");
-        if (method != klass->attrs.end()) {
-          python_setitem = value_as_function(method->second);
-          native_setitem = value_as_native_function(method->second);
+        Value inherited_method;
+        std::string lookup_error;
+        const Value* method = nullptr;
+        const auto direct_method = klass->attrs.find("__setitem__");
+        if (direct_method != klass->attrs.end()) {
+          method = &direct_method->second;
+        } else if (object_get_class_attr_for_instance(
+                       regs[in.dst], "__setitem__", inherited_method, lookup_error)) {
+          method = &inherited_method;
+        }
+        // Reuse the guarded setter entry for inherited methods as well. Keep
+        // wrappers/custom descriptors on their normal binding path, and keep
+        // cache targets non-owning so finished methods are not persistent roots.
+        if (method != nullptr) {
+          python_setitem = value_as_function(*method);
+          native_setitem = value_as_native_function(*method);
           if (native_setitem != nullptr && (!native_setitem->bind_as_descriptor ||
               native_setitem->capture_expressions || native_setitem->callback == nullptr))
             native_setitem = nullptr;

@@ -1,0 +1,24 @@
+{
+  "warning": "Historical one-off controllers; do not replay unchanged.",
+  "files": {
+    "validate-inherited-subscript-cache-20261007.py": "b1f8f4723ffe92b5e4caf77350df9eebb1dd91d72b4f448dc0e292ac024bff01",
+    "compare-inherited-subscript-trial-20261007.py": "6e35a4df4002bdd3f3a3692cf01557c44c88091f712c2c15706789069a06cc6b",
+    "inherited-subscript-dispatch-probe-20261007.py": "bdd6e1d6b3852e57cb7c9daabdd9f935b1cdd1acdbf021d6e79fe8c431ab8f9c",
+    "preserve-inherited-subscript-control-20261007.py": "0e41ea36e43d363178beac17c6d9b00a48cf1a0c8d429439d75af23ae655c533",
+    "prepare-inherited-subscript-validation-20261007.py": "4edab76817bb14788fd8f6620f865ec381b81cfa6225a0370ba09ff4399d4efb",
+    "class-method-publication-probe-20261007.py": "4d9a800be9c2dda63b19adad8d008b595d3057c1257fe6ffc66c8c6d6b9660a7",
+    "observe-class-method-publication-20261007.py": "cb5439a366d0fc7588e1d970a0ca53e7a9721d7ab7eb7b1da9e1f737a4506841",
+    "finalize-inherited-subscript-evidence-20261007.py": "879d6e847b7702b3b433ba8bb6e416b57dbf4ee19673d9e7477bc7375f3f88c5",
+    "export-inherited-subscript-pairs-20261007.py": "f944ba7b9ce896154421ccd5521a6acb457b7d072184120659b470cc7c608a85",
+    "stage-inherited-subscript-checkpoint-20261007.py": "734335af1c78a5d714102f8bfd8e6395237270a4fad63547bb04cbb3585bea51",
+    "../inherited-subscript-cache-class-method-publication-before-20261007.json": "165b483946d574fc94789540c34ff38f58dcc520b37c8c9c53f7145774c863d6",
+    "../inherited-subscript-cache-preserved-release-provenance.json": "ee93ba600cdc27711cdcad7b8d1e73da61a82915d2db5460d81ecd161dad3f9f",
+    "record-inherited-bpe-variation-20261007.py": "85fff4cd76e9072c0995bf7fa525cc14b30f3483b54cc1e8e83bac1812b47f81",
+    "compiled-sources/object_model.cpp": "b52bb39cf25c68d88dd24b063bc530052469b6d7eedf9a1081aefb90ea5fa7bd",
+    "compiled-sources/xlang_vm_ops_containers.h": "22e04c2ebed5c4d333ec09a91cf01d1fe3865ea338ee31aecebae71a49b32c11",
+    "compiled-sources/inherited_subscript_cache.py": "d95f37731903dc964762237eaccc19d6c88044c4bddab4202dea5dc5d3c8a477",
+    "compiled-sources/inherited_subscript_cache.out": "9a2aab9d199e30b7cea2a786f2e3b0fbd4bcf0b12537509e0e5a8838488e3a61",
+    "compiled-sources/run_fixtures.py": "0ca1cb2c35ee27a8bb9762a037c45949164ffa02acc5d2d29d53170316d0ee9e",
+    "preserve-inherited-compiled-sources-20261007.py": "19ce9eeebf71c8030bfd754b443648c3bd591579500f885b076b390d618e4df8"
+  }
+}

@@ -1,0 +1,15 @@
+path,key_count,median_control_over_candidate_speedup,favorable_pairs,total_pairs
+exact_dict,256,1.0363875578199155,4,7
+direct_native_dict,256,1.0217486808224319,4,7
+inherited_native_dict,256,1.2137104681364863,7,7
+inherited_native_counter,256,1.2250668751421758,7,7
+direct_native_counter,256,0.999075117861093,3,7
+direct_python,256,0.9978369263122042,3,7
+inherited_python,256,1.6576123213277378,7,7
+exact_dict,1024,1.0210550918326071,5,7
+direct_native_dict,1024,1.0073612200872604,5,7
+inherited_native_dict,1024,1.2325540050268096,7,7
+inherited_native_counter,1024,1.2282056211524954,7,7
+direct_native_counter,1024,0.9870314883156849,0,7
+direct_python,1024,0.9846226822438172,1,7
+inherited_python,1024,1.6270056908456865,7,7

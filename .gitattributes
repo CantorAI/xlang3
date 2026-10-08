@@ -111,3 +111,11 @@
 /doc/performance/dict-intrinsic-index-checkpoint-20261007.md text eol=lf
 /tests/fixtures/core/dict_intrinsic_write_index.py text eol=lf
 /tests/fixtures/expected/dict_intrinsic_write_index.out text eol=lf
+
+/doc/performance/data/inherited-subscript-cache-* -text
+/doc/performance/data/inherited-subscript-cache-20261007-sources/** -text
+/doc/performance/data/release-inherited-subscript-cache-fixed-gate-20261007.json -text
+/doc/performance/data/pyperformance-inherited-subscript-cache-bpe-fast-20261007* -text
+/doc/performance/inherited-subscript-cache-checkpoint-20261007.md text eol=lf
+/tests/fixtures/core/inherited_subscript_cache.py text eol=lf
+/tests/fixtures/expected/inherited_subscript_cache.out text eol=lf

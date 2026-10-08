@@ -1,0 +1,7 @@
+inherited native methods and Counter missing keys: OK
+native base replacement invalidates inherited call sites: OK
+inherited Python methods, base replacement and deletion: OK
+base reassignment invalidates descendant MRO caches: OK
+descriptors, staticmethod and classmethod keep normal binding: OK
+reentrant finalizer sees published replacement and invalidated caches: OK
+inherited Python errors retain their method traceback frame: OK

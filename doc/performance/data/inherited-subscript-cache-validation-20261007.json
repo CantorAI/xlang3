@@ -1,0 +1,333 @@
+{
+  "status": "validated",
+  "candidate_binary_sha256": {
+    "exe": "dbc20688f5363819cb4a539619d28be885c9d0e0e6e3140e24ecb0112c534248",
+    "dll": "d640f61da31c3a6486e9eb9c31939fffa52656e4a8b3d8e450d24026aadf2cc2"
+  },
+  "source_sha256": {
+    "src/runtime/object_model.cpp": "b52bb39cf25c68d88dd24b063bc530052469b6d7eedf9a1081aefb90ea5fa7bd",
+    "src/executor/xlang_vm/ops/xlang_vm_ops_containers.h": "22e04c2ebed5c4d333ec09a91cf01d1fe3865ea338ee31aecebae71a49b32c11",
+    "tests/fixtures/core/inherited_subscript_cache.py": "d95f37731903dc964762237eaccc19d6c88044c4bddab4202dea5dc5d3c8a477",
+    "tests/fixtures/expected/inherited_subscript_cache.out": "9a2aab9d199e30b7cea2a786f2e3b0fbd4bcf0b12537509e0e5a8838488e3a61",
+    "tests/run_fixtures.py": "0ca1cb2c35ee27a8bb9762a037c45949164ffa02acc5d2d29d53170316d0ee9e"
+  },
+  "phases": [
+    {
+      "name": "fixtures",
+      "command": [
+        "C:\\Python\\Python314\\python.exe",
+        "tests/run_fixtures.py",
+        "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe"
+      ],
+      "exit_code": 0,
+      "log": "inherited-subscript-cache-validation-20261007-fixtures.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "cpp",
+      "command": [
+        "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\ctest.exe",
+        "--test-dir",
+        "build-repro/main-verify-20261006",
+        "-C",
+        "Release",
+        "-R",
+        "xlang3_(runtime_value_tests|interpreter_tests|sdk_stream_call_tests|graph_)",
+        "--output-on-failure"
+      ],
+      "exit_code": 0,
+      "log": "inherited-subscript-cache-validation-20261007-cpp.log",
+      "sha256": "762ee79ccab88c22ebd7d6d5ab73ee091c205424df3132ba0d3b914e3cf982df"
+    },
+    {
+      "name": "scaling",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\dict-composite-scaling-probe-20261007.py"
+      ],
+      "exit_code": 0,
+      "log": "inherited-subscript-cache-validation-20261007-scaling.log",
+      "sha256": "b10d0cf6d50bca6a1a5e6fbdca2818de97a606aab0f4be32c56a365420b01057"
+    },
+    {
+      "name": "paired-dispatch",
+      "command": [
+        "C:\\Python\\Python314\\python.exe",
+        "scratch/performance/compare-inherited-subscript-trial-20261007.py"
+      ],
+      "exit_code": 0,
+      "log": "inherited-subscript-cache-validation-20261007-paired-dispatch.log",
+      "sha256": "c021bbfdb49e3753a42911f62579460b42fff12dd47f2ea0cf0d727b49a5f4a4"
+    },
+    {
+      "name": "gate",
+      "command": [
+        "C:\\Python\\Python314\\python.exe",
+        "benchmarks/check_regression.py",
+        "--baseline",
+        "D:\\CantorAI\\xlang3\\build-repro\\Release\\xlang3.exe",
+        "--candidate",
+        "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+        "--output",
+        "D:\\CantorAI\\xlang3\\doc\\performance\\data\\release-inherited-subscript-cache-fixed-gate-20261007.json"
+      ],
+      "exit_code": 0,
+      "log": "inherited-subscript-cache-validation-20261007-gate.log",
+      "sha256": "f107504874ba90e6179f7537751d155f41eb23aa76e022c76c8a07586f66db3a"
+    },
+    {
+      "name": "official-bpe",
+      "command": [
+        "C:\\Python\\Python314\\python.exe",
+        "benchmarks/diagnostics/run_pyperformance_xlang3_shimmed.py",
+        "--runtime",
+        "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+        "--benchmarks",
+        "bpe_tokeniser",
+        "--mode",
+        "fast",
+        "--case-timeout",
+        "1800",
+        "--dependency-site",
+        "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages",
+        "--output",
+        "D:\\CantorAI\\xlang3\\doc\\performance\\data\\pyperformance-inherited-subscript-cache-bpe-fast-20261007.json"
+      ],
+      "exit_code": 0,
+      "log": "inherited-subscript-cache-validation-20261007-official-bpe.log",
+      "sha256": "200af9b2de2116dcf9e68ac8e483357cc5cb65c5d6137c1542800a7e44a38820"
+    }
+  ],
+  "fixture_counts": {
+    "core": 368,
+    "compatibility_sections": 11,
+    "expected_failures": 3
+  },
+  "scaling_probe_sha256": "8fdc71f472464c997b1766841a296bfc3de9cb4182762d454abfc379bfa8cc1a",
+  "scaling_rows": [
+    {
+      "checksums": [
+        256,
+        256,
+        256
+      ],
+      "counter": false,
+      "fresh_pair": false,
+      "key_count": 64,
+      "samples_seconds": [
+        0.0002567000046838075,
+        0.0002570000069681555,
+        0.00025699997786432505
+      ],
+      "shape": "bytes",
+      "updates": 256
+    },
+    {
+      "checksums": [
+        1024,
+        1024,
+        1024
+      ],
+      "counter": false,
+      "fresh_pair": false,
+      "key_count": 256,
+      "samples_seconds": [
+        0.0010127999994438142,
+        0.0010196999937761575,
+        0.0010225999867543578
+      ],
+      "shape": "bytes",
+      "updates": 1024
+    },
+    {
+      "checksums": [
+        4096,
+        4096,
+        4096
+      ],
+      "counter": false,
+      "fresh_pair": false,
+      "key_count": 1024,
+      "samples_seconds": [
+        0.004125800012843683,
+        0.004079499980434775,
+        0.004140400007599965
+      ],
+      "shape": "bytes",
+      "updates": 4096
+    },
+    {
+      "checksums": [
+        256,
+        256,
+        256
+      ],
+      "counter": false,
+      "fresh_pair": false,
+      "key_count": 64,
+      "samples_seconds": [
+        0.0004757000133395195,
+        0.00047300002188421786,
+        0.00047190001350827515
+      ],
+      "shape": "tuple_bytes",
+      "updates": 256
+    },
+    {
+      "checksums": [
+        1024,
+        1024,
+        1024
+      ],
+      "counter": false,
+      "fresh_pair": false,
+      "key_count": 256,
+      "samples_seconds": [
+        0.0018786999862641096,
+        0.0019004000059794635,
+        0.0019087000109720975
+      ],
+      "shape": "tuple_bytes",
+      "updates": 1024
+    },
+    {
+      "checksums": [
+        4096,
+        4096,
+        4096
+      ],
+      "counter": false,
+      "fresh_pair": false,
+      "key_count": 1024,
+      "samples_seconds": [
+        0.007533399999374524,
+        0.007824200001778081,
+        0.007665700017241761
+      ],
+      "shape": "tuple_bytes",
+      "updates": 4096
+    },
+    {
+      "checksums": [
+        256,
+        256,
+        256
+      ],
+      "counter": false,
+      "fresh_pair": true,
+      "key_count": 64,
+      "samples_seconds": [
+        0.0014032000035513192,
+        0.0009479000000283122,
+        0.0006577000021934509
+      ],
+      "shape": "tuple_bytes",
+      "updates": 256
+    },
+    {
+      "checksums": [
+        1024,
+        1024,
+        1024
+      ],
+      "counter": false,
+      "fresh_pair": true,
+      "key_count": 256,
+      "samples_seconds": [
+        0.0025947999965865165,
+        0.002622300002258271,
+        0.0026079000090248883
+      ],
+      "shape": "tuple_bytes",
+      "updates": 1024
+    },
+    {
+      "checksums": [
+        4096,
+        4096,
+        4096
+      ],
+      "counter": false,
+      "fresh_pair": true,
+      "key_count": 1024,
+      "samples_seconds": [
+        0.01110910001443699,
+        0.01102619999437593,
+        0.011211900011403486
+      ],
+      "shape": "tuple_bytes",
+      "updates": 4096
+    },
+    {
+      "checksums": [
+        256,
+        256,
+        256
+      ],
+      "counter": true,
+      "fresh_pair": true,
+      "key_count": 64,
+      "samples_seconds": [
+        0.0007400999893434346,
+        0.0007416000007651746,
+        0.0007381000032182783
+      ],
+      "shape": "tuple_bytes",
+      "updates": 256
+    },
+    {
+      "checksums": [
+        1024,
+        1024,
+        1024
+      ],
+      "counter": true,
+      "fresh_pair": true,
+      "key_count": 256,
+      "samples_seconds": [
+        0.002866299997549504,
+        0.0029227999912109226,
+        0.002820199995767325
+      ],
+      "shape": "tuple_bytes",
+      "updates": 1024
+    },
+    {
+      "checksums": [
+        4096,
+        4096,
+        4096
+      ],
+      "counter": true,
+      "fresh_pair": true,
+      "key_count": 1024,
+      "samples_seconds": [
+        0.011138500005472451,
+        0.011972399981459603,
+        0.011690699990140274
+      ],
+      "shape": "tuple_bytes",
+      "updates": 4096
+    }
+  ],
+  "paired_dispatch": "inherited-subscript-cache-paired-20261007.json",
+  "fixed_gate": {
+    "output": "release-inherited-subscript-cache-fixed-gate-20261007.json",
+    "sha256": "fe3cbbb902e59c38733f816ee3ab6ae349338e023b8de4d1fbc38219f19eb3ca",
+    "exit_code": 0
+  },
+  "compatibility_hook_sha256": "2ffc217fe20497156bfcb1cebc7fb87203f33c6d4d3dbb6ecbcbcf91ea4cb317",
+  "official_bpe": {
+    "output": "pyperformance-inherited-subscript-cache-bpe-fast-20261007.json",
+    "sha256": "10d6683dd8677565b5475a92f9969cfa956354ae385f288045816e6d271ed340",
+    "exit_code": 0
+  },
+  "repository_source_sha256": {
+    "src/runtime/object_model.cpp": "020247dee8c75a1d0107b443ae8b307fd028f0d00a38521e9af44f9c708b0e05",
+    "src/executor/xlang_vm/ops/xlang_vm_ops_containers.h": "bf4af1146c060ff397df22ecbd3450beb741b06c0018073fb6ecb4542f4e174b",
+    "tests/fixtures/core/inherited_subscript_cache.py": "d95f37731903dc964762237eaccc19d6c88044c4bddab4202dea5dc5d3c8a477",
+    "tests/fixtures/expected/inherited_subscript_cache.out": "9a2aab9d199e30b7cea2a786f2e3b0fbd4bcf0b12537509e0e5a8838488e3a61",
+    "tests/run_fixtures.py": "fc258784e8e642547e260719e8035eade10b31d60b02dd2da82ebeebbcaa0169"
+  },
+  "source_newline_note": "source_sha256 hashes actual compiler inputs, archived byte-exact; repository_source_sha256 hashes Git LF-normalized equivalents"
+}
