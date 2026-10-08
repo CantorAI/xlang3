@@ -34,6 +34,7 @@ limitations under the License.
 #include <io.h>
 #include <sys/stat.h>
 #include <windows.h>
+#include "xlang3/windows_file_path.h"
 #else
 #include <sys/stat.h>
 #include <unistd.h>
@@ -75,12 +76,22 @@ std::wstring open_wide_path(std::string_view text) {
 }
 
 int open_windows_file(const std::string& path, int flags, int mode) {
-  const std::wstring wide = open_wide_path(path);
+  std::wstring wide = open_wide_path(path);
   const auto previous =
       _set_thread_local_invalid_parameter_handler(ignore_open_invalid_parameter);
   int fd = _wopen(wide.c_str(), flags, mode);
   _set_thread_local_invalid_parameter_handler(previous);
   if (fd >= 0) return fd;
+
+  const auto long_path = windows_native_file_path(wide);
+  if (long_path != wide) {
+    wide = long_path;
+    const auto retry_previous =
+        _set_thread_local_invalid_parameter_handler(ignore_open_invalid_parameter);
+    fd = _wopen(wide.c_str(), flags, mode);
+    _set_thread_local_invalid_parameter_handler(retry_previous);
+    if (fd >= 0) return fd;
+  }
 
   const int access_mode = flags & O_RDWR;
   DWORD access = access_mode == O_RDWR ? GENERIC_READ | GENERIC_WRITE

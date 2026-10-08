@@ -496,6 +496,9 @@ foreach(failure IN ITEMS BAD_VERSION NO_CODEC DECODE_FAIL)
 endforeach()
 add_xlang3_cpp_test(xlang3_runtime_value_tests tests/cpp/runtime_value_tests.cpp)
 add_xlang3_cpp_test(xlang3_vfs_tests tests/cpp/vfs_tests.cpp)
+if(WIN32)
+  add_xlang3_cpp_test(xlang3_windows_file_path_tests tests/cpp/windows_file_path_tests.cpp)
+endif()
 target_sources(xlang3_vfs_tests PRIVATE
   ports/rp2040/embedded/device_file_system.cpp
 )

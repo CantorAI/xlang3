@@ -1,0 +1,133 @@
+{
+  "scope": "Native file-open repair only; performance passed; one reproduced baseline correctness failure and separate SQLite consumer gaps remain",
+  "base_revision": "4aea7d8fb24da9ba86f9d7eeb92820794f213d29",
+  "branch": "xmind/windows-native-file-longpaths",
+  "source_sha256": {
+    "src/internal/xlang3/windows_file_path.h": "b570d3cbde9b48670e0434d7c85e6a5904b3eca73aef0810512edf2ff50ab803",
+    "src/builtins/io_builtins.cpp": "878fc848a47e501ce294b3d3bda50092e0a4c7119524df727c9a1622850c58ea",
+    "src/runtime/modules/system/os_module.cpp": "7a07cb3e47ad13d8df23aa8a364a4499cdaf381f3e9e5917110c74438520d297",
+    "tests/cpp/windows_file_path_tests.cpp": "fb61e65fa6d570d8a7abf8169af7fbf9192a3ae92dadf9a4987b728e69d20509",
+    "CMakeLists.txt": "f8f69986fb1a04e8c6ebe59a4ce8729f61b329099f09963e4cc19324a77c35fb"
+  },
+  "captured_source_count": 5841,
+  "before_capture_sha256": "8c4d2c899305be62da9a5755d92338bb6fd8bbccb9b976706857d5b2d1e0037e",
+  "after_capture_sha256": "67118cbcef40acd6eeea0be29511c98e8fb1cb3c4aa19d0e4af3ef1bfa0c7e57",
+  "all_captured_sources_unchanged": true,
+  "accepted_baseline": {
+    "xlang3_runtime.dll": "166e8d96bd3b3a886fadfb7482374d7512a2dad7b389ca5d907a4b581f18a3a5",
+    "xlang3_runtime.lib": "960600524e0c85750f7e72a8983e919370abcfd05c44de4f4d4cb905b5eac76e",
+    "xlang3.exe": "f9b05a315111053fd5d51c42a2a635fc07e501d9b12bc6b0253aa8e778eb150d",
+    "modules/_argon2_cffi_bindings._ffi.x3pkg.dll": "d1ff503a5891a22b998606637973c74dfe4637a1e68ac18745ecaf819eb8e199",
+    "modules/_brotli.x3pkg.dll": "b4cfa6f316bffdc8ec42aa54f5c320e10f462d6ad1067d844c4bfad37173ade9",
+    "modules/_cffi_backend.x3pkg.dll": "f17eb5bab0d2e565d9eb934d6548813c88c7389f577d2098eaa7817ec77e5b4a",
+    "modules/_zstd.x3pkg.dll": "be9f17e3d95beeba88f0f70c969f466e03ef2766188c82c590d18f59e0104134",
+    "modules/cryptography.hazmat.bindings._rust.x3pkg.dll": "b960be15972fe977e904a1f7b853cc4b12221712aeac0155dee17d85371f8855",
+    "modules/httptools.parser.parser.x3pkg.dll": "56eb11539dac1a9685d90e01d9cb2f4576ee94d1260e3ff862b5a613b0addfa5",
+    "modules/httptools.parser.url_parser.x3pkg.dll": "8f6764015f8924c7d7742618de05b5e031dcd0f31b09a5250b4c16cc41e7b09e",
+    "modules/mmap.x3pkg.dll": "8b2f84c071c68937beb385064ca2eaf90c0ed68eff9610807310a7356239ced3",
+    "modules/psutil._psutil_windows.x3pkg.dll": "729a060ac96c42e4d5d21224e572210b6f9fb31e5ef0afe564a1f22887d628b3",
+    "modules/pydantic_core._pydantic_core.x3pkg.dll": "e708873b38809a3894e6c8d605adb4edbf322abb8121fcfd380c9a3b11b2c62e",
+    "modules/rpds.rpds.x3pkg.dll": "70195bb5ba2dc4c818b7d9c3b0853f1a4da099c03c09205d378bbc1b4b38ab14",
+    "modules/xlang__blake2.x3pkg.dll": "01ab588c9e64a630ad62b48e88946868787aaa78ce8f955758227a3b977318b3",
+    "modules/xlang__hashlib.x3pkg.dll": "2296b6414330a63a92809ce7b2d630543dfa60cb52765eb77e7a973ebd912ffa",
+    "modules/xlang__ssl.x3pkg.dll": "864b3dec68eaed85b28c817f3eb318aeb808ed5b24d0c85666bef99b207c6810",
+    "modules/xlang_curmodule_probe.x3pkg.dll": "a43649730c34b8a6883bf6951e9bd9e537fa696f63c3c1ad0e919b5b8337e82f",
+    "modules/xlang_device.x3pkg.dll": "01f60ce150819b5e1de5b498becd4e3ac5545ad8f242af80600b7740586c06e2",
+    "modules/xlang_graph_native.x3pkg.dll": "a47a338249414c1196f02327ccc745a870035c0268fe604f66d6775ce63835f0",
+    "modules/xlang_json.x3pkg.dll": "4ecc67d674bb48d2c9c8a9fbf5a934f66619739f4e8ce3649545078fee8def8a",
+    "modules/xlang_net.x3pkg.dll": "0bdc07d61ba289ce8d742fd70145c6a9b4dde6a1dd1559ebf96e0bea54b18d06",
+    "modules/xlang_sqlite3.x3pkg.dll": "fcb0e481352672eb72d86a96e2ef5d9b58939a35ad03a4ac3e32bfe7dc733b8c",
+    "modules/xlang_yaml.x3pkg.dll": "9a264e26e9f07fe242015371e160c1c44e22c71f7a5fb114d89a155ddd6780fa",
+    "modules/xlang1_compat_sample.x3pkg.dll": "fe414a9fcdddf462a41585a53634698f8619745aff3e9bd929d51d67288baaf6",
+    "modules/zstandard.backend_c.x3pkg.dll": "05ff70f4215c613f82cffdca91c28dee5192af218662e929a11f7b16eaa802d3"
+  },
+  "configure": {
+    "exitCode": 0,
+    "generator": "Visual Studio 18 2026",
+    "architecture": "x64",
+    "configuration": "Release",
+    "releaseOb3": true,
+    "pgo": "OFF",
+    "pythonExecutable": "OFF",
+    "cpythonBridge": "OFF"
+  },
+  "build": {
+    "exitCode": 0,
+    "allDefaultTargets": true
+  },
+  "correctness": {
+    "exitCode": 8,
+    "selected": 41,
+    "passed": 40,
+    "failed": 1,
+    "allRegisteredNativeExecutableContractsRun": 27,
+    "auditedXLangOnlyCliTests": 14,
+    "newLongPathContractPassed": true,
+    "newLongPathContractElapsedSeconds": 0.1,
+    "knownFailure": "xlang3_native_library_path",
+    "acceptedRuntimeReproducedFailure": true,
+    "failureScope": "extensionless native module import under dotted worktree parent",
+    "cpythonInteropWrapperExcluded": true
+  },
+  "retained_schema": {
+    "pathUnits": 288,
+    "bytes": 24042,
+    "sha256": "7df0efab7510ac5f7d6250118756b76dcea52ce7416ac01bfc52f52a91372067",
+    "baselineFileExitCode": 1,
+    "candidateFileExitCode": 0,
+    "schemaPathWasNotShortened": true,
+    "databasePathUnits": 280,
+    "allOriginalAndCopiedClosedBytesUnchanged": true,
+    "sqliteProbePassed": false,
+    "sqliteIsolationLevelApiPresent": false,
+    "sqliteUriApiPresent": false,
+    "sqliteFinalSafeFailure": "unable_to_open_database_file",
+    "consumerPrerequisitePatchNotApplied": true
+  },
+  "performance": {
+    "exit_code": 0,
+    "cases": 11,
+    "repeats": 21,
+    "warmup": 5,
+    "threshold": 0.1,
+    "wall_seconds": 86.3161861,
+    "baseline": {
+      "executable": "D:\\CantorAI2026\\.worktrees\\xlang3-xmind-longpaths\\.local\\accepted-release-4aea\\xlang3.exe",
+      "sha256": {
+        "xlang3.exe": "f9b05a315111053fd5d51c42a2a635fc07e501d9b12bc6b0253aa8e778eb150d",
+        "xlang3_runtime.dll": "166e8d96bd3b3a886fadfb7482374d7512a2dad7b389ca5d907a4b581f18a3a5"
+      }
+    },
+    "candidate": {
+      "executable": "D:\\CantorAI2026\\.worktrees\\xlang3-xmind-longpaths\\build\\Release\\xlang3.exe",
+      "sha256": {
+        "xlang3.exe": "7c62d0646bf275fcc55fb114634f2f3a5bcec88b9b63f5f2b10392276d0dcb49",
+        "xlang3_runtime.dll": "64883ab20bd54f7ea5d051a1af6ff88e5ac4b4152e013ec44e13227283695445"
+      }
+    }
+  },
+  "original_private_provenance_sha256": "f8bd4630969e61b8ec89b0bbc894151a149d8fddd183b28632517d6dcb233550",
+  "public_logs": {
+    "windows-native-file-longpaths-performance.json": {
+      "sha256": "265544fa3312362306d29f697eb732b43369553ee2ec0c66b18aff46ebe3bc1a",
+      "bytes": 61692
+    },
+    "windows-native-file-longpaths-correctness.log": {
+      "sha256": "e89b4112080ce6dccac87e9c2cdca478c0c8bb91b2ae93acd1eb9f383339fb3d",
+      "bytes": 5134
+    },
+    "windows-native-file-longpaths-baseline-module-error.log": {
+      "sha256": "6de875e4ce90ba6dd5be17fd703f4676a69804c4c4ce3ff8f182b5771eff6066",
+      "bytes": 36
+    }
+  },
+  "no_cpython_commands_executed": true,
+  "primary_sdk_or_managed_preview_changed": false,
+  "source_sha256_lf_normalized": {
+    "src/internal/xlang3/windows_file_path.h": "b570d3cbde9b48670e0434d7c85e6a5904b3eca73aef0810512edf2ff50ab803",
+    "src/builtins/io_builtins.cpp": "867d1a2079041753df862a48d1f91f70b349582bfd862446a8619fdef36360fc",
+    "src/runtime/modules/system/os_module.cpp": "a366370c6c111c3f9a77e9b75430e65d0d26d9e93637dc00e7def2c58a09a41e",
+    "tests/cpp/windows_file_path_tests.cpp": "fb61e65fa6d570d8a7abf8169af7fbf9192a3ae92dadf9a4987b728e69d20509",
+    "CMakeLists.txt": "932cfbb1fd6387987d9ab35a9ef3442ceca9403683558da1e810e114015af002"
+  }
+}

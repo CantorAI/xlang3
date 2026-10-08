@@ -43,6 +43,7 @@ limitations under the License.
 #include <sys/stat.h>
 #include <sys/utime.h>
 #include <windows.h>
+#include "xlang3/windows_file_path.h"
 #include <shellapi.h>
 #include <tlhelp32.h>
 #include <sddl.h>
@@ -704,10 +705,12 @@ bool os_open(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std
   }
 
 #if defined(_WIN32)
-  const int fd = _wopen(
-      std::filesystem::u8path(path.text).c_str(),
-      flags | _O_NOINHERIT,
-      mode);
+  const std::wstring wide = std::filesystem::u8path(path.text).native();
+  int fd = _wopen(wide.c_str(), flags | _O_NOINHERIT, mode);
+  if (fd < 0) {
+    const auto long_path = windows_native_file_path(wide);
+    if (long_path != wide) fd = _wopen(long_path.c_str(), flags | _O_NOINHERIT, mode);
+  }
 #else
   const int fd = ::open(path.text.c_str(), flags, static_cast<mode_t>(mode));
 #endif
