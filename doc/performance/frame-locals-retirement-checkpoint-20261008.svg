@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="242" viewBox="0 0 960 242" role="img" aria-labelledby="title desc">
+  <title id="title">Original pure Python pickle mean durations</title>
+  <desc id="desc">Horizontal duration bars start at zero and extend right. Saved CPython 3.14.7 averages 0.257498 milliseconds and fresh XLang3 R4 averages 5.460743 milliseconds. Each row has 20 values. This is an unpaired comparison; longer means slower.</desc>
+  <rect width="960" height="242" fill="#ffffff"/>
+  <g font-family="Segoe UI, Arial, sans-serif" fill="#17202b">
+    <text x="26" y="30" font-size="19" font-weight="600">Original pickle_pure_python — mean duration</text>
+    <text x="26" y="53" font-size="13" fill="#526070">20 values each · saved CP October 7 versus fresh R4 · unpaired</text>
+    <g stroke="#e4e9ee" stroke-width="1">
+      <path d="M275 73V160 M375 73V160 M475 73V160 M575 73V160 M675 73V160 M775 73V160 M875 73V160"/>
+    </g>
+    <text x="26" y="101" font-size="15">Saved CPython 3.14.7</text>
+    <text x="26" y="143" font-size="15">Fresh XLang3 R4</text>
+    <rect x="275" y="80" width="25.7498" height="28" rx="3" fill="#457ab3"/>
+    <rect x="275" y="122" width="546.0743" height="28" rx="3" fill="#218c83"/>
+    <text x="312" y="100" font-size="14">0.257498 ms</text>
+    <text x="829" y="142" font-size="14">5.460743 ms</text>
+    <g font-size="12" text-anchor="middle" fill="#526070">
+      <text x="275" y="181">0</text><text x="375" y="181">1</text><text x="475" y="181">2</text>
+      <text x="575" y="181">3</text><text x="675" y="181">4</text><text x="775" y="181">5</text><text x="875" y="181">6</text>
+    </g>
+    <text x="575" y="203" font-size="13" text-anchor="middle" fill="#526070">Milliseconds → longer takes more time</text>
+    <text x="26" y="228" font-size="12" fill="#526070">No paired R4/S8 gain claim. The raw pyperf stability warning is retained.</text>
+  </g>
+</svg>

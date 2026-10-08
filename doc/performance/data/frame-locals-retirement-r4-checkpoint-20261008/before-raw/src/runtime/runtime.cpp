@@ -1962,7 +1962,6 @@ void Runtime::retire_live_frame_snapshot(
     size_t local_count) {
   if (activation_id == 0 || !has_live_frame_snapshots_.load(std::memory_order_acquire)) return;
   std::vector<Value> old_local_snapshot;
-  Value displaced_materialized_locals;
   std::vector<Value> retired_refs;
   {
     std::lock_guard<std::mutex> lock(live_frame_snapshots_mutex_);
@@ -1983,42 +1982,6 @@ void Runtime::retire_live_frame_snapshot(
             if (!names[index].empty() && names[index][0] == '#')
               old_local_snapshot.push_back(
                   std::move(retired->local_snapshot[index]));
-        }
-      } else if (local_values != nullptr && retired->module != nullptr &&
-                 retired->function_id < retired->module->functions.size() &&
-                 retired->function_id != retired->module->entry) {
-        auto* materialized = value_as_dict(retired->locals);
-        if (materialized != nullptr && materialized->backing_module == nullptr) {
-          // Reading f_locals while executing does not freeze future locals.
-          // Keep an escaped mapping alias current at retirement, without
-          // adding per-instruction work or replacing module/eval namespaces.
-          RuntimeFrameView final_view;
-          final_view.local_names = &retired->module->functions[retired->function_id].locals;
-          final_view.local_values = local_values;
-          final_view.local_count = local_count;
-          displaced_materialized_locals = locals_snapshot_from_view(final_view);
-          auto* displaced = value_as_dict(displaced_materialized_locals);
-          // Frame locals proxies also retain user-added extra keys. Preserve
-          // those existing owners without hash/equality callbacks; only known
-          // visible physical local names are replaced or deleted by this copy.
-          const auto& names = *final_view.local_names;
-          for (const auto& entry : materialized->entries) {
-            const auto* key = value_as_string(entry.first);
-            const bool physical_name = key != nullptr && std::any_of(
-                names.begin(), names.end(), [&](const std::string& name) {
-                  return !name.empty() && name[0] != '#' &&
-                      string_object_view(*key) == std::string_view(name);
-                });
-            if (!physical_name) displaced->entries.push_back(entry);
-          }
-          materialized->entries.swap(displaced->entries);
-          // Entries are authoritative, including same-sized replacements.
-          // Both dictionaries changed entries; invalidate every index proof.
-          materialized->indexed_entry_count = displaced->indexed_entry_count = static_cast<size_t>(-1);
-          materialized->runtime_hash_indexed_entry_count = displaced->runtime_hash_indexed_entry_count = static_cast<size_t>(-1);
-          materialized->intrinsic_hash_checked_entry_count = displaced->intrinsic_hash_checked_entry_count = static_cast<size_t>(-1);
-          // Displaced Value owners remain in the outer temporary until the
-          // frame is retired and the registry mutex has been released.
         }
       }
       retired->live = false;

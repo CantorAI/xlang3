@@ -1,0 +1,778 @@
+{
+  "status": "frozen_doc_only_validated_r4_checkpoint_publication_plan",
+  "parent_head": "f88ad379afd499feae3422a1863af513e776eb49",
+  "recorded_source_count": 111,
+  "release_file_count": 178,
+  "fixed_accepted_baseline_file_count": 177,
+  "source_scope": "111 recorded source files, not a complete list of every compiled repository source; measured local dirty bytes remain preserved and clean main alone is not claimed a byte-reproducer.",
+  "owned_engine_targets": [
+    "src/runtime/runtime.cpp",
+    "tests/cpp/interpreter_tests.cpp",
+    "tests/cpp/frame_locals_retirement_cases.h"
+  ],
+  "engine_staging_included": false,
+  "binaries_included": false,
+  "inspection_source_scope": "Three exact reviewed candidates; two referenced raw-before files and their normalized snapshots. No giant all-sources or Release archive in Git.",
+  "row_count": 97,
+  "document_path_count": 98,
+  "files": [
+    {
+      "source": "scratch/performance/frame-locals-retirement-checkpoint-report-proposed-20261008.md",
+      "destination": "doc/performance/frame-locals-retirement-checkpoint-20261008.md",
+      "sha256": "3955a4238b7b2f64599f3bef9b381b9c62201c3a5c2b6fb8180512e48415cdbc",
+      "bytes": 4824,
+      "kind": "report"
+    },
+    {
+      "source": "doc/performance/data/frame-locals-retirement-r4-full-validation-20261008-manual-python-sqlite3-api.stdout.log",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-full-validation-20261008-manual-python-sqlite3-api.stdout.log",
+      "sha256": "c9ae392c8a76084bb521fcd89dc73d8617755aae1741c705f2ba60efe9606ecb",
+      "bytes": 538,
+      "kind": "raw_stream"
+    },
+    {
+      "source": "doc/performance/data/frame-locals-retirement-r4-full-validation-20261008-manual-old-xlang-sqlite-api.stderr.log",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-full-validation-20261008-manual-old-xlang-sqlite-api.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "raw_stream"
+    },
+    {
+      "source": "doc/performance/data/frame-locals-retirement-r4-full-validation-20261008-manual-old-xlang-sqlite-api.stdout.log",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-full-validation-20261008-manual-old-xlang-sqlite-api.stdout.log",
+      "sha256": "36449d6aaa8b51b49315f871c305cf5e7568199909ce178a331245b7fe4a6a92",
+      "bytes": 237,
+      "kind": "raw_stream"
+    },
+    {
+      "source": "doc/performance/data/frame-locals-retirement-r4-full-validation-20261008-cpp-native-sqlite.stderr.log",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-full-validation-20261008-cpp-native-sqlite.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "raw_stream"
+    },
+    {
+      "source": "doc/performance/data/frame-locals-retirement-r4-full-validation-20261008-cpp-native-sqlite.stdout.log",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-full-validation-20261008-cpp-native-sqlite.stdout.log",
+      "sha256": "9c52f8e0ad273f04eec16a9bc1be9d77a731fb68d7ccc76dce2caa728fe39232",
+      "bytes": 1171,
+      "kind": "raw_stream"
+    },
+    {
+      "source": "doc/performance/data/frame-locals-retirement-r4-full-validation-20261008-ctest-inventory.stderr.log",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-full-validation-20261008-ctest-inventory.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "raw_stream"
+    },
+    {
+      "source": "doc/performance/data/frame-locals-retirement-r4-full-validation-20261008-ctest-inventory.stdout.log",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-full-validation-20261008-ctest-inventory.stdout.log",
+      "sha256": "1104a32a60d19adbf6bb99a36bf2c20e00f7c2b9ad27a9bf4a04c2ce58036aa4",
+      "bytes": 8756,
+      "kind": "raw_stream"
+    },
+    {
+      "source": "doc/performance/data/frame-locals-retirement-r4-full-validation-20261008.json",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-full-validation-20261008.json",
+      "sha256": "b28809dcfc420906e3c3f656fdd9584140d0a80d778673a43342799ea64e75ec",
+      "bytes": 840794,
+      "kind": "actual_receipt"
+    },
+    {
+      "source": "doc/performance/data/frame-locals-retirement-r4-focused-20261008-nested1.stderr.log",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-focused-20261008-nested1.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "raw_stream"
+    },
+    {
+      "source": "doc/performance/data/frame-locals-retirement-r4-full-validation-20261008-manual-python-sqlite3-api.stderr.log",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-full-validation-20261008-manual-python-sqlite3-api.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "raw_stream"
+    },
+    {
+      "source": "doc/performance/data/frame-locals-retirement-r4-focused-20261008-nested1.stdout.log",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-focused-20261008-nested1.stdout.log",
+      "sha256": "92ca4b59af1fa87ef558a34cc96baebbb62cdaaaaac5e97b3d52d4ab88e0967f",
+      "bytes": 29,
+      "kind": "raw_stream"
+    },
+    {
+      "source": "doc/performance/data/frame-locals-retirement-r4-focused-20261008-sorted7.stdout.log",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-focused-20261008-sorted7.stdout.log",
+      "sha256": "939c6c84234cd99856677eef773b17492d75b17ea6960edd9cc73292ae541180",
+      "bytes": 214,
+      "kind": "raw_stream"
+    },
+    {
+      "source": "doc/performance/data/frame-locals-retirement-r4-focused-20261008-monitoring.stderr.log",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-focused-20261008-monitoring.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "raw_stream"
+    },
+    {
+      "source": "doc/performance/data/frame-locals-retirement-r4-focused-20261008-monitoring.stdout.log",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-focused-20261008-monitoring.stdout.log",
+      "sha256": "9b113c1832cd48587fe3a60a5a364e2afa8656593ad1f472a1b5429f40e1fb16",
+      "bytes": 422,
+      "kind": "raw_stream"
+    },
+    {
+      "source": "doc/performance/data/frame-locals-retirement-r4-focused-20261008-threading.stderr.log",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-focused-20261008-threading.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "raw_stream"
+    },
+    {
+      "source": "doc/performance/data/frame-locals-retirement-r4-focused-20261008-threading.stdout.log",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-focused-20261008-threading.stdout.log",
+      "sha256": "f4901cf3ef8c3ca6a81013ca6f821bc6b45441ac17e7d6b29b9b7a87c534138a",
+      "bytes": 769,
+      "kind": "raw_stream"
+    },
+    {
+      "source": "doc/performance/data/frame-locals-retirement-r4-focused-20261008-profile3.stderr.log",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-focused-20261008-profile3.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "raw_stream"
+    },
+    {
+      "source": "doc/performance/data/frame-locals-retirement-r4-focused-20261008-profile3.stdout.log",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-focused-20261008-profile3.stdout.log",
+      "sha256": "99e1a62179c2b818a9922b7bcd485b5e0fc3cbdd9bc80f3e67ac90bd5b1fe586",
+      "bytes": 135,
+      "kind": "raw_stream"
+    },
+    {
+      "source": "doc/performance/data/frame-locals-retirement-r4-focused-20261008-debug_frames.stderr.log",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-focused-20261008-debug_frames.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "raw_stream"
+    },
+    {
+      "source": "doc/performance/data/frame-locals-retirement-r4-focused-20261008-debug_frames.stdout.log",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-focused-20261008-debug_frames.stdout.log",
+      "sha256": "10f5933b246818447e6bcb94efd7ae042c65b0794aa451d3904d6053ad32c392",
+      "bytes": 329,
+      "kind": "raw_stream"
+    },
+    {
+      "source": "doc/performance/data/frame-locals-retirement-r4-focused-20261008-sorted7.stderr.log",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-focused-20261008-sorted7.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "raw_stream"
+    },
+    {
+      "source": "doc/performance/data/frame-locals-retirement-r4-full-validation-20261008-full-fixtures-core-compat-expected.stdout.log",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-full-validation-20261008-full-fixtures-core-compat-expected.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "raw_stream"
+    },
+    {
+      "source": "doc/performance/data/frame-locals-retirement-r4-full-validation-20261008-full-fixtures-core-compat-expected.stderr.log",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-full-validation-20261008-full-fixtures-core-compat-expected.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "raw_stream"
+    },
+    {
+      "source": "doc/performance/data/frame-locals-retirement-r4-full-validation-20261008-fixed-gate.stdout.log",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-full-validation-20261008-fixed-gate.stdout.log",
+      "sha256": "1c1498b8508dc6b6f496d3637bee16db2b75691a147004a9f0aae21c9abca3c1",
+      "bytes": 648,
+      "kind": "raw_stream"
+    },
+    {
+      "source": "doc/performance/data/frame-locals-retirement-r4-full-validation-20261008-official-pickle-pure-python-fast.json",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-full-validation-20261008-official-pickle-pure-python-fast.json",
+      "sha256": "333f06a30560f3d10e65139066eb5fb0c4ffa4002833f442aa19a8ab4f5615ae",
+      "bytes": 1784,
+      "kind": "actual_official_pickle20_metadata_values"
+    },
+    {
+      "source": "doc/performance/data/frame-locals-retirement-r4-full-validation-20261008-fixed-gate.json",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-full-validation-20261008-fixed-gate.json",
+      "sha256": "daa92d3066ffcb0aa263d108d994fe1e4105fb537376e6d4eb774600562303a0",
+      "bytes": 62441,
+      "kind": "actual_fixed_gate"
+    },
+    {
+      "source": "doc/performance/data/frame-locals-retained-cpython3147-s8-reference-20261008-preserved_s8-extra.stderr.log",
+      "destination": "doc/performance/data/frame-locals-retained-cpython3147-s8-reference-20261008-preserved_s8-extra.stderr.log",
+      "sha256": "fabe8117c0d82a7c5e76e087d06820f6ac718c6ec232ef772964ca75979c36bb",
+      "bytes": 271,
+      "kind": "raw_stream"
+    },
+    {
+      "source": "doc/performance/data/frame-locals-retained-cpython3147-s8-reference-20261008-preserved_s8-extra.stdout.log",
+      "destination": "doc/performance/data/frame-locals-retained-cpython3147-s8-reference-20261008-preserved_s8-extra.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "raw_stream"
+    },
+    {
+      "source": "doc/performance/data/frame-locals-retained-cpython3147-s8-reference-20261008-preserved_s8-retained.stderr.log",
+      "destination": "doc/performance/data/frame-locals-retained-cpython3147-s8-reference-20261008-preserved_s8-retained.stderr.log",
+      "sha256": "f773717f6ce154f9d6fca7d30e486fb13a653c68e0d67224c88f30c59a38e614",
+      "bytes": 245,
+      "kind": "raw_stream"
+    },
+    {
+      "source": "doc/performance/data/frame-locals-retained-cpython3147-s8-reference-20261008-preserved_s8-retained.stdout.log",
+      "destination": "doc/performance/data/frame-locals-retained-cpython3147-s8-reference-20261008-preserved_s8-retained.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "raw_stream"
+    },
+    {
+      "source": "doc/performance/data/frame-locals-retained-cpython3147-s8-reference-20261008-cpython3147-extra.stderr.log",
+      "destination": "doc/performance/data/frame-locals-retained-cpython3147-s8-reference-20261008-cpython3147-extra.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "raw_stream"
+    },
+    {
+      "source": "doc/performance/data/frame-locals-retained-cpython3147-s8-reference-20261008-cpython3147-extra.stdout.log",
+      "destination": "doc/performance/data/frame-locals-retained-cpython3147-s8-reference-20261008-cpython3147-extra.stdout.log",
+      "sha256": "fc741015af6b52c68c567e7389222daf58e110c63f199d74a3d2d4980051ea28",
+      "bytes": 34,
+      "kind": "raw_stream"
+    },
+    {
+      "source": "doc/performance/data/frame-locals-retained-cpython3147-s8-reference-20261008-cpython3147-retained.stderr.log",
+      "destination": "doc/performance/data/frame-locals-retained-cpython3147-s8-reference-20261008-cpython3147-retained.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "raw_stream"
+    },
+    {
+      "source": "doc/performance/data/frame-locals-retained-cpython3147-s8-reference-20261008-cpython3147-retained.stdout.log",
+      "destination": "doc/performance/data/frame-locals-retained-cpython3147-s8-reference-20261008-cpython3147-retained.stdout.log",
+      "sha256": "3f71adf2005db2b3e153c4a446603f702dce1212b9b6b561053d390441469171",
+      "bytes": 41,
+      "kind": "raw_stream"
+    },
+    {
+      "source": "doc/performance/data/frame-locals-retained-cpython3147-s8-reference-20261008.json",
+      "destination": "doc/performance/data/frame-locals-retained-cpython3147-s8-reference-20261008.json",
+      "sha256": "71a0288e97ffb357de8e447a7a9fca38450fb173201b708988d74341d7150751",
+      "bytes": 325184,
+      "kind": "actual_receipt"
+    },
+    {
+      "source": "doc/performance/data/runtime-frame-context-cpython3147-s8-correctness-r2-20261008-preserved_s8.stderr.log",
+      "destination": "doc/performance/data/runtime-frame-context-cpython3147-s8-correctness-r2-20261008-preserved_s8.stderr.log",
+      "sha256": "9e78ecced87f2b58c7db1e64d4069ddb83f712a864d5fbea73d76fed5499bb43",
+      "bytes": 347,
+      "kind": "raw_stream"
+    },
+    {
+      "source": "doc/performance/data/runtime-frame-context-cpython3147-s8-correctness-r2-20261008-preserved_s8.stdout.log",
+      "destination": "doc/performance/data/runtime-frame-context-cpython3147-s8-correctness-r2-20261008-preserved_s8.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "raw_stream"
+    },
+    {
+      "source": "doc/performance/data/runtime-frame-context-cpython3147-s8-correctness-r2-20261008-cpython3147.stderr.log",
+      "destination": "doc/performance/data/runtime-frame-context-cpython3147-s8-correctness-r2-20261008-cpython3147.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "raw_stream"
+    },
+    {
+      "source": "doc/performance/data/runtime-frame-context-cpython3147-s8-correctness-r2-20261008-cpython3147.stdout.log",
+      "destination": "doc/performance/data/runtime-frame-context-cpython3147-s8-correctness-r2-20261008-cpython3147.stdout.log",
+      "sha256": "0e2b9174689d9bcfb21d784171e0411861791e11af1cbc1b725f103aa7fd6e5d",
+      "bytes": 149,
+      "kind": "raw_stream"
+    },
+    {
+      "source": "doc/performance/data/runtime-frame-context-cpython3147-s8-correctness-r2-20261008.json",
+      "destination": "doc/performance/data/runtime-frame-context-cpython3147-s8-correctness-r2-20261008.json",
+      "sha256": "159f7294d3ff4e1395722145e3bc8ef72a6ed47834989798cd588af0b5af7d41",
+      "bytes": 322488,
+      "kind": "actual_receipt"
+    },
+    {
+      "source": "doc/performance/data/frame-locals-retirement-r4-full-validation-20261008-official-pickle-pure-python.external-process-observations.jsonl",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-full-validation-20261008-official-pickle-pure-python.external-process-observations.jsonl",
+      "sha256": "5f96f444b53c3c0109df5d78f8f8c5d02b27bd72fccc269e606108199cddcb71",
+      "bytes": 390,
+      "kind": "raw_timing_watcher"
+    },
+    {
+      "source": "doc/performance/data/frame-locals-retirement-r4-full-validation-20261008-official-pickle-pure-python.stderr.log",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-full-validation-20261008-official-pickle-pure-python.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "raw_stream"
+    },
+    {
+      "source": "doc/performance/data/frame-locals-retirement-r4-full-validation-20261008-official-pickle-pure-python.stdout.log",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-full-validation-20261008-official-pickle-pure-python.stdout.log",
+      "sha256": "c366aa8ec9b42a7e97405f9cf2c1d35f4f34b821135b828497b5d833409e7628",
+      "bytes": 882,
+      "kind": "raw_stream"
+    },
+    {
+      "source": "doc/performance/data/frame-locals-retirement-r4-full-validation-20261008-fixed-gate.external-process-observations.jsonl",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-full-validation-20261008-fixed-gate.external-process-observations.jsonl",
+      "sha256": "111504f2385c9b2a1b31f8ec1588da44b914e8b23a0c2af62fc904d4d53c378e",
+      "bytes": 3575,
+      "kind": "raw_timing_watcher"
+    },
+    {
+      "source": "doc/performance/data/frame-locals-retirement-r4-full-validation-20261008-fixed-gate.stderr.log",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-full-validation-20261008-fixed-gate.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "raw_stream"
+    },
+    {
+      "source": "doc/performance/data/frame-locals-retirement-r4-focused-20261008-extra1.stderr.log",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-focused-20261008-extra1.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "raw_stream"
+    },
+    {
+      "source": "build-repro/controls/frame-locals-retirement-s8-application-20261008/preserved-release-provenance.json",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-checkpoint-20261008/before-control-manifest.json",
+      "sha256": "29841491e3a6e934db9ef19dfdd01ef3ef71ab14e2cc3333b80213d793ab9e26",
+      "bytes": 55650,
+      "kind": "hash_only_before_control"
+    },
+    {
+      "source": "doc/performance/data/frame-locals-retirement-r4-focused-20261008-extra1.stdout.log",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-focused-20261008-extra1.stdout.log",
+      "sha256": "fc741015af6b52c68c567e7389222daf58e110c63f199d74a3d2d4980051ea28",
+      "bytes": 34,
+      "kind": "raw_stream"
+    },
+    {
+      "source": "doc/performance/data/frame-locals-retirement-r4-focused-20261008-retained1.stdout.log",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-focused-20261008-retained1.stdout.log",
+      "sha256": "3f71adf2005db2b3e153c4a446603f702dce1212b9b6b561053d390441469171",
+      "bytes": 41,
+      "kind": "raw_stream"
+    },
+    {
+      "source": "scratch/performance/runtime-frame-context-correctness-r2-manager-provenance-20261008.json",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-checkpoint-20261008/runtime-frame-context-correctness-r2-manager-provenance-20261008.json",
+      "sha256": "16ce32c93a1534c3c12e738ae5577839a823906ecde270819cddbf733cedfd91",
+      "bytes": 1809,
+      "kind": "controller"
+    },
+    {
+      "source": "scratch/performance/capture-runtime-frame-context-cpython3147-s8-correctness-r2-proposed-20261008.py",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-checkpoint-20261008/capture-runtime-frame-context-cpython3147-s8-correctness-r2-proposed-20261008.py",
+      "sha256": "ad44cade810cecdd1fbc7e567d5fbb9a67b905d247e857713e2b463e1a099b8d",
+      "bytes": 12671,
+      "kind": "controller"
+    },
+    {
+      "source": "scratch/performance/frame-locals-retained-reference-manager-provenance-proposed-20261008.json",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-checkpoint-20261008/frame-locals-retained-reference-manager-provenance-proposed-20261008.json",
+      "sha256": "4789f3ab06d6bfd1e9002ba30daf7fee5c9743388fa5e946f75d999257c8cd74",
+      "bytes": 3575,
+      "kind": "controller"
+    },
+    {
+      "source": "scratch/performance/capture-frame-locals-retained-cpython3147-s8-reference-proposed-20261008.py",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-checkpoint-20261008/capture-frame-locals-retained-cpython3147-s8-reference-proposed-20261008.py",
+      "sha256": "ddaf17c09f6460ef28845169a587ddce3f9c5a6cf6fc9e6183f9a4ec22c46ec9",
+      "bytes": 15083,
+      "kind": "controller"
+    },
+    {
+      "source": "scratch/performance/validate-frame-locals-retirement-r4-full-proposed-20261008.py",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-checkpoint-20261008/validate-frame-locals-retirement-r4-full-proposed-20261008.py",
+      "sha256": "c846f29bcd0617485a1f878e6349f938c8c9ab6854d2e5a3315b7f328ba8276c",
+      "bytes": 50623,
+      "kind": "controller"
+    },
+    {
+      "source": "scratch/performance/prepare-frame-locals-retirement-r4-full-proposed-20261008.ps1",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-checkpoint-20261008/prepare-frame-locals-retirement-r4-full-proposed-20261008.ps1",
+      "sha256": "e1b841aed531dd84f6cd007b11a7384bb300ae384a7b08633e43c69a17efcd15",
+      "bytes": 18193,
+      "kind": "controller"
+    },
+    {
+      "source": "scratch/performance/frame-locals-retirement-r4-full-r2-validation-diff-proposed-20261008.patch",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-checkpoint-20261008/frame-locals-retirement-r4-full-r2-validation-diff-proposed-20261008.patch",
+      "sha256": "695daebbb9f9b47d9e55903cc9ad6e64c2169002fbcee22ca3091c790cc0346a",
+      "bytes": 37920,
+      "kind": "controller"
+    },
+    {
+      "source": "scratch/performance/frame-locals-retirement-r4-full-r2-controller-provenance-proposed-20261008.json",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-checkpoint-20261008/frame-locals-retirement-r4-full-r2-controller-provenance-proposed-20261008.json",
+      "sha256": "a9e980532748addb91ae3c2c069537d343084c41fc9b0b26a9323ce83ac6ad1a",
+      "bytes": 18869,
+      "kind": "controller"
+    },
+    {
+      "source": "scratch/performance/validate-frame-locals-retirement-r4-full-r2-proposed-20261008.py",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-checkpoint-20261008/validate-frame-locals-retirement-r4-full-r2-proposed-20261008.py",
+      "sha256": "d085bc17f9ceb7297edb059fbd00378a4dfd251418ea29b396f416c2c789eb96",
+      "bytes": 50132,
+      "kind": "controller"
+    },
+    {
+      "source": "scratch/performance/preserve-frame-locals-retirement-r4-checkpoint-root-20261008.py",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-checkpoint-20261008/preserve-frame-locals-retirement-r4-checkpoint-root-20261008.py",
+      "sha256": "368670a0a6a94cff6d40b7ef4680c83823d33ba2951366564bc67976e21a2171",
+      "bytes": 3435,
+      "kind": "controller"
+    },
+    {
+      "source": "scratch/performance/check-frame-locals-retirement-r4-focused-proposed-20261008-provenance.json",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-checkpoint-20261008/check-frame-locals-retirement-r4-focused-proposed-20261008-provenance.json",
+      "sha256": "75630310908b117b19feb037dfb193ee8b2389e48d2545bb136d8d4d3b29af86",
+      "bytes": 16040,
+      "kind": "controller"
+    },
+    {
+      "source": "scratch/performance/build-frame-locals-retirement-r4-20261008.cmd",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-checkpoint-20261008/build-frame-locals-retirement-r4-20261008.cmd",
+      "sha256": "2856a414d0f760757daba4b880953bd5bc4b68dd9ed51dc17b6624d6ae1a70ef",
+      "bytes": 419,
+      "kind": "controller"
+    },
+    {
+      "source": "scratch/performance/prepare-frame-locals-retirement-s8-applier-proposed-20261008.ps1",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-checkpoint-20261008/prepare-frame-locals-retirement-s8-applier-proposed-20261008.ps1",
+      "sha256": "8875d4764489d999f4f420eb807ba6b3bb4dc10b43fb64eb5b9c9f92ecf43196",
+      "bytes": 9351,
+      "kind": "controller"
+    },
+    {
+      "source": "scratch/performance/apply-frame-locals-retirement-r4-s8-proposed-20261008-provenance.json",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-checkpoint-20261008/apply-frame-locals-retirement-r4-s8-proposed-20261008-provenance.json",
+      "sha256": "d9d21ff3a59eb7c9dfb6e821e2495a94a4a20170bc5514c6fd2c5f10b3dea3fd",
+      "bytes": 2289,
+      "kind": "controller"
+    },
+    {
+      "source": "scratch/performance/apply-frame-locals-retirement-r4-s8-proposed-20261008.py",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-checkpoint-20261008/apply-frame-locals-retirement-r4-s8-proposed-20261008.py",
+      "sha256": "c67ef49a5a4b1e259f53ee233445d93eb742b74bff14e3d6c6a1b37e6c4b061a",
+      "bytes": 13045,
+      "kind": "controller"
+    },
+    {
+      "source": "scratch/performance/rebase-frame-locals-retirement-r4-20261008.ps1",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-checkpoint-20261008/rebase-frame-locals-retirement-r4-20261008.ps1",
+      "sha256": "ab51e866079c1fcb199b2df28a701c2230ce1c76632cf48a8693fa33812ca54e",
+      "bytes": 4461,
+      "kind": "controller"
+    },
+    {
+      "source": "scratch/performance/frame-locals-retirement-r4-proposed-20261008-apply-check.log",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-checkpoint-20261008/frame-locals-retirement-r4-proposed-20261008-apply-check.log",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "bytes": 1,
+      "kind": "controller"
+    },
+    {
+      "source": "scratch/performance/frame-locals-retirement-r4-proposed-20261008-provenance.json",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-checkpoint-20261008/frame-locals-retirement-r4-proposed-20261008-provenance.json",
+      "sha256": "24b1c58347f3bea0c4bc40d5e450efb04c8ff614f4c0b482cc12511380cf8e76",
+      "bytes": 19266,
+      "kind": "controller"
+    },
+    {
+      "source": "scratch/performance/frame-locals-retirement-r4-proposed-20261008.patch",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-checkpoint-20261008/frame-locals-retirement-r4-proposed-20261008.patch",
+      "sha256": "bbc445eb1ee76b150693ee60446abfb1e846f5a8117b7572bfed326f660fc99d",
+      "bytes": 12617,
+      "kind": "controller"
+    },
+    {
+      "source": "scratch/performance/frame-locals-retirement-checkpoint-chart-proposed-20261008.svg",
+      "destination": "doc/performance/frame-locals-retirement-checkpoint-20261008.svg",
+      "sha256": "faddbb2fc30c45ccfdf43e4fdcbb564d051a486b6ee182e9d6e0939ee9e943b2",
+      "bytes": 1937,
+      "kind": "duration_chart"
+    },
+    {
+      "source": "scratch/performance/check-frame-locals-retirement-r4-focused-proposed-20261008.py",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-checkpoint-20261008/check-frame-locals-retirement-r4-focused-proposed-20261008.py",
+      "sha256": "f6c352a403312cd97b9370e04390394ae9745df17b36f078fd169d7e961abc42",
+      "bytes": 19612,
+      "kind": "controller"
+    },
+    {
+      "source": "scratch/performance/copy-frame-locals-retirement-r4-checkpoint-proposed-20261008.ps1",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-checkpoint-20261008/copy-frame-locals-retirement-r4-checkpoint-proposed-20261008.ps1",
+      "sha256": "3e123501ca510970a142c7935fbd179bb9118ba0b86a47782804c63487fd57d3",
+      "bytes": 8301,
+      "kind": "controller"
+    },
+    {
+      "source": "scratch/performance/prepare-frame-locals-retirement-r4-publication-proposed-20261008.ps1",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-checkpoint-20261008/prepare-frame-locals-retirement-r4-publication-proposed-20261008.ps1",
+      "sha256": "7ac0b95639bcde3c26f9e3012c482b1649df3297dc666c7a08fed6961d19326c",
+      "bytes": 12954,
+      "kind": "controller"
+    },
+    {
+      "source": "scratch/performance/frame-locals-retirement-r4-proposed-20261008-candidates/src/runtime/runtime.cpp",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-checkpoint-20261008/candidates/src/runtime/runtime.cpp",
+      "sha256": "2d7a0836eea66c376f652276d35edaa412edf792ab74c220711cd4bd3a14ca98",
+      "bytes": 116280,
+      "kind": "reviewed_candidate"
+    },
+    {
+      "source": "doc/performance/data/frame-locals-retirement-r4-focused-20261008-framecontext4.stderr.log",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-focused-20261008-framecontext4.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "raw_stream"
+    },
+    {
+      "source": "doc/performance/data/frame-locals-retirement-r4-focused-20261008-framecontext4.stdout.log",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-focused-20261008-framecontext4.stdout.log",
+      "sha256": "0e2b9174689d9bcfb21d784171e0411861791e11af1cbc1b725f103aa7fd6e5d",
+      "bytes": 149,
+      "kind": "raw_stream"
+    },
+    {
+      "source": "doc/performance/data/frame-locals-retirement-r4-focused-20261008-cpp.stderr.log",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-focused-20261008-cpp.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "raw_stream"
+    },
+    {
+      "source": "doc/performance/data/frame-locals-retirement-r4-focused-20261008-cpp.stdout.log",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-focused-20261008-cpp.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "raw_stream"
+    },
+    {
+      "source": "doc/performance/data/frame-locals-retirement-r4-focused-20261008.json",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-focused-20261008.json",
+      "sha256": "e193773b550ec36a0c07aad862d363f4af5467f0d1b05d55af916d945d706a26",
+      "bytes": 550668,
+      "kind": "actual_receipt"
+    },
+    {
+      "source": "doc/performance/data/frame-locals-retirement-r4-build-terminal-20261008.json",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-build-terminal-20261008.json",
+      "sha256": "df8ba2f7b324b6b29173e7622f47fbaa6a8c9ea86560e24db2557b1e8c93ae0a",
+      "bytes": 1082,
+      "kind": "actual_build_terminal"
+    },
+    {
+      "source": "doc/performance/data/frame-locals-retirement-r4-build-20261008.log",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-build-20261008.log",
+      "sha256": "d6f11dc2d3457b547d6d9bfa1435776801ea7da21f4665f706ee14ab739f16b1",
+      "bytes": 1687,
+      "kind": "actual_build_log"
+    },
+    {
+      "source": "doc/performance/data/frame-locals-retirement-r4-registered-source-20261008.json",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-registered-source-20261008.json",
+      "sha256": "e696ed5b31449e7ed29c173df79de3b55292597418231f417af887574c60e4c8",
+      "bytes": 13424,
+      "kind": "registered_source111"
+    },
+    {
+      "source": "doc/performance/data/frame-locals-retirement-s8-application-20261008-applied-source.json",
+      "destination": "doc/performance/data/frame-locals-retirement-s8-application-20261008-applied-source.json",
+      "sha256": "dc563e2b363dc3992a2c8b323e0f59e953749a715bb4ec97264ef1fa846ab153",
+      "bytes": 98724,
+      "kind": "actual_application"
+    },
+    {
+      "source": "scratch/performance/frame-locals-retained-extra-expected-proposed-20261008.out",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-checkpoint-20261008/frame-locals-retained-extra-expected-proposed-20261008.out",
+      "sha256": "bcc83f86c18cc6060a085ea6736038efcb31a42bf2830f71fdb4f64e6eec3e71",
+      "bytes": 33,
+      "kind": "unchanged_strict_fixture"
+    },
+    {
+      "source": "scratch/performance/frame-locals-retained-extra-fixture-proposed-20261008.py",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-checkpoint-20261008/frame-locals-retained-extra-fixture-proposed-20261008.py",
+      "sha256": "ec47ae1e050c1c367125466834185d5cd9edb0b002ad9b03bac1213ae7686a88",
+      "bytes": 856,
+      "kind": "unchanged_strict_fixture"
+    },
+    {
+      "source": "scratch/performance/frame-locals-retained-mapping-expected-proposed-20261008.out",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-checkpoint-20261008/frame-locals-retained-mapping-expected-proposed-20261008.out",
+      "sha256": "3498e5609c21461d63e16be4273c358cac309f47c59918e0632b95c2c7914150",
+      "bytes": 40,
+      "kind": "unchanged_strict_fixture"
+    },
+    {
+      "source": "scratch/performance/frame-locals-retained-mapping-fixture-proposed-20261008.py",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-checkpoint-20261008/frame-locals-retained-mapping-fixture-proposed-20261008.py",
+      "sha256": "9cf97667d8ef24562c857f651bfd8d5489281e6fd3887f888995a63f256839df",
+      "bytes": 780,
+      "kind": "unchanged_strict_fixture"
+    },
+    {
+      "source": "scratch/performance/runtime-frame-context-coalesced-expected-proposed-20261008.out",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-checkpoint-20261008/runtime-frame-context-coalesced-expected-proposed-20261008.out",
+      "sha256": "97d5a6c2764deb48e4f217f09d148f13b4f8332d88b6f930f14ba12ede9e065d",
+      "bytes": 145,
+      "kind": "unchanged_strict_fixture"
+    },
+    {
+      "source": "scratch/performance/runtime-frame-context-coalesced-fixture-proposed-20261008.py",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-checkpoint-20261008/runtime-frame-context-coalesced-fixture-proposed-20261008.py",
+      "sha256": "fd942dfb3981c01b6464f623ebb1b37640772c532b18ad7381abebf2d9e5ffc7",
+      "bytes": 3403,
+      "kind": "unchanged_strict_fixture"
+    },
+    {
+      "source": "scratch/performance/frame-locals-retirement-r4-proposed-20261008-sources/tests/cpp/interpreter_tests.cpp",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-checkpoint-20261008/before-normalized/tests/cpp/interpreter_tests.cpp",
+      "sha256": "59bdb1c2e85079d28ad7359ebdc3b0e76c0c56bf3880e79c8da6384418b2d172",
+      "bytes": 29888,
+      "kind": "referenced_normalized_before"
+    },
+    {
+      "source": "scratch/performance/frame-locals-retirement-r4-proposed-20261008-inputs/tests/cpp/interpreter_tests.cpp",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-checkpoint-20261008/before-raw/tests/cpp/interpreter_tests.cpp",
+      "sha256": "59bdb1c2e85079d28ad7359ebdc3b0e76c0c56bf3880e79c8da6384418b2d172",
+      "bytes": 29888,
+      "kind": "referenced_raw_before"
+    },
+    {
+      "source": "scratch/performance/frame-locals-retirement-r4-proposed-20261008-sources/src/runtime/runtime.cpp",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-checkpoint-20261008/before-normalized/src/runtime/runtime.cpp",
+      "sha256": "67b6383867234d092f479512feb80da9387b3a8c5280701ae87cca77947a9af9",
+      "bytes": 113737,
+      "kind": "referenced_normalized_before"
+    },
+    {
+      "source": "scratch/performance/frame-locals-retirement-r4-proposed-20261008-inputs/src/runtime/runtime.cpp",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-checkpoint-20261008/before-raw/src/runtime/runtime.cpp",
+      "sha256": "67b6383867234d092f479512feb80da9387b3a8c5280701ae87cca77947a9af9",
+      "bytes": 113737,
+      "kind": "referenced_raw_before"
+    },
+    {
+      "source": "scratch/performance/frame-locals-retirement-r4-proposed-20261008-candidates/tests/cpp/frame_locals_retirement_cases.h",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-checkpoint-20261008/candidates/tests/cpp/frame_locals_retirement_cases.h",
+      "sha256": "1449d30c46298ed0d63d555ca5c5b826f39ec02586a9cbba11800c762e946eda",
+      "bytes": 7969,
+      "kind": "reviewed_candidate"
+    },
+    {
+      "source": "scratch/performance/frame-locals-retirement-r4-proposed-20261008-candidates/tests/cpp/interpreter_tests.cpp",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-checkpoint-20261008/candidates/tests/cpp/interpreter_tests.cpp",
+      "sha256": "4d5a708a1bdfadb9744d8252d50002b46237c1592866b23ab0aaf9cb1c68b5b7",
+      "bytes": 29986,
+      "kind": "reviewed_candidate"
+    },
+    {
+      "source": "doc/performance/data/frame-locals-retirement-r4-focused-20261008-retained1.stderr.log",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-focused-20261008-retained1.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "raw_stream"
+    },
+    {
+      "source": "build-repro/controls/frame-locals-retirement-r4-validated-checkpoint-20261008/preserved-release-provenance.json",
+      "destination": "doc/performance/data/frame-locals-retirement-r4-checkpoint-20261008/validated-control-manifest.json",
+      "sha256": "b4d5f491b74b1021c18523e61ef6ce70d8002f51a7b1660644d31306f9259c77",
+      "bytes": 53169,
+      "kind": "hash_only_validated_control"
+    }
+  ],
+  "plan_publication_destination": "doc/performance/data/frame-locals-retirement-r4-checkpoint-20261008/publication-manifest.json",
+  "doc_only_nul_path": "scratch/performance/frame-locals-retirement-r4-publication-proposed-20261008-paths.nul",
+  "doc_only_nul_sha256": "80e6adf6bcf898e01363e4fe286a25e9457062c86c9af13ed38232a6c7f51481",
+  "guards": {
+    "registered_source": {
+      "path": "doc/performance/data/frame-locals-retirement-r4-registered-source-20261008.json",
+      "sha256": "e696ed5b31449e7ed29c173df79de3b55292597418231f417af887574c60e4c8"
+    },
+    "full_validation": {
+      "path": "doc/performance/data/frame-locals-retirement-r4-full-validation-20261008.json",
+      "sha256": "b28809dcfc420906e3c3f656fdd9584140d0a80d778673a43342799ea64e75ec"
+    },
+    "focused": {
+      "path": "doc/performance/data/frame-locals-retirement-r4-focused-20261008.json",
+      "sha256": "e193773b550ec36a0c07aad862d363f4af5467f0d1b05d55af916d945d706a26"
+    },
+    "build": {
+      "path": "doc/performance/data/frame-locals-retirement-r4-build-terminal-20261008.json",
+      "sha256": "df8ba2f7b324b6b29173e7622f47fbaa6a8c9ea86560e24db2557b1e8c93ae0a"
+    },
+    "validated_manifest": {
+      "path": "build-repro/controls/frame-locals-retirement-r4-validated-checkpoint-20261008/preserved-release-provenance.json",
+      "sha256": "b4d5f491b74b1021c18523e61ef6ce70d8002f51a7b1660644d31306f9259c77"
+    }
+  },
+  "historical_references": [
+    {
+      "path": "doc/performance/data/pyperformance-cpython3147-live-eval-full-fast-20261007.json",
+      "sha256": "ac474df5576ac85f6f5350363affecc439d4f658b4dfa3dbe291b46964276eb0",
+      "preserved_without_recopy": true
+    },
+    {
+      "path": "doc/performance/data/pyperformance-cpython3147-live-eval-full-fast-20261007-provenance.json",
+      "sha256": "3d6c8cb2c72c786583c382b835e8e411f56ca285963bc2835f757a13f399f85c",
+      "preserved_without_recopy": true
+    },
+    {
+      "path": "doc/performance/data/sorted-exact-int-s8-full-validation-20261008.json",
+      "sha256": "d4b028b1255f23b11e664bd9e6778b808a7d160d3628e17f39710faa1900d022",
+      "preserved_without_recopy": true
+    },
+    {
+      "path": "doc/performance/data/sorted-exact-int-s8-registered-source-20261008.json",
+      "sha256": "f20c304e32b0874c929d22dc72018cbd6d5fd9d124844c1d66d8edcc6a231556",
+      "preserved_without_recopy": true
+    },
+    {
+      "path": "doc/performance/data/callee-module-owner-r10-withdrawn-unmeasured-duplicate-restored-s8-20261008.json",
+      "sha256": "876cac9e56405c9566aa29a7419d4a6acf2cc9ab6f83f6d3190ea6a4d38f25eb",
+      "preserved_without_recopy": true
+    }
+  ],
+  "result_scope": "Return/unwind materialized locals alias update, extra-key preservation, deleted names, deferred old-owner release outside registry mutex; not complete CPFrameLocalsProxy, no new full97 or paired R4/S8 gain.",
+  "validation": {
+    "focused": 10,
+    "core": 398,
+    "compat_sections": 11,
+    "expected_failures": 3,
+    "ctest": 9,
+    "sqlite_api": 2,
+    "gate_cases": 11,
+    "gate_repeats": 21,
+    "gate_warmup": 5,
+    "gate_threshold": 0.1,
+    "official_pickle_values": 20,
+    "official_protocol": 5
+  },
+  "official_comparison": {
+    "saved_cp_mean_seconds": 0.00025749786718506587,
+    "fresh_x_mean_seconds": 0.005460743000294315,
+    "fresh_x_sample_sd_seconds": 0.00011781626857313782,
+    "cp_over_x_speed": 0.0471543647,
+    "x_over_cp_time": 21.20694,
+    "unpaired": true,
+    "pyperf_stability_warning_retained": true,
+    "no_cp_win": true
+  },
+  "attributes_guidance": "Root stages only needed HEAD-plus-owned text/binary-preservation patterns; never stage the dirty working .gitattributes wholesale. This plan/copy script never writes .gitattributes.",
+  "created_utc": "2026-10-08T23:25:39.9412937Z"
+}

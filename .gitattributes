@@ -673,3 +673,9 @@
 /doc/performance/data/dict-numeric-isolated-cpython3147-s8-reference-20261008* -text
 /doc/performance/data/dict-numeric-isolation-inspection-20261008/** -text
 /doc/performance/data/dict-numeric-isolation-publication-20261008.json -text
+
+/doc/performance/data/frame-locals-retirement* -text
+/doc/performance/data/frame-locals-retirement-r4-checkpoint-20261008/** -text
+/doc/performance/data/frame-locals-retained* -text
+/doc/performance/frame-locals-retirement-checkpoint-20261008.md text eol=lf
+/doc/performance/frame-locals-retirement-checkpoint-20261008.svg text eol=lf

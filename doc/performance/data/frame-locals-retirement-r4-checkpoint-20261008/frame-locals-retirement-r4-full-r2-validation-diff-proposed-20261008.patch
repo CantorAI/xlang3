@@ -1,0 +1,436 @@
+diff --git a/scratch/performance/validate-sorted-exact-int-s8-full-20261008.py b/scratch/performance/validate-frame-locals-retirement-r4-full-r2-proposed-20261008.py
+index 6161dc54..dffce016 100644
+--- a/scratch/performance/validate-sorted-exact-int-s8-full-20261008.py
++++ b/scratch/performance/validate-frame-locals-retirement-r4-full-r2-proposed-20261008.py
+@@ -1,10 +1,10 @@
+-"""Fresh S8 primitive sorted/R7 module binding checkpoint validation and original pure-Python pickle benchmark.
++"""Fresh frame-locals retirement full correctness, fixed gate and original pure-Python pickle.
+ 
+-Use exact CPython 3.14.7 with --source-inventory FINAL_APPLIED_SOURCE.json.
+-Accepts source_sha256 {path: sha} or files {path: {working_sha256: sha}}.
+-Require the exact current fourteen-phase proof and an original-body diagnostic
+-with parity and stable hashes, plus a separately qualifying predeclared sorting-paired proof. All full correctness/gate/pickle checks are fresh; C5 is historical provenance only.
+-No full97, build or CP reference recapture is launched.
++Root-only exact CPython3.14.7 controller. Require caller-pinned current111 source,
++fresh ten-phase focused proof and the actual successful build command/raw log.
++The passed current focused proof is prerequisite only; all cross-suite phases
++are fresh. Historical S8 is reference/preservation evidence only. No old S8
++correctness phase is reused, and no build or CP reference recapture is launched.
+ """
+ import argparse
+ from datetime import datetime, timezone
+@@ -31,24 +31,43 @@ CP_PROVENANCE = CP_FULL.with_name(CP_FULL.stem + '-provenance.json')
+ HOOK = ROOT / 'benchmarks/diagnostics/pyperf_compat/sitecustomize.py'
+ CASES = {'pickle_pure_python': 'bm_pickle'}
+ OFFICIAL_SUBTESTS = {'pickle_pure_python': ('pickle_pure_python',)}
+-BODY_CHILD = ROOT / 'scratch/performance/pickle-original-pure-python-diagnostic-proposed-20261008.py'
+-BODY_CHILD_SHA = '5295c899d95d023ca2fb3b511e9bf78b58cb49e4a256770c65adf0d614b14109'
+-C5_PARENT = DATA / 'ordinary-canonical-slot-constructor-c5-gate-idle-resume-20261008.json'
+-C5_PARENT_SHA = 'a3be06b1ef97560253e7f4f0d7740440786f82ca08e0a56b564bfe2bfd3f96ed'
+-C5_INVENTORY_SHA = '69aaf03539202bbc7fced4dfe46df5f3a801a6d40b8e0360a68245de6ce71937'
+-C5_BODY = DATA / 'pickle-original-pure-c5-body-20261008.json'
+-C5_BODY_SHA = '2d6a79f263d3e20f86f494bc13dfef795e395fba0b81773a2bc238472d811665'
+-C5_SAMPLE = DATA / 'pickle-original-pure-c5-native-sampling-20261008.json'
+-C5_SAMPLE_SHA = 'e5919bc0ec2840d3300888f1fb54dd10ac66cb96a66734d47a05322d26f5a0a7'
+-C5_CONTROL = ROOT / 'build-repro/controls/class-constructor-c5-before-snapshot-r6-20261008'
+-C5_CONTROL_MANIFEST_SHA = '85910ee375f16c677153fc128fb17303868a849c124f5909d5ee03eeed764bdc'
++PARENT_CONTROLLER = ROOT / 'scratch/performance/validate-sorted-exact-int-s8-full-20261008.py'
++PARENT_CONTROLLER_SHA = '997d0e694f5c04aa2459bfbaca36065054c53d1661f810e37c5f7dd7b50813f3'
++S8_VALIDATION = DATA / 'sorted-exact-int-s8-full-validation-20261008.json'
++S8_VALIDATION_SHA = 'd4b028b1255f23b11e664bd9e6778b808a7d160d3628e17f39710faa1900d022'
++APPLICATION = DATA / 'frame-locals-retirement-s8-application-20261008-applied-source.json'
++APPLICATION_SHA = 'dc563e2b363dc3992a2c8b323e0f59e953749a715bb4ec97264ef1fa846ab153'
++PROOF = ROOT / 'scratch/performance/frame-locals-retirement-r4-proposed-20261008-provenance.json'
++PROOF_SHA = '24b1c58347f3bea0c4bc40d5e450efb04c8ff614f4c0b482cc12511380cf8e76'
++PRESERVED = ROOT / 'build-repro/controls/frame-locals-retirement-s8-application-20261008'
++PRESERVED_SHA = '29841491e3a6e934db9ef19dfdd01ef3ef71ab14e2cc3333b80213d793ab9e26'
++BUILD_TERMINAL = DATA / 'frame-locals-retirement-r4-build-terminal-20261008.json'
++BUILD_TERMINAL_SHA = 'df8ba2f7b324b6b29173e7622f47fbaa6a8c9ea86560e24db2557b1e8c93ae0a'
++FRAME_REFERENCES = (
++    ('runtime-frame-context-cpython3147-s8-correctness-r2-20261008.json',
++     '159f7294d3ff4e1395722145e3bc8ef72a6ed47834989798cd588af0b5af7d41', 1),
++    ('frame-locals-retained-cpython3147-s8-reference-20261008.json',
++     '71a0288e97ffb357de8e447a7a9fca38450fb173201b708988d74341d7150751', 2))
++FRAME_FIXTURES = (
++    ('framecontext4', 'scratch/performance/runtime-frame-context-coalesced-fixture-proposed-20261008.py',
++     'scratch/performance/runtime-frame-context-coalesced-expected-proposed-20261008.out',
++     'fd942dfb3981c01b6464f623ebb1b37640772c532b18ad7381abebf2d9e5ffc7',
++     '97d5a6c2764deb48e4f217f09d148f13b4f8332d88b6f930f14ba12ede9e065d'),
++    ('retained1', 'scratch/performance/frame-locals-retained-mapping-fixture-proposed-20261008.py',
++     'scratch/performance/frame-locals-retained-mapping-expected-proposed-20261008.out',
++     '9cf97667d8ef24562c857f651bfd8d5489281e6fd3887f888995a63f256839df',
++     '3498e5609c21461d63e16be4273c358cac309f47c59918e0632b95c2c7914150'),
++    ('extra1', 'scratch/performance/frame-locals-retained-extra-fixture-proposed-20261008.py',
++     'scratch/performance/frame-locals-retained-extra-expected-proposed-20261008.out',
++     'ec47ae1e050c1c367125466834185d5cd9edb0b002ad9b03bac1213ae7686a88',
++     'bcc83f86c18cc6060a085ea6736038efcb31a42bf2830f71fdb4f64e6eec3e71'))
+ THREAD_SOURCE = ROOT / 'tests/fixtures/core/threading_runtime_edges.py'
+ THREAD_SOURCE_SHA = '56016bd84f76782ce736058670c50035c8a1600ac67fca201ef1a304e6875c39'
+ THREAD_EXPECTED = ROOT / 'tests/fixtures/expected/threading_runtime_edges.out'
+ THREAD_EXPECTED_SHA = '7ac4a64a76bc6207024ea9c001dcfcf336e991effe39b9c08602ceb7c332ba22'
+ S8_CASES = ('call_module_global_binding', 'sorted_exact_integer_keys')
+ PURE_DEFINITION_SHA = '846f31a4f830d4b2ab044917d3b3e6b036ace3647445d770c8980f1f5b158c21'
+-FOCUSED_PHASES = ['sorted7', 'iteration4', 'nested1', 'canonical10', 'fallback3', 'ownership2', 'owner2', 'namespace4', 'profile3', 'annotation2', 'threading', 'module_binding6', 'integer_sort7', 'cpp']
++FOCUSED_PHASES = ['cpp', 'framecontext4', 'retained1', 'extra1', 'debug_frames', 'profile3', 'threading', 'monitoring', 'sorted7', 'nested1']
+ C5_CASES = ['ordinary_canonical_slot_constructor', 'explicit_slot_descriptor_fallback',
+             'synchronous_class_argument_lifetime', 'slot_descriptor_owner', 'class_namespace_lifetime', 'nested_profile_setting', 'class_method_annotation_capture']
+ REFERENCE = DATA / 'heapq-cold-metadata-outline-full-resume-r3-20261008-inherited-full.json'
+@@ -86,15 +105,11 @@ def main():
+     parser.add_argument('--source-inventory-sha256', required=True)
+     parser.add_argument('--focused-receipt', required=True, type=Path)
+     parser.add_argument('--focused-receipt-sha256', required=True)
+-    parser.add_argument('--body-receipt', required=True, type=Path)
+-    parser.add_argument('--body-receipt-sha256', required=True)
+-    parser.add_argument('--body-controller', type=Path, required=True)
+-    parser.add_argument('--body-controller-sha256', required=True)
+-    parser.add_argument('--sorting-paired-receipt', type=Path, required=True)
+-    parser.add_argument('--sorting-paired-receipt-sha256', required=True)
+-    parser.add_argument('--build-log', type=Path)
+-    parser.add_argument('--build-log-sha256')
+-    parser.add_argument('--prefix', default='sorted-exact-int-s8-full-validation-20261008')
++    parser.add_argument('--focused-controller', required=True, type=Path)
++    parser.add_argument('--focused-controller-sha256', required=True)
++    parser.add_argument('--build-log', type=Path, required=True)
++    parser.add_argument('--build-log-sha256', required=True)
++    parser.add_argument('--prefix', required=True)
+     parser.add_argument('--identity-reference', type=Path,
+         default=DATA / 'identity-last-use-r2-cpython3147-reference-20261008.json')
+     reference = json.loads(REFERENCE.read_text(encoding='utf-8'))
+@@ -107,8 +122,8 @@ def main():
+     parser.add_argument('--cross-activation-reference', type=Path, default=DATA / reference['required_cross_activation_reference']['record'],
+         help='Successful exact CPython 3.14.7 receipt for the seven-group cross-activation fixture')
+     args = parser.parse_args()
+-    assert sys.version_info[:3] == (3, 14, 7) and Path(sys.executable).resolve() == CPYTHON.resolve()
+-    assert sys.flags.optimize == 0 and bool(args.build_log) == bool(args.build_log_sha256)
++    assert sys.implementation.name == "cpython" and sys.version_info[:3] == (3, 14, 7) and Path(sys.executable).resolve() == CPYTHON.resolve()
++    assert sys.flags.optimize == 0 and ROOT == Path("D:/CantorAI/xlang3").resolve() and Path.cwd().resolve() == ROOT
+     assert re.fullmatch(r'[a-z0-9-]+', args.prefix), 'Use a fresh simple output prefix'
+     output = DATA / (args.prefix + '.json')
+     assert not any(DATA.glob(args.prefix + '*')), 'Existing evidence must never be overwritten'
+@@ -119,7 +134,7 @@ def main():
+     else:
+         sources = {name: row['working_sha256'] for name, row in inventory['files'].items()}
+     assert sources and all(re.fullmatch(r'[0-9a-f]{64}', sha) for sha in sources.values())
+-    assert digest(inventory_path) == args.source_inventory_sha256
++    assert digest(inventory_path) == args.source_inventory_sha256 == APPLICATION_SHA and len(sources) == 111
+     required_sources = {'modules/sqlite/sqlite_package.cpp', 'modules/sqlite/sqlite_values.cpp',
+         'modules/sqlite/sqlite_handles.h', 'sdk/xlang3/abi/xmodule.h',
+         'src/import/native_package_loader.cpp', 'src/builtins/functional_builtins.cpp',
+@@ -155,9 +170,10 @@ def main():
+         'tests/cpp/class_method_annotation_capture_cases.h'})
+     for name in C5_CASES:
+         required_sources.update({'tests/fixtures/core/' + name + '.py', 'tests/fixtures/expected/' + name + '.out'})
++    required_sources.add('tests/cpp/frame_locals_retirement_cases.h')
+     assert required_sources <= sources.keys(), 'Supply the complete FINAL compiled source inventory, including both generic repairs and unchanged CPP counter dependency'
+     record = {'status': 'running', 'terminal': False, 'started_utc': datetime.now(timezone.utc).isoformat(),
+-        'scope': 'Fresh S8/R7 full correctness/default gate and original pure-Python pickle attempt; exact current fourteen-phase proof and body parity retained, all full phases fresh; sorting gain has its own predeclared paired prerequisite',
++        'scope': 'Fresh frame-retirement full correctness/default fixed11 gate/original pure-Python pickle20; exact same-candidate targeted proof is prerequisite only, every full phase fresh; no old correctness reuse or speedup prerequisite',
+         'full_validated': False,
+         'source_inventory': str(inventory_path), 'source_inventory_sha256': digest(inventory_path),
+         'source_sha256': sources, 'source_count': len(sources), 'phases': [], 'idle_guards': [],
+@@ -263,98 +279,56 @@ def main():
+         return {'record': path.name, 'sha256': digest(path), 'source_sha256': reference['source_sha256'],
+                 'stdout_log': stdout_path.name, 'stderr_log': stderr_path.name, 'reused_without_execution': True}
+ 
+-    def verify_sorting_paired_receipt():
+-        import random
+-        import statistics
+-        path = args.sorting_paired_receipt.resolve(strict=True)
+-        track(path, args.sorting_paired_receipt_sha256)
+-        paired = json.loads(path.read_text(encoding='utf-8'))
+-        producer = ROOT / 'scratch/performance/measure-sorted-exact-int-s8-paired-20261008.py'
+-        producer_sha = '5fc9504823e58d81555d39869b75bdb5c8a9a8ec6ad94df00bb7e23e433867c2'
+-        child = ROOT / 'benchmarks/diagnostics/python_callback_boundary.py'
+-        child_sha = 'f76136594ac8e64e5fb0d71a47eff3af286d5e12178a8acbaa7fe4c43a6ef84a'
+-        track(producer, producer_sha); track(child, child_sha)
+-        assert paired['terminal'] and paired['status'] == 'terminal_unscored_paired_callback_boundary'
+-        assert paired['hashes_unchanged'] and paired['hashes_before'] == paired['hashes_after']
+-        assert not paired['scored'] and not paired['full_validated']
+-        assert paired['controller_sha256'] == producer_sha and paired['child_sha256'] == child_sha
+-        assert paired['source_inventory_sha256'] == digest(inventory_path) and paired['source_sha256'] == sources
+-        assert paired['focused_receipt_sha256'] == digest(focused_path)
+-        assert paired['binaries_sha256'] == record['binaries_sha256']
+-        assert (paired['pair_count'], paired['total_child_invocations'], paired['total_timed_case_invocations']) == (7, 14, 210)
+-        assert (paired['warmup_case_invocations_per_child'], paired['timed_samples_per_case_per_child']) == (5, 3)
+-        assert paired['values_trimmed'] == paired['outliers_removed'] == 0
+-        assert paired['decision_rule'] == dict(selected_case='sort_plain', minimum_median_ratio=1.10,
+-            minimum_lower_ci=1.0, bootstrap_resamples=50000, bootstrap_seed=20261008, strict_greater_than=True)
+-        assert paired['hashes_before'][str(producer)] == producer_sha
+-        assert paired['hashes_before'][str(child)] == child_sha
+-        manifest = C5_CONTROL / 'preserved-release-provenance.json'
+-        assert paired['hashes_before'][str(manifest)] == C5_CONTROL_MANIFEST_SHA
+-        for pinned_path, sha in paired['hashes_before'].items(): track(Path(pinned_path), sha)
+-        cases = ('loop', 'small_calls', 'branch_calls', 'sort_plain', 'sort_callback')
+-        assert len(paired['pair_results']) == 7 and len(paired['raw']) == 14
+-        ratios, all_rows = [], []
+-        for index, pair in enumerate(paired['pair_results']):
+-            order = ['control', 'candidate'] if index % 2 == 0 else ['candidate', 'control']
+-            assert pair['pair_index'] == index and pair['order'] == order
+-            assert set(pair['runs']) == {'control', 'candidate'}
+-            for role in order:
+-                row = pair['runs'][role]; all_rows.append(row)
+-                assert row['pair_index'] == index and row['runtime'] == role
+-                assert row['passed'] and row['exit_code'] == 0 and not row['timeout'] and row['measurement_valid']
+-                executable = (C5_CONTROL / 'xlang3.exe') if role == 'control' else CANDIDATE
+-                assert [Path(value).resolve() for value in row['command']] == [executable.resolve(), child.resolve()]
+-                for stream in ('stdout', 'stderr'): track(DATA / row[stream + '_log'], row[stream + '_sha256'])
+-                assert (DATA / row['stderr_log']).read_bytes() == b''
+-                parsed, indices = {case: [] for case in cases}, {case: [] for case in cases}
+-                lines = (DATA / row['stdout_log']).read_text(encoding='utf-8-sig').splitlines()
+-                assert len(lines) == 15
+-                for line in lines:
+-                    marker, case, sample, count, value = line.split()
+-                    assert marker == 'callback_boundary' and case in parsed and int(count) == 50000
+-                    elapsed = float(value)
+-                    assert math.isfinite(elapsed) and elapsed > 0
+-                    parsed[case].append(elapsed); indices[case].append(int(sample))
+-                assert all(values == [0, 1, 2] for values in indices.values()) and row['times'] == parsed
+-                watch = row['external_process_watch']
+-                assert watch['measurement_valid']
+-                track(DATA / watch['log'], watch['sha256'])
+-            ratio = statistics.median(pair['runs']['control']['times']['sort_plain']) / statistics.median(pair['runs']['candidate']['times']['sort_plain'])
+-            assert math.isfinite(ratio) and ratio > 0 and pair['ratios']['sort_plain'] == ratio
+-            ratios.append(ratio)
+-        assert all_rows == paired['raw'], 'Retain every original child row in predeclared order'
+-        rng = random.Random(20261008)
+-        draws = sorted(statistics.median([ratios[rng.randrange(7)] for _ in range(7)]) for _ in range(50000))
+-        def percentile(q):
+-            position = q * (len(draws) - 1); lower = math.floor(position); upper = math.ceil(position)
+-            return draws[lower] + (draws[upper] - draws[lower]) * (position - lower)
+-        median = statistics.median(ratios); interval = [percentile(.025), percentile(.975)]
+-        summary = paired['summary']
+-        assert summary['pair_ratios'] == ratios and summary['median_pair_ratio'] == median
+-        assert summary['bootstrap95_ci'] == interval
+-        assert summary['all_cases']['sort_plain'] == dict(pair_ratios=ratios, median_pair_ratio=median, bootstrap95_ci=interval)
+-        assert median > 1.10 and interval[0] > 1.0 and summary['useful_signal']
+-        assert summary['decision'] == 'signal_for_full_checkpoint_validation'
+-        record['required_sorting_paired_diagnostic'] = dict(record=path.name, sha256=digest(path),
+-            controller_sha256=producer_sha, child_sha256=child_sha, pair_count=7, total_children=14,
+-            selected_case='sort_plain', pair_ratios=ratios, median_pair_ratio=median, bootstrap95_ci=interval,
+-            minimum_median_ratio=1.10, minimum_lower_ci=1.0, values_trimmed=0, outliers_removed=0,
+-            scope='Predeclared seven-pair unchanged diagnostic C5/S8 sorting signal only; no official score, isolated sorting-vs-module causality or CPython win claim')
+-        save()
+-
+     try:
+         save()
+         track(inventory_path, record['source_inventory_sha256'])
+         track(Path(__file__))
+         track(REFERENCE, REFERENCE_SHA)
+         track(WATCH, WATCH_SHA)
+-        watcher_spec = importlib.util.spec_from_file_location('sorted_s8_full_timing_watch', WATCH)
++        watcher_spec = importlib.util.spec_from_file_location('frame_retirement_full_timing_watch', WATCH)
+         watcher = importlib.util.module_from_spec(watcher_spec)
+         watcher_spec.loader.exec_module(watcher)
+-        if args.build_log:
+-            build_path = args.build_log.resolve(strict=True)
+-            record['preserved_build_log'] = {'path': str(build_path), 'sha256': track(build_path, args.build_log_sha256),
+-                'scope': 'Raw actual build output provided by root; no build launched by this controller'}
++        track(PARENT_CONTROLLER, PARENT_CONTROLLER_SHA)
++        track(S8_VALIDATION, S8_VALIDATION_SHA)
++        parent_validation = json.loads(S8_VALIDATION.read_bytes())
++        assert parent_validation['terminal'] and parent_validation['status'] == 'validated'
++        assert parent_validation['full_validated'] and parent_validation['hashes_unchanged'] and parent_validation['release_tree_unchanged']
++        assert parent_validation['terminal_record']['controller_sha256'] == PARENT_CONTROLLER_SHA
++        assert parent_validation['fixture_counts'] == dict(core=398, compatibility_sections=11, expected_failures=3)
++        track(PROOF, PROOF_SHA); proof = json.loads(PROOF.read_bytes())
++        track(BUILD_TERMINAL, BUILD_TERMINAL_SHA); build = json.loads(BUILD_TERMINAL.read_bytes())
++        assert build['terminal'] and build['status'] == 'build_completed' and build['exit_code'] == 0
++        assert build['application_receipt_sha256'] == APPLICATION_SHA and (ROOT / build['application_receipt']).resolve() == inventory_path
++        build_path = args.build_log.resolve(strict=True)
++        assert build_path == (ROOT / build['build_log']).resolve()
++        assert args.build_log_sha256 == build['build_log_sha256']
++        track(build_path, args.build_log_sha256); track(ROOT / build['wrapper'], build['wrapper_sha256'])
++        assert build['command'] == ['cmd.exe', '/d', '/c', 'scratch\\performance\\build-frame-locals-retirement-r4-20261008.cmd']
++        assert inventory['terminal'] and inventory['status'] == 'applied_unbuilt_unvalidated_frame_locals_retirement_correctness'
++        assert inventory['proposal_sha256'] == PROOF_SHA and inventory['source_count'] == 111
++        assert not inventory['accepted_gate_baseline_changed'] and inventory['baseline_before'] == inventory['baseline_after']
++        assert sources == dict(parent_validation['source_sha256'], **proof['candidate_source_sha256'])
++        assert inventory['owned_targets'] == proof['candidate_file_list'] and len(proof['candidate_source_sha256']) == 3
++        for path, sha in proof['candidate_source_sha256'].items(): track(ROOT / proof['candidate_root'] / path, sha)
++        for path, sha in parent_validation['source_sha256'].items(): track(ROOT / proof['raw_input_root'] / path, sha)
++        manifest_path = PRESERVED / 'preserved-release-provenance.json'
++        track(manifest_path, PRESERVED_SHA); preserved = json.loads(manifest_path.read_bytes())
++        assert inventory['preserved_manifest_sha256'] == PRESERVED_SHA and Path(inventory['preserved_parent']).resolve() == PRESERVED.resolve()
++        assert preserved['source_snapshot_sha256'] == parent_validation['source_sha256'] and preserved['source_count'] == 110
++        assert preserved['file_count'] == len(preserved['files_sha256']) == 178
++        assert preserved['files_sha256'] == {Path(path).relative_to(CANDIDATE.parent.relative_to(ROOT)).as_posix(): sha for path, sha in parent_validation['binaries_sha256'].items()}
++        assert preserved['baseline_sha256'] == inventory['baseline_after'] and len(preserved['baseline_sha256']) == 177
++        baseline = {path.relative_to(BASELINE.parent).as_posix(): digest(path) for path in BASELINE.parent.rglob('*') if path.is_file()}
++        assert baseline == preserved['baseline_sha256']
++        record['baseline_sha256'] = baseline
++        for path, sha in baseline.items(): track(BASELINE.parent / path, sha)
++        for directory, values in ((PRESERVED, preserved['files_sha256']), (PRESERVED / 'source-snapshot', preserved['source_snapshot_sha256']),
++            (PRESERVED / 'unrelated-dirty-snapshot', preserved['unrelated_dirty_snapshot_sha256'])):
++            for path, sha in values.items(): track(directory / path, sha)
++        preserved_tree_before = {path.relative_to(PRESERVED).as_posix(): digest(path) for path in PRESERVED.rglob('*') if path.is_file()}
++        record['preserved_build_log'] = dict(path=str(build_path), sha256=args.build_log_sha256, exit_code=0,
++            terminal_record=BUILD_TERMINAL.name, terminal_record_sha256=BUILD_TERMINAL_SHA, actual_command=build['command'], build_launched=False)
++        record['historical_s8_reference'] = dict(record=S8_VALIDATION.name, sha256=S8_VALIDATION_SHA, correctness_reused=False)
+         for name, sha in sources.items(): track(ROOT / name, sha)
+         # Pin binaries freshly after the parent's build, including all own native modules.
+         binary_paths = sorted(path for path in CANDIDATE.parent.rglob('*') if path.is_file())
+@@ -362,11 +336,21 @@ def main():
+         assert CANDIDATE in binary_paths and CANDIDATE.with_name('xlang3_runtime.dll') in binary_paths
+         record['binaries_sha256'] = {path.relative_to(ROOT).as_posix(): track(path) for path in binary_paths}
+         record['candidate_binary_sha256'] = {'exe': digest(CANDIDATE), 'dll': digest(CANDIDATE.with_name('xlang3_runtime.dll'))}
++        focused_controller = args.focused_controller.resolve(strict=True)
++        assert focused_controller == (ROOT / 'scratch/performance/check-frame-locals-retirement-r4-focused-proposed-20261008.py').resolve()
++        assert args.focused_controller_sha256 == 'f6c352a403312cd97b9370e04390394ae9745df17b36f078fd169d7e961abc42'
++        track(focused_controller, args.focused_controller_sha256)
+         focused_path = args.focused_receipt.resolve(strict=True)
+         track(focused_path, args.focused_receipt_sha256)
+         focused = json.loads(focused_path.read_text(encoding='utf-8'))
+         assert focused['terminal'] and focused['status'] == 'targeted_correctness_passed' and focused['hashes_unchanged']
++        assert focused['controller_sha256'] == args.focused_controller_sha256 and focused['application_receipt_sha256'] == APPLICATION_SHA
+         assert focused['source_sha256'] == sources and focused['source_inventory_sha256'] == digest(inventory_path)
++        assert focused['baseline_sha256'] == baseline and focused['root_recorded_build_exit_code'] == 0
++        assert focused['build_receipt_sha256'] == BUILD_TERMINAL_SHA and focused['build_wrapper_sha256'] == build['wrapper_sha256']
++        assert focused['build_log_sha256'] == args.build_log_sha256 and Path(focused['build_log']).resolve() == build_path
++        assert focused['build_argv'] == build['command']
++        assert focused['build_argv_sha256'] == hashlib.sha256(json.dumps(build['command'], separators=(',', ':')).encode('utf-8')).hexdigest()
+         assert focused['candidate_binary_sha256'] == record['candidate_binary_sha256']
+         assert focused['binaries_sha256'] == record['binaries_sha256']
+         assert len(focused['phases']) == len(FOCUSED_PHASES) and {row['name'] for row in focused['phases']} == set(FOCUSED_PHASES)
+@@ -378,54 +362,23 @@ def main():
+         record['retained_current_targeted_proof'] = {'path': str(focused_path), 'sha256': digest(focused_path),
+             'phases': [dict(row, execution='retained_historical_same_candidate') for row in focused['phases']],
+             'scope': 'Only exact current-final-source/binary/output proof retained; every full phase below is fresh, no F/G/R5 correctness reuse'}
+-        body_path = args.body_receipt.resolve(strict=True)
+-        track(body_path, args.body_receipt_sha256)
+-        assert args.body_controller.resolve(strict=True).is_relative_to(ROOT / 'scratch/performance')
+-        track(args.body_controller, args.body_controller_sha256)
+-        track(BODY_CHILD, BODY_CHILD_SHA)
+-        track(THREAD_SOURCE,THREAD_SOURCE_SHA); track(THREAD_EXPECTED,THREAD_EXPECTED_SHA)
+-        track(C5_BODY,C5_BODY_SHA); track(C5_PARENT,C5_PARENT_SHA); track(C5_SAMPLE,C5_SAMPLE_SHA)
+-        body, c5_body, parent = (json.loads(path.read_text(encoding='utf-8')) for path in (body_path,C5_BODY,C5_PARENT))
+-        assert parent['terminal'] and parent['hashes_unchanged'] and parent['correctness_passed'] and parent['release_tree_unchanged']
+-        assert parent['status']=='correctness_and_gate_passed_official_failed' and not parent['full_validated']
+-        assert parent['fixed_gate']['exit_code']==0 and parent['source_inventory_sha256']==C5_INVENTORY_SHA
+-        assert body['terminal'] and body['status']=='terminal_unscored_original_body_match' and body['hashes_unchanged']
+-        assert body['mode']=='body' and body['controller_sha256']==args.body_controller_sha256
+-        assert body['diagnostic_only'] and not body['full_validated'] and not body['profile_enabled'] and body['fixed_gate'] is None
+-        assert body['child_sha256']==BODY_CHILD_SHA and body['timeout_seconds']==300
+-        assert (body['outer_loops'],body['protocol'],body['original_dump_operations'])==(41,5,2460)
+-        assert body['source_inventory_sha256']==digest(inventory_path) and body['source_sha256']==sources
+-        assert body['focused_receipt_sha256']==digest(focused_path) and len(body['focused_phases'])==len(FOCUSED_PHASES) and set(body['focused_phases'])==set(FOCUSED_PHASES)
+-        assert body['release_count']==178 and body['binaries_sha256']==record['binaries_sha256']
+-        assert body['candidate_binary_sha256']==record['candidate_binary_sha256'] and body['hashes_before']==body['hashes_after']
+-        for path, sha in body['hashes_before'].items(): track(Path(path),sha)
+-        history=body['c5_parent_reference']
+-        assert history['sha256']==C5_PARENT_SHA and history['original_body_sha256']==C5_BODY_SHA
+-        assert history['native_sample_sha256']==C5_SAMPLE_SHA and history['control_manifest_sha256']==C5_CONTROL_MANIFEST_SHA
+-        assert Path(history['receipt']).resolve()==C5_PARENT.resolve() and Path(history['control']).resolve()==C5_CONTROL.resolve()
+-        assert c5_body['terminal'] and c5_body['status']=='terminal_unscored_original_body_match' and c5_body['hashes_unchanged'] and c5_body['mode']=='body'
+-        assert body['result_signature']==c5_body['result_signature'] and c5_body['child_sha256']==BODY_CHILD_SHA
+-        def body_rows(receipt):
+-            assert len(receipt['raw'])==2 and all(row['passed'] and row['exit_code']==0 and not row['timeout'] for row in receipt['raw'])
+-            rows={row['runtime']:row for row in receipt['raw']}
+-            assert set(rows)=={'cpython3147','candidate-xlang3'}
+-            for row in rows.values():
+-                for stream in ('stdout','stderr'): track(DATA/row[stream+'_log'],row[stream+'_sha256'])
+-                assert (DATA/row['stderr_log']).read_bytes()==b''
+-                assert math.isfinite(row['elapsed_seconds_diagnostic_only']) and row['elapsed_seconds_diagnostic_only']>0
+-            return rows
+-        actual_body, original_body = body_rows(body), body_rows(c5_body)
+-        speedup=original_body['candidate-xlang3']['elapsed_seconds_diagnostic_only']/actual_body['candidate-xlang3']['elapsed_seconds_diagnostic_only']
+-        assert math.isfinite(speedup)
+-        record['required_original_body_diagnostic']={'record':body_path.name,'sha256':digest(body_path),
+-            'c5_reference':C5_BODY.name,'c5_reference_sha256':C5_BODY_SHA,
+-            'c5_x_seconds':original_body['candidate-xlang3']['elapsed_seconds_diagnostic_only'],
+-            's8_x_seconds':actual_body['candidate-xlang3']['elapsed_seconds_diagnostic_only'],
+-            'historical_unpaired_c5_over_s8':speedup,
+-            'scope':'Fresh original-body parity and hash-stable correctness prerequisite only; historical ratio is unpaired/unscored and is not a performance acceptance threshold or CP win claim'}
+-        record['historical_c5_parent']=dict(history,correctness_reused=False)
+-        save()
+-        verify_sorting_paired_receipt()
++        assert focused['hashes_before'] == focused['hashes_after']
++        for path, sha in focused['hashes_before'].items(): track(Path(path), sha)
++        track(THREAD_SOURCE, THREAD_SOURCE_SHA); track(THREAD_EXPECTED, THREAD_EXPECTED_SHA)
++        references = []
++        for filename, sha, cp_count in FRAME_REFERENCES:
++            path = DATA / filename; track(path, sha); reference = json.loads(path.read_bytes())
++            assert reference['terminal'] and reference['hashes_unchanged']
++            cp_rows = [row for row in reference['phases'] if row['runtime'] == 'cpython3147']
++            assert len(cp_rows) == cp_count and all(row['passed'] and row['exit_code'] == 0 and not row['timeout'] and row['output_matches_expected'] for row in cp_rows)
++            for row in reference['phases']:
++                for stream in ('stdout', 'stderr'): track(DATA / row[stream + '_log'], row[stream + '_sha256'])
++            references.append(reference)
++        assert references[0]['source_sha256'] == FRAME_FIXTURES[0][3] and references[0]['expected_sha256'] == FRAME_FIXTURES[0][4]
++        for row, fixture in zip(references[1]['fixtures'], FRAME_FIXTURES[1:]):
++            assert row['source_sha256'] == fixture[3] and row['expected_sha256'] == fixture[4]
++        for _, source, expected, source_sha, expected_sha in FRAME_FIXTURES:
++            track(ROOT / source, source_sha); track(ROOT / expected, expected_sha)
+         track(BASELINE, 'a5f5028c15e145edce645a5afc25c11fbce77f51e882312b1fbe06e63c72a4af')
+         track(BASELINE.with_name('xlang3_runtime.dll'), 'bc1b9c0a8086f7e6fb0c037516dc9c1eea20427fa887e3aa623714bc5ef5da8d')
+         cp_provenance = json.loads(CP_PROVENANCE.read_text(encoding='utf-8'))
+@@ -433,13 +386,16 @@ def main():
+         record['cpython3147_binary_sha256'] = track(CPYTHON, cp_provenance['sha256_start']['exe'])
+         record['cpython3147_dll_sha256'] = track(CPYTHON.with_name('python314.dll'), cp_provenance['sha256_start']['dll'])
+         record['compatibility_hook_sha256'] = track(HOOK, cp_provenance['compatibility_hook_sha256'])
+-        track(CP_PROVENANCE)
+-        track(CP_FULL)
++        track(CP_PROVENANCE, parent_validation['hashes_before'][str(CP_PROVENANCE.resolve())])
++        track(CP_FULL, parent_validation['hashes_before'][str(CP_FULL.resolve())])
+         cp_document = json.loads(CP_FULL.read_text(encoding='utf-8'))
+         benchmark_root = CPYTHON.parent / 'Lib/site-packages/pyperformance/data-files/benchmarks'
+         record['benchmark_source_sha256'] = {}
+         definition=benchmark_root/'bm_pickle/bm_pickle_pure_python.toml'
+         track(definition,PURE_DEFINITION_SHA)
++        original_benchmark = benchmark_root / 'bm_pickle/run_benchmark.py'
++        track(original_benchmark, '31c0e30be79514b45db0d4e858632eb429b0fea3edbac6463ad5f34d92f3cab8')
++        assert "sys.modules['_pickle'] = None" in original_benchmark.read_text(encoding='utf-8')
+         import tomllib
+         pure_config=tomllib.loads(definition.read_text(encoding='utf-8'))['tool']['pyperformance']
+         assert pure_config['name']=='pickle_pure_python' and pure_config['extra_opts']==['--pure-python','pickle']
+@@ -457,7 +413,7 @@ def main():
+             values_for(document,'pickle_pure_python')
+             return {key:metadata[key] for key in ('name','pickle_module','pickle_protocol','inner_loops')}
+         record['pure_python_pickle_definition']={'source':str(definition),'sha256':PURE_DEFINITION_SHA,'extra_opts':pure_config['extra_opts'],
+-            'preserved_cp_metadata':pure_metadata(cp_document),'scope':'Original pure-Python definition/protocol; saved CP Oct7 comparison is unpaired'}
++            'preserved_cp_metadata':pure_metadata(cp_document), 'blocked_pickle': 'Pinned original --pure-python branch sets sys.modules[_pickle]=None and rejects accelerated pickle', 'scope':'Original pure-Python definition/protocol; saved CP Oct7 comparison is unpaired'}
+         record['preserved_official_cpython3147'] = {'output': CP_FULL.name, 'sha256': digest(CP_FULL),
+             'provenance': CP_PROVENANCE.name, 'provenance_sha256': digest(CP_PROVENANCE), 'reused_without_execution': True}
+ 
+@@ -568,6 +524,8 @@ def main():
+         assert cpp_text.count('xlang3::test::check_scoped_sorted_key_cases(result);') == 1
+         assert cpp_text.count('#include "ordinary_canonical_slot_constructor_cases.h"') == 1
+         assert cpp_text.count('xlang3::test::check_ordinary_canonical_slot_constructor(result);') == 1
++        assert cpp_text.count('#include "frame_locals_retirement_cases.h"') == 1
++        assert cpp_text.count('xlang3::test::check_frame_locals_retirement(result);') == 1
+         assert cpp_text.count('#include "class_method_annotation_capture_cases.h"') == 1
+         assert cpp_text.count('xlang3::test::check_class_method_annotation_capture(result);') == 1
+         suite_text = (ROOT / 'tests/run_fixtures.py').read_text(encoding='utf-8')
+@@ -601,11 +559,8 @@ def main():
+         record['hashes_before'] = dict(tracked)
+         save()
+ 
+-        for name, (source, expected) in fixtures.items():
+-            phase('focused-' + name.replace('_', '-'), [CANDIDATE, source], expected=expected)
+-        phase('focused-exact-string-hash', [CANDIDATE, exact_source], expected=exact_expected)
+-        phase('focused-cursor-writer-guards', [CANDIDATE, guard_source], expected=guard_expected)
+-        phase('focused-threading-runtime-edges',[CANDIDATE,THREAD_SOURCE],expected=normalized(THREAD_EXPECTED.read_bytes()))
++        # The exact current ten-phase focused receipt already passed. Do not
++        # rerun it here; all cross-suite coverage below executes fresh.
+         regex = '^(' + '|'.join(sorted(CTEST_NAMES)) + ')$'
+         common_ctest = [CTEST, '--test-dir', ROOT / 'build-repro/main-verify-20261006', '-C', 'Release', '-R', regex]
+         _, discovery_log = phase('ctest-inventory', [*common_ctest, '--show-only=json-v1'])
+@@ -620,6 +575,9 @@ def main():
+                   expected=normalized((native / (name + '.out')).read_bytes()))
+         phase('full-fixtures-core-compat-expected', [CPYTHON, ROOT / 'tests/run_fixtures.py', CANDIDATE], timeout=600)
+         record['correctness_passed'] = True
++        assert all(Path(path).is_file() and digest(path) == sha for path, sha in tracked.items())
++        assert {path.relative_to(CANDIDATE.parent).as_posix(): digest(path) for path in CANDIDATE.parent.rglob('*') if path.is_file()} == {Path(path).relative_to(CANDIDATE.parent.relative_to(ROOT)).as_posix(): sha for path, sha in record['binaries_sha256'].items()}
++        assert {path.relative_to(BASELINE.parent).as_posix(): digest(path) for path in BASELINE.parent.rglob('*') if path.is_file()} == baseline
+         gate_path = DATA / (args.prefix + '-fixed-gate.json')
+         phase('fixed-gate', [CPYTHON, ROOT / 'benchmarks/check_regression.py', '--baseline', BASELINE,
+                             '--candidate', CANDIDATE, '--output', gate_path], timeout=900)
+@@ -667,6 +625,9 @@ def main():
+         current_release = {path.relative_to(ROOT).as_posix():digest(path) for path in CANDIDATE.parent.rglob('*') if path.is_file()}
+         record['release_tree_unchanged'] = current_release == record.get('binaries_sha256')
+         if not record['release_tree_unchanged']: record['status'] = 'failed_hash_integrity'
++        record['baseline_tree_unchanged'] = {path.relative_to(BASELINE.parent).as_posix(): digest(path) for path in BASELINE.parent.rglob('*') if path.is_file()} == record.get('baseline_sha256')
++        record['preserved_parent_tree_unchanged'] = {path.relative_to(PRESERVED).as_posix(): digest(path) for path in PRESERVED.rglob('*') if path.is_file()} == locals().get('preserved_tree_before')
++        if not record['baseline_tree_unchanged'] or not record['preserved_parent_tree_unchanged']: record['status'] = 'failed_hash_integrity'
+         if record['status'] != 'validated': record['full_validated'] = False
+         record.update(terminal=True, completed_utc=datetime.now(timezone.utc).isoformat())
+         record['terminal_record'] = {'status': record['status'], 'hashes_unchanged': record['hashes_unchanged'],

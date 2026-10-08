@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\scratch\performance\frame-locals-retained-mapping-fixture-proposed-20261008.py", line 19, in <module>
+    assert retained["value"] == 2 and retained["later"] == 42
+AssertionError
