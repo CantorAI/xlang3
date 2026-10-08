@@ -1,0 +1,118 @@
+{
+  "status": "scratch_only_readonly_git_lf_provenance",
+  "policy": "Exact compiled working bytes remain authoritative; separate CRLF-to-LF copies were verified against read-only Git clean-filter blob identity without staging or modifying sources",
+  "target_count": 11,
+  "paired_evidence_sha256": "b3bad5b00a8e143771193c41ef9787b0382d3a4fcc16d8517dfacd536c3d7ebf",
+  "targets": [
+    {
+      "path": "src/internal/xlang3/object_model.h",
+      "working_sha256": "7a7e767de9ac93bc83992cb2367cc0cf15353f8da54326e867297bbcef1eec03",
+      "working_bytes": 14971,
+      "git_lf_sha256": "e8642394a719f68c9666517c3a24d7487e30d088fa3ea4f9961d86bd36fd4023",
+      "git_lf_bytes": 14616,
+      "git_clean_blob_sha1": "3f45f901271c8a0ac2893aceacbdfb683723ca07",
+      "git_lf_blob_sha1": "3f45f901271c8a0ac2893aceacbdfb683723ca07",
+      "git_lf_copy": "scratch/performance/inherited-slot-proof-git-lf-20261008-sources/src/internal/xlang3/object_model.h"
+    },
+    {
+      "path": "src/runtime/object_model.cpp",
+      "working_sha256": "835996e3db255ec24112fe93d9438df4c05d281befd502c306a3df2c1ffd1556",
+      "working_bytes": 232582,
+      "git_lf_sha256": "038a27578a9f907c3987c0470a89663a7feee7d4bf0838afb9fd46f0c6c63e18",
+      "git_lf_bytes": 226342,
+      "git_clean_blob_sha1": "c760e770438d37a54347528573500447f681b102",
+      "git_lf_blob_sha1": "c760e770438d37a54347528573500447f681b102",
+      "git_lf_copy": "scratch/performance/inherited-slot-proof-git-lf-20261008-sources/src/runtime/object_model.cpp"
+    },
+    {
+      "path": "src/builtins/object_type_builtins.cpp",
+      "working_sha256": "171aafd05b11396b5522a2a45d490b37dbce0924c00b661b4f2e1ba41fa7a3d3",
+      "working_bytes": 175832,
+      "git_lf_sha256": "58d6eb52e7fd0a92e290bbf1bd28da659cdc5b612747797ffe22cfa7f5477b6c",
+      "git_lf_bytes": 171038,
+      "git_clean_blob_sha1": "447b4b9ff3a6449ed2c409155ecf62ae4a9b7965",
+      "git_lf_blob_sha1": "447b4b9ff3a6449ed2c409155ecf62ae4a9b7965",
+      "git_lf_copy": "scratch/performance/inherited-slot-proof-git-lf-20261008-sources/src/builtins/object_type_builtins.cpp"
+    },
+    {
+      "path": "src/executor/xlang_vm/ops/xlang_vm_ops_construct.h",
+      "working_sha256": "a5e192e82b37a6545b7988395dc5324b9e0381d280ad5ee7d2c4dcca8b592c42",
+      "working_bytes": 11950,
+      "git_lf_sha256": "16b01e2eaf7889fd9d23e7b5d247b251671393e19bf745f489aac865838c8ef8",
+      "git_lf_bytes": 11633,
+      "git_clean_blob_sha1": "d02c3c569f37a8422f78ad3c6cbb9c8f4ef6af5e",
+      "git_lf_blob_sha1": "d02c3c569f37a8422f78ad3c6cbb9c8f4ef6af5e",
+      "git_lf_copy": "scratch/performance/inherited-slot-proof-git-lf-20261008-sources/src/executor/xlang_vm/ops/xlang_vm_ops_construct.h"
+    },
+    {
+      "path": "src/executor/xlang_vm/xlang_vm_inline_support.h",
+      "working_sha256": "63eb38f507193ccabd852b261eb84299d2a05dacb8cd1999760e8c7121a4d4b0",
+      "working_bytes": 123899,
+      "git_lf_sha256": "d321762ea5e78dfe5a0dcd37f8969beb63fe37fc3f852c898b94ecaad74fc538",
+      "git_lf_bytes": 120659,
+      "git_clean_blob_sha1": "cc20884b01e3acdb8d635bd52f7806d27778e7e4",
+      "git_lf_blob_sha1": "cc20884b01e3acdb8d635bd52f7806d27778e7e4",
+      "git_lf_copy": "scratch/performance/inherited-slot-proof-git-lf-20261008-sources/src/executor/xlang_vm/xlang_vm_inline_support.h"
+    },
+    {
+      "path": "src/executor/xlang_vm/xlang_vm_attr.cpp",
+      "working_sha256": "264a0d6c78dc4b946fe4b1f00dd7dd6d52581589a6950d4ecaf394d312994c7a",
+      "working_bytes": 19693,
+      "git_lf_sha256": "a65817da76f797cfaf3a35b3fbf9eddf30ae0aefa8514aea22b9fd031914e7a8",
+      "git_lf_bytes": 19276,
+      "git_clean_blob_sha1": "31ffad6a34f00627f98c9bbf05bea497573dc691",
+      "git_lf_blob_sha1": "31ffad6a34f00627f98c9bbf05bea497573dc691",
+      "git_lf_copy": "scratch/performance/inherited-slot-proof-git-lf-20261008-sources/src/executor/xlang_vm/xlang_vm_attr.cpp"
+    },
+    {
+      "path": "src/serialize/value_graph_reader.cpp",
+      "working_sha256": "33e783e7508adaca6372383fc9b5b593509a7dc66669168ee3116a58ef90d662",
+      "working_bytes": 20248,
+      "git_lf_sha256": "02b48bde31a254cb3e95eacc0e6215dc495c829fcf9f83a84071b245e8e0ec56",
+      "git_lf_bytes": 19886,
+      "git_clean_blob_sha1": "1e8f00d8be3a96c055c7150de14b86ba6481508c",
+      "git_lf_blob_sha1": "1e8f00d8be3a96c055c7150de14b86ba6481508c",
+      "git_lf_copy": "scratch/performance/inherited-slot-proof-git-lf-20261008-sources/src/serialize/value_graph_reader.cpp"
+    },
+    {
+      "path": "src/runtime/modules/system/weakref_module.cpp",
+      "working_sha256": "a4d0a52d7ffa14f48c9c0226c71c80b635720f4b7153658b2e6da25be269cb73",
+      "working_bytes": 90156,
+      "git_lf_sha256": "bc28da2f808fb50597e6e05f8704f2f0e0091142afd9f1890505ee5249e7b05b",
+      "git_lf_bytes": 88103,
+      "git_clean_blob_sha1": "02be0dc477f883b70b01323de6fd959ac30178b2",
+      "git_lf_blob_sha1": "02be0dc477f883b70b01323de6fd959ac30178b2",
+      "git_lf_copy": "scratch/performance/inherited-slot-proof-git-lf-20261008-sources/src/runtime/modules/system/weakref_module.cpp"
+    },
+    {
+      "path": "tests/cpp/canonical_slot_read_cases.h",
+      "working_sha256": "6b6e18371c686021f1626293f7afd7733039bd216fae7878e42363bc410f63de",
+      "working_bytes": 44818,
+      "git_lf_sha256": "69ea4cad0d2a500ef863ecd0122665286f8a0490be9e5fceec41805e19d4e2a1",
+      "git_lf_bytes": 44023,
+      "git_clean_blob_sha1": "7f4caa00aeb8ec7051dff54346371e55b2e7d452",
+      "git_lf_blob_sha1": "7f4caa00aeb8ec7051dff54346371e55b2e7d452",
+      "git_lf_copy": "scratch/performance/inherited-slot-proof-git-lf-20261008-sources/tests/cpp/canonical_slot_read_cases.h"
+    },
+    {
+      "path": "tests/fixtures/core/canonical_slot_reads.py",
+      "working_sha256": "7efadaea716e73e987a0ee35a2110f44ab91dec1e0d75ddb40ad627b582f918b",
+      "working_bytes": 5653,
+      "git_lf_sha256": "7efadaea716e73e987a0ee35a2110f44ab91dec1e0d75ddb40ad627b582f918b",
+      "git_lf_bytes": 5653,
+      "git_clean_blob_sha1": "a0d6d457d32275d91ba7a80875512ce29b94e598",
+      "git_lf_blob_sha1": "a0d6d457d32275d91ba7a80875512ce29b94e598",
+      "git_lf_copy": "scratch/performance/inherited-slot-proof-git-lf-20261008-sources/tests/fixtures/core/canonical_slot_reads.py"
+    },
+    {
+      "path": "tests/fixtures/expected/canonical_slot_reads.out",
+      "working_sha256": "5fb63eb109aee4d367d06c636db3d30bea771a8c13a8819a985c43fc43bd24a2",
+      "working_bytes": 970,
+      "git_lf_sha256": "5fb63eb109aee4d367d06c636db3d30bea771a8c13a8819a985c43fc43bd24a2",
+      "git_lf_bytes": 970,
+      "git_clean_blob_sha1": "d85997f49b68039d51c9bd5f8f409bb3c9ff9620",
+      "git_lf_blob_sha1": "d85997f49b68039d51c9bd5f8f409bb3c9ff9620",
+      "git_lf_copy": "scratch/performance/inherited-slot-proof-git-lf-20261008-sources/tests/fixtures/expected/canonical_slot_reads.out"
+    }
+  ]
+}

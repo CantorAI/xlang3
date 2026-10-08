@@ -1,0 +1,12 @@
+{
+  "status": "terminal",
+  "scope": "CPython correctness precheck; no benchmark score",
+  "exit_code": 0,
+  "expected_output_matches": true,
+  "fixture_sha256": "7efadaea716e73e987a0ee35a2110f44ab91dec1e0d75ddb40ad627b582f918b",
+  "stdout_sha256": "4431256ca567eba259d62a08db78fcb63fd429ac7ec79a68a3a8dd438c826359",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "source_hashes_verified": true,
+  "patch_sha256": "1452f7291f98998e765ab764010e8a5f0fc7f6038ee30b5fc5a090ee63e53e71",
+  "accepted_control_files_verified": 140
+}

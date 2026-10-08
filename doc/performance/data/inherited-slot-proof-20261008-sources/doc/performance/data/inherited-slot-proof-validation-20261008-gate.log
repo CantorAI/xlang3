@@ -1,0 +1,12 @@
+local_slots              pass         0.984x
+scalar_arithmetic        pass         1.006x
+range_for                pass         1.023x
+function_calls           pass         1.022x
+class_construct          pass         1.022x
+list_append              pass         1.006x
+property_access          pass         0.940x
+deepcopy_memo            pass         0.903x
+json_dumps               pass         1.006x
+gc_traversal             pass         0.728x
+subparsers               pass         0.889x
+Performance check: pass. Report: D:\CantorAI\xlang3\doc\performance\data\release-inherited-slot-proof-fixed-gate-20261008.json

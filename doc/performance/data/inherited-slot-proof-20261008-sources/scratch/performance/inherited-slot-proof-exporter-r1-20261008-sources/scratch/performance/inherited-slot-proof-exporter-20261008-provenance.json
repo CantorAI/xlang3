@@ -1,0 +1,30 @@
+{
+  "status": "scratch_only_exporter_prepared_not_executed",
+  "default_output": "scratch/performance/inherited-slot-proof-report-preview-20261008",
+  "publication_output": "doc/performance",
+  "expected_diagnostic_samples": 300,
+  "expected_diagnostic_rows": 4,
+  "scope": "Inherited R3 diagnostics separate from original official CPython/accepted R4/candidate observations",
+  "artifacts": [
+    {
+      "path": "scratch/performance/export-inherited-slot-proof-checkpoint-20261008.py",
+      "bytes": 33925,
+      "sha256": "6777f6bbbd9e95cfd3969fbfd57b057bcd6089bbf03873948b79d787ee548a7f"
+    },
+    {
+      "path": "scratch/performance/export-canonical-slot-checkpoint-20261008.py",
+      "bytes": 32600,
+      "sha256": "9ed115d3c9bbf817bc6ceb9ac2cf9881588b10199519d4e12ecd0583f0cd4934"
+    },
+    {
+      "path": "scratch/performance/inherited-slot-proof-export-main-20261008.py",
+      "bytes": 23605,
+      "sha256": "a63bdd455bd8f4441c3eeac2e6dc996500ea452f9057da98ce1919b87d2f23dd"
+    },
+    {
+      "path": "scratch/performance/prepare-inherited-slot-proof-exporter-20261008.ps1",
+      "bytes": 2957,
+      "sha256": "e1f3e5af0d2cde9e42a585fa6bee3e4aeccc5dbbc72007e3324602d21fbc73ad"
+    }
+  ]
+}

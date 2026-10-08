@@ -1,0 +1,3 @@
+command: git apply --check -- scratch/performance/inherited-slot-proof-proposal-r2-20261008.patch
+exit: 0
+

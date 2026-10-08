@@ -183,3 +183,12 @@
 /doc/performance/canonical-slot-official-speed-20261008.svg text eol=lf
 /tests/fixtures/core/canonical_slot_reads.py text eol=lf
 /tests/fixtures/expected/canonical_slot_reads.out text eol=lf
+
+/doc/performance/data/inherited-slot-* -text
+/doc/performance/data/inherited-slot-proof-20261008-sources/** -text
+/doc/performance/data/build-inherited-slot-* -text
+/doc/performance/data/release-inherited-slot-* -text
+/doc/performance/data/pyperformance-inherited-slot-* -text
+/doc/performance/inherited-slot-proof-checkpoint-20261008.md text eol=lf
+/doc/performance/inherited-slot-proof-diagnostic-speed-20261008.svg text eol=lf
+/doc/performance/inherited-slot-proof-official-speed-20261008.svg text eol=lf

@@ -1,0 +1,54 @@
+{
+  "status": "fresh_scripts_frozen_not_executed_by_subagent",
+  "cpython_executable": "C:/Python/Python314/python.exe",
+  "required_version": "3.14.7",
+  "run_directory": "D:/CantorAI/xlang3",
+  "accepted_control": "build-repro/controls/canonical-slot-checkpoint-20261008",
+  "early_output": "doc/performance/data/inherited-slot-proof-early-20261008.json",
+  "paired_output": "doc/performance/data/inherited-slot-proof-paired-20261008.json",
+  "source_targets": "All 11 proposal targets, unchanged registration/hot hook guard, two original probes and three scripts",
+  "unchanged_probes": [
+    {
+      "path": "scratch/performance/canonical-slot-probe-20261008.py",
+      "sha256": "f2cda8eff1ed7ab9ded5ab7daeefee8d0b7909b4b3974fcda06e48a706d994d2",
+      "unchanged_from_accepted_r4": true
+    },
+    {
+      "path": "scratch/performance/canonical-slot-sqlglot-probe-20261008.py",
+      "sha256": "2a0eabce26935cfd46517486c52d6d4cc95154b60b55e187c9bd607a0f5a23ae",
+      "unchanged_from_accepted_r4": true
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "scratch/performance/check-inherited-slot-proof-20261008.py",
+      "bytes": 2492,
+      "sha256": "41c4edb898761603479b8aadae19afa4bfe38e5c793a1079a60015b72fbc285d"
+    },
+    {
+      "path": "scratch/performance/compare-inherited-slot-proof-20261008.py",
+      "bytes": 5127,
+      "sha256": "6c6ece259c4e3e498831d8f5aebe1e4c3f6d806ad09b6c31165f1a985946d089"
+    },
+    {
+      "path": "scratch/performance/inherited_slot_proof_support_20261008.py",
+      "bytes": 10234,
+      "sha256": "ccdd2cd93ba4ed77395c7f33df9efe3fceeadef89adc78bf877c57f64e09975e"
+    },
+    {
+      "path": "scratch/performance/canonical-slot-probe-20261008.py",
+      "bytes": 931,
+      "sha256": "f2cda8eff1ed7ab9ded5ab7daeefee8d0b7909b4b3974fcda06e48a706d994d2"
+    },
+    {
+      "path": "scratch/performance/canonical-slot-sqlglot-probe-20261008.py",
+      "bytes": 1009,
+      "sha256": "2a0eabce26935cfd46517486c52d6d4cc95154b60b55e187c9bd607a0f5a23ae"
+    },
+    {
+      "path": "scratch/performance/prepare-inherited-slot-proof-diagnostics-20261008.ps1",
+      "bytes": 6397,
+      "sha256": "db871e427c08bc79e96c74acd86784e430c6bf4300e5f12e034af765a9e83b0f"
+    }
+  ]
+}
