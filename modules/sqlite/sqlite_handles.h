@@ -17,6 +17,7 @@ limitations under the License.
 #include "xlang3/xlang3.h"
 
 #include "sqlite3.h"
+#include <string>
 
 namespace xlang3_sqlite {
 
@@ -28,6 +29,8 @@ struct ConnectionHandle {
   sqlite3* db = nullptr;
   uint32_t refcnt = 1;
   bool closed = false;
+  bool implicit_transactions = true;
+  std::string isolation_level;
 };
 
 struct CursorHandle {

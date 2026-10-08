@@ -498,6 +498,17 @@ add_xlang3_cpp_test(xlang3_runtime_value_tests tests/cpp/runtime_value_tests.cpp
 add_xlang3_cpp_test(xlang3_vfs_tests tests/cpp/vfs_tests.cpp)
 if(WIN32)
   add_xlang3_cpp_test(xlang3_windows_file_path_tests tests/cpp/windows_file_path_tests.cpp)
+  add_executable(xlang3_windows_sqlite_file_path_tests
+    tests/cpp/windows_sqlite_file_path_tests.cpp third_party/sqlite/sqlite3.c)
+  target_link_libraries(xlang3_windows_sqlite_file_path_tests PRIVATE xlang3_runtime)
+  target_include_directories(xlang3_windows_sqlite_file_path_tests PRIVATE
+    modules/sqlite third_party/sqlite ${CMAKE_CURRENT_SOURCE_DIR}/sdk)
+  target_compile_definitions(xlang3_windows_sqlite_file_path_tests PRIVATE
+    XLANG3_USE_SHARED SQLITE_THREADSAFE=1 SQLITE_OMIT_LOAD_EXTENSION=1)
+  add_dependencies(xlang3_windows_sqlite_file_path_tests xlang_sqlite3_native_package)
+  add_test(NAME xlang3_windows_sqlite_file_path_tests
+    COMMAND xlang3_windows_sqlite_file_path_tests $<TARGET_FILE_DIR:xlang_sqlite3_native_package>)
+  set_tests_properties(xlang3_windows_sqlite_file_path_tests PROPERTIES TIMEOUT 60)
 endif()
 target_sources(xlang3_vfs_tests PRIVATE
   ports/rp2040/embedded/device_file_system.cpp

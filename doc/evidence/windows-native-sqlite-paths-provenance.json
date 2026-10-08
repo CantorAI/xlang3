@@ -1,0 +1,166 @@
+{
+  "scope": "Native SQLite Windows file-path repair and exact consumer prerequisite; local SDK scope only",
+  "base_revision": "92304c08b1b7e0b6ce52a9c7d29c3937c4d0db8a",
+  "branch": "xmind/windows-native-file-longpaths",
+  "source_sha256": {
+    "CMakeLists.txt": "f90ade0de13796f138e00a31ac152d11c337ba416220de6aa836703f8ce6f608",
+    "modules/sqlite/sqlite_handles.h": "5478c41c6158f9c62da08c3ca7b7c96a1961dcad068b8026046df4cf21df42fd",
+    "modules/sqlite/sqlite_package.cpp": "3f7ca0bdbc4a1107feaf0cf04e4de058dd2a115f2659ad1c222b48d902f2c812",
+    "modules/sqlite/sqlite_values.cpp": "4b0926efca74999258be5109fba911e571994f052ec27eb38513eb55ca13e257",
+    "modules/sqlite/sqlite_windows_file_path.h": "f0bab958268071df495201f11e97fe6ef6a203dd5bcee3764b0d0c83003f53a8",
+    "tests/cpp/windows_sqlite_file_path_tests.cpp": "13affbbb87f3038c7335dab68a5329ad0d79a9a3cfa2c3995265f7f167deb354"
+  },
+  "source_sha256_lf_normalized": {
+    "CMakeLists.txt": "47e5f139a8a1a31f3d89225e206ff8777ee69f581087d5fabf2494295a1bcd3a",
+    "modules/sqlite/sqlite_handles.h": "6326af4b705cca33991361f520e3ba81b1185fdf12a6d12a862cb31051dee371",
+    "modules/sqlite/sqlite_package.cpp": "861e36066a889fadbe2d7fa1a6a371d091fa3dd0d631260e9f4a9e6de2ccc04d",
+    "modules/sqlite/sqlite_values.cpp": "2fcd40b8fef430e3cbc30c1a5fa932e3b9f0f0dd03b1360dc848e409344f7063",
+    "modules/sqlite/sqlite_windows_file_path.h": "f0bab958268071df495201f11e97fe6ef6a203dd5bcee3764b0d0c83003f53a8",
+    "tests/cpp/windows_sqlite_file_path_tests.cpp": "13affbbb87f3038c7335dab68a5329ad0d79a9a3cfa2c3995265f7f167deb354"
+  },
+  "normalization": "CRLF to LF only; UTF8 BOM preserved",
+  "consumer_prerequisite_patch_sha256": "045e26f1780117849fef02f952098a77fe27cba28669f82e9ab77ecadf679e64",
+  "captured_source_count": 5849,
+  "source_guard_captures": 10,
+  "all_captured_sources_unchanged_during_validation": true,
+  "baseline": {
+    "fixed_file_count": 26,
+    "manifest_sha256": "7579c894f86b74ee1301526443fb9631c98685363736cbaf872b2d8a0597efde",
+    "executable_sha256": "f9b05a315111053fd5d51c42a2a635fc07e501d9b12bc6b0253aa8e778eb150d",
+    "runtime_sha256": "166e8d96bd3b3a886fadfb7482374d7512a2dad7b389ca5d907a4b581f18a3a5"
+  },
+  "candidate_runtime_sha256": {
+    "xlang3.exe": "7c62d0646bf275fcc55fb114634f2f3a5bcec88b9b63f5f2b10392276d0dcb49",
+    "xlang3_runtime.dll": "64883ab20bd54f7ea5d051a1af6ff88e5ac4b4152e013ec44e13227283695445",
+    "modules/xlang_json.x3pkg.dll": "e3f045d31e46fafb778e896c163def74e4a4d965a57d11894f359374e823ec67",
+    "modules/xlang_sqlite3.x3pkg.dll": "d0d874d7d8444b8c1c011789ad49fa41bf72a25ca4df111eeced3e56da21e908"
+  },
+  "configure": {
+    "exitCode": 0,
+    "generator": "Visual Studio 18 2026",
+    "architecture": "x64",
+    "configuration": "Release",
+    "ob3": true,
+    "pgo": "OFF",
+    "pythonExecutable": "OFF",
+    "cpythonBridge": "OFF"
+  },
+  "build": {
+    "initialFullBuildExit": 0,
+    "finalAffectedCppBuildExit": 0,
+    "productionUnchangedSinceFullBuild": true
+  },
+  "correctness": {
+    "registered": 52,
+    "selected": 42,
+    "direct_native": 28,
+    "audited_xlang_cli": 14,
+    "excluded_registered": 10,
+    "passed": 41,
+    "failed": 1,
+    "skipped": 0,
+    "exit_code": 8,
+    "elapsed_seconds": 39.17,
+    "sqlite_contract_passed": true,
+    "sqlite_contract_seconds": 0.28,
+    "known_failure": "xlang3_native_library_path",
+    "accepted_baseline_reproduced_failure": true,
+    "failure_scope": "extensionless import under dotted worktree parent",
+    "excluded_wrapper_scope": "One explicit CPython pickle wrapper; nine other orchestration wrappers outside released audited CLI selection; no results claimed."
+  },
+  "retained_consumer": {
+    "exit_code": 0,
+    "schema_path_units": 288,
+    "schema_bytes": 24042,
+    "schema_sha256": "7df0efab7510ac5f7d6250118756b76dcea52ce7416ac01bfc52f52a91372067",
+    "database_path_units": 280,
+    "schema_version": 11,
+    "matched_type_and_sql_definitions": 44,
+    "query_only": true,
+    "original_and_copied_closed_bytes_unchanged": true,
+    "path_not_shortened": true,
+    "database_hashes_not_published": true
+  },
+  "retained_failures": {
+    "first_correctness": {
+      "passed": 40,
+      "failed": 2,
+      "seconds": 27.34,
+      "fixture_reason": "Read-only WAL close cannot guarantee sidecar deletion; writable checkpoint added with absence assertion retained."
+    },
+    "second_correctness": {
+      "passed": 40,
+      "failed": 2,
+      "seconds": 26.34,
+      "fixture_reason": "SELECT cursor lifetime; exact legacy_create ordinal0 returned SQLITE_BUSY=5; fixture cursors now closed explicitly."
+    },
+    "private_diagnostic_fixtures_and_sources_retained": true,
+    "initial_retained_probe": {
+      "exit_code": 1,
+      "fixture_reason": "Expected schema records are exact type/sql objects, not strings",
+      "original_and_copied_bytes_unchanged": true
+    },
+    "first_complete_performance": {
+      "exit_code": 2,
+      "aggregate": "inconclusive",
+      "cases": 11,
+      "gc_initial_interval": [
+        0.9887439861751834,
+        1.1011506627096983
+      ],
+      "confirmation_did_not_convert_whole_gate_to_pass": true,
+      "report_preserved": true
+    }
+  },
+  "performance": {
+    "exit_code": 0,
+    "aggregate": "pass",
+    "cases": 11,
+    "all_first_attempts_passed": true,
+    "repeats": 21,
+    "warmup": 5,
+    "threshold": 0.1,
+    "orchestrator": "native XLang3",
+    "wall_seconds": 122.1478565,
+    "fixed_baseline_unchanged": true
+  },
+  "private_final_provenance_sha256": "484f4f87a5330a0def60b648781aa0e3817239642bf0792f2a07be7a1a9e9358",
+  "public_artifacts": {
+    "windows-native-sqlite-paths-correctness.log": {
+      "sha256": "3280c65e208afa0cb4bed57b0997a13c8828881cb59b072b4a724768cff9e660",
+      "bytes": 5390
+    },
+    "windows-native-sqlite-paths-last-test.log": {
+      "sha256": "2f82444ba670daf8963416f55debf72d4874b2f4274b60f9f1cd129aceec49a4",
+      "bytes": 48433
+    },
+    "windows-native-sqlite-paths-initial-correctness.log": {
+      "sha256": "3218561143d748f36591b4c33d83189d975248152b80353da13e88b475d24e4a",
+      "bytes": 5513
+    },
+    "windows-native-sqlite-paths-second-correctness.log": {
+      "sha256": "71ac100d353f1ffbf56adea7cf1afcffbbfe9052c55fcc8a8cb30bd5521b131e",
+      "bytes": 5513
+    },
+    "windows-native-sqlite-paths-performance-inconclusive.json": {
+      "sha256": "e6ebf8ade6b32c1ca5defe1f3e5e3bc33dc3e7e73d1e026ee177f0bbaa4da87e",
+      "bytes": 66866
+    },
+    "windows-native-sqlite-paths-performance.json": {
+      "sha256": "6af6d49061a339575ce9fabc76cf9e62e5282ddc2f4f1d82edeae51c011e64f9",
+      "bytes": 61546
+    },
+    "windows-native-sqlite-paths-retained-query.log": {
+      "sha256": "a602fe33351c55736cd137656bae06f1fb47d649dca91b5e45f2debdb05e0c10",
+      "bytes": 132
+    }
+  },
+  "cpython_executed": false,
+  "primary_sdk_or_managed_preview_changed": false,
+  "paired_xmind_acceptance_established": false,
+  "coverage_limits": [
+    "Empty-filename temporary SQLite database was not exercised.",
+    "No network UNC database claim.",
+    "Strict full-path wrapper rejects ambiguous exact buffer-boundary output instead of truncating."
+  ]
+}
