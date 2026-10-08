@@ -225,3 +225,8 @@
 /doc/performance/data/sqlite-statement-cache-checkpoint-20261008-sources/** -text
 /doc/performance/charts/sqlite-statement-cache-checkpoint-20261008.svg -text
 /doc/performance/sqlite-statement-cache-checkpoint-20261008.md text eol=lf
+
+/doc/performance/data/pyperformance-xlang3-full-refresh-vs-cpython3147-fast-20261008* -text
+/doc/performance/data/pyperformance-xlang3-full-refresh-vs-cpython3147-fast-20261008-sources/** -text
+/doc/performance/pyperformance-xlang3-full-refresh-vs-cpython3147-fast-20261008.svg text eol=lf
+/doc/performance/pyperformance-xlang3-full-refresh-vs-cpython3147-fast-20261008.md text eol=lf

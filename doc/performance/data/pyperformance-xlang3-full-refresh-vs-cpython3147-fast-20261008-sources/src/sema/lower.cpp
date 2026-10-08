@@ -1,0 +1,7108 @@
+/*
+Copyright (C) 2026 CantorAI Inc. and The XLang Foundation
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+#include "xlang3/sema.h"
+#include "xlang3/expression.h"
+#include "xlang3/builtin_methods.h"
+#include "xlang3/parser.h"
+#include "xlang3/python_names.h"
+#include "xlang3/scope_analysis.h"
+
+#include "xlang_module_globals.h"
+
+#include <algorithm>
+#include <cstdlib>
+#include <memory>
+#include <stdexcept>
+#include <unordered_map>
+#include <unordered_set>
+
+namespace xlang3 {
+
+namespace {
+
+struct ClassInfo {
+  std::vector<std::string> slot_names;
+  std::unordered_map<std::string, uint32_t> slots;
+  std::unordered_set<std::string> data_descriptor_names;
+  std::vector<std::string> match_args;
+  bool slot_layout_known = false;
+};
+
+enum class KnownValueType : uint8_t {
+  Unknown,
+  String,
+};
+
+int64_t parse_integer_literal(std::string_view text) {
+  std::string normalized;
+  normalized.reserve(text.size());
+  for (char ch : text) {
+    if (ch != '_') {
+      normalized.push_back(ch);
+    }
+  }
+
+  int base = 10;
+  size_t start = 0;
+  if (normalized.size() >= 2 && normalized[0] == '0') {
+    const char marker = normalized[1];
+    if (marker == 'x' || marker == 'X') {
+      base = 16;
+      start = 2;
+    } else if (marker == 'b' || marker == 'B') {
+      base = 2;
+      start = 2;
+    } else if (marker == 'o' || marker == 'O') {
+      base = 8;
+      start = 2;
+    }
+  }
+
+  int64_t value = 0;
+  for (size_t i = start; i < normalized.size(); ++i) {
+    const char ch = normalized[i];
+    int digit = -1;
+    if (ch >= '0' && ch <= '9') {
+      digit = ch - '0';
+    } else if (ch >= 'a' && ch <= 'f') {
+      digit = ch - 'a' + 10;
+    } else if (ch >= 'A' && ch <= 'F') {
+      digit = ch - 'A' + 10;
+    }
+    if (digit < 0 || digit >= base) {
+      break;
+    }
+    value = value * base + digit;
+  }
+  return value;
+}
+
+Value parse_integer_literal_value(std::string_view text) {
+  std::string error;
+  Value value = value_bigint_from_decimal(text, 0, error);
+  return value.tag == ValueTag::Invalid ? Value::int64(0) : value;
+}
+
+double parse_float_literal_value(std::string_view text) {
+  std::string normalized;
+  normalized.reserve(text.size());
+  for (const char ch : text) {
+    if (ch != '_') normalized.push_back(ch);
+  }
+  return std::strtod(normalized.c_str(), nullptr);
+}
+
+void add_slot_name(const std::string& name, std::vector<std::string>& slots, std::unordered_set<std::string>& seen) {
+  if (seen.insert(name).second) {
+    slots.push_back(name);
+  }
+}
+
+void collect_assignment_names(const ast::Expr& target, std::vector<std::string>& names, std::unordered_set<std::string>& seen) {
+  if (auto* name = dynamic_cast<const ast::NameExpr*>(&target)) {
+    if (seen.insert(name->name).second) {
+      names.push_back(name->name);
+    }
+    return;
+  }
+  if (auto* tuple = dynamic_cast<const ast::TupleExpr*>(&target)) {
+    for (const auto& item : tuple->items) {
+      collect_assignment_names(*item, names, seen);
+    }
+    return;
+  }
+  if (auto* list = dynamic_cast<const ast::ListExpr*>(&target)) {
+    for (const auto& item : list->items) {
+      collect_assignment_names(*item, names, seen);
+    }
+    return;
+  }
+  if (auto* starred = dynamic_cast<const ast::StarredExpr*>(&target)) {
+    collect_assignment_names(*starred->expr, names, seen);
+  }
+}
+
+std::vector<std::string> assignment_names(const ast::Expr& target) {
+  std::vector<std::string> names;
+  std::unordered_set<std::string> seen;
+  collect_assignment_names(target, names, seen);
+  return names;
+}
+
+bool append_literal_slot_name(const ast::Expr& expr, std::vector<std::string>& slots, std::unordered_set<std::string>& seen) {
+  auto* literal = dynamic_cast<const ast::LiteralExpr*>(&expr);
+  if (literal == nullptr || literal->kind != ast::LiteralExpr::Kind::String) {
+    return false;
+  }
+  if (literal->text == "__dict__" || literal->text == "__weakref__") {
+    return true;
+  }
+  if (seen.insert(literal->text).second) {
+    slots.push_back(literal->text);
+  }
+  return true;
+}
+
+bool collect_literal_slots_from_expr(const ast::Expr& expr, std::vector<std::string>& slots, std::unordered_set<std::string>& seen) {
+  if (append_literal_slot_name(expr, slots, seen)) {
+    return true;
+  }
+  if (auto* tuple = dynamic_cast<const ast::TupleExpr*>(&expr)) {
+    for (const auto& item : tuple->items) {
+      if (!append_literal_slot_name(*item, slots, seen)) {
+        return false;
+      }
+    }
+    return true;
+  }
+  if (auto* list = dynamic_cast<const ast::ListExpr*>(&expr)) {
+    for (const auto& item : list->items) {
+      if (!append_literal_slot_name(*item, slots, seen)) {
+        return false;
+      }
+    }
+    return true;
+  }
+  return false;
+}
+
+std::string quote_annotation_string(const std::string& value) {
+  std::string out = "'";
+  for (char ch : value) {
+    if (ch == '\\' || ch == '\'') {
+      out.push_back('\\');
+    }
+    out.push_back(ch);
+  }
+  out.push_back('\'');
+  return out;
+}
+
+std::string join_annotation_parts(const std::vector<std::string>& parts, const char* separator) {
+  std::string out;
+  for (size_t i = 0; i < parts.size(); ++i) {
+    if (i != 0) {
+      out += separator;
+    }
+    out += parts[i];
+  }
+  return out;
+}
+
+std::string annotation_expr_to_string(const ast::Expr& expr);
+
+std::string annotation_expr_to_string_impl(const ast::Expr& expr) {
+  if (auto* name = dynamic_cast<const ast::NameExpr*>(&expr)) {
+    return name->name;
+  }
+  if (auto* attr = dynamic_cast<const ast::AttrExpr*>(&expr)) {
+    return annotation_expr_to_string(*attr->object) + "." + attr->name;
+  }
+  if (auto* subscript = dynamic_cast<const ast::SubscriptExpr*>(&expr)) {
+    std::string index;
+    if (auto* tuple = dynamic_cast<const ast::TupleExpr*>(subscript->index.get())) {
+      std::vector<std::string> parts;
+      parts.reserve(tuple->items.size());
+      for (const auto& item : tuple->items) {
+        parts.push_back(annotation_expr_to_string(*item));
+      }
+      index = join_annotation_parts(parts, ", ");
+    } else {
+      index = annotation_expr_to_string(*subscript->index);
+    }
+    return annotation_expr_to_string(*subscript->object) + "[" + index + "]";
+  }
+  if (auto* binary = dynamic_cast<const ast::BinaryExpr*>(&expr)) {
+    return annotation_expr_to_string(*binary->lhs) + " " + binary->op + " " + annotation_expr_to_string(*binary->rhs);
+  }
+  if (auto* comparisons = dynamic_cast<const ast::CompareChainExpr*>(&expr)) {
+    std::string rendered = annotation_expr_to_string(*comparisons->first);
+    for (const auto& comparison : comparisons->comparisons) {
+      rendered += " " + comparison.first + " " +
+          annotation_expr_to_string(*comparison.second);
+    }
+    return rendered;
+  }
+  if (auto* unary = dynamic_cast<const ast::UnaryExpr*>(&expr)) {
+    return unary->op + annotation_expr_to_string(*unary->expr);
+  }
+  if (auto* literal = dynamic_cast<const ast::LiteralExpr*>(&expr)) {
+    switch (literal->kind) {
+      case ast::LiteralExpr::Kind::None:
+        return "None";
+      case ast::LiteralExpr::Kind::Bool:
+        return literal->bool_value ? "True" : "False";
+      case ast::LiteralExpr::Kind::String:
+        return quote_annotation_string(literal->text);
+      case ast::LiteralExpr::Kind::Bytes:
+        return "b" + quote_annotation_string(literal->text);
+      case ast::LiteralExpr::Kind::Ellipsis:
+        return "...";
+      case ast::LiteralExpr::Kind::Int:
+      case ast::LiteralExpr::Kind::Double:
+      case ast::LiteralExpr::Kind::Complex:
+        return literal->text;
+    }
+  }
+  if (auto* tuple = dynamic_cast<const ast::TupleExpr*>(&expr)) {
+    std::vector<std::string> parts;
+    parts.reserve(tuple->items.size());
+    for (const auto& item : tuple->items) {
+      parts.push_back(annotation_expr_to_string(*item));
+    }
+    if (parts.size() == 1) {
+      return "(" + parts[0] + ",)";
+    }
+    return "(" + join_annotation_parts(parts, ", ") + ")";
+  }
+  if (auto* list = dynamic_cast<const ast::ListExpr*>(&expr)) {
+    std::vector<std::string> parts;
+    parts.reserve(list->items.size());
+    for (const auto& item : list->items) {
+      parts.push_back(annotation_expr_to_string(*item));
+    }
+    return "[" + join_annotation_parts(parts, ", ") + "]";
+  }
+  if (auto* dict = dynamic_cast<const ast::DictExpr*>(&expr)) {
+    std::vector<std::string> parts;
+    parts.reserve(dict->entries.size());
+    for (const auto& entry : dict->entries) {
+      if (entry.first == nullptr) {
+        parts.push_back("**" + annotation_expr_to_string(*entry.second));
+      } else {
+        parts.push_back(
+            annotation_expr_to_string(*entry.first) + ": " +
+            annotation_expr_to_string(*entry.second));
+      }
+    }
+    return "{" + join_annotation_parts(parts, ", ") + "}";
+  }
+  if (auto* set = dynamic_cast<const ast::SetExpr*>(&expr)) {
+    std::vector<std::string> parts;
+    parts.reserve(set->items.size());
+    for (const auto& item : set->items) {
+      parts.push_back(annotation_expr_to_string(*item));
+    }
+    return "{" + join_annotation_parts(parts, ", ") + "}";
+  }
+  if (auto* call = dynamic_cast<const ast::CallExpr*>(&expr)) {
+    std::vector<std::string> parts;
+    if (!call->call_args.empty()) {
+      parts.reserve(call->call_args.size());
+      for (const auto& arg : call->call_args) {
+        std::string item = annotation_expr_to_string(*arg.value);
+        if (arg.star) {
+          item = "*" + item;
+        } else if (arg.kw_star) {
+          item = "**" + item;
+        } else if (!arg.name.empty()) {
+          item = arg.name + "=" + item;
+        }
+        parts.push_back(std::move(item));
+      }
+    } else {
+      parts.reserve(call->args.size());
+      for (const auto& arg : call->args) {
+        parts.push_back(annotation_expr_to_string(*arg));
+      }
+    }
+    return annotation_expr_to_string(*call->callee) + "(" + join_annotation_parts(parts, ", ") + ")";
+  }
+  if (auto* lambda = dynamic_cast<const ast::LambdaExpr*>(&expr)) {
+    std::vector<std::string> params;
+    if (!lambda->signature.empty()) {
+      params.reserve(lambda->signature.size());
+      for (const auto& param : lambda->signature) {
+        std::string rendered = param.name;
+        if (param.kind == ast::LambdaExpr::Param::Kind::VarArgs) rendered = "*" + rendered;
+        if (param.kind == ast::LambdaExpr::Param::Kind::KwArgs) rendered = "**" + rendered;
+        if (param.default_value != nullptr)
+          rendered += "=" + annotation_expr_to_string(*param.default_value);
+        params.push_back(std::move(rendered));
+      }
+    } else {
+      params = lambda->params;
+    }
+    return "lambda " + join_annotation_parts(params, ", ") + ": " +
+           annotation_expr_to_string(*lambda->body);
+  }
+  return "<annotation>";
+}
+
+std::string annotation_expr_to_string(const ast::Expr& expr) {
+  auto rendered = annotation_expr_to_string_impl(expr);
+  if (rendered.find("<annotation>") != std::string::npos &&
+      !expr.annotation_source.empty()) {
+    return expr.annotation_source;
+  }
+  return rendered;
+}
+
+bool module_uses_future_annotations(const std::vector<ast::StmtPtr>& body) {
+  for (const auto& stmt : body) {
+    auto* import = dynamic_cast<const ast::FromImportStmt*>(stmt.get());
+    if (import == nullptr || import->module != "__future__") {
+      continue;
+    }
+    for (const auto& binding : import->names) {
+      if (binding.name == "annotations") {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+bool append_literal_string_name(const ast::Expr& expr, std::vector<std::string>& names) {
+  auto* literal = dynamic_cast<const ast::LiteralExpr*>(&expr);
+  if (literal == nullptr || literal->kind != ast::LiteralExpr::Kind::String) {
+    return false;
+  }
+  names.push_back(literal->text);
+  return true;
+}
+
+bool collect_literal_string_sequence(const ast::Expr& expr, std::vector<std::string>& names) {
+  if (append_literal_string_name(expr, names)) {
+    return true;
+  }
+  if (auto* tuple = dynamic_cast<const ast::TupleExpr*>(&expr)) {
+    for (const auto& item : tuple->items) {
+      if (!append_literal_string_name(*item, names)) {
+        return false;
+      }
+    }
+    return true;
+  }
+  if (auto* list = dynamic_cast<const ast::ListExpr*>(&expr)) {
+    for (const auto& item : list->items) {
+      if (!append_literal_string_name(*item, names)) {
+        return false;
+      }
+    }
+    return true;
+  }
+  return false;
+}
+
+std::string dedent_docstring(std::string_view text) {
+  std::vector<std::string_view> lines;
+  size_t start = 0;
+  while (start <= text.size()) {
+    const size_t end = text.find('\n', start);
+    lines.push_back(text.substr(
+        start, end == std::string_view::npos ? text.size() - start : end - start));
+    if (end == std::string_view::npos) {
+      break;
+    }
+    start = end + 1;
+  }
+
+  size_t margin = std::string_view::npos;
+  std::string_view prefix;
+  for (const auto line : lines) {
+    size_t indent = 0;
+    while (indent < line.size() && (line[indent] == ' ' || line[indent] == '\t')) {
+      ++indent;
+    }
+    if (indent == line.size()) {
+      continue;
+    }
+    if (margin == std::string_view::npos) {
+      prefix = line.substr(0, indent);
+      margin = prefix.size();
+      continue;
+    }
+    size_t common = 0;
+    const size_t limit = std::min(margin, indent);
+    while (common < limit && prefix[common] == line[common]) {
+      ++common;
+    }
+    margin = common;
+    prefix = prefix.substr(0, margin);
+  }
+  if (margin == std::string_view::npos) {
+    margin = 0;
+  }
+
+  std::string result;
+  result.reserve(text.size());
+  for (size_t i = 0; i < lines.size(); ++i) {
+    const auto line = lines[i];
+    const bool blank = std::all_of(line.begin(), line.end(), [](char ch) {
+      return ch == ' ' || ch == '\t';
+    });
+    if (!blank) {
+      result.append(line.substr(std::min(margin, line.size())));
+    }
+    if (i + 1 < lines.size()) {
+      result.push_back('\n');
+    }
+  }
+  return result;
+}
+
+std::string docstring_from_body(const std::vector<ast::StmtPtr>& body) {
+  if (body.empty()) {
+    return {};
+  }
+  auto* expr_stmt = dynamic_cast<const ast::ExprStmt*>(body.front().get());
+  if (expr_stmt == nullptr) {
+    return {};
+  }
+  auto* literal = dynamic_cast<const ast::LiteralExpr*>(expr_stmt->expr.get());
+  if (literal == nullptr || literal->kind != ast::LiteralExpr::Kind::String) {
+    return {};
+  }
+  return dedent_docstring(literal->text);
+}
+
+ir::ParamKind lower_param_kind(ast::FunctionDef::Param::Kind kind) {
+  switch (kind) {
+    case ast::FunctionDef::Param::Kind::PosOnly:
+      return ir::ParamKind::PosOnly;
+    case ast::FunctionDef::Param::Kind::PosOrKeyword:
+      return ir::ParamKind::PosOrKeyword;
+    case ast::FunctionDef::Param::Kind::VarArgs:
+      return ir::ParamKind::VarArgs;
+    case ast::FunctionDef::Param::Kind::KeywordOnly:
+      return ir::ParamKind::KeywordOnly;
+    case ast::FunctionDef::Param::Kind::KwArgs:
+      return ir::ParamKind::KwArgs;
+  }
+  return ir::ParamKind::PosOrKeyword;
+}
+
+std::vector<ir::Param> lower_signature_metadata(const ast::FunctionDef& fn) {
+  std::vector<ir::Param> params;
+  if (fn.signature.empty()) {
+    params.reserve(fn.params.size());
+    for (const auto& name : fn.params) {
+      params.push_back(ir::Param{name, ir::ParamKind::PosOrKeyword, UINT32_MAX});
+    }
+    return params;
+  }
+  params.reserve(fn.signature.size());
+  for (const auto& param : fn.signature) {
+    params.push_back(ir::Param{param.name, lower_param_kind(param.kind), UINT32_MAX});
+  }
+  return params;
+}
+
+ast::ExprPtr clone_expr(const ast::Expr& expr) {
+  if (auto* lit = dynamic_cast<const ast::LiteralExpr*>(&expr)) {
+    auto out = std::make_unique<ast::LiteralExpr>(lit->kind, lit->text);
+    out->bool_value = lit->bool_value;
+    return out;
+  }
+  if (auto* fstring = dynamic_cast<const ast::FStringExpr*>(&expr)) {
+    return std::make_unique<ast::FStringExpr>(fstring->parts, fstring->is_template);
+  }
+  if (auto* name = dynamic_cast<const ast::NameExpr*>(&expr)) {
+    return std::make_unique<ast::NameExpr>(name->name);
+  }
+  if (auto* unary = dynamic_cast<const ast::UnaryExpr*>(&expr)) {
+    return std::make_unique<ast::UnaryExpr>(unary->op, clone_expr(*unary->expr));
+  }
+  if (auto* await = dynamic_cast<const ast::AwaitExpr*>(&expr)) {
+    return std::make_unique<ast::AwaitExpr>(clone_expr(*await->expr));
+  }
+  if (auto* yield = dynamic_cast<const ast::YieldExpr*>(&expr)) {
+    return std::make_unique<ast::YieldExpr>(clone_expr(*yield->expr), yield->from);
+  }
+  if (auto* binary = dynamic_cast<const ast::BinaryExpr*>(&expr)) {
+    return std::make_unique<ast::BinaryExpr>(clone_expr(*binary->lhs), binary->op, clone_expr(*binary->rhs));
+  }
+  if (auto* chain = dynamic_cast<const ast::CompareChainExpr*>(&expr)) {
+    std::vector<std::pair<std::string, ast::ExprPtr>> comparisons;
+    for (const auto& comparison : chain->comparisons) {
+      comparisons.push_back(std::make_pair(comparison.first, clone_expr(*comparison.second)));
+    }
+    return std::make_unique<ast::CompareChainExpr>(clone_expr(*chain->first), std::move(comparisons));
+  }
+  if (auto* conditional = dynamic_cast<const ast::ConditionalExpr*>(&expr)) {
+    return std::make_unique<ast::ConditionalExpr>(
+        clone_expr(*conditional->then_expr),
+        clone_expr(*conditional->condition),
+        clone_expr(*conditional->else_expr));
+  }
+  if (auto* named = dynamic_cast<const ast::NamedExpr*>(&expr)) {
+    return std::make_unique<ast::NamedExpr>(named->name, clone_expr(*named->value));
+  }
+  if (auto* lambda = dynamic_cast<const ast::LambdaExpr*>(&expr)) {
+    std::vector<ast::LambdaExpr::Param> signature;
+    signature.reserve(lambda->signature.size());
+    for (const auto& source_param : lambda->signature) {
+      ast::LambdaExpr::Param param;
+      param.name = source_param.name;
+      param.kind = source_param.kind;
+      if (source_param.default_value != nullptr) {
+        param.default_value = clone_expr(*source_param.default_value);
+      }
+      signature.push_back(std::move(param));
+    }
+    auto out = std::make_unique<ast::LambdaExpr>(
+        lambda->params,
+        std::move(signature),
+        clone_expr(*lambda->body));
+    out->line = lambda->line;
+    out->column = lambda->column;
+    out->end_line = lambda->end_line;
+    out->end_column = lambda->end_column;
+    return out;
+  }
+  if (auto* starred = dynamic_cast<const ast::StarredExpr*>(&expr)) {
+    return std::make_unique<ast::StarredExpr>(clone_expr(*starred->expr));
+  }
+  if (auto* call = dynamic_cast<const ast::CallExpr*>(&expr)) {
+    const auto copy_location = [&](ast::ExprPtr out) {
+      out->line = call->line;
+      out->column = call->column;
+      out->end_line = call->end_line;
+      out->end_column = call->end_column;
+      return out;
+    };
+    if (!call->call_args.empty()) {
+      std::vector<ast::CallExpr::Arg> args;
+      for (const auto& arg : call->call_args) {
+        ast::CallExpr::Arg cloned;
+        cloned.name = arg.name;
+        cloned.star = arg.star;
+        cloned.kw_star = arg.kw_star;
+        cloned.value = clone_expr(*arg.value);
+        args.push_back(std::move(cloned));
+      }
+      return copy_location(
+          std::make_unique<ast::CallExpr>(clone_expr(*call->callee), std::move(args)));
+    }
+    std::vector<ast::ExprPtr> args;
+    for (const auto& arg : call->args) {
+      args.push_back(clone_expr(*arg));
+    }
+    return copy_location(
+        std::make_unique<ast::CallExpr>(clone_expr(*call->callee), std::move(args)));
+  }
+  if (auto* subscript = dynamic_cast<const ast::SubscriptExpr*>(&expr)) {
+    return std::make_unique<ast::SubscriptExpr>(clone_expr(*subscript->object), clone_expr(*subscript->index));
+  }
+  if (auto* slice = dynamic_cast<const ast::SliceExpr*>(&expr)) {
+    return std::make_unique<ast::SliceExpr>(
+        clone_expr(*slice->start),
+        clone_expr(*slice->stop),
+        clone_expr(*slice->step));
+  }
+  if (auto* attr = dynamic_cast<const ast::AttrExpr*>(&expr)) {
+    return std::make_unique<ast::AttrExpr>(clone_expr(*attr->object), attr->name);
+  }
+  if (auto* tuple = dynamic_cast<const ast::TupleExpr*>(&expr)) {
+    std::vector<ast::ExprPtr> items;
+    for (const auto& item : tuple->items) items.push_back(clone_expr(*item));
+    return std::make_unique<ast::TupleExpr>(std::move(items));
+  }
+  if (auto* list = dynamic_cast<const ast::ListExpr*>(&expr)) {
+    std::vector<ast::ExprPtr> items;
+    for (const auto& item : list->items) items.push_back(clone_expr(*item));
+    return std::make_unique<ast::ListExpr>(std::move(items));
+  }
+  if (auto* dict = dynamic_cast<const ast::DictExpr*>(&expr)) {
+    std::vector<std::pair<ast::ExprPtr, ast::ExprPtr>> entries;
+    entries.reserve(dict->entries.size());
+    for (const auto& entry : dict->entries) {
+      entries.push_back(std::make_pair(
+          entry.first ? clone_expr(*entry.first) : nullptr,
+          clone_expr(*entry.second)));
+    }
+    return std::make_unique<ast::DictExpr>(std::move(entries));
+  }
+  if (auto* set = dynamic_cast<const ast::SetExpr*>(&expr)) {
+    std::vector<ast::ExprPtr> items;
+    for (const auto& item : set->items) items.push_back(clone_expr(*item));
+    return std::make_unique<ast::SetExpr>(std::move(items));
+  }
+  if (auto* comp = dynamic_cast<const ast::ListCompExpr*>(&expr)) {
+    auto out = std::make_unique<ast::ListCompExpr>(
+        clone_expr(*comp->result),
+        comp->target,
+        clone_expr(*comp->target_expr),
+        clone_expr(*comp->iterable),
+        comp->filter == nullptr ? ast::ExprPtr{} : clone_expr(*comp->filter));
+    out->is_async = comp->is_async;
+    for (const auto& clause : comp->extra_clauses) {
+      ast::CompClause cloned;
+      cloned.target = clause.target;
+      cloned.target_expr = clone_expr(*clause.target_expr);
+      cloned.iterable = clone_expr(*clause.iterable);
+      cloned.filter = clause.filter == nullptr ? ast::ExprPtr{} : clone_expr(*clause.filter);
+      cloned.is_async = clause.is_async;
+      out->extra_clauses.push_back(std::move(cloned));
+    }
+    return out;
+  }
+  if (auto* comp = dynamic_cast<const ast::DictCompExpr*>(&expr)) {
+    auto out = std::make_unique<ast::DictCompExpr>(
+        clone_expr(*comp->key),
+        clone_expr(*comp->value),
+        comp->target,
+        clone_expr(*comp->target_expr),
+        clone_expr(*comp->iterable),
+        comp->filter == nullptr ? ast::ExprPtr{} : clone_expr(*comp->filter));
+    out->is_async = comp->is_async;
+    for (const auto& clause : comp->extra_clauses) {
+      ast::CompClause cloned;
+      cloned.target = clause.target;
+      cloned.target_expr = clone_expr(*clause.target_expr);
+      cloned.iterable = clone_expr(*clause.iterable);
+      cloned.filter = clause.filter == nullptr ? ast::ExprPtr{} : clone_expr(*clause.filter);
+      cloned.is_async = clause.is_async;
+      out->extra_clauses.push_back(std::move(cloned));
+    }
+    return out;
+  }
+  if (auto* comp = dynamic_cast<const ast::SetCompExpr*>(&expr)) {
+    auto out = std::make_unique<ast::SetCompExpr>(
+        clone_expr(*comp->result),
+        comp->target,
+        clone_expr(*comp->target_expr),
+        clone_expr(*comp->iterable),
+        comp->filter == nullptr ? ast::ExprPtr{} : clone_expr(*comp->filter));
+    out->is_async = comp->is_async;
+    for (const auto& clause : comp->extra_clauses) {
+      ast::CompClause cloned;
+      cloned.target = clause.target;
+      cloned.target_expr = clone_expr(*clause.target_expr);
+      cloned.iterable = clone_expr(*clause.iterable);
+      cloned.filter = clause.filter == nullptr ? ast::ExprPtr{} : clone_expr(*clause.filter);
+      cloned.is_async = clause.is_async;
+      out->extra_clauses.push_back(std::move(cloned));
+    }
+    return out;
+  }
+  if (auto* comp = dynamic_cast<const ast::GeneratorExpr*>(&expr)) {
+    auto out = std::make_unique<ast::GeneratorExpr>(
+        clone_expr(*comp->result),
+        comp->target,
+        clone_expr(*comp->target_expr),
+        clone_expr(*comp->iterable),
+        comp->filter == nullptr ? ast::ExprPtr{} : clone_expr(*comp->filter));
+    out->is_async = comp->is_async;
+    for (const auto& clause : comp->extra_clauses) {
+      ast::CompClause cloned;
+      cloned.target = clause.target;
+      cloned.target_expr = clone_expr(*clause.target_expr);
+      cloned.iterable = clone_expr(*clause.iterable);
+      cloned.filter = clause.filter == nullptr ? ast::ExprPtr{} : clone_expr(*clause.filter);
+      cloned.is_async = clause.is_async;
+      out->extra_clauses.push_back(std::move(cloned));
+    }
+    out->line = comp->line;
+    out->column = comp->column;
+    out->end_line = comp->end_line;
+    out->end_column = comp->end_column;
+    return out;
+  }
+  return std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::None);
+}
+
+bool expr_contains_yield(const ast::Expr& expr) {
+  if (dynamic_cast<const ast::YieldExpr*>(&expr) != nullptr) {
+    return true;
+  }
+  if (auto* unary = dynamic_cast<const ast::UnaryExpr*>(&expr)) {
+    return expr_contains_yield(*unary->expr);
+  }
+  if (auto* await = dynamic_cast<const ast::AwaitExpr*>(&expr)) {
+    return expr_contains_yield(*await->expr);
+  }
+  if (dynamic_cast<const ast::FStringExpr*>(&expr) != nullptr) {
+    return false;
+  }
+  if (auto* binary = dynamic_cast<const ast::BinaryExpr*>(&expr)) {
+    return expr_contains_yield(*binary->lhs) || expr_contains_yield(*binary->rhs);
+  }
+  if (auto* chain = dynamic_cast<const ast::CompareChainExpr*>(&expr)) {
+    if (expr_contains_yield(*chain->first)) return true;
+    for (const auto& comparison : chain->comparisons) {
+      if (expr_contains_yield(*comparison.second)) return true;
+    }
+    return false;
+  }
+  if (auto* conditional = dynamic_cast<const ast::ConditionalExpr*>(&expr)) {
+    return expr_contains_yield(*conditional->then_expr) ||
+           expr_contains_yield(*conditional->condition) ||
+           expr_contains_yield(*conditional->else_expr);
+  }
+  if (auto* named = dynamic_cast<const ast::NamedExpr*>(&expr)) {
+    return expr_contains_yield(*named->value);
+  }
+  if (auto* starred = dynamic_cast<const ast::StarredExpr*>(&expr)) {
+    return expr_contains_yield(*starred->expr);
+  }
+  if (auto* call = dynamic_cast<const ast::CallExpr*>(&expr)) {
+    if (expr_contains_yield(*call->callee)) return true;
+    for (const auto& arg : call->args) {
+      if (expr_contains_yield(*arg)) return true;
+    }
+    for (const auto& arg : call->call_args) {
+      if (expr_contains_yield(*arg.value)) return true;
+    }
+    return false;
+  }
+  if (auto* subscript = dynamic_cast<const ast::SubscriptExpr*>(&expr)) {
+    return expr_contains_yield(*subscript->object) || expr_contains_yield(*subscript->index);
+  }
+  if (auto* slice = dynamic_cast<const ast::SliceExpr*>(&expr)) {
+    return expr_contains_yield(*slice->start) || expr_contains_yield(*slice->stop) || expr_contains_yield(*slice->step);
+  }
+  if (auto* attr = dynamic_cast<const ast::AttrExpr*>(&expr)) {
+    return expr_contains_yield(*attr->object);
+  }
+  if (auto* tuple = dynamic_cast<const ast::TupleExpr*>(&expr)) {
+    for (const auto& item : tuple->items) {
+      if (expr_contains_yield(*item)) return true;
+    }
+    return false;
+  }
+  if (auto* list = dynamic_cast<const ast::ListExpr*>(&expr)) {
+    for (const auto& item : list->items) {
+      if (expr_contains_yield(*item)) return true;
+    }
+    return false;
+  }
+  if (auto* comp = dynamic_cast<const ast::ListCompExpr*>(&expr)) {
+    if (expr_contains_yield(*comp->result) ||
+        expr_contains_yield(*comp->iterable) ||
+        (comp->filter != nullptr && expr_contains_yield(*comp->filter))) {
+      return true;
+    }
+    for (const auto& clause : comp->extra_clauses) {
+      if (expr_contains_yield(*clause.iterable) ||
+          (clause.filter != nullptr && expr_contains_yield(*clause.filter))) {
+        return true;
+      }
+    }
+    return false;
+  }
+  if (auto* comp = dynamic_cast<const ast::DictCompExpr*>(&expr)) {
+    if (expr_contains_yield(*comp->key) ||
+        expr_contains_yield(*comp->value) ||
+        expr_contains_yield(*comp->iterable) ||
+        (comp->filter != nullptr && expr_contains_yield(*comp->filter))) {
+      return true;
+    }
+    for (const auto& clause : comp->extra_clauses) {
+      if (expr_contains_yield(*clause.iterable) ||
+          (clause.filter != nullptr && expr_contains_yield(*clause.filter))) {
+        return true;
+      }
+    }
+    return false;
+  }
+  if (auto* comp = dynamic_cast<const ast::SetCompExpr*>(&expr)) {
+    if (expr_contains_yield(*comp->result) ||
+        expr_contains_yield(*comp->iterable) ||
+        (comp->filter != nullptr && expr_contains_yield(*comp->filter))) {
+      return true;
+    }
+    for (const auto& clause : comp->extra_clauses) {
+      if (expr_contains_yield(*clause.iterable) ||
+          (clause.filter != nullptr && expr_contains_yield(*clause.filter))) {
+        return true;
+      }
+    }
+    return false;
+  }
+  if (auto* comp = dynamic_cast<const ast::GeneratorExpr*>(&expr)) {
+    if (expr_contains_yield(*comp->result) ||
+        expr_contains_yield(*comp->iterable) ||
+        (comp->filter != nullptr && expr_contains_yield(*comp->filter))) {
+      return true;
+    }
+    for (const auto& clause : comp->extra_clauses) {
+      if (expr_contains_yield(*clause.iterable) ||
+          (clause.filter != nullptr && expr_contains_yield(*clause.filter))) {
+        return true;
+      }
+    }
+    return false;
+  }
+  return false;
+}
+
+bool stmt_contains_yield(const ast::Stmt& stmt);
+
+bool body_contains_yield(const std::vector<ast::StmtPtr>& body) {
+  for (const auto& stmt : body) {
+    if (stmt_contains_yield(*stmt)) return true;
+  }
+  return false;
+}
+
+bool stmt_contains_yield(const ast::Stmt& stmt) {
+  if (auto* expr = dynamic_cast<const ast::ExprStmt*>(&stmt)) {
+    return expr_contains_yield(*expr->expr);
+  }
+  if (auto* assign = dynamic_cast<const ast::AssignStmt*>(&stmt)) {
+    return expr_contains_yield(*assign->value);
+  }
+  if (auto* assign = dynamic_cast<const ast::AnnotatedAssignStmt*>(&stmt)) {
+    if (assign->value == nullptr) return false;
+    return expr_contains_yield(*assign->target) || expr_contains_yield(*assign->value);
+  }
+  if (auto* assign = dynamic_cast<const ast::MultiAssignStmt*>(&stmt)) {
+    if (expr_contains_yield(*assign->value)) return true;
+    for (const auto& target : assign->targets) {
+      if (expr_contains_yield(*target)) return true;
+    }
+    return false;
+  }
+  if (auto* assign = dynamic_cast<const ast::SubscriptAssignStmt*>(&stmt)) {
+    return expr_contains_yield(*assign->object) || expr_contains_yield(*assign->index) ||
+           expr_contains_yield(*assign->value);
+  }
+  if (auto* assign = dynamic_cast<const ast::AttrAssignStmt*>(&stmt)) {
+    return expr_contains_yield(*assign->object) || expr_contains_yield(*assign->value);
+  }
+  if (auto* ret = dynamic_cast<const ast::ReturnStmt*>(&stmt)) {
+    return ret->value != nullptr && expr_contains_yield(*ret->value);
+  }
+  if (auto* ifs = dynamic_cast<const ast::IfStmt*>(&stmt)) {
+    return expr_contains_yield(*ifs->condition) || body_contains_yield(ifs->then_body) ||
+           body_contains_yield(ifs->else_body);
+  }
+  if (auto* loop = dynamic_cast<const ast::WhileStmt*>(&stmt)) {
+    return expr_contains_yield(*loop->condition) || body_contains_yield(loop->body);
+  }
+  if (auto* loop = dynamic_cast<const ast::ForStmt*>(&stmt)) {
+    return expr_contains_yield(*loop->iterable) || body_contains_yield(loop->body);
+  }
+  if (auto* block = dynamic_cast<const ast::WithStmt*>(&stmt)) {
+    return expr_contains_yield(*block->manager) || body_contains_yield(block->body);
+  }
+  if (auto* block = dynamic_cast<const ast::TryExceptStmt*>(&stmt)) {
+    if (body_contains_yield(block->try_body) || body_contains_yield(block->else_body) ||
+        body_contains_yield(block->finally_body)) {
+      return true;
+    }
+    for (const auto& handler : block->handlers) {
+      if ((handler.type != nullptr && expr_contains_yield(*handler.type)) || body_contains_yield(handler.body)) {
+        return true;
+      }
+    }
+    return false;
+  }
+  if (auto* match = dynamic_cast<const ast::MatchStmt*>(&stmt)) {
+    if (expr_contains_yield(*match->subject)) return true;
+    for (const auto& match_case : match->cases) {
+      if ((match_case.pattern != nullptr && expr_contains_yield(*match_case.pattern)) ||
+          body_contains_yield(match_case.body)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+void collect_self_attr_slots_expr(
+    const ast::Expr& expr,
+    const std::string& self_name,
+    std::vector<std::string>& slots,
+    std::unordered_set<std::string>& seen) {
+  if (auto* attr = dynamic_cast<const ast::AttrExpr*>(&expr)) {
+    collect_self_attr_slots_expr(*attr->object, self_name, slots, seen);
+    return;
+  }
+  if (auto* unary = dynamic_cast<const ast::UnaryExpr*>(&expr)) {
+    collect_self_attr_slots_expr(*unary->expr, self_name, slots, seen);
+    return;
+  }
+  if (auto* await = dynamic_cast<const ast::AwaitExpr*>(&expr)) {
+    collect_self_attr_slots_expr(*await->expr, self_name, slots, seen);
+    return;
+  }
+  if (auto* yield = dynamic_cast<const ast::YieldExpr*>(&expr)) {
+    if (yield->expr != nullptr) {
+      collect_self_attr_slots_expr(*yield->expr, self_name, slots, seen);
+    }
+    return;
+  }
+  if (dynamic_cast<const ast::FStringExpr*>(&expr) != nullptr) {
+    return;
+  }
+  if (auto* binary = dynamic_cast<const ast::BinaryExpr*>(&expr)) {
+    collect_self_attr_slots_expr(*binary->lhs, self_name, slots, seen);
+    collect_self_attr_slots_expr(*binary->rhs, self_name, slots, seen);
+    return;
+  }
+  if (auto* chain = dynamic_cast<const ast::CompareChainExpr*>(&expr)) {
+    collect_self_attr_slots_expr(*chain->first, self_name, slots, seen);
+    for (const auto& comparison : chain->comparisons) {
+      collect_self_attr_slots_expr(*comparison.second, self_name, slots, seen);
+    }
+    return;
+  }
+  if (auto* conditional = dynamic_cast<const ast::ConditionalExpr*>(&expr)) {
+    collect_self_attr_slots_expr(*conditional->then_expr, self_name, slots, seen);
+    collect_self_attr_slots_expr(*conditional->condition, self_name, slots, seen);
+    collect_self_attr_slots_expr(*conditional->else_expr, self_name, slots, seen);
+    return;
+  }
+  if (auto* named = dynamic_cast<const ast::NamedExpr*>(&expr)) {
+    collect_self_attr_slots_expr(*named->value, self_name, slots, seen);
+    return;
+  }
+  if (auto* starred = dynamic_cast<const ast::StarredExpr*>(&expr)) {
+    collect_self_attr_slots_expr(*starred->expr, self_name, slots, seen);
+    return;
+  }
+  if (auto* call = dynamic_cast<const ast::CallExpr*>(&expr)) {
+    collect_self_attr_slots_expr(*call->callee, self_name, slots, seen);
+    for (const auto& arg : call->args) {
+      collect_self_attr_slots_expr(*arg, self_name, slots, seen);
+    }
+    for (const auto& arg : call->call_args) {
+      collect_self_attr_slots_expr(*arg.value, self_name, slots, seen);
+    }
+    return;
+  }
+  if (auto* subscript = dynamic_cast<const ast::SubscriptExpr*>(&expr)) {
+    collect_self_attr_slots_expr(*subscript->object, self_name, slots, seen);
+    collect_self_attr_slots_expr(*subscript->index, self_name, slots, seen);
+    return;
+  }
+  if (auto* slice = dynamic_cast<const ast::SliceExpr*>(&expr)) {
+    if (slice->start != nullptr) collect_self_attr_slots_expr(*slice->start, self_name, slots, seen);
+    if (slice->stop != nullptr) collect_self_attr_slots_expr(*slice->stop, self_name, slots, seen);
+    if (slice->step != nullptr) collect_self_attr_slots_expr(*slice->step, self_name, slots, seen);
+    return;
+  }
+  if (auto* tuple = dynamic_cast<const ast::TupleExpr*>(&expr)) {
+    for (const auto& item : tuple->items) {
+      collect_self_attr_slots_expr(*item, self_name, slots, seen);
+    }
+    return;
+  }
+  if (auto* list = dynamic_cast<const ast::ListExpr*>(&expr)) {
+    for (const auto& item : list->items) {
+      collect_self_attr_slots_expr(*item, self_name, slots, seen);
+    }
+    return;
+  }
+  if (auto* set = dynamic_cast<const ast::SetExpr*>(&expr)) {
+    for (const auto& item : set->items) {
+      collect_self_attr_slots_expr(*item, self_name, slots, seen);
+    }
+    return;
+  }
+  if (auto* dict = dynamic_cast<const ast::DictExpr*>(&expr)) {
+    for (const auto& entry : dict->entries) {
+      if (entry.first != nullptr) collect_self_attr_slots_expr(*entry.first, self_name, slots, seen);
+      collect_self_attr_slots_expr(*entry.second, self_name, slots, seen);
+    }
+    return;
+  }
+  if (auto* comp = dynamic_cast<const ast::ListCompExpr*>(&expr)) {
+    collect_self_attr_slots_expr(*comp->result, self_name, slots, seen);
+    collect_self_attr_slots_expr(*comp->iterable, self_name, slots, seen);
+    if (comp->filter) {
+      collect_self_attr_slots_expr(*comp->filter, self_name, slots, seen);
+    }
+    for (const auto& clause : comp->extra_clauses) {
+      collect_self_attr_slots_expr(*clause.iterable, self_name, slots, seen);
+      if (clause.filter) {
+        collect_self_attr_slots_expr(*clause.filter, self_name, slots, seen);
+      }
+    }
+    return;
+  }
+  if (auto* comp = dynamic_cast<const ast::DictCompExpr*>(&expr)) {
+    collect_self_attr_slots_expr(*comp->key, self_name, slots, seen);
+    collect_self_attr_slots_expr(*comp->value, self_name, slots, seen);
+    collect_self_attr_slots_expr(*comp->iterable, self_name, slots, seen);
+    if (comp->filter) {
+      collect_self_attr_slots_expr(*comp->filter, self_name, slots, seen);
+    }
+    for (const auto& clause : comp->extra_clauses) {
+      collect_self_attr_slots_expr(*clause.iterable, self_name, slots, seen);
+      if (clause.filter) {
+        collect_self_attr_slots_expr(*clause.filter, self_name, slots, seen);
+      }
+    }
+    return;
+  }
+  if (auto* comp = dynamic_cast<const ast::SetCompExpr*>(&expr)) {
+    collect_self_attr_slots_expr(*comp->result, self_name, slots, seen);
+    collect_self_attr_slots_expr(*comp->iterable, self_name, slots, seen);
+    if (comp->filter) {
+      collect_self_attr_slots_expr(*comp->filter, self_name, slots, seen);
+    }
+    for (const auto& clause : comp->extra_clauses) {
+      collect_self_attr_slots_expr(*clause.iterable, self_name, slots, seen);
+      if (clause.filter) {
+        collect_self_attr_slots_expr(*clause.filter, self_name, slots, seen);
+      }
+    }
+    return;
+  }
+  if (auto* comp = dynamic_cast<const ast::GeneratorExpr*>(&expr)) {
+    collect_self_attr_slots_expr(*comp->result, self_name, slots, seen);
+    collect_self_attr_slots_expr(*comp->iterable, self_name, slots, seen);
+    if (comp->filter) {
+      collect_self_attr_slots_expr(*comp->filter, self_name, slots, seen);
+    }
+    for (const auto& clause : comp->extra_clauses) {
+      collect_self_attr_slots_expr(*clause.iterable, self_name, slots, seen);
+      if (clause.filter) {
+        collect_self_attr_slots_expr(*clause.filter, self_name, slots, seen);
+      }
+    }
+    return;
+  }
+  if (auto* lambda = dynamic_cast<const ast::LambdaExpr*>(&expr)) {
+    collect_self_attr_slots_expr(*lambda->body, self_name, slots, seen);
+  }
+}
+
+void collect_self_attr_slots_stmt(
+    const ast::Stmt& stmt,
+    const std::string& self_name,
+    std::vector<std::string>& slots,
+    std::unordered_set<std::string>& seen) {
+  if (auto* assign = dynamic_cast<const ast::AttrAssignStmt*>(&stmt)) {
+    if (auto* name = dynamic_cast<const ast::NameExpr*>(assign->object.get())) {
+      if (name->name == self_name) {
+        add_slot_name(assign->name, slots, seen);
+      }
+    }
+    collect_self_attr_slots_expr(*assign->object, self_name, slots, seen);
+    collect_self_attr_slots_expr(*assign->value, self_name, slots, seen);
+    return;
+  }
+  if (auto* assign = dynamic_cast<const ast::AssignStmt*>(&stmt)) {
+    collect_self_attr_slots_expr(*assign->value, self_name, slots, seen);
+    return;
+  }
+  if (auto* assign = dynamic_cast<const ast::AnnotatedAssignStmt*>(&stmt)) {
+    collect_self_attr_slots_expr(*assign->target, self_name, slots, seen);
+    if (assign->value != nullptr) {
+      collect_self_attr_slots_expr(*assign->value, self_name, slots, seen);
+    }
+    return;
+  }
+  if (auto* assign = dynamic_cast<const ast::SubscriptAssignStmt*>(&stmt)) {
+    collect_self_attr_slots_expr(*assign->object, self_name, slots, seen);
+    collect_self_attr_slots_expr(*assign->index, self_name, slots, seen);
+    collect_self_attr_slots_expr(*assign->value, self_name, slots, seen);
+    return;
+  }
+  if (auto* del = dynamic_cast<const ast::DelStmt*>(&stmt)) {
+    collect_self_attr_slots_expr(*del->target, self_name, slots, seen);
+    return;
+  }
+  if (auto* assert_stmt = dynamic_cast<const ast::AssertStmt*>(&stmt)) {
+    collect_self_attr_slots_expr(*assert_stmt->condition, self_name, slots, seen);
+    if (assert_stmt->message != nullptr) {
+      collect_self_attr_slots_expr(*assert_stmt->message, self_name, slots, seen);
+    }
+    return;
+  }
+  if (auto* expr = dynamic_cast<const ast::ExprStmt*>(&stmt)) {
+    collect_self_attr_slots_expr(*expr->expr, self_name, slots, seen);
+    return;
+  }
+  if (auto* ret = dynamic_cast<const ast::ReturnStmt*>(&stmt)) {
+    if (ret->value != nullptr) {
+      collect_self_attr_slots_expr(*ret->value, self_name, slots, seen);
+    }
+    return;
+  }
+  if (auto* raise = dynamic_cast<const ast::RaiseStmt*>(&stmt)) {
+    if (raise->value != nullptr) {
+      collect_self_attr_slots_expr(*raise->value, self_name, slots, seen);
+    }
+    if (raise->cause != nullptr) {
+      collect_self_attr_slots_expr(*raise->cause, self_name, slots, seen);
+    }
+    return;
+  }
+  if (auto* ifs = dynamic_cast<const ast::IfStmt*>(&stmt)) {
+    collect_self_attr_slots_expr(*ifs->condition, self_name, slots, seen);
+    for (const auto& child : ifs->then_body) collect_self_attr_slots_stmt(*child, self_name, slots, seen);
+    for (const auto& child : ifs->else_body) collect_self_attr_slots_stmt(*child, self_name, slots, seen);
+    return;
+  }
+  if (auto* loop = dynamic_cast<const ast::WhileStmt*>(&stmt)) {
+    collect_self_attr_slots_expr(*loop->condition, self_name, slots, seen);
+    for (const auto& child : loop->body) collect_self_attr_slots_stmt(*child, self_name, slots, seen);
+    return;
+  }
+  if (auto* loop = dynamic_cast<const ast::ForStmt*>(&stmt)) {
+    collect_self_attr_slots_expr(*loop->iterable, self_name, slots, seen);
+    for (const auto& child : loop->body) collect_self_attr_slots_stmt(*child, self_name, slots, seen);
+    return;
+  }
+  if (auto* try_except = dynamic_cast<const ast::TryExceptStmt*>(&stmt)) {
+    for (const auto& child : try_except->try_body) collect_self_attr_slots_stmt(*child, self_name, slots, seen);
+    for (const auto& handler : try_except->handlers) {
+      if (handler.type != nullptr) {
+        collect_self_attr_slots_expr(*handler.type, self_name, slots, seen);
+      }
+      for (const auto& child : handler.body) collect_self_attr_slots_stmt(*child, self_name, slots, seen);
+    }
+    for (const auto& child : try_except->else_body) collect_self_attr_slots_stmt(*child, self_name, slots, seen);
+    for (const auto& child : try_except->finally_body) collect_self_attr_slots_stmt(*child, self_name, slots, seen);
+    return;
+  }
+  if (auto* with = dynamic_cast<const ast::WithStmt*>(&stmt)) {
+    collect_self_attr_slots_expr(*with->manager, self_name, slots, seen);
+    for (const auto& child : with->body) collect_self_attr_slots_stmt(*child, self_name, slots, seen);
+    return;
+  }
+  if (auto* match = dynamic_cast<const ast::MatchStmt*>(&stmt)) {
+    collect_self_attr_slots_expr(*match->subject, self_name, slots, seen);
+    for (const auto& match_case : match->cases) {
+      if (match_case.pattern != nullptr) {
+        collect_self_attr_slots_expr(*match_case.pattern, self_name, slots, seen);
+      }
+      for (const auto& child : match_case.body) collect_self_attr_slots_stmt(*child, self_name, slots, seen);
+    }
+  }
+}
+
+void collect_global_names(const std::vector<ast::StmtPtr>& body, sema::NameSet& names) {
+  for (const auto& stmt : body) {
+    if (auto* global = dynamic_cast<const ast::GlobalStmt*>(stmt.get())) {
+      for (const auto& name : global->names) {
+        names.insert(name);
+      }
+    } else if (auto* ifs = dynamic_cast<const ast::IfStmt*>(stmt.get())) {
+      collect_global_names(ifs->then_body, names);
+      collect_global_names(ifs->else_body, names);
+    } else if (auto* try_except = dynamic_cast<const ast::TryExceptStmt*>(stmt.get())) {
+      collect_global_names(try_except->try_body, names);
+      for (const auto& handler : try_except->handlers) {
+        collect_global_names(handler.body, names);
+      }
+      collect_global_names(try_except->else_body, names);
+      collect_global_names(try_except->finally_body, names);
+    } else if (auto* with = dynamic_cast<const ast::WithStmt*>(stmt.get())) {
+      collect_global_names(with->body, names);
+    } else if (auto* loop = dynamic_cast<const ast::WhileStmt*>(stmt.get())) {
+      collect_global_names(loop->body, names);
+    } else if (auto* loop = dynamic_cast<const ast::ForStmt*>(stmt.get())) {
+      collect_global_names(loop->body, names);
+    } else if (auto* match = dynamic_cast<const ast::MatchStmt*>(stmt.get())) {
+      for (const auto& match_case : match->cases) {
+        collect_global_names(match_case.body, names);
+      }
+    }
+  }
+}
+
+class FunctionLowerer {
+public:
+  FunctionLowerer(
+      ir::Module& module,
+      std::string name,
+      std::vector<std::string> params,
+      std::vector<ir::Param> signature,
+      std::vector<std::string> free_vars,
+      const std::vector<ast::StmtPtr>& body,
+      bool is_generator,
+      bool is_async,
+      bool is_coroutine,
+      uint32_t first_line = 0,
+      bool is_module = false,
+      std::string instance_slot_self = {},
+      std::unordered_map<std::string, uint32_t> instance_slots = {},
+      std::unordered_map<std::string, ClassInfo> class_infos = {},
+      std::unordered_map<std::string, uint32_t> module_global_slots = {},
+      std::unordered_set<uint32_t> imported_module_slots = {},
+      std::string qualname_prefix = {},
+      bool future_annotations = false,
+      std::string private_class_name = {})
+      : module_(module),
+        is_module_(is_module),
+        future_annotations_(future_annotations),
+        instance_slot_self_(std::move(instance_slot_self)),
+        instance_slots_(std::move(instance_slots)),
+        class_infos_(std::move(class_infos)),
+        module_global_slots_(std::move(module_global_slots)),
+        imported_module_slots_(std::move(imported_module_slots)),
+        qualname_prefix_(std::move(qualname_prefix)),
+        private_class_name_(std::move(private_class_name)) {
+    fn_.name = std::move(name);
+    fn_.qualname = qualname_prefix_.empty() ? fn_.name : qualname_prefix_ + "." + fn_.name;
+    fn_.is_generator = is_generator;
+    fn_.is_async = is_async;
+    fn_.is_coroutine = is_coroutine;
+    fn_.first_line = first_line;
+    fn_.doc = docstring_from_body(body);
+    fn_.params = std::move(params);
+    fn_.signature = std::move(signature);
+    fn_.free_vars = std::move(free_vars);
+    const size_t instruction_hint = body.size() * 6 + 2;
+    fn_.code.reserve(instruction_hint);
+    fn_.source_lines.reserve(instruction_hint);
+    fn_.source_positions.reserve(instruction_hint);
+    fn_.constants.reserve(body.size() * 2 + 1);
+    fn_.names.reserve(body.size() * 2 + 1);
+    fn_.call_args.reserve(body.size());
+    for (size_t i = 0; i < fn_.free_vars.size(); ++i) {
+      free_indices_[fn_.free_vars[i]] = static_cast<uint32_t>(i);
+    }
+
+    const auto locals = is_module_ ? std::vector<std::string>{} : sema::local_names_for(fn_.params, body);
+    for (const auto& local : locals) {
+      ensure_local(local);
+    }
+    local_name_set_.insert(locals.begin(), locals.end());
+    collect_global_names(body, global_names_);
+
+    prepare_captured_locals(body);
+  }
+
+  ir::Function finish() {
+    emit_return_none();
+    mark_numeric_loop_move_chains();
+    mark_range_sum_loops();
+    mark_local_move_add_loops();
+    mark_call_accumulator_consumers();
+    mark_call_accumulate_loops();
+    mark_construct_method_accumulate_loops();
+    mark_scalar_arithmetic_loops();
+    mark_property_access_loops();
+    return std::move(fn_);
+  }
+
+  void lower_body(const std::vector<ast::StmtPtr>& body, bool skip_leading_docstring = false) {
+    for (size_t i = 0; i < body.size(); ++i) {
+      if (i == 0 && skip_leading_docstring) {
+        continue;
+      }
+      lower_stmt(*body[i]);
+    }
+  }
+
+private:
+  void mark_range_sum_loops() {
+    for (size_t range_ip = 0; range_ip + 1 < fn_.code.size(); ++range_ip) {
+      auto& range = fn_.code[range_ip];
+      const auto& add = fn_.code[range_ip + 1];
+      if (range.op != ir::Op::ForRangeConstLocalNext ||
+          range.c > ir::kRangeSumSpecMask ||
+          range.a >= fn_.locals.size() || range.b >= fn_.locals.size() ||
+          add.op != ir::Op::AddLocalLocal ||
+          (add.c & ir::kGuardedLocalAddFlag) == 0) {
+        continue;
+      }
+      const size_t fallback_span = add.c & ir::kGuardedLocalAddSpanMask;
+      const size_t back_edge_ip = range_ip + 1 + fallback_span + 1;
+      if (fallback_span == 0 || back_edge_ip >= fn_.code.size() ||
+          fn_.code[back_edge_ip].op != ir::Op::Jump ||
+          fn_.code[back_edge_ip].dst != range_ip) {
+        continue;
+      }
+      // Recognize only a side-effect-free local sum whose guarded add already
+      // owns the normal bytecode fallback and whose back-edge returns here.
+      uint32_t accumulator = UINT32_MAX;
+      if (add.dst == add.a && add.b == range.a) accumulator = add.a;
+      else if (add.dst == add.b && add.a == range.a) accumulator = add.b;
+      if (accumulator >= fn_.locals.size() || accumulator == range.b || accumulator > 0x7fffu) {
+        continue;
+      }
+      range.op = ir::Op::ForRangeConstLocalSum;
+      range.c = ir::kRangeSumFusionFlag |
+          (accumulator << ir::kRangeSumAccumulatorShift) | range.c;
+    }
+  }
+
+  void mark_local_move_add_loops() {
+    for (size_t loop_ip = 0; loop_ip + 1 < fn_.code.size(); ++loop_ip) {
+      auto& condition = fn_.code[loop_ip];
+      if (condition.op != ir::Op::JumpIfLocalConstFalse ||
+          condition.c != static_cast<uint32_t>(ir::CompareOp::Lt) ||
+          condition.a >= fn_.locals.size() || condition.b >= fn_.constants.size() ||
+          fn_.constants[condition.b].tag != ValueTag::Int64) {
+        continue;
+      }
+      // Mark the common list.append(local) loop only when its increment has
+      // the same guarded fallback/back-edge shape as the local-move fusion.
+      // Runtime method-cache identity, exact values, and observer state guard batching.
+      if (loop_ip + 4 < fn_.code.size()) {
+        const auto& pair = fn_.code[loop_ip + 1];
+        const auto& call = fn_.code[loop_ip + 2];
+        const auto& pop = fn_.code[loop_ip + 3];
+        const auto& add = fn_.code[loop_ip + 4];
+        if (pair.op == ir::Op::LoadLocalPair && call.op == ir::Op::CallMethod &&
+            pop.op == ir::Op::Pop && pop.a == call.dst && call.a == pair.dst &&
+            call.c < fn_.call_args.size() && fn_.call_args[call.c].size() == 1 &&
+            fn_.call_args[call.c][0] == pair.b && add.op == ir::Op::AddLocalConst &&
+            add.dst == condition.a && add.a == condition.a &&
+            pair.a < fn_.locals.size() && pair.c == condition.a &&
+            pair.a != condition.a && pair.a <= 0x7fffu &&
+            add.b < fn_.constants.size() && add.b <= 0xffffu &&
+            fn_.constants[add.b].tag == ValueTag::Int64 &&
+            fn_.constants[add.b].as.i64 > 0 &&
+            (add.c & ir::kGuardedLocalAddFlag) != 0) {
+          const size_t fallback = add.c & ir::kGuardedLocalAddSpanMask;
+          const size_t back = loop_ip + 4 + fallback + 1;
+          if (fallback != 0 && back < fn_.code.size() &&
+              fn_.code[back].op == ir::Op::Jump && fn_.code[back].dst == loop_ip &&
+              condition.dst == back + 1) {
+            condition.op = ir::Op::ForLocalMoveAddLoop;
+            condition.c = ir::kLocalAppendLoopFlag |
+                (pair.a << ir::kLocalAppendLoopListShift) | add.b;
+            continue;
+          }
+        }
+      }
+      const auto& first_move = fn_.code[loop_ip + 1];
+      if (first_move.op != ir::Op::MoveLocal ||
+          (first_move.c & ir::kGuardedLocalMoveFlag) == 0) {
+        continue;
+      }
+      const size_t move_count =
+          (first_move.c & ir::kGuardedLocalMoveSpanMask) + 1;
+      // Reserve the packed high bit for the sibling append-loop form.
+      if (move_count < 2 || move_count >= 0x8000u ||
+          move_count >= fn_.code.size() - loop_ip - 1) {
+        continue;
+      }
+      bool safe_moves = true;
+      for (size_t offset = 0; offset < move_count; ++offset) {
+        const auto& move = fn_.code[loop_ip + 1 + offset];
+        if (move.op != ir::Op::MoveLocal ||
+            (offset != 0 && move.c != 0) ||
+            move.dst >= fn_.locals.size() || move.a >= fn_.locals.size() ||
+            move.dst == condition.a ||
+            std::find(fn_.cell_slots.begin(), fn_.cell_slots.end(), move.dst) !=
+                fn_.cell_slots.end() ||
+            std::find(fn_.cell_slots.begin(), fn_.cell_slots.end(), move.a) !=
+                fn_.cell_slots.end()) {
+          safe_moves = false;
+          break;
+        }
+      }
+      if (!safe_moves) continue;
+      const size_t add_ip = loop_ip + 1 + move_count;
+      const auto& add = fn_.code[add_ip];
+      if (add.op != ir::Op::AddLocalConst || add.dst != condition.a ||
+          add.a != condition.a || add.b >= fn_.constants.size() ||
+          (add.c & ir::kGuardedLocalAddFlag) == 0 ||
+          fn_.constants[add.b].tag != ValueTag::Int64 ||
+          fn_.constants[add.b].as.i64 == 0) {
+        continue;
+      }
+      const size_t fallback_span = add.c & ir::kGuardedLocalAddSpanMask;
+      const size_t back_edge_ip = add_ip + fallback_span + 1;
+      if (fallback_span == 0 || back_edge_ip >= fn_.code.size() ||
+          fn_.code[back_edge_ip].op != ir::Op::Jump ||
+          fn_.code[back_edge_ip].dst != loop_ip ||
+          condition.dst != back_edge_ip + 1 || add.b > 0xffffu) {
+        continue;
+      }
+      // A separate opcode keeps ordinary conditions untouched; observers,
+      // object-valued moves, and overflow fall through to the original body.
+      condition.op = ir::Op::ForLocalMoveAddLoop;
+      condition.c = (static_cast<uint32_t>(move_count) <<
+                     ir::kLocalMoveLoopMoveCountShift) | add.b;
+    }
+  }
+
+  void mark_call_accumulator_consumers() {
+    for (size_t call_ip = 1; call_ip + 2 < fn_.code.size(); ++call_ip) {
+      auto& call = fn_.code[call_ip];
+      const auto& add = fn_.code[call_ip + 1];
+      const auto& store = fn_.code[call_ip + 2];
+      if (call.op != ir::Op::Call || call.c != 0 ||
+          add.op != ir::Op::Add || store.op != ir::Op::StoreLocal ||
+          add.dst >= fn_.register_count || store.dst >= fn_.locals.size() ||
+          store.a != add.dst) {
+        continue;
+      }
+      const uint32_t other_reg = add.a == call.dst ? add.b
+          : add.b == call.dst ? add.a : UINT32_MAX;
+      if (other_reg == UINT32_MAX) continue;
+      bool found_accumulator_load = false;
+      for (size_t previous = call_ip; previous-- > 0;) {
+        const auto& producer = fn_.code[previous];
+        if (producer.dst == other_reg) {
+          found_accumulator_load = producer.op == ir::Op::LoadLocal &&
+              producer.a == store.dst;
+          break;
+        }
+        if ((producer.op == ir::Op::LoadLocalPair ||
+             producer.op == ir::Op::LoadLocalConst ||
+             producer.op == ir::Op::LoadConstPair) && producer.b == other_reg) {
+          break;
+        }
+      }
+      if (!found_accumulator_load || store.dst > ir::kCallAccumulateLocalMask) continue;
+      // Mark only a call whose result immediately feeds its sole local sum;
+      // the VM still guards function identity, exact integer operands and the
+      // outer addition, falling back to normal call/arithmetic on any miss.
+      call.c = ir::kCallAccumulateLocalFlag | store.dst;
+    }
+  }
+
+  void mark_call_accumulate_loops() {
+    for (size_t loop_ip = 0; loop_ip + 8 < fn_.code.size(); ++loop_ip) {
+      auto& condition = fn_.code[loop_ip];
+      const auto& sum_load = fn_.code[loop_ip + 1];
+      const auto& callee_load = fn_.code[loop_ip + 2];
+      const auto& first_two_args = fn_.code[loop_ip + 3];
+      const auto& last_arg = fn_.code[loop_ip + 4];
+      auto& call = fn_.code[loop_ip + 5];
+      const auto& sum = fn_.code[loop_ip + 6];
+      const auto& store = fn_.code[loop_ip + 7];
+      const auto& increment = fn_.code[loop_ip + 8];
+      if (condition.op != ir::Op::JumpIfLocalConstFalse ||
+          condition.c != static_cast<uint32_t>(ir::CompareOp::Lt) ||
+          condition.a >= fn_.locals.size() || condition.b >= fn_.constants.size() ||
+          fn_.constants[condition.b].tag != ValueTag::Int64 ||
+          sum_load.op != ir::Op::LoadLocal || sum_load.a >= fn_.locals.size() ||
+          sum_load.a == condition.a || sum_load.dst >= fn_.register_count ||
+          callee_load.op != ir::Op::LoadModuleSlot ||
+          first_two_args.op != ir::Op::LoadLocalConst ||
+          first_two_args.a != condition.a || last_arg.op != ir::Op::LoadConst ||
+          first_two_args.c >= fn_.constants.size() ||
+          last_arg.a >= fn_.constants.size() ||
+          fn_.constants[first_two_args.c].tag != ValueTag::Int64 ||
+          fn_.constants[last_arg.a].tag != ValueTag::Int64 ||
+          call.op != ir::Op::Call ||
+          (call.c & ir::kCallAccumulateLocalFlag) == 0 ||
+          (call.c & ir::kCallAccumulateLocalMask) != sum_load.a ||
+          call.a != callee_load.dst || call.b >= fn_.call_args.size() ||
+          fn_.call_args[call.b].size() != 3 ||
+          fn_.call_args[call.b][0] != first_two_args.dst ||
+          fn_.call_args[call.b][1] != first_two_args.b ||
+          fn_.call_args[call.b][2] != last_arg.dst ||
+          sum.op != ir::Op::Add || sum.dst >= fn_.register_count ||
+          (sum.a != call.dst && sum.b != call.dst) ||
+          (sum.a == call.dst ? sum.b : sum.a) != sum_load.dst ||
+          store.op != ir::Op::StoreLocal || store.dst != sum_load.a ||
+          store.a != sum.dst || increment.op != ir::Op::AddLocalConst ||
+          increment.dst != condition.a || increment.a != condition.a ||
+          increment.b >= fn_.constants.size() ||
+          fn_.constants[increment.b].tag != ValueTag::Int64 ||
+          fn_.constants[increment.b].as.i64 <= 0 ||
+          (increment.c & ir::kGuardedLocalAddFlag) == 0 ||
+          sum_load.a > 0x7fffu) {
+        continue;
+      }
+      const size_t fallback = increment.c & ir::kGuardedLocalAddSpanMask;
+      const size_t back = loop_ip + 8 + fallback + 1;
+      if (fallback == 0 || back >= fn_.code.size() ||
+          fn_.code[back].op != ir::Op::Jump || fn_.code[back].dst != loop_ip ||
+          condition.dst != back + 1) {
+        continue;
+      }
+      // This shape is safe to batch only after the VM proves the cached target
+      // is a pure, exact-scalar inline function; any mutation/overflow resumes
+      // the original call, sum, increment, and fallback bytecode.
+      condition.op = ir::Op::ForCallAccumulateLoop;
+      condition.c = ir::kCallAccumulateLoopFlag |
+          (sum_load.a << ir::kCallAccumulateLoopLocalShift);
+    }
+  }
+
+  void mark_construct_method_accumulate_loops() {
+    for (size_t loop_ip = 0; loop_ip + 9 < fn_.code.size(); ++loop_ip) {
+      auto& condition = fn_.code[loop_ip];
+      const auto& class_load = fn_.code[loop_ip + 1];
+      const auto& constructor_args = fn_.code[loop_ip + 2];
+      const auto& construct = fn_.code[loop_ip + 3];
+      const auto& save_instance = fn_.code[loop_ip + 4];
+      const auto& receiver_pair = fn_.code[loop_ip + 5];
+      const auto& method_call = fn_.code[loop_ip + 6];
+      const auto& sum = fn_.code[loop_ip + 7];
+      const auto& save_sum = fn_.code[loop_ip + 8];
+      const auto& increment = fn_.code[loop_ip + 9];
+      if (condition.op != ir::Op::JumpIfLocalConstFalse ||
+          condition.c != static_cast<uint32_t>(ir::CompareOp::Lt) ||
+          condition.a >= fn_.locals.size() || condition.b >= fn_.constants.size() ||
+          fn_.constants[condition.b].tag != ValueTag::Int64 ||
+          class_load.op != ir::Op::LoadModuleSlot ||
+          constructor_args.op != ir::Op::LoadLocalConst ||
+          constructor_args.a != condition.a || constructor_args.c >= fn_.constants.size() ||
+          fn_.constants[constructor_args.c].tag != ValueTag::Int64 ||
+          construct.op != ir::Op::Call || construct.a != class_load.dst ||
+          construct.b >= fn_.call_args.size() || fn_.call_args[construct.b].size() != 2 ||
+          fn_.call_args[construct.b][0] != constructor_args.dst ||
+          fn_.call_args[construct.b][1] != constructor_args.b ||
+          save_instance.op != ir::Op::StoreLocal || save_instance.a != construct.dst ||
+          save_instance.dst >= fn_.locals.size() || save_instance.dst == condition.a ||
+          receiver_pair.op != ir::Op::LoadLocalPair ||
+          receiver_pair.a >= fn_.locals.size() || receiver_pair.a == condition.a ||
+          receiver_pair.a == save_instance.dst || receiver_pair.c != save_instance.dst ||
+          method_call.op != ir::Op::CallMethod || method_call.a != receiver_pair.b ||
+          method_call.c >= fn_.call_args.size() || !fn_.call_args[method_call.c].empty() ||
+          sum.op != ir::Op::Add ||
+          (sum.a != receiver_pair.dst && sum.b != receiver_pair.dst) ||
+          (sum.a == receiver_pair.dst ? sum.b : sum.a) != method_call.dst ||
+          save_sum.op != ir::Op::StoreLocal || save_sum.dst != receiver_pair.a ||
+          save_sum.a != sum.dst || increment.op != ir::Op::AddLocalConst ||
+          increment.dst != condition.a || increment.a != condition.a ||
+          increment.b >= fn_.constants.size() ||
+          fn_.constants[increment.b].tag != ValueTag::Int64 ||
+          fn_.constants[increment.b].as.i64 <= 0 ||
+          (increment.c & ir::kGuardedLocalAddFlag) == 0 ||
+          receiver_pair.a > 0x7fffu) {
+        continue;
+      }
+      const size_t fallback = increment.c & ir::kGuardedLocalAddSpanMask;
+      const size_t back = loop_ip + 9 + fallback + 1;
+      if (fallback == 0 || back >= fn_.code.size() ||
+          fn_.code[back].op != ir::Op::Jump || fn_.code[back].dst != loop_ip ||
+          condition.dst != back + 1) {
+        continue;
+      }
+      // Runtime constructor/method caches must prove pure direct attribute
+      // stores and a scalar binary getter before this whole loop can batch.
+      condition.op = ir::Op::ForConstructMethodAccumulateLoop;
+      condition.c = ir::kConstructMethodAccumulateLoopFlag |
+          (receiver_pair.a << ir::kConstructMethodAccumulateLoopLocalShift);
+    }
+  }
+
+  void mark_scalar_arithmetic_loops() {
+    for (size_t loop_ip = 0; loop_ip + 1 < fn_.code.size(); ++loop_ip) {
+      auto& condition = fn_.code[loop_ip];
+      const auto& expression = fn_.code[loop_ip + 1];
+      if (condition.op != ir::Op::JumpIfLocalConstFalse ||
+          condition.c != static_cast<uint32_t>(ir::CompareOp::Lt) ||
+          condition.a >= fn_.locals.size() || condition.b >= fn_.constants.size() ||
+          fn_.constants[condition.b].tag != ValueTag::Int64 ||
+          expression.op != ir::Op::GuardedLocalNumericExpr ||
+          expression.dst >= fn_.locals.size() ||
+          expression.a >= fn_.guarded_local_numeric_exprs.size()) {
+        continue;
+      }
+      const auto& spec = fn_.guarded_local_numeric_exprs[expression.a];
+      if (spec.nodes.size() != 7 || spec.fallback_span == 0) continue;
+      const auto& n0 = spec.nodes[0];
+      const auto& n1 = spec.nodes[1];
+      const auto& n2 = spec.nodes[2];
+      const auto& n3 = spec.nodes[3];
+      const auto& n4 = spec.nodes[4];
+      const auto& n5 = spec.nodes[5];
+      const auto& n6 = spec.nodes[6];
+      if (n0.kind != ir::GuardedLocalNumericExprNodeKind::Local ||
+          n0.a != expression.dst || n1.kind != ir::GuardedLocalNumericExprNodeKind::Local ||
+          n1.a != condition.a || n2.kind != ir::GuardedLocalNumericExprNodeKind::Constant ||
+          n3.kind != ir::GuardedLocalNumericExprNodeKind::Mul || n3.a != 1 || n3.b != 2 ||
+          n4.kind != ir::GuardedLocalNumericExprNodeKind::Add || n4.a != 0 || n4.b != 3 ||
+          n5.kind != ir::GuardedLocalNumericExprNodeKind::Constant ||
+          n6.kind != ir::GuardedLocalNumericExprNodeKind::Sub || n6.a != 4 || n6.b != 5 ||
+          n2.a >= fn_.constants.size() || n5.a >= fn_.constants.size() ||
+          fn_.constants[n2.a].tag != ValueTag::Int64 ||
+          fn_.constants[n5.a].tag != ValueTag::Int64 ||
+          expression.dst == condition.a) {
+        continue;
+      }
+      const size_t increment_ip = loop_ip + 2 + spec.fallback_span;
+      if (increment_ip >= fn_.code.size()) continue;
+      const auto& increment = fn_.code[increment_ip];
+      if (increment.op != ir::Op::AddLocalConst || increment.dst != condition.a ||
+          increment.a != condition.a || increment.b >= fn_.constants.size() ||
+          fn_.constants[increment.b].tag != ValueTag::Int64 ||
+          fn_.constants[increment.b].as.i64 <= 0 ||
+          (increment.c & ir::kGuardedLocalAddFlag) == 0) {
+        continue;
+      }
+      const size_t fallback = increment.c & ir::kGuardedLocalAddSpanMask;
+      const size_t back = increment_ip + fallback + 1;
+      if (fallback == 0 || back >= fn_.code.size() ||
+          fn_.code[back].op != ir::Op::Jump || fn_.code[back].dst != loop_ip ||
+          condition.dst != back + 1) {
+        continue;
+      }
+      // This exact accumulator plan is evaluated with checked int64 arithmetic
+      // in one loop handler. Overflow, non-int locals, and observers deopt to
+      // the guarded expression plus its original Python arithmetic fallback.
+      condition.op = ir::Op::ForScalarArithmeticLoop;
+      condition.c = ir::kScalarArithmeticLoopFlag;
+    }
+  }
+
+  void mark_property_access_loops() {
+    // This fusion is deliberately limited to the canonical setter/getter plus
+    // periodic deleter loop. The VM still guards descriptor identity, accessor
+    // shape, storage type, and observers before bypassing normal dispatch.
+    for (size_t loop_ip = 0; loop_ip + 21 < fn_.code.size(); ++loop_ip) {
+      auto& condition = fn_.code[loop_ip];
+      const auto& set_pair = fn_.code[loop_ip + 1];
+      const auto& set_attr = fn_.code[loop_ip + 2];
+      const auto& get_pair = fn_.code[loop_ip + 3];
+      const auto& get_attr = fn_.code[loop_ip + 4];
+      const auto& get_sum = fn_.code[loop_ip + 5];
+      const auto& save_sum = fn_.code[loop_ip + 6];
+      const auto& modulus_value = fn_.code[loop_ip + 7];
+      const auto& modulus = fn_.code[loop_ip + 8];
+      const auto& zero = fn_.code[loop_ip + 9];
+      const auto& branch = fn_.code[loop_ip + 10];
+      const auto& delete_receiver = fn_.code[loop_ip + 11];
+      const auto& delete_attr = fn_.code[loop_ip + 12];
+      const auto& delete_pair = fn_.code[loop_ip + 13];
+      const auto& delete_get = fn_.code[loop_ip + 14];
+      const auto& delete_sum = fn_.code[loop_ip + 15];
+      const auto& delete_save = fn_.code[loop_ip + 16];
+      const auto& skip_increment = fn_.code[loop_ip + 17];
+      auto& increment = fn_.code[loop_ip + 18];
+      if (condition.op != ir::Op::JumpIfLocalConstFalse ||
+          condition.c != static_cast<uint32_t>(ir::CompareOp::Lt) ||
+          condition.a >= fn_.locals.size() || condition.b >= fn_.constants.size() ||
+          fn_.constants[condition.b].tag != ValueTag::Int64 ||
+          set_pair.op != ir::Op::LoadLocalPair || set_pair.a >= fn_.locals.size() ||
+          set_pair.a == condition.a || set_pair.c != condition.a ||
+          set_attr.op != ir::Op::StoreAttr || set_attr.dst != set_pair.dst ||
+          get_pair.op != ir::Op::LoadLocalPair || get_pair.a >= fn_.locals.size() ||
+          get_pair.a == condition.a || get_pair.a == set_pair.a ||
+          get_attr.op != ir::Op::LoadAttr || get_attr.a != get_pair.b ||
+          get_sum.op != ir::Op::Add ||
+          (get_sum.a != get_pair.dst && get_sum.b != get_pair.dst) ||
+          (get_sum.a == get_pair.dst ? get_sum.b : get_sum.a) != get_attr.dst ||
+          save_sum.op != ir::Op::StoreLocal || save_sum.dst != get_pair.a ||
+          save_sum.a != get_sum.dst || modulus_value.op != ir::Op::LoadLocal ||
+          modulus_value.a != condition.a || modulus.op != ir::Op::ModConst ||
+          modulus.a != modulus_value.dst || modulus.b >= fn_.constants.size() ||
+          fn_.constants[modulus.b].tag != ValueTag::Int64 ||
+          zero.op != ir::Op::LoadConst || zero.a >= fn_.constants.size() ||
+          fn_.constants[zero.a].tag != ValueTag::Int64 ||
+          branch.op != ir::Op::CompareJumpIfFalse || branch.a != modulus.dst ||
+          branch.b != zero.dst || branch.c != static_cast<uint32_t>(ir::CompareOp::Eq) ||
+          branch.dst != loop_ip + 18 ||
+          delete_receiver.op != ir::Op::LoadLocal || delete_receiver.a != set_pair.a ||
+          delete_attr.op != ir::Op::DeleteAttr || delete_attr.dst != delete_receiver.dst ||
+          delete_attr.a != set_attr.a || delete_pair.op != ir::Op::LoadLocalPair ||
+          delete_pair.a != get_pair.a || delete_pair.c != set_pair.a ||
+          delete_get.op != ir::Op::LoadAttr || delete_get.a != delete_pair.b ||
+          delete_get.b != get_attr.b || delete_sum.op != ir::Op::Add ||
+          (delete_sum.a != delete_pair.dst && delete_sum.b != delete_pair.dst) ||
+          (delete_sum.a == delete_pair.dst ? delete_sum.b : delete_sum.a) != delete_get.dst ||
+          delete_save.op != ir::Op::StoreLocal || delete_save.dst != get_pair.a ||
+          delete_save.a != delete_sum.dst || skip_increment.op != ir::Op::Jump ||
+          skip_increment.dst != loop_ip + 18 ||
+          modulus.b >= fn_.constants.size() || fn_.constants[modulus.b].as.i64 <= 0 ||
+          get_pair.a > 0x7fffu) {
+        continue;
+      }
+      if (increment.op != ir::Op::AddLocalConst || increment.dst != condition.a ||
+          increment.a != condition.a || increment.b >= fn_.constants.size() ||
+          fn_.constants[increment.b].tag != ValueTag::Int64 ||
+          fn_.constants[increment.b].as.i64 <= 0 ||
+          (increment.c & ir::kGuardedLocalAddFlag) == 0) continue;
+      const size_t fallback = increment.c & ir::kGuardedLocalAddSpanMask;
+      const size_t back = loop_ip + 18 + fallback + 1;
+      if (fallback == 0 || back >= fn_.code.size() ||
+          fn_.code[back].op != ir::Op::Jump || fn_.code[back].dst != loop_ip ||
+          condition.dst != back + 1) continue;
+      condition.op = ir::Op::ForPropertyAccessLoop;
+      condition.c = ir::kPropertyAccessLoopFlag |
+          (get_pair.a << ir::kPropertyAccessLoopLocalShift);
+    }
+  }
+
+  void mark_numeric_loop_move_chains() {
+    for (size_t start = 0; start < fn_.code.size();) {
+      if (fn_.code[start].op != ir::Op::MoveLocal || fn_.code[start].c != 0) {
+        ++start;
+        continue;
+      }
+      size_t end = start + 1;
+      while (end < fn_.code.size() && fn_.code[end].op == ir::Op::MoveLocal &&
+             fn_.code[end].c == 0) ++end;
+      const size_t move_count = end - start;
+      if (move_count < 2 || move_count - 1 > ir::kGuardedLocalMoveSpanMask) {
+        start = end;
+        continue;
+      }
+      bool inside_back_edge = false;
+      for (size_t jump_ip = end; jump_ip < fn_.code.size(); ++jump_ip) {
+        const auto& jump = fn_.code[jump_ip];
+        if (jump.op == ir::Op::Jump && jump.dst <= start && jump_ip >= end) {
+          inside_back_edge = true;
+          break;
+        }
+      }
+      if (inside_back_edge) {
+        fn_.code[start].c = ir::kGuardedLocalMoveFlag |
+            static_cast<uint32_t>(move_count - 1);
+      }
+      start = end;
+    }
+  }
+
+  uint32_t new_reg() {
+    return fn_.register_count++;
+  }
+
+  uint32_t add_const(Value value) {
+    fn_.constants.push_back(std::move(value));
+    return static_cast<uint32_t>(fn_.constants.size() - 1);
+  }
+
+  uint32_t add_name(const std::string& name) {
+    auto it = name_ids_.find(name);
+    if (it != name_ids_.end()) {
+      return it->second;
+    }
+    const auto id = static_cast<uint32_t>(fn_.names.size());
+    fn_.names.push_back(name);
+    name_ids_[name] = id;
+    return id;
+  }
+
+  uint32_t add_raw_block(std::string language, std::string provider, std::string body) {
+    fn_.raw_blocks.push_back(ir::Function::RawBlock{std::move(language), std::move(provider), std::move(body)});
+    return static_cast<uint32_t>(fn_.raw_blocks.size() - 1);
+  }
+
+  uint32_t add_call_args(std::vector<uint32_t> args) {
+    fn_.call_args.push_back(std::move(args));
+    return static_cast<uint32_t>(fn_.call_args.size() - 1);
+  }
+
+  uint32_t add_call_spec(ir::CallSpec spec) {
+    fn_.call_specs.push_back(std::move(spec));
+    return static_cast<uint32_t>(fn_.call_specs.size() - 1);
+  }
+
+  uint32_t add_function_defaults(std::vector<uint32_t> defaults) {
+    fn_.function_defaults.push_back(std::move(defaults));
+    return static_cast<uint32_t>(fn_.function_defaults.size() - 1);
+  }
+
+  uint32_t add_function_annotations(std::vector<std::pair<std::string, uint32_t>> annotations) {
+    fn_.function_annotations.push_back(std::move(annotations));
+    return static_cast<uint32_t>(fn_.function_annotations.size() - 1);
+  }
+
+  uint32_t add_function_kwdefaults(std::vector<std::pair<std::string, uint32_t>> defaults) {
+    fn_.function_kwdefaults.push_back(std::move(defaults));
+    return static_cast<uint32_t>(fn_.function_kwdefaults.size() - 1);
+  }
+
+  uint32_t emit_type_params_tuple(const std::vector<std::string>& type_params) {
+    std::vector<uint32_t> items;
+    items.reserve(type_params.size());
+    uint32_t typevar_class = UINT32_MAX;
+    if (!type_params.empty()) {
+      const auto typing_module = new_reg();
+      emit(ir::Op::ImportModule, typing_module, add_name("_typing"));
+      typevar_class = new_reg();
+      emit(ir::Op::LoadAttr, typevar_class, typing_module, add_name("TypeVar"));
+    }
+    for (const auto& type_param : type_params) {
+      const auto name = new_reg();
+      emit(ir::Op::LoadConst, name, add_const(Value::string(type_param)));
+      items.push_back(emit_inferred_typevar(typevar_class, name));
+    }
+    const auto tuple = new_reg();
+    emit(ir::Op::MakeTuple, tuple, add_tuple_items(std::move(items)));
+    return tuple;
+  }
+
+  uint32_t lower_annotation_deferred(const ast::Expr& annotation) {
+    const auto result = new_reg();
+    const auto setup = emit_jump(ir::Op::SetupExcept);
+    const auto value = lower_expr(annotation);
+    emit(ir::Op::Move, result, value);
+    emit(ir::Op::PopExcept);
+    const auto done = emit_jump(ir::Op::Jump);
+    patch_jump(setup, static_cast<uint32_t>(fn_.code.size()));
+    emit(ir::Op::ClearException);
+    emit(ir::Op::LoadConst, result,
+         add_const(Value::string(annotation_expr_to_string(annotation))));
+    patch_jump(done, static_cast<uint32_t>(fn_.code.size()));
+    return result;
+  }
+
+  uint32_t lower_annotation(const ast::Expr& annotation) {
+    if (!future_annotations_) {
+      if (auto* literal = dynamic_cast<const ast::LiteralExpr*>(&annotation);
+          literal != nullptr && literal->kind == ast::LiteralExpr::Kind::None) {
+        const auto reg = new_reg();
+        emit(ir::Op::LoadConst, reg, add_const(Value::none()));
+        return reg;
+      }
+      if (auto* literal = dynamic_cast<const ast::LiteralExpr*>(&annotation);
+          literal != nullptr && literal->kind == ast::LiteralExpr::Kind::String) {
+        const auto reg = new_reg();
+        emit(ir::Op::LoadConst, reg, add_const(Value::string(literal->text)));
+        return reg;
+      }
+      return lower_annotation_deferred(annotation);
+    }
+    const auto reg = new_reg();
+    emit(ir::Op::LoadConst, reg, add_const(Value::string(annotation_expr_to_string(annotation))));
+    return reg;
+  }
+
+  uint32_t lower_annotation_stringized(const ast::Expr& annotation) {
+    const auto reg = new_reg();
+    emit(ir::Op::LoadConst, reg, add_const(Value::string(annotation_expr_to_string(annotation))));
+    return reg;
+  }
+
+  uint32_t add_tuple_items(std::vector<uint32_t> items) {
+    fn_.tuple_items.push_back(std::move(items));
+    return static_cast<uint32_t>(fn_.tuple_items.size() - 1);
+  }
+
+  uint32_t add_list_items(std::vector<uint32_t> items) {
+    fn_.list_items.push_back(std::move(items));
+    return static_cast<uint32_t>(fn_.list_items.size() - 1);
+  }
+
+  uint32_t add_set_items(std::vector<uint32_t> items) {
+    fn_.set_items.push_back(std::move(items));
+    return static_cast<uint32_t>(fn_.set_items.size() - 1);
+  }
+
+  uint32_t add_dict_items(std::vector<std::pair<uint32_t, uint32_t>> items) {
+    fn_.dict_items.push_back(std::move(items));
+    return static_cast<uint32_t>(fn_.dict_items.size() - 1);
+  }
+
+  uint32_t add_function_closure(std::vector<uint32_t> cells) {
+    fn_.function_closures.push_back(std::move(cells));
+    return static_cast<uint32_t>(fn_.function_closures.size() - 1);
+  }
+
+  uint32_t add_class_attrs(std::vector<std::pair<std::string, uint32_t>> attrs) {
+    fn_.class_attrs.push_back(std::move(attrs));
+    return static_cast<uint32_t>(fn_.class_attrs.size() - 1);
+  }
+
+  uint32_t add_class_instance_slots(std::vector<std::string> slots) {
+    fn_.class_instance_slots.push_back(std::move(slots));
+    return static_cast<uint32_t>(fn_.class_instance_slots.size() - 1);
+  }
+
+  uint32_t add_range_spec(uint32_t stop_const, uint32_t step_const) {
+    fn_.range_specs.push_back(std::make_pair(stop_const, step_const));
+    return static_cast<uint32_t>(fn_.range_specs.size() - 1);
+  }
+
+  uint32_t add_string_replace_spec(uint32_t old_const, uint32_t new_const) {
+    fn_.string_replace_specs.push_back(std::make_pair(old_const, new_const));
+    return static_cast<uint32_t>(fn_.string_replace_specs.size() - 1);
+  }
+
+  uint32_t ensure_local(const std::string& name) {
+    auto it = locals_.find(name);
+    if (it != locals_.end()) {
+      return it->second;
+    }
+    const auto slot = static_cast<uint32_t>(fn_.locals.size());
+    fn_.locals.push_back(name);
+    locals_[name] = slot;
+    return slot;
+  }
+
+  uint32_t ensure_cell_for_local(const std::string& name) {
+    auto it = cell_indices_.find(name);
+    if (it != cell_indices_.end()) {
+      return it->second;
+    }
+    const auto local = ensure_local(name);
+    const auto cell = static_cast<uint32_t>(fn_.cell_slots.size());
+    fn_.cell_slots.push_back(local);
+    cell_indices_[name] = cell;
+    return cell;
+  }
+
+  void prepare_captured_locals(const std::vector<ast::StmtPtr>& body,
+                               bool evaluate_annotations = false) {
+    if (is_module_) {
+      return;
+    }
+    for (const auto& stmt : body) {
+      auto* child = dynamic_cast<const ast::FunctionDef*>(stmt.get());
+      if (child != nullptr) {
+        for (const auto& name : closure_names_for_child(*child)) {
+          if (sema::contains(local_name_set_, name)) {
+            ensure_cell_for_local(name);
+          }
+        }
+      }
+      prepare_captured_locals_from_stmt(*stmt, evaluate_annotations);
+    }
+  }
+
+  void prepare_captured_locals_from_expr(const ast::Expr& expr,
+                                         bool capture_names = false) {
+    std::vector<std::string> names;
+    std::unordered_set<std::string> seen;
+    std::unordered_set<std::string> local_targets;
+    collect_expression_captures(expr, local_targets, names, seen,
+                                capture_names);
+    for (const auto& name : names) {
+      if (sema::contains(local_name_set_, name)) {
+        ensure_cell_for_local(name);
+      }
+    }
+  }
+
+  void prepare_captured_locals_from_stmt(const ast::Stmt& stmt,
+                                         bool evaluate_annotations = false) {
+    if (auto* assign = dynamic_cast<const ast::AssignStmt*>(&stmt)) {
+      prepare_captured_locals_from_expr(*assign->value);
+    } else if (auto* alias = dynamic_cast<const ast::TypeAliasStmt*>(&stmt)) {
+      prepare_captured_locals_from_expr(*alias->value, true);
+    } else if (auto* assign = dynamic_cast<const ast::AttrAssignStmt*>(&stmt)) {
+      prepare_captured_locals_from_expr(*assign->object);
+      prepare_captured_locals_from_expr(*assign->value);
+    } else if (auto* assign = dynamic_cast<const ast::SubscriptAssignStmt*>(&stmt)) {
+      prepare_captured_locals_from_expr(*assign->object);
+      prepare_captured_locals_from_expr(*assign->index);
+      prepare_captured_locals_from_expr(*assign->value);
+    } else if (auto* expr = dynamic_cast<const ast::ExprStmt*>(&stmt)) {
+      prepare_captured_locals_from_expr(*expr->expr);
+    } else if (auto* ret = dynamic_cast<const ast::ReturnStmt*>(&stmt)) {
+      if (ret->value != nullptr) {
+        prepare_captured_locals_from_expr(*ret->value);
+      }
+    } else if (auto* raise = dynamic_cast<const ast::RaiseStmt*>(&stmt)) {
+      if (raise->value != nullptr) {
+        prepare_captured_locals_from_expr(*raise->value);
+      }
+      if (raise->cause != nullptr) {
+        prepare_captured_locals_from_expr(*raise->cause);
+      }
+    } else if (auto* assert_stmt = dynamic_cast<const ast::AssertStmt*>(&stmt)) {
+      prepare_captured_locals_from_expr(*assert_stmt->condition);
+      if (assert_stmt->message != nullptr) {
+        prepare_captured_locals_from_expr(*assert_stmt->message);
+      }
+    } else if (auto* assign = dynamic_cast<const ast::AnnotatedAssignStmt*>(&stmt)) {
+      prepare_captured_locals_from_expr(*assign->target);
+      prepare_captured_locals_from_expr(
+          *assign->annotation, evaluate_annotations && !future_annotations_);
+      if (assign->value != nullptr) {
+        prepare_captured_locals_from_expr(*assign->value);
+      }
+    } else if (auto* assign = dynamic_cast<const ast::UnpackAssignStmt*>(&stmt)) {
+      prepare_captured_locals_from_expr(*assign->value);
+    } else if (auto* assign = dynamic_cast<const ast::MultiAssignStmt*>(&stmt)) {
+      prepare_captured_locals_from_expr(*assign->value);
+    } else if (auto* assign = dynamic_cast<const ast::AugAssignStmt*>(&stmt)) {
+      prepare_captured_locals_from_expr(*assign->target);
+      prepare_captured_locals_from_expr(*assign->value);
+    } else if (auto* ifs = dynamic_cast<const ast::IfStmt*>(&stmt)) {
+      prepare_captured_locals_from_expr(*ifs->condition);
+      prepare_captured_locals(ifs->then_body, evaluate_annotations);
+      prepare_captured_locals(ifs->else_body, evaluate_annotations);
+    } else if (auto* loop = dynamic_cast<const ast::WhileStmt*>(&stmt)) {
+      prepare_captured_locals_from_expr(*loop->condition);
+      prepare_captured_locals(loop->body, evaluate_annotations);
+    } else if (auto* loop = dynamic_cast<const ast::ForStmt*>(&stmt)) {
+      prepare_captured_locals_from_expr(*loop->iterable);
+      prepare_captured_locals(loop->body, evaluate_annotations);
+    } else if (auto* with = dynamic_cast<const ast::WithStmt*>(&stmt)) {
+      prepare_captured_locals_from_expr(*with->manager);
+      prepare_captured_locals(with->body, evaluate_annotations);
+    } else if (auto* try_except = dynamic_cast<const ast::TryExceptStmt*>(&stmt)) {
+      prepare_captured_locals(try_except->try_body, evaluate_annotations);
+      for (const auto& handler : try_except->handlers) {
+        if (handler.type != nullptr) {
+          prepare_captured_locals_from_expr(*handler.type);
+        }
+        prepare_captured_locals(handler.body, evaluate_annotations);
+      }
+      prepare_captured_locals(try_except->else_body, evaluate_annotations);
+      prepare_captured_locals(try_except->finally_body, evaluate_annotations);
+    } else if (auto* match = dynamic_cast<const ast::MatchStmt*>(&stmt)) {
+      prepare_captured_locals_from_expr(*match->subject);
+      for (const auto& match_case : match->cases) {
+        if (match_case.guard != nullptr) {
+          prepare_captured_locals_from_expr(*match_case.guard);
+        }
+        prepare_captured_locals(match_case.body, evaluate_annotations);
+      }
+    } else if (auto* fn = dynamic_cast<const ast::FunctionDef*>(&stmt)) {
+      for (const auto& param : fn->signature) {
+        if (param.default_value != nullptr) {
+          prepare_captured_locals_from_expr(*param.default_value);
+        }
+        if (param.annotation != nullptr) {
+          prepare_captured_locals_from_expr(*param.annotation,
+                                            !future_annotations_);
+        }
+      }
+      if (fn->return_annotation != nullptr) {
+        prepare_captured_locals_from_expr(*fn->return_annotation,
+                                          !future_annotations_);
+      }
+      for (const auto& decorator : fn->decorators) {
+        prepare_captured_locals_from_expr(*decorator);
+      }
+    } else if (auto* klass = dynamic_cast<const ast::ClassDef*>(&stmt)) {
+      for (const auto& base : klass->bases) {
+        prepare_captured_locals_from_expr(*base);
+      }
+      for (const auto& keyword : klass->keywords) {
+        prepare_captured_locals_from_expr(*keyword.second);
+      }
+      for (const auto& decorator : klass->decorators) {
+        prepare_captured_locals_from_expr(*decorator);
+      }
+      prepare_captured_locals(klass->body, true);
+    }
+  }
+
+  std::vector<std::string> closure_names_for_child(const ast::FunctionDef& child) const {
+    std::vector<std::string> names;
+    for (const auto& name : sema::free_candidates_for(child)) {
+      if (sema::contains(local_name_set_, name) || free_indices_.find(name) != free_indices_.end()) {
+        names.push_back(name);
+      }
+    }
+    return names;
+  }
+
+  void add_expression_capture(
+      const std::string& name,
+      const std::unordered_set<std::string>& local_targets,
+      std::vector<std::string>& names,
+      std::unordered_set<std::string>& seen) const {
+    const auto resolved = resolve_name(name);
+    if (local_targets.find(resolved) != local_targets.end()) {
+      return;
+    }
+    if ((sema::contains(local_name_set_, resolved) || free_indices_.find(resolved) != free_indices_.end()) &&
+        seen.insert(resolved).second) {
+      names.push_back(resolved);
+    }
+  }
+
+  void collect_expression_captures(
+      const ast::Expr& expr,
+      const std::unordered_set<std::string>& local_targets,
+      std::vector<std::string>& names,
+      std::unordered_set<std::string>& seen,
+      bool capture_names) const {
+    if (auto* name = dynamic_cast<const ast::NameExpr*>(&expr)) {
+      if (capture_names && name->name != "__xlang3_fstring_format__" &&
+          name->name != "__xlang3_fstring_str__" &&
+          name->name != "__xlang3_fstring_repr__" &&
+          name->name != "__xlang3_fstring_ascii__") {
+        add_expression_capture(name->name, local_targets, names, seen);
+      }
+      return;
+    }
+    if (auto* unary = dynamic_cast<const ast::UnaryExpr*>(&expr)) {
+      collect_expression_captures(*unary->expr, local_targets, names, seen, capture_names);
+      return;
+    }
+    if (auto* await = dynamic_cast<const ast::AwaitExpr*>(&expr)) {
+      collect_expression_captures(*await->expr, local_targets, names, seen, capture_names);
+      return;
+    }
+    if (auto* yield = dynamic_cast<const ast::YieldExpr*>(&expr)) {
+      if (yield->expr != nullptr) {
+        collect_expression_captures(*yield->expr, local_targets, names, seen, capture_names);
+      }
+      return;
+    }
+    if (auto* fstring = dynamic_cast<const ast::FStringExpr*>(&expr)) {
+      for (const auto& part : fstring->parts) {
+        if (part.is_expr) {
+          auto parsed = parse_source("__x = " + part.text);
+          if (parsed.errors.empty() && !parsed.module.body.empty()) {
+            if (auto* assign = dynamic_cast<const ast::AssignStmt*>(parsed.module.body[0].get());
+                assign != nullptr && assign->value != nullptr) {
+              collect_expression_captures(*assign->value, local_targets, names, seen, capture_names);
+            }
+          }
+        }
+        if (part.format_spec.find('{') != std::string::npos) {
+          ast::FStringExpr format_spec(parse_fstring_parts(part.format_spec));
+          collect_expression_captures(format_spec, local_targets, names, seen, capture_names);
+        }
+      }
+      return;
+    }
+    if (auto* binary = dynamic_cast<const ast::BinaryExpr*>(&expr)) {
+      collect_expression_captures(*binary->lhs, local_targets, names, seen, capture_names);
+      collect_expression_captures(*binary->rhs, local_targets, names, seen, capture_names);
+      return;
+    }
+    if (auto* chain = dynamic_cast<const ast::CompareChainExpr*>(&expr)) {
+      collect_expression_captures(*chain->first, local_targets, names, seen, capture_names);
+      for (const auto& comparison : chain->comparisons) {
+        collect_expression_captures(*comparison.second, local_targets, names, seen, capture_names);
+      }
+      return;
+    }
+    if (auto* conditional = dynamic_cast<const ast::ConditionalExpr*>(&expr)) {
+      collect_expression_captures(*conditional->then_expr, local_targets, names, seen, capture_names);
+      collect_expression_captures(*conditional->condition, local_targets, names, seen, capture_names);
+      collect_expression_captures(*conditional->else_expr, local_targets, names, seen, capture_names);
+      return;
+    }
+    if (auto* named = dynamic_cast<const ast::NamedExpr*>(&expr)) {
+      collect_expression_captures(*named->value, local_targets, names, seen, capture_names);
+      return;
+    }
+    if (auto* starred = dynamic_cast<const ast::StarredExpr*>(&expr)) {
+      collect_expression_captures(*starred->expr, local_targets, names, seen, capture_names);
+      return;
+    }
+    if (auto* call = dynamic_cast<const ast::CallExpr*>(&expr)) {
+      collect_expression_captures(*call->callee, local_targets, names, seen, capture_names);
+      for (const auto& arg : call->args) {
+        collect_expression_captures(*arg, local_targets, names, seen, capture_names);
+      }
+      for (const auto& arg : call->call_args) {
+        collect_expression_captures(*arg.value, local_targets, names, seen, capture_names);
+      }
+      return;
+    }
+    if (auto* subscript = dynamic_cast<const ast::SubscriptExpr*>(&expr)) {
+      collect_expression_captures(*subscript->object, local_targets, names, seen, capture_names);
+      collect_expression_captures(*subscript->index, local_targets, names, seen, capture_names);
+      return;
+    }
+    if (auto* slice = dynamic_cast<const ast::SliceExpr*>(&expr)) {
+      if (slice->start != nullptr) collect_expression_captures(*slice->start, local_targets, names, seen, capture_names);
+      if (slice->stop != nullptr) collect_expression_captures(*slice->stop, local_targets, names, seen, capture_names);
+      if (slice->step != nullptr) collect_expression_captures(*slice->step, local_targets, names, seen, capture_names);
+      return;
+    }
+    if (auto* attr = dynamic_cast<const ast::AttrExpr*>(&expr)) {
+      collect_expression_captures(*attr->object, local_targets, names, seen, capture_names);
+      return;
+    }
+    if (auto* tuple = dynamic_cast<const ast::TupleExpr*>(&expr)) {
+      for (const auto& item : tuple->items) {
+        collect_expression_captures(*item, local_targets, names, seen, capture_names);
+      }
+      return;
+    }
+    if (auto* list = dynamic_cast<const ast::ListExpr*>(&expr)) {
+      for (const auto& item : list->items) {
+        collect_expression_captures(*item, local_targets, names, seen, capture_names);
+      }
+      return;
+    }
+    if (auto* dict = dynamic_cast<const ast::DictExpr*>(&expr)) {
+      for (const auto& entry : dict->entries) {
+        if (entry.first != nullptr) collect_expression_captures(*entry.first, local_targets, names, seen, capture_names);
+        collect_expression_captures(*entry.second, local_targets, names, seen, capture_names);
+      }
+      return;
+    }
+    if (auto* set = dynamic_cast<const ast::SetExpr*>(&expr)) {
+      for (const auto& item : set->items) {
+        collect_expression_captures(*item, local_targets, names, seen, capture_names);
+      }
+      return;
+    }
+    if (auto* generator = dynamic_cast<const ast::GeneratorExpr*>(&expr)) {
+      // The first iterable is evaluated in the enclosing scope.  It can
+      // itself create closures (for example a lambda passed to groupby), so
+      // discover those captures before earlier assignments are lowered.
+      collect_expression_captures(*generator->iterable, local_targets, names,
+                                  seen, capture_names);
+      for (const auto& name : closure_names_for_generator(*generator)) {
+        if (local_targets.find(name) == local_targets.end() && seen.insert(name).second) {
+          names.push_back(name);
+        }
+      }
+      return;
+    }
+    if (auto* lambda = dynamic_cast<const ast::LambdaExpr*>(&expr)) {
+      std::unordered_set<std::string> lambda_targets;
+      for (const auto& param : lambda->signature) {
+        if (!param.name.empty()) {
+          lambda_targets.insert(resolve_name(param.name));
+        }
+      }
+      if (lambda_targets.empty()) {
+        for (const auto& param : lambda->params) {
+          lambda_targets.insert(resolve_name(param));
+        }
+      }
+      collect_expression_captures(*lambda->body, lambda_targets, names, seen, true);
+      return;
+    }
+  }
+
+  std::vector<std::string> closure_names_for_generator(const ast::GeneratorExpr& comp) const {
+    std::vector<std::string> names;
+    std::unordered_set<std::string> seen;
+    std::unordered_set<std::string> targets;
+    for (const auto& name : assignment_names(*comp.target_expr)) {
+      targets.insert(resolve_name(name));
+    }
+    if (comp.filter != nullptr) {
+      collect_expression_captures(*comp.filter, targets, names, seen, true);
+    }
+    for (const auto& clause : comp.extra_clauses) {
+      collect_expression_captures(*clause.iterable, targets, names, seen, true);
+      for (const auto& name : assignment_names(*clause.target_expr)) {
+        targets.insert(resolve_name(name));
+      }
+      if (clause.filter != nullptr) {
+        collect_expression_captures(*clause.filter, targets, names, seen, true);
+      }
+    }
+    collect_expression_captures(*comp.result, targets, names, seen, true);
+    return names;
+  }
+
+  bool is_cell_local(const std::string& name) const {
+    return cell_indices_.find(name) != cell_indices_.end();
+  }
+
+  static bool needs_private_name_mangling(const std::string& name) {
+    return name.size() >= 3 && name[0] == '_' && name[1] == '_' &&
+           name.find_first_not_of('_') != std::string::npos &&
+           !(name.size() >= 4 && name[name.size() - 1] == '_' && name[name.size() - 2] == '_') &&
+           name.find('.') == std::string::npos;
+  }
+
+  static std::string mangle_private_name(const std::string& class_name, const std::string& name) {
+    if (!needs_private_name_mangling(name)) {
+      return name;
+    }
+    size_t first_non_underscore = 0;
+    while (first_non_underscore < class_name.size() && class_name[first_non_underscore] == '_') {
+      ++first_non_underscore;
+    }
+    if (first_non_underscore >= class_name.size()) {
+      return name;
+    }
+    return "_" + class_name.substr(first_non_underscore) + name;
+  }
+
+  std::string active_private_class_name() const {
+    return active_class_private_name_.empty() ? private_class_name_ : active_class_private_name_;
+  }
+
+  std::string mangle_private_identifier(const std::string& name) const {
+    const auto class_name = active_private_class_name();
+    return class_name.empty() ? name : mangle_private_name(class_name, name);
+  }
+
+  bool module_global_slot(const std::string& name, uint32_t& slot) const {
+    auto it = module_global_slots_.find(name);
+    if (it == module_global_slots_.end()) {
+      return false;
+    }
+    slot = it->second;
+    return true;
+  }
+
+  bool imported_module_slot(const std::string& name, uint32_t& slot) const {
+    return module_global_slot(name, slot) && imported_module_slots_.find(slot) != imported_module_slots_.end();
+  }
+
+  void lower_import_binding(const std::string& name, const std::string& bind_name) {
+    const auto reg = new_reg();
+    emit(ir::Op::ImportModule, reg, add_name(name));
+    const auto root_dot = name.find('.');
+    const auto root_name = root_dot == std::string::npos ? name : name.substr(0, root_dot);
+    if (root_dot != std::string::npos && bind_name == root_name) {
+      const auto bind_reg = new_reg();
+      emit(ir::Op::ImportModule, bind_reg, add_name(bind_name));
+      store_named_value(bind_name, bind_reg);
+    } else {
+      store_named_value(bind_name, reg);
+    }
+    uint32_t import_slot = 0;
+    if (module_global_slot(bind_name, import_slot)) {
+      imported_module_slots_.insert(import_slot);
+    }
+  }
+
+  void lower_import_thru_binding(const ast::ImportStmt& import) {
+    const auto endpoint_reg = lower_expr(*import.thru);
+    const auto reg = new_reg();
+    emit(ir::Op::ImportModuleThru, reg, add_name(import.name), endpoint_reg);
+    store_named_value(import.bind_name, reg);
+    uint32_t import_slot = 0;
+    if (module_global_slot(import.bind_name, import_slot)) {
+      // A thru binding is a remote object, not a locally cached module.
+      imported_module_slots_.erase(import_slot);
+    }
+  }
+
+  bool direct_local_slot(const std::string& name, uint32_t& slot) const {
+    const auto resolved = resolve_name(name);
+    if (is_module_ || sema::contains(global_names_, resolved) || is_cell_local(resolved)) {
+      return false;
+    }
+    auto local = locals_.find(resolved);
+    if (local == locals_.end()) {
+      return false;
+    }
+    slot = local->second;
+    return true;
+  }
+
+  bool is_reverse_prefix_slice_assignment(
+      const ast::SubscriptAssignStmt& assign,
+      uint32_t& sequence_slot,
+      uint32_t& index_slot) const {
+    auto is_none = [](const ast::Expr* expr) {
+      if (expr == nullptr) return true;
+      auto* literal = dynamic_cast<const ast::LiteralExpr*>(expr);
+      return literal != nullptr && literal->kind == ast::LiteralExpr::Kind::None;
+    };
+    auto* target_name = dynamic_cast<const ast::NameExpr*>(assign.object.get());
+    auto* target_slice = dynamic_cast<const ast::SliceExpr*>(assign.index.get());
+    auto* rhs_subscript = dynamic_cast<const ast::SubscriptExpr*>(assign.value.get());
+    if (target_name == nullptr || target_slice == nullptr || rhs_subscript == nullptr ||
+        !is_none(target_slice->start.get()) || !is_none(target_slice->step.get())) {
+      return false;
+    }
+    auto* rhs_name = dynamic_cast<const ast::NameExpr*>(rhs_subscript->object.get());
+    auto* rhs_slice = dynamic_cast<const ast::SliceExpr*>(rhs_subscript->index.get());
+    if (rhs_name == nullptr || rhs_slice == nullptr || !is_none(rhs_slice->stop.get()) ||
+        target_name->name != rhs_name->name) {
+      return false;
+    }
+
+    // Recognize only a side-effect-free local index and the exact reverse
+    // slice. Guarded lowering can then read the two locals once; every other
+    // syntax keeps its normal Python evaluation path.
+    auto* index_name = dynamic_cast<const ast::NameExpr*>(rhs_slice->start.get());
+    auto* negative_step = dynamic_cast<const ast::UnaryExpr*>(rhs_slice->step.get());
+    auto* step_one = negative_step != nullptr
+        ? dynamic_cast<const ast::LiteralExpr*>(negative_step->expr.get())
+        : nullptr;
+    auto* target_stop = dynamic_cast<const ast::BinaryExpr*>(target_slice->stop.get());
+    auto* target_stop_name = target_stop != nullptr
+        ? dynamic_cast<const ast::NameExpr*>(target_stop->lhs.get())
+        : nullptr;
+    auto* stop_one = target_stop != nullptr
+        ? dynamic_cast<const ast::LiteralExpr*>(target_stop->rhs.get())
+        : nullptr;
+    if (index_name == nullptr || negative_step == nullptr || negative_step->op != "-" ||
+        step_one == nullptr || step_one->kind != ast::LiteralExpr::Kind::Int ||
+        step_one->text != "1" || target_stop == nullptr || target_stop->op != "+" ||
+        target_stop_name == nullptr || stop_one == nullptr ||
+        stop_one->kind != ast::LiteralExpr::Kind::Int || stop_one->text != "1" ||
+        index_name->name != target_stop_name->name) {
+      return false;
+    }
+
+    return direct_local_slot(target_name->name, sequence_slot) &&
+        direct_local_slot(index_name->name, index_slot);
+  }
+
+  bool is_list_pop_front_insert(
+      const ast::Expr& expression,
+      uint32_t& index_slot,
+      uint32_t& insert_slot,
+      uint32_t& pop_slot) const {
+    auto* insert_call = dynamic_cast<const ast::CallExpr*>(&expression);
+    auto* insert_name = insert_call != nullptr
+        ? dynamic_cast<const ast::NameExpr*>(insert_call->callee.get()) : nullptr;
+    if (insert_call == nullptr || insert_name == nullptr ||
+        insert_call->args.size() != 2 || !insert_call->call_args.empty()) {
+      return false;
+    }
+    auto* index_name = dynamic_cast<const ast::NameExpr*>(insert_call->args[0].get());
+    auto* pop_call = dynamic_cast<const ast::CallExpr*>(insert_call->args[1].get());
+    auto* pop_name = pop_call != nullptr
+        ? dynamic_cast<const ast::NameExpr*>(pop_call->callee.get()) : nullptr;
+    auto* zero = pop_call != nullptr && pop_call->args.size() == 1
+        ? dynamic_cast<const ast::LiteralExpr*>(pop_call->args[0].get()) : nullptr;
+    if (index_name == nullptr || pop_call == nullptr || pop_name == nullptr ||
+        zero == nullptr || zero->kind != ast::LiteralExpr::Kind::Int || zero->text != "0" ||
+        !pop_call->call_args.empty()) {
+      return false;
+    }
+    return direct_local_slot(index_name->name, index_slot) &&
+        direct_local_slot(insert_name->name, insert_slot) &&
+        direct_local_slot(pop_name->name, pop_slot);
+  }
+
+  bool is_list_permutation_advance_loop(
+      const ast::WhileStmt& loop,
+      uint32_t& index_slot,
+      uint32_t& limit_slot,
+      uint32_t& counts_slot,
+      uint32_t& insert_slot,
+      uint32_t& pop_slot) const {
+    if (loop.body.size() != 4) return false;
+    auto* condition = dynamic_cast<const ast::BinaryExpr*>(loop.condition.get());
+    auto* condition_index = condition != nullptr
+        ? dynamic_cast<const ast::NameExpr*>(condition->lhs.get()) : nullptr;
+    auto* condition_limit = condition != nullptr
+        ? dynamic_cast<const ast::NameExpr*>(condition->rhs.get()) : nullptr;
+    auto* rotate = dynamic_cast<const ast::ExprStmt*>(loop.body[0].get());
+    auto* decrement = dynamic_cast<const ast::AugAssignStmt*>(loop.body[1].get());
+    auto* stop_if = dynamic_cast<const ast::IfStmt*>(loop.body[2].get());
+    auto* increment = dynamic_cast<const ast::AugAssignStmt*>(loop.body[3].get());
+    auto* decrement_target = decrement != nullptr
+        ? dynamic_cast<const ast::SubscriptExpr*>(decrement->target.get()) : nullptr;
+    auto* decrement_counts = decrement_target != nullptr
+        ? dynamic_cast<const ast::NameExpr*>(decrement_target->object.get()) : nullptr;
+    auto* decrement_index = decrement_target != nullptr
+        ? dynamic_cast<const ast::NameExpr*>(decrement_target->index.get()) : nullptr;
+    auto* decrement_one = decrement != nullptr
+        ? dynamic_cast<const ast::LiteralExpr*>(decrement->value.get()) : nullptr;
+    auto* stop_condition = stop_if != nullptr
+        ? dynamic_cast<const ast::BinaryExpr*>(stop_if->condition.get()) : nullptr;
+    auto* stop_item = stop_condition != nullptr
+        ? dynamic_cast<const ast::SubscriptExpr*>(stop_condition->lhs.get()) : nullptr;
+    auto* stop_counts = stop_item != nullptr
+        ? dynamic_cast<const ast::NameExpr*>(stop_item->object.get()) : nullptr;
+    auto* stop_index = stop_item != nullptr
+        ? dynamic_cast<const ast::NameExpr*>(stop_item->index.get()) : nullptr;
+    auto* stop_zero = stop_condition != nullptr
+        ? dynamic_cast<const ast::LiteralExpr*>(stop_condition->rhs.get()) : nullptr;
+    auto* increment_index = increment != nullptr
+        ? dynamic_cast<const ast::NameExpr*>(increment->target.get()) : nullptr;
+    auto* increment_one = increment != nullptr
+        ? dynamic_cast<const ast::LiteralExpr*>(increment->value.get()) : nullptr;
+    if (condition == nullptr || condition->op != "!=" || condition_index == nullptr ||
+        condition_limit == nullptr || rotate == nullptr || rotate->expr == nullptr || decrement == nullptr ||
+        decrement->op != "-" || decrement_target == nullptr || decrement_counts == nullptr ||
+        decrement_index == nullptr || decrement_one == nullptr ||
+        decrement_one->kind != ast::LiteralExpr::Kind::Int || decrement_one->text != "1" ||
+        stop_if == nullptr || stop_condition == nullptr || stop_condition->op != ">" ||
+        stop_item == nullptr || stop_counts == nullptr || stop_index == nullptr ||
+        stop_zero == nullptr || stop_zero->kind != ast::LiteralExpr::Kind::Int ||
+        stop_zero->text != "0" || stop_if->then_body.size() != 1 ||
+        dynamic_cast<const ast::BreakStmt*>(stop_if->then_body[0].get()) == nullptr ||
+        !stop_if->else_body.empty() || increment == nullptr || increment->op != "+" ||
+        increment_index == nullptr || increment_one == nullptr ||
+        increment_one->kind != ast::LiteralExpr::Kind::Int || increment_one->text != "1" ||
+        condition_index->name != decrement_index->name ||
+        condition_index->name != stop_index->name ||
+        condition_index->name != increment_index->name ||
+        decrement_counts->name != stop_counts->name ||
+        !is_list_pop_front_insert(*rotate->expr, index_slot, insert_slot, pop_slot)) {
+      return false;
+    }
+    uint32_t condition_index_slot = 0;
+    if (!direct_local_slot(condition_index->name, condition_index_slot) ||
+        condition_index_slot != index_slot ||
+        !direct_local_slot(condition_limit->name, limit_slot) ||
+        !direct_local_slot(decrement_counts->name, counts_slot)) {
+      return false;
+    }
+    index_slot = condition_index_slot;
+    return index_slot != limit_slot && index_slot != counts_slot && limit_slot != counts_slot &&
+        insert_slot != index_slot && pop_slot != index_slot &&
+        insert_slot != counts_slot && pop_slot != counts_slot &&
+        insert_slot != limit_slot && pop_slot != limit_slot;
+  }
+
+  bool is_count_reset_loop(
+      const ast::WhileStmt& loop,
+      uint32_t& counts_slot,
+      uint32_t& index_slot) const {
+    if (loop.body.size() != 2) return false;
+    auto* condition = dynamic_cast<const ast::BinaryExpr*>(loop.condition.get());
+    auto* condition_name = condition != nullptr
+        ? dynamic_cast<const ast::NameExpr*>(condition->lhs.get()) : nullptr;
+    auto* condition_one = condition != nullptr
+        ? dynamic_cast<const ast::LiteralExpr*>(condition->rhs.get()) : nullptr;
+    auto* assignment = dynamic_cast<const ast::SubscriptAssignStmt*>(loop.body[0].get());
+    auto* counts_name = assignment != nullptr
+        ? dynamic_cast<const ast::NameExpr*>(assignment->object.get()) : nullptr;
+    auto* target_index = assignment != nullptr
+        ? dynamic_cast<const ast::BinaryExpr*>(assignment->index.get()) : nullptr;
+    auto* target_index_name = target_index != nullptr
+        ? dynamic_cast<const ast::NameExpr*>(target_index->lhs.get()) : nullptr;
+    auto* target_minus_one = target_index != nullptr
+        ? dynamic_cast<const ast::LiteralExpr*>(target_index->rhs.get()) : nullptr;
+    auto* value_name = assignment != nullptr
+        ? dynamic_cast<const ast::NameExpr*>(assignment->value.get()) : nullptr;
+    auto* decrement = dynamic_cast<const ast::AugAssignStmt*>(loop.body[1].get());
+    auto* decrement_name = decrement != nullptr
+        ? dynamic_cast<const ast::NameExpr*>(decrement->target.get()) : nullptr;
+    auto* decrement_one = decrement != nullptr
+        ? dynamic_cast<const ast::LiteralExpr*>(decrement->value.get()) : nullptr;
+    if (condition == nullptr || condition->op != "!=" || condition_name == nullptr ||
+        condition_one == nullptr || condition_one->kind != ast::LiteralExpr::Kind::Int ||
+        condition_one->text != "1" || assignment == nullptr || counts_name == nullptr ||
+        target_index == nullptr || target_index->op != "-" || target_index_name == nullptr ||
+        target_minus_one == nullptr || target_minus_one->kind != ast::LiteralExpr::Kind::Int ||
+        target_minus_one->text != "1" || value_name == nullptr || decrement == nullptr ||
+        decrement->op != "-" || decrement_name == nullptr || decrement_one == nullptr ||
+        decrement_one->kind != ast::LiteralExpr::Kind::Int || decrement_one->text != "1" ||
+        condition_name->name != target_index_name->name ||
+        condition_name->name != value_name->name ||
+        condition_name->name != decrement_name->name) {
+      return false;
+    }
+    return direct_local_slot(counts_name->name, counts_slot) &&
+        direct_local_slot(condition_name->name, index_slot) &&
+        counts_slot != index_slot;
+  }
+
+  bool guarded_local_list_compare_operands(
+      const ast::BinaryExpr& comparison,
+      uint32_t& sequence_slot,
+      uint32_t& index_operand,
+      bool& index_constant,
+      uint32_t& rhs_operand,
+      bool& rhs_constant,
+      ir::CompareOp& compare_op) {
+    if (comparison.op == "==") compare_op = ir::CompareOp::Eq;
+    else if (comparison.op == "!=") compare_op = ir::CompareOp::Ne;
+    else if (comparison.op == "<") compare_op = ir::CompareOp::Lt;
+    else if (comparison.op == "<=") compare_op = ir::CompareOp::Le;
+    else if (comparison.op == ">") compare_op = ir::CompareOp::Gt;
+    else if (comparison.op == ">=") compare_op = ir::CompareOp::Ge;
+    else return false;
+
+    auto* subscript = dynamic_cast<const ast::SubscriptExpr*>(comparison.lhs.get());
+    auto* sequence_name = subscript != nullptr
+        ? dynamic_cast<const ast::NameExpr*>(subscript->object.get()) : nullptr;
+    if (subscript == nullptr || sequence_name == nullptr ||
+        !direct_local_slot(sequence_name->name, sequence_slot)) {
+      return false;
+    }
+    auto* index_name = dynamic_cast<const ast::NameExpr*>(subscript->index.get());
+    auto* index_literal = dynamic_cast<const ast::LiteralExpr*>(subscript->index.get());
+    if (index_name != nullptr && direct_local_slot(index_name->name, index_operand)) {
+      index_constant = false;
+    } else if (index_literal != nullptr && index_literal->kind == ast::LiteralExpr::Kind::Int) {
+      const Value value = literal_value(*index_literal);
+      if (value.tag != ValueTag::Int64) return false;
+      index_operand = add_const(value);
+      index_constant = true;
+    } else {
+      return false;
+    }
+
+    auto* rhs_name = dynamic_cast<const ast::NameExpr*>(comparison.rhs.get());
+    auto* rhs_literal = dynamic_cast<const ast::LiteralExpr*>(comparison.rhs.get());
+    if (rhs_name != nullptr && direct_local_slot(rhs_name->name, rhs_operand)) {
+      rhs_constant = false;
+    } else if (rhs_literal != nullptr && rhs_literal->kind == ast::LiteralExpr::Kind::Int) {
+      const Value value = literal_value(*rhs_literal);
+      if (value.tag != ValueTag::Int64) return false;
+      rhs_operand = add_const(value);
+      rhs_constant = true;
+    } else {
+      return false;
+    }
+    return true;
+  }
+
+  bool is_reverse_prefix_count_loop(
+      const ast::WhileStmt& loop,
+      uint32_t& sequence_slot,
+      uint32_t& index_slot,
+      uint32_t& counter_slot) const {
+    if (loop.body.size() != 3) return false;
+    auto* condition = dynamic_cast<const ast::NameExpr*>(loop.condition.get());
+    auto* reverse = dynamic_cast<const ast::SubscriptAssignStmt*>(loop.body[0].get());
+    auto* increment = dynamic_cast<const ast::AugAssignStmt*>(loop.body[1].get());
+    auto* update_index = dynamic_cast<const ast::AssignStmt*>(loop.body[2].get());
+    auto* counter_name = increment != nullptr
+        ? dynamic_cast<const ast::NameExpr*>(increment->target.get())
+        : nullptr;
+    auto* increment_one = increment != nullptr
+        ? dynamic_cast<const ast::LiteralExpr*>(increment->value.get())
+        : nullptr;
+    auto* next_index = update_index != nullptr
+        ? dynamic_cast<const ast::SubscriptExpr*>(update_index->value.get())
+        : nullptr;
+    auto* next_sequence = next_index != nullptr
+        ? dynamic_cast<const ast::NameExpr*>(next_index->object.get())
+        : nullptr;
+    auto* zero = next_index != nullptr
+        ? dynamic_cast<const ast::LiteralExpr*>(next_index->index.get())
+        : nullptr;
+    auto* reverse_sequence = reverse != nullptr
+        ? dynamic_cast<const ast::NameExpr*>(reverse->object.get())
+        : nullptr;
+    if (condition == nullptr || reverse == nullptr || increment == nullptr ||
+        update_index == nullptr || counter_name == nullptr ||
+        increment->op != "+" || increment_one == nullptr ||
+        increment_one->kind != ast::LiteralExpr::Kind::Int || increment_one->text != "1" ||
+        next_index == nullptr || next_sequence == nullptr || zero == nullptr ||
+        zero->kind != ast::LiteralExpr::Kind::Int || zero->text != "0" ||
+        reverse_sequence == nullptr || update_index->name != condition->name ||
+        next_sequence->name != reverse_sequence->name ||
+        !is_reverse_prefix_slice_assignment(*reverse, sequence_slot, index_slot)) {
+      return false;
+    }
+    uint32_t condition_slot = 0;
+    if (!direct_local_slot(condition->name, condition_slot) || condition_slot != index_slot ||
+        !direct_local_slot(counter_name->name, counter_slot)) {
+      return false;
+    }
+    uint32_t next_sequence_slot = 0;
+    if (!direct_local_slot(next_sequence->name, next_sequence_slot) ||
+        next_sequence_slot != sequence_slot || sequence_slot == index_slot ||
+        sequence_slot == counter_slot || index_slot == counter_slot) {
+      return false;
+    }
+    return true;
+  }
+
+  void emit(ir::Op op, uint32_t dst = 0, uint32_t a = 0, uint32_t b = 0, uint32_t c = 0) {
+    const bool starts_basic_block =
+        control_flow_entries_.find(static_cast<uint32_t>(fn_.code.size())) != control_flow_entries_.end();
+    if (!starts_basic_block && !fn_.code.empty() && !fn_.source_lines.empty() &&
+        fn_.source_lines.back() == current_source_line_) {
+      auto& previous = fn_.code.back();
+      if (op == ir::Op::Return && previous.op == ir::Op::LoadConst &&
+          previous.dst == a) {
+        previous.op = ir::Op::ReturnConst;
+        previous.dst = 0;
+        return;
+      }
+      if (op == ir::Op::Return && previous.op == ir::Op::LoadLocal &&
+          previous.dst == a) {
+        previous.op = ir::Op::ReturnLocal;
+        previous.dst = 0;
+        return;
+      }
+      if (op == ir::Op::LoadGlobal && previous.op == ir::Op::LoadLocal) {
+        previous.op = ir::Op::LoadLocalGlobal;
+        previous.b = dst;
+        previous.c = a;
+        return;
+      }
+      if (op == ir::Op::LoadLocal && previous.op == ir::Op::LoadGlobal) {
+        const uint32_t global_name = previous.a;
+        previous.op = ir::Op::LoadGlobalLocal;
+        previous.a = global_name;
+        previous.b = dst;
+        previous.c = a;
+        return;
+      }
+      // Comprehension target stores are rewritten to cell stores after the
+      // body is lowered, once nested generator captures are known. Keep those
+      // stores unfused until then; StoreLocalPair would hide a captured slot
+      // from the cell-conversion pass and leave the closure holding an empty
+      // cell (notably for tuple-unpacked targets).
+      if (!defer_comprehension_target_store_fusion_ &&
+          op == ir::Op::StoreLocal && previous.op == ir::Op::StoreLocal) {
+        previous.op = ir::Op::StoreLocalPair;
+        previous.b = dst;
+        previous.c = a;
+        return;
+      }
+      if (op == ir::Op::LoadLocal && previous.op == ir::Op::JumpIfFalse) {
+        const uint32_t jump_target = previous.dst;
+        previous.op = ir::Op::JumpIfFalseLoadLocal;
+        previous.dst = dst;
+        previous.b = jump_target;
+        previous.c = a;
+        return;
+      }
+      if (!defer_comprehension_target_store_fusion_ &&
+          op == ir::Op::LoadLocal && previous.op == ir::Op::StoreLocal) {
+        previous.op = ir::Op::StoreLocalLoadLocal;
+        previous.b = dst;
+        previous.c = a;
+        return;
+      }
+      if (op == ir::Op::LoadLocal && previous.op == ir::Op::LoadLocal) {
+        previous.op = ir::Op::LoadLocalPair;
+        previous.b = dst;
+        previous.c = a;
+        return;
+      }
+      if (op == ir::Op::LoadConst && previous.op == ir::Op::LoadLocal) {
+        previous.op = ir::Op::LoadLocalConst;
+        previous.b = dst;
+        previous.c = a;
+        return;
+      }
+      if (op == ir::Op::LoadConst && previous.op == ir::Op::LoadConst) {
+        previous.op = ir::Op::LoadConstPair;
+        previous.b = dst;
+        previous.c = a;
+        return;
+      }
+      if (op == ir::Op::LoadAttr && previous.op == ir::Op::LoadLocal &&
+          a == previous.dst) {
+        const uint32_t receiver_reg = previous.dst;
+        const uint32_t local_slot = previous.a;
+        previous.op = ir::Op::LoadLocalAttr;
+        previous.dst = dst;
+        previous.a = local_slot;
+        previous.b = b;
+        previous.c = receiver_reg;
+        return;
+      }
+      if (op == ir::Op::Call && previous.op == ir::Op::LoadLocal &&
+          a == previous.dst) {
+        const uint32_t local_slot = previous.a;
+        previous.op = ir::Op::CallLocal;
+        previous.dst = dst;
+        previous.a = local_slot;
+        previous.b = b;
+        previous.c = 0;
+        return;
+      }
+      if (op == ir::Op::LoadAttr && previous.op == ir::Op::LoadModuleSlot &&
+          a == previous.dst) {
+        const uint32_t receiver_reg = previous.dst;
+        const uint32_t module_slot = previous.a;
+        previous.op = ir::Op::LoadModuleAttr;
+        previous.dst = dst;
+        previous.a = module_slot;
+        previous.b = b;
+        previous.c = receiver_reg;
+        return;
+      }
+      if (op == ir::Op::GetItem && previous.op == ir::Op::LoadLocal &&
+          a == previous.dst) {
+        const uint32_t object_reg = previous.dst;
+        const uint32_t local_slot = previous.a;
+        previous.op = ir::Op::LoadLocalGetItem;
+        previous.dst = dst;
+        previous.a = local_slot;
+        previous.b = b;
+        previous.c = object_reg;
+        return;
+      }
+      if (op == ir::Op::GetItem && previous.op == ir::Op::LoadConst &&
+          b == previous.dst) {
+        // Keep a constant subscript and its generic lookup in one VM dispatch.
+        // The fused op still runs GetItem, so custom __getitem__ behavior and
+        // its exception/call path remain authoritative.
+        const uint32_t index_reg = previous.dst;
+        const uint32_t constant = previous.a;
+        previous.op = ir::Op::GetItemConst;
+        previous.dst = dst;
+        previous.a = a;
+        previous.b = constant;
+        previous.c = index_reg;
+        return;
+      }
+      if (op == ir::Op::StoreLocal && previous.op == ir::Op::IterNext &&
+          previous.dst == a && dst < fn_.locals.size() &&
+          hidden_locals_.find(fn_.locals[dst]) == hidden_locals_.end()) {
+        const uint32_t item_reg = previous.dst;
+        previous.op = ir::Op::IterNextLocal;
+        previous.dst = dst;
+        previous.c = item_reg;
+        return;
+      }
+      if (op == ir::Op::StoreLocal && previous.op == ir::Op::LoadLocalInstanceSlot &&
+          previous.dst == a) {
+        const uint32_t temporary_reg = previous.dst;
+        previous.op = ir::Op::LoadInstanceSlotLocal;
+        previous.dst = dst;
+        previous.c = temporary_reg;
+        return;
+      }
+      if (op == ir::Op::DictSet && previous.op == ir::Op::LoadConst &&
+          previous.dst == b) {
+        const uint32_t value_reg = previous.dst;
+        const uint32_t constant = previous.a;
+        previous.op = ir::Op::DictSetConst;
+        previous.dst = dst;
+        previous.a = a;
+        previous.b = constant;
+        previous.c = value_reg;
+        return;
+      }
+      if (op == ir::Op::Call && previous.op == ir::Op::LoadGlobal &&
+          a == previous.dst) {
+        previous.op = ir::Op::CallGlobal;
+        previous.dst = dst;
+        previous.b = b;
+        previous.c = 0;
+        return;
+      }
+      if (op == ir::Op::CallMethod && previous.op == ir::Op::LoadLocal &&
+          a == previous.dst) {
+        const uint32_t local_slot = previous.a;
+        previous.op = ir::Op::CallLocalMethod;
+        previous.dst = dst;
+        previous.a = local_slot;
+        previous.b = b;
+        previous.c = c;
+        return;
+      }
+    }
+    fn_.code.push_back(ir::Instr{op, dst, a, b, c});
+    fn_.source_lines.push_back(current_source_line_);
+    fn_.source_positions.push_back(current_source_position_);
+  }
+
+  size_t emit_jump(ir::Op op, uint32_t cond = 0) {
+    const bool starts_basic_block =
+        control_flow_entries_.find(static_cast<uint32_t>(fn_.code.size())) != control_flow_entries_.end();
+    // CPython combines RHS-literal-None conditions across parenthesized source
+    // lines and direct `not` chains. Keep the comparison's source position.
+    // Ordinary same-line local-constant conditions retain the fast fusion
+    // below; named stores and other intervening instructions remain ordinary.
+    if (!starts_basic_block && op == ir::Op::JumpIfFalse && !fn_.code.empty() && !fn_.source_lines.empty()) {
+        size_t comparison_ip = fn_.code.size() - 1;
+        uint32_t source = cond;
+        bool negate = false;
+        while (comparison_ip != 0 && fn_.code[comparison_ip].op == ir::Op::Not &&
+               fn_.code[comparison_ip].dst == source &&
+               control_flow_entries_.find(static_cast<uint32_t>(comparison_ip)) == control_flow_entries_.end()) {
+          source = fn_.code[comparison_ip].a;
+          negate = !negate;
+          --comparison_ip;
+        }
+        const auto& comparison = fn_.code[comparison_ip];
+        if (comparison.op == ir::Op::Is && comparison.dst == source &&
+            (comparison_ip + 1 != fn_.code.size() || fn_.source_lines.back() != current_source_line_) &&
+            std::find(literal_none_identity_results_.begin(), literal_none_identity_results_.end(), source) !=
+                literal_none_identity_results_.end()) {
+          ir::Instr fused = comparison;
+          fused.op = ir::Op::IsNoneJumpIfFalse;
+          fused.dst = 0;
+          fused.c = static_cast<uint32_t>((fused.c != 0) != negate);
+          fn_.code.resize(comparison_ip + 1);
+          fn_.source_lines.resize(comparison_ip + 1);
+          fn_.source_positions.resize(comparison_ip + 1);
+          fn_.code.back() = fused;
+          return comparison_ip;
+        }
+    }
+    if (!starts_basic_block && op == ir::Op::JumpIfFalse && !fn_.code.empty() && !fn_.source_lines.empty() &&
+        fn_.source_lines.back() == current_source_line_) {
+      auto& previous = fn_.code.back();
+      bool guarded_list_compare_fallback = false;
+      size_t guarded_list_compare_ip = SIZE_MAX;
+      size_t compare_ip = SIZE_MAX;
+      if (previous.op == ir::Op::Compare && previous.dst == cond) {
+        compare_ip = fn_.code.size() - 1;
+      } else if (previous.op == ir::Op::Move && previous.a == cond &&
+                 fn_.code.size() >= 2 && fn_.code[fn_.code.size() - 2].op == ir::Op::Compare &&
+                 fn_.code[fn_.code.size() - 2].dst == cond) {
+        // A short-circuit `and` moves its left operand before the branch.
+        // When that operand is a guarded list comparison, fuse through the
+        // resulting MoveJumpIfFalse as well as a direct if-condition branch.
+        compare_ip = fn_.code.size() - 2;
+      }
+      if (compare_ip != SIZE_MAX) {
+        for (size_t candidate_ip = compare_ip; candidate_ip-- > 0;) {
+          const auto& candidate = fn_.code[candidate_ip];
+          if (candidate.op != ir::Op::GuardedLocalListCompare || candidate.dst != cond) {
+            continue;
+          }
+          const size_t span = candidate.c & ir::kGuardedLocalListCompareSpanMask;
+          guarded_list_compare_fallback = candidate_ip + span == compare_ip;
+          if (guarded_list_compare_fallback) guarded_list_compare_ip = candidate_ip;
+          break;
+        }
+      }
+      if (!guarded_list_compare_fallback && previous.op == ir::Op::Compare && previous.dst == cond &&
+          fn_.code.size() >= 2 && fn_.source_lines.size() >= 2 &&
+          fn_.source_lines[fn_.source_lines.size() - 2] == current_source_line_) {
+        auto& load = fn_.code[fn_.code.size() - 2];
+        if (load.op == ir::Op::LoadLocalConst &&
+            previous.a == load.dst && previous.b == load.b) {
+          const uint32_t local_slot = load.a;
+          const uint32_t constant = load.c;
+          const uint32_t compare_op = previous.c;
+          fn_.code.pop_back();
+          fn_.source_lines.pop_back();
+          fn_.source_positions.pop_back();
+          auto& fused = fn_.code.back();
+          fused.op = ir::Op::JumpIfLocalConstFalse;
+          fused.dst = 0;
+          fused.a = local_slot;
+          fused.b = constant;
+          fused.c = compare_op;
+          return fn_.code.size() - 1;
+        }
+      }
+      if (!guarded_list_compare_fallback && previous.op == ir::Op::Compare && previous.dst == cond &&
+          fn_.code.size() >= 2 && fn_.source_lines.size() >= 2 &&
+          fn_.source_lines[fn_.source_lines.size() - 2] == current_source_line_) {
+        auto& load = fn_.code[fn_.code.size() - 2];
+        if (load.op == ir::Op::LoadLocalPair &&
+            previous.a == load.dst && previous.b == load.b) {
+          const uint32_t lhs_slot = load.a;
+          const uint32_t rhs_slot = load.c;
+          const uint32_t compare_op = previous.c;
+          fn_.code.pop_back();
+          fn_.source_lines.pop_back();
+          fn_.source_positions.pop_back();
+          auto& fused = fn_.code.back();
+          fused.op = ir::Op::JumpIfLocalLocalFalse;
+          fused.dst = 0;
+          fused.a = lhs_slot;
+          fused.b = rhs_slot;
+          fused.c = compare_op;
+          return fn_.code.size() - 1;
+        }
+      }
+      if (previous.op == ir::Op::Is && previous.dst == cond &&
+          fn_.code.size() >= 2 && fn_.source_lines.size() >= 2 &&
+          fn_.source_lines[fn_.source_lines.size() - 2] == current_source_line_) {
+        auto& load = fn_.code[fn_.code.size() - 2];
+        if (load.op == ir::Op::LoadLocalConst &&
+            previous.a == load.dst && previous.b == load.b) {
+          const uint32_t local_slot = load.a;
+          const uint32_t constant = load.c;
+          const uint32_t negate = previous.c;
+          fn_.code.pop_back();
+          fn_.source_lines.pop_back();
+          fn_.source_positions.pop_back();
+          auto& fused = fn_.code.back();
+          fused.op = ir::Op::IsLocalConstJumpIfFalse;
+          fused.dst = 0;
+          fused.a = local_slot;
+          fused.b = constant;
+          fused.c = negate;
+          return fn_.code.size() - 1;
+        }
+      }
+      if ((previous.op == ir::Op::Compare || previous.op == ir::Op::Is) &&
+          previous.dst == cond && !guarded_list_compare_fallback) {
+        const bool literal_none_rhs = previous.op == ir::Op::Is &&
+            std::find(literal_none_identity_results_.begin(), literal_none_identity_results_.end(), previous.dst) !=
+                literal_none_identity_results_.end();
+        previous.op = previous.op == ir::Op::Compare
+            ? ir::Op::CompareJumpIfFalse
+            : literal_none_rhs ? ir::Op::IsNoneJumpIfFalse : ir::Op::IsJumpIfFalse;
+        previous.dst = 0;
+        return fn_.code.size() - 1;
+      }
+      if (guarded_list_compare_fallback) {
+        auto& guarded_compare = fn_.code[guarded_list_compare_ip];
+        guarded_compare.c |= ir::kGuardedLocalListCompareBranchFlag;
+        fn_.call_args[guarded_compare.b].push_back(0);
+      }
+      if (previous.op == ir::Op::Not && previous.dst == cond) {
+        previous.op = ir::Op::NotJumpIfFalse;
+        previous.dst = 0;
+        return fn_.code.size() - 1;
+      }
+      if (previous.op == ir::Op::Move && previous.a == cond) {
+        previous.op = ir::Op::MoveJumpIfFalse;
+        previous.b = 0;
+        return fn_.code.size() - 1;
+      }
+    }
+    fn_.code.push_back(ir::Instr{op, 0, cond, 0, 0});
+    fn_.source_lines.push_back(current_source_line_);
+    fn_.source_positions.push_back(current_source_position_);
+    return fn_.code.size() - 1;
+  }
+
+  void patch_jump(size_t at, uint32_t target) {
+    control_flow_entries_.insert(target);
+    if (fn_.code[at].op == ir::Op::JumpIfFalse ||
+        fn_.code[at].op == ir::Op::MoveJumpIfFalse) {
+      for (size_t candidate_ip = at; candidate_ip-- > 0;) {
+        auto& candidate = fn_.code[candidate_ip];
+        if (candidate.op != ir::Op::GuardedLocalListCompare ||
+            (candidate.c & ir::kGuardedLocalListCompareBranchFlag) == 0) {
+          continue;
+        }
+        const size_t span = candidate.c & ir::kGuardedLocalListCompareSpanMask;
+        if (candidate_ip + span + 1 == at && candidate.b < fn_.call_args.size() &&
+            fn_.call_args[candidate.b].size() == 4) {
+          fn_.call_args[candidate.b][3] = target;
+          break;
+        }
+      }
+    }
+    if (fn_.code[at].op == ir::Op::JumpIfFalseLoadLocal ||
+        fn_.code[at].op == ir::Op::MoveJumpIfFalse ||
+        fn_.code[at].op == ir::Op::MoveJumpIfTrue) {
+      fn_.code[at].b = target;
+    } else {
+      fn_.code[at].dst = target;
+    }
+  }
+
+  void patch_iter_done(size_t at, uint32_t target) {
+    control_flow_entries_.insert(target);
+    fn_.code[at].b = target;
+  }
+
+  bool emit_compare_op(const std::string& op, uint32_t dst, uint32_t lhs, uint32_t rhs, bool literal_none_rhs = false) {
+    if (op == "is" || op == "is not") {
+      emit(ir::Op::Is, dst, lhs, rhs, op == "is not" ? 1u : 0u);
+      if (literal_none_rhs) literal_none_identity_results_.push_back(dst);
+      return true;
+    }
+    if (op == "in" || op == "not in") {
+      emit(ir::Op::Contains, dst, lhs, rhs, op == "not in" ? 1u : 0u);
+      return true;
+    }
+
+    uint32_t cmp = 0;
+    if (op == "==") cmp = static_cast<uint32_t>(ir::CompareOp::Eq);
+    else if (op == "!=") cmp = static_cast<uint32_t>(ir::CompareOp::Ne);
+    else if (op == "<") cmp = static_cast<uint32_t>(ir::CompareOp::Lt);
+    else if (op == "<=") cmp = static_cast<uint32_t>(ir::CompareOp::Le);
+    else if (op == ">") cmp = static_cast<uint32_t>(ir::CompareOp::Gt);
+    else if (op == ">=") cmp = static_cast<uint32_t>(ir::CompareOp::Ge);
+    else return false;
+
+    emit(ir::Op::Compare, dst, lhs, rhs, cmp);
+    return true;
+  }
+
+  void emit_return_none() {
+    const auto reg = new_reg();
+    emit(ir::Op::LoadConst, reg, add_const(Value::none()));
+    lower_active_finalizers();
+    emit(ir::Op::Return, 0, reg);
+  }
+
+  struct ActiveFinalizer {
+    enum class Kind {
+      TryFinally,
+      WithExit,
+      ExceptTarget,
+    };
+
+    Kind kind = Kind::TryFinally;
+    const std::vector<ast::StmtPtr>* body = nullptr;
+    uint32_t manager = 0;
+    bool is_async = false;
+    std::string exception_target;
+  };
+
+  void lower_finalizer_body(const std::vector<ast::StmtPtr>& body) {
+    const auto saved = std::move(active_finalizers_);
+    active_finalizers_.clear();
+    lower_body(body);
+    active_finalizers_ = std::move(saved);
+  }
+
+  void emit_with_normal_exit(uint32_t manager, bool is_async) {
+    const auto none_type = new_reg();
+    const auto none_value = new_reg();
+    const auto none_tb = new_reg();
+    const auto none_const = add_const(Value::none());
+    emit(ir::Op::LoadConst, none_type, none_const);
+    emit(ir::Op::LoadConst, none_value, none_const);
+    emit(ir::Op::LoadConst, none_tb, none_const);
+    uint32_t exit_result =
+        emit_call_method(manager, is_async ? "__aexit__" : "__exit__", {none_type, none_value, none_tb});
+    if (is_async) {
+      exit_result = emit_await_value(exit_result);
+    }
+    emit(ir::Op::Pop, 0, exit_result);
+    emit(ir::Op::LoadConst, manager, none_const);
+  }
+
+  void clear_named_value(const std::string& name) {
+    const auto none = new_reg();
+    emit(ir::Op::LoadConst, none, add_const(Value::none()));
+    store_named_value(name, none);
+    delete_named_value(name);
+  }
+
+  void lower_active_finalizers_from(size_t base_count) {
+    const auto saved = active_finalizers_;
+    for (auto it = saved.rbegin(); it != saved.rend(); ++it) {
+      const auto index = static_cast<size_t>(std::distance(saved.begin(), std::next(it).base()));
+      if (index < base_count) {
+        break;
+      }
+      if (it->kind == ActiveFinalizer::Kind::TryFinally) {
+        lower_finalizer_body(*it->body);
+      } else if (it->kind == ActiveFinalizer::Kind::WithExit) {
+        emit_with_normal_exit(it->manager, it->is_async);
+      } else {
+        clear_named_value(it->exception_target);
+      }
+    }
+  }
+
+  void lower_active_finalizers() {
+    lower_active_finalizers_from(0);
+  }
+
+  void push_loop_control(uint32_t continue_target) {
+    loop_continue_targets_.push_back(continue_target);
+    loop_break_jumps_.push_back({});
+    loop_finalizer_base_counts_.push_back(active_finalizers_.size());
+    loop_except_base_counts_.push_back(active_except_depth_);
+  }
+
+  std::vector<size_t> pop_loop_control() {
+    auto break_jumps = std::move(loop_break_jumps_.back());
+    loop_break_jumps_.pop_back();
+    loop_continue_targets_.pop_back();
+    loop_finalizer_base_counts_.pop_back();
+    loop_except_base_counts_.pop_back();
+    return break_jumps;
+  }
+
+  void pop_loop_exceptions() {
+    for (size_t depth = active_except_depth_;
+         depth > loop_except_base_counts_.back(); --depth) {
+      emit(ir::Op::PopExcept);
+    }
+  }
+
+  void store_named_value(const std::string& name, uint32_t reg) {
+    const auto resolved = resolve_name(name);
+    if ((is_module_ && hidden_locals_.find(resolved) == hidden_locals_.end()) ||
+        (!is_module_ && sema::contains(global_names_, resolved))) {
+      uint32_t slot = 0;
+      if (module_global_slot(resolved, slot)) {
+        emit(ir::Op::StoreModuleSlot, slot, reg);
+      } else {
+        emit(ir::Op::StoreGlobal, add_name(resolved), reg);
+      }
+    } else if (auto free_it = free_indices_.find(name); free_it != free_indices_.end()) {
+      emit(ir::Op::StoreFree, free_it->second, reg);
+    } else if (is_cell_local(resolved)) {
+      emit(ir::Op::StoreCell, cell_indices_[resolved], reg);
+    } else {
+      emit(ir::Op::StoreLocal, ensure_local(resolved), reg);
+    }
+  }
+
+  void delete_named_value(const std::string& name) {
+    const auto resolved = resolve_name(name);
+    if ((is_module_ && hidden_locals_.find(resolved) == hidden_locals_.end()) ||
+        (!is_module_ && sema::contains(global_names_, resolved))) {
+      uint32_t slot = 0;
+      if (module_global_slot(resolved, slot)) {
+        emit(ir::Op::DeleteModuleSlot, slot);
+      } else {
+        emit(ir::Op::DeleteGlobal, add_name(resolved));
+      }
+    } else if (auto free_it = free_indices_.find(name); free_it != free_indices_.end()) {
+      const auto invalid = new_reg();
+      emit(ir::Op::LoadConst, invalid, add_const(Value::invalid()));
+      emit(ir::Op::StoreFree, free_it->second, invalid);
+    } else if (is_cell_local(resolved)) {
+      const auto invalid = new_reg();
+      emit(ir::Op::LoadConst, invalid, add_const(Value::invalid()));
+      emit(ir::Op::StoreCell, cell_indices_[resolved], invalid);
+    } else {
+      emit(ir::Op::DeleteLocal, ensure_local(resolved));
+    }
+  }
+
+  void lower_delete_target(const ast::Expr& target) {
+    if (auto* name = dynamic_cast<const ast::NameExpr*>(&target)) {
+      delete_named_value(name->name);
+      return;
+    }
+    if (auto* attr = dynamic_cast<const ast::AttrExpr*>(&target)) {
+      const auto object = lower_expr(*attr->object);
+      emit(ir::Op::DeleteAttr, object, add_name(mangle_private_identifier(attr->name)));
+      return;
+    }
+    if (auto* subscript = dynamic_cast<const ast::SubscriptExpr*>(&target)) {
+      const auto object = lower_expr(*subscript->object);
+      const auto index = lower_expr(*subscript->index);
+      emit(ir::Op::DeleteItem, object, index);
+      return;
+    }
+    if (auto* tuple = dynamic_cast<const ast::TupleExpr*>(&target)) {
+      for (const auto& item : tuple->items) lower_delete_target(*item);
+      return;
+    }
+    if (auto* list = dynamic_cast<const ast::ListExpr*>(&target)) {
+      for (const auto& item : list->items) lower_delete_target(*item);
+    }
+  }
+
+  std::string resolve_name(const std::string& name) const {
+    const auto mangled = mangle_private_identifier(name);
+    auto it = name_aliases_.find(mangled);
+    if (it != name_aliases_.end()) {
+      return it->second;
+    }
+    return mangled;
+  }
+
+  KnownValueType known_type_for_expr(const ast::Expr& expr) const {
+    if (auto* literal = dynamic_cast<const ast::LiteralExpr*>(&expr)) {
+      return literal->kind == ast::LiteralExpr::Kind::String ? KnownValueType::String : KnownValueType::Unknown;
+    }
+    if (auto* name = dynamic_cast<const ast::NameExpr*>(&expr)) {
+      const auto resolved = resolve_name(name->name);
+      auto it = local_known_types_.find(resolved);
+      return it == local_known_types_.end() ? KnownValueType::Unknown : it->second;
+    }
+    return KnownValueType::Unknown;
+  }
+
+  void update_known_local_type(const std::string& name, const ast::Expr& expr) {
+    const auto resolved = resolve_name(name);
+    if (locals_.find(resolved) == locals_.end()) {
+      return;
+    }
+    const auto type = known_type_for_expr(expr);
+    if (type == KnownValueType::Unknown) {
+      local_known_types_.erase(resolved);
+    } else {
+      local_known_types_[resolved] = type;
+    }
+  }
+
+  void lower_for_loop(const ast::ForStmt& loop) {
+    if (loop.is_async) {
+      lower_async_for_loop(loop);
+      return;
+    }
+    const auto* target_name = dynamic_cast<const ast::NameExpr*>(loop.target_expr.get());
+    const std::string target = target_name != nullptr ? target_name->name : loop.target;
+    if (target_name != nullptr && try_lower_const_range_for(target, *loop.iterable, loop.body)) {
+      return;
+    }
+    const auto iterable_reg = lower_expr(*loop.iterable);
+    const auto iterator_reg = new_reg();
+    emit(ir::Op::GetIter, iterator_reg, iterable_reg);
+    const auto start = static_cast<uint32_t>(fn_.code.size());
+    const auto item_reg = new_reg();
+    emit(ir::Op::IterNext, item_reg, iterator_reg, 0);
+    const auto iter_next = fn_.code.size() - 1;
+    if (loop.target_expr != nullptr) {
+      lower_unpack_assign(*loop.target_expr, item_reg);
+    } else {
+      store_named_value(target, item_reg);
+    }
+    push_loop_control(start);
+    lower_body(loop.body);
+    auto break_jumps = pop_loop_control();
+    emit(ir::Op::Jump, start);
+    patch_iter_done(iter_next, static_cast<uint32_t>(fn_.code.size()));
+    lower_body(loop.else_body);
+    for (const auto jump : break_jumps) {
+      patch_jump(jump, static_cast<uint32_t>(fn_.code.size()));
+    }
+  }
+
+  void lower_async_for_loop(const ast::ForStmt& loop) {
+    const auto* target_name = dynamic_cast<const ast::NameExpr*>(loop.target_expr.get());
+    const std::string target = target_name != nullptr ? target_name->name : loop.target;
+    const auto iterable_reg = lower_expr(*loop.iterable);
+    const auto iterator_reg = emit_call_method(iterable_reg, "__aiter__", {});
+    const auto start = static_cast<uint32_t>(fn_.code.size());
+    const auto setup_next = emit_jump(ir::Op::SetupExcept);
+    const auto next_awaitable = emit_call_method(iterator_reg, "__anext__", {});
+    const auto item_reg = emit_await_value(next_awaitable);
+    emit(ir::Op::PopExcept);
+    if (loop.target_expr != nullptr) {
+      lower_unpack_assign(*loop.target_expr, item_reg);
+    } else {
+      store_named_value(target, item_reg);
+    }
+    push_loop_control(start);
+    lower_body(loop.body);
+    auto break_jumps = pop_loop_control();
+    emit(ir::Op::Jump, start);
+
+    patch_jump(setup_next, static_cast<uint32_t>(fn_.code.size()));
+    const auto stop_type = new_reg();
+    emit(ir::Op::LoadGlobal, stop_type, add_name(resolve_name("StopAsyncIteration")));
+    const auto matched = new_reg();
+    emit(ir::Op::MatchException, matched, stop_type);
+    const auto not_stop_async = emit_jump(ir::Op::JumpIfFalse, matched);
+    emit(ir::Op::ClearException);
+    lower_body(loop.else_body);
+    const auto done = emit_jump(ir::Op::Jump);
+    patch_jump(not_stop_async, static_cast<uint32_t>(fn_.code.size()));
+    emit(ir::Op::Reraise);
+    patch_jump(done, static_cast<uint32_t>(fn_.code.size()));
+    for (const auto jump : break_jumps) {
+      patch_jump(jump, static_cast<uint32_t>(fn_.code.size()));
+    }
+  }
+
+  bool parse_int_literal(const ast::Expr& expr, int64_t& value) const {
+    auto* lit = dynamic_cast<const ast::LiteralExpr*>(&expr);
+    if (lit == nullptr || lit->kind != ast::LiteralExpr::Kind::Int) {
+      return false;
+    }
+    value = parse_integer_literal(lit->text);
+    return true;
+  }
+
+  bool try_parse_const_range_call(const ast::Expr& iterable, int64_t& start, int64_t& stop, int64_t& step) const {
+    auto* call = dynamic_cast<const ast::CallExpr*>(&iterable);
+    if (call == nullptr) {
+      return false;
+    }
+    auto* callee = dynamic_cast<const ast::NameExpr*>(call->callee.get());
+    if (callee == nullptr || resolve_name(callee->name) != "range") {
+      return false;
+    }
+    if (call->args.size() == 1) {
+      start = 0;
+      step = 1;
+      return parse_int_literal(*call->args[0], stop);
+    }
+    if (call->args.size() == 2) {
+      step = 1;
+      return parse_int_literal(*call->args[0], start) && parse_int_literal(*call->args[1], stop);
+    }
+    if (call->args.size() == 3) {
+      return parse_int_literal(*call->args[0], start) &&
+             parse_int_literal(*call->args[1], stop) &&
+             parse_int_literal(*call->args[2], step) &&
+             step != 0;
+    }
+    return false;
+  }
+
+  bool try_lower_const_range_for(
+      const std::string& target,
+      const ast::Expr& iterable,
+      const std::vector<ast::StmtPtr>& body) {
+    uint32_t target_slot = 0;
+    if (!direct_local_slot(target, target_slot)) {
+      return false;
+    }
+    int64_t start = 0;
+    int64_t stop = 0;
+    int64_t step = 1;
+    if (!try_parse_const_range_call(iterable, start, stop, step)) {
+      return false;
+    }
+    const auto state_name = "#range." + std::to_string(next_hidden_local_++) + "." + target;
+    hidden_locals_.insert(state_name);
+    const auto state_slot = ensure_local(state_name);
+    const auto start_reg = new_reg();
+    emit(ir::Op::LoadConst, start_reg, add_const(Value::int64(start)));
+    emit(ir::Op::StoreLocal, state_slot, start_reg);
+    const auto loop_start = static_cast<uint32_t>(fn_.code.size());
+    emit(ir::Op::ForRangeConstLocalNext, 0, target_slot, state_slot,
+         add_range_spec(add_const(Value::int64(stop)), add_const(Value::int64(step))));
+    const auto next = fn_.code.size() - 1;
+    push_loop_control(loop_start);
+    lower_body(body);
+    auto break_jumps = pop_loop_control();
+    emit(ir::Op::Jump, loop_start);
+    patch_jump(next, static_cast<uint32_t>(fn_.code.size()));
+    for (const auto jump : break_jumps) {
+      patch_jump(jump, static_cast<uint32_t>(fn_.code.size()));
+    }
+    return true;
+  }
+
+  void lower_try_except_core(const ast::TryExceptStmt& stmt) {
+    const auto setup = emit_jump(ir::Op::SetupExcept);
+    ++active_except_depth_;
+    lower_body(stmt.try_body);
+    --active_except_depth_;
+    emit(ir::Op::PopExcept);
+    lower_body(stmt.else_body);
+    const auto skip_except = emit_jump(ir::Op::Jump);
+    patch_jump(setup, static_cast<uint32_t>(fn_.code.size()));
+    std::vector<size_t> handler_done_jumps;
+    for (const auto& handler : stmt.handlers) {
+      size_t next_handler = 0;
+      if (handler.type != nullptr) {
+        const auto type_reg = lower_expr(*handler.type);
+        const auto matched = new_reg();
+        emit(ir::Op::MatchException, matched, type_reg);
+        next_handler = emit_jump(ir::Op::JumpIfFalse, matched);
+      }
+      if (handler.is_star) {
+        const auto original = new_reg();
+        emit(ir::Op::LoadException, original);
+        const auto group_base = new_reg();
+        emit(ir::Op::LoadGlobal, group_base, add_name(resolve_name("BaseExceptionGroup")));
+        const auto isinstance_fn = new_reg();
+        emit(ir::Op::LoadGlobal, isinstance_fn, add_name(resolve_name("isinstance")));
+        const auto already_group = new_reg();
+        emit(ir::Op::Call, already_group, isinstance_fn, add_call_args({original, group_base}));
+        const auto wrap_group = emit_jump(ir::Op::JumpIfFalse, already_group);
+        const auto group_ready = emit_jump(ir::Op::Jump);
+        patch_jump(wrap_group, static_cast<uint32_t>(fn_.code.size()));
+        const auto group_class = new_reg();
+        emit(ir::Op::LoadGlobal, group_class, add_name(resolve_name("ExceptionGroup")));
+        const auto message = new_reg();
+        emit(ir::Op::LoadConst, message, add_const(Value::string("")));
+        const auto members = new_reg();
+        emit(ir::Op::MakeList, members, add_list_items({original}));
+        const auto wrapped = new_reg();
+        emit(ir::Op::Call, wrapped, group_class, add_call_args({message, members}));
+        emit(ir::Op::SetException, 0, wrapped);
+        patch_jump(group_ready, static_cast<uint32_t>(fn_.code.size()));
+      }
+      if (!handler.name.empty()) {
+        const auto exc_reg = new_reg();
+        emit(ir::Op::LoadException, exc_reg);
+        store_named_value(handler.name, exc_reg);
+      }
+      const size_t cleanup_setup = handler.name.empty()
+          ? 0 : emit_jump(ir::Op::SetupExcept);
+      if (!handler.name.empty()) {
+        active_finalizers_.push_back(
+            {ActiveFinalizer::Kind::ExceptTarget, nullptr, 0, false,
+             handler.name});
+      }
+      const size_t handler_body_start = fn_.code.size();
+      if (!handler.name.empty()) ++active_except_depth_;
+      lower_body(handler.body);
+      if (!handler.name.empty()) {
+        --active_except_depth_;
+        active_finalizers_.pop_back();
+        emit(ir::Op::PopExcept);
+      }
+      if (handler.is_star && handler.line != 0) {
+        for (size_t instruction = handler_body_start; instruction < fn_.code.size(); ++instruction) {
+          if (fn_.code[instruction].op != ir::Op::Reraise ||
+              instruction >= fn_.source_positions.size()) {
+            continue;
+          }
+          auto& position = fn_.source_positions[instruction];
+          fn_.source_lines[instruction] = handler.line;
+          position.line = handler.line;
+          position.column = handler.column;
+          if (position.end_line == 0) position.end_line = handler.line;
+          if (position.end_column == 0) position.end_column = handler.column;
+        }
+      }
+      // Python clears an exception handler's target at the end of the
+      // handler so the exception and traceback do not form a reference
+      // cycle through the frame locals.
+      if (!handler.name.empty()) {
+        clear_named_value(handler.name);
+      }
+      emit(ir::Op::ClearException);
+      handler_done_jumps.push_back(emit_jump(ir::Op::Jump));
+      if (!handler.name.empty()) {
+        patch_jump(cleanup_setup, static_cast<uint32_t>(fn_.code.size()));
+        clear_named_value(handler.name);
+        emit(ir::Op::Reraise);
+      }
+      if (handler.type != nullptr) {
+        patch_jump(next_handler, static_cast<uint32_t>(fn_.code.size()));
+      }
+    }
+    emit(ir::Op::Reraise);
+    for (const auto jump : handler_done_jumps) {
+      patch_jump(jump, static_cast<uint32_t>(fn_.code.size()));
+    }
+    patch_jump(skip_except, static_cast<uint32_t>(fn_.code.size()));
+  }
+
+  void lower_try_except(const ast::TryExceptStmt& stmt) {
+    if (stmt.finally_body.empty()) {
+      lower_try_except_core(stmt);
+      return;
+    }
+
+    const auto setup = emit_jump(ir::Op::SetupExcept);
+    active_finalizers_.push_back({ActiveFinalizer::Kind::TryFinally, &stmt.finally_body, 0, false});
+    lower_try_except_core(stmt);
+    active_finalizers_.pop_back();
+    emit(ir::Op::PopExcept);
+    lower_finalizer_body(stmt.finally_body);
+    const auto done = emit_jump(ir::Op::Jump);
+    patch_jump(setup, static_cast<uint32_t>(fn_.code.size()));
+    lower_finalizer_body(stmt.finally_body);
+    emit(ir::Op::Reraise);
+    patch_jump(done, static_cast<uint32_t>(fn_.code.size()));
+  }
+
+  uint32_t emit_call_method(
+      uint32_t object,
+      const std::string& name,
+      std::vector<uint32_t> args,
+      bool preserve_object = false) {
+    if (preserve_object) {
+      const auto call_object = new_reg();
+      emit(ir::Op::Move, call_object, object);
+      object = call_object;
+    }
+    const auto dst = new_reg();
+    emit(ir::Op::CallMethod, dst, object, add_name(name), add_call_args(std::move(args)));
+    return dst;
+  }
+
+  uint32_t emit_call_value(uint32_t callee, std::vector<uint32_t> args) {
+    const auto dst = new_reg();
+    emit(ir::Op::Call, dst, callee, add_call_args(std::move(args)));
+    return dst;
+  }
+
+  uint32_t emit_await_value(uint32_t value) {
+    const auto dst = new_reg();
+    emit(ir::Op::LoadConst, dst, add_const(Value::invalid()));
+    emit(ir::Op::Await, dst, value);
+    return dst;
+  }
+
+  uint32_t apply_decorators(uint32_t object_reg, const std::vector<ast::ExprPtr>& decorators) {
+    struct DecoratorSourceScope {
+      uint32_t& line;
+      ir::SourcePosition& position;
+      uint32_t saved_line;
+      ir::SourcePosition saved_position;
+      ~DecoratorSourceScope() {
+        line = saved_line;
+        position = saved_position;
+      }
+    } source_scope{current_source_line_, current_source_position_,
+                   current_source_line_, current_source_position_};
+    uint32_t current = object_reg;
+    std::vector<std::pair<uint32_t, ir::SourcePosition>> resolved;
+    for (const auto& expr : decorators) {
+      if (expr->line != 0) {
+        current_source_line_ = expr->line;
+        current_source_position_ = ir::SourcePosition{
+            expr->line, expr->end_line == 0 ? expr->line : expr->end_line,
+            expr->column, expr->end_column};
+      }
+      auto* call = dynamic_cast<const ast::CallExpr*>(expr.get());
+      if (!call) {
+        resolved.emplace_back(lower_expr(*expr), current_source_position_);
+        continue;
+      }
+      const auto callee = lower_expr(*call->callee);
+      const auto mode = new_reg();
+      const auto decorator = new_reg();
+      emit(ir::Op::CaptureExpressions, mode, callee);
+      const auto normal = emit_jump(ir::Op::JumpIfFalse, mode);
+      std::vector<uint32_t> expressions;
+      auto quote = [&](const ast::Expr& arg, const std::string& name, bool expansion = false) {
+        const auto reg = new_reg();
+        emit(ir::Op::LoadConst, reg, add_const(capture_expression(arg, name, expansion)));
+        expressions.push_back(reg);
+      };
+      for (const auto& arg : call->args) quote(*arg, {});
+      for (const auto& arg : call->call_args) quote(*arg.value, arg.name, arg.star || arg.kw_star);
+      emit(ir::Op::Move, decorator, emit_call_value(callee, std::move(expressions)));
+      const auto done = emit_jump(ir::Op::Jump);
+      patch_jump(normal, static_cast<uint32_t>(fn_.code.size()));
+      if (call->call_args.empty()) {
+        std::vector<uint32_t> args;
+        for (const auto& arg : call->args) args.push_back(lower_expr(*arg));
+        emit(ir::Op::Move, decorator, emit_call_value(callee, std::move(args)));
+      } else {
+        ir::CallSpec spec;
+        for (const auto& arg : call->call_args) {
+          const auto value = lower_expr(*arg.value);
+          if (arg.kw_star) {
+            if (spec.kw_star_arg == UINT32_MAX) spec.kw_star_arg = value;
+            spec.kw_star_args.push_back(value);
+          } else if (arg.star) {
+            if (spec.star_arg == UINT32_MAX) spec.star_arg = value;
+            spec.star_args.push_back(value);
+          } else if (!arg.name.empty()) spec.keywords.push_back({arg.name, value});
+          else spec.positional.push_back(value);
+        }
+        emit(ir::Op::CallEx, decorator, callee, add_call_spec(std::move(spec)));
+      }
+      patch_jump(done, static_cast<uint32_t>(fn_.code.size()));
+      resolved.emplace_back(decorator, current_source_position_);
+    }
+    for (auto it = resolved.rbegin(); it != resolved.rend(); ++it) {
+      current_source_position_ = it->second;
+      current_source_line_ = it->second.line;
+      current = emit_call_value(it->first, {current});
+    }
+    return current;
+  }
+
+  template <typename LowerTarget, typename LowerBody>
+  void lower_with_custom(const ast::WithStmt& stmt,
+                         LowerTarget&& lower_target,
+                         LowerBody&& lower_with_body) {
+    // Attribute and subscript expressions may lower to borrowed values.  The
+    // context manager must remain alive until __exit__/__aexit__, even when
+    // the object that owns the attribute is deleted inside the with body.
+    const auto manager_source = lower_expr(*stmt.manager);
+    const auto manager = new_reg();
+    emit(ir::Op::Move, manager, manager_source);
+    uint32_t entered = emit_call_method(
+        manager, stmt.is_async ? "__aenter__" : "__enter__", {}, true);
+    if (stmt.is_async) {
+      entered = emit_await_value(entered);
+    }
+    lower_target(entered);
+    const auto setup = emit_jump(ir::Op::SetupWith, manager);
+    active_finalizers_.push_back({ActiveFinalizer::Kind::WithExit, nullptr, manager, stmt.is_async});
+    lower_with_body();
+    active_finalizers_.pop_back();
+    emit(ir::Op::PopExcept);
+    const auto none_const = add_const(Value::none());
+    emit_with_normal_exit(manager, stmt.is_async);
+    const auto done = emit_jump(ir::Op::Jump);
+    patch_jump(setup, static_cast<uint32_t>(fn_.code.size()));
+    const auto exc_type = new_reg();
+    const auto exc_value = new_reg();
+    const auto exc_tb = new_reg();
+    emit(ir::Op::LoadExceptionType, exc_type);
+    emit(ir::Op::LoadException, exc_value);
+    emit(ir::Op::LoadAttr, exc_tb, exc_value, add_name("__traceback__"));
+    uint32_t handled =
+        emit_call_method(manager, stmt.is_async ? "__aexit__" : "__exit__", {exc_type, exc_value, exc_tb});
+    if (stmt.is_async) {
+      handled = emit_await_value(handled);
+    }
+    const auto rereraise = emit_jump(ir::Op::JumpIfFalse, handled);
+    emit(ir::Op::ClearException);
+    emit(ir::Op::LoadConst, manager, none_const);
+    const auto suppressed = emit_jump(ir::Op::Jump);
+    patch_jump(rereraise, static_cast<uint32_t>(fn_.code.size()));
+    // __exit__ may catch and clear the active exception while deciding not to
+    // suppress it. Raise the saved value rather than relying on ambient state.
+    emit(ir::Op::LoadConst, manager, none_const);
+    emit(ir::Op::Raise, 0, exc_value);
+    patch_jump(done, static_cast<uint32_t>(fn_.code.size()));
+    patch_jump(suppressed, static_cast<uint32_t>(fn_.code.size()));
+  }
+
+  uint32_t emit_inferred_typevar(uint32_t typevar_class, uint32_t name) {
+    const auto infer_variance = new_reg();
+    emit(ir::Op::LoadConst, infer_variance, add_const(Value::boolean(true)));
+    ir::CallSpec spec;
+    spec.positional.push_back(name);
+    spec.keywords.push_back(ir::CallKeywordArg{"infer_variance", infer_variance});
+    const auto parameter = new_reg();
+    emit(ir::Op::CallEx, parameter, typevar_class, add_call_spec(std::move(spec)));
+    return parameter;
+  }
+
+  void lower_with(const ast::WithStmt& stmt) {
+    lower_with_custom(
+        stmt,
+        [&](uint32_t entered) {
+          if (stmt.target_expr != nullptr) {
+            lower_unpack_assign(*stmt.target_expr, entered);
+          } else if (!stmt.target.empty()) {
+            store_named_value(stmt.target, entered);
+          } else {
+            emit(ir::Op::Pop, 0, entered);
+          }
+        },
+        [&] { lower_body(stmt.body); });
+  }
+
+  struct PatternCapture {
+    std::string name;
+    uint32_t source = 0;
+  };
+
+  uint32_t lower_pattern_to_bool(
+      const ast::Expr& pattern,
+      uint32_t subject,
+      std::vector<PatternCapture>* captures = nullptr) {
+    if (auto* binary = dynamic_cast<const ast::BinaryExpr*>(&pattern)) {
+      if (binary->op == "|") {
+        const auto subject_name = "#match.or." + std::to_string(next_hidden_local_++);
+        hidden_locals_.insert(subject_name);
+        const auto subject_slot = ensure_local(subject_name);
+        emit(ir::Op::StoreLocal, subject_slot, subject);
+        const auto lhs_subject = new_reg();
+        emit(ir::Op::LoadLocal, lhs_subject, subject_slot);
+        std::vector<PatternCapture> lhs_captures;
+        const auto lhs = lower_pattern_to_bool(*binary->lhs, lhs_subject, captures == nullptr ? nullptr : &lhs_captures);
+        const auto result = new_reg();
+        std::vector<PatternCapture> merged_captures;
+        if (captures != nullptr) {
+          merged_captures.reserve(lhs_captures.size());
+          for (const auto& capture : lhs_captures) {
+            merged_captures.push_back(PatternCapture{capture.name, new_reg()});
+          }
+        }
+        const auto lhs_failed = emit_jump(ir::Op::JumpIfFalse, lhs);
+        for (size_t i = 0; i < lhs_captures.size() && i < merged_captures.size(); ++i) {
+          emit(ir::Op::Move, merged_captures[i].source, lhs_captures[i].source);
+        }
+        emit(ir::Op::LoadConst, result, add_const(Value::boolean(true)));
+        const auto done = emit_jump(ir::Op::Jump);
+        patch_jump(lhs_failed, static_cast<uint32_t>(fn_.code.size()));
+        const auto rhs_subject = new_reg();
+        emit(ir::Op::LoadLocal, rhs_subject, subject_slot);
+        std::vector<PatternCapture> rhs_captures;
+        const auto rhs = lower_pattern_to_bool(*binary->rhs, rhs_subject, captures == nullptr ? nullptr : &rhs_captures);
+        emit(ir::Op::LoadConst, result, add_const(Value::boolean(false)));
+        const auto rhs_failed = emit_jump(ir::Op::JumpIfFalse, rhs);
+        if (captures != nullptr) {
+          for (auto& merged : merged_captures) {
+            auto found = std::find_if(
+                rhs_captures.begin(),
+                rhs_captures.end(),
+                [&](const PatternCapture& capture) { return capture.name == merged.name; });
+            if (found != rhs_captures.end()) {
+              emit(ir::Op::Move, merged.source, found->source);
+            }
+          }
+        }
+        emit(ir::Op::LoadConst, result, add_const(Value::boolean(true)));
+        patch_jump(rhs_failed, static_cast<uint32_t>(fn_.code.size()));
+        patch_jump(done, static_cast<uint32_t>(fn_.code.size()));
+        if (captures != nullptr) {
+          captures->insert(captures->end(), merged_captures.begin(), merged_captures.end());
+        }
+        return result;
+      }
+    }
+
+    std::vector<size_t> fail_jumps;
+    std::vector<PatternCapture> ignored_captures;
+    emit_pattern_checks(pattern, subject, fail_jumps, captures == nullptr ? ignored_captures : *captures);
+    const auto result = new_reg();
+    emit(ir::Op::LoadConst, result, add_const(Value::boolean(true)));
+    const auto done = emit_jump(ir::Op::Jump);
+    const auto fail_target = static_cast<uint32_t>(fn_.code.size());
+    for (const auto jump : fail_jumps) {
+      patch_jump(jump, fail_target);
+    }
+    emit(ir::Op::LoadConst, result, add_const(Value::boolean(false)));
+    patch_jump(done, static_cast<uint32_t>(fn_.code.size()));
+    return result;
+  }
+
+  void emit_pattern_checks(
+      const ast::Expr& pattern,
+      uint32_t subject,
+      std::vector<size_t>& fail_jumps,
+      std::vector<PatternCapture>& captures) {
+    if (auto* binary = dynamic_cast<const ast::BinaryExpr*>(&pattern);
+        binary != nullptr && binary->op == "as") {
+      emit_pattern_checks(*binary->lhs, subject, fail_jumps, captures);
+      if (auto* capture = dynamic_cast<const ast::NameExpr*>(binary->rhs.get());
+          capture != nullptr && capture->name != "_") {
+        captures.push_back(PatternCapture{capture->name, subject});
+      }
+      return;
+    }
+    if (auto* name = dynamic_cast<const ast::NameExpr*>(&pattern)) {
+      if (name->name != "_") {
+        captures.push_back(PatternCapture{name->name, subject});
+      }
+      return;
+    }
+    if (auto* tuple = dynamic_cast<const ast::TupleExpr*>(&pattern)) {
+      emit_sequence_pattern_checks(tuple->items, subject, fail_jumps, captures);
+      return;
+    }
+    if (auto* list = dynamic_cast<const ast::ListExpr*>(&pattern)) {
+      emit_sequence_pattern_checks(list->items, subject, fail_jumps, captures);
+      return;
+    }
+    if (auto* dict = dynamic_cast<const ast::DictExpr*>(&pattern)) {
+      emit_mapping_pattern_checks(*dict, subject, fail_jumps, captures);
+      return;
+    }
+    if (auto* call = dynamic_cast<const ast::CallExpr*>(&pattern)) {
+      emit_class_pattern_checks(*call, subject, fail_jumps, captures);
+      return;
+    }
+    const auto value = lower_expr(pattern);
+    const auto matched = new_reg();
+    emit(ir::Op::Compare, matched, subject, value, static_cast<uint32_t>(ir::CompareOp::Eq));
+    fail_jumps.push_back(emit_jump(ir::Op::JumpIfFalse, matched));
+  }
+
+  void emit_always_fail_pattern(std::vector<size_t>& fail_jumps) {
+    const auto matched = new_reg();
+    emit(ir::Op::LoadConst, matched, add_const(Value::boolean(false)));
+    fail_jumps.push_back(emit_jump(ir::Op::JumpIfFalse, matched));
+  }
+
+  void emit_class_pattern_checks(
+      const ast::CallExpr& pattern,
+      uint32_t subject,
+      std::vector<size_t>& fail_jumps,
+      std::vector<PatternCapture>& captures) {
+    const auto klass = lower_expr(*pattern.callee);
+    const auto isinstance_fn = new_reg();
+    emit(ir::Op::LoadGlobal, isinstance_fn, add_name("isinstance"));
+    const auto is_match = emit_call_value(isinstance_fn, {subject, klass});
+    fail_jumps.push_back(emit_jump(ir::Op::JumpIfFalse, is_match));
+
+    const auto* class_name = dynamic_cast<const ast::NameExpr*>(pattern.callee.get());
+    const ClassInfo* class_info = nullptr;
+    if (class_name != nullptr) {
+      const auto found = class_infos_.find(class_name->name);
+      if (found != class_infos_.end()) {
+        class_info = &found->second;
+      }
+    }
+
+    auto match_positional = [&](const ast::Expr& item, size_t index) {
+      uint32_t attr = 0;
+      static const std::unordered_set<std::string> self_match_builtin_names = {
+          "bool", "bytearray", "bytes", "dict", "float", "frozenset",
+          "int", "list", "set", "str", "tuple"};
+      if (class_name != nullptr && index == 0 &&
+          self_match_builtin_names.find(resolve_name(class_name->name)) != self_match_builtin_names.end()) {
+        attr = subject;
+      } else if (class_info != nullptr && index < class_info->match_args.size()) {
+        attr = new_reg();
+        emit(ir::Op::LoadAttr, attr, subject, add_name(class_info->match_args[index]));
+      } else {
+        const auto match_args = new_reg();
+        emit(ir::Op::LoadAttr, match_args, klass, add_name("__match_args__"));
+        const auto index_reg = new_reg();
+        emit(ir::Op::LoadConst, index_reg, add_const(Value::int64(static_cast<int64_t>(index))));
+        const auto attr_name = new_reg();
+        emit(ir::Op::GetItem, attr_name, match_args, index_reg);
+        const auto getattr_fn = new_reg();
+        emit(ir::Op::LoadGlobal, getattr_fn, add_name("getattr"));
+        attr = emit_call_value(getattr_fn, {subject, attr_name});
+      }
+      emit_pattern_checks(item, attr, fail_jumps, captures);
+    };
+
+    if (!pattern.call_args.empty()) {
+      size_t positional_index = 0;
+      for (const auto& arg : pattern.call_args) {
+        if (arg.star || arg.kw_star || arg.value == nullptr) {
+          emit_always_fail_pattern(fail_jumps);
+          continue;
+        }
+        if (arg.name.empty()) {
+          match_positional(*arg.value, positional_index++);
+          continue;
+        }
+        const auto attr = new_reg();
+        emit(ir::Op::LoadAttr, attr, subject, add_name(arg.name));
+        emit_pattern_checks(*arg.value, attr, fail_jumps, captures);
+      }
+      return;
+    }
+
+    for (size_t i = 0; i < pattern.args.size(); ++i) {
+      match_positional(*pattern.args[i], i);
+    }
+  }
+
+  void emit_sequence_pattern_checks(
+      const std::vector<ast::ExprPtr>& items,
+      uint32_t subject,
+      std::vector<size_t>& fail_jumps,
+      std::vector<PatternCapture>& captures) {
+    const auto sequence_check = new_reg();
+    emit(ir::Op::LoadGlobal, sequence_check, add_name("__xlang3_match_sequence__"));
+    const auto is_sequence = emit_call_value(sequence_check, {subject});
+    fail_jumps.push_back(emit_jump(ir::Op::JumpIfFalse, is_sequence));
+    size_t star_index = items.size();
+    for (size_t i = 0; i < items.size(); ++i) {
+      if (dynamic_cast<const ast::StarredExpr*>(items[i].get()) != nullptr) {
+        star_index = i;
+        break;
+      }
+    }
+    const bool has_star = star_index != items.size();
+    const size_t before_count = has_star ? star_index : items.size();
+    const size_t after_count = has_star ? items.size() - star_index - 1 : 0;
+    const size_t fixed_count = before_count + after_count;
+    const auto length = new_reg();
+    const auto expected = new_reg();
+    const auto length_ok = new_reg();
+    emit(ir::Op::Len, length, subject);
+    emit(ir::Op::LoadConst, expected, add_const(Value::int64(static_cast<int64_t>(fixed_count))));
+    emit(ir::Op::Compare, length_ok, length, expected,
+         static_cast<uint32_t>(has_star ? ir::CompareOp::Ge : ir::CompareOp::Eq));
+    fail_jumps.push_back(emit_jump(ir::Op::JumpIfFalse, length_ok));
+
+    if (has_star) {
+      const uint32_t output_count = static_cast<uint32_t>(fixed_count + 1);
+      const auto first_output = new_reg();
+      for (uint32_t i = 1; i < output_count; ++i) {
+        (void)new_reg();
+      }
+      emit(ir::Op::UnpackSequence, first_output, subject, static_cast<uint32_t>(before_count),
+           static_cast<uint32_t>(after_count) | 0x80000000u);
+      for (size_t i = 0; i < before_count; ++i) {
+        emit_pattern_checks(*items[i], first_output + static_cast<uint32_t>(i), fail_jumps, captures);
+      }
+      auto* starred = dynamic_cast<const ast::StarredExpr*>(items[star_index].get());
+      if (starred != nullptr) {
+        emit_pattern_checks(*starred->expr, first_output + static_cast<uint32_t>(before_count), fail_jumps, captures);
+      }
+      for (size_t i = 0; i < after_count; ++i) {
+        emit_pattern_checks(
+            *items[star_index + 1 + i],
+            first_output + static_cast<uint32_t>(before_count + 1 + i),
+            fail_jumps,
+            captures);
+      }
+      return;
+    }
+
+    for (size_t i = 0; i < items.size(); ++i) {
+      const auto index = new_reg();
+      const auto item = new_reg();
+      emit(ir::Op::LoadConst, index, add_const(Value::int64(static_cast<int64_t>(i))));
+      emit(ir::Op::GetItem, item, subject, index);
+      emit_pattern_checks(*items[i], item, fail_jumps, captures);
+    }
+  }
+
+  void emit_mapping_pattern_checks(
+      const ast::DictExpr& dict,
+      uint32_t subject,
+      std::vector<size_t>& fail_jumps,
+      std::vector<PatternCapture>& captures) {
+    const auto mapping_check = new_reg();
+    emit(ir::Op::LoadGlobal, mapping_check, add_name("__xlang3_match_mapping__"));
+    const auto is_mapping = emit_call_value(mapping_check, {subject});
+    fail_jumps.push_back(emit_jump(ir::Op::JumpIfFalse, is_mapping));
+    size_t key_count = 0;
+    for (const auto& entry : dict.entries) {
+      if (entry.first != nullptr) ++key_count;
+    }
+    if (key_count != 0) {
+      const auto length = new_reg();
+      const auto minimum = new_reg();
+      const auto enough = new_reg();
+      emit(ir::Op::Len, length, subject);
+      emit(ir::Op::LoadConst, minimum, add_const(Value::int64(static_cast<int64_t>(key_count))));
+      emit(ir::Op::Compare, enough, length, minimum, static_cast<uint32_t>(ir::CompareOp::Ge));
+      fail_jumps.push_back(emit_jump(ir::Op::JumpIfFalse, enough));
+    }
+    const auto object_type = new_reg();
+    emit(ir::Op::LoadGlobal, object_type, add_name("object"));
+    const auto missing = emit_call_value(object_type, {});
+    std::vector<uint32_t> matched_keys;
+    for (const auto& entry : dict.entries) {
+      if (entry.first == nullptr) continue;
+      const auto key = lower_expr(*entry.first);
+      matched_keys.push_back(key);
+      const auto get = new_reg();
+      emit(ir::Op::LoadAttr, get, subject, add_name("get"));
+      const auto value = emit_call_value(get, {key, missing});
+      const auto present = new_reg();
+      emit(ir::Op::Is, present, value, missing, 1u);
+      fail_jumps.push_back(emit_jump(ir::Op::JumpIfFalse, present));
+      emit_pattern_checks(*entry.second, value, fail_jumps, captures);
+    }
+    for (const auto& entry : dict.entries) {
+      if (entry.first != nullptr) continue;
+      const auto dict_type = new_reg();
+      emit(ir::Op::LoadGlobal, dict_type, add_name("dict"));
+      const auto rest = emit_call_value(dict_type, {subject});
+      for (const auto key : matched_keys) {
+        const auto pop = new_reg();
+        emit(ir::Op::LoadAttr, pop, rest, add_name("pop"));
+        const auto missing = new_reg();
+        emit(ir::Op::LoadConst, missing, add_const(Value::none()));
+        (void)emit_call_value(pop, {key, missing});
+      }
+      emit_pattern_checks(*entry.second, rest, fail_jumps, captures);
+    }
+  }
+
+  void lower_match(const ast::MatchStmt& stmt) {
+    const auto subject = lower_expr(*stmt.subject);
+    const auto subject_name = "#match.subject." + std::to_string(next_hidden_local_++);
+    hidden_locals_.insert(subject_name);
+    const auto subject_slot = ensure_local(subject_name);
+    emit(ir::Op::StoreLocal, subject_slot, subject);
+    std::vector<size_t> done_jumps;
+    for (const auto& match_case : stmt.cases) {
+      const auto case_subject = new_reg();
+      emit(ir::Op::LoadLocal, case_subject, subject_slot);
+      std::vector<size_t> next_case_jumps;
+      if (!match_case.wildcard) {
+        std::vector<PatternCapture> captures;
+        const auto matched = lower_pattern_to_bool(*match_case.pattern, case_subject, &captures);
+        next_case_jumps.push_back(emit_jump(ir::Op::JumpIfFalse, matched));
+        for (const auto& capture : captures) {
+          store_named_value(capture.name, capture.source);
+        }
+        if (!match_case.as_name.empty() && match_case.as_name != "_") {
+          store_named_value(match_case.as_name, case_subject);
+        }
+        if (match_case.guard != nullptr) {
+          const auto guard = lower_expr(*match_case.guard);
+          next_case_jumps.push_back(emit_jump(ir::Op::JumpIfFalse, guard));
+        }
+      } else if (match_case.guard != nullptr) {
+        const auto guard = lower_expr(*match_case.guard);
+        next_case_jumps.push_back(emit_jump(ir::Op::JumpIfFalse, guard));
+      }
+      lower_body(match_case.body);
+      done_jumps.push_back(emit_jump(ir::Op::Jump));
+      for (const auto jump : next_case_jumps) {
+        patch_jump(jump, static_cast<uint32_t>(fn_.code.size()));
+      }
+    }
+    for (const auto jump : done_jumps) {
+      patch_jump(jump, static_cast<uint32_t>(fn_.code.size()));
+    }
+  }
+
+  bool try_emit_direct_local_assign(const ast::AssignStmt& assign) {
+    uint32_t dst_slot = 0;
+    if (!direct_local_slot(assign.name, dst_slot)) {
+      return false;
+    }
+    if (auto* name = dynamic_cast<const ast::NameExpr*>(assign.value.get())) {
+      uint32_t src_slot = 0;
+      if (direct_local_slot(name->name, src_slot)) {
+        emit(ir::Op::MoveLocal, dst_slot, src_slot);
+        return true;
+      }
+    }
+    if (try_emit_guarded_local_numeric_expression(assign, dst_slot)) {
+      return true;
+    }
+    if (auto* binary = dynamic_cast<const ast::BinaryExpr*>(assign.value.get())) {
+      if (binary->op != "+") return false;
+      auto* lhs = dynamic_cast<const ast::NameExpr*>(binary->lhs.get());
+      if (lhs == nullptr) return false;
+      uint32_t lhs_slot = 0;
+      if (!direct_local_slot(lhs->name, lhs_slot)) return false;
+
+      ir::Op fused_op;
+      uint32_t rhs_operand = 0;
+      if (auto* rhs_name = dynamic_cast<const ast::NameExpr*>(binary->rhs.get())) {
+        if (!direct_local_slot(rhs_name->name, rhs_operand)) return false;
+        fused_op = ir::Op::AddLocalLocal;
+      } else if (auto* rhs = dynamic_cast<const ast::LiteralExpr*>(binary->rhs.get())) {
+        if (rhs->kind != ast::LiteralExpr::Kind::Int &&
+            rhs->kind != ast::LiteralExpr::Kind::Double) return false;
+        rhs_operand = add_const(literal_value(*rhs));
+        fused_op = ir::Op::AddLocalConst;
+      } else {
+        return false;
+      }
+
+      // Emit a one-op exact-int/float fast path followed by the ordinary
+      // expression as a deoptimization path. Non-scalars, integer overflow,
+      // and active tracing/debugging therefore retain generic Python dispatch.
+      const size_t fused_ip = fn_.code.size();
+      emit(fused_op, dst_slot, lhs_slot, rhs_operand, ir::kGuardedLocalAddFlag);
+      store_named_value(assign.name, lower_expr(*assign.value));
+      const size_t fallback_span = fn_.code.size() - fused_ip - 1;
+      if (fallback_span == 0 || fallback_span > ir::kGuardedLocalAddSpanMask) {
+        throw std::logic_error("invalid guarded local-add fallback span");
+      }
+      fn_.code[fused_ip].c = ir::kGuardedLocalAddFlag | static_cast<uint32_t>(fallback_span);
+      return true;
+    }
+    return false;
+  }
+
+  bool try_emit_guarded_local_numeric_expression(
+      const ast::AssignStmt& assign, uint32_t dst_slot) {
+    auto numeric_constant = [&](const ast::Expr& expression, Value& out) {
+      if (auto* literal = dynamic_cast<const ast::LiteralExpr*>(&expression)) {
+        if (literal->kind != ast::LiteralExpr::Kind::Int &&
+            literal->kind != ast::LiteralExpr::Kind::Double) {
+          return false;
+        }
+        out = literal_value(*literal);
+        return out.tag == ValueTag::Int64 || out.tag == ValueTag::Double;
+      }
+      auto* unary = dynamic_cast<const ast::UnaryExpr*>(&expression);
+      auto* literal = unary == nullptr
+          ? nullptr
+          : dynamic_cast<const ast::LiteralExpr*>(unary->expr.get());
+      if (unary == nullptr || unary->op != "-" || literal == nullptr ||
+          (literal->kind != ast::LiteralExpr::Kind::Int &&
+           literal->kind != ast::LiteralExpr::Kind::Double)) {
+        return false;
+      }
+      const Value positive = literal_value(*literal);
+      if (positive.tag == ValueTag::Int64) {
+        if (positive.as.i64 == std::numeric_limits<int64_t>::min()) return false;
+        out = Value::int64(-positive.as.i64);
+        return true;
+      }
+      if (positive.tag == ValueTag::Double) {
+        out = Value::number(-positive.as.f64);
+        return true;
+      }
+      return false;
+    };
+
+    uint32_t operation_count = 0;
+    uint32_t node_count = 0;
+    auto is_supported = [&](auto&& self, const ast::Expr& expression) -> bool {
+      if (auto* name = dynamic_cast<const ast::NameExpr*>(&expression)) {
+        uint32_t slot = 0;
+        if (!direct_local_slot(name->name, slot)) return false;
+        return ++node_count <= ir::kMaxGuardedLocalNumericExprNodes;
+      }
+      Value ignored;
+      if (numeric_constant(expression, ignored)) {
+        return ++node_count <= ir::kMaxGuardedLocalNumericExprNodes;
+      }
+      auto* binary = dynamic_cast<const ast::BinaryExpr*>(&expression);
+      if (binary == nullptr ||
+          (binary->op != "+" && binary->op != "-" && binary->op != "*")) {
+        return false;
+      }
+      if (!self(self, *binary->lhs) || !self(self, *binary->rhs)) return false;
+      ++operation_count;
+      return ++node_count <= ir::kMaxGuardedLocalNumericExprNodes;
+    };
+    if (!is_supported(is_supported, *assign.value) || operation_count < 2) return false;
+
+    ir::GuardedLocalNumericExprSpec spec;
+    spec.nodes.reserve(node_count);
+    auto append_node = [&](auto&& self, const ast::Expr& expression) -> uint32_t {
+      ir::GuardedLocalNumericExprNode node;
+      if (auto* name = dynamic_cast<const ast::NameExpr*>(&expression)) {
+        node.kind = ir::GuardedLocalNumericExprNodeKind::Local;
+        direct_local_slot(name->name, node.a);
+      } else {
+        Value constant;
+        if (numeric_constant(expression, constant)) {
+          node.kind = ir::GuardedLocalNumericExprNodeKind::Constant;
+          node.a = add_const(std::move(constant));
+        } else {
+          const auto& binary = *dynamic_cast<const ast::BinaryExpr*>(&expression);
+          node.a = self(self, *binary.lhs);
+          node.b = self(self, *binary.rhs);
+          if (binary.op == "+") node.kind = ir::GuardedLocalNumericExprNodeKind::Add;
+          else if (binary.op == "-") node.kind = ir::GuardedLocalNumericExprNodeKind::Sub;
+          else node.kind = ir::GuardedLocalNumericExprNodeKind::Mul;
+        }
+      }
+      const uint32_t index = static_cast<uint32_t>(spec.nodes.size());
+      spec.nodes.push_back(node);
+      return index;
+    };
+    (void)append_node(append_node, *assign.value);
+
+    if (fn_.guarded_local_numeric_exprs.size() >= UINT32_MAX) {
+      throw std::logic_error("too many guarded local numeric expressions");
+    }
+    const uint32_t spec_index = static_cast<uint32_t>(fn_.guarded_local_numeric_exprs.size());
+    fn_.guarded_local_numeric_exprs.push_back(std::move(spec));
+
+    // Leaves are side-effect-free local reads and numeric literals. Exact
+    // int/float execution can therefore use the postorder plan; every other
+    // tag, overflow, observation mode, or unbound slot falls through to the
+    // original lowered expression immediately following this opcode.
+    const size_t fused_ip = fn_.code.size();
+    emit(ir::Op::GuardedLocalNumericExpr, dst_slot, spec_index);
+    store_named_value(assign.name, lower_expr(*assign.value));
+    const size_t fallback_span = fn_.code.size() - fused_ip - 1;
+    if (fallback_span == 0 || fallback_span > UINT32_MAX) {
+      throw std::logic_error("invalid guarded numeric expression fallback span");
+    }
+    fn_.guarded_local_numeric_exprs[spec_index].fallback_span =
+        static_cast<uint32_t>(fallback_span);
+    return true;
+  }
+
+  bool try_emit_local_const_condition_jump(const ast::Expr& condition, size_t& jump) {
+    auto* binary = dynamic_cast<const ast::BinaryExpr*>(&condition);
+    if (binary == nullptr) {
+      return false;
+    }
+    auto* lhs = dynamic_cast<const ast::NameExpr*>(binary->lhs.get());
+    auto* rhs = dynamic_cast<const ast::LiteralExpr*>(binary->rhs.get());
+    if (lhs == nullptr || rhs == nullptr ||
+        (rhs->kind != ast::LiteralExpr::Kind::Int && rhs->kind != ast::LiteralExpr::Kind::Double)) {
+      return false;
+    }
+    uint32_t local_slot = 0;
+    if (!direct_local_slot(lhs->name, local_slot)) {
+      return false;
+    }
+    uint32_t cmp = 0;
+    if (binary->op == "==") cmp = static_cast<uint32_t>(ir::CompareOp::Eq);
+    else if (binary->op == "!=") cmp = static_cast<uint32_t>(ir::CompareOp::Ne);
+    else if (binary->op == "<") cmp = static_cast<uint32_t>(ir::CompareOp::Lt);
+    else if (binary->op == "<=") cmp = static_cast<uint32_t>(ir::CompareOp::Le);
+    else if (binary->op == ">") cmp = static_cast<uint32_t>(ir::CompareOp::Gt);
+    else if (binary->op == ">=") cmp = static_cast<uint32_t>(ir::CompareOp::Ge);
+    else return false;
+    jump = emit_jump(ir::Op::JumpIfLocalConstFalse, local_slot);
+    fn_.code[jump].b = add_const(literal_value(*rhs));
+    fn_.code[jump].c = cmp;
+    return true;
+  }
+
+  uint32_t lower_function_value(
+      const ast::FunctionDef& fn,
+      std::string instance_slot_self = {},
+      std::unordered_map<std::string, uint32_t> instance_slots = {},
+      std::string qualname_parent = {},
+      const std::unordered_map<std::string, std::string>* child_name_aliases = nullptr) {
+    auto free_vars = closure_names_for_child(fn);
+    auto closure_sources = free_vars;
+    if (child_name_aliases != nullptr) {
+      free_vars.clear();
+      closure_sources.clear();
+      std::unordered_set<std::string> seen;
+      bool references_super = false;
+      for (const auto& candidate : sema::free_candidates_for(fn)) {
+        const auto mangled = mangle_private_identifier(candidate);
+        references_super = references_super || mangled == "super";
+        auto alias = child_name_aliases->find(mangled);
+        const auto& resolved = alias == child_name_aliases->end() ? mangled : alias->second;
+        if ((locals_.find(resolved) != locals_.end() ||
+             free_indices_.find(resolved) != free_indices_.end()) &&
+            seen.insert(mangled).second) {
+          free_vars.push_back(mangled);
+          closure_sources.push_back(resolved);
+        }
+      }
+      auto class_alias = child_name_aliases->find("__class__");
+      if (references_super && class_alias != child_name_aliases->end() && seen.insert("__class__").second) {
+        free_vars.push_back("__class__");
+        closure_sources.push_back(class_alias->second);
+      }
+    }
+    for (const auto& source : closure_sources) {
+      if (locals_.find(source) != locals_.end()) {
+        ensure_cell_for_local(source);
+      }
+    }
+    auto signature = lower_signature_metadata(fn);
+    std::vector<std::string> function_params = fn.params;
+    for (auto& name : function_params) {
+      name = mangle_private_identifier(name);
+    }
+    for (auto& param : signature) {
+      param.name = mangle_private_identifier(param.name);
+    }
+    std::vector<uint32_t> default_regs;
+    std::vector<std::pair<std::string, uint32_t>> kwdefault_regs;
+    std::vector<std::pair<std::string, uint32_t>> annotation_regs;
+    std::vector<std::pair<std::string, std::string>> annotation_sources;
+    if (!fn.signature.empty()) {
+      for (size_t i = 0; i < fn.signature.size(); ++i) {
+        if (fn.signature[i].default_value != nullptr) {
+          signature[i].default_reg = static_cast<uint32_t>(default_regs.size());
+          const auto default_reg = lower_expr(*fn.signature[i].default_value);
+          default_regs.push_back(default_reg);
+          if (fn.signature[i].kind == ast::FunctionDef::Param::Kind::KeywordOnly) {
+            kwdefault_regs.push_back(std::make_pair(
+                mangle_private_identifier(fn.signature[i].name), default_reg));
+          }
+        }
+        if (fn.signature[i].annotation != nullptr) {
+          const auto parameter_name = mangle_private_identifier(fn.signature[i].name);
+          if (future_annotations_) {
+            annotation_regs.push_back(std::make_pair(
+                parameter_name, lower_annotation(*fn.signature[i].annotation)));
+          } else {
+            annotation_sources.push_back(std::make_pair(
+                parameter_name,
+                annotation_expr_to_string(*fn.signature[i].annotation)));
+          }
+        }
+      }
+    }
+    if (fn.return_annotation != nullptr) {
+      if (future_annotations_) {
+        annotation_regs.push_back(std::make_pair("return", lower_annotation(*fn.return_annotation)));
+      } else {
+        annotation_sources.push_back(std::make_pair(
+            "return", annotation_expr_to_string(*fn.return_annotation)));
+      }
+    }
+    const bool has_yield = body_contains_yield(fn.body);
+    FunctionLowerer child_lowerer(
+        module_, fn.name, std::move(function_params), std::move(signature), free_vars, fn.body, has_yield || fn.is_async, fn.is_async,
+        fn.is_async && !has_yield, fn.line, false,
+        std::move(instance_slot_self), std::move(instance_slots), class_infos_, module_global_slots_,
+        imported_module_slots_,
+        qualname_parent.empty() ? (is_module_ || fn_.qualname.empty() ? std::string{} : fn_.qualname + ".<locals>")
+                                : std::move(qualname_parent),
+        future_annotations_,
+        active_private_class_name());
+    child_lowerer.fn_.type_params = fn.type_params;
+    child_lowerer.lower_body(fn.body, !child_lowerer.fn_.doc.empty());
+    module_.functions.push_back(child_lowerer.finish());
+    const uint32_t function_id = static_cast<uint32_t>(module_.functions.size() - 1);
+
+    std::vector<uint32_t> closure_regs;
+    for (const auto& name : closure_sources) {
+      const auto reg = new_reg();
+      auto cell = cell_indices_.find(name);
+      if (cell != cell_indices_.end()) {
+        emit(ir::Op::LoadCellObject, reg, cell->second);
+      } else {
+        emit(ir::Op::LoadFreeObject, reg, free_indices_[name]);
+      }
+      closure_regs.push_back(reg);
+    }
+
+    const auto reg = new_reg();
+    emit(ir::Op::MakeFunction, reg, function_id, add_function_closure(std::move(closure_regs)),
+         default_regs.empty() ? UINT32_MAX : add_function_defaults(std::move(default_regs)));
+    if (!fn.type_params.empty()) {
+      const auto parameters = emit_type_params_tuple(fn.type_params);
+      emit(ir::Op::StoreAttr, reg, add_name("__type_params__"), parameters);
+    }
+    if (!annotation_regs.empty()) {
+      emit(ir::Op::SetFunctionAnnotations, reg, add_function_annotations(std::move(annotation_regs)));
+    }
+    if (!annotation_sources.empty()) {
+      ast::FunctionDef annotate;
+      annotate.name = "__annotate__";
+      annotate.line = fn.line;
+      annotate.params.push_back("format");
+      ast::FunctionDef::Param format_param;
+      format_param.name = "format";
+      format_param.kind = ast::FunctionDef::Param::Kind::PosOnly;
+      annotate.signature.push_back(std::move(format_param));
+
+      auto string_format = std::make_unique<ast::IfStmt>();
+      string_format->condition = std::make_unique<ast::BinaryExpr>(
+          std::make_unique<ast::NameExpr>("format"),
+          "==",
+          std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::Int, "4"));
+      std::vector<std::pair<ast::ExprPtr, ast::ExprPtr>> string_entries;
+      string_entries.reserve(annotation_sources.size());
+      for (const auto& item : annotation_sources) {
+        string_entries.push_back(std::make_pair(
+            std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::String, item.first),
+            std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::String, item.second)));
+      }
+      string_format->then_body.push_back(std::make_unique<ast::ReturnStmt>(
+          std::make_unique<ast::DictExpr>(std::move(string_entries))));
+      annotate.body.push_back(std::move(string_format));
+
+      auto unsupported = std::make_unique<ast::IfStmt>();
+      unsupported->condition = std::make_unique<ast::BinaryExpr>(
+          std::make_unique<ast::NameExpr>("format"),
+          "!=",
+          std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::Int, "1"));
+      auto unsupported_fake_globals = std::make_unique<ast::IfStmt>();
+      unsupported_fake_globals->condition = std::make_unique<ast::BinaryExpr>(
+          std::make_unique<ast::NameExpr>("format"),
+          "!=",
+          std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::Int, "2"));
+      std::vector<ast::ExprPtr> error_args;
+      error_args.push_back(std::make_unique<ast::NameExpr>("format"));
+      unsupported_fake_globals->then_body.push_back(std::make_unique<ast::RaiseStmt>(
+          std::make_unique<ast::CallExpr>(
+              std::make_unique<ast::NameExpr>("NotImplementedError"),
+              std::move(error_args))));
+      unsupported->then_body.push_back(std::move(unsupported_fake_globals));
+      annotate.body.push_back(std::move(unsupported));
+
+      std::vector<std::pair<ast::ExprPtr, ast::ExprPtr>> annotation_entries;
+      annotation_entries.reserve(annotation_sources.size());
+      for (const auto& item : annotation_sources) {
+        auto parsed = parse_expression_source(item.second);
+        ast::ExprPtr value = std::move(parsed.expression);
+        if (value == nullptr || !parsed.errors.empty()) {
+          value = std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::String, item.second);
+        }
+        annotation_entries.push_back(std::make_pair(
+            std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::String, item.first),
+            std::move(value)));
+      }
+      annotate.body.push_back(std::make_unique<ast::ReturnStmt>(
+          std::make_unique<ast::DictExpr>(std::move(annotation_entries))));
+
+      const auto annotate_reg = lower_function_value(
+          annotate, {}, {}, {}, child_name_aliases);
+      emit(ir::Op::StoreAttr, reg, add_name("__annotate__"), annotate_reg);
+    }
+    if (!kwdefault_regs.empty()) {
+      emit(ir::Op::SetFunctionKwDefaults, reg, add_function_kwdefaults(std::move(kwdefault_regs)));
+    }
+    return reg;
+  }
+
+  uint32_t lower_type_alias_value(const ast::TypeAliasStmt& alias) {
+    const auto typing_module = new_reg();
+    emit(ir::Op::ImportModule, typing_module, add_name("_typing"));
+    const auto typevar_class = new_reg();
+    emit(ir::Op::LoadAttr, typevar_class, typing_module, add_name("TypeVar"));
+    std::vector<uint32_t> parameter_regs;
+    struct SavedAlias {
+      std::string name;
+      bool existed;
+      std::string prior;
+    };
+    std::vector<SavedAlias> saved_aliases;
+    for (const auto& parameter : alias.type_params) {
+      const auto parameter_name = new_reg();
+      emit(ir::Op::LoadConst, parameter_name,
+           add_const(Value::string(parameter)));
+      const auto parameter_value = emit_inferred_typevar(typevar_class, parameter_name);
+      parameter_regs.push_back(parameter_value);
+      const auto mangled = mangle_private_identifier(parameter);
+      const auto hidden = "#typealias." +
+          std::to_string(next_hidden_local_++) + "." + mangled;
+      hidden_locals_.insert(hidden);
+      ensure_cell_for_local(hidden);
+      store_named_value(hidden, parameter_value);
+      auto old = name_aliases_.find(mangled);
+      saved_aliases.push_back({mangled, old != name_aliases_.end(),
+                               old == name_aliases_.end() ? "" : old->second});
+      name_aliases_[mangled] = hidden;
+    }
+    ast::FunctionDef value_scope;
+    value_scope.name = alias.name + ".__value__";
+    value_scope.line = alias.line;
+    value_scope.body.push_back(std::make_unique<ast::ReturnStmt>(
+        clone_expr(*alias.value)));
+    const auto thunk = lower_function_value(
+        value_scope, {}, {}, {}, &name_aliases_);
+    for (auto it = saved_aliases.rbegin(); it != saved_aliases.rend(); ++it) {
+      if (it->existed) name_aliases_[it->name] = it->prior;
+      else name_aliases_.erase(it->name);
+    }
+    const auto params = new_reg();
+    emit(ir::Op::MakeTuple, params,
+         add_tuple_items(std::move(parameter_regs)));
+    const auto name = new_reg();
+    emit(ir::Op::LoadConst, name, add_const(Value::string(alias.name)));
+    const auto factory = new_reg();
+    emit(ir::Op::LoadAttr, factory, typing_module,
+         add_name("_make_type_alias"));
+    return emit_call_value(factory, {name, thunk, params});
+  }
+
+  static bool decorator_name_is(const ast::Expr& expr, std::string_view name) {
+    if (auto* direct = dynamic_cast<const ast::NameExpr*>(&expr)) {
+      return direct->name == name;
+    }
+    if (auto* attr = dynamic_cast<const ast::AttrExpr*>(&expr)) {
+      return attr->name == name;
+    }
+    return false;
+  }
+
+  static bool disables_instance_slot_lowering(const ast::FunctionDef& fn) {
+    if (fn.name == "__init_subclass__" || fn.name == "__new__") {
+      return true;
+    }
+    for (const auto& decorator : fn.decorators) {
+      if (decorator == nullptr) {
+        continue;
+      }
+      if (decorator_name_is(*decorator, "classmethod") || decorator_name_is(*decorator, "staticmethod")) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  uint32_t lower_class_def(const ast::ClassDef& klass, bool store_name = true, std::string qualname_parent = {}) {
+    struct ActiveClassPrivateNameScope {
+      FunctionLowerer& lowerer;
+      std::string saved;
+
+      ActiveClassPrivateNameScope(FunctionLowerer& target, const std::string& class_name)
+          : lowerer(target), saved(std::move(target.active_class_private_name_)) {
+        lowerer.active_class_private_name_ = class_name;
+      }
+
+      ~ActiveClassPrivateNameScope() {
+        lowerer.active_class_private_name_ = std::move(saved);
+      }
+    } class_private_name_scope(*this, klass.name);
+
+    std::vector<std::pair<std::string, uint32_t>> attrs;
+    std::vector<ir::CallKeywordArg> class_keywords;
+    std::vector<uint32_t> class_kw_star_args;
+    uint32_t metaclass_reg = UINT32_MAX;
+    bool metaclass_supports_prepare = false;
+    bool metaclass_layout_dynamic = false;
+    for (const auto& keyword : klass.keywords) {
+      const auto value = lower_expr(*keyword.second);
+      if (keyword.first.empty()) {
+        class_kw_star_args.push_back(value);
+      } else if (keyword.first == "metaclass") {
+        metaclass_reg = value;
+        if (auto* name = dynamic_cast<const ast::NameExpr*>(keyword.second.get())) {
+          metaclass_supports_prepare = name->name == "type" || class_infos_.find(name->name) != class_infos_.end();
+          metaclass_layout_dynamic = name->name != "type";
+        } else {
+          metaclass_layout_dynamic = true;
+        }
+      } else {
+        class_keywords.push_back(ir::CallKeywordArg{keyword.first, value});
+      }
+    }
+    std::string parent_qualname;
+    if (store_name && !is_module_ && sema::contains(global_names_, klass.name)) {
+      parent_qualname.clear();
+    } else if (!qualname_parent.empty()) {
+      parent_qualname = std::move(qualname_parent);
+    } else if (is_module_) {
+      parent_qualname = qualname_prefix_;
+    } else if (!fn_.qualname.empty()) {
+      parent_qualname = fn_.qualname + ".<locals>";
+    } else {
+      parent_qualname = qualname_prefix_;
+    }
+    const std::string class_qualname = parent_qualname.empty() ? klass.name : parent_qualname + "." + klass.name;
+    std::vector<std::string> own_instance_slots;
+    std::unordered_set<std::string> seen_own_instance_slots;
+    std::vector<std::string> match_args;
+    const std::string class_doc = docstring_from_body(klass.body);
+    bool use_dynamic_namespace = metaclass_layout_dynamic || !klass.decorators.empty();
+    for (const auto& stmt : klass.body) {
+      if (dynamic_cast<const ast::IfStmt*>(stmt.get()) != nullptr) {
+        use_dynamic_namespace = true;
+        break;
+      }
+    }
+    {
+      const auto module_reg = new_reg();
+      emit(ir::Op::LoadGlobal, module_reg, add_name("__name__"));
+      attrs.push_back(std::make_pair("__module__", module_reg));
+
+      const auto qualname_reg = new_reg();
+      emit(ir::Op::LoadConst, qualname_reg, add_const(Value::string(class_qualname)));
+      attrs.push_back(std::make_pair("__qualname__", qualname_reg));
+
+      const auto class_nonlocals = sema::nonlocal_names_for(klass.body);
+      if (!sema::contains(class_nonlocals, "__firstlineno__")) {
+        const auto first_line_reg = new_reg();
+        emit(ir::Op::LoadConst, first_line_reg, add_const(Value::int64(klass.line == 0 ? 1 : klass.line)));
+        attrs.push_back(std::make_pair("__firstlineno__", first_line_reg));
+      }
+
+      const auto doc_reg = new_reg();
+      if (class_doc.empty()) {
+        emit(ir::Op::LoadConst, doc_reg, add_const(Value::none()));
+      } else {
+        emit(ir::Op::LoadConst, doc_reg, add_const(Value::string(class_doc)));
+        attrs.push_back(std::make_pair("__doc__", doc_reg));
+      }
+    }
+    bool has_explicit_slots = false;
+    bool has_known_explicit_slots = false;
+    for (const auto& stmt : klass.body) {
+      auto* assign = dynamic_cast<const ast::AssignStmt*>(stmt.get());
+      if (assign != nullptr && assign->name == "__slots__" && assign->value != nullptr) {
+        has_explicit_slots = true;
+        has_known_explicit_slots =
+            collect_literal_slots_from_expr(*assign->value, own_instance_slots, seen_own_instance_slots);
+      }
+      if (assign != nullptr && assign->name == "__match_args__" && assign->value != nullptr) {
+        std::vector<std::string> parsed_match_args;
+        if (collect_literal_string_sequence(*assign->value, parsed_match_args)) {
+          match_args = std::move(parsed_match_args);
+        }
+      }
+    }
+    std::vector<std::string> static_attribute_names;
+    std::unordered_set<std::string> seen_static_attribute_names;
+    std::unordered_set<std::string> data_descriptor_names;
+    for (const auto& stmt : klass.body) {
+      if (auto* fn = dynamic_cast<const ast::FunctionDef*>(stmt.get());
+          fn != nullptr && !fn->params.empty() && !disables_instance_slot_lowering(*fn)) {
+        for (const auto& decorator : fn->decorators) {
+          if (decorator != nullptr &&
+              (decorator_name_is(*decorator, "property") ||
+               decorator_name_is(*decorator, "setter") ||
+               decorator_name_is(*decorator, "deleter"))) {
+            data_descriptor_names.insert(mangle_private_identifier(fn->name));
+          }
+        }
+        for (const auto& child : fn->body) {
+          collect_self_attr_slots_stmt(
+              *child,
+              fn->params[0],
+              static_attribute_names,
+              seen_static_attribute_names);
+        }
+      } else if (auto* assign = dynamic_cast<const ast::AssignStmt*>(stmt.get());
+                 assign != nullptr && assign->value != nullptr) {
+        auto* call = dynamic_cast<const ast::CallExpr*>(assign->value.get());
+        auto* callee = call == nullptr ? nullptr : dynamic_cast<const ast::NameExpr*>(call->callee.get());
+        if (callee != nullptr && callee->name == "property") {
+          data_descriptor_names.insert(mangle_private_identifier(assign->name));
+        }
+      }
+    }
+    if (seen_static_attribute_names.find("__dict__") != seen_static_attribute_names.end() ||
+        seen_static_attribute_names.find("__weakref__") != seen_static_attribute_names.end()) {
+      use_dynamic_namespace = true;
+    }
+    // Python 3.14 exposes assignments to self attributes through
+    // __static_attributes__, but ordinary classes still use their instance
+    // dictionary.  Numeric slot lowering is unsafe for inherited methods in
+    // multiple-inheritance layouts and changes visible descriptor semantics.
+
+    std::vector<Value> static_attribute_values;
+    static_attribute_values.reserve(static_attribute_names.size());
+    for (const auto& name : static_attribute_names) {
+      static_attribute_values.push_back(Value::string(name));
+    }
+    const auto static_attrs_reg = new_reg();
+    emit(ir::Op::LoadConst, static_attrs_reg, add_const(Value::tuple(std::move(static_attribute_values))));
+    std::vector<std::string> lowered_instance_slots;
+    std::unordered_set<std::string> seen_lowered_instance_slots;
+    auto append_lowered_slot = [&](const std::string& name) {
+      if (seen_lowered_instance_slots.insert(name).second) {
+        lowered_instance_slots.push_back(name);
+      }
+    };
+
+    bool known_base_layout = true;
+    for (const auto& base_expr : klass.bases) {
+      auto* base_name = dynamic_cast<const ast::NameExpr*>(base_expr.get());
+      if (base_name == nullptr) {
+        known_base_layout = false;
+        break;
+      }
+      auto base_info = class_infos_.find(base_name->name);
+      if (base_info == class_infos_.end() || !base_info->second.slot_layout_known) {
+        known_base_layout = false;
+        break;
+      }
+      for (const auto& slot_name : base_info->second.slot_names) {
+        append_lowered_slot(slot_name);
+      }
+      data_descriptor_names.insert(
+          base_info->second.data_descriptor_names.begin(),
+          base_info->second.data_descriptor_names.end());
+    }
+    own_instance_slots.erase(
+        std::remove_if(
+            own_instance_slots.begin(), own_instance_slots.end(),
+            [&](const std::string& name) {
+              return data_descriptor_names.find(name) != data_descriptor_names.end();
+            }),
+        own_instance_slots.end());
+    if (known_base_layout && (!has_explicit_slots || has_known_explicit_slots)) {
+      for (const auto& slot_name : own_instance_slots) {
+        append_lowered_slot(slot_name);
+      }
+    } else if (has_explicit_slots && !has_known_explicit_slots) {
+      known_base_layout = false;
+    }
+
+    ClassInfo class_info;
+    class_info.match_args = match_args;
+    class_info.data_descriptor_names = data_descriptor_names;
+    // Explicit __slots__ layouts are finalized by type construction (including
+    // special names and multiple bases), so keep their method access dynamic.
+    // Explicit __slots__ access stays dynamic so type construction owns the
+    // finalized layout. Ordinary classes deliberately have no slot layout.
+    class_infos_[klass.name] = class_info;
+
+    uint32_t class_type_params_reg = UINT32_MAX;
+    uint32_t generic_base_reg = UINT32_MAX;
+    if (!klass.type_params.empty()) {
+      class_type_params_reg = emit_type_params_tuple(klass.type_params);
+      const auto typing_module = new_reg();
+      emit(ir::Op::ImportModule, typing_module, add_name("_typing"));
+      const auto generic_class = new_reg();
+      emit(ir::Op::LoadAttr, generic_class, typing_module, add_name("Generic"));
+      generic_base_reg = new_reg();
+      emit(ir::Op::GetItem, generic_base_reg, generic_class, class_type_params_reg);
+    }
+    std::vector<uint32_t> base_regs;
+    uint32_t bases_reg = UINT32_MAX;
+    const bool has_starred_bases = has_starred_item(klass.bases);
+    if (has_starred_bases) {
+      bases_reg = lower_tuple_with_unpack(klass.bases);
+      if (generic_base_reg != UINT32_MAX) {
+        const auto generic_tuple = new_reg();
+        emit(ir::Op::MakeTuple, generic_tuple, add_tuple_items({generic_base_reg}));
+        const auto combined = new_reg();
+        emit(ir::Op::Add, combined, bases_reg, generic_tuple);
+        bases_reg = combined;
+      }
+    } else {
+      base_regs.reserve(klass.bases.size() + (generic_base_reg == UINT32_MAX ? 0 : 1));
+      for (const auto& base_expr : klass.bases) {
+        base_regs.push_back(lower_expr(*base_expr));
+      }
+      if (generic_base_reg != UINT32_MAX) base_regs.push_back(generic_base_reg);
+    }
+    uint32_t resolved_bases_reg = UINT32_MAX;
+    if (bases_reg != UINT32_MAX || !base_regs.empty()) {
+      if (bases_reg == UINT32_MAX) {
+        bases_reg = new_reg();
+        emit(ir::Op::MakeTuple, bases_reg, add_tuple_items(base_regs));
+      }
+      const auto resolve_bases_reg = new_reg();
+      emit(ir::Op::LoadGlobal, resolve_bases_reg, add_name("__xlang3_resolve_bases__"));
+      resolved_bases_reg = new_reg();
+      emit(ir::Op::Call, resolved_bases_reg, resolve_bases_reg, add_call_args({bases_reg}));
+    }
+    if (metaclass_reg == UINT32_MAX && resolved_bases_reg != UINT32_MAX) {
+      const auto select_metaclass_reg = new_reg();
+      emit(ir::Op::LoadGlobal, select_metaclass_reg, add_name("__xlang3_select_metaclass__"));
+      metaclass_reg = new_reg();
+      emit(ir::Op::Call, metaclass_reg, select_metaclass_reg, add_call_args({resolved_bases_reg}));
+      metaclass_supports_prepare = true;
+    }
+    if (metaclass_reg == UINT32_MAX && (!class_keywords.empty() || !class_kw_star_args.empty())) {
+      metaclass_reg = new_reg();
+      emit(ir::Op::LoadGlobal, metaclass_reg, add_name("type"));
+      metaclass_supports_prepare = true;
+    }
+
+    uint32_t name_reg = UINT32_MAX;
+    uint32_t namespace_reg = UINT32_MAX;
+    if (metaclass_reg != UINT32_MAX && metaclass_supports_prepare) {
+      name_reg = new_reg();
+      emit(ir::Op::LoadConst, name_reg, add_const(Value::string(klass.name)));
+      if (bases_reg == UINT32_MAX) {
+        bases_reg = new_reg();
+        emit(ir::Op::MakeTuple, bases_reg, add_tuple_items(base_regs));
+      }
+      const auto prepare_bases_reg = resolved_bases_reg == UINT32_MAX ? bases_reg : resolved_bases_reg;
+      const auto prepare_reg = new_reg();
+      emit(ir::Op::LoadAttr, prepare_reg, metaclass_reg, add_name("__prepare__"));
+      namespace_reg = new_reg();
+      if (class_keywords.empty() && class_kw_star_args.empty()) {
+        emit(ir::Op::Call, namespace_reg, prepare_reg, add_call_args({name_reg, prepare_bases_reg}));
+      } else {
+        ir::CallSpec prepare_spec;
+        prepare_spec.positional = {name_reg, prepare_bases_reg};
+        prepare_spec.keywords = class_keywords;
+        prepare_spec.kw_star_args = class_kw_star_args;
+        emit(ir::Op::CallEx, namespace_reg, prepare_reg, add_call_spec(std::move(prepare_spec)));
+      }
+    }
+
+    std::unordered_map<std::string, std::string> saved_aliases;
+    std::unordered_set<std::string> erased_aliases;
+    std::unordered_set<std::string> class_aliases;
+    std::unordered_set<std::string> class_body_read_names;
+    for (const auto& name : sema::read_names_for(klass.body)) {
+      class_body_read_names.insert(mangle_private_identifier(name));
+    }
+    std::unordered_set<std::string> annotation_capture_names;
+    if (!future_annotations_) {
+      auto collect_annotation_captures = [&](auto&& self, const ast::Stmt& stmt) -> void {
+        if (auto* assign = dynamic_cast<const ast::AnnotatedAssignStmt*>(&stmt)) {
+          ast::FunctionDef annotation_scope;
+          annotation_scope.body.push_back(std::make_unique<ast::ReturnStmt>(
+              clone_expr(*assign->annotation)));
+          for (const auto& name : sema::free_candidates_for(annotation_scope)) {
+            annotation_capture_names.insert(mangle_private_identifier(name));
+          }
+        } else if (auto* alias = dynamic_cast<const ast::TypeAliasStmt*>(&stmt)) {
+          ast::FunctionDef annotation_scope;
+          annotation_scope.body.push_back(std::make_unique<ast::ReturnStmt>(
+              clone_expr(*alias->value)));
+          for (const auto& name : sema::free_candidates_for(annotation_scope)) {
+            annotation_capture_names.insert(mangle_private_identifier(name));
+          }
+        } else if (auto* ifs = dynamic_cast<const ast::IfStmt*>(&stmt)) {
+          for (const auto& child : ifs->then_body) self(self, *child);
+          for (const auto& child : ifs->else_body) self(self, *child);
+        } else if (auto* loop = dynamic_cast<const ast::WhileStmt*>(&stmt)) {
+          for (const auto& child : loop->body) self(self, *child);
+          for (const auto& child : loop->else_body) self(self, *child);
+        } else if (auto* loop = dynamic_cast<const ast::ForStmt*>(&stmt)) {
+          for (const auto& child : loop->body) self(self, *child);
+          for (const auto& child : loop->else_body) self(self, *child);
+        } else if (auto* block = dynamic_cast<const ast::WithStmt*>(&stmt)) {
+          for (const auto& child : block->body) self(self, *child);
+        } else if (auto* block = dynamic_cast<const ast::TryExceptStmt*>(&stmt)) {
+          for (const auto& child : block->try_body) self(self, *child);
+          for (const auto& handler : block->handlers) {
+            for (const auto& child : handler.body) self(self, *child);
+          }
+          for (const auto& child : block->else_body) self(self, *child);
+          for (const auto& child : block->finally_body) self(self, *child);
+        } else if (auto* match = dynamic_cast<const ast::MatchStmt*>(&stmt)) {
+          for (const auto& match_case : match->cases) {
+            for (const auto& child : match_case.body) self(self, *child);
+          }
+        }
+      };
+      for (const auto& stmt : klass.body) collect_annotation_captures(collect_annotation_captures, *stmt);
+    }
+    uint32_t class_frame_namespace_reg = UINT32_MAX;
+    auto add_to_prepared_namespace = [&](const std::string& name, uint32_t reg) {
+      if (namespace_reg == UINT32_MAX && class_frame_namespace_reg == UINT32_MAX) {
+        return;
+      }
+      const auto key = new_reg();
+      emit(ir::Op::LoadConst, key, add_const(Value::string(mangle_private_identifier(name))));
+      if (namespace_reg != UINT32_MAX) {
+        emit(ir::Op::DictSet, namespace_reg, key, reg);
+      }
+      if (class_frame_namespace_reg != UINT32_MAX && class_frame_namespace_reg != namespace_reg) {
+        emit(ir::Op::DictSet, class_frame_namespace_reg, key, reg);
+      }
+    };
+    auto bind_class_attr_alias = [&](const std::string& name, uint32_t reg) {
+      const std::string hidden_name = "#class." + klass.name + "." + name;
+      const std::string alias_name = mangle_private_identifier(name);
+      if (class_body_read_names.find(alias_name) == class_body_read_names.end() &&
+          annotation_capture_names.find(alias_name) == annotation_capture_names.end()) {
+        add_to_prepared_namespace(name, reg);
+        return;
+      }
+      if (class_aliases.insert(alias_name).second) {
+        if (name_aliases_.find(alias_name) == name_aliases_.end()) {
+          erased_aliases.insert(alias_name);
+        } else {
+          saved_aliases[alias_name] = name_aliases_[alias_name];
+        }
+      }
+      hidden_locals_.insert(hidden_name);
+      if (annotation_capture_names.find(alias_name) != annotation_capture_names.end()) {
+        ensure_cell_for_local(hidden_name);
+      }
+      name_aliases_[alias_name] = hidden_name;
+      add_to_prepared_namespace(name, reg);
+      uint32_t stored_reg = reg;
+      if (namespace_reg != UINT32_MAX) {
+        const auto key = new_reg();
+        emit(ir::Op::LoadConst, key, add_const(Value::string(alias_name)));
+        stored_reg = new_reg();
+        emit(ir::Op::GetItem, stored_reg, namespace_reg, key);
+      }
+      store_named_value(name, stored_reg);
+    };
+    if (use_dynamic_namespace && namespace_reg == UINT32_MAX) {
+      if (metaclass_reg == UINT32_MAX) {
+        metaclass_reg = new_reg();
+        emit(ir::Op::LoadGlobal, metaclass_reg, add_name("type"));
+      }
+      name_reg = new_reg();
+      emit(ir::Op::LoadConst, name_reg, add_const(Value::string(klass.name)));
+      if (bases_reg == UINT32_MAX) {
+        bases_reg = new_reg();
+        emit(ir::Op::MakeTuple, bases_reg, add_tuple_items(base_regs));
+      }
+      namespace_reg = new_reg();
+      emit(ir::Op::MakeDict, namespace_reg, add_dict_items({}));
+    }
+    class_frame_namespace_reg = namespace_reg == UINT32_MAX ? new_reg() : namespace_reg;
+    if (namespace_reg == UINT32_MAX) {
+      emit(ir::Op::MakeDict, class_frame_namespace_reg, add_dict_items({}));
+    }
+    const std::string class_frame_namespace_name =
+        "#class.frame." + std::to_string(next_hidden_local_++);
+    hidden_locals_.insert(class_frame_namespace_name);
+    const uint32_t class_frame_locals_slot = ensure_local(class_frame_namespace_name);
+    emit(ir::Op::StoreLocal, class_frame_locals_slot, class_frame_namespace_reg);
+    for (const auto& attr : attrs) {
+      add_to_prepared_namespace(attr.first, attr.second);
+    }
+
+    struct ClassAnnotationEntry {
+      std::string name;
+      std::string source;
+      uint32_t occurrence = 0;
+    };
+    std::vector<ClassAnnotationEntry> class_annotations;
+    const std::string annotation_active_alias = "__xlang3_active_annotations__";
+    const std::string annotation_active_name =
+        "#class.annotations." + std::to_string(next_hidden_local_++);
+    if (name_aliases_.find(annotation_active_alias) == name_aliases_.end()) {
+      erased_aliases.insert(annotation_active_alias);
+    } else {
+      saved_aliases[annotation_active_alias] =
+          name_aliases_[annotation_active_alias];
+    }
+    class_aliases.insert(annotation_active_alias);
+    hidden_locals_.insert(annotation_active_name);
+    ensure_cell_for_local(annotation_active_name);
+    name_aliases_[annotation_active_alias] = annotation_active_name;
+    const auto annotation_active_reg = new_reg();
+    emit(ir::Op::MakeDict, annotation_active_reg, add_dict_items({}));
+    store_named_value(annotation_active_name, annotation_active_reg);
+    std::string class_cell_name;
+    std::unordered_map<std::string, std::string> class_method_aliases;
+
+    if (!klass.type_params.empty()) {
+      attrs.push_back(std::make_pair("__type_params__", class_type_params_reg));
+      bind_class_attr_alias("__type_params__", class_type_params_reg);
+      for (size_t index = 0; index < klass.type_params.size(); ++index) {
+        const auto& parameter_name = klass.type_params[index];
+        const auto mangled = mangle_private_identifier(parameter_name);
+        const auto hidden = "#class.typeparam." +
+            std::to_string(next_hidden_local_++) + "." + mangled;
+        hidden_locals_.insert(hidden);
+        ensure_cell_for_local(hidden);
+        const auto parameter = new_reg();
+        const auto parameter_index = new_reg();
+        emit(ir::Op::LoadConst, parameter_index,
+             add_const(Value::int64(static_cast<int64_t>(index))));
+        emit(ir::Op::GetItem, parameter, class_type_params_reg,
+             parameter_index);
+        store_named_value(hidden, parameter);
+        if (class_aliases.insert(mangled).second) {
+          const auto previous = name_aliases_.find(mangled);
+          if (previous == name_aliases_.end()) erased_aliases.insert(mangled);
+          else saved_aliases[mangled] = previous->second;
+        }
+        name_aliases_[mangled] = hidden;
+        class_method_aliases[mangled] = hidden;
+      }
+    }
+
+    auto assign_class_target = [&](auto&& self, const ast::Expr& target,
+                                   uint32_t source_reg) -> void {
+      if (auto* name = dynamic_cast<const ast::NameExpr*>(&target)) {
+        attrs.push_back(std::make_pair(mangle_private_identifier(name->name), source_reg));
+        bind_class_attr_alias(name->name, source_reg);
+        return;
+      }
+      if (auto* starred = dynamic_cast<const ast::StarredExpr*>(&target)) {
+        self(self, *starred->expr, source_reg);
+        return;
+      }
+      std::vector<const ast::Expr*> items;
+      if (auto* tuple = dynamic_cast<const ast::TupleExpr*>(&target)) {
+        for (const auto& item : tuple->items) items.push_back(item.get());
+      } else if (auto* list = dynamic_cast<const ast::ListExpr*>(&target)) {
+        for (const auto& item : list->items) items.push_back(item.get());
+      } else {
+        lower_assign_target(target, source_reg);
+        return;
+      }
+      size_t star_index = items.size();
+      for (size_t index = 0; index < items.size(); ++index) {
+        if (dynamic_cast<const ast::StarredExpr*>(items[index]) != nullptr) {
+          star_index = index;
+          break;
+        }
+      }
+      const bool has_star = star_index != items.size();
+      const uint32_t before_count = has_star
+          ? static_cast<uint32_t>(star_index)
+          : static_cast<uint32_t>(items.size());
+      const uint32_t after_count = has_star
+          ? static_cast<uint32_t>(items.size() - star_index - 1) : 0;
+      const uint32_t output_count = before_count + after_count +
+          (has_star ? 1u : 0u);
+      const uint32_t first_output = new_reg();
+      for (uint32_t index = 1; index < output_count; ++index) (void)new_reg();
+      emit(ir::Op::UnpackSequence, first_output, source_reg, before_count,
+           after_count | (has_star ? 0x80000000u : 0u));
+      for (uint32_t index = 0; index < before_count; ++index)
+        self(self, *items[index], first_output + index);
+      if (has_star) {
+        self(self, *items[star_index], first_output + before_count);
+        for (uint32_t index = 0; index < after_count; ++index)
+          self(self, *items[star_index + 1 + index],
+               first_output + before_count + 1 + index);
+      }
+    };
+
+    auto lower_class_body_stmt = [&](auto&& self, const ast::Stmt& stmt) -> void {
+      if (auto* fn = dynamic_cast<const ast::FunctionDef*>(&stmt)) {
+        const bool use_instance_slots = !use_dynamic_namespace && !disables_instance_slot_lowering(*fn);
+        const auto free_candidates = sema::free_candidates_for(*fn);
+        const bool needs_class_cell =
+            std::find(free_candidates.begin(), free_candidates.end(), "__class__") != free_candidates.end() ||
+            std::find(free_candidates.begin(), free_candidates.end(), "super") != free_candidates.end();
+        if (needs_class_cell && class_cell_name.empty()) {
+          class_cell_name = "#classcell." + std::to_string(next_hidden_local_++);
+          hidden_locals_.insert(class_cell_name);
+          ensure_cell_for_local(class_cell_name);
+          class_method_aliases["__class__"] = class_cell_name;
+        }
+        auto function_reg = lower_function_value(
+            *fn,
+            (use_instance_slots && !fn->params.empty()) ? fn->params[0] : std::string{},
+            use_instance_slots ? class_info.slots : std::unordered_map<std::string, uint32_t>{},
+            class_qualname,
+            &class_method_aliases);
+        bool explicit_method_wrapper = false;
+        for (const auto& decorator : fn->decorators) {
+          if (decorator != nullptr &&
+              (decorator_name_is(*decorator, "classmethod") ||
+               decorator_name_is(*decorator, "staticmethod"))) {
+            explicit_method_wrapper = true;
+            break;
+          }
+        }
+        if (!explicit_method_wrapper &&
+            (fn->name == "__init_subclass__" || fn->name == "__class_getitem__")) {
+          const auto classmethod_reg = new_reg();
+          emit(ir::Op::LoadGlobal, classmethod_reg, add_name("classmethod"));
+          function_reg = emit_call_value(classmethod_reg, {function_reg});
+        }
+        const auto attr_reg = apply_decorators(function_reg, fn->decorators);
+        attrs.push_back(std::make_pair(mangle_private_identifier(fn->name), attr_reg));
+        bind_class_attr_alias(fn->name, attr_reg);
+      } else if (auto* assign = dynamic_cast<const ast::AssignStmt*>(&stmt)) {
+        const auto attr_reg = lower_expr(*assign->value);
+        attrs.push_back(std::make_pair(mangle_private_identifier(assign->name), attr_reg));
+        bind_class_attr_alias(assign->name, attr_reg);
+      } else if (auto* alias = dynamic_cast<const ast::TypeAliasStmt*>(&stmt)) {
+        const auto attr_reg = lower_type_alias_value(*alias);
+        attrs.push_back(std::make_pair(mangle_private_identifier(alias->name), attr_reg));
+        bind_class_attr_alias(alias->name, attr_reg);
+      } else if (auto* assign = dynamic_cast<const ast::UnpackAssignStmt*>(&stmt)) {
+        const auto value_reg = lower_expr(*assign->value);
+        assign_class_target(assign_class_target, *assign->target, value_reg);
+      } else if (auto* assign = dynamic_cast<const ast::SubscriptAssignStmt*>(&stmt)) {
+        const auto object = lower_expr(*assign->object);
+        const auto index = lower_expr(*assign->index);
+        const auto value = lower_expr(*assign->value);
+        emit(ir::Op::SetItem, object, index, value);
+      } else if (auto* assign = dynamic_cast<const ast::AttrAssignStmt*>(&stmt)) {
+        const auto object = lower_expr(*assign->object);
+        const auto value = lower_expr(*assign->value);
+        emit(ir::Op::StoreAttr, object, add_name(mangle_private_identifier(assign->name)), value);
+      } else if (auto* assign = dynamic_cast<const ast::AugAssignStmt*>(&stmt)) {
+        if (auto* name = dynamic_cast<const ast::NameExpr*>(assign->target.get())) {
+          const auto rhs = lower_expr(*assign->value);
+          const auto current = lower_expr(*assign->target);
+          const auto result = new_reg();
+          emit(binary_op_for_aug_assign(assign->op), result, current, rhs);
+          attrs.push_back(std::make_pair(mangle_private_identifier(name->name), result));
+          bind_class_attr_alias(name->name, result);
+        } else {
+          lower_aug_assign(*assign);
+        }
+      } else if (auto* assign = dynamic_cast<const ast::MultiAssignStmt*>(&stmt)) {
+        const auto attr_reg = lower_expr(*assign->value);
+        for (const auto& target : assign->targets) {
+          if (auto* name = dynamic_cast<const ast::NameExpr*>(target.get())) {
+            attrs.push_back(std::make_pair(mangle_private_identifier(name->name), attr_reg));
+            bind_class_attr_alias(name->name, attr_reg);
+          }
+        }
+      } else if (auto* assign = dynamic_cast<const ast::AnnotatedAssignStmt*>(&stmt)) {
+        if (auto* name = dynamic_cast<const ast::NameExpr*>(assign->target.get())) {
+          const auto occurrence =
+              static_cast<uint32_t>(class_annotations.size());
+          class_annotations.push_back(ClassAnnotationEntry{
+              mangle_private_identifier(name->name),
+              annotation_expr_to_string(*assign->annotation), occurrence});
+          const auto annotation_key = new_reg();
+          emit(ir::Op::LoadConst, annotation_key,
+               add_const(Value::string(mangle_private_identifier(name->name))));
+          const auto annotation_occurrence = new_reg();
+          emit(ir::Op::LoadConst, annotation_occurrence,
+               add_const(Value::int64(static_cast<int64_t>(occurrence))));
+          emit(ir::Op::DictSet, annotation_active_reg, annotation_key,
+               annotation_occurrence);
+        }
+        if (assign->value != nullptr) {
+          if (auto* name = dynamic_cast<const ast::NameExpr*>(assign->target.get())) {
+            const auto attr_reg = lower_expr(*assign->value);
+            attrs.push_back(std::make_pair(mangle_private_identifier(name->name), attr_reg));
+            bind_class_attr_alias(name->name, attr_reg);
+          }
+        }
+      } else if (auto* import = dynamic_cast<const ast::ImportStmt*>(&stmt)) {
+        uint32_t attr_reg = new_reg();
+        emit(ir::Op::ImportModule, attr_reg, add_name(import->name));
+        const auto root_dot = import->name.find('.');
+        const auto root_name = root_dot == std::string::npos
+                                   ? import->name
+                                   : import->name.substr(0, root_dot);
+        if (root_dot != std::string::npos && import->bind_name == root_name) {
+          attr_reg = new_reg();
+          emit(ir::Op::ImportModule, attr_reg, add_name(import->bind_name));
+        }
+        attrs.push_back(std::make_pair(mangle_private_identifier(import->bind_name), attr_reg));
+        bind_class_attr_alias(import->bind_name, attr_reg);
+      } else if (auto* import = dynamic_cast<const ast::ImportManyStmt*>(&stmt)) {
+        for (const auto& binding : import->names) {
+          auto attr_reg = new_reg();
+          emit(ir::Op::ImportModule, attr_reg, add_name(binding.name));
+          const auto root_dot = binding.name.find('.');
+          const auto root_name = root_dot == std::string::npos
+                                     ? binding.name
+                                     : binding.name.substr(0, root_dot);
+          if (root_dot != std::string::npos && binding.as_name == root_name) {
+            attr_reg = new_reg();
+            emit(ir::Op::ImportModule, attr_reg, add_name(binding.as_name));
+          }
+          attrs.push_back(std::make_pair(mangle_private_identifier(binding.as_name), attr_reg));
+          bind_class_attr_alias(binding.as_name, attr_reg);
+        }
+      } else if (auto* import = dynamic_cast<const ast::FromImportStmt*>(&stmt)) {
+        if (import->names.size() == 1 && import->names[0].name == "*") {
+          return;
+        }
+        for (const auto& binding : import->names) {
+          const auto attr_reg = new_reg();
+          emit(ir::Op::ImportFrom, attr_reg, add_name(import->module), add_name(binding.name));
+          attrs.push_back(std::make_pair(mangle_private_identifier(binding.as_name), attr_reg));
+          bind_class_attr_alias(binding.as_name, attr_reg);
+        }
+      } else if (auto* nested = dynamic_cast<const ast::ClassDef*>(&stmt)) {
+        const auto attr_reg = lower_class_def(*nested, false, class_qualname);
+        attrs.push_back(std::make_pair(mangle_private_identifier(nested->name), attr_reg));
+        bind_class_attr_alias(nested->name, attr_reg);
+      } else if (auto* ifs = dynamic_cast<const ast::IfStmt*>(&stmt)) {
+        size_t jf = 0;
+        if (!try_emit_local_const_condition_jump(*ifs->condition, jf)) {
+          const auto cond = lower_expr(*ifs->condition);
+          jf = emit_jump(ir::Op::JumpIfFalse, cond);
+        }
+        for (const auto& child : ifs->then_body) {
+          self(self, *child);
+        }
+        const auto jend = emit_jump(ir::Op::Jump);
+        patch_jump(jf, static_cast<uint32_t>(fn_.code.size()));
+        for (const auto& child : ifs->else_body) {
+          self(self, *child);
+        }
+        patch_jump(jend, static_cast<uint32_t>(fn_.code.size()));
+      } else if (auto* with = dynamic_cast<const ast::WithStmt*>(&stmt)) {
+        lower_with_custom(
+            *with,
+            [&](uint32_t entered) {
+              if (with->target_expr != nullptr) {
+                assign_class_target(assign_class_target, *with->target_expr,
+                                    entered);
+              } else if (!with->target.empty()) {
+                const auto name = mangle_private_identifier(with->target);
+                attrs.push_back(std::make_pair(name, entered));
+                bind_class_attr_alias(with->target, entered);
+              } else {
+                emit(ir::Op::Pop, 0, entered);
+              }
+            },
+            [&] {
+              for (const auto& child : with->body) self(self, *child);
+            });
+      } else if (auto* expr_stmt = dynamic_cast<const ast::ExprStmt*>(&stmt)) {
+        const auto reg = lower_expr(*expr_stmt->expr);
+        emit(ir::Op::Pop, 0, reg);
+      }
+    };
+
+    const uint32_t class_body_start = static_cast<uint32_t>(fn_.code.size());
+    for (const auto& stmt : klass.body) {
+      lower_class_body_stmt(lower_class_body_stmt, *stmt);
+    }
+    const uint32_t class_body_end = static_cast<uint32_t>(fn_.code.size());
+    if (class_body_end > class_body_start) {
+      ir::Function class_body_code;
+      class_body_code.name = klass.name;
+      class_body_code.qualname = class_qualname;
+      class_body_code.first_line = klass.line == 0 ? 1 : klass.line;
+      module_.functions.push_back(std::move(class_body_code));
+      fn_.logical_frame_ranges.push_back(ir::Function::LogicalFrameRange{
+          class_body_start,
+          class_body_end,
+          static_cast<uint32_t>(module_.functions.size() - 1),
+          class_frame_locals_slot,
+      });
+    }
+
+    attrs.push_back(std::make_pair("__static_attributes__", static_attrs_reg));
+    add_to_prepared_namespace("__static_attributes__", static_attrs_reg);
+    uint32_t optimized_slots_reg = UINT32_MAX;
+    if (class_info.slot_layout_known && !has_explicit_slots) {
+      std::vector<Value> optimized_slot_values;
+      optimized_slot_values.reserve(class_info.slot_names.size());
+      for (const auto& name : class_info.slot_names) {
+        optimized_slot_values.push_back(Value::string(name));
+      }
+      optimized_slots_reg = new_reg();
+      emit(ir::Op::LoadConst, optimized_slots_reg,
+           add_const(Value::tuple(std::move(optimized_slot_values))));
+    }
+
+    if (!class_annotations.empty()) {
+      if (future_annotations_) {
+        const auto annotations_reg = new_reg();
+        emit(ir::Op::MakeDict, annotations_reg, add_dict_items({}));
+        for (const auto& item : class_annotations) {
+          const auto key_reg = new_reg();
+          emit(ir::Op::LoadConst, key_reg, add_const(Value::string(item.name)));
+          const auto get_method = new_reg();
+          emit(ir::Op::LoadAttr, get_method, annotation_active_reg,
+               add_name("get"));
+          const auto missing_reg = new_reg();
+          emit(ir::Op::LoadConst, missing_reg, add_const(Value::int64(-1)));
+          const auto active_reg = emit_call_value(
+              get_method, {key_reg, missing_reg});
+          const auto occurrence_reg = new_reg();
+          emit(ir::Op::LoadConst, occurrence_reg,
+               add_const(Value::int64(static_cast<int64_t>(item.occurrence))));
+          const auto matches_reg = new_reg();
+          emit_compare_op("==", matches_reg, active_reg, occurrence_reg);
+          const auto skip = emit_jump(ir::Op::JumpIfFalse, matches_reg);
+          const auto value_reg = new_reg();
+          emit(ir::Op::LoadConst, value_reg, add_const(Value::string(item.source)));
+          emit(ir::Op::DictSet, annotations_reg, key_reg, value_reg);
+          patch_jump(skip, static_cast<uint32_t>(fn_.code.size()));
+        }
+        attrs.push_back(std::make_pair("__annotations__", annotations_reg));
+        bind_class_attr_alias("__annotations__", annotations_reg);
+      } else {
+      ast::FunctionDef annotate;
+      annotate.name = "__annotate__";
+      annotate.line = klass.line;
+      annotate.params.push_back("format");
+      ast::FunctionDef::Param format_param;
+      format_param.name = "format";
+      format_param.kind = ast::FunctionDef::Param::Kind::PosOnly;
+      annotate.signature.push_back(std::move(format_param));
+
+      const std::string annotations_result =
+          "__xlang3_annotations_result__";
+      auto active_condition = [&](const ClassAnnotationEntry& item) {
+        std::vector<ast::ExprPtr> get_args;
+        get_args.push_back(std::make_unique<ast::LiteralExpr>(
+            ast::LiteralExpr::Kind::String, item.name));
+        get_args.push_back(std::make_unique<ast::LiteralExpr>(
+            ast::LiteralExpr::Kind::Int, "-1"));
+        return std::make_unique<ast::BinaryExpr>(
+            std::make_unique<ast::CallExpr>(
+                std::make_unique<ast::AttrExpr>(
+                    std::make_unique<ast::NameExpr>(annotation_active_alias),
+                    "get"),
+                std::move(get_args)),
+            "==",
+            std::make_unique<ast::LiteralExpr>(
+                ast::LiteralExpr::Kind::Int,
+                std::to_string(item.occurrence)));
+      };
+      auto guarded_annotation = [&](const ClassAnnotationEntry& item,
+                                    ast::ExprPtr value) {
+        auto guard = std::make_unique<ast::IfStmt>();
+        guard->condition = active_condition(item);
+        guard->then_body.push_back(
+            std::make_unique<ast::SubscriptAssignStmt>(
+                std::make_unique<ast::NameExpr>(annotations_result),
+                std::make_unique<ast::LiteralExpr>(
+                    ast::LiteralExpr::Kind::String, item.name),
+                std::move(value)));
+        return guard;
+      };
+
+      auto string_format = std::make_unique<ast::IfStmt>();
+      string_format->condition = std::make_unique<ast::BinaryExpr>(
+          std::make_unique<ast::NameExpr>("format"),
+          "==",
+          std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::Int, "4"));
+      string_format->then_body.push_back(std::make_unique<ast::AssignStmt>(
+          annotations_result,
+          std::make_unique<ast::DictExpr>(
+              std::vector<std::pair<ast::ExprPtr, ast::ExprPtr>>{})));
+      for (const auto& item : class_annotations) {
+        string_format->then_body.push_back(guarded_annotation(
+            item, std::make_unique<ast::LiteralExpr>(
+                      ast::LiteralExpr::Kind::String, item.source)));
+      }
+      string_format->then_body.push_back(std::make_unique<ast::ReturnStmt>(
+          std::make_unique<ast::NameExpr>(annotations_result)));
+      annotate.body.push_back(std::move(string_format));
+
+      auto unsupported = std::make_unique<ast::IfStmt>();
+      unsupported->condition = std::make_unique<ast::BinaryExpr>(
+          std::make_unique<ast::NameExpr>("format"),
+          "!=",
+          std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::Int, "1"));
+      auto unsupported_fake_globals = std::make_unique<ast::IfStmt>();
+      unsupported_fake_globals->condition = std::make_unique<ast::BinaryExpr>(
+          std::make_unique<ast::NameExpr>("format"),
+          "!=",
+          std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::Int, "2"));
+      std::vector<ast::ExprPtr> error_args;
+      error_args.push_back(std::make_unique<ast::NameExpr>("format"));
+      unsupported_fake_globals->then_body.push_back(std::make_unique<ast::RaiseStmt>(
+          std::make_unique<ast::CallExpr>(
+              std::make_unique<ast::NameExpr>("NotImplementedError"),
+              std::move(error_args))));
+      unsupported->then_body.push_back(std::move(unsupported_fake_globals));
+      annotate.body.push_back(std::move(unsupported));
+
+      annotate.body.push_back(std::make_unique<ast::AssignStmt>(
+          annotations_result,
+          std::make_unique<ast::DictExpr>(
+              std::vector<std::pair<ast::ExprPtr, ast::ExprPtr>>{})));
+      for (const auto& item : class_annotations) {
+        auto parsed = parse_expression_source(item.source);
+        ast::ExprPtr value = std::move(parsed.expression);
+        if (value == nullptr || !parsed.errors.empty()) {
+          value = std::make_unique<ast::LiteralExpr>(
+              ast::LiteralExpr::Kind::String, item.source);
+        }
+        annotate.body.push_back(guarded_annotation(item, std::move(value)));
+      }
+      annotate.body.push_back(std::make_unique<ast::ReturnStmt>(
+          std::make_unique<ast::NameExpr>(annotations_result)));
+
+      const size_t first_annotate_function = module_.functions.size();
+      const auto annotate_reg = lower_function_value(annotate, {}, {}, class_qualname, &name_aliases_);
+      const std::string generated_prefix =
+          class_qualname + ".__annotate__.<locals>.";
+      for (size_t index = first_annotate_function;
+           index < module_.functions.size(); ++index) {
+        auto& qualified_name = module_.functions[index].qualname;
+        if (qualified_name.rfind(generated_prefix, 0) == 0) {
+          qualified_name = class_qualname + "." +
+              qualified_name.substr(generated_prefix.size());
+        }
+      }
+      attrs.push_back(std::make_pair("__annotate__", annotate_reg));
+      bind_class_attr_alias("__annotate__", annotate_reg);
+      }
+    }
+
+    for (const auto& name : erased_aliases) {
+      name_aliases_.erase(name);
+    }
+    for (const auto& item : saved_aliases) {
+      name_aliases_[item.first] = item.second;
+    }
+
+    const auto reg = new_reg();
+    if (metaclass_reg == UINT32_MAX) {
+      emit(ir::Op::MakeClass, reg, add_name(klass.name), add_class_attrs(std::move(attrs)),
+           add_class_instance_slots(std::move(own_instance_slots)));
+      for (const auto base : base_regs) {
+        emit(ir::Op::SetClassBase, reg, base);
+      }
+    } else {
+      if (namespace_reg == UINT32_MAX) {
+        std::vector<std::pair<uint32_t, uint32_t>> namespace_items;
+        namespace_items.reserve(attrs.size());
+        for (const auto& attr : attrs) {
+          const auto key = new_reg();
+          emit(ir::Op::LoadConst, key, add_const(Value::string(attr.first)));
+          namespace_items.push_back(std::make_pair(key, attr.second));
+        }
+        name_reg = new_reg();
+        emit(ir::Op::LoadConst, name_reg, add_const(Value::string(klass.name)));
+        if (bases_reg == UINT32_MAX) {
+          bases_reg = new_reg();
+          emit(ir::Op::MakeTuple, bases_reg, add_tuple_items(base_regs));
+        }
+        namespace_reg = new_reg();
+        emit(ir::Op::MakeDict, namespace_reg, add_dict_items(std::move(namespace_items)));
+      }
+      const auto build_class_reg = new_reg();
+      emit(ir::Op::LoadGlobal, build_class_reg, add_name("__xlang3_build_class_from_namespace__"));
+      if (optimized_slots_reg == UINT32_MAX) {
+        optimized_slots_reg = new_reg();
+        emit(ir::Op::LoadConst, optimized_slots_reg, add_const(Value::none()));
+      }
+      if (class_keywords.empty() && class_kw_star_args.empty()) {
+        emit(ir::Op::Call, reg, build_class_reg,
+             add_call_args({metaclass_reg, name_reg, bases_reg, namespace_reg,
+                            optimized_slots_reg,
+                            resolved_bases_reg == UINT32_MAX ? bases_reg : resolved_bases_reg}));
+      } else {
+        ir::CallSpec class_spec;
+        class_spec.positional = {metaclass_reg, name_reg, bases_reg, namespace_reg,
+                                 optimized_slots_reg,
+                                 resolved_bases_reg == UINT32_MAX ? bases_reg : resolved_bases_reg};
+        class_spec.keywords = std::move(class_keywords);
+        class_spec.kw_star_args = std::move(class_kw_star_args);
+        emit(ir::Op::CallEx, reg, build_class_reg, add_call_spec(std::move(class_spec)));
+      }
+    }
+    if (!class_cell_name.empty()) {
+      store_named_value(class_cell_name, reg);
+    }
+    const auto decorated_reg = apply_decorators(reg, klass.decorators);
+    if (store_name) {
+      store_named_value(klass.name, decorated_reg);
+    }
+    return decorated_reg;
+  }
+
+  bool is_instance_slot_target(const ast::Expr& object, const std::string& name) const {
+    if (instance_slot_self_.empty()) {
+      return false;
+    }
+    auto slot = instance_slots_.find(name);
+    if (slot == instance_slots_.end()) {
+      return false;
+    }
+    auto* object_name = dynamic_cast<const ast::NameExpr*>(&object);
+    return object_name != nullptr && object_name->name == instance_slot_self_;
+  }
+
+  bool lower_assign_target(const ast::Expr& target, uint32_t value_reg) {
+    if (auto* name = dynamic_cast<const ast::NameExpr*>(&target)) {
+      store_named_value(name->name, value_reg);
+      return true;
+    }
+    if (auto* attr = dynamic_cast<const ast::AttrExpr*>(&target)) {
+      if (is_instance_slot_target(*attr->object, attr->name)) {
+        auto* object_name = dynamic_cast<const ast::NameExpr*>(attr->object.get());
+        uint32_t local_slot = 0;
+        if (object_name != nullptr && direct_local_slot(object_name->name, local_slot)) {
+          emit(ir::Op::StoreLocalInstanceSlot, local_slot, instance_slots_[attr->name], value_reg);
+        } else {
+          const auto object = lower_expr(*attr->object);
+          emit(ir::Op::StoreInstanceSlot, object, instance_slots_[attr->name], value_reg);
+        }
+      } else {
+        const auto object = lower_expr(*attr->object);
+        emit(ir::Op::StoreAttr, object, add_name(mangle_private_identifier(attr->name)), value_reg);
+      }
+      return true;
+    }
+    if (auto* subscript = dynamic_cast<const ast::SubscriptExpr*>(&target)) {
+      const auto object = lower_expr(*subscript->object);
+      const auto index = lower_expr(*subscript->index);
+      emit(ir::Op::SetItem, object, index, value_reg);
+      return true;
+    }
+    if (auto* starred = dynamic_cast<const ast::StarredExpr*>(&target)) {
+      return lower_assign_target(*starred->expr, value_reg);
+    }
+    if (dynamic_cast<const ast::TupleExpr*>(&target) != nullptr || dynamic_cast<const ast::ListExpr*>(&target) != nullptr) {
+      lower_unpack_assign(target, value_reg);
+      return true;
+    }
+    return false;
+  }
+
+  void lower_unpack_assign(const ast::Expr& target, uint32_t value_reg) {
+    std::vector<const ast::Expr*> items;
+    if (auto* tuple = dynamic_cast<const ast::TupleExpr*>(&target)) {
+      for (const auto& item : tuple->items) items.push_back(item.get());
+    } else if (auto* list = dynamic_cast<const ast::ListExpr*>(&target)) {
+      for (const auto& item : list->items) items.push_back(item.get());
+    } else {
+      lower_assign_target(target, value_reg);
+      return;
+    }
+
+    size_t star_index = items.size();
+    for (size_t i = 0; i < items.size(); ++i) {
+      if (dynamic_cast<const ast::StarredExpr*>(items[i]) != nullptr) {
+        star_index = i;
+        break;
+      }
+    }
+    const bool has_star = star_index != items.size();
+    const uint32_t before_count = has_star ? static_cast<uint32_t>(star_index) : static_cast<uint32_t>(items.size());
+    const uint32_t after_count = has_star ? static_cast<uint32_t>(items.size() - star_index - 1) : 0;
+    const uint32_t output_count = before_count + after_count + (has_star ? 1u : 0u);
+    const uint32_t first_output = new_reg();
+    for (uint32_t i = 1; i < output_count; ++i) {
+      (void)new_reg();
+    }
+    emit(ir::Op::UnpackSequence, first_output, value_reg, before_count, after_count | (has_star ? 0x80000000u : 0u));
+
+    for (uint32_t i = 0; i < before_count; ++i) {
+      lower_assign_target(*items[i], first_output + i);
+    }
+    if (has_star) {
+      lower_assign_target(*items[star_index], first_output + before_count);
+      for (uint32_t i = 0; i < after_count; ++i) {
+        lower_assign_target(*items[star_index + 1 + i], first_output + before_count + 1 + i);
+      }
+    }
+  }
+
+  ir::Op binary_op_for_aug_assign(const std::string& op) const {
+    if (op == "+") return ir::Op::Add;
+    if (op == "-") return ir::Op::Sub;
+    if (op == "*") return ir::Op::Mul;
+    if (op == "@") return ir::Op::MatMul;
+    if (op == "/") return ir::Op::Div;
+    if (op == "//") return ir::Op::FloorDiv;
+    if (op == "%") return ir::Op::Mod;
+    if (op == "**") return ir::Op::Pow;
+    if (op == "&") return ir::Op::BitAnd;
+    if (op == "|") return ir::Op::BitOr;
+    if (op == "^") return ir::Op::BitXor;
+    if (op == "<<") return ir::Op::Shl;
+    if (op == ">>") return ir::Op::Shr;
+    return ir::Op::Add;
+  }
+
+  void lower_aug_assign(const ast::AugAssignStmt& assign) {
+    size_t guarded_list_augment_ip = 0;
+    size_t guarded_list_augment_fallback_begin = fn_.code.size();
+    bool has_guarded_list_augment = false;
+    if (assign.op == "+" || assign.op == "-") {
+      auto* target = dynamic_cast<const ast::SubscriptExpr*>(assign.target.get());
+      auto* sequence_name = target != nullptr
+          ? dynamic_cast<const ast::NameExpr*>(target->object.get())
+          : nullptr;
+      auto* index_name = target != nullptr
+          ? dynamic_cast<const ast::NameExpr*>(target->index.get())
+          : nullptr;
+      auto* amount_literal = dynamic_cast<const ast::LiteralExpr*>(assign.value.get());
+      uint32_t sequence_slot = 0;
+      uint32_t index_slot = 0;
+      if (sequence_name != nullptr && index_name != nullptr && amount_literal != nullptr &&
+          amount_literal->kind == ast::LiteralExpr::Kind::Int &&
+          direct_local_slot(sequence_name->name, sequence_slot) &&
+          direct_local_slot(index_name->name, index_slot)) {
+        const Value amount = literal_value(*amount_literal);
+        if (amount.tag == ValueTag::Int64) {
+          const uint32_t flags = assign.op == "-"
+              ? ir::kGuardedLocalListAugmentSubtractFlag : 0;
+          guarded_list_augment_ip = fn_.code.size();
+          emit(ir::Op::GuardedLocalListAugmentConst, sequence_slot, index_slot,
+               add_const(amount), flags);
+          guarded_list_augment_fallback_begin = fn_.code.size();
+          has_guarded_list_augment = true;
+        }
+      }
+    }
+    if (assign.op == "+") {
+      auto* name = dynamic_cast<const ast::NameExpr*>(assign.target.get());
+      auto* literal = dynamic_cast<const ast::LiteralExpr*>(assign.value.get());
+      uint32_t local_slot = 0;
+      if (name != nullptr && literal != nullptr && direct_local_slot(name->name, local_slot) &&
+          (literal->kind == ast::LiteralExpr::Kind::Int ||
+           literal->kind == ast::LiteralExpr::Kind::Double)) {
+        emit(ir::Op::InplaceAddLocalConst, local_slot, local_slot, add_const(literal_value(*literal)));
+        return;
+      }
+      auto* rhs_name = dynamic_cast<const ast::NameExpr*>(assign.value.get());
+      uint32_t rhs_slot = 0;
+      if (name != nullptr && rhs_name != nullptr &&
+          direct_local_slot(name->name, local_slot) &&
+          direct_local_slot(rhs_name->name, rhs_slot)) {
+        emit(ir::Op::InplaceAddLocalLocal, local_slot, local_slot, rhs_slot);
+        return;
+      }
+    }
+    const auto rhs = lower_expr(*assign.value);
+    const auto result = new_reg();
+    const auto op = binary_op_for_aug_assign(assign.op);
+    const auto lower_operation = [&](uint32_t current) {
+      if (assign.op == "|") {
+        const auto callee = new_reg();
+        emit(ir::Op::LoadGlobal, callee, add_name("__xlang3_inplace_or__"));
+        emit(ir::Op::Call, result, callee, add_call_args({current, rhs}));
+      } else if (assign.op == "+") {
+        emit(ir::Op::InplaceAdd, result, current, rhs);
+      } else if (assign.op == "*") {
+        const auto callee = new_reg();
+        emit(ir::Op::LoadGlobal, callee, add_name("__xlang3_inplace_mul__"));
+        emit(ir::Op::Call, result, callee, add_call_args({current, rhs}));
+      } else if (assign.op == "//") {
+        const auto callee = new_reg();
+        emit(ir::Op::LoadGlobal, callee, add_name("__xlang3_inplace_floor_div__"));
+        emit(ir::Op::Call, result, callee, add_call_args({current, rhs}));
+      } else if (assign.op == "@") {
+        const auto callee = new_reg();
+        emit(ir::Op::LoadGlobal, callee, add_name("__xlang3_inplace_matmul__"));
+        emit(ir::Op::Call, result, callee, add_call_args({current, rhs}));
+      } else {
+        emit(op, result, current, rhs);
+      }
+    };
+    if (auto* name = dynamic_cast<const ast::NameExpr*>(assign.target.get())) {
+      const auto current = lower_expr(*assign.target);
+      lower_operation(current);
+      store_named_value(name->name, result);
+      return;
+    }
+    if (auto* attr = dynamic_cast<const ast::AttrExpr*>(assign.target.get())) {
+      const auto current = new_reg();
+      if (is_instance_slot_target(*attr->object, attr->name)) {
+        auto* object_name = dynamic_cast<const ast::NameExpr*>(attr->object.get());
+        uint32_t local_slot = 0;
+        if (object_name != nullptr && direct_local_slot(object_name->name, local_slot)) {
+          emit(ir::Op::LoadLocalInstanceSlot, current, local_slot, instance_slots_[attr->name]);
+          lower_operation(current);
+          emit(ir::Op::StoreLocalInstanceSlot, local_slot, instance_slots_[attr->name], result);
+        } else {
+          const auto object = lower_expr(*attr->object);
+          emit(ir::Op::LoadInstanceSlot, current, object, instance_slots_[attr->name]);
+          lower_operation(current);
+          emit(ir::Op::StoreInstanceSlot, object, instance_slots_[attr->name], result);
+        }
+      } else {
+        const auto object = lower_expr(*attr->object);
+        emit(ir::Op::LoadAttr, current, object, add_name(mangle_private_identifier(attr->name)));
+        lower_operation(current);
+        emit(ir::Op::StoreAttr, object, add_name(mangle_private_identifier(attr->name)), result);
+      }
+      return;
+    }
+    if (auto* subscript = dynamic_cast<const ast::SubscriptExpr*>(assign.target.get())) {
+      const auto object = lower_expr(*subscript->object);
+      const auto index = lower_expr(*subscript->index);
+      const auto current = new_reg();
+      emit(ir::Op::GetItem, current, object, index);
+      lower_operation(current);
+      emit(ir::Op::SetItem, object, index, result);
+      if (has_guarded_list_augment) {
+        const uint32_t fallback_span = static_cast<uint32_t>(
+            fn_.code.size() - guarded_list_augment_fallback_begin);
+        fn_.code[guarded_list_augment_ip].c |= fallback_span;
+      }
+    }
+  }
+
+  void lower_stmt(const ast::Stmt& stmt) {
+    struct SourceScope {
+      uint32_t& current_line;
+      ir::SourcePosition& current_position;
+      uint32_t saved_line;
+      ir::SourcePosition saved_position;
+
+      ~SourceScope() {
+        current_line = saved_line;
+        current_position = saved_position;
+      }
+    } source_scope{current_source_line_, current_source_position_, current_source_line_, current_source_position_};
+    if (stmt.line != 0) {
+      current_source_line_ = stmt.line;
+      current_source_position_ = ir::SourcePosition{
+          stmt.line,
+          stmt.end_line == 0 ? stmt.line : stmt.end_line,
+          stmt.column,
+          stmt.end_column,
+      };
+    }
+    if (dynamic_cast<const ast::GlobalStmt*>(&stmt) != nullptr) {
+      return;
+    }
+    if (dynamic_cast<const ast::NonlocalStmt*>(&stmt) != nullptr) {
+      return;
+    }
+    if (dynamic_cast<const ast::PassStmt*>(&stmt) != nullptr) {
+      return;
+    }
+    if (dynamic_cast<const ast::BreakStmt*>(&stmt) != nullptr) {
+      if (loop_break_jumps_.empty()) {
+        return;
+      }
+      lower_active_finalizers_from(loop_finalizer_base_counts_.back());
+      pop_loop_exceptions();
+      loop_break_jumps_.back().push_back(emit_jump(ir::Op::Jump));
+      return;
+    }
+    if (dynamic_cast<const ast::ContinueStmt*>(&stmt) != nullptr) {
+      if (loop_continue_targets_.empty()) {
+        return;
+      }
+      lower_active_finalizers_from(loop_finalizer_base_counts_.back());
+      pop_loop_exceptions();
+      emit(ir::Op::Jump, loop_continue_targets_.back());
+      return;
+    }
+    if (auto* del = dynamic_cast<const ast::DelStmt*>(&stmt)) {
+      lower_delete_target(*del->target);
+      return;
+    }
+    if (auto* assert_stmt = dynamic_cast<const ast::AssertStmt*>(&stmt)) {
+      const auto cond = lower_expr(*assert_stmt->condition);
+      const auto ok = emit_jump(ir::Op::JumpIfFalse, cond);
+      const auto done = emit_jump(ir::Op::Jump);
+      patch_jump(ok, static_cast<uint32_t>(fn_.code.size()));
+      const auto klass = new_reg();
+      emit(ir::Op::LoadGlobal, klass, add_name("AssertionError"));
+      std::vector<uint32_t> args;
+      if (assert_stmt->message != nullptr) {
+        args.push_back(lower_expr(*assert_stmt->message));
+      }
+      const auto exc = new_reg();
+      emit(ir::Op::Call, exc, klass, add_call_args(std::move(args)));
+      emit(ir::Op::Raise, 0, exc);
+      patch_jump(done, static_cast<uint32_t>(fn_.code.size()));
+      return;
+    }
+    if (auto* alias = dynamic_cast<const ast::TypeAliasStmt*>(&stmt)) {
+      store_named_value(alias->name, lower_type_alias_value(*alias));
+      return;
+    }
+    if (auto* assign = dynamic_cast<const ast::AssignStmt*>(&stmt)) {
+      update_known_local_type(assign->name, *assign->value);
+      if (try_emit_direct_local_assign(*assign)) {
+        return;
+      }
+      store_named_value(assign->name, lower_expr(*assign->value));
+      return;
+    }
+    if (auto* assign = dynamic_cast<const ast::AnnotatedAssignStmt*>(&stmt)) {
+      if (is_module_) {
+        if (auto* name = dynamic_cast<const ast::NameExpr*>(assign->target.get())) {
+          const auto annotations = new_reg();
+          emit(ir::Op::LoadGlobal, annotations, add_name("__annotations__"));
+          const auto key = new_reg();
+          emit(ir::Op::LoadConst, key, add_const(Value::string(name->name)));
+          emit(ir::Op::SetItem, annotations, key, lower_annotation(*assign->annotation));
+        }
+      }
+      if (assign->value == nullptr) {
+        return;
+      }
+      const auto value = lower_expr(*assign->value);
+      lower_assign_target(*assign->target, value);
+      return;
+    }
+    if (auto* assign = dynamic_cast<const ast::UnpackAssignStmt*>(&stmt)) {
+      const auto value = lower_expr(*assign->value);
+      lower_assign_target(*assign->target, value);
+      return;
+    }
+    if (auto* assign = dynamic_cast<const ast::MultiAssignStmt*>(&stmt)) {
+      const auto value = lower_expr(*assign->value);
+      for (auto it = assign->targets.rbegin(); it != assign->targets.rend(); ++it) {
+        lower_assign_target(**it, value);
+      }
+      return;
+    }
+    if (auto* assign = dynamic_cast<const ast::AugAssignStmt*>(&stmt)) {
+      lower_aug_assign(*assign);
+      return;
+    }
+    if (auto* assign = dynamic_cast<const ast::SubscriptAssignStmt*>(&stmt)) {
+      uint32_t sequence_slot = 0;
+      uint32_t index_slot = 0;
+      if (is_reverse_prefix_slice_assignment(*assign, sequence_slot, index_slot)) {
+        // CPython's generic STORE_SLICE still materializes this exact reversed
+        // RHS list. Emit the guarded in-place IR form first and retain ordinary
+        // slice bytecode immediately after it for type, bounds, and error misses.
+        const size_t fast_ip = fn_.code.size();
+        emit(ir::Op::ReversePrefixSliceAssign, sequence_slot, index_slot);
+        const size_t fallback_begin = fn_.code.size();
+        const auto object = lower_expr(*assign->object);
+        const auto index = lower_expr(*assign->index);
+        const auto value = lower_expr(*assign->value);
+        emit(ir::Op::SetItem, object, index, value);
+        fn_.code[fast_ip].c = static_cast<uint32_t>(fn_.code.size() - fallback_begin);
+        return;
+      }
+      const auto object = lower_expr(*assign->object);
+      const auto index = lower_expr(*assign->index);
+      const auto value = lower_expr(*assign->value);
+      emit(ir::Op::SetItem, object, index, value);
+      return;
+    }
+    if (auto* assign = dynamic_cast<const ast::AttrAssignStmt*>(&stmt)) {
+      if (is_instance_slot_target(*assign->object, assign->name)) {
+        auto* object_name = dynamic_cast<const ast::NameExpr*>(assign->object.get());
+        uint32_t local_slot = 0;
+        if (object_name != nullptr && direct_local_slot(object_name->name, local_slot)) {
+          const auto value = lower_expr(*assign->value);
+          emit(ir::Op::StoreLocalInstanceSlot, local_slot, instance_slots_[assign->name], value);
+        } else {
+          const auto object = lower_expr(*assign->object);
+          const auto value = lower_expr(*assign->value);
+          emit(ir::Op::StoreInstanceSlot, object, instance_slots_[assign->name], value);
+        }
+      } else {
+        const auto object = lower_expr(*assign->object);
+        const auto value = lower_expr(*assign->value);
+        emit(ir::Op::StoreAttr, object, add_name(mangle_private_identifier(assign->name)), value);
+      }
+      return;
+    }
+    if (auto* import = dynamic_cast<const ast::ImportStmt*>(&stmt)) {
+      if (import->thru != nullptr) {
+        lower_import_thru_binding(*import);
+      } else {
+        lower_import_binding(import->name, import->bind_name);
+      }
+      return;
+    }
+    if (auto* import = dynamic_cast<const ast::ImportManyStmt*>(&stmt)) {
+      for (const auto& binding : import->names) {
+        lower_import_binding(binding.name, binding.as_name);
+      }
+      return;
+    }
+    if (auto* import = dynamic_cast<const ast::FromImportStmt*>(&stmt)) {
+      if (import->names.size() == 1 && import->names[0].name == "*") {
+        emit(ir::Op::ImportStar, add_name(import->module));
+        return;
+      }
+      for (const auto& binding : import->names) {
+        const auto reg = new_reg();
+        emit(ir::Op::ImportFrom, reg, add_name(import->module), add_name(binding.name));
+        store_named_value(binding.as_name, reg);
+        uint32_t import_slot = 0;
+        if (module_global_slot(binding.as_name, import_slot)) {
+          // A from-import can bind any object, so it is not safe to use the
+          // direct module-method call path for later attribute access.
+          imported_module_slots_.erase(import_slot);
+        }
+      }
+      return;
+    }
+    if (auto* raw = dynamic_cast<const ast::RawBlockStmt*>(&stmt)) {
+      emit(ir::Op::RawBlock, add_raw_block(raw->language, raw->provider, raw->body));
+      return;
+    }
+    if (auto* expr_stmt = dynamic_cast<const ast::ExprStmt*>(&stmt)) {
+      uint32_t index_slot = 0;
+      uint32_t insert_slot = 0;
+      uint32_t pop_slot = 0;
+      if (is_list_pop_front_insert(*expr_stmt->expr, index_slot, insert_slot, pop_slot)) {
+        const size_t fusion_ip = fn_.code.size();
+        emit(ir::Op::ListPopFrontInsert, index_slot, insert_slot, pop_slot);
+        const size_t fallback_begin = fn_.code.size();
+        const auto reg = lower_expr(*expr_stmt->expr);
+        emit(ir::Op::Pop, 0, reg);
+        fn_.code[fusion_ip].c = static_cast<uint32_t>(fn_.code.size() - fallback_begin);
+        return;
+      }
+      const auto reg = lower_expr(*expr_stmt->expr);
+      emit(ir::Op::Pop, 0, reg);
+      return;
+    }
+    if (auto* ret = dynamic_cast<const ast::ReturnStmt*>(&stmt)) {
+      const auto reg = lower_expr(*ret->value);
+      if (!active_finalizers_.empty()) {
+        // A finally block can delete or rebind a local used by the return
+        // expression.  Preserve the evaluated value in a distinct local so
+        // finalizer cleanup cannot invalidate the pending return register.
+        const auto hidden_name = "#return." + std::to_string(next_hidden_local_++);
+        hidden_locals_.insert(hidden_name);
+        const auto hidden_slot = ensure_local(hidden_name);
+        emit(ir::Op::StoreLocal, hidden_slot, reg);
+        lower_active_finalizers();
+        const auto preserved = new_reg();
+        emit(ir::Op::LoadLocal, preserved, hidden_slot);
+        emit(ir::Op::Return, 0, preserved);
+        return;
+      }
+      lower_active_finalizers();
+      emit(ir::Op::Return, 0, reg);
+      return;
+    }
+    if (auto* raise = dynamic_cast<const ast::RaiseStmt*>(&stmt)) {
+      if (raise->value == nullptr) {
+        emit(ir::Op::Reraise);
+        return;
+      }
+      if (raise->cause != nullptr) {
+        const auto cause = lower_expr(*raise->cause);
+        emit(ir::Op::SetExceptionCause, 0, cause);
+      }
+      const auto reg = lower_expr(*raise->value);
+      emit(ir::Op::Raise, 0, reg);
+      return;
+    }
+    if (auto* ifs = dynamic_cast<const ast::IfStmt*>(&stmt)) {
+      size_t jf = 0;
+      if (!try_emit_local_const_condition_jump(*ifs->condition, jf)) {
+        const auto cond = lower_expr(*ifs->condition);
+        jf = emit_jump(ir::Op::JumpIfFalse, cond);
+      }
+      lower_body(ifs->then_body);
+      const auto jend = emit_jump(ir::Op::Jump);
+      patch_jump(jf, static_cast<uint32_t>(fn_.code.size()));
+      lower_body(ifs->else_body);
+      patch_jump(jend, static_cast<uint32_t>(fn_.code.size()));
+      return;
+    }
+    if (auto* try_except = dynamic_cast<const ast::TryExceptStmt*>(&stmt)) {
+      lower_try_except(*try_except);
+      return;
+    }
+    if (auto* with = dynamic_cast<const ast::WithStmt*>(&stmt)) {
+      lower_with(*with);
+      return;
+    }
+    if (auto* loop = dynamic_cast<const ast::WhileStmt*>(&stmt)) {
+      const auto start = static_cast<uint32_t>(fn_.code.size());
+      // The condition is a backward-jump target.  Do not fuse its first load
+      // into an instruction before the loop, or later iterations read a stale
+      // register instead of the updated local.
+      control_flow_entries_.insert(start);
+      uint32_t permutation_index_slot = 0;
+      uint32_t permutation_limit_slot = 0;
+      uint32_t permutation_counts_slot = 0;
+      uint32_t permutation_insert_slot = 0;
+      uint32_t permutation_pop_slot = 0;
+      const bool permutation_advance_fusion = is_list_permutation_advance_loop(
+          *loop, permutation_index_slot, permutation_limit_slot,
+          permutation_counts_slot, permutation_insert_slot, permutation_pop_slot);
+      uint32_t permutation_advance_spec = 0;
+      size_t permutation_advance_fallback_begin = 0;
+      size_t permutation_advance_else_begin = 0;
+      if (permutation_advance_fusion) {
+        // Keep the normal condition/body/back-edge after the fused op. It is
+        // the complete semantic fallback for subclasses, non-int state, and
+        // exceptional arithmetic; exact list/int iterations can advance in
+        // bounded native batches without paying for each VM instruction.
+        permutation_advance_spec = add_call_args({permutation_counts_slot, permutation_limit_slot, 0, 0});
+        emit(ir::Op::WhileListPermutationAdvance, permutation_index_slot,
+             permutation_insert_slot, permutation_pop_slot, permutation_advance_spec);
+        permutation_advance_fallback_begin = fn_.code.size();
+      }
+      size_t jf = 0;
+      if (!try_emit_local_const_condition_jump(*loop->condition, jf)) {
+        const auto cond = lower_expr(*loop->condition);
+        jf = emit_jump(ir::Op::JumpIfFalse, cond);
+      }
+      push_loop_control(start);
+      uint32_t sequence_slot = 0;
+      uint32_t index_slot = 0;
+      uint32_t counter_slot = 0;
+      uint32_t reset_counts_slot = 0;
+      uint32_t reset_index_slot = 0;
+      const bool count_reset_fusion =
+          is_count_reset_loop(*loop, reset_counts_slot, reset_index_slot);
+      bool reverse_prefix_count_fusion =
+          is_reverse_prefix_count_loop(*loop, sequence_slot, index_slot, counter_slot);
+      size_t reverse_prefix_fusion_ip = 0;
+      size_t reverse_prefix_fallback_begin = 0;
+      size_t count_reset_fusion_ip = 0;
+      size_t count_reset_fallback_begin = 0;
+      if (count_reset_fusion) {
+        // This exact descending fill has no user operations for int/list
+        // inputs. Guard the list and integer slots, retaining ordinary stores
+        // for every custom type and invalid index case.
+        count_reset_fusion_ip = fn_.code.size();
+        emit(ir::Op::WhileResetCount, reset_index_slot, reset_counts_slot);
+        count_reset_fallback_begin = fn_.code.size();
+      }
+      if (reverse_prefix_count_fusion) {
+        // Keep generic loop bytecode adjacent as the type/range/overflow
+        // fallback; the guarded op at the body head can batch exact-int list
+        // prefix reversals without entering the VM dispatch for each flip.
+        reverse_prefix_fusion_ip = fn_.code.size();
+        emit(ir::Op::WhileReversePrefixCount, sequence_slot, index_slot, counter_slot);
+        reverse_prefix_fallback_begin = fn_.code.size();
+      }
+      lower_body(loop->body);
+      if (reverse_prefix_count_fusion) {
+        fn_.code[reverse_prefix_fusion_ip].c = static_cast<uint32_t>(
+            fn_.code.size() - reverse_prefix_fallback_begin);
+      }
+      if (count_reset_fusion) {
+        fn_.code[count_reset_fusion_ip].c = static_cast<uint32_t>(
+            fn_.code.size() - count_reset_fallback_begin);
+      }
+      auto break_jumps = pop_loop_control();
+      emit(ir::Op::Jump, start);
+      patch_jump(jf, static_cast<uint32_t>(fn_.code.size()));
+      permutation_advance_else_begin = fn_.code.size();
+      lower_body(loop->else_body);
+      for (const auto jump : break_jumps) {
+        patch_jump(jump, static_cast<uint32_t>(fn_.code.size()));
+      }
+      if (permutation_advance_fusion) {
+        fn_.call_args[permutation_advance_spec][2] = static_cast<uint32_t>(
+            permutation_advance_else_begin - permutation_advance_fallback_begin);
+        fn_.call_args[permutation_advance_spec][3] = static_cast<uint32_t>(
+            fn_.code.size() - permutation_advance_else_begin);
+      }
+      return;
+    }
+    if (auto* loop = dynamic_cast<const ast::ForStmt*>(&stmt)) {
+      lower_for_loop(*loop);
+      return;
+    }
+    if (auto* match = dynamic_cast<const ast::MatchStmt*>(&stmt)) {
+      lower_match(*match);
+      return;
+    }
+    if (auto* fn = dynamic_cast<const ast::FunctionDef*>(&stmt)) {
+      store_named_value(fn->name, apply_decorators(lower_function_value(*fn), fn->decorators));
+      return;
+    }
+    if (auto* klass = dynamic_cast<const ast::ClassDef*>(&stmt)) {
+      lower_class_def(*klass);
+      return;
+    }
+  }
+
+  uint32_t lower_compare_chain(const ast::CompareChainExpr& chain) {
+    const auto result = new_reg();
+    const auto false_const = add_const(Value::boolean(false));
+    const auto true_const = add_const(Value::boolean(true));
+    std::vector<size_t> false_jumps;
+
+    auto lhs = lower_expr(*chain.first);
+    for (const auto& comparison : chain.comparisons) {
+      const auto rhs = lower_expr(*comparison.second);
+      const auto cmp = new_reg();
+      emit_compare_op(comparison.first, cmp, lhs, rhs);
+      // The right operand becomes the left operand of the next comparison.
+      // Keep its register live: the single-comparison jump fusions may remove
+      // the load that populated it, which is invalid for a comparison chain.
+      emit(ir::Op::JumpIfFalse, 0, cmp);
+      false_jumps.push_back(fn_.code.size() - 1);
+      lhs = rhs;
+    }
+
+    emit(ir::Op::LoadConst, result, true_const);
+    const auto done = emit_jump(ir::Op::Jump);
+    const auto false_label = static_cast<uint32_t>(fn_.code.size());
+    emit(ir::Op::LoadConst, result, false_const);
+    const auto end = static_cast<uint32_t>(fn_.code.size());
+
+    for (const auto jump : false_jumps) {
+      patch_jump(jump, false_label);
+    }
+    patch_jump(done, end);
+    return result;
+  }
+
+  ast::ExprPtr parse_embedded_expression(const std::string& source) {
+    auto parsed = parse_source("__x = " + source);
+    if (!parsed.errors.empty() || parsed.module.body.empty()) {
+      return std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::String, "{" + source + "}");
+    }
+    auto* assign = dynamic_cast<ast::AssignStmt*>(parsed.module.body[0].get());
+    if (assign == nullptr || assign->value == nullptr) {
+      return std::make_unique<ast::LiteralExpr>(ast::LiteralExpr::Kind::String, "{" + source + "}");
+    }
+    return clone_expr(*assign->value);
+  }
+
+  uint32_t lower_fstring(const ast::FStringExpr& fstring) {
+    if (fstring.is_template) {
+      std::vector<Value> strings{Value::string("")};
+      std::vector<uint32_t> interpolations;
+      for (const auto& part : fstring.parts) {
+        if (!part.is_expr) {
+          auto* current = value_as_string(strings.back());
+          const std::string combined =
+              (current == nullptr ? std::string() : string_object_to_string(*current)) + part.text;
+          strings.back() = Value::string(combined);
+          continue;
+        }
+        auto expr = parse_embedded_expression(part.text);
+        const uint32_t value = lower_expr(*expr);
+        const uint32_t expression = new_reg();
+        const uint32_t conversion = new_reg();
+        const uint32_t format_spec = new_reg();
+        emit(ir::Op::LoadConst, expression, add_const(Value::string(part.text)));
+        emit(ir::Op::LoadConst, conversion,
+             add_const(part.conversion == '\0'
+                           ? Value::none()
+                           : Value::string(std::string(1, part.conversion))));
+        emit(ir::Op::LoadConst, format_spec, add_const(Value::string(part.format_spec)));
+        const uint32_t callee = lower_expr(ast::NameExpr("__xlang3_template_interpolation__"));
+        const uint32_t interpolation = new_reg();
+        emit(ir::Op::Call, interpolation, callee,
+             add_call_args({value, expression, conversion, format_spec}));
+        interpolations.push_back(interpolation);
+        strings.push_back(Value::string(""));
+      }
+
+      const uint32_t strings_reg = new_reg();
+      emit(ir::Op::LoadConst, strings_reg, add_const(Value::tuple(std::move(strings))));
+      const uint32_t interpolations_reg = new_reg();
+      emit(ir::Op::MakeTuple, interpolations_reg, add_tuple_items(std::move(interpolations)));
+      const uint32_t callee = lower_expr(ast::NameExpr("__xlang3_template_literal__"));
+      const uint32_t result = new_reg();
+      emit(ir::Op::Call, result, callee, add_call_args({strings_reg, interpolations_reg}));
+      return result;
+    }
+    uint32_t result = UINT32_MAX;
+    bool has_part = false;
+    for (const auto& part : fstring.parts) {
+      uint32_t value = 0;
+      if (part.is_expr) {
+        auto expr = parse_embedded_expression(part.text);
+        value = lower_expr(*expr);
+        if (part.conversion == 's' || part.conversion == 'r' || part.conversion == 'a') {
+          const auto callee = lower_expr(ast::NameExpr(
+              part.conversion == 's' ? "__xlang3_fstring_str__" : "__xlang3_fstring_repr__"));
+          const auto converted = new_reg();
+          emit(ir::Op::Call, converted, callee, add_call_args({value}));
+          value = converted;
+        }
+        if (!part.format_spec.empty()) {
+          const auto spec = new_reg();
+          if (part.format_spec.find('{') != std::string::npos) {
+            ast::FStringExpr spec_expr(parse_fstring_parts(part.format_spec));
+            const auto lowered_spec = lower_fstring(spec_expr);
+            emit(ir::Op::Move, spec, lowered_spec);
+          } else {
+            emit(ir::Op::LoadConst, spec, add_const(Value::string(part.format_spec)));
+          }
+          const auto callee = lower_expr(ast::NameExpr("__xlang3_fstring_format__"));
+          const auto formatted = new_reg();
+          emit(ir::Op::Call, formatted, callee, add_call_args({value, spec}));
+          value = formatted;
+        } else if (part.conversion == '\0') {
+          const auto callee = lower_expr(ast::NameExpr("__xlang3_fstring_str__"));
+          const auto converted = new_reg();
+          emit(ir::Op::Call, converted, callee, add_call_args({value}));
+          value = converted;
+        }
+        if (part.debug_equal) {
+          const auto prefix = new_reg();
+          emit(ir::Op::LoadConst, prefix, add_const(Value::string(part.debug_text)));
+          const auto debug_joined = new_reg();
+          emit(ir::Op::Add, debug_joined, prefix, value);
+          value = debug_joined;
+        }
+      } else {
+        value = new_reg();
+        emit(ir::Op::LoadConst, value, add_const(Value::string(part.text)));
+      }
+      if (!has_part) {
+        result = value;
+        has_part = true;
+        continue;
+      }
+      const auto joined = new_reg();
+      emit(ir::Op::Add, joined, result, value);
+      result = joined;
+    }
+    if (!has_part) {
+      result = new_reg();
+      emit(ir::Op::LoadConst, result, add_const(Value::string("")));
+    }
+    return result;
+  }
+
+  bool has_starred_item(const std::vector<ast::ExprPtr>& items) const {
+    for (const auto& item : items) {
+      if (dynamic_cast<const ast::StarredExpr*>(item.get()) != nullptr) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  uint32_t lower_list_with_unpack(const std::vector<ast::ExprPtr>& items) {
+    const auto dst = new_reg();
+    emit(ir::Op::MakeList, dst, add_list_items({}));
+    for (const auto& item : items) {
+      if (auto* starred = dynamic_cast<const ast::StarredExpr*>(item.get())) {
+        emit(ir::Op::ListExtend, dst, lower_expr(*starred->expr));
+      } else {
+        emit(ir::Op::ListAppend, dst, lower_expr(*item));
+      }
+    }
+    return dst;
+  }
+
+  uint32_t lower_tuple_with_unpack(const std::vector<ast::ExprPtr>& items) {
+    const auto list = lower_list_with_unpack(items);
+    const auto tuple = new_reg();
+    emit(ir::Op::TupleFromList, tuple, list);
+    return tuple;
+  }
+
+  uint32_t lower_set_with_unpack(const std::vector<ast::ExprPtr>& items) {
+    const auto dst = new_reg();
+    emit(ir::Op::MakeSet, dst, add_set_items({}));
+    for (const auto& item : items) {
+      if (auto* starred = dynamic_cast<const ast::StarredExpr*>(item.get())) {
+        emit(ir::Op::SetUpdate, dst, lower_expr(*starred->expr));
+      } else {
+        emit(ir::Op::SetAdd, dst, lower_expr(*item));
+      }
+    }
+    return dst;
+  }
+
+  template <typename Body>
+  uint32_t lower_comprehension_loop(
+      const ast::Expr& target_expr,
+      const ast::Expr& iterable,
+      const ast::Expr* filter,
+      bool is_async,
+      uint32_t dst,
+      Body body) {
+    const auto* target_name = dynamic_cast<const ast::NameExpr*>(&target_expr);
+    const bool has_single_name_target = target_name != nullptr;
+    int64_t range_start = 0;
+    int64_t range_stop = 0;
+    int64_t range_step = 1;
+    const bool fused_range = !is_async && has_single_name_target &&
+        try_parse_const_range_call(iterable, range_start, range_stop, range_step);
+    // The iterable is evaluated in the enclosing scope, before this clause's
+    // target names become local to the comprehension.
+    const uint32_t iterable_reg = fused_range ? 0 : lower_expr(iterable);
+    struct SavedAlias {
+      std::string name;
+      std::string hidden_name;
+      bool had_alias = false;
+      std::string value;
+    };
+
+    std::vector<SavedAlias> saved_aliases;
+    for (const auto& name : assignment_names(target_expr)) {
+      const auto hidden_name = "#comp." + std::to_string(next_hidden_local_++) + "." + name;
+      hidden_locals_.insert(hidden_name);
+      ensure_local(hidden_name);
+      local_name_set_.insert(hidden_name);
+      const auto old_alias = name_aliases_.find(name);
+      saved_aliases.push_back(SavedAlias{
+          name,
+          hidden_name,
+          old_alias != name_aliases_.end(),
+          old_alias == name_aliases_.end() ? std::string{} : old_alias->second});
+      name_aliases_[name] = hidden_name;
+    }
+
+    uint32_t single_hidden_slot = 0;
+    if (has_single_name_target) {
+      single_hidden_slot = ensure_local(name_aliases_[target_name->name]);
+    }
+
+    if (is_async) {
+      const auto iterator_reg = emit_call_method(iterable_reg, "__aiter__", {});
+      const auto start = static_cast<uint32_t>(fn_.code.size());
+      const auto setup_next = emit_jump(ir::Op::SetupExcept);
+      const auto next_awaitable = emit_call_method(iterator_reg, "__anext__", {});
+      const auto item_reg = emit_await_value(next_awaitable);
+      emit(ir::Op::PopExcept);
+      const size_t target_store_begin = fn_.code.size();
+      {
+        struct DeferComprehensionTargetStoreFusion {
+          bool& active;
+          bool previous;
+          explicit DeferComprehensionTargetStoreFusion(bool& flag)
+              : active(flag), previous(flag) { active = true; }
+          ~DeferComprehensionTargetStoreFusion() { active = previous; }
+        } defer_store_fusion(defer_comprehension_target_store_fusion_);
+        lower_unpack_assign(target_expr, item_reg);
+      }
+      const size_t target_store_end = fn_.code.size();
+      size_t skip_body = 0;
+      const bool has_filter = filter != nullptr;
+      if (has_filter) {
+        const auto filter_reg = lower_expr(*filter);
+        skip_body = emit_jump(ir::Op::JumpIfFalse, filter_reg);
+      }
+      body();
+      for (size_t index = target_store_begin; index < target_store_end; ++index) {
+        auto& instruction = fn_.code[index];
+        if (instruction.op != ir::Op::StoreLocal) {
+          continue;
+        }
+        for (size_t cell_index = 0; cell_index < fn_.cell_slots.size(); ++cell_index) {
+          if (fn_.cell_slots[cell_index] == instruction.dst) {
+            instruction.op = ir::Op::StoreCell;
+            instruction.dst = static_cast<uint32_t>(cell_index);
+            break;
+          }
+        }
+      }
+      if (has_filter) {
+        patch_jump(skip_body, static_cast<uint32_t>(fn_.code.size()));
+      }
+      emit(ir::Op::Jump, start);
+
+      patch_jump(setup_next, static_cast<uint32_t>(fn_.code.size()));
+      const auto stop_type = new_reg();
+      emit(ir::Op::LoadGlobal, stop_type, add_name(resolve_name("StopAsyncIteration")));
+      const auto matched = new_reg();
+      emit(ir::Op::MatchException, matched, stop_type);
+      const auto not_stop_async = emit_jump(ir::Op::JumpIfFalse, matched);
+      emit(ir::Op::ClearException);
+      const auto done = emit_jump(ir::Op::Jump);
+      patch_jump(not_stop_async, static_cast<uint32_t>(fn_.code.size()));
+      emit(ir::Op::Reraise);
+      patch_jump(done, static_cast<uint32_t>(fn_.code.size()));
+
+      for (auto it = saved_aliases.rbegin(); it != saved_aliases.rend(); ++it) {
+        if (!is_cell_local(it->hidden_name))
+          clear_named_value(it->hidden_name);
+        if (it->had_alias) {
+          name_aliases_[it->name] = it->value;
+        } else {
+          name_aliases_.erase(it->name);
+        }
+      }
+      return dst;
+    }
+
+    size_t loop_exit = 0;
+    uint32_t start = 0;
+    size_t target_store_begin = 0;
+    size_t target_store_end = 0;
+    if (fused_range) {
+      const auto state_name = "#range." + std::to_string(next_hidden_local_++) + "." + target_name->name;
+      hidden_locals_.insert(state_name);
+      const auto state_slot = ensure_local(state_name);
+      const auto start_reg = new_reg();
+      emit(ir::Op::LoadConst, start_reg, add_const(Value::int64(range_start)));
+      emit(ir::Op::StoreLocal, state_slot, start_reg);
+      start = static_cast<uint32_t>(fn_.code.size());
+      emit(ir::Op::ForRangeConstLocalNext, 0, single_hidden_slot, state_slot,
+           add_range_spec(add_const(Value::int64(range_stop)), add_const(Value::int64(range_step))));
+      loop_exit = fn_.code.size() - 1;
+    } else {
+      const auto iterator_reg = new_reg();
+      emit(ir::Op::GetIter, iterator_reg, iterable_reg);
+      start = static_cast<uint32_t>(fn_.code.size());
+      const auto item_reg = new_reg();
+      emit(ir::Op::IterNext, item_reg, iterator_reg, 0);
+      loop_exit = fn_.code.size() - 1;
+      target_store_begin = fn_.code.size();
+      {
+        struct DeferComprehensionTargetStoreFusion {
+          bool& active;
+          bool previous;
+          explicit DeferComprehensionTargetStoreFusion(bool& flag)
+              : active(flag), previous(flag) { active = true; }
+          ~DeferComprehensionTargetStoreFusion() { active = previous; }
+        } defer_store_fusion(defer_comprehension_target_store_fusion_);
+        lower_unpack_assign(target_expr, item_reg);
+      }
+      target_store_end = fn_.code.size();
+    }
+    size_t skip_append = 0;
+    const bool has_filter = filter != nullptr;
+    if (has_filter) {
+      const auto filter_reg = lower_expr(*filter);
+      skip_append = emit_jump(ir::Op::JumpIfFalse, filter_reg);
+    }
+    body();
+    if (!fused_range) {
+      for (size_t index = target_store_begin; index < target_store_end; ++index) {
+        auto& instruction = fn_.code[index];
+        if (instruction.op != ir::Op::StoreLocal) {
+          continue;
+        }
+        for (size_t cell_index = 0; cell_index < fn_.cell_slots.size(); ++cell_index) {
+          if (fn_.cell_slots[cell_index] == instruction.dst) {
+            instruction.op = ir::Op::StoreCell;
+            instruction.dst = static_cast<uint32_t>(cell_index);
+            break;
+          }
+        }
+      }
+    }
+    if (has_filter) {
+      patch_jump(skip_append, static_cast<uint32_t>(fn_.code.size()));
+    }
+    emit(ir::Op::Jump, start);
+    if (fused_range) {
+      patch_jump(loop_exit, static_cast<uint32_t>(fn_.code.size()));
+    } else {
+      patch_iter_done(loop_exit, static_cast<uint32_t>(fn_.code.size()));
+    }
+
+    for (auto it = saved_aliases.rbegin(); it != saved_aliases.rend(); ++it) {
+      if (!is_cell_local(it->hidden_name))
+        clear_named_value(it->hidden_name);
+      if (it->had_alias) {
+        name_aliases_[it->name] = it->value;
+      } else {
+        name_aliases_.erase(it->name);
+      }
+    }
+    return dst;
+  }
+
+  struct LowerCompClause {
+    std::string target;
+    const ast::Expr* target_expr = nullptr;
+    const ast::Expr* iterable = nullptr;
+    const ast::Expr* filter = nullptr;
+    bool is_async = false;
+  };
+
+  template <typename Body>
+  uint32_t lower_comprehension_clauses(
+      const std::vector<LowerCompClause>& clauses,
+      size_t index,
+      uint32_t dst,
+      Body body) {
+    if (index >= clauses.size()) {
+      body();
+      return dst;
+    }
+    const auto& clause = clauses[index];
+    return lower_comprehension_loop(
+        *clause.target_expr,
+        *clause.iterable,
+        clause.filter,
+        clause.is_async,
+        dst,
+        [&]() { lower_comprehension_clauses(clauses, index + 1, dst, body); });
+  }
+
+  std::vector<LowerCompClause> list_comp_clauses(const ast::ListCompExpr& comp) {
+    std::vector<LowerCompClause> clauses;
+    clauses.push_back(LowerCompClause{comp.target, comp.target_expr.get(), comp.iterable.get(), comp.filter.get(), comp.is_async});
+    for (const auto& clause : comp.extra_clauses) {
+      clauses.push_back(LowerCompClause{clause.target, clause.target_expr.get(), clause.iterable.get(), clause.filter.get(), clause.is_async});
+    }
+    return clauses;
+  }
+
+  std::vector<LowerCompClause> dict_comp_clauses(const ast::DictCompExpr& comp) {
+    std::vector<LowerCompClause> clauses;
+    clauses.push_back(LowerCompClause{comp.target, comp.target_expr.get(), comp.iterable.get(), comp.filter.get(), comp.is_async});
+    for (const auto& clause : comp.extra_clauses) {
+      clauses.push_back(LowerCompClause{clause.target, clause.target_expr.get(), clause.iterable.get(), clause.filter.get(), clause.is_async});
+    }
+    return clauses;
+  }
+
+  std::vector<LowerCompClause> set_comp_clauses(const ast::SetCompExpr& comp) {
+    std::vector<LowerCompClause> clauses;
+    clauses.push_back(LowerCompClause{comp.target, comp.target_expr.get(), comp.iterable.get(), comp.filter.get(), comp.is_async});
+    for (const auto& clause : comp.extra_clauses) {
+      clauses.push_back(LowerCompClause{clause.target, clause.target_expr.get(), clause.iterable.get(), clause.filter.get(), clause.is_async});
+    }
+    return clauses;
+  }
+
+  std::vector<LowerCompClause> generator_comp_clauses(const ast::GeneratorExpr& comp) {
+    std::vector<LowerCompClause> clauses;
+    clauses.push_back(LowerCompClause{comp.target, comp.target_expr.get(), comp.iterable.get(), comp.filter.get(), comp.is_async});
+    for (const auto& clause : comp.extra_clauses) {
+      clauses.push_back(LowerCompClause{clause.target, clause.target_expr.get(), clause.iterable.get(), clause.filter.get(), clause.is_async});
+    }
+    return clauses;
+  }
+
+  uint32_t lower_generator_expr(const ast::GeneratorExpr& comp) {
+    const std::string eager_iterable_name = "#genexpr.iterable0";
+    const auto eager_iterable = lower_expr(*comp.iterable);
+    const auto free_vars = closure_names_for_generator(comp);
+    for (const auto& name : free_vars) {
+      if (sema::contains(local_name_set_, name)) {
+        ensure_cell_for_local(name);
+      }
+    }
+    const bool is_async = comp.is_async || std::any_of(
+        comp.extra_clauses.begin(), comp.extra_clauses.end(),
+        [](const ast::CompClause& clause) { return clause.is_async; });
+    FunctionLowerer child_lowerer(
+        module_, "#genexpr", {eager_iterable_name}, {}, free_vars, std::vector<ast::StmtPtr>{}, true, is_async, false, comp.line, false,
+        instance_slot_self_, instance_slots_, class_infos_, module_global_slots_, imported_module_slots_,
+        {}, future_annotations_, active_private_class_name());
+    child_lowerer.name_aliases_ = name_aliases_;
+    ast::NameExpr eager_iterable_expr(eager_iterable_name);
+    auto clauses = child_lowerer.generator_comp_clauses(comp);
+    if (!clauses.empty()) {
+      clauses[0].iterable = &eager_iterable_expr;
+    }
+    child_lowerer.lower_comprehension_clauses(
+        clauses, 0, 0, [&]() {
+          const auto value = child_lowerer.lower_expr(*comp.result);
+          child_lowerer.emit(ir::Op::Yield, 0, value);
+        });
+    module_.functions.push_back(child_lowerer.finish());
+    const uint32_t function_id = static_cast<uint32_t>(module_.functions.size() - 1);
+    const auto callee = new_reg();
+    std::vector<uint32_t> closure_regs;
+    for (const auto& name : free_vars) {
+      const auto reg = new_reg();
+      auto cell = cell_indices_.find(name);
+      if (cell != cell_indices_.end()) {
+        emit(ir::Op::LoadCellObject, reg, cell->second);
+      } else {
+        emit(ir::Op::LoadFreeObject, reg, free_indices_[name]);
+      }
+      closure_regs.push_back(reg);
+    }
+    emit(ir::Op::MakeFunction, callee, function_id, add_function_closure(std::move(closure_regs)), UINT32_MAX);
+    const auto dst = new_reg();
+    emit(ir::Op::Call, dst, callee, add_call_args({eager_iterable}));
+    return dst;
+  }
+
+  uint32_t lower_expr(const ast::Expr& expr) {
+    struct ExprSourceScope {
+      uint32_t& current_line;
+      ir::SourcePosition& current_position;
+      uint32_t saved_line;
+      ir::SourcePosition saved_position;
+
+      ~ExprSourceScope() {
+        current_line = saved_line;
+        current_position = saved_position;
+      }
+    } source_scope{current_source_line_, current_source_position_,
+                   current_source_line_, current_source_position_};
+    if (expr.line != 0) {
+      current_source_line_ = expr.line;
+      current_source_position_ = ir::SourcePosition{
+          expr.line,
+          expr.end_line == 0 ? expr.line : expr.end_line,
+          expr.column,
+          expr.end_column,
+      };
+    }
+    if (auto* lit = dynamic_cast<const ast::LiteralExpr*>(&expr)) {
+      const auto reg = new_reg();
+      switch (lit->kind) {
+        case ast::LiteralExpr::Kind::None:
+          emit(ir::Op::LoadConst, reg, add_const(Value::none()));
+          break;
+        case ast::LiteralExpr::Kind::Bool:
+          emit(ir::Op::LoadConst, reg, add_const(Value::boolean(lit->bool_value)));
+          break;
+        case ast::LiteralExpr::Kind::Int:
+          emit(ir::Op::LoadConst, reg, add_const(parse_integer_literal_value(lit->text)));
+          break;
+        case ast::LiteralExpr::Kind::Double:
+          emit(ir::Op::LoadConst, reg, add_const(Value::number(parse_float_literal_value(lit->text))));
+          break;
+        case ast::LiteralExpr::Kind::Complex: {
+          const std::string imag_text = lit->text.substr(0, lit->text.size() - 1);
+          emit(ir::Op::LoadConst, reg, add_const(Value::complex(0.0, parse_float_literal_value(imag_text))));
+          break;
+        }
+        case ast::LiteralExpr::Kind::String:
+          emit(ir::Op::LoadConst, reg, add_const(Value::string(lit->text)));
+          break;
+        case ast::LiteralExpr::Kind::Bytes:
+          emit(ir::Op::LoadConst, reg, add_const(Value::bytes(lit->text)));
+          break;
+        case ast::LiteralExpr::Kind::Ellipsis:
+          emit(ir::Op::LoadGlobal, reg, add_name("Ellipsis"));
+          break;
+      }
+      return reg;
+    }
+    if (auto* fstring = dynamic_cast<const ast::FStringExpr*>(&expr)) {
+      return lower_fstring(*fstring);
+    }
+    if (auto* name = dynamic_cast<const ast::NameExpr*>(&expr)) {
+      const auto reg = new_reg();
+      const auto resolved = resolve_name(name->name);
+      auto local = locals_.find(resolved);
+      if (local != locals_.end()) {
+        if (is_cell_local(resolved)) {
+          emit(ir::Op::LoadCell, reg, cell_indices_[resolved]);
+        } else {
+          emit(ir::Op::LoadLocal, reg, local->second);
+        }
+      } else if (auto free_it = free_indices_.find(resolved); free_it != free_indices_.end()) {
+        emit(ir::Op::LoadFree, reg, free_it->second);
+      } else {
+        uint32_t slot = 0;
+        if (fn_.name != "__annotate__" && module_global_slot(resolved, slot)) {
+          emit(ir::Op::LoadModuleSlot, reg, slot);
+        } else {
+          emit(ir::Op::LoadGlobal, reg, add_name(resolved));
+        }
+      }
+      return reg;
+    }
+    if (auto* unary = dynamic_cast<const ast::UnaryExpr*>(&expr)) {
+      const auto src = lower_expr(*unary->expr);
+      const auto reg = new_reg();
+      if (unary->op == "not") emit(ir::Op::Not, reg, src);
+      else if (unary->op == "~") emit(ir::Op::Invert, reg, src);
+      else emit(ir::Op::Neg, reg, src);
+      return reg;
+    }
+    if (auto* await = dynamic_cast<const ast::AwaitExpr*>(&expr)) {
+      const auto src = lower_expr(*await->expr);
+      const auto reg = new_reg();
+      emit(ir::Op::Await, reg, src);
+      return reg;
+    }
+    if (auto* yield = dynamic_cast<const ast::YieldExpr*>(&expr)) {
+      const auto src = lower_expr(*yield->expr);
+      const auto reg = new_reg();
+      if (yield->from) {
+        const auto iterator = new_reg();
+        emit(ir::Op::GetIter, iterator, src);
+        const auto sent = new_reg();
+        emit(ir::Op::LoadConst, sent, add_const(Value::none()));
+        const auto started = new_reg();
+        emit(ir::Op::LoadConst, started, add_const(Value::boolean(false)));
+        emit(ir::Op::YieldFrom, reg, iterator, sent, started);
+      } else {
+        emit(ir::Op::Yield, reg, src);
+      }
+      return reg;
+    }
+    if (auto* chain = dynamic_cast<const ast::CompareChainExpr*>(&expr)) {
+      return lower_compare_chain(*chain);
+    }
+    if (auto* bin = dynamic_cast<const ast::BinaryExpr*>(&expr)) {
+      uint32_t sequence_slot = 0;
+      uint32_t index_operand = 0;
+      uint32_t rhs_operand = 0;
+      bool index_constant = false;
+      bool rhs_constant = false;
+      ir::CompareOp compare_op = ir::CompareOp::Eq;
+      if (guarded_local_list_compare_operands(
+              *bin, sequence_slot, index_operand, index_constant,
+              rhs_operand, rhs_constant, compare_op)) {
+        const auto dst = new_reg();
+        const uint32_t operands = add_call_args({
+            index_operand, rhs_operand, static_cast<uint32_t>(compare_op)});
+        const size_t fast_ip = fn_.code.size();
+        uint32_t flags = (index_constant ? ir::kGuardedLocalListCompareIndexConstFlag : 0) |
+            (rhs_constant ? ir::kGuardedLocalListCompareRhsConstFlag : 0);
+        emit(ir::Op::GuardedLocalListCompare, dst, sequence_slot, operands, flags);
+        const size_t fallback_begin = fn_.code.size();
+        const auto lhs = lower_expr(*bin->lhs);
+        const auto rhs = lower_expr(*bin->rhs);
+        emit_compare_op(bin->op, dst, lhs, rhs);
+        fn_.code[fast_ip].c |= static_cast<uint32_t>(fn_.code.size() - fallback_begin);
+        return dst;
+      }
+      const auto lhs = lower_expr(*bin->lhs);
+      if (bin->op == "and") {
+        const auto reg = new_reg();
+        emit(ir::Op::Move, reg, lhs);
+        const auto done_if_false = emit_jump(ir::Op::JumpIfFalse, lhs);
+        const auto rhs = lower_expr(*bin->rhs);
+        emit(ir::Op::Move, reg, rhs);
+        patch_jump(done_if_false, static_cast<uint32_t>(fn_.code.size()));
+        return reg;
+      }
+      if (bin->op == "or") {
+        const auto reg = new_reg();
+        emit(ir::Op::MoveJumpIfTrue, reg, lhs, 0);
+        const auto done = fn_.code.size() - 1;
+        const auto rhs = lower_expr(*bin->rhs);
+        emit(ir::Op::Move, reg, rhs);
+        patch_jump(done, static_cast<uint32_t>(fn_.code.size()));
+        return reg;
+      }
+      if (bin->op == "%") {
+        if (auto* lit = dynamic_cast<const ast::LiteralExpr*>(bin->rhs.get())) {
+          if (lit->kind == ast::LiteralExpr::Kind::Int) {
+            const auto reg = new_reg();
+            emit(ir::Op::ModConst, reg, lhs, add_const(literal_value(*lit)));
+            return reg;
+          }
+        }
+      }
+      const auto rhs = lower_expr(*bin->rhs);
+      const auto reg = new_reg();
+      if (bin->op == "+") emit(ir::Op::Add, reg, lhs, rhs);
+      else if (bin->op == "-") emit(ir::Op::Sub, reg, lhs, rhs);
+      else if (bin->op == "*") emit(ir::Op::Mul, reg, lhs, rhs);
+      else if (bin->op == "@") emit(ir::Op::MatMul, reg, lhs, rhs);
+      else if (bin->op == "/") emit(ir::Op::Div, reg, lhs, rhs);
+      else if (bin->op == "//") emit(ir::Op::FloorDiv, reg, lhs, rhs);
+      else if (bin->op == "%") emit(ir::Op::Mod, reg, lhs, rhs);
+      else if (bin->op == "**") emit(ir::Op::Pow, reg, lhs, rhs);
+      else if (bin->op == "&") emit(ir::Op::BitAnd, reg, lhs, rhs);
+      else if (bin->op == "|") emit(ir::Op::BitOr, reg, lhs, rhs);
+      else if (bin->op == "^") emit(ir::Op::BitXor, reg, lhs, rhs);
+      else if (bin->op == "<<") emit(ir::Op::Shl, reg, lhs, rhs);
+      else if (bin->op == ">>") emit(ir::Op::Shr, reg, lhs, rhs);
+      else if (bin->op == "and") emit(ir::Op::BoolAnd, reg, lhs, rhs);
+      else if (bin->op == "or") emit(ir::Op::BoolOr, reg, lhs, rhs);
+      else {
+        const auto* literal = dynamic_cast<const ast::LiteralExpr*>(bin->rhs.get());
+        emit_compare_op(bin->op, reg, lhs, rhs,
+            literal != nullptr && literal->kind == ast::LiteralExpr::Kind::None);
+      }
+      return reg;
+    }
+    if (auto* conditional = dynamic_cast<const ast::ConditionalExpr*>(&expr)) {
+      const auto reg = new_reg();
+      const auto condition = lower_expr(*conditional->condition);
+      const auto else_jump = emit_jump(ir::Op::JumpIfFalse, condition);
+      const auto then_value = lower_expr(*conditional->then_expr);
+      emit(ir::Op::Pop, 0, then_value);
+      emit(ir::Op::Move, reg, then_value);
+      const auto done_jump = emit_jump(ir::Op::Jump);
+      patch_jump(else_jump, static_cast<uint32_t>(fn_.code.size()));
+      const auto else_value = lower_expr(*conditional->else_expr);
+      emit(ir::Op::Pop, 0, else_value);
+      emit(ir::Op::Move, reg, else_value);
+      patch_jump(done_jump, static_cast<uint32_t>(fn_.code.size()));
+      return reg;
+    }
+    if (auto* named = dynamic_cast<const ast::NamedExpr*>(&expr)) {
+      const auto value = lower_expr(*named->value);
+      store_named_value(named->name, value);
+      return value;
+    }
+    if (auto* call = dynamic_cast<const ast::CallExpr*>(&expr)) {
+      if (!call->call_args.empty()) {
+        auto* method = dynamic_cast<const ast::AttrExpr*>(call->callee.get());
+        const bool has_keyword = std::any_of(
+            call->call_args.begin(), call->call_args.end(),
+            [](const auto& arg) { return !arg.name.empty(); });
+        const bool has_expansion = std::any_of(
+            call->call_args.begin(), call->call_args.end(),
+            [](const auto& arg) { return arg.star || arg.kw_star; });
+        const bool side_effect_free_args = std::all_of(
+            call->call_args.begin(), call->call_args.end(), [](const auto& arg) {
+              return dynamic_cast<const ast::NameExpr*>(arg.value.get()) != nullptr ||
+                     dynamic_cast<const ast::LiteralExpr*>(arg.value.get()) != nullptr;
+            });
+        // CallMethodEx resolves the descriptor at dispatch time, after argument
+        // evaluation. Restrict fusion to local/name and literal arguments so
+        // user code in an argument cannot observe that lookup being delayed.
+        if (method != nullptr && method->name != "__class__" && has_keyword &&
+            !has_expansion && side_effect_free_args) {
+          const auto object = lower_expr(*method->object);
+          ir::CallSpec spec;
+          for (const auto& arg : call->call_args) {
+            const auto value = lower_expr(*arg.value);
+            if (!arg.name.empty()) spec.keywords.push_back(ir::CallKeywordArg{arg.name, value});
+            else spec.positional.push_back(value);
+          }
+          const auto dst = new_reg();
+          emit(ir::Op::CallMethodEx, dst, object,
+               add_name(mangle_private_identifier(method->name)),
+               add_call_spec(std::move(spec)));
+          return dst;
+        }
+        const auto callee = lower_expr(*call->callee);
+        ir::CallSpec spec;
+        bool saw_starred_positional = false;
+        for (const auto& arg : call->call_args) {
+          const auto value = lower_expr(*arg.value);
+          if (arg.kw_star) {
+            if (spec.kw_star_arg == UINT32_MAX) {
+              spec.kw_star_arg = value;
+            }
+            spec.kw_star_args.push_back(value);
+          } else if (arg.star) {
+            saw_starred_positional = true;
+            if (spec.star_arg == UINT32_MAX) {
+              spec.star_arg = value;
+            }
+            spec.star_args.push_back(value);
+          } else if (!arg.name.empty()) {
+            spec.keywords.push_back(ir::CallKeywordArg{arg.name, value});
+          } else if (saw_starred_positional) {
+            const auto singleton = new_reg();
+            emit(ir::Op::MakeTuple, singleton, add_tuple_items({value}));
+            spec.star_args.push_back(singleton);
+          } else {
+            spec.positional.push_back(value);
+          }
+        }
+        const auto dst = new_reg();
+        emit(ir::Op::CallEx, dst, callee, add_call_spec(std::move(spec)));
+        return dst;
+      }
+      if (auto* name = dynamic_cast<const ast::NameExpr*>(call->callee.get())) {
+        if (!module_.dynamic_namespace_lowering &&
+            resolve_name(name->name) == PythonNames::builtin_len && call->args.size() == 1) {
+          const auto value = lower_expr(*call->args[0]);
+          const auto dst = new_reg();
+          emit(ir::Op::Len, dst, value);
+          return dst;
+        }
+      }
+      if (auto* attr = dynamic_cast<const ast::AttrExpr*>(call->callee.get())) {
+        // __class__ is an attribute of the value, not a method supplied by
+        // its type. Resolve it before calling so data-descriptor semantics
+        // match a separate attribute load followed by a call.
+        if (attr->name == "__class__") {
+          const auto callee = lower_expr(*call->callee);
+          std::vector<uint32_t> arg_regs;
+          for (const auto& arg : call->args) {
+            arg_regs.push_back(lower_expr(*arg));
+          }
+          const auto dst = new_reg();
+          emit(ir::Op::Call, dst, callee, add_call_args(std::move(arg_regs)));
+          return dst;
+        }
+        uint32_t imported_slot = 0;
+        auto* module_name = dynamic_cast<const ast::NameExpr*>(attr->object.get());
+        if (!is_module_ && fn_.name != "__annotate__" &&
+            module_name != nullptr) {
+          const auto resolved = resolve_name(module_name->name);
+          if (locals_.find(resolved) == locals_.end() &&
+              free_indices_.find(resolved) == free_indices_.end() &&
+              imported_module_slot(resolved, imported_slot)) {
+            std::vector<uint32_t> arg_regs;
+            for (const auto& arg : call->args) {
+              arg_regs.push_back(lower_expr(*arg));
+            }
+            const auto dst = new_reg();
+            emit(ir::Op::CallModuleMethod, dst, imported_slot, add_name(mangle_private_identifier(attr->name)), add_call_args(std::move(arg_regs)));
+            return dst;
+          }
+        }
+        const auto object = lower_expr(*attr->object);
+        std::vector<uint32_t> arg_regs;
+        for (const auto& arg : call->args) {
+          arg_regs.push_back(lower_expr(*arg));
+        }
+        const auto dst = new_reg();
+        emit(ir::Op::CallMethod, dst, object, add_name(mangle_private_identifier(attr->name)), add_call_args(std::move(arg_regs)));
+        return dst;
+      }
+      const auto callee = lower_expr(*call->callee);
+      std::vector<uint32_t> arg_regs;
+      for (const auto& arg : call->args) {
+        arg_regs.push_back(lower_expr(*arg));
+      }
+      const auto dst = new_reg();
+      emit(ir::Op::Call, dst, callee, add_call_args(std::move(arg_regs)));
+      return dst;
+    }
+    if (auto* subscript = dynamic_cast<const ast::SubscriptExpr*>(&expr)) {
+      uint32_t sequence_slot = 0;
+      uint32_t index_operand = 0;
+      bool constant_index = false;
+      auto* sequence_name = dynamic_cast<const ast::NameExpr*>(subscript->object.get());
+      auto* index_name = dynamic_cast<const ast::NameExpr*>(subscript->index.get());
+      auto* index_literal = dynamic_cast<const ast::LiteralExpr*>(subscript->index.get());
+      const bool local_sequence = sequence_name != nullptr &&
+          direct_local_slot(sequence_name->name, sequence_slot);
+      bool supported_index = local_sequence && index_name != nullptr &&
+          direct_local_slot(index_name->name, index_operand);
+      if (local_sequence && index_name == nullptr && index_literal != nullptr &&
+          index_literal->kind == ast::LiteralExpr::Kind::Int) {
+        const Value value = literal_value(*index_literal);
+        if (value.tag == ValueTag::Int64) {
+          index_operand = add_const(value);
+          constant_index = true;
+          supported_index = true;
+        }
+      }
+      if (supported_index) {
+        const auto dst = new_reg();
+        const size_t fast_ip = fn_.code.size();
+        emit(ir::Op::GuardedLocalListGetItem, dst, sequence_slot, index_operand,
+             constant_index ? ir::kGuardedLocalListGetItemConstFlag : 0);
+        const size_t fallback_begin = fn_.code.size();
+        const auto object = lower_expr(*subscript->object);
+        const auto index = lower_expr(*subscript->index);
+        emit(ir::Op::GetItem, dst, object, index);
+        const uint32_t span = static_cast<uint32_t>(fn_.code.size() - fallback_begin);
+        fn_.code[fast_ip].c |= span;
+        return dst;
+      }
+      const auto object = lower_expr(*subscript->object);
+      const auto index = lower_expr(*subscript->index);
+      const auto dst = new_reg();
+      emit(ir::Op::GetItem, dst, object, index);
+      return dst;
+    }
+    if (auto* slice = dynamic_cast<const ast::SliceExpr*>(&expr)) {
+      const auto start = lower_expr(*slice->start);
+      const auto stop = lower_expr(*slice->stop);
+      const auto step = lower_expr(*slice->step);
+      const auto dst = new_reg();
+      emit(ir::Op::MakeSlice, dst, start, stop, step);
+      return dst;
+    }
+    if (auto* attr = dynamic_cast<const ast::AttrExpr*>(&expr)) {
+      const auto dst = new_reg();
+      if (is_instance_slot_target(*attr->object, attr->name)) {
+        auto* object_name = dynamic_cast<const ast::NameExpr*>(attr->object.get());
+        uint32_t local_slot = 0;
+        if (object_name != nullptr && direct_local_slot(object_name->name, local_slot)) {
+          emit(ir::Op::LoadLocalInstanceSlot, dst, local_slot, instance_slots_[attr->name]);
+        } else {
+          const auto object = lower_expr(*attr->object);
+          emit(ir::Op::LoadInstanceSlot, dst, object, instance_slots_[attr->name]);
+        }
+      } else {
+        const auto object = lower_expr(*attr->object);
+        emit(ir::Op::LoadAttr, dst, object, add_name(mangle_private_identifier(attr->name)));
+      }
+      return dst;
+    }
+    if (auto* tuple = dynamic_cast<const ast::TupleExpr*>(&expr)) {
+      if (has_starred_item(tuple->items)) {
+        return lower_tuple_with_unpack(tuple->items);
+      }
+      std::vector<uint32_t> item_regs;
+      item_regs.reserve(tuple->items.size());
+      for (const auto& item : tuple->items) {
+        item_regs.push_back(lower_expr(*item));
+      }
+      const auto dst = new_reg();
+      emit(ir::Op::MakeTuple, dst, add_tuple_items(std::move(item_regs)));
+      return dst;
+    }
+    if (auto* list = dynamic_cast<const ast::ListExpr*>(&expr)) {
+      if (has_starred_item(list->items)) {
+        return lower_list_with_unpack(list->items);
+      }
+      std::vector<uint32_t> item_regs;
+      item_regs.reserve(list->items.size());
+      for (const auto& item : list->items) {
+        item_regs.push_back(lower_expr(*item));
+      }
+      const auto dst = new_reg();
+      emit(ir::Op::MakeList, dst, add_list_items(std::move(item_regs)));
+      return dst;
+    }
+    if (auto* dict = dynamic_cast<const ast::DictExpr*>(&expr)) {
+      std::vector<std::pair<uint32_t, uint32_t>> item_regs;
+      item_regs.reserve(dict->entries.size());
+      for (const auto& entry : dict->entries) {
+        const auto key = entry.first ? lower_expr(*entry.first) : UINT32_MAX;
+        const auto value = lower_expr(*entry.second);
+        item_regs.push_back(std::make_pair(key, value));
+      }
+      const auto dst = new_reg();
+      emit(ir::Op::MakeDict, dst, add_dict_items(std::move(item_regs)));
+      return dst;
+    }
+    if (auto* set = dynamic_cast<const ast::SetExpr*>(&expr)) {
+      if (has_starred_item(set->items)) {
+        return lower_set_with_unpack(set->items);
+      }
+      std::vector<uint32_t> item_regs;
+      item_regs.reserve(set->items.size());
+      for (const auto& item : set->items) {
+        item_regs.push_back(lower_expr(*item));
+      }
+      const auto dst = new_reg();
+      emit(ir::Op::MakeSet, dst, add_set_items(std::move(item_regs)));
+      return dst;
+    }
+    if (auto* comp = dynamic_cast<const ast::ListCompExpr*>(&expr)) {
+      const auto dst = new_reg();
+      emit(ir::Op::MakeList, dst, add_list_items({}));
+      const auto clauses = list_comp_clauses(*comp);
+      return lower_comprehension_clauses(
+          clauses, 0, dst, [&]() {
+            emit(ir::Op::ListAppend, dst, lower_expr(*comp->result));
+          });
+    }
+    if (auto* comp = dynamic_cast<const ast::DictCompExpr*>(&expr)) {
+      const auto dst = new_reg();
+      emit(ir::Op::MakeDict, dst, add_dict_items({}));
+      const auto clauses = dict_comp_clauses(*comp);
+      return lower_comprehension_clauses(
+          clauses, 0, dst, [&]() {
+            const auto key = lower_expr(*comp->key);
+            const auto value = lower_expr(*comp->value);
+            emit(ir::Op::DictSet, dst, key, value);
+          });
+    }
+    if (auto* comp = dynamic_cast<const ast::SetCompExpr*>(&expr)) {
+      const auto dst = new_reg();
+      emit(ir::Op::MakeSet, dst, add_set_items({}));
+      const auto clauses = set_comp_clauses(*comp);
+      return lower_comprehension_clauses(
+          clauses, 0, dst, [&]() {
+            emit(ir::Op::SetAdd, dst, lower_expr(*comp->result));
+          });
+    }
+    if (auto* comp = dynamic_cast<const ast::GeneratorExpr*>(&expr)) {
+      return lower_generator_expr(*comp);
+    }
+    if (auto* lambda = dynamic_cast<const ast::LambdaExpr*>(&expr)) {
+      ast::FunctionDef fn;
+      fn.name = "<lambda>";
+      fn.line = lambda->line;
+      fn.column = lambda->column;
+      fn.params = lambda->params;
+      if (!lambda->signature.empty()) {
+        fn.signature.reserve(lambda->signature.size());
+        for (const auto& lambda_param : lambda->signature) {
+          ast::FunctionDef::Param param;
+          param.name = lambda_param.name;
+          switch (lambda_param.kind) {
+            case ast::LambdaExpr::Param::Kind::PosOnly:
+              param.kind = ast::FunctionDef::Param::Kind::PosOnly;
+              break;
+            case ast::LambdaExpr::Param::Kind::PosOrKeyword:
+              param.kind = ast::FunctionDef::Param::Kind::PosOrKeyword;
+              break;
+            case ast::LambdaExpr::Param::Kind::VarArgs:
+              param.kind = ast::FunctionDef::Param::Kind::VarArgs;
+              break;
+            case ast::LambdaExpr::Param::Kind::KeywordOnly:
+              param.kind = ast::FunctionDef::Param::Kind::KeywordOnly;
+              break;
+            case ast::LambdaExpr::Param::Kind::KwArgs:
+              param.kind = ast::FunctionDef::Param::Kind::KwArgs;
+              break;
+          }
+          if (lambda_param.default_value != nullptr) {
+            param.default_value = clone_expr(*lambda_param.default_value);
+          }
+          fn.signature.push_back(std::move(param));
+        }
+      } else {
+        for (const auto& name : lambda->params) {
+        ast::FunctionDef::Param param;
+        param.name = name;
+        param.kind = ast::FunctionDef::Param::Kind::PosOrKeyword;
+        fn.signature.push_back(std::move(param));
+        }
+      }
+      fn.body.push_back(std::make_unique<ast::ReturnStmt>(clone_expr(*lambda->body)));
+      bool has_comprehension_alias = false;
+      for (const auto& alias : name_aliases_)
+        if (alias.second.rfind("#comp.", 0) == 0)
+          has_comprehension_alias = true;
+      return lower_function_value(fn, {}, {}, {},
+                                  has_comprehension_alias ? &name_aliases_ : nullptr);
+    }
+    const auto reg = new_reg();
+    emit(ir::Op::LoadConst, reg, add_const(Value::none()));
+    return reg;
+  }
+
+  Value literal_value(const ast::LiteralExpr& lit) {
+    switch (lit.kind) {
+      case ast::LiteralExpr::Kind::None:
+        return Value::none();
+      case ast::LiteralExpr::Kind::Bool:
+        return Value::boolean(lit.bool_value);
+      case ast::LiteralExpr::Kind::Int:
+        return parse_integer_literal_value(lit.text);
+      case ast::LiteralExpr::Kind::Double:
+        return Value::number(parse_float_literal_value(lit.text));
+      case ast::LiteralExpr::Kind::Complex: {
+        const std::string imag_text = lit.text.substr(0, lit.text.size() - 1);
+        return Value::complex(0.0, parse_float_literal_value(imag_text));
+      }
+      case ast::LiteralExpr::Kind::String:
+        return Value::string(lit.text);
+      case ast::LiteralExpr::Kind::Bytes:
+        return Value::bytes(lit.text);
+      case ast::LiteralExpr::Kind::Ellipsis:
+        return Value::none();
+    }
+    return Value::none();
+  }
+
+  ir::Module& module_;
+  bool is_module_ = false;
+  bool future_annotations_ = false;
+  std::string instance_slot_self_;
+  std::unordered_map<std::string, uint32_t> instance_slots_;
+  std::unordered_map<std::string, ClassInfo> class_infos_;
+  std::unordered_map<std::string, uint32_t> module_global_slots_;
+  std::unordered_set<uint32_t> imported_module_slots_;
+  std::string qualname_prefix_;
+  std::string private_class_name_;
+  std::string active_class_private_name_;
+  uint32_t current_source_line_ = 0;
+  ir::SourcePosition current_source_position_;
+  ir::Function fn_;
+  sema::NameSet local_name_set_;
+  sema::NameSet global_names_;
+  std::unordered_map<std::string, uint32_t> locals_;
+  std::unordered_map<std::string, KnownValueType> local_known_types_;
+  std::unordered_map<std::string, uint32_t> cell_indices_;
+  std::unordered_map<std::string, uint32_t> free_indices_;
+  std::unordered_map<std::string, uint32_t> name_ids_;
+  sema::NameSet hidden_locals_;
+  std::unordered_map<std::string, std::string> name_aliases_;
+  std::vector<ActiveFinalizer> active_finalizers_;
+  std::vector<std::vector<size_t>> loop_break_jumps_;
+  size_t active_except_depth_ = 0;
+  std::vector<size_t> loop_except_base_counts_;
+  std::vector<uint32_t> loop_continue_targets_;
+  std::vector<size_t> loop_finalizer_base_counts_;
+  std::unordered_set<uint32_t> control_flow_entries_;
+  // Keep provenance in the compiler until conditional fusion; ordinary Is retains its ABI.
+  std::vector<uint32_t> literal_none_identity_results_;
+  uint32_t next_hidden_local_ = 0;
+  bool defer_comprehension_target_store_fusion_ = false;
+};
+
+} // namespace
+
+LowerResult lower_to_ir(const ast::Module& module_ast) {
+  return lower_to_ir(module_ast, false);
+}
+
+LowerResult lower_to_ir(const ast::Module& module_ast, bool dynamic_namespace) {
+  LowerResult result;
+  result.module.dynamic_namespace_lowering = dynamic_namespace;
+  auto global_slots = collect_module_global_slots(module_ast);
+  result.module.global_slots = global_slots.names;
+  FunctionLowerer lowerer(
+      result.module,
+      "<module>",
+      {},
+      {},
+      {},
+      module_ast.body,
+      false,
+      false,
+      false,
+      1,
+      true,
+      {},
+      {},
+      {},
+      global_slots.slots,
+      {},
+      {},
+      module_uses_future_annotations(module_ast.body));
+  lowerer.lower_body(module_ast.body, !docstring_from_body(module_ast.body).empty());
+  result.module.functions.push_back(lowerer.finish());
+  result.module.entry = static_cast<uint32_t>(result.module.functions.size() - 1);
+  result.module.dynamic_namespace_lowering = false; // Policy is fully reflected in emitted IR.
+  return result;
+}
+
+} // namespace xlang3

@@ -1,0 +1,9 @@
+{
+  "scope": "Conservative continued score withholding; no assertion that changed current sources exactly match historical GC audit",
+  "invalid_subtests": {
+    "gc_traversal": "Traversal work remains uncertified; retain raw status/timing and withhold speed score pending independent current workload coverage."
+  },
+  "historical_evidence_path": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\gc-traversal-coverage-exclusion-20261007.json",
+  "historical_evidence_sha256": "ec8dccd973668436e39c9a3c9585ba4d24bb9c37e75fc97182bd42a399c4eb86",
+  "current_run_provenance_sha256": "bf5887fe12d0f515fed8d155d6f56bf4eb8d3dcba8d20459a1417ee32d2e26fc"
+}
