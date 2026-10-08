@@ -220,3 +220,8 @@
 /doc/performance/charts/interpreter-lazy-globals-trial-20261008.svg -text
 /doc/performance/interpreter-lazy-globals-trial-20261008.md text eol=lf
 /doc/performance/interpreter-lazy-globals-outcome-20261008.md text eol=lf
+
+/doc/performance/data/sqlite-statement-cache-checkpoint-20261008* -text
+/doc/performance/data/sqlite-statement-cache-checkpoint-20261008-sources/** -text
+/doc/performance/charts/sqlite-statement-cache-checkpoint-20261008.svg -text
+/doc/performance/sqlite-statement-cache-checkpoint-20261008.md text eol=lf

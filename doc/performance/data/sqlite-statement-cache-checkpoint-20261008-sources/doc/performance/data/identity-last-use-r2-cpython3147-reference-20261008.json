@@ -1,0 +1,11 @@
+{
+  "status": "terminal",
+  "exit_code": 0,
+  "output_matches_expected": true,
+  "source_sha256": "fcad09adfe9cdf69d43539860cca1d39f5deb8224e16c71462d07ee3bbd3f40d",
+  "expected_sha256": "fa8eca5e8f2f38e3ca1455ba4a2adc285ef7f05c44f8a0fbf08cff2daa52e2aa",
+  "cpython_version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+  "stdout_sha256": "be5a71bfe8c5071242d0acf992e8fa4d63515d12c09c28c70d9cff3b0c043d6d",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "groups": 7
+}

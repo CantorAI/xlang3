@@ -1,0 +1,11 @@
+{
+  "status": "terminal",
+  "exit_code": 0,
+  "output_matches_expected": true,
+  "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlite-statement-cache-fixture-r4-20261008.py",
+  "source_sha256": "d2ec917ab11e9c4f1e672bd0eef60c2aaa7400160cd6b6fb76ca6e151d2b3701",
+  "expected_sha256": "9173c9f0a5076af30186351c98fd8c080903c31a9361c1b77823e3cbe492fd65",
+  "cpython_version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+  "stdout_sha256": "05146e0a4399c299dcab3e62e57caf280f098a10ebb78d2740213d35031c64c5",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

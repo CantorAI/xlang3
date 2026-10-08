@@ -1,0 +1,12 @@
+local_slots              pass         1.004x
+scalar_arithmetic        pass         0.984x
+range_for                pass         0.985x
+function_calls           pass         1.028x
+class_construct          pass         1.015x
+list_append              pass         1.001x
+property_access          pass         0.986x
+deepcopy_memo            pass         0.903x
+json_dumps               pass         1.016x
+gc_traversal             pass         0.748x
+subparsers               pass         0.932x
+Performance check: pass. Report: D:\CantorAI\xlang3\doc\performance\data\sqlite-statement-cache-r4-validation-20261008-fixed-gate.json

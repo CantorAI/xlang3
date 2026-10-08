@@ -1,0 +1,6 @@
+configurable cache and fresh parameter values
+intrinsic index ignores public and instance overrides and preserves failures
+overlapping identical statements have independent cursor leases
+binding callbacks and failures leave reusable statements clean
+schema reprepare and returning progression preserve metadata
+cached completion preserves aggregate replacement and factory lifetime
