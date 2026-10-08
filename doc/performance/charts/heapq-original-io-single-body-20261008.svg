@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="940" height="246" viewBox="0 0 940 246" role="img" aria-labelledby="title desc">
+<title id="title">One original IOAsyncTree body, D59 equals one</title>
+<desc id="desc">Separate single unprofiled runs: D59 Python heapq took 35.442885 seconds; E75 own native heapq took 10.190379 seconds, 3.478x relative to D. Unpaired diagnostic only; no CPython, official benchmark or current F76 score.</desc>
+<rect width="940" height="246" fill="#fff"/>
+<g font-family="Segoe UI,Arial,sans-serif" fill="#172536">
+<text x="24" y="32" font-size="20" font-weight="600">Original IO body · single unpaired diagnostic</text>
+<text x="24" y="55" font-size="13">D body time / build body time · higher is faster · D59 = 1.000x</text>
+<text x="24" y="109" font-size="14">D59 · Python heapq</text><rect x="250" y="87" width="145" height="32" rx="3" fill="#607086"/><text x="778" y="109" font-size="14">1.000x · 35.443 s</text>
+<text x="24" y="165" font-size="14">E75 · own native _heapq</text><rect x="250" y="143" width="504.32" height="32" rx="3" fill="#2878b8"/><text x="778" y="165" font-size="14">3.478x · 10.190 s</text>
+<text x="24" y="210" font-size="12">Same original 6 × 6 tree, delay 0.05 s · no profiling · 46,656 leaf sleeps</text>
+<text x="24" y="232" font-size="12">One run per build · no CPython or official score · current F76 official async timed out</text>
+</g></svg>

@@ -1,0 +1,18 @@
+heapq-import-10 PASS
+heapq-basic-min-max PASS
+heapq-boundaries PASS
+heapq-list-subclass-storage PASS
+heapq-list-admission-identity-not-name PASS
+heapq-comparison-order PASS
+heapq-original-exceptions-partial-mutation PASS
+heapq-truth-callbacks-and-failures PASS
+heapq-same-size-reallocation-reloads PASS
+heapq-pushpop-distinct-post-compare-empty PASS
+heapq-output-aliasing PASS
+heapq-large-order 0 2500 4111 d00e57f0f60d703660e81231c9577e4878451109065d455fc4632363d0b2a16f
+heapq-large-order 0 2501 4114 063c91e701e6f6d6c1b5bf30872f8eabb6730f399ef20df57b63c35956db3f8c
+heapq-large-order 0 4097 6747 aca79462257fdb677005cf33711f75c20929771762431ee18d4cd1465afba33f
+heapq-large-order 1 2500 4103 37a13c96285a267a881ca73c3a564377d6ebafefa18034ea9dd350fe65584a75
+heapq-large-order 1 2501 4105 154a30559f6e39a7171bd9492c0eaab8bf5f9281c14d0b39f78f811a73add697
+heapq-large-order 1 4097 6746 03a670e1dc680f59a1470b1789de3c7929c4989b772b96f2184a4306b1874035
+heapq-large-heapify-order PASS

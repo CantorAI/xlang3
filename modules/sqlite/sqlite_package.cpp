@@ -229,34 +229,90 @@ bool set_public_dbapi_module(X3PackageHost* host, X3Value klass) {
   return ok;
 }
 
-X3Status sqlite3_connect_kw(
-    X3CallContext* context,
-    X3Runtime* runtime,
-    void* user_data,
-    const X3Value* args,
-    uint32_t argc,
-    const X3KeywordArg* kwargs,
-    uint32_t kwargc,
-    X3Value* result) {
-  auto* state = state_from(user_data);
-  for (uint32_t index = 0; index < kwargc; ++index) {
-    const char* name = kwargs[index].name;
-    if (name == nullptr || std::string_view(name) != "check_same_thread") {
-      const std::string message = std::string("'") +
-          (name == nullptr ? "" : name) +
-          "' is an invalid keyword argument for Connection()";
-      state->host->raise_class_error(context, "TypeError", message.c_str());
-      return X3_STATUS_ERROR;
-    }
-    if (kwargs[index].value.tag != X3_TAG_BOOL && kwargs[index].value.tag != X3_TAG_INT64) {
-      state->host->raise_class_error(
-          context, "TypeError", "check_same_thread must be a boolean");
-      return X3_STATUS_ERROR;
-    }
+struct SqlCacheOwnedValue {
+  const X3PackageHost* host;
+  X3Value value = x3_value_invalid();
+  explicit SqlCacheOwnedValue(const X3PackageHost* owner) : host(owner) {}
+  ~SqlCacheOwnedValue() { host->value_release(value); }
+};
+
+bool sqlite_cache_size(PackageState* state, X3CallContext* context,
+    X3Runtime* runtime, X3Value value, size_t& capacity) {
+  auto* host = state->host;
+  X3Value integer = value;
+  SqlCacheOwnedValue coerced(host);
+  if (integer.tag != X3_TAG_INT64 && integer.tag != X3_TAG_BOOL) {
+    if (host->value_index(runtime, value, &coerced.value) != X3_STATUS_OK) return false;
+    integer = coerced.value;
   }
-  return sqlite3_connect(context, runtime, user_data, args, argc, result);
+  if (integer.tag == X3_TAG_UINT64 && integer.as.u64 <= static_cast<uint64_t>(INT_MAX)) {
+    capacity = static_cast<size_t>(integer.as.u64);
+    return true;
+  }
+  if (integer.tag != X3_TAG_INT64 && integer.tag != X3_TAG_BOOL) {
+    host->raise_class_error(context, "OverflowError", "Python int too large to convert to C int");
+    return false;
+  }
+  const int64_t number = integer.tag == X3_TAG_BOOL ? (integer.as.b ? 1 : 0) : integer.as.i64;
+  if (number < INT_MIN || number > INT_MAX) {
+    host->raise_class_error(context, "OverflowError", "Python int too large to convert to C int");
+    return false;
+  }
+  capacity = number < 0 ? 0 : static_cast<size_t>(number);
+  return true;
 }
 
+bool sqlite_connect_options(PackageState* state, X3CallContext* context,
+    X3Runtime* runtime, const X3KeywordArg* kwargs, uint32_t kwargc, size_t& capacity) {
+  bool seen_cache_size = false;
+  for (uint32_t index = 0; index < kwargc; ++index) {
+    const char* name = kwargs[index].name;
+    if (name != nullptr && std::string_view(name) == "cached_statements") {
+      if (seen_cache_size) {
+        state->host->raise_class_error(context, "TypeError", "multiple values for cached_statements");
+        return false;
+      }
+      seen_cache_size = true;
+      if (!sqlite_cache_size(state, context, runtime, kwargs[index].value, capacity)) return false;
+    } else if (name != nullptr && std::string_view(name) == "check_same_thread") {
+      if (kwargs[index].value.tag != X3_TAG_BOOL && kwargs[index].value.tag != X3_TAG_INT64) {
+        state->host->raise_class_error(context, "TypeError", "check_same_thread must be a boolean");
+        return false;
+      }
+    } else {
+      const std::string message = std::string("'") + (name == nullptr ? "" : name) +
+          "' is an invalid keyword argument for Connection()";
+      state->host->raise_class_error(context, "TypeError", message.c_str());
+      return false;
+    }
+  }
+  return true;
+}
+
+X3Status connection_init_kw(
+    X3CallContext* context, X3Runtime* runtime, void* user_data,
+    const X3Value* args, uint32_t argc, const X3KeywordArg* kwargs,
+    uint32_t kwargc, X3Value* result) {
+  auto* state = state_from(user_data);
+  size_t capacity = 128;
+  if (!sqlite_connect_options(state, context, runtime, kwargs, kwargc, capacity)) return X3_STATUS_ERROR;
+  const X3Status status = connection_init(context, runtime, user_data, args, argc, result);
+  if (status == X3_STATUS_OK)
+    xlang3_sqlite::connection_from(state->host, args[0])->statement_cache_capacity = capacity;
+  return status;
+}
+X3Status sqlite3_connect_kw(
+    X3CallContext* context, X3Runtime* runtime, void* user_data,
+    const X3Value* args, uint32_t argc, const X3KeywordArg* kwargs,
+    uint32_t kwargc, X3Value* result) {
+  auto* state = state_from(user_data);
+  size_t capacity = 128;
+  if (!sqlite_connect_options(state, context, runtime, kwargs, kwargc, capacity)) return X3_STATUS_ERROR;
+  const X3Status status = sqlite3_connect(context, runtime, user_data, args, argc, result);
+  if (status == X3_STATUS_OK)
+    xlang3_sqlite::connection_from(state->host, *result)->statement_cache_capacity = capacity;
+  return status;
+}
 struct ScalarFunction {
   const X3PackageHost* host = nullptr;
   X3Runtime* runtime = nullptr;
@@ -405,11 +461,17 @@ X3Status connection_create_function_kw(
     host->raise_class_error(context, "TypeError", "create_function() narg must be an integer");
     return X3_STATUS_ERROR;
   }
+  const std::string owned_name(name);
+  xlang3_sqlite::clear_connection_statement_cache(connection);
+  if (connection->db == nullptr || connection->closed) {
+    host->raise_error(context, state->programming_error_class, "sqlite connection is closed");
+    return X3_STATUS_ERROR;
+  }
   auto* function = new ScalarFunction{host, runtime, args[3]};
   host->value_retain(function->callable);
   const int flags = SQLITE_UTF8 | (deterministic ? SQLITE_DETERMINISTIC : 0);
   const int rc = sqlite3_create_function_v2(
-      connection->db, name, static_cast<int>(args[2].as.i64), flags,
+      connection->db, owned_name.c_str(), static_cast<int>(args[2].as.i64), flags,
       function, invoke_scalar_function, nullptr, nullptr, destroy_scalar_function);
   if (rc != SQLITE_OK) {
     destroy_scalar_function(function);
@@ -858,6 +920,11 @@ X3Status connection_create_aggregate_kw(
     host->raise_error(context, state->programming_error_class, message.c_str());
     return X3_STATUS_ERROR;
   }
+  xlang3_sqlite::clear_connection_statement_cache(connection);
+  if (connection->db == nullptr || connection->closed) {
+    host->raise_error(context, state->programming_error_class, "Cannot operate on a closed database.");
+    return X3_STATUS_ERROR;
+  }
   auto* function = new (std::nothrow) SqlAggregateFunction{host, runtime, parameters[2]};
   if (!function) {
     host->raise_class_error(context, "MemoryError", "cannot allocate aggregate registration");
@@ -1034,18 +1101,14 @@ X3Status connection_close(
   auto* host = state_from(user_data)->host;
   if (!check_argc(host, context, argc, 1, "Connection.close()")) return X3_STATUS_ERROR;
   auto* connection = xlang3_sqlite::connection_from(host, args[0]);
-  if (connection != nullptr && connection->db != nullptr) {
-    sqlite3_close_v2(connection->db);
-    connection->db = nullptr;
-    connection->closed = true;
-  }
+  if (connection != nullptr) xlang3_sqlite::close_connection(connection);
   *result = x3_value_none();
   return X3_STATUS_OK;
 }
 
-// Completed statements must release their SQLite resources even while a
-// Python cursor remains live. Reset-only cursors can keep a close-v2 zombie DB
-// and its registered factories alive; cached column names preserve description.
+// Completed cursors release their active lease even while Python retains the
+// cursor. Only successfully reset VMs remain owned by the connection cache;
+// close/invalidation drops those owners before close_v2 can retain factories.
 struct CursorCallLock {
   xlang3_sqlite::CursorHandle* cursor;
   explicit CursorCallLock(xlang3_sqlite::CursorHandle* value) : cursor(value) {
@@ -1064,11 +1127,8 @@ bool check_cursor_unlocked(PackageState* state, X3CallContext* context,
   return true;
 }
 
-void finish_cursor_statement(xlang3_sqlite::CursorHandle* cursor) {
-  sqlite3_stmt* statement = cursor->stmt;
-  cursor->stmt = nullptr;
-  cursor->has_row = false;
-  if (statement != nullptr) sqlite3_finalize(statement);
+void finish_cursor_statement(xlang3_sqlite::CursorHandle* cursor, bool reusable = false) {
+  xlang3_sqlite::release_cursor_statement(cursor, reusable);
 }
 
 X3Status cursor_close(
@@ -1168,7 +1228,7 @@ X3Status cursor_execute(
     raise_sqlite_error(state, context, cursor->connection->db, "begin transaction failed");
     return X3_STATUS_ERROR;
   }
-  if (sqlite3_prepare_v2(cursor->connection->db, sql, -1, &cursor->stmt, nullptr) != SQLITE_OK) {
+  if (xlang3_sqlite::prepare_cursor_statement(cursor, owned_sql) != SQLITE_OK) {
     raise_sqlite_error(state, context, cursor->connection->db, "prepare failed");
     finish_cursor_statement(cursor);
     return X3_STATUS_ERROR;
@@ -1216,7 +1276,7 @@ X3Status cursor_execute(
   }
   if (rc == SQLITE_DONE) {
     if (cursor->write_statement) cursor->rowcount = sqlite3_changes64(db);
-    finish_cursor_statement(cursor);
+    finish_cursor_statement(cursor, true);
   }
   *result = args[0];
   return X3_STATUS_OK;
@@ -1450,7 +1510,7 @@ X3Status cursor_fetchone(
   const int rc = sqlite3_step(cursor->stmt);
   if (rc == SQLITE_DONE) {
     if (cursor->write_statement) cursor->rowcount = sqlite3_changes64(db);
-    finish_cursor_statement(cursor);
+    finish_cursor_statement(cursor, true);
   } else if (rc != SQLITE_ROW) {
     raise_sqlite_error(state, context, db, "fetchone failed");
     finish_cursor_statement(cursor);
@@ -1963,9 +2023,9 @@ X3Status register_sqlite_package(X::Package<xlang_sqlite3>* package) {
   // Read appended callbacks only after checking the host struct's byte size.
   // Existing packages remain prefix-compatible; this package needs exception
   // transport because SQLite may finalize a callback outside a native call.
-  const size_t required = offsetof(X3PackageHost, runtime_restore_exception) +
-      sizeof(host->runtime_restore_exception);
-  if (host->size < required || !host->runtime_take_exception || !host->runtime_restore_exception)
+  const size_t required = offsetof(X3PackageHost, value_index) +
+      sizeof(host->value_index);
+  if (host->size < required || !host->runtime_take_exception || !host->runtime_restore_exception || !host->value_index)
     return X3_STATUS_ERROR;
   auto* state = new PackageState();
   state->host = host;
@@ -2009,7 +2069,7 @@ X3Status register_sqlite_package(X::Package<xlang_sqlite3>* package) {
   host->module_add_value(sqlite, "DataError", state->data_error_class);
 
   X3NativeFunctionDef connection_methods[12]{};
-  def_method(connection_methods[0], "__init__", connection_init, state);
+  def_method(connection_methods[0], "__init__", connection_init, state, connection_init_kw);
   def_method(connection_methods[1], "cursor", connection_cursor, state);
   def_method(connection_methods[2], "commit", connection_commit, state);
   def_method(connection_methods[3], "rollback", connection_rollback, state);

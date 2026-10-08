@@ -5319,6 +5319,10 @@ bool object_set_attr(Value& object, const std::string& name, const Value& value,
         return false;
       }
       klass->name = string_object_to_string(*new_name);
+      // Generic constructor/payload classification reads MRO class names.
+      // Invalidate this class and descendants before retiring a name owner:
+      // its finalizer may reenter a cached inherited constructor immediately.
+      invalidate_class_lookup_caches(klass);
       klass->attrs.erase("__name__");
       auto& order = klass->definition_attr_order;
       order.erase(std::remove(order.begin(), order.end(), "__name__"), order.end());

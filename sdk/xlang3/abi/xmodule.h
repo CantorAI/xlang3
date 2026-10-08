@@ -180,6 +180,9 @@ typedef struct X3PackageHost {
      edits runtime_last_error, whose text describes the last failed SDK call. */
   X3Status (*runtime_take_exception)(X3Runtime*, X3Value*);
   X3Status (*runtime_restore_exception)(X3Runtime*, X3Value);
+  /* Intrinsic integer/index protocol; owned result, no public operator lookup.
+     Appended optional callback preserves all existing package-host prefixes. */
+  X3Status (*value_index)(X3Runtime*, X3Value, X3Value*);
 } X3PackageHost;
 
 typedef X3Status (*X3PackageInitFn)(void* host, X3Value cur_module);

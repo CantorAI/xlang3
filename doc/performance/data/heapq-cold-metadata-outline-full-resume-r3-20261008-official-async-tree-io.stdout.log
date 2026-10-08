@@ -1,0 +1,14 @@
+Benchmark dependency sites: D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages
+Python benchmark suite 1.14.0
+
+
+==================================================
+( 1/1) creating venv for benchmark (async_tree_io)
+
+(trying common venv first)
+
+[1/1] async_tree_io...
+.......Full-case timeout: async_tree_io exceeded 300 seconds
+ERROR: Benchmark async_tree_io timed out
+
+ERROR: No benchmark was run

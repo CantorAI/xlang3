@@ -1,0 +1,12 @@
+local_slots              pass         1.003x
+scalar_arithmetic        pass         0.985x
+range_for                pass         0.995x
+function_calls           pass         1.016x
+class_construct          pass         1.018x
+list_append              pass         1.005x
+property_access          pass         0.990x
+deepcopy_memo            pass         0.924x
+json_dumps               pass         1.016x
+gc_traversal             pass         0.741x
+subparsers               pass         0.922x
+Performance check: pass. Report: D:\CantorAI\xlang3\doc\performance\data\heapq-cold-metadata-outline-full-resume-r3-20261008-inherited-full-fixed-gate.json

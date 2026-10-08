@@ -1,0 +1,220 @@
+{
+  "status": "terminal",
+  "terminal": true,
+  "started_utc": "2026-10-08T14:22:25.744372+00:00",
+  "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\heapq-native-fixture-r2-proposed-20261008.py",
+  "source_sha256": "63c2083937a4d9139532e43cbc3d09c91d1c38e5923ef75d23f1cbfb52c42d3b",
+  "patch_sha256": "2bc46e3e65e012cc1b17d06f1c24d4a99a6763c78b9e5346abcdef447a224eee",
+  "provenance_sha256": "472a42b4c99c7e15c028470c072518bd1f49d264a341c5ae259224e30ba5213e",
+  "cpython_version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+  "cpython_executable": "C:\\Python\\Python314\\python.exe",
+  "cpython_executable_sha256": "4942b86a6597e5aee0128daa00050ed79bc21f6e709a78eb19cbfeb0c2f39ac9",
+  "cpython_dll_sha256": "0f9857ffdfe010fe6b99328d58c2e3c7472ce75f336bf9c2ad9bd5bca3bce700",
+  "command": [
+    "C:\\Python\\Python314\\python.exe",
+    "-I",
+    "-u",
+    "-X",
+    "faulthandler",
+    "-c",
+    "\nimport hashlib, inspect, json, pathlib, runpy, sys\nassert sys.version_info[:3] == (3,14,7) and sys.flags.optimize == 0\nassert pathlib.Path(sys.base_prefix).resolve() == pathlib.Path('C:/Python/Python314').resolve()\nimport _heapq, heapq\nnames = ('heappush','heappop','heapreplace','heappushpop','heapify',\n         'heappush_max','heappop_max','heapreplace_max','heappushpop_max','heapify_max')\nassert all(inspect.isbuiltin(getattr(_heapq,n)) for n in names)\nassert all(getattr(getattr(_heapq,n),'__module__',None) == '_heapq' for n in names)\ndef module_info(module):\n    path = getattr(module, '__file__', None)\n    return {'name': module.__name__, 'file': path,\n            'origin': getattr(getattr(module,'__spec__',None),'origin',None),\n            'file_sha256': hashlib.sha256(pathlib.Path(path).read_bytes()).hexdigest() if path else None}\nmodules = [_heapq,heapq,hashlib] + [sys.modules[n] for n in ('_hashlib','_sha2') if n in sys.modules]\nmeta = {'status':'fixture_started', 'version':sys.version, 'implementation':sys.implementation.name,\n        'executable':sys.executable, 'optimize':sys.flags.optimize,\n        'modules':[module_info(m) for m in modules],\n        'builtin_native_provider_pins':['C:/Python/Python314/python.exe',\n                                        'C:/Python/Python314/python314.dll'],\n        'native_functions':{n:{'module':getattr(getattr(_heapq,n),'__module__',None),\n                              'is_builtin':inspect.isbuiltin(getattr(_heapq,n))} for n in names},\n        'source':sys.argv[2],\n        'source_sha256':hashlib.sha256(pathlib.Path(sys.argv[2]).read_bytes()).hexdigest()}\npathlib.Path(sys.argv[1]).write_bytes((json.dumps(meta,indent=2)+'\\n').encode('utf-8'))\nassert meta['source_sha256'] == '63c2083937a4d9139532e43cbc3d09c91d1c38e5923ef75d23f1cbfb52c42d3b'\nrunpy.run_path(sys.argv[2],run_name='__main__')\nmeta['status']='fixture_returned'\npathlib.Path(sys.argv[1]).write_bytes((json.dumps(meta,indent=2)+'\\n').encode('utf-8'))\n",
+    "D:\\CantorAI\\xlang3\\doc\\performance\\data\\heapq-native-r2-cpython3147-reference-20261008.child-modules.json",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\heapq-native-fixture-r2-proposed-20261008.py"
+  ],
+  "timeout_seconds": 120,
+  "timeout": false,
+  "exit_code": 0,
+  "child_pid": 4400,
+  "stdout_log": "heapq-native-r2-cpython3147-reference-20261008.stdout.log",
+  "stderr_log": "heapq-native-r2-cpython3147-reference-20261008.stderr.log",
+  "child_modules": "heapq-native-r2-cpython3147-reference-20261008.child-modules.json",
+  "groups_expected": 12,
+  "trace_rows_expected": 6,
+  "pass_labels_from_frozen_source": [
+    "heapq-import-10 PASS",
+    "heapq-basic-min-max PASS",
+    "heapq-boundaries PASS",
+    "heapq-list-subclass-storage PASS",
+    "heapq-list-admission-identity-not-name PASS",
+    "heapq-comparison-order PASS",
+    "heapq-original-exceptions-partial-mutation PASS",
+    "heapq-truth-callbacks-and-failures PASS",
+    "heapq-same-size-reallocation-reloads PASS",
+    "heapq-pushpop-distinct-post-compare-empty PASS",
+    "heapq-output-aliasing PASS",
+    "heapq-large-heapify-order PASS"
+  ],
+  "output_shape_valid": true,
+  "idle_guards": [
+    {
+      "phase": "before-only-child",
+      "allowed_controller_pid": 30132,
+      "busy": []
+    },
+    {
+      "phase": "after-only-child",
+      "allowed_controller_pid": 30132,
+      "busy": []
+    }
+  ],
+  "tracked_sha256_before": {
+    "C:\\Python\\Python314\\python.exe": "4942b86a6597e5aee0128daa00050ed79bc21f6e709a78eb19cbfeb0c2f39ac9",
+    "C:\\Python\\Python314\\python314.dll": "0f9857ffdfe010fe6b99328d58c2e3c7472ce75f336bf9c2ad9bd5bca3bce700",
+    "C:\\Python\\Python314\\Lib\\heapq.py": "827843053934cdb09ab4f4093ecdf494d09266153e43349c846828698d7b62e3",
+    "C:\\Python\\Python314\\Lib\\hashlib.py": "271b00a30d27c3cdd99b7f70962680f8455d3057b3c103f028e2da31141b91ee",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\heapq-native-fixture-r2-proposed-20261008.py": "63c2083937a4d9139532e43cbc3d09c91d1c38e5923ef75d23f1cbfb52c42d3b",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\heapq-native-r2-proposal-20261008.patch": "2bc46e3e65e012cc1b17d06f1c24d4a99a6763c78b9e5346abcdef447a224eee",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\heapq-native-r2-proposal-20261008-provenance.json": "472a42b4c99c7e15c028470c072518bd1f49d264a341c5ae259224e30ba5213e",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\capture-heapq-native-r2-cpython3147-reference-20261008.py": "0a2c496d3e1da5e1189341f2301306e578bda8ffb4062ecbc0d91fb9585a47c6",
+    "C:\\Python\\Python314\\DLLs\\_hashlib.pyd": "5933ef5eda7c0bca0b3874a6e2c5f13b91b8f2cfc29bc46160df3212a1dbee79"
+  },
+  "scope": "One unchanged CP fixture, unscored; no XLang/build/benchmark/retry/current-engine dependency",
+  "reference_policy": "Capture actual CP digest/count rows; stdout is the byte-exact future reference",
+  "pin_observation_phases": {
+    "fixed_inputs": "parent preflight",
+    "imported_module_files": "inside child before unchanged fixture"
+  },
+  "output_comparison": "Exact 12 frozen-source PASS labels and six trace rows, CRLF-to-LF only",
+  "actual_trace_rows": [
+    {
+      "maximum": 0,
+      "count": 2500,
+      "comparisons": 4111,
+      "sha256": "d00e57f0f60d703660e81231c9577e4878451109065d455fc4632363d0b2a16f"
+    },
+    {
+      "maximum": 0,
+      "count": 2501,
+      "comparisons": 4114,
+      "sha256": "063c91e701e6f6d6c1b5bf30872f8eabb6730f399ef20df57b63c35956db3f8c"
+    },
+    {
+      "maximum": 0,
+      "count": 4097,
+      "comparisons": 6747,
+      "sha256": "aca79462257fdb677005cf33711f75c20929771762431ee18d4cd1465afba33f"
+    },
+    {
+      "maximum": 1,
+      "count": 2500,
+      "comparisons": 4103,
+      "sha256": "37a13c96285a267a881ca73c3a564377d6ebafefa18034ea9dd350fe65584a75"
+    },
+    {
+      "maximum": 1,
+      "count": 2501,
+      "comparisons": 4105,
+      "sha256": "154a30559f6e39a7171bd9492c0eaab8bf5f9281c14d0b39f78f811a73add697"
+    },
+    {
+      "maximum": 1,
+      "count": 4097,
+      "comparisons": 6746,
+      "sha256": "03a670e1dc680f59a1470b1789de3c7929c4989b772b96f2184a4306b1874035"
+    }
+  ],
+  "groups_observed": 12,
+  "trace_rows_observed": 6,
+  "module_provenance": {
+    "status": "fixture_returned",
+    "version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+    "implementation": "cpython",
+    "executable": "C:\\Python\\Python314\\python.exe",
+    "optimize": 0,
+    "modules": [
+      {
+        "name": "_heapq",
+        "file": null,
+        "origin": "built-in",
+        "file_sha256": null
+      },
+      {
+        "name": "heapq",
+        "file": "C:\\Python\\Python314\\Lib\\heapq.py",
+        "origin": "C:\\Python\\Python314\\Lib\\heapq.py",
+        "file_sha256": "827843053934cdb09ab4f4093ecdf494d09266153e43349c846828698d7b62e3"
+      },
+      {
+        "name": "hashlib",
+        "file": "C:\\Python\\Python314\\Lib\\hashlib.py",
+        "origin": "C:\\Python\\Python314\\Lib\\hashlib.py",
+        "file_sha256": "271b00a30d27c3cdd99b7f70962680f8455d3057b3c103f028e2da31141b91ee"
+      },
+      {
+        "name": "_hashlib",
+        "file": "C:\\Python\\Python314\\DLLs\\_hashlib.pyd",
+        "origin": "C:\\Python\\Python314\\DLLs\\_hashlib.pyd",
+        "file_sha256": "5933ef5eda7c0bca0b3874a6e2c5f13b91b8f2cfc29bc46160df3212a1dbee79"
+      }
+    ],
+    "builtin_native_provider_pins": [
+      "C:/Python/Python314/python.exe",
+      "C:/Python/Python314/python314.dll"
+    ],
+    "native_functions": {
+      "heappush": {
+        "module": "_heapq",
+        "is_builtin": true
+      },
+      "heappop": {
+        "module": "_heapq",
+        "is_builtin": true
+      },
+      "heapreplace": {
+        "module": "_heapq",
+        "is_builtin": true
+      },
+      "heappushpop": {
+        "module": "_heapq",
+        "is_builtin": true
+      },
+      "heapify": {
+        "module": "_heapq",
+        "is_builtin": true
+      },
+      "heappush_max": {
+        "module": "_heapq",
+        "is_builtin": true
+      },
+      "heappop_max": {
+        "module": "_heapq",
+        "is_builtin": true
+      },
+      "heapreplace_max": {
+        "module": "_heapq",
+        "is_builtin": true
+      },
+      "heappushpop_max": {
+        "module": "_heapq",
+        "is_builtin": true
+      },
+      "heapify_max": {
+        "module": "_heapq",
+        "is_builtin": true
+      }
+    },
+    "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\heapq-native-fixture-r2-proposed-20261008.py",
+    "source_sha256": "63c2083937a4d9139532e43cbc3d09c91d1c38e5923ef75d23f1cbfb52c42d3b"
+  },
+  "completed_utc": "2026-10-08T14:22:26.943943+00:00",
+  "tracked_sha256_after": {
+    "C:\\Python\\Python314\\python.exe": "4942b86a6597e5aee0128daa00050ed79bc21f6e709a78eb19cbfeb0c2f39ac9",
+    "C:\\Python\\Python314\\python314.dll": "0f9857ffdfe010fe6b99328d58c2e3c7472ce75f336bf9c2ad9bd5bca3bce700",
+    "C:\\Python\\Python314\\Lib\\heapq.py": "827843053934cdb09ab4f4093ecdf494d09266153e43349c846828698d7b62e3",
+    "C:\\Python\\Python314\\Lib\\hashlib.py": "271b00a30d27c3cdd99b7f70962680f8455d3057b3c103f028e2da31141b91ee",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\heapq-native-fixture-r2-proposed-20261008.py": "63c2083937a4d9139532e43cbc3d09c91d1c38e5923ef75d23f1cbfb52c42d3b",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\heapq-native-r2-proposal-20261008.patch": "2bc46e3e65e012cc1b17d06f1c24d4a99a6763c78b9e5346abcdef447a224eee",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\heapq-native-r2-proposal-20261008-provenance.json": "472a42b4c99c7e15c028470c072518bd1f49d264a341c5ae259224e30ba5213e",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\capture-heapq-native-r2-cpython3147-reference-20261008.py": "0a2c496d3e1da5e1189341f2301306e578bda8ffb4062ecbc0d91fb9585a47c6",
+    "C:\\Python\\Python314\\DLLs\\_hashlib.pyd": "5933ef5eda7c0bca0b3874a6e2c5f13b91b8f2cfc29bc46160df3212a1dbee79"
+  },
+  "hashes_unchanged": true,
+  "source_sha256_after": "63c2083937a4d9139532e43cbc3d09c91d1c38e5923ef75d23f1cbfb52c42d3b",
+  "stdout_sha256": "c6f40295a4970d52be82dcac3f7864fee3184cd7dab914bd6ac5b0e1f5bc857a",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "child_modules_sha256": "d061f8f23eda82fddf9d9db79611878817baf13981cb6dc0cdacbeee396d7259",
+  "stdout_bytes": 996,
+  "stderr_bytes": 0,
+  "partial_streams_preserved": true,
+  "passed": true
+}
