@@ -1,0 +1,10 @@
+aggregate-groups-empty
+aggregate-arity
+aggregate-dynamic-dispatch
+aggregate-value-conversion
+aggregate-errors-cleanup
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\tests\fixtures\core\sqlite_native_aggregate.py", line 278, in <module>
+    con.create_aggregate("factory_sum", 1, Sum)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: Error creating aggregate

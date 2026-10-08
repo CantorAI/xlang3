@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+exact text variants pass
+str subclass callback preserved
+Python hash callbacks preserved
+  File "scratch/performance/exact-string-hash-fixture-proposed-20261008.py", line 58, in <module>
+    original_hash(FailingHash())
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+TypeError: uncaught exception in __hash__ (scratch/performance/exact-string-hash-fixture-proposed-20261008.py:54): <class '__main__.HashError'>: preserved

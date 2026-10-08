@@ -1,0 +1,7 @@
+{
+  "exit_code": 3221225477,
+  "source_sha256": "85320a8fb6a75e3793e43d8c912775647e4eed29bceb4ef8f43089dc2227c7bd",
+  "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "cpython_version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+  "stdout_lines": []
+}

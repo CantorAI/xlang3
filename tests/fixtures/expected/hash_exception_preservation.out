@@ -1,0 +1,3 @@
+hash exception identity cause traceback and active context preserved
+hash preserves BaseException callbacks
+hash keeps TypeError and ValueError fallbacks

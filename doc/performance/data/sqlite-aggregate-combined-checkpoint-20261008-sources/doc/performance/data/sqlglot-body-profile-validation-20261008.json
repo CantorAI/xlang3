@@ -1,0 +1,2063 @@
+{
+  "status": "validated_diagnostic_only",
+  "commit": "9de05e0d945a2d75ea50dfb7ddba4843363dfe41",
+  "candidate": "xlang3",
+  "comparison": "CPython 3.14.7",
+  "sample_count": 1061,
+  "module_samples": {
+    "ntdll.dll": 153,
+    "xlang3_runtime.dll": 835,
+    "ucrtbase.dll": 49,
+    "VCRUNTIME140.dll": 23,
+    "KERNEL32.DLL": 1
+  },
+  "loaded_sources": {
+    "sqlglot": {
+      "path": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\sqlglot\\__init__.py",
+      "sha256": "b1a4af1ac78313a6ca46de5e70c085c6d55d10ed57faf9a0b049d885fcac47df"
+    },
+    "sqlglot.expressions": {
+      "path": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\sqlglot\\expressions.py",
+      "sha256": "71260c2ed4df13b9830d48849c678f3d1db977e4dbacb281b97df5c94b6a7fcd"
+    },
+    "sqlglot.errors": {
+      "path": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\sqlglot\\errors.py",
+      "sha256": "8f038300d97ac9598d030ec321b352dae246c615bb437178fd829d6c31084367"
+    },
+    "sqlglot.helper": {
+      "path": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\sqlglot\\helper.py",
+      "sha256": "1a2125892e47b8b90e8f1504915eef260369dfd7bbfe0146e446baefcc7759a2"
+    },
+    "sqlglot.dialects": {
+      "path": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\sqlglot\\dialects\\__init__.py",
+      "sha256": "164d29afe3eeaeec6c2d3f18df417a200eb60f5bcb2a0b61dc2eb74c6696f4be"
+    },
+    "sqlglot.dialects.bigquery": {
+      "path": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\sqlglot\\dialects\\bigquery.py",
+      "sha256": "59474172978385233614e4070d214167ef2465217ee69607779c26ddf724c450"
+    },
+    "sqlglot.dialects.dialect": {
+      "path": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\sqlglot\\dialects\\dialect.py",
+      "sha256": "16709cbed2099b30efdc02bc0b49503c6b757d21563fdc3cf8b48c74302dec5b"
+    },
+    "sqlglot.generator": {
+      "path": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\sqlglot\\generator.py",
+      "sha256": "32eb379bfff35ce8498da4ae1efc5d5b92be95d0dd85f71cb2a6e17b7d0d4023"
+    },
+    "sqlglot.time": {
+      "path": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\sqlglot\\time.py",
+      "sha256": "200516dff1dc7e90a33a9cd69efe2533535bc4c8572a8a24238f2bd3d725be25"
+    },
+    "sqlglot.trie": {
+      "path": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\sqlglot\\trie.py",
+      "sha256": "26d87361698f47b28919d463435e9bd2d676eda40b58223766350d297cab1b34"
+    },
+    "sqlglot.tokens": {
+      "path": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\sqlglot\\tokens.py",
+      "sha256": "d9a138f8ecfbc8ebe4721709dfc472f72c90c63d6921a40db223d7b95397d767"
+    },
+    "sqlglot.parser": {
+      "path": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\sqlglot\\parser.py",
+      "sha256": "e0dde9632393f163a1e4f30e745140da2956b4e1f2e058a39cd15ded5be410e0"
+    },
+    "sqlglot.dialects.clickhouse": {
+      "path": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\sqlglot\\dialects\\clickhouse.py",
+      "sha256": "d62aac6c5bb209258b205a5bbedc417319d0672589491c080d6ae7ad04bd5f9c"
+    },
+    "sqlglot.dialects.duckdb": {
+      "path": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\sqlglot\\dialects\\duckdb.py",
+      "sha256": "827f47f2ab745fc0e3150f756a79108d10b1f5e8b3ad130e5b5692008d296337"
+    },
+    "sqlglot.dialects.hive": {
+      "path": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\sqlglot\\dialects\\hive.py",
+      "sha256": "fb370750aff4912f871674799bdbecf14f9f7fa934b8fc832d84ae49e5f665e8"
+    },
+    "sqlglot.transforms": {
+      "path": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\sqlglot\\transforms.py",
+      "sha256": "542e9eb88e3b06204f2d6460aaf656b7bd099b3d1b6143eaa50c9d31db240b84"
+    },
+    "sqlglot.dialects.mysql": {
+      "path": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\sqlglot\\dialects\\mysql.py",
+      "sha256": "f934944f76f235c8c7b2d6a763ba1e660b66aebc38dc5e87cf252360758f75d4"
+    },
+    "sqlglot.dialects.oracle": {
+      "path": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\sqlglot\\dialects\\oracle.py",
+      "sha256": "056831381f7ce3820fad457a1483947ce14303e4c3f1bd7006d34c816f1f37ab"
+    },
+    "sqlglot.dialects.postgres": {
+      "path": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\sqlglot\\dialects\\postgres.py",
+      "sha256": "c5a644d178346b8d33ab68e23ed3728951cff285fc26f9be8498aa29b38605a6"
+    },
+    "sqlglot.dialects.presto": {
+      "path": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\sqlglot\\dialects\\presto.py",
+      "sha256": "92a15ea8c515fd4e8810b3e65582640ec51153425092af918f39a6bb88be125a"
+    },
+    "sqlglot.dialects.snowflake": {
+      "path": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\sqlglot\\dialects\\snowflake.py",
+      "sha256": "432f6310cd46b5db0c6fc72a4058f2814e6f195a65564656150dad653b6ab413"
+    },
+    "sqlglot.dialects.spark": {
+      "path": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\sqlglot\\dialects\\spark.py",
+      "sha256": "67cf29590ee3a5e4df7e44e89b1a006a7ee705b0a4e0558c3e197fc59cb3cae5"
+    },
+    "sqlglot.dialects.sqlite": {
+      "path": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\sqlglot\\dialects\\sqlite.py",
+      "sha256": "d4794f069299cc54cee79e2aa1c2b86660be7c69d55dcddeef0c65883715208e"
+    },
+    "sqlglot.dialects.starrocks": {
+      "path": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\sqlglot\\dialects\\starrocks.py",
+      "sha256": "bfcf151a693f0a9b9881db09ffe173716bb00553666df7471fad8d467224a980"
+    },
+    "sqlglot.dialects.tableau": {
+      "path": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\sqlglot\\dialects\\tableau.py",
+      "sha256": "2ab32212706d36bbe5822aa54ae6748f570dffc38814f902d4005843479a671d"
+    },
+    "sqlglot.dialects.trino": {
+      "path": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\sqlglot\\dialects\\trino.py",
+      "sha256": "4cf7019f6d1e40f3b5b1bb3317c6083f684612e3799a952e4d0f1e5673fcbbad"
+    },
+    "sqlglot.diff": {
+      "path": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\sqlglot\\diff.py",
+      "sha256": "87a29a600bfba20931d85ff74ce66962895607275039b7bd30438788025b9e17"
+    },
+    "sqlglot.optimizer": {
+      "path": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\sqlglot\\optimizer\\__init__.py",
+      "sha256": "1d0bc98510609513ab6601c771f604c4577381cb5b8e5b7329766de22f16c57f"
+    },
+    "sqlglot.optimizer.optimizer": {
+      "path": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\sqlglot\\optimizer\\optimizer.py",
+      "sha256": "654eb48ebca62948f59cfcf71a99c17b21e67a3f2d7086989848033a9d09a71b"
+    },
+    "sqlglot.optimizer.normalize": {
+      "path": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\sqlglot\\optimizer\\normalize.py",
+      "sha256": "0658700c24dbd15758791d2cbb91fec9f375751faaa8c1ed1f05e76df74e86ba"
+    },
+    "sqlglot.optimizer.simplify": {
+      "path": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\sqlglot\\optimizer\\simplify.py",
+      "sha256": "d54145e098865de37085bf8cb4ef02484fe5a981b1877d4805dcec0a35fb4991"
+    },
+    "sqlglot.optimizer.eliminate_subqueries": {
+      "path": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\sqlglot\\optimizer\\eliminate_subqueries.py",
+      "sha256": "b370a967859891fad14c68c8f0ab7aeae164beefd1a8142c5ecfc11f540f8687"
+    },
+    "sqlglot.optimizer.scope": {
+      "path": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\sqlglot\\optimizer\\scope.py",
+      "sha256": "7029e5b82f93e4e22229d766fb896faaaea0c863b48e487259ba803e91416182"
+    },
+    "sqlglot.optimizer.expand_multi_table_selects": {
+      "path": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\sqlglot\\optimizer\\expand_multi_table_selects.py",
+      "sha256": "d9a46811c2b38f1efa974c758101031f4f54754077f4ddad436fbf38fffe20f4"
+    },
+    "sqlglot.optimizer.isolate_table_selects": {
+      "path": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\sqlglot\\optimizer\\isolate_table_selects.py",
+      "sha256": "c4ddca4725678761b592a618b290ee5d14ed4d8aee6c764123ccedbb447ceb13"
+    },
+    "sqlglot.optimizer.optimize_joins": {
+      "path": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\sqlglot\\optimizer\\optimize_joins.py",
+      "sha256": "1ea16c0a8fe5cedd8e3449431091f16896ee63bb311aff24addcf78b26f569cd"
+    },
+    "sqlglot.optimizer.pushdown_predicates": {
+      "path": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\sqlglot\\optimizer\\pushdown_predicates.py",
+      "sha256": "d34931e33361c05bf4e52870783673bf4d5dd4c4dafe25e78f272f82f8e1834b"
+    },
+    "sqlglot.optimizer.pushdown_projections": {
+      "path": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\sqlglot\\optimizer\\pushdown_projections.py",
+      "sha256": "d724298117162d095cfee70bf9bae8bb4b9291f4019e7bc2c5ebc62228469107"
+    },
+    "sqlglot.optimizer.qualify_tables": {
+      "path": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\sqlglot\\optimizer\\qualify_tables.py",
+      "sha256": "1aa1095ec03714a44579c7a08bc160593aad2ded880a90e83e9383bee53caa04"
+    },
+    "sqlglot.optimizer.qualify_columns": {
+      "path": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\sqlglot\\optimizer\\qualify_columns.py",
+      "sha256": "60183cabb3c2ba30ec08068efd5347c67229c8cab29b01419f91cfe6ec5a2668"
+    },
+    "sqlglot.optimizer.schema": {
+      "path": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\sqlglot\\optimizer\\schema.py",
+      "sha256": "05dbbf9e41f1304e569418d14314e7e2fb61a2dbf515433d2e82d050a3b50d3e"
+    },
+    "sqlglot.optimizer.quote_identities": {
+      "path": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\sqlglot\\optimizer\\quote_identities.py",
+      "sha256": "fe9cb57f4c2568ec7e5fc74e58f7a78c50a6efd771e7bc38f8bacf8be302f4fd"
+    },
+    "sqlglot.optimizer.unnest_subqueries": {
+      "path": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\sqlglot\\optimizer\\unnest_subqueries.py",
+      "sha256": "86d64c0123f8be98e186b1438d70e111a49c113f64c8d51a94aca8d5cc4802c0"
+    }
+  },
+  "workload_hashes": {
+    "benchmark_source_sha256": "d97aaba24f8c49f2afe5c5c740c568be6e89dde3364d5a964a4b72e5a4768a9b",
+    "sql_input_utf8_sha256": "e66ee5d7d8caccd7eb3322c78fe2e5484fc40617ee279cb968b7ba71ba87b404",
+    "canonical_sql_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a"
+  },
+  "instrumented_call_counts": {
+    "xlang3": [
+      {
+        "function": "<built-in>",
+        "calls": 1463,
+        "recursive_calls": 0,
+        "entry_count": 1463,
+        "instrumented_inclusive_seconds": 0.0010462001082487404,
+        "instrumented_self_seconds": 0.0010462001082487404
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/tokens.py:624:_advance",
+        "calls": 1328,
+        "recursive_calls": 0,
+        "entry_count": 1328,
+        "instrumented_inclusive_seconds": 0.0070543001929763705,
+        "instrumented_self_seconds": 0.0070543001929763705
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1990:_match",
+        "calls": 1046,
+        "recursive_calls": 0,
+        "entry_count": 1046,
+        "instrumented_inclusive_seconds": 0.025286999676609412,
+        "instrumented_self_seconds": 0.018242999649373814
+      },
+      {
+        "function": "C:/Python/Python314/Lib/enum.py:1300:__hash__",
+        "calls": 670,
+        "recursive_calls": 0,
+        "entry_count": 670,
+        "instrumented_inclusive_seconds": 0.020207700348692015,
+        "instrumented_self_seconds": 0.019833900121739134
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:2000:_match_set",
+        "calls": 438,
+        "recursive_calls": 0,
+        "entry_count": 438,
+        "instrumented_inclusive_seconds": 0.05434209998929873,
+        "instrumented_self_seconds": 0.023453199857613072
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/helper.py:17:list_get",
+        "calls": 420,
+        "recursive_calls": 0,
+        "entry_count": 420,
+        "instrumented_inclusive_seconds": 0.006504100252641365,
+        "instrumented_self_seconds": 0.006504100252641365
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:545:_get_token",
+        "calls": 416,
+        "recursive_calls": 0,
+        "entry_count": 416,
+        "instrumented_inclusive_seconds": 0.01926919986726716,
+        "instrumented_self_seconds": 0.012839299655752257
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/tokens.py:631:_text",
+        "calls": 349,
+        "recursive_calls": 0,
+        "entry_count": 349,
+        "instrumented_inclusive_seconds": 0.0017078998498618603,
+        "instrumented_self_seconds": 0.0017078998498618603
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/trie.py:14:in_trie",
+        "calls": 245,
+        "recursive_calls": 0,
+        "entry_count": 245,
+        "instrumented_inclusive_seconds": 0.001322700089076534,
+        "instrumented_self_seconds": 0.001322700089076534
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1971:_parse_tokens",
+        "calls": 173,
+        "recursive_calls": 0,
+        "entry_count": 173,
+        "instrumented_inclusive_seconds": 1.3355161000217777,
+        "instrumented_self_seconds": 0.009017899865284562
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/expressions.py:35:__init__",
+        "calls": 157,
+        "recursive_calls": 0,
+        "entry_count": 157,
+        "instrumented_inclusive_seconds": 0.017440600000554696,
+        "instrumented_self_seconds": 0.005133899830980226
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/expressions.py:110:_set_parent",
+        "calls": 157,
+        "recursive_calls": 0,
+        "entry_count": 157,
+        "instrumented_inclusive_seconds": 0.01230670016957447,
+        "instrumented_self_seconds": 0.011913099908269942
+      },
+      {
+        "function": "<len>",
+        "calls": 154,
+        "recursive_calls": 0,
+        "entry_count": 154,
+        "instrumented_inclusive_seconds": 3.970004036091268e-05,
+        "instrumented_self_seconds": 3.970004036091268e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:548:_advance",
+        "calls": 139,
+        "recursive_calls": 0,
+        "entry_count": 139,
+        "instrumented_inclusive_seconds": 0.027952300006290898,
+        "instrumented_self_seconds": 0.008683100139023736
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/tokens.py:635:_add",
+        "calls": 138,
+        "recursive_calls": 0,
+        "entry_count": 138,
+        "instrumented_inclusive_seconds": 0.009070599917322397,
+        "instrumented_self_seconds": 0.0043753992358688265
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/tokens.py:250:__init__",
+        "calls": 138,
+        "recursive_calls": 0,
+        "entry_count": 138,
+        "instrumented_inclusive_seconds": 0.0024638002505525947,
+        "instrumented_self_seconds": 0.002298700244864449
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/tokens.py:648:_scan_keywords",
+        "calls": 137,
+        "recursive_calls": 0,
+        "entry_count": 137,
+        "instrumented_inclusive_seconds": 0.02413860004162416,
+        "instrumented_self_seconds": 0.004330199910327792
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:504:validate_expression",
+        "calls": 94,
+        "recursive_calls": 0,
+        "entry_count": 94,
+        "instrumented_inclusive_seconds": 0.008535200118785724,
+        "instrumented_self_seconds": 0.005730100179789588
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:499:expression",
+        "calls": 93,
+        "recursive_calls": 0,
+        "entry_count": 93,
+        "instrumented_inclusive_seconds": 0.02220609999494627,
+        "instrumented_self_seconds": 0.00449499991373159
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:2010:_match_pair",
+        "calls": 82,
+        "recursive_calls": 0,
+        "entry_count": 82,
+        "instrumented_inclusive_seconds": 0.0014059000241104513,
+        "instrumented_self_seconds": 0.0014059000241104513
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/tokens.py:805:_scan_var",
+        "calls": 80,
+        "recursive_calls": 0,
+        "entry_count": 80,
+        "instrumented_inclusive_seconds": 0.012805100006517023,
+        "instrumented_self_seconds": 0.004642700310796499
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1888:_parse_id_var",
+        "calls": 63,
+        "recursive_calls": 0,
+        "entry_count": 63,
+        "instrumented_inclusive_seconds": 0.03438410014496185,
+        "instrumented_self_seconds": 0.004360900144092739
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1911:_parse_identifier",
+        "calls": 63,
+        "recursive_calls": 0,
+        "entry_count": 63,
+        "instrumented_inclusive_seconds": 0.0069173000229056925,
+        "instrumented_self_seconds": 0.0027974999393336475
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1940:_parse_placeholder",
+        "calls": 63,
+        "recursive_calls": 0,
+        "entry_count": 63,
+        "instrumented_inclusive_seconds": 0.0030230999691411853,
+        "instrumented_self_seconds": 0.0019123998645227402
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/expressions.py:41:__eq__",
+        "calls": 59,
+        "recursive_calls": 0,
+        "entry_count": 59,
+        "instrumented_inclusive_seconds": 0.0009448000055272132,
+        "instrumented_self_seconds": 0.0009448000055272132
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/tokens.py:615:_chars",
+        "calls": 52,
+        "recursive_calls": 0,
+        "entry_count": 52,
+        "instrumented_inclusive_seconds": 0.0003942999755963683,
+        "instrumented_self_seconds": 0.0003942999755963683
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1710:_parse_bracket",
+        "calls": 52,
+        "recursive_calls": 0,
+        "entry_count": 52,
+        "instrumented_inclusive_seconds": 0.0029957000515423715,
+        "instrumented_self_seconds": 0.0018601000192575157
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1510:_parse_function",
+        "calls": 47,
+        "recursive_calls": 0,
+        "entry_count": 47,
+        "instrumented_inclusive_seconds": 0.01887989995884709,
+        "instrumented_self_seconds": 0.004197500413283706
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1355:_parse_type",
+        "calls": 44,
+        "recursive_calls": 0,
+        "entry_count": 44,
+        "instrumented_inclusive_seconds": 0.22812909985077567,
+        "instrumented_self_seconds": 0.0037772998912259936
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1383:_parse_types",
+        "calls": 44,
+        "recursive_calls": 0,
+        "entry_count": 44,
+        "instrumented_inclusive_seconds": 0.006818499998189509,
+        "instrumented_self_seconds": 0.0018319000082556158
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1456:_parse_column",
+        "calls": 44,
+        "recursive_calls": 0,
+        "entry_count": 44,
+        "instrumented_inclusive_seconds": 0.21536219996050932,
+        "instrumented_self_seconds": 0.006641900312388316
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1503:_parse_field",
+        "calls": 44,
+        "recursive_calls": 0,
+        "entry_count": 44,
+        "instrumented_inclusive_seconds": 0.1794165000319481,
+        "instrumented_self_seconds": 0.0026570999471005052
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1484:_parse_primary",
+        "calls": 44,
+        "recursive_calls": 0,
+        "entry_count": 44,
+        "instrumented_inclusive_seconds": 0.14045270005590282,
+        "instrumented_self_seconds": 0.0031061998452059925
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/expressions.py:587:__eq__",
+        "calls": 44,
+        "recursive_calls": 0,
+        "entry_count": 44,
+        "instrumented_inclusive_seconds": 0.0015577999874949455,
+        "instrumented_self_seconds": 0.0015194001898635179
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1346:_parse_unary",
+        "calls": 43,
+        "recursive_calls": 0,
+        "entry_count": 43,
+        "instrumented_inclusive_seconds": 0.23541109994403087,
+        "instrumented_self_seconds": 0.004302500165067613
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1450:_parse_at_time_zone",
+        "calls": 43,
+        "recursive_calls": 0,
+        "entry_count": 43,
+        "instrumented_inclusive_seconds": 0.0022276000527199358,
+        "instrumented_self_seconds": 0.0014130999043118209
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1343:_parse_factor",
+        "calls": 42,
+        "recursive_calls": 0,
+        "entry_count": 42,
+        "instrumented_inclusive_seconds": 0.24278389997198246,
+        "instrumented_self_seconds": 0.0014094999060034752
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1317:_parse_bitwise",
+        "calls": 41,
+        "recursive_calls": 0,
+        "entry_count": 41,
+        "instrumented_inclusive_seconds": 0.25721969990991056,
+        "instrumented_self_seconds": 0.003073900006711483
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1340:_parse_term",
+        "calls": 41,
+        "recursive_calls": 0,
+        "entry_count": 41,
+        "instrumented_inclusive_seconds": 0.24980799996410497,
+        "instrumented_self_seconds": 0.0012298999354243279
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1263:_parse_comparison",
+        "calls": 39,
+        "recursive_calls": 0,
+        "entry_count": 39,
+        "instrumented_inclusive_seconds": 0.27318360010394827,
+        "instrumented_self_seconds": 0.0010615001374389976
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1266:_parse_range",
+        "calls": 39,
+        "recursive_calls": 0,
+        "entry_count": 39,
+        "instrumented_inclusive_seconds": 0.26745420004590414,
+        "instrumented_self_seconds": 0.005134400213137269
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1260:_parse_equality",
+        "calls": 30,
+        "recursive_calls": 0,
+        "entry_count": 30,
+        "instrumented_inclusive_seconds": 0.28343249997124076,
+        "instrumented_self_seconds": 0.0007447000243701041
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1257:_parse_conjunction",
+        "calls": 21,
+        "recursive_calls": 0,
+        "entry_count": 21,
+        "instrumented_inclusive_seconds": 0.2912194000091404,
+        "instrumented_self_seconds": 0.0004656999954022467
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1960:_parse_csv",
+        "calls": 11,
+        "recursive_calls": 0,
+        "entry_count": 11,
+        "instrumented_inclusive_seconds": 0.35421470005530864,
+        "instrumented_self_seconds": 0.0007046000100672245
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1869:_parse_alias",
+        "calls": 10,
+        "recursive_calls": 0,
+        "entry_count": 10,
+        "instrumented_inclusive_seconds": 0.004716799972811714,
+        "instrumented_self_seconds": 0.00043909999658353627
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1254:_parse_expression",
+        "calls": 9,
+        "recursive_calls": 0,
+        "entry_count": 9,
+        "instrumented_inclusive_seconds": 0.04870919999666512,
+        "instrumented_self_seconds": 0.00022289998014457524
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:803:_parse_with",
+        "calls": 9,
+        "recursive_calls": 0,
+        "entry_count": 9,
+        "instrumented_inclusive_seconds": 0.49419359996682033,
+        "instrumented_self_seconds": 0.00025849996018223464
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:878:_parse_select",
+        "calls": 9,
+        "recursive_calls": 0,
+        "entry_count": 9,
+        "instrumented_inclusive_seconds": 0.49383300001500174,
+        "instrumented_self_seconds": 0.0008135000534821302
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1232:_parse_set_operations",
+        "calls": 9,
+        "recursive_calls": 0,
+        "entry_count": 9,
+        "instrumented_inclusive_seconds": 0.0006252000166568905,
+        "instrumented_self_seconds": 0.00017550005577504635
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/tokens.py:704:_scan_comment",
+        "calls": 8,
+        "recursive_calls": 0,
+        "entry_count": 8,
+        "instrumented_inclusive_seconds": 4.919996717944741e-05,
+        "instrumented_self_seconds": 4.919996717944741e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/tokens.py:757:_scan_string",
+        "calls": 8,
+        "recursive_calls": 0,
+        "entry_count": 8,
+        "instrumented_inclusive_seconds": 0.0018471000366844237,
+        "instrumented_self_seconds": 0.0007666001038160175
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:895:<lambda>",
+        "calls": 8,
+        "recursive_calls": 0,
+        "entry_count": 8,
+        "instrumented_inclusive_seconds": 0.04731499997433275,
+        "instrumented_self_seconds": 0.00019439993775449693
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:958:_parse_annotation",
+        "calls": 8,
+        "recursive_calls": 0,
+        "entry_count": 8,
+        "instrumented_inclusive_seconds": 0.00022120005451142788,
+        "instrumented_self_seconds": 0.00013060006313025951
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1036:_parse_table",
+        "calls": 8,
+        "recursive_calls": 0,
+        "entry_count": 8,
+        "instrumented_inclusive_seconds": 0.3140619000478182,
+        "instrumented_self_seconds": 0.0006387000903487206
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1080:_parse_unnest",
+        "calls": 8,
+        "recursive_calls": 0,
+        "entry_count": 8,
+        "instrumented_inclusive_seconds": 0.0002472999331075698,
+        "instrumented_self_seconds": 0.000150499923620373
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1933:_parse_star",
+        "calls": 8,
+        "recursive_calls": 0,
+        "entry_count": 8,
+        "instrumented_inclusive_seconds": 0.0005427000287454575,
+        "instrumented_self_seconds": 0.00034540003980509937
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/expressions.py:528:table",
+        "calls": 8,
+        "recursive_calls": 0,
+        "entry_count": 8,
+        "instrumented_inclusive_seconds": 0.0009233000164385885,
+        "instrumented_self_seconds": 0.0003541000478435308
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/expressions.py:67:text",
+        "calls": 8,
+        "recursive_calls": 0,
+        "entry_count": 8,
+        "instrumented_inclusive_seconds": 0.0005691999685950577,
+        "instrumented_self_seconds": 0.0005494998767971992
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/expressions.py:55:this",
+        "calls": 8,
+        "recursive_calls": 0,
+        "entry_count": 8,
+        "instrumented_inclusive_seconds": 0.00017189994105137885,
+        "instrumented_self_seconds": 0.00017189994105137885
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:2028:_match_r_paren",
+        "calls": 7,
+        "recursive_calls": 0,
+        "entry_count": 7,
+        "instrumented_inclusive_seconds": 0.0019963000086136162,
+        "instrumented_self_seconds": 0.00022340001305565238
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/expressions.py:635:__eq__",
+        "calls": 7,
+        "recursive_calls": 0,
+        "entry_count": 7,
+        "instrumented_inclusive_seconds": 0.00030179996974766254,
+        "instrumented_self_seconds": 0.0002956999815069139
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:860:_parse_table_alias",
+        "calls": 7,
+        "recursive_calls": 0,
+        "entry_count": 7,
+        "instrumented_inclusive_seconds": 0.00279430000227876,
+        "instrumented_self_seconds": 0.0003166999376844615
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1107:_parse_table_sample",
+        "calls": 6,
+        "recursive_calls": 0,
+        "entry_count": 6,
+        "instrumented_inclusive_seconds": 0.0001928999845404178,
+        "instrumented_self_seconds": 0.00011889997404068708
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:344:<lambda>",
+        "calls": 6,
+        "recursive_calls": 0,
+        "entry_count": 6,
+        "instrumented_inclusive_seconds": 0.0017922999686561525,
+        "instrumented_self_seconds": 0.00031549998675473034
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/expressions.py:649:string",
+        "calls": 6,
+        "recursive_calls": 0,
+        "entry_count": 6,
+        "instrumented_inclusive_seconds": 0.0014767999819014221,
+        "instrumented_self_seconds": 0.00035589997423812747
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1200:_parse_sort",
+        "calls": 6,
+        "recursive_calls": 0,
+        "entry_count": 6,
+        "instrumented_inclusive_seconds": 0.00014489999739453197,
+        "instrumented_self_seconds": 8.6199986981228e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1213:_parse_limit",
+        "calls": 5,
+        "recursive_calls": 0,
+        "entry_count": 5,
+        "instrumented_inclusive_seconds": 0.0002471000188961625,
+        "instrumented_self_seconds": 0.0001379000605084002
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1981:_parse_all",
+        "calls": 4,
+        "recursive_calls": 0,
+        "entry_count": 4,
+        "instrumented_inclusive_seconds": 0.0005341000214684755,
+        "instrumented_self_seconds": 0.00014740004553459585
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1192:_parse_order",
+        "calls": 3,
+        "recursive_calls": 0,
+        "entry_count": 3,
+        "instrumented_inclusive_seconds": 0.007699399982811883,
+        "instrumented_self_seconds": 7.490001735277474e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1208:_parse_ordered",
+        "calls": 3,
+        "recursive_calls": 0,
+        "entry_count": 3,
+        "instrumented_inclusive_seconds": 0.007062899996526539,
+        "instrumented_self_seconds": 0.00010949998977594078
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:413:reset",
+        "calls": 2,
+        "recursive_calls": 0,
+        "entry_count": 2,
+        "instrumented_inclusive_seconds": 2.030000905506313e-05,
+        "instrumented_self_seconds": 2.030000905506313e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:966:_parse_hint",
+        "calls": 2,
+        "recursive_calls": 0,
+        "entry_count": 2,
+        "instrumented_inclusive_seconds": 5.269999383017421e-05,
+        "instrumented_self_seconds": 3.160000778734684e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1785:_parse_window",
+        "calls": 2,
+        "recursive_calls": 0,
+        "entry_count": 2,
+        "instrumented_inclusive_seconds": 0.00021850000484846532,
+        "instrumented_self_seconds": 0.00011759999324567616
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:974:_parse_from",
+        "calls": 2,
+        "recursive_calls": 0,
+        "entry_count": 2,
+        "instrumented_inclusive_seconds": 0.1650050000171177,
+        "instrumented_self_seconds": 6.930003291927278e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:980:_parse_laterals",
+        "calls": 2,
+        "recursive_calls": 0,
+        "entry_count": 2,
+        "instrumented_inclusive_seconds": 0.00018689999706111848,
+        "instrumented_self_seconds": 3.169997944496572e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:983:_parse_lateral",
+        "calls": 2,
+        "recursive_calls": 0,
+        "entry_count": 2,
+        "instrumented_inclusive_seconds": 6.489999941550195e-05,
+        "instrumented_self_seconds": 3.860000288113952e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1007:_parse_joins",
+        "calls": 2,
+        "recursive_calls": 0,
+        "entry_count": 2,
+        "instrumented_inclusive_seconds": 0.0004087999986950308,
+        "instrumented_self_seconds": 2.989999484270811e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1016:_parse_join",
+        "calls": 2,
+        "recursive_calls": 0,
+        "entry_count": 2,
+        "instrumented_inclusive_seconds": 0.00031289999606087804,
+        "instrumented_self_seconds": 5.5500015150755644e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1010:_parse_join_side_and_kind",
+        "calls": 2,
+        "recursive_calls": 0,
+        "entry_count": 2,
+        "instrumented_inclusive_seconds": 0.00023490001331083477,
+        "instrumented_self_seconds": 5.5500015150755644e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1150:_parse_where",
+        "calls": 2,
+        "recursive_calls": 0,
+        "entry_count": 2,
+        "instrumented_inclusive_seconds": 0.10858970001572743,
+        "instrumented_self_seconds": 5.180001608096063e-05
+      },
+      {
+        "function": "C:/Python/Python314/Lib/enum.py:187:__get__",
+        "calls": 2,
+        "recursive_calls": 0,
+        "entry_count": 2,
+        "instrumented_inclusive_seconds": 9.640000644139946e-05,
+        "instrumented_self_seconds": 6.580000626854599e-05
+      },
+      {
+        "function": "C:/Python/Python314/Lib/enum.py:1325:value",
+        "calls": 2,
+        "recursive_calls": 0,
+        "entry_count": 2,
+        "instrumented_inclusive_seconds": 3.060000017285347e-05,
+        "instrumented_self_seconds": 3.060000017285347e-05
+      },
+      {
+        "function": "C:/Python/Python314/Lib/enum.py:772:__getitem__",
+        "calls": 2,
+        "recursive_calls": 0,
+        "entry_count": 2,
+        "instrumented_inclusive_seconds": 3.29999893438071e-05,
+        "instrumented_self_seconds": 3.29999893438071e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1155:_parse_group",
+        "calls": 2,
+        "recursive_calls": 0,
+        "entry_count": 2,
+        "instrumented_inclusive_seconds": 0.007309500011615455,
+        "instrumented_self_seconds": 6.730001769028604e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1182:_parse_having",
+        "calls": 2,
+        "recursive_calls": 0,
+        "entry_count": 2,
+        "instrumented_inclusive_seconds": 4.989997250959277e-05,
+        "instrumented_self_seconds": 2.9899965738877654e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1187:_parse_qualify",
+        "calls": 2,
+        "recursive_calls": 0,
+        "entry_count": 2,
+        "instrumented_inclusive_seconds": 4.919999628327787e-05,
+        "instrumented_self_seconds": 2.95999925583601e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1227:_parse_offset",
+        "calls": 2,
+        "recursive_calls": 0,
+        "entry_count": 2,
+        "instrumented_inclusive_seconds": 4.73999825771898e-05,
+        "instrumented_self_seconds": 2.9799994081258774e-05
+      },
+      {
+        "function": "C:/Python/Python314/Lib/site-packages/pyperformance/data-files/benchmarks/bm_sqlglot_v2/run_benchmark.py:130:bench_parse",
+        "calls": 1,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 0.22766860001138411,
+        "instrumented_self_seconds": 2.060001133941114e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/__init__.py:46:parse_one",
+        "calls": 1,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 0.2276480000000447,
+        "instrumented_self_seconds": 3.270001616328955e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/dialects/dialect.py:84:get_or_raise",
+        "calls": 1,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 5.699985194951296e-06,
+        "instrumented_self_seconds": 5.699985194951296e-06
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/dialects/dialect.py:113:parse",
+        "calls": 1,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 0.22760769998421893,
+        "instrumented_self_seconds": 2.4800014216452837e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/dialects/dialect.py:127:parser",
+        "calls": 1,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 4.429998807609081e-05,
+        "instrumented_self_seconds": 2.0599982235580683e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:398:__init__",
+        "calls": 1,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 2.370000584051013e-05,
+        "instrumented_self_seconds": 1.4199991710484028e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/tokens.py:589:tokenize",
+        "calls": 1,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 0.03734679997432977,
+        "instrumented_self_seconds": 0.008653199736727402
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/tokens.py:576:reset",
+        "calls": 1,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 1.09999964479357e-05,
+        "instrumented_self_seconds": 1.09999964479357e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/tokens.py:726:_scan_number",
+        "calls": 1,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 7.080001523718238e-05,
+        "instrumented_self_seconds": 1.3400014722719789e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:424:parse",
+        "calls": 1,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 0.1901918000075966,
+        "instrumented_self_seconds": 1.580000389367342e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:451:_parse",
+        "calls": 1,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 0.19017600000370294,
+        "instrumented_self_seconds": 0.000427500024670735
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:557:_parse_statement",
+        "calls": 1,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 0.18968219999806024,
+        "instrumented_self_seconds": 3.259992809034884e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1563:_parse_lambda",
+        "calls": 1,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 0.006691300019156188,
+        "instrumented_self_seconds": 0.00018120004096999764
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:554:_retreat",
+        "calls": 1,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 0.0002240000176243484,
+        "instrumented_self_seconds": 2.8400012524798512e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/expressions.py:1811:from_arg_list",
+        "calls": 1,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 0.00013409997336566448,
+        "instrumented_self_seconds": 6.33999879937619e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1764:_parse_extract",
+        "calls": 1,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 0.002672700007678941,
+        "instrumented_self_seconds": 8.150003850460052e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1916:_parse_var",
+        "calls": 1,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 0.0003881000156980008,
+        "instrumented_self_seconds": 5.1300012273713946e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:345:<lambda>",
+        "calls": 1,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 0.0002609000075608492,
+        "instrumented_self_seconds": 4.569999873638153e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/expressions.py:645:number",
+        "calls": 1,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 0.00021520000882446766,
+        "instrumented_self_seconds": 5.15999854542315e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:942:_parse_subquery",
+        "calls": 1,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 0.0008083000138867646,
+        "instrumented_self_seconds": 3.630001447163522e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1166:_parse_grouping_sets",
+        "calls": 1,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 2.1099986042827368e-05,
+        "instrumented_self_seconds": 1.2499978765845299e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:478:check_errors",
+        "calls": 1,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 5.099980626255274e-06,
+        "instrumented_self_seconds": 5.099980626255274e-06
+      }
+    ],
+    "cpython3147": [
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/tokens.py:624:_advance",
+        "calls": 1328,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 0.00023290000000000002,
+        "instrumented_self_seconds": 0.00023290000000000002
+      },
+      {
+        "function": "<method 'get' of 'dict' objects>",
+        "calls": 1207,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 0.00013000000000000002,
+        "instrumented_self_seconds": 0.0001275
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1990:_match",
+        "calls": 1046,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 0.0001728,
+        "instrumented_self_seconds": 0.0001066
+      },
+      {
+        "function": "C:/Python/Python314/Lib/enum.py:1300:__hash__",
+        "calls": 670,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 0.00018380000000000002,
+        "instrumented_self_seconds": 0.0001188
+      },
+      {
+        "function": "<built-in method builtins.hash>",
+        "calls": 670,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 6.500000000000001e-05,
+        "instrumented_self_seconds": 6.500000000000001e-05
+      },
+      {
+        "function": "<built-in method builtins.isinstance>",
+        "calls": 648,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 7.6e-05,
+        "instrumented_self_seconds": 7.6e-05
+      },
+      {
+        "function": "<method 'strip' of 'str' objects>",
+        "calls": 481,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 4.3400000000000005e-05,
+        "instrumented_self_seconds": 4.3400000000000005e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:2000:_match_set",
+        "calls": 438,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 0.00035600000000000003,
+        "instrumented_self_seconds": 0.00013020000000000002
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/helper.py:17:list_get",
+        "calls": 420,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 3.4e-05,
+        "instrumented_self_seconds": 3.4e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:545:_get_token",
+        "calls": 416,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 0.0001232,
+        "instrumented_self_seconds": 8.950000000000001e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/tokens.py:631:_text",
+        "calls": 349,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 4.5900000000000004e-05,
+        "instrumented_self_seconds": 4.5900000000000004e-05
+      },
+      {
+        "function": "<method 'upper' of 'str' objects>",
+        "calls": 331,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 3.57e-05,
+        "instrumented_self_seconds": 3.57e-05
+      },
+      {
+        "function": "<method 'append' of 'list' objects>",
+        "calls": 291,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 3.04e-05,
+        "instrumented_self_seconds": 3.04e-05
+      },
+      {
+        "function": "<method 'items' of 'dict' objects>",
+        "calls": 251,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 3e-05,
+        "instrumented_self_seconds": 3e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/trie.py:14:in_trie",
+        "calls": 245,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 4.4500000000000004e-05,
+        "instrumented_self_seconds": 4.4500000000000004e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1971:_parse_tokens",
+        "calls": 173,
+        "recursive_calls": 157,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 0.0015581000000000002,
+        "instrumented_self_seconds": 0.0001049
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/expressions.py:110:_set_parent",
+        "calls": 157,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 0.00020810000000000002,
+        "instrumented_self_seconds": 0.0001299
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/expressions.py:35:__init__",
+        "calls": 157,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 0.0002696,
+        "instrumented_self_seconds": 6.15e-05
+      },
+      {
+        "function": "<built-in method builtins.len>",
+        "calls": 154,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 1.4900000000000001e-05,
+        "instrumented_self_seconds": 1.4900000000000001e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:548:_advance",
+        "calls": 139,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 0.0002045,
+        "instrumented_self_seconds": 8.130000000000001e-05
+      },
+      {
+        "function": "<method 'isdigit' of 'str' objects>",
+        "calls": 139,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 1.48e-05,
+        "instrumented_self_seconds": 1.48e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/tokens.py:635:_add",
+        "calls": 138,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 0.00026910000000000004,
+        "instrumented_self_seconds": 0.00012220000000000002
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/tokens.py:250:__init__",
+        "calls": 138,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 7.44e-05,
+        "instrumented_self_seconds": 4.6800000000000006e-05
+      },
+      {
+        "function": "<built-in method builtins.max>",
+        "calls": 138,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 1.45e-05,
+        "instrumented_self_seconds": 1.45e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/tokens.py:648:_scan_keywords",
+        "calls": 137,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 0.0009180000000000001,
+        "instrumented_self_seconds": 0.00017680000000000001
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:504:validate_expression",
+        "calls": 94,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 0.0002,
+        "instrumented_self_seconds": 0.00012460000000000002
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:499:expression",
+        "calls": 93,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 0.0004355,
+        "instrumented_self_seconds": 9.15e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:2010:_match_pair",
+        "calls": 82,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 1.0300000000000001e-05,
+        "instrumented_self_seconds": 1.0300000000000001e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/tokens.py:805:_scan_var",
+        "calls": 80,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 0.0005013,
+        "instrumented_self_seconds": 0.0001933
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1888:_parse_id_var",
+        "calls": 63,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 0.0003334,
+        "instrumented_self_seconds": 6.6e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1911:_parse_identifier",
+        "calls": 63,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 5.27e-05,
+        "instrumented_self_seconds": 2.5900000000000003e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1940:_parse_placeholder",
+        "calls": 63,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 2.09e-05,
+        "instrumented_self_seconds": 1.4900000000000001e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/expressions.py:41:__eq__",
+        "calls": 59,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 1.43e-05,
+        "instrumented_self_seconds": 1.43e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1710:_parse_bracket",
+        "calls": 52,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 1.9200000000000003e-05,
+        "instrumented_self_seconds": 1.39e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/tokens.py:615:_chars",
+        "calls": 52,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 5.3e-06,
+        "instrumented_self_seconds": 5.3e-06
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1510:_parse_function",
+        "calls": 47,
+        "recursive_calls": 2,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 0.00016020000000000002,
+        "instrumented_self_seconds": 4.5100000000000005e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1383:_parse_types",
+        "calls": 44,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 5.5700000000000005e-05,
+        "instrumented_self_seconds": 1.94e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1456:_parse_column",
+        "calls": 44,
+        "recursive_calls": 14,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 0.0010412000000000002,
+        "instrumented_self_seconds": 7.65e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1484:_parse_primary",
+        "calls": 44,
+        "recursive_calls": 12,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 0.0004865,
+        "instrumented_self_seconds": 2.97e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/expressions.py:587:__eq__",
+        "calls": 44,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 2.02e-05,
+        "instrumented_self_seconds": 1.5300000000000003e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1503:_parse_field",
+        "calls": 44,
+        "recursive_calls": 14,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 0.0007944,
+        "instrumented_self_seconds": 3.2800000000000004e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1355:_parse_type",
+        "calls": 44,
+        "recursive_calls": 14,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 0.0011354000000000002,
+        "instrumented_self_seconds": 4.55e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1346:_parse_unary",
+        "calls": 43,
+        "recursive_calls": 13,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 0.0011873,
+        "instrumented_self_seconds": 4.5400000000000006e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1450:_parse_at_time_zone",
+        "calls": 43,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 1.4400000000000001e-05,
+        "instrumented_self_seconds": 1.04e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1343:_parse_factor",
+        "calls": 42,
+        "recursive_calls": 13,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 0.001234,
+        "instrumented_self_seconds": 1.1400000000000001e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1317:_parse_bitwise",
+        "calls": 41,
+        "recursive_calls": 12,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 0.0013193,
+        "instrumented_self_seconds": 3.93e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1340:_parse_term",
+        "calls": 41,
+        "recursive_calls": 12,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 0.0012692,
+        "instrumented_self_seconds": 1.13e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1266:_parse_range",
+        "calls": 39,
+        "recursive_calls": 12,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 0.0013897,
+        "instrumented_self_seconds": 6.16e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1263:_parse_comparison",
+        "calls": 39,
+        "recursive_calls": 12,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 0.0014290000000000001,
+        "instrumented_self_seconds": 1.1000000000000001e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1260:_parse_equality",
+        "calls": 30,
+        "recursive_calls": 8,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 0.0014969,
+        "instrumented_self_seconds": 7.7e-06
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1257:_parse_conjunction",
+        "calls": 21,
+        "recursive_calls": 5,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 0.0015635,
+        "instrumented_self_seconds": 6.900000000000001e-06
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1960:_parse_csv",
+        "calls": 11,
+        "recursive_calls": 7,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 0.0019101,
+        "instrumented_self_seconds": 2.32e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1869:_parse_alias",
+        "calls": 10,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 7.77e-05,
+        "instrumented_self_seconds": 8.8e-06
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:803:_parse_with",
+        "calls": 9,
+        "recursive_calls": 8,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 0.0019861,
+        "instrumented_self_seconds": 9.5e-06
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:878:_parse_select",
+        "calls": 9,
+        "recursive_calls": 8,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 0.0019806000000000003,
+        "instrumented_self_seconds": 4.07e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1232:_parse_set_operations",
+        "calls": 9,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 6.900000000000001e-06,
+        "instrumented_self_seconds": 2.0000000000000003e-06
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1254:_parse_expression",
+        "calls": 9,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 0.0005996,
+        "instrumented_self_seconds": 7.6e-06
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/tokens.py:704:_scan_comment",
+        "calls": 8,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 1.3e-06,
+        "instrumented_self_seconds": 1.3e-06
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/tokens.py:757:_scan_string",
+        "calls": 8,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 5.3400000000000004e-05,
+        "instrumented_self_seconds": 2.7300000000000003e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1036:_parse_table",
+        "calls": 8,
+        "recursive_calls": 7,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 0.0014800000000000002,
+        "instrumented_self_seconds": 2.08e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1080:_parse_unnest",
+        "calls": 8,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 3.1000000000000004e-06,
+        "instrumented_self_seconds": 2.1000000000000002e-06
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/expressions.py:67:text",
+        "calls": 8,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 8.7e-06,
+        "instrumented_self_seconds": 4.9000000000000005e-06
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/expressions.py:55:this",
+        "calls": 8,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 3.1000000000000004e-06,
+        "instrumented_self_seconds": 2.1000000000000002e-06
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/expressions.py:528:table",
+        "calls": 8,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 1.2100000000000001e-05,
+        "instrumented_self_seconds": 3.4e-06
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:958:_parse_annotation",
+        "calls": 8,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 2.9e-06,
+        "instrumented_self_seconds": 2.1000000000000002e-06
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1933:_parse_star",
+        "calls": 8,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 3.1000000000000004e-06,
+        "instrumented_self_seconds": 2.3e-06
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:895:<lambda>",
+        "calls": 8,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 0.0005452,
+        "instrumented_self_seconds": 4.2000000000000004e-06
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:860:_parse_table_alias",
+        "calls": 7,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 4.5e-05,
+        "instrumented_self_seconds": 6.6e-06
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/expressions.py:635:__eq__",
+        "calls": 7,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 2.6e-06,
+        "instrumented_self_seconds": 1.8000000000000001e-06
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:2028:_match_r_paren",
+        "calls": 7,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 1.43e-05,
+        "instrumented_self_seconds": 2.3e-06
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1107:_parse_table_sample",
+        "calls": 6,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 2.2e-06,
+        "instrumented_self_seconds": 1.6000000000000001e-06
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1200:_parse_sort",
+        "calls": 6,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 2.2e-06,
+        "instrumented_self_seconds": 1.5e-06
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/expressions.py:649:string",
+        "calls": 6,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 1.52e-05,
+        "instrumented_self_seconds": 4.2000000000000004e-06
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:344:<lambda>",
+        "calls": 6,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 1.84e-05,
+        "instrumented_self_seconds": 3.2000000000000003e-06
+      },
+      {
+        "function": "<method 'startswith' of 'str' objects>",
+        "calls": 6,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 8.000000000000001e-07,
+        "instrumented_self_seconds": 8.000000000000001e-07
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1213:_parse_limit",
+        "calls": 5,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 3.5000000000000004e-06,
+        "instrumented_self_seconds": 2.7e-06
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1981:_parse_all",
+        "calls": 4,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 1.43e-05,
+        "instrumented_self_seconds": 7.2000000000000005e-06
+      },
+      {
+        "function": "<built-in method builtins.iter>",
+        "calls": 4,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 6.000000000000001e-07,
+        "instrumented_self_seconds": 6.000000000000001e-07
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1192:_parse_order",
+        "calls": 3,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 0.00011460000000000001,
+        "instrumented_self_seconds": 1.8000000000000001e-06
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1208:_parse_ordered",
+        "calls": 3,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 9.67e-05,
+        "instrumented_self_seconds": 2.9e-06
+      },
+      {
+        "function": "C:/Python/Python314/Lib/enum.py:772:__getitem__",
+        "calls": 2,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 3.0000000000000004e-07,
+        "instrumented_self_seconds": 3.0000000000000004e-07
+      },
+      {
+        "function": "C:/Python/Python314/Lib/enum.py:1325:value",
+        "calls": 2,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 4.0000000000000003e-07,
+        "instrumented_self_seconds": 4.0000000000000003e-07
+      },
+      {
+        "function": "C:/Python/Python314/Lib/enum.py:187:__get__",
+        "calls": 2,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 1.3e-06,
+        "instrumented_self_seconds": 9.000000000000001e-07
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1016:_parse_join",
+        "calls": 2,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 5.600000000000001e-06,
+        "instrumented_self_seconds": 1.7e-06
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1155:_parse_group",
+        "calls": 2,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 0.0001037,
+        "instrumented_self_seconds": 3.4e-06
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:983:_parse_lateral",
+        "calls": 2,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 9.000000000000001e-07,
+        "instrumented_self_seconds": 6.000000000000001e-07
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1785:_parse_window",
+        "calls": 2,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 2.0000000000000003e-06,
+        "instrumented_self_seconds": 1.5e-06
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:413:reset",
+        "calls": 2,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 9.000000000000001e-07,
+        "instrumented_self_seconds": 9.000000000000001e-07
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1150:_parse_where",
+        "calls": 2,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 0.0008873,
+        "instrumented_self_seconds": 1.2000000000000002e-06
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1182:_parse_having",
+        "calls": 2,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 8.000000000000001e-07,
+        "instrumented_self_seconds": 6.000000000000001e-07
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1187:_parse_qualify",
+        "calls": 2,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 7.000000000000001e-07,
+        "instrumented_self_seconds": 5.000000000000001e-07
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1227:_parse_offset",
+        "calls": 2,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 7.000000000000001e-07,
+        "instrumented_self_seconds": 6.000000000000001e-07
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:980:_parse_laterals",
+        "calls": 2,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 6.5000000000000004e-06,
+        "instrumented_self_seconds": 1.0000000000000002e-06
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1007:_parse_joins",
+        "calls": 2,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 9.600000000000001e-06,
+        "instrumented_self_seconds": 8.000000000000001e-07
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1010:_parse_join_side_and_kind",
+        "calls": 2,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 3.6000000000000003e-06,
+        "instrumented_self_seconds": 1.1e-06
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:974:_parse_from",
+        "calls": 2,
+        "recursive_calls": 1,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 0.00149,
+        "instrumented_self_seconds": 2.2e-06
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:966:_parse_hint",
+        "calls": 2,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 7.000000000000001e-07,
+        "instrumented_self_seconds": 5.000000000000001e-07
+      },
+      {
+        "function": "<built-in method time.perf_counter>",
+        "calls": 2,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 4.0000000000000003e-07,
+        "instrumented_self_seconds": 4.0000000000000003e-07
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/expressions.py:1811:from_arg_list",
+        "calls": 1,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 3.5000000000000004e-06,
+        "instrumented_self_seconds": 1.7e-06
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:451:_parse",
+        "calls": 1,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 0.0021013,
+        "instrumented_self_seconds": 3.08e-05
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/tokens.py:726:_scan_number",
+        "calls": 1,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 4.6e-06,
+        "instrumented_self_seconds": 2.4000000000000003e-06
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:942:_parse_subquery",
+        "calls": 1,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 2.01e-05,
+        "instrumented_self_seconds": 1.3e-06
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/tokens.py:589:tokenize",
+        "calls": 1,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 0.0015350000000000001,
+        "instrumented_self_seconds": 0.00035650000000000005
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1563:_parse_lambda",
+        "calls": 1,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 4.4200000000000004e-05,
+        "instrumented_self_seconds": 4.1000000000000006e-06
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:557:_parse_statement",
+        "calls": 1,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 0.002053,
+        "instrumented_self_seconds": 3.9e-06
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:478:check_errors",
+        "calls": 1,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 2.0000000000000002e-07,
+        "instrumented_self_seconds": 2.0000000000000002e-07
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/tokens.py:576:reset",
+        "calls": 1,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 5e-06,
+        "instrumented_self_seconds": 5e-06
+      },
+      {
+        "function": "C:/Python/Python314/Lib/site-packages/pyperformance/data-files/benchmarks/bm_sqlglot_v2/run_benchmark.py:130:bench_parse",
+        "calls": 1,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 0.0036578,
+        "instrumented_self_seconds": 6.300000000000001e-06
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/dialects/dialect.py:84:get_or_raise",
+        "calls": 1,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 2.0000000000000002e-07,
+        "instrumented_self_seconds": 2.0000000000000002e-07
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/__init__.py:46:parse_one",
+        "calls": 1,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 0.0036511000000000004,
+        "instrumented_self_seconds": 3.4e-06
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/dialects/dialect.py:113:parse",
+        "calls": 1,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 0.0036475,
+        "instrumented_self_seconds": 4.9000000000000005e-06
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/dialects/dialect.py:127:parser",
+        "calls": 1,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 3.4e-06,
+        "instrumented_self_seconds": 1.9e-06
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:424:parse",
+        "calls": 1,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 0.0021042,
+        "instrumented_self_seconds": 2.9e-06
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/expressions.py:645:number",
+        "calls": 1,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 3.2000000000000003e-06,
+        "instrumented_self_seconds": 1.1e-06
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1166:_parse_grouping_sets",
+        "calls": 1,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 4.0000000000000003e-07,
+        "instrumented_self_seconds": 3.0000000000000004e-07
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1916:_parse_var",
+        "calls": 1,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 4.2000000000000004e-06,
+        "instrumented_self_seconds": 1.1e-06
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:345:<lambda>",
+        "calls": 1,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 4.1000000000000006e-06,
+        "instrumented_self_seconds": 9.000000000000001e-07
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:554:_retreat",
+        "calls": 1,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 1.5e-06,
+        "instrumented_self_seconds": 2.0000000000000002e-07
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:398:__init__",
+        "calls": 1,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 1.5e-06,
+        "instrumented_self_seconds": 1.2000000000000002e-06
+      },
+      {
+        "function": "D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlglot/parser.py:1764:_parse_extract",
+        "calls": 1,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 2.8700000000000003e-05,
+        "instrumented_self_seconds": 2.0000000000000003e-06
+      },
+      {
+        "function": "<method 'isalpha' of 'str' objects>",
+        "calls": 1,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 1.0000000000000001e-07,
+        "instrumented_self_seconds": 1.0000000000000001e-07
+      },
+      {
+        "function": "<method 'disable' of '_lsprof.Profiler' objects>",
+        "calls": 1,
+        "recursive_calls": 0,
+        "entry_count": 1,
+        "instrumented_inclusive_seconds": 2.12e-05,
+        "instrumented_self_seconds": 2.12e-05
+      }
+    ]
+  },
+  "limitations": [
+    "Native suspension changes elapsed times; no timing score",
+    "Instrumented counts change VM shortcuts; their times are not normal costs",
+    "XLang3 built-in names are coalesced and code objects repeat; compare Python source keys only",
+    "Matching Release PDB unavailable; preserve unresolved RVAs"
+  ],
+  "artifacts_sha256": {
+    "scratch/performance/sqlglot-parse-body-native-20261008.json": "d1bbb9659e0b7d48b97cc46ed8f070d011b0980953e52a475533f632dc99b054",
+    "scratch/performance/sqlglot-parse-body-native-20261008.before.json": "23c4d4fbc0dcd7acbe74a9bdc2def084b598afbd6f244bf11b43641ecd5a220d",
+    "scratch/performance/sqlglot-parse-body-native-20261008.after.json": "23c4d4fbc0dcd7acbe74a9bdc2def084b598afbd6f244bf11b43641ecd5a220d",
+    "scratch/performance/sqlglot-parse-body-native-20261008.log": "856464338437bd66db1a3ddadccd1011010d69c9683796bd3edbbdeff9653688",
+    "scratch/performance/sqlglot-parse-body-calls-xlang3-20261008.log": "29e908b0205f6302d64ad7d2241213072849e02e1ff9cb18bc6de3e707ce9092",
+    "scratch/performance/sqlglot-parse-body-calls-cpython3147-20261008.log": "0c6906901309c13d52a8ab8956f63854aa42bedd7caabcaea82210ceaa9e21a4",
+    "scratch/performance/sqlglot-parse-body-profile-20261008.py": "a232ed8728e08ce8dcd6f305b8a2132882535ed43d90ce37214b3d49bcf3cd5d",
+    "scratch/performance/sample-native-window-sqlglot-20261008.py": "144850df40d0245e3ff42d0b46070de6660d6843b2b2c67cd596c32c7006af53"
+  }
+}

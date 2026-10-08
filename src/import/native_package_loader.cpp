@@ -786,6 +786,34 @@ X3Status host_take_exception(X3CallContext* context, X3Value* out) {
   return X3_STATUS_OK;
 }
 
+// Native library callbacks can run during payload cleanup without a call
+// context. Transport the existing exception identity through the package ABI;
+// do not manufacture a replacement from its rendered error message.
+X3Status host_runtime_take_exception(X3Runtime* runtime, X3Value* out) {
+  XlangRuntimeExecutionGuard guard;
+  if (runtime == nullptr || out == nullptr) return X3_STATUS_ERROR;
+  auto* rt = reinterpret_cast<Runtime*>(runtime);
+  Value exception;
+  (void)rt->take_pending_exception(exception);
+  *out = to_c_value(exception);
+  return X3_STATUS_OK;
+}
+
+X3Status host_runtime_restore_exception(X3Runtime* runtime, X3Value raw) {
+  XlangRuntimeExecutionGuard guard;
+  if (runtime == nullptr) return X3_STATUS_ERROR;
+  auto* rt = reinterpret_cast<Runtime*>(runtime);
+  if (raw.tag == X3_TAG_INVALID) {
+    rt->set_pending_exception(Value());
+    return X3_STATUS_OK;
+  }
+  std::string error;
+  Value exception = from_c_value(raw, error);
+  if (!error.empty() || value_as_instance(exception) == nullptr) return X3_STATUS_ERROR;
+  rt->set_pending_exception(std::move(exception));
+  return X3_STATUS_OK;
+}
+
 const X3PackageHost kPackageHostTemplate = {
     X3_ABI_VERSION,
     sizeof(X3PackageHost),
@@ -870,6 +898,8 @@ const X3PackageHost kPackageHostTemplate = {
     host_instance_set_native_gc_references,
     x3_buffer_acquire,
     x3_buffer_release,
+    host_runtime_take_exception,
+    host_runtime_restore_exception,
 };
 
 std::vector<std::filesystem::path> collect_native_library_candidates(

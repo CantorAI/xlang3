@@ -2844,6 +2844,37 @@ private:
   size_t emit_jump(ir::Op op, uint32_t cond = 0) {
     const bool starts_basic_block =
         control_flow_entries_.find(static_cast<uint32_t>(fn_.code.size())) != control_flow_entries_.end();
+    // CPython combines RHS-literal-None conditions across parenthesized source
+    // lines and direct `not` chains. Keep the comparison's source position.
+    // Ordinary same-line local-constant conditions retain the fast fusion
+    // below; named stores and other intervening instructions remain ordinary.
+    if (!starts_basic_block && op == ir::Op::JumpIfFalse && !fn_.code.empty() && !fn_.source_lines.empty()) {
+        size_t comparison_ip = fn_.code.size() - 1;
+        uint32_t source = cond;
+        bool negate = false;
+        while (comparison_ip != 0 && fn_.code[comparison_ip].op == ir::Op::Not &&
+               fn_.code[comparison_ip].dst == source &&
+               control_flow_entries_.find(static_cast<uint32_t>(comparison_ip)) == control_flow_entries_.end()) {
+          source = fn_.code[comparison_ip].a;
+          negate = !negate;
+          --comparison_ip;
+        }
+        const auto& comparison = fn_.code[comparison_ip];
+        if (comparison.op == ir::Op::Is && comparison.dst == source &&
+            (comparison_ip + 1 != fn_.code.size() || fn_.source_lines.back() != current_source_line_) &&
+            std::find(literal_none_identity_results_.begin(), literal_none_identity_results_.end(), source) !=
+                literal_none_identity_results_.end()) {
+          ir::Instr fused = comparison;
+          fused.op = ir::Op::IsNoneJumpIfFalse;
+          fused.dst = 0;
+          fused.c = static_cast<uint32_t>((fused.c != 0) != negate);
+          fn_.code.resize(comparison_ip + 1);
+          fn_.source_lines.resize(comparison_ip + 1);
+          fn_.source_positions.resize(comparison_ip + 1);
+          fn_.code.back() = fused;
+          return comparison_ip;
+        }
+    }
     if (!starts_basic_block && op == ir::Op::JumpIfFalse && !fn_.code.empty() && !fn_.source_lines.empty() &&
         fn_.source_lines.back() == current_source_line_) {
       auto& previous = fn_.code.back();
@@ -2937,9 +2968,12 @@ private:
       }
       if ((previous.op == ir::Op::Compare || previous.op == ir::Op::Is) &&
           previous.dst == cond && !guarded_list_compare_fallback) {
+        const bool literal_none_rhs = previous.op == ir::Op::Is &&
+            std::find(literal_none_identity_results_.begin(), literal_none_identity_results_.end(), previous.dst) !=
+                literal_none_identity_results_.end();
         previous.op = previous.op == ir::Op::Compare
             ? ir::Op::CompareJumpIfFalse
-            : ir::Op::IsJumpIfFalse;
+            : literal_none_rhs ? ir::Op::IsNoneJumpIfFalse : ir::Op::IsJumpIfFalse;
         previous.dst = 0;
         return fn_.code.size() - 1;
       }
@@ -2997,9 +3031,10 @@ private:
     fn_.code[at].b = target;
   }
 
-  bool emit_compare_op(const std::string& op, uint32_t dst, uint32_t lhs, uint32_t rhs) {
+  bool emit_compare_op(const std::string& op, uint32_t dst, uint32_t lhs, uint32_t rhs, bool literal_none_rhs = false) {
     if (op == "is" || op == "is not") {
       emit(ir::Op::Is, dst, lhs, rhs, op == "is not" ? 1u : 0u);
+      if (literal_none_rhs) literal_none_identity_results_.push_back(dst);
       return true;
     }
     if (op == "in" || op == "not in") {
@@ -6625,7 +6660,11 @@ private:
       else if (bin->op == ">>") emit(ir::Op::Shr, reg, lhs, rhs);
       else if (bin->op == "and") emit(ir::Op::BoolAnd, reg, lhs, rhs);
       else if (bin->op == "or") emit(ir::Op::BoolOr, reg, lhs, rhs);
-      else emit_compare_op(bin->op, reg, lhs, rhs);
+      else {
+        const auto* literal = dynamic_cast<const ast::LiteralExpr*>(bin->rhs.get());
+        emit_compare_op(bin->op, reg, lhs, rhs,
+            literal != nullptr && literal->kind == ast::LiteralExpr::Kind::None);
+      }
       return reg;
     }
     if (auto* conditional = dynamic_cast<const ast::ConditionalExpr*>(&expr)) {
@@ -7023,6 +7062,8 @@ private:
   std::vector<uint32_t> loop_continue_targets_;
   std::vector<size_t> loop_finalizer_base_counts_;
   std::unordered_set<uint32_t> control_flow_entries_;
+  // Keep provenance in the compiler until conditional fusion; ordinary Is retains its ABI.
+  std::vector<uint32_t> literal_none_identity_results_;
   uint32_t next_hidden_local_ = 0;
   bool defer_comprehension_target_store_fusion_ = false;
 };

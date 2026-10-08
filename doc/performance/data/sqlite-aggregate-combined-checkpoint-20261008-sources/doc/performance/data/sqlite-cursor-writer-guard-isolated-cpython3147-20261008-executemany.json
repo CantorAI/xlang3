@@ -1,0 +1,97 @@
+{
+  "case_id": "sqlite-cursor-writer-guard/initial-step/executemany",
+  "operation": "executemany",
+  "command": [
+    "C:\\Python\\Python314\\python.exe",
+    "-u",
+    "-X",
+    "faulthandler",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlite-cursor-writer-guard-isolated-probe-20261008.py",
+    "executemany"
+  ],
+  "exit_code": 3221225477,
+  "exit_code_unsigned": 3221225477,
+  "exit_code_hex": "0xC0000005",
+  "timeout": false,
+  "native_access_violation": true,
+  "expected_guard_rejection_and_assertions_passed": false,
+  "stdout_file": "sqlite-cursor-writer-guard-isolated-cpython3147-20261008-executemany.stdout.log",
+  "stdout_sha256": "128108dfa2e545a30b0e20884c34c673591b2de56ed5a10caf5b355344d5d80e",
+  "stderr_file": "sqlite-cursor-writer-guard-isolated-cpython3147-20261008-executemany.stderr.log",
+  "stderr_sha256": "f1b957866d1fd0fc1edcb0e20d3601012cda6f2de682f74822be5744b0606a74",
+  "stdout": "{\"case_id\": \"sqlite-cursor-writer-guard/initial-step/executemany\", \"operation\": \"executemany\", \"event\": \"process-start\", \"original_probe_sha256\": \"85320a8fb6a75e3793e43d8c912775647e4eed29bceb4ef8f43089dc2227c7bd\", \"executable\": \"C:\\\\Python\\\\Python314\\\\python.exe\", \"version\": \"3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]\", \"sqlite_version\": \"3.50.4\", \"sqlite_module\": \"C:\\\\Python\\\\Python314\\\\Lib\\\\sqlite3\\\\__init__.py\"}\r\n{\"case_id\": \"sqlite-cursor-writer-guard/initial-step/executemany\", \"operation\": \"executemany\", \"event\": \"initial-execute-enter\", \"original_probe_sha256\": \"85320a8fb6a75e3793e43d8c912775647e4eed29bceb4ef8f43089dc2227c7bd\"}\r\n{\"case_id\": \"sqlite-cursor-writer-guard/initial-step/executemany\", \"operation\": \"executemany\", \"event\": \"callback-enter\", \"original_probe_sha256\": \"85320a8fb6a75e3793e43d8c912775647e4eed29bceb4ef8f43089dc2227c7bd\"}\r\n{\"case_id\": \"sqlite-cursor-writer-guard/initial-step/executemany\", \"operation\": \"executemany\", \"event\": \"recursive-operation-enter\", \"original_probe_sha256\": \"85320a8fb6a75e3793e43d8c912775647e4eed29bceb4ef8f43089dc2227c7bd\"}\r\n{\"case_id\": \"sqlite-cursor-writer-guard/initial-step/executemany\", \"operation\": \"executemany\", \"event\": \"recursive-programming-error\", \"original_probe_sha256\": \"85320a8fb6a75e3793e43d8c912775647e4eed29bceb4ef8f43089dc2227c7bd\", \"exception\": {\"type\": \"sqlite3.ProgrammingError\", \"message\": \"Recursive use of cursors not allowed.\", \"repr\": \"ProgrammingError('Recursive use of cursors not allowed.')\", \"traceback\": [\"Traceback (most recent call last):\\n\", \"  File \\\"D:\\\\CantorAI\\\\xlang3\\\\scratch\\\\performance\\\\sqlite-cursor-writer-guard-isolated-probe-20261008.py\\\", line 62, in reenter\\n    cursor.executemany(\\\"INSERT INTO writes VALUES (?)\\\", UnobservedParameters())\\n    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\\n\", \"sqlite3.ProgrammingError: Recursive use of cursors not allowed.\\n\"]}}\r\n{\"case_id\": \"sqlite-cursor-writer-guard/initial-step/executemany\", \"operation\": \"executemany\", \"event\": \"callback-return\", \"original_probe_sha256\": \"85320a8fb6a75e3793e43d8c912775647e4eed29bceb4ef8f43089dc2227c7bd\", \"value\": 37}\r\n",
+  "stderr": "Windows fatal exception: access violation\n\nCurrent thread 0x00006894 (most recent call first):\n  File \"D:\\CantorAI\\xlang3\\scratch\\performance\\sqlite-cursor-writer-guard-isolated-probe-20261008.py\", line 79 in main\n  File \"D:\\CantorAI\\xlang3\\scratch\\performance\\sqlite-cursor-writer-guard-isolated-probe-20261008.py\", line 97 in <module>\n\nCurrent thread's C stack trace (most recent call first):\n  <cannot get C stack on this system>\n",
+  "events": [
+    {
+      "case_id": "sqlite-cursor-writer-guard/initial-step/executemany",
+      "operation": "executemany",
+      "event": "process-start",
+      "original_probe_sha256": "85320a8fb6a75e3793e43d8c912775647e4eed29bceb4ef8f43089dc2227c7bd",
+      "executable": "C:\\Python\\Python314\\python.exe",
+      "version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+      "sqlite_version": "3.50.4",
+      "sqlite_module": "C:\\Python\\Python314\\Lib\\sqlite3\\__init__.py"
+    },
+    {
+      "case_id": "sqlite-cursor-writer-guard/initial-step/executemany",
+      "operation": "executemany",
+      "event": "initial-execute-enter",
+      "original_probe_sha256": "85320a8fb6a75e3793e43d8c912775647e4eed29bceb4ef8f43089dc2227c7bd"
+    },
+    {
+      "case_id": "sqlite-cursor-writer-guard/initial-step/executemany",
+      "operation": "executemany",
+      "event": "callback-enter",
+      "original_probe_sha256": "85320a8fb6a75e3793e43d8c912775647e4eed29bceb4ef8f43089dc2227c7bd"
+    },
+    {
+      "case_id": "sqlite-cursor-writer-guard/initial-step/executemany",
+      "operation": "executemany",
+      "event": "recursive-operation-enter",
+      "original_probe_sha256": "85320a8fb6a75e3793e43d8c912775647e4eed29bceb4ef8f43089dc2227c7bd"
+    },
+    {
+      "case_id": "sqlite-cursor-writer-guard/initial-step/executemany",
+      "operation": "executemany",
+      "event": "recursive-programming-error",
+      "original_probe_sha256": "85320a8fb6a75e3793e43d8c912775647e4eed29bceb4ef8f43089dc2227c7bd",
+      "exception": {
+        "type": "sqlite3.ProgrammingError",
+        "message": "Recursive use of cursors not allowed.",
+        "repr": "ProgrammingError('Recursive use of cursors not allowed.')",
+        "traceback": [
+          "Traceback (most recent call last):\n",
+          "  File \"D:\\CantorAI\\xlang3\\scratch\\performance\\sqlite-cursor-writer-guard-isolated-probe-20261008.py\", line 62, in reenter\n    cursor.executemany(\"INSERT INTO writes VALUES (?)\", UnobservedParameters())\n    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n",
+          "sqlite3.ProgrammingError: Recursive use of cursors not allowed.\n"
+        ]
+      }
+    },
+    {
+      "case_id": "sqlite-cursor-writer-guard/initial-step/executemany",
+      "operation": "executemany",
+      "event": "callback-return",
+      "original_probe_sha256": "85320a8fb6a75e3793e43d8c912775647e4eed29bceb4ef8f43089dc2227c7bd",
+      "value": 37
+    }
+  ],
+  "raw_exceptions": [
+    {
+      "case_id": "sqlite-cursor-writer-guard/initial-step/executemany",
+      "operation": "executemany",
+      "event": "recursive-programming-error",
+      "original_probe_sha256": "85320a8fb6a75e3793e43d8c912775647e4eed29bceb4ef8f43089dc2227c7bd",
+      "exception": {
+        "type": "sqlite3.ProgrammingError",
+        "message": "Recursive use of cursors not allowed.",
+        "repr": "ProgrammingError('Recursive use of cursors not allowed.')",
+        "traceback": [
+          "Traceback (most recent call last):\n",
+          "  File \"D:\\CantorAI\\xlang3\\scratch\\performance\\sqlite-cursor-writer-guard-isolated-probe-20261008.py\", line 62, in reenter\n    cursor.executemany(\"INSERT INTO writes VALUES (?)\", UnobservedParameters())\n    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n",
+          "sqlite3.ProgrammingError: Recursive use of cursors not allowed.\n"
+        ]
+      }
+    }
+  ],
+  "unparsed_stdout_lines": [],
+  "last_event": "callback-return"
+}

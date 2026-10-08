@@ -1,0 +1,28 @@
+{
+  "status": "static_proposal_unbuilt_unexecuted",
+  "control_commit": "9de05e0d945a2d75ea50dfb7ddba4843363dfe41",
+  "author_scope": "scratch only; no live engine/test edits, builds, fixtures, runtime probes, benchmarks or stage/commit",
+  "apply_check": {"command": "git apply --check scratch/performance/exact-string-hash-dispatch-proposed-20261008.patch", "exit_code": 0},
+  "patch": {"path": "scratch/performance/exact-string-hash-dispatch-proposed-20261008.patch", "sha256": "8a0af520a8120302b07f9e7de91297330480a0e24d5e37a83a6fdc386bb443a4", "bytes": 1376},
+  "fixture": {"path": "scratch/performance/exact-string-hash-fixture-proposed-20261008.py", "sha256": "8c5661caca2694b1c821e39700a69d2621cdf7b4e67c0b66bcc316566f5aa635", "bytes": 2407, "execution": "none; proposed baseline/candidate validation only"},
+  "source_sha256": {
+    "src/runtime/value_hash.cpp": "15af31213d9f7141f2c20f15dc72508d30443f6a260228507f6a5ca2431abdfa",
+    "src/runtime/bigint.cpp": "b7e927d36a926f63f540190a6b3ebcaab4975f60d55bc406fd10d2ddf012e26a",
+    "src/internal/xlang3/value.h": "b3b88f529eb86acc117ccf5fbf61ac44e6572a96189d60389d1c6728c9bf75b1",
+    "src/internal/xlang3/builtin_methods.h": "b0663650474d8d117b10ed3e459e9137d0b3424cc9d76d872e53957cbb8e1477",
+    "src/builtins/functional_builtins.cpp": "de5920ff70a7a11069da2e5b5a27bfa9abbededf81a8a2e00e56cce584d1c979",
+    "src/executor/xlang_vm/ops/xlang_vm_ops_call.h": "fc47dc4c0faeb743bf17aceabb81d69182c70de6400d13c6dc97e75e07a29db0",
+    "src/runtime/object_model.cpp": "835996e3db255ec24112fe93d9438df4c05d281befd502c306a3df2c1ffd1556",
+    "src/runtime/runtime.cpp": "15025bbe69bcd6de8a9cdf491811155b4ff7badd8e73a78be57fb7d2d4ea05e4",
+    "src/runtime/modules/system/weakref_module.cpp": "a4d0a52d7ffa14f48c9c0226c71c80b635720f4b7153658b2e6da25be269cb73"
+  },
+  "evidence": {
+    "record": {"path": "doc/performance/data/python-hash-callback-cost-20261008.json", "sha256": "d58e595a5cff90f4aa21cdb9d99a6e1b62da2890d95f55fc0637464dd76c2680", "bytes": 9062},
+    "source": {"path": "scratch/performance/python-hash-callback-cost-probe-20261008.py", "sha256": "3823fc09d47caa35ed158677a5a565ad1118c64b1ef9e345a6584a717f8fca70", "bytes": 4484},
+    "raw_logs_sha256": {
+      "doc/performance/data/python-hash-callback-cost-cpython3147-20261008.log": "007126efa74aaf3f4724f76e878e415bd5ad685e00541f83d0e8d342cf15dab8",
+      "doc/performance/data/python-hash-callback-cost-accepted_xlang3-20261008.log": "26d3bc4d4bafb33915cd4e195fbca8a2eaaee5863d5e29ade2bf7de8eb40dc3f"
+    },
+    "score_scope": "five unpaired diagnostic samples per row; no candidate/official score"
+  }
+}

@@ -214,6 +214,8 @@ enum class Op : uint16_t {
   // Advances one exact list/count permutation loop, retaining its bytecode fallback.
   // `dst` is the index local, `a`/`b` are bound insert/pop locals, `c` indexes loop metadata.
   WhileListPermutationAdvance,
+  // Appended: source RHS-literal-None provenance; existing opcode IDs and c semantics stay intact.
+  IsNoneJumpIfFalse,
 };
 
 enum class CompareOp : uint16_t {
@@ -321,6 +323,8 @@ struct FunctionExecutionMetadata {
   const Function* owner = nullptr;
   std::vector<size_t> register_last_use;
   std::vector<bool> register_loop_carried;
+  // Identity-only producer proofs leave the older call-transfer policy intact.
+  std::vector<bool> identity_operand_retirement_safe;
   // Precomputed IR sites whose execution may populate an owning inline cache.
   std::vector<uint32_t> cache_cleanup_instructions;
 };

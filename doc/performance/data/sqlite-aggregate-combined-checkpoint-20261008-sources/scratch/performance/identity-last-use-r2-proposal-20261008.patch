@@ -1,0 +1,1137 @@
+diff --git a/src/internal/xlang3/ir.h b/src/internal/xlang3/ir.h
+index dff44a08..2c8064d8 100644
+--- a/src/internal/xlang3/ir.h
++++ b/src/internal/xlang3/ir.h
+@@ -214,6 +214,8 @@ enum class Op : uint16_t {
+   // Advances one exact list/count permutation loop, retaining its bytecode fallback.
+   // `dst` is the index local, `a`/`b` are bound insert/pop locals, `c` indexes loop metadata.
+   WhileListPermutationAdvance,
++  // Appended: source RHS-literal-None provenance; existing opcode IDs and c semantics stay intact.
++  IsNoneJumpIfFalse,
+ };
+ 
+ enum class CompareOp : uint16_t {
+@@ -321,6 +323,8 @@ struct FunctionExecutionMetadata {
+   const Function* owner = nullptr;
+   std::vector<size_t> register_last_use;
+   std::vector<bool> register_loop_carried;
++  // Identity-only producer proofs leave the older call-transfer policy intact.
++  std::vector<bool> identity_operand_retirement_safe;
+   // Precomputed IR sites whose execution may populate an owning inline cache.
+   std::vector<uint32_t> cache_cleanup_instructions;
+ };
+diff --git a/src/ir/dump.cpp b/src/ir/dump.cpp
+index 101b0ffe..662278a2 100644
+--- a/src/ir/dump.cpp
++++ b/src/ir/dump.cpp
+@@ -156,6 +156,7 @@ const char* op_name(Op op) {
+     case Op::CallLocalMethod: return "CallLocalMethod";
+     case Op::CompareJumpIfFalse: return "CompareJumpIfFalse";
+     case Op::IsJumpIfFalse: return "IsJumpIfFalse";
++    case Op::IsNoneJumpIfFalse: return "IsNoneJumpIfFalse";
+     case Op::MoveJumpIfFalse: return "MoveJumpIfFalse";
+     case Op::StoreLocalPair: return "StoreLocalPair";
+     case Op::MoveJumpIfTrue: return "MoveJumpIfTrue";
+diff --git a/src/ir/codec.cpp b/src/ir/codec.cpp
+index 7bb56c08..45f0c743 100644
+--- a/src/ir/codec.cpp
++++ b/src/ir/codec.cpp
+@@ -25,7 +25,8 @@ namespace xlang3::ir {
+ namespace {
+ 
+ constexpr uint32_t kMagic = 0x33524958u; // XIR3
+-constexpr uint32_t kVersion = 63;
++// Source caches predating the RHS-None branch opcode lack its monitoring phase proof.
++constexpr uint32_t kVersion = 64;
+ constexpr uint32_t kMaxVectorItems = 1u << 20u;
+ constexpr uint32_t kMaxStringBytes = 16u << 20u;
+ 
+diff --git a/src/sema/lower.cpp b/src/sema/lower.cpp
+index cd3b6f47..f7f1e6d1 100644
+--- a/src/sema/lower.cpp
++++ b/src/sema/lower.cpp
+@@ -2844,6 +2844,37 @@ private:
+   size_t emit_jump(ir::Op op, uint32_t cond = 0) {
+     const bool starts_basic_block =
+         control_flow_entries_.find(static_cast<uint32_t>(fn_.code.size())) != control_flow_entries_.end();
++    // CPython combines RHS-literal-None conditions across parenthesized source
++    // lines and direct `not` chains. Keep the comparison's source position.
++    // Ordinary same-line local-constant conditions retain the fast fusion
++    // below; named stores and other intervening instructions remain ordinary.
++    if (!starts_basic_block && op == ir::Op::JumpIfFalse && !fn_.code.empty() && !fn_.source_lines.empty()) {
++        size_t comparison_ip = fn_.code.size() - 1;
++        uint32_t source = cond;
++        bool negate = false;
++        while (comparison_ip != 0 && fn_.code[comparison_ip].op == ir::Op::Not &&
++               fn_.code[comparison_ip].dst == source &&
++               control_flow_entries_.find(static_cast<uint32_t>(comparison_ip)) == control_flow_entries_.end()) {
++          source = fn_.code[comparison_ip].a;
++          negate = !negate;
++          --comparison_ip;
++        }
++        const auto& comparison = fn_.code[comparison_ip];
++        if (comparison.op == ir::Op::Is && comparison.dst == source &&
++            (comparison_ip + 1 != fn_.code.size() || fn_.source_lines.back() != current_source_line_) &&
++            std::find(literal_none_identity_results_.begin(), literal_none_identity_results_.end(), source) !=
++                literal_none_identity_results_.end()) {
++          ir::Instr fused = comparison;
++          fused.op = ir::Op::IsNoneJumpIfFalse;
++          fused.dst = 0;
++          fused.c = static_cast<uint32_t>((fused.c != 0) != negate);
++          fn_.code.resize(comparison_ip + 1);
++          fn_.source_lines.resize(comparison_ip + 1);
++          fn_.source_positions.resize(comparison_ip + 1);
++          fn_.code.back() = fused;
++          return comparison_ip;
++        }
++    }
+     if (!starts_basic_block && op == ir::Op::JumpIfFalse && !fn_.code.empty() && !fn_.source_lines.empty() &&
+         fn_.source_lines.back() == current_source_line_) {
+       auto& previous = fn_.code.back();
+@@ -2937,9 +2968,12 @@ private:
+       }
+       if ((previous.op == ir::Op::Compare || previous.op == ir::Op::Is) &&
+           previous.dst == cond && !guarded_list_compare_fallback) {
++        const bool literal_none_rhs = previous.op == ir::Op::Is &&
++            std::find(literal_none_identity_results_.begin(), literal_none_identity_results_.end(), previous.dst) !=
++                literal_none_identity_results_.end();
+         previous.op = previous.op == ir::Op::Compare
+             ? ir::Op::CompareJumpIfFalse
+-            : ir::Op::IsJumpIfFalse;
++            : literal_none_rhs ? ir::Op::IsNoneJumpIfFalse : ir::Op::IsJumpIfFalse;
+         previous.dst = 0;
+         return fn_.code.size() - 1;
+       }
+@@ -2997,9 +3031,10 @@ private:
+     fn_.code[at].b = target;
+   }
+ 
+-  bool emit_compare_op(const std::string& op, uint32_t dst, uint32_t lhs, uint32_t rhs) {
++  bool emit_compare_op(const std::string& op, uint32_t dst, uint32_t lhs, uint32_t rhs, bool literal_none_rhs = false) {
+     if (op == "is" || op == "is not") {
+       emit(ir::Op::Is, dst, lhs, rhs, op == "is not" ? 1u : 0u);
++      if (literal_none_rhs) literal_none_identity_results_.push_back(dst);
+       return true;
+     }
+     if (op == "in" || op == "not in") {
+@@ -6625,7 +6660,11 @@ private:
+       else if (bin->op == ">>") emit(ir::Op::Shr, reg, lhs, rhs);
+       else if (bin->op == "and") emit(ir::Op::BoolAnd, reg, lhs, rhs);
+       else if (bin->op == "or") emit(ir::Op::BoolOr, reg, lhs, rhs);
+-      else emit_compare_op(bin->op, reg, lhs, rhs);
++      else {
++        const auto* literal = dynamic_cast<const ast::LiteralExpr*>(bin->rhs.get());
++        emit_compare_op(bin->op, reg, lhs, rhs,
++            literal != nullptr && literal->kind == ast::LiteralExpr::Kind::None);
++      }
+       return reg;
+     }
+     if (auto* conditional = dynamic_cast<const ast::ConditionalExpr*>(&expr)) {
+@@ -7023,6 +7062,8 @@ private:
+   std::vector<uint32_t> loop_continue_targets_;
+   std::vector<size_t> loop_finalizer_base_counts_;
+   std::unordered_set<uint32_t> control_flow_entries_;
++  // Keep provenance in the compiler until conditional fusion; ordinary Is retains its ABI.
++  std::vector<uint32_t> literal_none_identity_results_;
+   uint32_t next_hidden_local_ = 0;
+   bool defer_comprehension_target_store_fusion_ = false;
+ };
+diff --git a/src/executor/xlang_vm/xlang_frame.h b/src/executor/xlang_vm/xlang_frame.h
+index 2456094a..80d507b4 100644
+--- a/src/executor/xlang_vm/xlang_frame.h
++++ b/src/executor/xlang_vm/xlang_frame.h
+@@ -799,6 +799,7 @@ private:
+       case ir::Op::CompareJumpIfFalse:
+       case ir::Op::Is:
+       case ir::Op::IsJumpIfFalse:
++      case ir::Op::IsNoneJumpIfFalse:
+       case ir::Op::Contains:
+         one(instr.a);
+         one(instr.b);
+@@ -931,8 +932,12 @@ private:
+     }
+     auto computed = std::make_shared<ir::FunctionExecutionMetadata>();
+     computed->owner = fn;
++    bool has_identity_instructions = false;
+     computed->cache_cleanup_instructions.reserve(fn->code.size() / 8);
+     for (size_t ip = 0; ip < fn->code.size(); ++ip) {
++      if (fn->code[ip].op == ir::Op::Is || fn->code[ip].op == ir::Op::IsJumpIfFalse ||
++          fn->code[ip].op == ir::Op::IsNoneJumpIfFalse)
++        has_identity_instructions = true;
+       if (instruction_may_own_inline_cache(fn->code[ip].op)) {
+         computed->cache_cleanup_instructions.push_back(static_cast<uint32_t>(ip));
+       }
+@@ -947,6 +952,61 @@ private:
+         }
+       });
+     }
++    // Cache identity-only proofs separately from existing call-transfer
++    // liveness. Incoming edges can bypass a loop's temporary producer even
++    // though the old loop analysis sees some Call writing that register.
++    std::vector<std::pair<size_t, uint32_t>> incoming_edges;
++    // Functions without identity instructions allocate no new proof storage.
++    if (has_identity_instructions)
++      computed->identity_operand_retirement_safe.assign(fn->register_count, true);
++    for (size_t source = 0; has_identity_instructions && source < fn->code.size(); ++source) {
++      const auto& branch = fn->code[source];
++      uint32_t target = UINT32_MAX;
++      switch (branch.op) {
++        case ir::Op::Jump:
++        case ir::Op::JumpIfFalse:
++        case ir::Op::JumpIfLocalConstFalse:
++        case ir::Op::CompareJumpIfFalse:
++        case ir::Op::IsJumpIfFalse:
++        case ir::Op::IsNoneJumpIfFalse:
++        case ir::Op::NotJumpIfFalse:
++        case ir::Op::JumpIfLocalLocalFalse:
++        case ir::Op::IsLocalConstJumpIfFalse:
++        case ir::Op::ForRangeConstLocalNext:
++        case ir::Op::ForRangeConstLocalSum:
++        case ir::Op::ForLocalMoveAddLoop:
++        case ir::Op::ForCallAccumulateLoop:
++        case ir::Op::ForConstructMethodAccumulateLoop:
++        case ir::Op::ForScalarArithmeticLoop:
++        case ir::Op::ForPropertyAccessLoop:
++        case ir::Op::SetupExcept:
++        case ir::Op::SetupWith:
++          target = branch.dst;
++          break;
++        case ir::Op::MoveJumpIfFalse:
++        case ir::Op::MoveJumpIfTrue:
++        case ir::Op::JumpIfFalseLoadLocal:
++        case ir::Op::IterNext:
++        case ir::Op::IterNextLocal:
++          target = branch.b;
++          break;
++        default:
++          break;
++      }
++      if (target == UINT32_MAX) continue;
++      incoming_edges.emplace_back(source, target);
++      // SDK IR may encode a backward fused/exception/iterator edge outside
++      // the ordinary analysis below. Retain only that region's read owners;
++      // an unrelated earlier loop must not disable later expression cleanup.
++      if (target <= source && branch.op != ir::Op::Jump && branch.op != ir::Op::JumpIfFalse) {
++        for (size_t loop_ip = target; loop_ip <= source; ++loop_ip) {
++          for_each_register_read(fn->code[loop_ip], [&](uint32_t reg) {
++            if (reg < computed->identity_operand_retirement_safe.size())
++              computed->identity_operand_retirement_safe[reg] = false;
++          });
++        }
++      }
++    }
+     // Values read in a loop may be needed again after a backward edge. Keep
+     // those registers for the frame lifetime; the linear last-use index alone
+     // cannot express loop-carried liveness.
+@@ -960,6 +1020,7 @@ private:
+       // overwritten on every iteration, so their registers are not roots
+       // carried into the next iteration.
+       std::vector<bool> temporary_defined_in_loop(fn->register_count, false);
++      std::vector<size_t> temporary_definition_in_loop(has_identity_instructions ? fn->register_count : 0, SIZE_MAX);
+       for (size_t loop_ip = instr.dst; loop_ip <= i; ++loop_ip) {
+         const auto& loop_instr = fn->code[loop_ip];
+         switch (loop_instr.op) {
+@@ -975,13 +1036,36 @@ private:
+           case ir::Op::MakeList:
+           case ir::Op::MakeSet:
+           case ir::Op::MakeTuple:
+-            if (loop_instr.dst < temporary_defined_in_loop.size())
++            if (loop_instr.dst < temporary_defined_in_loop.size()) {
+               temporary_defined_in_loop[loop_instr.dst] = true;
++              if (has_identity_instructions)
++                temporary_definition_in_loop[loop_instr.dst] = loop_ip;
++            }
+             break;
+           default:
+             break;
+         }
+       }
++      for (uint32_t reg = 0; has_identity_instructions && reg < computed->register_last_use.size(); ++reg) {
++        const size_t consumer = computed->register_last_use[reg];
++        if (!temporary_defined_in_loop[reg] || consumer < instr.dst || consumer > i ||
++            (fn->code[consumer].op != ir::Op::Is && fn->code[consumer].op != ir::Op::IsJumpIfFalse &&
++             fn->code[consumer].op != ir::Op::IsNoneJumpIfFalse)) {
++          continue;
++        }
++        const size_t producer = temporary_definition_in_loop[reg];
++        if (producer >= consumer) {
++          computed->identity_operand_retirement_safe[reg] = false;
++          continue;
++        }
++        for (const auto& edge : incoming_edges) {
++          if (edge.second > producer && edge.second <= consumer &&
++              (edge.first < producer || edge.first > consumer)) {
++            computed->identity_operand_retirement_safe[reg] = false;
++            break;
++          }
++        }
++      }
+       for (size_t loop_ip = instr.dst; loop_ip <= i; ++loop_ip) {
+         for_each_register_read(fn->code[loop_ip], [&](uint32_t reg) {
+           // LoadModuleAttr writes its receiver scratch register from the live
+@@ -1021,6 +1105,44 @@ private:
+   }
+ 
+ public:
++  // Identity comparisons consume expression temporaries without calling Python.
++  // Retire their final owning reads here instead of keeping weakref results alive
++  // until frame return. Check only the two operands, not every frame register.
++  // Future reads and loop-carried roots still require their existing owners.
++  bool release_identity_operands_last_used_at(
++      uint32_t lhs, uint32_t rhs, size_t instruction_index,
++      uint32_t preserved_output = UINT32_MAX, Value* previous_output = nullptr) {
++    const auto& last_use = execution_metadata->register_last_use;
++    const auto& loop_carried = execution_metadata->register_loop_carried;
++    auto can_release = [&](uint32_t reg) {
++      return reg != preserved_output && reg < regs.size() &&
++          regs[reg].tag == ValueTag::Object && regs[reg].as.obj != nullptr &&
++          (regs[reg].flags & kXlangValueBorrowedRefFlag) == 0 &&
++          reg < last_use.size() && last_use[reg] == instruction_index &&
++          reg < execution_metadata->identity_operand_retirement_safe.size() &&
++          execution_metadata->identity_operand_retirement_safe[reg] &&
++          (reg >= loop_carried.size() || !loop_carried[reg]);
++    };
++    const bool release_lhs = can_release(lhs);
++    const bool release_rhs = rhs != lhs && can_release(rhs);
++    const bool release_output = previous_output != nullptr &&
++        previous_output->tag == ValueTag::Object && previous_output->as.obj != nullptr &&
++        (previous_output->flags & kXlangValueBorrowedRefFlag) == 0;
++
++    // Unpublish every dead register before any destructor can inspect this
++    // frame, run Python, collect cycles or resurrect a value. Stack owners keep
++    // the other consumed operand alive during the first operand's finalizer.
++    Value retired_lhs;
++    Value retired_rhs;
++    if (release_lhs) retired_lhs = std::move(regs[lhs]);
++    if (release_rhs) retired_rhs = std::move(regs[rhs]);
++    // Keep ordinary destination replacement ahead of operand destruction.
++    if (previous_output != nullptr) value_set_invalid(*previous_output);
++    // CPython 3.14.7 IS_OP closes the right operand before the left operand.
++    value_set_invalid(retired_rhs);
++    value_set_invalid(retired_lhs);
++    return release_output || release_lhs || release_rhs;
++  }
+   void release_memoryviews_last_used_at(size_t instruction_index) {
+     if (memoryview_registers.empty()) return;
+     const auto& register_last_use = execution_metadata->register_last_use;
+diff --git a/src/executor/xlang_vm/ops/xlang_vm_ops_arithmetic.h b/src/executor/xlang_vm/ops/xlang_vm_ops_arithmetic.h
+index 383a827c..b8d6a04a 100644
+--- a/src/executor/xlang_vm/ops/xlang_vm_ops_arithmetic.h
++++ b/src/executor/xlang_vm/ops/xlang_vm_ops_arithmetic.h
+@@ -925,20 +925,50 @@ XLANG3_HOT_INLINE XlangVMOpFlow compare_jump_if_false(
+   return XlangVMOpFlow::Next;
+ }
+ 
+-XLANG3_HOT_INLINE void is_op(const ir::Instr& in, XlangVMSmallRegisterBuffer& regs) {
+-  value_set_bool(regs[in.dst], value_is(regs[in.a], regs[in.b]) != (in.c != 0));
++template <typename RefreshMonitoring>
++XLANG3_HOT_INLINE void is_op(
++    const ir::Instr& in, XlangVMFrame& frame, size_t ip,
++    RefreshMonitoring&& refresh_monitoring) {
++  auto& regs = frame.regs;
++  const bool condition = value_is(regs[in.a], regs[in.b]) != (in.c != 0);
++  Value previous_output;
++  // Publish the scalar result before replacing an owning output can reenter.
++  // An output/operand alias must keep the bool rather than be retired again.
++  if (regs[in.dst].tag == ValueTag::Object) {
++    previous_output = std::move(regs[in.dst]);
++  }
++  value_set_bool(regs[in.dst], condition);
++  if (frame.release_identity_operands_last_used_at(
++          in.a, in.b, ip, in.dst, &previous_output)) {
++    refresh_monitoring();
++  }
+ }
+ 
+-template <typename EmitMonitoringEvent>
++template <typename EmitMonitoringEvent, typename RefreshMonitoring>
+ XLANG3_HOT_INLINE XlangVMOpFlow is_jump_if_false(
+     const ir::Instr& in,
+-    XlangVMSmallRegisterBuffer& regs,
++    XlangVMFrame& frame,
+     size_t& ip,
+-    EmitMonitoringEvent&& emit_monitoring_event) {
++    EmitMonitoringEvent&& emit_monitoring_event,
++    RefreshMonitoring&& refresh_monitoring,
++    bool literal_none_rhs = false) {
++  auto& regs = frame.regs;
++  const bool taken_branch_instrumented =
++      (frame.monitoring_events & kSysMonitoringEventBranchRight) != 0;
+   const bool condition = value_is(regs[in.a], regs[in.b]) != (in.c != 0);
++  if (frame.release_identity_operands_last_used_at(in.a, in.b, ip)) {
++    // Finalizers may enable the following branch or return instruction.
++    // Refresh even on taken paths that skip common post-instruction cleanup.
++    refresh_monitoring();
++  }
+   const uint32_t destination_offset = condition ? static_cast<uint32_t>(ip + 1) : in.dst;
+   Value destination = Value::int64(static_cast<int64_t>(destination_offset));
+-  if (!emit_monitoring_event(
++  // CPython's combined RHS-None opcode cannot retroactively instrument its
++  // taken RIGHT path. Fallthrough LEFT lives in the following NOT_TAKEN,
++  // while general identity uses IS_OP then a separate conditional branch.
++  // The source-proven new opcode preserves those distinct dispatch points.
++  const bool dispatch_branch = condition || !literal_none_rhs || taken_branch_instrumented;
++  if (dispatch_branch && !emit_monitoring_event(
+           condition ? kSysMonitoringEventBranchLeft : kSysMonitoringEventBranchRight,
+           &destination)) {
+     return XlangVMOpFlow::ReturnResult;
+@@ -949,7 +979,6 @@ XLANG3_HOT_INLINE XlangVMOpFlow is_jump_if_false(
+   }
+   return XlangVMOpFlow::Next;
+ }
+-
+ template <typename RaiseUnboundLocalError, typename EmitMonitoringEvent>
+ XLANG3_HOT_INLINE XlangVMOpFlow is_local_const_jump_if_false(
+     const ir::Instr& in,
+diff --git a/src/executor/xlang_vm/xlang_vm_op_rows.h b/src/executor/xlang_vm/xlang_vm_op_rows.h
+index e855f957..9c33522f 100644
+--- a/src/executor/xlang_vm/xlang_vm_op_rows.h
++++ b/src/executor/xlang_vm/xlang_vm_op_rows.h
+@@ -126,8 +126,9 @@ XLANG3_VM_FLOW_TRACKED(BoolAnd, xlang3::xlang_vm::ops::truth_op(in, runtime_, re
+ XLANG3_VM_FLOW_TRACKED(BoolOr, xlang3::xlang_vm::ops::truth_op(in, runtime_, regs, 1, raise_runtime_error, raise_exception_value))
+ XLANG3_VM_FLOW_TRACKED(Compare, xlang3::xlang_vm::ops::compare(in, runtime_, regs, raise_runtime_error, raise_exception_value))
+ XLANG3_VM_FLOW(CompareJumpIfFalse, xlang3::xlang_vm::ops::compare_jump_if_false(in, runtime_, regs, ip, [&](int64_t event, const Value* arg) { return emit_monitoring_event(frame, event, arg); }, raise_runtime_error, raise_exception_value))
+-XLANG3_VM_FAST_TRACKED(Is, xlang3::xlang_vm::ops::is_op(in, regs))
+-XLANG3_VM_FLOW(IsJumpIfFalse, xlang3::xlang_vm::ops::is_jump_if_false(in, regs, ip, [&](int64_t event, const Value* arg) { return emit_monitoring_event(frame, event, arg); }))
++XLANG3_VM_FAST_TRACKED(Is, xlang3::xlang_vm::ops::is_op(in, frame, ip, [&]() { refresh_monitoring_configuration(frame); }))
++XLANG3_VM_FLOW(IsJumpIfFalse, xlang3::xlang_vm::ops::is_jump_if_false(in, frame, ip, [&](int64_t event, const Value* arg) { return emit_monitoring_event(frame, event, arg); }, [&]() { refresh_monitoring_configuration(frame); }))
++XLANG3_VM_FLOW(IsNoneJumpIfFalse, xlang3::xlang_vm::ops::is_jump_if_false(in, frame, ip, [&](int64_t event, const Value* arg) { return emit_monitoring_event(frame, event, arg); }, [&]() { refresh_monitoring_configuration(frame); }, true))
+ XLANG3_VM_FLOW(IsLocalConstJumpIfFalse, xlang3::xlang_vm::ops::is_local_const_jump_if_false(in, fn, locals, ip, result, raise_unbound_local_error, [&](int64_t event, const Value* arg) { return emit_monitoring_event(frame, event, arg); }))
+ XLANG3_VM_FLOW_TRACKED(Contains, xlang3::xlang_vm::ops::contains_dynamic(in, module, module_owner, runtime_, regs, frames, frame_count, native_call_args, ip, result, execution_lock, make_generator_if_needed, push_frame, raise_runtime_error, raise_exception_value))
+ XLANG3_VM_FLOW_TRACKED(Not, xlang3::xlang_vm::ops::truth_op(in, runtime_, regs, 2, raise_runtime_error, raise_exception_value))
+diff --git a/tests/cpp/interpreter_tests.cpp b/tests/cpp/interpreter_tests.cpp
+index 1f219a29..2f13833c 100644
+--- a/tests/cpp/interpreter_tests.cpp
++++ b/tests/cpp/interpreter_tests.cpp
+@@ -15,6 +15,7 @@ limitations under the License.
+ #include "test_harness.h"
+ #include "sqlite_aggregate_abi_cases.h"
+ #include "canonical_slot_read_cases.h"
++#include "identity_last_use_cases.h"
+ 
+ #include "xlang3/object_model.h"
+ #include "xlang3/sequence.h"
+@@ -24,6 +25,7 @@ int main(int argc, char** argv) {
+   xlang3::test::CaseResult result;
+   xlang3::test::check_sqlite_aggregate_abi(result, argc > 0 ? argv[0] : nullptr);
+   xlang3::test::check_canonical_slot_read_cases(result);
++  xlang3::test::check_identity_last_use_cases(result);
+ 
+   // Same-object owning copies should avoid refcount churn, while copying into
+   // a borrowed slot must still acquire an independent reference.
+diff --git a/tests/run_fixtures.py b/tests/run_fixtures.py
+index f6962838..47558c23 100644
+--- a/tests/run_fixtures.py
++++ b/tests/run_fixtures.py
+@@ -9,6 +9,7 @@ import tempfile
+ 
+ 
+ CORE_CASES = """
++identity_last_use
+ sqlite_cursor_completion
+ sqlite_native_aggregate
+ canonical_slot_reads
+diff --git a/tests/cpp/identity_last_use_cases.h b/tests/cpp/identity_last_use_cases.h
+new file mode 100644
+index 00000000..16c65902
+--- /dev/null
++++ b/tests/cpp/identity_last_use_cases.h
+@@ -0,0 +1,349 @@
++#pragma once
++
++#include "test_harness.h"
++#include "xlang3/ir_codec.h"
++#include "executor/xlang_vm/xlang_frame.h"
++#include "executor/xlang_vm/ops/xlang_vm_ops_arithmetic.h"
++
++namespace xlang3::test {
++
++inline void check_identity_last_use_cases(CaseResult& result) {
++  const std::vector<Value> closure;
++  auto make_module = [](std::vector<ir::Instr> code) {
++    ir::Module module;
++    module.functions.emplace_back();
++    module.functions[0].register_count = 4;
++    module.functions[0].locals = {"live_alias"};
++    module.functions[0].code = std::move(code);
++    return module;
++  };
++
++  // Keep real namespace/native argument owners; retire only consumed registers.
++  {
++    auto module = make_module({{ir::Op::Is, 2, 0, 1, 0}});
++    XlangVMFrame frame(module, 0, CallArgsView{}, closure, Value::none(), {}, 0, false);
++    Value owner = Value::list({});
++    frame.regs[0] = owner;
++    frame.regs[1] = owner;
++    frame.locals[0] = owner;
++    frame.native_call_args.push_back(owner);
++    const auto refs = owner.as.obj->refcnt.load();
++    unsigned refreshes = 0;
++    xlang_vm::ops::is_op(module.functions[0].code[0], frame, 0, [&] { ++refreshes; });
++    expect_true(result, frame.regs[0].tag == ValueTag::Invalid &&
++        frame.regs[1].tag == ValueTag::Invalid && frame.regs[2].tag == ValueTag::Bool &&
++        frame.regs[2].as.b && refreshes == 1 &&
++        owner.as.obj->refcnt.load() == refs - 2 && value_is(frame.locals[0], owner) &&
++        frame.native_call_args.size() == 1 && value_is(frame.native_call_args[0], owner),
++        "identity cleanup consumes temporary owners while retaining live aliases and native arguments");
++  }
++  // A borrowed load is not an owner. A future read forbids consuming its owner.
++  {
++    auto module = make_module({{ir::Op::Is, 2, 0, 1, 0}, {ir::Op::Move, 3, 0, 0, 0}});
++    XlangVMFrame frame(module, 0, CallArgsView{}, closure, Value::none(), {}, 0, false);
++    Value owner = Value::list({});
++    frame.regs[0] = owner;
++    value_borrow_assign_fast(frame.regs[1], owner);
++    const auto refs = owner.as.obj->refcnt.load();
++    unsigned refreshes = 0;
++    xlang_vm::ops::is_op(module.functions[0].code[0], frame, 0, [&] { ++refreshes; });
++    expect_true(result, value_is(frame.regs[0], owner) && value_is(frame.regs[1], owner) &&
++        (frame.regs[1].flags & kXlangValueBorrowedRefFlag) != 0 &&
++        owner.as.obj->refcnt.load() == refs && refreshes == 0,
++        "identity cleanup preserves borrowed loads and registers read later");
++  }
++  // Both output aliases must publish a bool and release each old owner once.
++  for (uint32_t output : {0u, 1u}) {
++    auto module = make_module({{ir::Op::Is, output, 0, 1, 0}});
++    XlangVMFrame frame(module, 0, CallArgsView{}, closure, Value::none(), {}, 0, false);
++    Value owner = Value::list({});
++    frame.regs[0] = owner;
++    frame.regs[1] = owner;
++    const auto refs = owner.as.obj->refcnt.load();
++    xlang_vm::ops::is_op(module.functions[0].code[0], frame, 0, [] {});
++    expect_true(result, frame.regs[output].tag == ValueTag::Bool && frame.regs[output].as.b &&
++        frame.regs[1 - output].tag == ValueTag::Invalid &&
++        owner.as.obj->refcnt.load() == refs - 2,
++        "identity output aliases retain the scalar result and consume exactly two owners");
++  }
++  {
++    auto module = make_module({{ir::Op::Is, 2, 0, 0, 0}});
++    XlangVMFrame frame(module, 0, CallArgsView{}, closure, Value::none(), {}, 0, false);
++    Value owner = Value::list({});
++    frame.regs[0] = owner;
++    const auto refs = owner.as.obj->refcnt.load();
++    xlang_vm::ops::is_op(module.functions[0].code[0], frame, 0, [] {});
++    expect_true(result, frame.regs[2].as.b && frame.regs[0].tag == ValueTag::Invalid &&
++        owner.as.obj->refcnt.load() == refs - 1,
++        "a duplicated identity operand is consumed exactly once");
++  }
++  // Linear last use alone cannot prove a loop-carried operand dead.
++  {
++    auto module = make_module({{ir::Op::Is, 2, 0, 1, 0}, {ir::Op::Jump, 0, 0, 0, 0}});
++    XlangVMFrame frame(module, 0, CallArgsView{}, closure, Value::none(), {}, 0, false);
++    frame.regs[0] = Value::list({});
++    frame.regs[1] = Value::none();
++    xlang_vm::ops::is_op(module.functions[0].code[0], frame, 0, [] {});
++    expect_true(result, frame.execution_metadata->register_loop_carried[0] &&
++        frame.regs[0].tag == ValueTag::Object,
++        "ordinary backward edges retain loop-carried identity operands");
++  }
++  // A loop-local callback result is recreated before each identity read.
++  {
++    auto module = make_module({{ir::Op::CallGlobal, 0, 0, 0, 0},
++        {ir::Op::IsJumpIfFalse, 3, 0, 1, 1}, {ir::Op::Jump, 0, 0, 0, 0}});
++    XlangVMFrame frame(module, 0, CallArgsView{}, closure, Value::none(), {}, 0, false);
++    frame.regs[0] = Value::list({});
++    frame.regs[1] = Value::none();
++    size_t ip = 1;
++    const auto flow = xlang_vm::ops::is_jump_if_false(module.functions[0].code[1], frame, ip,
++        [](int64_t, const Value*) { return true; }, [] {});
++    expect_true(result, !frame.execution_metadata->register_loop_carried[0] &&
++        frame.regs[0].tag == ValueTag::Invalid && flow == XlangVMOpFlow::Next,
++        "recreated callback results retire inside ordinary loops");
++  }
++  // SDK IR can encode backward fused edges absent from the old loop analysis.
++  for (const auto edge : {ir::Op::IsJumpIfFalse, ir::Op::IsNoneJumpIfFalse, ir::Op::CompareJumpIfFalse,
++                         ir::Op::MoveJumpIfFalse, ir::Op::MoveJumpIfTrue}) {
++    const uint32_t target_field = edge == ir::Op::MoveJumpIfFalse ||
++        edge == ir::Op::MoveJumpIfTrue ? 2u : 0u;
++    const uint32_t rhs_or_target = edge == ir::Op::MoveJumpIfFalse ||
++        edge == ir::Op::MoveJumpIfTrue ? 0u : 3u;
++    auto module = make_module({{ir::Op::Is, 2, 0, 1, 0},
++        {edge, target_field, 2, rhs_or_target, 0}});
++    XlangVMFrame frame(module, 0, CallArgsView{}, closure, Value::none(), {}, 0, false);
++    frame.regs[0] = Value::list({});
++    frame.regs[1] = Value::none();
++    xlang_vm::ops::is_op(module.functions[0].code[0], frame, 0, [] {});
++    expect_true(result, !frame.execution_metadata->identity_operand_retirement_safe[0] &&
++        frame.regs[0].tag == ValueTag::Object,
++        "unsupported fused backedges conservatively retain earlier identity operands");
++  }
++  {
++    auto module = make_module({{ir::Op::IsJumpIfFalse, 0, 0, 1, 0}});
++    XlangVMFrame frame(module, 0, CallArgsView{}, closure, Value::none(), {}, 0, false);
++    frame.regs[0] = Value::list({});
++    frame.regs[1] = Value::none();
++    size_t ip = 0;
++    const auto flow = xlang_vm::ops::is_jump_if_false(module.functions[0].code[0], frame, ip,
++        [](int64_t, const Value*) { return true; }, [] {});
++    expect_true(result, !frame.execution_metadata->identity_operand_retirement_safe[0] &&
++        frame.regs[0].tag == ValueTag::Object && flow == XlangVMOpFlow::ContinueLoop && ip == 0,
++        "a fused identity self-edge preserves its operand on the taken path");
++  }
++  {
++    auto module = make_module({{ir::Op::JumpIfFalse, 2, 3, 0, 0},
++        {ir::Op::CallGlobal, 0, 0, 0, 0}, {ir::Op::Is, 2, 0, 1, 0},
++        {ir::Op::Jump, 0, 0, 0, 0}});
++    XlangVMFrame frame(module, 0, CallArgsView{}, closure, Value::none(), {}, 0, false);
++    frame.regs[0] = Value::list({});
++    frame.regs[1] = Value::none();
++    xlang_vm::ops::is_op(module.functions[0].code[2], frame, 2, [] {});
++    expect_true(result, !frame.execution_metadata->register_loop_carried[0] &&
++        !frame.execution_metadata->identity_operand_retirement_safe[0] &&
++        frame.regs[0].tag == ValueTag::Object,
++        "a conditional edge bypassing a loop producer preserves the prior register owner");
++  }
++
++  // Native destruction is a bounded way to inspect reentrant frame publication
++  // and exact output/right/left cleanup ordering without Python GC ambiguity.
++  {
++    auto module = make_module({{ir::Op::Is, 2, 0, 1, 0}});
++    std::vector<int> order;
++    struct Audit { XlangVMFrame* frame; std::vector<int>* order; int label; bool safe = false; };
++    Audit left{nullptr, &order, 1}, right{nullptr, &order, 2}, output{nullptr, &order, 3};
++    XlangVMFrame frame(module, 0, CallArgsView{}, closure, Value::none(), {}, 0, false);
++    left.frame = right.frame = output.frame = &frame;
++    auto cleanup = [](void* opaque) {
++      auto& audit = *static_cast<Audit*>(opaque);
++      audit.safe = audit.frame->regs[0].tag == ValueTag::Invalid &&
++          audit.frame->regs[1].tag == ValueTag::Invalid &&
++          audit.frame->regs[2].tag == ValueTag::Bool && !audit.frame->regs[2].as.b;
++      audit.order->push_back(audit.label);
++      // Reentry must see no remaining consumed frame owners.
++      audit.safe = audit.safe && !audit.frame->release_identity_operands_last_used_at(0, 1, 0, 2);
++    };
++    frame.regs[0] = Value::native_function(0, "identity_left", nullptr, &left, cleanup);
++    frame.regs[1] = Value::native_function(0, "identity_right", nullptr, &right, cleanup);
++    frame.regs[2] = Value::native_function(0, "identity_old_output", nullptr, &output, cleanup);
++    unsigned refreshes = 0;
++    xlang_vm::ops::is_op(module.functions[0].code[0], frame, 0, [&] { ++refreshes; });
++    expect_true(result, left.safe && right.safe && output.safe && order == std::vector<int>({3, 2, 1}) &&
++        refreshes == 1, "all dead roots unpublish before output/right/left finalizers and monitoring refresh");
++    // Failed implementations must also clean their userdata while Audit and
++    // frame metadata are alive. Unpublish leftovers before their callbacks.
++    Value leftover_left = std::move(frame.regs[0]);
++    Value leftover_right = std::move(frame.regs[1]);
++    Value leftover_output = std::move(frame.regs[2]);
++    value_set_bool(frame.regs[2], false);
++    value_set_invalid(leftover_output);
++    value_set_invalid(leftover_right);
++    value_set_invalid(leftover_left);
++  }
++  // Branch monitoring errors preserve committed cleanup on both directions.
++  for (bool condition : {false, true}) {
++    auto module = make_module({{ir::Op::IsJumpIfFalse, 4, 0, 1, condition ? 1u : 0u}});
++    XlangVMFrame frame(module, 0, CallArgsView{}, closure, Value::none(), {}, 0, false);
++    frame.regs[0] = Value::list({});
++    frame.regs[1] = Value::none();
++    size_t ip = 0;
++    bool refreshed = false;
++    bool observed = false;
++    const auto flow = xlang_vm::ops::is_jump_if_false(module.functions[0].code[0], frame, ip,
++        [&](int64_t event, const Value* destination) {
++          observed = refreshed && frame.regs[0].tag == ValueTag::Invalid &&
++              event == (condition ? kSysMonitoringEventBranchLeft : kSysMonitoringEventBranchRight) &&
++              destination->as.i64 == (condition ? 1 : 4);
++          return false;
++        }, [&] { refreshed = true; });
++    expect_true(result, observed && flow == XlangVMOpFlow::ReturnResult && ip == 0,
++        "identity cleanup refreshes before branch callbacks, including callback failure");
++  }
++
++  // Pin the real CP phases: only a taken source-RHS-None branch uses its
++  // entry RIGHT eligibility; general identity and None fallthrough use the
++  // fresh mask. A native cleanup changes that mask during operand disposal.
++  for (bool literal_none : {false, true}) {
++    for (bool condition : {false, true}) {
++      for (int64_t entry : {int64_t{0}, kSysMonitoringEventBranchLeft, kSysMonitoringEventBranchRight}) {
++        auto module = make_module({{literal_none ? ir::Op::IsNoneJumpIfFalse : ir::Op::IsJumpIfFalse,
++                                    4, 0, 1, condition ? 1u : 0u}});
++        struct Enable { XlangVMFrame* frame = nullptr; } enable;
++        XlangVMFrame frame(module, 0, CallArgsView{}, closure, Value::none(), {}, 0, false);
++        enable.frame = &frame;
++        frame.monitoring_events = entry;
++        frame.regs[0] = Value::native_function(0, "identity_enable_branch", nullptr, &enable,
++            [](void* opaque) {
++              auto& state = *static_cast<Enable*>(opaque);
++              state.frame->monitoring_events = kSysMonitoringEventBranchLeft | kSysMonitoringEventBranchRight;
++            });
++        frame.regs[1] = Value::none();
++        size_t ip = 0;
++        bool refreshed = false;
++        bool emitted = false;
++        const auto flow = xlang_vm::ops::is_jump_if_false(module.functions[0].code[0], frame, ip,
++            [&](int64_t event, const Value*) {
++              emitted = refreshed && (frame.monitoring_events & event) != 0;
++              return true;
++            }, [&] { refreshed = true; }, literal_none);
++        const bool expected = condition || !literal_none || (entry & kSysMonitoringEventBranchRight) != 0;
++        expect_true(result, refreshed && emitted == expected &&
++            flow == (condition ? XlangVMOpFlow::Next : XlangVMOpFlow::ContinueLoop) &&
++            ip == (condition ? 0u : 4u),
++            "identity finalizer branch dispatch matches source shape, direction and entry masks");
++        Value leftover = std::move(frame.regs[0]);
++        value_set_invalid(leftover);
++      }
++    }
++  }
++  for (uint32_t old_negation : {2u, 0x80000000u, UINT32_MAX}) {
++    auto module = make_module({{ir::Op::IsJumpIfFalse, 4, 0, 1, old_negation}});
++    XlangVMFrame frame(module, 0, CallArgsView{}, closure, Value::none(), {}, 0, false);
++    frame.regs[0] = Value::list({});
++    frame.regs[1] = Value::none();
++    size_t ip = 0;
++    const auto flow = xlang_vm::ops::is_jump_if_false(module.functions[0].code[0], frame, ip,
++        [](int64_t, const Value*) { return true; }, [] {});
++    expect_true(result, flow == XlangVMOpFlow::Next,
++        "legacy nonzero identity negation values preserve their existing meaning");
++  }
++
++  const std::string source = R"PY(
++none_alias = None
++def produce(value):
++    return value
++def rhs_literal(value):
++    if produce(value) is None:
++        return 1
++    return 0
++def reversed_literal(value):
++    if None is produce(value):
++        return 1
++    return 0
++def dynamic_none(value):
++    if produce(value) is none_alias:
++        return 1
++    return 0
++def ordinary_value(value):
++    return produce(value) is None
++def local_literal(value):
++    if value is None:
++        return 1
++    return 0
++def unary_literal(value):
++    if not (produce(value) is not None):
++        return 1
++    return 0
++def multiline_literal(value):
++    if (
++        produce(value) is None
++    ):
++        return 1
++    return 0
++def multiline_not_literal(value):
++    if not not (
++        produce(value) is None
++    ):
++        return 1
++    return 0
++)PY";
++  auto parsed = parse_source(source);
++  expect_true(result, parsed.errors.empty(), "identity provenance source parses");
++  if (!parsed.errors.empty()) return;
++  auto lowered = lower_to_ir(parsed.module);
++  expect_true(result, lowered.errors.empty(), "identity provenance source lowers");
++  if (!lowered.errors.empty()) return;
++  for (const auto& function : lowered.module.functions) {
++    size_t none_branches = 0, general_branches = 0, local_branches = 0, identities = 0;
++    for (size_t ip = 0; ip < function.code.size(); ++ip) {
++      const auto& in = function.code[ip];
++      if (in.op == ir::Op::IsNoneJumpIfFalse) {
++        ++none_branches;
++        expect_true(result, in.c == 0 && ip < function.source_lines.size() && function.source_lines[ip] != 0,
++            "source-proven RHS-None branch preserves negation and source position");
++      }
++      general_branches += in.op == ir::Op::IsJumpIfFalse;
++      local_branches += in.op == ir::Op::IsLocalConstJumpIfFalse;
++      identities += in.op == ir::Op::Is;
++    }
++    if (function.name == "rhs_literal" || function.name == "unary_literal" ||
++        function.name == "multiline_literal" || function.name == "multiline_not_literal")
++      expect_true(result, none_branches == 1 && general_branches == 0,
++          "literal RHS-None, unary and multiline conditions retain explicit source provenance");
++    if (function.name == "reversed_literal" || function.name == "dynamic_none")
++      expect_true(result, none_branches == 0 && general_branches == 1,
++          "reversed and dynamic None values do not acquire literal-RHS provenance");
++    if (function.name == "ordinary_value")
++      expect_true(result, none_branches == 0 && identities == 1,
++          "ordinary value identity keeps its existing Is layout");
++    if (function.name == "local_literal")
++      expect_true(result, none_branches == 0 && local_branches == 1,
++          "ordinary same-line local-constant identity retains its existing fast opcode");
++  }
++  constexpr uint64_t source_hash = 0x1de17;
++  ir::EncodedModule encoded;
++  std::string error;
++  const bool encoded_ok = ir::encode_module(lowered.module, source_hash, encoded, error);
++  expect_true(result, encoded_ok && encoded.bytes.size() >= 8, "identity provenance IR encodes");
++  if (!encoded_ok || encoded.bytes.size() < 8) return;
++  ir::Module decoded;
++  const bool decoded_ok = ir::decode_module(encoded.bytes.data(), encoded.bytes.size(), source_hash, decoded, error);
++  expect_true(result, decoded_ok && ir::dump_module(decoded) == ir::dump_module(lowered.module),
++      "source-proven identity opcodes survive the unchanged five-field codec layout");
++  auto old_cache = encoded.bytes;
++  old_cache[4] = 63;
++  old_cache[5] = old_cache[6] = old_cache[7] = 0;
++  ir::Module rejected;
++  expect_true(result, !ir::decode_module(old_cache.data(), old_cache.size(), source_hash, rejected, error) &&
++      error == "IR cache has unsupported format",
++      "pre-provenance version63 caches reject so import can recompile their source");
++  auto legacy = make_module({{ir::Op::IsJumpIfFalse, 4, 0, 1, 2},
++      {ir::Op::IsNoneJumpIfFalse, 4, 0, 1, 0}});
++  expect_true(result, ir::encode_module(legacy, source_hash, encoded, error) &&
++      ir::decode_module(encoded.bytes.data(), encoded.bytes.size(), source_hash, decoded, error) &&
++      decoded.functions[0].code[0].op == ir::Op::IsJumpIfFalse && decoded.functions[0].code[0].c == 2 &&
++      decoded.functions[0].code[1].op == ir::Op::IsNoneJumpIfFalse && decoded.functions[0].code[1].c == 0,
++      "new provenance opcode roundtrips alongside unchanged legacy nonzero-c instructions");
++}
++
++} // namespace xlang3::test
+diff --git a/tests/fixtures/core/identity_last_use.py b/tests/fixtures/core/identity_last_use.py
+new file mode 100644
+index 00000000..49639c1a
+--- /dev/null
++++ b/tests/fixtures/core/identity_last_use.py
+@@ -0,0 +1,330 @@
++"""Identity comparisons retire temporary owners without consuming real aliases."""
++import gc
++import sys
++import weakref
++
++events = []
++
++
++class Item:
++    def __init__(self, name):
++        self.name = name
++
++    def __del__(self):
++        events.append(self.name)
++
++
++# Keep this original module-level construction and post-deletion observation:
++# an unrelated external owner releases the object after the weakref result dies.
++item = Item('external')
++holder = [item]
++reference = weakref.ref(item)
++del item
++assert reference() is not None
++holder.clear()
++assert reference() is None and events == ['external'], events
++print('module weakref observation does not retain the external owner: OK')
++
++
++def make(name):
++    return Item(name)
++
++
++events.clear()
++decision = make('straight') is not None
++assert decision and events == ['straight'], events
++if make('taken') is None:
++    raise AssertionError('wrong identity result')
++assert events == ['straight', 'taken'], events
++if make('untaken') is not None:
++    assert events == ['straight', 'taken', 'untaken'], events
++assert make('left') is not make('right')
++assert events[-2:] == ['right', 'left'], events
++print('straight and fused identity comparisons preserve finalizer order: OK')
++
++
++def keep_aliases():
++    item = Item('local alias')
++    reference = weakref.ref(item)
++    alias = item
++    assert reference() is not None and item is alias
++    del item
++    assert reference() is alias and events == []
++    del alias
++    assert reference() is None and events == ['local alias'], events
++
++
++events.clear()
++keep_aliases()
++events.clear()
++for number in range(4):
++    item = Item(number)
++    holder = [item]
++    reference = weakref.ref(item)
++    del item
++    assert reference() is not None
++    holder.clear()
++    assert reference() is None
++    assert events == list(range(number + 1)), events
++print('live local aliases and recreated loop results retain correct ownership: OK')
++
++events.clear()
++resurrected = []
++
++
++class Reentrant:
++    def __del__(self):
++        gc.collect()
++        resurrected.append(self)
++        events.append('resurrected')
++
++
++assert Reentrant() is not None
++assert len(resurrected) == 1 and events == ['resurrected'], events
++resurrected.clear()
++gc.collect()
++assert events == ['resurrected'], events
++print('temporary finalizers can reenter collection and resurrect their object: OK')
++
++active = []
++unraisable = []
++
++
++class Failing:
++    def __del__(self):
++        active.append(type(sys.exception()).__name__)
++        raise LookupError('identity finalizer')
++
++
++original_hook = sys.unraisablehook
++sys.unraisablehook = lambda event: unraisable.append(type(event.exc_value).__name__)
++try:
++    try:
++        raise ValueError('outer exception')
++    except ValueError as outer:
++        decision = Failing() is None
++        assert not decision and sys.exception() is outer
++        assert active == ['ValueError'] and unraisable == ['LookupError'], (active, unraisable)
++finally:
++    sys.unraisablehook = original_hook
++print('finalizer failures preserve the handled exception and unraisable hook: OK')
++
++
++def observed():
++    assert make('observed') is not None
++    assert events == ['observed'], events
++
++
++def trace(frame, event, argument):
++    return trace
++
++
++for install in (sys.settrace, sys.setprofile):
++    events.clear()
++    install(trace)
++    try:
++        observed()
++    finally:
++        install(None)
++print('trace and profile retain identity temporary lifetime semantics: OK')
++
++monitoring = sys.monitoring
++watch = None
++seen = []
++none_alias = None
++control = True
++
++
++class Enable:
++    def __del__(self):
++        monitoring.set_local_events(
++            3, watch,
++            monitoring.events.BRANCH_LEFT | monitoring.events.BRANCH_RIGHT | monitoring.events.PY_RETURN,
++        )
++
++
++def none_taken():
++    if Enable() is None:
++        return 0
++    return 1
++
++
++def none_fallthrough():
++    if Enable() is not None:
++        return 1
++    return 0
++
++
++def reversed_none_taken():
++    if None is Enable():
++        return 0
++    return 1
++
++
++def general_taken():
++    if Enable() is object():
++        return 0
++    return 1
++
++
++def general_fallthrough():
++    if Enable() is not object():
++        return 1
++    return 0
++
++
++def alias_none_taken():
++    if Enable() is none_alias:
++        return 0
++    return 1
++
++
++def none_next_branch():
++    if Enable() is None:
++        return 0
++    if control:
++        return 1
++    return 2
++
++
++def resume():
++    return None
++
++
++def none_call_then_branch():
++    if Enable() is None:
++        return 0
++    resume()
++    if control:
++        return 1
++    return 2
++
++
++def not_is_none():
++    if not (Enable() is None):
++        return 1
++    return 0
++
++
++def not_is_not_none():
++    if not (Enable() is not None):
++        return 0
++    return 1
++
++
++def double_not_is_none():
++    if not not (Enable() is None):
++        return 0
++    return 1
++
++
++def double_not_is_not_none():
++    if not not (Enable() is not None):
++        return 1
++    return 0
++
++def multiline_none_taken():
++    if (
++        Enable() is None
++    ):
++        return 0
++    return 1
++
++
++def multiline_none_fallthrough():
++    if (
++        Enable() is not None
++    ):
++        return 1
++    return 0
++
++
++def multiline_not_is_not_none():
++    if not (
++        Enable() is not None
++    ):
++        return 0
++    return 1
++
++
++def multiline_double_not_is_none():
++    if not not (
++        Enable() is None
++    ):
++        return 0
++    return 1
++
++
++def value_probe():
++    decision = Enable() is not None
++    return decision
++
++def left(code, source, destination):
++    seen.append('left')
++
++
++def right(code, source, destination):
++    seen.append('right')
++
++
++def finish(code, offset, value):
++    seen.append('return')
++
++
++# Pin CPython 3.14.7's source shape and entry-direction policy exactly.
++return_only = ['return']
++left_return = ['left', 'return']
++right_return = ['right', 'return']
++right_left_return = ['right', 'left', 'return']
++expected_events = {
++    'none_taken': (return_only, return_only, right_return),
++    'none_fallthrough': (left_return, left_return, left_return),
++    'reversed_none_taken': (right_return, right_return, right_return),
++    'general_taken': (right_return, right_return, right_return),
++    'general_fallthrough': (left_return, left_return, left_return),
++    'alias_none_taken': (right_return, right_return, right_return),
++    'none_next_branch': (left_return, left_return, right_left_return),
++    'none_call_then_branch': (left_return, left_return, right_left_return),
++    'not_is_none': (left_return, left_return, left_return),
++    'not_is_not_none': (return_only, return_only, right_return),
++    'double_not_is_none': (return_only, return_only, right_return),
++    'double_not_is_not_none': (left_return, left_return, left_return),
++    'multiline_none_taken': (return_only, return_only, right_return),
++    'multiline_none_fallthrough': (left_return, left_return, left_return),
++    'multiline_not_is_not_none': (return_only, return_only, right_return),
++    'multiline_double_not_is_none': (return_only, return_only, right_return),
++}
++
++monitoring.use_tool_id(3, 'identity-last-use-phases')
++try:
++    monitoring.register_callback(3, monitoring.events.BRANCH_LEFT, left)
++    monitoring.register_callback(3, monitoring.events.BRANCH_RIGHT, right)
++    monitoring.register_callback(3, monitoring.events.PY_RETURN, finish)
++    for function in (
++        none_taken, none_fallthrough, reversed_none_taken,
++        general_taken, general_fallthrough, alias_none_taken,
++        none_next_branch, none_call_then_branch, not_is_none, not_is_not_none, double_not_is_none, double_not_is_not_none,
++        multiline_none_taken, multiline_none_fallthrough, multiline_not_is_not_none, multiline_double_not_is_none,
++    ):
++        watch = function.__code__
++        for label, entry in (
++            ('off', 0), ('left', monitoring.events.BRANCH_LEFT), ('right', monitoring.events.BRANCH_RIGHT),
++        ):
++            seen.clear()
++            monitoring.set_local_events(3, watch, entry)
++            result = function()
++            monitoring.set_local_events(3, watch, 0)
++            expected = expected_events[function.__name__][('off', 'left', 'right').index(label)]
++            assert result == 1 and seen == expected, (function.__name__, label, result, list(seen), expected)
++    watch = value_probe.__code__
++    seen.clear()
++    assert value_probe() is True
++    assert seen == ['return'], seen
++    monitoring.set_local_events(3, watch, 0)
++finally:
++    monitoring.register_callback(3, monitoring.events.BRANCH_LEFT, None)
++    monitoring.register_callback(3, monitoring.events.BRANCH_RIGHT, None)
++    monitoring.register_callback(3, monitoring.events.PY_RETURN, None)
++    monitoring.free_tool_id(3)
++
++print('identity finalizers preserve CPython monitoring phases: OK')
+diff --git a/tests/fixtures/expected/identity_last_use.out b/tests/fixtures/expected/identity_last_use.out
+new file mode 100644
+index 00000000..730f23a4
+--- /dev/null
++++ b/tests/fixtures/expected/identity_last_use.out
+@@ -0,0 +1,7 @@
++module weakref observation does not retain the external owner: OK
++straight and fused identity comparisons preserve finalizer order: OK
++live local aliases and recreated loop results retain correct ownership: OK
++temporary finalizers can reenter collection and resurrect their object: OK
++finalizer failures preserve the handled exception and unraisable hook: OK
++trace and profile retain identity temporary lifetime semantics: OK
++identity finalizers preserve CPython monitoring phases: OK

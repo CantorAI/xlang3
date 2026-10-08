@@ -1,0 +1,30 @@
+{
+  "status": "scratch-only-unexecuted",
+  "head": "9de05e0d945a2d75ea50dfb7ddba4843363dfe41",
+  "patch": "D:\\CantorAI\\xlang3\\scratch\\performance\\module-slot-loop-ownership-20261008.patch",
+  "patch_sha256": "b2440453fa4118e9d1481e202a60222cb72e107fe2d0543ea32697e682e174d6",
+  "actual_source_sha256_before": {
+    "src/executor/xlang_vm/xlang_frame.h": "e5b752ef013ef9483e51919815e59ac4d11d70b39e6b4f626520a30009dffde3",
+    "tests/cpp/identity_last_use_cases.h": "63b01a3601aa95616eb6bb1b8069923c335ad27ce254660b2aadc94c8ed7b02b"
+  },
+  "actual_source_sha256_after": {
+    "src/executor/xlang_vm/xlang_frame.h": "e5b752ef013ef9483e51919815e59ac4d11d70b39e6b4f626520a30009dffde3",
+    "tests/cpp/identity_last_use_cases.h": "63b01a3601aa95616eb6bb1b8069923c335ad27ce254660b2aadc94c8ed7b02b"
+  },
+  "candidate_source_sha256": {
+    "src/executor/xlang_vm/xlang_frame.h": "e80c7dee12bf9594d62547fff8e7060b1375d773c840148aba4b72b4b5fc99c6",
+    "tests/cpp/identity_last_use_cases.h": "0bc070ab97c154f98c096bc14ffb677c11899e598fb9125b5fa62b96d90c8e92"
+  },
+  "unchanged_frozen_sha256": {
+    "tests/fixtures/core/identity_last_use.py": "59bf91eacb4d738d7a7ccfdf2590fa79670192bc6410a5775121345c77550cb4",
+    "tests/fixtures/expected/identity_last_use.out": "be5a71bfe8c5071242d0acf992e8fa4d63515d12c09c28c70d9cff3b0c043d6d",
+    "scratch/performance/identity-last-use-r2-proposal-20261008.patch": "70cff5cc3dda8d2ed92fe0b5dfe28b868e9e7432071f831eb5de2bd4a7cd58e7",
+    "scratch/performance/native-bound-zero-args-proposal-20261008.patch": "e9e73bff7b756adba34e2763cf522c447a80ca9a56e119e1ff54c3f7429647d1"
+  },
+  "source_root": "D:\\CantorAI\\xlang3\\scratch\\performance\\module-slot-loop-ownership-20261008-sources",
+  "candidate_root": "D:\\CantorAI\\xlang3\\scratch\\performance\\module-slot-loop-ownership-20261008-candidates",
+  "git_apply_check_exit": 0,
+  "compiler_run": false,
+  "runtime_run": false,
+  "tests_run": false
+}

@@ -1,0 +1,31 @@
+{
+  "status": "terminal",
+  "command": [
+    "C:\\Python\\Python314\\python.exe",
+    "benchmarks/diagnostics/run_pyperformance_xlang3_shimmed.py",
+    "--runtime",
+    "D:\\CantorAI\\xlang3\\build-repro\\controls\\inherited-slot-proof-checkpoint-20261008\\xlang3.exe",
+    "--benchmarks",
+    "sqlglot_v2_parse",
+    "--mode",
+    "fast",
+    "--case-timeout",
+    "300",
+    "--dependency-site",
+    "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages",
+    "--output",
+    "D:\\CantorAI\\xlang3\\doc\\performance\\data\\exact-string-hash-control-sqlglot-20261008.json"
+  ],
+  "hashes_before": {
+    "D:\\CantorAI\\xlang3\\build-repro\\controls\\inherited-slot-proof-checkpoint-20261008\\xlang3.exe": "31f9a848f78c7dfae4c59dc6cd0016815549d6d67409276fcaecadae504d5958",
+    "D:\\CantorAI\\xlang3\\build-repro\\controls\\inherited-slot-proof-checkpoint-20261008\\xlang3_runtime.dll": "162712ce27bc1e57325e0bc15fbe69f11341542c202ad6c5e5f0b16be7e78dfd",
+    "D:\\CantorAI\\xlang3\\src\\runtime\\value_hash.cpp": "aeb9abb4697569a3b28485000337e31d21f2cd9227dbf2ea0e76e2e125d439ed",
+    "C:\\Python\\Python314\\Lib\\site-packages\\pyperformance\\data-files\\benchmarks\\bm_sqlglot_v2\\run_benchmark.py": "d97aaba24f8c49f2afe5c5c740c568be6e89dde3364d5a964a4b72e5a4768a9b",
+    "D:\\CantorAI\\xlang3\\benchmarks\\diagnostics\\pyperf_compat\\sitecustomize.py": "2ffc217fe20497156bfcb1cebc7fb87203f33c6d4d3dbb6ecbcbcf91ea4cb317"
+  },
+  "exit_code": 0,
+  "hashes_unchanged": true,
+  "log_sha256": "ea5ae763f7ba16ed06ad4b7b7bce0b61a83bb167d507fef0cb0b507af8e412ba",
+  "output_sha256": "0ba6da6d24deca35691cfd6d069208e231da02af77e66df2312d22aa31bf4b50",
+  "terminal": true
+}

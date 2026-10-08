@@ -1,0 +1,14 @@
+{
+  "status": "frozen_unexecuted_controller",
+  "controller": "scratch/performance/validate-sqlite-identity-hash-combined-20261008.py",
+  "controller_sha256": "b74e9bf1cf4c2bcec5423080bfe38e40dd3fcade41d8e3af21f86e5fcbc37adf",
+  "controller_bytes": 22858,
+  "usage": "scratch/performance/combined-validation-controller-usage-20261008.txt",
+  "usage_sha256": "a263f425b9406aafbf279ff7945844b366a7c12cec03a1ca1ccf64249672f0b5",
+  "fixture_registration_patch": "scratch/performance/hash-exception-fixture-registration-proposed-20261008.patch",
+  "fixture_registration_patch_sha256": "e6181b6f6e661c84ad9e22854f2a0d6dbc3bd44077308aa144cc2762443adf4b",
+  "fixture_registration_apply_check_exit_code": 0,
+  "static_ast_parse": "CPython3.14.7 AST only, passed; no controller/fixture/benchmark execution",
+  "source_inventory": "supplied externally only after parent final apply/build",
+  "sqlite_exporter_sha256": "0140f21ac3e28694f18a9afd71c2cacccf2ec76b95854fa1561d7829d6d280f5"
+}

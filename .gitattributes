@@ -192,3 +192,16 @@
 /doc/performance/inherited-slot-proof-checkpoint-20261008.md text eol=lf
 /doc/performance/inherited-slot-proof-diagnostic-speed-20261008.svg text eol=lf
 /doc/performance/inherited-slot-proof-official-speed-20261008.svg text eol=lf
+
+# Exact bytes for the string dispatch comparison and its archived source evidence.
+/doc/performance/data/exact-string-hash-dispatch-20261008* -text
+/doc/performance/data/exact-string-hash-dispatch-20261008-sources/** -text
+/doc/performance/exact-string-hash-dispatch-20261008.md text eol=lf
+
+/doc/performance/data/sqlite-aggregate-combined-checkpoint-20261008* -text
+/doc/performance/data/sqlite-aggregate-combined-checkpoint-20261008-sources/** -text
+/doc/performance/sqlite-aggregate-combined-checkpoint-20261008.md text eol=lf
+/doc/performance/charts/sqlite-aggregate-combined-checkpoint-20261008.svg -text
+/doc/performance/data/sqlite-identity-hash-loop-proof-* -text
+/doc/performance/data/sqlite-identity-hash-checkpoint-20261008-summary.json -text
+/doc/performance/sqlite-identity-hash-checkpoint-20261008.md text eol=lf

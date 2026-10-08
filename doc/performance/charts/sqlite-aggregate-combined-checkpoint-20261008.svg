@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="240" viewBox="0 0 980 240">
+<rect width="980" height="240" fill="#ffffff"/>
+<text x="24" y="32" font-family="Arial" font-size="20">Original sqlite_synth — CPython 3.14.7 = 1×</text>
+<text x="24" y="56" font-family="Arial" font-size="13">Speed = CPython mean time / runtime mean time. Higher is faster.</text>
+<text x="24" y="108" font-family="Arial" font-size="15">CPython 3.14.7</text>
+<rect x="205" y="86" width="513.043" height="32" fill="#64748b"/>
+<text x="733.043" y="108" font-family="Arial" font-size="15">1.000×</text>
+<text x="24" y="167" font-family="Arial" font-size="15">XLang3 candidate</text>
+<rect x="205" y="145" width="135.453" height="32" fill="#2563eb"/>
+<text x="355.453" y="167" font-family="Arial" font-size="15">0.264×</text>
+<text x="24" y="220" font-family="Arial" font-size="12">20 measured values each; warmups/calibrations remain in original JSON. See report for warnings.</text>
+</svg>

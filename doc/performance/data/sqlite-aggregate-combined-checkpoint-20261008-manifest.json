@@ -1,0 +1,1448 @@
+{
+  "status": "saved_terminal_evidence_export",
+  "validation": "sqlite-identity-hash-loop-proof-validation-20261008.json",
+  "validation_status": "validated",
+  "official_scored": true,
+  "official_samples": 40,
+  "source_inventory_count": 31,
+  "inputs": [
+    {
+      "source": "doc/performance/data/sqlite-identity-hash-loop-proof-validation-20261008.json",
+      "sha256": "5e4c3df83a8082f02a73a399a0ae3e20ac48ffda46885b2531ff9c48b3b1cc50",
+      "bytes": 324548,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-identity-hash-loop-proof-validation-20261008.json"
+    },
+    {
+      "source": "doc/performance/data/sqlite-identity-hash-loop-proof-validation-20261008-focused-sqlite-native-aggregate.stdout.log",
+      "sha256": "8f6ebc7a41de49cbe5f10eb5562fa88587df0bed67240dba4a7f5fc5f9edb2ba",
+      "bytes": 179,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-identity-hash-loop-proof-validation-20261008-focused-sqlite-native-aggregate.stdout.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-identity-hash-loop-proof-validation-20261008-focused-sqlite-native-aggregate.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-identity-hash-loop-proof-validation-20261008-focused-sqlite-native-aggregate.stderr.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-identity-hash-loop-proof-validation-20261008-focused-sqlite-cursor-completion.stdout.log",
+      "sha256": "ee14063d1e39079883efe711f04242b1b70e33d8d9d5ea073f85255784b73df6",
+      "bytes": 260,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-identity-hash-loop-proof-validation-20261008-focused-sqlite-cursor-completion.stdout.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-identity-hash-loop-proof-validation-20261008-focused-sqlite-cursor-completion.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-identity-hash-loop-proof-validation-20261008-focused-sqlite-cursor-completion.stderr.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-identity-hash-loop-proof-validation-20261008-focused-identity-last-use.stdout.log",
+      "sha256": "be5a71bfe8c5071242d0acf992e8fa4d63515d12c09c28c70d9cff3b0c043d6d",
+      "bytes": 492,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-identity-hash-loop-proof-validation-20261008-focused-identity-last-use.stdout.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-identity-hash-loop-proof-validation-20261008-focused-identity-last-use.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-identity-hash-loop-proof-validation-20261008-focused-identity-last-use.stderr.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-identity-hash-loop-proof-validation-20261008-focused-hash-exception-preservation.stdout.log",
+      "sha256": "d6b626f45bea180d87ae227099885d951f70f580a03bd5254a45c42b6379e859",
+      "bytes": 157,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-identity-hash-loop-proof-validation-20261008-focused-hash-exception-preservation.stdout.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-identity-hash-loop-proof-validation-20261008-focused-hash-exception-preservation.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-identity-hash-loop-proof-validation-20261008-focused-hash-exception-preservation.stderr.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-identity-hash-loop-proof-validation-20261008-focused-exact-string-hash.stdout.log",
+      "sha256": "ed8793bedad4f781d719b81cddb118bcf1cefc7cd6127be9de888cd090c380e2",
+      "bytes": 146,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-identity-hash-loop-proof-validation-20261008-focused-exact-string-hash.stdout.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-identity-hash-loop-proof-validation-20261008-focused-exact-string-hash.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-identity-hash-loop-proof-validation-20261008-focused-exact-string-hash.stderr.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-identity-hash-loop-proof-validation-20261008-focused-cursor-writer-guards.stdout.log",
+      "sha256": "ccdd1a8347641063fbfa3d17641ee8576ce982fcc73b65457240fd7de9715f96",
+      "bytes": 161,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-identity-hash-loop-proof-validation-20261008-focused-cursor-writer-guards.stdout.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-identity-hash-loop-proof-validation-20261008-focused-cursor-writer-guards.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-identity-hash-loop-proof-validation-20261008-focused-cursor-writer-guards.stderr.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-identity-hash-loop-proof-validation-20261008-ctest-inventory.stdout.log",
+      "sha256": "17bc6e61084e616bfb4d1aea2fddfa527e1e1cb147419f45937f6abb45c39fa7",
+      "bytes": 8756,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-identity-hash-loop-proof-validation-20261008-ctest-inventory.stdout.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-identity-hash-loop-proof-validation-20261008-ctest-inventory.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-identity-hash-loop-proof-validation-20261008-ctest-inventory.stderr.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-identity-hash-loop-proof-validation-20261008-cpp-native-sqlite.stdout.log",
+      "sha256": "e6bc2d01d604d55b4efea16e5284ba065e8cea91094dc7d0ccf23dd793d00bd3",
+      "bytes": 1171,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-identity-hash-loop-proof-validation-20261008-cpp-native-sqlite.stdout.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-identity-hash-loop-proof-validation-20261008-cpp-native-sqlite.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-identity-hash-loop-proof-validation-20261008-cpp-native-sqlite.stderr.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-identity-hash-loop-proof-validation-20261008-manual-old-xlang-sqlite-api.stdout.log",
+      "sha256": "36449d6aaa8b51b49315f871c305cf5e7568199909ce178a331245b7fe4a6a92",
+      "bytes": 237,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-identity-hash-loop-proof-validation-20261008-manual-old-xlang-sqlite-api.stdout.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-identity-hash-loop-proof-validation-20261008-manual-old-xlang-sqlite-api.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-identity-hash-loop-proof-validation-20261008-manual-old-xlang-sqlite-api.stderr.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-identity-hash-loop-proof-validation-20261008-manual-python-sqlite3-api.stdout.log",
+      "sha256": "c9ae392c8a76084bb521fcd89dc73d8617755aae1741c705f2ba60efe9606ecb",
+      "bytes": 538,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-identity-hash-loop-proof-validation-20261008-manual-python-sqlite3-api.stdout.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-identity-hash-loop-proof-validation-20261008-manual-python-sqlite3-api.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-identity-hash-loop-proof-validation-20261008-manual-python-sqlite3-api.stderr.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-identity-hash-loop-proof-validation-20261008-full-fixtures-core-compat-expected.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-identity-hash-loop-proof-validation-20261008-full-fixtures-core-compat-expected.stdout.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-identity-hash-loop-proof-validation-20261008-full-fixtures-core-compat-expected.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-identity-hash-loop-proof-validation-20261008-full-fixtures-core-compat-expected.stderr.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-identity-hash-loop-proof-validation-20261008-fixed-gate.stdout.log",
+      "sha256": "41a063cccbd479edaea4b2b2bb84667deab8f9731d6e1347c7b73f09d1d3a561",
+      "bytes": 648,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-identity-hash-loop-proof-validation-20261008-fixed-gate.stdout.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-identity-hash-loop-proof-validation-20261008-fixed-gate.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-identity-hash-loop-proof-validation-20261008-fixed-gate.stderr.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-identity-hash-loop-proof-validation-20261008-official-sqlite-synth.stdout.log",
+      "sha256": "bf13c19710e267bfbdbcf6d9eb5d17ed3ebeb6cec0ff0e1449060a00bda91f97",
+      "bytes": 858,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-identity-hash-loop-proof-validation-20261008-official-sqlite-synth.stdout.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-identity-hash-loop-proof-validation-20261008-official-sqlite-synth.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-identity-hash-loop-proof-validation-20261008-official-sqlite-synth.stderr.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-identity-hash-loop-proof-validation-20261008-official-sqlglot-v2-parse.stdout.log",
+      "sha256": "1fae7f6306de39c8984e33855d237e767679051c5b7eb8699ab88fc948a0c0d9",
+      "bytes": 872,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-identity-hash-loop-proof-validation-20261008-official-sqlglot-v2-parse.stdout.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-identity-hash-loop-proof-validation-20261008-official-sqlglot-v2-parse.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-identity-hash-loop-proof-validation-20261008-official-sqlglot-v2-parse.stderr.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-identity-hash-loop-proof-final-source-20261008.json",
+      "sha256": "4e7b813e33c96821aace8714fa549679bd3b2c1da624a88678037e3b99206cc0",
+      "bytes": 5534,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-identity-hash-loop-proof-final-source-20261008.json"
+    },
+    {
+      "source": "modules/sqlite/sqlite_handles.h",
+      "sha256": "14bac0cb256d3fd86fd9422ba7b423cb16ae6a5185c714d5f71fa84a34e8c620",
+      "bytes": 2120,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/modules/sqlite/sqlite_handles.h"
+    },
+    {
+      "source": "modules/sqlite/sqlite_package.cpp",
+      "sha256": "e4349e80b5c519b290853c1ac80443a5351f4d4f9def41449af71c3d1178457d",
+      "bytes": 88934,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/modules/sqlite/sqlite_package.cpp"
+    },
+    {
+      "source": "modules/sqlite/sqlite_values.cpp",
+      "sha256": "c691c90ba6b7a43c12bce47dfef75101b22b76732303a196ac30b9d6ad3533dc",
+      "bytes": 5785,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/modules/sqlite/sqlite_values.cpp"
+    },
+    {
+      "source": "sdk/xlang3/abi/xmodule.h",
+      "sha256": "7aa4ae5bcbfd266741ce592d1b2821f112a21ceb1a6ebdeaedea8ddf1d7cbded",
+      "bytes": 10513,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/sdk/xlang3/abi/xmodule.h"
+    },
+    {
+      "source": "src/builtins/functional_builtins.cpp",
+      "sha256": "bc9bf733c5bd0564edb38693eb8616808519c30145c80c71918b64a7401f33ce",
+      "bytes": 235180,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/src/builtins/functional_builtins.cpp"
+    },
+    {
+      "source": "src/executor/xlang_vm/ops/xlang_vm_ops_arithmetic.h",
+      "sha256": "e9ef84b3936ab301d33de6ab5236b486ad0ded16db62cba44d96f04980b3ab57",
+      "bytes": 49270,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/src/executor/xlang_vm/ops/xlang_vm_ops_arithmetic.h"
+    },
+    {
+      "source": "src/executor/xlang_vm/xlang_frame.h",
+      "sha256": "3cf2b395131e1b2ab460bbb0a0126d22d6fae1614f979f9d01650aa0574c5992",
+      "bytes": 53218,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/src/executor/xlang_vm/xlang_frame.h"
+    },
+    {
+      "source": "src/executor/xlang_vm/xlang_vm_op_rows.h",
+      "sha256": "59b070aff17647ee1c333be02657699e11bb0c28b91612fc31dec41cafaecfbd",
+      "bytes": 29533,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/src/executor/xlang_vm/xlang_vm_op_rows.h"
+    },
+    {
+      "source": "src/import/native_package_loader.cpp",
+      "sha256": "c3196390d2ca48d4e67a6492277ddf98ad1a3c05c1ce01f53d4cc341cfbd6a00",
+      "bytes": 41572,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/src/import/native_package_loader.cpp"
+    },
+    {
+      "source": "src/internal/xlang3/ir.h",
+      "sha256": "2c7a6ec831c9ead4df9c35745131d02d0ce44ed1749f137c05267e19e23700e9",
+      "bytes": 12648,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/src/internal/xlang3/ir.h"
+    },
+    {
+      "source": "src/ir/codec.cpp",
+      "sha256": "6726f090de59651f7570007c130e2b7129fac3a2133f67905c374d841f9da384",
+      "bytes": 37436,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/src/ir/codec.cpp"
+    },
+    {
+      "source": "src/ir/dump.cpp",
+      "sha256": "f21ba927c25f7c1d272b18840694635e1883849cb07f6d45653045659ba08039",
+      "bytes": 17817,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/src/ir/dump.cpp"
+    },
+    {
+      "source": "src/runtime/value_hash.cpp",
+      "sha256": "aeb9abb4697569a3b28485000337e31d21f2cd9227dbf2ea0e76e2e125d439ed",
+      "bytes": 26073,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/src/runtime/value_hash.cpp"
+    },
+    {
+      "source": "src/sema/lower.cpp",
+      "sha256": "ef8bf0b3185ee4d13180cd5be50e66a85ac255621983123570af55f35a4f9cbd",
+      "bytes": 316884,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/src/sema/lower.cpp"
+    },
+    {
+      "source": "tests/cpp/hash_exception_cases.h",
+      "sha256": "3eba7cbdb81eaed2893ab62f8ce94636c0441f2614d4ba145abd639fa4a0a06d",
+      "bytes": 5056,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/tests/cpp/hash_exception_cases.h"
+    },
+    {
+      "source": "tests/cpp/identity_last_use_cases.h",
+      "sha256": "d719e470cd684456945fd7dfc9ebd0954905227aff346ad2764185280143b28c",
+      "bytes": 22971,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/tests/cpp/identity_last_use_cases.h"
+    },
+    {
+      "source": "tests/cpp/interpreter_tests.cpp",
+      "sha256": "1f1fcf9973a26b61f276105c3381ed375fc661a01a476a44438a14be3188dbfd",
+      "bytes": 28846,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/tests/cpp/interpreter_tests.cpp"
+    },
+    {
+      "source": "tests/cpp/sqlite_aggregate_abi_cases.h",
+      "sha256": "424debac1951802dba2619736f4d935502ad261cc82bc13247beb27adac69f0a",
+      "bytes": 13254,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/tests/cpp/sqlite_aggregate_abi_cases.h"
+    },
+    {
+      "source": "tests/cpp/sqlite_aggregate_sdk_probe.py",
+      "sha256": "318c0a6e64b6c1cbb4f4a6cfa2b49b6186d271ae4bbfc09e04109d606649bc18",
+      "bytes": 918,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/tests/cpp/sqlite_aggregate_sdk_probe.py"
+    },
+    {
+      "source": "tests/fixtures/core/hash_exception_preservation.py",
+      "sha256": "f7378cf25ff91efe12773b7ad5aa5c45038a4d5ab7e7e957f90f6ec088aae150",
+      "bytes": 2435,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/tests/fixtures/core/hash_exception_preservation.py"
+    },
+    {
+      "source": "tests/fixtures/core/identity_last_use.py",
+      "sha256": "59bf91eacb4d738d7a7ccfdf2590fa79670192bc6410a5775121345c77550cb4",
+      "bytes": 8952,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/tests/fixtures/core/identity_last_use.py"
+    },
+    {
+      "source": "tests/fixtures/core/sqlite_cursor_completion.py",
+      "sha256": "3d3f6071911c60a54a3dbed4a6da8062a0fe76e92c83d6e7a92cb94fa84c80d6",
+      "bytes": 3650,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/tests/fixtures/core/sqlite_cursor_completion.py"
+    },
+    {
+      "source": "tests/fixtures/core/sqlite_native_aggregate.py",
+      "sha256": "5e8b444a8f47eae17d597bbea7455f0b8301102ffe89c016b76fde1474a9a650",
+      "bytes": 9045,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/tests/fixtures/core/sqlite_native_aggregate.py"
+    },
+    {
+      "source": "tests/fixtures/expected/hash_exception_preservation.out",
+      "sha256": "d6b626f45bea180d87ae227099885d951f70f580a03bd5254a45c42b6379e859",
+      "bytes": 157,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/tests/fixtures/expected/hash_exception_preservation.out"
+    },
+    {
+      "source": "tests/fixtures/expected/identity_last_use.out",
+      "sha256": "be5a71bfe8c5071242d0acf992e8fa4d63515d12c09c28c70d9cff3b0c043d6d",
+      "bytes": 492,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/tests/fixtures/expected/identity_last_use.out"
+    },
+    {
+      "source": "tests/fixtures/expected/sqlite_cursor_completion.out",
+      "sha256": "ee14063d1e39079883efe711f04242b1b70e33d8d9d5ea073f85255784b73df6",
+      "bytes": 260,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/tests/fixtures/expected/sqlite_cursor_completion.out"
+    },
+    {
+      "source": "tests/fixtures/expected/sqlite_native_aggregate.out",
+      "sha256": "8f6ebc7a41de49cbe5f10eb5562fa88587df0bed67240dba4a7f5fc5f9edb2ba",
+      "bytes": 179,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/tests/fixtures/expected/sqlite_native_aggregate.out"
+    },
+    {
+      "source": "tests/run_fixtures.ps1",
+      "sha256": "d1cd79b629e8a3de390df8503162d6e1d5a9802e70f9bcb703378d2e9e25662d",
+      "bytes": 14290,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/tests/run_fixtures.ps1"
+    },
+    {
+      "source": "tests/run_fixtures.py",
+      "sha256": "7cb0f7cfc818360f78773c3a3fba52b56c5ee7ea12d2912e92ecf6b2406f6144",
+      "bytes": 12394,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/tests/run_fixtures.py"
+    },
+    {
+      "source": "src/executor/xlang_vm/xlang_vm_inline_support.h",
+      "sha256": "e7443366a917f5ac98c6df3f83dbf695287c56ee0f2be89b34fbe2c73334d86f",
+      "bytes": 123921,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/src/executor/xlang_vm/xlang_vm_inline_support.h"
+    },
+    {
+      "source": "src/executor/xlang_vm/ops/xlang_vm_ops_call.h",
+      "sha256": "987c9baf0e489ce661cfaab4e6e968484f7ada8ffad391b4677c7a3e17cfc8a6",
+      "bytes": 231269,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/src/executor/xlang_vm/ops/xlang_vm_ops_call.h"
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/_argon2_cffi_bindings._ffi.x3pkg.dll",
+      "sha256": "5e63a3ddf31187bbb0309d241cfa5e13491de37509c7a87a9789fceed2c85c0f",
+      "bytes": 194048,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/_brotli.x3pkg.dll",
+      "sha256": "b12a085bb360c8ae989a054547f7c709da73856d90bdd41cd3a8912523344ad8",
+      "bytes": 978432,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/_cffi_backend.x3pkg.dll",
+      "sha256": "c4b106a1d9d73611e4cbacb0e6cbff2201834152dbc132610791e833a9a4092f",
+      "bytes": 215552,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/_zstd.x3pkg.dll",
+      "sha256": "a6a488ee1a24c18f4d2b23f7e42e46e174f4a5fc76d7152802a0554d83f45772",
+      "bytes": 582656,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/cryptography.hazmat.bindings._rust.x3pkg.dll",
+      "sha256": "41dc824b8d534d8bba293036b6910f470629dbf630ff30c2adbeaa0acb941951",
+      "bytes": 4265472,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/httptools.parser.parser.x3pkg.dll",
+      "sha256": "9f8d0d7adbd17d29b1dded060a464abc1a8569d97c78e8d7a9cecb77acf3073d",
+      "bytes": 175616,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/httptools.parser.url_parser.x3pkg.dll",
+      "sha256": "edbda48a9d23f47fff9d734bf404bc665fb4d82d37a8b20f642338adf87c7254",
+      "bytes": 136192,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/mmap.x3pkg.dll",
+      "sha256": "f503d4f7796022a2b954618f02514508b1f573abc9604990478119087fb035f5",
+      "bytes": 145408,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/modules/_argon2_cffi_bindings._ffi.x3pkg.dll",
+      "sha256": "9a3e5cde168f60c533d7fa1e5e41f05a1e96a608803eda47bddd0af0b92f0667",
+      "bytes": 194048,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/modules/_brotli.x3pkg.dll",
+      "sha256": "a43835ffd2bea6a091df27e6e1e3971331a7eeb96fdbd5b147c1fbbe3c2f3311",
+      "bytes": 978432,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/modules/_cffi_backend.x3pkg.dll",
+      "sha256": "e971c46c1b87b19d019d5d44f843034308c4c415435cf21b5ad76a823090682e",
+      "bytes": 215552,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/modules/_zstd.x3pkg.dll",
+      "sha256": "591fa88334d437472babb705bbd0769873506c8780533fccdf63d265f9c69c33",
+      "bytes": 582656,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/modules/cryptography.hazmat.bindings._rust.x3pkg.dll",
+      "sha256": "479a267e442707a34a67743dbdf84d0badc25fc82f9ce8d17c2bf6a7adbaafc8",
+      "bytes": 4265472,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/modules/httptools.parser.parser.x3pkg.dll",
+      "sha256": "1baca62c77d276801f35f62ea7db6d1f05d3ae43553c79858d79494cdfd67815",
+      "bytes": 175616,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/modules/httptools.parser.url_parser.x3pkg.dll",
+      "sha256": "a3cb43df0e71d0a79d8a9b16ff88fb9824b96b1b1119f233ed8d438b415eaf24",
+      "bytes": 136192,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/modules/mmap.x3pkg.dll",
+      "sha256": "538e181e244ab2d55502834a55d297a529fb73c4d736aa626ad37795e399265c",
+      "bytes": 145408,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/modules/psutil._psutil_windows.x3pkg.dll",
+      "sha256": "32f0250b27b8b45b8a6dbf03e9c317d4f1f6417aea0205739bc32a40aa5432b3",
+      "bytes": 182272,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/modules/pydantic_core._pydantic_core.x3pkg.dll",
+      "sha256": "243f29df3c4d8f4b312919b19df24b2f27f7a602a654332d563b8e7b3355e15f",
+      "bytes": 3066880,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/modules/rpds.rpds.x3pkg.dll",
+      "sha256": "856ba50ad598d23432085a8f1db266821142be96898ab9a3d3ef1bec3b3b2134",
+      "bytes": 305664,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/modules/xlang1_compat_sample.x3pkg.dll",
+      "sha256": "9468633701f943a31ee9126fb24023bd72fb8cea92d3b853baa7e2dcfca76489",
+      "bytes": 205312,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/modules/xlang__blake2.x3pkg.dll",
+      "sha256": "d1dc8469d59900b85783e4a5a9f3f899748fa27115709868a532fd068e3c9c3c",
+      "bytes": 137728,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/modules/xlang__hashlib.x3pkg.dll",
+      "sha256": "6e26d3dd819f751950558c8e7695ac6b3fd29fd9d1b54f88f30f7b00d885d384",
+      "bytes": 3916800,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/modules/xlang__ssl.x3pkg.dll",
+      "sha256": "aeac669c50f2c78b3a281119728aca01d01871fa29cab2feab1351496e8dfb96",
+      "bytes": 4781568,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/modules/xlang_curmodule_probe.x3pkg.dll",
+      "sha256": "4057f59f8268d3d94551a5bd096d431d1727cc09433f85fd5bc8835900768f99",
+      "bytes": 14848,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/modules/xlang_device.x3pkg.dll",
+      "sha256": "9c2d0b7d9d6c5de3cfc405ade9a3408952372f2467e7349ccd7640a96225a5e8",
+      "bytes": 141312,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/modules/xlang_graph_native.x3pkg.dll",
+      "sha256": "a17c49b0810c9894f2e67313ddbf9b38d6a96030b99a44b025434de9bd90910f",
+      "bytes": 59904,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/modules/xlang_json.x3pkg.dll",
+      "sha256": "eade9bb4b73ee83748e21a16f64f37249056cfbf5aadc6d6f64776dc3265ab28",
+      "bytes": 172032,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/modules/xlang_net.x3pkg.dll",
+      "sha256": "af1e501a0a0d00d710a3cda4c1e1b008462caa06505aa280a42d281af58187cd",
+      "bytes": 6201344,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/modules/xlang_sqlite3.x3pkg.dll",
+      "sha256": "dac3fdda223d5d91367ad7bfbf839bf061c6d9287dfab7298038004c7626936d",
+      "bytes": 1063936,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/modules/xlang_yaml.x3pkg.dll",
+      "sha256": "42ada58589b1cc302029e3c2a414c46431cc7fdd069286237f6f354fe8c6a783",
+      "bytes": 352768,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/modules/zstandard.backend_c.x3pkg.dll",
+      "sha256": "3a4ae5d3c73ed8088d94040a0ae038df7232decbdd5351609a7de6e19c852022",
+      "bytes": 576512,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/psutil._psutil_windows.x3pkg.dll",
+      "sha256": "aeaadd62012b195a931f4d35c68eaddcc58fc482ea6a6d963bd08562245e061f",
+      "bytes": 182272,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/pydantic_core._pydantic_core.x3pkg.dll",
+      "sha256": "c7dea7ee7716078cd744cf6d6a7d08477713333db4d4f03543496bc5046424e6",
+      "bytes": 3066880,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/rpds.rpds.x3pkg.dll",
+      "sha256": "8df7c0ea3aa8a0248ba53bb08c871a60627dc70302ba264e7ff759bab61ac145",
+      "bytes": 305664,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/xlang1_compat_sample.x3pkg.dll",
+      "sha256": "0e501c3d5e58f4413f24ea78d6816b5abbb18f27eb06bcb7369a7ef336f6289e",
+      "bytes": 205312,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/xlang__blake2.x3pkg.dll",
+      "sha256": "c7c52a771c328e443b3b9c2a13067fcbf4fcae4838e17f5c44242e3c36241d68",
+      "bytes": 137728,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/xlang__hashlib.x3pkg.dll",
+      "sha256": "5910f087e300459b854dca0046ac61125287e7d62bf330a3d626631d9a74b239",
+      "bytes": 3916800,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/xlang__ssl.x3pkg.dll",
+      "sha256": "1c01c0600681ee1f37244b2f96f8562a14881a9f0f84d417af6a8ecc9bb0889c",
+      "bytes": 4781568,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/xlang_curmodule_probe.x3pkg.dll",
+      "sha256": "8c37613b80ad573ec302b1012feb2c8714e3f4d682eab1828e86ef47ec9e1909",
+      "bytes": 14848,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/xlang_device.x3pkg.dll",
+      "sha256": "2ae2e314025b899f5b434658cee0f1d2d70b89c5aeeb7b94ffa9eb8833ce12b0",
+      "bytes": 141312,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/xlang_graph_native.x3pkg.dll",
+      "sha256": "604db04686b43eb3d12fdbb2945c9b3c5af010f3d842103551fe63dd05849bf5",
+      "bytes": 59904,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/xlang_json.x3pkg.dll",
+      "sha256": "d8fa3264318a8a973c1272a3f908259a876b67959e4de86a59e5f5d0f42398b7",
+      "bytes": 172032,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/xlang_net.x3pkg.dll",
+      "sha256": "b5a3c71f36eac9c82a264ab45f3b4be15463b7b1bfe352bc662e4cd29e8075bd",
+      "bytes": 6201344,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/xlang_sqlite3.x3pkg.dll",
+      "sha256": "e1ec4a03fa242b161ba1f8834a43c983d04b0f9b78542c9900c9595fc64a4044",
+      "bytes": 1099776,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/xlang_yaml.x3pkg.dll",
+      "sha256": "5232bd1187ac429151ba7879de44e116a4a97ce80355b3d9230b4365946ee798",
+      "bytes": 352768,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/zstandard.backend_c.x3pkg.dll",
+      "sha256": "86098ae832848f2a835452bb2d219850755caf9cd3f1fbfd13c9d36e88b02867",
+      "bytes": 576512,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/python.exe",
+      "sha256": "ce91860370312b46b68d20a63813e489efab3e8d921e4278d663418852d00873",
+      "bytes": 187904,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/xlang3-baseline-20261006.exe",
+      "sha256": "ff66e309bed7f3226f52f59e06842f448992f31805d54685ea755365ccd2d389",
+      "bytes": 187904,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/xlang3-candidate-memview-20261006.exe",
+      "sha256": "d8d151806be42ba0ea61fd67a404dd130c3a3cea6e08550854e4e13fdbae8fba",
+      "bytes": 187904,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/xlang3-candidate-valuecounter-20261006.exe",
+      "sha256": "e22b6fce0f04c8a8affa7efd15607b64fc38870ea6b584940993a97a0b0a2e36",
+      "bytes": 186880,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/xlang3.exe",
+      "sha256": "ce91860370312b46b68d20a63813e489efab3e8d921e4278d663418852d00873",
+      "bytes": 187904,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/xlang3_abi_ownership.exe",
+      "sha256": "034e3256383da7dbb7e1e5ad19e43114376badfd8f8c45e874565de800107467",
+      "bytes": 28160,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/xlang3_charconv_compat_tests.exe",
+      "sha256": "8cf96429f08975a5ac552314b8c9b036259c5d12b446b91e0c0ffb6bcc5694cc",
+      "bytes": 31232,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/xlang3_cpp_ipc_client.exe",
+      "sha256": "1a4a5dcb1b6743cc1c31bdf15743d1aa96d440b8967f64194b7d4363de33a778",
+      "bytes": 56320,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/xlang3_dap_session_tests.exe",
+      "sha256": "c9c3e708ff0d70d563d13ccd1b5a9a0c14a1337d6329e926b797aa4bf4dbb3c4",
+      "bytes": 166912,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/xlang3_debug_session_tests.exe",
+      "sha256": "3ecdd292bbd8569369e9c4dbd6612ffce4e83871c7a4713ab71c779f54cae3bf",
+      "bytes": 34816,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/xlang3_embedded_package_tests.exe",
+      "sha256": "c1ad3fc265b1f80d25463c17968f556de1eb5dd48edab2c70d78b03907d33899",
+      "bytes": 252928,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/xlang3_graph_process_tests.exe",
+      "sha256": "c072ab0dc5c8560de5ba3ba15ae4e24a4da4f271906c9e2173da01560f848716",
+      "bytes": 87552,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/xlang3_interpreter_tests.exe",
+      "sha256": "1ac3215e03332356c0f41d1845cff807d58d6a96f23ed8234113af87e0f8e9ac",
+      "bytes": 331264,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/xlang3_ipc_capacity_tests.exe",
+      "sha256": "2abd4982550d137a64af558b63e3edf12378a063766c6594ce9f5dcddb12dc98",
+      "bytes": 33792,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/xlang3_ir_codec_tests.exe",
+      "sha256": "cfef320e2201da74edfe254de31d954a5b90a6cebdb8e1e865b6045249545862",
+      "bytes": 34816,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/xlang3_memory_tests.exe",
+      "sha256": "9cd8f5fdab86cfdb819763bcc659327793607746752f6e2faff3c4cc643f918f",
+      "bytes": 24064,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/xlang3_module_slot_tests.exe",
+      "sha256": "9f7791fd13fb28f8127eee473e26fdc7aea3529571078f5a9326701357c33c9c",
+      "bytes": 50688,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/xlang3_native_package_real_tests.exe",
+      "sha256": "138ffd9ce7be54544891fadaaaa7f21b782a802280725936d0e6dbcfe4dd3059",
+      "bytes": 52736,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/xlang3_native_path_tests.exe",
+      "sha256": "870d765b6edcfb99a92eab97fa0739ddb28718c260ee8b77ed9d1bc66f5c72d7",
+      "bytes": 60928,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/xlang3_parser_tests.exe",
+      "sha256": "b7cf26f5ca95a91d1aed40c6c1d990f2972392c021714606d73c521010a6f031",
+      "bytes": 31232,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/xlang3_runtime-baseline-20261006.dll",
+      "sha256": "395bf96c94508a8e9e326d2c79c427489b729ac84cd244bacd4edc037f331b1e",
+      "bytes": 19594240,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/xlang3_runtime-candidate-memview-20261006.dll",
+      "sha256": "ffddfe7612772c4c1ed1f5ee6dcafe46e81713ad40350145e407381db3b392aa",
+      "bytes": 19594240,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/xlang3_runtime-candidate-valuecounter-20261006.dll",
+      "sha256": "1b78882bdb269086d3dc615205247aa0d3fcdc5e6e413234175b64a1fb10316b",
+      "bytes": 19336192,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/xlang3_runtime.dll",
+      "sha256": "03a0a7ff4a7feac17a624ea2b31ea5211e990c2e4c2c2831faed223b906885ca",
+      "bytes": 19806208,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/xlang3_runtime_value_tests.exe",
+      "sha256": "f84028c27cba020aeafb5b20001ecf0165292a7c2f95d43ef57532731398e2aa",
+      "bytes": 141824,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/xlang3_sdk_c_header_smoke.exe",
+      "sha256": "57b15f7000008d8dc5ad0c039214fb4104acf39535a963f17aea7f46b4294823",
+      "bytes": 10240,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/xlang3_sdk_stream_call_tests.exe",
+      "sha256": "76e25200397e8591b3e8f01d209ba6039c30a1bad995fdb2211a0105b42665e0",
+      "bytes": 87552,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/xlang3_smoke.exe",
+      "sha256": "c6749c8efe7a3b6f199a159ebfdb0a6b2bdcc1150c08ab5abff9b0861414977b",
+      "bytes": 38912,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/xlang3_static_runtime_shutdown.exe",
+      "sha256": "f1f60bc543442d3b1013252976079847ca78520bce2c3e31e35dbde5bd57b155",
+      "bytes": 27136,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/xlang3_task_tests.exe",
+      "sha256": "d039397a1752baecf27bd1fe7aaacd50c83378c29e9583e8181f6d428923d960",
+      "bytes": 40448,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/xlang3_tensor_cpu_tests.exe",
+      "sha256": "4236244d69c75c55a965ad326871177b6ffac7f2f47ca8c09cc3c7c5267be4c7",
+      "bytes": 163328,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/xlang3_vfs_tests.exe",
+      "sha256": "f662753a8af8213080133e69024153621ffd4e2ad307a6424b12735f4019c09e",
+      "bytes": 76800,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/xlang3_xlang1_compat_package_tests.exe",
+      "sha256": "7de0bdadde8efde03b62357356acaa53ccb730c23c48a2d084606e04142962e5",
+      "bytes": 65024,
+      "archived": null
+    },
+    {
+      "source": "doc/performance/data/sqlite-aggregate-r5-validation-20261008.json",
+      "sha256": "c6aad48e1019722ea4641d24ece575ed25c7f380e6e756c48f4c599290444e96",
+      "bytes": 3237,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-aggregate-r5-validation-20261008.json"
+    },
+    {
+      "source": "doc/performance/data/sqlite-aggregate-r5-validation-20261008-cpython3147-focused.log",
+      "sha256": "8f6ebc7a41de49cbe5f10eb5562fa88587df0bed67240dba4a7f5fc5f9edb2ba",
+      "bytes": 179,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-aggregate-r5-validation-20261008-cpython3147-focused.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-aggregate-r5-validation-20261008-candidate-focused.log",
+      "sha256": "30a4a947704ec6f8e45c5e14536138b905caa90b4cabad8fbbba728b2e3aa6ca",
+      "bytes": 408,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-aggregate-r5-validation-20261008-candidate-focused.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-aggregate-cursor-observe-cpython3147-20261008.log",
+      "sha256": "0ded79221051e659d4534444168036e1285cb7fafa0a90f2afe7cfd09d4e0968",
+      "bytes": 79,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-aggregate-cursor-observe-cpython3147-20261008.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-aggregate-cursor-observe-xlang3-20261008.log",
+      "sha256": "64cdb1537c60bb9e945a9c830d508904d874a5bb6216cd3defd2f732641d6b34",
+      "bytes": 118,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-aggregate-cursor-observe-xlang3-20261008.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-cursor-r6-cpython3147-20261008.json",
+      "sha256": "71fca99c3285789e656dc2a43617c3a5cbee44e13d9a16e0d0ec927d4b51233c",
+      "bytes": 347,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-cursor-r6-cpython3147-20261008.json"
+    },
+    {
+      "source": "doc/performance/data/sqlite-cursor-r6-cpython3147-20261008.log",
+      "sha256": "ee14063d1e39079883efe711f04242b1b70e33d8d9d5ea073f85255784b73df6",
+      "bytes": 260,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-cursor-r6-cpython3147-20261008.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-cursor-writer-guard-cpython3147-20261008.json",
+      "sha256": "d2c036384ade25b3d5e07e96203f0321c3f74f5122e15ee159fe94a1a737d6cd",
+      "bytes": 328,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-cursor-writer-guard-cpython3147-20261008.json"
+    },
+    {
+      "source": "doc/performance/data/sqlite-cursor-writer-guard-cpython3147-20261008.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-cursor-writer-guard-cpython3147-20261008.log"
+    },
+    {
+      "source": "scratch/performance/sqlite-cursor-writer-guard-probe-20261008.py",
+      "sha256": "85320a8fb6a75e3793e43d8c912775647e4eed29bceb4ef8f43089dc2227c7bd",
+      "bytes": 1863,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/scratch/performance/sqlite-cursor-writer-guard-probe-20261008.py"
+    },
+    {
+      "source": "doc/performance/data/sqlite-aggregate-cursor-r6-validation-20261008.json",
+      "sha256": "881309440dcf2bdba342ae9fb3b25fd1b72fa8388f35378a3105553c6465578c",
+      "bytes": 4023,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-aggregate-cursor-r6-validation-20261008.json"
+    },
+    {
+      "source": "doc/performance/data/sqlite-aggregate-cursor-r6-validation-20261008-candidate-focused.log",
+      "sha256": "e57bb77a230fd9831e0078bf186c1b162c98d39bc4e78bac2b12dcbef18ee6bc",
+      "bytes": 352,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-aggregate-cursor-r6-validation-20261008-candidate-focused.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-identity-hash-combined-validation-20261008.json",
+      "sha256": "fe5f78c6f67b4a94f8e4f55158a391e9b02b033a827a0226144615a02d6cb592",
+      "bytes": 309386,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-identity-hash-combined-validation-20261008.json"
+    },
+    {
+      "source": "doc/performance/data/sqlite-identity-hash-combined-validation-20261008-focused-sqlite-native-aggregate.stdout.log",
+      "sha256": "8f6ebc7a41de49cbe5f10eb5562fa88587df0bed67240dba4a7f5fc5f9edb2ba",
+      "bytes": 179,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-identity-hash-combined-validation-20261008-focused-sqlite-native-aggregate.stdout.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-identity-hash-combined-validation-20261008-focused-sqlite-native-aggregate.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-identity-hash-combined-validation-20261008-focused-sqlite-native-aggregate.stderr.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-identity-hash-combined-validation-20261008-focused-sqlite-cursor-completion.stdout.log",
+      "sha256": "ee14063d1e39079883efe711f04242b1b70e33d8d9d5ea073f85255784b73df6",
+      "bytes": 260,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-identity-hash-combined-validation-20261008-focused-sqlite-cursor-completion.stdout.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-identity-hash-combined-validation-20261008-focused-sqlite-cursor-completion.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-identity-hash-combined-validation-20261008-focused-sqlite-cursor-completion.stderr.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-identity-hash-combined-validation-20261008-focused-identity-last-use.stdout.log",
+      "sha256": "b4630c134bbc42efc9d7e88f14560862460490bee41a8e665319ece78ba883f7",
+      "bytes": 137,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-identity-hash-combined-validation-20261008-focused-identity-last-use.stdout.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-identity-hash-combined-validation-20261008-focused-identity-last-use.stderr.log",
+      "sha256": "1de777814ec08ea6b4826e0b0c38081011c4c10874217aefd02f571a5d265b18",
+      "bytes": 176,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-identity-hash-combined-validation-20261008-focused-identity-last-use.stderr.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-cursor-r6-extra-focused-20261008.json",
+      "sha256": "f934a3a7ccead35bc7a17669769d5478da5b5b3e2e1102baeec70e285d22d8c5",
+      "bytes": 1856,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-cursor-r6-extra-focused-20261008.json"
+    },
+    {
+      "source": "doc/performance/data/sqlite-cursor-r6-extra-focused-20261008-cursor-eight-groups.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-cursor-r6-extra-focused-20261008-cursor-eight-groups.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-cursor-r6-extra-focused-20261008-writer-guards.log",
+      "sha256": "ccdd1a8347641063fbfa3d17641ee8576ce982fcc73b65457240fd7de9715f96",
+      "bytes": 161,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-cursor-r6-extra-focused-20261008-writer-guards.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-cursor-r6-extra-focused-20261008-cpp-native-sqlite.log",
+      "sha256": "1eaa80f63705b61e335933fe7e2cd420e4fe1f81f2e9b4a15c023be55e39c970",
+      "bytes": 1171,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-cursor-r6-extra-focused-20261008-cpp-native-sqlite.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-cursor-r6-extra-focused-before-count-repair-20261008.json",
+      "sha256": "5dd04f5a0cd1ae6b2bd07179110526c075ff1680aa3600d645315b9a53e1836a",
+      "bytes": 1137,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-cursor-r6-extra-focused-before-count-repair-20261008.json"
+    },
+    {
+      "source": "doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008.json",
+      "sha256": "e987d91443fcdedfbdb2164f23c839b3a1016672bbc0af29ed29243c929e43fb",
+      "bytes": 70024,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008.json"
+    },
+    {
+      "source": "doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-execute.stdout.log",
+      "sha256": "eca7fd3f29e859bab1774ff9972444f9a8eb5bf2cb3990f9788f8aa80cb4b741",
+      "bytes": 2034,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-execute.stdout.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-execute.stderr.log",
+      "sha256": "7a49bedbabc814106006259ef8f9f9912be47b06b5385d3258effacb3a7ebeec",
+      "bytes": 433,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-execute.stderr.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-execute.json",
+      "sha256": "9010be34655ec74b83d8cd62113057532e7eb212cb29d1c2fbf3a3d058c6bc4c",
+      "bytes": 6998,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-execute.json"
+    },
+    {
+      "source": "doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-fetchone.stdout.log",
+      "sha256": "66d53f4f2e9810124ba034d3fa14ab7494cfd80823877b1abe4b1044e18291b8",
+      "bytes": 3583,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-fetchone.stdout.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-fetchone.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-fetchone.stderr.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-fetchone.json",
+      "sha256": "0fb8beb0b7cdf9aa2a9ec364d304c69af0a15a158492dcff15b6c00a72e8ffea",
+      "bytes": 10042,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-fetchone.json"
+    },
+    {
+      "source": "doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-fetchall.stdout.log",
+      "sha256": "ae0c1bdfc94b1e89b0bb86f8df502d08a2934632784a79ff9ddec1185d9070b9",
+      "bytes": 3583,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-fetchall.stdout.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-fetchall.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-fetchall.stderr.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-fetchall.json",
+      "sha256": "5fbda9025ca3e79b61cb7ed77af67ae7c82ff474b98d5478e4dec0b5cb0d848d",
+      "bytes": 10042,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-fetchall.json"
+    },
+    {
+      "source": "doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-next.stdout.log",
+      "sha256": "988aa9ccc6d48047d092d464a58d8a0995cac02fb39c208f644e1ad5e95d4e11",
+      "bytes": 3465,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-next.stdout.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-next.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-next.stderr.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-next.json",
+      "sha256": "bda2d227a4cc702e00ff9d94262340a7067a8cab5c77bc9909feabc5454e50d8",
+      "bytes": 9768,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-next.json"
+    },
+    {
+      "source": "doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-close.stdout.log",
+      "sha256": "b3354aaf163b4eb092d79b86f94de4d0168be0924b9a62847ea37d312d39459f",
+      "bytes": 3496,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-close.stdout.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-close.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-close.stderr.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-close.json",
+      "sha256": "0de6bb7845fa94d9a1eb7822756361c9223db5be616b53bce3e80ed22feb4ee2",
+      "bytes": 9841,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-close.json"
+    },
+    {
+      "source": "doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-executescript.stdout.log",
+      "sha256": "6cf1210a52f618f14e6b06bdfb87c227c90b8f7acc840e63063727026d598f9c",
+      "bytes": 3754,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-executescript.stdout.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-executescript.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-executescript.stderr.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-executescript.json",
+      "sha256": "6471e02ba6b288edbcd7d9a60359bd6a653c2ee577e4667f8b36eaaedceb0241",
+      "bytes": 10459,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-executescript.json"
+    },
+    {
+      "source": "doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-executemany.stdout.log",
+      "sha256": "128108dfa2e545a30b0e20884c34c673591b2de56ed5a10caf5b355344d5d80e",
+      "bytes": 2178,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-executemany.stdout.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-executemany.stderr.log",
+      "sha256": "f1b957866d1fd0fc1edcb0e20d3601012cda6f2de682f74822be5744b0606a74",
+      "bytes": 433,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-executemany.stderr.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-executemany.json",
+      "sha256": "3bd35c07f82a4d1070be46c392083e493819c8f2509540cc52dfca0fdb8ee127",
+      "bytes": 7410,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-executemany.json"
+    },
+    {
+      "source": "scratch/performance/validate-sqlite-identity-hash-combined-20261008.py",
+      "sha256": "b74e9bf1cf4c2bcec5423080bfe38e40dd3fcade41d8e3af21f86e5fcbc37adf",
+      "bytes": 22858,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/scratch/performance/validate-sqlite-identity-hash-combined-20261008.py"
+    },
+    {
+      "source": "scratch/performance/combined-validation-controller-provenance-20261008.json",
+      "sha256": "496052c0156be22a184222b73b57d9909211c55454c2af0713da8269630d5acc",
+      "bytes": 976,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/scratch/performance/combined-validation-controller-provenance-20261008.json"
+    },
+    {
+      "source": "scratch/performance/identity-last-use-r2-proposal-20261008.patch",
+      "sha256": "70cff5cc3dda8d2ed92fe0b5dfe28b868e9e7432071f831eb5de2bd4a7cd58e7",
+      "bytes": 50731,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/scratch/performance/identity-last-use-r2-proposal-20261008.patch"
+    },
+    {
+      "source": "scratch/performance/identity-last-use-r2-proposal-20261008-provenance.json",
+      "sha256": "82fc09bf044be8b5da015d97806d883a2fdb66efde69136f3a59c38e3e416279",
+      "bytes": 4191,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/scratch/performance/identity-last-use-r2-proposal-20261008-provenance.json"
+    },
+    {
+      "source": "scratch/performance/identity-last-use-r2-review-20261008.md",
+      "sha256": "3340d820c246e20148b6503d0bc1eca7d780d4040236f69d4d24d58088cbb908",
+      "bytes": 4160,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/scratch/performance/identity-last-use-r2-review-20261008.md"
+    },
+    {
+      "source": "scratch/performance/identity-last-use-r2-independent-review-20261008.md",
+      "sha256": "78bed8d8690fed8c608b429c0483af0c6affb09437b052e42190d1f68a9f5a1c",
+      "bytes": 2730,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/scratch/performance/identity-last-use-r2-independent-review-20261008.md"
+    },
+    {
+      "source": "scratch/performance/module-slot-loop-ownership-20261008.patch",
+      "sha256": "b2440453fa4118e9d1481e202a60222cb72e107fe2d0543ea32697e682e174d6",
+      "bytes": 11129,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/scratch/performance/module-slot-loop-ownership-20261008.patch"
+    },
+    {
+      "source": "scratch/performance/module-slot-loop-ownership-20261008-provenance.json",
+      "sha256": "f92c2d988ed7c2759fe514596f86e5d0d2daab56b8017b30e6ce8e3b5786abad",
+      "bytes": 1965,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/scratch/performance/module-slot-loop-ownership-20261008-provenance.json"
+    },
+    {
+      "source": "scratch/performance/hash-exception-preservation-complete-proposed-20261008.patch",
+      "sha256": "b566a8ce3b7f53bb3ffdb7f5214825623d485a1848672c4bc8fda1e247089c34",
+      "bytes": 10233,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/scratch/performance/hash-exception-preservation-complete-proposed-20261008.patch"
+    },
+    {
+      "source": "scratch/performance/hash-exception-preservation-provenance-20261008.json",
+      "sha256": "ec36d090f319c5162a905583269f91fb74becfc81a2c2b9f68f9d9b243ec8d69",
+      "bytes": 3322,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/scratch/performance/hash-exception-preservation-provenance-20261008.json"
+    },
+    {
+      "source": "scratch/performance/hash-exception-preservation-review-20261008.txt",
+      "sha256": "c2bd76f531595137d29e7401a32a478baa3833e6c4e6422ee4432d6f52b1bacf",
+      "bytes": 4965,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/scratch/performance/hash-exception-preservation-review-20261008.txt"
+    },
+    {
+      "source": "doc/performance/data/build-sqlite-identity-hash-combined-Release-20261008.log",
+      "sha256": "caa2f7403247e8ef5a44331d8618a49c1566decfbd4bb3bba8ffbf26f40fa4fa",
+      "bytes": 4881,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/build-sqlite-identity-hash-combined-Release-20261008.log"
+    },
+    {
+      "source": "doc/performance/data/build-sqlite-identity-hash-loop-proof-Release-20261008.log",
+      "sha256": "fa15c7ca22fa68d878f9f8984f4a6d466fe3ff1a0bac5a24df579c05550647ab",
+      "bytes": 943,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/build-sqlite-identity-hash-loop-proof-Release-20261008.log"
+    },
+    {
+      "source": "doc/performance/data/build-sqlite-identity-hash-combined-integration-Release-20261008.log",
+      "sha256": "fe5b408c8995841c4a35a8c495f110d85793fa5973ce346217add4d48db2634f",
+      "bytes": 832,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/build-sqlite-identity-hash-combined-integration-Release-20261008.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-identity-hash-combined-applied-source-20261008.json",
+      "sha256": "15f2f81bb419f8d9739850d68bf41772aa73a181b486820e2bd379fb7c5c4d88",
+      "bytes": 4587,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-identity-hash-combined-applied-source-20261008.json"
+    },
+    {
+      "source": "doc/performance/data/sqlite-identity-hash-combined-final-source-20261008.json",
+      "sha256": "ecae974bed1330dfc60beabad940ebd3596dd1c52e6bb5f0d6088f60e9cfbb7d",
+      "bytes": 5392,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-identity-hash-combined-final-source-20261008.json"
+    },
+    {
+      "source": "scratch/performance/apply-identity-r2-and-hash-preservation-20261008.py",
+      "sha256": "09de55946debc06edbf300a7524e2d5263d7741bd54d80fa50723eb7fd1c4520",
+      "bytes": 4519,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/scratch/performance/apply-identity-r2-and-hash-preservation-20261008.py"
+    },
+    {
+      "source": "scratch/performance/apply-module-slot-loop-ownership-20261008.py",
+      "sha256": "00b0151cfc390159010500e8cc9db6de566694352f510ab9685a3ed03edbf3f6",
+      "bytes": 2108,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/scratch/performance/apply-module-slot-loop-ownership-20261008.py"
+    },
+    {
+      "source": "scratch/performance/identity-last-use-r2-fixture-20261008.py",
+      "sha256": "fcad09adfe9cdf69d43539860cca1d39f5deb8224e16c71462d07ee3bbd3f40d",
+      "bytes": 8622,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/scratch/performance/identity-last-use-r2-fixture-20261008.py"
+    },
+    {
+      "source": "scratch/performance/identity-last-use-r2-expected-20261008.out",
+      "sha256": "fa8eca5e8f2f38e3ca1455ba4a2adc285ef7f05c44f8a0fbf08cff2daa52e2aa",
+      "bytes": 485,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/scratch/performance/identity-last-use-r2-expected-20261008.out"
+    },
+    {
+      "source": "doc/performance/data/identity-last-use-r2-cpython3147-reference-20261008.json",
+      "sha256": "c97f7e96023c0458fa8dd538e3dc54e54f58119fea0fac87306d69d33e084c38",
+      "bytes": 550,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/identity-last-use-r2-cpython3147-reference-20261008.json"
+    },
+    {
+      "source": "doc/performance/data/identity-last-use-r2-cpython3147-reference-20261008.stdout.log",
+      "sha256": "be5a71bfe8c5071242d0acf992e8fa4d63515d12c09c28c70d9cff3b0c043d6d",
+      "bytes": 492,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/identity-last-use-r2-cpython3147-reference-20261008.stdout.log"
+    },
+    {
+      "source": "doc/performance/data/identity-last-use-r2-cpython3147-reference-20261008.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/identity-last-use-r2-cpython3147-reference-20261008.stderr.log"
+    },
+    {
+      "source": "scratch/performance/hash-exception-fixture-proposed-20261008.py",
+      "sha256": "5cbef9d45a4d1b5d9f7dfa5121abfde01651e5865422afe197d975856dafcbf7",
+      "bytes": 2343,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/scratch/performance/hash-exception-fixture-proposed-20261008.py"
+    },
+    {
+      "source": "doc/performance/data/hash-exception-preservation-cpython3147-reference-20261008.json",
+      "sha256": "484af9be7f8d432808033d2beab177377ced02a3a358dda3a8caaa388ec672b8",
+      "bytes": 740,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/hash-exception-preservation-cpython3147-reference-20261008.json"
+    },
+    {
+      "source": "doc/performance/data/hash-exception-preservation-cpython3147-reference-20261008.stdout.log",
+      "sha256": "d6b626f45bea180d87ae227099885d951f70f580a03bd5254a45c42b6379e859",
+      "bytes": 157,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/hash-exception-preservation-cpython3147-reference-20261008.stdout.log"
+    },
+    {
+      "source": "doc/performance/data/hash-exception-preservation-cpython3147-reference-20261008.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/hash-exception-preservation-cpython3147-reference-20261008.stderr.log"
+    },
+    {
+      "source": "scratch/performance/sqlite-statement-cache-static-diagnosis-20261008.md",
+      "sha256": "335d8fa1713fc0f181c0fde83cad1857f8737e437e8f3da69c1378f200c6118b",
+      "bytes": 7999,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/scratch/performance/sqlite-statement-cache-static-diagnosis-20261008.md"
+    },
+    {
+      "source": "doc/performance/data/sqlite-r6-identity-r2-official-sqlite-synth-20261008-receipt.json",
+      "sha256": "446c32d7004e81359930b414fba7dbaa39ccbbef64a6c951d0fc9603d35c3c3f",
+      "bytes": 1731,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-r6-identity-r2-official-sqlite-synth-20261008-receipt.json"
+    },
+    {
+      "source": "doc/performance/data/sqlite-r6-identity-r2-official-sqlite-synth-20261008.json",
+      "sha256": "5943bdb21f25a7de747b7267a1e494518828c79f610f64b3b019d6935f69deaa",
+      "bytes": 2194,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-r6-identity-r2-official-sqlite-synth-20261008.json"
+    },
+    {
+      "source": "doc/performance/data/sqlite-r6-identity-r2-official-sqlite-synth-20261008.log",
+      "sha256": "0bc3201fd7dba735e649f2b63fc93eeb8f7d3615d8f7ba89c80fede740f1b0f0",
+      "bytes": 858,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-r6-identity-r2-official-sqlite-synth-20261008.log"
+    },
+    {
+      "source": "scratch/performance/sqlite-aggregate-r5-proposed-20261008.patch",
+      "sha256": "d1a27657ead30eca5a1ee27c84d89a9d2264b5a46e2d0db683ac5c68c05d746b",
+      "bytes": 59410,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/scratch/performance/sqlite-aggregate-r5-proposed-20261008.patch"
+    },
+    {
+      "source": "scratch/performance/sqlite-aggregate-r5-proposed-20261008-provenance.json",
+      "sha256": "87f6c756ff3e342b414a7a29c4e8771ad1bb01747b4bdc8a341eff5a8271fa1f",
+      "bytes": 3964,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/scratch/performance/sqlite-aggregate-r5-proposed-20261008-provenance.json"
+    },
+    {
+      "source": "scratch/performance/sqlite-cursor-r6-proposed-20261008.patch",
+      "sha256": "59122111be1b50a9f9f1b2a5fd366e6482fa16c4074d8098c48971a14da7bfb5",
+      "bytes": 16004,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/scratch/performance/sqlite-cursor-r6-proposed-20261008.patch"
+    },
+    {
+      "source": "scratch/performance/sqlite-cursor-r6-proposed-20261008-provenance.json",
+      "sha256": "e3984b75e851079327cc1eab42206abdae0cd54b8c2ebc2db5bfd7f1a6db4854",
+      "bytes": 2180,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/scratch/performance/sqlite-cursor-r6-proposed-20261008-provenance.json"
+    },
+    {
+      "source": "scratch/performance/sqlite-cursor-r6-v2-proposed-20261008.patch",
+      "sha256": "fd94b981f4a15e69f7bf243fdd02e43ecc1c3ec75d3cb22744fa806f0c402562",
+      "bytes": 17655,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/scratch/performance/sqlite-cursor-r6-v2-proposed-20261008.patch"
+    },
+    {
+      "source": "scratch/performance/sqlite-cursor-r6-v2-proposed-20261008-provenance.json",
+      "sha256": "b4103f3d77398ae930809fe5d011f686313b6d82973d6c28e3de2fb78dfbef28",
+      "bytes": 2507,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/scratch/performance/sqlite-cursor-r6-v2-proposed-20261008-provenance.json"
+    },
+    {
+      "source": "scratch/performance/sqlite-cursor-r6-v3-proposed-20261008.patch",
+      "sha256": "95afdeb7a2fcd221e53be3b6db7825e28f519dc58b520167bdcdbb25498339a4",
+      "bytes": 19085,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/scratch/performance/sqlite-cursor-r6-v3-proposed-20261008.patch"
+    },
+    {
+      "source": "scratch/performance/sqlite-cursor-r6-v3-proposed-20261008-provenance.json",
+      "sha256": "9e029bd048c6c5eada85095ed76f8f055b9b6e9099efdc004137d3bbae208c3d",
+      "bytes": 2666,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/scratch/performance/sqlite-cursor-r6-v3-proposed-20261008-provenance.json"
+    },
+    {
+      "source": "scratch/performance/sqlite-aggregate-r5-review-20261008.md",
+      "sha256": "9d807b54a9a749051e62e8258147927921caad51bb6df0389b8f3143ce9a50cf",
+      "bytes": 3150,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/scratch/performance/sqlite-aggregate-r5-review-20261008.md"
+    },
+    {
+      "source": "scratch/performance/sqlite-cursor-r6-v3-review-20261008.md",
+      "sha256": "cecb30384308c93c784c63525f6d1c130b670accc65b11c68550d69c54efb25b",
+      "bytes": 3985,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/scratch/performance/sqlite-cursor-r6-v3-review-20261008.md"
+    },
+    {
+      "source": "scratch/performance/sqlite-cursor-completion-fixture-r6-20261008.py",
+      "sha256": "25b83546a23c20509da6bf2006311a51cdc19ef7b6504bc293efffeac6d41560",
+      "bytes": 3548,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/scratch/performance/sqlite-cursor-completion-fixture-r6-20261008.py"
+    },
+    {
+      "source": "scratch/performance/export-sqlite-aggregate-combined-r2-20261008.py",
+      "sha256": "d76497f960dacaaaf85f5a040f518d9cd437cf96d85a6a75e04315ba634706bb",
+      "bytes": 23086,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/scratch/performance/export-sqlite-aggregate-combined-r2-20261008.py"
+    },
+    {
+      "source": "doc/performance/data/sqlite-identity-hash-loop-proof-validation-20261008-fixed-gate.json",
+      "sha256": "80e53e31f4130c236f4882ae512dda1526ecb92fc5af06e9875fccb750524c3d",
+      "bytes": 62472,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-identity-hash-loop-proof-validation-20261008-fixed-gate.json"
+    },
+    {
+      "source": "doc/performance/data/sqlite-identity-hash-loop-proof-validation-20261008-official-sqlite-synth-fast.json",
+      "sha256": "c1c07193b47a0c23a7f685e6a480acd7dc4698b62fa425656c8242a1456fccd1",
+      "bytes": 2185,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-identity-hash-loop-proof-validation-20261008-official-sqlite-synth-fast.json"
+    },
+    {
+      "source": "doc/performance/data/pyperformance-cpython3147-live-eval-full-fast-20261007.json",
+      "sha256": "ac474df5576ac85f6f5350363affecc439d4f658b4dfa3dbe291b46964276eb0",
+      "bytes": 217975,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/pyperformance-cpython3147-live-eval-full-fast-20261007.json"
+    },
+    {
+      "source": "doc/performance/data/pyperformance-cpython3147-live-eval-full-fast-20261007-provenance.json",
+      "sha256": "3d6c8cb2c72c786583c382b835e8e411f56ca285963bc2835f757a13f399f85c",
+      "bytes": 41162,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/pyperformance-cpython3147-live-eval-full-fast-20261007-provenance.json"
+    },
+    {
+      "source": "doc/performance/data/sqlite-identity-hash-loop-proof-validation-20261008-official-sqlglot-v2-parse-fast.json",
+      "sha256": "a1f753e0225e8e52c6b7a8a20b76f402151caaf77dcee5b083e560139ab06a04",
+      "bytes": 1757,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlite-identity-hash-loop-proof-validation-20261008-official-sqlglot-v2-parse-fast.json"
+    },
+    {
+      "source": "doc/performance/data/sqlglot-body-profile-validation-20261008.json",
+      "sha256": "58f206c2537320bf8aa85d01785e884dc5f96412396375963ced9c1df4773fb2",
+      "bytes": 93874,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/doc/performance/data/sqlglot-body-profile-validation-20261008.json"
+    },
+    {
+      "source": "scratch/performance/sqlglot-parse-body-native-export-ranges-20261008.md",
+      "sha256": "af9476558f999425aa91fe9f930b422cbdb9e3e58ffc51005e6d4a3b93a18cd2",
+      "bytes": 7846,
+      "archived": "data/sqlite-aggregate-combined-checkpoint-20261008-sources/scratch/performance/sqlglot-parse-body-native-export-ranges-20261008.md"
+    }
+  ],
+  "generated": [
+    {
+      "path": "sqlite-aggregate-combined-checkpoint-20261008.md",
+      "sha256": "14c6050edff99b3a5c57ec25abba92e8c9bc913fd792a52d95352d9bd2796bb2",
+      "bytes": 6108
+    },
+    {
+      "path": "data/sqlite-aggregate-combined-checkpoint-20261008-samples.csv",
+      "sha256": "5b9dd8fce5a3c38632d399612aa7d8536e6d67af80e729a94f2c92a05353c66c",
+      "bytes": 5125
+    },
+    {
+      "path": "data/sqlite-aggregate-combined-checkpoint-20261008-summary.csv",
+      "sha256": "088d4085c5cf485b31fa0d2166ebe81e4d27c540095dce4e9f4950155da48224",
+      "bytes": 411
+    },
+    {
+      "path": "charts/sqlite-aggregate-combined-checkpoint-20261008.svg",
+      "sha256": "5bdcb64f6f44bbe7865bb423254f294ae4dc7eb49132bed510c2ec5a99b55d3d",
+      "bytes": 980
+    }
+  ]
+}

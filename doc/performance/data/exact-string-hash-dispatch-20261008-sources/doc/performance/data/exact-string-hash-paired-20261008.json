@@ -1,0 +1,1834 @@
+{
+  "status": "terminal_diagnostic_only",
+  "diagnostic_only": true,
+  "pairs": 7,
+  "samples_per_pair": 5,
+  "source_sha256": "3823fc09d47caa35ed158677a5a565ad1118c64b1ef9e345a6584a717f8fca70",
+  "engine_source_sha256": "aeb9abb4697569a3b28485000337e31d21f2cd9227dbf2ea0e76e2e125d439ed",
+  "binaries_sha256": {
+    "D:\\CantorAI\\xlang3\\build-repro\\controls\\inherited-slot-proof-checkpoint-20261008\\xlang3.exe": "31f9a848f78c7dfae4c59dc6cd0016815549d6d67409276fcaecadae504d5958",
+    "D:\\CantorAI\\xlang3\\build-repro\\controls\\inherited-slot-proof-checkpoint-20261008\\xlang3_runtime.dll": "162712ce27bc1e57325e0bc15fbe69f11341542c202ad6c5e5f0b16be7e78dfd",
+    "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe": "31f9a848f78c7dfae4c59dc6cd0016815549d6d67409276fcaecadae504d5958",
+    "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3_runtime.dll": "a8e3fece1c28488fb0d71366d0512b1537cfbc39a56144e6d351c0c6fe0ba25d"
+  },
+  "raw": [
+    {
+      "pair": 0,
+      "runtime": "control",
+      "result": {
+        "purpose": "generic unprofiled callback diagnostic only; not pyperformance",
+        "runtime": "xlang3",
+        "version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+        "operations_per_sample": 16384,
+        "samples_per_row": 5,
+        "warmup_operations_per_row": 256,
+        "instrumentation": "none",
+        "rows": [
+          {
+            "path": "string_dict_get",
+            "operations": 16384,
+            "checksum": 278528,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.0015456000110134482,
+              0.00165200000628829,
+              0.0016170000017154962,
+              0.0016965999966487288,
+              0.0015827000024728477
+            ]
+          },
+          {
+            "path": "python_key_dict_get",
+            "operations": 16384,
+            "checksum": 278528,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.05228180001722649,
+              0.05267000000458211,
+              0.049025499989511445,
+              0.049911500012967736,
+              0.050274600012926385
+            ]
+          },
+          {
+            "path": "builtin_hash_string",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.009962799987988546,
+              0.009751600009622052,
+              0.009921299992129207,
+              0.009928400017088279,
+              0.00971479999134317
+            ]
+          },
+          {
+            "path": "builtin_hash_python_key",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.03711289999773726,
+              0.038251499994657934,
+              0.038703400001395494,
+              0.03660409999429248,
+              0.036898399994242936
+            ]
+          },
+          {
+            "path": "direct_python_hash_method",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.016616699984297156,
+              0.017304199980571866,
+              0.016686899994965643,
+              0.016227200016146526,
+              0.016347700002370402
+            ]
+          },
+          {
+            "path": "saved_python_hash_method",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.015335799980675802,
+              0.017442399985156953,
+              0.015300999977625906,
+              0.015410299994982779,
+              0.015778200002387166
+            ]
+          },
+          {
+            "path": "ordinary_python_hash_function",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.01616279999143444,
+              0.015775799984112382,
+              0.016046300006564707,
+              0.015978499985067174,
+              0.015749000012874603
+            ]
+          },
+          {
+            "path": "ordinary_python_hash_wrapper",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.04294760001357645,
+              0.041805800021393225,
+              0.04372200000216253,
+              0.044118599995272234,
+              0.04320919999736361
+            ]
+          }
+        ]
+      },
+      "log": "exact-string-hash-paired-20261008-0-control.log",
+      "log_sha256": "b9dfadec41e9d63519081307f3c5a2fa5f28cd34f96275c7704ecaa7a8df101e"
+    },
+    {
+      "pair": 0,
+      "runtime": "candidate",
+      "result": {
+        "purpose": "generic unprofiled callback diagnostic only; not pyperformance",
+        "runtime": "xlang3",
+        "version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+        "operations_per_sample": 16384,
+        "samples_per_row": 5,
+        "warmup_operations_per_row": 256,
+        "instrumentation": "none",
+        "rows": [
+          {
+            "path": "string_dict_get",
+            "operations": 16384,
+            "checksum": 278528,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.0015890999929979444,
+              0.001566499995533377,
+              0.0015853999939281493,
+              0.0015558000013697892,
+              0.001564900012454018
+            ]
+          },
+          {
+            "path": "python_key_dict_get",
+            "operations": 16384,
+            "checksum": 278528,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.04628859998774715,
+              0.04576259999885224,
+              0.04562770001939498,
+              0.046249100007116795,
+              0.04620579999755137
+            ]
+          },
+          {
+            "path": "builtin_hash_string",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.006019499996909872,
+              0.006026899995049462,
+              0.0059923999942839146,
+              0.005978599976515397,
+              0.00602120000985451
+            ]
+          },
+          {
+            "path": "builtin_hash_python_key",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.03282839999883436,
+              0.032049200002802536,
+              0.032819800020661205,
+              0.032610900001600385,
+              0.03244599999743514
+            ]
+          },
+          {
+            "path": "direct_python_hash_method",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.012241500022355467,
+              0.01228840000112541,
+              0.012031399994157255,
+              0.012279299990041181,
+              0.011945499980356544
+            ]
+          },
+          {
+            "path": "saved_python_hash_method",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.01305589999537915,
+              0.012196200026664883,
+              0.011272900010226294,
+              0.011163600021973252,
+              0.011294800002360716
+            ]
+          },
+          {
+            "path": "ordinary_python_hash_function",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.012043700000504032,
+              0.01213869999628514,
+              0.011986500001512468,
+              0.012181400001281872,
+              0.012048700009472668
+            ]
+          },
+          {
+            "path": "ordinary_python_hash_wrapper",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.038766699988627806,
+              0.038467600010335445,
+              0.03877770001417957,
+              0.039209699985804036,
+              0.03760360000887886
+            ]
+          }
+        ]
+      },
+      "log": "exact-string-hash-paired-20261008-0-candidate.log",
+      "log_sha256": "27b27d61c735adcb88bc9285308713e5172e893545a921fdec0cfae7808513dc"
+    },
+    {
+      "pair": 1,
+      "runtime": "candidate",
+      "result": {
+        "purpose": "generic unprofiled callback diagnostic only; not pyperformance",
+        "runtime": "xlang3",
+        "version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+        "operations_per_sample": 16384,
+        "samples_per_row": 5,
+        "warmup_operations_per_row": 256,
+        "instrumentation": "none",
+        "rows": [
+          {
+            "path": "string_dict_get",
+            "operations": 16384,
+            "checksum": 278528,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.0016347999917343259,
+              0.0016793000104371458,
+              0.0016697999963071197,
+              0.0016135000041685998,
+              0.0016361000016331673
+            ]
+          },
+          {
+            "path": "python_key_dict_get",
+            "operations": 16384,
+            "checksum": 278528,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.04859650001162663,
+              0.05044250001083128,
+              0.048365999973611906,
+              0.04765419999603182,
+              0.047052200010512024
+            ]
+          },
+          {
+            "path": "builtin_hash_string",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.006100300000980496,
+              0.005984700022963807,
+              0.005965600023046136,
+              0.006005199975334108,
+              0.006262900016736239
+            ]
+          },
+          {
+            "path": "builtin_hash_python_key",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.033390299999155104,
+              0.033310400001937523,
+              0.033074800012400374,
+              0.03304879998904653,
+              0.033189999987371266
+            ]
+          },
+          {
+            "path": "direct_python_hash_method",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.01255810001748614,
+              0.013131300016539171,
+              0.012765899999067187,
+              0.012486799998441711,
+              0.012448800000129268
+            ]
+          },
+          {
+            "path": "saved_python_hash_method",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.011856299999635667,
+              0.011873299983562902,
+              0.01169709998066537,
+              0.011741199996322393,
+              0.011878799996338785
+            ]
+          },
+          {
+            "path": "ordinary_python_hash_function",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.012076800019713119,
+              0.012301500013563782,
+              0.011692400003084913,
+              0.011767199990572408,
+              0.012157799996202812
+            ]
+          },
+          {
+            "path": "ordinary_python_hash_wrapper",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.038666100008413196,
+              0.04005410001263954,
+              0.037949099991237745,
+              0.03845520000322722,
+              0.03948940002010204
+            ]
+          }
+        ]
+      },
+      "log": "exact-string-hash-paired-20261008-1-candidate.log",
+      "log_sha256": "96ffff1b71eac2bc3d1f2b7d53c3e41e74c67310916833d0f8168147d8bc5114"
+    },
+    {
+      "pair": 1,
+      "runtime": "control",
+      "result": {
+        "purpose": "generic unprofiled callback diagnostic only; not pyperformance",
+        "runtime": "xlang3",
+        "version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+        "operations_per_sample": 16384,
+        "samples_per_row": 5,
+        "warmup_operations_per_row": 256,
+        "instrumentation": "none",
+        "rows": [
+          {
+            "path": "string_dict_get",
+            "operations": 16384,
+            "checksum": 278528,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.001622100011445582,
+              0.0015906000044196844,
+              0.0016710000054445118,
+              0.0015850000199861825,
+              0.001567400002386421
+            ]
+          },
+          {
+            "path": "python_key_dict_get",
+            "operations": 16384,
+            "checksum": 278528,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.052434599987464026,
+              0.04969640000490472,
+              0.04914809999172576,
+              0.04972750000888482,
+              0.05048380000516772
+            ]
+          },
+          {
+            "path": "builtin_hash_string",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.010200399992754683,
+              0.010090099996887147,
+              0.010146500018890947,
+              0.01012369999079965,
+              0.010042099980637431
+            ]
+          },
+          {
+            "path": "builtin_hash_python_key",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.03780739998910576,
+              0.036686699982965365,
+              0.03712490000179969,
+              0.037872000015340745,
+              0.03815679997205734
+            ]
+          },
+          {
+            "path": "direct_python_hash_method",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.01624560001073405,
+              0.016209200024604797,
+              0.0165065000182949,
+              0.016178099991520867,
+              0.016080800007330254
+            ]
+          },
+          {
+            "path": "saved_python_hash_method",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.015587500005494803,
+              0.016820000018924475,
+              0.015949900000123307,
+              0.01667240000097081,
+              0.015373700007330626
+            ]
+          },
+          {
+            "path": "ordinary_python_hash_function",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.016154799988726154,
+              0.016739699989557266,
+              0.01650939998216927,
+              0.01624580001225695,
+              0.016852400003699586
+            ]
+          },
+          {
+            "path": "ordinary_python_hash_wrapper",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.04493730000103824,
+              0.04551029999856837,
+              0.043359899980714545,
+              0.04355729999952018,
+              0.043613099987851456
+            ]
+          }
+        ]
+      },
+      "log": "exact-string-hash-paired-20261008-1-control.log",
+      "log_sha256": "be1ff79945cc9836d83b266e38d00820af2170a6a0cc81d1edc3bd5da81b167e"
+    },
+    {
+      "pair": 2,
+      "runtime": "control",
+      "result": {
+        "purpose": "generic unprofiled callback diagnostic only; not pyperformance",
+        "runtime": "xlang3",
+        "version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+        "operations_per_sample": 16384,
+        "samples_per_row": 5,
+        "warmup_operations_per_row": 256,
+        "instrumentation": "none",
+        "rows": [
+          {
+            "path": "string_dict_get",
+            "operations": 16384,
+            "checksum": 278528,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.0016920999914873391,
+              0.0016215999785345048,
+              0.0015851999924052507,
+              0.0016031000122893602,
+              0.0016223999846260995
+            ]
+          },
+          {
+            "path": "python_key_dict_get",
+            "operations": 16384,
+            "checksum": 278528,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.049504000024171546,
+              0.04944309999700636,
+              0.04883980000158772,
+              0.05002049999893643,
+              0.05018180000479333
+            ]
+          },
+          {
+            "path": "builtin_hash_string",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.010049500007880852,
+              0.010357199993450195,
+              0.010155199997825548,
+              0.010177999996813014,
+              0.010134899988770485
+            ]
+          },
+          {
+            "path": "builtin_hash_python_key",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.03693530001328327,
+              0.03717029999825172,
+              0.037018600007286295,
+              0.03810239999438636,
+              0.037516500015044585
+            ]
+          },
+          {
+            "path": "direct_python_hash_method",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.01673329999903217,
+              0.016558899980736896,
+              0.016631600010441616,
+              0.016618900001049042,
+              0.01642790000187233
+            ]
+          },
+          {
+            "path": "saved_python_hash_method",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.015250500000547618,
+              0.015861000021686777,
+              0.016246399987721816,
+              0.016000900010112673,
+              0.01629769999999553
+            ]
+          },
+          {
+            "path": "ordinary_python_hash_function",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.016444799985038117,
+              0.016504600003827363,
+              0.01612600000225939,
+              0.01663240001653321,
+              0.015789100027177483
+            ]
+          },
+          {
+            "path": "ordinary_python_hash_wrapper",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.041538999998010695,
+              0.04207799999858253,
+              0.042996700009098276,
+              0.043027900013839826,
+              0.042949599999701604
+            ]
+          }
+        ]
+      },
+      "log": "exact-string-hash-paired-20261008-2-control.log",
+      "log_sha256": "269f7077bec3ae1e89fdd6b492d1fdafb58f41150aaf6338d412875ea31fa1dc"
+    },
+    {
+      "pair": 2,
+      "runtime": "candidate",
+      "result": {
+        "purpose": "generic unprofiled callback diagnostic only; not pyperformance",
+        "runtime": "xlang3",
+        "version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+        "operations_per_sample": 16384,
+        "samples_per_row": 5,
+        "warmup_operations_per_row": 256,
+        "instrumentation": "none",
+        "rows": [
+          {
+            "path": "string_dict_get",
+            "operations": 16384,
+            "checksum": 278528,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.0015854999946895987,
+              0.0015798000094946474,
+              0.0015679000061936677,
+              0.0015656999894417822,
+              0.0015488000062759966
+            ]
+          },
+          {
+            "path": "python_key_dict_get",
+            "operations": 16384,
+            "checksum": 278528,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.04715110000688583,
+              0.04644189999089576,
+              0.04644350000307895,
+              0.04673140001250431,
+              0.04748690000269562
+            ]
+          },
+          {
+            "path": "builtin_hash_string",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.0062914999725762755,
+              0.006236999994143844,
+              0.006251999991945922,
+              0.006289300014032051,
+              0.006221499992534518
+            ]
+          },
+          {
+            "path": "builtin_hash_python_key",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.03322069998830557,
+              0.032673599984264,
+              0.03238210000563413,
+              0.03326349999406375,
+              0.033167899993713945
+            ]
+          },
+          {
+            "path": "direct_python_hash_method",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.012408000009600073,
+              0.012555299996165559,
+              0.012435399985406548,
+              0.012563600001158193,
+              0.012538099981611595
+            ]
+          },
+          {
+            "path": "saved_python_hash_method",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.011706799996318296,
+              0.011744499992346391,
+              0.01246319999336265,
+              0.011699700000463054,
+              0.011701200011884794
+            ]
+          },
+          {
+            "path": "ordinary_python_hash_function",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.012174999981652945,
+              0.012178600009065121,
+              0.012226399994688109,
+              0.012105799978598952,
+              0.012087300012353808
+            ]
+          },
+          {
+            "path": "ordinary_python_hash_wrapper",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.039417299994966015,
+              0.03896000000531785,
+              0.03923739999299869,
+              0.03802419998100959,
+              0.03772810002556071
+            ]
+          }
+        ]
+      },
+      "log": "exact-string-hash-paired-20261008-2-candidate.log",
+      "log_sha256": "e371f506e14724dfc8a57f098abd1cfb76a3d0511bed46cffe65501ca73e8f5f"
+    },
+    {
+      "pair": 3,
+      "runtime": "candidate",
+      "result": {
+        "purpose": "generic unprofiled callback diagnostic only; not pyperformance",
+        "runtime": "xlang3",
+        "version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+        "operations_per_sample": 16384,
+        "samples_per_row": 5,
+        "warmup_operations_per_row": 256,
+        "instrumentation": "none",
+        "rows": [
+          {
+            "path": "string_dict_get",
+            "operations": 16384,
+            "checksum": 278528,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.0016395999991800636,
+              0.0015178000030573457,
+              0.001573299989104271,
+              0.0015758999797981232,
+              0.0015713000029791147
+            ]
+          },
+          {
+            "path": "python_key_dict_get",
+            "operations": 16384,
+            "checksum": 278528,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.045610199973452836,
+              0.0463762000144925,
+              0.04705120000289753,
+              0.04724250000435859,
+              0.04713630001060665
+            ]
+          },
+          {
+            "path": "builtin_hash_string",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.006261700007598847,
+              0.006293800019193441,
+              0.006243099982384592,
+              0.0061849000048823655,
+              0.006262199982302263
+            ]
+          },
+          {
+            "path": "builtin_hash_python_key",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.0335586000001058,
+              0.03285759998834692,
+              0.032837999984622,
+              0.0330281000060495,
+              0.031853899999987334
+            ]
+          },
+          {
+            "path": "direct_python_hash_method",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.012506899976870045,
+              0.01246180001180619,
+              0.01245869998820126,
+              0.012381999986246228,
+              0.012449200003175065
+            ]
+          },
+          {
+            "path": "saved_python_hash_method",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.011666700011119246,
+              0.011760800000047311,
+              0.011725000018486753,
+              0.01194899997790344,
+              0.011761999980080873
+            ]
+          },
+          {
+            "path": "ordinary_python_hash_function",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.012608599994564429,
+              0.01188989999354817,
+              0.011753900005714968,
+              0.013183799979742616,
+              0.012020599999232218
+            ]
+          },
+          {
+            "path": "ordinary_python_hash_wrapper",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.03779679999570362,
+              0.038237800006754696,
+              0.03862239999580197,
+              0.03830429998924956,
+              0.038789400015957654
+            ]
+          }
+        ]
+      },
+      "log": "exact-string-hash-paired-20261008-3-candidate.log",
+      "log_sha256": "ba5d97f241da0711d4564a2b6b5957727e795fecbe48da190a463420fb09497a"
+    },
+    {
+      "pair": 3,
+      "runtime": "control",
+      "result": {
+        "purpose": "generic unprofiled callback diagnostic only; not pyperformance",
+        "runtime": "xlang3",
+        "version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+        "operations_per_sample": 16384,
+        "samples_per_row": 5,
+        "warmup_operations_per_row": 256,
+        "instrumentation": "none",
+        "rows": [
+          {
+            "path": "string_dict_get",
+            "operations": 16384,
+            "checksum": 278528,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.0016075000166893005,
+              0.0018016000103671104,
+              0.0021038000122644007,
+              0.0017027999856509268,
+              0.0015852999931667
+            ]
+          },
+          {
+            "path": "python_key_dict_get",
+            "operations": 16384,
+            "checksum": 278528,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.048597499990137294,
+              0.05026610000641085,
+              0.05061170001863502,
+              0.05044099999940954,
+              0.05130660001304932
+            ]
+          },
+          {
+            "path": "builtin_hash_string",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.009739399974932894,
+              0.009733800019603223,
+              0.010077100014314055,
+              0.009798299986869097,
+              0.01019349999842234
+            ]
+          },
+          {
+            "path": "builtin_hash_python_key",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.035780200007138774,
+              0.03646870001102798,
+              0.03647949997684918,
+              0.03640739998081699,
+              0.03701040000305511
+            ]
+          },
+          {
+            "path": "direct_python_hash_method",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.016629199992166832,
+              0.01721449999604374,
+              0.01664590000291355,
+              0.016658200009260327,
+              0.016585800010943785
+            ]
+          },
+          {
+            "path": "saved_python_hash_method",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.015929699991829693,
+              0.01593460000003688,
+              0.015748999983770773,
+              0.016381199995521456,
+              0.01605750000453554
+            ]
+          },
+          {
+            "path": "ordinary_python_hash_function",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.016243699996266514,
+              0.016363899980206043,
+              0.016529300017282367,
+              0.016434699995443225,
+              0.01632140000583604
+            ]
+          },
+          {
+            "path": "ordinary_python_hash_wrapper",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.04285840000375174,
+              0.042770000000018626,
+              0.04287909998674877,
+              0.04545869998401031,
+              0.04239650000818074
+            ]
+          }
+        ]
+      },
+      "log": "exact-string-hash-paired-20261008-3-control.log",
+      "log_sha256": "57a6b5f60151ae72232eff62b1f1767a892fabef67dc7a72159828a8f9a8a32b"
+    },
+    {
+      "pair": 4,
+      "runtime": "control",
+      "result": {
+        "purpose": "generic unprofiled callback diagnostic only; not pyperformance",
+        "runtime": "xlang3",
+        "version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+        "operations_per_sample": 16384,
+        "samples_per_row": 5,
+        "warmup_operations_per_row": 256,
+        "instrumentation": "none",
+        "rows": [
+          {
+            "path": "string_dict_get",
+            "operations": 16384,
+            "checksum": 278528,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.0015635000017937273,
+              0.0016171000024769455,
+              0.0015693999885115772,
+              0.001736900012474507,
+              0.0016559999785386026
+            ]
+          },
+          {
+            "path": "python_key_dict_get",
+            "operations": 16384,
+            "checksum": 278528,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.05132130000856705,
+              0.05183869999018498,
+              0.05054359999485314,
+              0.04997319998801686,
+              0.04978060000576079
+            ]
+          },
+          {
+            "path": "builtin_hash_string",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.01007640000898391,
+              0.009991600003559142,
+              0.010129100002814084,
+              0.01028079999377951,
+              0.01039189999573864
+            ]
+          },
+          {
+            "path": "builtin_hash_python_key",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.036279500025557354,
+              0.03722860000561923,
+              0.03844650002429262,
+              0.036848199990345165,
+              0.03779979998944327
+            ]
+          },
+          {
+            "path": "direct_python_hash_method",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.01615369998035021,
+              0.016220899997279048,
+              0.016338499990524724,
+              0.01669039999251254,
+              0.016671399993356317
+            ]
+          },
+          {
+            "path": "saved_python_hash_method",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.016286400001263246,
+              0.016851099993800744,
+              0.015888299996731803,
+              0.015520299988565966,
+              0.0161184000025969
+            ]
+          },
+          {
+            "path": "ordinary_python_hash_function",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.016455500008305535,
+              0.016467199980979785,
+              0.01625310000963509,
+              0.01636720000533387,
+              0.016622600000118837
+            ]
+          },
+          {
+            "path": "ordinary_python_hash_wrapper",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.04301810002652928,
+              0.04313489998457953,
+              0.04439359999378212,
+              0.04355580001720227,
+              0.043574900017119944
+            ]
+          }
+        ]
+      },
+      "log": "exact-string-hash-paired-20261008-4-control.log",
+      "log_sha256": "d35a5d33a04d7f05f0bbc09e59966057cb3d125dbc3b5da6f71b1d93e8d59eff"
+    },
+    {
+      "pair": 4,
+      "runtime": "candidate",
+      "result": {
+        "purpose": "generic unprofiled callback diagnostic only; not pyperformance",
+        "runtime": "xlang3",
+        "version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+        "operations_per_sample": 16384,
+        "samples_per_row": 5,
+        "warmup_operations_per_row": 256,
+        "instrumentation": "none",
+        "rows": [
+          {
+            "path": "string_dict_get",
+            "operations": 16384,
+            "checksum": 278528,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.00157789999502711,
+              0.0015749000012874603,
+              0.0015854999946895987,
+              0.0015412999782711267,
+              0.001552900008391589
+            ]
+          },
+          {
+            "path": "python_key_dict_get",
+            "operations": 16384,
+            "checksum": 278528,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.04591210000216961,
+              0.046970700001111254,
+              0.04718470000079833,
+              0.04788080000435002,
+              0.04737179999938235
+            ]
+          },
+          {
+            "path": "builtin_hash_string",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.006231100007425994,
+              0.006264499999815598,
+              0.006211700005223975,
+              0.006287299998803064,
+              0.006484199984697625
+            ]
+          },
+          {
+            "path": "builtin_hash_python_key",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.03325300000142306,
+              0.033367900003213435,
+              0.032395899994298816,
+              0.03214600001228973,
+              0.03289309999672696
+            ]
+          },
+          {
+            "path": "direct_python_hash_method",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.012266800011275336,
+              0.01196400000480935,
+              0.012004499993054196,
+              0.012474899995140731,
+              0.01252250000834465
+            ]
+          },
+          {
+            "path": "saved_python_hash_method",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.011374099995009601,
+              0.011947000020882115,
+              0.011834200005978346,
+              0.011674399982439354,
+              0.011795200000051409
+            ]
+          },
+          {
+            "path": "ordinary_python_hash_function",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.012325000017881393,
+              0.012702500011073425,
+              0.012067300005583093,
+              0.011614699993515387,
+              0.011888100008945912
+            ]
+          },
+          {
+            "path": "ordinary_python_hash_wrapper",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.03850890000467189,
+              0.03914280000026338,
+              0.03973530000075698,
+              0.038593700010096654,
+              0.03917470001033507
+            ]
+          }
+        ]
+      },
+      "log": "exact-string-hash-paired-20261008-4-candidate.log",
+      "log_sha256": "32533362fa86803f2a40ba3dce55ee42b6c53a03f8f48de457c2748baa907b40"
+    },
+    {
+      "pair": 5,
+      "runtime": "candidate",
+      "result": {
+        "purpose": "generic unprofiled callback diagnostic only; not pyperformance",
+        "runtime": "xlang3",
+        "version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+        "operations_per_sample": 16384,
+        "samples_per_row": 5,
+        "warmup_operations_per_row": 256,
+        "instrumentation": "none",
+        "rows": [
+          {
+            "path": "string_dict_get",
+            "operations": 16384,
+            "checksum": 278528,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.0015718999784439802,
+              0.0015469999925699085,
+              0.0015641000063624233,
+              0.001520399993751198,
+              0.0016429999959655106
+            ]
+          },
+          {
+            "path": "python_key_dict_get",
+            "operations": 16384,
+            "checksum": 278528,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.0462396000220906,
+              0.04735239999718033,
+              0.04950659998576157,
+              0.046735300013097,
+              0.046612000005552545
+            ]
+          },
+          {
+            "path": "builtin_hash_string",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.00651310000102967,
+              0.006075200013583526,
+              0.0068137999915052205,
+              0.006115299998782575,
+              0.010922000015852973
+            ]
+          },
+          {
+            "path": "builtin_hash_python_key",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.0340211000002455,
+              0.03268110001226887,
+              0.03344259998993948,
+              0.033484799991128966,
+              0.03726490002009086
+            ]
+          },
+          {
+            "path": "direct_python_hash_method",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.013910000008763745,
+              0.012363700021523982,
+              0.012530700012575835,
+              0.01254930000868626,
+              0.012571600003866479
+            ]
+          },
+          {
+            "path": "saved_python_hash_method",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.01182610000250861,
+              0.012055500003043562,
+              0.012163100007455796,
+              0.012279799993848428,
+              0.012016599997878075
+            ]
+          },
+          {
+            "path": "ordinary_python_hash_function",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.011950299987802282,
+              0.011749700002837926,
+              0.012165300024207681,
+              0.012547899998025969,
+              0.011805899994214997
+            ]
+          },
+          {
+            "path": "ordinary_python_hash_wrapper",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.03828589999466203,
+              0.0378430999990087,
+              0.03802090001408942,
+              0.037756499979877844,
+              0.03776130001642741
+            ]
+          }
+        ]
+      },
+      "log": "exact-string-hash-paired-20261008-5-candidate.log",
+      "log_sha256": "9ce71702d892670bd5c9c41d2eb2dd163b002694526754453e408f8c7650a13d"
+    },
+    {
+      "pair": 5,
+      "runtime": "control",
+      "result": {
+        "purpose": "generic unprofiled callback diagnostic only; not pyperformance",
+        "runtime": "xlang3",
+        "version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+        "operations_per_sample": 16384,
+        "samples_per_row": 5,
+        "warmup_operations_per_row": 256,
+        "instrumentation": "none",
+        "rows": [
+          {
+            "path": "string_dict_get",
+            "operations": 16384,
+            "checksum": 278528,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.0018532999965827912,
+              0.0015749000012874603,
+              0.0016246000013779849,
+              0.0016662999987602234,
+              0.0016184999840334058
+            ]
+          },
+          {
+            "path": "python_key_dict_get",
+            "operations": 16384,
+            "checksum": 278528,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.04923219999182038,
+              0.05072570001357235,
+              0.05047080002259463,
+              0.049638900003628805,
+              0.051603400002932176
+            ]
+          },
+          {
+            "path": "builtin_hash_string",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.010182099998928607,
+              0.010248000005958602,
+              0.01021119998767972,
+              0.010206599981756881,
+              0.010376399994129315
+            ]
+          },
+          {
+            "path": "builtin_hash_python_key",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.03739559999667108,
+              0.03798979998100549,
+              0.03741680001257919,
+              0.03740270002163015,
+              0.037963700015097857
+            ]
+          },
+          {
+            "path": "direct_python_hash_method",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.016797199990833178,
+              0.016176600009202957,
+              0.01674339998862706,
+              0.01690339998458512,
+              0.01690230000531301
+            ]
+          },
+          {
+            "path": "saved_python_hash_method",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.01618680002866313,
+              0.016580099996645004,
+              0.016243899997789413,
+              0.01567250001244247,
+              0.01608870000927709
+            ]
+          },
+          {
+            "path": "ordinary_python_hash_function",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.01642070000525564,
+              0.015903100022114813,
+              0.016114300000481308,
+              0.016804899991257116,
+              0.017121899989433587
+            ]
+          },
+          {
+            "path": "ordinary_python_hash_wrapper",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.044869600009405985,
+              0.042137400014325976,
+              0.04277210001600906,
+              0.044088900001952425,
+              0.043761300010373816
+            ]
+          }
+        ]
+      },
+      "log": "exact-string-hash-paired-20261008-5-control.log",
+      "log_sha256": "c6def17c1ca0683e8406595487af87e05f9eb4f4ac979f4a83a576ac07b2c07e"
+    },
+    {
+      "pair": 6,
+      "runtime": "control",
+      "result": {
+        "purpose": "generic unprofiled callback diagnostic only; not pyperformance",
+        "runtime": "xlang3",
+        "version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+        "operations_per_sample": 16384,
+        "samples_per_row": 5,
+        "warmup_operations_per_row": 256,
+        "instrumentation": "none",
+        "rows": [
+          {
+            "path": "string_dict_get",
+            "operations": 16384,
+            "checksum": 278528,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.001656600012211129,
+              0.0016706000023987144,
+              0.001641800015931949,
+              0.0015875000099185854,
+              0.0016201999969780445
+            ]
+          },
+          {
+            "path": "python_key_dict_get",
+            "operations": 16384,
+            "checksum": 278528,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.04974290000973269,
+              0.04977020001388155,
+              0.05189470000914298,
+              0.05104970000684261,
+              0.05112089999602176
+            ]
+          },
+          {
+            "path": "builtin_hash_string",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.010443099978147075,
+              0.0103106000169646,
+              0.01023779998649843,
+              0.010247800004435703,
+              0.010108199989190325
+            ]
+          },
+          {
+            "path": "builtin_hash_python_key",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.03586360000190325,
+              0.03655659998185001,
+              0.037037899979623035,
+              0.03760889999102801,
+              0.037328300008084625
+            ]
+          },
+          {
+            "path": "direct_python_hash_method",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.016654000006383285,
+              0.0166886999795679,
+              0.01679249998414889,
+              0.016715699981432408,
+              0.016685300011886284
+            ]
+          },
+          {
+            "path": "saved_python_hash_method",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.016185399988899007,
+              0.01609150000149384,
+              0.016098599997349083,
+              0.016104699985589832,
+              0.01652140001533553
+            ]
+          },
+          {
+            "path": "ordinary_python_hash_function",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.016177200013771653,
+              0.015710000006947666,
+              0.016266799997538328,
+              0.01732119999360293,
+              0.01704860001336783
+            ]
+          },
+          {
+            "path": "ordinary_python_hash_wrapper",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.04300829998101108,
+              0.042872499994700775,
+              0.043711200007237494,
+              0.04245379997882992,
+              0.04244330001529306
+            ]
+          }
+        ]
+      },
+      "log": "exact-string-hash-paired-20261008-6-control.log",
+      "log_sha256": "4777946248a333c716973f8db2c75328b1eeb1555f26f1c4896f9a162aee0c90"
+    },
+    {
+      "pair": 6,
+      "runtime": "candidate",
+      "result": {
+        "purpose": "generic unprofiled callback diagnostic only; not pyperformance",
+        "runtime": "xlang3",
+        "version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+        "operations_per_sample": 16384,
+        "samples_per_row": 5,
+        "warmup_operations_per_row": 256,
+        "instrumentation": "none",
+        "rows": [
+          {
+            "path": "string_dict_get",
+            "operations": 16384,
+            "checksum": 278528,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.001558799995109439,
+              0.0015571000112686306,
+              0.0015859999984968454,
+              0.0015324999985750765,
+              0.0015514999977312982
+            ]
+          },
+          {
+            "path": "python_key_dict_get",
+            "operations": 16384,
+            "checksum": 278528,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.046598599990829825,
+              0.046733399998629466,
+              0.04717529998742975,
+              0.04722720000427216,
+              0.047022300015669316
+            ]
+          },
+          {
+            "path": "builtin_hash_string",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.006774200010113418,
+              0.006431899993913248,
+              0.007723000016994774,
+              0.006438800017349422,
+              0.006106499989982694
+            ]
+          },
+          {
+            "path": "builtin_hash_python_key",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.03278459998546168,
+              0.03282630001194775,
+              0.03275980000034906,
+              0.032890900009078905,
+              0.03302689999691211
+            ]
+          },
+          {
+            "path": "direct_python_hash_method",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.011875600001076236,
+              0.012329199991654605,
+              0.012051000026986003,
+              0.012204400001792237,
+              0.011972000007517636
+            ]
+          },
+          {
+            "path": "saved_python_hash_method",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.011259699997026473,
+              0.011422000010497868,
+              0.011822599975857884,
+              0.011679099989123642,
+              0.012016199994832277
+            ]
+          },
+          {
+            "path": "ordinary_python_hash_function",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.011610999994445592,
+              0.011863699997775257,
+              0.0121964999998454,
+              0.012169399997219443,
+              0.012211699999170378
+            ]
+          },
+          {
+            "path": "ordinary_python_hash_wrapper",
+            "operations": 16384,
+            "checksum": 16384,
+            "key_text": "SELECT",
+            "samples_seconds": [
+              0.09724370000185445,
+              0.04340959998080507,
+              0.04039330000523478,
+              0.04150819999631494,
+              0.04046390001894906
+            ]
+          }
+        ]
+      },
+      "log": "exact-string-hash-paired-20261008-6-candidate.log",
+      "log_sha256": "8357d587d2bb33ba85684dd72ac9a2739dc274101a8f5000ed52234821c28186"
+    }
+  ],
+  "summary": [
+    {
+      "path": "string_dict_get",
+      "control_over_candidate_speed": 1.0342496154912344,
+      "pair_ratios": [
+        1.0322374761098703,
+        0.9721899656695407,
+        1.0342496154912344,
+        1.0823110642874816,
+        1.0267953528192184,
+        1.0386803879352091,
+        1.0543959951514674
+      ],
+      "control_median_seconds": 0.0016215999785345048,
+      "candidate_median_seconds": 0.0015718999784439802
+    },
+    {
+      "path": "python_key_dict_get",
+      "control_over_candidate_speed": 1.0720449211986784,
+      "pair_ratios": [
+        1.0880582094799927,
+        1.0281499407851742,
+        1.059330557418039,
+        1.0720449211986784,
+        1.0711862106572254,
+        1.0799288762124304,
+        1.0856487238997505
+      ],
+      "control_median_seconds": 0.05026610000641085,
+      "candidate_median_seconds": 0.047022300015669316
+    },
+    {
+      "path": "builtin_hash_string",
+      "control_over_candidate_speed": 1.6169047814050992,
+      "pair_ratios": [
+        1.6481933710810426,
+        1.6858222927432827,
+        1.6243122218342747,
+        1.5647986928435458,
+        1.6169047814050992,
+        1.5677941358286236,
+        1.5915698541378651
+      ],
+      "control_median_seconds": 0.010134899988770485,
+      "candidate_median_seconds": 0.006243099982384592
+    },
+    {
+      "path": "builtin_hash_python_key",
+      "control_over_candidate_speed": 1.1282995636469049,
+      "pair_ratios": [
+        1.1380520008928283,
+        1.1391202170380057,
+        1.120670889784892,
+        1.109901515142973,
+        1.1318057589380044,
+        1.117426415044794,
+        1.1282995636469049
+      ],
+      "control_median_seconds": 0.03717029999825172,
+      "candidate_median_seconds": 0.03289309999672696
+    },
+    {
+      "path": "direct_python_hash_method",
+      "control_over_candidate_speed": 1.3360864310624452,
+      "pair_ratios": [
+        1.3574071767309304,
+        1.2907366561848366,
+        1.325471963489074,
+        1.3360864310624452,
+        1.3319284553026693,
+        1.3384969663014388,
+        1.384839427615685
+      ],
+      "control_median_seconds": 0.016631600010441616,
+      "candidate_median_seconds": 0.012448800000129268
+    },
+    {
+      "path": "saved_python_hash_method",
+      "control_over_candidate_speed": 1.3643712143430504,
+      "pair_ratios": [
+        1.3643712143430504,
+        1.345267916686777,
+        1.366803910132986,
+        1.3548908237511716,
+        1.3665219752549045,
+        1.3426900605181509,
+        1.3789333082675552
+      ],
+      "control_median_seconds": 0.01608870000927709,
+      "candidate_median_seconds": 0.011761999980080873
+    },
+    {
+      "path": "ordinary_python_hash_function",
+      "control_over_candidate_speed": 1.3613213967065905,
+      "pair_ratios": [
+        1.3261596663959516,
+        1.3670343100176174,
+        1.3507022595334313,
+        1.3613213967065905,
+        1.3636438972008804,
+        1.3740826608550674,
+        1.3366969613337625
+      ],
+      "control_median_seconds": 0.016363899980206043,
+      "candidate_median_seconds": 0.012087300012353808
+    },
+    {
+      "path": "ordinary_python_hash_wrapper",
+      "control_over_candidate_speed": 1.1145957744672363,
+      "pair_ratios": [
+        1.1145957744672363,
+        1.1279415296179822,
+        1.1024024639075767,
+        1.1188926573721574,
+        1.1127410409298568,
+        1.1563878226551245,
+        1.0328682043188322
+      ],
+      "control_median_seconds": 0.043027900013839826,
+      "candidate_median_seconds": 0.038666100008413196
+    }
+  ],
+  "hashes_unchanged": true,
+  "terminal": true
+}

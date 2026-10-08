@@ -1,0 +1,66 @@
+{
+  "status": "failed_candidate-focused",
+  "scope": "Own native _sqlite3 aggregate bridge; Python library and aggregate remain Python",
+  "source_sha256": {
+    "sdk/xlang3/abi/xmodule.h": "7aa4ae5bcbfd266741ce592d1b2821f112a21ceb1a6ebdeaedea8ddf1d7cbded",
+    "src/import/native_package_loader.cpp": "c3196390d2ca48d4e67a6492277ddf98ad1a3c05c1ce01f53d4cc341cfbd6a00",
+    "modules/sqlite/sqlite_package.cpp": "e4349e80b5c519b290853c1ac80443a5351f4d4f9def41449af71c3d1178457d",
+    "modules/sqlite/sqlite_values.cpp": "c691c90ba6b7a43c12bce47dfef75101b22b76732303a196ac30b9d6ad3533dc",
+    "tests/cpp/interpreter_tests.cpp": "4b711ad8d56b8fff2cff8731d46ff01ec3e7caec131dfc1f6de14fd9e1110ef3",
+    "tests/run_fixtures.py": "5f8198ed6a94f7051a16da39282c2152532613377c29da97d2ee1b0b8d999816",
+    "tests/run_fixtures.ps1": "1239bfeb4efca8f0e6ce159ab8259b7eed701b46a8a44fcc2d2934b8aca83e7b",
+    "tests/cpp/sqlite_aggregate_abi_cases.h": "424debac1951802dba2619736f4d935502ad261cc82bc13247beb27adac69f0a",
+    "tests/cpp/sqlite_aggregate_sdk_probe.py": "318c0a6e64b6c1cbb4f4a6cfa2b49b6186d271ae4bbfc09e04109d606649bc18",
+    "tests/fixtures/core/sqlite_native_aggregate.py": "5e8b444a8f47eae17d597bbea7455f0b8301102ffe89c016b76fde1474a9a650",
+    "tests/fixtures/expected/sqlite_native_aggregate.out": "8f6ebc7a41de49cbe5f10eb5562fa88587df0bed67240dba4a7f5fc5f9edb2ba",
+    "modules/sqlite/sqlite_handles.h": "14bac0cb256d3fd86fd9422ba7b423cb16ae6a5185c714d5f71fa84a34e8c620",
+    "tests/fixtures/core/sqlite_cursor_completion.py": "3d3f6071911c60a54a3dbed4a6da8062a0fe76e92c83d6e7a92cb94fa84c80d6",
+    "tests/fixtures/expected/sqlite_cursor_completion.out": "ee14063d1e39079883efe711f04242b1b70e33d8d9d5ea073f85255784b73df6"
+  },
+  "binaries_sha256": {
+    "build-repro/main-verify-20261006/Release/xlang3.exe": "31f9a848f78c7dfae4c59dc6cd0016815549d6d67409276fcaecadae504d5958",
+    "build-repro/main-verify-20261006/Release/xlang3_runtime.dll": "ccda58d254c5978cd3d55d733c6999311317098a429e2f97c937f1c0bb0bca45",
+    "build-repro/main-verify-20261006/Release/xlang3_interpreter_tests.exe": "620a73569b10866a806b810dcb856151e47e4cbde0de68c54388ec5c20320860",
+    "build-repro/main-verify-20261006/Release/modules/xlang_sqlite3.x3pkg.dll": "e1ec4a03fa242b161ba1f8834a43c983d04b0f9b78542c9900c9595fc64a4044"
+  },
+  "accepted_control_manifest_sha256": "4b997e4dc069393dcd0b08556918494a4bcc63a884af69bed9467a2d5d081bae",
+  "benchmark_source_sha256": "dcba7a6889e66f08480f4332860208d624678fc42a03be5c8f3b6f1f894231fd",
+  "cpython3147_binary_sha256": "4942b86a6597e5aee0128daa00050ed79bc21f6e709a78eb19cbfeb0c2f39ac9",
+  "phases": [
+    {
+      "name": "candidate-focused",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\tests\\fixtures\\core\\sqlite_native_aggregate.py"
+      ],
+      "exit_code": 1,
+      "timeout": false,
+      "log": "sqlite-aggregate-cursor-r6-validation-20261008-candidate-focused.log",
+      "sha256": "e57bb77a230fd9831e0078bf186c1b162c98d39bc4e78bac2b12dcbef18ee6bc"
+    }
+  ],
+  "preserved_cpython3147_focused": [
+    {
+      "name": "cpython3147-focused",
+      "command": [
+        "C:\\Python\\Python314\\python.exe",
+        "D:\\CantorAI\\xlang3\\tests\\fixtures\\core\\sqlite_native_aggregate.py"
+      ],
+      "exit_code": 0,
+      "timeout": false,
+      "log": "sqlite-aggregate-r5-validation-20261008-cpython3147-focused.log",
+      "sha256": "8f6ebc7a41de49cbe5f10eb5562fa88587df0bed67240dba4a7f5fc5f9edb2ba"
+    },
+    {
+      "exit_code": 0,
+      "source_sha256": "25b83546a23c20509da6bf2006311a51cdc19ef7b6504bc293efffeac6d41560",
+      "log_sha256": "ee14063d1e39079883efe711f04242b1b70e33d8d9d5ea073f85255784b73df6",
+      "cpython_version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+      "groups": 8,
+      "output_matches_expected": true
+    }
+  ],
+  "error": "AssertionError: candidate-focused",
+  "hashes_unchanged": true,
+  "terminal": true
+}

@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="456" viewBox="0 0 1080 456">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<g font-family="Arial, sans-serif" fill="#172b4d">
+<text x="20" y="28" font-size="20" font-weight="bold">Generic hash diagnostic: candidate versus accepted XLang3</text>
+<text x="20" y="51" font-size="13">Accepted control = 1x throughput; seven alternating process pairs, five samples per row per process</text>
+<line x1="330.0" x2="330.0" y1="71" y2="424" stroke="#e0e6ed"/>
+<text x="330.0" y="444" text-anchor="middle" font-size="12">0x</text>
+<line x1="600.0" x2="600.0" y1="71" y2="424" stroke="#e0e6ed"/>
+<text x="600.0" y="444" text-anchor="middle" font-size="12">1x</text>
+<line x1="870.0" x2="870.0" y1="71" y2="424" stroke="#e0e6ed"/>
+<text x="870.0" y="444" text-anchor="middle" font-size="12">2x</text>
+<line x1="600.0" x2="600.0" y1="71" y2="424" stroke="#44566c" stroke-dasharray="5 4"/>
+<text x="20" y="98" font-size="13">string_dict_get</text>
+<rect x="330" y="79" width="279.247" height="27" rx="3" fill="#2474a6"/>
+<text x="619.247" y="98" font-size="13">1.034x (6/7 pairs)</text>
+<text x="20" y="141" font-size="13">python_key_dict_get</text>
+<rect x="330" y="122" width="289.452" height="27" rx="3" fill="#2474a6"/>
+<text x="629.452" y="141" font-size="13">1.072x (7/7 pairs)</text>
+<text x="20" y="184" font-size="13">builtin_hash_string</text>
+<rect x="330" y="165" width="436.564" height="27" rx="3" fill="#2474a6"/>
+<text x="776.564" y="184" font-size="13">1.617x (7/7 pairs)</text>
+<text x="20" y="227" font-size="13">builtin_hash_python_key</text>
+<rect x="330" y="208" width="304.641" height="27" rx="3" fill="#2474a6"/>
+<text x="644.641" y="227" font-size="13">1.128x (7/7 pairs)</text>
+<text x="20" y="270" font-size="13">direct_python_hash_method</text>
+<rect x="330" y="251" width="360.743" height="27" rx="3" fill="#2474a6"/>
+<text x="700.743" y="270" font-size="13">1.336x (7/7 pairs)</text>
+<text x="20" y="313" font-size="13">saved_python_hash_method</text>
+<rect x="330" y="294" width="368.380" height="27" rx="3" fill="#2474a6"/>
+<text x="708.380" y="313" font-size="13">1.364x (7/7 pairs)</text>
+<text x="20" y="356" font-size="13">ordinary_python_hash_function</text>
+<rect x="330" y="337" width="367.557" height="27" rx="3" fill="#2474a6"/>
+<text x="707.557" y="356" font-size="13">1.361x (7/7 pairs)</text>
+<text x="20" y="399" font-size="13">ordinary_python_hash_wrapper</text>
+<rect x="330" y="380" width="300.941" height="27" rx="3" fill="#2474a6"/>
+<text x="640.941" y="399" font-size="13">1.115x (7/7 pairs)</text>
+</g></svg>

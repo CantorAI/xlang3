@@ -1,0 +1,81 @@
+{
+  "status": "static_proposal_unbuilt_unexecuted",
+  "scope": "scratch only; no live source/test mutation, builds, runtimes, fixture execution, benchmarks, stage or commit",
+  "complete_patch_apply_check_exit_code": 0,
+  "engine_patch_apply_check_exit_code": 0,
+  "independent_static_reviewer": "class_scope_design",
+  "independent_verdict": "no concrete compiler/ownership/test-construction blocker; explicit new Python fixture execution or owned registration required",
+  "proposals": [
+    {
+      "path": "scratch/performance/hash-exception-preservation-engine-proposed-20261008.patch",
+      "sha256": "296bd346f08d84266612ad2154dac025bd00ecb41f7ed45ce332359e98daa777",
+      "bytes": 1133
+    },
+    {
+      "path": "scratch/performance/hash-exception-preservation-complete-proposed-20261008.patch",
+      "sha256": "b566a8ce3b7f53bb3ffdb7f5214825623d485a1848672c4bc8fda1e247089c34",
+      "bytes": 10233
+    },
+    {
+      "path": "scratch/performance/hash-exception-cases-proposed-20261008.h",
+      "sha256": "15f515f3a17632a87f47a38bd15f9e96ab969f85826aa67bd38f6818d01ddc9a",
+      "bytes": 4941
+    },
+    {
+      "path": "scratch/performance/hash-exception-fixture-proposed-20261008.py",
+      "sha256": "5cbef9d45a4d1b5d9f7dfa5121abfde01651e5865422afe197d975856dafcbf7",
+      "bytes": 2343
+    },
+    {
+      "path": "scratch/performance/hash-exception-preservation-review-20261008.txt",
+      "sha256": "c2bd76f531595137d29e7401a32a478baa3833e6c4e6422ee4432d6f52b1bacf",
+      "bytes": 4965
+    }
+  ],
+  "source_before": [
+    {
+      "path": "src/builtins/functional_builtins.cpp",
+      "sha256": "de5920ff70a7a11069da2e5b5a27bfa9abbededf81a8a2e00e56cce584d1c979",
+      "bytes": 228929
+    },
+    {
+      "path": "tests/cpp/interpreter_tests.cpp",
+      "sha256": "4b711ad8d56b8fff2cff8731d46ff01ec3e7caec131dfc1f6de14fd9e1110ef3",
+      "bytes": 29331
+    },
+    {
+      "path": "src/runtime/exceptions.cpp",
+      "sha256": "d5c13f7126a415d7b297ddb9f27052ddd35feb6595976654ba6bf017410f5dde",
+      "bytes": 8307
+    },
+    {
+      "path": "src/runtime/functional_iterators.cpp",
+      "sha256": "cfe434b7fa9f4dee64ddac97371e97deb80e0cfba56c80bd84c10ef10f82eb66",
+      "bytes": 42467
+    }
+  ],
+  "evidence": [
+    {
+      "path": "doc/performance/data/exact-string-hash-accepted-control-reference-20261008.log",
+      "sha256": "8475090c6dc70f0995795724708642c58a44bbcb8b64fcabfad297228af3a9ce",
+      "bytes": 451
+    },
+    {
+      "path": "doc/performance/data/exact-string-hash-cpython3147-reference-20261008.stdout.log",
+      "sha256": "ed8793bedad4f781d719b81cddb118bcf1cefc7cd6127be9de888cd090c380e2",
+      "bytes": 146
+    },
+    {
+      "path": "doc/performance/data/exact-string-hash-cpython3147-reference-20261008.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "doc/performance/data/exact-string-hash-cpython3147-reference-20261008.json",
+      "sha256": "dbebb81b9cfc01cd17f1c273447d51deea1d5f45bc50fd9656e4f5ad8715d6fb",
+      "bytes": 693
+    }
+  ],
+  "original_string_dispatch_patch_unchanged_sha256": "8a0af520a8120302b07f9e7de91297330480a0e24d5e37a83a6fdc386bb443a4",
+  "original_five_group_fixture_unchanged_sha256": "8c5661caca2694b1c821e39700a69d2621cdf7b4e67c0b66bcc316566f5aa635"
+}

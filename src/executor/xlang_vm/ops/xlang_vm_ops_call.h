@@ -23,7 +23,7 @@ limitations under the License.
 
 #include "xlang_vm_ops_variables.h"
 
-#include "runtime_lock.h"
+#include "runtime/modules/thread/runtime_lock.h"
 
 #include "xlang3/attribute.h"
 #include "xlang3/builtin_methods.h"

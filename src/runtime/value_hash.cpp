@@ -359,6 +359,14 @@ bool value_hash_key(const Value& value, size_t& out, std::string& error) {
         out = std::hash<const void*>{}(value.as.obj);
         return true;
       }
+      // Exact strings are immutable and cannot contain Python numeric payloads.
+      // Read their cached hash before numeric conversion: those conversions
+      // otherwise repeat four failed generic attribute lookups on every hash.
+      // String subclasses remain Instance objects on the ordinary hook path.
+      if (auto* string = value_as_string(value)) {
+        out = string_object_hash(*string);
+        return true;
+      }
       {
         if (value_int_like_hash(value, out)) {
           return true;
@@ -366,10 +374,6 @@ bool value_hash_key(const Value& value, size_t& out, std::string& error) {
         int64_t int_payload = 0;
         if (int_payload_value(value, int_payload)) {
           return value_int_like_hash(Value::int64(int_payload), out);
-        }
-        if (auto* string = value_as_string(value)) {
-          out = string_object_hash(*string);
-          return true;
         }
         std::string_view string_payload;
         if (string_payload_view(value, string_payload)) {

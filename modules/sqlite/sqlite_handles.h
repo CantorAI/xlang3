@@ -18,6 +18,9 @@ limitations under the License.
 
 #include "sqlite3.h"
 
+#include <string>
+#include <vector>
+
 namespace xlang3_sqlite {
 
 constexpr const char* kConnectionType = "xlang3.sqlite.Connection";
@@ -31,6 +34,12 @@ struct ConnectionHandle {
 };
 
 struct CursorHandle {
+  // A current SQLite row is primed by execute, then advanced before each
+  // fetch returns. Description must outlive the completed statement.
+  bool has_row = false;
+  bool locked = false;
+  bool write_statement = false;
+  std::vector<std::string> column_names;
   ConnectionHandle* connection = nullptr;
   sqlite3_stmt* stmt = nullptr;
   sqlite3_int64 lastrowid = 0;

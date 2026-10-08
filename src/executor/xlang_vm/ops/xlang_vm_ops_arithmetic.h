@@ -925,20 +925,50 @@ XLANG3_HOT_INLINE XlangVMOpFlow compare_jump_if_false(
   return XlangVMOpFlow::Next;
 }
 
-XLANG3_HOT_INLINE void is_op(const ir::Instr& in, XlangVMSmallRegisterBuffer& regs) {
-  value_set_bool(regs[in.dst], value_is(regs[in.a], regs[in.b]) != (in.c != 0));
+template <typename RefreshMonitoring>
+XLANG3_HOT_INLINE void is_op(
+    const ir::Instr& in, XlangVMFrame& frame, size_t ip,
+    RefreshMonitoring&& refresh_monitoring) {
+  auto& regs = frame.regs;
+  const bool condition = value_is(regs[in.a], regs[in.b]) != (in.c != 0);
+  Value previous_output;
+  // Publish the scalar result before replacing an owning output can reenter.
+  // An output/operand alias must keep the bool rather than be retired again.
+  if (regs[in.dst].tag == ValueTag::Object) {
+    previous_output = std::move(regs[in.dst]);
+  }
+  value_set_bool(regs[in.dst], condition);
+  if (frame.release_identity_operands_last_used_at(
+          in.a, in.b, ip, in.dst, &previous_output)) {
+    refresh_monitoring();
+  }
 }
 
-template <typename EmitMonitoringEvent>
+template <typename EmitMonitoringEvent, typename RefreshMonitoring>
 XLANG3_HOT_INLINE XlangVMOpFlow is_jump_if_false(
     const ir::Instr& in,
-    XlangVMSmallRegisterBuffer& regs,
+    XlangVMFrame& frame,
     size_t& ip,
-    EmitMonitoringEvent&& emit_monitoring_event) {
+    EmitMonitoringEvent&& emit_monitoring_event,
+    RefreshMonitoring&& refresh_monitoring,
+    bool literal_none_rhs = false) {
+  auto& regs = frame.regs;
+  const bool taken_branch_instrumented =
+      (frame.monitoring_events & kSysMonitoringEventBranchRight) != 0;
   const bool condition = value_is(regs[in.a], regs[in.b]) != (in.c != 0);
+  if (frame.release_identity_operands_last_used_at(in.a, in.b, ip)) {
+    // Finalizers may enable the following branch or return instruction.
+    // Refresh even on taken paths that skip common post-instruction cleanup.
+    refresh_monitoring();
+  }
   const uint32_t destination_offset = condition ? static_cast<uint32_t>(ip + 1) : in.dst;
   Value destination = Value::int64(static_cast<int64_t>(destination_offset));
-  if (!emit_monitoring_event(
+  // CPython's combined RHS-None opcode cannot retroactively instrument its
+  // taken RIGHT path. Fallthrough LEFT lives in the following NOT_TAKEN,
+  // while general identity uses IS_OP then a separate conditional branch.
+  // The source-proven new opcode preserves those distinct dispatch points.
+  const bool dispatch_branch = condition || !literal_none_rhs || taken_branch_instrumented;
+  if (dispatch_branch && !emit_monitoring_event(
           condition ? kSysMonitoringEventBranchLeft : kSysMonitoringEventBranchRight,
           &destination)) {
     return XlangVMOpFlow::ReturnResult;
@@ -949,7 +979,6 @@ XLANG3_HOT_INLINE XlangVMOpFlow is_jump_if_false(
   }
   return XlangVMOpFlow::Next;
 }
-
 template <typename RaiseUnboundLocalError, typename EmitMonitoringEvent>
 XLANG3_HOT_INLINE XlangVMOpFlow is_local_const_jump_if_false(
     const ir::Instr& in,

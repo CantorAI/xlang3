@@ -14,6 +14,8 @@ limitations under the License.
 */
 #include "sqlite_values.h"
 
+#include <cstddef>
+
 namespace xlang3_sqlite {
 
 bool require_string(
@@ -45,8 +47,16 @@ bool bind_value(const X3PackageHost* host, X3Runtime* runtime, sqlite3_stmt* stm
       return sqlite3_bind_double(stmt, index, value.as.f64) == SQLITE_OK;
     case X3_TAG_OBJECT:
       if (host->value_object_kind(value) == X3_OBJECT_KIND_STRING) {
-        const char* text = host->value_to_cstr(runtime, value);
-        return sqlite3_bind_text(stmt, index, text, -1, SQLITE_TRANSIENT) == SQLITE_OK;
+        // SQL TEXT is length-delimited. A C-string conversion silently loses
+        // embedded NULs before any Python aggregate ever receives the value.
+        const size_t required = offsetof(X3PackageHost, value_string_data) +
+            sizeof(host->value_string_data);
+        if (host->size < required || !host->value_string_data) return false;
+        const char* text = nullptr;
+        uint64_t size = 0;
+        if (host->value_string_data(runtime, value, &text, &size) != X3_STATUS_OK)
+          return false;
+        return sqlite3_bind_text64(stmt, index, text, size, SQLITE_TRANSIENT, SQLITE_UTF8) == SQLITE_OK;
       }
       if (host->value_object_kind(value) == X3_OBJECT_KIND_BYTES) {
         const void* data = nullptr;
@@ -86,8 +96,17 @@ X3Value column_value(const X3PackageHost* host, X3Runtime* runtime, sqlite3_stmt
       return x3_value_int64(static_cast<int64_t>(sqlite3_column_int64(stmt, column)));
     case SQLITE_FLOAT:
       return x3_value_double(sqlite3_column_double(stmt, column));
-    case SQLITE_TEXT:
-      return host->value_string(runtime, reinterpret_cast<const char*>(sqlite3_column_text(stmt, column)));
+    case SQLITE_TEXT: {
+      const size_t required = offsetof(X3PackageHost, value_string_utf8) +
+          sizeof(host->value_string_utf8);
+      if (host->size < required || !host->value_string_utf8) return x3_value_invalid();
+      const char* text = reinterpret_cast<const char*>(sqlite3_column_text(stmt, column));
+      const int size = sqlite3_column_bytes(stmt, column);
+      if (text == nullptr && sqlite3_errcode(sqlite3_db_handle(stmt)) == SQLITE_NOMEM)
+        return x3_value_invalid();
+      return host->value_string_utf8(runtime, text == nullptr ? "" : text,
+          static_cast<uint64_t>(size));
+    }
     case SQLITE_NULL:
       return x3_value_none();
     case SQLITE_BLOB:

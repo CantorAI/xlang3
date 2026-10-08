@@ -5251,9 +5251,17 @@ bool builtin_hash(Runtime& runtime, const Value* args, uint32_t argc, Value& out
   }
   size_t hash = 0;
   if (!runtime_hash_value(runtime, args[0], hash, error)) {
-    runtime.raise_class_error(
-        error == "operation forbidden on released memoryview object" ? "ValueError" : "TypeError",
-        error);
+    // __hash__ may fail through a nested Python/native callback. Keep that
+    // exact pending exception (and its traceback/cause) instead of replacing
+    // it with the fallback TypeError for values that are merely unhashable.
+    Value pending;
+    if (runtime.take_pending_exception(pending)) {
+      runtime.set_pending_exception(std::move(pending));
+    } else {
+      runtime.raise_class_error(
+          error == "operation forbidden on released memoryview object" ? "ValueError" : "TypeError",
+          error);
+    }
     return false;
   }
   out = Value::int64(static_cast<int64_t>(hash));

@@ -1,0 +1,12 @@
+local_slots              pass         0.999x
+scalar_arithmetic        pass         1.054x
+range_for                pass         1.006x
+function_calls           pass         0.989x
+class_construct          pass         1.005x
+list_append              pass         1.035x
+property_access          pass         0.985x
+deepcopy_memo            pass         0.915x
+json_dumps               pass         1.021x
+gc_traversal             pass         0.744x
+subparsers               pass         0.927x
+Performance check: pass. Report: D:\CantorAI\xlang3\doc\performance\data\sqlite-identity-hash-loop-proof-validation-20261008-fixed-gate.json

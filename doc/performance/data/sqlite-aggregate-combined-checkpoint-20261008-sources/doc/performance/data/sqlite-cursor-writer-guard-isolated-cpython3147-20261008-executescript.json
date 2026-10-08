@@ -1,0 +1,143 @@
+{
+  "case_id": "sqlite-cursor-writer-guard/initial-step/executescript",
+  "operation": "executescript",
+  "command": [
+    "C:\\Python\\Python314\\python.exe",
+    "-u",
+    "-X",
+    "faulthandler",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlite-cursor-writer-guard-isolated-probe-20261008.py",
+    "executescript"
+  ],
+  "exit_code": 0,
+  "exit_code_unsigned": 0,
+  "exit_code_hex": "0x00000000",
+  "timeout": false,
+  "native_access_violation": false,
+  "expected_guard_rejection_and_assertions_passed": true,
+  "stdout_file": "sqlite-cursor-writer-guard-isolated-cpython3147-20261008-executescript.stdout.log",
+  "stdout_sha256": "6cf1210a52f618f14e6b06bdfb87c227c90b8f7acc840e63063727026d598f9c",
+  "stderr_file": "sqlite-cursor-writer-guard-isolated-cpython3147-20261008-executescript.stderr.log",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "stdout": "{\"case_id\": \"sqlite-cursor-writer-guard/initial-step/executescript\", \"operation\": \"executescript\", \"event\": \"process-start\", \"original_probe_sha256\": \"85320a8fb6a75e3793e43d8c912775647e4eed29bceb4ef8f43089dc2227c7bd\", \"executable\": \"C:\\\\Python\\\\Python314\\\\python.exe\", \"version\": \"3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]\", \"sqlite_version\": \"3.50.4\", \"sqlite_module\": \"C:\\\\Python\\\\Python314\\\\Lib\\\\sqlite3\\\\__init__.py\"}\r\n{\"case_id\": \"sqlite-cursor-writer-guard/initial-step/executescript\", \"operation\": \"executescript\", \"event\": \"initial-execute-enter\", \"original_probe_sha256\": \"85320a8fb6a75e3793e43d8c912775647e4eed29bceb4ef8f43089dc2227c7bd\"}\r\n{\"case_id\": \"sqlite-cursor-writer-guard/initial-step/executescript\", \"operation\": \"executescript\", \"event\": \"callback-enter\", \"original_probe_sha256\": \"85320a8fb6a75e3793e43d8c912775647e4eed29bceb4ef8f43089dc2227c7bd\"}\r\n{\"case_id\": \"sqlite-cursor-writer-guard/initial-step/executescript\", \"operation\": \"executescript\", \"event\": \"recursive-operation-enter\", \"original_probe_sha256\": \"85320a8fb6a75e3793e43d8c912775647e4eed29bceb4ef8f43089dc2227c7bd\"}\r\n{\"case_id\": \"sqlite-cursor-writer-guard/initial-step/executescript\", \"operation\": \"executescript\", \"event\": \"recursive-programming-error\", \"original_probe_sha256\": \"85320a8fb6a75e3793e43d8c912775647e4eed29bceb4ef8f43089dc2227c7bd\", \"exception\": {\"type\": \"sqlite3.ProgrammingError\", \"message\": \"Recursive use of cursors not allowed.\", \"repr\": \"ProgrammingError('Recursive use of cursors not allowed.')\", \"traceback\": [\"Traceback (most recent call last):\\n\", \"  File \\\"D:\\\\CantorAI\\\\xlang3\\\\scratch\\\\performance\\\\sqlite-cursor-writer-guard-isolated-probe-20261008.py\\\", line 60, in reenter\\n    cursor.executescript(\\\"SELECT 99;\\\")\\n    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^\\n\", \"sqlite3.ProgrammingError: Recursive use of cursors not allowed.\\n\"]}}\r\n{\"case_id\": \"sqlite-cursor-writer-guard/initial-step/executescript\", \"operation\": \"executescript\", \"event\": \"callback-return\", \"original_probe_sha256\": \"85320a8fb6a75e3793e43d8c912775647e4eed29bceb4ef8f43089dc2227c7bd\", \"value\": 37}\r\n{\"case_id\": \"sqlite-cursor-writer-guard/initial-step/executescript\", \"operation\": \"executescript\", \"event\": \"initial-execute-return\", \"original_probe_sha256\": \"85320a8fb6a75e3793e43d8c912775647e4eed29bceb4ef8f43089dc2227c7bd\", \"events\": [\"executescript\"]}\r\n{\"case_id\": \"sqlite-cursor-writer-guard/initial-step/executescript\", \"operation\": \"executescript\", \"event\": \"fetch-current-enter\", \"original_probe_sha256\": \"85320a8fb6a75e3793e43d8c912775647e4eed29bceb4ef8f43089dc2227c7bd\"}\r\n{\"case_id\": \"sqlite-cursor-writer-guard/initial-step/executescript\", \"operation\": \"executescript\", \"event\": \"fetch-current-return\", \"original_probe_sha256\": \"85320a8fb6a75e3793e43d8c912775647e4eed29bceb4ef8f43089dc2227c7bd\"}\r\n{\"case_id\": \"sqlite-cursor-writer-guard/initial-step/executescript\", \"operation\": \"executescript\", \"event\": \"cursor-close-enter\", \"original_probe_sha256\": \"85320a8fb6a75e3793e43d8c912775647e4eed29bceb4ef8f43089dc2227c7bd\"}\r\n{\"case_id\": \"sqlite-cursor-writer-guard/initial-step/executescript\", \"operation\": \"executescript\", \"event\": \"cursor-close-return\", \"original_probe_sha256\": \"85320a8fb6a75e3793e43d8c912775647e4eed29bceb4ef8f43089dc2227c7bd\"}\r\n{\"case_id\": \"sqlite-cursor-writer-guard/initial-step/executescript\", \"operation\": \"executescript\", \"event\": \"connection-close-enter\", \"original_probe_sha256\": \"85320a8fb6a75e3793e43d8c912775647e4eed29bceb4ef8f43089dc2227c7bd\"}\r\n{\"case_id\": \"sqlite-cursor-writer-guard/initial-step/executescript\", \"operation\": \"executescript\", \"event\": \"case-pass\", \"original_probe_sha256\": \"85320a8fb6a75e3793e43d8c912775647e4eed29bceb4ef8f43089dc2227c7bd\", \"expected_guard_rejection\": true}\r\n",
+  "stderr": "",
+  "events": [
+    {
+      "case_id": "sqlite-cursor-writer-guard/initial-step/executescript",
+      "operation": "executescript",
+      "event": "process-start",
+      "original_probe_sha256": "85320a8fb6a75e3793e43d8c912775647e4eed29bceb4ef8f43089dc2227c7bd",
+      "executable": "C:\\Python\\Python314\\python.exe",
+      "version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+      "sqlite_version": "3.50.4",
+      "sqlite_module": "C:\\Python\\Python314\\Lib\\sqlite3\\__init__.py"
+    },
+    {
+      "case_id": "sqlite-cursor-writer-guard/initial-step/executescript",
+      "operation": "executescript",
+      "event": "initial-execute-enter",
+      "original_probe_sha256": "85320a8fb6a75e3793e43d8c912775647e4eed29bceb4ef8f43089dc2227c7bd"
+    },
+    {
+      "case_id": "sqlite-cursor-writer-guard/initial-step/executescript",
+      "operation": "executescript",
+      "event": "callback-enter",
+      "original_probe_sha256": "85320a8fb6a75e3793e43d8c912775647e4eed29bceb4ef8f43089dc2227c7bd"
+    },
+    {
+      "case_id": "sqlite-cursor-writer-guard/initial-step/executescript",
+      "operation": "executescript",
+      "event": "recursive-operation-enter",
+      "original_probe_sha256": "85320a8fb6a75e3793e43d8c912775647e4eed29bceb4ef8f43089dc2227c7bd"
+    },
+    {
+      "case_id": "sqlite-cursor-writer-guard/initial-step/executescript",
+      "operation": "executescript",
+      "event": "recursive-programming-error",
+      "original_probe_sha256": "85320a8fb6a75e3793e43d8c912775647e4eed29bceb4ef8f43089dc2227c7bd",
+      "exception": {
+        "type": "sqlite3.ProgrammingError",
+        "message": "Recursive use of cursors not allowed.",
+        "repr": "ProgrammingError('Recursive use of cursors not allowed.')",
+        "traceback": [
+          "Traceback (most recent call last):\n",
+          "  File \"D:\\CantorAI\\xlang3\\scratch\\performance\\sqlite-cursor-writer-guard-isolated-probe-20261008.py\", line 60, in reenter\n    cursor.executescript(\"SELECT 99;\")\n    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^\n",
+          "sqlite3.ProgrammingError: Recursive use of cursors not allowed.\n"
+        ]
+      }
+    },
+    {
+      "case_id": "sqlite-cursor-writer-guard/initial-step/executescript",
+      "operation": "executescript",
+      "event": "callback-return",
+      "original_probe_sha256": "85320a8fb6a75e3793e43d8c912775647e4eed29bceb4ef8f43089dc2227c7bd",
+      "value": 37
+    },
+    {
+      "case_id": "sqlite-cursor-writer-guard/initial-step/executescript",
+      "operation": "executescript",
+      "event": "initial-execute-return",
+      "original_probe_sha256": "85320a8fb6a75e3793e43d8c912775647e4eed29bceb4ef8f43089dc2227c7bd",
+      "events": [
+        "executescript"
+      ]
+    },
+    {
+      "case_id": "sqlite-cursor-writer-guard/initial-step/executescript",
+      "operation": "executescript",
+      "event": "fetch-current-enter",
+      "original_probe_sha256": "85320a8fb6a75e3793e43d8c912775647e4eed29bceb4ef8f43089dc2227c7bd"
+    },
+    {
+      "case_id": "sqlite-cursor-writer-guard/initial-step/executescript",
+      "operation": "executescript",
+      "event": "fetch-current-return",
+      "original_probe_sha256": "85320a8fb6a75e3793e43d8c912775647e4eed29bceb4ef8f43089dc2227c7bd"
+    },
+    {
+      "case_id": "sqlite-cursor-writer-guard/initial-step/executescript",
+      "operation": "executescript",
+      "event": "cursor-close-enter",
+      "original_probe_sha256": "85320a8fb6a75e3793e43d8c912775647e4eed29bceb4ef8f43089dc2227c7bd"
+    },
+    {
+      "case_id": "sqlite-cursor-writer-guard/initial-step/executescript",
+      "operation": "executescript",
+      "event": "cursor-close-return",
+      "original_probe_sha256": "85320a8fb6a75e3793e43d8c912775647e4eed29bceb4ef8f43089dc2227c7bd"
+    },
+    {
+      "case_id": "sqlite-cursor-writer-guard/initial-step/executescript",
+      "operation": "executescript",
+      "event": "connection-close-enter",
+      "original_probe_sha256": "85320a8fb6a75e3793e43d8c912775647e4eed29bceb4ef8f43089dc2227c7bd"
+    },
+    {
+      "case_id": "sqlite-cursor-writer-guard/initial-step/executescript",
+      "operation": "executescript",
+      "event": "case-pass",
+      "original_probe_sha256": "85320a8fb6a75e3793e43d8c912775647e4eed29bceb4ef8f43089dc2227c7bd",
+      "expected_guard_rejection": true
+    }
+  ],
+  "raw_exceptions": [
+    {
+      "case_id": "sqlite-cursor-writer-guard/initial-step/executescript",
+      "operation": "executescript",
+      "event": "recursive-programming-error",
+      "original_probe_sha256": "85320a8fb6a75e3793e43d8c912775647e4eed29bceb4ef8f43089dc2227c7bd",
+      "exception": {
+        "type": "sqlite3.ProgrammingError",
+        "message": "Recursive use of cursors not allowed.",
+        "repr": "ProgrammingError('Recursive use of cursors not allowed.')",
+        "traceback": [
+          "Traceback (most recent call last):\n",
+          "  File \"D:\\CantorAI\\xlang3\\scratch\\performance\\sqlite-cursor-writer-guard-isolated-probe-20261008.py\", line 60, in reenter\n    cursor.executescript(\"SELECT 99;\")\n    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^\n",
+          "sqlite3.ProgrammingError: Recursive use of cursors not allowed.\n"
+        ]
+      }
+    }
+  ],
+  "unparsed_stdout_lines": [],
+  "last_event": "case-pass"
+}

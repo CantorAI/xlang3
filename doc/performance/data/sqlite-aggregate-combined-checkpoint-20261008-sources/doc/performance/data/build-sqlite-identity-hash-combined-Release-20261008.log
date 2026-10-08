@@ -1,0 +1,43 @@
+ninja: Entering directory `build-repro\main-verify-20261006'
+[0/2] Re-checking globbed directories...
+[1/44] Building CXX object CMakeFiles\xlang3_task_runtime.dir\Release\src\runtime\modules\task\task_objects.cpp.obj
+[2/44] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\marshal_module.cpp.obj
+[3/44] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\asyncio_future.cpp.obj
+[4/44] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\atexit_module.cpp.obj
+[5/44] Building CXX object CMakeFiles\xlang3_thread_runtime.dir\Release\src\runtime\modules\thread\thread_objects.cpp.obj
+[6/44] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\asyncio_task.cpp.obj
+[7/44] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\importlib_module.cpp.obj
+[8/44] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\asyncio_module.cpp.obj
+[9/44] Building CXX object CMakeFiles\xlang3_runtime.dir\Release\src\ir\codec.cpp.obj
+[10/44] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\zipimport_module.cpp.obj
+[11/44] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\sys_module.cpp.obj
+[12/44] Building CXX object CMakeFiles\xlang3_runtime.dir\Release\src\executor\xlang_vm\xlang_vm_attr.cpp.obj
+[13/44] Building CXX object CMakeFiles\xlang3_runtime.dir\Release\src\runtime\generator.cpp.obj
+[14/44] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\interpreters_module.cpp.obj
+[15/44] Building CXX object CMakeFiles\xlang3_runtime.dir\Release\src\ir\dump.cpp.obj
+[16/44] Linking CXX static library Release\xlang3_task_runtime.lib
+[17/44] Linking CXX static library Release\xlang3_thread_runtime.lib
+[18/44] Building CXX object CMakeFiles\xlang3_interpreter_tests.dir\Release\tests\cpp\interpreter_tests.cpp.obj
+FAILED: [code=2] CMakeFiles/xlang3_interpreter_tests.dir/Release/tests/cpp/interpreter_tests.cpp.obj 
+C:\PROGRA~1\MICROS~1\18\COMMUN~1\VC\Tools\MSVC\1451~1.362\bin\Hostx64\x64\cl.exe  /nologo /TP -DXLANG3_USE_SHARED -DCMAKE_INTDIR=\"Release\" -ID:\CantorAI\xlang3\src -ID:\CantorAI\xlang3\src\internal -ID:\CantorAI\xlang3\tests\cpp -ID:\CantorAI\xlang3\third_party\nlohmann_json -ID:\CantorAI\xlang3\sdk /DWIN32 /D_WINDOWS /EHsc /O2 /Ob3 /DNDEBUG -std:c++17 -MD /showIncludes /FoCMakeFiles\xlang3_interpreter_tests.dir\Release\tests\cpp\interpreter_tests.cpp.obj /FdCMakeFiles\xlang3_interpreter_tests.dir\Release\ /FS -c D:\CantorAI\xlang3\tests\cpp\interpreter_tests.cpp
+D:\CantorAI\xlang3\src\executor\xlang_vm\ops\../xlang_vm_inline_support.h(22): fatal error C1083: Cannot open include file: 'runtime_lock.h': No such file or directory
+[19/44] Building CXX object CMakeFiles\xlang3_runtime.dir\Release\src\debug\debug_session.cpp.obj
+[20/44] Building CXX object CMakeFiles\xlang3_runtime.dir\Release\src\runtime\functional_iterators.cpp.obj
+[21/44] Building CXX object CMakeFiles\xlang3_runtime.dir\Release\src\serialize\value_graph_lifetime.cpp.obj
+[22/44] Linking CXX static library Release\xlang3_system_runtime.lib
+[23/44] Building CXX object CMakeFiles\xlang3_runtime.dir\Release\src\api\c_api.cpp.obj
+[24/44] Building CXX object CMakeFiles\xlang3_runtime.dir\Release\src\serialize\value_graph_reader.cpp.obj
+[25/44] Building CXX object CMakeFiles\xlang3_runtime.dir\Release\src\serialize\value_graph_writer.cpp.obj
+[26/44] Building CXX object CMakeFiles\xlang3.dir\Release\src\xlang3.cpp.obj
+[27/44] Building CXX object CMakeFiles\xlang3_runtime.dir\Release\src\runtime\value.cpp.obj
+[28/44] Building CXX object CMakeFiles\xlang3_runtime.dir\Release\src\debug\dap_session.cpp.obj
+[29/44] Building CXX object CMakeFiles\xlang3_runtime.dir\Release\src\import\import_loader.cpp.obj
+[30/44] Building CXX object CMakeFiles\xlang3_runtime_value_tests.dir\Release\tests\cpp\runtime_value_tests.cpp.obj
+[31/44] Building CXX object CMakeFiles\xlang3_runtime.dir\Release\src\runtime\runtime.cpp.obj
+[32/44] Building CXX object CMakeFiles\xlang3_runtime.dir\Release\src\executor\xlang_vm\xlang_interpreter.cpp.obj
+[33/44] Building CXX object CMakeFiles\xlang3_runtime.dir\Release\src\builtins\object_type_builtins.cpp.obj
+[34/44] Building CXX object CMakeFiles\xlang3_runtime.dir\Release\src\runtime\object_model.cpp.obj
+[35/44] Building CXX object CMakeFiles\xlang3_runtime.dir\Release\src\sema\lower.cpp.obj
+[36/44] Building CXX object CMakeFiles\xlang3_runtime.dir\Release\src\builtins\functional_builtins.cpp.obj
+[37/44] Building CXX object CMakeFiles\xlang3_runtime.dir\Release\src\executor\xlang_vm\xlang_vm_loop.cpp.obj
+ninja: build stopped: subcommand failed.

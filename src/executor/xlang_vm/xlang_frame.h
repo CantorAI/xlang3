@@ -799,6 +799,7 @@ private:
       case ir::Op::CompareJumpIfFalse:
       case ir::Op::Is:
       case ir::Op::IsJumpIfFalse:
+      case ir::Op::IsNoneJumpIfFalse:
       case ir::Op::Contains:
         one(instr.a);
         one(instr.b);
@@ -931,8 +932,17 @@ private:
     }
     auto computed = std::make_shared<ir::FunctionExecutionMetadata>();
     computed->owner = fn;
+    bool has_identity_instructions = false;
+    bool has_module_slot_loads = false;
+    bool has_ordinary_backedge = false;
     computed->cache_cleanup_instructions.reserve(fn->code.size() / 8);
     for (size_t ip = 0; ip < fn->code.size(); ++ip) {
+      if (fn->code[ip].op == ir::Op::Is || fn->code[ip].op == ir::Op::IsJumpIfFalse ||
+          fn->code[ip].op == ir::Op::IsNoneJumpIfFalse)
+        has_identity_instructions = true;
+      if (fn->code[ip].op == ir::Op::LoadModuleSlot) has_module_slot_loads = true;
+      if ((fn->code[ip].op == ir::Op::Jump || fn->code[ip].op == ir::Op::JumpIfFalse) &&
+          fn->code[ip].dst < ip) has_ordinary_backedge = true;
       if (instruction_may_own_inline_cache(fn->code[ip].op)) {
         computed->cache_cleanup_instructions.push_back(static_cast<uint32_t>(ip));
       }
@@ -947,6 +957,66 @@ private:
         }
       });
     }
+    // Only module-load loops need an extra linear-use snapshot. Keep this cold
+    // proof/storage out of short callbacks and functions without such loops.
+    const bool need_module_load_loop_proof = has_module_slot_loads && has_ordinary_backedge;
+    std::vector<size_t> linear_register_last_use;
+    if (need_module_load_loop_proof) linear_register_last_use = computed->register_last_use;
+    // Cache identity-only proofs separately from existing call-transfer
+    // liveness. Incoming edges can bypass a loop's temporary producer even
+    // though the old loop analysis sees some Call writing that register.
+    std::vector<std::pair<size_t, uint32_t>> incoming_edges;
+    // Functions without identity instructions allocate no new proof storage.
+    if (has_identity_instructions)
+      computed->identity_operand_retirement_safe.assign(fn->register_count, true);
+    for (size_t source = 0; (has_identity_instructions || need_module_load_loop_proof) && source < fn->code.size(); ++source) {
+      const auto& branch = fn->code[source];
+      uint32_t target = UINT32_MAX;
+      switch (branch.op) {
+        case ir::Op::Jump:
+        case ir::Op::JumpIfFalse:
+        case ir::Op::JumpIfLocalConstFalse:
+        case ir::Op::CompareJumpIfFalse:
+        case ir::Op::IsJumpIfFalse:
+        case ir::Op::IsNoneJumpIfFalse:
+        case ir::Op::NotJumpIfFalse:
+        case ir::Op::JumpIfLocalLocalFalse:
+        case ir::Op::IsLocalConstJumpIfFalse:
+        case ir::Op::ForRangeConstLocalNext:
+        case ir::Op::ForRangeConstLocalSum:
+        case ir::Op::ForLocalMoveAddLoop:
+        case ir::Op::ForCallAccumulateLoop:
+        case ir::Op::ForConstructMethodAccumulateLoop:
+        case ir::Op::ForScalarArithmeticLoop:
+        case ir::Op::ForPropertyAccessLoop:
+        case ir::Op::SetupExcept:
+        case ir::Op::SetupWith:
+          target = branch.dst;
+          break;
+        case ir::Op::MoveJumpIfFalse:
+        case ir::Op::MoveJumpIfTrue:
+        case ir::Op::JumpIfFalseLoadLocal:
+        case ir::Op::IterNext:
+        case ir::Op::IterNextLocal:
+          target = branch.b;
+          break;
+        default:
+          break;
+      }
+      if (target == UINT32_MAX) continue;
+      incoming_edges.emplace_back(source, target);
+      // SDK IR may encode a backward fused/exception/iterator edge outside
+      // the ordinary analysis below. Retain only that region's read owners;
+      // an unrelated earlier loop must not disable later expression cleanup.
+      if (target <= source && branch.op != ir::Op::Jump && branch.op != ir::Op::JumpIfFalse) {
+        for (size_t loop_ip = target; loop_ip <= source; ++loop_ip) {
+          for_each_register_read(fn->code[loop_ip], [&](uint32_t reg) {
+            if (reg < computed->identity_operand_retirement_safe.size())
+              computed->identity_operand_retirement_safe[reg] = false;
+          });
+        }
+      }
+    }
     // Values read in a loop may be needed again after a backward edge. Keep
     // those registers for the frame lifetime; the linear last-use index alone
     // cannot express loop-carried liveness.
@@ -960,9 +1030,15 @@ private:
       // overwritten on every iteration, so their registers are not roots
       // carried into the next iteration.
       std::vector<bool> temporary_defined_in_loop(fn->register_count, false);
+      std::vector<size_t> temporary_definition_in_loop((has_identity_instructions || need_module_load_loop_proof) ? fn->register_count : 0, SIZE_MAX);
       for (size_t loop_ip = instr.dst; loop_ip <= i; ++loop_ip) {
         const auto& loop_instr = fn->code[loop_ip];
         switch (loop_instr.op) {
+          case ir::Op::LoadModuleSlot:
+            if (need_module_load_loop_proof && loop_instr.dst < temporary_definition_in_loop.size() &&
+                !temporary_defined_in_loop[loop_instr.dst] && temporary_definition_in_loop[loop_instr.dst] == SIZE_MAX)
+              temporary_definition_in_loop[loop_instr.dst] = loop_ip;
+            break;
           case ir::Op::Call:
           case ir::Op::CallEx:
           case ir::Op::CallMethod:
@@ -975,11 +1051,65 @@ private:
           case ir::Op::MakeList:
           case ir::Op::MakeSet:
           case ir::Op::MakeTuple:
-            if (loop_instr.dst < temporary_defined_in_loop.size())
+            if (loop_instr.dst < temporary_defined_in_loop.size()) {
               temporary_defined_in_loop[loop_instr.dst] = true;
+              if (has_identity_instructions || need_module_load_loop_proof)
+                temporary_definition_in_loop[loop_instr.dst] = loop_ip;
+            }
             break;
           default:
             break;
+        }
+      }
+      if (need_module_load_loop_proof) {
+        // A module load creates an owning expression snapshot each iteration.
+        // Only treat it as recreated when every read follows the load and no
+        // incoming edge can bypass it. This drops dead copies at `del name`
+        // while retaining SDK phi-like and nested-loop register owners.
+        for (size_t loop_ip = instr.dst; loop_ip <= i; ++loop_ip) {
+          for_each_register_read(fn->code[loop_ip], [&](uint32_t reg) {
+            if (reg >= temporary_definition_in_loop.size() || temporary_defined_in_loop[reg]) return;
+            const size_t producer = temporary_definition_in_loop[reg];
+            if (producer != SIZE_MAX && fn->code[producer].op == ir::Op::LoadModuleSlot && loop_ip <= producer)
+              temporary_definition_in_loop[reg] = SIZE_MAX;
+          });
+        }
+        for (uint32_t reg = 0; reg < temporary_definition_in_loop.size(); ++reg) {
+          const size_t producer = temporary_definition_in_loop[reg];
+          if (temporary_defined_in_loop[reg] || producer == SIZE_MAX ||
+              fn->code[producer].op != ir::Op::LoadModuleSlot) continue;
+          const size_t consumer = std::min(linear_register_last_use[reg], i);
+          if (consumer <= producer) continue;
+          bool dominates_reads = true;
+          for (const auto& edge : incoming_edges) {
+            if (edge.second > producer && edge.second <= consumer &&
+                (edge.first < producer || edge.first > consumer)) {
+              dominates_reads = false;
+              break;
+            }
+          }
+          if (dominates_reads) temporary_defined_in_loop[reg] = true;
+          // Never clear a carried flag/MAX established by a narrower loop.
+        }
+      }
+      for (uint32_t reg = 0; has_identity_instructions && reg < computed->register_last_use.size(); ++reg) {
+        const size_t consumer = computed->register_last_use[reg];
+        if (!temporary_defined_in_loop[reg] || consumer < instr.dst || consumer > i ||
+            (fn->code[consumer].op != ir::Op::Is && fn->code[consumer].op != ir::Op::IsJumpIfFalse &&
+             fn->code[consumer].op != ir::Op::IsNoneJumpIfFalse)) {
+          continue;
+        }
+        const size_t producer = temporary_definition_in_loop[reg];
+        if (producer >= consumer) {
+          computed->identity_operand_retirement_safe[reg] = false;
+          continue;
+        }
+        for (const auto& edge : incoming_edges) {
+          if (edge.second > producer && edge.second <= consumer &&
+              (edge.first < producer || edge.first > consumer)) {
+            computed->identity_operand_retirement_safe[reg] = false;
+            break;
+          }
         }
       }
       for (size_t loop_ip = instr.dst; loop_ip <= i; ++loop_ip) {
@@ -1021,6 +1151,44 @@ private:
   }
 
 public:
+  // Identity comparisons consume expression temporaries without calling Python.
+  // Retire their final owning reads here instead of keeping weakref results alive
+  // until frame return. Check only the two operands, not every frame register.
+  // Future reads and loop-carried roots still require their existing owners.
+  bool release_identity_operands_last_used_at(
+      uint32_t lhs, uint32_t rhs, size_t instruction_index,
+      uint32_t preserved_output = UINT32_MAX, Value* previous_output = nullptr) {
+    const auto& last_use = execution_metadata->register_last_use;
+    const auto& loop_carried = execution_metadata->register_loop_carried;
+    auto can_release = [&](uint32_t reg) {
+      return reg != preserved_output && reg < regs.size() &&
+          regs[reg].tag == ValueTag::Object && regs[reg].as.obj != nullptr &&
+          (regs[reg].flags & kXlangValueBorrowedRefFlag) == 0 &&
+          reg < last_use.size() && last_use[reg] == instruction_index &&
+          reg < execution_metadata->identity_operand_retirement_safe.size() &&
+          execution_metadata->identity_operand_retirement_safe[reg] &&
+          (reg >= loop_carried.size() || !loop_carried[reg]);
+    };
+    const bool release_lhs = can_release(lhs);
+    const bool release_rhs = rhs != lhs && can_release(rhs);
+    const bool release_output = previous_output != nullptr &&
+        previous_output->tag == ValueTag::Object && previous_output->as.obj != nullptr &&
+        (previous_output->flags & kXlangValueBorrowedRefFlag) == 0;
+
+    // Unpublish every dead register before any destructor can inspect this
+    // frame, run Python, collect cycles or resurrect a value. Stack owners keep
+    // the other consumed operand alive during the first operand's finalizer.
+    Value retired_lhs;
+    Value retired_rhs;
+    if (release_lhs) retired_lhs = std::move(regs[lhs]);
+    if (release_rhs) retired_rhs = std::move(regs[rhs]);
+    // Keep ordinary destination replacement ahead of operand destruction.
+    if (previous_output != nullptr) value_set_invalid(*previous_output);
+    // CPython 3.14.7 IS_OP closes the right operand before the left operand.
+    value_set_invalid(retired_rhs);
+    value_set_invalid(retired_lhs);
+    return release_output || release_lhs || release_rhs;
+  }
   void release_memoryviews_last_used_at(size_t instruction_index) {
     if (memoryview_registers.empty()) return;
     const auto& register_last_use = execution_metadata->register_last_use;

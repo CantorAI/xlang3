@@ -1,0 +1,8 @@
+cursor-initial-step-and-lookahead
+cursor-exhaustion-description
+cursor-retained-aggregate-replacement
+cursor-unfinished-query-stays-busy
+cursor-row-buffer-ownership
+cursor-lookahead-error-cleanup
+cursor-execute-error-timing
+cursor-returning-completion
