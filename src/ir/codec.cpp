@@ -638,6 +638,7 @@ bool read_value(Reader& r, Value& value, uint32_t depth = 0) {
         if (!read_value(r, item, depth + 1)) return false;
         value_as_tuple(value)->items.push_back(std::move(item));
       }
+      tuple_object_complete_construction(*value_as_tuple(value));
       return true;
     }
     case ConstTag::None:

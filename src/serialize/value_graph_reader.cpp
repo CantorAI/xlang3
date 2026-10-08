@@ -190,7 +190,10 @@ private:
     auto ref = [&](size_t n) { IO::require(n < r.refs.size(), "missing graph field"); return resolve(r.refs[n]); };
     switch (r.kind) {
       case Kind::List: for (auto x : r.refs) value_as_list(v)->items.push_back(resolve(x)); break;
-      case Kind::Tuple: for (auto x : r.refs) value_as_tuple(v)->items.push_back(resolve(x)); break;
+      case Kind::Tuple:
+        for (auto x : r.refs) value_as_tuple(v)->items.push_back(resolve(x));
+        tuple_object_complete_construction(*value_as_tuple(v));
+        break;
       case Kind::Dict: {
         IO::require(r.refs.size() % 2 == 0, "invalid dictionary graph");
         for (size_t j = 0; j < r.refs.size(); j += 2) value_as_dict(v)->entries.emplace_back(ref(j), ref(j + 1));

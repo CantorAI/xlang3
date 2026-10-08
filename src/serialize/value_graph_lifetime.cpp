@@ -35,6 +35,7 @@ template<class Visit> void edges(Value& value, Visit visit) {
   }
 }
 void clear_edges(Value& value) {
+  if (auto* tuple = value_as_tuple(value)) tuple_object_begin_construction(*tuple);
   if (auto* instance = value_as_instance(value); instance && instance->native_data_cleanup) {
     auto cleanup = instance->native_data_cleanup;
     auto data = instance->native_owner;

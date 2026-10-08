@@ -28,6 +28,36 @@ namespace xlang3 {
 
 namespace {
 
+constexpr size_t kHashNotCached = static_cast<size_t>(-1);
+
+size_t immutable_bytes_hash(const BytesObject& object) {
+  size_t hash = object.cached_hash.load(std::memory_order_relaxed);
+  if (hash != kHashNotCached) return hash;
+  hash = std::hash<std::string_view>{}(bytes_object_view(object));
+  // A real sentinel-valued bytes hash remains correct, simply uncached.
+  object.cached_hash.store(hash, std::memory_order_relaxed);
+  return hash;
+}
+
+bool intrinsic_tuple_hash_member(const Value& item) {
+  if (item.tag == ValueTag::None || item.tag == ValueTag::Bool ||
+      item.tag == ValueTag::Int64) return true;
+  if (item.tag != ValueTag::Object || item.as.obj == nullptr) return false;
+  switch (item.as.obj->kind) {
+    case ObjectKind::String:
+    case ObjectKind::Bytes:
+    case ObjectKind::BigInt:
+      return true;
+    case ObjectKind::Tuple: {
+      const auto* nested = reinterpret_cast<const TupleObject*>(item.as.obj);
+      return nested->construction_complete &&
+          nested->cached_intrinsic_hash.load(std::memory_order_relaxed) != kHashNotCached;
+    }
+    default:
+      return false;
+  }
+}
+
 struct HashBinaryView {
   const char* data = nullptr;
   size_t size = 0;
@@ -348,7 +378,7 @@ bool value_hash_key(const Value& value, size_t& out, std::string& error) {
         }
       }
       if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Bytes) {
-        out = std::hash<std::string_view>{}(bytes_object_view(*reinterpret_cast<BytesObject*>(value.as.obj)));
+        out = immutable_bytes_hash(*reinterpret_cast<BytesObject*>(value.as.obj));
         return true;
       }
       if (auto* complex = value_as_complex(value)) {
@@ -373,7 +403,10 @@ bool value_hash_key(const Value& value, size_t& out, std::string& error) {
       }
       if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Tuple) {
         const auto* tuple = reinterpret_cast<TupleObject*>(value.as.obj);
+        const size_t cached = tuple->cached_intrinsic_hash.load(std::memory_order_relaxed);
+        if (cached != kHashNotCached) { out = cached; return true; }
         size_t hash = 0x345678ul;
+        bool intrinsic = tuple->construction_complete;
         for (const auto& item : tuple->items) {
           size_t item_hash = 0;
           if (!value_hash_key(item, item_hash, error)) {
@@ -381,8 +414,14 @@ bool value_hash_key(const Value& value, size_t& out, std::string& error) {
           }
           hash = (hash ^ item_hash) * 1000003ul;
           hash ^= tuple->items.size();
+          intrinsic = intrinsic && intrinsic_tuple_hash_member(item);
         }
         out = hash == static_cast<size_t>(-1) ? static_cast<size_t>(-2) : hash;
+        // A fresh BPE pair participates in multiple native dict hashes. Reuse
+        // the completed immutable result without suppressing Python callbacks,
+        // caching partial builders, or retaining failures. Nested caches prove
+        // the same guard recursively, without an additional tree walk.
+        if (intrinsic) tuple->cached_intrinsic_hash.store(out, std::memory_order_relaxed);
         return true;
       }
       if (auto* alias = value_as_generic_alias(value)) {
@@ -532,14 +571,19 @@ bool runtime_value_hash_key(Runtime& runtime, const Value& value, size_t& out, s
     return true;
   }
   if (const auto* tuple = value_as_tuple(value)) {
+    const size_t cached = tuple->cached_intrinsic_hash.load(std::memory_order_relaxed);
+    if (cached != kHashNotCached) { out = cached; return true; }
     size_t hash = 0x345678ul;
+    bool intrinsic = tuple->construction_complete;
     for (const auto& item : tuple->items) {
       size_t item_hash = 0;
       if (!runtime_value_hash_key(runtime, item, item_hash, error)) return false;
       hash = (hash ^ item_hash) * 1000003ul;
       hash ^= tuple->items.size();
+      intrinsic = intrinsic && intrinsic_tuple_hash_member(item);
     }
     out = hash == static_cast<size_t>(-1) ? static_cast<size_t>(-2) : hash;
+    if (intrinsic) tuple->cached_intrinsic_hash.store(out, std::memory_order_relaxed);
     return true;
   }
   if (const auto* alias = value_as_generic_alias(value)) {

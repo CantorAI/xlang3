@@ -787,6 +787,7 @@ bool unmarshal_cpython_value(MarshalReader& reader, Value& out, std::string& err
     else if (tag == '<') out = Value::set({});
     else if (tag == '>') out = Value::frozenset({});
     else out = Value::tuple(std::vector<Value>(count, Value::invalid()));
+    if (auto* tuple = value_as_tuple(out)) tuple_object_begin_construction(*tuple);
     if (flagged_reference) g_marshal_read_refs->push_back(out);
     for (uint32_t i = 0; i < count; ++i) {
       Value item; if (!unmarshal_cpython_value(reader, item, error)) return false;
@@ -803,6 +804,7 @@ bool unmarshal_cpython_value(MarshalReader& reader, Value& out, std::string& err
       }
       else value_move_assign_fast(value_as_tuple(out)->items[i], item);
     }
+    if (auto* tuple = value_as_tuple(out)) tuple_object_complete_construction(*tuple);
     return true;
   }
   if (tag == '{') {

@@ -147,3 +147,11 @@
 /doc/performance/dict-missing-special-lookup-checkpoint-20261007.md text eol=lf
 /tests/fixtures/core/dict_missing_special_lookup.py text eol=lf
 /tests/fixtures/expected/dict_missing_special_lookup.out text eol=lf
+
+/doc/performance/data/immutable-key-hash-* -text
+/doc/performance/data/immutable-key-hash-20261007-sources/** -text
+/doc/performance/data/release-immutable-key-hash-fixed-gate-20261007.json -text
+/doc/performance/data/pyperformance-immutable-key-hash-bpe-fast-20261007* -text
+/doc/performance/immutable-key-hash-checkpoint-20261007.md text eol=lf
+/tests/fixtures/core/immutable_key_hash.py text eol=lf
+/tests/fixtures/expected/immutable_key_hash.out text eol=lf

@@ -232,6 +232,7 @@ struct BytesObject {
   uint32_t size = 0;
   uint32_t alloc_size = 0;
   memory::X3BucketAllocator* allocator = nullptr;
+  mutable std::atomic<size_t> cached_hash{static_cast<size_t>(-1)};
   // Immutable bytes follow this object in the same allocation block.
 };
 
@@ -534,7 +535,22 @@ struct TupleObject {
   uint32_t alloc_size = 0;
   memory::X3BucketAllocator* allocator = nullptr;
   TupleItems items;
+  // Only completed, callback-free immutable keys publish this cache. Runtime
+  // and non-runtime hashing disagree for user objects, so their hashes must
+  // never enter this shared slot. Atomics permit simultaneous read-only hashes.
+  mutable std::atomic<size_t> cached_intrinsic_hash{static_cast<size_t>(-1)};
+  bool construction_complete = false;
 };
+
+XLANG3_HOT_INLINE void tuple_object_begin_construction(TupleObject& object) {
+  object.cached_intrinsic_hash.store(static_cast<size_t>(-1), std::memory_order_relaxed);
+  object.construction_complete = false;
+}
+
+XLANG3_HOT_INLINE void tuple_object_complete_construction(TupleObject& object) {
+  object.cached_intrinsic_hash.store(static_cast<size_t>(-1), std::memory_order_relaxed);
+  object.construction_complete = true;
+}
 
 struct CellObject {
   Object header;
@@ -898,6 +914,9 @@ XLANG3_HOT_INLINE std::string_view bytes_object_view(const BytesObject& value) {
 }
 
 XLANG3_HOT_INLINE char* bytes_object_mutable_data(BytesObject& value) {
+  // This construction-only pointer must not be used after publishing bytes.
+  // Invalidate before native builders write; immutable readers share the hash.
+  value.cached_hash.store(static_cast<size_t>(-1), std::memory_order_relaxed);
   return reinterpret_cast<char*>(&value + 1);
 }
 

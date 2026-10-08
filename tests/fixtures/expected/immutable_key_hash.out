@@ -1,0 +1,6 @@
+bytes and nested immutable tuple hashes stay stable: OK
+equal mixed numeric keys and failed hashes keep their semantics: OK
+recycled tuples and fresh bytes never retain earlier payload hashes: OK
+marshal and pickle reconstruction hash the completed contents: OK
+unsupported tuple members retain Python hash dispatch: OK
+user hash callbacks retain Python tracing: OK

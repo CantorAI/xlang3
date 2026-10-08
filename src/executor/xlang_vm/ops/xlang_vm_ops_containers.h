@@ -608,6 +608,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow make_tuple(
     }
     tuple->items.push_back_unchecked(regs[reg]);
   }
+  tuple_object_complete_construction(*tuple);
   return XlangVMOpFlow::Next;
 }
 
