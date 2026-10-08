@@ -1,0 +1,53 @@
+{
+  "status": "failed_cpp",
+  "candidate_binary_sha256": {
+    "exe": "b6a279e5086d74b0784be81499ebad2068d878f8f8c62accd6b7e5f9a08092e9",
+    "dll": "ef9ec18158ff8e84378bea54720d37ba15d799f802856941cb66251dc97e1e59"
+  },
+  "source_sha256": {
+    "src/internal/xlang3/builtin_methods.h": "b0663650474d8d117b10ed3e459e9137d0b3424cc9d76d872e53957cbb8e1477",
+    "src/internal/xlang3/mapping.h": "43f8bbc91e2f224dde767d4f785a64e2c3429b269113ba85dd613eac297c3857",
+    "src/runtime/methods/dict_methods.cpp": "cad2ed92746d837fd1a392545bea87a09be7219850a914af424a4d5d9487b387",
+    "src/runtime/mapping.cpp": "81dc9042e1e26874b6a02791b3f62656e5147b8321ea9e87fbe80b53fdac2f74",
+    "src/executor/xlang_vm/xlang_vm_inline_call.h": "6b0e68889c4a375293083b1b1693b9a70eaef345a6692ad628d64bb35845eda7",
+    "src/runtime/functional_iterators.cpp": "cfe434b7fa9f4dee64ddac97371e97deb80e0cfba56c80bd84c10ef10f82eb66",
+    "tests/cpp/mapping_iterator_ownership_cases.h": "7a45e3f4cfed4303775228a04ba69c6d73b760ce161e81391d67b3a8ad94aab5",
+    "tests/run_fixtures.py": "d839f5d2bcc83426602763c3762288dd57316187d8bdd9482cb06d3fa7875e50",
+    "tests/fixtures/core/native_captured_lookup.py": "8c1af9e16476c13be794af30f8f38a58a19d62ba8e9eb1e718e6ec3dcdf4894b",
+    "tests/fixtures/expected/native_captured_lookup.out": "fdae8ca6f601644bb3250286690fefd3b06ad97b0cb1e0cb2d9b56c89e63ebbe"
+  },
+  "phases": [
+    {
+      "name": "fixtures",
+      "command": [
+        "C:\\Python\\Python314\\python.exe",
+        "tests/run_fixtures.py",
+        "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe"
+      ],
+      "exit_code": 0,
+      "log": "captured-lookup-validation-20261007-fixtures.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "cpp",
+      "command": [
+        "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\ctest.exe",
+        "--test-dir",
+        "build-repro/main-verify-20261006",
+        "-C",
+        "Release",
+        "-R",
+        "xlang3_(runtime_value_tests|interpreter_tests|sdk_stream_call_tests|graph_)",
+        "--output-on-failure"
+      ],
+      "exit_code": 8,
+      "log": "captured-lookup-validation-20261007-cpp.log",
+      "sha256": "054c76b0b50789e60d1ce576347176410274144bfb58ee983c901e0af1d3080c"
+    }
+  ],
+  "fixture_counts": {
+    "core": 374,
+    "compatibility_sections": 11,
+    "expected_failures": 3
+  }
+}

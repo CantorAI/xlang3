@@ -742,6 +742,15 @@ bool dict_install_class_methods(Runtime& runtime, ClassObject& dict_class) {
   return true;
 }
 
+bool dict_is_canonical_getitem(const NativeFunctionObject& function) {
+  // A native function's display name is not proof of its implementation.
+  return function.callback == dict_getitem_method &&
+      function.fast_callback == builtin_method_fast_adapter<dict_getitem_method, 2> &&
+      function.keyword_callback == nullptr && function.user_data == nullptr &&
+      function.bind_as_descriptor && !function.capture_expressions &&
+      !function.fast_releases_vm_lock;
+}
+
 bool dict_install_view_class_methods(Runtime& runtime, ClassObject& view_class) {
   view_class.attrs["__contains__"] = runtime.make_native_function(
       "dict view.__contains__", dict_view_contains_method, nullptr, nullptr,

@@ -16,6 +16,7 @@ limitations under the License.
 #include "runtime/memory/object_cache_lifetime.h"
 
 #include "xlang3/functional_iterators.h"
+#include "xlang3/builtin_methods.h"
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
 #include "xlang3/perf_counters.h"
@@ -913,6 +914,40 @@ bool mapping_get_string_item(
     return mapping_get_item(object, Value::string(std::string(key)), out, error);
   }
   error = "object is not a dict: " + value_to_repr(object);
+  return false;
+}
+
+bool mapping_get_intrinsic_item_if_present(
+    const Value& object, const Value& key, Value& out) {
+  auto* dict = dict_storage_from_value(object);
+  if (dict == nullptr || dict->backing_module != nullptr ||
+      !dict->intrinsic_hash_keys_only ||
+      dict->intrinsic_hash_checked_entry_count != dict->entries.size() ||
+      dict->runtime_hash_indexed_entry_count != dict->entries.size() ||
+      !intrinsic_index_key(key)) return false;
+  if (value_as_instance(object) != nullptr) {
+    // Guard current type lookup, including inherited-method replacement. Do
+    // not allocate a BoundMethod or trust the native method's display name.
+    Value method;
+    std::string error;
+    if (!object_get_class_attr_for_instance(object, "__getitem__", method, error)) return false;
+    const auto* native = value_as_native_function(method);
+    if (native == nullptr || !dict_is_canonical_getitem(*native)) return false;
+  }
+  size_t hash = 0;
+  std::string error;
+  if (!value_hash_key(key, hash, error)) return false;
+  const auto bucket = dict->runtime_hash_index.find(static_cast<int64_t>(hash));
+  if (bucket == dict->runtime_hash_index.end()) return false;
+  for (size_t index : bucket->second) {
+    if (value_key_equal(dict->entries[index].first, key)) {
+      // Query AND stored keys are callback-free. Own the result before out
+      // can release a finalizer, and do not touch borrowed dict/key afterward.
+      Value result = dict->entries[index].second;
+      value_assign_fast(out, result);
+      return true;
+    }
+  }
   return false;
 }
 

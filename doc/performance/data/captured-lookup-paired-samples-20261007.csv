@@ -1,0 +1,1835 @@
+probe,case,pair,process_order,runtime,sample,seconds,checked_result
+hash,"bytes 1 B, fresh=False, hashes=1",1,1,control,1,0.011392899992642924,8192
+hash,"bytes 1 B, fresh=False, hashes=1",1,1,control,2,0.01125430001411587,8192
+hash,"bytes 1 B, fresh=False, hashes=1",1,1,control,3,0.011139800015371293,8192
+hash,"bytes 1 B, fresh=False, hashes=1",1,1,control,4,0.011196099978405982,8192
+hash,"bytes 1 B, fresh=False, hashes=1",1,1,control,5,0.011125999997602776,8192
+hash,"bytes 32 B, fresh=False, hashes=1",1,1,control,1,0.011418100009905174,8192
+hash,"bytes 32 B, fresh=False, hashes=1",1,1,control,2,0.011289400019450113,8192
+hash,"bytes 32 B, fresh=False, hashes=1",1,1,control,3,0.011256500001763925,8192
+hash,"bytes 32 B, fresh=False, hashes=1",1,1,control,4,0.011693700012983754,8192
+hash,"bytes 32 B, fresh=False, hashes=1",1,1,control,5,0.011940800002776086,8192
+hash,"bytes 256 B, fresh=False, hashes=1",1,1,control,1,0.011720699985744432,8192
+hash,"bytes 256 B, fresh=False, hashes=1",1,1,control,2,0.011459600005764514,8192
+hash,"bytes 256 B, fresh=False, hashes=1",1,1,control,3,0.011180700006661937,8192
+hash,"bytes 256 B, fresh=False, hashes=1",1,1,control,4,0.011394500004826114,8192
+hash,"bytes 256 B, fresh=False, hashes=1",1,1,control,5,0.011441400012699887,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",1,1,control,1,0.008820300019579008,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",1,1,control,2,0.008947700000135228,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",1,1,control,3,0.009022400015965104,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",1,1,control,4,0.008912300021620467,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",1,1,control,5,0.009204899979522452,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",1,1,control,1,0.009397999994689599,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",1,1,control,2,0.00921419999212958,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",1,1,control,3,0.009457400010433048,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",1,1,control,4,0.009336099989013746,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",1,1,control,5,0.009474499995121732,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",1,1,control,1,0.009249099995940924,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",1,1,control,2,0.009468100004596636,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",1,1,control,3,0.008980200014775619,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",1,1,control,4,0.009043199999723583,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",1,1,control,5,0.009356800001114607,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",1,1,control,1,0.015619199984939769,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",1,1,control,2,0.0165493999957107,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",1,1,control,3,0.01557749998755753,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",1,1,control,4,0.01580110000213608,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",1,1,control,5,0.016587599995546043,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",1,1,control,1,0.01777170001878403,16384
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",1,1,control,2,0.017907800007378682,16384
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",1,1,control,3,0.017711599997710437,16384
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",1,1,control,4,0.017752199986716732,16384
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",1,1,control,5,0.0183614999987185,16384
+hash,"bytes 1 B, fresh=False, hashes=1",1,2,candidate,1,0.011946699989493936,8192
+hash,"bytes 1 B, fresh=False, hashes=1",1,2,candidate,2,0.0115980000118725,8192
+hash,"bytes 1 B, fresh=False, hashes=1",1,2,candidate,3,0.012364199996227399,8192
+hash,"bytes 1 B, fresh=False, hashes=1",1,2,candidate,4,0.012044900009641424,8192
+hash,"bytes 1 B, fresh=False, hashes=1",1,2,candidate,5,0.011977799993474036,8192
+hash,"bytes 32 B, fresh=False, hashes=1",1,2,candidate,1,0.01158459999714978,8192
+hash,"bytes 32 B, fresh=False, hashes=1",1,2,candidate,2,0.011683599994285032,8192
+hash,"bytes 32 B, fresh=False, hashes=1",1,2,candidate,3,0.011612600006628782,8192
+hash,"bytes 32 B, fresh=False, hashes=1",1,2,candidate,4,0.011333900009049103,8192
+hash,"bytes 32 B, fresh=False, hashes=1",1,2,candidate,5,0.0110082000028342,8192
+hash,"bytes 256 B, fresh=False, hashes=1",1,2,candidate,1,0.010946999973384663,8192
+hash,"bytes 256 B, fresh=False, hashes=1",1,2,candidate,2,0.011245000001508743,8192
+hash,"bytes 256 B, fresh=False, hashes=1",1,2,candidate,3,0.012138599995523691,8192
+hash,"bytes 256 B, fresh=False, hashes=1",1,2,candidate,4,0.012004200019873679,8192
+hash,"bytes 256 B, fresh=False, hashes=1",1,2,candidate,5,0.011435199994593859,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",1,2,candidate,1,0.009308199980296195,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",1,2,candidate,2,0.008924499998101965,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",1,2,candidate,3,0.008996899996418506,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",1,2,candidate,4,0.009200500004226342,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",1,2,candidate,5,0.009296200005337596,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",1,2,candidate,1,0.009303700004238635,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",1,2,candidate,2,0.00909559999126941,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",1,2,candidate,3,0.009282500017434359,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",1,2,candidate,4,0.009471299999859184,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",1,2,candidate,5,0.008941999985836446,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",1,2,candidate,1,0.009858699981123209,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",1,2,candidate,2,0.009385500015923753,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",1,2,candidate,3,0.008855200023390353,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",1,2,candidate,4,0.008874999999534339,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",1,2,candidate,5,0.00903929999913089,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",1,2,candidate,1,0.015195799991488457,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",1,2,candidate,2,0.01478649998898618,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",1,2,candidate,3,0.01534799998626113,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",1,2,candidate,4,0.015344100014772266,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",1,2,candidate,5,0.015426300000399351,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",1,2,candidate,1,0.017547700001159683,16384
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",1,2,candidate,2,0.01852579999831505,16384
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",1,2,candidate,3,0.0176472999737598,16384
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",1,2,candidate,4,0.018018100003246218,16384
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",1,2,candidate,5,0.018534100003307685,16384
+hash,"bytes 1 B, fresh=False, hashes=1",2,1,candidate,1,0.010948100010864437,8192
+hash,"bytes 1 B, fresh=False, hashes=1",2,1,candidate,2,0.01089720000163652,8192
+hash,"bytes 1 B, fresh=False, hashes=1",2,1,candidate,3,0.010912999976426363,8192
+hash,"bytes 1 B, fresh=False, hashes=1",2,1,candidate,4,0.010918399988440797,8192
+hash,"bytes 1 B, fresh=False, hashes=1",2,1,candidate,5,0.010976899997331202,8192
+hash,"bytes 32 B, fresh=False, hashes=1",2,1,candidate,1,0.010908100026426837,8192
+hash,"bytes 32 B, fresh=False, hashes=1",2,1,candidate,2,0.01098469999851659,8192
+hash,"bytes 32 B, fresh=False, hashes=1",2,1,candidate,3,0.010987799993017688,8192
+hash,"bytes 32 B, fresh=False, hashes=1",2,1,candidate,4,0.010907299991231412,8192
+hash,"bytes 32 B, fresh=False, hashes=1",2,1,candidate,5,0.011038099997676909,8192
+hash,"bytes 256 B, fresh=False, hashes=1",2,1,candidate,1,0.011079099989729002,8192
+hash,"bytes 256 B, fresh=False, hashes=1",2,1,candidate,2,0.010912600002484396,8192
+hash,"bytes 256 B, fresh=False, hashes=1",2,1,candidate,3,0.011147300014272332,8192
+hash,"bytes 256 B, fresh=False, hashes=1",2,1,candidate,4,0.01129429999855347,8192
+hash,"bytes 256 B, fresh=False, hashes=1",2,1,candidate,5,0.011465299990959466,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",2,1,candidate,1,0.009055300004547462,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",2,1,candidate,2,0.00913419999415055,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",2,1,candidate,3,0.009369400009745732,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",2,1,candidate,4,0.0096956999914255,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",2,1,candidate,5,0.008917500003008172,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",2,1,candidate,1,0.00937710001016967,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",2,1,candidate,2,0.009314399998402223,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",2,1,candidate,3,0.009307999978773296,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",2,1,candidate,4,0.009294399991631508,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",2,1,candidate,5,0.009319899982074276,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",2,1,candidate,1,0.009328000014647841,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",2,1,candidate,2,0.009551700000884011,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",2,1,candidate,3,0.008868500008247793,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",2,1,candidate,4,0.009256299992557615,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",2,1,candidate,5,0.022793899988755584,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",2,1,candidate,1,0.01465900000766851,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",2,1,candidate,2,0.015735100023448467,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",2,1,candidate,3,0.015340099984314293,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",2,1,candidate,4,0.015466599987121299,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",2,1,candidate,5,0.015489799989154562,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",2,1,candidate,1,0.01836770001682453,16384
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",2,1,candidate,2,0.01760910000302829,16384
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",2,1,candidate,3,0.018319199996767566,16384
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",2,1,candidate,4,0.018393700011074543,16384
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",2,1,candidate,5,0.01796460000332445,16384
+hash,"bytes 1 B, fresh=False, hashes=1",2,2,control,1,0.011450099991634488,8192
+hash,"bytes 1 B, fresh=False, hashes=1",2,2,control,2,0.011346599989337847,8192
+hash,"bytes 1 B, fresh=False, hashes=1",2,2,control,3,0.011288999987300485,8192
+hash,"bytes 1 B, fresh=False, hashes=1",2,2,control,4,0.011536300007719547,8192
+hash,"bytes 1 B, fresh=False, hashes=1",2,2,control,5,0.011249100003624335,8192
+hash,"bytes 32 B, fresh=False, hashes=1",2,2,control,1,0.011319800018100068,8192
+hash,"bytes 32 B, fresh=False, hashes=1",2,2,control,2,0.011248099996009842,8192
+hash,"bytes 32 B, fresh=False, hashes=1",2,2,control,3,0.011439900001278147,8192
+hash,"bytes 32 B, fresh=False, hashes=1",2,2,control,4,0.011375199974281713,8192
+hash,"bytes 32 B, fresh=False, hashes=1",2,2,control,5,0.011268800008110702,8192
+hash,"bytes 256 B, fresh=False, hashes=1",2,2,control,1,0.011284999985946342,8192
+hash,"bytes 256 B, fresh=False, hashes=1",2,2,control,2,0.01126470000599511,8192
+hash,"bytes 256 B, fresh=False, hashes=1",2,2,control,3,0.011201600020285696,8192
+hash,"bytes 256 B, fresh=False, hashes=1",2,2,control,4,0.011832999996840954,8192
+hash,"bytes 256 B, fresh=False, hashes=1",2,2,control,5,0.011802599998190999,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",2,2,control,1,0.00879169997642748,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",2,2,control,2,0.009125700016738847,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",2,2,control,3,0.008837200002744794,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",2,2,control,4,0.009004699997603893,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",2,2,control,5,0.008901299996068701,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",2,2,control,1,0.009246900008292869,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",2,2,control,2,0.008863900002324954,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",2,2,control,3,0.009173099999316037,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",2,2,control,4,0.00878450000891462,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",2,2,control,5,0.00880670000333339,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",2,2,control,1,0.008731299982173368,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",2,2,control,2,0.008827999990899116,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",2,2,control,3,0.008930300013162196,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",2,2,control,4,0.008833200001390651,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",2,2,control,5,0.008907299983548,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",2,2,control,1,0.015045400010421872,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",2,2,control,2,0.015289300004951656,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",2,2,control,3,0.015066199994180351,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",2,2,control,4,0.015040900005260482,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",2,2,control,5,0.01507090000086464,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",2,2,control,1,0.019079399993643165,16384
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",2,2,control,2,0.017995000001974404,16384
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",2,2,control,3,0.01814500000909902,16384
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",2,2,control,4,0.018300099996849895,16384
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",2,2,control,5,0.017961000005016103,16384
+hash,"bytes 1 B, fresh=False, hashes=1",3,1,control,1,0.011903500009793788,8192
+hash,"bytes 1 B, fresh=False, hashes=1",3,1,control,2,0.0116719999932684,8192
+hash,"bytes 1 B, fresh=False, hashes=1",3,1,control,3,0.011593400005949661,8192
+hash,"bytes 1 B, fresh=False, hashes=1",3,1,control,4,0.012290099984966218,8192
+hash,"bytes 1 B, fresh=False, hashes=1",3,1,control,5,0.011770200013415888,8192
+hash,"bytes 32 B, fresh=False, hashes=1",3,1,control,1,0.011509299976751208,8192
+hash,"bytes 32 B, fresh=False, hashes=1",3,1,control,2,0.011794499994721264,8192
+hash,"bytes 32 B, fresh=False, hashes=1",3,1,control,3,0.011550199997145683,8192
+hash,"bytes 32 B, fresh=False, hashes=1",3,1,control,4,0.011690199986333027,8192
+hash,"bytes 32 B, fresh=False, hashes=1",3,1,control,5,0.011645799997495487,8192
+hash,"bytes 256 B, fresh=False, hashes=1",3,1,control,1,0.012021400005323812,8192
+hash,"bytes 256 B, fresh=False, hashes=1",3,1,control,2,0.012044200004311278,8192
+hash,"bytes 256 B, fresh=False, hashes=1",3,1,control,3,0.01155499997548759,8192
+hash,"bytes 256 B, fresh=False, hashes=1",3,1,control,4,0.011712300009094179,8192
+hash,"bytes 256 B, fresh=False, hashes=1",3,1,control,5,0.012047999975038692,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",3,1,control,1,0.009189999982481822,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",3,1,control,2,0.008874499995727092,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",3,1,control,3,0.008699400001205504,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",3,1,control,4,0.009291800000937656,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",3,1,control,5,0.008949700015364215,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",3,1,control,1,0.008918900013668463,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",3,1,control,2,0.00893699997686781,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",3,1,control,3,0.009032999980263412,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",3,1,control,4,0.008974500000476837,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",3,1,control,5,0.009026200015796348,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",3,1,control,1,0.009129799989750609,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",3,1,control,2,0.008805900026345626,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",3,1,control,3,0.008699700003489852,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",3,1,control,4,0.008677199977682903,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",3,1,control,5,0.008760400000028312,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",3,1,control,1,0.014906800002790987,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",3,1,control,2,0.015208900003926829,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",3,1,control,3,0.014988399983849376,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",3,1,control,4,0.014930000004824251,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",3,1,control,5,0.015175199980149046,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",3,1,control,1,0.018544299993664026,16384
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",3,1,control,2,0.017873100005090237,16384
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",3,1,control,3,0.01794969997717999,16384
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",3,1,control,4,0.018301100004464388,16384
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",3,1,control,5,0.018097499996656552,16384
+hash,"bytes 1 B, fresh=False, hashes=1",3,2,candidate,1,0.011520600004587322,8192
+hash,"bytes 1 B, fresh=False, hashes=1",3,2,candidate,2,0.01148989997454919,8192
+hash,"bytes 1 B, fresh=False, hashes=1",3,2,candidate,3,0.011736399988876656,8192
+hash,"bytes 1 B, fresh=False, hashes=1",3,2,candidate,4,0.011337700008880347,8192
+hash,"bytes 1 B, fresh=False, hashes=1",3,2,candidate,5,0.011758400010876358,8192
+hash,"bytes 32 B, fresh=False, hashes=1",3,2,candidate,1,0.011583599989535287,8192
+hash,"bytes 32 B, fresh=False, hashes=1",3,2,candidate,2,0.011782400019001216,8192
+hash,"bytes 32 B, fresh=False, hashes=1",3,2,candidate,3,0.011245800007600337,8192
+hash,"bytes 32 B, fresh=False, hashes=1",3,2,candidate,4,0.011589799978537485,8192
+hash,"bytes 32 B, fresh=False, hashes=1",3,2,candidate,5,0.011694899993017316,8192
+hash,"bytes 256 B, fresh=False, hashes=1",3,2,candidate,1,0.011782799992943183,8192
+hash,"bytes 256 B, fresh=False, hashes=1",3,2,candidate,2,0.011527299997396767,8192
+hash,"bytes 256 B, fresh=False, hashes=1",3,2,candidate,3,0.011327599990181625,8192
+hash,"bytes 256 B, fresh=False, hashes=1",3,2,candidate,4,0.0113714000035543,8192
+hash,"bytes 256 B, fresh=False, hashes=1",3,2,candidate,5,0.011364799982402474,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",3,2,candidate,1,0.009063200006494299,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",3,2,candidate,2,0.009325899998657405,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",3,2,candidate,3,0.00936970001203008,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",3,2,candidate,4,0.009392500011017546,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",3,2,candidate,5,0.008899300009943545,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",3,2,candidate,1,0.00890300000901334,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",3,2,candidate,2,0.00890750001417473,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",3,2,candidate,3,0.008954100019764155,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",3,2,candidate,4,0.009207499999320135,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",3,2,candidate,5,0.00895489999675192,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",3,2,candidate,1,0.009192400000756606,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",3,2,candidate,2,0.009086300007766113,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",3,2,candidate,3,0.008993499999633059,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",3,2,candidate,4,0.009545100008836016,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",3,2,candidate,5,0.009115399996517226,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",3,2,candidate,1,0.016049300000304356,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",3,2,candidate,2,0.015886399982264265,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",3,2,candidate,3,0.01554949997807853,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",3,2,candidate,4,0.015520699991611764,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",3,2,candidate,5,0.015536599996266887,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",3,2,candidate,1,0.018307500024093315,16384
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",3,2,candidate,2,0.018979699991177768,16384
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",3,2,candidate,3,0.01870069999131374,16384
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",3,2,candidate,4,0.018610099999932572,16384
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",3,2,candidate,5,0.018612999992910773,16384
+hash,"bytes 1 B, fresh=False, hashes=1",4,1,candidate,1,0.011142400006065145,8192
+hash,"bytes 1 B, fresh=False, hashes=1",4,1,candidate,2,0.011201800021808594,8192
+hash,"bytes 1 B, fresh=False, hashes=1",4,1,candidate,3,0.011171500023920089,8192
+hash,"bytes 1 B, fresh=False, hashes=1",4,1,candidate,4,0.011399100010748953,8192
+hash,"bytes 1 B, fresh=False, hashes=1",4,1,candidate,5,0.01145439999527298,8192
+hash,"bytes 32 B, fresh=False, hashes=1",4,1,candidate,1,0.011180000001331791,8192
+hash,"bytes 32 B, fresh=False, hashes=1",4,1,candidate,2,0.011173599981702864,8192
+hash,"bytes 32 B, fresh=False, hashes=1",4,1,candidate,3,0.011076099995989352,8192
+hash,"bytes 32 B, fresh=False, hashes=1",4,1,candidate,4,0.011050699977204204,8192
+hash,"bytes 32 B, fresh=False, hashes=1",4,1,candidate,5,0.011218900006497279,8192
+hash,"bytes 256 B, fresh=False, hashes=1",4,1,candidate,1,0.011576400022022426,8192
+hash,"bytes 256 B, fresh=False, hashes=1",4,1,candidate,2,0.011894600000232458,8192
+hash,"bytes 256 B, fresh=False, hashes=1",4,1,candidate,3,0.01186459997552447,8192
+hash,"bytes 256 B, fresh=False, hashes=1",4,1,candidate,4,0.011552799987839535,8192
+hash,"bytes 256 B, fresh=False, hashes=1",4,1,candidate,5,0.011749800003599375,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",4,1,candidate,1,0.00939040002413094,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",4,1,candidate,2,0.009388000005856156,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",4,1,candidate,3,0.009710199985420331,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",4,1,candidate,4,0.008877200016286224,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",4,1,candidate,5,0.008906500006560236,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",4,1,candidate,1,0.008901099994545802,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",4,1,candidate,2,0.009020299999974668,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",4,1,candidate,3,0.009353599976748228,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",4,1,candidate,4,0.009335899987490848,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",4,1,candidate,5,0.009349300002213567,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",4,1,candidate,1,0.00935350000509061,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",4,1,candidate,2,0.00897860000259243,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",4,1,candidate,3,0.008867099997587502,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",4,1,candidate,4,0.009204999980283901,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",4,1,candidate,5,0.009033100010128692,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",4,1,candidate,1,0.015298299986170605,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",4,1,candidate,2,0.015401099983137101,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",4,1,candidate,3,0.015320000005885959,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",4,1,candidate,4,0.015514900005655363,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",4,1,candidate,5,0.015430700004799291,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",4,1,candidate,1,0.018168400012655184,16384
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",4,1,candidate,2,0.017856000020401552,16384
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",4,1,candidate,3,0.01757629998610355,16384
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",4,1,candidate,4,0.018612599989864975,16384
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",4,1,candidate,5,0.01854390001972206,16384
+hash,"bytes 1 B, fresh=False, hashes=1",4,2,control,1,0.011772700003348291,8192
+hash,"bytes 1 B, fresh=False, hashes=1",4,2,control,2,0.011664299992844462,8192
+hash,"bytes 1 B, fresh=False, hashes=1",4,2,control,3,0.011666999984299764,8192
+hash,"bytes 1 B, fresh=False, hashes=1",4,2,control,4,0.011647200008155778,8192
+hash,"bytes 1 B, fresh=False, hashes=1",4,2,control,5,0.011214700003620237,8192
+hash,"bytes 32 B, fresh=False, hashes=1",4,2,control,1,0.011402700009057298,8192
+hash,"bytes 32 B, fresh=False, hashes=1",4,2,control,2,0.011534699995536357,8192
+hash,"bytes 32 B, fresh=False, hashes=1",4,2,control,3,0.01118010000209324,8192
+hash,"bytes 32 B, fresh=False, hashes=1",4,2,control,4,0.011223600013181567,8192
+hash,"bytes 32 B, fresh=False, hashes=1",4,2,control,5,0.011846000008517876,8192
+hash,"bytes 256 B, fresh=False, hashes=1",4,2,control,1,0.011236699996516109,8192
+hash,"bytes 256 B, fresh=False, hashes=1",4,2,control,2,0.011220999993383884,8192
+hash,"bytes 256 B, fresh=False, hashes=1",4,2,control,3,0.011279600003035739,8192
+hash,"bytes 256 B, fresh=False, hashes=1",4,2,control,4,0.011187299998709932,8192
+hash,"bytes 256 B, fresh=False, hashes=1",4,2,control,5,0.011932499997783452,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",4,2,control,1,0.009322099998826161,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",4,2,control,2,0.00923480000346899,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",4,2,control,3,0.009357499977340922,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",4,2,control,4,0.009257300000172108,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",4,2,control,5,0.00927489998866804,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",4,2,control,1,0.008788999984972179,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",4,2,control,2,0.00894300002255477,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",4,2,control,3,0.00885250000283122,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",4,2,control,4,0.008875800005625933,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",4,2,control,5,0.008832499996060506,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",4,2,control,1,0.008836799999698997,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",4,2,control,2,0.008859699999447912,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",4,2,control,3,0.008888000011211261,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",4,2,control,4,0.00894600001629442,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",4,2,control,5,0.008992999995825812,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",4,2,control,1,0.015119199990294874,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",4,2,control,2,0.015141099982429296,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",4,2,control,3,0.0151627000013832,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",4,2,control,4,0.015652200003387406,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",4,2,control,5,0.015713300002971664,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",4,2,control,1,0.018060300004435703,16384
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",4,2,control,2,0.018309300008695573,16384
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",4,2,control,3,0.01933180002379231,16384
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",4,2,control,4,0.018888499995227903,16384
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",4,2,control,5,0.01957069998024963,16384
+hash,"bytes 1 B, fresh=False, hashes=1",5,1,control,1,0.011428400001022965,8192
+hash,"bytes 1 B, fresh=False, hashes=1",5,1,control,2,0.011188300006324425,8192
+hash,"bytes 1 B, fresh=False, hashes=1",5,1,control,3,0.011360500007867813,8192
+hash,"bytes 1 B, fresh=False, hashes=1",5,1,control,4,0.011162200011312962,8192
+hash,"bytes 1 B, fresh=False, hashes=1",5,1,control,5,0.01110320002771914,8192
+hash,"bytes 32 B, fresh=False, hashes=1",5,1,control,1,0.011078099982114509,8192
+hash,"bytes 32 B, fresh=False, hashes=1",5,1,control,2,0.011115800007246435,8192
+hash,"bytes 32 B, fresh=False, hashes=1",5,1,control,3,0.011094800021965057,8192
+hash,"bytes 32 B, fresh=False, hashes=1",5,1,control,4,0.01108389999717474,8192
+hash,"bytes 32 B, fresh=False, hashes=1",5,1,control,5,0.011099299998022616,8192
+hash,"bytes 256 B, fresh=False, hashes=1",5,1,control,1,0.011085900012403727,8192
+hash,"bytes 256 B, fresh=False, hashes=1",5,1,control,2,0.011111900006653741,8192
+hash,"bytes 256 B, fresh=False, hashes=1",5,1,control,3,0.011070899985497817,8192
+hash,"bytes 256 B, fresh=False, hashes=1",5,1,control,4,0.011098899994976819,8192
+hash,"bytes 256 B, fresh=False, hashes=1",5,1,control,5,0.011064600024838,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",5,1,control,1,0.008721699996385723,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",5,1,control,2,0.008664599998155609,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",5,1,control,3,0.008953899989137426,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",5,1,control,4,0.008757600007811561,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",5,1,control,5,0.008756899973377585,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",5,1,control,1,0.008818199974484742,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",5,1,control,2,0.009117500012507662,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",5,1,control,3,0.008670800016261637,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",5,1,control,4,0.0087368999957107,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",5,1,control,5,0.008736199990380555,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",5,1,control,1,0.008715799980564043,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",5,1,control,2,0.008732999995118007,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",5,1,control,3,0.008744999999180436,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",5,1,control,4,0.00913260001107119,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",5,1,control,5,0.009103399992454797,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",5,1,control,1,0.02221980001195334,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",5,1,control,2,0.015995900001144037,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",5,1,control,3,0.015125300007639453,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",5,1,control,4,0.015037199977086857,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",5,1,control,5,0.015303199994377792,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",5,1,control,1,0.018516099982662126,16384
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",5,1,control,2,0.018600400013383478,16384
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",5,1,control,3,0.01874950001365505,16384
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",5,1,control,4,0.01868169999215752,16384
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",5,1,control,5,0.01888879999751225,16384
+hash,"bytes 1 B, fresh=False, hashes=1",5,2,candidate,1,0.01096079999115318,8192
+hash,"bytes 1 B, fresh=False, hashes=1",5,2,candidate,2,0.011010600021108985,8192
+hash,"bytes 1 B, fresh=False, hashes=1",5,2,candidate,3,0.011207299976376817,8192
+hash,"bytes 1 B, fresh=False, hashes=1",5,2,candidate,4,0.01110020000487566,8192
+hash,"bytes 1 B, fresh=False, hashes=1",5,2,candidate,5,0.011212100012926385,8192
+hash,"bytes 32 B, fresh=False, hashes=1",5,2,candidate,1,0.011082700017141178,8192
+hash,"bytes 32 B, fresh=False, hashes=1",5,2,candidate,2,0.011061800003517419,8192
+hash,"bytes 32 B, fresh=False, hashes=1",5,2,candidate,3,0.011029199988115579,8192
+hash,"bytes 32 B, fresh=False, hashes=1",5,2,candidate,4,0.011130799975944683,8192
+hash,"bytes 32 B, fresh=False, hashes=1",5,2,candidate,5,0.011888699984410778,8192
+hash,"bytes 256 B, fresh=False, hashes=1",5,2,candidate,1,0.011157000000821427,8192
+hash,"bytes 256 B, fresh=False, hashes=1",5,2,candidate,2,0.011022899998351932,8192
+hash,"bytes 256 B, fresh=False, hashes=1",5,2,candidate,3,0.011060799995902926,8192
+hash,"bytes 256 B, fresh=False, hashes=1",5,2,candidate,4,0.011208899988560006,8192
+hash,"bytes 256 B, fresh=False, hashes=1",5,2,candidate,5,0.011066300008678809,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",5,2,candidate,1,0.00900959997670725,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",5,2,candidate,2,0.00900960000581108,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",5,2,candidate,3,0.008993499999633059,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",5,2,candidate,4,0.009325799997895956,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",5,2,candidate,5,0.009402700001373887,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",5,2,candidate,1,0.009273699979530647,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",5,2,candidate,2,0.00911189999897033,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",5,2,candidate,3,0.008966099994722754,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",5,2,candidate,4,0.00894890000927262,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",5,2,candidate,5,0.009557400015182793,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",5,2,candidate,1,0.00935769997886382,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",5,2,candidate,2,0.009158400003798306,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",5,2,candidate,3,0.008946699992520735,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",5,2,candidate,4,0.009001700003864244,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",5,2,candidate,5,0.009020700003020465,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",5,2,candidate,1,0.015167600009590387,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",5,2,candidate,2,0.014775299991015345,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",5,2,candidate,3,0.015038500016089529,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",5,2,candidate,4,0.014736200013430789,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",5,2,candidate,5,0.01526349998312071,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",5,2,candidate,1,0.017765399999916553,16384
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",5,2,candidate,2,0.017669099994236603,16384
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",5,2,candidate,3,0.01761790001182817,16384
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",5,2,candidate,4,0.017703300021821633,16384
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",5,2,candidate,5,0.017563300003530458,16384
+hash,"bytes 1 B, fresh=False, hashes=1",6,1,candidate,1,0.011401399999158457,8192
+hash,"bytes 1 B, fresh=False, hashes=1",6,1,candidate,2,0.011483400012366474,8192
+hash,"bytes 1 B, fresh=False, hashes=1",6,1,candidate,3,0.011760800000047311,8192
+hash,"bytes 1 B, fresh=False, hashes=1",6,1,candidate,4,0.0115415999898687,8192
+hash,"bytes 1 B, fresh=False, hashes=1",6,1,candidate,5,0.011892300011822954,8192
+hash,"bytes 32 B, fresh=False, hashes=1",6,1,candidate,1,0.011470500001451,8192
+hash,"bytes 32 B, fresh=False, hashes=1",6,1,candidate,2,0.011602599988691509,8192
+hash,"bytes 32 B, fresh=False, hashes=1",6,1,candidate,3,0.01103949997923337,8192
+hash,"bytes 32 B, fresh=False, hashes=1",6,1,candidate,4,0.01143500002217479,8192
+hash,"bytes 32 B, fresh=False, hashes=1",6,1,candidate,5,0.01097119998303242,8192
+hash,"bytes 256 B, fresh=False, hashes=1",6,1,candidate,1,0.011568599991733208,8192
+hash,"bytes 256 B, fresh=False, hashes=1",6,1,candidate,2,0.011193799989996478,8192
+hash,"bytes 256 B, fresh=False, hashes=1",6,1,candidate,3,0.010967299982439727,8192
+hash,"bytes 256 B, fresh=False, hashes=1",6,1,candidate,4,0.011254800017923117,8192
+hash,"bytes 256 B, fresh=False, hashes=1",6,1,candidate,5,0.011053299997001886,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",6,1,candidate,1,0.00887190000503324,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",6,1,candidate,2,0.009118599991779774,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",6,1,candidate,3,0.008975100005045533,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",6,1,candidate,4,0.008991499984404072,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",6,1,candidate,5,0.008908400021027774,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",6,1,candidate,1,0.008945399982621893,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",6,1,candidate,2,0.008938900020439178,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",6,1,candidate,3,0.008881499990820885,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",6,1,candidate,4,0.00929710001219064,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",6,1,candidate,5,0.009193600009893999,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",6,1,candidate,1,0.009447199990972877,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",6,1,candidate,2,0.009288500004913658,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",6,1,candidate,3,0.009237099991878495,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",6,1,candidate,4,0.009063599980436265,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",6,1,candidate,5,0.009110099985264242,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",6,1,candidate,1,0.015438700007507578,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",6,1,candidate,2,0.015540099993813783,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",6,1,candidate,3,0.015238600026350468,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",6,1,candidate,4,0.014871799998218194,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",6,1,candidate,5,0.015221799985738471,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",6,1,candidate,1,0.01822349999565631,16384
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",6,1,candidate,2,0.017585600027814507,16384
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",6,1,candidate,3,0.017415699985576794,16384
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",6,1,candidate,4,0.017607900022994727,16384
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",6,1,candidate,5,0.017679600015981123,16384
+hash,"bytes 1 B, fresh=False, hashes=1",6,2,control,1,0.011182999995071441,8192
+hash,"bytes 1 B, fresh=False, hashes=1",6,2,control,2,0.011251999996602535,8192
+hash,"bytes 1 B, fresh=False, hashes=1",6,2,control,3,0.011111200001323596,8192
+hash,"bytes 1 B, fresh=False, hashes=1",6,2,control,4,0.011243600019952282,8192
+hash,"bytes 1 B, fresh=False, hashes=1",6,2,control,5,0.011240799998631701,8192
+hash,"bytes 32 B, fresh=False, hashes=1",6,2,control,1,0.01189419999718666,8192
+hash,"bytes 32 B, fresh=False, hashes=1",6,2,control,2,0.011826400004792958,8192
+hash,"bytes 32 B, fresh=False, hashes=1",6,2,control,3,0.011212599987629801,8192
+hash,"bytes 32 B, fresh=False, hashes=1",6,2,control,4,0.01120089998585172,8192
+hash,"bytes 32 B, fresh=False, hashes=1",6,2,control,5,0.011335000017425045,8192
+hash,"bytes 256 B, fresh=False, hashes=1",6,2,control,1,0.011459700006525964,8192
+hash,"bytes 256 B, fresh=False, hashes=1",6,2,control,2,0.011779599997680634,8192
+hash,"bytes 256 B, fresh=False, hashes=1",6,2,control,3,0.011576099990634248,8192
+hash,"bytes 256 B, fresh=False, hashes=1",6,2,control,4,0.011458900000434369,8192
+hash,"bytes 256 B, fresh=False, hashes=1",6,2,control,5,0.011145299999043345,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",6,2,control,1,0.009132399980444461,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",6,2,control,2,0.009074500005226582,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",6,2,control,3,0.009221900021657348,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",6,2,control,4,0.008969399990746751,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",6,2,control,5,0.008724999992409721,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",6,2,control,1,0.008996599994134158,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",6,2,control,2,0.008758500014664605,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",6,2,control,3,0.00872079998953268,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",6,2,control,4,0.00944219998200424,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",6,2,control,5,0.009198899992043152,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",6,2,control,1,0.008781700016697869,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",6,2,control,2,0.008981699997093529,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",6,2,control,3,0.008859199995640665,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",6,2,control,4,0.008828699996229261,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",6,2,control,5,0.008916699996916577,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",6,2,control,1,0.015154399996390566,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",6,2,control,2,0.01528429999598302,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",6,2,control,3,0.015321600018069148,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",6,2,control,4,0.01518199997371994,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",6,2,control,5,0.015299399994546548,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",6,2,control,1,0.018586999998660758,16384
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",6,2,control,2,0.01858249999349937,16384
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",6,2,control,3,0.017831600009230897,16384
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",6,2,control,4,0.017741899995598942,16384
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",6,2,control,5,0.017771199985872954,16384
+hash,"bytes 1 B, fresh=False, hashes=1",7,1,control,1,0.011174399987794459,8192
+hash,"bytes 1 B, fresh=False, hashes=1",7,1,control,2,0.011321700003463775,8192
+hash,"bytes 1 B, fresh=False, hashes=1",7,1,control,3,0.011166599986609071,8192
+hash,"bytes 1 B, fresh=False, hashes=1",7,1,control,4,0.011098999995738268,8192
+hash,"bytes 1 B, fresh=False, hashes=1",7,1,control,5,0.011109599989140406,8192
+hash,"bytes 32 B, fresh=False, hashes=1",7,1,control,1,0.01115800000843592,8192
+hash,"bytes 32 B, fresh=False, hashes=1",7,1,control,2,0.011128699989058077,8192
+hash,"bytes 32 B, fresh=False, hashes=1",7,1,control,3,0.011604300001636147,8192
+hash,"bytes 32 B, fresh=False, hashes=1",7,1,control,4,0.011748199991416186,8192
+hash,"bytes 32 B, fresh=False, hashes=1",7,1,control,5,0.01200689998222515,8192
+hash,"bytes 256 B, fresh=False, hashes=1",7,1,control,1,0.01179509999928996,8192
+hash,"bytes 256 B, fresh=False, hashes=1",7,1,control,2,0.011143799987621605,8192
+hash,"bytes 256 B, fresh=False, hashes=1",7,1,control,3,0.01381740000215359,8192
+hash,"bytes 256 B, fresh=False, hashes=1",7,1,control,4,0.01187940000090748,8192
+hash,"bytes 256 B, fresh=False, hashes=1",7,1,control,5,0.01173289999132976,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",7,1,control,1,0.009083300014026463,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",7,1,control,2,0.009085400000913069,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",7,1,control,3,0.009045899991178885,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",7,1,control,4,0.008954600023571402,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",7,1,control,5,0.008967000001575798,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",7,1,control,1,0.00926310001523234,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",7,1,control,2,0.008675899996887892,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",7,1,control,3,0.008795800007646903,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",7,1,control,4,0.00880070001585409,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",7,1,control,5,0.008816399989882484,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",7,1,control,1,0.008826599980238825,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",7,1,control,2,0.008776500006206334,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",7,1,control,3,0.008900499989977106,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",7,1,control,4,0.009028699976624921,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",7,1,control,5,0.008881399990059435,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",7,1,control,1,0.015316200006054714,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",7,1,control,2,0.015533899975707754,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",7,1,control,3,0.014962899993406609,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",7,1,control,4,0.014840600022580475,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",7,1,control,5,0.01499379999586381,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",7,1,control,1,0.017830700002377853,16384
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",7,1,control,2,0.017805299983592704,16384
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",7,1,control,3,0.017870200012112036,16384
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",7,1,control,4,0.017922600003657863,16384
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",7,1,control,5,0.018496700009563938,16384
+hash,"bytes 1 B, fresh=False, hashes=1",7,2,candidate,1,0.011087199993198738,8192
+hash,"bytes 1 B, fresh=False, hashes=1",7,2,candidate,2,0.011090600019088015,8192
+hash,"bytes 1 B, fresh=False, hashes=1",7,2,candidate,3,0.011256400001002476,8192
+hash,"bytes 1 B, fresh=False, hashes=1",7,2,candidate,4,0.011262699990766123,8192
+hash,"bytes 1 B, fresh=False, hashes=1",7,2,candidate,5,0.011434800020651892,8192
+hash,"bytes 32 B, fresh=False, hashes=1",7,2,candidate,1,0.0114676000084728,8192
+hash,"bytes 32 B, fresh=False, hashes=1",7,2,candidate,2,0.011220000014873222,8192
+hash,"bytes 32 B, fresh=False, hashes=1",7,2,candidate,3,0.011607099993852898,8192
+hash,"bytes 32 B, fresh=False, hashes=1",7,2,candidate,4,0.011785900016548112,8192
+hash,"bytes 32 B, fresh=False, hashes=1",7,2,candidate,5,0.012183499988168478,8192
+hash,"bytes 256 B, fresh=False, hashes=1",7,2,candidate,1,0.011006599990651011,8192
+hash,"bytes 256 B, fresh=False, hashes=1",7,2,candidate,2,0.010979300015605986,8192
+hash,"bytes 256 B, fresh=False, hashes=1",7,2,candidate,3,0.01093570000375621,8192
+hash,"bytes 256 B, fresh=False, hashes=1",7,2,candidate,4,0.010888099990552291,8192
+hash,"bytes 256 B, fresh=False, hashes=1",7,2,candidate,5,0.010955400008242577,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",7,2,candidate,1,0.008867699973052368,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",7,2,candidate,2,0.008875799976522103,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",7,2,candidate,3,0.008874099992681295,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",7,2,candidate,4,0.008871600002748892,8192
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",7,2,candidate,5,0.008890199998859316,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",7,2,candidate,1,0.008861799986334518,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",7,2,candidate,2,0.008845499978633597,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",7,2,candidate,3,0.008861999987857416,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",7,2,candidate,4,0.008842699986416847,8192
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",7,2,candidate,5,0.008859199995640665,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",7,2,candidate,1,0.008857600012561306,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",7,2,candidate,2,0.009017500007757917,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",7,2,candidate,3,0.008890900004189461,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",7,2,candidate,4,0.008897499996237457,8192
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",7,2,candidate,5,0.00886589998845011,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",7,2,candidate,1,0.014685300004202873,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",7,2,candidate,2,0.014735500008100644,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",7,2,candidate,3,0.014740199985681102,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",7,2,candidate,4,0.014763599989237264,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",7,2,candidate,5,0.014691299991682172,8192
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",7,2,candidate,1,0.017513700004201382,16384
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",7,2,candidate,2,0.017456899979151785,16384
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",7,2,candidate,3,0.01755679998314008,16384
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",7,2,candidate,4,0.01749470000504516,16384
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",7,2,candidate,5,0.017505600000731647,16384
+update,"bytes dict, keys=64, fresh=False",1,1,control,1,0.0002612000098451972,256
+update,"bytes dict, keys=64, fresh=False",1,1,control,2,0.00027049999334849417,256
+update,"bytes dict, keys=64, fresh=False",1,1,control,3,0.00026920001255348325,256
+update,"bytes dict, keys=256, fresh=False",1,1,control,1,0.0010255000088363886,1024
+update,"bytes dict, keys=256, fresh=False",1,1,control,2,0.0010198000236414373,1024
+update,"bytes dict, keys=256, fresh=False",1,1,control,3,0.0010310999932698905,1024
+update,"bytes dict, keys=1024, fresh=False",1,1,control,1,0.004139500000746921,4096
+update,"bytes dict, keys=1024, fresh=False",1,1,control,2,0.004146699997363612,4096
+update,"bytes dict, keys=1024, fresh=False",1,1,control,3,0.004133099981117994,4096
+update,"tuple_bytes dict, keys=64, fresh=False",1,1,control,1,0.00025499999173916876,256
+update,"tuple_bytes dict, keys=64, fresh=False",1,1,control,2,0.00025770001229830086,256
+update,"tuple_bytes dict, keys=64, fresh=False",1,1,control,3,0.0002598999999463558,256
+update,"tuple_bytes dict, keys=256, fresh=False",1,1,control,1,0.0010202999983448535,1024
+update,"tuple_bytes dict, keys=256, fresh=False",1,1,control,2,0.001029300008667633,1024
+update,"tuple_bytes dict, keys=256, fresh=False",1,1,control,3,0.0010272000217810273,1024
+update,"tuple_bytes dict, keys=1024, fresh=False",1,1,control,1,0.0040994999872054905,4096
+update,"tuple_bytes dict, keys=1024, fresh=False",1,1,control,2,0.004073999996762723,4096
+update,"tuple_bytes dict, keys=1024, fresh=False",1,1,control,3,0.004144699982134625,4096
+update,"tuple_bytes dict, keys=64, fresh=True",1,1,control,1,0.0005599999858532101,256
+update,"tuple_bytes dict, keys=64, fresh=True",1,1,control,2,0.0005637000140268356,256
+update,"tuple_bytes dict, keys=64, fresh=True",1,1,control,3,0.0005609999934677035,256
+update,"tuple_bytes dict, keys=256, fresh=True",1,1,control,1,0.0022106999822426587,1024
+update,"tuple_bytes dict, keys=256, fresh=True",1,1,control,2,0.0022112999868113548,1024
+update,"tuple_bytes dict, keys=256, fresh=True",1,1,control,3,0.0022160999942570925,1024
+update,"tuple_bytes dict, keys=1024, fresh=True",1,1,control,1,0.008832599996821955,4096
+update,"tuple_bytes dict, keys=1024, fresh=True",1,1,control,2,0.008828699996229261,4096
+update,"tuple_bytes dict, keys=1024, fresh=True",1,1,control,3,0.008834000007482246,4096
+update,"tuple_bytes Counter, keys=64, fresh=True",1,1,control,1,0.0005842999962624162,256
+update,"tuple_bytes Counter, keys=64, fresh=True",1,1,control,2,0.0006003999733366072,256
+update,"tuple_bytes Counter, keys=64, fresh=True",1,1,control,3,0.0005840999947395176,256
+update,"tuple_bytes Counter, keys=256, fresh=True",1,1,control,1,0.0023318000021390617,1024
+update,"tuple_bytes Counter, keys=256, fresh=True",1,1,control,2,0.0025055999867618084,1024
+update,"tuple_bytes Counter, keys=256, fresh=True",1,1,control,3,0.0024230999988503754,1024
+update,"tuple_bytes Counter, keys=1024, fresh=True",1,1,control,1,0.010485200007678941,4096
+update,"tuple_bytes Counter, keys=1024, fresh=True",1,1,control,2,0.009580699988873675,4096
+update,"tuple_bytes Counter, keys=1024, fresh=True",1,1,control,3,0.009372799977427348,4096
+update,"bytes dict, keys=64, fresh=False",1,2,candidate,1,0.0002491000050213188,256
+update,"bytes dict, keys=64, fresh=False",1,2,candidate,2,0.0002564000023994595,256
+update,"bytes dict, keys=64, fresh=False",1,2,candidate,3,0.00024739999207668006,256
+update,"bytes dict, keys=256, fresh=False",1,2,candidate,1,0.0009806999878492206,1024
+update,"bytes dict, keys=256, fresh=False",1,2,candidate,2,0.000975200004177168,1024
+update,"bytes dict, keys=256, fresh=False",1,2,candidate,3,0.000970900000538677,1024
+update,"bytes dict, keys=1024, fresh=False",1,2,candidate,1,0.003973000013502315,4096
+update,"bytes dict, keys=1024, fresh=False",1,2,candidate,2,0.0039524000021629035,4096
+update,"bytes dict, keys=1024, fresh=False",1,2,candidate,3,0.003956699976697564,4096
+update,"tuple_bytes dict, keys=64, fresh=False",1,2,candidate,1,0.00024729999131523073,256
+update,"tuple_bytes dict, keys=64, fresh=False",1,2,candidate,2,0.0002479999966453761,256
+update,"tuple_bytes dict, keys=64, fresh=False",1,2,candidate,3,0.00024739999207668006,256
+update,"tuple_bytes dict, keys=256, fresh=False",1,2,candidate,1,0.0009722000104375184,1024
+update,"tuple_bytes dict, keys=256, fresh=False",1,2,candidate,2,0.0009736000210978091,1024
+update,"tuple_bytes dict, keys=256, fresh=False",1,2,candidate,3,0.000975200004177168,1024
+update,"tuple_bytes dict, keys=1024, fresh=False",1,2,candidate,1,0.0039370000013150275,4096
+update,"tuple_bytes dict, keys=1024, fresh=False",1,2,candidate,2,0.0038973999908193946,4096
+update,"tuple_bytes dict, keys=1024, fresh=False",1,2,candidate,3,0.003947099990909919,4096
+update,"tuple_bytes dict, keys=64, fresh=True",1,2,candidate,1,0.0005527000175788999,256
+update,"tuple_bytes dict, keys=64, fresh=True",1,2,candidate,2,0.0005449999880511314,256
+update,"tuple_bytes dict, keys=64, fresh=True",1,2,candidate,3,0.0005499999970197678,256
+update,"tuple_bytes dict, keys=256, fresh=True",1,2,candidate,1,0.0021634000004269183,1024
+update,"tuple_bytes dict, keys=256, fresh=True",1,2,candidate,2,0.002168899984098971,1024
+update,"tuple_bytes dict, keys=256, fresh=True",1,2,candidate,3,0.00215430001844652,1024
+update,"tuple_bytes dict, keys=1024, fresh=True",1,2,candidate,1,0.008657300000777468,4096
+update,"tuple_bytes dict, keys=1024, fresh=True",1,2,candidate,2,0.008645299996715039,4096
+update,"tuple_bytes dict, keys=1024, fresh=True",1,2,candidate,3,0.008674999990034848,4096
+update,"tuple_bytes Counter, keys=64, fresh=True",1,2,candidate,1,0.0005776000034529716,256
+update,"tuple_bytes Counter, keys=64, fresh=True",1,2,candidate,2,0.0005799000209663063,256
+update,"tuple_bytes Counter, keys=64, fresh=True",1,2,candidate,3,0.0005741000059060752,256
+update,"tuple_bytes Counter, keys=256, fresh=True",1,2,candidate,1,0.0024304999969899654,1024
+update,"tuple_bytes Counter, keys=256, fresh=True",1,2,candidate,2,0.0023890000011306256,1024
+update,"tuple_bytes Counter, keys=256, fresh=True",1,2,candidate,3,0.0023668000067118555,1024
+update,"tuple_bytes Counter, keys=1024, fresh=True",1,2,candidate,1,0.009477400017203763,4096
+update,"tuple_bytes Counter, keys=1024, fresh=True",1,2,candidate,2,0.023536299995612353,4096
+update,"tuple_bytes Counter, keys=1024, fresh=True",1,2,candidate,3,0.009264000022085384,4096
+update,"bytes dict, keys=64, fresh=False",2,1,candidate,1,0.0002474999928381294,256
+update,"bytes dict, keys=64, fresh=False",2,1,candidate,2,0.0002468999882694334,256
+update,"bytes dict, keys=64, fresh=False",2,1,candidate,3,0.00024759999359957874,256
+update,"bytes dict, keys=256, fresh=False",2,1,candidate,1,0.0009788000024855137,1024
+update,"bytes dict, keys=256, fresh=False",2,1,candidate,2,0.000993399997241795,1024
+update,"bytes dict, keys=256, fresh=False",2,1,candidate,3,0.0009951000101864338,1024
+update,"bytes dict, keys=1024, fresh=False",2,1,candidate,1,0.003924100019503385,4096
+update,"bytes dict, keys=1024, fresh=False",2,1,candidate,2,0.003923499985830858,4096
+update,"bytes dict, keys=1024, fresh=False",2,1,candidate,3,0.003930600010789931,4096
+update,"tuple_bytes dict, keys=64, fresh=False",2,1,candidate,1,0.0002499000111129135,256
+update,"tuple_bytes dict, keys=64, fresh=False",2,1,candidate,2,0.0002497999812476337,256
+update,"tuple_bytes dict, keys=64, fresh=False",2,1,candidate,3,0.00025209999876096845,256
+update,"tuple_bytes dict, keys=256, fresh=False",2,1,candidate,1,0.0009706999990157783,1024
+update,"tuple_bytes dict, keys=256, fresh=False",2,1,candidate,2,0.0009674000029917806,1024
+update,"tuple_bytes dict, keys=256, fresh=False",2,1,candidate,3,0.0009676999761722982,1024
+update,"tuple_bytes dict, keys=1024, fresh=False",2,1,candidate,1,0.004045599984237924,4096
+update,"tuple_bytes dict, keys=1024, fresh=False",2,1,candidate,2,0.003974899998866022,4096
+update,"tuple_bytes dict, keys=1024, fresh=False",2,1,candidate,3,0.004006900009699166,4096
+update,"tuple_bytes dict, keys=64, fresh=True",2,1,candidate,1,0.0005392000020947307,256
+update,"tuple_bytes dict, keys=64, fresh=True",2,1,candidate,2,0.0005498999962583184,256
+update,"tuple_bytes dict, keys=64, fresh=True",2,1,candidate,3,0.0005435999773908406,256
+update,"tuple_bytes dict, keys=256, fresh=True",2,1,candidate,1,0.0021610999829135835,1024
+update,"tuple_bytes dict, keys=256, fresh=True",2,1,candidate,2,0.0022120999929029495,1024
+update,"tuple_bytes dict, keys=256, fresh=True",2,1,candidate,3,0.0021704999962821603,1024
+update,"tuple_bytes dict, keys=1024, fresh=True",2,1,candidate,1,0.008692799980053678,4096
+update,"tuple_bytes dict, keys=1024, fresh=True",2,1,candidate,2,0.00896799998008646,4096
+update,"tuple_bytes dict, keys=1024, fresh=True",2,1,candidate,3,0.008695299999089912,4096
+update,"tuple_bytes Counter, keys=64, fresh=True",2,1,candidate,1,0.0005823999817948788,256
+update,"tuple_bytes Counter, keys=64, fresh=True",2,1,candidate,2,0.000590300012845546,256
+update,"tuple_bytes Counter, keys=64, fresh=True",2,1,candidate,3,0.0005851000023540109,256
+update,"tuple_bytes Counter, keys=256, fresh=True",2,1,candidate,1,0.002322399988770485,1024
+update,"tuple_bytes Counter, keys=256, fresh=True",2,1,candidate,2,0.0023111999907996505,1024
+update,"tuple_bytes Counter, keys=256, fresh=True",2,1,candidate,3,0.0023401000071316957,1024
+update,"tuple_bytes Counter, keys=1024, fresh=True",2,1,candidate,1,0.009342599980300292,4096
+update,"tuple_bytes Counter, keys=1024, fresh=True",2,1,candidate,2,0.00953270000172779,4096
+update,"tuple_bytes Counter, keys=1024, fresh=True",2,1,candidate,3,0.009354500012705103,4096
+update,"bytes dict, keys=64, fresh=False",2,2,control,1,0.00025969999842345715,256
+update,"bytes dict, keys=64, fresh=False",2,2,control,2,0.0002590999938547611,256
+update,"bytes dict, keys=64, fresh=False",2,2,control,3,0.0002580000145826489,256
+update,"bytes dict, keys=256, fresh=False",2,2,control,1,0.0010999000223819166,1024
+update,"bytes dict, keys=256, fresh=False",2,2,control,2,0.0010282000002916902,1024
+update,"bytes dict, keys=256, fresh=False",2,2,control,3,0.0010399000020697713,1024
+update,"bytes dict, keys=1024, fresh=False",2,2,control,1,0.00445370000670664,4096
+update,"bytes dict, keys=1024, fresh=False",2,2,control,2,0.0042314000020269305,4096
+update,"bytes dict, keys=1024, fresh=False",2,2,control,3,0.004151000001002103,4096
+update,"tuple_bytes dict, keys=64, fresh=False",2,2,control,1,0.00026000000070780516,256
+update,"tuple_bytes dict, keys=64, fresh=False",2,2,control,2,0.00026240001898258924,256
+update,"tuple_bytes dict, keys=64, fresh=False",2,2,control,3,0.0002586999908089638,256
+update,"tuple_bytes dict, keys=256, fresh=False",2,2,control,1,0.0010108999849762768,1024
+update,"tuple_bytes dict, keys=256, fresh=False",2,2,control,2,0.0010214000067207962,1024
+update,"tuple_bytes dict, keys=256, fresh=False",2,2,control,3,0.0010133000032510608,1024
+update,"tuple_bytes dict, keys=1024, fresh=False",2,2,control,1,0.0040551999991294,4096
+update,"tuple_bytes dict, keys=1024, fresh=False",2,2,control,2,0.004288700001779944,4096
+update,"tuple_bytes dict, keys=1024, fresh=False",2,2,control,3,0.004432199988514185,4096
+update,"tuple_bytes dict, keys=64, fresh=True",2,2,control,1,0.0006076999998185784,256
+update,"tuple_bytes dict, keys=64, fresh=True",2,2,control,2,0.0005811000009998679,256
+update,"tuple_bytes dict, keys=64, fresh=True",2,2,control,3,0.0005783000087831169,256
+update,"tuple_bytes dict, keys=256, fresh=True",2,2,control,1,0.00230979998013936,1024
+update,"tuple_bytes dict, keys=256, fresh=True",2,2,control,2,0.002202000003308058,1024
+update,"tuple_bytes dict, keys=256, fresh=True",2,2,control,3,0.0021958999859634787,1024
+update,"tuple_bytes dict, keys=1024, fresh=True",2,2,control,1,0.008799399976851419,4096
+update,"tuple_bytes dict, keys=1024, fresh=True",2,2,control,2,0.008798900002148002,4096
+update,"tuple_bytes dict, keys=1024, fresh=True",2,2,control,3,0.008846899989293888,4096
+update,"tuple_bytes Counter, keys=64, fresh=True",2,2,control,1,0.0005917999951634556,256
+update,"tuple_bytes Counter, keys=64, fresh=True",2,2,control,2,0.0005874999915249646,256
+update,"tuple_bytes Counter, keys=64, fresh=True",2,2,control,3,0.000601400010054931,256
+update,"tuple_bytes Counter, keys=256, fresh=True",2,2,control,1,0.0023458999930880964,1024
+update,"tuple_bytes Counter, keys=256, fresh=True",2,2,control,2,0.002394600014667958,1024
+update,"tuple_bytes Counter, keys=256, fresh=True",2,2,control,3,0.002324200002476573,1024
+update,"tuple_bytes Counter, keys=1024, fresh=True",2,2,control,1,0.009356599999591708,4096
+update,"tuple_bytes Counter, keys=1024, fresh=True",2,2,control,2,0.00934000001871027,4096
+update,"tuple_bytes Counter, keys=1024, fresh=True",2,2,control,3,0.009366299986140803,4096
+update,"bytes dict, keys=64, fresh=False",3,1,control,1,0.0003090999962296337,256
+update,"bytes dict, keys=64, fresh=False",3,1,control,2,0.0002607999776955694,256
+update,"bytes dict, keys=64, fresh=False",3,1,control,3,0.000256399973295629,256
+update,"bytes dict, keys=256, fresh=False",3,1,control,1,0.0010451999842189252,1024
+update,"bytes dict, keys=256, fresh=False",3,1,control,2,0.0010141000093426555,1024
+update,"bytes dict, keys=256, fresh=False",3,1,control,3,0.001026200014166534,1024
+update,"bytes dict, keys=1024, fresh=False",3,1,control,1,0.0041009999986272305,4096
+update,"bytes dict, keys=1024, fresh=False",3,1,control,2,0.004124700004467741,4096
+update,"bytes dict, keys=1024, fresh=False",3,1,control,3,0.004124300001421943,4096
+update,"tuple_bytes dict, keys=64, fresh=False",3,1,control,1,0.0002550000208429992,256
+update,"tuple_bytes dict, keys=64, fresh=False",3,1,control,2,0.00025549999554641545,256
+update,"tuple_bytes dict, keys=64, fresh=False",3,1,control,3,0.0002583000168669969,256
+update,"tuple_bytes dict, keys=256, fresh=False",3,1,control,1,0.0009978000016417354,1024
+update,"tuple_bytes dict, keys=256, fresh=False",3,1,control,2,0.0010106000117957592,1024
+update,"tuple_bytes dict, keys=256, fresh=False",3,1,control,3,0.000997700000880286,1024
+update,"tuple_bytes dict, keys=1024, fresh=False",3,1,control,1,0.004085499997017905,4096
+update,"tuple_bytes dict, keys=1024, fresh=False",3,1,control,2,0.00408040001639165,4096
+update,"tuple_bytes dict, keys=1024, fresh=False",3,1,control,3,0.004036999976960942,4096
+update,"tuple_bytes dict, keys=64, fresh=True",3,1,control,1,0.0005556000105571002,256
+update,"tuple_bytes dict, keys=64, fresh=True",3,1,control,2,0.0005628000071737915,256
+update,"tuple_bytes dict, keys=64, fresh=True",3,1,control,3,0.0005659000016748905,256
+update,"tuple_bytes dict, keys=256, fresh=True",3,1,control,1,0.0021969000226818025,1024
+update,"tuple_bytes dict, keys=256, fresh=True",3,1,control,2,0.002205199998570606,1024
+update,"tuple_bytes dict, keys=256, fresh=True",3,1,control,3,0.0021998999873176217,1024
+update,"tuple_bytes dict, keys=1024, fresh=True",3,1,control,1,0.008856699976604432,4096
+update,"tuple_bytes dict, keys=1024, fresh=True",3,1,control,2,0.008841200004098937,4096
+update,"tuple_bytes dict, keys=1024, fresh=True",3,1,control,3,0.008808399987174198,4096
+update,"tuple_bytes Counter, keys=64, fresh=True",3,1,control,1,0.0005994999955873936,256
+update,"tuple_bytes Counter, keys=64, fresh=True",3,1,control,2,0.0005887000006623566,256
+update,"tuple_bytes Counter, keys=64, fresh=True",3,1,control,3,0.0006767000013496727,256
+update,"tuple_bytes Counter, keys=256, fresh=True",3,1,control,1,0.0024358999799005687,1024
+update,"tuple_bytes Counter, keys=256, fresh=True",3,1,control,2,0.0023898000072222203,1024
+update,"tuple_bytes Counter, keys=256, fresh=True",3,1,control,3,0.0023505999997723848,1024
+update,"tuple_bytes Counter, keys=1024, fresh=True",3,1,control,1,0.009411900013219565,4096
+update,"tuple_bytes Counter, keys=1024, fresh=True",3,1,control,2,0.00941259998944588,4096
+update,"tuple_bytes Counter, keys=1024, fresh=True",3,1,control,3,0.009887399995932356,4096
+update,"bytes dict, keys=64, fresh=False",3,2,candidate,1,0.0002536000101827085,256
+update,"bytes dict, keys=64, fresh=False",3,2,candidate,2,0.0002530000056140125,256
+update,"bytes dict, keys=64, fresh=False",3,2,candidate,3,0.0002583000168669969,256
+update,"bytes dict, keys=256, fresh=False",3,2,candidate,1,0.0009762999834492803,1024
+update,"bytes dict, keys=256, fresh=False",3,2,candidate,2,0.00098230000003241,1024
+update,"bytes dict, keys=256, fresh=False",3,2,candidate,3,0.0009797000093385577,1024
+update,"bytes dict, keys=1024, fresh=False",3,2,candidate,1,0.003966999996919185,4096
+update,"bytes dict, keys=1024, fresh=False",3,2,candidate,2,0.004005499999038875,4096
+update,"bytes dict, keys=1024, fresh=False",3,2,candidate,3,0.003924499993445352,4096
+update,"tuple_bytes dict, keys=64, fresh=False",3,2,candidate,1,0.00024709998979233205,256
+update,"tuple_bytes dict, keys=64, fresh=False",3,2,candidate,2,0.0002447000006213784,256
+update,"tuple_bytes dict, keys=64, fresh=False",3,2,candidate,3,0.00024580000899732113,256
+update,"tuple_bytes dict, keys=256, fresh=False",3,2,candidate,1,0.000974599999608472,1024
+update,"tuple_bytes dict, keys=256, fresh=False",3,2,candidate,2,0.0009710000013001263,1024
+update,"tuple_bytes dict, keys=256, fresh=False",3,2,candidate,3,0.000983500009169802,1024
+update,"tuple_bytes dict, keys=1024, fresh=False",3,2,candidate,1,0.003953700012061745,4096
+update,"tuple_bytes dict, keys=1024, fresh=False",3,2,candidate,2,0.003943599993363023,4096
+update,"tuple_bytes dict, keys=1024, fresh=False",3,2,candidate,3,0.003915400011464953,4096
+update,"tuple_bytes dict, keys=64, fresh=True",3,2,candidate,1,0.0005458999949041754,256
+update,"tuple_bytes dict, keys=64, fresh=True",3,2,candidate,2,0.0005414000188466161,256
+update,"tuple_bytes dict, keys=64, fresh=True",3,2,candidate,3,0.0005441000103019178,256
+update,"tuple_bytes dict, keys=256, fresh=True",3,2,candidate,1,0.0021625999943353236,1024
+update,"tuple_bytes dict, keys=256, fresh=True",3,2,candidate,2,0.002169799990952015,1024
+update,"tuple_bytes dict, keys=256, fresh=True",3,2,candidate,3,0.002156399976229295,1024
+update,"tuple_bytes dict, keys=1024, fresh=True",3,2,candidate,1,0.008667899994179606,4096
+update,"tuple_bytes dict, keys=1024, fresh=True",3,2,candidate,2,0.008646900008898228,4096
+update,"tuple_bytes dict, keys=1024, fresh=True",3,2,candidate,3,0.00862150001921691,4096
+update,"tuple_bytes Counter, keys=64, fresh=True",3,2,candidate,1,0.0005842999962624162,256
+update,"tuple_bytes Counter, keys=64, fresh=True",3,2,candidate,2,0.000578600011067465,256
+update,"tuple_bytes Counter, keys=64, fresh=True",3,2,candidate,3,0.0005880999960936606,256
+update,"tuple_bytes Counter, keys=256, fresh=True",3,2,candidate,1,0.0023022999812383205,1024
+update,"tuple_bytes Counter, keys=256, fresh=True",3,2,candidate,2,0.00232170001254417,1024
+update,"tuple_bytes Counter, keys=256, fresh=True",3,2,candidate,3,0.0023264000192284584,1024
+update,"tuple_bytes Counter, keys=1024, fresh=True",3,2,candidate,1,0.009458699991228059,4096
+update,"tuple_bytes Counter, keys=1024, fresh=True",3,2,candidate,2,0.009670100000221282,4096
+update,"tuple_bytes Counter, keys=1024, fresh=True",3,2,candidate,3,0.009378000017022714,4096
+update,"bytes dict, keys=64, fresh=False",4,1,candidate,1,0.00025179999647662044,256
+update,"bytes dict, keys=64, fresh=False",4,1,candidate,2,0.0002476999943610281,256
+update,"bytes dict, keys=64, fresh=False",4,1,candidate,3,0.0002476000227034092,256
+update,"bytes dict, keys=256, fresh=False",4,1,candidate,1,0.000986300001386553,1024
+update,"bytes dict, keys=256, fresh=False",4,1,candidate,2,0.00098669997532852,1024
+update,"bytes dict, keys=256, fresh=False",4,1,candidate,3,0.0009860999998636544,1024
+update,"bytes dict, keys=1024, fresh=False",4,1,candidate,1,0.004010400007246062,4096
+update,"bytes dict, keys=1024, fresh=False",4,1,candidate,2,0.003955300024244934,4096
+update,"bytes dict, keys=1024, fresh=False",4,1,candidate,3,0.003946100012399256,4096
+update,"tuple_bytes dict, keys=64, fresh=False",4,1,candidate,1,0.00025610000011511147,256
+update,"tuple_bytes dict, keys=64, fresh=False",4,1,candidate,2,0.00025779998395591974,256
+update,"tuple_bytes dict, keys=64, fresh=False",4,1,candidate,3,0.0002476999943610281,256
+update,"tuple_bytes dict, keys=256, fresh=False",4,1,candidate,1,0.0009781999979168177,1024
+update,"tuple_bytes dict, keys=256, fresh=False",4,1,candidate,2,0.0009719000081531703,1024
+update,"tuple_bytes dict, keys=256, fresh=False",4,1,candidate,3,0.0010157999931834638,1024
+update,"tuple_bytes dict, keys=1024, fresh=False",4,1,candidate,1,0.00396770000224933,4096
+update,"tuple_bytes dict, keys=1024, fresh=False",4,1,candidate,2,0.003964500006986782,4096
+update,"tuple_bytes dict, keys=1024, fresh=False",4,1,candidate,3,0.003962600021623075,4096
+update,"tuple_bytes dict, keys=64, fresh=True",4,1,candidate,1,0.000544599985005334,256
+update,"tuple_bytes dict, keys=64, fresh=True",4,1,candidate,2,0.0006477999850176275,256
+update,"tuple_bytes dict, keys=64, fresh=True",4,1,candidate,3,0.0005563000158872455,256
+update,"tuple_bytes dict, keys=256, fresh=True",4,1,candidate,1,0.0021576000144705176,1024
+update,"tuple_bytes dict, keys=256, fresh=True",4,1,candidate,2,0.0021689000132028013,1024
+update,"tuple_bytes dict, keys=256, fresh=True",4,1,candidate,3,0.0021684000093955547,1024
+update,"tuple_bytes dict, keys=1024, fresh=True",4,1,candidate,1,0.008914200006984174,4096
+update,"tuple_bytes dict, keys=1024, fresh=True",4,1,candidate,2,0.008773299981839955,4096
+update,"tuple_bytes dict, keys=1024, fresh=True",4,1,candidate,3,0.008732999995118007,4096
+update,"tuple_bytes Counter, keys=64, fresh=True",4,1,candidate,1,0.0005840999947395176,256
+update,"tuple_bytes Counter, keys=64, fresh=True",4,1,candidate,2,0.0005763999943155795,256
+update,"tuple_bytes Counter, keys=64, fresh=True",4,1,candidate,3,0.0005859000084456056,256
+update,"tuple_bytes Counter, keys=256, fresh=True",4,1,candidate,1,0.002313899982254952,1024
+update,"tuple_bytes Counter, keys=256, fresh=True",4,1,candidate,2,0.0023267999931704253,1024
+update,"tuple_bytes Counter, keys=256, fresh=True",4,1,candidate,3,0.0023194999957922846,1024
+update,"tuple_bytes Counter, keys=1024, fresh=True",4,1,candidate,1,0.009301000012783334,4096
+update,"tuple_bytes Counter, keys=1024, fresh=True",4,1,candidate,2,0.009293199982494116,4096
+update,"tuple_bytes Counter, keys=1024, fresh=True",4,1,candidate,3,0.009341199998743832,4096
+update,"bytes dict, keys=64, fresh=False",4,2,control,1,0.00027290001162327826,256
+update,"bytes dict, keys=64, fresh=False",4,2,control,2,0.00025690000620670617,256
+update,"bytes dict, keys=64, fresh=False",4,2,control,3,0.0002590999938547611,256
+update,"bytes dict, keys=256, fresh=False",4,2,control,1,0.0010246000019833446,1024
+update,"bytes dict, keys=256, fresh=False",4,2,control,2,0.0010135999764315784,1024
+update,"bytes dict, keys=256, fresh=False",4,2,control,3,0.0010170999739784747,1024
+update,"bytes dict, keys=1024, fresh=False",4,2,control,1,0.00409370000124909,4096
+update,"bytes dict, keys=1024, fresh=False",4,2,control,2,0.004125499981455505,4096
+update,"bytes dict, keys=1024, fresh=False",4,2,control,3,0.004087900015292689,4096
+update,"tuple_bytes dict, keys=64, fresh=False",4,2,control,1,0.0002615000121295452,256
+update,"tuple_bytes dict, keys=64, fresh=False",4,2,control,2,0.0002618000144138932,256
+update,"tuple_bytes dict, keys=64, fresh=False",4,2,control,3,0.0002629999944474548,256
+update,"tuple_bytes dict, keys=256, fresh=False",4,2,control,1,0.0010056000028271228,1024
+update,"tuple_bytes dict, keys=256, fresh=False",4,2,control,2,0.0010183000122196972,1024
+update,"tuple_bytes dict, keys=256, fresh=False",4,2,control,3,0.0010266000172123313,1024
+update,"tuple_bytes dict, keys=1024, fresh=False",4,2,control,1,0.004075500008184463,4096
+update,"tuple_bytes dict, keys=1024, fresh=False",4,2,control,2,0.004069299990078434,4096
+update,"tuple_bytes dict, keys=1024, fresh=False",4,2,control,3,0.004101800004718825,4096
+update,"tuple_bytes dict, keys=64, fresh=True",4,2,control,1,0.0005557000113185495,256
+update,"tuple_bytes dict, keys=64, fresh=True",4,2,control,2,0.0005607999919448048,256
+update,"tuple_bytes dict, keys=64, fresh=True",4,2,control,3,0.0005577999982051551,256
+update,"tuple_bytes dict, keys=256, fresh=True",4,2,control,1,0.002229899982921779,1024
+update,"tuple_bytes dict, keys=256, fresh=True",4,2,control,2,0.002205700002377853,1024
+update,"tuple_bytes dict, keys=256, fresh=True",4,2,control,3,0.0022443000052589923,1024
+update,"tuple_bytes dict, keys=1024, fresh=True",4,2,control,1,0.0089919000165537,4096
+update,"tuple_bytes dict, keys=1024, fresh=True",4,2,control,2,0.008958099992014468,4096
+update,"tuple_bytes dict, keys=1024, fresh=True",4,2,control,3,0.009005500003695488,4096
+update,"tuple_bytes Counter, keys=64, fresh=True",4,2,control,1,0.000594300014199689,256
+update,"tuple_bytes Counter, keys=64, fresh=True",4,2,control,2,0.0005972000071778893,256
+update,"tuple_bytes Counter, keys=64, fresh=True",4,2,control,3,0.000589400005992502,256
+update,"tuple_bytes Counter, keys=256, fresh=True",4,2,control,1,0.002387599990470335,1024
+update,"tuple_bytes Counter, keys=256, fresh=True",4,2,control,2,0.002369399997405708,1024
+update,"tuple_bytes Counter, keys=256, fresh=True",4,2,control,3,0.002345199987757951,1024
+update,"tuple_bytes Counter, keys=1024, fresh=True",4,2,control,1,0.009593800001312047,4096
+update,"tuple_bytes Counter, keys=1024, fresh=True",4,2,control,2,0.00958879999234341,4096
+update,"tuple_bytes Counter, keys=1024, fresh=True",4,2,control,3,0.00958589999936521,4096
+update,"bytes dict, keys=64, fresh=False",5,1,control,1,0.0002606000052765012,256
+update,"bytes dict, keys=64, fresh=False",5,1,control,2,0.0002575000107754022,256
+update,"bytes dict, keys=64, fresh=False",5,1,control,3,0.00025679997634142637,256
+update,"bytes dict, keys=256, fresh=False",5,1,control,1,0.0010240999981760979,1024
+update,"bytes dict, keys=256, fresh=False",5,1,control,2,0.0010275000240653753,1024
+update,"bytes dict, keys=256, fresh=False",5,1,control,3,0.001029000006383285,1024
+update,"bytes dict, keys=1024, fresh=False",5,1,control,1,0.004123799997614697,4096
+update,"bytes dict, keys=1024, fresh=False",5,1,control,2,0.0041074999899137765,4096
+update,"bytes dict, keys=1024, fresh=False",5,1,control,3,0.004124600003706291,4096
+update,"tuple_bytes dict, keys=64, fresh=False",5,1,control,1,0.00025549999554641545,256
+update,"tuple_bytes dict, keys=64, fresh=False",5,1,control,2,0.00025579999783076346,256
+update,"tuple_bytes dict, keys=64, fresh=False",5,1,control,3,0.00025969999842345715,256
+update,"tuple_bytes dict, keys=256, fresh=False",5,1,control,1,0.0010071000142488629,1024
+update,"tuple_bytes dict, keys=256, fresh=False",5,1,control,2,0.0010452000133227557,1024
+update,"tuple_bytes dict, keys=256, fresh=False",5,1,control,3,0.00102680001873523,1024
+update,"tuple_bytes dict, keys=1024, fresh=False",5,1,control,1,0.004070099996170029,4096
+update,"tuple_bytes dict, keys=1024, fresh=False",5,1,control,2,0.004051800002343953,4096
+update,"tuple_bytes dict, keys=1024, fresh=False",5,1,control,3,0.004044000001158565,4096
+update,"tuple_bytes dict, keys=64, fresh=True",5,1,control,1,0.0005589000065810978,256
+update,"tuple_bytes dict, keys=64, fresh=True",5,1,control,2,0.0005497999954968691,256
+update,"tuple_bytes dict, keys=64, fresh=True",5,1,control,3,0.0005504000000655651,256
+update,"tuple_bytes dict, keys=256, fresh=True",5,1,control,1,0.0022007999941706657,1024
+update,"tuple_bytes dict, keys=256, fresh=True",5,1,control,2,0.002203399984864518,1024
+update,"tuple_bytes dict, keys=256, fresh=True",5,1,control,3,0.002199699985794723,1024
+update,"tuple_bytes dict, keys=1024, fresh=True",5,1,control,1,0.008853100007399917,4096
+update,"tuple_bytes dict, keys=1024, fresh=True",5,1,control,2,0.00927919999230653,4096
+update,"tuple_bytes dict, keys=1024, fresh=True",5,1,control,3,0.008845000003930181,4096
+update,"tuple_bytes Counter, keys=64, fresh=True",5,1,control,1,0.0005844999977853149,256
+update,"tuple_bytes Counter, keys=64, fresh=True",5,1,control,2,0.0005842999962624162,256
+update,"tuple_bytes Counter, keys=64, fresh=True",5,1,control,3,0.0005837000207975507,256
+update,"tuple_bytes Counter, keys=256, fresh=True",5,1,control,1,0.002336800011107698,1024
+update,"tuple_bytes Counter, keys=256, fresh=True",5,1,control,2,0.002329700015252456,1024
+update,"tuple_bytes Counter, keys=256, fresh=True",5,1,control,3,0.002339300001040101,1024
+update,"tuple_bytes Counter, keys=1024, fresh=True",5,1,control,1,0.009445900010177866,4096
+update,"tuple_bytes Counter, keys=1024, fresh=True",5,1,control,2,0.009516699996311218,4096
+update,"tuple_bytes Counter, keys=1024, fresh=True",5,1,control,3,0.009471700002904981,4096
+update,"bytes dict, keys=64, fresh=False",5,2,candidate,1,0.0002576000115368515,256
+update,"bytes dict, keys=64, fresh=False",5,2,candidate,2,0.00025190002634190023,256
+update,"bytes dict, keys=64, fresh=False",5,2,candidate,3,0.0002497999812476337,256
+update,"bytes dict, keys=256, fresh=False",5,2,candidate,1,0.0009791000047698617,1024
+update,"bytes dict, keys=256, fresh=False",5,2,candidate,2,0.0010008999961428344,1024
+update,"bytes dict, keys=256, fresh=False",5,2,candidate,3,0.000975800008745864,1024
+update,"bytes dict, keys=1024, fresh=False",5,2,candidate,1,0.00393959999200888,4096
+update,"bytes dict, keys=1024, fresh=False",5,2,candidate,2,0.003976400010287762,4096
+update,"bytes dict, keys=1024, fresh=False",5,2,candidate,3,0.004033300006994978,4096
+update,"tuple_bytes dict, keys=64, fresh=False",5,2,candidate,1,0.00024850000045262277,256
+update,"tuple_bytes dict, keys=64, fresh=False",5,2,candidate,2,0.00025129999266937375,256
+update,"tuple_bytes dict, keys=64, fresh=False",5,2,candidate,3,0.00024920000578276813,256
+update,"tuple_bytes dict, keys=256, fresh=False",5,2,candidate,1,0.0009724999836180359,1024
+update,"tuple_bytes dict, keys=256, fresh=False",5,2,candidate,2,0.0009766999864950776,1024
+update,"tuple_bytes dict, keys=256, fresh=False",5,2,candidate,3,0.0010141999810002744,1024
+update,"tuple_bytes dict, keys=1024, fresh=False",5,2,candidate,1,0.0040062000043690205,4096
+update,"tuple_bytes dict, keys=1024, fresh=False",5,2,candidate,2,0.003999999986262992,4096
+update,"tuple_bytes dict, keys=1024, fresh=False",5,2,candidate,3,0.0039431999903172255,4096
+update,"tuple_bytes dict, keys=64, fresh=True",5,2,candidate,1,0.0005526000168174505,256
+update,"tuple_bytes dict, keys=64, fresh=True",5,2,candidate,2,0.0005469999741762877,256
+update,"tuple_bytes dict, keys=64, fresh=True",5,2,candidate,3,0.0005765000241808593,256
+update,"tuple_bytes dict, keys=256, fresh=True",5,2,candidate,1,0.002177799993660301,1024
+update,"tuple_bytes dict, keys=256, fresh=True",5,2,candidate,2,0.0021767999860458076,1024
+update,"tuple_bytes dict, keys=256, fresh=True",5,2,candidate,3,0.0023230999941006303,1024
+update,"tuple_bytes dict, keys=1024, fresh=True",5,2,candidate,1,0.008789300016360357,4096
+update,"tuple_bytes dict, keys=1024, fresh=True",5,2,candidate,2,0.009205400012433529,4096
+update,"tuple_bytes dict, keys=1024, fresh=True",5,2,candidate,3,0.008755699993344024,4096
+update,"tuple_bytes Counter, keys=64, fresh=True",5,2,candidate,1,0.0006030999938957393,256
+update,"tuple_bytes Counter, keys=64, fresh=True",5,2,candidate,2,0.0005836999916937202,256
+update,"tuple_bytes Counter, keys=64, fresh=True",5,2,candidate,3,0.0005861000099685043,256
+update,"tuple_bytes Counter, keys=256, fresh=True",5,2,candidate,1,0.0024351999745704234,1024
+update,"tuple_bytes Counter, keys=256, fresh=True",5,2,candidate,2,0.002442400000290945,1024
+update,"tuple_bytes Counter, keys=256, fresh=True",5,2,candidate,3,0.0023040000232867897,1024
+update,"tuple_bytes Counter, keys=1024, fresh=True",5,2,candidate,1,0.009696900000562891,4096
+update,"tuple_bytes Counter, keys=1024, fresh=True",5,2,candidate,2,0.009682500007329509,4096
+update,"tuple_bytes Counter, keys=1024, fresh=True",5,2,candidate,3,0.009629400010453537,4096
+update,"bytes dict, keys=64, fresh=False",6,1,candidate,1,0.0002480999974068254,256
+update,"bytes dict, keys=64, fresh=False",6,1,candidate,2,0.00024679998750798404,256
+update,"bytes dict, keys=64, fresh=False",6,1,candidate,3,0.0002513999934308231,256
+update,"bytes dict, keys=256, fresh=False",6,1,candidate,1,0.0009939000010490417,1024
+update,"bytes dict, keys=256, fresh=False",6,1,candidate,2,0.0009889999928418547,1024
+update,"bytes dict, keys=256, fresh=False",6,1,candidate,3,0.0009951999818440527,1024
+update,"bytes dict, keys=1024, fresh=False",6,1,candidate,1,0.003997899999376386,4096
+update,"bytes dict, keys=1024, fresh=False",6,1,candidate,2,0.003984499984653667,4096
+update,"bytes dict, keys=1024, fresh=False",6,1,candidate,3,0.0041581999976187944,4096
+update,"tuple_bytes dict, keys=64, fresh=False",6,1,candidate,1,0.0002536000101827085,256
+update,"tuple_bytes dict, keys=64, fresh=False",6,1,candidate,2,0.0002536000101827085,256
+update,"tuple_bytes dict, keys=64, fresh=False",6,1,candidate,3,0.0002525000018067658,256
+update,"tuple_bytes dict, keys=256, fresh=False",6,1,candidate,1,0.0010254000080749393,1024
+update,"tuple_bytes dict, keys=256, fresh=False",6,1,candidate,2,0.000998699979390949,1024
+update,"tuple_bytes dict, keys=256, fresh=False",6,1,candidate,3,0.0009945000056177378,1024
+update,"tuple_bytes dict, keys=1024, fresh=False",6,1,candidate,1,0.003924299991922453,4096
+update,"tuple_bytes dict, keys=1024, fresh=False",6,1,candidate,2,0.003913299995474517,4096
+update,"tuple_bytes dict, keys=1024, fresh=False",6,1,candidate,3,0.003993099991930649,4096
+update,"tuple_bytes dict, keys=64, fresh=True",6,1,candidate,1,0.0005470000032801181,256
+update,"tuple_bytes dict, keys=64, fresh=True",6,1,candidate,2,0.0005605000187642872,256
+update,"tuple_bytes dict, keys=64, fresh=True",6,1,candidate,3,0.0005419999943114817,256
+update,"tuple_bytes dict, keys=256, fresh=True",6,1,candidate,1,0.002157599985366687,1024
+update,"tuple_bytes dict, keys=256, fresh=True",6,1,candidate,2,0.002163299999665469,1024
+update,"tuple_bytes dict, keys=256, fresh=True",6,1,candidate,3,0.002148500003386289,1024
+update,"tuple_bytes dict, keys=1024, fresh=True",6,1,candidate,1,0.008967700006905943,4096
+update,"tuple_bytes dict, keys=1024, fresh=True",6,1,candidate,2,0.0087057999917306,4096
+update,"tuple_bytes dict, keys=1024, fresh=True",6,1,candidate,3,0.008726400003070012,4096
+update,"tuple_bytes Counter, keys=64, fresh=True",6,1,candidate,1,0.0005768999981228262,256
+update,"tuple_bytes Counter, keys=64, fresh=True",6,1,candidate,2,0.000753100001020357,256
+update,"tuple_bytes Counter, keys=64, fresh=True",6,1,candidate,3,0.0006017000123392791,256
+update,"tuple_bytes Counter, keys=256, fresh=True",6,1,candidate,1,0.0023301999899558723,1024
+update,"tuple_bytes Counter, keys=256, fresh=True",6,1,candidate,2,0.0023113000206649303,1024
+update,"tuple_bytes Counter, keys=256, fresh=True",6,1,candidate,3,0.0023129000037442893,1024
+update,"tuple_bytes Counter, keys=1024, fresh=True",6,1,candidate,1,0.009593599999789149,4096
+update,"tuple_bytes Counter, keys=1024, fresh=True",6,1,candidate,2,0.00920820000465028,4096
+update,"tuple_bytes Counter, keys=1024, fresh=True",6,1,candidate,3,0.009234700002707541,4096
+update,"bytes dict, keys=64, fresh=False",6,2,control,1,0.00026030000299215317,256
+update,"bytes dict, keys=64, fresh=False",6,2,control,2,0.0002581000153440982,256
+update,"bytes dict, keys=64, fresh=False",6,2,control,3,0.00025930002448149025,256
+update,"bytes dict, keys=256, fresh=False",6,2,control,1,0.0010096000041812658,1024
+update,"bytes dict, keys=256, fresh=False",6,2,control,2,0.0010125999979209155,1024
+update,"bytes dict, keys=256, fresh=False",6,2,control,3,0.0010151999886147678,1024
+update,"bytes dict, keys=1024, fresh=False",6,2,control,1,0.004275799990864471,4096
+update,"bytes dict, keys=1024, fresh=False",6,2,control,2,0.004212700005155057,4096
+update,"bytes dict, keys=1024, fresh=False",6,2,control,3,0.004089699999894947,4096
+update,"tuple_bytes dict, keys=64, fresh=False",6,2,control,1,0.00025699997786432505,256
+update,"tuple_bytes dict, keys=64, fresh=False",6,2,control,2,0.0002558999985922128,256
+update,"tuple_bytes dict, keys=64, fresh=False",6,2,control,3,0.000256399973295629,256
+update,"tuple_bytes dict, keys=256, fresh=False",6,2,control,1,0.00100299998302944,1024
+update,"tuple_bytes dict, keys=256, fresh=False",6,2,control,2,0.0009985999786294997,1024
+update,"tuple_bytes dict, keys=256, fresh=False",6,2,control,3,0.0010206000006292015,1024
+update,"tuple_bytes dict, keys=1024, fresh=False",6,2,control,1,0.004152400011662394,4096
+update,"tuple_bytes dict, keys=1024, fresh=False",6,2,control,2,0.004062299994984642,4096
+update,"tuple_bytes dict, keys=1024, fresh=False",6,2,control,3,0.004051399999298155,4096
+update,"tuple_bytes dict, keys=64, fresh=True",6,2,control,1,0.0005571999936364591,256
+update,"tuple_bytes dict, keys=64, fresh=True",6,2,control,2,0.0005569999921135604,256
+update,"tuple_bytes dict, keys=64, fresh=True",6,2,control,3,0.0005530999915208668,256
+update,"tuple_bytes dict, keys=256, fresh=True",6,2,control,1,0.0024772000033408403,1024
+update,"tuple_bytes dict, keys=256, fresh=True",6,2,control,2,0.002310600015334785,1024
+update,"tuple_bytes dict, keys=256, fresh=True",6,2,control,3,0.002424299978883937,1024
+update,"tuple_bytes dict, keys=1024, fresh=True",6,2,control,1,0.009122899995418265,4096
+update,"tuple_bytes dict, keys=1024, fresh=True",6,2,control,2,0.008957399986684322,4096
+update,"tuple_bytes dict, keys=1024, fresh=True",6,2,control,3,0.009005400002934039,4096
+update,"tuple_bytes Counter, keys=64, fresh=True",6,2,control,1,0.0005912999913562089,256
+update,"tuple_bytes Counter, keys=64, fresh=True",6,2,control,2,0.0005948999896645546,256
+update,"tuple_bytes Counter, keys=64, fresh=True",6,2,control,3,0.0006176999886520207,256
+update,"tuple_bytes Counter, keys=256, fresh=True",6,2,control,1,0.002349499991396442,1024
+update,"tuple_bytes Counter, keys=256, fresh=True",6,2,control,2,0.0023932000040076673,1024
+update,"tuple_bytes Counter, keys=256, fresh=True",6,2,control,3,0.002330999996047467,1024
+update,"tuple_bytes Counter, keys=1024, fresh=True",6,2,control,1,0.00956969999242574,4096
+update,"tuple_bytes Counter, keys=1024, fresh=True",6,2,control,2,0.009364400000777096,4096
+update,"tuple_bytes Counter, keys=1024, fresh=True",6,2,control,3,0.009448000026168302,4096
+update,"bytes dict, keys=64, fresh=False",7,1,control,1,0.00025969999842345715,256
+update,"bytes dict, keys=64, fresh=False",7,1,control,2,0.0002589000214356929,256
+update,"bytes dict, keys=64, fresh=False",7,1,control,3,0.0002606000052765012,256
+update,"bytes dict, keys=256, fresh=False",7,1,control,1,0.001019100018311292,1024
+update,"bytes dict, keys=256, fresh=False",7,1,control,2,0.0010207000013906509,1024
+update,"bytes dict, keys=256, fresh=False",7,1,control,3,0.0010221999837085605,1024
+update,"bytes dict, keys=1024, fresh=False",7,1,control,1,0.00423589997808449,4096
+update,"bytes dict, keys=1024, fresh=False",7,1,control,2,0.00463450001552701,4096
+update,"bytes dict, keys=1024, fresh=False",7,1,control,3,0.004162600002018735,4096
+update,"tuple_bytes dict, keys=64, fresh=False",7,1,control,1,0.0002562000008765608,256
+update,"tuple_bytes dict, keys=64, fresh=False",7,1,control,2,0.0002573999809101224,256
+update,"tuple_bytes dict, keys=64, fresh=False",7,1,control,3,0.0002547999902162701,256
+update,"tuple_bytes dict, keys=256, fresh=False",7,1,control,1,0.0010089999996125698,1024
+update,"tuple_bytes dict, keys=256, fresh=False",7,1,control,2,0.0009942000033333898,1024
+update,"tuple_bytes dict, keys=256, fresh=False",7,1,control,3,0.001001799973892048,1024
+update,"tuple_bytes dict, keys=1024, fresh=False",7,1,control,1,0.004774300003191456,4096
+update,"tuple_bytes dict, keys=1024, fresh=False",7,1,control,2,0.004104299994651228,4096
+update,"tuple_bytes dict, keys=1024, fresh=False",7,1,control,3,0.004230899998219684,4096
+update,"tuple_bytes dict, keys=64, fresh=True",7,1,control,1,0.0005591999797616154,256
+update,"tuple_bytes dict, keys=64, fresh=True",7,1,control,2,0.0005582000012509525,256
+update,"tuple_bytes dict, keys=64, fresh=True",7,1,control,3,0.0005575999966822565,256
+update,"tuple_bytes dict, keys=256, fresh=True",7,1,control,1,0.0022111000143922865,1024
+update,"tuple_bytes dict, keys=256, fresh=True",7,1,control,2,0.0022504999942611903,1024
+update,"tuple_bytes dict, keys=256, fresh=True",7,1,control,3,0.0021948000066913664,1024
+update,"tuple_bytes dict, keys=1024, fresh=True",7,1,control,1,0.00899640002171509,4096
+update,"tuple_bytes dict, keys=1024, fresh=True",7,1,control,2,0.008911399985663593,4096
+update,"tuple_bytes dict, keys=1024, fresh=True",7,1,control,3,0.00924379998468794,4096
+update,"tuple_bytes Counter, keys=64, fresh=True",7,1,control,1,0.0006179999909363687,256
+update,"tuple_bytes Counter, keys=64, fresh=True",7,1,control,2,0.0006197000038810074,256
+update,"tuple_bytes Counter, keys=64, fresh=True",7,1,control,3,0.0006157000025268644,256
+update,"tuple_bytes Counter, keys=256, fresh=True",7,1,control,1,0.002455399982864037,1024
+update,"tuple_bytes Counter, keys=256, fresh=True",7,1,control,2,0.002445999998599291,1024
+update,"tuple_bytes Counter, keys=256, fresh=True",7,1,control,3,0.0023996999952942133,1024
+update,"tuple_bytes Counter, keys=1024, fresh=True",7,1,control,1,0.009805799985770136,4096
+update,"tuple_bytes Counter, keys=1024, fresh=True",7,1,control,2,0.009765000024344772,4096
+update,"tuple_bytes Counter, keys=1024, fresh=True",7,1,control,3,0.009799700026633218,4096
+update,"bytes dict, keys=64, fresh=False",7,2,candidate,1,0.00025019998429343104,256
+update,"bytes dict, keys=64, fresh=False",7,2,candidate,2,0.0002469999890308827,256
+update,"bytes dict, keys=64, fresh=False",7,2,candidate,3,0.0002479999966453761,256
+update,"bytes dict, keys=256, fresh=False",7,2,candidate,1,0.0010469999979250133,1024
+update,"bytes dict, keys=256, fresh=False",7,2,candidate,2,0.0009888999920804054,1024
+update,"bytes dict, keys=256, fresh=False",7,2,candidate,3,0.0009757000079844147,1024
+update,"bytes dict, keys=1024, fresh=False",7,2,candidate,1,0.004279499989934266,4096
+update,"bytes dict, keys=1024, fresh=False",7,2,candidate,2,0.004108000022824854,4096
+update,"bytes dict, keys=1024, fresh=False",7,2,candidate,3,0.004121200006920844,4096
+update,"tuple_bytes dict, keys=64, fresh=False",7,2,candidate,1,0.0002573999809101224,256
+update,"tuple_bytes dict, keys=64, fresh=False",7,2,candidate,2,0.0002610999799799174,256
+update,"tuple_bytes dict, keys=64, fresh=False",7,2,candidate,3,0.00026080000679939985,256
+update,"tuple_bytes dict, keys=256, fresh=False",7,2,candidate,1,0.0010800999880302697,1024
+update,"tuple_bytes dict, keys=256, fresh=False",7,2,candidate,2,0.001001099997665733,1024
+update,"tuple_bytes dict, keys=256, fresh=False",7,2,candidate,3,0.0010246000019833446,1024
+update,"tuple_bytes dict, keys=1024, fresh=False",7,2,candidate,1,0.004108599998289719,4096
+update,"tuple_bytes dict, keys=1024, fresh=False",7,2,candidate,2,0.004185900004813448,4096
+update,"tuple_bytes dict, keys=1024, fresh=False",7,2,candidate,3,0.003963399998610839,4096
+update,"tuple_bytes dict, keys=64, fresh=True",7,2,candidate,1,0.0005452999903354794,256
+update,"tuple_bytes dict, keys=64, fresh=True",7,2,candidate,2,0.0005498000246006995,256
+update,"tuple_bytes dict, keys=64, fresh=True",7,2,candidate,3,0.0005466000002343208,256
+update,"tuple_bytes dict, keys=256, fresh=True",7,2,candidate,1,0.002166999998735264,1024
+update,"tuple_bytes dict, keys=256, fresh=True",7,2,candidate,2,0.002154999994672835,1024
+update,"tuple_bytes dict, keys=256, fresh=True",7,2,candidate,3,0.002155299996957183,1024
+update,"tuple_bytes dict, keys=1024, fresh=True",7,2,candidate,1,0.008929999981774017,4096
+update,"tuple_bytes dict, keys=1024, fresh=True",7,2,candidate,2,0.008646400005090982,4096
+update,"tuple_bytes dict, keys=1024, fresh=True",7,2,candidate,3,0.00882580000325106,4096
+update,"tuple_bytes Counter, keys=64, fresh=True",7,2,candidate,1,0.0005868999869562685,256
+update,"tuple_bytes Counter, keys=64, fresh=True",7,2,candidate,2,0.000586600013775751,256
+update,"tuple_bytes Counter, keys=64, fresh=True",7,2,candidate,3,0.0005820999795105308,256
+update,"tuple_bytes Counter, keys=256, fresh=True",7,2,candidate,1,0.0023077999940142035,1024
+update,"tuple_bytes Counter, keys=256, fresh=True",7,2,candidate,2,0.0023425999970640987,1024
+update,"tuple_bytes Counter, keys=256, fresh=True",7,2,candidate,3,0.0023147000174503773,1024
+update,"tuple_bytes Counter, keys=1024, fresh=True",7,2,candidate,1,0.00929259997792542,4096
+update,"tuple_bytes Counter, keys=1024, fresh=True",7,2,candidate,2,0.009340499993413687,4096
+update,"tuple_bytes Counter, keys=1024, fresh=True",7,2,candidate,3,0.009217300015734509,4096
+trivial_callback,direct_constant,1,1,control,1,0.0008285999938379973,0
+trivial_callback,direct_constant,1,1,control,2,0.0008171999943442643,0
+trivial_callback,direct_constant,1,1,control,3,0.0008232999825850129,0
+trivial_callback,direct_constant,1,1,control,4,0.0008288999961223453,0
+trivial_callback,direct_constant,1,1,control,5,0.0008430999878328294,0
+trivial_callback,native_max_constant_key,1,1,control,1,0.0011409999860916287,32
+trivial_callback,native_max_constant_key,1,1,control,2,0.001125699986005202,32
+trivial_callback,native_max_constant_key,1,1,control,3,0.0011208000069018453,32
+trivial_callback,native_max_constant_key,1,1,control,4,0.001135200000135228,32
+trivial_callback,native_max_constant_key,1,1,control,5,0.001123499998357147,32
+trivial_callback,counter_missing,1,1,control,1,0.004026600014185533,0
+trivial_callback,counter_missing,1,1,control,2,0.0040969999972730875,0
+trivial_callback,counter_missing,1,1,control,3,0.004040600004373118,0
+trivial_callback,counter_missing,1,1,control,4,0.004295399994589388,0
+trivial_callback,counter_missing,1,1,control,5,0.004319900006521493,0
+trivial_callback,direct_counter_missing,1,1,control,1,0.0025719999975990504,0
+trivial_callback,direct_counter_missing,1,1,control,2,0.002575599995907396,0
+trivial_callback,direct_counter_missing,1,1,control,3,0.0025300999986939132,0
+trivial_callback,direct_counter_missing,1,1,control,4,0.002565400005551055,0
+trivial_callback,direct_counter_missing,1,1,control,5,0.002532899990910664,0
+trivial_callback,dict_get_default,1,1,control,1,0.0037333000218495727,0
+trivial_callback,dict_get_default,1,1,control,2,0.0036638000165112317,0
+trivial_callback,dict_get_default,1,1,control,3,0.0036598999868147075,0
+trivial_callback,dict_get_default,1,1,control,4,0.0037831000227015465,0
+trivial_callback,dict_get_default,1,1,control,5,0.0035288000071886927,0
+trivial_callback,direct_constant,1,2,candidate,1,0.0008667999936733395,0
+trivial_callback,direct_constant,1,2,candidate,2,0.0008602000016253442,0
+trivial_callback,direct_constant,1,2,candidate,3,0.0008509000181220472,0
+trivial_callback,direct_constant,1,2,candidate,4,0.0008588999917265028,0
+trivial_callback,direct_constant,1,2,candidate,5,0.0008514999935869128,0
+trivial_callback,native_max_constant_key,1,2,candidate,1,0.0010916000173892826,32
+trivial_callback,native_max_constant_key,1,2,candidate,2,0.001123199996072799,32
+trivial_callback,native_max_constant_key,1,2,candidate,3,0.0011349000269547105,32
+trivial_callback,native_max_constant_key,1,2,candidate,4,0.0010830000101123005,32
+trivial_callback,native_max_constant_key,1,2,candidate,5,0.0010851999977603555,32
+trivial_callback,counter_missing,1,2,candidate,1,0.004144999984418973,0
+trivial_callback,counter_missing,1,2,candidate,2,0.004263800015905872,0
+trivial_callback,counter_missing,1,2,candidate,3,0.00427450001006946,0
+trivial_callback,counter_missing,1,2,candidate,4,0.0042483999859541655,0
+trivial_callback,counter_missing,1,2,candidate,5,0.004256300017004833,0
+trivial_callback,direct_counter_missing,1,2,candidate,1,0.0025246000150218606,0
+trivial_callback,direct_counter_missing,1,2,candidate,2,0.002521499991416931,0
+trivial_callback,direct_counter_missing,1,2,candidate,3,0.0025175999908242375,0
+trivial_callback,direct_counter_missing,1,2,candidate,4,0.0025199000083375722,0
+trivial_callback,direct_counter_missing,1,2,candidate,5,0.0025411999959032983,0
+trivial_callback,dict_get_default,1,2,candidate,1,0.0033856000227387995,0
+trivial_callback,dict_get_default,1,2,candidate,2,0.0034604000102262944,0
+trivial_callback,dict_get_default,1,2,candidate,3,0.0035441000072751194,0
+trivial_callback,dict_get_default,1,2,candidate,4,0.0035844000231008977,0
+trivial_callback,dict_get_default,1,2,candidate,5,0.003569599997717887,0
+trivial_callback,direct_constant,2,1,candidate,1,0.00090970000019297,0
+trivial_callback,direct_constant,2,1,candidate,2,0.0008963999862316996,0
+trivial_callback,direct_constant,2,1,candidate,3,0.0008850999874994159,0
+trivial_callback,direct_constant,2,1,candidate,4,0.0008427999855484813,0
+trivial_callback,direct_constant,2,1,candidate,5,0.0008433000184595585,0
+trivial_callback,native_max_constant_key,2,1,candidate,1,0.0010868999816011637,32
+trivial_callback,native_max_constant_key,2,1,candidate,2,0.0010779000003822148,32
+trivial_callback,native_max_constant_key,2,1,candidate,3,0.0010719999845605344,32
+trivial_callback,native_max_constant_key,2,1,candidate,4,0.0010710000060498714,32
+trivial_callback,native_max_constant_key,2,1,candidate,5,0.0010760999866761267,32
+trivial_callback,counter_missing,2,1,candidate,1,0.004058600025018677,0
+trivial_callback,counter_missing,2,1,candidate,2,0.004075300006661564,0
+trivial_callback,counter_missing,2,1,candidate,3,0.004063200001837686,0
+trivial_callback,counter_missing,2,1,candidate,4,0.00405369998770766,0
+trivial_callback,counter_missing,2,1,candidate,5,0.004094100004294887,0
+trivial_callback,direct_counter_missing,2,1,candidate,1,0.0024209000112023205,0
+trivial_callback,direct_counter_missing,2,1,candidate,2,0.0024181999906431884,0
+trivial_callback,direct_counter_missing,2,1,candidate,3,0.0024200000043492764,0
+trivial_callback,direct_counter_missing,2,1,candidate,4,0.0024015000090003014,0
+trivial_callback,direct_counter_missing,2,1,candidate,5,0.0031263999990187585,0
+trivial_callback,dict_get_default,2,1,candidate,1,0.0033922000147867948,0
+trivial_callback,dict_get_default,2,1,candidate,2,0.0034211000020150095,0
+trivial_callback,dict_get_default,2,1,candidate,3,0.0033946000039577484,0
+trivial_callback,dict_get_default,2,1,candidate,4,0.0033746999979484826,0
+trivial_callback,dict_get_default,2,1,candidate,5,0.0033816999930422753,0
+trivial_callback,direct_constant,2,2,control,1,0.0008133999945130199,0
+trivial_callback,direct_constant,2,2,control,2,0.0008242999901995063,0
+trivial_callback,direct_constant,2,2,control,3,0.0008248999947682023,0
+trivial_callback,direct_constant,2,2,control,4,0.0008271999831777066,0
+trivial_callback,direct_constant,2,2,control,5,0.0008519999973941594,0
+trivial_callback,native_max_constant_key,2,2,control,1,0.0011097999813500792,32
+trivial_callback,native_max_constant_key,2,2,control,2,0.0011146000178996474,32
+trivial_callback,native_max_constant_key,2,2,control,3,0.0011412000167183578,32
+trivial_callback,native_max_constant_key,2,2,control,4,0.0011384000245016068,32
+trivial_callback,native_max_constant_key,2,2,control,5,0.0011192000238224864,32
+trivial_callback,counter_missing,2,2,control,1,0.004051800002343953,0
+trivial_callback,counter_missing,2,2,control,2,0.004107300017494708,0
+trivial_callback,counter_missing,2,2,control,3,0.004073199990671128,0
+trivial_callback,counter_missing,2,2,control,4,0.004026699985843152,0
+trivial_callback,counter_missing,2,2,control,5,0.004076500015798956,0
+trivial_callback,direct_counter_missing,2,2,control,1,0.0025409999943803996,0
+trivial_callback,direct_counter_missing,2,2,control,2,0.0024670000129844993,0
+trivial_callback,direct_counter_missing,2,2,control,3,0.0024769000010564923,0
+trivial_callback,direct_counter_missing,2,2,control,4,0.002475599991157651,0
+trivial_callback,direct_counter_missing,2,2,control,5,0.002451500011375174,0
+trivial_callback,dict_get_default,2,2,control,1,0.0037001000018790364,0
+trivial_callback,dict_get_default,2,2,control,2,0.003658700006781146,0
+trivial_callback,dict_get_default,2,2,control,3,0.0037680999957956374,0
+trivial_callback,dict_get_default,2,2,control,4,0.003735699981916696,0
+trivial_callback,dict_get_default,2,2,control,5,0.0037274000060278922,0
+trivial_callback,direct_constant,3,1,control,1,0.0008322999929077923,0
+trivial_callback,direct_constant,3,1,control,2,0.0008213000255636871,0
+trivial_callback,direct_constant,3,1,control,3,0.0008218000002671033,0
+trivial_callback,direct_constant,3,1,control,4,0.0008252999978139997,0
+trivial_callback,direct_constant,3,1,control,5,0.0008413000032305717,0
+trivial_callback,native_max_constant_key,3,1,control,1,0.0011347000254318118,32
+trivial_callback,native_max_constant_key,3,1,control,2,0.0011286000080872327,32
+trivial_callback,native_max_constant_key,3,1,control,3,0.001130299991928041,32
+trivial_callback,native_max_constant_key,3,1,control,4,0.0011195999977644533,32
+trivial_callback,native_max_constant_key,3,1,control,5,0.0011353000008966774,32
+trivial_callback,counter_missing,3,1,control,1,0.004025200003525242,0
+trivial_callback,counter_missing,3,1,control,2,0.0040160999924410135,0
+trivial_callback,counter_missing,3,1,control,3,0.004782699979841709,0
+trivial_callback,counter_missing,3,1,control,4,0.004190399980871007,0
+trivial_callback,counter_missing,3,1,control,5,0.004048200004035607,0
+trivial_callback,direct_counter_missing,3,1,control,1,0.0024553000112064183,0
+trivial_callback,direct_counter_missing,3,1,control,2,0.0024426999734714627,0
+trivial_callback,direct_counter_missing,3,1,control,3,0.0024633000139147043,0
+trivial_callback,direct_counter_missing,3,1,control,4,0.002452799992170185,0
+trivial_callback,direct_counter_missing,3,1,control,5,0.00256759999319911,0
+trivial_callback,dict_get_default,3,1,control,1,0.0035265999904368073,0
+trivial_callback,dict_get_default,3,1,control,2,0.003547400003299117,0
+trivial_callback,dict_get_default,3,1,control,3,0.003509299975121394,0
+trivial_callback,dict_get_default,3,1,control,4,0.003504599997540936,0
+trivial_callback,dict_get_default,3,1,control,5,0.003506100008962676,0
+trivial_callback,direct_constant,3,2,candidate,1,0.0008537000103387982,0
+trivial_callback,direct_constant,3,2,candidate,2,0.0008525000012014061,0
+trivial_callback,direct_constant,3,2,candidate,3,0.0008543999865651131,0
+trivial_callback,direct_constant,3,2,candidate,4,0.0008699000172782689,0
+trivial_callback,direct_constant,3,2,candidate,5,0.0008648000075481832,0
+trivial_callback,native_max_constant_key,3,2,candidate,1,0.0010867000091820955,32
+trivial_callback,native_max_constant_key,3,2,candidate,2,0.0010840999893844128,32
+trivial_callback,native_max_constant_key,3,2,candidate,3,0.0010831999825313687,32
+trivial_callback,native_max_constant_key,3,2,candidate,4,0.0010838000162038952,32
+trivial_callback,native_max_constant_key,3,2,candidate,5,0.0011248999799136072,32
+trivial_callback,counter_missing,3,2,candidate,1,0.004082900006324053,0
+trivial_callback,counter_missing,3,2,candidate,2,0.0040809000201988965,0
+trivial_callback,counter_missing,3,2,candidate,3,0.004091399983735755,0
+trivial_callback,counter_missing,3,2,candidate,4,0.004062299994984642,0
+trivial_callback,counter_missing,3,2,candidate,5,0.00428480000118725,0
+trivial_callback,direct_counter_missing,3,2,candidate,1,0.002548499993281439,0
+trivial_callback,direct_counter_missing,3,2,candidate,2,0.0024498999991919845,0
+trivial_callback,direct_counter_missing,3,2,candidate,3,0.0024151999969035387,0
+trivial_callback,direct_counter_missing,3,2,candidate,4,0.0024044000019785017,0
+trivial_callback,direct_counter_missing,3,2,candidate,5,0.0024605999933555722,0
+trivial_callback,dict_get_default,3,2,candidate,1,0.0035814000002574176,0
+trivial_callback,dict_get_default,3,2,candidate,2,0.003379199974006042,0
+trivial_callback,dict_get_default,3,2,candidate,3,0.003376300010131672,0
+trivial_callback,dict_get_default,3,2,candidate,4,0.0034776999964378774,0
+trivial_callback,dict_get_default,3,2,candidate,5,0.003391799982637167,0
+trivial_callback,direct_constant,4,1,candidate,1,0.0008642000029794872,0
+trivial_callback,direct_constant,4,1,candidate,2,0.0008637999999336898,0
+trivial_callback,direct_constant,4,1,candidate,3,0.0008498999814037234,0
+trivial_callback,direct_constant,4,1,candidate,4,0.0008416000055149198,0
+trivial_callback,direct_constant,4,1,candidate,5,0.0008431999885942787,0
+trivial_callback,native_max_constant_key,4,1,candidate,1,0.0010874000145122409,32
+trivial_callback,native_max_constant_key,4,1,candidate,2,0.0011627999774646014,32
+trivial_callback,native_max_constant_key,4,1,candidate,3,0.0011044999992009252,32
+trivial_callback,native_max_constant_key,4,1,candidate,4,0.0015478999994229525,32
+trivial_callback,native_max_constant_key,4,1,candidate,5,0.0013027999957557768,32
+trivial_callback,counter_missing,4,1,candidate,1,0.004140300006838515,0
+trivial_callback,counter_missing,4,1,candidate,2,0.004094700008863583,0
+trivial_callback,counter_missing,4,1,candidate,3,0.00406989999464713,0
+trivial_callback,counter_missing,4,1,candidate,4,0.004065299988724291,0
+trivial_callback,counter_missing,4,1,candidate,5,0.004059099999722093,0
+trivial_callback,direct_counter_missing,4,1,candidate,1,0.002418300020508468,0
+trivial_callback,direct_counter_missing,4,1,candidate,2,0.002406900021014735,0
+trivial_callback,direct_counter_missing,4,1,candidate,3,0.0024099999864120036,0
+trivial_callback,direct_counter_missing,4,1,candidate,4,0.0024357000074815005,0
+trivial_callback,direct_counter_missing,4,1,candidate,5,0.002443999983370304,0
+trivial_callback,dict_get_default,4,1,candidate,1,0.0035060999798588455,0
+trivial_callback,dict_get_default,4,1,candidate,2,0.00358099999721162,0
+trivial_callback,dict_get_default,4,1,candidate,3,0.003410100005567074,0
+trivial_callback,dict_get_default,4,1,candidate,4,0.0033971999946516007,0
+trivial_callback,dict_get_default,4,1,candidate,5,0.003427199990255758,0
+trivial_callback,direct_constant,4,2,control,1,0.0008063999994192272,0
+trivial_callback,direct_constant,4,2,control,2,0.00084299998707138,0
+trivial_callback,direct_constant,4,2,control,3,0.0008218000002671033,0
+trivial_callback,direct_constant,4,2,control,4,0.0008246999932453036,0
+trivial_callback,direct_constant,4,2,control,5,0.0008142000006046146,0
+trivial_callback,native_max_constant_key,4,2,control,1,0.0011318999750074,32
+trivial_callback,native_max_constant_key,4,2,control,2,0.001184399996418506,32
+trivial_callback,native_max_constant_key,4,2,control,3,0.001125600014347583,32
+trivial_callback,native_max_constant_key,4,2,control,4,0.0011371999862603843,32
+trivial_callback,native_max_constant_key,4,2,control,5,0.0011288999812677503,32
+trivial_callback,counter_missing,4,2,control,1,0.00405670001055114,0
+trivial_callback,counter_missing,4,2,control,2,0.004137899988563731,0
+trivial_callback,counter_missing,4,2,control,3,0.004206399986287579,0
+trivial_callback,counter_missing,4,2,control,4,0.0041711000085342675,0
+trivial_callback,counter_missing,4,2,control,5,0.004230599995935336,0
+trivial_callback,direct_counter_missing,4,2,control,1,0.0025880000030156225,0
+trivial_callback,direct_counter_missing,4,2,control,2,0.002565400005551055,0
+trivial_callback,direct_counter_missing,4,2,control,3,0.0026040000084321946,0
+trivial_callback,direct_counter_missing,4,2,control,4,0.00258829997619614,0
+trivial_callback,direct_counter_missing,4,2,control,5,0.0025485999940428883,0
+trivial_callback,dict_get_default,4,2,control,1,0.003699699998833239,0
+trivial_callback,dict_get_default,4,2,control,2,0.003677399974549189,0
+trivial_callback,dict_get_default,4,2,control,3,0.003690900019137189,0
+trivial_callback,dict_get_default,4,2,control,4,0.0037063999916426837,0
+trivial_callback,dict_get_default,4,2,control,5,0.0037011999811511487,0
+trivial_callback,direct_constant,5,1,control,1,0.0008168999920599163,0
+trivial_callback,direct_constant,5,1,control,2,0.000831899989861995,0
+trivial_callback,direct_constant,5,1,control,3,0.0008397999918088317,0
+trivial_callback,direct_constant,5,1,control,4,0.0008307999814860523,0
+trivial_callback,direct_constant,5,1,control,5,0.0008056999940890819,0
+trivial_callback,native_max_constant_key,5,1,control,1,0.0011512000055518001,32
+trivial_callback,native_max_constant_key,5,1,control,2,0.0011338999902363867,32
+trivial_callback,native_max_constant_key,5,1,control,3,0.001137999992351979,32
+trivial_callback,native_max_constant_key,5,1,control,4,0.001138299994636327,32
+trivial_callback,native_max_constant_key,5,1,control,5,0.001139800006058067,32
+trivial_callback,counter_missing,5,1,control,1,0.004360199993243441,0
+trivial_callback,counter_missing,5,1,control,2,0.004280699999071658,0
+trivial_callback,counter_missing,5,1,control,3,0.004247899982146919,0
+trivial_callback,counter_missing,5,1,control,4,0.0042421999969519675,0
+trivial_callback,counter_missing,5,1,control,5,0.004222999996272847,0
+trivial_callback,direct_counter_missing,5,1,control,1,0.002448400016874075,0
+trivial_callback,direct_counter_missing,5,1,control,2,0.002452799992170185,0
+trivial_callback,direct_counter_missing,5,1,control,3,0.002452400018228218,0
+trivial_callback,direct_counter_missing,5,1,control,4,0.002449399995384738,0
+trivial_callback,direct_counter_missing,5,1,control,5,0.0024389999744016677,0
+trivial_callback,dict_get_default,5,1,control,1,0.003592599998228252,0
+trivial_callback,dict_get_default,5,1,control,2,0.003532300004735589,0
+trivial_callback,dict_get_default,5,1,control,3,0.0035244000027887523,0
+trivial_callback,dict_get_default,5,1,control,4,0.0035912999883294106,0
+trivial_callback,dict_get_default,5,1,control,5,0.003532999980961904,0
+trivial_callback,direct_constant,5,2,candidate,1,0.0008613000100012869,0
+trivial_callback,direct_constant,5,2,candidate,2,0.0008553999941796064,0
+trivial_callback,direct_constant,5,2,candidate,3,0.0008507000165991485,0
+trivial_callback,direct_constant,5,2,candidate,4,0.0008516999951098114,0
+trivial_callback,direct_constant,5,2,candidate,5,0.0008458999800495803,0
+trivial_callback,native_max_constant_key,5,2,candidate,1,0.0010807000217027962,32
+trivial_callback,native_max_constant_key,5,2,candidate,2,0.0010971000010613352,32
+trivial_callback,native_max_constant_key,5,2,candidate,3,0.0010889999975915998,32
+trivial_callback,native_max_constant_key,5,2,candidate,4,0.0010952000156976283,32
+trivial_callback,native_max_constant_key,5,2,candidate,5,0.0010905000090133399,32
+trivial_callback,counter_missing,5,2,candidate,1,0.004115000017918646,0
+trivial_callback,counter_missing,5,2,candidate,2,0.004243699979269877,0
+trivial_callback,counter_missing,5,2,candidate,3,0.004243000003043562,0
+trivial_callback,counter_missing,5,2,candidate,4,0.004278499982319772,0
+trivial_callback,counter_missing,5,2,candidate,5,0.0043073999986518174,0
+trivial_callback,direct_counter_missing,5,2,candidate,1,0.002522700000554323,0
+trivial_callback,direct_counter_missing,5,2,candidate,2,0.002523000002838671,0
+trivial_callback,direct_counter_missing,5,2,candidate,3,0.00254539999878034,0
+trivial_callback,direct_counter_missing,5,2,candidate,4,0.002532700018491596,0
+trivial_callback,direct_counter_missing,5,2,candidate,5,0.002531699981773272,0
+trivial_callback,dict_get_default,5,2,candidate,1,0.003565799997886643,0
+trivial_callback,dict_get_default,5,2,candidate,2,0.0035971000033896416,0
+trivial_callback,dict_get_default,5,2,candidate,3,0.0035429999988991767,0
+trivial_callback,dict_get_default,5,2,candidate,4,0.003388600016478449,0
+trivial_callback,dict_get_default,5,2,candidate,5,0.0033952999801840633,0
+trivial_callback,direct_constant,6,1,candidate,1,0.0008650000090710819,0
+trivial_callback,direct_constant,6,1,candidate,2,0.000849499978357926,0
+trivial_callback,direct_constant,6,1,candidate,3,0.0008458000083919615,0
+trivial_callback,direct_constant,6,1,candidate,4,0.0008424999832641333,0
+trivial_callback,direct_constant,6,1,candidate,5,0.0008507000165991485,0
+trivial_callback,native_max_constant_key,6,1,candidate,1,0.00111420001485385,32
+trivial_callback,native_max_constant_key,6,1,candidate,2,0.0010885999945458025,32
+trivial_callback,native_max_constant_key,6,1,candidate,3,0.0010957999911624938,32
+trivial_callback,native_max_constant_key,6,1,candidate,4,0.0010814999986905605,32
+trivial_callback,native_max_constant_key,6,1,candidate,5,0.0010833999840542674,32
+trivial_callback,counter_missing,6,1,candidate,1,0.004272799997124821,0
+trivial_callback,counter_missing,6,1,candidate,2,0.004355599987320602,0
+trivial_callback,counter_missing,6,1,candidate,3,0.004245699994498864,0
+trivial_callback,counter_missing,6,1,candidate,4,0.004271899990271777,0
+trivial_callback,counter_missing,6,1,candidate,5,0.0042277000029571354,0
+trivial_callback,direct_counter_missing,6,1,candidate,1,0.0025516000168863684,0
+trivial_callback,direct_counter_missing,6,1,candidate,2,0.0025394999829586595,0
+trivial_callback,direct_counter_missing,6,1,candidate,3,0.0025104999949689955,0
+trivial_callback,direct_counter_missing,6,1,candidate,4,0.0024892000074032694,0
+trivial_callback,direct_counter_missing,6,1,candidate,5,0.0025749999913387,0
+trivial_callback,dict_get_default,6,1,candidate,1,0.003559000004315749,0
+trivial_callback,dict_get_default,6,1,candidate,2,0.0035419999912846833,0
+trivial_callback,dict_get_default,6,1,candidate,3,0.0035386999952606857,0
+trivial_callback,dict_get_default,6,1,candidate,4,0.003586599981645122,0
+trivial_callback,dict_get_default,6,1,candidate,5,0.0035312999971210957,0
+trivial_callback,direct_constant,6,2,control,1,0.0008328999974764884,0
+trivial_callback,direct_constant,6,2,control,2,0.0008008999866433442,0
+trivial_callback,direct_constant,6,2,control,3,0.0008289999968837947,0
+trivial_callback,direct_constant,6,2,control,4,0.0008013999904505908,0
+trivial_callback,direct_constant,6,2,control,5,0.000814300001366064,0
+trivial_callback,native_max_constant_key,6,2,control,1,0.0011337999894749373,32
+trivial_callback,native_max_constant_key,6,2,control,2,0.0011480000102892518,32
+trivial_callback,native_max_constant_key,6,2,control,3,0.0011827999842353165,32
+trivial_callback,native_max_constant_key,6,2,control,4,0.001133000012487173,32
+trivial_callback,native_max_constant_key,6,2,control,5,0.001128100004279986,32
+trivial_callback,counter_missing,6,2,control,1,0.004058599995914847,0
+trivial_callback,counter_missing,6,2,control,2,0.004052900010719895,0
+trivial_callback,counter_missing,6,2,control,3,0.004045500012580305,0
+trivial_callback,counter_missing,6,2,control,4,0.004064299981109798,0
+trivial_callback,counter_missing,6,2,control,5,0.004487600002903491,0
+trivial_callback,direct_counter_missing,6,2,control,1,0.0025467999803368002,0
+trivial_callback,direct_counter_missing,6,2,control,2,0.002491599996574223,0
+trivial_callback,direct_counter_missing,6,2,control,3,0.002553400001488626,0
+trivial_callback,direct_counter_missing,6,2,control,4,0.0025448999949730933,0
+trivial_callback,direct_counter_missing,6,2,control,5,0.0025673000200185925,0
+trivial_callback,dict_get_default,6,2,control,1,0.00351139999111183,0
+trivial_callback,dict_get_default,6,2,control,2,0.0035054000036325306,0
+trivial_callback,dict_get_default,6,2,control,3,0.0035416999890003353,0
+trivial_callback,dict_get_default,6,2,control,4,0.0035074000188615173,0
+trivial_callback,dict_get_default,6,2,control,5,0.003500099992379546,0
+trivial_callback,direct_constant,7,1,control,1,0.0008142000006046146,0
+trivial_callback,direct_constant,7,1,control,2,0.000822600006358698,0
+trivial_callback,direct_constant,7,1,control,3,0.0008106000022962689,0
+trivial_callback,direct_constant,7,1,control,4,0.0008711999980732799,0
+trivial_callback,direct_constant,7,1,control,5,0.0008202000171877444,0
+trivial_callback,native_max_constant_key,7,1,control,1,0.0011479000095278025,32
+trivial_callback,native_max_constant_key,7,1,control,2,0.0013753000239375979,32
+trivial_callback,native_max_constant_key,7,1,control,3,0.0011483000125735998,32
+trivial_callback,native_max_constant_key,7,1,control,4,0.001137000013841316,32
+trivial_callback,native_max_constant_key,7,1,control,5,0.001137999992351979,32
+trivial_callback,counter_missing,7,1,control,1,0.0040324000001419336,0
+trivial_callback,counter_missing,7,1,control,2,0.004103500017663464,0
+trivial_callback,counter_missing,7,1,control,3,0.004054700024425983,0
+trivial_callback,counter_missing,7,1,control,4,0.004182500008028001,0
+trivial_callback,counter_missing,7,1,control,5,0.004255500010913238,0
+trivial_callback,direct_counter_missing,7,1,control,1,0.002455200010444969,0
+trivial_callback,direct_counter_missing,7,1,control,2,0.002456199988955632,0
+trivial_callback,direct_counter_missing,7,1,control,3,0.0024477999832015485,0
+trivial_callback,direct_counter_missing,7,1,control,4,0.0024488000199198723,0
+trivial_callback,direct_counter_missing,7,1,control,5,0.0024619999749120325,0
+trivial_callback,dict_get_default,7,1,control,1,0.0036204000061843544,0
+trivial_callback,dict_get_default,7,1,control,2,0.0037008999788668007,0
+trivial_callback,dict_get_default,7,1,control,3,0.0036743000091519207,0
+trivial_callback,dict_get_default,7,1,control,4,0.0036885000008624047,0
+trivial_callback,dict_get_default,7,1,control,5,0.0035534999915398657,0
+trivial_callback,direct_constant,7,2,candidate,1,0.000845799979288131,0
+trivial_callback,direct_constant,7,2,candidate,2,0.0008516999951098114,0
+trivial_callback,direct_constant,7,2,candidate,3,0.000843899993924424,0
+trivial_callback,direct_constant,7,2,candidate,4,0.001031799998600036,0
+trivial_callback,direct_constant,7,2,candidate,5,0.0008461000106763095,0
+trivial_callback,native_max_constant_key,7,2,candidate,1,0.0010701999999582767,32
+trivial_callback,native_max_constant_key,7,2,candidate,2,0.0010909000120591372,32
+trivial_callback,native_max_constant_key,7,2,candidate,3,0.0011070999898947775,32
+trivial_callback,native_max_constant_key,7,2,candidate,4,0.0011020000092685223,32
+trivial_callback,native_max_constant_key,7,2,candidate,5,0.001177300000563264,32
+trivial_callback,counter_missing,7,2,candidate,1,0.004324500012444332,0
+trivial_callback,counter_missing,7,2,candidate,2,0.004243000003043562,0
+trivial_callback,counter_missing,7,2,candidate,3,0.004280200024368241,0
+trivial_callback,counter_missing,7,2,candidate,4,0.004272300022421405,0
+trivial_callback,counter_missing,7,2,candidate,5,0.004363800020655617,0
+trivial_callback,direct_counter_missing,7,2,candidate,1,0.002441199991153553,0
+trivial_callback,direct_counter_missing,7,2,candidate,2,0.0024244999804068357,0
+trivial_callback,direct_counter_missing,7,2,candidate,3,0.0024235000018961728,0
+trivial_callback,direct_counter_missing,7,2,candidate,4,0.0024139000161085278,0
+trivial_callback,direct_counter_missing,7,2,candidate,5,0.0024836000229697675,0
+trivial_callback,dict_get_default,7,2,candidate,1,0.0034041999897453934,0
+trivial_callback,dict_get_default,7,2,candidate,2,0.0034297000092919916,0
+trivial_callback,dict_get_default,7,2,candidate,3,0.00340030001825653,0
+trivial_callback,dict_get_default,7,2,candidate,4,0.0035306999925523996,0
+trivial_callback,dict_get_default,7,2,candidate,5,0.003468800015980378,0
+nontrivial_callback,dict direct_lookup,1,1,control,1,0.003885199985234067,8184
+nontrivial_callback,dict direct_lookup,1,1,control,2,0.0038650999777019024,8184
+nontrivial_callback,dict direct_lookup,1,1,control,3,0.003882799996063113,8184
+nontrivial_callback,dict direct_lookup,1,1,control,4,0.004023100016638637,8184
+nontrivial_callback,dict direct_lookup,1,1,control,5,0.007394799991743639,8184
+nontrivial_callback,dict python_call,1,1,control,1,0.006793000007746741,8184
+nontrivial_callback,dict python_call,1,1,control,2,0.006702899991068989,8184
+nontrivial_callback,dict python_call,1,1,control,3,0.006761700002243742,8184
+nontrivial_callback,dict python_call,1,1,control,4,0.006739500007824972,8184
+nontrivial_callback,dict python_call,1,1,control,5,0.006676599994534627,8184
+nontrivial_callback,dict native_callback,1,1,control,1,0.01188400000683032,8184
+nontrivial_callback,dict native_callback,1,1,control,2,0.011854500015033409,8184
+nontrivial_callback,dict native_callback,1,1,control,3,0.012025000003632158,8184
+nontrivial_callback,dict native_callback,1,1,control,4,0.011852100025862455,8184
+nontrivial_callback,dict native_callback,1,1,control,5,0.011891500005731359,8184
+nontrivial_callback,Counter direct_lookup,1,1,control,1,0.00436780002200976,8184
+nontrivial_callback,Counter direct_lookup,1,1,control,2,0.004380500002298504,8184
+nontrivial_callback,Counter direct_lookup,1,1,control,3,0.004373200004920363,8184
+nontrivial_callback,Counter direct_lookup,1,1,control,4,0.004387799999676645,8184
+nontrivial_callback,Counter direct_lookup,1,1,control,5,0.004417899996042252,8184
+nontrivial_callback,Counter python_call,1,1,control,1,0.007459399988874793,8184
+nontrivial_callback,Counter python_call,1,1,control,2,0.007505699992179871,8184
+nontrivial_callback,Counter python_call,1,1,control,3,0.007651699997950345,8184
+nontrivial_callback,Counter python_call,1,1,control,4,0.007942299998831004,8184
+nontrivial_callback,Counter python_call,1,1,control,5,0.007865199993830174,8184
+nontrivial_callback,Counter native_callback,1,1,control,1,0.01321000000461936,8184
+nontrivial_callback,Counter native_callback,1,1,control,2,0.012768199987476692,8184
+nontrivial_callback,Counter native_callback,1,1,control,3,0.013007800007471815,8184
+nontrivial_callback,Counter native_callback,1,1,control,4,0.013321500009624287,8184
+nontrivial_callback,Counter native_callback,1,1,control,5,0.012820500007364899,8184
+nontrivial_callback,dict direct_lookup,1,2,candidate,1,0.0037261000252328813,8184
+nontrivial_callback,dict direct_lookup,1,2,candidate,2,0.003925400000298396,8184
+nontrivial_callback,dict direct_lookup,1,2,candidate,3,0.0038935999909881502,8184
+nontrivial_callback,dict direct_lookup,1,2,candidate,4,0.00397809999412857,8184
+nontrivial_callback,dict direct_lookup,1,2,candidate,5,0.0038951000024098903,8184
+nontrivial_callback,dict python_call,1,2,candidate,1,0.006769600004190579,8184
+nontrivial_callback,dict python_call,1,2,candidate,2,0.006818499998189509,8184
+nontrivial_callback,dict python_call,1,2,candidate,3,0.0067340999958105385,8184
+nontrivial_callback,dict python_call,1,2,candidate,4,0.006838400004198775,8184
+nontrivial_callback,dict python_call,1,2,candidate,5,0.006706299987854436,8184
+nontrivial_callback,dict native_callback,1,2,candidate,1,0.004215799999656156,8184
+nontrivial_callback,dict native_callback,1,2,candidate,2,0.004304299975046888,8184
+nontrivial_callback,dict native_callback,1,2,candidate,3,0.004287099989596754,8184
+nontrivial_callback,dict native_callback,1,2,candidate,4,0.004300200002035126,8184
+nontrivial_callback,dict native_callback,1,2,candidate,5,0.004214799992041662,8184
+nontrivial_callback,Counter direct_lookup,1,2,candidate,1,0.004343099979450926,8184
+nontrivial_callback,Counter direct_lookup,1,2,candidate,2,0.004365400003734976,8184
+nontrivial_callback,Counter direct_lookup,1,2,candidate,3,0.004368900001281872,8184
+nontrivial_callback,Counter direct_lookup,1,2,candidate,4,0.004438699979800731,8184
+nontrivial_callback,Counter direct_lookup,1,2,candidate,5,0.00446850000298582,8184
+nontrivial_callback,Counter python_call,1,2,candidate,1,0.007738699991023168,8184
+nontrivial_callback,Counter python_call,1,2,candidate,2,0.007706100004725158,8184
+nontrivial_callback,Counter python_call,1,2,candidate,3,0.00772809999762103,8184
+nontrivial_callback,Counter python_call,1,2,candidate,4,0.0077284999715629965,8184
+nontrivial_callback,Counter python_call,1,2,candidate,5,0.007734300015727058,8184
+nontrivial_callback,Counter native_callback,1,2,candidate,1,0.004816499975277111,8184
+nontrivial_callback,Counter native_callback,1,2,candidate,2,0.004819299996597692,8184
+nontrivial_callback,Counter native_callback,1,2,candidate,3,0.004862000001594424,8184
+nontrivial_callback,Counter native_callback,1,2,candidate,4,0.0048611999955028296,8184
+nontrivial_callback,Counter native_callback,1,2,candidate,5,0.0048504000005777925,8184
+nontrivial_callback,dict direct_lookup,2,1,candidate,1,0.0039041000127326697,8184
+nontrivial_callback,dict direct_lookup,2,1,candidate,2,0.003930100006982684,8184
+nontrivial_callback,dict direct_lookup,2,1,candidate,3,0.003988899989053607,8184
+nontrivial_callback,dict direct_lookup,2,1,candidate,4,0.003922600008081645,8184
+nontrivial_callback,dict direct_lookup,2,1,candidate,5,0.003913799999281764,8184
+nontrivial_callback,dict python_call,2,1,candidate,1,0.006886199989821762,8184
+nontrivial_callback,dict python_call,2,1,candidate,2,0.007064400007948279,8184
+nontrivial_callback,dict python_call,2,1,candidate,3,0.006964000000152737,8184
+nontrivial_callback,dict python_call,2,1,candidate,4,0.006952099996851757,8184
+nontrivial_callback,dict python_call,2,1,candidate,5,0.006815200002165511,8184
+nontrivial_callback,dict native_callback,2,1,candidate,1,0.0043157000036444515,8184
+nontrivial_callback,dict native_callback,2,1,candidate,2,0.00420619998476468,8184
+nontrivial_callback,dict native_callback,2,1,candidate,3,0.004239900008542463,8184
+nontrivial_callback,dict native_callback,2,1,candidate,4,0.004200099996523932,8184
+nontrivial_callback,dict native_callback,2,1,candidate,5,0.004241500020725653,8184
+nontrivial_callback,Counter direct_lookup,2,1,candidate,1,0.004262200003722683,8184
+nontrivial_callback,Counter direct_lookup,2,1,candidate,2,0.0043077000009361655,8184
+nontrivial_callback,Counter direct_lookup,2,1,candidate,3,0.00424919999204576,8184
+nontrivial_callback,Counter direct_lookup,2,1,candidate,4,0.0042351000010967255,8184
+nontrivial_callback,Counter direct_lookup,2,1,candidate,5,0.004244299983838573,8184
+nontrivial_callback,Counter python_call,2,1,candidate,1,0.007761299988487735,8184
+nontrivial_callback,Counter python_call,2,1,candidate,2,0.007721900008618832,8184
+nontrivial_callback,Counter python_call,2,1,candidate,3,0.00771469998289831,8184
+nontrivial_callback,Counter python_call,2,1,candidate,4,0.007768999988911673,8184
+nontrivial_callback,Counter python_call,2,1,candidate,5,0.007760500011499971,8184
+nontrivial_callback,Counter native_callback,2,1,candidate,1,0.004789200000232086,8184
+nontrivial_callback,Counter native_callback,2,1,candidate,2,0.004802099982043728,8184
+nontrivial_callback,Counter native_callback,2,1,candidate,3,0.004786000004969537,8184
+nontrivial_callback,Counter native_callback,2,1,candidate,4,0.004849999997531995,8184
+nontrivial_callback,Counter native_callback,2,1,candidate,5,0.0048462999984622,8184
+nontrivial_callback,dict direct_lookup,2,2,control,1,0.004019899992272258,8184
+nontrivial_callback,dict direct_lookup,2,2,control,2,0.0038949000008869916,8184
+nontrivial_callback,dict direct_lookup,2,2,control,3,0.0038698000134900212,8184
+nontrivial_callback,dict direct_lookup,2,2,control,4,0.00398999999742955,8184
+nontrivial_callback,dict direct_lookup,2,2,control,5,0.003962199989473447,8184
+nontrivial_callback,dict python_call,2,2,control,1,0.006729800021275878,8184
+nontrivial_callback,dict python_call,2,2,control,2,0.006687699991744012,8184
+nontrivial_callback,dict python_call,2,2,control,3,0.007050199987133965,8184
+nontrivial_callback,dict python_call,2,2,control,4,0.006846900010714307,8184
+nontrivial_callback,dict python_call,2,2,control,5,0.006763800018234178,8184
+nontrivial_callback,dict native_callback,2,2,control,1,0.012409599992679432,8184
+nontrivial_callback,dict native_callback,2,2,control,2,0.012135299999499694,8184
+nontrivial_callback,dict native_callback,2,2,control,3,0.012197500007459894,8184
+nontrivial_callback,dict native_callback,2,2,control,4,0.01226320001296699,8184
+nontrivial_callback,dict native_callback,2,2,control,5,0.01219199999468401,8184
+nontrivial_callback,Counter direct_lookup,2,2,control,1,0.004673600022215396,8184
+nontrivial_callback,Counter direct_lookup,2,2,control,2,0.0044590000179596245,8184
+nontrivial_callback,Counter direct_lookup,2,2,control,3,0.00459300001966767,8184
+nontrivial_callback,Counter direct_lookup,2,2,control,4,0.004522699979133904,8184
+nontrivial_callback,Counter direct_lookup,2,2,control,5,0.004581899993354455,8184
+nontrivial_callback,Counter python_call,2,2,control,1,0.007852200011257082,8184
+nontrivial_callback,Counter python_call,2,2,control,2,0.007733200007351115,8184
+nontrivial_callback,Counter python_call,2,2,control,3,0.008007099997485057,8184
+nontrivial_callback,Counter python_call,2,2,control,4,0.007934499997645617,8184
+nontrivial_callback,Counter python_call,2,2,control,5,0.008346099988557398,8184
+nontrivial_callback,Counter native_callback,2,2,control,1,0.0132457000145223,8184
+nontrivial_callback,Counter native_callback,2,2,control,2,0.013161900016712025,8184
+nontrivial_callback,Counter native_callback,2,2,control,3,0.013233299978310242,8184
+nontrivial_callback,Counter native_callback,2,2,control,4,0.013047699991147965,8184
+nontrivial_callback,Counter native_callback,2,2,control,5,0.013136399997165427,8184
+nontrivial_callback,dict direct_lookup,3,1,control,1,0.003876000002492219,8184
+nontrivial_callback,dict direct_lookup,3,1,control,2,0.004202500014798716,8184
+nontrivial_callback,dict direct_lookup,3,1,control,3,0.0038948000001255423,8184
+nontrivial_callback,dict direct_lookup,3,1,control,4,0.0038423000078182667,8184
+nontrivial_callback,dict direct_lookup,3,1,control,5,0.0038499999791383743,8184
+nontrivial_callback,dict python_call,3,1,control,1,0.006715700001223013,8184
+nontrivial_callback,dict python_call,3,1,control,2,0.006777699978556484,8184
+nontrivial_callback,dict python_call,3,1,control,3,0.006732200010446832,8184
+nontrivial_callback,dict python_call,3,1,control,4,0.007259199977852404,8184
+nontrivial_callback,dict python_call,3,1,control,5,0.00708199999644421,8184
+nontrivial_callback,dict native_callback,3,1,control,1,0.012357799976598471,8184
+nontrivial_callback,dict native_callback,3,1,control,2,0.012395900004776195,8184
+nontrivial_callback,dict native_callback,3,1,control,3,0.012431599985575303,8184
+nontrivial_callback,dict native_callback,3,1,control,4,0.01324699999531731,8184
+nontrivial_callback,dict native_callback,3,1,control,5,0.012134699994930997,8184
+nontrivial_callback,Counter direct_lookup,3,1,control,1,0.004383500025141984,8184
+nontrivial_callback,Counter direct_lookup,3,1,control,2,0.0043704000127036124,8184
+nontrivial_callback,Counter direct_lookup,3,1,control,3,0.004335599980549887,8184
+nontrivial_callback,Counter direct_lookup,3,1,control,4,0.004394300020067021,8184
+nontrivial_callback,Counter direct_lookup,3,1,control,5,0.004433499998413026,8184
+nontrivial_callback,Counter python_call,3,1,control,1,0.007674599997699261,8184
+nontrivial_callback,Counter python_call,3,1,control,2,0.007582999998703599,8184
+nontrivial_callback,Counter python_call,3,1,control,3,0.007824200001778081,8184
+nontrivial_callback,Counter python_call,3,1,control,4,0.0075978000240866095,8184
+nontrivial_callback,Counter python_call,3,1,control,5,0.00762879999820143,8184
+nontrivial_callback,Counter native_callback,3,1,control,1,0.013598499994259328,8184
+nontrivial_callback,Counter native_callback,3,1,control,2,0.012846199999330565,8184
+nontrivial_callback,Counter native_callback,3,1,control,3,0.01322190000792034,8184
+nontrivial_callback,Counter native_callback,3,1,control,4,0.012816600006772205,8184
+nontrivial_callback,Counter native_callback,3,1,control,5,0.013262199994642287,8184
+nontrivial_callback,dict direct_lookup,3,2,candidate,1,0.0037523000210057944,8184
+nontrivial_callback,dict direct_lookup,3,2,candidate,2,0.003869700012728572,8184
+nontrivial_callback,dict direct_lookup,3,2,candidate,3,0.003874300018651411,8184
+nontrivial_callback,dict direct_lookup,3,2,candidate,4,0.0038979999953880906,8184
+nontrivial_callback,dict direct_lookup,3,2,candidate,5,0.0038711999950464815,8184
+nontrivial_callback,dict python_call,3,2,candidate,1,0.006957099976716563,8184
+nontrivial_callback,dict python_call,3,2,candidate,2,0.006906900001922622,8184
+nontrivial_callback,dict python_call,3,2,candidate,3,0.007027399988146499,8184
+nontrivial_callback,dict python_call,3,2,candidate,4,0.006929700000910088,8184
+nontrivial_callback,dict python_call,3,2,candidate,5,0.006919199979165569,8184
+nontrivial_callback,dict native_callback,3,2,candidate,1,0.0044055999896954745,8184
+nontrivial_callback,dict native_callback,3,2,candidate,2,0.0044160999823361635,8184
+nontrivial_callback,dict native_callback,3,2,candidate,3,0.00444769999012351,8184
+nontrivial_callback,dict native_callback,3,2,candidate,4,0.004383899999083951,8184
+nontrivial_callback,dict native_callback,3,2,candidate,5,0.004443099984200671,8184
+nontrivial_callback,Counter direct_lookup,3,2,candidate,1,0.0042113000235985965,8184
+nontrivial_callback,Counter direct_lookup,3,2,candidate,2,0.004211999999824911,8184
+nontrivial_callback,Counter direct_lookup,3,2,candidate,3,0.004207899997709319,8184
+nontrivial_callback,Counter direct_lookup,3,2,candidate,4,0.004245099989930168,8184
+nontrivial_callback,Counter direct_lookup,3,2,candidate,5,0.004293300007702783,8184
+nontrivial_callback,Counter python_call,3,2,candidate,1,0.007770600001094863,8184
+nontrivial_callback,Counter python_call,3,2,candidate,2,0.0077126999967731535,8184
+nontrivial_callback,Counter python_call,3,2,candidate,3,0.007730199984507635,8184
+nontrivial_callback,Counter python_call,3,2,candidate,4,0.0077089999977033585,8184
+nontrivial_callback,Counter python_call,3,2,candidate,5,0.007422599999699742,8184
+nontrivial_callback,Counter native_callback,3,2,candidate,1,0.004612100019585341,8184
+nontrivial_callback,Counter native_callback,3,2,candidate,2,0.004610999982105568,8184
+nontrivial_callback,Counter native_callback,3,2,candidate,3,0.004761299991514534,8184
+nontrivial_callback,Counter native_callback,3,2,candidate,4,0.004706100007751957,8184
+nontrivial_callback,Counter native_callback,3,2,candidate,5,0.00464179998380132,8184
+nontrivial_callback,dict direct_lookup,4,1,candidate,1,0.0037859999865759164,8184
+nontrivial_callback,dict direct_lookup,4,1,candidate,2,0.004036500002257526,8184
+nontrivial_callback,dict direct_lookup,4,1,candidate,3,0.0039029999752528965,8184
+nontrivial_callback,dict direct_lookup,4,1,candidate,4,0.004002900008345023,8184
+nontrivial_callback,dict direct_lookup,4,1,candidate,5,0.003907499980414286,8184
+nontrivial_callback,dict python_call,4,1,candidate,1,0.006899100000737235,8184
+nontrivial_callback,dict python_call,4,1,candidate,2,0.0068906999949831516,8184
+nontrivial_callback,dict python_call,4,1,candidate,3,0.006997499993303791,8184
+nontrivial_callback,dict python_call,4,1,candidate,4,0.006995999981882051,8184
+nontrivial_callback,dict python_call,4,1,candidate,5,0.006749699998181313,8184
+nontrivial_callback,dict native_callback,4,1,candidate,1,0.004217000008793548,8184
+nontrivial_callback,dict native_callback,4,1,candidate,2,0.004197500005830079,8184
+nontrivial_callback,dict native_callback,4,1,candidate,3,0.004269400000339374,8184
+nontrivial_callback,dict native_callback,4,1,candidate,4,0.004203899996355176,8184
+nontrivial_callback,dict native_callback,4,1,candidate,5,0.004389700014144182,8184
+nontrivial_callback,Counter direct_lookup,4,1,candidate,1,0.004221000010147691,8184
+nontrivial_callback,Counter direct_lookup,4,1,candidate,2,0.004198700014967471,8184
+nontrivial_callback,Counter direct_lookup,4,1,candidate,3,0.00426399998832494,8184
+nontrivial_callback,Counter direct_lookup,4,1,candidate,4,0.004244199983077124,8184
+nontrivial_callback,Counter direct_lookup,4,1,candidate,5,0.0043950999970547855,8184
+nontrivial_callback,Counter python_call,4,1,candidate,1,0.00793999998131767,8184
+nontrivial_callback,Counter python_call,4,1,candidate,2,0.007423300005029887,8184
+nontrivial_callback,Counter python_call,4,1,candidate,3,0.007423100003506988,8184
+nontrivial_callback,Counter python_call,4,1,candidate,4,0.00755470001604408,8184
+nontrivial_callback,Counter python_call,4,1,candidate,5,0.0074059999897144735,8184
+nontrivial_callback,Counter native_callback,4,1,candidate,1,0.004610799980582669,8184
+nontrivial_callback,Counter native_callback,4,1,candidate,2,0.00462560000596568,8184
+nontrivial_callback,Counter native_callback,4,1,candidate,3,0.004699499986600131,8184
+nontrivial_callback,Counter native_callback,4,1,candidate,4,0.004769000021042302,8184
+nontrivial_callback,Counter native_callback,4,1,candidate,5,0.004629400005796924,8184
+nontrivial_callback,dict direct_lookup,4,2,control,1,0.003955200023483485,8184
+nontrivial_callback,dict direct_lookup,4,2,control,2,0.003891000000294298,8184
+nontrivial_callback,dict direct_lookup,4,2,control,3,0.003915199980838224,8184
+nontrivial_callback,dict direct_lookup,4,2,control,4,0.003863699996145442,8184
+nontrivial_callback,dict direct_lookup,4,2,control,5,0.0038951000024098903,8184
+nontrivial_callback,dict python_call,4,2,control,1,0.006998500000918284,8184
+nontrivial_callback,dict python_call,4,2,control,2,0.007104399992385879,8184
+nontrivial_callback,dict python_call,4,2,control,3,0.007024999998975545,8184
+nontrivial_callback,dict python_call,4,2,control,4,0.006982899998547509,8184
+nontrivial_callback,dict python_call,4,2,control,5,0.0070201999915298074,8184
+nontrivial_callback,dict native_callback,4,2,control,1,0.012025600008200854,8184
+nontrivial_callback,dict native_callback,4,2,control,2,0.011887800006661564,8184
+nontrivial_callback,dict native_callback,4,2,control,3,0.011873899988131598,8184
+nontrivial_callback,dict native_callback,4,2,control,4,0.011933900008443743,8184
+nontrivial_callback,dict native_callback,4,2,control,5,0.011796999984653667,8184
+nontrivial_callback,Counter direct_lookup,4,2,control,1,0.004378000012366101,8184
+nontrivial_callback,Counter direct_lookup,4,2,control,2,0.0043778000108432025,8184
+nontrivial_callback,Counter direct_lookup,4,2,control,3,0.0045612999820150435,8184
+nontrivial_callback,Counter direct_lookup,4,2,control,4,0.00457520000054501,8184
+nontrivial_callback,Counter direct_lookup,4,2,control,5,0.004518600006122142,8184
+nontrivial_callback,Counter python_call,4,2,control,1,0.007807299989508465,8184
+nontrivial_callback,Counter python_call,4,2,control,2,0.007532299990998581,8184
+nontrivial_callback,Counter python_call,4,2,control,3,0.00747030001366511,8184
+nontrivial_callback,Counter python_call,4,2,control,4,0.007503900007577613,8184
+nontrivial_callback,Counter python_call,4,2,control,5,0.007579800003441051,8184
+nontrivial_callback,Counter native_callback,4,2,control,1,0.012683400011155754,8184
+nontrivial_callback,Counter native_callback,4,2,control,2,0.012724999978672713,8184
+nontrivial_callback,Counter native_callback,4,2,control,3,0.012689800001680851,8184
+nontrivial_callback,Counter native_callback,4,2,control,4,0.013096299982862547,8184
+nontrivial_callback,Counter native_callback,4,2,control,5,0.012742699997033924,8184
+nontrivial_callback,dict direct_lookup,5,1,control,1,0.00387879999470897,8184
+nontrivial_callback,dict direct_lookup,5,1,control,2,0.003914700006134808,8184
+nontrivial_callback,dict direct_lookup,5,1,control,3,0.0039591999957337976,8184
+nontrivial_callback,dict direct_lookup,5,1,control,4,0.004147200001170859,8184
+nontrivial_callback,dict direct_lookup,5,1,control,5,0.004054199991514906,8184
+nontrivial_callback,dict python_call,5,1,control,1,0.00681839999742806,8184
+nontrivial_callback,dict python_call,5,1,control,2,0.006885899987537414,8184
+nontrivial_callback,dict python_call,5,1,control,3,0.006736400013323873,8184
+nontrivial_callback,dict python_call,5,1,control,4,0.00672049997956492,8184
+nontrivial_callback,dict python_call,5,1,control,5,0.007910599990282208,8184
+nontrivial_callback,dict native_callback,5,1,control,1,0.011860400001751259,8184
+nontrivial_callback,dict native_callback,5,1,control,2,0.011873399984324351,8184
+nontrivial_callback,dict native_callback,5,1,control,3,0.01198040001327172,8184
+nontrivial_callback,dict native_callback,5,1,control,4,0.012362800014670938,8184
+nontrivial_callback,dict native_callback,5,1,control,5,0.012357699975837022,8184
+nontrivial_callback,Counter direct_lookup,5,1,control,1,0.004549800010863692,8184
+nontrivial_callback,Counter direct_lookup,5,1,control,2,0.00453509998624213,8184
+nontrivial_callback,Counter direct_lookup,5,1,control,3,0.0047627000021748245,8184
+nontrivial_callback,Counter direct_lookup,5,1,control,4,0.004535499989287928,8184
+nontrivial_callback,Counter direct_lookup,5,1,control,5,0.004570099990814924,8184
+nontrivial_callback,Counter python_call,5,1,control,1,0.00785389999509789,8184
+nontrivial_callback,Counter python_call,5,1,control,2,0.007743099995423108,8184
+nontrivial_callback,Counter python_call,5,1,control,3,0.0077649000158999115,8184
+nontrivial_callback,Counter python_call,5,1,control,4,0.0076191000116523355,8184
+nontrivial_callback,Counter python_call,5,1,control,5,0.007578099990496412,8184
+nontrivial_callback,Counter native_callback,5,1,control,1,0.013246799993794411,8184
+nontrivial_callback,Counter native_callback,5,1,control,2,0.013352400012081489,8184
+nontrivial_callback,Counter native_callback,5,1,control,3,0.013300999999046326,8184
+nontrivial_callback,Counter native_callback,5,1,control,4,0.013242900022305548,8184
+nontrivial_callback,Counter native_callback,5,1,control,5,0.01324100000783801,8184
+nontrivial_callback,dict direct_lookup,5,2,candidate,1,0.003720000007888302,8184
+nontrivial_callback,dict direct_lookup,5,2,candidate,2,0.0037329000188037753,8184
+nontrivial_callback,dict direct_lookup,5,2,candidate,3,0.0037022999895270914,8184
+nontrivial_callback,dict direct_lookup,5,2,candidate,4,0.003710199991473928,8184
+nontrivial_callback,dict direct_lookup,5,2,candidate,5,0.00369359998148866,8184
+nontrivial_callback,dict python_call,5,2,candidate,1,0.006664099986664951,8184
+nontrivial_callback,dict python_call,5,2,candidate,2,0.006683000014163554,8184
+nontrivial_callback,dict python_call,5,2,candidate,3,0.006669300026260316,8184
+nontrivial_callback,dict python_call,5,2,candidate,4,0.006674900010693818,8184
+nontrivial_callback,dict python_call,5,2,candidate,5,0.00668349998886697,8184
+nontrivial_callback,dict native_callback,5,2,candidate,1,0.004218199988827109,8184
+nontrivial_callback,dict native_callback,5,2,candidate,2,0.00426549999974668,8184
+nontrivial_callback,dict native_callback,5,2,candidate,3,0.004209899983834475,8184
+nontrivial_callback,dict native_callback,5,2,candidate,4,0.004206800018437207,8184
+nontrivial_callback,dict native_callback,5,2,candidate,5,0.004192599997622892,8184
+nontrivial_callback,Counter direct_lookup,5,2,candidate,1,0.004244299983838573,8184
+nontrivial_callback,Counter direct_lookup,5,2,candidate,2,0.0042292000143788755,8184
+nontrivial_callback,Counter direct_lookup,5,2,candidate,3,0.004401300015160814,8184
+nontrivial_callback,Counter direct_lookup,5,2,candidate,4,0.004386799992062151,8184
+nontrivial_callback,Counter direct_lookup,5,2,candidate,5,0.004253399994922802,8184
+nontrivial_callback,Counter python_call,5,2,candidate,1,0.007439000008162111,8184
+nontrivial_callback,Counter python_call,5,2,candidate,2,0.007524299988290295,8184
+nontrivial_callback,Counter python_call,5,2,candidate,3,0.007455499988282099,8184
+nontrivial_callback,Counter python_call,5,2,candidate,4,0.00763470001402311,8184
+nontrivial_callback,Counter python_call,5,2,candidate,5,0.007481700013158843,8184
+nontrivial_callback,Counter native_callback,5,2,candidate,1,0.005161100008990616,8184
+nontrivial_callback,Counter native_callback,5,2,candidate,2,0.004638999991584569,8184
+nontrivial_callback,Counter native_callback,5,2,candidate,3,0.004738899995572865,8184
+nontrivial_callback,Counter native_callback,5,2,candidate,4,0.004836699983570725,8184
+nontrivial_callback,Counter native_callback,5,2,candidate,5,0.004637900012312457,8184
+nontrivial_callback,dict direct_lookup,6,1,candidate,1,0.0037053000123705715,8184
+nontrivial_callback,dict direct_lookup,6,1,candidate,2,0.0037441000167746097,8184
+nontrivial_callback,dict direct_lookup,6,1,candidate,3,0.0038782000192441046,8184
+nontrivial_callback,dict direct_lookup,6,1,candidate,4,0.0038747000216972083,8184
+nontrivial_callback,dict direct_lookup,6,1,candidate,5,0.0038622000138275325,8184
+nontrivial_callback,dict python_call,6,1,candidate,1,0.006900699983816594,8184
+nontrivial_callback,dict python_call,6,1,candidate,2,0.006983900006162003,8184
+nontrivial_callback,dict python_call,6,1,candidate,3,0.006906300026457757,8184
+nontrivial_callback,dict python_call,6,1,candidate,4,0.00692200000048615,8184
+nontrivial_callback,dict python_call,6,1,candidate,5,0.006974999996600673,8184
+nontrivial_callback,dict native_callback,6,1,candidate,1,0.004325699992477894,8184
+nontrivial_callback,dict native_callback,6,1,candidate,2,0.004433599999174476,8184
+nontrivial_callback,dict native_callback,6,1,candidate,3,0.004377000004751608,8184
+nontrivial_callback,dict native_callback,6,1,candidate,4,0.004369700007373467,8184
+nontrivial_callback,dict native_callback,6,1,candidate,5,0.004455299989785999,8184
+nontrivial_callback,Counter direct_lookup,6,1,candidate,1,0.004214100015815347,8184
+nontrivial_callback,Counter direct_lookup,6,1,candidate,2,0.004216100001940504,8184
+nontrivial_callback,Counter direct_lookup,6,1,candidate,3,0.004343300010077655,8184
+nontrivial_callback,Counter direct_lookup,6,1,candidate,4,0.00437809998402372,8184
+nontrivial_callback,Counter direct_lookup,6,1,candidate,5,0.004409700020914897,8184
+nontrivial_callback,Counter python_call,6,1,candidate,1,0.007387699995888397,8184
+nontrivial_callback,Counter python_call,6,1,candidate,2,0.007800600025802851,8184
+nontrivial_callback,Counter python_call,6,1,candidate,3,0.007844600011594594,8184
+nontrivial_callback,Counter python_call,6,1,candidate,4,0.007864899991545826,8184
+nontrivial_callback,Counter python_call,6,1,candidate,5,0.007721799978753552,8184
+nontrivial_callback,Counter native_callback,6,1,candidate,1,0.004822100017918274,8184
+nontrivial_callback,Counter native_callback,6,1,candidate,2,0.004824900010135025,8184
+nontrivial_callback,Counter native_callback,6,1,candidate,3,0.004881700006080791,8184
+nontrivial_callback,Counter native_callback,6,1,candidate,4,0.00481069998932071,8184
+nontrivial_callback,Counter native_callback,6,1,candidate,5,0.004638399987015873,8184
+nontrivial_callback,dict direct_lookup,6,2,control,1,0.004255100007867441,8184
+nontrivial_callback,dict direct_lookup,6,2,control,2,0.0046252000029198825,8184
+nontrivial_callback,dict direct_lookup,6,2,control,3,0.0038664000167045742,8184
+nontrivial_callback,dict direct_lookup,6,2,control,4,0.003934999986086041,8184
+nontrivial_callback,dict direct_lookup,6,2,control,5,0.0038880000065546483,8184
+nontrivial_callback,dict python_call,6,2,control,1,0.006727100000716746,8184
+nontrivial_callback,dict python_call,6,2,control,2,0.006694700015941635,8184
+nontrivial_callback,dict python_call,6,2,control,3,0.006705199979478493,8184
+nontrivial_callback,dict python_call,6,2,control,4,0.006891700002597645,8184
+nontrivial_callback,dict python_call,6,2,control,5,0.006725400016875938,8184
+nontrivial_callback,dict native_callback,6,2,control,1,0.012457800010452047,8184
+nontrivial_callback,dict native_callback,6,2,control,2,0.011877000011736527,8184
+nontrivial_callback,dict native_callback,6,2,control,3,0.011898600001586601,8184
+nontrivial_callback,dict native_callback,6,2,control,4,0.01262910000514239,8184
+nontrivial_callback,dict native_callback,6,2,control,5,0.01190610000048764,8184
+nontrivial_callback,Counter direct_lookup,6,2,control,1,0.004346200003055856,8184
+nontrivial_callback,Counter direct_lookup,6,2,control,2,0.004415299976244569,8184
+nontrivial_callback,Counter direct_lookup,6,2,control,3,0.004350900009740144,8184
+nontrivial_callback,Counter direct_lookup,6,2,control,4,0.004459299991140142,8184
+nontrivial_callback,Counter direct_lookup,6,2,control,5,0.005110900005092844,8184
+nontrivial_callback,Counter python_call,6,2,control,1,0.007642700016731396,8184
+nontrivial_callback,Counter python_call,6,2,control,2,0.007509999995818362,8184
+nontrivial_callback,Counter python_call,6,2,control,3,0.007640199997695163,8184
+nontrivial_callback,Counter python_call,6,2,control,4,0.007776600017677993,8184
+nontrivial_callback,Counter python_call,6,2,control,5,0.007732099998975173,8184
+nontrivial_callback,Counter native_callback,6,2,control,1,0.012840800016419962,8184
+nontrivial_callback,Counter native_callback,6,2,control,2,0.012868799996795133,8184
+nontrivial_callback,Counter native_callback,6,2,control,3,0.012819299998227507,8184
+nontrivial_callback,Counter native_callback,6,2,control,4,0.014339699991978705,8184
+nontrivial_callback,Counter native_callback,6,2,control,5,0.013230400014435872,8184
+nontrivial_callback,dict direct_lookup,7,1,control,1,0.003989499993622303,8184
+nontrivial_callback,dict direct_lookup,7,1,control,2,0.003938799985917285,8184
+nontrivial_callback,dict direct_lookup,7,1,control,3,0.0038874000019859523,8184
+nontrivial_callback,dict direct_lookup,7,1,control,4,0.0038954000046942383,8184
+nontrivial_callback,dict direct_lookup,7,1,control,5,0.0040111000125762075,8184
+nontrivial_callback,dict python_call,7,1,control,1,0.007078399998135865,8184
+nontrivial_callback,dict python_call,7,1,control,2,0.006995499978074804,8184
+nontrivial_callback,dict python_call,7,1,control,3,0.006703600025502965,8184
+nontrivial_callback,dict python_call,7,1,control,4,0.006748999992851168,8184
+nontrivial_callback,dict python_call,7,1,control,5,0.006693600007565692,8184
+nontrivial_callback,dict native_callback,7,1,control,1,0.011882999999215826,8184
+nontrivial_callback,dict native_callback,7,1,control,2,0.012133899988839403,8184
+nontrivial_callback,dict native_callback,7,1,control,3,0.011841999978059903,8184
+nontrivial_callback,dict native_callback,7,1,control,4,0.011907100008102134,8184
+nontrivial_callback,dict native_callback,7,1,control,5,0.011854200012749061,8184
+nontrivial_callback,Counter direct_lookup,7,1,control,1,0.004345800000010058,8184
+nontrivial_callback,Counter direct_lookup,7,1,control,2,0.004344499990111217,8184
+nontrivial_callback,Counter direct_lookup,7,1,control,3,0.004385799984447658,8184
+nontrivial_callback,Counter direct_lookup,7,1,control,4,0.0043397999834269285,8184
+nontrivial_callback,Counter direct_lookup,7,1,control,5,0.00439590000314638,8184
+nontrivial_callback,Counter python_call,7,1,control,1,0.0075413000013213605,8184
+nontrivial_callback,Counter python_call,7,1,control,2,0.007532999996328726,8184
+nontrivial_callback,Counter python_call,7,1,control,3,0.007813000003807247,8184
+nontrivial_callback,Counter python_call,7,1,control,4,0.007825600012438372,8184
+nontrivial_callback,Counter python_call,7,1,control,5,0.007918699993751943,8184
+nontrivial_callback,Counter native_callback,7,1,control,1,0.012937900028191507,8184
+nontrivial_callback,Counter native_callback,7,1,control,2,0.012760200013872236,8184
+nontrivial_callback,Counter native_callback,7,1,control,3,0.01280840000254102,8184
+nontrivial_callback,Counter native_callback,7,1,control,4,0.013298100006068125,8184
+nontrivial_callback,Counter native_callback,7,1,control,5,0.013350200024433434,8184
+nontrivial_callback,dict direct_lookup,7,2,candidate,1,0.003751000011106953,8184
+nontrivial_callback,dict direct_lookup,7,2,candidate,2,0.00373220001347363,8184
+nontrivial_callback,dict direct_lookup,7,2,candidate,3,0.0037650000012945384,8184
+nontrivial_callback,dict direct_lookup,7,2,candidate,4,0.003740200016181916,8184
+nontrivial_callback,dict direct_lookup,7,2,candidate,5,0.003741799999261275,8184
+nontrivial_callback,dict python_call,7,2,candidate,1,0.00706130001344718,8184
+nontrivial_callback,dict python_call,7,2,candidate,2,0.0066621000005397946,8184
+nontrivial_callback,dict python_call,7,2,candidate,3,0.006832000013673678,8184
+nontrivial_callback,dict python_call,7,2,candidate,4,0.0066547000024002045,8184
+nontrivial_callback,dict python_call,7,2,candidate,5,0.006726899999193847,8184
+nontrivial_callback,dict native_callback,7,2,candidate,1,0.004198999988147989,8184
+nontrivial_callback,dict native_callback,7,2,candidate,2,0.004229099984513596,8184
+nontrivial_callback,dict native_callback,7,2,candidate,3,0.004420899989781901,8184
+nontrivial_callback,dict native_callback,7,2,candidate,4,0.0042545000032987446,8184
+nontrivial_callback,dict native_callback,7,2,candidate,5,0.0042461999983061105,8184
+nontrivial_callback,Counter direct_lookup,7,2,candidate,1,0.004248700017342344,8184
+nontrivial_callback,Counter direct_lookup,7,2,candidate,2,0.0042446000152267516,8184
+nontrivial_callback,Counter direct_lookup,7,2,candidate,3,0.004239600006258115,8184
+nontrivial_callback,Counter direct_lookup,7,2,candidate,4,0.004340899991802871,8184
+nontrivial_callback,Counter direct_lookup,7,2,candidate,5,0.004273500002454966,8184
+nontrivial_callback,Counter python_call,7,2,candidate,1,0.007526700006565079,8184
+nontrivial_callback,Counter python_call,7,2,candidate,2,0.007647199992788956,8184
+nontrivial_callback,Counter python_call,7,2,candidate,3,0.007590699999127537,8184
+nontrivial_callback,Counter python_call,7,2,candidate,4,0.00743759999750182,8184
+nontrivial_callback,Counter python_call,7,2,candidate,5,0.008918000006815419,8184
+nontrivial_callback,Counter native_callback,7,2,candidate,1,0.004607700015185401,8184
+nontrivial_callback,Counter native_callback,7,2,candidate,2,0.004952699993737042,8184
+nontrivial_callback,Counter native_callback,7,2,candidate,3,0.0047701000003144145,8184
+nontrivial_callback,Counter native_callback,7,2,candidate,4,0.005113399995025247,8184
+nontrivial_callback,Counter native_callback,7,2,candidate,5,0.00550709999515675,8184

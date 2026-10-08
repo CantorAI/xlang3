@@ -1,0 +1,25 @@
+{
+  "scope": "Unscored IR diagnosis only; no timed workload change",
+  "original_source": "C:\\Python\\Python314\\Lib\\site-packages\\pyperformance\\data-files\\benchmarks\\bm_bpe_tokeniser\\run_benchmark.py",
+  "original_sha256": "c7255345499e118181785370b0996e8cc1056491b9678b3fbeb02421e3f9b2df",
+  "derived_sha256": "21c7a8e2a4c219604fd6b3eef1a264dad717b3d00d5fd75e9c88378826806982",
+  "trainer_source_sha256": "1cbab836eb7038b3080606d2a3dec8ec5d4f646958103763611df4a220760453",
+  "sole_change": "Disable the __main__ runner with if False; all training and callback source bytes unchanged",
+  "runtime_execution": "terminal",
+  "exit_code": 0,
+  "command": [
+    "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+    "--dump-ir",
+    "--debug-dir",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\bpe-callback-ir-20261007",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\bpe-callback-ir-source-20261007.py"
+  ],
+  "binary_sha256": {
+    "exe": "e0fd75eba98be04b1d5d6801b78fc5633102ae52f0d4b47f68cf3b8b5331baff",
+    "dll": "1aab283d04a3e599967217dbac301156cfee485c19b015d9e94cd2f752d10d19"
+  },
+  "log_sha256": "ba5b4e7751de3c2aa85779512d1cd013b117214a162c91e577d9383cef1d2c39",
+  "ir_files_sha256": {
+    "scratch\\performance\\bpe-callback-ir-20261007\\bpe-callback-ir-source-20261007.ir.txt": "effecd21d8aaa1e8b471b83fa5f76a936b4ca39b4504e5d2bc3f10a80bf1df8b"
+  }
+}

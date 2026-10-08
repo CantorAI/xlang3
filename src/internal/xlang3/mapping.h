@@ -148,6 +148,10 @@ bool mapping_get_item_runtime(Runtime& runtime, const Value& object, const Value
 // false with "key not found"; descriptor/call failures retain their exception.
 bool mapping_call_missing(Runtime& runtime, const Value& object, const Value& key,
                           Value& out, std::string& error);
+// Speculative native IR shortcut: only a proven intrinsic dict hit succeeds.
+// Failure leaves output unchanged and executes no Python callback or miss hook.
+bool mapping_get_intrinsic_item_if_present(const Value& object, const Value& key,
+                                           Value& out);
 bool mapping_set_item(Value& object, const Value& key, const Value& item, std::string& error);
 // Update or erase an existing exact object-identity key without repeating the
 // generic hash/equality path. Missing keys retain ordinary dict behavior.

@@ -1,0 +1,26 @@
+{
+  "compiler_input_sha256": {
+    "src/internal/xlang3/builtin_methods.h": "b0663650474d8d117b10ed3e459e9137d0b3424cc9d76d872e53957cbb8e1477",
+    "src/internal/xlang3/mapping.h": "43f8bbc91e2f224dde767d4f785a64e2c3429b269113ba85dd613eac297c3857",
+    "src/runtime/methods/dict_methods.cpp": "cad2ed92746d837fd1a392545bea87a09be7219850a914af424a4d5d9487b387",
+    "src/runtime/mapping.cpp": "81dc9042e1e26874b6a02791b3f62656e5147b8321ea9e87fbe80b53fdac2f74",
+    "src/executor/xlang_vm/xlang_vm_inline_call.h": "6b0e68889c4a375293083b1b1693b9a70eaef345a6692ad628d64bb35845eda7",
+    "src/runtime/functional_iterators.cpp": "cfe434b7fa9f4dee64ddac97371e97deb80e0cfba56c80bd84c10ef10f82eb66",
+    "tests/cpp/mapping_iterator_ownership_cases.h": "3a6608a6a134b84257689a38f8551a84e9c61618dec07ef146f80134729e6dcc",
+    "tests/run_fixtures.py": "d839f5d2bcc83426602763c3762288dd57316187d8bdd9482cb06d3fa7875e50",
+    "tests/fixtures/core/native_captured_lookup.py": "3a845b1148402eedfcffb540b51625b7e1837fd202b24a9afabeb47c78f76461",
+    "tests/fixtures/expected/native_captured_lookup.out": "fdae8ca6f601644bb3250286690fefd3b06ad97b0cb1e0cb2d9b56c89e63ebbe"
+  },
+  "repository_lf_sha256": {
+    "src/internal/xlang3/builtin_methods.h": "01af37308cac7e29a5fcd4d89e283ac09f0776f1c3318faacc002b5515995ca5",
+    "src/internal/xlang3/mapping.h": "705f94f8f0c07d58001d6f2bd04d8f00b23af04873e5f95f074a4c036b4653e3",
+    "src/runtime/methods/dict_methods.cpp": "593665a1ea07075284574f265d387cc4f1e6df270412ddd51d486994a0cdf658",
+    "src/runtime/mapping.cpp": "e4aa206de86839ad78eace8726e1e47aa9ae7b602c933b78fc375e8b9ee5d93c",
+    "src/executor/xlang_vm/xlang_vm_inline_call.h": "2ee5e45313c5838bbac2f105a026f818ea9df401c7f866e950d76c88d7045d5d",
+    "src/runtime/functional_iterators.cpp": "439996adb322d163d55c29385c944255e763376a1a455c118033a4bab36e460d",
+    "tests/cpp/mapping_iterator_ownership_cases.h": "3a6608a6a134b84257689a38f8551a84e9c61618dec07ef146f80134729e6dcc",
+    "tests/run_fixtures.py": "d839f5d2bcc83426602763c3762288dd57316187d8bdd9482cb06d3fa7875e50",
+    "tests/fixtures/core/native_captured_lookup.py": "799c7e39c21b9562597bc55c349881932be720b45f186524c1461145e6029338",
+    "tests/fixtures/expected/native_captured_lookup.out": "fdae8ca6f601644bb3250286690fefd3b06ad97b0cb1e0cb2d9b56c89e63ebbe"
+  }
+}

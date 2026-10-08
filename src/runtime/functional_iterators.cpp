@@ -355,6 +355,21 @@ bool runtime_call_callable(
           xlang_vm_inline_python_function_allowed(runtime, *function->module, *function)) {
         return xlang_vm_execute_trivial_function(call_args, spec, out);
       }
+      XlangVMCapturedItemFunctionSpec item_spec;
+      if (xlang_vm_analyze_captured_item_function(*function->module, *function, argc, item_spec) &&
+          interpreter_pending_events() == 0 &&
+          xlang_vm_inline_python_function_allowed(runtime, *function->module, *function)) {
+        const auto* cell = value_as_cell(function->closure[item_spec.free_slot]);
+        // Captured names/arguments already bind by index. A proven, nonfallible
+        // dict hit can reuse those slots without constructing an Interpreter.
+        // Resolve the live cell on every call; retain the Python frame for
+        // misses, overrides, hashing/equality callbacks and observability.
+        // Do not speculate with user code then replay it in the fallback.
+        // Receiver/key stay borrowed: own only the hit result before releasing
+        // old output, just as normal entry releases its frame before assignment.
+        if (cell != nullptr && mapping_get_intrinsic_item_if_present(
+                cell->value, args[item_spec.argument], out)) return true;
+      }
     }
     Interpreter interpreter(runtime);
     RuntimeResult result = interpreter.run_function_value(function, call_args);

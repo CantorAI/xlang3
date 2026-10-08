@@ -67,9 +67,7 @@ inline void check_mapping_iterator_ownership(CaseResult& result,
   {
     std::string error;
     Value source = Value::dict({});
-    // Tuple writes populate the general intrinsic index used by this shortcut;
-    // integer-only dicts use a separate scalar index and deliberately fall back.
-    const Value key = Value::tuple({Value::bytes("lifetime"), Value::int64(7)});
+    const Value key = Value::int64(7);
     Value payload = Value::list({Value::int64(29)});
     expect_true(result, mapping_set_item(source, key, payload, error),
         "finalizer probe must initialize its indexed result");

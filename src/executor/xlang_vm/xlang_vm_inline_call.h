@@ -371,6 +371,41 @@ struct XlangVMTrivialFunctionSpec {
   Value constant;
 };
 
+struct XlangVMCapturedItemFunctionSpec {
+  uint32_t free_slot = 0;
+  uint32_t argument = 0;
+};
+
+inline bool xlang_vm_analyze_captured_item_function(
+    const ir::Module& module, const FunctionObject& object, uint32_t argc,
+    XlangVMCapturedItemFunctionSpec& spec) {
+  if (object.function_id >= module.functions.size()) return false;
+  const auto& function = module.functions[object.function_id];
+  if ((function.code.size() != 4 && function.code.size() != 5) ||
+      function.code[0].op != ir::Op::LoadFree ||
+      function.code[1].op != ir::Op::LoadLocal ||
+      function.code[2].op != ir::Op::GetItem ||
+      function.code[3].op != ir::Op::Return ||
+      function.is_generator || function.is_async || function.is_coroutine ||
+      !function.cell_slots.empty() ||
+      !xlang_vm_has_direct_positional_signature(function, argc)) return false;
+  const auto& receiver = function.code[0];
+  const auto& argument = function.code[1];
+  const auto& item = function.code[2];
+  if (receiver.dst == argument.dst || item.a != receiver.dst ||
+      item.b != argument.dst || function.code[3].a != item.dst ||
+      receiver.a >= function.free_vars.size() || receiver.a >= object.closure.size() ||
+      argument.a >= argc) return false;
+  if (function.code.size() == 5) {
+    const auto& tail = function.code[4];
+    if (tail.op != ir::Op::ReturnConst || tail.a >= function.constants.size() ||
+        function.constants[tail.a].tag != ValueTag::None) return false;
+  }
+  spec.free_slot = receiver.a;
+  spec.argument = argument.a;
+  return true;
+}
+
 using XlangVMSlotConstructorSpec = std::vector<std::pair<uint32_t, uint32_t>>;
 constexpr uint32_t kXlangVMInlineConstructorAttrFlag = uint32_t{1} << 31;
 

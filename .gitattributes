@@ -155,3 +155,11 @@
 /doc/performance/immutable-key-hash-checkpoint-20261007.md text eol=lf
 /tests/fixtures/core/immutable_key_hash.py text eol=lf
 /tests/fixtures/expected/immutable_key_hash.out text eol=lf
+
+/doc/performance/data/captured-lookup-* -text
+/doc/performance/data/captured-lookup-20261007-sources/** -text
+/doc/performance/data/release-captured-lookup-r2-fixed-gate-20261007.json -text
+/doc/performance/data/pyperformance-captured-lookup-r2-bpe-fast-20261007* -text
+/doc/performance/captured-lookup-checkpoint-20261007.md text eol=lf
+/tests/fixtures/core/native_captured_lookup.py text eol=lf
+/tests/fixtures/expected/native_captured_lookup.out text eol=lf

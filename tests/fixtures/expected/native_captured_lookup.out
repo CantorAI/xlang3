@@ -1,0 +1,7 @@
+live captured cells hits and Counter misses preserve results: OK
+getitem replacement and missing hooks use original Python dispatch: OK
+descriptors and user key protocols retain observable callbacks: OK
+fallible lookups and argument errors retain the Python call boundary: OK
+code replacement and caller handled exceptions remain visible: OK
+trace and profile observe every captured native callback: OK
+monitoring observes captured lookup function entry and return: OK

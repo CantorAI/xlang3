@@ -1,0 +1,32 @@
+probe,case,median_control_over_candidate_speedup,favorable_pairs,total_pairs
+hash,"bytes 1 B, fresh=False, hashes=1",1.0079367940586719,4,7
+hash,"bytes 32 B, fresh=False, hashes=1",1.0010917921449796,4,7
+hash,"bytes 256 B, fresh=False, hashes=1",1.0123527644808794,6,7
+hash,"tuple_bytes 1 B, fresh=False, hashes=1",0.9745024196721119,2,7
+hash,"tuple_bytes 32 B, fresh=False, hashes=1",0.993396697239552,3,7
+hash,"tuple_bytes 256 B, fresh=False, hashes=1",0.9694369612394033,1,7
+hash,"tuple_bytes 32 B, fresh=True, hashes=1",1.0029989611613617,4,7
+hash,"tuple_bytes 32 B, fresh=True, hashes=2",1.0127045238753078,4,7
+update,"bytes dict, keys=64, fresh=False",1.046023414425748,7,7
+update,"bytes dict, keys=256, fresh=False",1.0468089439874018,7,7
+update,"bytes dict, keys=1024, fresh=False",1.039652131238951,7,7
+update,"tuple_bytes dict, keys=64, fresh=False",1.0264847186791346,6,7
+update,"tuple_bytes dict, keys=256, fresh=False",1.0409936765367787,6,7
+update,"tuple_bytes dict, keys=1024, fresh=False",1.0346891224411345,7,7
+update,"tuple_bytes dict, keys=64, fresh=True",1.0199999936500732,6,7
+update,"tuple_bytes dict, keys=256, fresh=True",1.0221410679370362,7,7
+update,"tuple_bytes dict, keys=1024, fresh=True",1.0202488069061653,7,7
+update,"tuple_bytes Counter, keys=64, fresh=True",1.0115997104733228,5,7
+update,"tuple_bytes Counter, keys=256, fresh=True",1.0158242844882623,6,7
+update,"tuple_bytes Counter, keys=1024, fresh=True",1.0108996108091246,5,7
+trivial_callback,direct_constant,0.9659410238662314,0,7
+trivial_callback,native_max_constant_key,1.0415212154653681,6,7
+trivial_callback,counter_missing,0.9915011383490415,3,7
+trivial_callback,direct_counter_missing,1.012662417111252,6,7
+trivial_callback,dict_get_default,1.0346423707428847,5,7
+nontrivial_callback,dict direct_lookup,1.0100953401596429,5,7
+nontrivial_callback,dict python_call,0.9955536521586247,3,7
+nontrivial_callback,dict native_callback,2.8069790209366214,7,7
+nontrivial_callback,Counter direct_lookup,1.040717005062726,7,7
+nontrivial_callback,Counter python_call,1.0146834946580143,4,7
+nontrivial_callback,Counter native_callback,2.7408633860035634,7,7
