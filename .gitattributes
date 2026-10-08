@@ -163,3 +163,12 @@
 /doc/performance/captured-lookup-checkpoint-20261007.md text eol=lf
 /tests/fixtures/core/native_captured_lookup.py text eol=lf
 /tests/fixtures/expected/native_captured_lookup.out text eol=lf
+
+/doc/performance/data/vm-captured-lookup-* -text
+/doc/performance/data/vm-captured-lookup-20261007-sources/** -text
+/doc/performance/data/build-vm-captured-lookup-Release-20261007.log -text
+/doc/performance/data/release-vm-captured-lookup-fixed-gate-20261007.json -text
+/doc/performance/data/pyperformance-vm-captured-lookup-bpe-fast-20261007* -text
+/doc/performance/vm-captured-lookup-checkpoint-20261007.md text eol=lf
+/tests/fixtures/core/vm_captured_lookup.py text eol=lf
+/tests/fixtures/expected/vm_captured_lookup.out text eol=lf

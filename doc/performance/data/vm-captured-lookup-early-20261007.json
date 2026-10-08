@@ -1,0 +1,35 @@
+{
+  "status": "failed_xlang3",
+  "candidate_binary_sha256": {
+    "exe": "b6a279e5086d74b0784be81499ebad2068d878f8f8c62accd6b7e5f9a08092e9",
+    "dll": "d32719ac907a10b994d5160a5ce97f05561c6c003de9a7c6f8dcd862da464ea3"
+  },
+  "source_sha256": {
+    "src/executor/xlang_vm/ops/xlang_vm_ops_call.h": "fc47dc4c0faeb743bf17aceabb81d69182c70de6400d13c6dc97e75e07a29db0",
+    "tests/run_fixtures.py": "fb922c1e0ce86bcff0ae46c3207e8c5b655dafd52adb97c0b8141eaddf05a348",
+    "tests/fixtures/core/vm_captured_lookup.py": "c85f6ddb00806df74dfecfc1dc28073510c57376c180d0b7b63a38ce1462cff1",
+    "tests/fixtures/expected/vm_captured_lookup.out": "ad4bea8dd8e6711102aaa64d0ebc044c6601a48259e1bea61b0b937d1736323f"
+  },
+  "phases": [
+    {
+      "name": "cpython3147",
+      "command": [
+        "C:\\Python\\Python314\\python.exe",
+        "tests/fixtures/core/vm_captured_lookup.py"
+      ],
+      "exit_code": 0,
+      "log": "vm-captured-lookup-early-20261007-cpython3147.log",
+      "sha256": "68eccf540a198edef4334e14ffbf2b6331598ff745f5dc5d17c6fc243f3c1e51"
+    },
+    {
+      "name": "xlang3",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+        "tests/fixtures/core/vm_captured_lookup.py"
+      ],
+      "exit_code": 1,
+      "log": "vm-captured-lookup-early-20261007-xlang3.log",
+      "sha256": "ad526d272e2b3b6974adbee668a25dbe358d4c2ed495a3961cc47debeb009180"
+    }
+  ]
+}

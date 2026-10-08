@@ -1,0 +1,100 @@
+{
+  "status": "validated",
+  "candidate_binary_sha256": {
+    "exe": "b6a279e5086d74b0784be81499ebad2068d878f8f8c62accd6b7e5f9a08092e9",
+    "dll": "d32719ac907a10b994d5160a5ce97f05561c6c003de9a7c6f8dcd862da464ea3"
+  },
+  "source_sha256": {
+    "src/executor/xlang_vm/ops/xlang_vm_ops_call.h": "fc47dc4c0faeb743bf17aceabb81d69182c70de6400d13c6dc97e75e07a29db0",
+    "tests/run_fixtures.py": "fb922c1e0ce86bcff0ae46c3207e8c5b655dafd52adb97c0b8141eaddf05a348",
+    "tests/fixtures/core/vm_captured_lookup.py": "09a3f31c11f7dbd3ca15899b3316695217be03f2635986df8cb20360872c8c7a",
+    "tests/fixtures/expected/vm_captured_lookup.out": "ad4bea8dd8e6711102aaa64d0ebc044c6601a48259e1bea61b0b937d1736323f"
+  },
+  "phases": [
+    {
+      "name": "fixtures",
+      "command": [
+        "C:\\Python\\Python314\\python.exe",
+        "tests/run_fixtures.py",
+        "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe"
+      ],
+      "exit_code": 0,
+      "log": "vm-captured-lookup-validation-20261007-fixtures.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "cpp",
+      "command": [
+        "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\ctest.exe",
+        "--test-dir",
+        "build-repro/main-verify-20261006",
+        "-C",
+        "Release",
+        "-R",
+        "xlang3_(runtime_value_tests|interpreter_tests|sdk_stream_call_tests|graph_)",
+        "--output-on-failure"
+      ],
+      "exit_code": 0,
+      "log": "vm-captured-lookup-validation-20261007-cpp.log",
+      "sha256": "1c84c8ee5b85dc77da1223e3d59be6a1bc8f0515c94f312184df4d88dd4db500"
+    },
+    {
+      "name": "gate",
+      "command": [
+        "C:\\Python\\Python314\\python.exe",
+        "benchmarks/check_regression.py",
+        "--baseline",
+        "D:\\CantorAI\\xlang3\\build-repro\\Release\\xlang3.exe",
+        "--candidate",
+        "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+        "--output",
+        "D:\\CantorAI\\xlang3\\doc\\performance\\data\\release-vm-captured-lookup-fixed-gate-20261007.json"
+      ],
+      "exit_code": 0,
+      "log": "vm-captured-lookup-validation-20261007-gate.log",
+      "sha256": "4bef72d57940b05919eed124e17778aacf3fde48d251fac43b184042cb138780"
+    },
+    {
+      "name": "official-bpe",
+      "command": [
+        "C:\\Python\\Python314\\python.exe",
+        "benchmarks/diagnostics/run_pyperformance_xlang3_shimmed.py",
+        "--runtime",
+        "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+        "--benchmarks",
+        "bpe_tokeniser",
+        "--mode",
+        "fast",
+        "--case-timeout",
+        "1800",
+        "--dependency-site",
+        "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages",
+        "--output",
+        "D:\\CantorAI\\xlang3\\doc\\performance\\data\\pyperformance-vm-captured-lookup-bpe-fast-20261007.json"
+      ],
+      "exit_code": 0,
+      "log": "vm-captured-lookup-validation-20261007-official-bpe.log",
+      "sha256": "fbf6bb5faecb2a6418e197dad7d20c417e486b2ea102c5820154d9f2bb7a1d26"
+    }
+  ],
+  "early_evidence": {
+    "output": "vm-captured-lookup-early-r2-20261007.json",
+    "sha256": "28350b34c1fe4f747097df8a8a70b423bacb39638df2e63169c904ed83aec1ca"
+  },
+  "fixture_counts": {
+    "core": 375,
+    "compatibility_sections": 11,
+    "expected_failures": 3
+  },
+  "fixed_gate": {
+    "output": "release-vm-captured-lookup-fixed-gate-20261007.json",
+    "sha256": "c9d584884a5a3063b52bdb29811a2c9104f7b9fbb46a0771bbc2e0ae67167106",
+    "exit_code": 0
+  },
+  "compatibility_hook_sha256": "2ffc217fe20497156bfcb1cebc7fb87203f33c6d4d3dbb6ecbcbcf91ea4cb317",
+  "official_bpe": {
+    "output": "pyperformance-vm-captured-lookup-bpe-fast-20261007.json",
+    "sha256": "d00525f1da1f2b45c973595b43f44297214938a0021948a97adf34364c3e81e2",
+    "exit_code": 0
+  }
+}

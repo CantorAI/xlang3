@@ -148,7 +148,8 @@ XLANG3_HOT_INLINE bool call_user_function(
     FunctionObject*, CallArgsView, const ir::Module&, const std::shared_ptr<const ir::Module>&,
     uint32_t, size_t&, Value&, bool&, MakeGeneratorIfNeeded&&, PushFrame&&,
     FrameReturnMode return_mode = FrameReturnMode::StoreReturnValue,
-    Value continuation_value = Value::invalid());
+    Value continuation_value = Value::invalid(),
+    Runtime* ordinary_call_runtime = nullptr);
 
 template <typename MakeGeneratorIfNeeded, typename PushFrame, typename RaiseRuntimeError, typename RaiseExceptionValue>
 inline bool call_callable_value(
@@ -2920,7 +2921,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow call(
       auto& cache = instr_cache[ip].call;
       if (cache.callee_object == callee.as.obj) {
       if (cache.kind == CallSiteKind::UserFunction) {
-        if (!xlang3::xlang_vm::ops::call_user_function(cache.function, call_args, module, module_owner, in.dst, ip, regs[in.dst], pushed_frame, make_generator_if_needed, push_frame)) {
+        if (!xlang3::xlang_vm::ops::call_user_function(cache.function, call_args, module, module_owner, in.dst, ip, regs[in.dst], pushed_frame, make_generator_if_needed, push_frame,
+                FrameReturnMode::StoreReturnValue, Value::invalid(), &runtime)) {
           if (!result.errors.empty()) return XlangVMOpFlow::ReturnResult;
           return XlangVMOpFlow::ContinueLoop;
         }
@@ -2939,7 +2941,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow call(
           bound_args.leading_count = 1;
           if (!xlang3::xlang_vm::ops::call_user_function(
                   cache.function, bound_args, module, module_owner, in.dst, ip,
-                  regs[in.dst], pushed_frame, make_generator_if_needed, push_frame)) {
+                  regs[in.dst], pushed_frame, make_generator_if_needed, push_frame,
+                  FrameReturnMode::StoreReturnValue, Value::invalid(), &runtime)) {
             if (!result.errors.empty()) return XlangVMOpFlow::ReturnResult;
             return XlangVMOpFlow::ContinueLoop;
           }
@@ -3214,7 +3217,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow call(
       cache.native = nullptr;
       cache.class_version = 0;
     }
-    if (!xlang3::xlang_vm::ops::call_user_function(fn_obj, call_args, module, module_owner, in.dst, ip, regs[in.dst], pushed_frame, make_generator_if_needed, push_frame)) {
+    if (!xlang3::xlang_vm::ops::call_user_function(fn_obj, call_args, module, module_owner, in.dst, ip, regs[in.dst], pushed_frame, make_generator_if_needed, push_frame,
+            FrameReturnMode::StoreReturnValue, Value::invalid(), &runtime)) {
       if (!result.errors.empty()) return XlangVMOpFlow::ReturnResult;
       return XlangVMOpFlow::ContinueLoop;
     }
@@ -4126,7 +4130,8 @@ XLANG3_HOT_INLINE bool call_user_function(
     MakeGeneratorIfNeeded&& make_generator_if_needed,
     PushFrame&& push_frame,
     FrameReturnMode return_mode,
-    Value continuation_value) {
+    Value continuation_value,
+    Runtime* ordinary_call_runtime) {
   const ir::Module* call_module = &module;
   auto call_module_owner = module_owner;
   if (fn_obj->module != nullptr) {
@@ -4144,6 +4149,27 @@ XLANG3_HOT_INLINE bool call_user_function(
     }
     if (made_generator) {
       return true;
+    }
+  }
+  if (ordinary_call_runtime != nullptr &&
+      return_mode == FrameReturnMode::StoreReturnValue &&
+      continuation_value.tag == ValueTag::Invalid) {
+    XlangVMCapturedItemFunctionSpec spec;
+    if (xlang_vm_analyze_captured_item_function(
+            *call_module, *fn_obj, static_cast<uint32_t>(values.size()), spec) &&
+        !values.has_keywords() && !values.has_expansion() &&
+        interpreter_pending_events() == 0 &&
+        inline_python_function_allowed(*ordinary_call_runtime, *call_module, *fn_obj)) {
+      const auto* cell = value_as_cell(fn_obj->closure[spec.free_slot]);
+      // Indexed binding already avoids name lookup; this proven hit also
+      // avoids a frame's register/local setup and ownership traffic. Analyze
+      // current code and resolve the live cell even on warmed call sites.
+      // Opt in only ordinary CALL contexts: their Next path refreshes
+      // monitoring after output finalizers. Property/subscript/constructor
+      // contexts retain frames and their existing return/refresh semantics.
+      // A miss or user protocol must execute the original Python frame once.
+      if (cell != nullptr && mapping_get_intrinsic_item_if_present(
+              cell->value, values.get(spec.argument), out)) return true;
     }
   }
   ++ip;
