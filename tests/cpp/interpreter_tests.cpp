@@ -15,6 +15,7 @@ limitations under the License.
 #include "test_harness.h"
 #include "sqlite_aggregate_abi_cases.h"
 #include "canonical_slot_read_cases.h"
+#include "native_bound_zero_args_cases.h"
 #include "identity_last_use_cases.h"
 #include "hash_exception_cases.h"
 
@@ -26,6 +27,7 @@ int main(int argc, char** argv) {
   xlang3::test::CaseResult result;
   xlang3::test::check_sqlite_aggregate_abi(result, argc > 0 ? argv[0] : nullptr);
   xlang3::test::check_canonical_slot_read_cases(result);
+  xlang3::test::check_native_bound_zero_args(result);
   xlang3::test::check_identity_last_use_cases(result);
   xlang3::test::check_hash_exception_cases(result);
 

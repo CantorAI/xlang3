@@ -205,3 +205,11 @@
 /doc/performance/data/sqlite-identity-hash-loop-proof-* -text
 /doc/performance/data/sqlite-identity-hash-checkpoint-20261008-summary.json -text
 /doc/performance/sqlite-identity-hash-checkpoint-20261008.md text eol=lf
+
+# Preserve raw callback evidence byte-for-byte while keeping the report editable.
+/doc/performance/data/native-bound-zero-args-checkpoint-20261008* -text
+/doc/performance/data/native-bound-zero-args-checkpoint-20261008-sources/** -text
+/doc/performance/charts/native-bound-zero-args-checkpoint-20261008.svg -text
+/doc/performance/native-bound-zero-args-checkpoint-20261008.md text eol=lf
+/tests/fixtures/core/native_bound_zero_args.py text eol=lf
+/tests/fixtures/expected/native_bound_zero_args.out text eol=lf

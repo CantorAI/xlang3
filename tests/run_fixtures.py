@@ -9,6 +9,7 @@ import tempfile
 
 
 CORE_CASES = """
+native_bound_zero_args
 hash_exception_preservation
 identity_last_use
 sqlite_cursor_completion

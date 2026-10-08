@@ -1,0 +1,11 @@
+{
+  "status": "terminal",
+  "exit_code": 0,
+  "output_matches_expected": true,
+  "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\native-bound-zero-args-rebased-20261008-candidates\\tests\\fixtures\\core\\native_bound_zero_args.py",
+  "source_sha256": "5c846f807ef07ba8f1a6653c9591a6ec8d60d4b31ae802f6c60149a929489d85",
+  "expected_sha256": "08765c8e4fbffbd0ae42a572378a8bd85bc740da5432c969d9223d19c22e08c6",
+  "cpython_version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+  "stdout_sha256": "742ffaebccdfe0fce29673e9b31ad5885e3f592dcfe2c172c57498bbd2d18e84",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

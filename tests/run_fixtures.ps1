@@ -22,6 +22,7 @@ if (-not $XLang3) {
 
 $root = $PSScriptRoot
 $cases = @(
+    "native_bound_zero_args",
     "identity_last_use",
     "hash_exception_preservation",
     "sqlite_cursor_completion",

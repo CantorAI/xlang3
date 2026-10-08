@@ -495,6 +495,19 @@ bool runtime_call_callable(
   }
 
   if (auto* bound = value_as_bound_method(callable)) {
+    if (argc == 0) {
+      // Hashing and other native protocol callbacks often call a bound Python
+      // method with only self. Keep its argument on the stack instead of
+      // allocating a one-element vector for every native-to-Python entry.
+      // Own both fields before dispatch: output may alias the LAST callable
+      // owner, and a native callback can replace output then reread args or
+      // collect/reenter. Release self before the target, like BoundMethod.
+      // Ordinary dispatch retains binding, tracing, monitoring and errors;
+      // explicit arguments keep the existing general vector path below.
+      Value function = bound->function;
+      Value self = bound->self;
+      return runtime_call_callable(runtime, function, &self, 1, out, error);
+    }
     std::vector<Value> bound_args;
     bound_args.reserve(static_cast<size_t>(argc) + 1);
     bound_args.push_back(bound->self);

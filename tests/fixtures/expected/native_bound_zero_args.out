@@ -1,0 +1,6 @@
+zero and explicit bound calls preserve hashes, defaults and keywords: OK
+saved bound calls observe live code and default replacement: OK
+exception state, callback traceback and generator binding are preserved: OK
+last callable owner can disappear during callback without losing self: OK
+zero-argument bound callbacks keep Python trace entry and return: OK
+local monitoring observes ordinary native-bound Python entry and return: OK

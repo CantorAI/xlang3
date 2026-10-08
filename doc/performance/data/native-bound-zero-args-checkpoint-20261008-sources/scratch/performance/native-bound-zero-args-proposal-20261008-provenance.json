@@ -1,0 +1,59 @@
+{
+  "status": "scratch_only_native_bound_zero_args_not_applied_built_or_run",
+  "head": "9de05e0d945a2d75ea50dfb7ddba4843363dfe41",
+  "apply_check_exit": 0,
+  "scope": "Only argc==0 bound native dispatch uses owning stack self/function; argc>0 vector unchanged; ordinary Python dispatch preserved",
+  "targets": [
+    {
+      "path": "src/runtime/functional_iterators.cpp",
+      "source_sha256_before": "cfe434b7fa9f4dee64ddac97371e97deb80e0cfba56c80bd84c10ef10f82eb66",
+      "source_sha256_after": "cfe434b7fa9f4dee64ddac97371e97deb80e0cfba56c80bd84c10ef10f82eb66",
+      "source_copy": "scratch/performance/native-bound-zero-args-proposal-20261008-sources/src/runtime/functional_iterators.cpp",
+      "candidate_copy": "scratch/performance/native-bound-zero-args-proposal-20261008-candidates/src/runtime/functional_iterators.cpp",
+      "candidate_sha256": "6cf12ee4790b0630cc17bc3cfbf0b9c3058a1a030bcb02299c47b87b1dc86b2f"
+    },
+    {
+      "path": "tests/cpp/interpreter_tests.cpp",
+      "source_sha256_before": "4b711ad8d56b8fff2cff8731d46ff01ec3e7caec131dfc1f6de14fd9e1110ef3",
+      "source_sha256_after": "4b711ad8d56b8fff2cff8731d46ff01ec3e7caec131dfc1f6de14fd9e1110ef3",
+      "source_copy": "scratch/performance/native-bound-zero-args-proposal-20261008-sources/tests/cpp/interpreter_tests.cpp",
+      "candidate_copy": "scratch/performance/native-bound-zero-args-proposal-20261008-candidates/tests/cpp/interpreter_tests.cpp",
+      "candidate_sha256": "51f9e13e3bd7358ed7ce89591e8cdab3ce4e6abe81ae61177476ed6020258915"
+    },
+    {
+      "path": "tests/run_fixtures.py",
+      "source_sha256_before": "57bd59b17b68b9f448a21fd559d7b551e7cb542462c798f8f1740adbda09b078",
+      "source_sha256_after": "57bd59b17b68b9f448a21fd559d7b551e7cb542462c798f8f1740adbda09b078",
+      "source_copy": "scratch/performance/native-bound-zero-args-proposal-20261008-sources/tests/run_fixtures.py",
+      "candidate_copy": "scratch/performance/native-bound-zero-args-proposal-20261008-candidates/tests/run_fixtures.py",
+      "candidate_sha256": "9ced31adefc6d88c26f27e4f68dd3d0730933a8006c159c6860c69002c60b638"
+    },
+    {
+      "path": "tests/cpp/native_bound_zero_args_cases.h",
+      "source_sha256_before": null,
+      "source_sha256_after": null,
+      "source_copy": null,
+      "candidate_copy": "scratch/performance/native-bound-zero-args-proposal-20261008-candidates/tests/cpp/native_bound_zero_args_cases.h",
+      "candidate_sha256": "55d72bb9e0f146e80ca4a916d1e131046974e61f1d5c033b9a4c5945703df06c"
+    },
+    {
+      "path": "tests/fixtures/core/native_bound_zero_args.py",
+      "source_sha256_before": null,
+      "source_sha256_after": null,
+      "source_copy": null,
+      "candidate_copy": "scratch/performance/native-bound-zero-args-proposal-20261008-candidates/tests/fixtures/core/native_bound_zero_args.py",
+      "candidate_sha256": "5c846f807ef07ba8f1a6653c9591a6ec8d60d4b31ae802f6c60149a929489d85"
+    },
+    {
+      "path": "tests/fixtures/expected/native_bound_zero_args.out",
+      "source_sha256_before": null,
+      "source_sha256_after": null,
+      "source_copy": null,
+      "candidate_copy": "scratch/performance/native-bound-zero-args-proposal-20261008-candidates/tests/fixtures/expected/native_bound_zero_args.out",
+      "candidate_sha256": "08765c8e4fbffbd0ae42a572378a8bd85bc740da5432c969d9223d19c22e08c6"
+    }
+  ],
+  "patch_sha256": "e9e73bff7b756adba34e2763cf522c447a80ca9a56e119e1ff54c3f7429647d1",
+  "probe_sha256": "3823fc09d47caa35ed158677a5a565ad1118c64b1ef9e345a6584a717f8fca70",
+  "generator_sha256": "80480fe6245e65dbaa5760f4ef79c3283ba9011bd3f576858f87814842ad44ce"
+}

@@ -1,0 +1,14 @@
+ninja: Entering directory `build-repro\main-verify-20261006'
+[0/2] Re-checking globbed directories...
+[1/9] Building CXX object CMakeFiles\xlang3_runtime.dir\Release\src\runtime\functional_iterators.cpp.obj
+[2/9] Building CXX object CMakeFiles\xlang3_interpreter_tests.dir\Release\tests\cpp\interpreter_tests.cpp.obj
+[3/9] Linking CXX shared library Release\xlang3_runtime.dll
+[4/5] Linking CXX executable Release\xlang3_interpreter_tests.exe
+FAILED: [code=4294967295] Release/xlang3_interpreter_tests.exe 
+C:\WINDOWS\system32\cmd.exe /C "cd . && "C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E vs_link_exe --msvc-ver=1951 --intdir=CMakeFiles\xlang3_interpreter_tests.dir\Release --rc=C:\PROGRA~2\WI3CF2~1\10\bin\100261~1.0\x64\rc.exe --mt=C:\PROGRA~2\WI3CF2~1\10\bin\100261~1.0\x64\mt.exe --manifests  -- C:\PROGRA~1\MICROS~1\18\COMMUN~1\VC\Tools\MSVC\1451~1.362\bin\Hostx64\x64\link.exe /nologo CMakeFiles\xlang3_interpreter_tests.dir\Release\tests\cpp\interpreter_tests.cpp.obj  /out:Release\xlang3_interpreter_tests.exe /implib:Release\xlang3_interpreter_tests.lib /pdb:Release\xlang3_interpreter_tests.pdb /version:0.0 /machine:x64 /INCREMENTAL:NO /subsystem:console  Release\xlang3_runtime.lib  kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib && cd ."
+LINK: command "C:\PROGRA~1\MICROS~1\18\COMMUN~1\VC\Tools\MSVC\1451~1.362\bin\Hostx64\x64\link.exe /nologo CMakeFiles\xlang3_interpreter_tests.dir\Release\tests\cpp\interpreter_tests.cpp.obj /out:Release\xlang3_interpreter_tests.exe /implib:Release\xlang3_interpreter_tests.lib /pdb:Release\xlang3_interpreter_tests.pdb /version:0.0 /machine:x64 /INCREMENTAL:NO /subsystem:console Release\xlang3_runtime.lib kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib /MANIFEST:EMBED,ID=1" failed (exit code 1120) with the following output:
+interpreter_tests.cpp.obj : error LNK2019: unresolved external symbol "unsigned __int64 __cdecl xlang3::weakref_collect_cycles(class xlang3::Runtime &)" (?weakref_collect_cycles@xlang3@@YA_KAEAVRuntime@1@@Z) referenced in function "bool __cdecl xlang3::test::native_bound_zero_callback(class xlang3::Runtime &,struct xlang3::Value const *,unsigned int,struct xlang3::Value &,class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > &,void *)" (?native_bound_zero_callback@test@xlang3@@YA_NAEAVRuntime@2@PEBUValue@2@IAEAU42@AEAV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@PEAX@Z)
+
+Release\xlang3_interpreter_tests.exe : fatal error LNK1120: 1 unresolved externals
+
+ninja: build stopped: subcommand failed.
