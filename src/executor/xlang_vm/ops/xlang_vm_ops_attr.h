@@ -412,6 +412,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_attr(
   // A stable class without a custom __getattribute__ hook can use the raw
   // instance cache before running the descriptor-oriented cases below.  This
   // is the same shape/version guard used by CPython's specialized LOAD_ATTR.
+  // Native attribute hooks can attach to one instance without changing its
+  // class version. Recheck the receiver at both warm slot read entries.
   if (attr_name != "__class__") {
     if (auto* instance = value_as_instance(regs[in.a])) {
       if (auto* klass = value_as_class(instance->klass);
@@ -419,6 +421,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_attr(
         auto& cache = instr_cache[ip].attr;
         if (cache.owner == &klass->header && cache.version == klass->version) {
           if (cache.kind == AttrSiteKind::InstanceSlot &&
+              instance->native_get_attr == nullptr &&
               cache.index < instance_slot_count(instance)) {
             const auto& slot_value = instance_slot_at(instance, cache.index);
             if (slot_value.tag != ValueTag::Invalid) {
@@ -540,6 +543,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_attr(
       auto& cache = instr_cache[ip].attr;
       if (cache.owner == &klass->header && cache.version == klass->version) {
         if (cache.kind == AttrSiteKind::InstanceSlot &&
+            instance->native_get_attr == nullptr &&
             cache.index < instance_slot_count(instance)) {
           const auto& slot_value = instance_slot_at(instance, cache.index);
           if (slot_value.tag != ValueTag::Invalid) {

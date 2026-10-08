@@ -1,0 +1,1357 @@
+{
+  "status": "terminal evidence archive",
+  "raw_files": {
+    "doc/performance/data/canonical-slot-r4-early-20261008-idle-start-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-early-20261008-idle-start-stdout.log",
+      "sha256": "6c2c96b3ddd352e988da47f90628a312d9fbc166173974a1740be0c6705a5fdf",
+      "raw_bytes": 26399
+    },
+    "doc/performance/data/canonical-slot-r4-early-20261008-idle-start-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-early-20261008-idle-start-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-early-20261008-cpython3147-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-early-20261008-cpython3147-stdout.log",
+      "sha256": "7aea1a5b5fe9833fc9102b3174361061593048ab6cc70ce168ab685c5a8d4c5a",
+      "raw_bytes": 674
+    },
+    "doc/performance/data/canonical-slot-r4-early-20261008-cpython3147-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-early-20261008-cpython3147-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-early-20261008-control-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-early-20261008-control-stdout.log",
+      "sha256": "7aea1a5b5fe9833fc9102b3174361061593048ab6cc70ce168ab685c5a8d4c5a",
+      "raw_bytes": 674
+    },
+    "doc/performance/data/canonical-slot-r4-early-20261008-control-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-early-20261008-control-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-early-20261008-candidate-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-early-20261008-candidate-stdout.log",
+      "sha256": "7aea1a5b5fe9833fc9102b3174361061593048ab6cc70ce168ab685c5a8d4c5a",
+      "raw_bytes": 674
+    },
+    "doc/performance/data/canonical-slot-r4-early-20261008-candidate-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-early-20261008-candidate-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-early-20261008-cpp-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-early-20261008-cpp-stdout.log",
+      "sha256": "8f39f79ec9d9d8c26f209cf7def28e746097b3d5397deb6f6c44c2c6635f1a5a",
+      "raw_bytes": 255
+    },
+    "doc/performance/data/canonical-slot-r4-early-20261008-cpp-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-early-20261008-cpp-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-early-20261008-idle-before-paired-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-early-20261008-idle-before-paired-stdout.log",
+      "sha256": "e3874eeb1614886672fb2a00b9b21a4f04acc84caf59aefda46879bd54408dbe",
+      "raw_bytes": 26029
+    },
+    "doc/performance/data/canonical-slot-r4-early-20261008-idle-before-paired-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-early-20261008-idle-before-paired-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-early-20261008-paired-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-early-20261008-paired-stdout.log",
+      "sha256": "dd10c45f9613c1d90fb866fd2c0c7a9b97184b6bed0b45a2892b5046d8242bfc",
+      "raw_bytes": 1794
+    },
+    "doc/performance/data/canonical-slot-r4-early-20261008-paired-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-early-20261008-paired-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-idle-start-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-idle-start-stdout.log",
+      "sha256": "49c02f861962f3e615ba4312060703413178bb16b4ca1336c6116233c78ca908",
+      "raw_bytes": 26093
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-idle-start-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-idle-start-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-idle-slot-before-reference-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-idle-slot-before-reference-stdout.log",
+      "sha256": "df99be7e62a2113d45a818754cd6bc91493ff209945541304ffd3035c9b29f92",
+      "raw_bytes": 26094
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-idle-slot-before-reference-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-idle-slot-before-reference-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-slot-cpython3147-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-slot-cpython3147-stdout.log",
+      "sha256": "da6641e6d68160c130c5f85a935029a03b564a4095a2c3df70051e2a3e7606f9",
+      "raw_bytes": 688
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-slot-cpython3147-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-slot-cpython3147-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-idle-slot-before-pair-1-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-idle-slot-before-pair-1-stdout.log",
+      "sha256": "9d010cc062beaaa5e697bbc66b5a2ae9946946474ee7a3e298a4934156663357",
+      "raw_bytes": 26094
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-idle-slot-before-pair-1-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-idle-slot-before-pair-1-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-slot-pair-1-control-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-slot-pair-1-control-stdout.log",
+      "sha256": "87e682305bdd4691423ba18cd967b948a85ac062f27658147b66527ff4cba64b",
+      "raw_bytes": 681
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-slot-pair-1-control-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-slot-pair-1-control-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-slot-pair-1-candidate-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-slot-pair-1-candidate-stdout.log",
+      "sha256": "0a4ee7701d3858ba731b510220571a27997a08a725a77b71bc5c8618e73e148d",
+      "raw_bytes": 682
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-slot-pair-1-candidate-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-slot-pair-1-candidate-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-idle-slot-after-pair-1-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-idle-slot-after-pair-1-stdout.log",
+      "sha256": "3c594cd99039942c9c0a731a5592960ed42dd983c4d4bec15cb7ee474c26b7c8",
+      "raw_bytes": 26094
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-idle-slot-after-pair-1-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-idle-slot-after-pair-1-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-idle-slot-before-pair-2-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-idle-slot-before-pair-2-stdout.log",
+      "sha256": "8a237688ac838abcf21a83f4ce2fad76f5ad7cfd9d03a66c4474df604fdf07dd",
+      "raw_bytes": 26094
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-idle-slot-before-pair-2-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-idle-slot-before-pair-2-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-slot-pair-2-candidate-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-slot-pair-2-candidate-stdout.log",
+      "sha256": "ccde3c7dbd66333c551fbdbc088b9c77f21d5b80535b80d4553203149c0298dc",
+      "raw_bytes": 681
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-slot-pair-2-candidate-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-slot-pair-2-candidate-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-slot-pair-2-control-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-slot-pair-2-control-stdout.log",
+      "sha256": "649519a111b6d47f1b1869a8f7e1e5655cb1cbfd809f11c43d626a02c9f7d6f4",
+      "raw_bytes": 679
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-slot-pair-2-control-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-slot-pair-2-control-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-idle-slot-after-pair-2-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-idle-slot-after-pair-2-stdout.log",
+      "sha256": "3510bf8c90e22b72e03f2e2c91eef62d6322bdac00752d34a2593262ab952be1",
+      "raw_bytes": 26094
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-idle-slot-after-pair-2-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-idle-slot-after-pair-2-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-idle-slot-before-pair-3-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-idle-slot-before-pair-3-stdout.log",
+      "sha256": "082fce128e7629436629dc9876ceafb3f6539f34642f7cc7d0d50acb2e9eca3d",
+      "raw_bytes": 26094
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-idle-slot-before-pair-3-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-idle-slot-before-pair-3-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-slot-pair-3-control-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-slot-pair-3-control-stdout.log",
+      "sha256": "de75b951aa70acf5efe0f72a0eaa00ea98db27ef4ff6a376309761da37ecdf5e",
+      "raw_bytes": 679
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-slot-pair-3-control-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-slot-pair-3-control-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-slot-pair-3-candidate-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-slot-pair-3-candidate-stdout.log",
+      "sha256": "94e107c328420df2222d94857c45cfbbed652b1a8052edd64a07b6b42fedcdae",
+      "raw_bytes": 678
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-slot-pair-3-candidate-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-slot-pair-3-candidate-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-idle-slot-after-pair-3-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-idle-slot-after-pair-3-stdout.log",
+      "sha256": "9d8344b183ce518ec27d65d8d255be5768988c1bfd5dab9d0097c4a919b6f069",
+      "raw_bytes": 26094
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-idle-slot-after-pair-3-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-idle-slot-after-pair-3-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-idle-slot-before-pair-4-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-idle-slot-before-pair-4-stdout.log",
+      "sha256": "6fc13aefb01046703ea169587bd70b6aaab8618c883219bfcd80ce72976cfde0",
+      "raw_bytes": 26094
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-idle-slot-before-pair-4-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-idle-slot-before-pair-4-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-slot-pair-4-candidate-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-slot-pair-4-candidate-stdout.log",
+      "sha256": "b43d3a09d5ad6a4316620b5f4759d1925457fd8e354fa981a5ad5109d431f896",
+      "raw_bytes": 680
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-slot-pair-4-candidate-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-slot-pair-4-candidate-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-slot-pair-4-control-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-slot-pair-4-control-stdout.log",
+      "sha256": "a98dc2d3382724830476fda454746356db8737c2386253a50f7e5ec7974a972a",
+      "raw_bytes": 683
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-slot-pair-4-control-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-slot-pair-4-control-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-idle-slot-after-pair-4-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-idle-slot-after-pair-4-stdout.log",
+      "sha256": "860dd1c21ed67d02bf19c216f6551afdb2ec5589c88f63fd7172b64092bd021d",
+      "raw_bytes": 26094
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-idle-slot-after-pair-4-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-idle-slot-after-pair-4-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-idle-slot-before-pair-5-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-idle-slot-before-pair-5-stdout.log",
+      "sha256": "5fee806a5c1ea775f191fe2eb6d70d21de9a08586360bbeabc66d1441dbb6f47",
+      "raw_bytes": 26094
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-idle-slot-before-pair-5-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-idle-slot-before-pair-5-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-slot-pair-5-control-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-slot-pair-5-control-stdout.log",
+      "sha256": "bc4bf8f2039378b94824a93669472e7882c52770d5c1b9089d2f98a1618a73a6",
+      "raw_bytes": 682
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-slot-pair-5-control-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-slot-pair-5-control-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-slot-pair-5-candidate-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-slot-pair-5-candidate-stdout.log",
+      "sha256": "5df041a25d979e8f0c28518d36069867ca43431c68d788cabf402310ff27ebb6",
+      "raw_bytes": 680
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-slot-pair-5-candidate-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-slot-pair-5-candidate-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-idle-slot-after-pair-5-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-idle-slot-after-pair-5-stdout.log",
+      "sha256": "7f6af0cd8c8ebc2029a2916ac6fee950d25c27e9bd8858323ff965c1707ca5e5",
+      "raw_bytes": 26094
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-idle-slot-after-pair-5-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-idle-slot-after-pair-5-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-idle-slot-before-pair-6-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-idle-slot-before-pair-6-stdout.log",
+      "sha256": "bad27e566931bbd437995997bd7976f84014c064e9aab00e6d7d080fb33b262e",
+      "raw_bytes": 26094
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-idle-slot-before-pair-6-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-idle-slot-before-pair-6-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-slot-pair-6-candidate-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-slot-pair-6-candidate-stdout.log",
+      "sha256": "7acd433c36e1bc4d8552e0a44caf3b8a3d135c985a9f344bb3a6b82edc96c103",
+      "raw_bytes": 681
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-slot-pair-6-candidate-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-slot-pair-6-candidate-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-slot-pair-6-control-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-slot-pair-6-control-stdout.log",
+      "sha256": "97b2eee1f80750d348107b1bfe68d4b6f39c1158e683c1e61297705e5fa6b5db",
+      "raw_bytes": 680
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-slot-pair-6-control-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-slot-pair-6-control-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-idle-slot-after-pair-6-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-idle-slot-after-pair-6-stdout.log",
+      "sha256": "bf630b5b05acb06046a810c568506fa0e2abf1878a0877ffd39e8a2de0a40b35",
+      "raw_bytes": 26094
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-idle-slot-after-pair-6-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-idle-slot-after-pair-6-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-idle-slot-before-pair-7-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-idle-slot-before-pair-7-stdout.log",
+      "sha256": "f122ef31a4741568c44c67e48ef4b4a11837b53e087757764cff4c86715dae4d",
+      "raw_bytes": 26093
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-idle-slot-before-pair-7-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-idle-slot-before-pair-7-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-slot-pair-7-control-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-slot-pair-7-control-stdout.log",
+      "sha256": "41e0483e800f36d0bd4d17fbb584ce80d2657744f352987ae1a28f149cad6213",
+      "raw_bytes": 682
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-slot-pair-7-control-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-slot-pair-7-control-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-slot-pair-7-candidate-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-slot-pair-7-candidate-stdout.log",
+      "sha256": "2264eb6020424566ec10f1d54e025124705ca7601044a86478e7ac4fb91bba89",
+      "raw_bytes": 678
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-slot-pair-7-candidate-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-slot-pair-7-candidate-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-idle-slot-after-pair-7-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-idle-slot-after-pair-7-stdout.log",
+      "sha256": "db5e63421f9c4f3c5a5f309199fa55fceb9e51cfa6154e94c0e27ab63d6f0a8d",
+      "raw_bytes": 26094
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-idle-slot-after-pair-7-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-idle-slot-after-pair-7-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-idle-sqlglot_parse-before-reference-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-idle-sqlglot_parse-before-reference-stdout.log",
+      "sha256": "2b31474028c343c3ecdd450174f55dc017c85416aa915a9ed65feb53ed4aaece",
+      "raw_bytes": 26094
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-idle-sqlglot_parse-before-reference-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-idle-sqlglot_parse-before-reference-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-sqlglot_parse-cpython3147-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-sqlglot_parse-cpython3147-stdout.log",
+      "sha256": "424b982eb6c7b3277d9d97efc1b5d6ae4635485f4d5b1433bee22cfcf7725433",
+      "raw_bytes": 595
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-sqlglot_parse-cpython3147-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-sqlglot_parse-cpython3147-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-idle-sqlglot_parse-before-pair-1-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-idle-sqlglot_parse-before-pair-1-stdout.log",
+      "sha256": "2bd3b95bd19a0ae6b1da76b467ca7e75e8b941778583cfa6f41471cc234ca816",
+      "raw_bytes": 26093
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-idle-sqlglot_parse-before-pair-1-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-idle-sqlglot_parse-before-pair-1-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-sqlglot_parse-pair-1-control-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-sqlglot_parse-pair-1-control-stdout.log",
+      "sha256": "d1fdd660c2f2c383b14241e72cf78518b9b583447fe4d4a7c7aacdb651f29ca6",
+      "raw_bytes": 590
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-sqlglot_parse-pair-1-control-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-sqlglot_parse-pair-1-control-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-sqlglot_parse-pair-1-candidate-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-sqlglot_parse-pair-1-candidate-stdout.log",
+      "sha256": "a3b5a734916a35b8b5f035f39be4215d3d0c3c30756df8fe85bfb939ef3d4f4e",
+      "raw_bytes": 592
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-sqlglot_parse-pair-1-candidate-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-sqlglot_parse-pair-1-candidate-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-idle-sqlglot_parse-after-pair-1-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-idle-sqlglot_parse-after-pair-1-stdout.log",
+      "sha256": "c4ac2a2b411846e9849e0a9d4b9a2f9114546ec8053d874c698690a603e6f259",
+      "raw_bytes": 26094
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-idle-sqlglot_parse-after-pair-1-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-idle-sqlglot_parse-after-pair-1-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-idle-sqlglot_parse-before-pair-2-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-idle-sqlglot_parse-before-pair-2-stdout.log",
+      "sha256": "b96989f54fadd53111ba94a1d60a4a273167c8dc571a04b64f53952e3c391053",
+      "raw_bytes": 26094
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-idle-sqlglot_parse-before-pair-2-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-idle-sqlglot_parse-before-pair-2-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-sqlglot_parse-pair-2-candidate-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-sqlglot_parse-pair-2-candidate-stdout.log",
+      "sha256": "414f20cc27c34108c8f04dc7d4677949028e5627c1877fb84ad619c2ee07a964",
+      "raw_bytes": 590
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-sqlglot_parse-pair-2-candidate-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-sqlglot_parse-pair-2-candidate-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-sqlglot_parse-pair-2-control-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-sqlglot_parse-pair-2-control-stdout.log",
+      "sha256": "d1dfa1c366ece2f4c55af758a8b6e26cfbd2bcff080228c59fe66ee8c5fc7614",
+      "raw_bytes": 591
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-sqlglot_parse-pair-2-control-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-sqlglot_parse-pair-2-control-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-idle-sqlglot_parse-after-pair-2-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-idle-sqlglot_parse-after-pair-2-stdout.log",
+      "sha256": "c11ed9160055ebea39b363d0543f80236bcefc9d0ce85fa17130ffe524b62639",
+      "raw_bytes": 26094
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-idle-sqlglot_parse-after-pair-2-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-idle-sqlglot_parse-after-pair-2-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-idle-sqlglot_parse-before-pair-3-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-idle-sqlglot_parse-before-pair-3-stdout.log",
+      "sha256": "ecc4445bc200437e4ab37b8e83e6582bf8b8267734f5e8fe1c1e8675b224c45f",
+      "raw_bytes": 26094
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-idle-sqlglot_parse-before-pair-3-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-idle-sqlglot_parse-before-pair-3-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-sqlglot_parse-pair-3-control-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-sqlglot_parse-pair-3-control-stdout.log",
+      "sha256": "c571f8db0801dcce4b7353c813578f2b0c3d9330cdc528535629b01866e9305f",
+      "raw_bytes": 592
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-sqlglot_parse-pair-3-control-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-sqlglot_parse-pair-3-control-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-sqlglot_parse-pair-3-candidate-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-sqlglot_parse-pair-3-candidate-stdout.log",
+      "sha256": "23698ed4ff5e804eea761622e4000617020d1eba449dd5404280d075a78b5711",
+      "raw_bytes": 591
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-sqlglot_parse-pair-3-candidate-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-sqlglot_parse-pair-3-candidate-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-idle-sqlglot_parse-after-pair-3-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-idle-sqlglot_parse-after-pair-3-stdout.log",
+      "sha256": "e978405b8fc6fac5b25feba07ae69edfc7fe07b90dd94ab7e7695047ca76d2b0",
+      "raw_bytes": 26094
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-idle-sqlglot_parse-after-pair-3-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-idle-sqlglot_parse-after-pair-3-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-idle-sqlglot_parse-before-pair-4-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-idle-sqlglot_parse-before-pair-4-stdout.log",
+      "sha256": "f1d73d83956a2d4d37cc35525dd2aac921d4dfe8139d5d2c3d0360976551115d",
+      "raw_bytes": 26094
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-idle-sqlglot_parse-before-pair-4-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-idle-sqlglot_parse-before-pair-4-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-sqlglot_parse-pair-4-candidate-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-sqlglot_parse-pair-4-candidate-stdout.log",
+      "sha256": "e892606fb7b8cf54c5a7e5de090e5850d8eb056e0bb34462fdb28acf3f435878",
+      "raw_bytes": 592
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-sqlglot_parse-pair-4-candidate-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-sqlglot_parse-pair-4-candidate-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-sqlglot_parse-pair-4-control-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-sqlglot_parse-pair-4-control-stdout.log",
+      "sha256": "9b79fd55946678e2eb3f889edcc2d8bcf39c3bfe9f91b5cdf3a6acb803805ced",
+      "raw_bytes": 590
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-sqlglot_parse-pair-4-control-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-sqlglot_parse-pair-4-control-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-idle-sqlglot_parse-after-pair-4-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-idle-sqlglot_parse-after-pair-4-stdout.log",
+      "sha256": "c403c248bdfb07ad959dce3a806e9e8c609d883f3d1b97c61f8730f5911a33c5",
+      "raw_bytes": 26155
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-idle-sqlglot_parse-after-pair-4-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-idle-sqlglot_parse-after-pair-4-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-idle-sqlglot_parse-before-pair-5-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-idle-sqlglot_parse-before-pair-5-stdout.log",
+      "sha256": "8838b36155a84b2310e2214d524724c1e72261aa0e2850cb81d1752c6c958a7d",
+      "raw_bytes": 26094
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-idle-sqlglot_parse-before-pair-5-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-idle-sqlglot_parse-before-pair-5-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-sqlglot_parse-pair-5-control-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-sqlglot_parse-pair-5-control-stdout.log",
+      "sha256": "49a8c5ab60bfa81ec27fbdb2fa970ee45a69a0de8af75b788f2f8f02add1800f",
+      "raw_bytes": 591
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-sqlglot_parse-pair-5-control-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-sqlglot_parse-pair-5-control-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-sqlglot_parse-pair-5-candidate-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-sqlglot_parse-pair-5-candidate-stdout.log",
+      "sha256": "3c7cb7ed3e8ebabd46636852eb116d3ec7e3e57054d46eb187d57ba92241ed02",
+      "raw_bytes": 590
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-sqlglot_parse-pair-5-candidate-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-sqlglot_parse-pair-5-candidate-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-idle-sqlglot_parse-after-pair-5-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-idle-sqlglot_parse-after-pair-5-stdout.log",
+      "sha256": "10051935427cd9898403d49c9cc994179269aaba884dcbac641c1f53ff559b38",
+      "raw_bytes": 26094
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-idle-sqlglot_parse-after-pair-5-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-idle-sqlglot_parse-after-pair-5-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-idle-sqlglot_parse-before-pair-6-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-idle-sqlglot_parse-before-pair-6-stdout.log",
+      "sha256": "a8e5b4ed38453647efbbfcf97b7939304aa29b1cebe761b774c5196ca16ec206",
+      "raw_bytes": 26094
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-idle-sqlglot_parse-before-pair-6-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-idle-sqlglot_parse-before-pair-6-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-sqlglot_parse-pair-6-candidate-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-sqlglot_parse-pair-6-candidate-stdout.log",
+      "sha256": "c9b6b85a188d7f26c7df21e699cd1a9d0594d9c486c1d8107bbfae8fd9adb97f",
+      "raw_bytes": 591
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-sqlglot_parse-pair-6-candidate-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-sqlglot_parse-pair-6-candidate-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-sqlglot_parse-pair-6-control-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-sqlglot_parse-pair-6-control-stdout.log",
+      "sha256": "00e78ed3306508033cb460a28ee7240d219f92dc00e6ea425d422bef4fbc49a5",
+      "raw_bytes": 591
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-sqlglot_parse-pair-6-control-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-sqlglot_parse-pair-6-control-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-idle-sqlglot_parse-after-pair-6-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-idle-sqlglot_parse-after-pair-6-stdout.log",
+      "sha256": "349b093fc5f41dd73c8e8f82f93a6aae76f5ed5bcf7e09049a8eb41135680118",
+      "raw_bytes": 26094
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-idle-sqlglot_parse-after-pair-6-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-idle-sqlglot_parse-after-pair-6-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-idle-sqlglot_parse-before-pair-7-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-idle-sqlglot_parse-before-pair-7-stdout.log",
+      "sha256": "26773124be1aefc59ce5e17045460d0f115be8d62f2e247d58249335496d6871",
+      "raw_bytes": 26342
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-idle-sqlglot_parse-before-pair-7-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-idle-sqlglot_parse-before-pair-7-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-sqlglot_parse-pair-7-control-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-sqlglot_parse-pair-7-control-stdout.log",
+      "sha256": "252c3318b189ab905e727d9328921414831ae6bfccf1f06e20fa7f76a98b0cf6",
+      "raw_bytes": 592
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-sqlglot_parse-pair-7-control-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-sqlglot_parse-pair-7-control-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-sqlglot_parse-pair-7-candidate-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-sqlglot_parse-pair-7-candidate-stdout.log",
+      "sha256": "871a5a6186fda55dc091a4ba46ae3058042e9f4ac9dda5087653c3f11d2d0a56",
+      "raw_bytes": 589
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-sqlglot_parse-pair-7-candidate-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-sqlglot_parse-pair-7-candidate-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-idle-sqlglot_parse-after-pair-7-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-idle-sqlglot_parse-after-pair-7-stdout.log",
+      "sha256": "7e670dd69a8a5d6d4cabbcf7418f2481f888f6788728c69587ddf960fc15f4af",
+      "raw_bytes": 26094
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-idle-sqlglot_parse-after-pair-7-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-idle-sqlglot_parse-after-pair-7-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-idle-terminal-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-idle-terminal-stdout.log",
+      "sha256": "636adc7dc78577e1821b89080ba4ee4e73f8f2349d828df11c21b0faa2557029",
+      "raw_bytes": 26156
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008-idle-terminal-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008-idle-terminal-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "r4-tested-inputs/src/executor/xlang_vm/xlang_vm_attr.cpp": {
+      "source": "D:\\CantorAI\\xlang3\\src\\executor\\xlang_vm\\xlang_vm_attr.cpp",
+      "sha256": "5f09f741ceab8f72c2b918912ba30e12f12bcde91988097d056ae3f20a62bb64",
+      "raw_bytes": 18030
+    },
+    "r4-tested-inputs/src/executor/xlang_vm/ops/xlang_vm_ops_attr.h": {
+      "source": "D:\\CantorAI\\xlang3\\src\\executor\\xlang_vm\\ops\\xlang_vm_ops_attr.h",
+      "sha256": "f29726b53a7e0538b65d5a860b39927c3b598d285e678c6b19e0f7fbfdd0e60f",
+      "raw_bytes": 76596
+    },
+    "r4-tested-inputs/tests/cpp/canonical_slot_read_cases.h": {
+      "source": "D:\\CantorAI\\xlang3\\tests\\cpp\\canonical_slot_read_cases.h",
+      "sha256": "cb8346950866fade0435e2fadcac56ff1eb403995dc4648f24d3ed7be89f7e50",
+      "raw_bytes": 27086
+    },
+    "r4-tested-inputs/tests/cpp/interpreter_tests.cpp": {
+      "source": "D:\\CantorAI\\xlang3\\tests\\cpp\\interpreter_tests.cpp",
+      "sha256": "2e1c801963399e23f02d5f35e198949f102a8b665eebe3fcdcfebd453ce2342c",
+      "raw_bytes": 29186
+    },
+    "r4-tested-inputs/tests/run_fixtures.py": {
+      "source": "D:\\CantorAI\\xlang3\\tests\\run_fixtures.py",
+      "sha256": "b0c4703154a9fc647ed7a37d83f28a6efd9ca6e9053c74c1362912105ed4d61b",
+      "raw_bytes": 12407
+    },
+    "r4-tested-inputs/tests/fixtures/core/canonical_slot_reads.py": {
+      "source": "D:\\CantorAI\\xlang3\\tests\\fixtures\\core\\canonical_slot_reads.py",
+      "sha256": "67cbbbfcb4fe02ad07f7da7ead051998b3735d547f52e5843fef6102cbe97006",
+      "raw_bytes": 4052
+    },
+    "r4-tested-inputs/tests/fixtures/expected/canonical_slot_reads.out": {
+      "source": "D:\\CantorAI\\xlang3\\tests\\fixtures\\expected\\canonical_slot_reads.out",
+      "sha256": "7aea1a5b5fe9833fc9102b3174361061593048ab6cc70ce168ab685c5a8d4c5a",
+      "raw_bytes": 674
+    },
+    "r4-tested-inputs/scratch/performance/canonical-slot-probe-20261008.py": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-probe-20261008.py",
+      "sha256": "f2cda8eff1ed7ab9ded5ab7daeefee8d0b7909b4b3974fcda06e48a706d994d2",
+      "raw_bytes": 931
+    },
+    "r4-tested-inputs/scratch/performance/canonical-slot-sqlglot-probe-20261008.py": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-sqlglot-probe-20261008.py",
+      "sha256": "2a0eabce26935cfd46517486c52d6d4cc95154b60b55e187c9bd607a0f5a23ae",
+      "raw_bytes": 1009
+    },
+    "r4-tested-inputs/scratch/performance/check-canonical-slot-r4-20261008.py": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\check-canonical-slot-r4-20261008.py",
+      "sha256": "1ca75f92cf61bad84c98d05db3cfda9a3099f1116016d6902ea685990d56e3fe",
+      "raw_bytes": 2444
+    },
+    "r4-tested-inputs/scratch/performance/compare-canonical-slot-r4-20261008.py": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\compare-canonical-slot-r4-20261008.py",
+      "sha256": "2eba18fbeba42ceb4d828da1eaa2cd0721892df618b87e9dca95498f89d792ec",
+      "raw_bytes": 5118
+    },
+    "r4-tested-inputs/scratch/performance/canonical_slot_r4_support_20261008.py": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical_slot_r4_support_20261008.py",
+      "sha256": "bd06e6fd7e78b1106d6f0eef01a3fac68f0996395e36ea5ebccfb7ec5decb831",
+      "raw_bytes": 9077
+    },
+    "external/python314/bm_sqlglot_v2/run_benchmark.py": {
+      "source": "C:\\Python\\Python314\\Lib\\site-packages\\pyperformance\\data-files\\benchmarks\\bm_sqlglot_v2\\run_benchmark.py",
+      "sha256": "d97aaba24f8c49f2afe5c5c740c568be6e89dde3364d5a964a4b72e5a4768a9b",
+      "raw_bytes": 5220
+    },
+    "benchmarks/diagnostics/pyperf_compat/sitecustomize.py": {
+      "source": "D:\\CantorAI\\xlang3\\benchmarks\\diagnostics\\pyperf_compat\\sitecustomize.py",
+      "sha256": "2ffc217fe20497156bfcb1cebc7fb87203f33c6d4d3dbb6ecbcbcf91ea4cb317",
+      "raw_bytes": 1266
+    },
+    "benchmarks/diagnostics/run_pyperformance_xlang3_shimmed.py": {
+      "source": "D:\\CantorAI\\xlang3\\benchmarks\\diagnostics\\run_pyperformance_xlang3_shimmed.py",
+      "sha256": "c078ee77d5d66165f0bf4b2d782df56e71868ada827c81c5c53516c8d017ceaf",
+      "raw_bytes": 12642
+    },
+    "benchmarks/check_regression.py": {
+      "source": "D:\\CantorAI\\xlang3\\benchmarks\\check_regression.py",
+      "sha256": "579934598caddc37409fed03181b0cd42408853a34bde65dff48b777e4e8ffef",
+      "raw_bytes": 10569
+    },
+    "doc/performance/data/pyperformance-cpython3147-live-eval-full-fast-20261007.json": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\pyperformance-cpython3147-live-eval-full-fast-20261007.json",
+      "sha256": "ac474df5576ac85f6f5350363affecc439d4f658b4dfa3dbe291b46964276eb0",
+      "raw_bytes": 217975
+    },
+    "doc/performance/data/pyperformance-cpython3147-live-eval-full-fast-20261007-provenance.json": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\pyperformance-cpython3147-live-eval-full-fast-20261007-provenance.json",
+      "sha256": "3d6c8cb2c72c786583c382b835e8e411f56ca285963bc2835f757a13f399f85c",
+      "raw_bytes": 41162
+    },
+    "doc/performance/data/pyperformance-cpython3147-live-eval-full-fast-20261007.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\pyperformance-cpython3147-live-eval-full-fast-20261007.log",
+      "sha256": "6a1824eed3abad4cebae80356f0f600f1a8728755730d2f64c0bd7d4b3ca9e6c",
+      "raw_bytes": 71763
+    },
+    "doc/performance/data/pyperformance-xlang3-live-eval-full-fast-20261007.json": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\pyperformance-xlang3-live-eval-full-fast-20261007.json",
+      "sha256": "df70a5c4cf13cc2e323812850be53af2f1e04317a99f41260723ce97903041dd",
+      "raw_bytes": 139747
+    },
+    "doc/performance/data/pyperformance-xlang3-live-eval-full-fast-20261007-provenance.json": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\pyperformance-xlang3-live-eval-full-fast-20261007-provenance.json",
+      "sha256": "48865313429c6b3a44d0fbcbf9126391620614dee6b45729f0b912f0c12b353e",
+      "raw_bytes": 42441
+    },
+    "doc/performance/data/pyperformance-xlang3-live-eval-full-fast-20261007.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\pyperformance-xlang3-live-eval-full-fast-20261007.log",
+      "sha256": "19d2b4d14e2b54900f667c4227c90b869d0b88404ebe4542b28dfda72e86ee50",
+      "raw_bytes": 365207
+    },
+    "doc/performance/data/canonical-slot-r4-validation-20261008-fixtures.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-validation-20261008-fixtures.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/canonical-slot-r4-validation-20261008-cpp.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-validation-20261008-cpp.log",
+      "sha256": "0840e744a9b61457ea3dc7042ccebb6a07302de2db16dcf6dadc13353835cf57",
+      "raw_bytes": 1044
+    },
+    "doc/performance/data/canonical-slot-r4-validation-20261008-gate.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-validation-20261008-gate.log",
+      "sha256": "f3b750c1218c380e7a69355ab3ba982ed6adade8be438b89cc7d95aa2188b2ec",
+      "raw_bytes": 631
+    },
+    "doc/performance/data/canonical-slot-r4-validation-20261008-official-sqlglot-parse.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-validation-20261008-official-sqlglot-parse.log",
+      "sha256": "713a4ce3bad7ac68e05d653147049e8d03ffc701c87bb8db8571a8c17552751e",
+      "raw_bytes": 872
+    },
+    "doc/performance/data/release-canonical-slot-r4-fixed-gate-20261008.json": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\release-canonical-slot-r4-fixed-gate-20261008.json",
+      "sha256": "ed37d4bae41d61a6ab8eb3a2b3d1e844a1ac46793e846868c0f6e7003cd4d014",
+      "raw_bytes": 62487
+    },
+    "doc/performance/data/pyperformance-canonical-slot-r4-sqlglot-parse-fast-20261008.json": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\pyperformance-canonical-slot-r4-sqlglot-parse-fast-20261008.json",
+      "sha256": "a3a841f120a719aa06f0f964b19af1630e35d321560081800ca34c843dd9b0b6",
+      "raw_bytes": 1756
+    },
+    "doc/performance/data/canonical-slot-early-20261008-candidate.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-early-20261008-candidate.log",
+      "sha256": "7aea1a5b5fe9833fc9102b3174361061593048ab6cc70ce168ab685c5a8d4c5a",
+      "raw_bytes": 674
+    },
+    "doc/performance/data/canonical-slot-early-20261008-control.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-early-20261008-control.log",
+      "sha256": "7aea1a5b5fe9833fc9102b3174361061593048ab6cc70ce168ab685c5a8d4c5a",
+      "raw_bytes": 674
+    },
+    "doc/performance/data/canonical-slot-early-20261008-cpp.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-early-20261008-cpp.log",
+      "sha256": "bfd02c9ac8185e799e4f7bf01135d1d3e0702561df5dd688132b5a436a5fb5f1",
+      "raw_bytes": 501
+    },
+    "doc/performance/data/canonical-slot-early-20261008-cpython3147.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-early-20261008-cpython3147.log",
+      "sha256": "7aea1a5b5fe9833fc9102b3174361061593048ab6cc70ce168ab685c5a8d4c5a",
+      "raw_bytes": 674
+    },
+    "doc/performance/data/canonical-slot-early-20261008.json": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-early-20261008.json",
+      "sha256": "7d6ac89b3b4ec07adfce27692c1430124c2ebf6b3a58816f8bffe46cb167ea39",
+      "raw_bytes": 2768
+    },
+    "doc/performance/data/canonical-slot-early-r2-20261008-paired.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-early-r2-20261008-paired.log",
+      "sha256": "29e917ba1760eb21f8c601937a7653996bac9c11d78d7bb7ea3e6e77421f71a4",
+      "raw_bytes": 1796
+    },
+    "doc/performance/data/canonical-slot-early-r2-20261008.json": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-early-r2-20261008.json",
+      "sha256": "873b8cdaef82067a16c3e4a46c0421fd32aac844a629c7fc92e8971cec20c11c",
+      "raw_bytes": 2991
+    },
+    "doc/performance/data/canonical-slot-native-hooks-diagnostics-20261008.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-native-hooks-diagnostics-20261008.log",
+      "sha256": "bae9bd630d7c6ad4609f8bab5bfde397aef597fae2c4148306ecbb82b6976409",
+      "raw_bytes": 643
+    },
+    "doc/performance/data/canonical-slot-native-hooks-repaired-20261008.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-native-hooks-repaired-20261008.log",
+      "sha256": "477725a178f3bb46906805d9a79cfa5a8d4e7da143adae4542980eb54d1ff412",
+      "raw_bytes": 262
+    },
+    "doc/performance/data/canonical-slot-paired-20261008.json": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-paired-20261008.json",
+      "sha256": "f63902bab873afaba6aa70aa6ebf629db9674b4eee6962b087502377cf43fbf2",
+      "raw_bytes": 41522
+    },
+    "doc/performance/data/canonical-slot-r4-early-20261008.json": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-early-20261008.json",
+      "sha256": "e5c621d800be41f611adf658494f8f0939d51b4ebdd37be42bf4036736878b83",
+      "raw_bytes": 10498
+    },
+    "doc/performance/data/canonical-slot-r4-paired-20261008.json": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-paired-20261008.json",
+      "sha256": "f08f34fdf1d3a69e5141d8ea23c21495cd62e245fd7996ab7e0eb3f70aefe0d1",
+      "raw_bytes": 99087
+    },
+    "doc/performance/data/canonical-slot-r4-validation-20261008.json": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-validation-20261008.json",
+      "sha256": "4e32beb6246af96507739ec9c5dc861dadb0e18a5ecd2d5fdec4827f8f977eab",
+      "raw_bytes": 10664
+    },
+    "doc/performance/data/build-canonical-slot-CPP-diagnostics-20261008.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\build-canonical-slot-CPP-diagnostics-20261008.log",
+      "sha256": "91e02a241131610fff1b2a5bd67b593d22de202c66dc95a1470d1e45df5dd34b",
+      "raw_bytes": 282
+    },
+    "doc/performance/data/build-canonical-slot-CPP-module-setup-20261008.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\build-canonical-slot-CPP-module-setup-20261008.log",
+      "sha256": "91e02a241131610fff1b2a5bd67b593d22de202c66dc95a1470d1e45df5dd34b",
+      "raw_bytes": 282
+    },
+    "doc/performance/data/build-canonical-slot-r4-v2-Release-20261008.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\build-canonical-slot-r4-v2-Release-20261008.log",
+      "sha256": "df372131bcd2fe43c62ae53b2edf1c65cf3d4bdd54726d0150e5828fd37626a5",
+      "raw_bytes": 452
+    },
+    "doc/performance/data/build-canonical-slot-Release-20261008.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\build-canonical-slot-Release-20261008.log",
+      "sha256": "1492ac572f9fe079accfed2a486b87f678a00bcedbabfd4eeba1d38a0f807836",
+      "raw_bytes": 2414
+    },
+    "doc/performance/data/build-canonical-slot-Release-r2-20261008.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\build-canonical-slot-Release-r2-20261008.log",
+      "sha256": "707453a945da8b91f903ecbb8449ed348aba803a549ef2f2954d39745bd044e0",
+      "raw_bytes": 343
+    },
+    "scratch/performance/canonical-slot-checkpoint-export-readme-20261008.md": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-checkpoint-export-readme-20261008.md",
+      "sha256": "d1f2b4f98e113508c034484d144abbc3ca6bc637612831ac8fe61d2549b88684",
+      "raw_bytes": 2828
+    },
+    "scratch/performance/canonical-slot-cpp-before-diagnostics-20261008.h": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-cpp-before-diagnostics-20261008.h",
+      "sha256": "56229c49fbbb836e6aa49743a6d1fdb42714cd1ac055e7d6abf8038f845c382f",
+      "raw_bytes": 16583
+    },
+    "scratch/performance/canonical-slot-cpp-before-include-repair-20261008.h": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-cpp-before-include-repair-20261008.h",
+      "sha256": "42e1800e0e745ed9ecb388502fc0e48b5af0049b8f3447a19088b8e44fec0c23",
+      "raw_bytes": 16555
+    },
+    "scratch/performance/canonical-slot-cpp-before-module-setup-repair-20261008.h": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-cpp-before-module-setup-repair-20261008.h",
+      "sha256": "b9e61440d9c29ce12112d69091135aac6697be695cbbf1a361f80b810a336e43",
+      "raw_bytes": 16833
+    },
+    "scratch/performance/canonical-slot-native-hook-cases-draft-20261007.h": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-native-hook-cases-draft-20261007.h",
+      "sha256": "29b6240dd52a473562763afc48164edef26eea758d6da323ce7109f9bfe2e82a",
+      "raw_bytes": 7206
+    },
+    "scratch/performance/canonical-slot-probe-20261008.py": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-probe-20261008.py",
+      "sha256": "f2cda8eff1ed7ab9ded5ab7daeefee8d0b7909b4b3974fcda06e48a706d994d2",
+      "raw_bytes": 931
+    },
+    "scratch/performance/canonical-slot-promotion-r4-20261008-apply-check.log": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-promotion-r4-20261008-apply-check.log",
+      "sha256": "1b7005aff72bcbbfcc14218078d7b9289c64e00ef08524a387a3ab07b1d8b3ec",
+      "raw_bytes": 102
+    },
+    "scratch/performance/canonical-slot-promotion-r4-20261008-engine-candidate.cpp": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-promotion-r4-20261008-engine-candidate.cpp",
+      "sha256": "6592b859f2b92b48343bdb587660c5ee6ed4949d3c822105508674a852727e51",
+      "raw_bytes": 17949
+    },
+    "scratch/performance/canonical-slot-promotion-r4-20261008-engine-source.cpp": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-promotion-r4-20261008-engine-source.cpp",
+      "sha256": "158656a116108577893968bc61c7f89dbad50a8795dbb8f153251da7cf601d5e",
+      "raw_bytes": 15774
+    },
+    "scratch/performance/canonical-slot-promotion-r4-20261008-provenance.json": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-promotion-r4-20261008-provenance.json",
+      "sha256": "07f1e74d723e932bcb293f3251e304a7b5eb160653ab442fbc69dcae2f082f69",
+      "raw_bytes": 3502
+    },
+    "scratch/performance/canonical-slot-promotion-r4-20261008-test-candidate.h": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-promotion-r4-20261008-test-candidate.h",
+      "sha256": "59f57d3a827d5e8a9f4b1e58c2e3a441084d63291583fbc2ea47eb18b83a6b5e",
+      "raw_bytes": 25894
+    },
+    "scratch/performance/canonical-slot-promotion-r4-20261008-test-source.h": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-promotion-r4-20261008-test-source.h",
+      "sha256": "93f47849e9b26eaceb942e36ed9c8d8a333a22036d5b3f00e715d802d9932d2d",
+      "raw_bytes": 17333
+    },
+    "scratch/performance/canonical-slot-promotion-r4-20261008.patch": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-promotion-r4-20261008.patch",
+      "sha256": "cd5580b22832234737320982ee981da4517a7fc4598d17f605d2c647993ea6bc",
+      "raw_bytes": 17575
+    },
+    "scratch/performance/canonical-slot-promotion-r4-independent-review-20261008.md": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-promotion-r4-independent-review-20261008.md",
+      "sha256": "b061685f9e5e83accaf68d62ada96e8a73eac4239a64a481ee031d58b3c61d03",
+      "raw_bytes": 3707
+    },
+    "scratch/performance/canonical-slot-promotion-r4-v2-20261008-apply-check.log": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-promotion-r4-v2-20261008-apply-check.log",
+      "sha256": "3206e937f75b3292bc45c56196fa5b100e8fbe8ff8a3ae3f8f4c2e98338b801a",
+      "raw_bytes": 105
+    },
+    "scratch/performance/canonical-slot-promotion-r4-v2-20261008-engine-candidate.cpp": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-promotion-r4-v2-20261008-engine-candidate.cpp",
+      "sha256": "6592b859f2b92b48343bdb587660c5ee6ed4949d3c822105508674a852727e51",
+      "raw_bytes": 17949
+    },
+    "scratch/performance/canonical-slot-promotion-r4-v2-20261008-engine-source.cpp": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-promotion-r4-v2-20261008-engine-source.cpp",
+      "sha256": "158656a116108577893968bc61c7f89dbad50a8795dbb8f153251da7cf601d5e",
+      "raw_bytes": 15774
+    },
+    "scratch/performance/canonical-slot-promotion-r4-v2-20261008-provenance.json": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-promotion-r4-v2-20261008-provenance.json",
+      "sha256": "1cca23a556446907803771f8432fc4863343332b2e828f0f29a7b8807a6100df",
+      "raw_bytes": 3535
+    },
+    "scratch/performance/canonical-slot-promotion-r4-v2-20261008-test-candidate.h": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-promotion-r4-v2-20261008-test-candidate.h",
+      "sha256": "e8b8f0b8b584f75da432081a6e1f843ec35ddf9568fed32a902c3d3ca7f03c29",
+      "raw_bytes": 26893
+    },
+    "scratch/performance/canonical-slot-promotion-r4-v2-20261008-test-source.h": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-promotion-r4-v2-20261008-test-source.h",
+      "sha256": "93f47849e9b26eaceb942e36ed9c8d8a333a22036d5b3f00e715d802d9932d2d",
+      "raw_bytes": 17333
+    },
+    "scratch/performance/canonical-slot-promotion-r4-v2-20261008.patch": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-promotion-r4-v2-20261008.patch",
+      "sha256": "b64b88f3bc8dec3ef6991e3e5195b6963cd1f6d682a1314235a556f5179a8700",
+      "raw_bytes": 18588
+    },
+    "scratch/performance/canonical-slot-r3-tested-sources-20261008/manifest.json": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-r3-tested-sources-20261008\\manifest.json",
+      "sha256": "5edece526bc26acf980ffdcf4726ebf7195e180a9ec2015ac94933add6cb888d",
+      "raw_bytes": 1183
+    },
+    "scratch/performance/canonical-slot-r3-tested-sources-20261008/src/executor/xlang_vm/ops/xlang_vm_ops_attr.h": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-r3-tested-sources-20261008\\src\\executor\\xlang_vm\\ops\\xlang_vm_ops_attr.h",
+      "sha256": "f29726b53a7e0538b65d5a860b39927c3b598d285e678c6b19e0f7fbfdd0e60f",
+      "raw_bytes": 76596
+    },
+    "scratch/performance/canonical-slot-r3-tested-sources-20261008/src/executor/xlang_vm/xlang_vm_attr.cpp": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-r3-tested-sources-20261008\\src\\executor\\xlang_vm\\xlang_vm_attr.cpp",
+      "sha256": "158656a116108577893968bc61c7f89dbad50a8795dbb8f153251da7cf601d5e",
+      "raw_bytes": 15774
+    },
+    "scratch/performance/canonical-slot-r3-tested-sources-20261008/tests/cpp/canonical_slot_read_cases.h": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-r3-tested-sources-20261008\\tests\\cpp\\canonical_slot_read_cases.h",
+      "sha256": "93f47849e9b26eaceb942e36ed9c8d8a333a22036d5b3f00e715d802d9932d2d",
+      "raw_bytes": 17333
+    },
+    "scratch/performance/canonical-slot-r3-tested-sources-20261008/tests/cpp/interpreter_tests.cpp": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-r3-tested-sources-20261008\\tests\\cpp\\interpreter_tests.cpp",
+      "sha256": "2e1c801963399e23f02d5f35e198949f102a8b665eebe3fcdcfebd453ce2342c",
+      "raw_bytes": 29186
+    },
+    "scratch/performance/canonical-slot-r3-tested-sources-20261008/tests/fixtures/core/canonical_slot_reads.py": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-r3-tested-sources-20261008\\tests\\fixtures\\core\\canonical_slot_reads.py",
+      "sha256": "67cbbbfcb4fe02ad07f7da7ead051998b3735d547f52e5843fef6102cbe97006",
+      "raw_bytes": 4052
+    },
+    "scratch/performance/canonical-slot-r3-tested-sources-20261008/tests/fixtures/expected/canonical_slot_reads.out": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-r3-tested-sources-20261008\\tests\\fixtures\\expected\\canonical_slot_reads.out",
+      "sha256": "7aea1a5b5fe9833fc9102b3174361061593048ab6cc70ce168ab685c5a8d4c5a",
+      "raw_bytes": 674
+    },
+    "scratch/performance/canonical-slot-r3-tested-sources-20261008/tests/run_fixtures.py": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-r3-tested-sources-20261008\\tests\\run_fixtures.py",
+      "sha256": "b0c4703154a9fc647ed7a37d83f28a6efd9ca6e9053c74c1362912105ed4d61b",
+      "raw_bytes": 12407
+    },
+    "scratch/performance/canonical-slot-r4-diagnostic-scripts-20261008-provenance.json": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-r4-diagnostic-scripts-20261008-provenance.json",
+      "sha256": "4ad3c9e934ff388ccc91c1e4c945a4ac8a8109bb99dd5d59e7ee832f269f7a43",
+      "raw_bytes": 2033
+    },
+    "scratch/performance/canonical-slot-r4-helper-20261008.cpp": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-r4-helper-20261008.cpp",
+      "sha256": "08651a67bef14d1e28aa280de5ed51d938d5bd615b51cf4e788494f978707d90",
+      "raw_bytes": 4455
+    },
+    "scratch/performance/canonical-slot-r4-property-cache-insert-20261008.h": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-r4-property-cache-insert-20261008.h",
+      "sha256": "a57fc2d07828572a598105065a3a51ec0d926904113ab373af77b50d2ddde256",
+      "raw_bytes": 5195
+    },
+    "scratch/performance/canonical-slot-r4-test-insert-20261008.h": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-r4-test-insert-20261008.h",
+      "sha256": "10e35b7f45466edb57227696c7aa6474de0c190b5d4732ca2116b7b383624770",
+      "raw_bytes": 3087
+    },
+    "scratch/performance/canonical-slot-r4-unsafe-retry-insert-20261008.h": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-r4-unsafe-retry-insert-20261008.h",
+      "sha256": "6c0b418dd909528bd66520dda14871694a1a1efbc2fcfa44791b8e8189300b98",
+      "raw_bytes": 277
+    },
+    "scratch/performance/canonical-slot-r4-v2-property-cache-insert-20261008.h": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-r4-v2-property-cache-insert-20261008.h",
+      "sha256": "be8c76cb6148dec3d01ae23438982e6baf692db85225a3c17186336bc757e1b4",
+      "raw_bytes": 5561
+    },
+    "scratch/performance/canonical-slot-r4-v2-test-insert-20261008.h": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-r4-v2-test-insert-20261008.h",
+      "sha256": "0d35950ce76d82070218fcffd351c20bd1abcdeb38c95236f64d9675bd4657d0",
+      "raw_bytes": 3720
+    },
+    "scratch/performance/canonical-slot-read-extra-cases-20261007.h": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-read-extra-cases-20261007.h",
+      "sha256": "180bee4192fa0096a14639f89b42ba0142f8c173d55b9cc615de8a02bdf665df",
+      "raw_bytes": 8573
+    },
+    "scratch/performance/canonical-slot-sqlglot-probe-20261008.py": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-sqlglot-probe-20261008.py",
+      "sha256": "2a0eabce26935cfd46517486c52d6d4cc95154b60b55e187c9bd607a0f5a23ae",
+      "raw_bytes": 1009
+    },
+    "scratch/performance/canonical-slot-test-integration-20261007-apply-check.log": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-test-integration-20261007-apply-check.log",
+      "sha256": "4f2a722f3a3d90389c0f7bd63ddf824d579a98f7b160269f53236377b287a8ea",
+      "raw_bytes": 106
+    },
+    "scratch/performance/canonical-slot-test-integration-20261007-expected-candidate.out": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-test-integration-20261007-expected-candidate.out",
+      "sha256": "d1ab7fe480e1fa69e42fb355b8fc8dbb9b78604ad2aa1ff77f707c68160e676c",
+      "raw_bytes": 664
+    },
+    "scratch/performance/canonical-slot-test-integration-20261007-fixture-candidate.py": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-test-integration-20261007-fixture-candidate.py",
+      "sha256": "6afb7f1d5901b77ee02b4aee58a01d3ac035cb714e865ce2131ac54dfc79bd5a",
+      "raw_bytes": 3898
+    },
+    "scratch/performance/canonical-slot-test-integration-20261007-header-candidate.h": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-test-integration-20261007-header-candidate.h",
+      "sha256": "35120b8bccda10082a07fbc6928492a205088030daf3c0312817c6ef630e059d",
+      "raw_bytes": 16215
+    },
+    "scratch/performance/canonical-slot-test-integration-20261007-interpreter-candidate.cpp": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-test-integration-20261007-interpreter-candidate.cpp",
+      "sha256": "192a29dd109cae988a35ade62f27a1e7a21c82076c19a9eb4d2afaff2032bf9d",
+      "raw_bytes": 29089
+    },
+    "scratch/performance/canonical-slot-test-integration-20261007-interpreter-source.cpp": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-test-integration-20261007-interpreter-source.cpp",
+      "sha256": "b63716cbe0e08c7d2002d180e48a8edfe64a2e31a62acd6d4d5f374b21890012",
+      "raw_bytes": 28993
+    },
+    "scratch/performance/canonical-slot-test-integration-20261007-provenance.json": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-test-integration-20261007-provenance.json",
+      "sha256": "c07ce0bb44de97f843e3b50c33eb8e9430d7aa514f01f4e23e0245b42cd3b4c8",
+      "raw_bytes": 3907
+    },
+    "scratch/performance/canonical-slot-test-integration-20261007-runner-candidate.py": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-test-integration-20261007-runner-candidate.py",
+      "sha256": "cd1271b10af498a86b5b71aa76b5a6af95abb69ca99dad23b2a866dcd19a4d95",
+      "raw_bytes": 12299
+    },
+    "scratch/performance/canonical-slot-test-integration-20261007-runner-source.py": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-test-integration-20261007-runner-source.py",
+      "sha256": "fb922c1e0ce86bcff0ae46c3207e8c5b655dafd52adb97c0b8141eaddf05a348",
+      "raw_bytes": 12278
+    },
+    "scratch/performance/canonical-slot-test-integration-20261007.patch": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-test-integration-20261007.patch",
+      "sha256": "7bfa5b49babb90c027cb7b46fe5d50fc4554d25c91a9e6ebd54b6ada2300e746",
+      "raw_bytes": 23007
+    },
+    "scratch/performance/sqlglot-canonical-slot-promotion-fixture-draft-20261007.out": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlglot-canonical-slot-promotion-fixture-draft-20261007.out",
+      "sha256": "1d26064c266d943d4b2d0a1dca8dd687a743e763a7b525bf4ba0b52cd8691a4d",
+      "raw_bytes": 590
+    },
+    "scratch/performance/sqlglot-canonical-slot-promotion-fixture-draft-20261007.py": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlglot-canonical-slot-promotion-fixture-draft-20261007.py",
+      "sha256": "09fc943ced8246be083a89c996884ab5dd6d3b9f59c2efe47c6592dd896544d5",
+      "raw_bytes": 3620
+    },
+    "scratch/performance/sqlglot-canonical-slot-promotion-ops-candidate-r3-20261007.h": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlglot-canonical-slot-promotion-ops-candidate-r3-20261007.h",
+      "sha256": "ef65e328e8353c2c8d7f50711f2ce55224dee353790e3188e0be8b500d32263d",
+      "raw_bytes": 76594
+    },
+    "scratch/performance/sqlglot-canonical-slot-promotion-ops-source-r3-20261007.h": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlglot-canonical-slot-promotion-ops-source-r3-20261007.h",
+      "sha256": "0fe7a2eac4ea362a0ca3b3e62ebaecf85ad8794e929e7a59dfb26cf875943d5d",
+      "raw_bytes": 76337
+    },
+    "scratch/performance/sqlglot-canonical-slot-promotion-proposal-20261007.md": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlglot-canonical-slot-promotion-proposal-20261007.md",
+      "sha256": "f3611fa429b9dd5d2e7028e255d4e9128d3f012a943c34595d65c7aa3ee75611",
+      "raw_bytes": 8493
+    },
+    "scratch/performance/sqlglot-canonical-slot-promotion-proposal-20261007.patch": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlglot-canonical-slot-promotion-proposal-20261007.patch",
+      "sha256": "9850bd21865b74bc2c575f6d988381bd54c0cca6e02f4a7d16c6c4a57b76ee6b",
+      "raw_bytes": 4307
+    },
+    "scratch/performance/sqlglot-canonical-slot-promotion-proposal-apply-check-20261007.log": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlglot-canonical-slot-promotion-proposal-apply-check-20261007.log",
+      "sha256": "09964030f31b97f6446c2ca45300d8b1210bdb984381518eb1f2931379a93e9b",
+      "raw_bytes": 116
+    },
+    "scratch/performance/sqlglot-canonical-slot-promotion-proposal-apply-check-r2-20261007.log": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlglot-canonical-slot-promotion-proposal-apply-check-r2-20261007.log",
+      "sha256": "6db3e2e2e65abb4d8ba23a8591def4d7e791caa94edd9f75e18b5983531ab5ab",
+      "raw_bytes": 119
+    },
+    "scratch/performance/sqlglot-canonical-slot-promotion-proposal-apply-check-r3-20261007.log": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlglot-canonical-slot-promotion-proposal-apply-check-r3-20261007.log",
+      "sha256": "e2d924fcc7c2cee7fd5f1002e7cc766eba94340a2553821792a358ecacbb9de6",
+      "raw_bytes": 119
+    },
+    "scratch/performance/sqlglot-canonical-slot-promotion-proposal-candidate-20261007.cpp": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlglot-canonical-slot-promotion-proposal-candidate-20261007.cpp",
+      "sha256": "1b06a911ef0baf303e719b517da57773df1de0abcd09ae0ddc0cd7755d9142b2",
+      "raw_bytes": 14985
+    },
+    "scratch/performance/sqlglot-canonical-slot-promotion-proposal-candidate-r2-20261007.cpp": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlglot-canonical-slot-promotion-proposal-candidate-r2-20261007.cpp",
+      "sha256": "5c98093697f91ecdfb6ce97716208e216bf79b83d4204edad2115f75443ca503",
+      "raw_bytes": 15369
+    },
+    "scratch/performance/sqlglot-canonical-slot-promotion-proposal-candidate-r3-20261007.cpp": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlglot-canonical-slot-promotion-proposal-candidate-r3-20261007.cpp",
+      "sha256": "b4f79a6b1382cdebfe02de73633e6f479f81ffcc02ff2e48277181efc7e28ca4",
+      "raw_bytes": 15672
+    },
+    "scratch/performance/sqlglot-canonical-slot-promotion-proposal-provenance-20261007.json": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlglot-canonical-slot-promotion-proposal-provenance-20261007.json",
+      "sha256": "f5d835493a2fbddb837330f7c011978b4577235814b83c80f3472f06af18cb2b",
+      "raw_bytes": 3132
+    },
+    "scratch/performance/sqlglot-canonical-slot-promotion-proposal-provenance-r2-20261007.json": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlglot-canonical-slot-promotion-proposal-provenance-r2-20261007.json",
+      "sha256": "e28ef74398c3fcb7e9f308d7b0e565140c5588049e8ad6fc68d91b06abc19cf2",
+      "raw_bytes": 2644
+    },
+    "scratch/performance/sqlglot-canonical-slot-promotion-proposal-provenance-r3-20261007.json": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlglot-canonical-slot-promotion-proposal-provenance-r3-20261007.json",
+      "sha256": "06e3a8c7e36a7f86329181a03fd00c87210debdf40c22c7a1950ffe8e41a72df",
+      "raw_bytes": 3831
+    },
+    "scratch/performance/sqlglot-canonical-slot-promotion-proposal-r2-20261007.patch": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlglot-canonical-slot-promotion-proposal-r2-20261007.patch",
+      "sha256": "39e4724a0814bc006554f03a049220860a1db78a0fd5d48d7fd7cb6c8453be46",
+      "raw_bytes": 4700
+    },
+    "scratch/performance/sqlglot-canonical-slot-promotion-proposal-r3-20261007.patch": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlglot-canonical-slot-promotion-proposal-r3-20261007.patch",
+      "sha256": "ea616cd331a1df319a6d6289272c93cc376e4303489f3f7bceb37d0e6cf833fa",
+      "raw_bytes": 6837
+    },
+    "scratch/performance/sqlglot-canonical-slot-promotion-proposal-schematic-20261007.patch": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlglot-canonical-slot-promotion-proposal-schematic-20261007.patch",
+      "sha256": "d7900f62781ecc4f72b6ababfa3f22a45c31312051553b066df3dee7bd69da29",
+      "raw_bytes": 3540
+    },
+    "scratch/performance/sqlglot-canonical-slot-promotion-proposal-source-20261007.cpp": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlglot-canonical-slot-promotion-proposal-source-20261007.cpp",
+      "sha256": "7053dadaee378a8a27acebd69fbb1b7797fc61c1bd9de39daa22ac411ce8bcb5",
+      "raw_bytes": 11993
+    },
+    "scratch/performance/sqlglot-canonical-slot-promotion-r3-audit-20261007.md": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlglot-canonical-slot-promotion-r3-audit-20261007.md",
+      "sha256": "28951587522028abbdcc54df7df3c9e422b6cd6e6d8766b2c08f4a7408b8a4a1",
+      "raw_bytes": 5097
+    },
+    "scratch/performance/check-canonical-slot-20261008.py": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\check-canonical-slot-20261008.py",
+      "sha256": "4f6113bd39abc6bd50490636415b6490720ec337c05936ac28e7a185ea80c5e4",
+      "raw_bytes": 3179
+    },
+    "scratch/performance/check-canonical-slot-r2-20261008.py": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\check-canonical-slot-r2-20261008.py",
+      "sha256": "0ccc0825b16106a98885e38e7b298363d16f0a7effa29a3ad2283fe76747d14c",
+      "raw_bytes": 3009
+    },
+    "scratch/performance/check-canonical-slot-r4-20261008.py": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\check-canonical-slot-r4-20261008.py",
+      "sha256": "1ca75f92cf61bad84c98d05db3cfda9a3099f1116016d6902ea685990d56e3fe",
+      "raw_bytes": 2444
+    },
+    "scratch/performance/compare-canonical-slot-20261008.py": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\compare-canonical-slot-20261008.py",
+      "sha256": "85752733ed006e69f6834d6082be0223e33f9e037223fb531aae5dca17599130",
+      "raw_bytes": 4451
+    },
+    "scratch/performance/compare-canonical-slot-r4-20261008.py": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\compare-canonical-slot-r4-20261008.py",
+      "sha256": "2eba18fbeba42ceb4d828da1eaa2cd0721892df618b87e9dca95498f89d792ec",
+      "raw_bytes": 5118
+    },
+    "scratch/performance/export-canonical-slot-checkpoint-20261008.py": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\export-canonical-slot-checkpoint-20261008.py",
+      "sha256": "9ed115d3c9bbf817bc6ceb9ac2cf9881588b10199519d4e12ecd0583f0cd4934",
+      "raw_bytes": 32600
+    },
+    "scratch/performance/preserve-canonical-slot-control-20261008.py": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\preserve-canonical-slot-control-20261008.py",
+      "sha256": "c6fc3702b4ab564d526d49e8ada9147e0d4f6fc4a510aa2b2641e30462f3c921",
+      "raw_bytes": 1510
+    },
+    "scratch/performance/preserve-canonical-slot-r3-release-20261008.py": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\preserve-canonical-slot-r3-release-20261008.py",
+      "sha256": "c5d106e3a5d63ddf5865acfe0b897e3c6f132767596a44af86addf4acf44f44e",
+      "raw_bytes": 1632
+    },
+    "scratch/performance/preserve-canonical-slot-r3-sources-20261008.py": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\preserve-canonical-slot-r3-sources-20261008.py",
+      "sha256": "296de8ed99694b4e417a4d97c04e05771de797eb59eeefefdfa5e2d8671c5b70",
+      "raw_bytes": 1264
+    },
+    "scratch/performance/validate-canonical-slot-r4-20261008.py": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\validate-canonical-slot-r4-20261008.py",
+      "sha256": "c468521c61316ce7b5812d4af6df41d1b8fb16d712cff0fb2d02d28866374669",
+      "raw_bytes": 6624
+    },
+    "scratch/performance/canonical_slot_r4_support_20261008.py": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical_slot_r4_support_20261008.py",
+      "sha256": "bd06e6fd7e78b1106d6f0eef01a3fac68f0996395e36ea5ebccfb7ec5decb831",
+      "raw_bytes": 9077
+    },
+    "scratch/performance/correct-canonical-slot-r4-v2-20261008.ps1": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\correct-canonical-slot-r4-v2-20261008.ps1",
+      "sha256": "dd8cdb484afebe784c007ca86d9aaab47e9d0507ade3ff1adc7d7dbcb818c2f8",
+      "raw_bytes": 5732
+    },
+    "scratch/performance/prepare-canonical-slot-r4-proposal-20261008.ps1": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\prepare-canonical-slot-r4-proposal-20261008.ps1",
+      "sha256": "b3d89fa8519a62e85d1bbb51697e0f0c39997e78c73158bf423e6358232735f6",
+      "raw_bytes": 8863
+    },
+    "scratch/performance/prepare-canonical-slot-r4-v2-proposal-20261008.ps1": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\prepare-canonical-slot-r4-v2-proposal-20261008.ps1",
+      "sha256": "94d808f4001270609c3eb89458cdc375ef4ab764e00438c5249e90d2a7155dfd",
+      "raw_bytes": 8878
+    },
+    "build-repro/controls/vm-captured-lookup-checkpoint-20261007/preserved-release-provenance.json": {
+      "source": "D:\\CantorAI\\xlang3\\build-repro\\controls\\vm-captured-lookup-checkpoint-20261007\\preserved-release-provenance.json",
+      "sha256": "097e83583e6ef36185a78ca500d25b9ab69ffe9b45a5f02d662118c7c7e72dc5",
+      "raw_bytes": 16417
+    },
+    "build-repro/controls/canonical-slot-r3-trial-20261008/preserved-release-provenance.json": {
+      "source": "D:\\CantorAI\\xlang3\\build-repro\\controls\\canonical-slot-r3-trial-20261008\\preserved-release-provenance.json",
+      "sha256": "6b6bead7c57ed05a8ad2581050f2c33463904109c5e9a06c526964d8222b9e1d",
+      "raw_bytes": 17114
+    }
+  },
+  "copy_policy": "Complete original bytes, no trimming/encoding/line-ending normalization",
+  "exporter_sha256": "9ed115d3c9bbf817bc6ceb9ac2cf9881588b10199519d4e12ecd0583f0cd4934",
+  "generated_files": {
+    "canonical-slot-checkpoint-20261008.md": "8db6faa56669e7166cfe8a806d7b4f8fd7c51652699d522574b5ddf96ef09fda",
+    "canonical-slot-diagnostic-speed-20261008.svg": "a3b948998f0772707af719814810a178aa7076bbb4fa2a90db08460affacf8c0",
+    "canonical-slot-official-speed-20261008.svg": "d578ac91b2c34a253d36e3a52c0a57a5a2983d0e50d6338f2a24beb7a040bd3d",
+    "data/canonical-slot-paired-samples-20261008.csv": "64071eec18da144f9cab91b8cf6fa692698697b47702d04ded1b07ec9c7dd052",
+    "data/canonical-slot-paired-summary-20261008.csv": "c6a2c5abb19c6d24d99ff484aa608c862ae2703fe464320af80643ba4bc4bee9",
+    "data/canonical-slot-official-samples-20261008.csv": "7415f63bb7b32bd35eb4283100822d9f5afff3b342b50f3be2de0e9970eed72d",
+    "data/canonical-slot-official-summary-20261008.csv": "ca09fbe0c3e9ac99d0b00708dac05490e475198b26eb4889931cd3c48a0038e0",
+    "data/canonical-slot-checkpoint-comparison-20261008.json": "bf1cecfa300b7151246e4d8a6786b5d6af79f0b56fc77a279bc18bcf23569595"
+  }
+}

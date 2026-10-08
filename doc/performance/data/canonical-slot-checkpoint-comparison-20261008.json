@@ -1,0 +1,469 @@
+{
+  "status": "terminal evidence export",
+  "official_candidate_status": "validated",
+  "scope": "Diagnostics separate from original official pyperformance; no whole-suite claim",
+  "speed_convention": "reference_seconds / runtime_seconds; 1x equal speed, above 1x faster",
+  "historical_xlang3_is_not_the_paired_control": true,
+  "diagnostic_samples": 600,
+  "diagnostic_summary_rows": 8,
+  "diagnostic_binaries": {
+    "R3": {
+      "control": {
+        "exe": "b6a279e5086d74b0784be81499ebad2068d878f8f8c62accd6b7e5f9a08092e9",
+        "dll": "d32719ac907a10b994d5160a5ce97f05561c6c003de9a7c6f8dcd862da464ea3"
+      },
+      "candidate": {
+        "exe": "b6a279e5086d74b0784be81499ebad2068d878f8f8c62accd6b7e5f9a08092e9",
+        "dll": "32072ed892e61c1402981ccfe13e43991619669b5f2df699fe4497ee424a237b"
+      }
+    },
+    "R4": {
+      "control": {
+        "exe": "b6a279e5086d74b0784be81499ebad2068d878f8f8c62accd6b7e5f9a08092e9",
+        "dll": "d32719ac907a10b994d5160a5ce97f05561c6c003de9a7c6f8dcd862da464ea3"
+      },
+      "candidate": {
+        "exe": "b6a279e5086d74b0784be81499ebad2068d878f8f8c62accd6b7e5f9a08092e9",
+        "dll": "ffd2ea4ef32dac1c00512f5ecd9c5d5b9c8770e6917fc90f8cb0cce442851f6b"
+      }
+    }
+  },
+  "official": [
+    {
+      "runtime": "cpython3147",
+      "scope": "original pyperformance fast mode",
+      "source_json": "doc/performance/data/pyperformance-cpython3147-live-eval-full-fast-20261007.json",
+      "json_sha256": "ac474df5576ac85f6f5350363affecc439d4f658b4dfa3dbe291b46964276eb0",
+      "sample_count": 20,
+      "mean_seconds": 0.0009882882422175498,
+      "sample_standard_deviation_seconds": 1.0772736398572881e-05,
+      "pyperf_instability_warning": false,
+      "values_seconds": [
+        0.0009840914060532668,
+        0.0009905929684919101,
+        0.0009911406243645615,
+        0.0009875429682324466,
+        0.0009910421874792519,
+        0.0009878429696073,
+        0.0009866804698503984,
+        0.001004994531513148,
+        0.0009726718751608132,
+        0.0009794499994768557,
+        0.0010022523433690367,
+        0.0009943273441876954,
+        0.0009881515618417325,
+        0.0009842171880336537,
+        0.0009927046871780476,
+        0.0009873890619473968,
+        0.0009911398440181074,
+        0.001002941407250546,
+        0.0009909187501762062,
+        0.0009556726561186224
+      ],
+      "cpython_time_over_runtime_time_speed": 1.0,
+      "runtime_time_over_cpython_time": 1.0
+    },
+    {
+      "runtime": "historical_xlang3",
+      "scope": "original pyperformance fast mode",
+      "source_json": "doc/performance/data/pyperformance-xlang3-live-eval-full-fast-20261007.json",
+      "json_sha256": "df70a5c4cf13cc2e323812850be53af2f1e04317a99f41260723ce97903041dd",
+      "sample_count": 20,
+      "mean_seconds": 0.021946446876245317,
+      "sample_standard_deviation_seconds": 0.0008797526305564723,
+      "pyperf_instability_warning": true,
+      "values_seconds": [
+        0.023047612492518965,
+        0.0228571000006923,
+        0.021909625000262167,
+        0.021382312497735256,
+        0.02188239999304642,
+        0.021643400010361802,
+        0.02164430000630091,
+        0.021301625009073177,
+        0.021498624999367166,
+        0.021326374997443054,
+        0.0213381500034302,
+        0.021356100001867162,
+        0.02153528749840916,
+        0.025075475001358427,
+        0.02129744999547256,
+        0.02216866250455496,
+        0.021871225006179884,
+        0.021948600002360763,
+        0.021923050004261313,
+        0.02192156250021071
+      ],
+      "cpython_time_over_runtime_time_speed": 0.045031810743235444,
+      "runtime_time_over_cpython_time": 22.206524310155956
+    },
+    {
+      "runtime": "r4_candidate",
+      "scope": "original pyperformance fast mode",
+      "source_json": "doc/performance/data/pyperformance-canonical-slot-r4-sqlglot-parse-fast-20261008.json",
+      "json_sha256": "a3a841f120a719aa06f0f964b19af1630e35d321560081800ca34c843dd9b0b6",
+      "sample_count": 20,
+      "mean_seconds": 0.019547912499365338,
+      "sample_standard_deviation_seconds": 0.001772190195567095,
+      "pyperf_instability_warning": true,
+      "values_seconds": [
+        0.018946437496197177,
+        0.01858618749611196,
+        0.01907592499628663,
+        0.019185299999662675,
+        0.02608731249711127,
+        0.018908862493844936,
+        0.018542787503974978,
+        0.018875587498769164,
+        0.019124700000247685,
+        0.019024262499442557,
+        0.018753862499579554,
+        0.018691299999773037,
+        0.019384125007491093,
+        0.018607400001201313,
+        0.01944977499806555,
+        0.01986350000152015,
+        0.022590412499994272,
+        0.01878407500043977,
+        0.018724987501627766,
+        0.01975144999596523
+      ],
+      "cpython_time_over_runtime_time_speed": 0.050557226622005624,
+      "runtime_time_over_cpython_time": 19.7795659852263
+    }
+  ],
+  "full_validation": {
+    "status": "validated",
+    "scope": "Fresh focused correctness followed by unchanged paired diagnostics",
+    "owned_controller_pids": [
+      2336
+    ],
+    "phases": [
+      {
+        "name": "fixtures",
+        "command": [
+          "C:\\Python\\Python314\\python.exe",
+          "tests/run_fixtures.py",
+          "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe"
+        ],
+        "exit_code": 0,
+        "timeout": false,
+        "log": "canonical-slot-r4-validation-20261008-fixtures.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "cpp",
+        "command": [
+          "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\ctest.exe",
+          "--test-dir",
+          "build-repro/main-verify-20261006",
+          "-C",
+          "Release",
+          "-R",
+          "xlang3_(runtime_value_tests|interpreter_tests|sdk_stream_call_tests|graph_)",
+          "--output-on-failure"
+        ],
+        "exit_code": 0,
+        "timeout": false,
+        "log": "canonical-slot-r4-validation-20261008-cpp.log",
+        "sha256": "0840e744a9b61457ea3dc7042ccebb6a07302de2db16dcf6dadc13353835cf57"
+      },
+      {
+        "name": "gate",
+        "command": [
+          "C:\\Python\\Python314\\python.exe",
+          "benchmarks/check_regression.py",
+          "--baseline",
+          "D:\\CantorAI\\xlang3\\build-repro\\Release\\xlang3.exe",
+          "--candidate",
+          "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+          "--output",
+          "D:\\CantorAI\\xlang3\\doc\\performance\\data\\release-canonical-slot-r4-fixed-gate-20261008.json"
+        ],
+        "exit_code": 0,
+        "timeout": false,
+        "log": "canonical-slot-r4-validation-20261008-gate.log",
+        "sha256": "f3b750c1218c380e7a69355ab3ba982ed6adade8be438b89cc7d95aa2188b2ec"
+      },
+      {
+        "name": "official-sqlglot-parse",
+        "command": [
+          "C:\\Python\\Python314\\python.exe",
+          "benchmarks/diagnostics/run_pyperformance_xlang3_shimmed.py",
+          "--runtime",
+          "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+          "--benchmarks",
+          "sqlglot_v2_parse",
+          "--mode",
+          "fast",
+          "--case-timeout",
+          "300",
+          "--dependency-site",
+          "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages",
+          "--output",
+          "D:\\CantorAI\\xlang3\\doc\\performance\\data\\pyperformance-canonical-slot-r4-sqlglot-parse-fast-20261008.json"
+        ],
+        "exit_code": 0,
+        "timeout": false,
+        "log": "canonical-slot-r4-validation-20261008-official-sqlglot-parse.log",
+        "sha256": "713a4ce3bad7ac68e05d653147049e8d03ffc701c87bb8db8571a8c17552751e"
+      }
+    ],
+    "idle_guards": [
+      {
+        "name": "start",
+        "allowed_controller_pids": [
+          2336
+        ],
+        "busy_processes": [],
+        "status": "idle"
+      },
+      {
+        "name": "before-paired",
+        "allowed_controller_pids": [
+          2336
+        ],
+        "busy_processes": [],
+        "status": "idle"
+      }
+    ],
+    "hashes_before": {
+      "binaries_sha256": {
+        "control": {
+          "exe": "b6a279e5086d74b0784be81499ebad2068d878f8f8c62accd6b7e5f9a08092e9",
+          "dll": "d32719ac907a10b994d5160a5ce97f05561c6c003de9a7c6f8dcd862da464ea3"
+        },
+        "candidate": {
+          "exe": "b6a279e5086d74b0784be81499ebad2068d878f8f8c62accd6b7e5f9a08092e9",
+          "dll": "ffd2ea4ef32dac1c00512f5ecd9c5d5b9c8770e6917fc90f8cb0cce442851f6b"
+        }
+      },
+      "cpp_test_binary_sha256": "c7bcb8c1a7718a083fb9f2c87b4d74daa48f48e98bc38f480b7dd134594b1293",
+      "cpython3147_binary_sha256": "4942b86a6597e5aee0128daa00050ed79bc21f6e709a78eb19cbfeb0c2f39ac9",
+      "source_sha256": {
+        "src/executor/xlang_vm/xlang_vm_attr.cpp": "5f09f741ceab8f72c2b918912ba30e12f12bcde91988097d056ae3f20a62bb64",
+        "src/executor/xlang_vm/ops/xlang_vm_ops_attr.h": "f29726b53a7e0538b65d5a860b39927c3b598d285e678c6b19e0f7fbfdd0e60f",
+        "tests/cpp/canonical_slot_read_cases.h": "cb8346950866fade0435e2fadcac56ff1eb403995dc4648f24d3ed7be89f7e50",
+        "tests/cpp/interpreter_tests.cpp": "2e1c801963399e23f02d5f35e198949f102a8b665eebe3fcdcfebd453ce2342c",
+        "tests/run_fixtures.py": "b0c4703154a9fc647ed7a37d83f28a6efd9ca6e9053c74c1362912105ed4d61b",
+        "tests/fixtures/core/canonical_slot_reads.py": "67cbbbfcb4fe02ad07f7da7ead051998b3735d547f52e5843fef6102cbe97006",
+        "tests/fixtures/expected/canonical_slot_reads.out": "7aea1a5b5fe9833fc9102b3174361061593048ab6cc70ce168ab685c5a8d4c5a",
+        "scratch/performance/canonical-slot-probe-20261008.py": "f2cda8eff1ed7ab9ded5ab7daeefee8d0b7909b4b3974fcda06e48a706d994d2",
+        "scratch/performance/canonical-slot-sqlglot-probe-20261008.py": "2a0eabce26935cfd46517486c52d6d4cc95154b60b55e187c9bd607a0f5a23ae",
+        "scratch/performance/check-canonical-slot-r4-20261008.py": "1ca75f92cf61bad84c98d05db3cfda9a3099f1116016d6902ea685990d56e3fe",
+        "scratch/performance/compare-canonical-slot-r4-20261008.py": "2eba18fbeba42ceb4d828da1eaa2cd0721892df618b87e9dca95498f89d792ec",
+        "scratch/performance/canonical_slot_r4_support_20261008.py": "bd06e6fd7e78b1106d6f0eef01a3fac68f0996395e36ea5ebccfb7ec5decb831"
+      },
+      "benchmark_source_sha256": "d97aaba24f8c49f2afe5c5c740c568be6e89dde3364d5a964a4b72e5a4768a9b",
+      "compatibility_hook_sha256": "2ffc217fe20497156bfcb1cebc7fb87203f33c6d4d3dbb6ecbcbcf91ea4cb317"
+    },
+    "paired_result": {
+      "path": "canonical-slot-r4-paired-20261008.json",
+      "sha256": "f08f34fdf1d3a69e5141d8ea23c21495cd62e245fd7996ab7e0eb3f70aefe0d1"
+    },
+    "hashes_after": {
+      "binaries_sha256": {
+        "control": {
+          "exe": "b6a279e5086d74b0784be81499ebad2068d878f8f8c62accd6b7e5f9a08092e9",
+          "dll": "d32719ac907a10b994d5160a5ce97f05561c6c003de9a7c6f8dcd862da464ea3"
+        },
+        "candidate": {
+          "exe": "b6a279e5086d74b0784be81499ebad2068d878f8f8c62accd6b7e5f9a08092e9",
+          "dll": "ffd2ea4ef32dac1c00512f5ecd9c5d5b9c8770e6917fc90f8cb0cce442851f6b"
+        }
+      },
+      "cpp_test_binary_sha256": "c7bcb8c1a7718a083fb9f2c87b4d74daa48f48e98bc38f480b7dd134594b1293",
+      "cpython3147_binary_sha256": "4942b86a6597e5aee0128daa00050ed79bc21f6e709a78eb19cbfeb0c2f39ac9",
+      "source_sha256": {
+        "src/executor/xlang_vm/xlang_vm_attr.cpp": "5f09f741ceab8f72c2b918912ba30e12f12bcde91988097d056ae3f20a62bb64",
+        "src/executor/xlang_vm/ops/xlang_vm_ops_attr.h": "f29726b53a7e0538b65d5a860b39927c3b598d285e678c6b19e0f7fbfdd0e60f",
+        "tests/cpp/canonical_slot_read_cases.h": "cb8346950866fade0435e2fadcac56ff1eb403995dc4648f24d3ed7be89f7e50",
+        "tests/cpp/interpreter_tests.cpp": "2e1c801963399e23f02d5f35e198949f102a8b665eebe3fcdcfebd453ce2342c",
+        "tests/run_fixtures.py": "b0c4703154a9fc647ed7a37d83f28a6efd9ca6e9053c74c1362912105ed4d61b",
+        "tests/fixtures/core/canonical_slot_reads.py": "67cbbbfcb4fe02ad07f7da7ead051998b3735d547f52e5843fef6102cbe97006",
+        "tests/fixtures/expected/canonical_slot_reads.out": "7aea1a5b5fe9833fc9102b3174361061593048ab6cc70ce168ab685c5a8d4c5a",
+        "scratch/performance/canonical-slot-probe-20261008.py": "f2cda8eff1ed7ab9ded5ab7daeefee8d0b7909b4b3974fcda06e48a706d994d2",
+        "scratch/performance/canonical-slot-sqlglot-probe-20261008.py": "2a0eabce26935cfd46517486c52d6d4cc95154b60b55e187c9bd607a0f5a23ae",
+        "scratch/performance/check-canonical-slot-r4-20261008.py": "1ca75f92cf61bad84c98d05db3cfda9a3099f1116016d6902ea685990d56e3fe",
+        "scratch/performance/compare-canonical-slot-r4-20261008.py": "2eba18fbeba42ceb4d828da1eaa2cd0721892df618b87e9dca95498f89d792ec",
+        "scratch/performance/canonical_slot_r4_support_20261008.py": "bd06e6fd7e78b1106d6f0eef01a3fac68f0996395e36ea5ebccfb7ec5decb831"
+      },
+      "benchmark_source_sha256": "d97aaba24f8c49f2afe5c5c740c568be6e89dde3364d5a964a4b72e5a4768a9b",
+      "compatibility_hook_sha256": "2ffc217fe20497156bfcb1cebc7fb87203f33c6d4d3dbb6ecbcbcf91ea4cb317"
+    },
+    "hashes_unchanged": true,
+    "terminal_record": true,
+    "candidate_binary_sha256": {
+      "exe": "b6a279e5086d74b0784be81499ebad2068d878f8f8c62accd6b7e5f9a08092e9",
+      "dll": "ffd2ea4ef32dac1c00512f5ecd9c5d5b9c8770e6917fc90f8cb0cce442851f6b"
+    },
+    "source_sha256": {
+      "src/executor/xlang_vm/xlang_vm_attr.cpp": "5f09f741ceab8f72c2b918912ba30e12f12bcde91988097d056ae3f20a62bb64",
+      "src/executor/xlang_vm/ops/xlang_vm_ops_attr.h": "f29726b53a7e0538b65d5a860b39927c3b598d285e678c6b19e0f7fbfdd0e60f",
+      "tests/cpp/canonical_slot_read_cases.h": "cb8346950866fade0435e2fadcac56ff1eb403995dc4648f24d3ed7be89f7e50",
+      "tests/cpp/interpreter_tests.cpp": "2e1c801963399e23f02d5f35e198949f102a8b665eebe3fcdcfebd453ce2342c",
+      "tests/run_fixtures.py": "b0c4703154a9fc647ed7a37d83f28a6efd9ca6e9053c74c1362912105ed4d61b",
+      "tests/fixtures/core/canonical_slot_reads.py": "67cbbbfcb4fe02ad07f7da7ead051998b3735d547f52e5843fef6102cbe97006",
+      "tests/fixtures/expected/canonical_slot_reads.out": "7aea1a5b5fe9833fc9102b3174361061593048ab6cc70ce168ab685c5a8d4c5a",
+      "scratch/performance/canonical-slot-probe-20261008.py": "f2cda8eff1ed7ab9ded5ab7daeefee8d0b7909b4b3974fcda06e48a706d994d2",
+      "scratch/performance/canonical-slot-sqlglot-probe-20261008.py": "2a0eabce26935cfd46517486c52d6d4cc95154b60b55e187c9bd607a0f5a23ae",
+      "scratch/performance/check-canonical-slot-r4-20261008.py": "1ca75f92cf61bad84c98d05db3cfda9a3099f1116016d6902ea685990d56e3fe",
+      "scratch/performance/compare-canonical-slot-r4-20261008.py": "2eba18fbeba42ceb4d828da1eaa2cd0721892df618b87e9dca95498f89d792ec",
+      "scratch/performance/canonical_slot_r4_support_20261008.py": "bd06e6fd7e78b1106d6f0eef01a3fac68f0996395e36ea5ebccfb7ec5decb831"
+    },
+    "early_evidence": {
+      "output": "canonical-slot-r4-early-20261008.json",
+      "sha256": "e5c621d800be41f611adf658494f8f0939d51b4ebdd37be42bf4036736878b83"
+    },
+    "paired_evidence": {
+      "output": "canonical-slot-r4-paired-20261008.json",
+      "sha256": "f08f34fdf1d3a69e5141d8ea23c21495cd62e245fd7996ab7e0eb3f70aefe0d1"
+    },
+    "fixture_counts": {
+      "core": 376,
+      "compatibility_sections": 11,
+      "expected_failures": 3
+    },
+    "fixed_gate": {
+      "output": "release-canonical-slot-r4-fixed-gate-20261008.json",
+      "sha256": "ed37d4bae41d61a6ab8eb3a2b3d1e844a1ac46793e846868c0f6e7003cd4d014",
+      "exit_code": 0
+    },
+    "compatibility_hook_sha256": "2ffc217fe20497156bfcb1cebc7fb87203f33c6d4d3dbb6ecbcbcf91ea4cb317",
+    "official_sqlglot_parse": {
+      "output": "pyperformance-canonical-slot-r4-sqlglot-parse-fast-20261008.json",
+      "sha256": "a3a841f120a719aa06f0f964b19af1630e35d321560081800ca34c843dd9b0b6",
+      "exit_code": 0
+    }
+  },
+  "paired_summary": [
+    {
+      "stage": "R3",
+      "probe": "slot",
+      "case": "own_slot",
+      "cpython_reference_median_seconds": 0.0003369000041857362,
+      "control_process_median_seconds": 0.0017551000055391341,
+      "candidate_process_median_seconds": 0.000984499987680465,
+      "paired_control_over_candidate_speed": 1.7927053514891123,
+      "pairs_favoring_candidate": 7,
+      "pair_count": 7,
+      "descriptive_cpython_over_control_speed": 0.19195487614521814,
+      "descriptive_cpython_over_candidate_speed": 0.34220417308433976,
+      "paired_ratios_json": "[1.9335703657315384, 1.659570408281244, 1.6632543558420356, 1.818135259100434, 1.7563294643363176, 1.7927053514891123, 1.8814253724849295]",
+      "identity_json": "{\"checksum\": 114688, \"operations\": 16384, \"path\": \"own_slot\"}",
+      "acceptance": "rejected trial: inherited regression"
+    },
+    {
+      "stage": "R3",
+      "probe": "slot",
+      "case": "inherited_slot",
+      "cpython_reference_median_seconds": 0.00032220000866800547,
+      "control_process_median_seconds": 0.0017619999998714775,
+      "candidate_process_median_seconds": 0.0019608000002335757,
+      "paired_control_over_candidate_speed": 0.8986128109249201,
+      "pairs_favoring_candidate": 0,
+      "pair_count": 7,
+      "descriptive_cpython_over_control_speed": 0.18286039085783606,
+      "descriptive_cpython_over_candidate_speed": 0.16432068983558962,
+      "paired_ratios_json": "[0.9106096507458062, 0.7935956305222374, 0.8760578635245145, 0.8467107474255282, 0.904231285096576, 0.9047082375649712, 0.8986128109249201]",
+      "identity_json": "{\"checksum\": 114688, \"operations\": 16384, \"path\": \"inherited_slot\"}",
+      "acceptance": "rejected trial: inherited regression"
+    },
+    {
+      "stage": "R3",
+      "probe": "slot",
+      "case": "ordinary_attr",
+      "cpython_reference_median_seconds": 0.0003273999900557101,
+      "control_process_median_seconds": 0.001024700002744794,
+      "candidate_process_median_seconds": 0.0010892999998759478,
+      "paired_control_over_candidate_speed": 0.9354573549714491,
+      "pairs_favoring_candidate": 0,
+      "pair_count": 7,
+      "descriptive_cpython_over_control_speed": 0.31950813816602525,
+      "descriptive_cpython_over_candidate_speed": 0.30055998356099806,
+      "paired_ratios_json": "[0.9282107652752428, 0.9504060102548757, 0.9212335342090578, 0.95495326817496, 0.9583371330516806, 0.9354573549714491, 0.9266451686731032]",
+      "identity_json": "{\"checksum\": 114688, \"operations\": 16384, \"path\": \"ordinary_attr\"}",
+      "acceptance": "rejected trial: inherited regression"
+    },
+    {
+      "stage": "R3",
+      "probe": "sqlglot_parse",
+      "case": "sqlglot_v2_parse",
+      "cpython_reference_median_seconds": 0.0009774600010132417,
+      "control_process_median_seconds": 0.021351339996908792,
+      "candidate_process_median_seconds": 0.018558480002684518,
+      "paired_control_over_candidate_speed": 1.158326286770484,
+      "pairs_favoring_candidate": 7,
+      "pair_count": 7,
+      "descriptive_cpython_over_control_speed": 0.04577979654460828,
+      "descriptive_cpython_over_candidate_speed": 0.05266918416119479,
+      "paired_ratios_json": "[1.158326286770484, 1.1596671712503852, 1.1668156886685797, 1.1283256586173158, 1.1264441094484177, 1.1364113905726436, 1.1700229877749913]",
+      "identity_json": "{\"canonical_sql_sha256\": \"145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a\", \"parses_per_sample\": 10, \"path\": \"sqlglot_v2_parse\"}",
+      "acceptance": "rejected trial: inherited regression"
+    },
+    {
+      "stage": "R4",
+      "probe": "slot",
+      "case": "own_slot",
+      "cpython_reference_median_seconds": 0.000364200008334592,
+      "control_process_median_seconds": 0.001744999986840412,
+      "candidate_process_median_seconds": 0.0009883999882731587,
+      "paired_control_over_candidate_speed": 1.7915810509088135,
+      "pairs_favoring_candidate": 7,
+      "pair_count": 7,
+      "descriptive_cpython_over_control_speed": 0.20871060806941982,
+      "descriptive_cpython_over_candidate_speed": 0.368474314706224,
+      "paired_ratios_json": "[1.752941169584756, 1.7915810509088135, 1.8127395319880943, 1.7331401762490062, 1.7322977724090984, 1.8390922044577713, 1.8208215471995735]",
+      "identity_json": "{\"checksum\": 114688, \"operations\": 16384, \"path\": \"own_slot\"}",
+      "acceptance": "validated; retains measured slower controls"
+    },
+    {
+      "stage": "R4",
+      "probe": "slot",
+      "case": "inherited_slot",
+      "cpython_reference_median_seconds": 0.0003061999741476029,
+      "control_process_median_seconds": 0.0017809999990276992,
+      "candidate_process_median_seconds": 0.0018341999966651201,
+      "paired_control_over_candidate_speed": 0.9645797362055503,
+      "pairs_favoring_candidate": 1,
+      "pair_count": 7,
+      "descriptive_cpython_over_control_speed": 0.17192586991283917,
+      "descriptive_cpython_over_candidate_speed": 0.16693925128357065,
+      "paired_ratios_json": "[0.9700141688782531, 1.0045916884811497, 0.9889158604787328, 0.9645797362055503, 0.9496268811947749, 0.912416084199063, 0.9521429401374786]",
+      "identity_json": "{\"checksum\": 114688, \"operations\": 16384, \"path\": \"inherited_slot\"}",
+      "acceptance": "validated; retains measured slower controls"
+    },
+    {
+      "stage": "R4",
+      "probe": "slot",
+      "case": "ordinary_attr",
+      "cpython_reference_median_seconds": 0.00031659999513067305,
+      "control_process_median_seconds": 0.0010193000198341906,
+      "candidate_process_median_seconds": 0.0010869000107049942,
+      "paired_control_over_candidate_speed": 0.9378047999712095,
+      "pairs_favoring_candidate": 1,
+      "pair_count": 7,
+      "descriptive_cpython_over_control_speed": 0.31060530655358404,
+      "descriptive_cpython_over_candidate_speed": 0.2912871395827085,
+      "paired_ratios_json": "[0.9545623899003313, 1.0335385345495203, 0.9378047999712095, 0.9010978977958732, 0.9300313052395361, 0.9395528255001928, 0.8625816703743037]",
+      "identity_json": "{\"checksum\": 114688, \"operations\": 16384, \"path\": \"ordinary_attr\"}",
+      "acceptance": "validated; retains measured slower controls"
+    },
+    {
+      "stage": "R4",
+      "probe": "sqlglot_parse",
+      "case": "sqlglot_v2_parse",
+      "cpython_reference_median_seconds": 0.0010031000012531877,
+      "control_process_median_seconds": 0.02147858000244014,
+      "candidate_process_median_seconds": 0.019020069995895027,
+      "paired_control_over_candidate_speed": 1.141120931845132,
+      "pairs_favoring_candidate": 7,
+      "pair_count": 7,
+      "descriptive_cpython_over_control_speed": 0.046702342572890174,
+      "descriptive_cpython_over_candidate_speed": 0.05273902785161569,
+      "paired_ratios_json": "[1.141120931845132, 1.157488687207477, 1.116737544286828, 1.15289566066605, 1.1298946370284846, 1.120991325168474, 1.1656120879286265]",
+      "identity_json": "{\"canonical_sql_sha256\": \"145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a\", \"parses_per_sample\": 10, \"path\": \"sqlglot_v2_parse\"}",
+      "acceptance": "validated; retains measured slower controls"
+    }
+  ]
+}

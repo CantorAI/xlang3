@@ -1,0 +1,16 @@
+Finished slot pair 1
+Finished slot pair 2
+Finished slot pair 3
+Finished slot pair 4
+Finished slot pair 5
+Finished slot pair 6
+Finished slot pair 7
+slot summary: [{"identity": {"path": "own_slot", "operations": 16384, "checksum": 114688}, "control_time_over_candidate_time": [1.9335703657315384, 1.659570408281244, 1.6632543558420356, 1.818135259100434, 1.7563294643363176, 1.7927053514891123, 1.8814253724849295], "median_speedup": 1.7927053514891123, "pairs_favoring_candidate": 7}, {"identity": {"path": "inherited_slot", "operations": 16384, "checksum": 114688}, "control_time_over_candidate_time": [0.9106096507458062, 0.7935956305222374, 0.8760578635245145, 0.8467107474255282, 0.904231285096576, 0.9047082375649712, 0.8986128109249201], "median_speedup": 0.8986128109249201, "pairs_favoring_candidate": 0}, {"identity": {"path": "ordinary_attr", "operations": 16384, "checksum": 114688}, "control_time_over_candidate_time": [0.9282107652752428, 0.9504060102548757, 0.9212335342090578, 0.95495326817496, 0.9583371330516806, 0.9354573549714491, 0.9266451686731032], "median_speedup": 0.9354573549714491, "pairs_favoring_candidate": 0}]
+Finished sqlglot_parse pair 1
+Finished sqlglot_parse pair 2
+Finished sqlglot_parse pair 3
+Finished sqlglot_parse pair 4
+Finished sqlglot_parse pair 5
+Finished sqlglot_parse pair 6
+Finished sqlglot_parse pair 7
+sqlglot_parse summary: [{"identity": {"path": "sqlglot_v2_parse", "parses_per_sample": 10, "canonical_sql_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a"}, "control_time_over_candidate_time": [1.158326286770484, 1.1596671712503852, 1.1668156886685797, 1.1283256586173158, 1.1264441094484177, 1.1364113905726436, 1.1700229877749913], "median_speedup": 1.158326286770484, "pairs_favoring_candidate": 7}]

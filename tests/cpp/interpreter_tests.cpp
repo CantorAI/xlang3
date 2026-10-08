@@ -13,6 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 #include "test_harness.h"
+#include "canonical_slot_read_cases.h"
 
 #include "xlang3/object_model.h"
 #include "xlang3/sequence.h"
@@ -20,6 +21,7 @@ limitations under the License.
 
 int main() {
   xlang3::test::CaseResult result;
+  xlang3::test::check_canonical_slot_read_cases(result);
 
   // Same-object owning copies should avoid refcount churn, while copying into
   // a borrowed slot must still acquire an independent reference.

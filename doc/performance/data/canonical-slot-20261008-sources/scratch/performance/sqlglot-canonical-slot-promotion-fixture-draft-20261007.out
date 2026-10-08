@@ -1,0 +1,9 @@
+initialized slots and live writes keep returned object identity: OK
+deleted and restored slots preserve missing-attribute fallback: OK
+unique inherited slot resolves its effective receiver index: OK
+aliased member descriptors keep original descriptor dispatch: OK
+warmed base descriptor replacement invalidates derived reads: OK
+custom data descriptors preempt warmed slot cache reads: OK
+custom attribute hooks remain live and prevent slot promotion: OK
+uninitialized inherited slot preserves lazy getattr refill: OK
+initialized member descriptors retain precedence over instance dict: OK

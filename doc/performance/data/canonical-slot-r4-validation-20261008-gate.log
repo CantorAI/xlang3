@@ -1,0 +1,12 @@
+local_slots              pass         1.002x
+scalar_arithmetic        pass         1.011x
+range_for                pass         1.006x
+function_calls           pass         0.979x
+class_construct          pass         1.016x
+list_append              pass         0.974x
+property_access          pass         0.985x
+deepcopy_memo            pass         0.921x
+json_dumps               pass         1.013x
+gc_traversal             pass         0.753x
+subparsers               pass         0.948x
+Performance check: pass. Report: D:\CantorAI\xlang3\doc\performance\data\release-canonical-slot-r4-fixed-gate-20261008.json

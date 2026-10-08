@@ -1,0 +1,87 @@
+{
+  "status": "r4_v2_scratch_proposal_not_applied_not_compiled_not_run",
+  "head": "fcee35e37696902da6c10310f74f6976aa7cf3a7",
+  "targets": [
+    "src/executor/xlang_vm/xlang_vm_attr.cpp",
+    "tests/cpp/canonical_slot_read_cases.h"
+  ],
+  "engine_source_sha256_before": "158656a116108577893968bc61c7f89dbad50a8795dbb8f153251da7cf601d5e",
+  "engine_source_sha256_after": "158656a116108577893968bc61c7f89dbad50a8795dbb8f153251da7cf601d5e",
+  "test_source_sha256_before": "93f47849e9b26eaceb942e36ed9c8d8a333a22036d5b3f00e715d802d9932d2d",
+  "test_source_sha256_after": "93f47849e9b26eaceb942e36ed9c8d8a333a22036d5b3f00e715d802d9932d2d",
+  "apply_check_command": [
+    "git",
+    "apply",
+    "--check",
+    "--",
+    "scratch/performance/canonical-slot-promotion-r4-v2-20261008.patch"
+  ],
+  "apply_check_exit": 0,
+  "artifacts": [
+    {
+      "path": "src/executor/xlang_vm/xlang_vm_attr.cpp",
+      "bytes": 15774,
+      "sha256": "158656a116108577893968bc61c7f89dbad50a8795dbb8f153251da7cf601d5e"
+    },
+    {
+      "path": "tests/cpp/canonical_slot_read_cases.h",
+      "bytes": 17333,
+      "sha256": "93f47849e9b26eaceb942e36ed9c8d8a333a22036d5b3f00e715d802d9932d2d"
+    },
+    {
+      "path": "scratch/performance/canonical-slot-promotion-r4-v2-20261008-engine-source.cpp",
+      "bytes": 15774,
+      "sha256": "158656a116108577893968bc61c7f89dbad50a8795dbb8f153251da7cf601d5e"
+    },
+    {
+      "path": "scratch/performance/canonical-slot-promotion-r4-v2-20261008-engine-candidate.cpp",
+      "bytes": 17949,
+      "sha256": "6592b859f2b92b48343bdb587660c5ee6ed4949d3c822105508674a852727e51"
+    },
+    {
+      "path": "scratch/performance/canonical-slot-promotion-r4-v2-20261008-test-source.h",
+      "bytes": 17333,
+      "sha256": "93f47849e9b26eaceb942e36ed9c8d8a333a22036d5b3f00e715d802d9932d2d"
+    },
+    {
+      "path": "scratch/performance/canonical-slot-promotion-r4-v2-20261008-test-candidate.h",
+      "bytes": 26893,
+      "sha256": "e8b8f0b8b584f75da432081a6e1f843ec35ddf9568fed32a902c3d3ca7f03c29"
+    },
+    {
+      "path": "scratch/performance/canonical-slot-r4-helper-20261008.cpp",
+      "bytes": 4455,
+      "sha256": "08651a67bef14d1e28aa280de5ed51d938d5bd615b51cf4e788494f978707d90"
+    },
+    {
+      "path": "scratch/performance/canonical-slot-r4-v2-test-insert-20261008.h",
+      "bytes": 3720,
+      "sha256": "0d35950ce76d82070218fcffd351c20bd1abcdeb38c95236f64d9675bd4657d0"
+    },
+    {
+      "path": "scratch/performance/canonical-slot-r4-unsafe-retry-insert-20261008.h",
+      "bytes": 277,
+      "sha256": "6c0b418dd909528bd66520dda14871694a1a1efbc2fcfa44791b8e8189300b98"
+    },
+    {
+      "path": "scratch/performance/canonical-slot-r4-v2-property-cache-insert-20261008.h",
+      "bytes": 5561,
+      "sha256": "be8c76cb6148dec3d01ae23438982e6baf692db85225a3c17186336bc757e1b4"
+    },
+    {
+      "path": "scratch/performance/prepare-canonical-slot-r4-v2-proposal-20261008.ps1",
+      "bytes": 8878,
+      "sha256": "94d808f4001270609c3eb89458cdc375ef4ab764e00438c5249e90d2a7155dfd"
+    },
+    {
+      "path": "scratch/performance/canonical-slot-promotion-r4-v2-20261008.patch",
+      "bytes": 18588,
+      "sha256": "b64b88f3bc8dec3ef6991e3e5195b6963cd1f6d682a1314235a556f5179a8700"
+    },
+    {
+      "path": "scratch/performance/canonical-slot-promotion-r4-v2-20261008-apply-check.log",
+      "bytes": 105,
+      "sha256": "3206e937f75b3292bc45c56196fa5b100e8fbe8ff8a3ae3f8f4c2e98338b801a"
+    }
+  ]
+}

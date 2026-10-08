@@ -1,0 +1,2439 @@
+{
+  "status": "terminal",
+  "scope": "Diagnostic including unchanged original SQLGlot body; not official scores",
+  "owned_controller_pids": [
+    2336,
+    18544
+  ],
+  "phases": [
+    {
+      "name": "idle-start",
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.45729030002257787,
+      "stdout_log": "canonical-slot-r4-paired-20261008-idle-start-stdout.log",
+      "stdout_sha256": "49c02f861962f3e615ba4312060703413178bb16b4ca1336c6116233c78ca908",
+      "stderr_log": "canonical-slot-r4-paired-20261008-idle-start-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-slot-before-reference",
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.48180710000451654,
+      "stdout_log": "canonical-slot-r4-paired-20261008-idle-slot-before-reference-stdout.log",
+      "stdout_sha256": "df99be7e62a2113d45a818754cd6bc91493ff209945541304ffd3035c9b29f92",
+      "stderr_log": "canonical-slot-r4-paired-20261008-idle-slot-before-reference-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "slot-cpython3147",
+      "command": [
+        "C:\\Python\\Python314\\python.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-probe-20261008.py"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.1866913999838289,
+      "stdout_log": "canonical-slot-r4-paired-20261008-slot-cpython3147-stdout.log",
+      "stdout_sha256": "da6641e6d68160c130c5f85a935029a03b564a4095a2c3df70051e2a3e7606f9",
+      "stderr_log": "canonical-slot-r4-paired-20261008-slot-cpython3147-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-slot-before-pair-1",
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.47142849999363534,
+      "stdout_log": "canonical-slot-r4-paired-20261008-idle-slot-before-pair-1-stdout.log",
+      "stdout_sha256": "9d010cc062beaaa5e697bbc66b5a2ae9946946474ee7a3e298a4934156663357",
+      "stderr_log": "canonical-slot-r4-paired-20261008-idle-slot-before-pair-1-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "slot-pair-1-control",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\controls\\vm-captured-lookup-checkpoint-20261007\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-probe-20261008.py"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.09107910000602715,
+      "stdout_log": "canonical-slot-r4-paired-20261008-slot-pair-1-control-stdout.log",
+      "stdout_sha256": "87e682305bdd4691423ba18cd967b948a85ac062f27658147b66527ff4cba64b",
+      "stderr_log": "canonical-slot-r4-paired-20261008-slot-pair-1-control-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "slot-pair-1-candidate",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-probe-20261008.py"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.08612409999477677,
+      "stdout_log": "canonical-slot-r4-paired-20261008-slot-pair-1-candidate-stdout.log",
+      "stdout_sha256": "0a4ee7701d3858ba731b510220571a27997a08a725a77b71bc5c8618e73e148d",
+      "stderr_log": "canonical-slot-r4-paired-20261008-slot-pair-1-candidate-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-slot-after-pair-1",
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.4613392000028398,
+      "stdout_log": "canonical-slot-r4-paired-20261008-idle-slot-after-pair-1-stdout.log",
+      "stdout_sha256": "3c594cd99039942c9c0a731a5592960ed42dd983c4d4bec15cb7ee474c26b7c8",
+      "stderr_log": "canonical-slot-r4-paired-20261008-idle-slot-after-pair-1-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-slot-before-pair-2",
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.4687178999884054,
+      "stdout_log": "canonical-slot-r4-paired-20261008-idle-slot-before-pair-2-stdout.log",
+      "stdout_sha256": "8a237688ac838abcf21a83f4ce2fad76f5ad7cfd9d03a66c4474df604fdf07dd",
+      "stderr_log": "canonical-slot-r4-paired-20261008-idle-slot-before-pair-2-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "slot-pair-2-candidate",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-probe-20261008.py"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.08288590001757257,
+      "stdout_log": "canonical-slot-r4-paired-20261008-slot-pair-2-candidate-stdout.log",
+      "stdout_sha256": "ccde3c7dbd66333c551fbdbc088b9c77f21d5b80535b80d4553203149c0298dc",
+      "stderr_log": "canonical-slot-r4-paired-20261008-slot-pair-2-candidate-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "slot-pair-2-control",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\controls\\vm-captured-lookup-checkpoint-20261007\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-probe-20261008.py"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.08785780001198873,
+      "stdout_log": "canonical-slot-r4-paired-20261008-slot-pair-2-control-stdout.log",
+      "stdout_sha256": "649519a111b6d47f1b1869a8f7e1e5655cb1cbfd809f11c43d626a02c9f7d6f4",
+      "stderr_log": "canonical-slot-r4-paired-20261008-slot-pair-2-control-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-slot-after-pair-2",
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.4786739000119269,
+      "stdout_log": "canonical-slot-r4-paired-20261008-idle-slot-after-pair-2-stdout.log",
+      "stdout_sha256": "3510bf8c90e22b72e03f2e2c91eef62d6322bdac00752d34a2593262ab952be1",
+      "stderr_log": "canonical-slot-r4-paired-20261008-idle-slot-after-pair-2-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-slot-before-pair-3",
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.46605909999925643,
+      "stdout_log": "canonical-slot-r4-paired-20261008-idle-slot-before-pair-3-stdout.log",
+      "stdout_sha256": "082fce128e7629436629dc9876ceafb3f6539f34642f7cc7d0d50acb2e9eca3d",
+      "stderr_log": "canonical-slot-r4-paired-20261008-idle-slot-before-pair-3-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "slot-pair-3-control",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\controls\\vm-captured-lookup-checkpoint-20261007\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-probe-20261008.py"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.08789340002113022,
+      "stdout_log": "canonical-slot-r4-paired-20261008-slot-pair-3-control-stdout.log",
+      "stdout_sha256": "de75b951aa70acf5efe0f72a0eaa00ea98db27ef4ff6a376309761da37ecdf5e",
+      "stderr_log": "canonical-slot-r4-paired-20261008-slot-pair-3-control-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "slot-pair-3-candidate",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-probe-20261008.py"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.08390789999975823,
+      "stdout_log": "canonical-slot-r4-paired-20261008-slot-pair-3-candidate-stdout.log",
+      "stdout_sha256": "94e107c328420df2222d94857c45cfbbed652b1a8052edd64a07b6b42fedcdae",
+      "stderr_log": "canonical-slot-r4-paired-20261008-slot-pair-3-candidate-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-slot-after-pair-3",
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.4745054999948479,
+      "stdout_log": "canonical-slot-r4-paired-20261008-idle-slot-after-pair-3-stdout.log",
+      "stdout_sha256": "9d8344b183ce518ec27d65d8d255be5768988c1bfd5dab9d0097c4a919b6f069",
+      "stderr_log": "canonical-slot-r4-paired-20261008-idle-slot-after-pair-3-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-slot-before-pair-4",
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.4653002000122797,
+      "stdout_log": "canonical-slot-r4-paired-20261008-idle-slot-before-pair-4-stdout.log",
+      "stdout_sha256": "6fc13aefb01046703ea169587bd70b6aaab8618c883219bfcd80ce72976cfde0",
+      "stderr_log": "canonical-slot-r4-paired-20261008-idle-slot-before-pair-4-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "slot-pair-4-candidate",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-probe-20261008.py"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.08707700000377372,
+      "stdout_log": "canonical-slot-r4-paired-20261008-slot-pair-4-candidate-stdout.log",
+      "stdout_sha256": "b43d3a09d5ad6a4316620b5f4759d1925457fd8e354fa981a5ad5109d431f896",
+      "stderr_log": "canonical-slot-r4-paired-20261008-slot-pair-4-candidate-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "slot-pair-4-control",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\controls\\vm-captured-lookup-checkpoint-20261007\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-probe-20261008.py"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.08832350000739098,
+      "stdout_log": "canonical-slot-r4-paired-20261008-slot-pair-4-control-stdout.log",
+      "stdout_sha256": "a98dc2d3382724830476fda454746356db8737c2386253a50f7e5ec7974a972a",
+      "stderr_log": "canonical-slot-r4-paired-20261008-slot-pair-4-control-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-slot-after-pair-4",
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.45129960001213476,
+      "stdout_log": "canonical-slot-r4-paired-20261008-idle-slot-after-pair-4-stdout.log",
+      "stdout_sha256": "860dd1c21ed67d02bf19c216f6551afdb2ec5589c88f63fd7172b64092bd021d",
+      "stderr_log": "canonical-slot-r4-paired-20261008-idle-slot-after-pair-4-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-slot-before-pair-5",
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.48020270001143217,
+      "stdout_log": "canonical-slot-r4-paired-20261008-idle-slot-before-pair-5-stdout.log",
+      "stdout_sha256": "5fee806a5c1ea775f191fe2eb6d70d21de9a08586360bbeabc66d1441dbb6f47",
+      "stderr_log": "canonical-slot-r4-paired-20261008-idle-slot-before-pair-5-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "slot-pair-5-control",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\controls\\vm-captured-lookup-checkpoint-20261007\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-probe-20261008.py"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.08904650001204573,
+      "stdout_log": "canonical-slot-r4-paired-20261008-slot-pair-5-control-stdout.log",
+      "stdout_sha256": "bc4bf8f2039378b94824a93669472e7882c52770d5c1b9089d2f98a1618a73a6",
+      "stderr_log": "canonical-slot-r4-paired-20261008-slot-pair-5-control-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "slot-pair-5-candidate",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-probe-20261008.py"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.08508600000641309,
+      "stdout_log": "canonical-slot-r4-paired-20261008-slot-pair-5-candidate-stdout.log",
+      "stdout_sha256": "5df041a25d979e8f0c28518d36069867ca43431c68d788cabf402310ff27ebb6",
+      "stderr_log": "canonical-slot-r4-paired-20261008-slot-pair-5-candidate-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-slot-after-pair-5",
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.47983820000081323,
+      "stdout_log": "canonical-slot-r4-paired-20261008-idle-slot-after-pair-5-stdout.log",
+      "stdout_sha256": "7f6af0cd8c8ebc2029a2916ac6fee950d25c27e9bd8858323ff965c1707ca5e5",
+      "stderr_log": "canonical-slot-r4-paired-20261008-idle-slot-after-pair-5-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-slot-before-pair-6",
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.4689627999905497,
+      "stdout_log": "canonical-slot-r4-paired-20261008-idle-slot-before-pair-6-stdout.log",
+      "stdout_sha256": "bad27e566931bbd437995997bd7976f84014c064e9aab00e6d7d080fb33b262e",
+      "stderr_log": "canonical-slot-r4-paired-20261008-idle-slot-before-pair-6-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "slot-pair-6-candidate",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-probe-20261008.py"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.08480549999512732,
+      "stdout_log": "canonical-slot-r4-paired-20261008-slot-pair-6-candidate-stdout.log",
+      "stdout_sha256": "7acd433c36e1bc4d8552e0a44caf3b8a3d135c985a9f344bb3a6b82edc96c103",
+      "stderr_log": "canonical-slot-r4-paired-20261008-slot-pair-6-candidate-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "slot-pair-6-control",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\controls\\vm-captured-lookup-checkpoint-20261007\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-probe-20261008.py"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.0869859000085853,
+      "stdout_log": "canonical-slot-r4-paired-20261008-slot-pair-6-control-stdout.log",
+      "stdout_sha256": "97b2eee1f80750d348107b1bfe68d4b6f39c1158e683c1e61297705e5fa6b5db",
+      "stderr_log": "canonical-slot-r4-paired-20261008-slot-pair-6-control-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-slot-after-pair-6",
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.4742948999919463,
+      "stdout_log": "canonical-slot-r4-paired-20261008-idle-slot-after-pair-6-stdout.log",
+      "stdout_sha256": "bf630b5b05acb06046a810c568506fa0e2abf1878a0877ffd39e8a2de0a40b35",
+      "stderr_log": "canonical-slot-r4-paired-20261008-idle-slot-after-pair-6-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-slot-before-pair-7",
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.45532330000423826,
+      "stdout_log": "canonical-slot-r4-paired-20261008-idle-slot-before-pair-7-stdout.log",
+      "stdout_sha256": "f122ef31a4741568c44c67e48ef4b4a11837b53e087757764cff4c86715dae4d",
+      "stderr_log": "canonical-slot-r4-paired-20261008-idle-slot-before-pair-7-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "slot-pair-7-control",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\controls\\vm-captured-lookup-checkpoint-20261007\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-probe-20261008.py"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.0913431000080891,
+      "stdout_log": "canonical-slot-r4-paired-20261008-slot-pair-7-control-stdout.log",
+      "stdout_sha256": "41e0483e800f36d0bd4d17fbb584ce80d2657744f352987ae1a28f149cad6213",
+      "stderr_log": "canonical-slot-r4-paired-20261008-slot-pair-7-control-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "slot-pair-7-candidate",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-probe-20261008.py"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.08523749999585561,
+      "stdout_log": "canonical-slot-r4-paired-20261008-slot-pair-7-candidate-stdout.log",
+      "stdout_sha256": "2264eb6020424566ec10f1d54e025124705ca7601044a86478e7ac4fb91bba89",
+      "stderr_log": "canonical-slot-r4-paired-20261008-slot-pair-7-candidate-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-slot-after-pair-7",
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.5603295000037178,
+      "stdout_log": "canonical-slot-r4-paired-20261008-idle-slot-after-pair-7-stdout.log",
+      "stdout_sha256": "db5e63421f9c4f3c5a5f309199fa55fceb9e51cfa6154e94c0e27ab63d6f0a8d",
+      "stderr_log": "canonical-slot-r4-paired-20261008-idle-slot-after-pair-7-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-sqlglot_parse-before-reference",
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.47114549999241717,
+      "stdout_log": "canonical-slot-r4-paired-20261008-idle-sqlglot_parse-before-reference-stdout.log",
+      "stdout_sha256": "2b31474028c343c3ecdd450174f55dc017c85416aa915a9ed65feb53ed4aaece",
+      "stderr_log": "canonical-slot-r4-paired-20261008-idle-sqlglot_parse-before-reference-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "sqlglot_parse-cpython3147",
+      "command": [
+        "C:\\Python\\Python314\\python.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-sqlglot-probe-20261008.py"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.24785790001624264,
+      "stdout_log": "canonical-slot-r4-paired-20261008-sqlglot_parse-cpython3147-stdout.log",
+      "stdout_sha256": "424b982eb6c7b3277d9d97efc1b5d6ae4635485f4d5b1433bee22cfcf7725433",
+      "stderr_log": "canonical-slot-r4-paired-20261008-sqlglot_parse-cpython3147-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-sqlglot_parse-before-pair-1",
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.43901410000398755,
+      "stdout_log": "canonical-slot-r4-paired-20261008-idle-sqlglot_parse-before-pair-1-stdout.log",
+      "stdout_sha256": "2bd3b95bd19a0ae6b1da76b467ca7e75e8b941778583cfa6f41471cc234ca816",
+      "stderr_log": "canonical-slot-r4-paired-20261008-idle-sqlglot_parse-before-pair-1-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "sqlglot_parse-pair-1-control",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\controls\\vm-captured-lookup-checkpoint-20261007\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-sqlglot-probe-20261008.py"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 1.7207513999892399,
+      "stdout_log": "canonical-slot-r4-paired-20261008-sqlglot_parse-pair-1-control-stdout.log",
+      "stdout_sha256": "d1fdd660c2f2c383b14241e72cf78518b9b583447fe4d4a7c7aacdb651f29ca6",
+      "stderr_log": "canonical-slot-r4-paired-20261008-sqlglot_parse-pair-1-control-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "sqlglot_parse-pair-1-candidate",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-sqlglot-probe-20261008.py"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 1.602527499984717,
+      "stdout_log": "canonical-slot-r4-paired-20261008-sqlglot_parse-pair-1-candidate-stdout.log",
+      "stdout_sha256": "a3b5a734916a35b8b5f035f39be4215d3d0c3c30756df8fe85bfb939ef3d4f4e",
+      "stderr_log": "canonical-slot-r4-paired-20261008-sqlglot_parse-pair-1-candidate-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-sqlglot_parse-after-pair-1",
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.46496169999591075,
+      "stdout_log": "canonical-slot-r4-paired-20261008-idle-sqlglot_parse-after-pair-1-stdout.log",
+      "stdout_sha256": "c4ac2a2b411846e9849e0a9d4b9a2f9114546ec8053d874c698690a603e6f259",
+      "stderr_log": "canonical-slot-r4-paired-20261008-idle-sqlglot_parse-after-pair-1-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-sqlglot_parse-before-pair-2",
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.4327303000027314,
+      "stdout_log": "canonical-slot-r4-paired-20261008-idle-sqlglot_parse-before-pair-2-stdout.log",
+      "stdout_sha256": "b96989f54fadd53111ba94a1d60a4a273167c8dc571a04b64f53952e3c391053",
+      "stderr_log": "canonical-slot-r4-paired-20261008-idle-sqlglot_parse-before-pair-2-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "sqlglot_parse-pair-2-candidate",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-sqlglot-probe-20261008.py"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 1.5426271999895107,
+      "stdout_log": "canonical-slot-r4-paired-20261008-sqlglot_parse-pair-2-candidate-stdout.log",
+      "stdout_sha256": "414f20cc27c34108c8f04dc7d4677949028e5627c1877fb84ad619c2ee07a964",
+      "stderr_log": "canonical-slot-r4-paired-20261008-sqlglot_parse-pair-2-candidate-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "sqlglot_parse-pair-2-control",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\controls\\vm-captured-lookup-checkpoint-20261007\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-sqlglot-probe-20261008.py"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 1.7420411000202876,
+      "stdout_log": "canonical-slot-r4-paired-20261008-sqlglot_parse-pair-2-control-stdout.log",
+      "stdout_sha256": "d1dfa1c366ece2f4c55af758a8b6e26cfbd2bcff080228c59fe66ee8c5fc7614",
+      "stderr_log": "canonical-slot-r4-paired-20261008-sqlglot_parse-pair-2-control-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-sqlglot_parse-after-pair-2",
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.4476243999961298,
+      "stdout_log": "canonical-slot-r4-paired-20261008-idle-sqlglot_parse-after-pair-2-stdout.log",
+      "stdout_sha256": "c11ed9160055ebea39b363d0543f80236bcefc9d0ce85fa17130ffe524b62639",
+      "stderr_log": "canonical-slot-r4-paired-20261008-idle-sqlglot_parse-after-pair-2-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-sqlglot_parse-before-pair-3",
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.4076522999966983,
+      "stdout_log": "canonical-slot-r4-paired-20261008-idle-sqlglot_parse-before-pair-3-stdout.log",
+      "stdout_sha256": "ecc4445bc200437e4ab37b8e83e6582bf8b8267734f5e8fe1c1e8675b224c45f",
+      "stderr_log": "canonical-slot-r4-paired-20261008-idle-sqlglot_parse-before-pair-3-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "sqlglot_parse-pair-3-control",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\controls\\vm-captured-lookup-checkpoint-20261007\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-sqlglot-probe-20261008.py"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 1.6840818999917246,
+      "stdout_log": "canonical-slot-r4-paired-20261008-sqlglot_parse-pair-3-control-stdout.log",
+      "stdout_sha256": "c571f8db0801dcce4b7353c813578f2b0c3d9330cdc528535629b01866e9305f",
+      "stderr_log": "canonical-slot-r4-paired-20261008-sqlglot_parse-pair-3-control-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "sqlglot_parse-pair-3-candidate",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-sqlglot-probe-20261008.py"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 1.5626267999759875,
+      "stdout_log": "canonical-slot-r4-paired-20261008-sqlglot_parse-pair-3-candidate-stdout.log",
+      "stdout_sha256": "23698ed4ff5e804eea761622e4000617020d1eba449dd5404280d075a78b5711",
+      "stderr_log": "canonical-slot-r4-paired-20261008-sqlglot_parse-pair-3-candidate-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-sqlglot_parse-after-pair-3",
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.4693672000139486,
+      "stdout_log": "canonical-slot-r4-paired-20261008-idle-sqlglot_parse-after-pair-3-stdout.log",
+      "stdout_sha256": "e978405b8fc6fac5b25feba07ae69edfc7fe07b90dd94ab7e7695047ca76d2b0",
+      "stderr_log": "canonical-slot-r4-paired-20261008-idle-sqlglot_parse-after-pair-3-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-sqlglot_parse-before-pair-4",
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.43977269998867996,
+      "stdout_log": "canonical-slot-r4-paired-20261008-idle-sqlglot_parse-before-pair-4-stdout.log",
+      "stdout_sha256": "f1d73d83956a2d4d37cc35525dd2aac921d4dfe8139d5d2c3d0360976551115d",
+      "stderr_log": "canonical-slot-r4-paired-20261008-idle-sqlglot_parse-before-pair-4-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "sqlglot_parse-pair-4-candidate",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-sqlglot-probe-20261008.py"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 1.5514966000046115,
+      "stdout_log": "canonical-slot-r4-paired-20261008-sqlglot_parse-pair-4-candidate-stdout.log",
+      "stdout_sha256": "e892606fb7b8cf54c5a7e5de090e5850d8eb056e0bb34462fdb28acf3f435878",
+      "stderr_log": "canonical-slot-r4-paired-20261008-sqlglot_parse-pair-4-candidate-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "sqlglot_parse-pair-4-control",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\controls\\vm-captured-lookup-checkpoint-20261007\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-sqlglot-probe-20261008.py"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 1.7448645000113174,
+      "stdout_log": "canonical-slot-r4-paired-20261008-sqlglot_parse-pair-4-control-stdout.log",
+      "stdout_sha256": "9b79fd55946678e2eb3f889edcc2d8bcf39c3bfe9f91b5cdf3a6acb803805ced",
+      "stderr_log": "canonical-slot-r4-paired-20261008-sqlglot_parse-pair-4-control-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-sqlglot_parse-after-pair-4",
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.4494334999762941,
+      "stdout_log": "canonical-slot-r4-paired-20261008-idle-sqlglot_parse-after-pair-4-stdout.log",
+      "stdout_sha256": "c403c248bdfb07ad959dce3a806e9e8c609d883f3d1b97c61f8730f5911a33c5",
+      "stderr_log": "canonical-slot-r4-paired-20261008-idle-sqlglot_parse-after-pair-4-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-sqlglot_parse-before-pair-5",
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.4154289999860339,
+      "stdout_log": "canonical-slot-r4-paired-20261008-idle-sqlglot_parse-before-pair-5-stdout.log",
+      "stdout_sha256": "8838b36155a84b2310e2214d524724c1e72261aa0e2850cb81d1752c6c958a7d",
+      "stderr_log": "canonical-slot-r4-paired-20261008-idle-sqlglot_parse-before-pair-5-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "sqlglot_parse-pair-5-control",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\controls\\vm-captured-lookup-checkpoint-20261007\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-sqlglot-probe-20261008.py"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 1.684609099989757,
+      "stdout_log": "canonical-slot-r4-paired-20261008-sqlglot_parse-pair-5-control-stdout.log",
+      "stdout_sha256": "49a8c5ab60bfa81ec27fbdb2fa970ee45a69a0de8af75b788f2f8f02add1800f",
+      "stderr_log": "canonical-slot-r4-paired-20261008-sqlglot_parse-pair-5-control-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "sqlglot_parse-pair-5-candidate",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-sqlglot-probe-20261008.py"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 1.5719733999867458,
+      "stdout_log": "canonical-slot-r4-paired-20261008-sqlglot_parse-pair-5-candidate-stdout.log",
+      "stdout_sha256": "3c7cb7ed3e8ebabd46636852eb116d3ec7e3e57054d46eb187d57ba92241ed02",
+      "stderr_log": "canonical-slot-r4-paired-20261008-sqlglot_parse-pair-5-candidate-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-sqlglot_parse-after-pair-5",
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.4579393999883905,
+      "stdout_log": "canonical-slot-r4-paired-20261008-idle-sqlglot_parse-after-pair-5-stdout.log",
+      "stdout_sha256": "10051935427cd9898403d49c9cc994179269aaba884dcbac641c1f53ff559b38",
+      "stderr_log": "canonical-slot-r4-paired-20261008-idle-sqlglot_parse-after-pair-5-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-sqlglot_parse-before-pair-6",
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.43118469999171793,
+      "stdout_log": "canonical-slot-r4-paired-20261008-idle-sqlglot_parse-before-pair-6-stdout.log",
+      "stdout_sha256": "a8e5b4ed38453647efbbfcf97b7939304aa29b1cebe761b774c5196ca16ec206",
+      "stderr_log": "canonical-slot-r4-paired-20261008-idle-sqlglot_parse-before-pair-6-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "sqlglot_parse-pair-6-candidate",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-sqlglot-probe-20261008.py"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 1.5376346999837551,
+      "stdout_log": "canonical-slot-r4-paired-20261008-sqlglot_parse-pair-6-candidate-stdout.log",
+      "stdout_sha256": "c9b6b85a188d7f26c7df21e699cd1a9d0594d9c486c1d8107bbfae8fd9adb97f",
+      "stderr_log": "canonical-slot-r4-paired-20261008-sqlglot_parse-pair-6-candidate-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "sqlglot_parse-pair-6-control",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\controls\\vm-captured-lookup-checkpoint-20261007\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-sqlglot-probe-20261008.py"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 1.7562090000137687,
+      "stdout_log": "canonical-slot-r4-paired-20261008-sqlglot_parse-pair-6-control-stdout.log",
+      "stdout_sha256": "00e78ed3306508033cb460a28ee7240d219f92dc00e6ea425d422bef4fbc49a5",
+      "stderr_log": "canonical-slot-r4-paired-20261008-sqlglot_parse-pair-6-control-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-sqlglot_parse-after-pair-6",
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.4509036999952514,
+      "stdout_log": "canonical-slot-r4-paired-20261008-idle-sqlglot_parse-after-pair-6-stdout.log",
+      "stdout_sha256": "349b093fc5f41dd73c8e8f82f93a6aae76f5ed5bcf7e09049a8eb41135680118",
+      "stderr_log": "canonical-slot-r4-paired-20261008-idle-sqlglot_parse-after-pair-6-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-sqlglot_parse-before-pair-7",
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.47866620001150295,
+      "stdout_log": "canonical-slot-r4-paired-20261008-idle-sqlglot_parse-before-pair-7-stdout.log",
+      "stdout_sha256": "26773124be1aefc59ce5e17045460d0f115be8d62f2e247d58249335496d6871",
+      "stderr_log": "canonical-slot-r4-paired-20261008-idle-sqlglot_parse-before-pair-7-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "sqlglot_parse-pair-7-control",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\controls\\vm-captured-lookup-checkpoint-20261007\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-sqlglot-probe-20261008.py"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 1.7546456000127364,
+      "stdout_log": "canonical-slot-r4-paired-20261008-sqlglot_parse-pair-7-control-stdout.log",
+      "stdout_sha256": "252c3318b189ab905e727d9328921414831ae6bfccf1f06e20fa7f76a98b0cf6",
+      "stderr_log": "canonical-slot-r4-paired-20261008-sqlglot_parse-pair-7-control-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "sqlglot_parse-pair-7-candidate",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-sqlglot-probe-20261008.py"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 1.5510485999984667,
+      "stdout_log": "canonical-slot-r4-paired-20261008-sqlglot_parse-pair-7-candidate-stdout.log",
+      "stdout_sha256": "871a5a6186fda55dc091a4ba46ae3058042e9f4ac9dda5087653c3f11d2d0a56",
+      "stderr_log": "canonical-slot-r4-paired-20261008-sqlglot_parse-pair-7-candidate-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-sqlglot_parse-after-pair-7",
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.44445649997214787,
+      "stdout_log": "canonical-slot-r4-paired-20261008-idle-sqlglot_parse-after-pair-7-stdout.log",
+      "stdout_sha256": "7e670dd69a8a5d6d4cabbcf7418f2481f888f6788728c69587ddf960fc15f4af",
+      "stderr_log": "canonical-slot-r4-paired-20261008-idle-sqlglot_parse-after-pair-7-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-terminal",
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.44559069999377243,
+      "stdout_log": "canonical-slot-r4-paired-20261008-idle-terminal-stdout.log",
+      "stdout_sha256": "636adc7dc78577e1821b89080ba4ee4e73f8f2349d828df11c21b0faa2557029",
+      "stderr_log": "canonical-slot-r4-paired-20261008-idle-terminal-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "idle_guards": [
+    {
+      "name": "start",
+      "allowed_controller_pids": [
+        2336,
+        18544
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    },
+    {
+      "name": "slot-before-reference",
+      "allowed_controller_pids": [
+        2336,
+        18544
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    },
+    {
+      "name": "slot-before-pair-1",
+      "allowed_controller_pids": [
+        2336,
+        18544
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    },
+    {
+      "name": "slot-after-pair-1",
+      "allowed_controller_pids": [
+        2336,
+        18544
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    },
+    {
+      "name": "slot-before-pair-2",
+      "allowed_controller_pids": [
+        2336,
+        18544
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    },
+    {
+      "name": "slot-after-pair-2",
+      "allowed_controller_pids": [
+        2336,
+        18544
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    },
+    {
+      "name": "slot-before-pair-3",
+      "allowed_controller_pids": [
+        2336,
+        18544
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    },
+    {
+      "name": "slot-after-pair-3",
+      "allowed_controller_pids": [
+        2336,
+        18544
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    },
+    {
+      "name": "slot-before-pair-4",
+      "allowed_controller_pids": [
+        2336,
+        18544
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    },
+    {
+      "name": "slot-after-pair-4",
+      "allowed_controller_pids": [
+        2336,
+        18544
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    },
+    {
+      "name": "slot-before-pair-5",
+      "allowed_controller_pids": [
+        2336,
+        18544
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    },
+    {
+      "name": "slot-after-pair-5",
+      "allowed_controller_pids": [
+        2336,
+        18544
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    },
+    {
+      "name": "slot-before-pair-6",
+      "allowed_controller_pids": [
+        2336,
+        18544
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    },
+    {
+      "name": "slot-after-pair-6",
+      "allowed_controller_pids": [
+        2336,
+        18544
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    },
+    {
+      "name": "slot-before-pair-7",
+      "allowed_controller_pids": [
+        2336,
+        18544
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    },
+    {
+      "name": "slot-after-pair-7",
+      "allowed_controller_pids": [
+        2336,
+        18544
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    },
+    {
+      "name": "sqlglot_parse-before-reference",
+      "allowed_controller_pids": [
+        2336,
+        18544
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    },
+    {
+      "name": "sqlglot_parse-before-pair-1",
+      "allowed_controller_pids": [
+        2336,
+        18544
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    },
+    {
+      "name": "sqlglot_parse-after-pair-1",
+      "allowed_controller_pids": [
+        2336,
+        18544
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    },
+    {
+      "name": "sqlglot_parse-before-pair-2",
+      "allowed_controller_pids": [
+        2336,
+        18544
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    },
+    {
+      "name": "sqlglot_parse-after-pair-2",
+      "allowed_controller_pids": [
+        2336,
+        18544
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    },
+    {
+      "name": "sqlglot_parse-before-pair-3",
+      "allowed_controller_pids": [
+        2336,
+        18544
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    },
+    {
+      "name": "sqlglot_parse-after-pair-3",
+      "allowed_controller_pids": [
+        2336,
+        18544
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    },
+    {
+      "name": "sqlglot_parse-before-pair-4",
+      "allowed_controller_pids": [
+        2336,
+        18544
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    },
+    {
+      "name": "sqlglot_parse-after-pair-4",
+      "allowed_controller_pids": [
+        2336,
+        18544
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    },
+    {
+      "name": "sqlglot_parse-before-pair-5",
+      "allowed_controller_pids": [
+        2336,
+        18544
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    },
+    {
+      "name": "sqlglot_parse-after-pair-5",
+      "allowed_controller_pids": [
+        2336,
+        18544
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    },
+    {
+      "name": "sqlglot_parse-before-pair-6",
+      "allowed_controller_pids": [
+        2336,
+        18544
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    },
+    {
+      "name": "sqlglot_parse-after-pair-6",
+      "allowed_controller_pids": [
+        2336,
+        18544
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    },
+    {
+      "name": "sqlglot_parse-before-pair-7",
+      "allowed_controller_pids": [
+        2336,
+        18544
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    },
+    {
+      "name": "sqlglot_parse-after-pair-7",
+      "allowed_controller_pids": [
+        2336,
+        18544
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    },
+    {
+      "name": "terminal",
+      "allowed_controller_pids": [
+        2336,
+        18544
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    }
+  ],
+  "hashes_before": {
+    "binaries_sha256": {
+      "control": {
+        "exe": "b6a279e5086d74b0784be81499ebad2068d878f8f8c62accd6b7e5f9a08092e9",
+        "dll": "d32719ac907a10b994d5160a5ce97f05561c6c003de9a7c6f8dcd862da464ea3"
+      },
+      "candidate": {
+        "exe": "b6a279e5086d74b0784be81499ebad2068d878f8f8c62accd6b7e5f9a08092e9",
+        "dll": "ffd2ea4ef32dac1c00512f5ecd9c5d5b9c8770e6917fc90f8cb0cce442851f6b"
+      }
+    },
+    "cpp_test_binary_sha256": "c7bcb8c1a7718a083fb9f2c87b4d74daa48f48e98bc38f480b7dd134594b1293",
+    "cpython3147_binary_sha256": "4942b86a6597e5aee0128daa00050ed79bc21f6e709a78eb19cbfeb0c2f39ac9",
+    "source_sha256": {
+      "src/executor/xlang_vm/xlang_vm_attr.cpp": "5f09f741ceab8f72c2b918912ba30e12f12bcde91988097d056ae3f20a62bb64",
+      "src/executor/xlang_vm/ops/xlang_vm_ops_attr.h": "f29726b53a7e0538b65d5a860b39927c3b598d285e678c6b19e0f7fbfdd0e60f",
+      "tests/cpp/canonical_slot_read_cases.h": "cb8346950866fade0435e2fadcac56ff1eb403995dc4648f24d3ed7be89f7e50",
+      "tests/cpp/interpreter_tests.cpp": "2e1c801963399e23f02d5f35e198949f102a8b665eebe3fcdcfebd453ce2342c",
+      "tests/run_fixtures.py": "b0c4703154a9fc647ed7a37d83f28a6efd9ca6e9053c74c1362912105ed4d61b",
+      "tests/fixtures/core/canonical_slot_reads.py": "67cbbbfcb4fe02ad07f7da7ead051998b3735d547f52e5843fef6102cbe97006",
+      "tests/fixtures/expected/canonical_slot_reads.out": "7aea1a5b5fe9833fc9102b3174361061593048ab6cc70ce168ab685c5a8d4c5a",
+      "scratch/performance/canonical-slot-probe-20261008.py": "f2cda8eff1ed7ab9ded5ab7daeefee8d0b7909b4b3974fcda06e48a706d994d2",
+      "scratch/performance/canonical-slot-sqlglot-probe-20261008.py": "2a0eabce26935cfd46517486c52d6d4cc95154b60b55e187c9bd607a0f5a23ae",
+      "scratch/performance/check-canonical-slot-r4-20261008.py": "1ca75f92cf61bad84c98d05db3cfda9a3099f1116016d6902ea685990d56e3fe",
+      "scratch/performance/compare-canonical-slot-r4-20261008.py": "2eba18fbeba42ceb4d828da1eaa2cd0721892df618b87e9dca95498f89d792ec",
+      "scratch/performance/canonical_slot_r4_support_20261008.py": "bd06e6fd7e78b1106d6f0eef01a3fac68f0996395e36ea5ebccfb7ec5decb831"
+    },
+    "benchmark_source_sha256": "d97aaba24f8c49f2afe5c5c740c568be6e89dde3364d5a964a4b72e5a4768a9b",
+    "compatibility_hook_sha256": "2ffc217fe20497156bfcb1cebc7fb87203f33c6d4d3dbb6ecbcbcf91ea4cb317"
+  },
+  "early_correctness": {
+    "path": "canonical-slot-r4-early-20261008.json",
+    "verified_phase_names": [
+      "candidate",
+      "control",
+      "cpp",
+      "cpython3147"
+    ]
+  },
+  "probes": [
+    {
+      "name": "slot",
+      "filename": "canonical-slot-probe-20261008.py",
+      "probe_sha256": "f2cda8eff1ed7ab9ded5ab7daeefee8d0b7909b4b3974fcda06e48a706d994d2",
+      "pairs": [
+        {
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "runs": {
+            "control": {
+              "purpose": "checked attribute diagnostic, not official score",
+              "rows": [
+                {
+                  "path": "own_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0017433000029996037,
+                    0.0017610999930184335,
+                    0.0017621000006329268,
+                    0.0017404000100214034,
+                    0.001731799973640591
+                  ]
+                },
+                {
+                  "path": "inherited_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.001794100011466071,
+                    0.0017871999880298972,
+                    0.0017791999853216112,
+                    0.0017469000013079494,
+                    0.0017485000134911388
+                  ]
+                },
+                {
+                  "path": "ordinary_attr",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0010246000019833446,
+                    0.0009972999978344887,
+                    0.0010252000065520406,
+                    0.0010919999913312495,
+                    0.0010586999997030944
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "purpose": "checked attribute diagnostic, not official score",
+              "rows": [
+                {
+                  "path": "own_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0010139999794773757,
+                    0.0009945000056177378,
+                    0.0009712999744806439,
+                    0.0010055000020656735,
+                    0.0009729000157676637
+                  ]
+                },
+                {
+                  "path": "inherited_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0018220999918412417,
+                    0.0018368999881204218,
+                    0.0018341999966651201,
+                    0.0018219999910797924,
+                    0.0018601000192575157
+                  ]
+                },
+                {
+                  "path": "ordinary_attr",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0010927000257652253,
+                    0.001073999999789521,
+                    0.0010556000052019954,
+                    0.0010437000019010156,
+                    0.0011346999963279814
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "order": [
+            "candidate",
+            "control"
+          ],
+          "runs": {
+            "candidate": {
+              "purpose": "checked attribute diagnostic, not official score",
+              "rows": [
+                {
+                  "path": "own_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.000997700000880286,
+                    0.0009740000241436064,
+                    0.0009688000136520714,
+                    0.0009693999891169369,
+                    0.0009748000011313707
+                  ]
+                },
+                {
+                  "path": "inherited_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0018237000040244311,
+                    0.0018293999892193824,
+                    0.0018388000025879592,
+                    0.0019224999996367842,
+                    0.001800300000468269
+                  ]
+                },
+                {
+                  "path": "ordinary_attr",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0011113999935332686,
+                    0.0011072999914176762,
+                    0.0010882999922614545,
+                    0.0010617999942041934,
+                    0.0010580999951343983
+                  ]
+                }
+              ]
+            },
+            "control": {
+              "purpose": "checked attribute diagnostic, not official score",
+              "rows": [
+                {
+                  "path": "own_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.001719399995636195,
+                    0.001744999986840412,
+                    0.0017546000017318875,
+                    0.0017223999893758446,
+                    0.0023919999948702753
+                  ]
+                },
+                {
+                  "path": "inherited_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0018059999856632203,
+                    0.0018059000140056014,
+                    0.0019129000138491392,
+                    0.0018884000019170344,
+                    0.0018378000240772963
+                  ]
+                },
+                {
+                  "path": "ordinary_attr",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.001187499990919605,
+                    0.0011545000015757978,
+                    0.001124799979152158,
+                    0.0010759999859146774,
+                    0.0010903000074904412
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "runs": {
+            "control": {
+              "purpose": "checked attribute diagnostic, not official score",
+              "rows": [
+                {
+                  "path": "own_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.001750199997331947,
+                    0.0019128000130876899,
+                    0.001744000008329749,
+                    0.0017648999928496778,
+                    0.0017417999915778637
+                  ]
+                },
+                {
+                  "path": "inherited_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0017653999966569245,
+                    0.0017883999971672893,
+                    0.0017933000053744763,
+                    0.0018250000139232725,
+                    0.0018390000041108578
+                  ]
+                },
+                {
+                  "path": "ordinary_attr",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0010193000198341906,
+                    0.0010474000009708107,
+                    0.000993399997241795,
+                    0.0010190999892074615,
+                    0.001024700002744794
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "purpose": "checked attribute diagnostic, not official score",
+              "rows": [
+                {
+                  "path": "own_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0009711000020615757,
+                    0.000963800004683435,
+                    0.000971800007391721,
+                    0.0009654999885242432,
+                    0.000957000011112541
+                  ]
+                },
+                {
+                  "path": "inherited_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0018406999879516661,
+                    0.0018127000075764954,
+                    0.0018501000013202429,
+                    0.0018133999838028103,
+                    0.001798499986762181
+                  ]
+                },
+                {
+                  "path": "ordinary_attr",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0010764000180643052,
+                    0.0011585000029299408,
+                    0.0010868999816011637,
+                    0.001108399999793619,
+                    0.0010532999876886606
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "order": [
+            "candidate",
+            "control"
+          ],
+          "runs": {
+            "candidate": {
+              "purpose": "checked attribute diagnostic, not official score",
+              "rows": [
+                {
+                  "path": "own_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0010008999961428344,
+                    0.0010039999906439334,
+                    0.0009774999925866723,
+                    0.0010079999919980764,
+                    0.0009691999875940382
+                  ]
+                },
+                {
+                  "path": "inherited_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0020155999809503555,
+                    0.0018274000030942261,
+                    0.001822799997171387,
+                    0.001992200006498024,
+                    0.0018463999731466174
+                  ]
+                },
+                {
+                  "path": "ordinary_attr",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.001083899987861514,
+                    0.0010864000068977475,
+                    0.0011375999893061817,
+                    0.0013126999838277698,
+                    0.0011294000141788274
+                  ]
+                }
+              ]
+            },
+            "control": {
+              "purpose": "checked attribute diagnostic, not official score",
+              "rows": [
+                {
+                  "path": "own_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0017370000132359564,
+                    0.0017279000021517277,
+                    0.0017595999815966934,
+                    0.0017346999957226217,
+                    0.0017337000172119588
+                  ]
+                },
+                {
+                  "path": "inherited_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0018687999981921166,
+                    0.0020899999944958836,
+                    0.0017635000112932175,
+                    0.0017546000017318875,
+                    0.0017809999990276992
+                  ]
+                },
+                {
+                  "path": "ordinary_attr",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0009917999850586057,
+                    0.0010168000007979572,
+                    0.0010176999785471708,
+                    0.0010196000221185386,
+                    0.0010179000091738999
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "runs": {
+            "control": {
+              "purpose": "checked attribute diagnostic, not official score",
+              "rows": [
+                {
+                  "path": "own_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0017935999785549939,
+                    0.0017413999885320663,
+                    0.0017173999804072082,
+                    0.0017171000072266906,
+                    0.001690899982349947
+                  ]
+                },
+                {
+                  "path": "inherited_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0017353999719489366,
+                    0.0017112000205088407,
+                    0.0017306000227108598,
+                    0.0017231000238098204,
+                    0.0020708000229205936
+                  ]
+                },
+                {
+                  "path": "ordinary_attr",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0010393999982625246,
+                    0.0010006999946199358,
+                    0.0010282000002916902,
+                    0.0010102000087499619,
+                    0.0009955000132322311
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "purpose": "checked attribute diagnostic, not official score",
+              "rows": [
+                {
+                  "path": "own_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.000987200008239597,
+                    0.0009913999820128083,
+                    0.0010039999906439334,
+                    0.0010423999920021743,
+                    0.0009797000093385577
+                  ]
+                },
+                {
+                  "path": "inherited_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0018272000015713274,
+                    0.0018223999941255897,
+                    0.001803999999538064,
+                    0.001840500015532598,
+                    0.0018182999920099974
+                  ]
+                },
+                {
+                  "path": "ordinary_attr",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0010862000053748488,
+                    0.0010843999916687608,
+                    0.0010797000140883029,
+                    0.0011165000032633543,
+                    0.0011000999948009849
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "order": [
+            "candidate",
+            "control"
+          ],
+          "runs": {
+            "candidate": {
+              "purpose": "checked attribute diagnostic, not official score",
+              "rows": [
+                {
+                  "path": "own_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0010125999979209155,
+                    0.0009848999907262623,
+                    0.0009686000121291727,
+                    0.0009781999979168177,
+                    0.0009741000249050558
+                  ]
+                },
+                {
+                  "path": "inherited_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0018273999739903957,
+                    0.001932500017574057,
+                    0.0018918999994639307,
+                    0.0019140999938827008,
+                    0.0018705000111367553
+                  ]
+                },
+                {
+                  "path": "ordinary_attr",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.001133699988713488,
+                    0.0011220000160392374,
+                    0.0010741000005509704,
+                    0.0010701999999582767,
+                    0.0010869000107049942
+                  ]
+                }
+              ]
+            },
+            "control": {
+              "purpose": "checked attribute diagnostic, not official score",
+              "rows": [
+                {
+                  "path": "own_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0018724999972619116,
+                    0.0018176000157836825,
+                    0.0017989999905694276,
+                    0.0017562000139150769,
+                    0.0017110999906435609
+                  ]
+                },
+                {
+                  "path": "inherited_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0017423999961465597,
+                    0.001726199989207089,
+                    0.0017239000007975847,
+                    0.0017170000064652413,
+                    0.0018620000046212226
+                  ]
+                },
+                {
+                  "path": "ordinary_attr",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0010744000028353184,
+                    0.0010252000065520406,
+                    0.001021199976094067,
+                    0.0010036000167019665,
+                    0.000990999978967011
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "runs": {
+            "control": {
+              "purpose": "checked attribute diagnostic, not official score",
+              "rows": [
+                {
+                  "path": "own_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0017600000137463212,
+                    0.001799699995899573,
+                    0.0017241000023204833,
+                    0.0018428000039421022,
+                    0.0019927000103052706
+                  ]
+                },
+                {
+                  "path": "inherited_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0018282000091858208,
+                    0.0017735000001266599,
+                    0.0017906000139191747,
+                    0.0017463999975007027,
+                    0.0018096999847330153
+                  ]
+                },
+                {
+                  "path": "ordinary_attr",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0010131000017281622,
+                    0.0010037000174634159,
+                    0.0010058999760076404,
+                    0.0009847000183071941,
+                    0.0009928000217769295
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "purpose": "checked attribute diagnostic, not official score",
+              "rows": [
+                {
+                  "path": "own_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0009883999882731587,
+                    0.00097929997718893,
+                    0.0009750000026542693,
+                    0.0010071999859064817,
+                    0.0009962000185623765
+                  ]
+                },
+                {
+                  "path": "inherited_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0018186000233981758,
+                    0.0018118000007234514,
+                    0.001880600000731647,
+                    0.001944599993294105,
+                    0.0019339999998919666
+                  ]
+                },
+                {
+                  "path": "ordinary_attr",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.001163599983556196,
+                    0.0012070999946445227,
+                    0.0011641000164672732,
+                    0.0011131000064779073,
+                    0.0010866000084206462
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "cpython3147": {
+        "purpose": "checked attribute diagnostic, not official score",
+        "rows": [
+          {
+            "path": "own_slot",
+            "operations": 16384,
+            "checksum": 114688,
+            "samples_seconds": [
+              0.0004378999874461442,
+              0.00039049997576512396,
+              0.000364200008334592,
+              0.0003208999987691641,
+              0.00033149999217130244
+            ]
+          },
+          {
+            "path": "inherited_slot",
+            "operations": 16384,
+            "checksum": 114688,
+            "samples_seconds": [
+              0.0003132999991066754,
+              0.0003061999741476029,
+              0.0003042000171262771,
+              0.00030429998878389597,
+              0.0003115000145044178
+            ]
+          },
+          {
+            "path": "ordinary_attr",
+            "operations": 16384,
+            "checksum": 114688,
+            "samples_seconds": [
+              0.00029700002050958574,
+              0.00031659999513067305,
+              0.0003237999917473644,
+              0.0003004999889526516,
+              0.00031880001188255847
+            ]
+          }
+        ]
+      },
+      "summary": [
+        {
+          "identity": {
+            "path": "own_slot",
+            "operations": 16384,
+            "checksum": 114688
+          },
+          "control_time_over_candidate_time": [
+            1.752941169584756,
+            1.7915810509088135,
+            1.8127395319880943,
+            1.7331401762490062,
+            1.7322977724090984,
+            1.8390922044577713,
+            1.8208215471995735
+          ],
+          "median_speedup": 1.7915810509088135,
+          "pairs_favoring_candidate": 7
+        },
+        {
+          "identity": {
+            "path": "inherited_slot",
+            "operations": 16384,
+            "checksum": 114688
+          },
+          "control_time_over_candidate_time": [
+            0.9700141688782531,
+            1.0045916884811497,
+            0.9889158604787328,
+            0.9645797362055503,
+            0.9496268811947749,
+            0.912416084199063,
+            0.9521429401374786
+          ],
+          "median_speedup": 0.9645797362055503,
+          "pairs_favoring_candidate": 1
+        },
+        {
+          "identity": {
+            "path": "ordinary_attr",
+            "operations": 16384,
+            "checksum": 114688
+          },
+          "control_time_over_candidate_time": [
+            0.9545623899003313,
+            1.0335385345495203,
+            0.9378047999712095,
+            0.9010978977958732,
+            0.9300313052395361,
+            0.9395528255001928,
+            0.8625816703743037
+          ],
+          "median_speedup": 0.9378047999712095,
+          "pairs_favoring_candidate": 1
+        }
+      ]
+    },
+    {
+      "name": "sqlglot_parse",
+      "filename": "canonical-slot-sqlglot-probe-20261008.py",
+      "probe_sha256": "2a0eabce26935cfd46517486c52d6d4cc95154b60b55e187c9bd607a0f5a23ae",
+      "pairs": [
+        {
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "runs": {
+            "control": {
+              "purpose": "unchanged original parse body, checked AST output, not official score",
+              "source": "C:\\Python\\Python314\\Lib\\site-packages\\pyperformance\\data-files\\benchmarks\\bm_sqlglot_v2\\run_benchmark.py",
+              "sql_checksum_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a",
+              "rows": [
+                {
+                  "path": "sqlglot_v2_parse",
+                  "parses_per_sample": 10,
+                  "samples_seconds": [
+                    0.022617570002330466,
+                    0.021293739997781815,
+                    0.021461239998461678,
+                    0.02170419999747537,
+                    0.02243414000258781
+                  ],
+                  "canonical_sql_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a"
+                }
+              ]
+            },
+            "candidate": {
+              "purpose": "unchanged original parse body, checked AST output, not official score",
+              "source": "C:\\Python\\Python314\\Lib\\site-packages\\pyperformance\\data-files\\benchmarks\\bm_sqlglot_v2\\run_benchmark.py",
+              "sql_checksum_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a",
+              "rows": [
+                {
+                  "path": "sqlglot_v2_parse",
+                  "parses_per_sample": 10,
+                  "samples_seconds": [
+                    0.019116109996684828,
+                    0.025448319999850356,
+                    0.019020069995895027,
+                    0.018674320002901368,
+                    0.018753799999831244
+                  ],
+                  "canonical_sql_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "order": [
+            "candidate",
+            "control"
+          ],
+          "runs": {
+            "candidate": {
+              "purpose": "unchanged original parse body, checked AST output, not official score",
+              "source": "C:\\Python\\Python314\\Lib\\site-packages\\pyperformance\\data-files\\benchmarks\\bm_sqlglot_v2\\run_benchmark.py",
+              "sql_checksum_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a",
+              "rows": [
+                {
+                  "path": "sqlglot_v2_parse",
+                  "parses_per_sample": 10,
+                  "samples_seconds": [
+                    0.019668780008214527,
+                    0.019232090006698854,
+                    0.01840951999765821,
+                    0.018556189999799244,
+                    0.01837518000102136
+                  ],
+                  "canonical_sql_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a"
+                }
+              ]
+            },
+            "control": {
+              "purpose": "unchanged original parse body, checked AST output, not official score",
+              "source": "C:\\Python\\Python314\\Lib\\site-packages\\pyperformance\\data-files\\benchmarks\\bm_sqlglot_v2\\run_benchmark.py",
+              "sql_checksum_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a",
+              "rows": [
+                {
+                  "path": "sqlglot_v2_parse",
+                  "parses_per_sample": 10,
+                  "samples_seconds": [
+                    0.021360049996292218,
+                    0.026959069998702033,
+                    0.021389459993224592,
+                    0.02147858000244014,
+                    0.021636699998634868
+                  ],
+                  "canonical_sql_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "runs": {
+            "control": {
+              "purpose": "unchanged original parse body, checked AST output, not official score",
+              "source": "C:\\Python\\Python314\\Lib\\site-packages\\pyperformance\\data-files\\benchmarks\\bm_sqlglot_v2\\run_benchmark.py",
+              "sql_checksum_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a",
+              "rows": [
+                {
+                  "path": "sqlglot_v2_parse",
+                  "parses_per_sample": 10,
+                  "samples_seconds": [
+                    0.021279009996214883,
+                    0.021303419998730533,
+                    0.021818430002895184,
+                    0.021825879998505115,
+                    0.021328280004672705
+                  ],
+                  "canonical_sql_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a"
+                }
+              ]
+            },
+            "candidate": {
+              "purpose": "unchanged original parse body, checked AST output, not official score",
+              "source": "C:\\Python\\Python314\\Lib\\site-packages\\pyperformance\\data-files\\benchmarks\\bm_sqlglot_v2\\run_benchmark.py",
+              "sql_checksum_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a",
+              "rows": [
+                {
+                  "path": "sqlglot_v2_parse",
+                  "parses_per_sample": 10,
+                  "samples_seconds": [
+                    0.021959749999223278,
+                    0.018490120000205935,
+                    0.019098739998298697,
+                    0.01902756000345107,
+                    0.019127740000840276
+                  ],
+                  "canonical_sql_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "order": [
+            "candidate",
+            "control"
+          ],
+          "runs": {
+            "candidate": {
+              "purpose": "unchanged original parse body, checked AST output, not official score",
+              "source": "C:\\Python\\Python314\\Lib\\site-packages\\pyperformance\\data-files\\benchmarks\\bm_sqlglot_v2\\run_benchmark.py",
+              "sql_checksum_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a",
+              "rows": [
+                {
+                  "path": "sqlglot_v2_parse",
+                  "parses_per_sample": 10,
+                  "samples_seconds": [
+                    0.019026570007554255,
+                    0.018972339993342757,
+                    0.019223980006063356,
+                    0.018803260001004674,
+                    0.019315959999221376
+                  ],
+                  "canonical_sql_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a"
+                }
+              ]
+            },
+            "control": {
+              "purpose": "unchanged original parse body, checked AST output, not official score",
+              "source": "C:\\Python\\Python314\\Lib\\site-packages\\pyperformance\\data-files\\benchmarks\\bm_sqlglot_v2\\run_benchmark.py",
+              "sql_checksum_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a",
+              "rows": [
+                {
+                  "path": "sqlglot_v2_parse",
+                  "parses_per_sample": 10,
+                  "samples_seconds": [
+                    0.02334966999478638,
+                    0.021856360003584995,
+                    0.021364459994947536,
+                    0.021935649999068118,
+                    0.02234601000091061
+                  ],
+                  "canonical_sql_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "runs": {
+            "control": {
+              "purpose": "unchanged original parse body, checked AST output, not official score",
+              "source": "C:\\Python\\Python314\\Lib\\site-packages\\pyperformance\\data-files\\benchmarks\\bm_sqlglot_v2\\run_benchmark.py",
+              "sql_checksum_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a",
+              "rows": [
+                {
+                  "path": "sqlglot_v2_parse",
+                  "parses_per_sample": 10,
+                  "samples_seconds": [
+                    0.021121740000671706,
+                    0.02132849000627175,
+                    0.021337180002592503,
+                    0.021306169996387327,
+                    0.021623240000917577
+                  ],
+                  "canonical_sql_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a"
+                }
+              ]
+            },
+            "candidate": {
+              "purpose": "unchanged original parse body, checked AST output, not official score",
+              "source": "C:\\Python\\Python314\\Lib\\site-packages\\pyperformance\\data-files\\benchmarks\\bm_sqlglot_v2\\run_benchmark.py",
+              "sql_checksum_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a",
+              "rows": [
+                {
+                  "path": "sqlglot_v2_parse",
+                  "parses_per_sample": 10,
+                  "samples_seconds": [
+                    0.019024030002765358,
+                    0.019057689994224348,
+                    0.01882701999275014,
+                    0.018723400004091673,
+                    0.01887652999430429
+                  ],
+                  "canonical_sql_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "order": [
+            "candidate",
+            "control"
+          ],
+          "runs": {
+            "candidate": {
+              "purpose": "unchanged original parse body, checked AST output, not official score",
+              "source": "C:\\Python\\Python314\\Lib\\site-packages\\pyperformance\\data-files\\benchmarks\\bm_sqlglot_v2\\run_benchmark.py",
+              "sql_checksum_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a",
+              "rows": [
+                {
+                  "path": "sqlglot_v2_parse",
+                  "parses_per_sample": 10,
+                  "samples_seconds": [
+                    0.018867219993262553,
+                    0.01841924999898765,
+                    0.019156580002163536,
+                    0.019440219999523833,
+                    0.019190269996761343
+                  ],
+                  "canonical_sql_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a"
+                }
+              ]
+            },
+            "control": {
+              "purpose": "unchanged original parse body, checked AST output, not official score",
+              "source": "C:\\Python\\Python314\\Lib\\site-packages\\pyperformance\\data-files\\benchmarks\\bm_sqlglot_v2\\run_benchmark.py",
+              "sql_checksum_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a",
+              "rows": [
+                {
+                  "path": "sqlglot_v2_parse",
+                  "parses_per_sample": 10,
+                  "samples_seconds": [
+                    0.021984659996815027,
+                    0.021344649998354726,
+                    0.02147436000232119,
+                    0.021467059999122285,
+                    0.021725380010320806
+                  ],
+                  "canonical_sql_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "runs": {
+            "control": {
+              "purpose": "unchanged original parse body, checked AST output, not official score",
+              "source": "C:\\Python\\Python314\\Lib\\site-packages\\pyperformance\\data-files\\benchmarks\\bm_sqlglot_v2\\run_benchmark.py",
+              "sql_checksum_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a",
+              "rows": [
+                {
+                  "path": "sqlglot_v2_parse",
+                  "parses_per_sample": 10,
+                  "samples_seconds": [
+                    0.021285629997146317,
+                    0.022373749999678692,
+                    0.021382260002428665,
+                    0.021978630000376143,
+                    0.026690580006106756
+                  ],
+                  "canonical_sql_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a"
+                }
+              ]
+            },
+            "candidate": {
+              "purpose": "unchanged original parse body, checked AST output, not official score",
+              "source": "C:\\Python\\Python314\\Lib\\site-packages\\pyperformance\\data-files\\benchmarks\\bm_sqlglot_v2\\run_benchmark.py",
+              "sql_checksum_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a",
+              "rows": [
+                {
+                  "path": "sqlglot_v2_parse",
+                  "parses_per_sample": 10,
+                  "samples_seconds": [
+                    0.01948020000127144,
+                    0.018996219991822726,
+                    0.018393429994466713,
+                    0.01872890000231564,
+                    0.01885586999997031
+                  ],
+                  "canonical_sql_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a"
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "cpython3147": {
+        "purpose": "unchanged original parse body, checked AST output, not official score",
+        "source": "C:\\Python\\Python314\\Lib\\site-packages\\pyperformance\\data-files\\benchmarks\\bm_sqlglot_v2\\run_benchmark.py",
+        "sql_checksum_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a",
+        "rows": [
+          {
+            "path": "sqlglot_v2_parse",
+            "parses_per_sample": 10,
+            "samples_seconds": [
+              0.000956080001196824,
+              0.0009626899991417304,
+              0.001084529998479411,
+              0.0010031000012531877,
+              0.0010310699988622218
+            ],
+            "canonical_sql_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a"
+          }
+        ]
+      },
+      "summary": [
+        {
+          "identity": {
+            "path": "sqlglot_v2_parse",
+            "parses_per_sample": 10,
+            "canonical_sql_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a"
+          },
+          "control_time_over_candidate_time": [
+            1.141120931845132,
+            1.157488687207477,
+            1.116737544286828,
+            1.15289566066605,
+            1.1298946370284846,
+            1.120991325168474,
+            1.1656120879286265
+          ],
+          "median_speedup": 1.141120931845132,
+          "pairs_favoring_candidate": 7
+        }
+      ]
+    }
+  ],
+  "hashes_after": {
+    "binaries_sha256": {
+      "control": {
+        "exe": "b6a279e5086d74b0784be81499ebad2068d878f8f8c62accd6b7e5f9a08092e9",
+        "dll": "d32719ac907a10b994d5160a5ce97f05561c6c003de9a7c6f8dcd862da464ea3"
+      },
+      "candidate": {
+        "exe": "b6a279e5086d74b0784be81499ebad2068d878f8f8c62accd6b7e5f9a08092e9",
+        "dll": "ffd2ea4ef32dac1c00512f5ecd9c5d5b9c8770e6917fc90f8cb0cce442851f6b"
+      }
+    },
+    "cpp_test_binary_sha256": "c7bcb8c1a7718a083fb9f2c87b4d74daa48f48e98bc38f480b7dd134594b1293",
+    "cpython3147_binary_sha256": "4942b86a6597e5aee0128daa00050ed79bc21f6e709a78eb19cbfeb0c2f39ac9",
+    "source_sha256": {
+      "src/executor/xlang_vm/xlang_vm_attr.cpp": "5f09f741ceab8f72c2b918912ba30e12f12bcde91988097d056ae3f20a62bb64",
+      "src/executor/xlang_vm/ops/xlang_vm_ops_attr.h": "f29726b53a7e0538b65d5a860b39927c3b598d285e678c6b19e0f7fbfdd0e60f",
+      "tests/cpp/canonical_slot_read_cases.h": "cb8346950866fade0435e2fadcac56ff1eb403995dc4648f24d3ed7be89f7e50",
+      "tests/cpp/interpreter_tests.cpp": "2e1c801963399e23f02d5f35e198949f102a8b665eebe3fcdcfebd453ce2342c",
+      "tests/run_fixtures.py": "b0c4703154a9fc647ed7a37d83f28a6efd9ca6e9053c74c1362912105ed4d61b",
+      "tests/fixtures/core/canonical_slot_reads.py": "67cbbbfcb4fe02ad07f7da7ead051998b3735d547f52e5843fef6102cbe97006",
+      "tests/fixtures/expected/canonical_slot_reads.out": "7aea1a5b5fe9833fc9102b3174361061593048ab6cc70ce168ab685c5a8d4c5a",
+      "scratch/performance/canonical-slot-probe-20261008.py": "f2cda8eff1ed7ab9ded5ab7daeefee8d0b7909b4b3974fcda06e48a706d994d2",
+      "scratch/performance/canonical-slot-sqlglot-probe-20261008.py": "2a0eabce26935cfd46517486c52d6d4cc95154b60b55e187c9bd607a0f5a23ae",
+      "scratch/performance/check-canonical-slot-r4-20261008.py": "1ca75f92cf61bad84c98d05db3cfda9a3099f1116016d6902ea685990d56e3fe",
+      "scratch/performance/compare-canonical-slot-r4-20261008.py": "2eba18fbeba42ceb4d828da1eaa2cd0721892df618b87e9dca95498f89d792ec",
+      "scratch/performance/canonical_slot_r4_support_20261008.py": "bd06e6fd7e78b1106d6f0eef01a3fac68f0996395e36ea5ebccfb7ec5decb831"
+    },
+    "benchmark_source_sha256": "d97aaba24f8c49f2afe5c5c740c568be6e89dde3364d5a964a4b72e5a4768a9b",
+    "compatibility_hook_sha256": "2ffc217fe20497156bfcb1cebc7fb87203f33c6d4d3dbb6ecbcbcf91ea4cb317"
+  },
+  "hashes_unchanged": true,
+  "terminal_record": true
+}

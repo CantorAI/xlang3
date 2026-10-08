@@ -1,0 +1,64 @@
+{
+  "status": "failed_cpp",
+  "candidate_binary_sha256": {
+    "exe": "b6a279e5086d74b0784be81499ebad2068d878f8f8c62accd6b7e5f9a08092e9",
+    "dll": "32072ed892e61c1402981ccfe13e43991619669b5f2df699fe4497ee424a237b"
+  },
+  "source_sha256": {
+    "src/executor/xlang_vm/xlang_vm_attr.cpp": "158656a116108577893968bc61c7f89dbad50a8795dbb8f153251da7cf601d5e",
+    "src/executor/xlang_vm/ops/xlang_vm_ops_attr.h": "f29726b53a7e0538b65d5a860b39927c3b598d285e678c6b19e0f7fbfdd0e60f",
+    "tests/cpp/canonical_slot_read_cases.h": "56229c49fbbb836e6aa49743a6d1fdb42714cd1ac055e7d6abf8038f845c382f",
+    "tests/cpp/interpreter_tests.cpp": "2e1c801963399e23f02d5f35e198949f102a8b665eebe3fcdcfebd453ce2342c",
+    "tests/run_fixtures.py": "b0c4703154a9fc647ed7a37d83f28a6efd9ca6e9053c74c1362912105ed4d61b",
+    "tests/fixtures/core/canonical_slot_reads.py": "67cbbbfcb4fe02ad07f7da7ead051998b3735d547f52e5843fef6102cbe97006",
+    "tests/fixtures/expected/canonical_slot_reads.out": "7aea1a5b5fe9833fc9102b3174361061593048ab6cc70ce168ab685c5a8d4c5a"
+  },
+  "phases": [
+    {
+      "name": "cpython3147",
+      "command": [
+        "C:\\Python\\Python314\\python.exe",
+        "tests/fixtures/core/canonical_slot_reads.py"
+      ],
+      "exit_code": 0,
+      "log": "canonical-slot-early-20261008-cpython3147.log",
+      "sha256": "7aea1a5b5fe9833fc9102b3174361061593048ab6cc70ce168ab685c5a8d4c5a"
+    },
+    {
+      "name": "control",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\controls\\vm-captured-lookup-checkpoint-20261007\\xlang3.exe",
+        "tests/fixtures/core/canonical_slot_reads.py"
+      ],
+      "exit_code": 0,
+      "log": "canonical-slot-early-20261008-control.log",
+      "sha256": "7aea1a5b5fe9833fc9102b3174361061593048ab6cc70ce168ab685c5a8d4c5a"
+    },
+    {
+      "name": "candidate",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+        "tests/fixtures/core/canonical_slot_reads.py"
+      ],
+      "exit_code": 0,
+      "log": "canonical-slot-early-20261008-candidate.log",
+      "sha256": "7aea1a5b5fe9833fc9102b3174361061593048ab6cc70ce168ab685c5a8d4c5a"
+    },
+    {
+      "name": "cpp",
+      "command": [
+        "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\ctest.exe",
+        "--test-dir",
+        "build-repro/main-verify-20261006",
+        "-C",
+        "Release",
+        "-R",
+        "xlang3_interpreter_tests",
+        "--output-on-failure"
+      ],
+      "exit_code": 8,
+      "log": "canonical-slot-early-20261008-cpp.log",
+      "sha256": "bfd02c9ac8185e799e4f7bf01135d1d3e0702561df5dd688132b5a436a5fb5f1"
+    }
+  ]
+}

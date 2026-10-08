@@ -1,0 +1,92 @@
+diff --git a/src/executor/xlang_vm/xlang_vm_attr.cpp b/src/executor/xlang_vm/xlang_vm_attr.cpp
+index 25924656..8c7b678b 100644
+--- a/src/executor/xlang_vm/xlang_vm_attr.cpp
++++ b/src/executor/xlang_vm/xlang_vm_attr.cpp
+@@ -22,6 +22,69 @@ limitations under the License.
+ 
+ namespace xlang3 {
+ 
++// PROPOSAL ONLY: verify the eligibility tests and all existing fallback paths
++// before applying. Do not promote duplicate/shadowed or aliased descriptors.
++static bool try_promote_canonical_slot_read(
++    const InstanceObject& instance, ClassObject& klass,
++    const std::string& name, const Value& descriptor_value,
++    AttrSiteCache& cache, Value& out) {
++  const auto* slot = value_as_slot_descriptor(descriptor_value);
++  if (slot == nullptr || slot->name != name || klass.has_getattribute_hook ||
++      instance.native_get_attr != nullptr) return false;
++  if (cache.value.tag == ValueTag::Object &&
++      !value_is(cache.value, descriptor_value)) return false;
++  auto* owner = value_as_class(slot->owner_class);
++  if (owner == nullptr) return false;
++  const auto index_it = klass.instance_slot_indices.find(name);
++  if (index_it == klass.instance_slot_indices.end()) return false;
++  const uint32_t index = index_it->second;
++  if (index >= instance_slot_count(&instance) ||
++      index >= klass.instance_slot_names.size() ||
++      klass.instance_slot_names[index] != name ||
++      instance_slot_at(&instance, index).tag == ValueTag::Invalid) return false;
++  const std::vector<Value>* mro = nullptr;
++  std::string error;
++  if (!class_get_mro_values(&klass, mro, error)) return false;
++  uint32_t declarations = 0;
++  bool exact_owner_seen = false;
++  for (const auto& class_value : *mro) {
++    auto* candidate = value_as_class(class_value);
++    if (candidate == nullptr) return false;
++    const auto found = candidate->attrs.find(name);
++    if (found == candidate->attrs.end()) continue;
++    const auto* declared = value_as_slot_descriptor(found->second);
++    if (declared == nullptr ||
++        value_as_class(declared->owner_class) != candidate ||
++        declared->name != name) continue;
++    if (++declarations != 1) return false;
++    exact_owner_seen = candidate == owner && declared == slot;
++  }
++  if (!exact_owner_seen || declarations != 1) return false;
++  Value result = instance_slot_at(&instance, index);
++  // Canonical initialized slots should become the existing index cache, not
++  // owning Descriptor entries: repeated LOAD_ATTR otherwise copies the member
++  // descriptor and resolves its slot name on every read. Class version tags
++  // preserve descriptor changes and inheritance; absent/deleted/ambiguous slots
++  // keep the original descriptor and __getattr__ path. Own the returned value
++  // before old output can run a finalizer, then never touch borrowed storage.
++  // Reusing this cache must not preserve a prior property accessor flag:
++  // deleting the slot later must never dereference its old weak function.
++  cache.getter_inline = false;
++  cache.setter_inline = false;
++  cache.deleter_inline = false;
++  cache.property_attr_name = nullptr;
++  cache.class_value = nullptr;
++  cache.accessor_function = nullptr;
++  cache.accessor_code_version = 0;
++  cache.kind = AttrSiteKind::InstanceSlot;
++  cache.owner = &klass.header;
++  cache.version = klass.version;
++  cache.index = index;
++  value_set_invalid(cache.value); // only empty/scalar or this owned descriptor
++  value_assign_fast(out, result);
++  return true;
++}
++
+ XLANG3_NOINLINE bool xlang_vm_resolve_method_value(
+     Runtime& runtime, const Value& object, const std::string& name,
+     Value& out, std::string& error) {
+@@ -82,6 +145,8 @@ XLANG3_NOINLINE bool xlang_vm_load_attr_cached(
+         cache.version == klass->version &&
+         object_value_is_data_descriptor(cache.value) &&
+         object_value_has_descriptor_get(cache.value)) {
++      if (try_promote_canonical_slot_read(
++              *instance, *klass, name, cache.value, cache, out)) return true;
+       value_assign_fast(out, cache.value);
+       return true;
+     }
+@@ -91,6 +156,8 @@ XLANG3_NOINLINE bool xlang_vm_load_attr_cached(
+       if (object_get_class_attr_for_instance(object, name, descriptor, descriptor_error) &&
+           object_value_is_data_descriptor(descriptor) &&
+           object_value_has_descriptor_get(descriptor)) {
++        if (try_promote_canonical_slot_read(
++                *instance, *klass, name, descriptor, cache, out)) return true;
+         // A setter-only descriptor still handles assignments, but cannot
+         // preempt instance storage on reads (NetworkX's cache resetters use
+         // this pattern). Cache a read descriptor only when it has a getter.

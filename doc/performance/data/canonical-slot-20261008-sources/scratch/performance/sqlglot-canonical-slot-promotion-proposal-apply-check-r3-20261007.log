@@ -1,0 +1,3 @@
+command: git apply --check -- scratch/performance/sqlglot-canonical-slot-promotion-proposal-r3-20261007.patch
+exit: 0
+

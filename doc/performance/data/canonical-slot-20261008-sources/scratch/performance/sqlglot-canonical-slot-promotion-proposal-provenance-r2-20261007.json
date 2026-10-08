@@ -1,0 +1,63 @@
+{
+  "status": "draft_only_not_applied_not_built_not_measured",
+  "revision": 2,
+  "change_from_r1": "Reset stale scalar property accessor flags before publishing InstanceSlot guards; retain arbitrary owning constants until normal cleanup.",
+  "head": "3f44b72cb1f8b2bf3c013db896e03d2c6dd8a463",
+  "source_sha256_before": "7053dadaee378a8a27acebd69fbb1b7797fc61c1bd9de39daa22ac411ce8bcb5",
+  "source_sha256_after": "7053dadaee378a8a27acebd69fbb1b7797fc61c1bd9de39daa22ac411ce8bcb5",
+  "check_command": [
+    "git",
+    "apply",
+    "--check",
+    "--",
+    "scratch/performance/sqlglot-canonical-slot-promotion-proposal-r2-20261007.patch"
+  ],
+  "check_exit": 0,
+  "artifacts": [
+    {
+      "path": "src/executor/xlang_vm/xlang_vm_attr.cpp",
+      "bytes": 11993,
+      "sha256": "7053dadaee378a8a27acebd69fbb1b7797fc61c1bd9de39daa22ac411ce8bcb5"
+    },
+    {
+      "path": "scratch/performance/sqlglot-canonical-slot-promotion-proposal-source-20261007.cpp",
+      "bytes": 11993,
+      "sha256": "7053dadaee378a8a27acebd69fbb1b7797fc61c1bd9de39daa22ac411ce8bcb5"
+    },
+    {
+      "path": "scratch/performance/sqlglot-canonical-slot-promotion-proposal-candidate-20261007.cpp",
+      "bytes": 14985,
+      "sha256": "1b06a911ef0baf303e719b517da57773df1de0abcd09ae0ddc0cd7755d9142b2"
+    },
+    {
+      "path": "scratch/performance/sqlglot-canonical-slot-promotion-proposal-candidate-r2-20261007.cpp",
+      "bytes": 15369,
+      "sha256": "5c98093697f91ecdfb6ce97716208e216bf79b83d4204edad2115f75443ca503"
+    },
+    {
+      "path": "scratch/performance/sqlglot-canonical-slot-promotion-proposal-r2-20261007.patch",
+      "bytes": 4700,
+      "sha256": "39e4724a0814bc006554f03a049220860a1db78a0fd5d48d7fd7cb6c8453be46"
+    },
+    {
+      "path": "scratch/performance/sqlglot-canonical-slot-promotion-proposal-apply-check-r2-20261007.log",
+      "bytes": 119,
+      "sha256": "6db3e2e2e65abb4d8ba23a8591def4d7e791caa94edd9f75e18b5983531ab5ab"
+    },
+    {
+      "path": "scratch/performance/prepare-sqlglot-slot-proposal-r2-20261007.ps1",
+      "bytes": 4562,
+      "sha256": "4d241f5976110d62abd2b914e09a2732fdebdf00c66512aadf631c01d1ed3cf0"
+    },
+    {
+      "path": "scratch/performance/sqlglot-canonical-slot-promotion-fixture-draft-20261007.py",
+      "bytes": 3620,
+      "sha256": "09fc943ced8246be083a89c996884ab5dd6d3b9f59c2efe47c6592dd896544d5"
+    },
+    {
+      "path": "scratch/performance/sqlglot-canonical-slot-promotion-fixture-draft-20261007.out",
+      "bytes": 590,
+      "sha256": "1d26064c266d943d4b2d0a1dca8dd687a743e763a7b525bf4ba0b52cd8691a4d"
+    }
+  ]
+}

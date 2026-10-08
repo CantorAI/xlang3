@@ -1,0 +1,15 @@
+Test project D:/CantorAI/xlang3/build-repro/main-verify-20261006
+    Start 21: xlang3_interpreter_tests
+1/1 Test #21: xlang3_interpreter_tests .........***Failed    0.26 sec
+VM native hook assertions pass
+VM native hook case reaches every phase
+actual native callbacks run after unchanged-version attachment and mixed reads
+
+
+0% tests passed, 1 tests failed out of 1
+
+Total Test time (real) =   0.27 sec
+
+The following tests FAILED:
+	 21 - xlang3_interpreter_tests (Failed)
+Errors while running CTest

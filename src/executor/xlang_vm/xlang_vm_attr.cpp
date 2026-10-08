@@ -22,6 +22,87 @@ limitations under the License.
 
 namespace xlang3 {
 
+// Descriptor.index is otherwise unused by read dispatch. Keep class-shape
+// rejection in that existing word instead of retrying an impossible promotion
+// for every inherited/property/aliased read. Other cache kinds own their normal
+// index meaning; version mismatch and every new Descriptor install recompute it.
+constexpr uint32_t kNoCanonicalSlotPromotion = UINT32_MAX;
+enum class CanonicalSlotPromotion : uint8_t { Promoted, Retry, ShapeIneligible };
+
+// Resolve canonical initialized slot storage once, then reuse the existing
+// class/version/index cache. Ambiguous and aliased descriptors stay generic.
+static CanonicalSlotPromotion try_promote_canonical_slot_read(
+    const InstanceObject& instance, ClassObject& klass,
+    const std::string& name, const Value& descriptor_value,
+    AttrSiteCache& cache, Value& out) {
+  const auto* slot = value_as_slot_descriptor(descriptor_value);
+  if (slot == nullptr || slot->name != name || klass.has_getattribute_hook)
+    return CanonicalSlotPromotion::ShapeIneligible;
+  // Receiver state and release callbacks are not class-shape facts: another
+  // instance, a later slot write or safe cache cleanup may allow promotion.
+  if (instance.native_get_attr != nullptr ||
+      (cache.value.tag == ValueTag::Object &&
+       !value_is(cache.value, descriptor_value))) return CanonicalSlotPromotion::Retry;
+  auto* owner = value_as_class(slot->owner_class);
+  // Flattened slot metadata can hide duplicate subclass declarations.
+  // Until own declarations have durable metadata, inherited slots stay generic.
+  if (owner != &klass) return CanonicalSlotPromotion::ShapeIneligible;
+  const auto index_it = klass.instance_slot_indices.find(name);
+  if (index_it == klass.instance_slot_indices.end())
+    return CanonicalSlotPromotion::ShapeIneligible;
+  const uint32_t index = index_it->second;
+  if (index >= klass.instance_slot_names.size() ||
+      klass.instance_slot_names[index] != name) return CanonicalSlotPromotion::ShapeIneligible;
+  if (index >= instance_slot_count(&instance) ||
+      instance_slot_at(&instance, index).tag == ValueTag::Invalid)
+    return CanonicalSlotPromotion::Retry;
+  const std::vector<Value>* mro = nullptr;
+  std::string error;
+  if (!class_get_mro_values(&klass, mro, error)) return CanonicalSlotPromotion::Retry;
+  uint32_t declarations = 0;
+  bool exact_owner_seen = false;
+  for (const auto& class_value : *mro) {
+    auto* candidate = value_as_class(class_value);
+    if (candidate == nullptr) return CanonicalSlotPromotion::Retry;
+    if (candidate != &klass &&
+        candidate->instance_slot_indices.find(name) !=
+            candidate->instance_slot_indices.end()) return CanonicalSlotPromotion::ShapeIneligible;
+    const auto found = candidate->attrs.find(name);
+    if (found == candidate->attrs.end()) continue;
+    const auto* declared = value_as_slot_descriptor(found->second);
+    if (declared == nullptr ||
+        value_as_class(declared->owner_class) != candidate ||
+        declared->name != name) continue;
+    if (++declarations != 1) return CanonicalSlotPromotion::ShapeIneligible;
+    exact_owner_seen = candidate == owner && declared == slot;
+  }
+  if (!exact_owner_seen || declarations != 1)
+    return CanonicalSlotPromotion::ShapeIneligible;
+  Value result = instance_slot_at(&instance, index);
+  // Canonical initialized slots should become the existing index cache, not
+  // owning Descriptor entries: repeated LOAD_ATTR otherwise copies the member
+  // descriptor and resolves its slot name on every read. Class version tags
+  // preserve descriptor changes and inheritance; absent/deleted/ambiguous slots
+  // keep the original descriptor and __getattr__ path. Own the returned value
+  // before old output can run a finalizer, then never touch borrowed storage.
+  // Reusing this cache must not preserve a prior property accessor flag:
+  // deleting the slot later must never dereference its old weak function.
+  cache.getter_inline = false;
+  cache.setter_inline = false;
+  cache.deleter_inline = false;
+  cache.property_attr_name = nullptr;
+  cache.class_value = nullptr;
+  cache.accessor_function = nullptr;
+  cache.accessor_code_version = 0;
+  cache.kind = AttrSiteKind::InstanceSlot;
+  cache.owner = &klass.header;
+  cache.version = klass.version;
+  cache.index = index;
+  value_set_invalid(cache.value); // only empty/scalar or this owned descriptor
+  value_assign_fast(out, result);
+  return CanonicalSlotPromotion::Promoted;
+}
+
 XLANG3_NOINLINE bool xlang_vm_resolve_method_value(
     Runtime& runtime, const Value& object, const std::string& name,
     Value& out, std::string& error) {
@@ -82,6 +163,13 @@ XLANG3_NOINLINE bool xlang_vm_load_attr_cached(
         cache.version == klass->version &&
         object_value_is_data_descriptor(cache.value) &&
         object_value_has_descriptor_get(cache.value)) {
+      if (cache.index != kNoCanonicalSlotPromotion) {
+        const auto promotion = try_promote_canonical_slot_read(
+            *instance, *klass, name, cache.value, cache, out);
+        if (promotion == CanonicalSlotPromotion::Promoted) return true;
+        if (promotion == CanonicalSlotPromotion::ShapeIneligible)
+          cache.index = kNoCanonicalSlotPromotion;
+      }
       value_assign_fast(out, cache.value);
       return true;
     }
@@ -91,12 +179,31 @@ XLANG3_NOINLINE bool xlang_vm_load_attr_cached(
       if (object_get_class_attr_for_instance(object, name, descriptor, descriptor_error) &&
           object_value_is_data_descriptor(descriptor) &&
           object_value_has_descriptor_get(descriptor)) {
+        const auto promotion = try_promote_canonical_slot_read(
+            *instance, *klass, name, descriptor, cache, out);
+        if (promotion == CanonicalSlotPromotion::Promoted) return true;
         // A setter-only descriptor still handles assignments, but cannot
         // preempt instance storage on reads (NetworkX's cache resetters use
         // this pattern). Cache a read descriptor only when it has a getter.
+        // Publishing a changed descriptor under fresh guards must not expose
+        // weak accessor pointers from the old property. Disable scalar flags
+        // before its owning value can release a function or run a finalizer;
+        // owning accessor constants keep their normal cache-cleanup lifetime.
+        if (cache.owner != &klass->header || cache.version != klass->version ||
+            !value_is(cache.value, descriptor)) {
+          cache.getter_inline = false;
+          cache.setter_inline = false;
+          cache.deleter_inline = false;
+          cache.property_attr_name = nullptr;
+          cache.class_value = nullptr;
+          cache.accessor_function = nullptr;
+          cache.accessor_code_version = 0;
+        }
         cache.kind = AttrSiteKind::Descriptor;
         cache.owner = &klass->header;
         cache.version = klass->version;
+        cache.index = promotion == CanonicalSlotPromotion::ShapeIneligible
+            ? kNoCanonicalSlotPromotion : 0;
         value_assign_fast(cache.value, descriptor);
         value_assign_fast(out, descriptor);
         return true;
