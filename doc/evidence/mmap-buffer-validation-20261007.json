@@ -1,0 +1,41 @@
+{
+  "branch": "nexus/mmap-buffer-export",
+  "base": "914783909835116969aad7c66b210a5ac9a27661",
+  "correctness": {
+    "mmapContract": "passed",
+    "sdkStreamCallContract": "passed",
+    "fullFixtureRunner": {
+      "exitCode": 0,
+      "CORE_CASES": 338,
+      "SECTION_CASES": 11,
+      "expectedFailureCases": 3,
+      "interpreter": "Native xlang3",
+      "environment": "XLANG3_PYTHON_LIB source path; native modules; PYTHONNOUSERSITE=1; PYTHONPYCACHEPREFIX unset as expected by fixture"
+    }
+  },
+  "sourceSha256NormalizedLF": {
+    "modules/mmap/mmap_module.cpp": "3b74cb05d8bb518ce0bcd21fac6982873c5383203ef0cba7d13821c43aa2e659",
+    "src/api/buffer_api.cpp": "7c6cb0cc5c0c5383be53657e3f224786d16c6849531bb183c8e98ce5ae21329b",
+    "src/executor/xlang_vm/ops/xlang_vm_ops_containers.h": "c57fbbca80ec28c9533b7fd06f75507d7bc0dc2ba4f745b14000f081613e33f7",
+    "src/executor/xlang_vm/xlang_vm_inline_support.h": "570f74870aee25891a0691726f3074a5d960f461b2ff1c9923465b6771f82f15",
+    "src/runtime/methods/bytes_methods.cpp": "71ca788b5475eea28a5a95c76050c873e7c751e3544e71085d5ddb607110fba2",
+    "src/runtime/object_model.cpp": "ca0d89a9b2b44974c1a918a901f6d7d61d125021821cf659a218674ad15be797",
+    "tests/cpp/sdk_calls.py": "5d469946f174f1ae3c8270e7d07e9f670f89bf270b885703d476985572c0c686",
+    "tests/cpp/sdk_stream_call_tests.cpp": "71bdebaf2f720a08c3129b7c1bac8433d6ac6435b04ac99a5d81066e5ca959c7",
+    "tests/fixtures/core/mmap_native.py": "d6a43e7c690b16bdb1bb31096de8de740ccca0d4b1917d23309e0eb60ff2c465",
+    "tests/fixtures/expected/mmap_native.out": "302f92e1b574d3f9e727c1964c41d73ef6b2ae72ce35f36281803138e49a2efa"
+  },
+  "performance": {
+    "status": "pass",
+    "exitCode": 0,
+    "defaultCases": 11,
+    "repeats": 21,
+    "warmup": 5,
+    "threshold": 0.1,
+    "report": "mmap-buffer-performance-20261007.json",
+    "interpreter": "Native xlang3 harness; no CPython execution",
+    "comparison": "Fixed preserved current Release baseline; does not establish restoration of historical August performance"
+  },
+  "validationStage": "Correctness and release performance validated before commit",
+  "scope": "mmap zero-copy buffer export, native property resolution, view lifetime/release and read-only assignment classification. PostgreSQL dependencies were installed under this candidate separately; no live database or complete CPython buffer-protocol parity claimed."
+}

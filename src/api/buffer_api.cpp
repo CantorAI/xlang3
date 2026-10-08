@@ -1,6 +1,8 @@
 #include "xlang3/abi/xbuffer.h"
 #include "xlang3/runtime.h"
 #include "xlang3/value.h"
+#include "xlang3/object_model.h"
+#include "xlang3/functional_iterators.h"
 #include "xlang3/c_api_bridge.h"
 #include "runtime/modules/thread/runtime_lock.h"
 #include <memory>
@@ -24,6 +26,15 @@ extern "C" X3Status x3_buffer_acquire(X3Runtime* runtime, X3Value value,
     std::string error;
     auto source = xlang3::from_c_value(value, error);
     if (!error.empty()) throw std::runtime_error(error);
+    if (xlang3::value_as_instance(source)) {
+      xlang3::Value payload;
+      const auto* getter = rt->find_builtin("getattr");
+      const xlang3::Value args[] = {source,
+          xlang3::Value::string("__xlang3_bytes_value__"), xlang3::Value::none()};
+      if (!getter || !xlang3::runtime_call_callable(*rt, *getter, args, 3, payload, error))
+        throw std::runtime_error("value does not export contiguous buffer storage");
+      source = std::move(payload);
+    }
     auto handle = std::make_unique<X3Buffer>();
     auto root = source;
     bool readonly = true;

@@ -1,0 +1,12 @@
+local_slots              pass         1.001x
+scalar_arithmetic        pass         0.996x
+range_for                pass         1.004x
+function_calls           pass         1.017x
+class_construct          pass         0.998x
+list_append              pass         1.008x
+property_access          pass         0.998x
+deepcopy_memo            pass         1.002x
+json_dumps               pass         0.992x
+gc_traversal             pass         0.997x
+subparsers               pass         0.998x
+Performance check: pass. Report: D:\CantorAI2026\.worktrees\xlang3-nexus-buffer\.local\buffer-performance.json

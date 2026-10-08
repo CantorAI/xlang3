@@ -44,6 +44,7 @@ struct Mapping {
   int access = kAccessDefault;
   int fd = -1;
   bool closed = false;
+  uint64_t exports = 0;
 #ifdef _WIN32
   HANDLE handle = nullptr;
 #endif
@@ -62,7 +63,19 @@ struct Mapping {
   }
 };
 
-void cleanup_mapping(void* value) { delete static_cast<Mapping*>(value); }
+using MappingOwner = std::shared_ptr<Mapping>;
+void cleanup_mapping(void* value) { delete static_cast<MappingOwner*>(value); }
+
+struct BufferLease {
+  MappingOwner mapping;
+  bool counted = false;
+  ~BufferLease() {
+    if (!counted) return;
+    std::lock_guard lock(mapping->mutex);
+    --mapping->exports;
+  }
+};
+void cleanup_buffer(void* value) { delete static_cast<BufferLease*>(value); }
 void cleanup_state(void* value) {
   auto* state = static_cast<State*>(value);
   if (state->klass.tag != X3_TAG_INVALID) state->host->value_release(state->klass);
@@ -88,7 +101,9 @@ bool integer(X3Value value, int64_t& out) {
 }
 
 Mapping* mapping(State* state, X3Value value) {
-  return static_cast<Mapping*>(state->host->instance_get_native_data(value, kType));
+  auto* owner = static_cast<MappingOwner*>(
+      state->host->instance_get_native_data(value, kType));
+  return owner ? owner->get() : nullptr;
 }
 
 #ifdef _WIN32
@@ -170,7 +185,7 @@ X3Status make_mapping(X3CallContext* call, X3Runtime* runtime, State* state,
     return fail(state, call, "ValueError", "mmap invalid access parameter");
   if (fd < -1 || fd > std::numeric_limits<int>::max())
     return fail(state, call, "OSError", "invalid file descriptor");
-  auto data = std::make_unique<Mapping>();
+  auto data = std::make_shared<Mapping>();
   data->fd = static_cast<int>(fd);
   data->access = static_cast<int>(access);
 #ifdef _WIN32
@@ -259,10 +274,11 @@ X3Status make_mapping(X3CallContext* call, X3Runtime* runtime, State* state,
   data->data = static_cast<unsigned char*>(view);
 #endif
   data->length = static_cast<uint64_t>(length);
-  if (state->host->instance_set_native_data(args[0], kType, data.get(),
+  auto owner = std::make_unique<MappingOwner>(data);
+  if (state->host->instance_set_native_data(args[0], kType, owner.get(),
                                              cleanup_mapping) != X3_STATUS_OK)
     return X3_STATUS_ERROR;
-  data.release();
+  owner.release();
   *result = x3_value_none();
   return X3_STATUS_OK;
 }
@@ -357,14 +373,18 @@ X3Status write_method(X3CallContext* call, X3Runtime* runtime, void* user_data,
   X3BufferInfo info{};
   if (state->host->buffer_acquire(runtime, args[1], 0, &buffer, &info) != X3_STATUS_OK)
     return fail(state, call, "TypeError", "mmap.write() requires a bytes-like object");
-  std::lock_guard lock(data->mutex);
-  if (info.size > data->length - data->position) {
-    state->host->buffer_release(buffer);
-    return fail(state, call, "ValueError", "data out of range");
+  bool out_of_range;
+  {
+    std::lock_guard lock(data->mutex);
+    out_of_range = info.size > data->length - data->position;
+    if (!out_of_range) {
+      std::memmove(data->data + data->position, info.data, static_cast<size_t>(info.size));
+      data->position += info.size;
+    }
   }
-  std::memcpy(data->data + data->position, info.data, static_cast<size_t>(info.size));
-  data->position += info.size;
+  // Releasing a buffer exported by this same mmap takes its mutex again.
   state->host->buffer_release(buffer);
+  if (out_of_range) return fail(state, call, "ValueError", "data out of range");
   *result = x3_value_int64(static_cast<int64_t>(info.size));
   return X3_STATUS_OK;
 }
@@ -395,6 +415,8 @@ X3Status close_method(X3CallContext* call, X3Runtime*, void* user_data,
   Mapping* data = mapping(state, args[0]);
   if (!data) return fail(state, call, "TypeError", "expected mmap object");
   std::lock_guard lock(data->mutex);
+  if (data->exports)
+    return fail(state, call, "BufferError", "cannot close exported pointers exist");
   data->close();
   *result = x3_value_none();
   return X3_STATUS_OK;
@@ -427,6 +449,36 @@ X3Status closed_property(X3CallContext* call, X3Runtime*, void* user_data,
   if (!data) return fail(state, call, "TypeError", "expected mmap object");
   *result = x3_value_bool(data->closed);
   return X3_STATUS_OK;
+}
+
+X3Status buffer_property(X3CallContext* call, X3Runtime* runtime, void* user_data,
+                         const X3Value* args, uint32_t argc, X3Value* result) {
+  auto* state = static_cast<State*>(user_data);
+  if (argc != 1) return fail(state, call, "TypeError", "mmap buffer getter arguments");
+  auto* owner = static_cast<MappingOwner*>(
+      state->host->instance_get_native_data(args[0], kType));
+  if (!owner) return fail(state, call, "TypeError", "expected mmap object");
+  auto lease = std::make_unique<BufferLease>();
+  lease->mapping = *owner;
+  auto* data = owner->get();
+  unsigned char* storage;
+  uint64_t length;
+  int readonly;
+  {
+    std::lock_guard lock(data->mutex);
+    if (data->closed) {
+      return fail(state, call, "ValueError", "mmap closed or invalid");
+    }
+    ++data->exports;
+    lease->counted = true;
+    storage = data->data;
+    length = data->length;
+    readonly = data->access == kAccessRead;
+  }
+  // The SDK consumes the cleanup context on success and failure.
+  *result = state->host->value_memoryview(runtime, storage, length, readonly,
+                                        lease.release(), cleanup_buffer);
+  return result->tag == X3_TAG_INVALID ? X3_STATUS_ERROR : X3_STATUS_OK;
 }
 
 X3Status register_module(X3PackageHost* host) {
@@ -462,6 +514,13 @@ X3Status register_module(X3PackageHost* host) {
       state->klass, "closed", descriptor);
   host->value_release(descriptor);
   if (property_status != X3_STATUS_OK) return X3_STATUS_ERROR;
+  if (host->property_create(host->runtime, "__xlang3_bytes_value__",
+                           buffer_property, nullptr, state, &descriptor) != X3_STATUS_OK)
+    return X3_STATUS_ERROR;
+  const X3Status buffer_status = host->class_add_value(
+      state->klass, "__xlang3_bytes_value__", descriptor);
+  host->value_release(descriptor);
+  if (buffer_status != X3_STATUS_OK) return X3_STATUS_ERROR;
   int64_t page_size = 4096;
   int64_t allocation_granularity = 4096;
 #ifdef _WIN32

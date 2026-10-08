@@ -2189,6 +2189,8 @@ bool memoryview_release_method(Runtime&, const Value* args, uint32_t argc, Value
     view->owns_bytearray_export = false;
   }
   view->released = true;
+  view->external.reset();
+  value_set_none(view->owner);
   value_set_invalid(view->exporter);
   value_set_none(out);
   return true;

@@ -172,6 +172,24 @@ int main(int argc, char** argv) {
       require(lifetime.expired(), "native memoryview owner leaked");
     }
     int cleanups = 0;
+    {
+      auto storage = std::make_shared<std::vector<char>>(4, 'x');
+      std::weak_ptr<std::vector<char>> lifetime = storage;
+      auto view = X::Value::MemoryView(runtime.host(), storage->data(), 4, storage);
+      X3Buffer* acquired = nullptr;
+      X3BufferInfo info{};
+      require(x3_buffer_acquire(runtime.get(), view.raw(), 1, &acquired, &info) == X3_STATUS_OK,
+          "native view buffer acquisition failed");
+      storage.reset();
+      X::Value ignored;
+      require(module["release_native_view"].Call({view}, {}, ignored),
+          "native view release failed");
+      require(!lifetime.expired() && info.size == 4 &&
+          static_cast<char*>(info.data)[0] == 'x',
+          "release invalidated an acquired native buffer");
+      x3_buffer_release(acquired);
+      require(lifetime.expired(), "released view retained its external storage");
+    }
     auto invalid_view = x3_value_memoryview(runtime.get(), nullptr, 1, 0, &cleanups,
         [](void* context) { ++*static_cast<int*>(context); });
     require(invalid_view.tag == X3_TAG_INVALID && cleanups == 1,

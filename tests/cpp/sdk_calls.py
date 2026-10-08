@@ -52,3 +52,8 @@ def check_native_view(view):
     derived = memoryview(view)[4:8].toreadonly()
     view.release()
     return derived
+
+
+def release_native_view(view):
+    view.release()
+    view.release()

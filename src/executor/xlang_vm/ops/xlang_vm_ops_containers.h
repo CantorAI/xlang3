@@ -1647,7 +1647,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow set_item(
       return raise_exception_value(runtime.make_exception("IndexError", mapped_error)) ? XlangVMOpFlow::ContinueLoop
                                                                                        : XlangVMOpFlow::ReturnResult;
     }
-    if (mapped_error.find("does not support item assignment") != std::string::npos ||
+    if (mapped_error == "cannot modify read-only memory" ||
+        mapped_error.find("does not support item assignment") != std::string::npos ||
         mapped_error.find("not hashable") != std::string::npos ||
         mapped_error.find("unhashable type") != std::string::npos) {
       return raise_exception_value(runtime.make_exception("TypeError", mapped_error))

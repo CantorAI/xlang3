@@ -8,3 +8,4 @@ b'XYZdef'
 b'123def'
 b'XYZdef'
 TypeError
+mmap buffers ok

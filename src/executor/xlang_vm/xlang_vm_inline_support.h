@@ -3079,7 +3079,14 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
         constructor_error.set("ValueError", "operation forbidden on released PickleBuffer object");
         return false;
       }
-      if (object_get_attr(source, "__xlang3_bytes_value__", payload, ignored)) {
+      const Value* buffer_getter = runtime.find_builtin("getattr");
+      const Value buffer_args[] = {
+          source, Value::string("__xlang3_bytes_value__"), Value::none()};
+      if (!buffer_getter || !runtime_call_callable(runtime, *buffer_getter,
+              buffer_args, 3, payload, error)) {
+        return false;
+      }
+      if (payload.tag != ValueTag::None) {
         const auto* bytes = value_as_bytes(payload);
         const auto* bytearray = value_as_bytearray(payload);
         const auto* payload_view = value_as_memoryview(payload);
@@ -3088,18 +3095,24 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
           return false;
         }
         if (bytes != nullptr || bytearray != nullptr || payload_view != nullptr) {
-          Value owner = source;
+          // A native exporter may return a fresh view carrying its storage lease.
+          // Keep that lease rather than looking up another view on every access.
+          Value owner = payload_view != nullptr ? payload : buffer_args[0];
           Value exported_owner;
-          if (object_get_attr(source, "__xlang3_memoryview_owner__", exported_owner, ignored) &&
+          if (object_get_attr(buffer_args[0], "__xlang3_memoryview_owner__", exported_owner, ignored) &&
               exported_owner.tag != ValueTag::None) {
             owner = std::move(exported_owner);
           }
+          Value exporter = buffer_args[0];
           out = Value::memoryview(std::move(owner), 0,
               bytes != nullptr ? bytes->size :
                   bytearray != nullptr ? bytearray->value.size() : payload_view->size,
               bytes != nullptr || (payload_view != nullptr && payload_view->readonly));
+          if (payload_view != nullptr) {
+            value_as_memoryview(out)->exporter = std::move(exporter);
+          }
           Value format;
-          if (object_get_attr(source, "typecode", format, ignored)) {
+          if (object_get_attr(buffer_args[0], "typecode", format, ignored)) {
             if (auto* text = value_as_string(format)) {
               if (auto* result = value_as_memoryview(out)) {
                 result->format = string_object_to_string(*text);
