@@ -1,0 +1,246 @@
+diff --git a/scratch/performance/validate-pickle-published-frame-c6-full-20261008.py b/scratch/performance/validate-sorted-exact-int-s8-full-20261008.py
+index 9391433d..6161dc54 100644
+--- a/scratch/performance/validate-pickle-published-frame-c6-full-20261008.py
++++ b/scratch/performance/validate-sorted-exact-int-s8-full-20261008.py
+@@ -1,9 +1,9 @@
+-"""Fresh C6 published-frame ownership refresh validation and original pure-Python pickle benchmark.
++"""Fresh S8 primitive sorted/R7 module binding checkpoint validation and original pure-Python pickle benchmark.
+ 
+ Use exact CPython 3.14.7 with --source-inventory FINAL_APPLIED_SOURCE.json.
+ Accepts source_sha256 {path: sha} or files {path: {working_sha256: sha}}.
+-Require the exact current twelve-phase proof and an original-body diagnostic
+-meeting a root-supplied speedup threshold. All thread/CPP/full correctness/gate/pickle checks are fresh; C5 is historical provenance only.
++Require the exact current fourteen-phase proof and an original-body diagnostic
++with parity and stable hashes, plus a separately qualifying predeclared sorting-paired proof. All full correctness/gate/pickle checks are fresh; C5 is historical provenance only.
+ No full97, build or CP reference recapture is launched.
+ """
+ import argparse
+@@ -31,8 +31,6 @@ CP_PROVENANCE = CP_FULL.with_name(CP_FULL.stem + '-provenance.json')
+ HOOK = ROOT / 'benchmarks/diagnostics/pyperf_compat/sitecustomize.py'
+ CASES = {'pickle_pure_python': 'bm_pickle'}
+ OFFICIAL_SUBTESTS = {'pickle_pure_python': ('pickle_pure_python',)}
+-BODY_CONTROLLER = ROOT / 'scratch/performance/run-pickle-published-frame-c6-original-body-and-sampling-20261008.py'
+-BODY_CONTROLLER_SHA = 'd3d10bbf61edfaeaf92721952a18919ab1e8017e842051e933b4a0b893a8b699'
+ BODY_CHILD = ROOT / 'scratch/performance/pickle-original-pure-python-diagnostic-proposed-20261008.py'
+ BODY_CHILD_SHA = '5295c899d95d023ca2fb3b511e9bf78b58cb49e4a256770c65adf0d614b14109'
+ C5_PARENT = DATA / 'ordinary-canonical-slot-constructor-c5-gate-idle-resume-20261008.json'
+@@ -48,9 +46,9 @@ THREAD_SOURCE = ROOT / 'tests/fixtures/core/threading_runtime_edges.py'
+ THREAD_SOURCE_SHA = '56016bd84f76782ce736058670c50035c8a1600ac67fca201ef1a304e6875c39'
+ THREAD_EXPECTED = ROOT / 'tests/fixtures/expected/threading_runtime_edges.out'
+ THREAD_EXPECTED_SHA = '7ac4a64a76bc6207024ea9c001dcfcf336e991effe39b9c08602ceb7c332ba22'
+-SNAPSHOT_HEADER = 'tests/cpp/published_frame_snapshot_cases.h'
++S8_CASES = ('call_module_global_binding', 'sorted_exact_integer_keys')
+ PURE_DEFINITION_SHA = '846f31a4f830d4b2ab044917d3b3e6b036ace3647445d770c8980f1f5b158c21'
+-FOCUSED_PHASES = ['sorted7', 'iteration4', 'nested1', 'canonical10', 'fallback3', 'ownership2', 'owner2', 'namespace4', 'profile3', 'annotation2', 'cpp', 'threading']
++FOCUSED_PHASES = ['sorted7', 'iteration4', 'nested1', 'canonical10', 'fallback3', 'ownership2', 'owner2', 'namespace4', 'profile3', 'annotation2', 'threading', 'module_binding6', 'integer_sort7', 'cpp']
+ C5_CASES = ['ordinary_canonical_slot_constructor', 'explicit_slot_descriptor_fallback',
+             'synchronous_class_argument_lifetime', 'slot_descriptor_owner', 'class_namespace_lifetime', 'nested_profile_setting', 'class_method_annotation_capture']
+ REFERENCE = DATA / 'heapq-cold-metadata-outline-full-resume-r3-20261008-inherited-full.json'
+@@ -90,13 +88,13 @@ def main():
+     parser.add_argument('--focused-receipt-sha256', required=True)
+     parser.add_argument('--body-receipt', required=True, type=Path)
+     parser.add_argument('--body-receipt-sha256', required=True)
+-    parser.add_argument('--body-controller', type=Path, default=BODY_CONTROLLER)
+-    parser.add_argument('--body-controller-sha256', default=BODY_CONTROLLER_SHA)
+-    parser.add_argument('--minimum-body-speedup', required=True, type=float,
+-        help='Root-selected minimum historical C5-X/fresh C6-X unscored original-body ratio; must exceed 1x')
++    parser.add_argument('--body-controller', type=Path, required=True)
++    parser.add_argument('--body-controller-sha256', required=True)
++    parser.add_argument('--sorting-paired-receipt', type=Path, required=True)
++    parser.add_argument('--sorting-paired-receipt-sha256', required=True)
+     parser.add_argument('--build-log', type=Path)
+     parser.add_argument('--build-log-sha256')
+-    parser.add_argument('--prefix', default='pickle-published-frame-c6-full-validation-20261008')
++    parser.add_argument('--prefix', default='sorted-exact-int-s8-full-validation-20261008')
+     parser.add_argument('--identity-reference', type=Path,
+         default=DATA / 'identity-last-use-r2-cpython3147-reference-20261008.json')
+     reference = json.loads(REFERENCE.read_text(encoding='utf-8'))
+@@ -111,7 +109,6 @@ def main():
+     args = parser.parse_args()
+     assert sys.version_info[:3] == (3, 14, 7) and Path(sys.executable).resolve() == CPYTHON.resolve()
+     assert sys.flags.optimize == 0 and bool(args.build_log) == bool(args.build_log_sha256)
+-    assert math.isfinite(args.minimum_body_speedup) and args.minimum_body_speedup > 1
+     assert re.fullmatch(r'[a-z0-9-]+', args.prefix), 'Use a fresh simple output prefix'
+     output = DATA / (args.prefix + '.json')
+     assert not any(DATA.glob(args.prefix + '*')), 'Existing evidence must never be overwritten'
+@@ -151,7 +148,8 @@ def main():
+         'src/executor/xlang_vm/xlang_vm_loop.cpp', 'src/executor/xlang_vm/xlang_vm_inline_call.h',
+         'src/executor/xlang_vm/xlang_vm_attr.cpp', 'src/executor/xlang_vm/ops/xlang_vm_ops_attr.h',
+         'tests/cpp/ordinary_canonical_slot_constructor_cases.h'})
+-    required_sources.add(SNAPSHOT_HEADER)
++    for name in S8_CASES:
++        required_sources.update({'tests/fixtures/core/' + name + '.py', 'tests/fixtures/expected/' + name + '.out'})
+     required_sources.update({'src/runtime/runtime.cpp', 'src/internal/xlang3/pyc_magic.h',
+         'tests/cpp/observable_builtin_method_cases.h', 'src/sema/lower.cpp',
+         'tests/cpp/class_method_annotation_capture_cases.h'})
+@@ -159,7 +157,7 @@ def main():
+         required_sources.update({'tests/fixtures/core/' + name + '.py', 'tests/fixtures/expected/' + name + '.out'})
+     assert required_sources <= sources.keys(), 'Supply the complete FINAL compiled source inventory, including both generic repairs and unchanged CPP counter dependency'
+     record = {'status': 'running', 'terminal': False, 'started_utc': datetime.now(timezone.utc).isoformat(),
+-        'scope': 'Fresh C6 thread/CPP/full correctness validation after qualifying original pure-Python pickle body; exact current twelve-phase proof retained, all full phases fresh',
++        'scope': 'Fresh S8/R7 full correctness/default gate and original pure-Python pickle attempt; exact current fourteen-phase proof and body parity retained, all full phases fresh; sorting gain has its own predeclared paired prerequisite',
+         'full_validated': False,
+         'source_inventory': str(inventory_path), 'source_inventory_sha256': digest(inventory_path),
+         'source_sha256': sources, 'source_count': len(sources), 'phases': [], 'idle_guards': [],
+@@ -265,13 +263,92 @@ def main():
+         return {'record': path.name, 'sha256': digest(path), 'source_sha256': reference['source_sha256'],
+                 'stdout_log': stdout_path.name, 'stderr_log': stderr_path.name, 'reused_without_execution': True}
+ 
++    def verify_sorting_paired_receipt():
++        import random
++        import statistics
++        path = args.sorting_paired_receipt.resolve(strict=True)
++        track(path, args.sorting_paired_receipt_sha256)
++        paired = json.loads(path.read_text(encoding='utf-8'))
++        producer = ROOT / 'scratch/performance/measure-sorted-exact-int-s8-paired-20261008.py'
++        producer_sha = '5fc9504823e58d81555d39869b75bdb5c8a9a8ec6ad94df00bb7e23e433867c2'
++        child = ROOT / 'benchmarks/diagnostics/python_callback_boundary.py'
++        child_sha = 'f76136594ac8e64e5fb0d71a47eff3af286d5e12178a8acbaa7fe4c43a6ef84a'
++        track(producer, producer_sha); track(child, child_sha)
++        assert paired['terminal'] and paired['status'] == 'terminal_unscored_paired_callback_boundary'
++        assert paired['hashes_unchanged'] and paired['hashes_before'] == paired['hashes_after']
++        assert not paired['scored'] and not paired['full_validated']
++        assert paired['controller_sha256'] == producer_sha and paired['child_sha256'] == child_sha
++        assert paired['source_inventory_sha256'] == digest(inventory_path) and paired['source_sha256'] == sources
++        assert paired['focused_receipt_sha256'] == digest(focused_path)
++        assert paired['binaries_sha256'] == record['binaries_sha256']
++        assert (paired['pair_count'], paired['total_child_invocations'], paired['total_timed_case_invocations']) == (7, 14, 210)
++        assert (paired['warmup_case_invocations_per_child'], paired['timed_samples_per_case_per_child']) == (5, 3)
++        assert paired['values_trimmed'] == paired['outliers_removed'] == 0
++        assert paired['decision_rule'] == dict(selected_case='sort_plain', minimum_median_ratio=1.10,
++            minimum_lower_ci=1.0, bootstrap_resamples=50000, bootstrap_seed=20261008, strict_greater_than=True)
++        assert paired['hashes_before'][str(producer)] == producer_sha
++        assert paired['hashes_before'][str(child)] == child_sha
++        manifest = C5_CONTROL / 'preserved-release-provenance.json'
++        assert paired['hashes_before'][str(manifest)] == C5_CONTROL_MANIFEST_SHA
++        for pinned_path, sha in paired['hashes_before'].items(): track(Path(pinned_path), sha)
++        cases = ('loop', 'small_calls', 'branch_calls', 'sort_plain', 'sort_callback')
++        assert len(paired['pair_results']) == 7 and len(paired['raw']) == 14
++        ratios, all_rows = [], []
++        for index, pair in enumerate(paired['pair_results']):
++            order = ['control', 'candidate'] if index % 2 == 0 else ['candidate', 'control']
++            assert pair['pair_index'] == index and pair['order'] == order
++            assert set(pair['runs']) == {'control', 'candidate'}
++            for role in order:
++                row = pair['runs'][role]; all_rows.append(row)
++                assert row['pair_index'] == index and row['runtime'] == role
++                assert row['passed'] and row['exit_code'] == 0 and not row['timeout'] and row['measurement_valid']
++                executable = (C5_CONTROL / 'xlang3.exe') if role == 'control' else CANDIDATE
++                assert [Path(value).resolve() for value in row['command']] == [executable.resolve(), child.resolve()]
++                for stream in ('stdout', 'stderr'): track(DATA / row[stream + '_log'], row[stream + '_sha256'])
++                assert (DATA / row['stderr_log']).read_bytes() == b''
++                parsed, indices = {case: [] for case in cases}, {case: [] for case in cases}
++                lines = (DATA / row['stdout_log']).read_text(encoding='utf-8-sig').splitlines()
++                assert len(lines) == 15
++                for line in lines:
++                    marker, case, sample, count, value = line.split()
++                    assert marker == 'callback_boundary' and case in parsed and int(count) == 50000
++                    elapsed = float(value)
++                    assert math.isfinite(elapsed) and elapsed > 0
++                    parsed[case].append(elapsed); indices[case].append(int(sample))
++                assert all(values == [0, 1, 2] for values in indices.values()) and row['times'] == parsed
++                watch = row['external_process_watch']
++                assert watch['measurement_valid']
++                track(DATA / watch['log'], watch['sha256'])
++            ratio = statistics.median(pair['runs']['control']['times']['sort_plain']) / statistics.median(pair['runs']['candidate']['times']['sort_plain'])
++            assert math.isfinite(ratio) and ratio > 0 and pair['ratios']['sort_plain'] == ratio
++            ratios.append(ratio)
++        assert all_rows == paired['raw'], 'Retain every original child row in predeclared order'
++        rng = random.Random(20261008)
++        draws = sorted(statistics.median([ratios[rng.randrange(7)] for _ in range(7)]) for _ in range(50000))
++        def percentile(q):
++            position = q * (len(draws) - 1); lower = math.floor(position); upper = math.ceil(position)
++            return draws[lower] + (draws[upper] - draws[lower]) * (position - lower)
++        median = statistics.median(ratios); interval = [percentile(.025), percentile(.975)]
++        summary = paired['summary']
++        assert summary['pair_ratios'] == ratios and summary['median_pair_ratio'] == median
++        assert summary['bootstrap95_ci'] == interval
++        assert summary['all_cases']['sort_plain'] == dict(pair_ratios=ratios, median_pair_ratio=median, bootstrap95_ci=interval)
++        assert median > 1.10 and interval[0] > 1.0 and summary['useful_signal']
++        assert summary['decision'] == 'signal_for_full_checkpoint_validation'
++        record['required_sorting_paired_diagnostic'] = dict(record=path.name, sha256=digest(path),
++            controller_sha256=producer_sha, child_sha256=child_sha, pair_count=7, total_children=14,
++            selected_case='sort_plain', pair_ratios=ratios, median_pair_ratio=median, bootstrap95_ci=interval,
++            minimum_median_ratio=1.10, minimum_lower_ci=1.0, values_trimmed=0, outliers_removed=0,
++            scope='Predeclared seven-pair unchanged diagnostic C5/S8 sorting signal only; no official score, isolated sorting-vs-module causality or CPython win claim')
++        save()
++
+     try:
+         save()
+         track(inventory_path, record['source_inventory_sha256'])
+         track(Path(__file__))
+         track(REFERENCE, REFERENCE_SHA)
+         track(WATCH, WATCH_SHA)
+-        watcher_spec = importlib.util.spec_from_file_location('pickle_c6_full_timing_watch', WATCH)
++        watcher_spec = importlib.util.spec_from_file_location('sorted_s8_full_timing_watch', WATCH)
+         watcher = importlib.util.module_from_spec(watcher_spec)
+         watcher_spec.loader.exec_module(watcher)
+         if args.build_log:
+@@ -318,7 +395,7 @@ def main():
+         assert body['child_sha256']==BODY_CHILD_SHA and body['timeout_seconds']==300
+         assert (body['outer_loops'],body['protocol'],body['original_dump_operations'])==(41,5,2460)
+         assert body['source_inventory_sha256']==digest(inventory_path) and body['source_sha256']==sources
+-        assert body['focused_receipt_sha256']==digest(focused_path) and body['focused_phases']==FOCUSED_PHASES
++        assert body['focused_receipt_sha256']==digest(focused_path) and len(body['focused_phases'])==len(FOCUSED_PHASES) and set(body['focused_phases'])==set(FOCUSED_PHASES)
+         assert body['release_count']==178 and body['binaries_sha256']==record['binaries_sha256']
+         assert body['candidate_binary_sha256']==record['candidate_binary_sha256'] and body['hashes_before']==body['hashes_after']
+         for path, sha in body['hashes_before'].items(): track(Path(path),sha)
+@@ -340,16 +417,15 @@ def main():
+         actual_body, original_body = body_rows(body), body_rows(c5_body)
+         speedup=original_body['candidate-xlang3']['elapsed_seconds_diagnostic_only']/actual_body['candidate-xlang3']['elapsed_seconds_diagnostic_only']
+         assert math.isfinite(speedup)
+-        assert body['unscored_c5_reference_comparison']['c5_over_c6']==speedup
+         record['required_original_body_diagnostic']={'record':body_path.name,'sha256':digest(body_path),
+             'c5_reference':C5_BODY.name,'c5_reference_sha256':C5_BODY_SHA,
+             'c5_x_seconds':original_body['candidate-xlang3']['elapsed_seconds_diagnostic_only'],
+-            'c6_x_seconds':actual_body['candidate-xlang3']['elapsed_seconds_diagnostic_only'],
+-            'speedup_c5_over_c6':speedup,'minimum_speedup_required_by_root':args.minimum_body_speedup,
+-            'scope':'Single original-body unpaired/unscored prerequisite only; no isolated-causality, official result or CP win claim'}
++            's8_x_seconds':actual_body['candidate-xlang3']['elapsed_seconds_diagnostic_only'],
++            'historical_unpaired_c5_over_s8':speedup,
++            'scope':'Fresh original-body parity and hash-stable correctness prerequisite only; historical ratio is unpaired/unscored and is not a performance acceptance threshold or CP win claim'}
+         record['historical_c5_parent']=dict(history,correctness_reused=False)
+         save()
+-        assert speedup>=args.minimum_body_speedup, 'Candidate body does not meet root-selected useful-gain prerequisite'
++        verify_sorting_paired_receipt()
+         track(BASELINE, 'a5f5028c15e145edce645a5afc25c11fbce77f51e882312b1fbe06e63c72a4af')
+         track(BASELINE.with_name('xlang3_runtime.dll'), 'bc1b9c0a8086f7e6fb0c037516dc9c1eea20427fa887e3aa623714bc5ef5da8d')
+         cp_provenance = json.loads(CP_PROVENANCE.read_text(encoding='utf-8'))
+@@ -386,7 +462,7 @@ def main():
+             'provenance': CP_PROVENANCE.name, 'provenance_sha256': digest(CP_PROVENANCE), 'reused_without_execution': True}
+ 
+         fixtures = {}
+-        for name in ('call_ex_cross_activation_constructor', 'call_method_dict_cache_touch', 'inherited_call_ex_constructor', 'native_bound_zero_args', 'sqlite_native_aggregate', 'sqlite_cursor_completion', 'identity_last_use', 'hash_exception_preservation', 'sqlite_statement_cache'):
++        for name in ('call_ex_cross_activation_constructor', 'call_method_dict_cache_touch', 'inherited_call_ex_constructor', 'native_bound_zero_args', 'sqlite_native_aggregate', 'sqlite_cursor_completion', 'identity_last_use', 'hash_exception_preservation', 'sqlite_statement_cache', *S8_CASES):
+             source = ROOT / 'tests/fixtures/core' / (name + '.py')
+             expected_path = ROOT / 'tests/fixtures/expected' / (name + '.out')
+             fixtures[name] = (source, normalized(expected_path.read_bytes()))
+@@ -478,12 +554,12 @@ def main():
+         required_cases = {'identity_last_use', 'hash_exception_preservation', 'sqlite_statement_cache',
+             'call_ex_cross_activation_constructor', 'call_method_dict_cache_touch', 'inherited_call_ex_constructor',
+             'sorted_key_scoped_entry', 'sorted_key_iteration_owner', 'sorted_key_nested_handled_context'}
+-        required_cases.update(C5_CASES)
++        required_cases.update(C5_CASES); required_cases.update(S8_CASES)
+         assert required_cases <= set(suite.CORE_CASES), 'Register all permanent fixtures before trial'
+         assert all(suite.CORE_CASES.count(name) == 1 for name in required_cases)
+         ps_text = (ROOT / 'tests/run_fixtures.ps1').read_text(encoding='utf-8')
+         for name in ('call_ex_cross_activation_constructor', 'call_method_dict_cache_touch', 'inherited_call_ex_constructor',
+-            'sorted_key_scoped_entry', 'sorted_key_iteration_owner', 'sorted_key_nested_handled_context', *C5_CASES):
++            'sorted_key_scoped_entry', 'sorted_key_iteration_owner', 'sorted_key_nested_handled_context', *C5_CASES, *S8_CASES):
+             assert len(re.findall(r'^\s*"' + re.escape(name) + r'",\s*$', ps_text, re.MULTILINE)) == 1
+         cpp_text = (ROOT / 'tests/cpp/interpreter_tests.cpp').read_text(encoding='utf-8')
+         assert cpp_text.count('#include "inherited_call_ex_constructor_cases.h"') == 1
+@@ -494,12 +570,10 @@ def main():
+         assert cpp_text.count('xlang3::test::check_ordinary_canonical_slot_constructor(result);') == 1
+         assert cpp_text.count('#include "class_method_annotation_capture_cases.h"') == 1
+         assert cpp_text.count('xlang3::test::check_class_method_annotation_capture(result);') == 1
+-        assert cpp_text.count('#include "published_frame_snapshot_cases.h"')==1
+-        assert cpp_text.count('xlang3::test::check_published_frame_same_owner_refresh(result);')==1
+         suite_text = (ROOT / 'tests/run_fixtures.py').read_text(encoding='utf-8')
+         assert len(re.findall(r'^    assert_failure\(', suite_text, re.MULTILINE)) == 3
+         record['fixture_counts'] = {'core': len(suite.CORE_CASES), 'compatibility_sections': len(suite.SECTION_CASES), 'expected_failures': 3}
+-        assert record['fixture_counts'] == {'core':396,'compatibility_sections':11,'expected_failures':3}
++        assert record['fixture_counts'] == {'core':398,'compatibility_sections':11,'expected_failures':3}
+         for group, names in [('core', suite.CORE_CASES), ('compat_sections', suite.SECTION_CASES)]:
+             for name in names:
+                 track(ROOT / 'tests/fixtures' / group / (name + '.py'))

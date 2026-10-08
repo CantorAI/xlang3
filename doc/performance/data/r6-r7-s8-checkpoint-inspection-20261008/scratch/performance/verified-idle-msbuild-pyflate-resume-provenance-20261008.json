@@ -1,0 +1,51 @@
+{
+  "status": "frozen_static_proposal_unexecuted",
+  "scope": "One separate original official pyflate attempt with exact proven parked MSBuild/conhost identities and separate integer CPU activity guards. Original failed preflight/default gate/watcher untouched.",
+  "helper": "scratch/performance/verified-idle-msbuild-policy-proposed-20261008.py",
+  "synthetic_tests": "scratch/performance/test-verified-idle-msbuild-policy-proposed-20261008.py",
+  "resume_controller": "scratch/performance/run-sorted-exact-int-s8-original-official-pyflate-idle-resume-20261008.py",
+  "sha256": {
+    "scratch/performance/verified-idle-msbuild-policy-proposed-20261008.py": "4063d997ff08551eba3a909e3b897758518854645a6521efee32bda0307f5be4",
+    "scratch/performance/test-verified-idle-msbuild-policy-proposed-20261008.py": "7d6891b513e689c9346f14fa5c6f4f0b533fdc750412a151822f227db0e9295e",
+    "scratch/performance/run-sorted-exact-int-s8-original-official-pyflate-idle-resume-20261008.py": "cdf6544654772f298a422dc988356dae648c6c759e443015b46fff8303480fb2",
+    "scratch/performance/prepare-pyflate-verified-idle-resume-proposed-20261008.ps1": "cca2432ab6152abd57ce2036f5c5508caf80c38e4151b7a8db4245c2333a6d59",
+    "scratch/performance/verified-idle-msbuild-pyflate-resume-controller-diff-20261008.patch": "9ae42f1eac2980326e28ee3aff735d579e166fa572112739e537d1ec7118e18f",
+    "scratch/performance/run-sorted-exact-int-s8-original-official-pyflate-20261008.py": "3dbfc68c563c30b615d7a4770b891f984b9f576fa51b49985ae78ba8b060ef29",
+    "scratch/performance/validate-call-ex-cross-activation-constructor-resume-r3-20261008.py": "50007db5cc6adc2e54012fdfbd48514699513f990906d4a508582ba73d6ae0bf",
+    "scratch/performance/validate-sorted-exact-int-s8-full-20261008.py": "997d0e694f5c04aa2459bfbaca36065054c53d1661f810e37c5f7dd7b50813f3",
+    "doc/performance/data/verified-idle-msbuild-worker-20261008.json": "5f9522080e4309aba05149fdbddf2daeaaef0c8fbdefc18d7cf713d4750ec210",
+    "doc/performance/data/verified-idle-msbuild-console-20261008.json": "63a7bc6f8f91b82c7a5c8136aff8f403179ea7bd6e67c8956a148e265c5ddeb1",
+    "doc/performance/data/sorted-exact-int-s8-original-official-pyflate-20261008.json": "545c506ae452bacf2c993fb35253c0d59c430f146e4147ab2517220c48515881",
+    "doc/performance/data/sorted-exact-int-s8-full-validation-20261008.json": "d4b028b1255f23b11e664bd9e6778b808a7d160d3628e17f39710faa1900d022",
+    "doc/performance/data/sorted-exact-int-s8-registered-source-20261008.json": "f20c304e32b0874c929d22dc72018cbd6d5fd9d124844c1d66d8edcc6a231556"
+  },
+  "prior_timed_child_started": false,
+  "worker_pid": 30756,
+  "console_pid": 9220,
+  "parent_pid": 22100,
+  "worker_cpu_ticks": {
+    "kernel": 2656250,
+    "user": 5312500
+  },
+  "console_cpu_ticks": {
+    "kernel": 0,
+    "user": 156250
+  },
+  "synthetic_cases": 26,
+  "tests_executed_by_agent": false,
+  "runtime_executed_by_agent": false,
+  "engine_build_source_modified": false,
+  "requirements": [
+    "Exact CPython 3.14.7 with optimize=0 for manager/tests",
+    "Root AST check then execute pure26 synthetic cases; actual terminal receipt hash required",
+    "Independent class review READY before root timed attempt",
+    "Full current110/178 S8 correctness/default11gate pins remain matching",
+    "Before/during1second/after process identity and separate kernel/user counter equality; only exact conhost9220 worker descendant",
+    "Any pinned activity, missing/reused identity, additional descendant, other build/runtime or scanner failure invalidates; no automatic retry"
+  ],
+  "limits": [
+    "OS snapshots may miss an unrelated process wholly between1second polls; pinned cumulative CPU counters are also checked after child completion",
+    "This is a narrowly verified activity exception, not a blanket MSBuild name ignore",
+    "Saved Oct7 CP official row is an unpaired comparison; no full97 or overall-win claim"
+  ]
+}

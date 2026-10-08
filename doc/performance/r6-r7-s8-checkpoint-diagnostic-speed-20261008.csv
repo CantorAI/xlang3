@@ -1,0 +1,7 @@
+case,candidate,median_speed_c5_over_candidate,bootstrap95_low,bootstrap95_high,pairs,outcome,scope
+sort_plain,R7_S8,13.257141447924429,12.395083231307783,13.826161523101208,7,qualifies_for_full_validation,unscored_original_diagnostic
+sort_callback,R7_S8,1.7270662065185076,1.6925312330873659,1.750229348212486,7,retained,unscored_original_diagnostic
+loop,R7_S8,0.9952931587304069,0.9280712044049003,1.0411531275996577,7,control_retained,unscored_original_diagnostic
+small_calls,R7_S8,1.0258155663810462,1.0096100907778345,1.0499246833068046,7,control_retained,unscored_original_diagnostic
+branch_calls,R7_S8,1.0111798810745123,0.9833030454401795,1.034845130896392,7,control_retained,unscored_original_diagnostic
+pickle_original_body,R6,1.0004890519227254,0.9933897101555469,1.0067507027581073,7,rejected_c5_restored,unscored_original_diagnostic

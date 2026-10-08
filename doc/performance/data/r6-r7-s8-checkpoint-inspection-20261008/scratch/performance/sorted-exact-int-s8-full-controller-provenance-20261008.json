@@ -1,0 +1,69 @@
+{
+  "status": "frozen_scratch_controller_unexecuted_no_ast",
+  "scope": "S8/R7 checkpoint fresh full correctness/default fixed11 gate/original pure Python pickle only; no old correctness reused",
+  "files_sha256": {
+    "scratch/performance/validate-sorted-exact-int-s8-full-20261008.py": "997d0e694f5c04aa2459bfbaca36065054c53d1661f810e37c5f7dd7b50813f3",
+    "scratch/performance/prepare-sorted-exact-int-s8-full-validation-proposed-20261008.ps1": "f904f91210ed38bda8ae0a8ed8195222673775ec92d40332357eedac0d895dc1",
+    "scratch/performance/sorted-exact-int-s8-sorting-receipt-check-proposed-20261008.inc": "f4bac28f9b98dcbcaf1430f3b71f3984f94a3877cb10e95cbaff49f810cebc51",
+    "scratch/performance/sorted-exact-int-s8-full-validation-diff-20261008.patch": "db12638bb863b4809d3a59387cec75e8d0231d662c0e232a225c42582d7669fe",
+    "scratch/performance/measure-sorted-exact-int-s8-paired-20261008.py": "5fc9504823e58d81555d39869b75bdb5c8a9a8ec6ad94df00bb7e23e433867c2",
+    "scratch/performance/validate-pickle-published-frame-c6-full-20261008.py": "04009fa27fee49ca20ba685818a7e122c774ea979931c4594501001ecf313400",
+    "scratch/performance/pickle-original-pure-python-diagnostic-proposed-20261008.py": "5295c899d95d023ca2fb3b511e9bf78b58cb49e4a256770c65adf0d614b14109"
+  },
+  "final_inventory_parameter_required": true,
+  "focused_phases": [
+    "sorted7",
+    "iteration4",
+    "nested1",
+    "canonical10",
+    "fallback3",
+    "ownership2",
+    "owner2",
+    "namespace4",
+    "profile3",
+    "annotation2",
+    "threading",
+    "module_binding6",
+    "integer_sort7",
+    "cpp"
+  ],
+  "required_future_body": "Original child5295 exact 41x3x20/protocol5 parity and stable source+178 binaries; no body gain threshold",
+  "required_sorting_signal": {
+    "pair_count": 7,
+    "children": 14,
+    "timed_case_invocations": 210,
+    "selected_case": "sort_plain",
+    "minimum_median_ratio": 1.1,
+    "minimum_lower95_ci": 1.0,
+    "strict_greater_than": true,
+    "bootstrap_resamples": 50000,
+    "bootstrap_seed": 20261008,
+    "trimmed": 0,
+    "outliers_removed": 0
+  },
+  "fresh_validation": {
+    "core": 398,
+    "compat_sections": 11,
+    "expected_failures": 3,
+    "ctest": 9,
+    "manual_sqlite": 2,
+    "fixed_gate_cases": 11,
+    "fixed_gate_repeats": 21,
+    "fixed_gate_warmup": 5,
+    "fixed_gate_threshold": 0.1,
+    "fixed_gate_baseline": "build-repro/Release/xlang3.exe",
+    "official_case": "pickle_pure_python",
+    "official_values": 20,
+    "official_case_timeout": 300
+  },
+  "known_current_registered_inventory": "doc/performance/data/sorted-exact-int-s8-registered-source-20261008.json",
+  "known_current_registered_inventory_sha256": "f20c304e32b0874c929d22dc72018cbd6d5fd9d124844c1d66d8edcc6a231556",
+  "no_launch_no_build_no_live_edits": true,
+  "body_and_paired_evidence_pending": true,
+  "limits": [
+    "Saved Oct7 CP official comparison is unpaired",
+    "All failures/timeouts/partial artifacts and watcher observations retained",
+    "S8 includes unaccepted R7 module change, no isolated component attribution",
+    "No CP/native pickle or pure Python algorithm replacement"
+  ]
+}

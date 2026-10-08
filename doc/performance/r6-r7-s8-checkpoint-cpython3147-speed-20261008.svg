@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="300" viewBox="0 0 980 300" role="img" aria-labelledby="title description">
+<title id="title">Original official benchmarks: CPython 3.14.7 speed equals 1x</title>
+<desc id="description">Saved October 7 CPython references compared with current October 8 XLang3, 20 values each. XLang3 pyflate speed 0.13157x, about 7.60 times slower; purePython pickle speed 0.04090x, about 24.45 times slower. This chart is separate from XLang3-to-XLang3 sorting diagnostic gains.</desc>
+<rect width="980" height="300" fill="#ffffff"/>
+<g font-family="Arial,sans-serif" fill="#1e293b">
+<text x="24" y="30" font-size="21" font-weight="bold">Original official cases · CPython 3.14.7 = 1x</text>
+<text x="24" y="53" font-size="13">20 values per runtime/case · saved reference, unpaired · warnings retained</text>
+<g stroke="#e2e8f0"><path d="M290 79V226M450 79V226M610 79V226M770 79V226M930 79V226"/></g>
+<g font-size="12" text-anchor="middle"><text x="290" y="247">0x</text><text x="450" y="247">0.25x</text><text x="610" y="247">0.5x</text><text x="770" y="247">0.75x</text><text x="930" y="247">1x</text></g>
+<text x="24" y="105" font-size="15">CPython reference</text><rect x="290" y="86" width="640" height="26" rx="3" fill="#94a3b8"/>
+<text x="920" y="104" font-size="13" text-anchor="end" fill="#ffffff">1x</text>
+<text x="24" y="156" font-size="15">XLang3 · pyflate</text><rect x="290" y="137" width="84.2032" height="26" rx="3" fill="#0f766e"/>
+<text x="387" y="155" font-size="14">0.13157x · 7.60 times slower</text>
+<text x="24" y="207" font-size="15">XLang3 · pure Python pickle</text><rect x="290" y="188" width="26.1764" height="26" rx="3" fill="#0f766e"/>
+<text x="329" y="206" font-size="14">0.04090x · 24.45 times slower</text>
+<text x="24" y="279" font-size="13">Longer bars mean faster execution. The local 13.26x sorting gain uses a separate XLang3 baseline.</text>
+</g></svg>

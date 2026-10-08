@@ -1,0 +1,20 @@
+{
+  "status": "scratch_owned_attributes_blob_no_index_or_worktree_mutation",
+  "head": "e6913f8fa33eb0ba0d452f451808ec9df3d5ff4d",
+  "head_attributes_blob": "224006e287efc3417df6a86552fab88ece09f5f1",
+  "desired_index_blob": "81ede491caaa40846a185b7261db9aea63e97878",
+  "head_snapshot": "scratch/performance/r6-r7-s8-gitattributes-head-proposed-20261008.txt",
+  "head_snapshot_sha256": "1f006cffbed81738c38df83209944b2af5d08dbd4d4f14f80f392130a13c8db0",
+  "owned_additions": "scratch/performance/r6-r7-s8-gitattributes-owned-additions-proposed-20261008.txt",
+  "owned_additions_sha256": "434b42ae1078b4c7c4d023c68e2fa32830fa680f72df23b55a6a487c7512d12e",
+  "desired_index_file": "scratch/performance/r6-r7-s8-gitattributes-head-plus-owned-proposed-20261008.txt",
+  "desired_index_file_sha256": "63d6402826e8ccbdc7b1d9a5ac1b174086ffad05ae48aa60f1be2e851ac8397e",
+  "working_attributes_sha256": "5da63e15431bb380d648fe730a459fc1a1d372ae3d9baf7c2f615a4db5964efc",
+  "working_attributes_unchanged": true,
+  "unowned_patterns_preserved_not_in_desired_index": [
+    "pprint-c1-native-cpu-*",
+    "ordinary-canonical-slot-constructor-c3-*",
+    "pprint-canonical-constructor-c3-*"
+  ],
+  "root_stage_policy": "Use HEAD-plus-owned exact blob for .gitattributes; do not git add the whole unowned working file. Add only owned patterns to working attributes if required for staging byte preservation, leaving preexisting lines intact; inspect staged raw hashes."
+}

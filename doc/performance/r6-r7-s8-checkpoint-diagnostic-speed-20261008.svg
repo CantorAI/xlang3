@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="385" viewBox="0 0 980 385" role="img" aria-labelledby="title desc">
+<title id="title">Seven-pair diagnostic speed with preserved C5 runtime equal to 1x</title>
+<desc id="desc">R7/S8 plain integer sorted is 13.257x, sorted with Python key is 1.727x; all controls and neutral rejected R6 pickle body are retained. Bars represent medians with bootstrap 95 percent intervals. These are unscored runtime trial comparisons.</desc>
+<rect width="980" height="385" fill="#fff"/>
+<g font-family="Segoe UI,Arial,sans-serif" fill="#192a36">
+<text x="20" y="27" font-size="18" font-weight="600">Original diagnostics: preserved C5 runtime = 1x</text>
+<text x="20" y="49" font-size="12">Seven alternating pairs; every original sample retained. R7/S8 includes both changes.</text>
+<line x1="303" y1="65" x2="303" y2="326" stroke="#7b8690" stroke-width="1.5" stroke-dasharray="4 4"/>
+<text x="20" y="92" font-size="13">Ascending integer sorted</text>
+<rect x="275" y="80" width="371.199961" height="16" rx="2" fill="#1765a8"/>
+<path d="M622.062330 88H662.132523 M622.062330 83V93 M662.132523 83V93" stroke="#172b38" stroke-width="1.5" fill="none"/>
+<text x="770" y="92" font-size="13">13.257x</text>
+<text x="20" y="134" font-size="13">sorted with Python key</text>
+<rect x="275" y="122" width="48.357854" height="16" rx="2" fill="#1765a8"/>
+<path d="M322.390875 130H324.006422 M322.390875 125V135 M324.006422 125V135" stroke="#172b38" stroke-width="1.5" fill="none"/>
+<text x="770" y="134" font-size="13">1.727x</text>
+<text x="20" y="176" font-size="13">Integer loop control</text>
+<rect x="275" y="164" width="27.868208" height="16" rx="2" fill="#587382"/>
+<path d="M300.985994 172H304.152288 M300.985994 167V177 M304.152288 167V177" stroke="#172b38" stroke-width="1.5" fill="none"/>
+<text x="770" y="176" font-size="13">0.995x</text>
+<text x="20" y="218" font-size="13">Small calls control</text>
+<rect x="275" y="206" width="28.722836" height="16" rx="2" fill="#587382"/>
+<path d="M303.269083 214H304.397891 M303.269083 209V219 M304.397891 209V219" stroke="#172b38" stroke-width="1.5" fill="none"/>
+<text x="770" y="218" font-size="13">1.026x</text>
+<text x="20" y="260" font-size="13">Branch calls control</text>
+<rect x="275" y="248" width="28.313037" height="16" rx="2" fill="#587382"/>
+<path d="M302.532485 256H303.975664 M302.532485 251V261 M303.975664 251V261" stroke="#172b38" stroke-width="1.5" fill="none"/>
+<text x="770" y="260" font-size="13">1.011x</text>
+<text x="20" y="302" font-size="13">R6 pickle body (rejected)</text>
+<rect x="275" y="290" width="28.013693" height="16" rx="2" fill="#ab6532"/>
+<path d="M302.814912 298H303.189020 M302.814912 293V303 M303.189020 293V303" stroke="#172b38" stroke-width="1.5" fill="none"/>
+<text x="770" y="302" font-size="13">1.000x</text>
+<line x1="275" y1="326" x2="723" y2="326" stroke="#99a5ad"/><line x1="275" y1="326" x2="275" y2="332" stroke="#99a5ad"/><text x="275" y="348" text-anchor="middle" font-size="12">0x</text><line x1="387" y1="326" x2="387" y2="332" stroke="#99a5ad"/><text x="387" y="348" text-anchor="middle" font-size="12">4x</text><line x1="499" y1="326" x2="499" y2="332" stroke="#99a5ad"/><text x="499" y="348" text-anchor="middle" font-size="12">8x</text><line x1="611" y1="326" x2="611" y2="332" stroke="#99a5ad"/><text x="611" y="348" text-anchor="middle" font-size="12">12x</text><line x1="723" y1="326" x2="723" y2="332" stroke="#99a5ad"/><text x="723" y="348" text-anchor="middle" font-size="12">16x</text><text x="20" y="373" font-size="12">Whiskers: bootstrap 95% interval. C5/S8 &gt; 1x means faster S8. R6 showed no useful signal and was restored.</text>
+</g></svg>
+

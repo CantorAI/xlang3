@@ -68,3 +68,22 @@ Speed is CPython elapsed time divided by XLang3 elapsed time. Values below 1× m
 A separate child-only native sample of the unchanged pickle body collected 190 CPU locations with all current 106 source files and 178 Release artifacts pinned before and after. Leaf locations included `Interpreter::run_function` (12), frame cache cleanup (8), frame pop cleanup (6), `Value::operator=` (6), `object_get_attr` (5), and `module_find_attr_slot` (4). Windows heap and lock locations also occurred. These containing ranges include inlined work; unresolved locations remain unnamed and inclusive stacks overlap. The sample identifies several costs to investigate, not one established dominant cause or removable overhead. See the [pickle sampling receipt](data/pickle-original-pure-c5-native-sampling-20261008.json) and [raw samples](data/pickle-original-pure-c5-native-sampling-20261008-samples.jsonl).
 
 An additional file-only comparison against eleven pinned current COFF objects resolved 35 more runtime leaf locations using complete compiled ranges with explicit relocation masks. It identified VM attribute access and dispatch, class lookup, and destruction of the existing owning cross-thread inspection snapshot. Snapshot destruction/publication accounted for seven distinct leaf locations out of 190. This suggests a separate bounded experiment in reusing unchanged snapshot owners, while preserving cross-thread inspection and the current path for depth or owner changes. It does not establish a predicted speed gain. See the [exact private-range attribution](data/pickle-original-pure-c5-native-coff-attribution-20261008.json).
+
+## Rejected snapshot-owner reuse experiment
+
+R6 implemented a guarded same-depth/same-owner refresh of the existing cross-thread frame snapshot. Its public DLL test proved that 32 eligible publications stopped adding and dropping Module Value owners. All twelve targeted correctness phases passed. The first unchanged original pickle body showed no useful gain, so the subsequent decision was fixed before measurement: seven alternating C5/R6 pairs, all samples retained, a median paired speed ratio above 1.02 and bootstrap 95% lower bound above 1.0 required for further validation.
+
+| Original pure-Python pickle body, seven pairs | Result |
+|---|---:|
+| Median C5 / R6 elapsed-time ratio | 1.000489× |
+| Bootstrap 95% interval | 0.993390–1.006751× |
+| Valid children | 14 / 14 |
+| Decision | Reject R6; retain verified C5 |
+
+The result does not show a useful speed improvement. No full gate or official benchmark was run for R6 and no R6 engine change was committed. The complete rejected Release and source snapshot were preserved under `build-repro/controls/published-frame-snapshot-r6-rejected-20261008`. Only the two owned source edits and added test header were reverted; the fixed candidate path was restored to the exact preserved C5 Release. Restored source timestamps force future Ninja builds to replace the rejected trial's stale object files. The accepted regression baseline was unchanged.
+
+Evidence: [paired receipt](data/pickle-published-frame-c6-paired-20261008.json), [focused correctness](data/published-frame-snapshot-r6-focused-20261008.json), and [preservation/restoration receipt](data/published-frame-snapshot-r6-rejection-20261008.json). This rejects one proposed optimization; it does not establish which remaining runtime cost dominates pickle's roughly 20× gap.
+
+## Comparison denominators
+
+The [October 4 August/current report](august-vs-current-python314-microbench-20261004.md) compares two XLang3 versions. Its 6.33× arithmetic and 3.67× function-call gains are current-versus-August XLang3 gains; CPython 3.14.7 supplied the driver and standard-library path. That table is not evidence of XLang3 beating CPython. The original-body tables above execute the same Python workload on both runtimes, including the pure-Python pickle implementation on CPython. Fast selected kernels and improvements over older XLang3 versions do not establish a full-suite CPython win.

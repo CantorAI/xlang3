@@ -1,0 +1,29 @@
+{
+  "status": "observed_reusable_worker_identity_only_activity_must_be_revalidated",
+  "captured_utc": "2026-10-08T20:33:27.9286350Z",
+  "worker": {
+    "Name": "MSBuild.exe",
+    "ProcessId": 30756,
+    "ParentProcessId": 22100,
+    "CreationDate": "2026-10-08T20:23:40.0858180Z",
+    "ExecutablePath": "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\MSBuild\\Current\\Bin\\amd64\\MSBuild.exe",
+    "CommandLine": "\"C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\MSBuild\\Current\\Bin\\amd64\\MSBuild.exe\" /noautoresponse /nologo /nodemode:1 /nodeReuse:true /low:false",
+    "KernelModeTime": 2656250,
+    "UserModeTime": 5312500
+  },
+  "parent": {
+    "Name": "devenv.exe",
+    "ProcessId": 22100,
+    "CreationDate": "2026-10-08T20:23:02.9230580Z",
+    "ExecutablePath": "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\Common7\\IDE\\devenv.exe"
+  },
+  "direct_children": [
+    {
+      "Name": "conhost.exe",
+      "ProcessId": 9220,
+      "ParentProcessId": 30756
+    }
+  ],
+  "prior_observation_cpu_seconds": 0.796875,
+  "prior_failed_preflight_sha256": "545c506ae452bacf2c993fb35253c0d59c430f146e4147ab2517220c48515881"
+}

@@ -1,0 +1,107 @@
+{
+  "status": "scratch_only_static_controllers_unexecuted",
+  "prepared_utc": "2026-10-08T19:42:04.8118866Z",
+  "checkpoint": "e6913f8fa33eb0ba0d452f451808ec9df3d5ff4d",
+  "body_template_sha256": "da328bd7d8167795c7ea23bf46d7e1577acbbcb4cddebe8c19909d6c0c6cc9d6",
+  "full_template_sha256": "fa926e9d5e0e7e8d7ea9a8e3377d88ee7ce4b708928902ae16f20f00c5311201",
+  "body_controller_sha256": "d3d10bbf61edfaeaf92721952a18919ab1e8017e842051e933b4a0b893a8b699",
+  "full_controller_sha256": "04009fa27fee49ca20ba685818a7e122c774ea979931c4594501001ecf313400",
+  "files_sha256": {
+    "scratch/performance/run-pickle-published-frame-c6-original-body-and-sampling-20261008.py": "d3d10bbf61edfaeaf92721952a18919ab1e8017e842051e933b4a0b893a8b699",
+    "scratch/performance/validate-pickle-published-frame-c6-full-20261008.py": "04009fa27fee49ca20ba685818a7e122c774ea979931c4594501001ecf313400",
+    "scratch/performance/run-pickle-original-body-and-native-sampling-proposed-20261008.py": "da328bd7d8167795c7ea23bf46d7e1577acbbcb4cddebe8c19909d6c0c6cc9d6",
+    "scratch/performance/validate-ordinary-canonical-slot-constructor-c5-full-20261008.py": "fa926e9d5e0e7e8d7ea9a8e3377d88ee7ce4b708928902ae16f20f00c5311201",
+    "scratch/performance/pickle-original-pure-python-diagnostic-proposed-20261008.py": "5295c899d95d023ca2fb3b511e9bf78b58cb49e4a256770c65adf0d614b14109",
+    "scratch/performance/validate-call-ex-cross-activation-constructor-resume-r3-20261008.py": "50007db5cc6adc2e54012fdfbd48514699513f990906d4a508582ba73d6ae0bf",
+    "doc/performance/data/ordinary-canonical-slot-constructor-c5-gate-idle-resume-20261008.json": "a3be06b1ef97560253e7f4f0d7740440786f82ca08e0a56b564bfe2bfd3f96ed",
+    "doc/performance/data/class-constructor-plan-c5-applied-source-20261008.json": "69aaf03539202bbc7fced4dfe46df5f3a801a6d40b8e0360a68245de6ce71937",
+    "doc/performance/data/pickle-original-pure-c5-body-20261008.json": "2d6a79f263d3e20f86f494bc13dfef795e395fba0b81773a2bc238472d811665",
+    "doc/performance/data/pickle-original-pure-c5-native-sampling-20261008.json": "e5919bc0ec2840d3300888f1fb54dd10ac66cb96a66734d47a05322d26f5a0a7",
+    "doc/performance/data/pyperformance-cpython3147-live-eval-full-fast-20261007.json": "ac474df5576ac85f6f5350363affecc439d4f658b4dfa3dbe291b46964276eb0",
+    "doc/performance/data/pyperformance-cpython3147-live-eval-full-fast-20261007-provenance.json": "3d6c8cb2c72c786583c382b835e8e411f56ca285963bc2835f757a13f399f85c",
+    "build-repro/controls/class-constructor-c5-before-snapshot-r6-20261008/preserved-release-provenance.json": "85910ee375f16c677153fc128fb17303868a849c124f5909d5ee03eeed764bdc",
+    "tests/fixtures/core/threading_runtime_edges.py": "56016bd84f76782ce736058670c50035c8a1600ac67fca201ef1a304e6875c39",
+    "tests/fixtures/expected/threading_runtime_edges.out": "7ac4a64a76bc6207024ea9c001dcfcf336e991effe39b9c08602ceb7c332ba22",
+    "scratch/performance/published-frame-same-owner-refresh-proposed-20261008.patch": "bd18ffd8e9c41c10a43110a531c9db24ec9503ab32a54a102dd4b239bf121429",
+    "scratch/performance/published-frame-same-owner-refresh-proposed-20261008-provenance.json": "ab41aa60a3e33963f8b1e1525631cc3c4ded1a83a4f601faeb0819dfa44972e6",
+    "scratch/performance/published-frame-snapshot-tests-proposed-20261008.patch": "38a566cedffe29103dd79cf446643324d014e7ef1b749a6afca2f033fa55c444",
+    "scratch/performance/published-frame-snapshot-tests-proposed-20261008-provenance.json": "45211746f1dd6efa345b379cbb82c63e49b59958b1e12a4eac4fb95e684d77ba"
+  },
+  "external_inputs_sha256": {
+    "C:/Python/Python314/Lib/site-packages/pyperformance/data-files/benchmarks/bm_pickle/run_benchmark.py": "31c0e30be79514b45db0d4e858632eb429b0fea3edbac6463ad5f34d92f3cab8",
+    "C:/Python/Python314/Lib/site-packages/pyperformance/data-files/benchmarks/bm_pickle/bm_pickle_pure_python.toml": "846f31a4f830d4b2ab044917d3b3e6b036ace3647445d770c8980f1f5b158c21",
+    "C:/Python/Python314/Lib/pickle.py": "144fdf593814627e13a5fcb0947728e8f0775ecdec181046ee4609063cf232ec"
+  },
+  "future_input_contract": {
+    "source_inventory": "Caller supplies final applied inventory and SHA; no guessed future source/binary hash",
+    "focused_receipt": "Caller supplies terminal hash-stable targeted_correctness_passed receipt and SHA",
+    "required_phases": [
+      "sorted7",
+      "iteration4",
+      "nested1",
+      "canonical10",
+      "fallback3",
+      "ownership2",
+      "owner2",
+      "namespace4",
+      "profile3",
+      "annotation2",
+      "cpp",
+      "threading"
+    ],
+    "cpp_registration": [
+      "published_frame_snapshot_cases.h",
+      "check_published_frame_same_owner_refresh(result)"
+    ],
+    "release_files": 178,
+    "body_gain_threshold": "Root chooses after initial body; full controller requires finite >1 threshold",
+    "correctness_reuse": false
+  },
+  "workload": {
+    "body_child_unchanged": true,
+    "body_invocations_per_runtime": 1,
+    "body_order": [
+      "CPython3.14.7",
+      "fixed current XLang3"
+    ],
+    "outer_loops": 41,
+    "objects": 3,
+    "dumps_per_object_per_loop": 20,
+    "total_dumps": 2460,
+    "protocol": 5,
+    "body_cap_seconds": 300,
+    "body_scored": false,
+    "official_definition": "pickle_pure_python",
+    "official_extra_opts": [
+      "--pure-python",
+      "pickle"
+    ],
+    "official_subtests": [
+      "pickle_pure_python"
+    ],
+    "official_values_required": 20,
+    "official_case_cap_seconds": 300,
+    "pure_python_pickle_kept_python": true
+  },
+  "validation": {
+    "fresh_core": 396,
+    "compat_sections": 11,
+    "expected_failures": 3,
+    "configured_ctest": 9,
+    "manual_sqlite_api": 2,
+    "extra_fresh_thread_inspection": "threading_runtime_edges",
+    "fixed_gate_cases": 11,
+    "fixed_gate_repeats": 21,
+    "fixed_gate_warmup": 5,
+    "fixed_gate_threshold": 0.1,
+    "fixed_gate_baseline": "build-repro/Release/xlang3.exe",
+    "new_c6_correctness_gate_fresh": true,
+    "historical_c5_official_status": "pprint failed at unchanged300s, not upgraded"
+  },
+  "limits": [
+    "Unpaired single-body diagnostics are not official scores or isolated causal proof",
+    "Saved Oct7 CP official reference is unpaired; dependency METADATA does not prove all historical package source bytes",
+    "No controller/AST/runtime/build/staging/source edit was executed by this subagent",
+    "Optional native sampling remains explicit sample mode after same-candidate body, never automatic"
+  ]
+}

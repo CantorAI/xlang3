@@ -1,0 +1,46 @@
+{
+  "status": "frozen_scratch_proposal_unbuilt_unexecuted",
+  "created_date": "2026-10-08",
+  "parent_head": "e6913f8fa33eb0ba0d452f451808ec9df3d5ff4d",
+  "scope": "One generic native sorted comparator/run optimization; collection, Python key invocation, generic fallback and all live files unchanged",
+  "parent_inventory": "doc/performance/data/call-module-global-binding-r7-applied-source-20261008.json",
+  "parent_inventory_sha256": "8c824f086259d4079c2f4874716bfd2bc78da2c002c868b5b392cbad2b274e91",
+  "actual_input_sha256": {
+    "src/builtins/functional_builtins.cpp": "db0d23b44327ea6ca09d55c6e9351fd75e99cc187b3e0a10a0c7df1b86bddfc3"
+  },
+  "actual_input_after_sha256": {
+    "src/builtins/functional_builtins.cpp": "db0d23b44327ea6ca09d55c6e9351fd75e99cc187b3e0a10a0c7df1b86bddfc3"
+  },
+  "raw_input_sha256": {
+    "src/builtins/functional_builtins.cpp": "db0d23b44327ea6ca09d55c6e9351fd75e99cc187b3e0a10a0c7df1b86bddfc3"
+  },
+  "normalized_input_sha256": {
+    "src/builtins/functional_builtins.cpp": "db0d23b44327ea6ca09d55c6e9351fd75e99cc187b3e0a10a0c7df1b86bddfc3"
+  },
+  "candidate_sha256": {
+    "src/builtins/functional_builtins.cpp": "ca8094ecce251bf2e473141399d67541a9abda7d4f39321c7a0968d3db6c58e0"
+  },
+  "target_count": 1,
+  "patch_sha256": "df53aed25210254323bd53f62d16df5f715d7db784ea02c386975b4d911ec0e9",
+  "generator_sha256": "66d9f452c8225012e9bb19366f257f442f586e11cb2ab9e310755605285e1150",
+  "fixture": "scratch/performance/sorted-exact-int-fixture-proposed-20261008.py",
+  "fixture_sha256": "2132af02bf00bdf2d9a7e132a2f7937a19fe607e78485a86f0dba22f73799d58",
+  "expected": "scratch/performance/sorted-exact-int-expected-proposed-20261008.out",
+  "expected_sha256": "7890d6581a7a61661e2d795d6e16c5dda7fe0779f0b35546505b7c755c9c3208",
+  "test_plan": "scratch/performance/sorted-exact-int-test-plan-proposed-20261008.md",
+  "test_plan_sha256": "23383d515df051fc3de95a786fe6ac3fce0fbced7d71d20dadef99f3231f1bbb",
+  "dependencies_sha256": {
+    "src/runtime/object_model.cpp": "10806dd37498170b7172f469ca44d190698f85c0a6adb2bed104053df1c0fedc",
+    "src/runtime/value.cpp": "18be33a526dbcc6627490a12a68aefc9e168d42afbf238ce38fa240e74bba0e0",
+    "src/runtime/functional_iterators.cpp": "4a038c4b5152b87f8fa4d8d83a0f4961b069b8731cd99a4245c74ee5eee21e2e",
+    "src/internal/xlang3/value.h": "b3b88f529eb86acc117ccf5fbf61ac44e6572a96189d60389d1c6728c9bf75b1",
+    "benchmarks/diagnostics/python_callback_boundary.py": "f76136594ac8e64e5fb0d71a47eff3af286d5e12178a8acbaa7fe4c43a6ef84a",
+    "doc/performance/data/python-callback-boundary-c5-vs-cpython3147-20261008.json": "b5b4d27c010f40dbbd998bf4d64d7e96e87d0b6f1b411eb8e07496e430347698",
+    "tests/fixtures/core/sorted_key_scoped_entry.py": "ccf3922036d85af6f2c654c29046c924b993cb3c1be2b0d65e23fe5fe24f6f26",
+    "tests/fixtures/core/sorted_key_iteration_owner.py": "420f8350b3a52f07a94dd7fc8fe8e6a62504a6fa993d19417f009b02106d93f1"
+  },
+  "static_apply_check_exit_code": 0,
+  "live_source_unchanged": true,
+  "fixture_executed": false,
+  "compiler_or_runtime_executed": false
+}

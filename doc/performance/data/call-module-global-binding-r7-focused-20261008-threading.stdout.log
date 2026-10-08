@@ -1,0 +1,21 @@
+threading-source True
+main True 1
+lifecycle-errors [('join-before', 'RuntimeError', 'cannot join thread before it is started'), ('join-current', 'RuntimeError', 'cannot join current thread')]
+lock True True False
+rlock True True
+event False False
+event-set True True
+semaphore True False
+semaphore-bound ValueError Semaphore released too many times
+before None None False
+running True True True True
+daemon-running RuntimeError cannot set daemon status of active thread
+after False True main [('worker', False)]
+start-twice RuntimeError threads can only be started once
+condition ['notify', True] False
+barrier [0, 1] False
+hooks ['call'] ['call']
+current-frames [(True, True, True)]
+callable-thread-target ['called']
+shutdown-main
+shutdown-worker
