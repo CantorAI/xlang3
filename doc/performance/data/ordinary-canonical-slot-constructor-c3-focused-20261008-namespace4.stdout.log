@@ -1,0 +1,4 @@
+completed class namespace releases initializer
+escaped class locals and frame retain namespace
+lazy class and method annotations retain captures
+decorator observes completed class namespace retirement

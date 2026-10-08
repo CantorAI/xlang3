@@ -1481,6 +1481,10 @@ bool slot_descriptor_get_method(
     return object_get_attr(args[1], slot->name, out, error);
   }
   auto* instance = value_as_instance(args[1]);
+  if (!slot_descriptor_validate_receiver_owner(*slot, args[1], error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
   if (instance == nullptr || slot->index >= instance_slot_count(instance)) {
     if (instance != nullptr) {
       for (const auto& attr : instance->attrs) {
@@ -1539,6 +1543,10 @@ bool slot_descriptor_set_method(
     runtime.raise_class_error("TypeError", error);
     return false;
   }
+  if (!slot_descriptor_validate_receiver_owner(*slot, args[1], error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
   if (instance == nullptr || slot->index >= instance_slot_count(instance)) {
     if (slot_descriptor_applies_to_tuple_backed_object(*slot, args[1])) {
       error = "readonly attribute";
@@ -1570,6 +1578,10 @@ bool slot_descriptor_delete_method(
   auto* instance = value_as_instance(args[1]);
   if (slot == nullptr) {
     error = "member_descriptor.__delete__ expected descriptor self";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (!slot_descriptor_validate_receiver_owner(*slot, args[1], error)) {
     runtime.raise_class_error("TypeError", error);
     return false;
   }
@@ -2058,6 +2070,7 @@ Value Value::class_object(
     }
     if (attr.first == "__slots__") {
       has_explicit_slots = true;
+      obj->own_explicit_instance_slots = true;
       obj->restrict_instance_attrs = true;
       obj->allow_instance_dict = false;
       obj->allow_weakref = false;
@@ -2974,6 +2987,56 @@ void class_forget_slot_declarations(ClassObject* klass) {
   if (klass == nullptr) return;
   klass->own_instance_slot_declarations_known = false;
   invalidate_class_lookup_caches(klass);
+}
+
+bool slot_descriptor_validate_receiver_owner(
+    const SlotDescriptorObject& descriptor, const Value& receiver, std::string& error) {
+  const auto* owner = value_as_class(descriptor.owner_class);
+  // Legacy native/restored descriptors can have no class identity. Preserve
+  // their existing bounds/payload checks; known Python owners are authoritative.
+  if (owner == nullptr) return true;
+  const auto* instance = value_as_instance(receiver);
+  const auto* receiver_class = instance == nullptr ? nullptr : value_as_class(instance->klass);
+  if (receiver_class != nullptr && class_is_subclass(receiver_class, owner)) return true;
+  error = slot_descriptor_wrong_receiver_error(descriptor, receiver);
+  return false;
+}
+
+bool class_allows_raw_instance_slot_fallback(
+    ClassObject* klass, const std::string& name, std::string* owner_error) {
+  const std::vector<Value>* mro = nullptr;
+  std::string ignored;
+  if (klass == nullptr || !class_mro_values(klass, mro, ignored)) return true;
+  bool explicit_name = false;
+  for (const auto& value : *mro) {
+    auto* candidate = value_as_class(value);
+    if (candidate == nullptr || !candidate->own_explicit_instance_slots ||
+        std::find(candidate->own_instance_slot_declarations.begin(),
+                  candidate->own_instance_slot_declarations.end(), name) ==
+            candidate->own_instance_slot_declarations.end()) continue;
+    // Explicit __slots__ reserves memory, not an independent attribute name.
+    // Only a live member descriptor exposes that memory. After deletion or
+    // replacement, normal __dict__/missing-attribute fallback must take over;
+    // a saved descriptor still addresses its physical slot directly.
+    explicit_name = true;
+    break;
+  }
+  Value descriptor;
+  const auto* slot = class_lookup_attr(klass, name, descriptor, ignored)
+      ? value_as_slot_descriptor(descriptor) : nullptr;
+  if (slot != nullptr) {
+    const auto* owner = value_as_class(slot->owner_class);
+    if (owner != nullptr && !class_is_subclass(klass, owner)) {
+      if (owner_error != nullptr)
+        *owner_error = "descriptor '" + slot->name + "' for '" + slot->owner_name +
+            "' objects doesn't apply to a '" + klass->name + "' object";
+      return false;
+    }
+    // A valid alias is still a descriptor access to its original field, not
+    // permission to use the requested alias's independently inferred storage.
+    return slot->name == name;
+  }
+  return !explicit_name;
 }
 
 bool object_model_class_is_live(const ClassObject* klass) {
@@ -4771,14 +4834,19 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
     }
     auto slot_it = klass->instance_slot_indices.find(name);
     if (slot_it != klass->instance_slot_indices.end() && slot_it->second < instance_slot_count(instance)) {
-      const auto& slot_value = instance_slot_at(instance, slot_it->second);
-      if (slot_value.tag != ValueTag::Invalid) {
-        value_assign_fast(out, slot_value);
-        return true;
-      }
-      if (value_as_dict(instance_attribute_storage(*instance)) != nullptr &&
-          mapping_get_item(instance_attribute_storage(*instance), Value::string(name), out, error)) {
-        return true;
+      std::string slot_owner_error;
+      const bool raw_slot_allowed = class_allows_raw_instance_slot_fallback(klass, name, &slot_owner_error);
+      if (!slot_owner_error.empty()) { error = std::move(slot_owner_error); return false; }
+      if (raw_slot_allowed) {
+        const auto& slot_value = instance_slot_at(instance, slot_it->second);
+        if (slot_value.tag != ValueTag::Invalid) {
+          value_assign_fast(out, slot_value);
+          return true;
+        }
+        if (value_as_dict(instance_attribute_storage(*instance)) != nullptr &&
+            mapping_get_item(instance_attribute_storage(*instance), Value::string(name), out, error)) {
+          return true;
+        }
       }
     }
     const bool has_attribute_dict = value_as_dict(instance_attribute_storage(*instance)) != nullptr;
@@ -4898,6 +4966,7 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       return false;
     }
     if (auto* slot = value_as_slot_descriptor(class_attr)) {
+      if (!slot_descriptor_validate_receiver_owner(*slot, object, error)) return false;
       if (slot->index >= instance_slot_count(instance)) {
         for (const auto& instance_attr : instance->attrs) {
           if (instance_attr.first == slot->name) {
@@ -5261,8 +5330,13 @@ bool object_set_attr(Value& object, const std::string& name, const Value& value,
     if (klass != nullptr) {
       auto slot_it = klass->instance_slot_indices.find(name);
       if (slot_it != klass->instance_slot_indices.end() && slot_it->second < instance_slot_count(instance)) {
-        value_assign_fast(instance_slot_at(instance, slot_it->second), value);
-        return true;
+        std::string slot_owner_error;
+        const bool raw_slot_allowed = class_allows_raw_instance_slot_fallback(klass, name, &slot_owner_error);
+        if (!slot_owner_error.empty()) { error = std::move(slot_owner_error); return false; }
+        if (raw_slot_allowed) {
+          value_assign_fast(instance_slot_at(instance, slot_it->second), value);
+          return true;
+        }
       }
     }
     for (auto& attr : instance->attrs) {
@@ -5502,12 +5576,17 @@ bool object_delete_attr(Value& object, const std::string& name, std::string& err
     if (klass != nullptr) {
       auto slot_it = klass->instance_slot_indices.find(name);
       if (slot_it != klass->instance_slot_indices.end() && slot_it->second < instance_slot_count(instance)) {
-        value_set_invalid(instance_slot_at(instance, slot_it->second));
-        if (value_as_dict(instance_attribute_storage(*instance)) != nullptr) {
-          std::string ignored;
-          (void)mapping_delete_item(instance_attribute_storage(*instance), Value::string(name), ignored);
+        std::string slot_owner_error;
+        const bool raw_slot_allowed = class_allows_raw_instance_slot_fallback(klass, name, &slot_owner_error);
+        if (!slot_owner_error.empty()) { error = std::move(slot_owner_error); return false; }
+        if (raw_slot_allowed) {
+          value_set_invalid(instance_slot_at(instance, slot_it->second));
+          if (value_as_dict(instance_attribute_storage(*instance)) != nullptr) {
+            std::string ignored;
+            (void)mapping_delete_item(instance_attribute_storage(*instance), Value::string(name), ignored);
+          }
+          return true;
         }
-        return true;
       }
     }
     for (auto it = instance->attrs.begin(); it != instance->attrs.end(); ++it) {

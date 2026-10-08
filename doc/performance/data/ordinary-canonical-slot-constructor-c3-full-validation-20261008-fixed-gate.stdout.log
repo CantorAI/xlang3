@@ -1,0 +1,12 @@
+local_slots              pass         0.992x
+scalar_arithmetic        pass         1.009x
+range_for                pass         1.004x
+function_calls           pass         0.979x
+class_construct          pass         1.006x
+list_append              pass         1.004x
+property_access          pass         1.001x
+deepcopy_memo            pass         0.918x
+json_dumps               pass         1.019x
+gc_traversal             pass         0.734x
+subparsers               pass         0.916x
+Performance check: pass. Report: D:\CantorAI\xlang3\doc\performance\data\ordinary-canonical-slot-constructor-c3-full-validation-20261008-fixed-gate.json

@@ -110,6 +110,52 @@ struct ResetRuntimeView {
     runtime.clear_current_frame();
   }
 };
+struct ProfileHookLifetime {
+  unsigned calls = 0;
+  unsigned cleanup = 0;
+  bool alive_after_disable = false;
+};
+inline void destroy_profile_lifetime_hook(void* pointer) {
+  auto* owner = static_cast<std::shared_ptr<ProfileHookLifetime>*>(pointer);
+  ++(**owner).cleanup;
+  delete owner;
+}
+inline bool disable_last_profile_hook(Runtime& runtime, const Value* args,
+    uint32_t argc, Value& out, std::string& error, void* pointer) {
+  // Copy the shared audit owner BEFORE disabling the hook. A failing candidate
+  // may delete the native context here; this proof must report, never use it.
+  auto state = *static_cast<std::shared_ptr<ProfileHookLifetime>*>(pointer);
+  if (argc != 3 || value_as_frame(args[0]) == nullptr) {
+    error = "profile lifetime proof requires a real frame"; return false;
+  }
+  ++state->calls;
+  runtime.set_profile_function(Value::none());
+  state->alive_after_disable = state->cleanup == 0;
+  out = Value::none(); error.clear(); return true;
+}
+inline void check_profile_hook_lifetime(CaseResult& result, Runtime& runtime) {
+  auto state = std::make_shared<ProfileHookLifetime>();
+  auto module = std::make_shared<ir::Module>();
+  module->functions.emplace_back();
+  module->functions[0].name = "profile_hook_lifetime_probe";
+  module->functions[0].constants = {Value::none()};
+  module->functions[0].code = {{ir::Op::ReturnConst, 0, 0, 0, 0}};
+  Value frame = Value::frame(module, 0, Value::none());
+  auto owner = std::make_unique<std::shared_ptr<ProfileHookLifetime>>(state);
+  Value hook = Value::native_function(0, "self_disabling_profile_hook",
+      disable_last_profile_hook, owner.get(), destroy_profile_lifetime_hook);
+  owner.release();
+  runtime.set_profile_function(hook);
+  value_set_invalid(hook); // The thread setting is the only callable owner.
+  std::string error;
+  const bool okay = runtime.emit_profile_event_for_frame(frame, "call", Value::none(), error);
+  expect_true(result, okay && error.empty() && state->calls == 1 &&
+      state->alive_after_disable && state->cleanup == 1 &&
+      runtime.profile_function().tag == ValueTag::None,
+      "public profile dispatch owns its last hook through self-disable and retires it once afterwards");
+  runtime.set_profile_function(Value::none());
+}
+
 } // namespace observable_builtin_method_cases
 
 inline void check_observable_builtin_method_cases(CaseResult& result) {
@@ -237,5 +283,6 @@ inline void check_observable_builtin_method_cases(CaseResult& result) {
   error.clear(); (void)module_delete_attr(globals, "key", error);
   error.clear(); (void)module_delete_attr(globals, "default", error);
   value_set_invalid(hook);
+  check_profile_hook_lifetime(result, runtime);
 }
 } // namespace xlang3::test

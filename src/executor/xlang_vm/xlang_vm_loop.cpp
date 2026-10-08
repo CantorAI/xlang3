@@ -1053,8 +1053,16 @@ RuntimeResult Interpreter::run_function(
         call_args.leading_count == 0;
     const bool can_transfer_bound_method_args = call_args_are_bound &&
         call_args.leading_count == 1 && leading_argument_register != UINT32_MAX;
+    const bool can_transfer_constructor_args = !call_args_are_bound &&
+        return_mode == FrameReturnMode::StoreConstructedInstance &&
+        call_args.leading_count == 1 && call_args.leading != nullptr &&
+        leading_argument_register == UINT32_MAX &&
+        !call_fn.is_generator && !call_fn.is_async && !call_fn.is_coroutine &&
+        frame_count != 0 && frames[frame_count - 1].execution_metadata != nullptr &&
+        frames[frame_count - 1].execution_metadata->linear_constructor_argument_liveness &&
+        xlang3::xlang_vm::ops::inline_calls_allowed(runtime_);
     if (allow_call_argument_transfer &&
-        (can_transfer_unbound_register_args || can_transfer_bound_method_args) &&
+        (can_transfer_unbound_register_args || can_transfer_bound_method_args || can_transfer_constructor_args) &&
         !call_args.has_keywords() && !call_args.has_expansion() &&
         call_args.register_args != nullptr && call_args.registers != nullptr &&
         call_args.size() != 0 &&
@@ -1069,6 +1077,16 @@ RuntimeResult Interpreter::run_function(
           active_dispatch_ip != std::numeric_limits<size_t>::max();
       std::array<uint32_t, 8> argument_registers{};
       size_t explicit_index = 0;
+      uint32_t constructor_callee = UINT32_MAX;
+      if (can_transfer_constructor_args) {
+        can_transfer = can_transfer && active_dispatch_ip < caller.fn->code.size();
+        if (can_transfer) {
+          const auto& origin = caller.fn->code[active_dispatch_ip];
+          constructor_callee = origin.op == ir::Op::Call ? origin.a : origin.dst;
+          explicit_index = 1;
+          argument_registers[0] = UINT32_MAX;
+        }
+      }
       if (can_transfer_bound_method_args) {
         // CallMethod's leading self is known to be a caller register. Keep its
         // register id explicitly instead of reverse-mapping a borrowed Value*
@@ -1086,11 +1104,21 @@ RuntimeResult Interpreter::run_function(
            can_transfer && index < call_args.size(); ++index) {
         const size_t source_index = index - explicit_index;
         const uint32_t reg = (*call_args.register_args)[source_index];
-        if (can_transfer_bound_method_args) argument_registers[index] = reg;
+        if (can_transfer_bound_method_args || can_transfer_constructor_args) argument_registers[index] = reg;
         can_transfer = reg < caller.regs.size() && reg < last_use.size() &&
             last_use[reg] == active_dispatch_ip &&
             (reg >= loop_carried.size() || !loop_carried[reg]);
-        if (can_transfer_bound_method_args) {
+        if (can_transfer_constructor_args && can_transfer) {
+          const auto& argument = caller.regs[reg];
+          can_transfer = argument.tag != ValueTag::Invalid &&
+              (argument.flags & kXlangValueBorrowedRefFlag) == 0 &&
+              reg != return_dst && reg != constructor_callee &&
+              &argument != call_args.leading &&
+              !value_is(argument, call_args.leading[0]) &&
+              (constructor_callee >= caller.regs.size() ||
+               !value_is(argument, caller.regs[constructor_callee]));
+        }
+        if (can_transfer_bound_method_args || can_transfer_constructor_args) {
           for (size_t prior = 0; can_transfer && prior < index; ++prior) {
             if (argument_registers[prior] == reg) can_transfer = false;
           }
@@ -1101,8 +1129,14 @@ RuntimeResult Interpreter::run_function(
         }
       }
       if (can_transfer) {
-        for (size_t index = 0; index < call_args.size(); ++index) {
-          const uint32_t reg = can_transfer_bound_method_args
+        // The fresh constructor self is not a caller register. Own it locally
+        // while moving only proven dead explicit arguments into init's frame.
+        // This removes otherwise-hidden roots without changing ordinary call
+        // transfer, and preserves exceptions/cleanup at frame completion.
+        if (can_transfer_constructor_args)
+          value_assign_fast(moved_call_args[0], call_args.leading[0]);
+        for (size_t index = can_transfer_constructor_args ? 1 : 0; index < call_args.size(); ++index) {
+          const uint32_t reg = (can_transfer_bound_method_args || can_transfer_constructor_args)
               ? argument_registers[index]
               : (*call_args.register_args)[index];
           value_move_assign_fast(moved_call_args[index], caller.regs[reg]);
@@ -1351,10 +1385,14 @@ RuntimeResult Interpreter::run_function(
   };
 
   auto emit_profile_event = [&](VMFrame& profile_frame, const char* event_name, const Value& arg) -> bool {
-    const Value& hook = runtime_.profile_function();
-    if (hook.tag == ValueTag::Invalid || hook.tag == ValueTag::None || runtime_.profile_dispatch_active()) {
+    const Value& borrowed_hook = runtime_.profile_function();
+    if (borrowed_hook.tag == ValueTag::Invalid || borrowed_hook.tag == ValueTag::None || runtime_.profile_dispatch_active()) {
       return true;
     }
+    // Pin before frame snapshots/argument allocation can reenter. A hook may
+    // replace or disable itself; its executing callable still owns this call.
+    Value hook;
+    value_assign_fast(hook, borrowed_hook);
     runtime_.set_current_frame(
         &profile_frame.module_owner,
         profile_frame.function_id,
@@ -1584,6 +1622,15 @@ RuntimeResult Interpreter::run_function(
     if (current_exception.tag != ValueTag::Invalid) {
       runtime_.set_active_exception(current_exception);
     }
+  } else if (generator == nullptr && !resuming_pause &&
+             XLANG3_UNLIKELY(active_exception_guard.previous.tag != ValueTag::Invalid &&
+                            active_exception_guard.previous.tag != ValueTag::None)) {
+    // Normal embedding/native callbacks inherit the caller's handled state.
+    // Seed once from the guard's existing owner so an inner except records and
+    // restores that state after ClearException, rather than losing it until
+    // the final entry guard runs. No additional work belongs in opcode paths;
+    // generator and paused entries retain their existing restoration policy.
+    value_assign_fast(current_exception, active_exception_guard.previous);
   }
   auto save_generator_exception_context = [&]() {
     if (generator == nullptr || generator->vm_state == nullptr) return;

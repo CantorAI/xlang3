@@ -3035,6 +3035,31 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_ex(
   return XlangVMOpFlow::Next;
 }
 
+XLANG3_HOT_INLINE void xlang_vm_retire_canonical_constructor_arguments(
+    const ir::Instr& in, const ir::Function& caller,
+    const std::vector<uint32_t>& argument_registers,
+    const Value& callee, const Value& constructed,
+    XlangVMSmallRegisterBuffer& registers, size_t ip) {
+  const auto metadata = std::atomic_load_explicit(
+      &caller.execution_metadata, std::memory_order_acquire);
+  if (metadata == nullptr || metadata->owner != &caller ||
+      !metadata->linear_constructor_argument_liveness) return;
+  // The complete slot plan already owns every explicit argument. Clearing a
+  // consumed owning register here cannot finalize an argument; it removes only
+  // a redundant root before old output/local replacement can run a finalizer.
+  for (uint32_t reg : argument_registers) {
+    if (reg == in.dst || reg == in.a || reg >= registers.size() ||
+        reg >= metadata->register_last_use.size() ||
+        metadata->register_last_use[reg] != ip ||
+        (reg < metadata->register_loop_carried.size() && metadata->register_loop_carried[reg])) continue;
+    auto& value = registers[reg];
+    if (value.tag != ValueTag::Object ||
+        (value.flags & kXlangValueBorrowedRefFlag) != 0 ||
+        value_is(value, callee) || value_is(value, constructed)) continue;
+    value_set_invalid(value);
+  }
+}
+
 template <
     typename MakeGeneratorIfNeeded,
     typename PushFrame,
@@ -3137,6 +3162,40 @@ XLANG3_HOT_INLINE XlangVMOpFlow call(
           return XlangVMOpFlow::Next;
         }
         cache.kind = CallSiteKind::Empty;
+      }
+      if (cache.kind == CallSiteKind::InlineCanonicalSlotConstructor) {
+        auto* cached_class = value_as_class(callee);
+        auto* metaclass = cached_class == nullptr ? nullptr : value_as_class(cached_class->metaclass);
+        // Check live class/metaclass generations before the weak initializer.
+        // SDK native hooks can attach without changing a class version.
+        const bool shape_matches = cached_class != nullptr && metaclass != nullptr &&
+            cache.class_version == cached_class->version &&
+            cache.arg0_object == &metaclass->header &&
+            cache.secondary_class_version == metaclass->version &&
+            cached_class->native_type_constructor == nullptr;
+        if (shape_matches && cache.function != nullptr &&
+            cache.function_code_version == cache.function->code_version &&
+            inline_calls_allowed(runtime)) {
+          Value initializer_owner;
+          initializer_owner.tag = ValueTag::Object;
+          initializer_owner.as.obj = &cache.function->header;
+          retain(initializer_owner);
+          Value instance = Value::instance(callee);
+          Value completed;
+          std::string error;
+          if (xlang_vm_execute_own_canonical_slot_constructor(
+                  instance, module, *cache.function, call_args,
+                  cache.slot_constructor_args, completed, error)) {
+            // Pin the function and completed instance through the old output's
+            // finalizer. Never revisit the borrowed cache or arguments after it.
+            xlang_vm_retire_canonical_constructor_arguments(
+                in, fn, call_arg_regs, callee, completed, regs, ip);
+            value_move_assign_fast(regs[in.dst], completed);
+            return XlangVMOpFlow::Next;
+          }
+        }
+        cache.kind = CallSiteKind::Empty;
+        cache.function = nullptr;
       }
       const bool is_cached_arg_inline =
           cache.kind == CallSiteKind::InlineArgBinaryFunction;
@@ -3417,6 +3476,22 @@ XLANG3_HOT_INLINE XlangVMOpFlow call(
     if (pushed_frame) return XlangVMOpFlow::SwitchFrame;
   } else if (auto* klass = value_as_class(callee)) {
     const bool allow_inline_calls = inline_calls_allowed(runtime);
+    // A short callback loses its owning instruction cache on return. The live
+    // class proof survives without Python owners and reuses the same physical
+    // stores only while selection/body generations and observability permit it.
+    if (allow_inline_calls && klass->canonical_slot_constructor_cache != nullptr) {
+      Value initializer_owner;
+      Value completed;
+      if (xlang_vm_try_class_canonical_slot_constructor(
+              runtime, module, callee, call_args, initializer_owner, completed)) {
+        xlang_vm_retire_canonical_constructor_arguments(
+            in, fn, call_arg_regs, callee, completed, regs, ip);
+        value_move_assign_fast(regs[in.dst], completed);
+        // Old output can run a finalizer: do not revisit a borrowed class plan,
+        // function, or argument after publishing the completed instance.
+        return XlangVMOpFlow::Next;
+      }
+    }
     // `type(value)` is a common pure-Python dispatch primitive (including
     // copy.deepcopy). Cache its exact builtin call shape to avoid routing a
     // one-argument query through generic class construction on every call.
@@ -3729,6 +3804,56 @@ XLANG3_HOT_INLINE XlangVMOpFlow call(
               cache.cached_values.push_back(expected_cos);
             }
             return XlangVMOpFlow::Next;
+          }
+        }
+        if (allow_inline_calls && klass->restrict_instance_attrs &&
+            !call_args.has_keywords() && !call_args.has_expansion()) {
+          SlotConstructorSpec names;
+          SlotConstructorSpec slots;
+          // Do not retire an unrelated cache owner during proof publication:
+          // its finalizer could mutate the class/code or enable observers.
+          const bool safe_cache_payload = instr_cache.empty() ||
+              ((instr_cache[ip].call.retained_callee.tag == ValueTag::Invalid ||
+                value_is(instr_cache[ip].call.retained_callee, callee)) &&
+               instr_cache[ip].call.inline_const.tag == ValueTag::Invalid &&
+               instr_cache[ip].call.cached_values.empty());
+          if (safe_cache_payload && analyze_slot_constructor_fn(module, *fn_obj, names) &&
+              xlang_vm_prepare_own_canonical_slot_constructor(
+                  runtime, module, callee, *fn_obj, names, slots)) {
+            auto* metaclass = value_as_class(klass->metaclass);
+            const uint64_t class_version = klass->version;
+            const uint64_t metaclass_version = metaclass->version;
+            const uint64_t code_version = fn_obj->code_version;
+            Value completed;
+            std::string error;
+            if (xlang_vm_execute_own_canonical_slot_constructor(
+                    instance, module, *fn_obj, call_args, slots, completed, error)) {
+              // Class-level reuse starts only after this call has completed all
+              // ordinary meta/new/abstract/init selection and the existing proof.
+              xlang_vm_remember_class_canonical_slot_constructor(
+                  runtime, callee, *fn_obj, slots);
+              if (!instr_cache.empty()) {
+                auto& cache = instr_cache[ip].call;
+                cache.callee_object = callee.as.obj;
+                value_assign_fast(cache.retained_callee, callee);
+                cache.function = fn_obj;
+                cache.function_code_version = code_version;
+                cache.native = nullptr;
+                cache.class_version = class_version;
+                cache.arg0_object = &metaclass->header;
+                cache.secondary_class_version = metaclass_version;
+                cache.slot_constructor_args = std::move(slots);
+                cache.kind = CallSiteKind::InlineCanonicalSlotConstructor;
+              }
+              // Publish the captured proof before releasing old output. The
+              // owning init_value and completed instance protect reentry; a
+              // finalizer mutation invalidates the already-stamped generation.
+              // Returning immediately prevents stale post-finalizer publication.
+              xlang_vm_retire_canonical_constructor_arguments(
+                  in, fn, call_arg_regs, callee, completed, regs, ip);
+              value_move_assign_fast(regs[in.dst], completed);
+              return XlangVMOpFlow::Next;
+            }
           }
         }
         SlotConstructorSpec slot_constructor_spec;
@@ -4447,6 +4572,10 @@ inline bool call_callable_value(
                                 raise_runtime_error, raise_exception_value);
   }
   if (value_as_class(function_value) != nullptr) {
+    // This synchronous fallback owns packed argument copies, including class
+    // attributes passed to weakref.ref. Release them on both exits; retaining
+    // scratch capacity must not root a referent until its caller frame returns.
+    NativeCallArgsScope args_scope{native_call_args};
     std::string error;
     const Value* args = materialize_native_args(values, native_call_args);
     if (!runtime_call_callable(runtime, function_value, args,

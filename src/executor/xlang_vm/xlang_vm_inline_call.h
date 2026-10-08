@@ -1288,6 +1288,210 @@ XLANG3_HOT_INLINE bool xlang_vm_execute_slot_constructor(
   return true;
 }
 
+// Explicit __slots__ methods retain dynamic stores in IR. Resolve only a
+// complete plain initializer into canonical physical slots; deleting the
+// restricted-layout guard alone would append fields outside slot storage.
+// Keep this cold proof out of the shared Call dispatch's hot native body.
+XLANG3_NOINLINE inline bool xlang_vm_prepare_own_canonical_slot_constructor(
+    Runtime& runtime, const ir::Module& current_module,
+    const Value& class_value, const FunctionObject& function_object,
+    const XlangVMSlotConstructorSpec& names,
+    XlangVMSlotConstructorSpec& slots) {
+  auto* klass = value_as_class(class_value);
+  const Value* object_value = runtime.find_builtin("object");
+  const Value* type_value = runtime.find_builtin("type");
+  const auto* object_class = object_value == nullptr ? nullptr : value_as_class(*object_value);
+  const auto* type_class = type_value == nullptr ? nullptr : value_as_class(*type_value);
+  if (klass == nullptr || object_class == nullptr || type_class == nullptr ||
+      value_as_class(klass->metaclass) != type_class ||
+      !klass->restrict_instance_attrs || !klass->own_instance_slot_declarations_known ||
+      klass->has_setattr_hook || klass->native_type_constructor != nullptr ||
+      klass->attrs.find("__setattr__") != klass->attrs.end() ||
+      klass->attrs.find("__new__") != klass->attrs.end() || names.empty()) return false;
+  const auto own_init = klass->attrs.find("__init__");
+  if (own_init == klass->attrs.end() ||
+      value_as_function(own_init->second) != &function_object) return false;
+  const ir::Module* function_module = function_object.module != nullptr
+      ? function_object.module.get() : &current_module;
+  if (function_object.function_id >= function_module->functions.size()) return false;
+  const auto& function = function_module->functions[function_object.function_id];
+  if (function.is_generator || function.is_async || function.is_coroutine ||
+      function.params.size() < 2) return false;
+  const std::vector<Value>* mro = nullptr;
+  std::string error;
+  if (!class_get_mro_values(klass, mro, error) ||
+      mro == nullptr || mro->size() != 2 || value_as_class((*mro)[0]) != klass ||
+      value_as_class((*mro)[1]) != object_class) return false;
+  XlangVMSlotConstructorSpec prepared;
+  prepared.reserve(names.size());
+  for (const auto& item : names) {
+    if ((item.first & kXlangVMInlineConstructorAttrFlag) == 0 ||
+        item.second >= function.params.size() - 1) return false;
+    const uint32_t name_index = item.first & ~kXlangVMInlineConstructorAttrFlag;
+    if (name_index >= function.names.size()) return false;
+    const auto& name = function.names[name_index];
+    const auto declaration_count = std::count(klass->own_instance_slot_declarations.begin(),
+        klass->own_instance_slot_declarations.end(), name);
+    const auto index = klass->instance_slot_indices.find(name);
+    const auto attr = klass->attrs.find(name);
+    const auto* descriptor = attr == klass->attrs.end()
+        ? nullptr : value_as_slot_descriptor(attr->second);
+    if (declaration_count != 1 || index == klass->instance_slot_indices.end() ||
+        index->second >= klass->instance_slot_names.size() ||
+        (index->second & kXlangVMInlineConstructorAttrFlag) != 0 ||
+        klass->instance_slot_names[index->second] != name || descriptor == nullptr ||
+        descriptor->name != name || value_as_class(descriptor->owner_class) != klass ||
+        descriptor->index != index->second ||
+        object_class->instance_slot_indices.find(name) != object_class->instance_slot_indices.end()) return false;
+    const auto base_attr = object_class->attrs.find(name);
+    if (base_attr != object_class->attrs.end() && value_as_slot_descriptor(base_attr->second) != nullptr)
+      return false;
+    // Repeated stores could release an earlier argument and run its finalizer
+    // before construction is published. Each physical slot must be written once
+    // so the completed result retains every explicit argument without callbacks.
+    if (std::any_of(prepared.begin(), prepared.end(),
+            [&](const auto& prior) { return prior.first == index->second; })) return false;
+    prepared.emplace_back(index->second, item.second);
+  }
+  // Retain every explicit argument in the resulting object, so omitting an
+  // initializer frame cannot move an unused argument's finalizer boundary.
+  for (uint32_t argument = 0; argument + 1 < function.params.size(); ++argument)
+    if (std::none_of(prepared.begin(), prepared.end(),
+            [&](const auto& item) { return item.second == argument; })) return false;
+  slots = std::move(prepared);
+  return true;
+}
+
+XLANG3_HOT_INLINE bool xlang_vm_execute_own_canonical_slot_constructor(
+    Value& instance, const ir::Module& current_module,
+    const FunctionObject& function_object, CallArgsView args,
+    const XlangVMSlotConstructorSpec& slots, Value& out, std::string& error) {
+  const auto* object = value_as_instance(instance);
+  if (object == nullptr || object->native_data != nullptr ||
+      object->native_get_attr != nullptr || object->native_set_attr != nullptr ||
+      object->native_delete_attr != nullptr || !object->attrs.empty() ||
+      object->mapping_storage.tag != ValueTag::Invalid ||
+      object->sequence_storage.tag != ValueTag::Invalid) return false;
+  const ir::Module* function_module = function_object.module != nullptr
+      ? function_object.module.get() : &current_module;
+  if (function_object.function_id >= function_module->functions.size()) return false;
+  const auto& function = function_module->functions[function_object.function_id];
+  if (args.has_keywords() || args.has_expansion() ||
+      args.size() + 1 != function.params.size()) return false;
+  for (uint32_t argument = 0; argument < args.size(); ++argument)
+    if (args.get(argument).tag == ValueTag::Invalid) return false;
+  // Validate the whole plan before the first store. Fresh Invalid slots cannot
+  // retire Python owners or invoke hooks; unsupported state has no side effect.
+  for (const auto& item : slots)
+    if ((item.first & kXlangVMInlineConstructorAttrFlag) != 0 ||
+        item.second >= args.size() || item.first >= instance_slot_count(object) ||
+        instance_slot_at(object, item.first).tag != ValueTag::Invalid) return false;
+  return xlang_vm_execute_slot_constructor(
+      instance, current_module, function_object, args, slots, out, error);
+}
+
+// Publish only after the ordinary constructor selection and full own-slot
+// proof have succeeded. Absence of these entries is a stable negative under
+// class/base/metaclass generations; an empty mutable marker/abstract container
+// is not such a proof and stays on the existing generic selection path.
+XLANG3_NOINLINE inline void xlang_vm_remember_class_canonical_slot_constructor(
+    Runtime& runtime, const Value& class_value,
+    const FunctionObject& initializer, const XlangVMSlotConstructorSpec& slots) {
+  auto* klass = value_as_class(class_value);
+  const Value* object_value = runtime.find_builtin("object");
+  const Value* type_value = runtime.find_builtin("type");
+  auto* object_class = object_value == nullptr ? nullptr : value_as_class(*object_value);
+  auto* metaclass = type_value == nullptr ? nullptr : value_as_class(*type_value);
+  if (klass == nullptr || object_class == nullptr || metaclass == nullptr ||
+      value_as_class(klass->metaclass) != metaclass ||
+      klass->native_type_constructor != nullptr || initializer.module == nullptr ||
+      object_class->name != "object" || metaclass->name != "type" || slots.empty()) return;
+  const std::vector<Value>* type_mro = nullptr;
+  const std::vector<Value>* object_mro = nullptr;
+  std::string error;
+  if (!class_get_mro_values(metaclass, type_mro, error) || type_mro == nullptr ||
+      type_mro->size() != 2 || value_as_class((*type_mro)[0]) != metaclass ||
+      value_as_class((*type_mro)[1]) != object_class ||
+      !class_get_mro_values(object_class, object_mro, error) || object_mro == nullptr ||
+      object_mro->size() != 1 || value_as_class((*object_mro)[0]) != object_class) return;
+  for (auto* candidate : {klass, object_class, metaclass}) {
+    if (candidate->attrs.find("__abstractmethods__") != candidate->attrs.end() ||
+        candidate->attrs.find("__xlang3_enum_marker__") != candidate->attrs.end()) return;
+  }
+  const auto default_new = object_class->attrs.find("__new__");
+  const auto* native_new = default_new == object_class->attrs.end()
+      ? nullptr : value_as_native_function(default_new->second);
+  // Value::class_object wraps builtin __new__ in an exact StaticMethod.
+  // Inspect that stored target directly: generic descriptors must not execute
+  // during publication, and arbitrary wrapped Python functions still decline.
+  if (native_new == nullptr && default_new != object_class->attrs.end()) {
+    const auto* static_new = value_as_static_method(default_new->second);
+    if (static_new != nullptr) native_new = value_as_native_function(static_new->function);
+  }
+  if (native_new == nullptr || native_new->name != "object.__new__") return;
+  auto cache = std::make_unique<ClassCanonicalSlotConstructorCache>();
+  cache->class_version = klass->version;
+  cache->metaclass_version = metaclass->version;
+  cache->object_version = object_class->version;
+  cache->initializer_code_version = initializer.code_version;
+  cache->metaclass = metaclass;
+  cache->object_class = object_class;
+  cache->initializer = const_cast<FunctionObject*>(&initializer);
+  cache->slots = slots;
+  // No owning Values or Python cleanup is retired here. Output/argument owners
+  // remain with the caller until after this complete captured proof is visible.
+  klass->canonical_slot_constructor_cache = std::move(cache);
+}
+
+XLANG3_HOT_INLINE bool xlang_vm_try_class_canonical_slot_constructor(
+    Runtime& runtime, const ir::Module& current_module,
+    const Value& class_value, CallArgsView args, Value& initializer_owner, Value& completed) {
+  auto* klass = value_as_class(class_value);
+  const auto* cache = klass == nullptr ? nullptr : klass->canonical_slot_constructor_cache.get();
+  if (cache == nullptr || cache->class_version != klass->version ||
+      klass->native_type_constructor != nullptr || args.has_keywords() ||
+      args.has_expansion()) return false;
+  const Value* type_value = runtime.find_builtin("type");
+  const Value* object_value = runtime.find_builtin("object");
+  auto* metaclass = value_as_class(klass->metaclass);
+  auto* object_class = object_value == nullptr ? nullptr : value_as_class(*object_value);
+  // Runtime builtin identity also prevents using a class proof in a different
+  // Runtime whose object/type identities differ. Both live owner generations
+  // precede the weak function read; SDK native attachment needs its own check.
+  if (metaclass == nullptr || type_value == nullptr ||
+      value_as_class(*type_value) != metaclass || cache->metaclass != metaclass ||
+      cache->metaclass_version != metaclass->version ||
+      object_class == nullptr || cache->object_class != object_class ||
+      cache->object_version != object_class->version || cache->initializer == nullptr) return false;
+  // The isolated-class collector can invalidate cyclic attribute Values while
+  // holding the class alive. Prove the current owning entry as well as its
+  // generation before dereferencing a weak function, even during such cleanup.
+  const auto own_init = klass->attrs.find("__init__");
+  if (own_init == klass->attrs.end() ||
+      value_as_function(own_init->second) != cache->initializer) return false;
+  const auto* initializer = cache->initializer;
+  if (cache->initializer_code_version != initializer->code_version ||
+      initializer->module == nullptr ||
+      initializer->function_id >= initializer->module->functions.size()) return false;
+  const auto& function = initializer->module->functions[initializer->function_id];
+  // Decline malformed/unsupported arguments before allocating an instance:
+  // speculative allocation could otherwise run an extra __del__ on fallback.
+  if (args.size() + 1 != function.params.size()) return false;
+  for (uint32_t argument = 0; argument < args.size(); ++argument)
+    if (args.get(argument).tag == ValueTag::Invalid) return false;
+  // The caller keeps this owner through argument retirement and old-output
+  // finalizers, matching the existing same-activation canonical constructor.
+  initializer_owner.tag = ValueTag::Object;
+  initializer_owner.as.obj = const_cast<Object*>(&initializer->header);
+  retain(initializer_owner);
+  // Fresh instance creation and the fully validated physical stores have no
+  // user callback. Preserve the existing instance native-hook/storage guards.
+  Value instance = Value::instance(class_value);
+  std::string error;
+  return xlang_vm_execute_own_canonical_slot_constructor(
+      instance, current_module, *initializer, args, cache->slots, completed, error);
+}
+
 inline bool xlang_vm_execute_arg_binary_function(
     CallArgsView args,
     const XlangVMArgBinaryFunctionSpec& spec,

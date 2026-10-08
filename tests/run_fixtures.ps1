@@ -22,6 +22,16 @@ if (-not $XLang3) {
 
 $root = $PSScriptRoot
 $cases = @(
+    "sorted_key_scoped_entry",
+    "sorted_key_iteration_owner",
+    "sorted_key_nested_handled_context",
+    "ordinary_canonical_slot_constructor",
+    "synchronous_class_argument_lifetime",
+    "nested_profile_setting",
+    "class_namespace_lifetime",
+    "class_method_annotation_capture",
+    "explicit_slot_descriptor_fallback",
+    "slot_descriptor_owner",
     "dict_get_exception_preservation",
     "call_method_dict_cache_touch",
     "inherited_call_ex_constructor",

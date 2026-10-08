@@ -1,0 +1,525 @@
+{
+  "status": "terminal_file_only_coff_attribution",
+  "terminal": true,
+  "diagnostic_only": true,
+  "runtime_execution": false,
+  "engine_changes": false,
+  "source_loading": false,
+  "image_sha256": "af0b4a5fa406f81c6584ec9282bc2a18f3ec039ef49c45e6846face5c47d1a36",
+  "sampling_receipt": "doc\\performance\\data\\pprint-c1-native-cpu-sampling-20261008.json",
+  "sampling_receipt_sha256": "1c267d0414315c1517d7cb2fe34f7c9c2d1432a9095502fe4570da9b4d039516",
+  "sample_count": 438,
+  "return_pc_minus_one": true,
+  "chosen_private_ranges": 19,
+  "tested_object_functions": 20316,
+  "hashes_before": {
+    "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3_runtime.dll": "af0b4a5fa406f81c6584ec9282bc2a18f3ec039ef49c45e6846face5c47d1a36",
+    "D:\\CantorAI\\xlang3\\doc\\performance\\data\\pprint-c1-native-cpu-sampling-20261008-samples.jsonl": "60facd914e2d6282db2e7aad4f73c5d1182124b40b0643ea883f399ce38fba40",
+    "doc\\performance\\data\\pprint-c1-native-cpu-sampling-20261008.json": "1c267d0414315c1517d7cb2fe34f7c9c2d1432a9095502fe4570da9b4d039516",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\attribute-sqlglot-native-exports-20261008.py": "e535c5d629e5fb4bfc1a360f7b730df0a9d13de86c6231c92e39244b1aa7920e",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\match-sqlglot-native-coff-20261008.py": "796b3cf6860c428f0dd76f36d30bcc2a6d9cf958f15fef1467e8271047e58411",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\attribute-pprint-native-cpu-coff-r2-proposed-20261008.py": "04ec10cc996243c493f63f3e6c9853898c61d2e35c07b6abc86a5af7c2119d2f",
+    "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\CMakeFiles\\xlang3_runtime.dir\\Release\\src\\executor\\xlang_vm\\xlang_vm_loop.cpp.obj": "d9c58ce73c8be1582d43af3faa6d7b35c3810903ba99756096de34d4d0903e02",
+    "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\CMakeFiles\\xlang3_runtime.dir\\Release\\src\\executor\\xlang_vm\\xlang_interpreter.cpp.obj": "c45091784209334ad699c3df9c3589988fe640c17a62987efb957cba73c0cb8d",
+    "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\CMakeFiles\\xlang3_runtime.dir\\Release\\src\\executor\\xlang_vm\\xlang_vm_attr.cpp.obj": "340dc4ed73ab3f47b563083133aa5d15a0fbf1958a8b7ce8f12d21f8fb34409f",
+    "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\CMakeFiles\\xlang3_runtime.dir\\Release\\src\\runtime\\object_model.cpp.obj": "6b04825ec306cf2792a4c9f640e872c341f6dcd86d208e2ee57de8af02fb1521",
+    "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\CMakeFiles\\xlang3_runtime.dir\\Release\\src\\builtins\\functional_builtins.cpp.obj": "379ed194438bcdd1b5bcce4e4583fcf561b78f3b35ba70d4840c38f869817515",
+    "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\CMakeFiles\\xlang3_runtime.dir\\Release\\src\\runtime\\functional_iterators.cpp.obj": "996f4b30d8d27902b0e127cad5dd6b68f60ce4f4a4064ddfc484c467c065fc5c",
+    "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\CMakeFiles\\xlang3_runtime.dir\\Release\\src\\runtime\\sequence.cpp.obj": "ffaa52e249bf5a2c9dd9b995a0bd5e3a0ba39d49ceeb9fe2fa9df50fa24b7d88",
+    "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\CMakeFiles\\xlang3_runtime.dir\\Release\\src\\runtime\\mapping.cpp.obj": "82dc52dcc97c25ccd0c3a7eb86a3f44289918fcde90f21b34d8cc505691f1813"
+  },
+  "hashes_after": {
+    "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3_runtime.dll": "af0b4a5fa406f81c6584ec9282bc2a18f3ec039ef49c45e6846face5c47d1a36",
+    "D:\\CantorAI\\xlang3\\doc\\performance\\data\\pprint-c1-native-cpu-sampling-20261008-samples.jsonl": "60facd914e2d6282db2e7aad4f73c5d1182124b40b0643ea883f399ce38fba40",
+    "doc\\performance\\data\\pprint-c1-native-cpu-sampling-20261008.json": "1c267d0414315c1517d7cb2fe34f7c9c2d1432a9095502fe4570da9b4d039516",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\attribute-sqlglot-native-exports-20261008.py": "e535c5d629e5fb4bfc1a360f7b730df0a9d13de86c6231c92e39244b1aa7920e",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\match-sqlglot-native-coff-20261008.py": "796b3cf6860c428f0dd76f36d30bcc2a6d9cf958f15fef1467e8271047e58411",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\attribute-pprint-native-cpu-coff-r2-proposed-20261008.py": "04ec10cc996243c493f63f3e6c9853898c61d2e35c07b6abc86a5af7c2119d2f",
+    "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\CMakeFiles\\xlang3_runtime.dir\\Release\\src\\executor\\xlang_vm\\xlang_vm_loop.cpp.obj": "d9c58ce73c8be1582d43af3faa6d7b35c3810903ba99756096de34d4d0903e02",
+    "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\CMakeFiles\\xlang3_runtime.dir\\Release\\src\\executor\\xlang_vm\\xlang_interpreter.cpp.obj": "c45091784209334ad699c3df9c3589988fe640c17a62987efb957cba73c0cb8d",
+    "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\CMakeFiles\\xlang3_runtime.dir\\Release\\src\\executor\\xlang_vm\\xlang_vm_attr.cpp.obj": "340dc4ed73ab3f47b563083133aa5d15a0fbf1958a8b7ce8f12d21f8fb34409f",
+    "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\CMakeFiles\\xlang3_runtime.dir\\Release\\src\\runtime\\object_model.cpp.obj": "6b04825ec306cf2792a4c9f640e872c341f6dcd86d208e2ee57de8af02fb1521",
+    "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\CMakeFiles\\xlang3_runtime.dir\\Release\\src\\builtins\\functional_builtins.cpp.obj": "379ed194438bcdd1b5bcce4e4583fcf561b78f3b35ba70d4840c38f869817515",
+    "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\CMakeFiles\\xlang3_runtime.dir\\Release\\src\\runtime\\functional_iterators.cpp.obj": "996f4b30d8d27902b0e127cad5dd6b68f60ce4f4a4064ddfc484c467c065fc5c",
+    "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\CMakeFiles\\xlang3_runtime.dir\\Release\\src\\runtime\\sequence.cpp.obj": "ffaa52e249bf5a2c9dd9b995a0bd5e3a0ba39d49ceeb9fe2fa9df50fa24b7d88",
+    "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\CMakeFiles\\xlang3_runtime.dir\\Release\\src\\runtime\\mapping.cpp.obj": "82dc52dcc97c25ccd0c3a7eb86a3f44289918fcde90f21b34d8cc505691f1813"
+  },
+  "hashes_unchanged": true,
+  "ranges": [
+    {
+      "begin": 7438544,
+      "end": 7458280,
+      "unwind": 14904672,
+      "matches": [
+        {
+          "object": "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\CMakeFiles\\xlang3_runtime.dir\\Release\\src\\executor\\xlang_vm\\xlang_vm_loop.cpp.obj",
+          "object_sha256": "d9c58ce73c8be1582d43af3faa6d7b35c3810903ba99756096de34d4d0903e02",
+          "section": 920,
+          "symbol_section_offset": 0,
+          "code_bytes_matched": 19736,
+          "relocation_masked_bytes": 1712,
+          "aliases": [
+            "enum xlang3::XlangVMOpFlow __cdecl xlang3::xlang_vm::ops::call<class <lambda_3cb4d07e859d083a98d46d150c669170> & __ptr64,class <lambda_3312fdeb6593bbaffe05c92211be76c5> & __ptr64,bool (__cdecl&)(class xlang3::Runtime & __ptr64,struct xlang3::ClassObject const & __ptr64,struct xlang3::CallArgsView,class xlang3::XlangRuntimeExecutionGuard & __ptr64,struct xlang3::Value & __ptr64,struct xlang3::XlangVMBuiltinConstructorError & __ptr64),bool (__cdecl&)(struct xlang3::ir::Module const & __ptr64,struct xlang3::FunctionObject const & __ptr64,unsigned int,struct xlang3::XlangVMArgBinaryFunctionSpec & __ptr64),bool (__cdecl&)(struct xlang3::CallArgsView,struct xlang3::XlangVMArgBinaryFunctionSpec const & __ptr64,struct xlang3::Value & __ptr64,class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > & __ptr64),bool (__cdecl&)(struct xlang3::ir::Module const & __ptr64,struct xlang3::FunctionObject const & __ptr64,class std::vector<struct std::pair<unsigned int,unsigned int>,class std::allocator<struct std::pair<unsigned int,unsigned int> > > & __ptr64),bool (__cdecl&)(struct xlang3::Value & __ptr64,struct xlang3::ir::Module const & __ptr64,struct xlang3::FunctionObject const & __ptr64,struct xlang3::CallArgsView,class std::vector<struct std::pair<unsigned int,unsigned int>,class std::allocator<struct std::pair<unsigned int,unsigned int> > > const & __ptr64,struct xlang3::Value & __ptr64,class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > & __ptr64),class <lambda_8c8f44f0d5728de49b1030e21cc25acf> & __ptr64,class <lambda_3b129c1ef83a5b21b828c90c1f4f2279> & __ptr64>(struct xlang3::ir::Instr const & __ptr64,struct xlang3::ir::Function const & __ptr64,struct xlang3::ir::Module const & __ptr64,class std::shared_ptr<struct xlang3::ir::Module const > const & __ptr64,class xlang3::Runtime & __ptr64,class xlang3::XlangVMSmallBuffer<struct xlang3::XlangVMRegister,128> & __ptr64,class xlang3::XlangVMInstrCacheStorage & __ptr64,class std::vector<struct xlang3::Value,class std::allocator<struct xlang3::Value> > & __ptr64,unsigned __int64 & __ptr64,struct xlang3::RuntimeResult & __ptr64,class xlang3::XlangRuntimeExecutionGuard & __ptr64,class <lambda_3cb4d07e859d083a98d46d150c669170> & __ptr64,class <lambda_3312fdeb6593bbaffe05c92211be76c5> & __ptr64,bool (__cdecl&)(class xlang3::Runtime & __ptr64,struct xlang3::ClassObject const & __ptr64,struct xlang3::CallArgsView,class xlang3::XlangRuntimeExecutionGuard & __ptr64,struct xlang3::Value & __ptr64,struct xlang3::XlangVMBuiltinConstructorError & __ptr64),bool (__cdecl&)(struct xlang3::ir::Module const & __ptr64,struct xlang3::FunctionObject const & __ptr64,unsigned int,struct xlang3::XlangVMArgBinaryFunctionSpec & __ptr64),bool (__cdecl&)(struct xlang3::CallArgsView,struct xlang3::XlangVMArgBinaryFunctionSpec const & __ptr64,struct xlang3::Value & __ptr64,class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > & __ptr64),bool (__cdecl&)(struct xlang3::ir::Module const & __ptr64,struct xlang3::FunctionObject const & __ptr64,class std::vector<struct std::pair<unsigned int,unsigned int>,class std::allocator<struct std::pair<unsigned int,unsigned int> > > & __ptr64),bool (__cdecl&)(struct xlang3::Value & __ptr64,struct xlang3::ir::Module const & __ptr64,struct xlang3::FunctionObject const & __ptr64,struct xlang3::CallArgsView,class std::vector<struct std::pair<unsigned int,unsigned int>,class std::allocator<struct std::pair<unsigned int,unsigned int> > > const & __ptr64,struct xlang3::Value & __ptr64,class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > & __ptr64),class <lambda_8c8f44f0d5728de49b1030e21cc25acf> & __ptr64,class <lambda_3b129c1ef83a5b21b828c90c1f4f2279> & __ptr64,class xlang3::XlangVMSmallBuffer<struct xlang3::Value,64> * __ptr64)"
+          ],
+          "decorated_aliases": [
+            "??$call@AEAV<lambda_3cb4d07e859d083a98d46d150c669170>@@AEAV<lambda_3312fdeb6593bbaffe05c92211be76c5>@@A6A_NAEAVRuntime@xlang3@@AEBUClassObject@4@UCallArgsView@4@AEAVXlangRuntimeExecutionGuard@4@AEAUValue@4@AEAUXlangVMBuiltinConstructorError@4@@ZA6A_NAEBUModule@ir@4@AEBUFunctionObject@4@IAEAUXlangVMArgBinaryFunctionSpec@4@@ZA6A_N2AEBUXlangVMArgBinaryFunctionSpec@4@4AEAV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@ZA6A_N67AEAV?$vector@U?$pair@II@std@@V?$allocator@U?$pair@II@std@@@2@@std@@@ZA6A_N4672AEBV?$vector@U?$pair@II@std@@V?$allocator@U?$pair@II@std@@@2@@std@@4AEAV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@ZAEAV<lambda_8c8f44f0d5728de49b1030e21cc25acf>@@AEAV<lambda_3b129c1ef83a5b21b828c90c1f4f2279>@@@ops@xlang_vm@xlang3@@YA?AW4XlangVMOpFlow@2@AEBUInstr@ir@2@AEBUFunction@52@AEBUModule@52@AEBV?$shared_ptr@$$CBUModule@ir@xlang3@@@std@@AEAVRuntime@2@AEAV?$XlangVMSmallBuffer@UXlangVMRegister@xlang3@@$0IA@@2@AEAVXlangVMInstrCacheStorage@2@AEAV?$vector@UValue@xlang3@@V?$allocator@UValue@xlang3@@@std@@@9@AEA_KAEAURuntimeResult@2@AEAVXlangRuntimeExecutionGuard@2@AEAV<lambda_3cb4d07e859d083a98d46d150c669170>@@AEAV<lambda_3312fdeb6593bbaffe05c92211be76c5>@@A6A_N4AEBUClassObject@2@UCallArgsView@2@AEAVXlangRuntimeExecutionGuard@2@AEAUValue@2@AEAUXlangVMBuiltinConstructorError@2@@ZA6A_N2AEBUFunctionObject@2@IAEAUXlangVMArgBinaryFunctionSpec@2@@ZA6A_NUCallArgsView@2@AEBUXlangVMArgBinaryFunctionSpec@2@AEAUValue@2@AEAV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@9@@ZA6A_N2AEBUFunctionObject@2@AEAV?$vector@U?$pair@II@std@@V?$allocator@U?$pair@II@std@@@2@@9@@ZA6A_NAEAUValue@2@2AEBUFunctionObject@2@UCallArgsView@2@AEBV?$vector@U?$pair@II@std@@V?$allocator@U?$pair@II@std@@@2@@9@AEAUValue@2@AEAV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@9@@ZAEAV<lambda_8c8f44f0d5728de49b1030e21cc25acf>@@AEAV<lambda_3b129c1ef83a5b21b828c90c1f4f2279>@@PEAV?$XlangVMSmallBuffer@UValue@xlang3@@$0EA@@2@@Z"
+          ]
+        }
+      ],
+      "begin_hex": "0x7180d0",
+      "end_hex": "0x71cde8",
+      "exclusive_leaf_samples": 8,
+      "exclusive_fraction_all": 0.0182648401826484,
+      "inclusive_stack_samples": 105,
+      "inclusive_fraction_all": 0.23972602739726026
+    },
+    {
+      "begin": 7540416,
+      "end": 7547181,
+      "unwind": 14920288,
+      "matches": [
+        {
+          "object": "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\CMakeFiles\\xlang3_runtime.dir\\Release\\src\\executor\\xlang_vm\\xlang_vm_loop.cpp.obj",
+          "object_sha256": "d9c58ce73c8be1582d43af3faa6d7b35c3810903ba99756096de34d4d0903e02",
+          "section": 1317,
+          "symbol_section_offset": 0,
+          "code_bytes_matched": 6765,
+          "relocation_masked_bytes": 620,
+          "aliases": [
+            "bool __cdecl xlang3::xlang_vm::ops::call_native_function_ex<class <lambda_8c8f44f0d5728de49b1030e21cc25acf> & __ptr64,class <lambda_3b129c1ef83a5b21b828c90c1f4f2279> & __ptr64>(class xlang3::Runtime & __ptr64,struct xlang3::NativeFunctionObject * __ptr64,struct xlang3::CallArgsView,class std::vector<struct xlang3::Value,class std::allocator<struct xlang3::Value> > & __ptr64,class std::vector<struct xlang3::NativeKeywordArg,class std::allocator<struct xlang3::NativeKeywordArg> > & __ptr64,class xlang3::XlangRuntimeExecutionGuard & __ptr64,struct xlang3::Value & __ptr64,class <lambda_8c8f44f0d5728de49b1030e21cc25acf> & __ptr64,class <lambda_3b129c1ef83a5b21b828c90c1f4f2279> & __ptr64,struct xlang3::Value const * __ptr64,__int64,struct xlang3::Value const * __ptr64)"
+          ],
+          "decorated_aliases": [
+            "??$call_native_function_ex@AEAV<lambda_8c8f44f0d5728de49b1030e21cc25acf>@@AEAV<lambda_3b129c1ef83a5b21b828c90c1f4f2279>@@@ops@xlang_vm@xlang3@@YA_NAEAVRuntime@2@PEAUNativeFunctionObject@2@UCallArgsView@2@AEAV?$vector@UValue@xlang3@@V?$allocator@UValue@xlang3@@@std@@@std@@AEAV?$vector@UNativeKeywordArg@xlang3@@V?$allocator@UNativeKeywordArg@xlang3@@@std@@@7@AEAVXlangRuntimeExecutionGuard@2@AEAUValue@2@AEAV<lambda_8c8f44f0d5728de49b1030e21cc25acf>@@AEAV<lambda_3b129c1ef83a5b21b828c90c1f4f2279>@@PEBUValue@2@_J9@Z"
+          ]
+        }
+      ],
+      "begin_hex": "0x730ec0",
+      "end_hex": "0x73292d",
+      "exclusive_leaf_samples": 0,
+      "exclusive_fraction_all": 0.0,
+      "inclusive_stack_samples": 92,
+      "inclusive_fraction_all": 0.2100456621004566
+    },
+    {
+      "begin": 7475088,
+      "end": 7488135,
+      "unwind": 14905828,
+      "matches": [
+        {
+          "object": "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\CMakeFiles\\xlang3_runtime.dir\\Release\\src\\executor\\xlang_vm\\xlang_vm_loop.cpp.obj",
+          "object_sha256": "d9c58ce73c8be1582d43af3faa6d7b35c3810903ba99756096de34d4d0903e02",
+          "section": 1066,
+          "symbol_section_offset": 0,
+          "code_bytes_matched": 13047,
+          "relocation_masked_bytes": 816,
+          "aliases": [
+            "enum xlang3::XlangVMOpFlow __cdecl xlang3::xlang_vm::ops::call_ex<class <lambda_3cb4d07e859d083a98d46d150c669170> & __ptr64,class <lambda_3312fdeb6593bbaffe05c92211be76c5> & __ptr64,bool (__cdecl&)(class xlang3::Runtime & __ptr64,struct xlang3::ClassObject const & __ptr64,struct xlang3::CallArgsView,class xlang3::XlangRuntimeExecutionGuard & __ptr64,struct xlang3::Value & __ptr64,struct xlang3::XlangVMBuiltinConstructorError & __ptr64),class <lambda_8c8f44f0d5728de49b1030e21cc25acf> & __ptr64,class <lambda_3b129c1ef83a5b21b828c90c1f4f2279> & __ptr64>(struct xlang3::ir::Instr const & __ptr64,struct xlang3::ir::Function const & __ptr64,struct xlang3::ir::Module const & __ptr64,class std::shared_ptr<struct xlang3::ir::Module const > const & __ptr64,struct xlang3::Value const & __ptr64,class xlang3::Runtime & __ptr64,class xlang3::XlangVMSmallBuffer<struct xlang3::XlangVMRegister,128> & __ptr64,class std::vector<struct xlang3::XlangVMFrame,class std::allocator<struct xlang3::XlangVMFrame> > & __ptr64,unsigned __int64 & __ptr64,class xlang3::XlangVMInstrCacheStorage & __ptr64,class std::vector<struct xlang3::Value,class std::allocator<struct xlang3::Value> > & __ptr64,unsigned __int64 & __ptr64,struct xlang3::RuntimeResult & __ptr64,class xlang3::XlangRuntimeExecutionGuard & __ptr64,class <lambda_3cb4d07e859d083a98d46d150c669170> & __ptr64,class <lambda_3312fdeb6593bbaffe05c92211be76c5> & __ptr64,bool (__cdecl&)(class xlang3::Runtime & __ptr64,struct xlang3::ClassObject const & __ptr64,struct xlang3::CallArgsView,class xlang3::XlangRuntimeExecutionGuard & __ptr64,struct xlang3::Value & __ptr64,struct xlang3::XlangVMBuiltinConstructorError & __ptr64),class <lambda_8c8f44f0d5728de49b1030e21cc25acf> & __ptr64,class <lambda_3b129c1ef83a5b21b828c90c1f4f2279> & __ptr64)"
+          ],
+          "decorated_aliases": [
+            "??$call_ex@AEAV<lambda_3cb4d07e859d083a98d46d150c669170>@@AEAV<lambda_3312fdeb6593bbaffe05c92211be76c5>@@A6A_NAEAVRuntime@xlang3@@AEBUClassObject@4@UCallArgsView@4@AEAVXlangRuntimeExecutionGuard@4@AEAUValue@4@AEAUXlangVMBuiltinConstructorError@4@@ZAEAV<lambda_8c8f44f0d5728de49b1030e21cc25acf>@@AEAV<lambda_3b129c1ef83a5b21b828c90c1f4f2279>@@@ops@xlang_vm@xlang3@@YA?AW4XlangVMOpFlow@2@AEBUInstr@ir@2@AEBUFunction@52@AEBUModule@52@AEBV?$shared_ptr@$$CBUModule@ir@xlang3@@@std@@AEBUValue@2@AEAVRuntime@2@AEAV?$XlangVMSmallBuffer@UXlangVMRegister@xlang3@@$0IA@@2@AEAV?$vector@UXlangVMFrame@xlang3@@V?$allocator@UXlangVMFrame@xlang3@@@std@@@9@AEA_KAEAVXlangVMInstrCacheStorage@2@AEAV?$vector@UValue@xlang3@@V?$allocator@UValue@xlang3@@@std@@@9@8AEAURuntimeResult@2@AEAVXlangRuntimeExecutionGuard@2@AEAV<lambda_3cb4d07e859d083a98d46d150c669170>@@AEAV<lambda_3312fdeb6593bbaffe05c92211be76c5>@@A6A_N5AEBUClassObject@2@UCallArgsView@2@AEAVXlangRuntimeExecutionGuard@2@AEAUValue@2@AEAUXlangVMBuiltinConstructorError@2@@ZAEAV<lambda_8c8f44f0d5728de49b1030e21cc25acf>@@AEAV<lambda_3b129c1ef83a5b21b828c90c1f4f2279>@@@Z"
+          ]
+        }
+      ],
+      "begin_hex": "0x720f90",
+      "end_hex": "0x724287",
+      "exclusive_leaf_samples": 0,
+      "exclusive_fraction_all": 0.0,
+      "inclusive_stack_samples": 92,
+      "inclusive_fraction_all": 0.2100456621004566
+    },
+    {
+      "begin": 4495328,
+      "end": 4496557,
+      "unwind": 14676776,
+      "matches": [
+        {
+          "object": "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\CMakeFiles\\xlang3_runtime.dir\\Release\\src\\builtins\\functional_builtins.cpp.obj",
+          "object_sha256": "379ed194438bcdd1b5bcce4e4583fcf561b78f3b35ba70d4840c38f869817515",
+          "section": 4921,
+          "symbol_section_offset": 0,
+          "code_bytes_matched": 1229,
+          "relocation_masked_bytes": 108,
+          "aliases": [
+            "bool __cdecl xlang3::`anonymous namespace'::sorted_impl(class xlang3::Runtime & __ptr64,struct xlang3::Value const & __ptr64,struct xlang3::Value const * __ptr64,bool,struct xlang3::Value & __ptr64,class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > & __ptr64)"
+          ],
+          "decorated_aliases": [
+            "?sorted_impl@?A0x70dcf1af@xlang3@@YA_NAEAVRuntime@2@AEBUValue@2@PEBU42@_NAEAU42@AEAV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z"
+          ]
+        }
+      ],
+      "begin_hex": "0x4497e0",
+      "end_hex": "0x449cad",
+      "exclusive_leaf_samples": 1,
+      "exclusive_fraction_all": 0.00228310502283105,
+      "inclusive_stack_samples": 91,
+      "inclusive_fraction_all": 0.20776255707762556
+    },
+    {
+      "begin": 4348448,
+      "end": 4349911,
+      "unwind": 14676888,
+      "matches": [
+        {
+          "object": "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\CMakeFiles\\xlang3_runtime.dir\\Release\\src\\builtins\\functional_builtins.cpp.obj",
+          "object_sha256": "379ed194438bcdd1b5bcce4e4583fcf561b78f3b35ba70d4840c38f869817515",
+          "section": 3774,
+          "symbol_section_offset": 0,
+          "code_bytes_matched": 1463,
+          "relocation_masked_bytes": 156,
+          "aliases": [
+            "bool __cdecl xlang3::`anonymous namespace'::builtin_sorted_kw(class xlang3::Runtime & __ptr64,struct xlang3::Value const * __ptr64,unsigned int,struct xlang3::NativeKeywordArg const * __ptr64,unsigned int,struct xlang3::Value & __ptr64,class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > & __ptr64,void * __ptr64)"
+          ],
+          "decorated_aliases": [
+            "?builtin_sorted_kw@?A0x70dcf1af@xlang3@@YA_NAEAVRuntime@2@PEBUValue@2@IPEBUNativeKeywordArg@2@IAEAU42@AEAV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@PEAX@Z"
+          ]
+        }
+      ],
+      "begin_hex": "0x425a20",
+      "end_hex": "0x425fd7",
+      "exclusive_leaf_samples": 0,
+      "exclusive_fraction_all": 0.0,
+      "inclusive_stack_samples": 91,
+      "inclusive_fraction_all": 0.20776255707762556
+    },
+    {
+      "begin": 7534656,
+      "end": 7540416,
+      "unwind": 14918496,
+      "matches": [
+        {
+          "object": "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\CMakeFiles\\xlang3_runtime.dir\\Release\\src\\executor\\xlang_vm\\xlang_vm_loop.cpp.obj",
+          "object_sha256": "d9c58ce73c8be1582d43af3faa6d7b35c3810903ba99756096de34d4d0903e02",
+          "section": 1291,
+          "symbol_section_offset": 0,
+          "code_bytes_matched": 5760,
+          "relocation_masked_bytes": 588,
+          "aliases": [
+            "bool __cdecl xlang3::xlang_vm::ops::call_native_function<class <lambda_8c8f44f0d5728de49b1030e21cc25acf> & __ptr64,class <lambda_3b129c1ef83a5b21b828c90c1f4f2279> & __ptr64>(class xlang3::Runtime & __ptr64,struct xlang3::NativeFunctionObject * __ptr64,struct xlang3::CallArgsView,class std::vector<struct xlang3::Value,class std::allocator<struct xlang3::Value> > & __ptr64,class xlang3::XlangRuntimeExecutionGuard & __ptr64,struct xlang3::Value & __ptr64,class <lambda_8c8f44f0d5728de49b1030e21cc25acf> & __ptr64,class <lambda_3b129c1ef83a5b21b828c90c1f4f2279> & __ptr64)"
+          ],
+          "decorated_aliases": [
+            "??$call_native_function@AEAV<lambda_8c8f44f0d5728de49b1030e21cc25acf>@@AEAV<lambda_3b129c1ef83a5b21b828c90c1f4f2279>@@@ops@xlang_vm@xlang3@@YA_NAEAVRuntime@2@PEAUNativeFunctionObject@2@UCallArgsView@2@AEAV?$vector@UValue@xlang3@@V?$allocator@UValue@xlang3@@@std@@@std@@AEAVXlangRuntimeExecutionGuard@2@AEAUValue@2@AEAV<lambda_8c8f44f0d5728de49b1030e21cc25acf>@@AEAV<lambda_3b129c1ef83a5b21b828c90c1f4f2279>@@@Z"
+          ]
+        }
+      ],
+      "begin_hex": "0x72f840",
+      "end_hex": "0x730ec0",
+      "exclusive_leaf_samples": 2,
+      "exclusive_fraction_all": 0.0045662100456621,
+      "inclusive_stack_samples": 64,
+      "inclusive_fraction_all": 0.1461187214611872
+    },
+    {
+      "begin": 7800272,
+      "end": 7802651,
+      "unwind": 14898672,
+      "matches": [
+        {
+          "object": "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\CMakeFiles\\xlang3_runtime.dir\\Release\\src\\executor\\xlang_vm\\xlang_vm_loop.cpp.obj",
+          "object_sha256": "d9c58ce73c8be1582d43af3faa6d7b35c3810903ba99756096de34d4d0903e02",
+          "section": 3506,
+          "symbol_section_offset": 0,
+          "code_bytes_matched": 2379,
+          "relocation_masked_bytes": 244,
+          "aliases": [
+            "public: bool __cdecl <lambda_3871375e32e5556900b9d46196d76737>::operator()(struct xlang3::Value const & __ptr64)const __ptr64"
+          ],
+          "decorated_aliases": [
+            "??R<lambda_3871375e32e5556900b9d46196d76737>@@QEBA_NAEBUValue@xlang3@@@Z"
+          ]
+        }
+      ],
+      "begin_hex": "0x7705d0",
+      "end_hex": "0x770f1b",
+      "exclusive_leaf_samples": 1,
+      "exclusive_fraction_all": 0.00228310502283105,
+      "inclusive_stack_samples": 56,
+      "inclusive_fraction_all": 0.1278538812785388
+    },
+    {
+      "begin": 7702656,
+      "end": 7703378,
+      "unwind": 14923268,
+      "matches": [
+        {
+          "object": "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\CMakeFiles\\xlang3_runtime.dir\\Release\\src\\executor\\xlang_vm\\xlang_vm_loop.cpp.obj",
+          "object_sha256": "d9c58ce73c8be1582d43af3faa6d7b35c3810903ba99756096de34d4d0903e02",
+          "section": 2378,
+          "symbol_section_offset": 0,
+          "code_bytes_matched": 722,
+          "relocation_masked_bytes": 68,
+          "aliases": [
+            "enum xlang3::XlangVMOpFlow __cdecl xlang3::xlang_vm::ops::return_value<class <lambda_3871375e32e5556900b9d46196d76737> & __ptr64>(struct xlang3::Value const & __ptr64,struct xlang3::GeneratorObject * __ptr64,struct xlang3::RuntimeResult & __ptr64,class <lambda_3871375e32e5556900b9d46196d76737> & __ptr64)"
+          ],
+          "decorated_aliases": [
+            "??$return_value@AEAV<lambda_3871375e32e5556900b9d46196d76737>@@@ops@xlang_vm@xlang3@@YA?AW4XlangVMOpFlow@2@AEBUValue@2@PEAUGeneratorObject@2@AEAURuntimeResult@2@AEAV<lambda_3871375e32e5556900b9d46196d76737>@@@Z"
+          ]
+        }
+      ],
+      "begin_hex": "0x758880",
+      "end_hex": "0x758b52",
+      "exclusive_leaf_samples": 0,
+      "exclusive_fraction_all": 0.0,
+      "inclusive_stack_samples": 56,
+      "inclusive_fraction_all": 0.1278538812785388
+    },
+    {
+      "begin": 7658784,
+      "end": 7662798,
+      "unwind": 14901876,
+      "matches": [
+        {
+          "object": "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\CMakeFiles\\xlang3_runtime.dir\\Release\\src\\executor\\xlang_vm\\xlang_vm_loop.cpp.obj",
+          "object_sha256": "d9c58ce73c8be1582d43af3faa6d7b35c3810903ba99756096de34d4d0903e02",
+          "section": 2090,
+          "symbol_section_offset": 0,
+          "code_bytes_matched": 4014,
+          "relocation_masked_bytes": 408,
+          "aliases": [
+            "enum xlang3::XlangVMOpFlow __cdecl xlang3::xlang_vm::ops::load_global<class <lambda_86edefa3b153f4e0807664425449b1fc> & __ptr64,class <lambda_3b129c1ef83a5b21b828c90c1f4f2279> & __ptr64>(struct xlang3::ir::Instr const & __ptr64,struct xlang3::ir::Function const & __ptr64,class xlang3::Runtime & __ptr64,class xlang3::XlangVMSmallBuffer<struct xlang3::XlangVMRegister,128> & __ptr64,struct xlang3::Value & __ptr64,class std::unordered_map<class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> >,struct xlang3::Value,struct std::hash<class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > >,struct std::equal_to<class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > >,class std::allocator<struct std::pair<class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > const ,struct xlang3::Value> > > & __ptr64,unsigned __int64,struct xlang3::XlangVMInstrCache & __ptr64,struct xlang3::RuntimeResult & __ptr64,class <lambda_86edefa3b153f4e0807664425449b1fc> & __ptr64,class <lambda_3b129c1ef83a5b21b828c90c1f4f2279> & __ptr64)"
+          ],
+          "decorated_aliases": [
+            "??$load_global@AEAV<lambda_86edefa3b153f4e0807664425449b1fc>@@AEAV<lambda_3b129c1ef83a5b21b828c90c1f4f2279>@@@ops@xlang_vm@xlang3@@YA?AW4XlangVMOpFlow@2@AEBUInstr@ir@2@AEBUFunction@52@AEAVRuntime@2@AEAV?$XlangVMSmallBuffer@UXlangVMRegister@xlang3@@$0IA@@2@AEAUValue@2@AEAV?$unordered_map@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@UValue@xlang3@@U?$hash@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@U?$equal_to@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@V?$allocator@U?$pair@$$CBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@UValue@xlang3@@@std@@@2@@std@@_KAEAUXlangVMInstrCache@2@AEAURuntimeResult@2@AEAV<lambda_86edefa3b153f4e0807664425449b1fc>@@AEAV<lambda_3b129c1ef83a5b21b828c90c1f4f2279>@@@Z"
+          ]
+        }
+      ],
+      "begin_hex": "0x74dd20",
+      "end_hex": "0x74ecce",
+      "exclusive_leaf_samples": 2,
+      "exclusive_fraction_all": 0.0045662100456621,
+      "inclusive_stack_samples": 55,
+      "inclusive_fraction_all": 0.12557077625570776
+    },
+    {
+      "begin": 4379760,
+      "end": 4381097,
+      "unwind": 14676536,
+      "matches": [
+        {
+          "object": "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\CMakeFiles\\xlang3_runtime.dir\\Release\\src\\builtins\\functional_builtins.cpp.obj",
+          "object_sha256": "379ed194438bcdd1b5bcce4e4583fcf561b78f3b35ba70d4840c38f869817515",
+          "section": 3925,
+          "symbol_section_offset": 0,
+          "code_bytes_matched": 1337,
+          "relocation_masked_bytes": 116,
+          "aliases": [
+            "bool __cdecl xlang3::`anonymous namespace'::collect_sorted_entries(class xlang3::Runtime & __ptr64,struct xlang3::Value const & __ptr64,struct xlang3::Value const * __ptr64,class std::vector<struct xlang3::`anonymous namespace'::SortEntry,class std::allocator<struct xlang3::`anonymous namespace'::SortEntry> > & __ptr64,class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > & __ptr64)"
+          ],
+          "decorated_aliases": [
+            "?collect_sorted_entries@?A0x70dcf1af@xlang3@@YA_NAEAVRuntime@2@AEBUValue@2@PEBU42@AEAV?$vector@USortEntry@?A0x70dcf1af@xlang3@@V?$allocator@USortEntry@?A0x70dcf1af@xlang3@@@std@@@std@@AEAV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@6@@Z"
+          ]
+        }
+      ],
+      "begin_hex": "0x42d470",
+      "end_hex": "0x42d9a9",
+      "exclusive_leaf_samples": 2,
+      "exclusive_fraction_all": 0.0045662100456621,
+      "inclusive_stack_samples": 49,
+      "inclusive_fraction_all": 0.11187214611872145
+    },
+    {
+      "begin": 7662800,
+      "end": 7663039,
+      "unwind": 14902184,
+      "matches": [
+        {
+          "object": "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\CMakeFiles\\xlang3_runtime.dir\\Release\\src\\executor\\xlang_vm\\xlang_vm_loop.cpp.obj",
+          "object_sha256": "d9c58ce73c8be1582d43af3faa6d7b35c3810903ba99756096de34d4d0903e02",
+          "section": 2106,
+          "symbol_section_offset": 0,
+          "code_bytes_matched": 239,
+          "relocation_masked_bytes": 8,
+          "aliases": [
+            "enum xlang3::XlangVMOpFlow __cdecl xlang3::xlang_vm::ops::load_global_local<class <lambda_4082926711d08987ec2e3484e111ba54> & __ptr64,class <lambda_86edefa3b153f4e0807664425449b1fc> & __ptr64,class <lambda_3b129c1ef83a5b21b828c90c1f4f2279> & __ptr64>(struct xlang3::ir::Instr const & __ptr64,struct xlang3::ir::Function const & __ptr64,class xlang3::Runtime & __ptr64,class xlang3::XlangVMSmallBuffer<struct xlang3::XlangVMRegister,128> & __ptr64,class xlang3::XlangVMSmallBuffer<struct xlang3::Value,64> & __ptr64,struct xlang3::Value & __ptr64,class std::unordered_map<class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> >,struct xlang3::Value,struct std::hash<class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > >,struct std::equal_to<class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > >,class std::allocator<struct std::pair<class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > const ,struct xlang3::Value> > > & __ptr64,unsigned __int64,struct xlang3::XlangVMInstrCache & __ptr64,struct xlang3::RuntimeResult & __ptr64,class <lambda_4082926711d08987ec2e3484e111ba54> & __ptr64,class <lambda_86edefa3b153f4e0807664425449b1fc> & __ptr64,class <lambda_3b129c1ef83a5b21b828c90c1f4f2279> & __ptr64)"
+          ],
+          "decorated_aliases": [
+            "??$load_global_local@AEAV<lambda_4082926711d08987ec2e3484e111ba54>@@AEAV<lambda_86edefa3b153f4e0807664425449b1fc>@@AEAV<lambda_3b129c1ef83a5b21b828c90c1f4f2279>@@@ops@xlang_vm@xlang3@@YA?AW4XlangVMOpFlow@2@AEBUInstr@ir@2@AEBUFunction@52@AEAVRuntime@2@AEAV?$XlangVMSmallBuffer@UXlangVMRegister@xlang3@@$0IA@@2@AEAV?$XlangVMSmallBuffer@UValue@xlang3@@$0EA@@2@AEAUValue@2@AEAV?$unordered_map@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@UValue@xlang3@@U?$hash@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@U?$equal_to@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@V?$allocator@U?$pair@$$CBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@UValue@xlang3@@@std@@@2@@std@@_KAEAUXlangVMInstrCache@2@AEAURuntimeResult@2@AEAV<lambda_4082926711d08987ec2e3484e111ba54>@@AEAV<lambda_86edefa3b153f4e0807664425449b1fc>@@AEAV<lambda_3b129c1ef83a5b21b828c90c1f4f2279>@@@Z"
+          ]
+        }
+      ],
+      "begin_hex": "0x74ecd0",
+      "end_hex": "0x74edbf",
+      "exclusive_leaf_samples": 1,
+      "exclusive_fraction_all": 0.00228310502283105,
+      "inclusive_stack_samples": 40,
+      "inclusive_fraction_all": 0.091324200913242
+    },
+    {
+      "begin": 4494448,
+      "end": 4495323,
+      "unwind": 14676652,
+      "matches": [
+        {
+          "object": "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\CMakeFiles\\xlang3_runtime.dir\\Release\\src\\builtins\\functional_builtins.cpp.obj",
+          "object_sha256": "379ed194438bcdd1b5bcce4e4583fcf561b78f3b35ba70d4840c38f869817515",
+          "section": 4918,
+          "symbol_section_offset": 0,
+          "code_bytes_matched": 875,
+          "relocation_masked_bytes": 76,
+          "aliases": [
+            "bool __cdecl xlang3::`anonymous namespace'::sort_entries(class xlang3::Runtime & __ptr64,class std::vector<struct xlang3::`anonymous namespace'::SortEntry,class std::allocator<struct xlang3::`anonymous namespace'::SortEntry> > & __ptr64,bool,class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > & __ptr64)"
+          ],
+          "decorated_aliases": [
+            "?sort_entries@?A0x70dcf1af@xlang3@@YA_NAEAVRuntime@2@AEAV?$vector@USortEntry@?A0x70dcf1af@xlang3@@V?$allocator@USortEntry@?A0x70dcf1af@xlang3@@@std@@@std@@_NAEAV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@5@@Z"
+          ]
+        }
+      ],
+      "begin_hex": "0x449470",
+      "end_hex": "0x4497db",
+      "exclusive_leaf_samples": 1,
+      "exclusive_fraction_all": 0.00228310502283105,
+      "inclusive_stack_samples": 39,
+      "inclusive_fraction_all": 0.08904109589041095
+    },
+    {
+      "begin": 4229200,
+      "end": 4229571,
+      "unwind": 14676732,
+      "matches": [
+        {
+          "object": "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\CMakeFiles\\xlang3_runtime.dir\\Release\\src\\builtins\\functional_builtins.cpp.obj",
+          "object_sha256": "379ed194438bcdd1b5bcce4e4583fcf561b78f3b35ba70d4840c38f869817515",
+          "section": 2549,
+          "symbol_section_offset": 0,
+          "code_bytes_matched": 371,
+          "relocation_masked_bytes": 36,
+          "aliases": [
+            "public: __cdecl <lambda_cc21cdacfb2fbd88f4f1add0749e4dc1>::operator()(struct xlang3::`anonymous namespace'::SortEntry const & __ptr64,struct xlang3::`anonymous namespace'::SortEntry const & __ptr64)const __ptr64"
+          ],
+          "decorated_aliases": [
+            "??R<lambda_cc21cdacfb2fbd88f4f1add0749e4dc1>@@QEBA@AEBUSortEntry@?A0x70dcf1af@xlang3@@0@Z"
+          ]
+        }
+      ],
+      "begin_hex": "0x408850",
+      "end_hex": "0x4089c3",
+      "exclusive_leaf_samples": 0,
+      "exclusive_fraction_all": 0.0,
+      "inclusive_stack_samples": 38,
+      "inclusive_fraction_all": 0.0867579908675799
+    },
+    {
+      "begin": 4118416,
+      "end": 4119980,
+      "unwind": 14684776,
+      "matches": [
+        {
+          "object": "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\CMakeFiles\\xlang3_runtime.dir\\Release\\src\\builtins\\functional_builtins.cpp.obj",
+          "object_sha256": "379ed194438bcdd1b5bcce4e4583fcf561b78f3b35ba70d4840c38f869817515",
+          "section": 839,
+          "symbol_section_offset": 0,
+          "code_bytes_matched": 1564,
+          "relocation_masked_bytes": 132,
+          "aliases": [
+            "struct xlang3::`anonymous namespace'::SortEntry * __ptr64 __cdecl std::_Insertion_sort_unchecked<struct xlang3::`anonymous namespace'::SortEntry * __ptr64,struct std::_Ref_fn<class <lambda_cc21cdacfb2fbd88f4f1add0749e4dc1> > >(struct xlang3::A0x70dcf1af::SortEntry * __ptr64 const,struct xlang3::A0x70dcf1af::SortEntry * __ptr64 const,struct std::_Ref_fn<class <lambda_cc21cdacfb2fbd88f4f1add0749e4dc1> >)"
+          ],
+          "decorated_aliases": [
+            "??$_Insertion_sort_unchecked@PEAUSortEntry@?A0x70dcf1af@xlang3@@U?$_Ref_fn@V<lambda_cc21cdacfb2fbd88f4f1add0749e4dc1>@@@std@@@std@@YAPEAUSortEntry@?A0x70dcf1af@xlang3@@QEAU123@0U?$_Ref_fn@V<lambda_cc21cdacfb2fbd88f4f1add0749e4dc1>@@@0@@Z"
+          ]
+        }
+      ],
+      "begin_hex": "0x3ed790",
+      "end_hex": "0x3eddac",
+      "exclusive_leaf_samples": 0,
+      "exclusive_fraction_all": 0.0,
+      "inclusive_stack_samples": 38,
+      "inclusive_fraction_all": 0.0867579908675799
+    },
+    {
+      "begin": 7493712,
+      "end": 7520609,
+      "unwind": 14906376,
+      "matches": [
+        {
+          "object": "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\CMakeFiles\\xlang3_runtime.dir\\Release\\src\\executor\\xlang_vm\\xlang_vm_loop.cpp.obj",
+          "object_sha256": "d9c58ce73c8be1582d43af3faa6d7b35c3810903ba99756096de34d4d0903e02",
+          "section": 1125,
+          "symbol_section_offset": 0,
+          "code_bytes_matched": 26897,
+          "relocation_masked_bytes": 2440,
+          "aliases": [
+            "enum xlang3::XlangVMOpFlow __cdecl xlang3::xlang_vm::ops::call_method<class <lambda_3cb4d07e859d083a98d46d150c669170> & __ptr64,class <lambda_3312fdeb6593bbaffe05c92211be76c5> & __ptr64,bool (__cdecl&)(class xlang3::Runtime & __ptr64,struct xlang3::ClassObject const & __ptr64,struct xlang3::CallArgsView,class xlang3::XlangRuntimeExecutionGuard & __ptr64,struct xlang3::Value & __ptr64,struct xlang3::XlangVMBuiltinConstructorError & __ptr64),bool (__cdecl&)(struct xlang3::ir::Module const & __ptr64,struct xlang3::FunctionObject const & __ptr64,struct xlang3::Value & __ptr64),bool (__cdecl&)(struct xlang3::ir::Module const & __ptr64,struct xlang3::FunctionObject const & __ptr64,struct xlang3::XlangVMSelfBinaryMethodSpec & __ptr64),bool (__cdecl&)(struct xlang3::InstanceObject const & __ptr64,struct xlang3::XlangVMSelfBinaryMethodSpec const & __ptr64,struct xlang3::Value & __ptr64,class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > & __ptr64),bool (__cdecl&)(struct xlang3::ir::Module const & __ptr64,struct xlang3::FunctionObject const & __ptr64,unsigned int & __ptr64),bool (__cdecl&)(struct xlang3::InstanceObject const & __ptr64,unsigned int,struct xlang3::Value & __ptr64,class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > & __ptr64),bool (__cdecl&)(struct xlang3::ir::Module const & __ptr64,struct xlang3::FunctionObject const & __ptr64,struct xlang3::Value const & __ptr64,unsigned int & __ptr64,struct xlang3::Value & __ptr64),bool (__cdecl&)(struct xlang3::InstanceObject const & __ptr64,unsigned int,struct xlang3::Value const & __ptr64,struct xlang3::Value & __ptr64,class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > & __ptr64),class <lambda_8c8f44f0d5728de49b1030e21cc25acf> & __ptr64,class <lambda_3b129c1ef83a5b21b828c90c1f4f2279> & __ptr64>(struct xlang3::ir::Instr const & __ptr64,struct xlang3::ir::Function const & __ptr64,struct xlang3::ir::Module const & __ptr64,class std::shared_ptr<struct xlang3::ir::Module const > const & __ptr64,class xlang3::Runtime & __ptr64,class xlang3::XlangVMSmallBuffer<struct xlang3::XlangVMRegister,128> & __ptr64,class xlang3::XlangVMInstrCacheStorage & __ptr64,class std::vector<struct xlang3::Value,class std::allocator<struct xlang3::Value> > & __ptr64,unsigned __int64 & __ptr64,struct xlang3::RuntimeResult & __ptr64,class xlang3::XlangRuntimeExecutionGuard & __ptr64,class <lambda_3cb4d07e859d083a98d46d150c669170> & __ptr64,class <lambda_3312fdeb6593bbaffe05c92211be76c5> & __ptr64,bool (__cdecl&)(class xlang3::Runtime & __ptr64,struct xlang3::ClassObject const & __ptr64,struct xlang3::CallArgsView,class xlang3::XlangRuntimeExecutionGuard & __ptr64,struct xlang3::Value & __ptr64,struct xlang3::XlangVMBuiltinConstructorError & __ptr64),bool (__cdecl&)(struct xlang3::ir::Module const & __ptr64,struct xlang3::FunctionObject const & __ptr64,struct xlang3::Value & __ptr64),bool (__cdecl&)(struct xlang3::ir::Module const & __ptr64,struct xlang3::FunctionObject const & __ptr64,struct xlang3::XlangVMSelfBinaryMethodSpec & __ptr64),bool (__cdecl&)(struct xlang3::InstanceObject const & __ptr64,struct xlang3::XlangVMSelfBinaryMethodSpec const & __ptr64,struct xlang3::Value & __ptr64,class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > & __ptr64),bool (__cdecl&)(struct xlang3::ir::Module const & __ptr64,struct xlang3::FunctionObject const & __ptr64,unsigned int & __ptr64),bool (__cdecl&)(struct xlang3::InstanceObject const & __ptr64,unsigned int,struct xlang3::Value & __ptr64,class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > & __ptr64),bool (__cdecl&)(struct xlang3::ir::Module const & __ptr64,struct xlang3::FunctionObject const & __ptr64,struct xlang3::Value const & __ptr64,unsigned int & __ptr64,struct xlang3::Value & __ptr64),bool (__cdecl&)(struct xlang3::InstanceObject const & __ptr64,unsigned int,struct xlang3::Value const & __ptr64,struct xlang3::Value & __ptr64,class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > & __ptr64),class <lambda_8c8f44f0d5728de49b1030e21cc25acf> & __ptr64,class <lambda_3b129c1ef83a5b21b828c90c1f4f2279> & __ptr64,struct xlang3::Value const * __ptr64)"
+          ],
+          "decorated_aliases": [
+            "??$call_method@AEAV<lambda_3cb4d07e859d083a98d46d150c669170>@@AEAV<lambda_3312fdeb6593bbaffe05c92211be76c5>@@A6A_NAEAVRuntime@xlang3@@AEBUClassObject@4@UCallArgsView@4@AEAVXlangRuntimeExecutionGuard@4@AEAUValue@4@AEAUXlangVMBuiltinConstructorError@4@@ZA6A_NAEBUModule@ir@4@AEBUFunctionObject@4@4@ZA6A_N67AEAUXlangVMSelfBinaryMethodSpec@4@@ZA6A_NAEBUInstanceObject@4@AEBUXlangVMSelfBinaryMethodSpec@4@4AEAV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@ZA6A_N67AEAI@ZA6A_N9I4AEAV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@ZA6A_N67AEBU84@AEAI4@ZA6A_N9IAEBU84@4AEAV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@ZAEAV<lambda_8c8f44f0d5728de49b1030e21cc25acf>@@AEAV<lambda_3b129c1ef83a5b21b828c90c1f4f2279>@@@ops@xlang_vm@xlang3@@YA?AW4XlangVMOpFlow@2@AEBUInstr@ir@2@AEBUFunction@52@AEBUModule@52@AEBV?$shared_ptr@$$CBUModule@ir@xlang3@@@std@@AEAVRuntime@2@AEAV?$XlangVMSmallBuffer@UXlangVMRegister@xlang3@@$0IA@@2@AEAVXlangVMInstrCacheStorage@2@AEAV?$vector@UValue@xlang3@@V?$allocator@UValue@xlang3@@@std@@@9@AEA_KAEAURuntimeResult@2@AEAVXlangRuntimeExecutionGuard@2@AEAV<lambda_3cb4d07e859d083a98d46d150c669170>@@AEAV<lambda_3312fdeb6593bbaffe05c92211be76c5>@@A6A_N4AEBUClassObject@2@UCallArgsView@2@AEAVXlangRuntimeExecutionGuard@2@AEAUValue@2@AEAUXlangVMBuiltinConstructorError@2@@ZA6A_N2AEBUFunctionObject@2@AEAUValue@2@@ZA6A_N2AEBUFunctionObject@2@AEAUXlangVMSelfBinaryMethodSpec@2@@ZA6A_NAEBUInstanceObject@2@AEBUXlangVMSelfBinaryMethodSpec@2@AEAUValue@2@AEAV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@9@@ZA6A_N2AEBUFunctionObject@2@AEAI@ZA6A_NAEBUInstanceObject@2@IAEAUValue@2@AEAV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@9@@ZA6A_N2AEBUFunctionObject@2@AEBUValue@2@AEAIAEAUValue@2@@ZA6A_NAEBUInstanceObject@2@IAEBUValue@2@AEAUValue@2@AEAV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@9@@ZAEAV<lambda_8c8f44f0d5728de49b1030e21cc25acf>@@AEAV<lambda_3b129c1ef83a5b21b828c90c1f4f2279>@@PEBUValue@2@@Z"
+          ]
+        }
+      ],
+      "begin_hex": "0x725850",
+      "end_hex": "0x72c161",
+      "exclusive_leaf_samples": 5,
+      "exclusive_fraction_all": 0.01141552511415525,
+      "inclusive_stack_samples": 34,
+      "inclusive_fraction_all": 0.0776255707762557
+    },
+    {
+      "begin": 9028368,
+      "end": 9028436,
+      "unwind": 14361656,
+      "matches": [],
+      "begin_hex": "0x89c310",
+      "end_hex": "0x89c354",
+      "exclusive_leaf_samples": 2,
+      "exclusive_fraction_all": 0.0045662100456621,
+      "inclusive_stack_samples": 33,
+      "inclusive_fraction_all": 0.07534246575342465
+    },
+    {
+      "begin": 6028464,
+      "end": 6029153,
+      "unwind": 14794724,
+      "matches": [
+        {
+          "object": "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\CMakeFiles\\xlang3_runtime.dir\\Release\\src\\runtime\\object_model.cpp.obj",
+          "object_sha256": "6b04825ec306cf2792a4c9f640e872c341f6dcd86d208e2ee57de8af02fb1521",
+          "section": 3311,
+          "symbol_section_offset": 0,
+          "code_bytes_matched": 689,
+          "relocation_masked_bytes": 48,
+          "aliases": [
+            "bool __cdecl xlang3::`anonymous namespace'::class_lookup_attr(struct xlang3::ClassObject * __ptr64,class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > const & __ptr64,struct xlang3::Value & __ptr64,class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > & __ptr64)"
+          ],
+          "decorated_aliases": [
+            "?class_lookup_attr@?A0x7ffaaa07@xlang3@@YA_NPEAUClassObject@2@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AEAUValue@2@AEAV45@@Z"
+          ]
+        }
+      ],
+      "begin_hex": "0x5bfcb0",
+      "end_hex": "0x5bff61",
+      "exclusive_leaf_samples": 18,
+      "exclusive_fraction_all": 0.0410958904109589,
+      "inclusive_stack_samples": 20,
+      "inclusive_fraction_all": 0.045662100456621
+    },
+    {
+      "begin": 9028336,
+      "end": 9028366,
+      "unwind": 14997200,
+      "matches": [],
+      "begin_hex": "0x89c2f0",
+      "end_hex": "0x89c30e",
+      "exclusive_leaf_samples": 6,
+      "exclusive_fraction_all": 0.0136986301369863,
+      "inclusive_stack_samples": 6,
+      "inclusive_fraction_all": 0.0136986301369863
+    },
+    {
+      "begin": 5789696,
+      "end": 5789917,
+      "unwind": 14405056,
+      "matches": [],
+      "begin_hex": "0x585800",
+      "end_hex": "0x5858dd",
+      "exclusive_leaf_samples": 6,
+      "exclusive_fraction_all": 0.0136986301369863,
+      "inclusive_stack_samples": 8,
+      "inclusive_fraction_all": 0.0182648401826484
+    }
+  ],
+  "limits": [
+    "Native suspensions and GetThreadTimes selection affect sampling distribution; no score",
+    "Full containing range/prefix equality is proved only after explicit relocation masking",
+    "Prefix-equivalent/ICF aliases are retained; a match does not prove relocation target identity",
+    "Inclusive ranges overlap and are not additive self CPU",
+    "Only eight exact current runtime objects checked; other unmatched ranges remain unresolved"
+  ]
+}

@@ -29,6 +29,8 @@ void XlangVMFrame::compute_register_last_use_slow(
     std::shared_ptr<const ir::FunctionExecutionMetadata> prepared) {
   auto computed = std::make_shared<ir::FunctionExecutionMetadata>();
   computed->owner = fn;
+  computed->linear_constructor_argument_liveness =
+      !fn->is_generator && !fn->is_async && !fn->is_coroutine;
   bool has_identity_instructions = false;
   bool has_module_slot_loads = false;
   bool has_exception_loads = false;
@@ -42,6 +44,27 @@ void XlangVMFrame::compute_register_last_use_slow(
     if (fn->code[ip].op == ir::Op::LoadException) has_exception_loads = true;
     if ((fn->code[ip].op == ir::Op::Jump || fn->code[ip].op == ir::Op::JumpIfFalse) &&
         fn->code[ip].dst < ip) has_ordinary_backedge = true;
+    // Constructor-only owner transfer uses a stricter proof than legacy
+    // positional calls. Unknown/fused/handler/iterator control flow retains
+    // arguments; cache this once rather than scanning IR at each constructor.
+    switch (fn->code[ip].op) {
+      case ir::Op::LoadConst: case ir::Op::LoadConstPair:
+      case ir::Op::Move: case ir::Op::LoadLocal: case ir::Op::LoadLocalPair:
+      case ir::Op::LoadLocalConst: case ir::Op::LoadLocalGlobal:
+      case ir::Op::LoadGlobalLocal: case ir::Op::LoadGlobal:
+      case ir::Op::LoadModuleSlot: case ir::Op::LoadModuleAttr:
+      case ir::Op::StoreLocal: case ir::Op::StoreLocalPair:
+      case ir::Op::LoadAttr: case ir::Op::LoadLocalAttr:
+      case ir::Op::GetItem: case ir::Op::GetItemConst:
+      case ir::Op::MakeTuple: case ir::Op::MakeList: case ir::Op::MakeDict:
+      case ir::Op::Call: case ir::Op::CallLocal: case ir::Op::CallGlobal:
+      case ir::Op::Return: case ir::Op::ReturnConst: case ir::Op::ReturnLocal:
+      case ir::Op::Pop:
+        break;
+      default:
+        computed->linear_constructor_argument_liveness = false;
+        break;
+    }
     if (instruction_may_own_inline_cache(fn->code[ip].op)) {
       computed->cache_cleanup_instructions.push_back(static_cast<uint32_t>(ip));
     }

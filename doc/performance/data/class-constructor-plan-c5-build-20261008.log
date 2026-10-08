@@ -1,0 +1,178 @@
+[0/2] Re-checking globbed directories...
+[1/182] Building CXX object CMakeFiles\xlang1_compat_sample_package.dir\Release\tests\cpp\xlang1_compat_package.cpp.obj
+[2/182] Building CXX object CMakeFiles\xlang3_runtime.dir\Release\src\runtime\functional_iterators.cpp.obj
+[3/182] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\builtins\builtins.cpp.obj
+[4/182] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\builtins\builtin_modules.cpp.obj
+[5/182] Building CXX object CMakeFiles\xlang3_runtime.dir\Release\src\executor\xlang_vm\xlang_interpreter.cpp.obj
+[6/182] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\builtins\exception_builtins.cpp.obj
+[7/182] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\builtins\io_builtins.cpp.obj
+[8/182] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\builtins\math_module.cpp.obj
+[9/182] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\builtins\raw_block_builtins.cpp.obj
+[10/182] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\builtins\sequence_builtins.cpp.obj
+[11/182] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\builtins\object_type_builtins.cpp.obj
+[12/182] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\ipc\shared_memory_transport.cpp.obj
+[13/182] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\ipc\ipc_runtime.cpp.obj
+[14/182] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\serialize\ipc_value_marshal.cpp.obj
+[15/182] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\runtime\c_api_bridge.cpp.obj
+[16/182] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\builtins\functional_builtins.cpp.obj
+[17/182] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\runtime\exceptions.cpp.obj
+[18/182] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\runtime\expression.cpp.obj
+[19/182] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\runtime\attribute.cpp.obj
+[20/182] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\runtime\generator.cpp.obj
+[21/182] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\runtime\functional_iterators.cpp.obj
+[22/182] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\runtime\methods\list_methods.cpp.obj
+[23/182] Building CXX object CMakeFiles\xlang3_runtime.dir\Release\src\executor\xlang_vm\xlang_vm_loop.cpp.obj
+[24/182] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\runtime\methods\dict_methods.cpp.obj
+[25/182] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\runtime\methods\int_methods.cpp.obj
+[26/182] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\runtime\methods\file_methods.cpp.obj
+[27/182] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\runtime\methods\set_methods.cpp.obj
+[28/182] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\runtime\methods\tuple_methods.cpp.obj
+[29/182] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\runtime\methods\iterator_methods.cpp.obj
+[30/182] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\runtime\methods\string_methods.cpp.obj
+[31/182] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\runtime\methods\bytes_methods.cpp.obj
+[32/182] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\runtime\interpreter_events.cpp.obj
+[33/182] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\runtime\perf_counters.cpp.obj
+[34/182] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\runtime\bigint.cpp.obj
+[35/182] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\runtime\methods\property_methods.cpp.obj
+[36/182] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\runtime\value_hash.cpp.obj
+[37/182] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\runtime\value.cpp.obj
+[38/182] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\runtime\sequence.cpp.obj
+[39/182] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\runtime\mapping.cpp.obj
+[40/182] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\runtime\set_object.cpp.obj
+[41/182] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\runtime\module_object.cpp.obj
+[42/182] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\runtime\module_slots.cpp.obj
+[43/182] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\runtime\unicode_names.cpp.obj
+[44/182] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\runtime\object_model.cpp.obj
+[45/182] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\parser\lexer.cpp.obj
+[46/182] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\runtime\runtime.cpp.obj
+[47/182] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\ir\codec.cpp.obj
+[48/182] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\executor\xlang_vm\xlang_vm_attr.cpp.obj
+[49/182] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\executor\xlang_vm\xlang_interpreter.cpp.obj
+[50/182] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\rpc\object_table.cpp.obj
+[51/182] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\sema\lower.cpp.obj
+[52/182] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\ipc\shared_memory_transport_win32.cpp.obj
+[53/182] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\debug\debug_session.cpp.obj
+[54/182] Linking CXX shared library Release\xlang3_runtime.dll
+[55/178] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\ir\dump.cpp.obj
+[56/178] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\api\buffer_api.cpp.obj
+[57/178] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\api\c_api.cpp.obj
+[58/178] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\debug\dap_session.cpp.obj
+[59/178] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\tensor\tensor_storage.cpp.obj
+[60/178] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\tensor\tensor_serialization.cpp.obj
+[61/178] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\tensor\tensor_graph.cpp.obj
+[62/178] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\tensor\tensor_cpu.cpp.obj
+[63/178] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\tensor\tensor_api.cpp.obj
+[64/178] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\tensor\tensor_module.cpp.obj
+[65/178] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\api\protocol_api.cpp.obj
+[66/178] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\api\stream_api.cpp.obj
+[67/178] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\api\native_serialization_api.cpp.obj
+[68/178] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\api\ipc_api.cpp.obj
+[69/178] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\serialize\value_graph_lifetime.cpp.obj
+[70/178] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\executor\xlang_vm\xlang_vm_loop.cpp.obj
+[71/178] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\serialize\value_graph_writer.cpp.obj
+[72/178] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\serialize\value_graph_reader.cpp.obj
+[73/178] Building CXX object CMakeFiles\xlang3_cpp_ipc_client.dir\Release\tests\cpp\ipc_client.cpp.obj
+[74/178] Building CXX object CMakeFiles\xlang3_smoke.dir\Release\tests\smoke.cpp.obj
+[75/178] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\import\import_loader.cpp.obj
+[76/178] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\import\native_package_loader.cpp.obj
+[77/178] Building CXX object CMakeFiles\xlang3_abi_ownership.dir\Release\tests\cpp\abi_ownership_tests.cpp.obj
+[78/178] Building CXX object CMakeFiles\xlang3_static_runtime_shutdown.dir\Release\tests\cpp\static_runtime_shutdown.cpp.obj
+[79/178] Building CXX object CMakeFiles\xlang3_vfs_tests.dir\Release\tests\cpp\vfs_tests.cpp.obj
+[80/178] Building CXX object CMakeFiles\xlang3_memory_tests.dir\Release\tests\cpp\memory_tests.cpp.obj
+[81/178] Building CXX object CMakeFiles\xlang3_parser_tests.dir\Release\tests\cpp\parser_tests.cpp.obj
+[82/178] Building CXX object CMakeFiles\xlang3_embedded_package_tests.dir\Release\tests\cpp\embedded_package_tests.cpp.obj
+[83/178] Building CXX object CMakeFiles\xlang3_tensor_cpu_tests.dir\Release\tests\tensor\cpu_tests.cpp.obj
+[84/178] Building CXX object CMakeFiles\xlang3_debug_session_tests.dir\Release\tests\cpp\debug_session_tests.cpp.obj
+[85/178] Building CXX object CMakeFiles\xlang3_module_slot_tests.dir\Release\tests\cpp\module_slot_tests.cpp.obj
+[86/178] Building CXX object CMakeFiles\xlang3_task_tests.dir\Release\tests\cpp\task_tests.cpp.obj
+[87/178] Building CXX object CMakeFiles\xlang3_ir_codec_tests.dir\Release\tests\cpp\ir_codec_tests.cpp.obj
+[88/178] Linking CXX shared library Release\modules\xlang1_compat_sample.x3pkg.dll
+[89/178] Building CXX object CMakeFiles\xlang3_dap_session_tests.dir\Release\tests\cpp\dap_session_tests.cpp.obj
+[90/178] Building CXX object CMakeFiles\xlang3_curmodule_probe_package.dir\Release\tests\cpp\curmodule_probe_package.cpp.obj
+[91/178] Building CXX object CMakeFiles\xlang3_native_package_real_tests.dir\Release\tests\cpp\native_package_real_tests.cpp.obj
+[92/178] Building C object CMakeFiles\xlang3_sdk_c_header_smoke.dir\Release\tests\sdk_c_header_smoke.c.obj
+[93/178] Building CXX object CMakeFiles\xlang3_interpreter_tests.dir\Release\tests\cpp\interpreter_tests.cpp.obj
+[94/178] Building CXX object modules\json\CMakeFiles\xlang_json_native_package.dir\Release\main.cpp.obj
+[95/178] Building CXX object CMakeFiles\xlang3_native_path_tests.dir\Release\tests\cpp\native_path_tests.cpp.obj
+[96/178] Building CXX object CMakeFiles\xlang3_xlang1_compat_package_tests.dir\Release\tests\cpp\xlang1_compat_package_tests.cpp.obj
+[97/178] Building CXX object modules\yaml\CMakeFiles\xlang_yaml_native_package.dir\Release\main.cpp.obj
+[98/178] Building CXX object modules\json\CMakeFiles\xlang_json_native_package.dir\Release\json_convert.cpp.obj
+[99/178] Building CXX object modules\json\CMakeFiles\xlang_json_native_package.dir\Release\json_package.cpp.obj
+[100/178] Building CXX object modules\yaml\CMakeFiles\xlang_yaml_native_package.dir\Release\yaml_package.cpp.obj
+[101/178] Building CXX object modules\yaml\CMakeFiles\xlang_yaml_native_package.dir\Release\yaml_convert.cpp.obj
+[102/178] Building CXX object modules\device\CMakeFiles\xlang_device_native_package.dir\Release\device_package.cpp.obj
+[103/178] Building CXX object modules\net\CMakeFiles\xlang_net_native_package.dir\Release\net_common.cpp.obj
+[104/178] Building CXX object modules\net\CMakeFiles\xlang_net_native_package.dir\Release\curl_module.cpp.obj
+[105/178] Building CXX object modules\net\CMakeFiles\xlang_net_native_package.dir\Release\cypher_module.cpp.obj
+[106/178] Building CXX object modules\net\CMakeFiles\xlang_net_native_package.dir\Release\main.cpp.obj
+[107/178] Building CXX object modules\net\CMakeFiles\xlang_net_native_package.dir\Release\smtp_module.cpp.obj
+[108/178] Building CXX object modules\hashlib\CMakeFiles\xlang_hashlib_native_package.dir\Release\hashlib_module.cpp.obj
+[109/178] Building CXX object modules\net\CMakeFiles\xlang_ssl_native_package.dir\Release\ssl_module.cpp.obj
+[110/178] Building CXX object modules\hashlib\CMakeFiles\xlang_blake2_native_package.dir\Release\blake2_module.cpp.obj
+[111/178] Building CXX object modules\argon2\CMakeFiles\xlang_argon2_cffi_native_package.dir\Release\argon2_cffi_module.cpp.obj
+[112/178] Building CXX object modules\cryptography\CMakeFiles\xlang_cryptography_rust_native_package.dir\Release\asn1_module.cpp.obj
+[113/178] Building CXX object modules\cffi\CMakeFiles\xlang_cffi_backend_native_package.dir\Release\cffi_backend_module.cpp.obj
+[114/178] Building CXX object modules\cryptography\CMakeFiles\xlang_cryptography_rust_native_package.dir\Release\exceptions_module.cpp.obj
+[115/178] Building CXX object modules\net\CMakeFiles\xlang_net_native_package.dir\Release\http_module.cpp.obj
+[116/178] Building CXX object modules\cryptography\CMakeFiles\xlang_cryptography_rust_native_package.dir\Release\ec_module.cpp.obj
+[117/178] Building CXX object modules\cryptography\CMakeFiles\xlang_cryptography_rust_native_package.dir\Release\dh_module.cpp.obj
+[118/178] Building CXX object modules\cryptography\CMakeFiles\xlang_cryptography_rust_native_package.dir\Release\dsa_module.cpp.obj
+[119/178] Building CXX object modules\cryptography\CMakeFiles\xlang_cryptography_rust_native_package.dir\Release\ed25519_module.cpp.obj
+[120/178] Building CXX object modules\cryptography\CMakeFiles\xlang_cryptography_rust_native_package.dir\Release\x25519_module.cpp.obj
+[121/178] Building CXX object modules\cryptography\CMakeFiles\xlang_cryptography_rust_native_package.dir\Release\ciphers_module.cpp.obj
+[122/178] Building CXX object modules\cryptography\CMakeFiles\xlang_cryptography_rust_native_package.dir\Release\hashes_module.cpp.obj
+[123/178] Building CXX object modules\cryptography\CMakeFiles\xlang_cryptography_rust_native_package.dir\Release\hmac_module.cpp.obj
+[124/178] Building CXX object modules\cryptography\CMakeFiles\xlang_cryptography_rust_native_package.dir\Release\oid_module.cpp.obj
+[125/178] Building CXX object modules\cryptography\CMakeFiles\xlang_cryptography_rust_native_package.dir\Release\legacy_openssl_module.cpp.obj
+[126/178] Building CXX object modules\cryptography\CMakeFiles\xlang_cryptography_rust_native_package.dir\Release\rsa_module.cpp.obj
+[127/178] Building CXX object modules\httptools\CMakeFiles\xlang_httptools_url_native_package.dir\Release\url_parser_module.cpp.obj
+[128/178] Building CXX object modules\httptools\CMakeFiles\xlang_httptools_parser_native_package.dir\Release\parser_module.cpp.obj
+[129/178] Building CXX object modules\cryptography\CMakeFiles\xlang_cryptography_rust_native_package.dir\Release\x509_module.cpp.obj
+[130/178] Building CXX object modules\rpds\CMakeFiles\xlang_rpds_native_package.dir\Release\rpds_module.cpp.obj
+[131/178] Building CXX object modules\zstd\CMakeFiles\xlang_zstd_native_package.dir\Release\zstd_module.cpp.obj
+[132/178] Building CXX object modules\zstandard\CMakeFiles\xlang_zstandard_native_package.dir\Release\zstandard_module.cpp.obj
+[133/178] Building CXX object modules\brotli\CMakeFiles\xlang_brotli_native_package.dir\Release\brotli_module.cpp.obj
+[134/178] Linking CXX static library Release\xlang3_runtime_static.lib
+[135/178] Linking CXX executable Release\xlang3_cpp_ipc_client.exe
+[136/178] Linking CXX executable Release\xlang3_smoke.exe
+[137/178] Linking CXX executable Release\xlang3_abi_ownership.exe
+[138/178] Building CXX object modules\mmap\CMakeFiles\xlang_mmap_native_package.dir\Release\mmap_module.cpp.obj
+[139/178] Linking CXX executable Release\xlang3_embedded_package_tests.exe
+[140/178] Linking CXX executable Release\xlang3_static_runtime_shutdown.exe
+[141/178] Linking CXX executable Release\xlang3_vfs_tests.exe
+[142/178] Building CXX object modules\psutil\CMakeFiles\xlang_psutil_windows_native_package.dir\Release\psutil_windows_module.cpp.obj
+[143/178] Linking CXX executable Release\xlang3_tensor_cpu_tests.exe
+[144/178] Linking CXX executable Release\xlang3_ipc_capacity_tests.exe
+[145/178] Linking CXX executable Release\xlang3_memory_tests.exe
+[146/178] Linking CXX executable Release\xlang3_parser_tests.exe
+[147/178] Linking CXX executable Release\xlang3_interpreter_tests.exe
+[148/178] Linking CXX executable Release\xlang3_debug_session_tests.exe
+[149/178] Linking CXX executable Release\xlang3_dap_session_tests.exe
+[150/178] Linking CXX executable Release\xlang3_module_slot_tests.exe
+[151/178] Linking CXX executable Release\xlang3_task_tests.exe
+[152/178] Linking CXX executable Release\xlang3_ir_codec_tests.exe
+[153/178] Linking CXX executable Release\xlang3_native_package_real_tests.exe
+[154/178] Linking CXX shared library Release\modules\xlang_curmodule_probe.x3pkg.dll
+[155/178] Linking CXX executable Release\xlang3_xlang1_compat_package_tests.exe
+[156/178] Linking CXX executable Release\xlang3_native_path_tests.exe
+[157/178] Linking C executable Release\xlang3_sdk_c_header_smoke.exe
+[158/178] Linking CXX shared library Release\modules\xlang_json.x3pkg.dll
+[159/178] Linking CXX shared library Release\modules\xlang_device.x3pkg.dll
+[160/178] Linking CXX shared library Release\modules\xlang_yaml.x3pkg.dll
+[161/178] Linking CXX shared library Release\modules\xlang__hashlib.x3pkg.dll
+[162/178] Linking CXX shared library Release\modules\xlang__ssl.x3pkg.dll
+[163/178] Linking CXX shared library Release\modules\xlang_net.x3pkg.dll
+[164/178] Linking CXX shared library Release\modules\xlang__blake2.x3pkg.dll
+[165/178] Linking CXX shared library Release\modules\_argon2_cffi_bindings._ffi.x3pkg.dll
+[166/178] Linking CXX shared library Release\modules\_cffi_backend.x3pkg.dll
+[167/178] Linking CXX shared library Release\modules\httptools.parser.url_parser.x3pkg.dll
+[168/178] Linking CXX shared library Release\modules\httptools.parser.parser.x3pkg.dll
+[169/178] Linking CXX shared library Release\modules\cryptography.hazmat.bindings._rust.x3pkg.dll
+[170/178] Linking CXX shared library Release\modules\rpds.rpds.x3pkg.dll
+[171/178] Linking CXX shared library Release\modules\_zstd.x3pkg.dll
+[172/178] Linking CXX shared library Release\modules\zstandard.backend_c.x3pkg.dll
+[173/178] Linking CXX shared library Release\modules\_brotli.x3pkg.dll
+[174/178] Linking CXX shared library Release\modules\mmap.x3pkg.dll
+[175/178] Linking CXX shared library Release\modules\psutil._psutil_windows.x3pkg.dll
+[176/178] Building CXX object modules\pydantic_core\CMakeFiles\xlang_pydantic_core_native_package.dir\Release\pydantic_core_module.cpp.obj
+[177/178] Linking CXX shared library Release\modules\pydantic_core._pydantic_core.x3pkg.dll

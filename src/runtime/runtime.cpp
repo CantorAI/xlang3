@@ -1160,8 +1160,22 @@ void Runtime::set_profile_function(Value profile_function) {
   Value next;
   value_assign_fast(next, profile_function);
   auto& state = current_frame_state(*this);
-  value_set_invalid(state.profile_function);
-  state.profile_function = next;
+  auto& saved_frames = current_frame_stack(*this);
+  // The hook is a thread setting, not a saved-frame setting. A native callback
+  // or finalizer can install or disable it in a nested Interpreter; restoring
+  // its caller's frame must preserve that change. Update only this cold setter
+  // rather than adding observer work to ordinary entry/pop or opcode dispatch.
+  // Unpublish every old hook into owning temporaries before publishing the new
+  // hook, then retire them after all snapshots agree. Old-hook cleanup may
+  // reenter and replace the hook again, without stale publication afterwards.
+  std::vector<Value> retired_profiles;
+  retired_profiles.reserve(saved_frames.size() + 1);
+  retired_profiles.push_back(std::move(state.profile_function));
+  for (auto& saved : saved_frames)
+    retired_profiles.push_back(std::move(saved.profile_function));
+  value_assign_fast(state.profile_function, next);
+  for (auto& saved : saved_frames)
+    value_assign_fast(saved.profile_function, next);
 }
 
 const Value& Runtime::profile_function() const {
@@ -1182,13 +1196,17 @@ bool Runtime::emit_profile_event(const char* event_name, const Value& arg, std::
 }
 
 bool Runtime::emit_profile_event_for_frame(const Value& frame, const char* event_name, const Value& arg, std::string& error) {
-  const Value& hook = profile_function();
-  if (hook.tag == ValueTag::Invalid || hook.tag == ValueTag::None || profile_dispatch_active()) {
+  const Value& borrowed_hook = profile_function();
+  if (borrowed_hook.tag == ValueTag::Invalid || borrowed_hook.tag == ValueTag::None || profile_dispatch_active()) {
     return true;
   }
   if (frame.tag == ValueTag::None) {
     return true;
   }
+  // A hook can remove its last setting owner while executing. Keep the actual
+  // callable alive through callback/result cleanup, only on active dispatch.
+  Value hook;
+  value_assign_fast(hook, borrowed_hook);
   Value profile_args[3] = {
       frame,
       Value::string(event_name == nullptr ? "" : event_name),

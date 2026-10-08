@@ -45,6 +45,22 @@ using NativeTypeConstructorCallback = bool (*)(
 // address reuse after a class is collected.
 uint64_t next_class_version_tag() noexcept;
 
+// A proved ordinary Python constructor may be called once per short callback
+// activation. Keep its physical plan with the live class instead of rebuilding
+// it after every owning VM call cache is released. This record contains no
+// Python owners: live class/base/metaclass generations must precede every weak
+// initializer read, and code mutation separately invalidates the body plan.
+struct ClassCanonicalSlotConstructorCache {
+  uint64_t class_version = 0;
+  uint64_t metaclass_version = 0;
+  uint64_t object_version = 0;
+  uint64_t initializer_code_version = 0;
+  ClassObject* metaclass = nullptr;
+  ClassObject* object_class = nullptr;
+  FunctionObject* initializer = nullptr;
+  std::vector<std::pair<uint32_t, uint32_t>> slots;
+};
+
 struct ClassObject {
   Object header;
   std::string name;
@@ -61,6 +77,10 @@ struct ClassObject {
   // immutable history; mutable __slots__/attrs and flattened names cannot.
   std::vector<std::string> own_instance_slot_declarations;
   bool own_instance_slot_declarations_known = false;
+  // Keep the source of this layout even if mutable __slots__ or its member
+  // descriptor is deleted. Inferred/native compact fields are not explicit
+  // Python slots and retain their descriptor-free storage fallback.
+  bool own_explicit_instance_slots = false;
   uint64_t version = next_class_version_tag();
   // Cached builtin-container traits for Value::instance. The version tag lets
   // instance creation avoid repeated MRO queries while still tracking changes
@@ -89,6 +109,10 @@ struct ClassObject {
   std::vector<ClassObject*> subclasses;
   std::vector<Value> mro_cache;
   uint64_t mro_cache_version = 0;
+  // Allocate only for an admitted class. The vector owns scalar slot/argument
+  // indices; leaving an invalidated record until replacement cannot root Python
+  // classes/functions or extend any destructor/weakref boundary.
+  std::unique_ptr<ClassCanonicalSlotConstructorCache> canonical_slot_constructor_cache;
 };
 
 using NativeGCReferenceVisitor = void (*)(Object*, void*);
@@ -298,6 +322,10 @@ bool class_set_base(Value klass, Value base, std::string& error);
 bool class_set_base_for_construction(Value klass, Value base, std::string& error);
 // Cold layout writers invalidate descendant guards before losing their proof.
 void class_forget_slot_declarations(ClassObject* klass);
+bool class_allows_raw_instance_slot_fallback(
+    ClassObject* klass, const std::string& name, std::string* owner_error = nullptr);
+bool slot_descriptor_validate_receiver_owner(
+    const SlotDescriptorObject& descriptor, const Value& receiver, std::string& error);
 bool class_get_subclasses(const Value& klass, Value& out, std::string& error);
 bool class_is_subclass(const ClassObject* klass, const ClassObject* base);
 // Borrow the version-validated MRO without allocating a tuple/pointer vector.

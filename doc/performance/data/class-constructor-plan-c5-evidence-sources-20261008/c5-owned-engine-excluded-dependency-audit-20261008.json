@@ -1,0 +1,61 @@
+{
+  "status": "bounded_static_dependency_audit_ready_no_excluded_engine_dependency_found",
+  "head": "7233cf3e2bb99ebcb6281293b2f68898152eee31",
+  "ownership_manifest": "scratch/performance/c5-owned-commit-follow-up-20261008-manifest.json",
+  "ownership_manifest_sha256": "9197e03b70088fe0149bc04903f991b6207172f3d7ad06c5e0fc6e8e4218dda0",
+  "source_inventory": "doc/performance/data/class-constructor-plan-c5-applied-source-20261008.json",
+  "source_inventory_sha256": "69aaf03539202bbc7fced4dfe46df5f3a801a6d40b8e0360a68245de6ce71937",
+  "owned_targets": 41,
+  "excluded_dirty_paths": 21,
+  "excluded_exact_HEAD_content_after_CRLF_normalization": 17,
+  "excluded_nonidentical_paths": [
+    { "path": ".gitattributes", "delta": "Six lines add byte-preservation patterns for performance evidence only; no source/test/build dependency." },
+    { "path": "benchmarks/diagnostics/native_vm_opcode_timer.h", "delta": "Three diagnostic comments about worker environment inheritance; no executable/preprocessor code change." },
+    { "path": "tests/cpp/runtime_value_tests.cpp", "delta": "One blank line removed; no compile/test behavior change." },
+    { "path": "tests/fixtures/core/sqlite_statement_cache.py", "delta": "One trailing blank line added; no fixture behavior change." }
+  ],
+  "integration_evidence": [
+    {
+      "site": "CMakeLists.txt",
+      "fact": "Current contents equal HEAD after CRLF normalization. Existing runtime target already compiles functional_builtins.cpp, xlang_interpreter.cpp and xlang_vm_attr.cpp; the changes add no translation unit. interpreter_tests.cpp is already registered with add_xlang3_cpp_test. No unowned CMake edit is needed."
+    },
+    {
+      "site": "src/internal/xlang3/ir.h and src/executor/xlang_vm/xlang_frame.h",
+      "fact": "Both files are in the owned41 set. They declare the constructor liveness metadata and appended ordinary constructor call-site kind used by the owned VM code. The cold metadata implementation in xlang_interpreter.cpp is also owned."
+    },
+    {
+      "site": "src/internal/xlang3/object_model.h and src/runtime/object_model.cpp",
+      "fact": "Both are owned. Explicit-slot declaration provenance, descriptor owner validation/fallback helpers and class-owned plan declarations have their corresponding definitions and guarded consumers inside the owned set. The class plan uses existing memory/unique_ptr headers; no missing excluded header addition is required."
+    },
+    {
+      "site": "src/internal/xlang3/perf_counters.h and src/runtime/perf_counters.cpp",
+      "fact": "Both excluded files equal HEAD after CRLF normalization. Public counter APIs used by the new CPP admission proof are already present in HEAD; the proof adds no new counter/export dependency."
+    },
+    {
+      "site": "tests/cpp/interpreter_tests.cpp",
+      "fact": "Its entire semantic HEAD delta is the three owned header includes and three matching check calls. All three newly included headers are in the owned41 set. Existing observable_builtin_method_cases.h is also owned for the active profile owner proof."
+    },
+    {
+      "site": "tests/run_fixtures.py and tests/run_fixtures.ps1",
+      "fact": "Their entire semantic HEAD delta registers the same ten owned fixture names exactly once. All ten core sources and ten expected outputs are in the owned41 set. No excluded generator/contextvars/profile fixture change is required."
+    },
+    {
+      "site": "src/executor/xlang_vm/ops/xlang_vm_ops_iteration.h, xlang_value_buffer.h, src/runtime/generator.cpp, asyncio_future.cpp, asyncio_task.cpp and contextvars_module.cpp",
+      "fact": "These excluded dirty paths equal HEAD after CRLF normalization. Their current declarations/behavior are available to a HEAD+owned-only checkout without including the raw formatting changes."
+    },
+    {
+      "site": "src/internal/xlang3/functional_iterators.h, interpreter.h and src/runtime/functional_iterators.cpp",
+      "fact": "The three rejected wrapper-trial files are restored to HEAD after normalization and excluded. The owned sorted implementation now calls the pre-existing runtime_call_callable; no ScopedPythonCallEntry or has_pristine_fallback_globals symbol remains required."
+    }
+  ],
+  "result": "HEAD plus the frozen41 owned stage blobs contains the new engine fields/functions and all durable CPP/Python registrations. The21 excluded changes introduce no executable dependency needed by this checkpoint.",
+  "limits": [
+    "This is a source dependency audit, not an independent rebuild/test result. No build, runtime, benchmark, Python parser or AST execution occurred.",
+    "Actual C5 full validation and fixed regression gate remain parent-owned and live at preparation time. Staging readiness does not imply performance acceptance.",
+    "Documentation/raw evidence has a separate ownership plan. Do not include complete raw source archives or unrelated dirty paths through this engine plan."
+  ],
+  "source_changes": false,
+  "index_changes": false,
+  "runtime_execution": false,
+  "build_execution": false
+}

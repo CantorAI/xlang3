@@ -4398,8 +4398,11 @@ private:
       annotate.body.push_back(std::make_unique<ast::ReturnStmt>(
           std::make_unique<ast::DictExpr>(std::move(annotation_entries))));
 
+      // Annotation expressions execute in the definition's surrounding scope.
+      // A method body deliberately excludes ordinary class aliases; its lazy
+      // annotation helper must still capture them, without widening that body.
       const auto annotate_reg = lower_function_value(
-          annotate, {}, {}, {}, child_name_aliases);
+          annotate, {}, {}, {}, &name_aliases_);
       emit(ir::Op::StoreAttr, reg, add_name("__annotate__"), annotate_reg);
     }
     if (!kwdefault_regs.empty()) {
@@ -4777,6 +4780,21 @@ private:
           for (const auto& name : sema::free_candidates_for(annotation_scope)) {
             annotation_capture_names.insert(mangle_private_identifier(name));
           }
+        } else if (auto* method = dynamic_cast<const ast::FunctionDef*>(&stmt)) {
+          // A class name used only in a lazy method annotation still needs a
+          // cell. Method bodies retain their separate enclosing-scope rules.
+          auto collect_method_annotation = [&](const ast::Expr& expression) {
+            ast::FunctionDef annotation_scope;
+            annotation_scope.body.push_back(std::make_unique<ast::ReturnStmt>(
+                clone_expr(expression)));
+            for (const auto& name : sema::free_candidates_for(annotation_scope))
+              annotation_capture_names.insert(mangle_private_identifier(name));
+          };
+          for (const auto& parameter : method->signature)
+            if (parameter.annotation != nullptr)
+              collect_method_annotation(*parameter.annotation);
+          if (method->return_annotation != nullptr)
+            collect_method_annotation(*method->return_annotation);
         } else if (auto* alias = dynamic_cast<const ast::TypeAliasStmt*>(&stmt)) {
           ast::FunctionDef annotation_scope;
           annotation_scope.body.push_back(std::make_unique<ast::ReturnStmt>(
@@ -5390,6 +5408,13 @@ private:
     if (!class_cell_name.empty()) {
       store_named_value(class_cell_name, reg);
     }
+    // The synthetic logical class frame is finished before decorators run.
+    // Its namespace must not keep methods alive until the enclosing function
+    // returns. Escaped locals/frames and annotation closures own their values.
+    // Clear our register explicitly: Pop is a stack-model no-op, and a loop's
+    // conservative liveness may otherwise retain this compiler-only alias.
+    emit(ir::Op::LoadConst, class_frame_namespace_reg, add_const(Value::none()));
+    emit(ir::Op::DeleteLocal, class_frame_locals_slot);
     const auto decorated_reg = apply_decorators(reg, klass.decorators);
     if (store_name) {
       store_named_value(klass.name, decorated_reg);

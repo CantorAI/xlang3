@@ -86,6 +86,8 @@ enum class CallSiteKind : uint8_t {
   // CallEx-only plain initializer plan with class/metaclass/code guards.
   // Its scalar proof may survive inner frame pop; it owns no Python values.
   GuardedUserConstructorEx,
+  // Ordinary Call own-slot proof; owning payload is cleared on frame pop.
+  InlineCanonicalSlotConstructor,
 };
 
 enum class AttrSiteKind : uint8_t {

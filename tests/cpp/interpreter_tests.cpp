@@ -24,6 +24,9 @@ limitations under the License.
 #include "observable_builtin_method_cases.h"
 #include "exception_loop_owner_cases.h"
 #include "heapq_native_cases.h"
+#include "scoped_sorted_key_cases.h"
+#include "ordinary_canonical_slot_constructor_cases.h"
+#include "class_method_annotation_capture_cases.h"
 
 #include "xlang3/object_model.h"
 #include "xlang3/sequence.h"
@@ -42,6 +45,9 @@ int main(int argc, char** argv) {
   xlang3::test::check_observable_builtin_method_cases(result);
   xlang3::test::check_exception_loop_owner_cases(result);
   xlang3::test::check_heapq_native_cases(result);
+  xlang3::test::check_scoped_sorted_key_cases(result);
+  xlang3::test::check_ordinary_canonical_slot_constructor(result);
+  xlang3::test::check_class_method_annotation_capture(result);
 
   // Same-object owning copies should avoid refcount churn, while copying into
   // a borrowed slot must still acquire an independent reference.

@@ -323,6 +323,8 @@ struct FunctionExecutionMetadata {
   const Function* owner = nullptr;
   std::vector<size_t> register_last_use;
   std::vector<bool> register_loop_carried;
+  // Constructor-only argument consumption is proved once for linear callers.
+  bool linear_constructor_argument_liveness = false;
   // Identity-only producer proofs leave the older call-transfer policy intact.
   std::vector<bool> identity_operand_retirement_safe;
   // Precomputed IR sites whose execution may populate an owning inline cache.

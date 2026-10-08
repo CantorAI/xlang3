@@ -1,0 +1,12 @@
+local_slots              pass         0.999x
+scalar_arithmetic        pass         0.993x
+range_for                pass         1.001x
+function_calls           pass         1.024x
+class_construct          pass         1.003x
+list_append              pass         1.017x
+property_access          pass         0.996x
+deepcopy_memo            pass         0.935x
+json_dumps               pass         1.017x
+gc_traversal             pass         0.756x
+subparsers               pass         0.916x
+Performance check: pass. Report: D:\CantorAI\xlang3\doc\performance\data\ordinary-canonical-slot-constructor-c5-gate-idle-resume-20261008-fixed-gate.json

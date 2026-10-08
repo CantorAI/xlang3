@@ -2967,9 +2967,10 @@ bool collect_sorted_entries(
   }
   entries.clear();
   entries.reserve(values.size());
+  const bool use_key = key_callable != nullptr && key_callable->tag != ValueTag::None;
   for (const auto& value : values) {
     Value key;
-    if (key_callable != nullptr && key_callable->tag != ValueTag::None) {
+    if (use_key) {
       if (!runtime_call_callable(runtime, *key_callable, &value, 1, key, error)) {
         return false;
       }
@@ -3010,8 +3011,17 @@ bool sorted_impl(
     bool reverse,
     Value& out,
     std::string& error) {
+  Value owned_key;
+  const Value* stable_key = nullptr;
+  // Own sorted's formal key for the whole call, before user iteration can
+  // remove its last external owner. Keep it through comparisons, output
+  // replacement and entry cleanup; a collection-only pin retires too early.
+  if (key_callable != nullptr && key_callable->tag != ValueTag::None) {
+    value_assign_fast(owned_key, *key_callable);
+    stable_key = &owned_key;
+  }
   std::vector<SortEntry> entries;
-  if (!collect_sorted_entries(runtime, iterable, key_callable, entries, error) ||
+  if (!collect_sorted_entries(runtime, iterable, stable_key, entries, error) ||
       !sort_entries(runtime, entries, reverse, error)) {
     return false;
   }

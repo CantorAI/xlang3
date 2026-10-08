@@ -89,6 +89,11 @@ XLANG3_HOT_INLINE XlangVMOpFlow slot_descriptor_get(
     return XlangVMOpFlow::Next;
   }
   auto* instance = value_as_instance(receiver);
+  std::string owner_error;
+  if (!slot_descriptor_validate_receiver_owner(descriptor, receiver, owner_error)) {
+    return raise_exception_value(runtime.make_exception("TypeError", owner_error))
+        ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+  }
   if (instance != nullptr) {
     if (xlang_vm_effective_slot_index(descriptor, *instance) ==
         std::numeric_limits<uint32_t>::max()) {
@@ -164,6 +169,11 @@ XLANG3_HOT_INLINE XlangVMOpFlow slot_descriptor_set(
     RaiseRuntimeError&& raise_runtime_error,
     RaiseExceptionValue&& raise_exception_value) {
   auto* instance = value_as_instance(receiver);
+  std::string owner_error;
+  if (!slot_descriptor_validate_receiver_owner(descriptor, receiver, owner_error)) {
+    return raise_exception_value(runtime.make_exception("TypeError", owner_error))
+        ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+  }
   if (instance != nullptr) {
     if (xlang_vm_effective_slot_index(descriptor, *instance) ==
         std::numeric_limits<uint32_t>::max()) {
@@ -207,12 +217,19 @@ XLANG3_HOT_INLINE XlangVMOpFlow slot_descriptor_set(
   return XlangVMOpFlow::Next;
 }
 
-template <typename RaiseRuntimeError>
+template <typename RaiseRuntimeError, typename RaiseExceptionValue>
 XLANG3_HOT_INLINE XlangVMOpFlow slot_descriptor_delete(
     const SlotDescriptorObject& descriptor,
     const Value& receiver,
-    RaiseRuntimeError&& raise_runtime_error) {
+    Runtime& runtime,
+    RaiseRuntimeError&& raise_runtime_error,
+    RaiseExceptionValue&& raise_exception_value) {
   auto* instance = value_as_instance(receiver);
+  std::string owner_error;
+  if (!slot_descriptor_validate_receiver_owner(descriptor, receiver, owner_error)) {
+    return raise_exception_value(runtime.make_exception("TypeError", owner_error))
+        ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+  }
   if (instance != nullptr) {
     if (xlang_vm_effective_slot_index(descriptor, *instance) ==
         std::numeric_limits<uint32_t>::max()) {
@@ -775,6 +792,11 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_attr(
        loaded_attr_kind == AttrSiteKind::InstanceSlot);
   if (!loaded_from_instance) if (auto* slot = value_as_slot_descriptor(attr)) {
     if (auto* instance = value_as_instance(regs[in.a])) {
+      std::string owner_error;
+      if (!slot_descriptor_validate_receiver_owner(*slot, regs[in.a], owner_error)) {
+        return raise_exception_value(runtime.make_exception("TypeError", owner_error))
+            ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+      }
       if (slot->index < instance_slot_count(instance) &&
           instance_slot_at(instance, slot->index).tag == ValueTag::Invalid) {
         bool has_fallback_value = false;
@@ -1386,7 +1408,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow delete_attr(
   }
   if (has_descriptor) {
     if (auto* slot = value_as_slot_descriptor(descriptor)) {
-      return slot_descriptor_delete(*slot, regs[in.dst], raise_runtime_error);
+      return slot_descriptor_delete(*slot, regs[in.dst], runtime, raise_runtime_error, raise_exception_value);
     }
     if (auto* property = value_as_property(descriptor)) {
       if (property->fdel.tag == ValueTag::None || property->fdel.tag == ValueTag::Invalid) {

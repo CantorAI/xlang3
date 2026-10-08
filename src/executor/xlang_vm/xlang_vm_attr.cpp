@@ -273,7 +273,8 @@ XLANG3_NOINLINE bool xlang_vm_load_attr_cached(
       if (slot_it != klass->instance_slot_indices.end() &&
           slot_it->second < instance_slot_count(instance) &&
           slot_it->second < klass->instance_slot_names.size() &&
-          klass->instance_slot_names[slot_it->second] == name) {
+          klass->instance_slot_names[slot_it->second] == name &&
+          class_allows_raw_instance_slot_fallback(klass, name)) {
         const auto& slot_value = instance_slot_at(instance, slot_it->second);
         if (slot_value.tag != ValueTag::Invalid) {
           cache.index = slot_it->second;
@@ -367,7 +368,8 @@ XLANG3_NOINLINE bool xlang_vm_store_attr_cached(
       if (slot_it != klass->instance_slot_indices.end() &&
           slot_it->second < instance_slot_count(instance) &&
           slot_it->second < klass->instance_slot_names.size() &&
-          klass->instance_slot_names[slot_it->second] == name) {
+          klass->instance_slot_names[slot_it->second] == name &&
+          class_allows_raw_instance_slot_fallback(klass, name)) {
         cache.index = slot_it->second;
         cache.kind = AttrSiteKind::InstanceSlot;
         cache.owner = &klass->header;
