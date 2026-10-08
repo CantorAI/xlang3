@@ -1,0 +1,6 @@
+streaming iteration, key and comparison order: OK
+key errors stop iteration immediately: OK
+comparison and truth errors stop iteration immediately: OK
+iterator exceptions survive default handling: OK
+mutation, identity, ties, defaults and argument forms: OK
+discarded and replaced owners released before advancing: OK

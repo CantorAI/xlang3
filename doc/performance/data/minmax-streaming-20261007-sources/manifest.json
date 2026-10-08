@@ -1,0 +1,30 @@
+{
+  "warning": "Historical one-off scripts and prepared fragments; do not replay unchanged.",
+  "files": {
+    "prepare-minmax-streaming-trial-20261007.py": "48df621cb739a98797c9c8d40d1b8e839a86144960b74cf18965cf1d4583b769",
+    "apply-minmax-streaming-trial-20261007.py": "5c6507ab4063ebd6cb1b40851416018c80a69eb18d4032a1e081a703df5351c5",
+    "minmax-streaming-function-next-20261007.cpp": "c6585fedd681b6767c91f63346136d40486331ecf3c69c4f0e6e04c4c083aa25",
+    "minmax-streaming-fixture-next-20261007.py": "586a417de0777c39d03fc412d666f3436654696b349727d3a93b70edc47b88c9",
+    "minmax-result-lifetime-probe-20261007.py": "b2b8613ddb332767f223cc7e8ac413c2f9de8c65a8ea67117139d5dacf480aca",
+    "observe-minmax-result-lifetime-20261007.py": "e7b85d1df53d21d4cc07177e0c599fb7b467b2529dade950cceefde940c61c2e",
+    "observe-minmax-global-delete-r1-20261007.py": "08b28c07ab1eb46d3892c0a8a55b2c367a2f093db2fdf6bfebe5e161c8957e78",
+    "global-loop-delete-lifetime-probe-20261007.py": "27e00d1650256e81909b740243a761640c15dc8c34ca187d268814c8a2dc43ee",
+    "dict-callback-boundary-probe-20261007.py": "4a5cb7358005574fc2426db47c430caac7d7b1b7c453ec386b991c350402a47b",
+    "compare-minmax-streaming-trial-20261007.py": "43ca6e36ffa1c134f1f0400bb01c5839fd9d66750de2c648044d3b06ff9c1654",
+    "prepare-minmax-streaming-validation-20261007.py": "f2c98f0d8c4db7eed8fb385921f14f3153cea1e8a9155445b3692ef95443fcd4",
+    "validate-minmax-streaming-20261007.py": "45f4797f9d6ed5b33fcc4f81e6910813528042fc4caf9608c9745bc364b04578",
+    "export-minmax-streaming-pairs-20261007.py": "55917e937af2dc69c4c059acbb4fd52809ac5f707f4d530bb93ba41a2bc90643",
+    "finalize-minmax-streaming-evidence-20261007.py": "b882ad3e466f85f6f1f11e3c7001168b74243aa77c1bce10a7da993ffe3fc76f",
+    "stage-minmax-streaming-checkpoint-20261007.py": "1ee45f2aa847704bc901b4a88bf2ad955d51e5dc6f477d36991f95043fb345a3",
+    "compiled-sources/functional_builtins.cpp": "de5920ff70a7a11069da2e5b5a27bfa9abbededf81a8a2e00e56cce584d1c979",
+    "compiled-sources/xlang_vm_ops_variables.h": "76b3c926a5f8e4b1e76a5946e57c4f6eb78db81d8f03f7acc023c3baa124e22e",
+    "compiled-sources/xlang_vm_op_rows.h": "44b702ec262ede41ef88ac11814ba482ff30563081de3c1613354d08ca0a5bc9",
+    "compiled-sources/xlang_frame.h": "94aea78474df15608d7c31bdde8b70b104b3fb527d0b3cbefd51125d9cf56258",
+    "compiled-sources/minmax_streaming.py": "29b8cb1c700cac11aa1d2d82fd4a7bdb51ae5d5ed99106fedeb292b68facde93",
+    "compiled-sources/minmax_streaming.out": "a5b9c22352c4620cd5cf12fc91b4baea197166101b994fe14275964d9004a624",
+    "compiled-sources/global_delete_temporaries.py": "93f4c8744cf06060d77957cab068493ff050ecbb31007192de0c46ec66f3e663",
+    "compiled-sources/global_delete_temporaries.out": "743bdaa90c4121f74ea66abbd046d5996cfeb02feb46b8ae82e216e9745ba952",
+    "compiled-sources/run_fixtures.py": "21acb67fceb90a4aa77c49affca7d07ef3031f91f52e6a1f7cf36443c61faa8a",
+    "record-minmax-official-interpretation-20261007.py": "0b2d2074813d3fbb9e700e51bcac265118255e27babebfc4bd9790527940d3e1"
+  }
+}

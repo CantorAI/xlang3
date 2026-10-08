@@ -119,3 +119,15 @@
 /doc/performance/inherited-subscript-cache-checkpoint-20261007.md text eol=lf
 /tests/fixtures/core/inherited_subscript_cache.py text eol=lf
 /tests/fixtures/expected/inherited_subscript_cache.out text eol=lf
+
+/doc/performance/data/minmax-streaming-* -text
+/doc/performance/data/minmax-result-lifetime-observations-20261007.json -text
+/doc/performance/data/minmax-global-delete-r1-lifetime-observations-20261007.json -text
+/doc/performance/data/minmax-streaming-20261007-sources/** -text
+/doc/performance/data/release-minmax-streaming-fixed-gate-20261007.json -text
+/doc/performance/data/pyperformance-minmax-streaming-bpe-fast-20261007* -text
+/doc/performance/minmax-streaming-checkpoint-20261007.md text eol=lf
+/tests/fixtures/core/minmax_streaming.py text eol=lf
+/tests/fixtures/expected/minmax_streaming.out text eol=lf
+/tests/fixtures/core/global_delete_temporaries.py text eol=lf
+/tests/fixtures/expected/global_delete_temporaries.out text eol=lf

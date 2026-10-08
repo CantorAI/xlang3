@@ -1,0 +1,45 @@
+{
+  "reference_sha256": "ba21a0c935ba573e8ba9b0dfede1de443455bf0e168ca529c15954644258be1b",
+  "probe_sha256": "b2b8613ddb332767f223cc7e8ac413c2f9de8c65a8ea67117139d5dacf480aca",
+  "candidate_dll_sha256": "d928a66440ac0f427cdfa336903110396c1a1975cd05f5560167d9893b2e71b4",
+  "candidate": {
+    "plain_local": [
+      "plain_local"
+    ],
+    "winner_local": [
+      "plain_local",
+      "winner_local"
+    ],
+    "plain_global": [
+      "plain_local",
+      "winner_local",
+      "plain_global"
+    ],
+    "winner_global": [
+      "plain_local",
+      "winner_local",
+      "plain_global"
+    ]
+  },
+  "cpython3147": {
+    "plain_local": [
+      "plain_local"
+    ],
+    "winner_local": [
+      "plain_local",
+      "winner_local"
+    ],
+    "plain_global": [
+      "plain_local",
+      "winner_local",
+      "plain_global"
+    ],
+    "winner_global": [
+      "plain_local",
+      "winner_local",
+      "plain_global",
+      "winner_global"
+    ]
+  },
+  "matches_cpython": false
+}

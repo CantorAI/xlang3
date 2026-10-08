@@ -252,13 +252,62 @@ XLANG3_HOT_INLINE void delete_local(
   value_set_invalid(locals[in.dst]);
 }
 
+inline void release_deleted_global_temporaries(
+    const Value& deleted_value,
+    XlangVMSmallRegisterBuffer& regs,
+    std::vector<Value>& native_call_args,
+    XlangVMInstrCacheStorage& caches,
+    const std::vector<size_t>& register_last_use,
+    const std::vector<bool>& register_loop_carried,
+    size_t ip) {
+  if (deleted_value.tag != ValueTag::Object || deleted_value.as.obj == nullptr) return;
+  // Deletion is a cold ownership boundary. Release obsolete expression/call
+  // temporaries here, rather than adding scans to every VM instruction. Real
+  // future and loop-carried registers remain roots; Python aliases still own
+  // the object through their namespace/container values.
+  for (size_t index = 0; index < regs.size(); ++index) {
+    const bool carried = index < register_loop_carried.size() && register_loop_carried[index];
+    const bool future = index < register_last_use.size() &&
+        register_last_use[index] != std::numeric_limits<size_t>::max() &&
+        register_last_use[index] > ip;
+    // An obsolete container temporary can retain the deleted value too (for
+    // example max([item])). Apply the same dead-register cleanup as del-local,
+    // including those indirect owners, rather than checking pointer equality.
+    if (!carried && !future) {
+      value_set_invalid(regs[index]);
+    }
+  }
+  native_call_args.clear();
+  for (auto& cache : caches) {
+    if (cache.global.value.tag == ValueTag::Object &&
+        cache.global.value.as.obj == deleted_value.as.obj) {
+      cache.global.kind = 0;
+      value_set_invalid(cache.global.value);
+    }
+  }
+}
+
 XLANG3_HOT_INLINE void delete_global(
     const ir::Instr& in,
     const ir::Function& fn,
     std::unordered_map<std::string, Value>& globals,
-    uint64_t& globals_version) {
-  globals.erase(fn.names[in.dst]);
+    uint64_t& globals_version,
+    XlangVMSmallRegisterBuffer& regs,
+    std::vector<Value>& native_call_args,
+    XlangVMInstrCacheStorage& caches,
+    const std::vector<size_t>& register_last_use,
+    const std::vector<bool>& register_loop_carried,
+    size_t ip) {
+  Value deleted_value;
+  const auto found = globals.find(fn.names[in.dst]);
+  if (found != globals.end()) {
+    deleted_value = std::move(found->second);
+    globals.erase(found);
+  }
   ++globals_version;
+  // Publish the absent binding and new version before finalizers reenter.
+  release_deleted_global_temporaries(deleted_value, regs, native_call_args,
+                                    caches, register_last_use, register_loop_carried, ip);
 }
 
 template <typename RaiseRuntimeError, typename RaiseExceptionValue>
@@ -585,6 +634,12 @@ XLANG3_HOT_INLINE XlangVMOpFlow delete_module_slot(
     const ir::Instr& in,
     const ir::Module& module,
     Value& globals_module,
+    XlangVMSmallRegisterBuffer& regs,
+    std::vector<Value>& native_call_args,
+    XlangVMInstrCacheStorage& caches,
+    const std::vector<size_t>& register_last_use,
+    const std::vector<bool>& register_loop_carried,
+    size_t ip,
     RuntimeResult& result,
     RaiseRuntimeError&& raise_runtime_error) {
   if (in.dst >= module.global_slots.size()) {
@@ -603,10 +658,13 @@ XLANG3_HOT_INLINE XlangVMOpFlow delete_module_slot(
     return raise_runtime_error("module slot is not bound") ? XlangVMOpFlow::ContinueLoop
                                                           : XlangVMOpFlow::ReturnResult;
   }
+  Value deleted_value = globals_module_obj->slots[slot];
   if (!module_delete_attr(globals_module, module.global_slots[in.dst], error)) {
     return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop
                                       : XlangVMOpFlow::ReturnResult;
   }
+  release_deleted_global_temporaries(deleted_value, regs, native_call_args,
+                                    caches, register_last_use, register_loop_carried, ip);
   return XlangVMOpFlow::Next;
 }
 

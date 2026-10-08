@@ -1,0 +1,74 @@
+{
+  "probe_sha256": "b2b8613ddb332767f223cc7e8ac413c2f9de8c65a8ea67117139d5dacf480aca",
+  "observations": [
+    {
+      "runtime": "cpython3147",
+      "result": {
+        "plain_local": [
+          "plain_local"
+        ],
+        "winner_local": [
+          "plain_local",
+          "winner_local"
+        ],
+        "plain_global": [
+          "plain_local",
+          "winner_local",
+          "plain_global"
+        ],
+        "winner_global": [
+          "plain_local",
+          "winner_local",
+          "plain_global",
+          "winner_global"
+        ]
+      },
+      "exe_sha256": "4942b86a6597e5aee0128daa00050ed79bc21f6e709a78eb19cbfeb0c2f39ac9",
+      "dll_sha256": null
+    },
+    {
+      "runtime": "control",
+      "result": {
+        "plain_local": [
+          "plain_local"
+        ],
+        "winner_local": [
+          "plain_local",
+          "winner_local"
+        ],
+        "plain_global": [
+          "plain_local",
+          "winner_local"
+        ],
+        "winner_global": [
+          "plain_local",
+          "winner_local"
+        ]
+      },
+      "exe_sha256": "dbc20688f5363819cb4a539619d28be885c9d0e0e6e3140e24ecb0112c534248",
+      "dll_sha256": "d640f61da31c3a6486e9eb9c31939fffa52656e4a8b3d8e450d24026aadf2cc2"
+    },
+    {
+      "runtime": "candidate",
+      "result": {
+        "plain_local": [
+          "plain_local"
+        ],
+        "winner_local": [
+          "plain_local",
+          "winner_local"
+        ],
+        "plain_global": [
+          "plain_local",
+          "winner_local"
+        ],
+        "winner_global": [
+          "plain_local",
+          "winner_local"
+        ]
+      },
+      "exe_sha256": "dbc20688f5363819cb4a539619d28be885c9d0e0e6e3140e24ecb0112c534248",
+      "dll_sha256": "e6c850a266f837d17676f1885a1f30e01964043471bef2aca055a78824332b33"
+    }
+  ]
+}

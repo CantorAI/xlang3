@@ -1,0 +1,25 @@
+{
+  "compiler_input_sha256": {
+    "src/builtins/functional_builtins.cpp": "de5920ff70a7a11069da2e5b5a27bfa9abbededf81a8a2e00e56cce584d1c979",
+    "src/executor/xlang_vm/ops/xlang_vm_ops_variables.h": "76b3c926a5f8e4b1e76a5946e57c4f6eb78db81d8f03f7acc023c3baa124e22e",
+    "src/executor/xlang_vm/xlang_vm_op_rows.h": "44b702ec262ede41ef88ac11814ba482ff30563081de3c1613354d08ca0a5bc9",
+    "src/executor/xlang_vm/xlang_frame.h": "94aea78474df15608d7c31bdde8b70b104b3fb527d0b3cbefd51125d9cf56258",
+    "tests/fixtures/core/minmax_streaming.py": "29b8cb1c700cac11aa1d2d82fd4a7bdb51ae5d5ed99106fedeb292b68facde93",
+    "tests/fixtures/expected/minmax_streaming.out": "a5b9c22352c4620cd5cf12fc91b4baea197166101b994fe14275964d9004a624",
+    "tests/fixtures/core/global_delete_temporaries.py": "93f4c8744cf06060d77957cab068493ff050ecbb31007192de0c46ec66f3e663",
+    "tests/fixtures/expected/global_delete_temporaries.out": "743bdaa90c4121f74ea66abbd046d5996cfeb02feb46b8ae82e216e9745ba952",
+    "tests/run_fixtures.py": "21acb67fceb90a4aa77c49affca7d07ef3031f91f52e6a1f7cf36443c61faa8a"
+  },
+  "repository_lf_sha256": {
+    "src/builtins/functional_builtins.cpp": "de5920ff70a7a11069da2e5b5a27bfa9abbededf81a8a2e00e56cce584d1c979",
+    "src/executor/xlang_vm/ops/xlang_vm_ops_variables.h": "b12bdd9cbbcc14107d746c464b1e087e3aa7450547df440dbb0f6a92f8d31088",
+    "src/executor/xlang_vm/xlang_vm_op_rows.h": "ba25983383f3ba4a7cfa7b2d38efaa61555b26110c9a3c47186d4e24343def26",
+    "src/executor/xlang_vm/xlang_frame.h": "35400dfc2825f7e58e79be64c0f86421f01cc45b60362e06c04ff75eded5b81e",
+    "tests/fixtures/core/minmax_streaming.py": "29b8cb1c700cac11aa1d2d82fd4a7bdb51ae5d5ed99106fedeb292b68facde93",
+    "tests/fixtures/expected/minmax_streaming.out": "a5b9c22352c4620cd5cf12fc91b4baea197166101b994fe14275964d9004a624",
+    "tests/fixtures/core/global_delete_temporaries.py": "93f4c8744cf06060d77957cab068493ff050ecbb31007192de0c46ec66f3e663",
+    "tests/fixtures/expected/global_delete_temporaries.out": "743bdaa90c4121f74ea66abbd046d5996cfeb02feb46b8ae82e216e9745ba952",
+    "tests/run_fixtures.py": "21acb67fceb90a4aa77c49affca7d07ef3031f91f52e6a1f7cf36443c61faa8a"
+  },
+  "note": "Archived compiler inputs are byte-exact; repository equivalents differ only by Git newline normalization."
+}

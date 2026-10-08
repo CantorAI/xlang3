@@ -1,0 +1,1327 @@
+{
+  "status": "terminal",
+  "scope": "Diagnostic only, not official BPE; checked checksums",
+  "binaries_sha256": {
+    "control": {
+      "exe": "dbc20688f5363819cb4a539619d28be885c9d0e0e6e3140e24ecb0112c534248",
+      "dll": "d640f61da31c3a6486e9eb9c31939fffa52656e4a8b3d8e450d24026aadf2cc2"
+    },
+    "candidate": {
+      "exe": "475d2ff8d72c19eebaeff4ea6e943c6969cd8c2af3e15df4512de6e62f1c2397",
+      "dll": "fa9fac1f45195e040b5628386a3db73e4beafaa96a6912b78afb86523dae532a"
+    }
+  },
+  "probe_sha256": "4a5cb7358005574fc2426db47c430caac7d7b1b7c453ec386b991c350402a47b",
+  "pairs": [
+    {
+      "order": [
+        "control",
+        "candidate"
+      ],
+      "runs": {
+        "control": {
+          "purpose": "callback boundary diagnosis only, not an official score",
+          "rows": [
+            {
+              "mapping": "dict",
+              "path": "direct_lookup",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.007544599997345358,
+                0.007810200011590496,
+                0.008239799994044006,
+                0.007832499977666885,
+                0.007594899972900748
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "dict",
+              "path": "python_call",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.010576300002867356,
+                0.010401600011391565,
+                0.010693699994590133,
+                0.010896599997067824,
+                0.010387099988292903
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "dict",
+              "path": "native_callback",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.015694999980041757,
+                0.01623530001961626,
+                0.01577030000044033,
+                0.01593589998083189,
+                0.015703200013376772
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "Counter",
+              "path": "direct_lookup",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.007816199999069795,
+                0.008253399981185794,
+                0.008214600005885586,
+                0.00820219999877736,
+                0.008229900005972013
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "Counter",
+              "path": "python_call",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.011677600006805733,
+                0.011894499999471009,
+                0.011462800001027063,
+                0.01157880001119338,
+                0.011513900011777878
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "Counter",
+              "path": "native_callback",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.016745600005378947,
+                0.0171050000062678,
+                0.0167793000000529,
+                0.01676870000665076,
+                0.016370700002880767
+              ],
+              "checksum": 8184
+            }
+          ]
+        },
+        "candidate": {
+          "purpose": "callback boundary diagnosis only, not an official score",
+          "rows": [
+            {
+              "mapping": "dict",
+              "path": "direct_lookup",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.007608399988384917,
+                0.007694900006754324,
+                0.007537400000728667,
+                0.00795329999527894,
+                0.007831300026737154
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "dict",
+              "path": "python_call",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.010813599976245314,
+                0.01080250000813976,
+                0.010755800001788884,
+                0.010792299988679588,
+                0.010885600000619888
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "dict",
+              "path": "native_callback",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.016264000005321577,
+                0.015481700014788657,
+                0.015574899996863678,
+                0.01610639999853447,
+                0.01543089997721836
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "Counter",
+              "path": "direct_lookup",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.008135100011713803,
+                0.008096200006548315,
+                0.007979399990290403,
+                0.007953499996801838,
+                0.007918699993751943
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "Counter",
+              "path": "python_call",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.011489099997561425,
+                0.011331599991535768,
+                0.011713899992173538,
+                0.011553799995454028,
+                0.011306900007184595
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "Counter",
+              "path": "native_callback",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.01712580001913011,
+                0.01723840000340715,
+                0.0171793999907095,
+                0.01732749998336658,
+                0.01688869998906739
+              ],
+              "checksum": 8184
+            }
+          ]
+        }
+      }
+    },
+    {
+      "order": [
+        "candidate",
+        "control"
+      ],
+      "runs": {
+        "candidate": {
+          "purpose": "callback boundary diagnosis only, not an official score",
+          "rows": [
+            {
+              "mapping": "dict",
+              "path": "direct_lookup",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.007467800023732707,
+                0.007393899984890595,
+                0.007747099996777251,
+                0.007484500005375594,
+                0.007672800013097003
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "dict",
+              "path": "python_call",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.01086020001093857,
+                0.010988800000632182,
+                0.010689499991713092,
+                0.010535000008530915,
+                0.010618500004056841
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "dict",
+              "path": "native_callback",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.015687899984186515,
+                0.015407500002766028,
+                0.0161184000025969,
+                0.0160162000101991,
+                0.016397400002460927
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "Counter",
+              "path": "direct_lookup",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.0081783999921754,
+                0.008007600001292303,
+                0.008054300007643178,
+                0.0083738999965135,
+                0.008181999990483746
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "Counter",
+              "path": "python_call",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.011486000003060326,
+                0.01154920001863502,
+                0.011946000013267621,
+                0.011395299981813878,
+                0.011535400000866503
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "Counter",
+              "path": "native_callback",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.017062900005839765,
+                0.017827200004830956,
+                0.01827249999041669,
+                0.01729039999190718,
+                0.017061299993656576
+              ],
+              "checksum": 8184
+            }
+          ]
+        },
+        "control": {
+          "purpose": "callback boundary diagnosis only, not an official score",
+          "rows": [
+            {
+              "mapping": "dict",
+              "path": "direct_lookup",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.007505000015953556,
+                0.007605199993122369,
+                0.007485800015274435,
+                0.007594399998197332,
+                0.007508100010454655
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "dict",
+              "path": "python_call",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.010348399984650314,
+                0.010498300020117313,
+                0.010337000014260411,
+                0.010364100016886368,
+                0.010545500001171604
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "dict",
+              "path": "native_callback",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.015486199990846217,
+                0.015564999979687855,
+                0.015615599986631423,
+                0.015656700008548796,
+                0.015528999996604398
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "Counter",
+              "path": "direct_lookup",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.008051299984799698,
+                0.008044099988183007,
+                0.008040300017455593,
+                0.008047200011787936,
+                0.008046899980399758
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "Counter",
+              "path": "python_call",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.011477299995021895,
+                0.011560000013560057,
+                0.011263799999142066,
+                0.011204800015548244,
+                0.011480500019388273
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "Counter",
+              "path": "native_callback",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.016510300018126145,
+                0.01622779999161139,
+                0.01658039999892935,
+                0.016457299992907792,
+                0.016484799998579547
+              ],
+              "checksum": 8184
+            }
+          ]
+        }
+      }
+    },
+    {
+      "order": [
+        "control",
+        "candidate"
+      ],
+      "runs": {
+        "control": {
+          "purpose": "callback boundary diagnosis only, not an official score",
+          "rows": [
+            {
+              "mapping": "dict",
+              "path": "direct_lookup",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.007434099999954924,
+                0.007479700027033687,
+                0.007396600005449727,
+                0.0074881999753415585,
+                0.00742579999496229
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "dict",
+              "path": "python_call",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.01041730001452379,
+                0.010361699998611584,
+                0.01036539999768138,
+                0.010519599978579208,
+                0.010520599986193702
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "dict",
+              "path": "native_callback",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.01552580000134185,
+                0.015541600005235523,
+                0.01553319999948144,
+                0.015876299992669374,
+                0.015673200017772615
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "Counter",
+              "path": "direct_lookup",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.007955100008985028,
+                0.007838300021830946,
+                0.007837400014977902,
+                0.008032699988689274,
+                0.007901700009824708
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "Counter",
+              "path": "python_call",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.011248700000578538,
+                0.011468300013802946,
+                0.011372400011168793,
+                0.011439699999755248,
+                0.011364200006937608
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "Counter",
+              "path": "native_callback",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.016280699986964464,
+                0.016403899993747473,
+                0.016873200016561896,
+                0.016298500006087124,
+                0.016581600008066744
+              ],
+              "checksum": 8184
+            }
+          ]
+        },
+        "candidate": {
+          "purpose": "callback boundary diagnosis only, not an official score",
+          "rows": [
+            {
+              "mapping": "dict",
+              "path": "direct_lookup",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.0073515999829396605,
+                0.007433699996909127,
+                0.0074062999919988215,
+                0.007353699998930097,
+                0.007386300014331937
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "dict",
+              "path": "python_call",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.010900499997660518,
+                0.010770299995783716,
+                0.010773899994092062,
+                0.010355500009609386,
+                0.010358400002587587
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "dict",
+              "path": "native_callback",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.015870200004428625,
+                0.015938099997583777,
+                0.015582699998049065,
+                0.016057000000728294,
+                0.016087900003185496
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "Counter",
+              "path": "direct_lookup",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.007821499981218949,
+                0.007856699987314641,
+                0.007880300021497533,
+                0.007873900001868606,
+                0.007842299994081259
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "Counter",
+              "path": "python_call",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.011335899995174259,
+                0.01132980000693351,
+                0.011531099997228011,
+                0.011619700002484024,
+                0.011542099993675947
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "Counter",
+              "path": "native_callback",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.016941599984420463,
+                0.017119099997216836,
+                0.01704170001903549,
+                0.0169525999808684,
+                0.01698819999000989
+              ],
+              "checksum": 8184
+            }
+          ]
+        }
+      }
+    },
+    {
+      "order": [
+        "candidate",
+        "control"
+      ],
+      "runs": {
+        "candidate": {
+          "purpose": "callback boundary diagnosis only, not an official score",
+          "rows": [
+            {
+              "mapping": "dict",
+              "path": "direct_lookup",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.007431000005453825,
+                0.007385200005955994,
+                0.007408600009512156,
+                0.007380499999271706,
+                0.007701700000325218
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "dict",
+              "path": "python_call",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.010394199984148145,
+                0.010579199995845556,
+                0.0111075000022538,
+                0.010412000003270805,
+                0.01041560000157915
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "dict",
+              "path": "native_callback",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.01601319998735562,
+                0.01609769999049604,
+                0.016007800004445016,
+                0.015621600003214553,
+                0.015520199987804517
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "Counter",
+              "path": "direct_lookup",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.007830999995348975,
+                0.007817999983672053,
+                0.007915499998489395,
+                0.007931500003905967,
+                0.00863190001109615
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "Counter",
+              "path": "python_call",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.0113149999815505,
+                0.011317700002109632,
+                0.011287500004982576,
+                0.011296699987724423,
+                0.011238800012506545
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "Counter",
+              "path": "native_callback",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.016932699974859133,
+                0.016944700008025393,
+                0.016947500000242144,
+                0.0169093000004068,
+                0.01691530001698993
+              ],
+              "checksum": 8184
+            }
+          ]
+        },
+        "control": {
+          "purpose": "callback boundary diagnosis only, not an official score",
+          "rows": [
+            {
+              "mapping": "dict",
+              "path": "direct_lookup",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.007689199992455542,
+                0.007540899998275563,
+                0.007943500007968396,
+                0.007795599987730384,
+                0.007602400000905618
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "dict",
+              "path": "python_call",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.010394300014013425,
+                0.010469900007592514,
+                0.010376599995652214,
+                0.010349799995310605,
+                0.010501399985514581
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "dict",
+              "path": "native_callback",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.01584599999478087,
+                0.016224399994825944,
+                0.01583220000611618,
+                0.016119300009449944,
+                0.015704099991125986
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "Counter",
+              "path": "direct_lookup",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.008231599989812821,
+                0.008160500001395121,
+                0.008020299981581047,
+                0.007982299983268604,
+                0.008188500010874122
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "Counter",
+              "path": "python_call",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.011387299979105592,
+                0.01141430001007393,
+                0.01156539999647066,
+                0.011714799999026582,
+                0.01151789998402819
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "Counter",
+              "path": "native_callback",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.016820999997435138,
+                0.016776900010881945,
+                0.016749799979152158,
+                0.01657899998826906,
+                0.01628719997825101
+              ],
+              "checksum": 8184
+            }
+          ]
+        }
+      }
+    },
+    {
+      "order": [
+        "control",
+        "candidate"
+      ],
+      "runs": {
+        "control": {
+          "purpose": "callback boundary diagnosis only, not an official score",
+          "rows": [
+            {
+              "mapping": "dict",
+              "path": "direct_lookup",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.007595599978230894,
+                0.007631200016476214,
+                0.007508499984396622,
+                0.007496600010199472,
+                0.007503800006816164
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "dict",
+              "path": "python_call",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.010623299982398748,
+                0.01062750001437962,
+                0.011007799999788404,
+                0.01105119998101145,
+                0.011041099991416559
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "dict",
+              "path": "native_callback",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.016267500002868474,
+                0.015839400002732873,
+                0.016956600011326373,
+                0.015560499974526465,
+                0.015563399996608496
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "Counter",
+              "path": "direct_lookup",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.008229800005210564,
+                0.007826399989426136,
+                0.008197999995900318,
+                0.007985299977008253,
+                0.008073499979218468
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "Counter",
+              "path": "python_call",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.011822300002677366,
+                0.011598499986575916,
+                0.011339899996528402,
+                0.01170169998658821,
+                0.011431799997808412
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "Counter",
+              "path": "native_callback",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.016173899988643825,
+                0.01666220001061447,
+                0.016575900022871792,
+                0.016530599998077378,
+                0.016780200006905943
+              ],
+              "checksum": 8184
+            }
+          ]
+        },
+        "candidate": {
+          "purpose": "callback boundary diagnosis only, not an official score",
+          "rows": [
+            {
+              "mapping": "dict",
+              "path": "direct_lookup",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.007370200008153915,
+                0.007644900004379451,
+                0.007856099982745945,
+                0.007654899993212894,
+                0.0074859999876935035
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "dict",
+              "path": "python_call",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.010506699996767566,
+                0.010792900022352114,
+                0.010875800013309345,
+                0.010832400002982467,
+                0.010861300019314513
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "dict",
+              "path": "native_callback",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.016227500018430874,
+                0.015665899991290644,
+                0.015497199987294152,
+                0.015828699979465455,
+                0.015508699987549335
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "Counter",
+              "path": "direct_lookup",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.007919399999082088,
+                0.008242400013841689,
+                0.007946400000946596,
+                0.00794149999273941,
+                0.008200499985832721
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "Counter",
+              "path": "python_call",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.01225729999714531,
+                0.011255499994149432,
+                0.0113460999855306,
+                0.011363400000846013,
+                0.01157139998394996
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "Counter",
+              "path": "native_callback",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.018311899999389425,
+                0.01735249999910593,
+                0.01728719999664463,
+                0.017269999982090667,
+                0.017643700004555285
+              ],
+              "checksum": 8184
+            }
+          ]
+        }
+      }
+    },
+    {
+      "order": [
+        "candidate",
+        "control"
+      ],
+      "runs": {
+        "candidate": {
+          "purpose": "callback boundary diagnosis only, not an official score",
+          "rows": [
+            {
+              "mapping": "dict",
+              "path": "direct_lookup",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.007947900012368336,
+                0.008041399996727705,
+                0.008039400010602549,
+                0.00799459998961538,
+                0.007625400001415983
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "dict",
+              "path": "python_call",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.010477699979674071,
+                0.010715299984440207,
+                0.010566199984168634,
+                0.01039050001418218,
+                0.010777399991638958
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "dict",
+              "path": "native_callback",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.016143199987709522,
+                0.016008500009775162,
+                0.016032800020184368,
+                0.016288199985865504,
+                0.0159138000162784
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "Counter",
+              "path": "direct_lookup",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.008450499997707084,
+                0.008413000003201887,
+                0.008380099985515699,
+                0.008303400012664497,
+                0.00826430000597611
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "Counter",
+              "path": "python_call",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.012058499996783212,
+                0.012063400004990399,
+                0.012028600001940504,
+                0.012233099987497553,
+                0.011871399998199195
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "Counter",
+              "path": "native_callback",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.017544399976031855,
+                0.017582900007255375,
+                0.017849299998488277,
+                0.017869999981485307,
+                0.017647700005909428
+              ],
+              "checksum": 8184
+            }
+          ]
+        },
+        "control": {
+          "purpose": "callback boundary diagnosis only, not an official score",
+          "rows": [
+            {
+              "mapping": "dict",
+              "path": "direct_lookup",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.007466300012310967,
+                0.007562700018752366,
+                0.007419600005960092,
+                0.007444100017892197,
+                0.007408300007227808
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "dict",
+              "path": "python_call",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.010820800001965836,
+                0.010851500002900138,
+                0.010963100008666515,
+                0.010802100005093962,
+                0.010859200003324077
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "dict",
+              "path": "native_callback",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.016648399992845953,
+                0.016202300001168624,
+                0.016150700015714392,
+                0.016332900006091222,
+                0.01622199997655116
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "Counter",
+              "path": "direct_lookup",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.008265200012829155,
+                0.008020500012207776,
+                0.00826740000047721,
+                0.008186799997929484,
+                0.0081843999796547
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "Counter",
+              "path": "python_call",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.011672299995552748,
+                0.011654900008579716,
+                0.011694799992255867,
+                0.011759299988625571,
+                0.011782099987613037
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "Counter",
+              "path": "native_callback",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.01685189999989234,
+                0.016786299995146692,
+                0.01691419997951016,
+                0.016774999996414408,
+                0.016598800022620708
+              ],
+              "checksum": 8184
+            }
+          ]
+        }
+      }
+    },
+    {
+      "order": [
+        "control",
+        "candidate"
+      ],
+      "runs": {
+        "control": {
+          "purpose": "callback boundary diagnosis only, not an official score",
+          "rows": [
+            {
+              "mapping": "dict",
+              "path": "direct_lookup",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.007504200009861961,
+                0.0075382000068202615,
+                0.007518300000810996,
+                0.007512900017900392,
+                0.007634500012500212
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "dict",
+              "path": "python_call",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.010369399999035522,
+                0.01047490001656115,
+                0.010295499989297241,
+                0.010278100002324209,
+                0.010407599998870865
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "dict",
+              "path": "native_callback",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.01557749998755753,
+                0.015593299991451204,
+                0.015541799977654591,
+                0.015475799998966977,
+                0.015512999991187826
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "Counter",
+              "path": "direct_lookup",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.007890399981988594,
+                0.00798870000289753,
+                0.008060899999691173,
+                0.008039999986067414,
+                0.008035100006964058
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "Counter",
+              "path": "python_call",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.011447199998656288,
+                0.01144530001329258,
+                0.01139049997436814,
+                0.011446399992564693,
+                0.011471500009065494
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "Counter",
+              "path": "native_callback",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.016557399998418987,
+                0.01708429999416694,
+                0.017039600003045052,
+                0.016984099987894297,
+                0.017123199999332428
+              ],
+              "checksum": 8184
+            }
+          ]
+        },
+        "candidate": {
+          "purpose": "callback boundary diagnosis only, not an official score",
+          "rows": [
+            {
+              "mapping": "dict",
+              "path": "direct_lookup",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.007673899992369115,
+                0.00784219999331981,
+                0.007676500012166798,
+                0.007703599985688925,
+                0.00763030000962317
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "dict",
+              "path": "python_call",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.010799200012115762,
+                0.010798199975397438,
+                0.010886200005188584,
+                0.010825499979546294,
+                0.010598399996524677
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "dict",
+              "path": "native_callback",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.016346899996278808,
+                0.016729399998439476,
+                0.016486600012285635,
+                0.016605199984041974,
+                0.016369699995266274
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "Counter",
+              "path": "direct_lookup",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.007869900000514463,
+                0.007790100004058331,
+                0.007870700006606057,
+                0.007808700000168756,
+                0.00783459999365732
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "Counter",
+              "path": "python_call",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.011601200007135049,
+                0.012362199980998412,
+                0.011568099987925962,
+                0.011751599988201633,
+                0.011573700001463294
+              ],
+              "checksum": 8184
+            },
+            {
+              "mapping": "Counter",
+              "path": "native_callback",
+              "lookups_per_sample": 8192,
+              "samples_seconds": [
+                0.017614400014281273,
+                0.017687799991108477,
+                0.01726079999934882,
+                0.01765190000878647,
+                0.017282400018302724
+              ],
+              "checksum": 8184
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "summary": [
+    {
+      "mapping": "dict",
+      "path": "direct_lookup",
+      "control_time_over_candidate_time": [
+        1.0149839510240504,
+        1.0031531839217196,
+        1.0064714384103326,
+        1.0378748997898541,
+        0.982158037396867,
+        0.9311410236361721,
+        0.9793916483937908
+      ],
+      "median_speedup": 1.0031531839217196,
+      "pairs_favoring_candidate": 4
+    },
+    {
+      "mapping": "dict",
+      "path": "python_call",
+      "control_time_over_candidate_time": [
+        0.9790604022122694,
+        0.9695589152833167,
+        0.9672246844193646,
+        0.9979549917851591,
+        1.0161921639486766,
+        1.0270011942949187,
+        0.9602007544449551
+      ],
+      "median_speedup": 0.9790604022122694,
+      "pairs_favoring_candidate": 2
+    },
+    {
+      "mapping": "dict",
+      "path": "native_callback",
+      "control_time_over_candidate_time": [
+        1.0125458271716672,
+        0.9718285217327505,
+        0.9751225056682814,
+        0.9898924268407139,
+        1.0110750107902313,
+        1.0118008056065442,
+        0.9426928515323361
+      ],
+      "median_speedup": 0.9898924268407139,
+      "pairs_favoring_candidate": 3
+    },
+    {
+      "mapping": "Counter",
+      "path": "direct_lookup",
+      "control_time_over_candidate_time": [
+        1.0294759024339402,
+        0.9839210588988734,
+        1.0057275984297127,
+        1.0309519301310697,
+        1.0159946615142368,
+        0.9769334509229821,
+        1.0255916081828116
+      ],
+      "median_speedup": 1.0159946615142368,
+      "pairs_favoring_candidate": 5
+    },
+    {
+      "mapping": "Counter",
+      "path": "python_call",
+      "control_time_over_candidate_time": [
+        1.0078074012456149,
+        0.9949633297640096,
+        0.9862372205516067,
+        1.019580939260504,
+        1.020689229078656,
+        0.969838702606098,
+        0.9866565515226744
+      ],
+      "median_speedup": 0.9949633297640096,
+      "pairs_favoring_candidate": 3
+    },
+    {
+      "mapping": "Counter",
+      "path": "native_callback",
+      "control_time_over_candidate_time": [
+        0.9760934616877864,
+        0.9534076716730269,
+        0.9656055381614285,
+        0.9891984151388417,
+        0.9552456432056389,
+        0.9511891062022648,
+        0.9673676077090229
+      ],
+      "median_speedup": 0.9656055381614285,
+      "pairs_favoring_candidate": 0
+    }
+  ]
+}

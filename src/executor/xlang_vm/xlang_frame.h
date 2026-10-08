@@ -984,6 +984,13 @@ private:
       }
       for (size_t loop_ip = instr.dst; loop_ip <= i; ++loop_ip) {
         for_each_register_read(fn->code[loop_ip], [&](uint32_t reg) {
+          // LoadModuleAttr writes its receiver scratch register from the live
+          // module slot before reading it internally. That read is not a root
+          // carried from the previous iteration. Keep its linear last-use for
+          // cleanup, and let any later external read establish real liveness.
+          // Otherwise `del obj` in a loop retains obj in this fused temporary.
+          const auto& loop_instr = fn->code[loop_ip];
+          if (loop_instr.op == ir::Op::LoadModuleAttr && reg == loop_instr.c) return;
           if (reg < computed->register_last_use.size() &&
               !temporary_defined_in_loop[reg]) {
             computed->register_loop_carried[reg] = true;

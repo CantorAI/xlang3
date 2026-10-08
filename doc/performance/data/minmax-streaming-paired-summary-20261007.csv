@@ -1,0 +1,7 @@
+mapping,path,median_control_over_candidate_speedup,favorable_pairs,total_pairs
+dict,direct_lookup,1.0031531839217196,4,7
+dict,python_call,0.9790604022122694,2,7
+dict,native_callback,0.9898924268407139,3,7
+Counter,direct_lookup,1.0159946615142368,5,7
+Counter,python_call,0.9949633297640096,3,7
+Counter,native_callback,0.9656055381614285,0,7
