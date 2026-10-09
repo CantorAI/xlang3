@@ -1,0 +1,1931 @@
+{
+  "status": "frozen_static_exact_export_plan",
+  "head": "4b1cfefc80f0bbb9e1f60c09c46d83619ded0e17",
+  "preview_root": "scratch/performance/python-new-vm-continuation-r4-checkpoint-export-preview-proposed-20261009",
+  "archive_root": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009",
+  "report_template": "scratch/performance/python-new-vm-continuation-r4-checkpoint-report-proposed-20261009.md",
+  "report_template_sha256": "5bd66cdb69a722cc9e7156d58e95816670558154dfd2cb2a3f066c75fe3ca4bd",
+  "application": "doc/performance/data/python-new-vm-continuation-r4-applied-source-20261009.json",
+  "application_sha256": "2c89133fbe3c3a4c0d13a1652b62362d69be1c79b07e197186682eac664cb0a8",
+  "validation": "doc/performance/data/python-new-vm-continuation-r4-full-validation-20261009.json",
+  "validation_sha256": "e54d2177dff93b238313fc1b51877331b110ea59093944dc1ab108f966ee3bd3",
+  "correctness_receipt": "doc/performance/data/python-new-vm-continuation-r4-correctness-r2-20261009.json",
+  "correctness_receipt_sha256": "9c631bc3ff95060b59b77ab19c42b0c22816dc51b61da9e0ead8d8aac15ce8dc",
+  "constructor": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009.json",
+  "constructor_sha256": "5b383d45955524043dd91bc4e20b4d5e440f2f88db7c6876a20200a8241bc70e",
+  "eligibility": "doc/performance/data/python-new-vm-continuation-r4-eligibility-r2-20261009.json",
+  "eligibility_sha256": "6bc4b61484212562f73d584019b05a797cd0ec9c43cff59c538d57f39a7cde56",
+  "parent_manifest": "build-repro/controls/lambda-eager-comprehension-capture-accepted-r5-20261009/preserved-release-provenance.json",
+  "parent_manifest_sha256": "9271314856ede7f173396b2f39449a01d785f61a1579ce5f93c7786a2961dfad",
+  "release_root": "build-repro/main-verify-20261006/Release",
+  "fixed_baseline_root": "build-repro/Release",
+  "owned_source_sha256": {
+    "src/executor/xlang_vm/ops/xlang_vm_ops_call.h": "263882e8ed1e41f60a0addd3df2370edad00655aa5d86f4d8611a53e5f5a7574",
+    "src/executor/xlang_vm/xlang_frame.h": "d7854b3fad57ff873110891bc0c8f286cabe9fadafa1ffbbf0763267500166e4",
+    "src/executor/xlang_vm/xlang_vm_loop.cpp": "9a0108d9a30f6bd34e072b9e100670a27cd1769c61577e5294363279ca8902d9",
+    "src/executor/xlang_vm/xlang_vm_op_rows.h": "f8994fb30fa11e3c08ed4c06724772a1d6e211a14ecd8cac6e112c5897bb95d4",
+    "tests/run_fixtures.py": "c6835d82cd516583eedbb50aea1f9ce3e95bb4ec8d12bc80243c79cec33c7cd1",
+    "tests/run_fixtures.ps1": "233836cce51b46be7ba3245f151c2eb6642ccda68e8994ac5295eb3fa13b7494",
+    "tests/fixtures/core/python_new_vm_continuation.py": "095b1d0b3cf8b38133efa781e911c4025d380e0af53bf2761940517680828f32",
+    "tests/fixtures/expected/python_new_vm_continuation.out": "8b89241811a7b183c32134f75928729322466dab8f6c2ae27c57acda3edb27d8",
+    "tests/fixtures/core/python_new_completion_finalizer.py": "ebe016f733a0b59225d4e20a8ed4389dcc82dac2dc10476468e52118e65322ff",
+    "tests/fixtures/expected/python_new_completion_finalizer.out": "07aaecf01131ae40fe870a0184dd691547c7af1d1b8fd978f5676b17d9cdf5b5"
+  },
+  "owned_input_paths": {
+    "src/executor/xlang_vm/ops/xlang_vm_ops_call.h": "build-repro/controls/lambda-eager-comprehension-capture-accepted-r5-20261009/source-snapshot/src/executor/xlang_vm/ops/xlang_vm_ops_call.h",
+    "src/executor/xlang_vm/xlang_frame.h": "build-repro/controls/lambda-eager-comprehension-capture-accepted-r5-20261009/source-snapshot/src/executor/xlang_vm/xlang_frame.h",
+    "src/executor/xlang_vm/xlang_vm_loop.cpp": "build-repro/controls/lambda-eager-comprehension-capture-accepted-r5-20261009/source-snapshot/src/executor/xlang_vm/xlang_vm_loop.cpp",
+    "src/executor/xlang_vm/xlang_vm_op_rows.h": "build-repro/controls/lambda-eager-comprehension-capture-accepted-r5-20261009/source-snapshot/src/executor/xlang_vm/xlang_vm_op_rows.h",
+    "tests/run_fixtures.py": "build-repro/controls/lambda-eager-comprehension-capture-accepted-r5-20261009/source-snapshot/tests/run_fixtures.py",
+    "tests/run_fixtures.ps1": "build-repro/controls/lambda-eager-comprehension-capture-accepted-r5-20261009/source-snapshot/tests/run_fixtures.ps1"
+  },
+  "new_owned_targets": [
+    "tests/fixtures/core/python_new_vm_continuation.py",
+    "tests/fixtures/expected/python_new_vm_continuation.out",
+    "tests/fixtures/core/python_new_completion_finalizer.py",
+    "tests/fixtures/expected/python_new_completion_finalizer.out"
+  ],
+  "owned_source_count": 10,
+  "files": [
+    {
+      "source": "doc/performance/data/python-new-r3-finalizer-reference-20261009-accepted-xlang3-reference.json",
+      "path": "doc/performance/data/python-new-r3-finalizer-reference-20261009-accepted-xlang3-reference.json",
+      "sha256": "004bb6b66f92e752b38ce9c1ff276ade2dce3ef29e2c4eeba8258cbc5172c956",
+      "bytes": 67362,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-r3-finalizer-reference-20261009-accepted-xlang3-reference.stderr.log",
+      "path": "doc/performance/data/python-new-r3-finalizer-reference-20261009-accepted-xlang3-reference.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-r3-finalizer-reference-20261009-accepted-xlang3-reference.stdout.log",
+      "path": "doc/performance/data/python-new-r3-finalizer-reference-20261009-accepted-xlang3-reference.stdout.log",
+      "sha256": "e1143832a2f639b905f59ddc95cab94d8693d25465f0f14c59fe729043019478",
+      "bytes": 71,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-r3-finalizer-reference-20261009-cpython-reference.json",
+      "path": "doc/performance/data/python-new-r3-finalizer-reference-20261009-cpython-reference.json",
+      "sha256": "b7612931d2b35d6c0c7de77046c3f327ab8956fb76778c1d881d66399e56ff4d",
+      "bytes": 67306,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-r3-finalizer-reference-20261009-cpython-reference.stderr.log",
+      "path": "doc/performance/data/python-new-r3-finalizer-reference-20261009-cpython-reference.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-r3-finalizer-reference-20261009-cpython-reference.stdout.log",
+      "path": "doc/performance/data/python-new-r3-finalizer-reference-20261009-cpython-reference.stdout.log",
+      "sha256": "e1143832a2f639b905f59ddc95cab94d8693d25465f0f14c59fe729043019478",
+      "bytes": 71,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-r3-main-reference-20261009-accepted-xlang3-reference.json",
+      "path": "doc/performance/data/python-new-r3-main-reference-20261009-accepted-xlang3-reference.json",
+      "sha256": "64ca7f862bd47776b7ef0c0bb88bde43d0e6a3cc01f46b29bef2c112f88c4c5a",
+      "bytes": 67231,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-r3-main-reference-20261009-accepted-xlang3-reference.stderr.log",
+      "path": "doc/performance/data/python-new-r3-main-reference-20261009-accepted-xlang3-reference.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-r3-main-reference-20261009-accepted-xlang3-reference.stdout.log",
+      "path": "doc/performance/data/python-new-r3-main-reference-20261009-accepted-xlang3-reference.stdout.log",
+      "sha256": "dd19076efb1e05c59e349699d4aa7e03301a2ea506cb1ccce3949e14caa2edfd",
+      "bytes": 409,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-r3-main-reference-20261009-cpython-reference.json",
+      "path": "doc/performance/data/python-new-r3-main-reference-20261009-cpython-reference.json",
+      "sha256": "92848cd1a8c36727ccd30483cdb44988807576204b8ed1b85e0da8e6ce9dbe4e",
+      "bytes": 67175,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-r3-main-reference-20261009-cpython-reference.stderr.log",
+      "path": "doc/performance/data/python-new-r3-main-reference-20261009-cpython-reference.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-r3-main-reference-20261009-cpython-reference.stdout.log",
+      "path": "doc/performance/data/python-new-r3-main-reference-20261009-cpython-reference.stdout.log",
+      "sha256": "dd19076efb1e05c59e349699d4aa7e03301a2ea506cb1ccce3949e14caa2edfd",
+      "bytes": 409,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-cpython-reference-20261009.json",
+      "path": "doc/performance/data/python-new-vm-continuation-cpython-reference-20261009.json",
+      "sha256": "bd21aa7a3e264cfb30b668712a9f377ecc9fbd57e21240d443a014aac101eb12",
+      "bytes": 2373,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-cpython-reference-20261009.stderr.log",
+      "path": "doc/performance/data/python-new-vm-continuation-cpython-reference-20261009.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-cpython-reference-20261009.stdout.log",
+      "path": "doc/performance/data/python-new-vm-continuation-cpython-reference-20261009.stdout.log",
+      "sha256": "dd19076efb1e05c59e349699d4aa7e03301a2ea506cb1ccce3949e14caa2edfd",
+      "bytes": 409,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r3-applied-source-20261009.json",
+      "path": "doc/performance/data/python-new-vm-continuation-r3-applied-source-20261009.json",
+      "sha256": "efbc1498c2475aaf2013c283c4de85b164d4ee4457b4f2bbe7138934119bd635",
+      "bytes": 18959,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r3-build-20261009.json",
+      "path": "doc/performance/data/python-new-vm-continuation-r3-build-20261009.json",
+      "sha256": "6cf6617a1a0dd7587fc16be4d2e68263e5ce03c7d962d23915bd7c62ff6a6a58",
+      "bytes": 38264,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r3-build-20261009.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r3-build-20261009.log",
+      "sha256": "2adeeef92f6c1216c5f9c516f964d4b318ff19b429bf5964333ea478d4c84bfd",
+      "bytes": 4930,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-applied-source-20261009.json",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-applied-source-20261009.json",
+      "sha256": "2c89133fbe3c3a4c0d13a1652b62362d69be1c79b07e197186682eac664cb0a8",
+      "bytes": 19356,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-build-20261009.json",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-build-20261009.json",
+      "sha256": "d4dc98f0c23e1d2b902a6a658cc1d7211c59ca01caa8f10a4a95ffb5d67644b9",
+      "bytes": 38264,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-build-20261009.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-build-20261009.log",
+      "sha256": "a217f3bbde3c457ff04b1244ee768688f0442a72de18c4b5c96f1a4d9074b16c",
+      "bytes": 2069,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-correctness-20261009.json",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-correctness-20261009.json",
+      "sha256": "b2bae21dde9d317da446cffe441dd49ceb7d18c488d36d8462f6a5e030194741",
+      "bytes": 1859,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-correctness-r2-20261009-ctest-inventory.external-process-observations.jsonl",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-correctness-r2-20261009-ctest-inventory.external-process-observations.jsonl",
+      "sha256": "5fac6c7ca8d41669debce0601c2e59b5ee43bf4a7618d9e6b8970f370e378778",
+      "bytes": 108,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-correctness-r2-20261009-ctest-inventory.stderr.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-correctness-r2-20261009-ctest-inventory.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-correctness-r2-20261009-ctest-inventory.stdout.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-correctness-r2-20261009-ctest-inventory.stdout.log",
+      "sha256": "1104a32a60d19adbf6bb99a36bf2c20e00f7c2b9ad27a9bf4a04c2ce58036aa4",
+      "bytes": 8756,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-correctness-r2-20261009-ctest.external-process-observations.jsonl",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-correctness-r2-20261009-ctest.external-process-observations.jsonl",
+      "sha256": "df0c650acb8a68e385b10b8bb02436c4fd98dd97d8acb922bb6ec24ffaa0b769",
+      "bytes": 151,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-correctness-r2-20261009-ctest.stderr.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-correctness-r2-20261009-ctest.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-correctness-r2-20261009-ctest.stdout.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-correctness-r2-20261009-ctest.stdout.log",
+      "sha256": "1f6cdf60554a8dbd83b34235e7edb7f64206471a3ce7bcbfff3f2132e0d1d716",
+      "bytes": 1171,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-correctness-r2-20261009-full-fixtures-clean.external-process-observations.jsonl",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-correctness-r2-20261009-full-fixtures-clean.external-process-observations.jsonl",
+      "sha256": "5c6120984b4786bf1b848aaacb71b51e18c3ac08dba1ed59b449e79cc530a5ae",
+      "bytes": 2052,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-correctness-r2-20261009-full-fixtures-clean.stderr.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-correctness-r2-20261009-full-fixtures-clean.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-correctness-r2-20261009-full-fixtures-clean.stdout.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-correctness-r2-20261009-full-fixtures-clean.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-correctness-r2-20261009-old_xlang_sqlite_api.external-process-observations.jsonl",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-correctness-r2-20261009-old_xlang_sqlite_api.external-process-observations.jsonl",
+      "sha256": "17a865b772e68d8bd4ef12a449d0b38bb53fab01760a6170efc8ceaff8bbc7c9",
+      "bytes": 108,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-correctness-r2-20261009-old_xlang_sqlite_api.stderr.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-correctness-r2-20261009-old_xlang_sqlite_api.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-correctness-r2-20261009-old_xlang_sqlite_api.stdout.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-correctness-r2-20261009-old_xlang_sqlite_api.stdout.log",
+      "sha256": "36449d6aaa8b51b49315f871c305cf5e7568199909ce178a331245b7fe4a6a92",
+      "bytes": 237,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-correctness-r2-20261009-python_sqlite3_api.external-process-observations.jsonl",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-correctness-r2-20261009-python_sqlite3_api.external-process-observations.jsonl",
+      "sha256": "945f52486361317fdf842c6289fa67306b3dfee031eb7da28e114144166af622",
+      "bytes": 108,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-correctness-r2-20261009-python_sqlite3_api.stderr.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-correctness-r2-20261009-python_sqlite3_api.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-correctness-r2-20261009-python_sqlite3_api.stdout.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-correctness-r2-20261009-python_sqlite3_api.stdout.log",
+      "sha256": "c9ae392c8a76084bb521fcd89dc73d8617755aae1741c705f2ba60efe9606ecb",
+      "bytes": 538,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-correctness-r2-20261009.json",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-correctness-r2-20261009.json",
+      "sha256": "9c631bc3ff95060b59b77ab19c42b0c22816dc51b61da9e0ead8d8aac15ce8dc",
+      "bytes": 521386,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-eligibility-20261009.json",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-eligibility-20261009.json",
+      "sha256": "ace97cea5b00a3d53d4af7b188cb01a28eb28f9d13a510426a26b95749f7c4f5",
+      "bytes": 81171,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-eligibility-r2-20261009.json",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-eligibility-r2-20261009.json",
+      "sha256": "6bc4b61484212562f73d584019b05a797cd0ec9c43cff59c538d57f39a7cde56",
+      "bytes": 88136,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-call_default_positional_frame_fastpath.stderr.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-call_default_positional_frame_fastpath.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-call_default_positional_frame_fastpath.stdout.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-call_default_positional_frame_fastpath.stdout.log",
+      "sha256": "8c481c0f7fa8c2f9d21bf90ad49a6749400beb54fa7699943a81f48fcef29759",
+      "bytes": 46,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-call_ex_constructor_cache.stderr.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-call_ex_constructor_cache.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-call_ex_constructor_cache.stdout.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-call_ex_constructor_cache.stdout.log",
+      "sha256": "23901617209a5d326f46396020603e676b3a6bf12b38b04568a42e90874cd321",
+      "bytes": 84,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-call_ex_cross_activation_constructor.stderr.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-call_ex_cross_activation_constructor.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-call_ex_cross_activation_constructor.stdout.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-call_ex_cross_activation_constructor.stdout.log",
+      "sha256": "1aabd6185ad05d1980a092a433d27dd5d947732277b21b6e530e296383c2a11a",
+      "bytes": 208,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-class_namespace_lifetime.stderr.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-class_namespace_lifetime.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-class_namespace_lifetime.stdout.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-class_namespace_lifetime.stdout.log",
+      "sha256": "2033429997cf99317bbb0c7ed4e963475f864303452e7db1e206941a009d99a9",
+      "bytes": 205,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-debug_trace_profile_edges.stderr.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-debug_trace_profile_edges.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-debug_trace_profile_edges.stdout.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-debug_trace_profile_edges.stdout.log",
+      "sha256": "55e775abdbd8e515f51e3fb140d6a05e84937ead3668308c71cdc3d44cfb6646",
+      "bytes": 875,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-explicit_slot_descriptor_fallback.stderr.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-explicit_slot_descriptor_fallback.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-explicit_slot_descriptor_fallback.stdout.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-explicit_slot_descriptor_fallback.stdout.log",
+      "sha256": "13904a28d4a0572e4b7ac04d1aea1076789001420430ec95596dbbd6b26a19e7",
+      "bytes": 111,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-generator_result_release.stderr.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-generator_result_release.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-generator_result_release.stdout.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-generator_result_release.stdout.log",
+      "sha256": "054b150e527859037fe981233644dbb615bc311ec7b87dfc207ae33e8af54e2d",
+      "bytes": 238,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-generator_resume_state_reuse.stderr.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-generator_resume_state_reuse.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-generator_resume_state_reuse.stdout.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-generator_resume_state_reuse.stdout.log",
+      "sha256": "4a6ca24916721cb22e4d5fe801b878201a2b1eead2d909e100c6ea159848f741",
+      "bytes": 64,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-inherited_call_ex_constructor.stderr.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-inherited_call_ex_constructor.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-inherited_call_ex_constructor.stdout.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-inherited_call_ex_constructor.stdout.log",
+      "sha256": "5a271b6eeadfe39011c6f877ad16ae9750aeb351030a1b0863a97c512481bd16",
+      "bytes": 473,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-module_class_constructor_frame_growth.stderr.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-module_class_constructor_frame_growth.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-module_class_constructor_frame_growth.stdout.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-module_class_constructor_frame_growth.stdout.log",
+      "sha256": "bc77491eed87ab5a4b0cf702be6d6332a8a7da16fcd26050852a8c2825c6cc04",
+      "bytes": 21,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-nested_profile_setting.stderr.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-nested_profile_setting.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-nested_profile_setting.stdout.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-nested_profile_setting.stdout.log",
+      "sha256": "99e1a62179c2b818a9922b7bcd485b5e0fc3cbdd9bc80f3e67ac90bd5b1fe586",
+      "bytes": 135,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-ordinary_canonical_slot_constructor.stderr.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-ordinary_canonical_slot_constructor.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-ordinary_canonical_slot_constructor.stdout.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-ordinary_canonical_slot_constructor.stdout.log",
+      "sha256": "07760154040ced80af10cb9c3b1f59b1f901902d8fcf659dd28fbac1eb9cffef",
+      "bytes": 512,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-python_new_completion_finalizer.stderr.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-python_new_completion_finalizer.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-python_new_completion_finalizer.stdout.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-python_new_completion_finalizer.stdout.log",
+      "sha256": "e1143832a2f639b905f59ddc95cab94d8693d25465f0f14c59fe729043019478",
+      "bytes": 71,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-python_new_vm_continuation.stderr.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-python_new_vm_continuation.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-python_new_vm_continuation.stdout.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-python_new_vm_continuation.stdout.log",
+      "sha256": "dd19076efb1e05c59e349699d4aa7e03301a2ea506cb1ccce3949e14caa2edfd",
+      "bytes": 409,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-saved_frame_recursion_limit.stderr.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-saved_frame_recursion_limit.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-saved_frame_recursion_limit.stdout.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-saved_frame_recursion_limit.stdout.log",
+      "sha256": "44e9ce973fce47b74004192d6447c1a6c84562c5a5198307cd28836e5f231ec1",
+      "bytes": 35,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-slot_descriptor_owner.stderr.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-slot_descriptor_owner.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-slot_descriptor_owner.stdout.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-slot_descriptor_owner.stdout.log",
+      "sha256": "9d046602c9c3f2fd6a0a60db38d72e49d5f4bd873d2b16c4cdf040568c4ddcce",
+      "bytes": 75,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-synchronous_class_argument_lifetime.stderr.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-synchronous_class_argument_lifetime.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-synchronous_class_argument_lifetime.stdout.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-synchronous_class_argument_lifetime.stdout.log",
+      "sha256": "b72adc0d6c3afd2476d3fc871732e8d8b84fe4fa17ffadffd3ec533d8ee780ee",
+      "bytes": 85,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-sys_monitoring_all_events.stderr.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-sys_monitoring_all_events.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-sys_monitoring_all_events.stdout.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-sys_monitoring_all_events.stdout.log",
+      "sha256": "9b113c1832cd48587fe3a60a5a364e2afa8656593ad1f472a1b5429f40e1fb16",
+      "bytes": 422,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-trace_local_and_exception.stderr.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-trace_local_and_exception.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-trace_local_and_exception.stdout.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009-trace_local_and_exception.stdout.log",
+      "sha256": "06d973bcf8a1f8781f91a3b308214129b19114161163c639bc90c4dd50ac1cf1",
+      "bytes": 68,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009.json",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-focused-20261009.json",
+      "sha256": "550e4815da236e087723e1eca72e2772f50d05fbc247399a25fd44d95ace8793",
+      "bytes": 63951,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-full-validation-20261009-fixed-gate.external-process-observations.jsonl",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-full-validation-20261009-fixed-gate.external-process-observations.jsonl",
+      "sha256": "c5a0140a03cbfc8fa0010ab5de7f4b252c489e910c2181fba7e5bd8426f9ccb3",
+      "bytes": 3575,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-full-validation-20261009-fixed-gate.json",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-full-validation-20261009-fixed-gate.json",
+      "sha256": "954f79ec7a1c159cf07e19c53484073d7fab2162977349a0162481902c6b6c57",
+      "bytes": 62453,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-full-validation-20261009-fixed-gate.stderr.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-full-validation-20261009-fixed-gate.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-full-validation-20261009-fixed-gate.stdout.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-full-validation-20261009-fixed-gate.stdout.log",
+      "sha256": "003a8ce0125f7c74d8d695a2a80b59af9ed8d88da6430f931b628541adfbcead",
+      "bytes": 651,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-full-validation-20261009-official-cpython3147-unpickle_pure_python-fast.json",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-full-validation-20261009-official-cpython3147-unpickle_pure_python-fast.json",
+      "sha256": "858b60494641486c8401e4ce71e2d3cfe758f65d521091bf5276a1255d82b82c",
+      "bytes": 1992,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-full-validation-20261009-official-cpython3147-unpickle_pure_python.external-process-observations.jsonl",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-full-validation-20261009-official-cpython3147-unpickle_pure_python.external-process-observations.jsonl",
+      "sha256": "558129079056205e896494f8232352bd83a5e5d2d00753d71fb416d9ca1df7f3",
+      "bytes": 325,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-full-validation-20261009-official-cpython3147-unpickle_pure_python.stderr.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-full-validation-20261009-official-cpython3147-unpickle_pure_python.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-full-validation-20261009-official-cpython3147-unpickle_pure_python.stdout.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-full-validation-20261009-official-cpython3147-unpickle_pure_python.stdout.log",
+      "sha256": "51edce855bcc1a2636dafe9ab8701cd83da8ce9ee1954f4150cc544bdf7d8bae",
+      "bytes": 882,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-full-validation-20261009-official-xlang3-unpickle_pure_python-fast.json",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-full-validation-20261009-official-xlang3-unpickle_pure_python-fast.json",
+      "sha256": "7a9706e7986787b54e028019ddec0bd33a1412f548f46bbd717031f31b7e0dbb",
+      "bytes": 1846,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-full-validation-20261009-official-xlang3-unpickle_pure_python.external-process-observations.jsonl",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-full-validation-20261009-official-xlang3-unpickle_pure_python.external-process-observations.jsonl",
+      "sha256": "b27122b3aabbe857bf114ec306f11950205bd744f97b5d58be1e42d1047d5111",
+      "bytes": 585,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-full-validation-20261009-official-xlang3-unpickle_pure_python.stderr.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-full-validation-20261009-official-xlang3-unpickle_pure_python.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-full-validation-20261009-official-xlang3-unpickle_pure_python.stdout.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-full-validation-20261009-official-xlang3-unpickle_pure_python.stdout.log",
+      "sha256": "9a64726fdb653933dd26aae0aa655c93909f6124176efd1bdba7d05bb11ded23",
+      "bytes": 890,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-full-validation-20261009.json",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-full-validation-20261009.json",
+      "sha256": "e54d2177dff93b238313fc1b51877331b110ea59093944dc1ab108f966ee3bd3",
+      "bytes": 536502,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-eligibility-20261009/date-original/_pydatetime.ir.txt",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-eligibility-20261009/date-original/_pydatetime.ir.txt",
+      "sha256": "e343d72ccf5cb7ccdca08f6d1c86e1426c80fc53318920ca3b4d31ac290af4f9",
+      "bytes": 561831,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-eligibility-20261009/date-original/stderr.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-eligibility-20261009/date-original/stderr.log",
+      "sha256": "ae2ef2a68dc6516b299c103f8cd0c6b18156c2bd227c7b9edb4d16e1f4acb1de",
+      "bytes": 140,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-eligibility-20261009/date-original/stdout.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-eligibility-20261009/date-original/stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-eligibility-20261009/finalizer/python_new_completion_finalizer.ir.txt",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-eligibility-20261009/finalizer/python_new_completion_finalizer.ir.txt",
+      "sha256": "e16bce90e0d08ad4c1b1f630cb405c0be16fb0d50de71846f70bef933204e726",
+      "bytes": 4260,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-eligibility-20261009/finalizer/stderr.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-eligibility-20261009/finalizer/stderr.log",
+      "sha256": "a85f50a84636e5ba94d25645ec2c3a6299457bec715ca3150d0198697cdd3c06",
+      "bytes": 156,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-eligibility-20261009/finalizer/stdout.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-eligibility-20261009/finalizer/stdout.log",
+      "sha256": "e1143832a2f639b905f59ddc95cab94d8693d25465f0f14c59fe729043019478",
+      "bytes": 71,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-eligibility-20261009/main/python_new_vm_continuation.ir.txt",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-eligibility-20261009/main/python_new_vm_continuation.ir.txt",
+      "sha256": "058c5bc2a0b1a611ebd4718b2540a01d114d361ebc7243bad21a71a055ca7693",
+      "bytes": 126061,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-eligibility-20261009/main/stderr.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-eligibility-20261009/main/stderr.log",
+      "sha256": "47da7f1976145ba0dac81b4fc784c2bc31b1cb3cdebfdd57aff61b3db6f5a5dc",
+      "bytes": 146,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-eligibility-20261009/main/stdout.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-eligibility-20261009/main/stdout.log",
+      "sha256": "dd19076efb1e05c59e349699d4aa7e03301a2ea506cb1ccce3949e14caa2edfd",
+      "bytes": 409,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-eligibility-20261009/pickle-original/pickle.ir.txt",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-eligibility-20261009/pickle-original/pickle.ir.txt",
+      "sha256": "3d9af888be325420444156eadf41489393a32defc9b55d2d745d0086a135e16d",
+      "bytes": 477821,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-eligibility-20261009/pickle-original/stderr.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-eligibility-20261009/pickle-original/stderr.log",
+      "sha256": "63850eccae7cd062d679237f54619d9c0a5c82fec018608cdced990f6e970a5b",
+      "bytes": 137,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-eligibility-20261009/pickle-original/stdout.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-eligibility-20261009/pickle-original/stdout.log",
+      "sha256": "5c86bee418b0b243cb5b9e69ff159e70d2662ffa074023c34d4a2cf5ac224a1d",
+      "bytes": 210,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-eligibility-20261009/unpickle-inputs/python-new-original-unpickle-probe-root-20261009.ir.txt",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-eligibility-20261009/unpickle-inputs/python-new-original-unpickle-probe-root-20261009.ir.txt",
+      "sha256": "ea9ff00c637b74a90866ec0040be55aa23a8e7616cc43849129414fc93b679ae",
+      "bytes": 18292,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-eligibility-20261009/unpickle-inputs/stderr.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-eligibility-20261009/unpickle-inputs/stderr.log",
+      "sha256": "06e5904c4607e54540fe490ab79a651e583171bc88e0897f96e6088671314993",
+      "bytes": 409,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-eligibility-20261009/unpickle-inputs/stdout.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-eligibility-20261009/unpickle-inputs/stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-eligibility-r2-20261009/stderr.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-eligibility-r2-20261009/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/python-new-vm-continuation-r4-eligibility-r2-20261009/stdout.log",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-eligibility-r2-20261009/stdout.log",
+      "sha256": "e7b12d9be5df65d519aeecf6a3182893e30e13112ac0e60ea83873bf25584416",
+      "bytes": 224,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/pyperformance-xlang3-python-new-r4-full-fast-20261009-provenance.json",
+      "path": "doc/performance/data/pyperformance-xlang3-python-new-r4-full-fast-20261009-provenance.json",
+      "sha256": "cc2d37f16d57f495d65e06a3aa26ee4d69d1a7944d42d114e727c205b1c64a37",
+      "bytes": 734278,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/pyperformance-xlang3-python-new-r4-full-fast-r2-20261009-provenance.json",
+      "path": "doc/performance/data/pyperformance-xlang3-python-new-r4-full-fast-r2-20261009-provenance.json",
+      "sha256": "e9bc089c652b189e720143a5581e05519f9fca25c214f41fa69c016dc4a0d4b2",
+      "bytes": 2476680,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-1-cpython-python.external-process-observations.jsonl",
+      "path": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-1-cpython-python.external-process-observations.jsonl",
+      "sha256": "ffc9a1047473bc3cc5e4b2cec40e492f08bbc7c409d3ba059c1b444c8715ee97",
+      "bytes": 65,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-1-cpython-python.stderr.log",
+      "path": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-1-cpython-python.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-1-cpython-python.stdout.log",
+      "path": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-1-cpython-python.stdout.log",
+      "sha256": "ee196ed71445fa1e3b77199c5ff809b7c4ffaa1b07180f454de4faa44f6899c2",
+      "bytes": 2439,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-1-xlang3-candidate.external-process-observations.jsonl",
+      "path": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-1-xlang3-candidate.external-process-observations.jsonl",
+      "sha256": "91689e56f57b2850f9674db9065e7e9b09942b6dc35867f98b5cbe401fca16fc",
+      "bytes": 65,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-1-xlang3-candidate.stderr.log",
+      "path": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-1-xlang3-candidate.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-1-xlang3-candidate.stdout.log",
+      "path": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-1-xlang3-candidate.stdout.log",
+      "sha256": "194cc0954fc15a052f3b456c44da32b8729e6c2aecd02886c2dde3a0241d0de4",
+      "bytes": 2616,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-1-xlang3-control.external-process-observations.jsonl",
+      "path": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-1-xlang3-control.external-process-observations.jsonl",
+      "sha256": "e7fa5ef35f232af8578c847204f2663423b467815d2321f037026e0f52a07d27",
+      "bytes": 130,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-1-xlang3-control.stderr.log",
+      "path": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-1-xlang3-control.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-1-xlang3-control.stdout.log",
+      "path": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-1-xlang3-control.stdout.log",
+      "sha256": "16ddb1e76043fd9e526c292e9eed5e7f103d84c58247102989e065715cfc3a00",
+      "bytes": 2795,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-2-cpython-python.external-process-observations.jsonl",
+      "path": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-2-cpython-python.external-process-observations.jsonl",
+      "sha256": "c22135aefdffca283544b91cb3b4b23d75b36c07afda84a177bf7d4e4cc4b1ba",
+      "bytes": 65,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-2-cpython-python.stderr.log",
+      "path": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-2-cpython-python.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-2-cpython-python.stdout.log",
+      "path": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-2-cpython-python.stdout.log",
+      "sha256": "7666c2ed47d0b08337ec8fa64651d8d5d250b87996d1038761469a2db75aaebd",
+      "bytes": 2441,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-2-xlang3-candidate.external-process-observations.jsonl",
+      "path": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-2-xlang3-candidate.external-process-observations.jsonl",
+      "sha256": "d403683b55762e755a232d9f86bbe99ee25a6dce0fb9cc9cdaf39a3005850861",
+      "bytes": 65,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-2-xlang3-candidate.stderr.log",
+      "path": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-2-xlang3-candidate.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-2-xlang3-candidate.stdout.log",
+      "path": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-2-xlang3-candidate.stdout.log",
+      "sha256": "da5213f1d650477ce3c540291c1a99c056add914f57efce4a9ee6f197001e291",
+      "bytes": 2619,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-2-xlang3-control.external-process-observations.jsonl",
+      "path": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-2-xlang3-control.external-process-observations.jsonl",
+      "sha256": "2900655258a9104bbb4257893c674c80e6f7474d542875685fe09cd2ecd31317",
+      "bytes": 65,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-2-xlang3-control.stderr.log",
+      "path": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-2-xlang3-control.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-2-xlang3-control.stdout.log",
+      "path": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-2-xlang3-control.stdout.log",
+      "sha256": "7e3184f0057244fbbdf4f4a947a167b8a767e0c4246c29364401723445113bc9",
+      "bytes": 2795,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-3-cpython-python.external-process-observations.jsonl",
+      "path": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-3-cpython-python.external-process-observations.jsonl",
+      "sha256": "b62b1b6312c78b5864bfbc3e8f8f038a4a63060ff16b4b097f4f6d42aec28efa",
+      "bytes": 65,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-3-cpython-python.stderr.log",
+      "path": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-3-cpython-python.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-3-cpython-python.stdout.log",
+      "path": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-3-cpython-python.stdout.log",
+      "sha256": "2930351d2d100a6db629012fa546add75a53ebdc8d82d8535b1ed4403ef5e768",
+      "bytes": 2439,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-3-xlang3-candidate.external-process-observations.jsonl",
+      "path": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-3-xlang3-candidate.external-process-observations.jsonl",
+      "sha256": "ce32e942e9d24d8c1069c5168bf57248f7cdc16166d08ddfcc1cc0454f319a73",
+      "bytes": 65,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-3-xlang3-candidate.stderr.log",
+      "path": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-3-xlang3-candidate.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-3-xlang3-candidate.stdout.log",
+      "path": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-3-xlang3-candidate.stdout.log",
+      "sha256": "090c278e4b17aa48d7b2993c869cd87efc9baf6a6b728eac600af6c560f46328",
+      "bytes": 2619,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-3-xlang3-control.external-process-observations.jsonl",
+      "path": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-3-xlang3-control.external-process-observations.jsonl",
+      "sha256": "ef7510e374e110269fe6f9cdfb3cd8c38c1d12bd76e6013ef2ca6331a4c8ccc3",
+      "bytes": 65,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-3-xlang3-control.stderr.log",
+      "path": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-3-xlang3-control.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-3-xlang3-control.stdout.log",
+      "path": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-3-xlang3-control.stdout.log",
+      "sha256": "5e721ef188a3fb9e6d45f4f183fc6f55d353b07e1a41e8a4588ca16bd38c7cde",
+      "bytes": 2797,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-4-cpython-python.external-process-observations.jsonl",
+      "path": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-4-cpython-python.external-process-observations.jsonl",
+      "sha256": "236756209bc05ec66018f9ab90cefcfb71d5390a854abc3335a232781247293f",
+      "bytes": 65,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-4-cpython-python.stderr.log",
+      "path": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-4-cpython-python.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-4-cpython-python.stdout.log",
+      "path": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-4-cpython-python.stdout.log",
+      "sha256": "5ccb64f57b557d228c7072156d95b79e14ff21e974f422e0b529a2b166245e45",
+      "bytes": 2440,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-4-xlang3-candidate.external-process-observations.jsonl",
+      "path": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-4-xlang3-candidate.external-process-observations.jsonl",
+      "sha256": "4fefa00d422e3a363e7b4b7bd52368f8973db0d69e0f236f46de3ba05421f46a",
+      "bytes": 65,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-4-xlang3-candidate.stderr.log",
+      "path": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-4-xlang3-candidate.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-4-xlang3-candidate.stdout.log",
+      "path": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-4-xlang3-candidate.stdout.log",
+      "sha256": "33cab0ac8407ca21592d9a50432612eb8cfb42217821e5a4f329b15c504d9195",
+      "bytes": 2618,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-4-xlang3-control.external-process-observations.jsonl",
+      "path": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-4-xlang3-control.external-process-observations.jsonl",
+      "sha256": "998f5977f9fd42ab78879829a604140f2c8023277ac23bd41143f0884e79829f",
+      "bytes": 65,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-4-xlang3-control.stderr.log",
+      "path": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-4-xlang3-control.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-4-xlang3-control.stdout.log",
+      "path": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-4-xlang3-control.stdout.log",
+      "sha256": "af2d9435542d2c1639a1ba220f5a09c7ec8df020ef62d09f05f5a316142629ef",
+      "bytes": 2793,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-5-cpython-python.external-process-observations.jsonl",
+      "path": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-5-cpython-python.external-process-observations.jsonl",
+      "sha256": "f5d6aa19b7c2a2647260e22c73aa5a54ceb0dae1e9ce8bbe292c6c36d3302db9",
+      "bytes": 65,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-5-cpython-python.stderr.log",
+      "path": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-5-cpython-python.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-5-cpython-python.stdout.log",
+      "path": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-5-cpython-python.stdout.log",
+      "sha256": "f9d17226b51b4ce69d9d7bcb6c8b8c5d2052a5fd880b37e15341501b341a0475",
+      "bytes": 2438,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-5-xlang3-candidate.external-process-observations.jsonl",
+      "path": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-5-xlang3-candidate.external-process-observations.jsonl",
+      "sha256": "176e0c634115c2aa353eb1d8e105d6146e9ec7b74c92d7f3f0b6822b81dc920b",
+      "bytes": 65,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-5-xlang3-candidate.stderr.log",
+      "path": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-5-xlang3-candidate.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-5-xlang3-candidate.stdout.log",
+      "path": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-5-xlang3-candidate.stdout.log",
+      "sha256": "873a72a10e81e8793fb550ab27e9cc15be6b89272a941afdffb7f02e962ec71e",
+      "bytes": 2618,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-5-xlang3-control.external-process-observations.jsonl",
+      "path": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-5-xlang3-control.external-process-observations.jsonl",
+      "sha256": "b2278d6374921ef0e7c9d6aad0687db8ff78a6b68a26f73b44cb33d48ba338f6",
+      "bytes": 65,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-5-xlang3-control.stderr.log",
+      "path": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-5-xlang3-control.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-5-xlang3-control.stdout.log",
+      "path": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-5-xlang3-control.stdout.log",
+      "sha256": "ea0abebb065707c5b5ef9ac3a729f735236dc33d489d84b732a1fba7dc1fb06b",
+      "bytes": 2796,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-6-cpython-python.external-process-observations.jsonl",
+      "path": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-6-cpython-python.external-process-observations.jsonl",
+      "sha256": "51329d309050023a10009607c4537ab11a2a04e42f08cfb51b6c3b8ffb7c2c48",
+      "bytes": 65,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-6-cpython-python.stderr.log",
+      "path": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-6-cpython-python.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-6-cpython-python.stdout.log",
+      "path": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-6-cpython-python.stdout.log",
+      "sha256": "48e7bf94610b710dda2967b6cea8f3f839297041b7a9ed6561dd05f5b5c6cd1f",
+      "bytes": 2438,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-6-xlang3-candidate.external-process-observations.jsonl",
+      "path": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-6-xlang3-candidate.external-process-observations.jsonl",
+      "sha256": "2f295dcf5ef31a15ca3905ce4e8deb1ee174ed1eb27c17907bcfb55bd37e6126",
+      "bytes": 65,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-6-xlang3-candidate.stderr.log",
+      "path": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-6-xlang3-candidate.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-6-xlang3-candidate.stdout.log",
+      "path": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-6-xlang3-candidate.stdout.log",
+      "sha256": "6cdbe0ea9467a7424275461c6be6ac98136982056ddb98bfad194ecbdf2d11ba",
+      "bytes": 2618,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-6-xlang3-control.external-process-observations.jsonl",
+      "path": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-6-xlang3-control.external-process-observations.jsonl",
+      "sha256": "defaad81cb22fe81f00057759aa88e30d218975bd3b284901d8e0394f21c7f64",
+      "bytes": 65,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-6-xlang3-control.stderr.log",
+      "path": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-6-xlang3-control.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-6-xlang3-control.stdout.log",
+      "path": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009-round-6-xlang3-control.stdout.log",
+      "sha256": "1d3bfb44a101bf2ed87ec22003465498bce1ba4e3bce79f815e24b284b1a7230",
+      "bytes": 2795,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009.json",
+      "path": "doc/performance/data/date-constructor-entry-cp-r5-r4-20261009.json",
+      "sha256": "5b383d45955524043dd91bc4e20b4d5e440f2f88db7c6876a20200a8241bc70e",
+      "bytes": 528800,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-balanced-20261009-round-1-cpython-python.external-process-observations.jsonl",
+      "path": "doc/performance/data/date-constructor-entry-balanced-20261009-round-1-cpython-python.external-process-observations.jsonl",
+      "sha256": "d3d22c7db12fdb5cc41bae47c58bac4191e9816ad86cc74b7e3b4f6a9676b634",
+      "bytes": 65,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-balanced-20261009-round-1-cpython-python.stderr.log",
+      "path": "doc/performance/data/date-constructor-entry-balanced-20261009-round-1-cpython-python.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-balanced-20261009-round-1-cpython-python.stdout.log",
+      "path": "doc/performance/data/date-constructor-entry-balanced-20261009-round-1-cpython-python.stdout.log",
+      "sha256": "e8ddbdde6efc4e03b05ba25ae2e3eed5c34e11f9b930985a09f02eb678a53450",
+      "bytes": 2426,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-balanced-20261009-round-1-xlang3-public.external-process-observations.jsonl",
+      "path": "doc/performance/data/date-constructor-entry-balanced-20261009-round-1-xlang3-public.external-process-observations.jsonl",
+      "sha256": "64304111a43c963873547c251fd2d2bbf8ea64ea6082c83ca93af3d4179b3a47",
+      "bytes": 65,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-balanced-20261009-round-1-xlang3-public.stderr.log",
+      "path": "doc/performance/data/date-constructor-entry-balanced-20261009-round-1-xlang3-public.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-balanced-20261009-round-1-xlang3-public.stdout.log",
+      "path": "doc/performance/data/date-constructor-entry-balanced-20261009-round-1-xlang3-public.stdout.log",
+      "sha256": "5e05fea37a2158ee5987f33aaf43fba6ef70eb8f7e52d7e346f5eaf21533e9a2",
+      "bytes": 2600,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-balanced-20261009-round-2-cpython-python.external-process-observations.jsonl",
+      "path": "doc/performance/data/date-constructor-entry-balanced-20261009-round-2-cpython-python.external-process-observations.jsonl",
+      "sha256": "42c96fa2e2f3c84cfa6c934748b720e915b90cf10f2d31270cdbddd2df95c359",
+      "bytes": 65,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-balanced-20261009-round-2-cpython-python.stderr.log",
+      "path": "doc/performance/data/date-constructor-entry-balanced-20261009-round-2-cpython-python.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-balanced-20261009-round-2-cpython-python.stdout.log",
+      "path": "doc/performance/data/date-constructor-entry-balanced-20261009-round-2-cpython-python.stdout.log",
+      "sha256": "5fab24076ee8892fc0b57707682e9527aba4f35f58aa4a4a9daa3e287595eca3",
+      "bytes": 2425,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-balanced-20261009-round-2-xlang3-public.external-process-observations.jsonl",
+      "path": "doc/performance/data/date-constructor-entry-balanced-20261009-round-2-xlang3-public.external-process-observations.jsonl",
+      "sha256": "538f007db244584f351d3595792b7274bc2ac915a905048dbbb93080ea1addc8",
+      "bytes": 65,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-balanced-20261009-round-2-xlang3-public.stderr.log",
+      "path": "doc/performance/data/date-constructor-entry-balanced-20261009-round-2-xlang3-public.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-balanced-20261009-round-2-xlang3-public.stdout.log",
+      "path": "doc/performance/data/date-constructor-entry-balanced-20261009-round-2-xlang3-public.stdout.log",
+      "sha256": "dd2966aefd3268822141a9b69680b2dac0c66cd3646f5270a4c0dc5ed0597436",
+      "bytes": 2601,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-balanced-20261009-round-3-cpython-python.external-process-observations.jsonl",
+      "path": "doc/performance/data/date-constructor-entry-balanced-20261009-round-3-cpython-python.external-process-observations.jsonl",
+      "sha256": "c31e0d11635adc2f767844617bb170467445976b27ed58902aa10a2f45c39aab",
+      "bytes": 65,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-balanced-20261009-round-3-cpython-python.stderr.log",
+      "path": "doc/performance/data/date-constructor-entry-balanced-20261009-round-3-cpython-python.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-balanced-20261009-round-3-cpython-python.stdout.log",
+      "path": "doc/performance/data/date-constructor-entry-balanced-20261009-round-3-cpython-python.stdout.log",
+      "sha256": "f405f1fd6d600aa2552e66fbd3477373c993f20cf88fbfc90f7afc6e4b948b3a",
+      "bytes": 2424,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-balanced-20261009-round-3-xlang3-public.external-process-observations.jsonl",
+      "path": "doc/performance/data/date-constructor-entry-balanced-20261009-round-3-xlang3-public.external-process-observations.jsonl",
+      "sha256": "f5751d76e0542ec17c6fd81e0ac3cc317f501ec9cf1d54b185f4f6c21b5c933d",
+      "bytes": 65,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-balanced-20261009-round-3-xlang3-public.stderr.log",
+      "path": "doc/performance/data/date-constructor-entry-balanced-20261009-round-3-xlang3-public.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-balanced-20261009-round-3-xlang3-public.stdout.log",
+      "path": "doc/performance/data/date-constructor-entry-balanced-20261009-round-3-xlang3-public.stdout.log",
+      "sha256": "39ba9cf9ff95e77e9b687f1a477a87348745f12758380f903d4893d859d42d09",
+      "bytes": 2599,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-balanced-20261009-round-4-cpython-python.external-process-observations.jsonl",
+      "path": "doc/performance/data/date-constructor-entry-balanced-20261009-round-4-cpython-python.external-process-observations.jsonl",
+      "sha256": "d2554ff2f488e9729a7c93b878c6220449a96c03df680924966b09d8ce766efe",
+      "bytes": 65,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-balanced-20261009-round-4-cpython-python.stderr.log",
+      "path": "doc/performance/data/date-constructor-entry-balanced-20261009-round-4-cpython-python.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-balanced-20261009-round-4-cpython-python.stdout.log",
+      "path": "doc/performance/data/date-constructor-entry-balanced-20261009-round-4-cpython-python.stdout.log",
+      "sha256": "29e53c69e12e2886fe719f32451ebee8c72ab17880fcf7eca3e49dca96338475",
+      "bytes": 2425,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-balanced-20261009-round-4-xlang3-public.external-process-observations.jsonl",
+      "path": "doc/performance/data/date-constructor-entry-balanced-20261009-round-4-xlang3-public.external-process-observations.jsonl",
+      "sha256": "996dbf803707e8180eff09088411a8f5679a0f2a716ed5af09cfbc3f0c1786e8",
+      "bytes": 65,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-balanced-20261009-round-4-xlang3-public.stderr.log",
+      "path": "doc/performance/data/date-constructor-entry-balanced-20261009-round-4-xlang3-public.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-balanced-20261009-round-4-xlang3-public.stdout.log",
+      "path": "doc/performance/data/date-constructor-entry-balanced-20261009-round-4-xlang3-public.stdout.log",
+      "sha256": "12bbb736c276cead1dcdf0d684fff949e38e6b56adeb9d774bc957eb09717595",
+      "bytes": 2601,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-balanced-20261009-round-5-cpython-python.external-process-observations.jsonl",
+      "path": "doc/performance/data/date-constructor-entry-balanced-20261009-round-5-cpython-python.external-process-observations.jsonl",
+      "sha256": "6627b374c087efdd53331ee2c4bbc742298f6e28b8705df0ef9b980557673f8c",
+      "bytes": 65,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-balanced-20261009-round-5-cpython-python.stderr.log",
+      "path": "doc/performance/data/date-constructor-entry-balanced-20261009-round-5-cpython-python.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-balanced-20261009-round-5-cpython-python.stdout.log",
+      "path": "doc/performance/data/date-constructor-entry-balanced-20261009-round-5-cpython-python.stdout.log",
+      "sha256": "ef81b502c5ac3b5ce894f2dc3d73e26a01f4fd3f0b9b7f1f079ca30caa58f136",
+      "bytes": 2425,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-balanced-20261009-round-5-xlang3-public.external-process-observations.jsonl",
+      "path": "doc/performance/data/date-constructor-entry-balanced-20261009-round-5-xlang3-public.external-process-observations.jsonl",
+      "sha256": "e2e12e75d7e71f186732842112cf1729a1b6e2a91a332d05ddd50c0862bb93a9",
+      "bytes": 65,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-balanced-20261009-round-5-xlang3-public.stderr.log",
+      "path": "doc/performance/data/date-constructor-entry-balanced-20261009-round-5-xlang3-public.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-balanced-20261009-round-5-xlang3-public.stdout.log",
+      "path": "doc/performance/data/date-constructor-entry-balanced-20261009-round-5-xlang3-public.stdout.log",
+      "sha256": "f1720e43c62db4325d76f096a04d6cebfe8460e64a135c009f3a8afd6fc03984",
+      "bytes": 2599,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-balanced-20261009-round-6-cpython-python.external-process-observations.jsonl",
+      "path": "doc/performance/data/date-constructor-entry-balanced-20261009-round-6-cpython-python.external-process-observations.jsonl",
+      "sha256": "a254a14247b02f4dbd5f2f0c0766dd376453f9031bc07a1b1f58dc7aada46027",
+      "bytes": 65,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-balanced-20261009-round-6-cpython-python.stderr.log",
+      "path": "doc/performance/data/date-constructor-entry-balanced-20261009-round-6-cpython-python.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-balanced-20261009-round-6-cpython-python.stdout.log",
+      "path": "doc/performance/data/date-constructor-entry-balanced-20261009-round-6-cpython-python.stdout.log",
+      "sha256": "1a31b65d31b86b29fb6324835ce518f2100583c133b8cd88268b5ba5955e1e00",
+      "bytes": 2426,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-balanced-20261009-round-6-xlang3-public.external-process-observations.jsonl",
+      "path": "doc/performance/data/date-constructor-entry-balanced-20261009-round-6-xlang3-public.external-process-observations.jsonl",
+      "sha256": "ef36bcf958882381ef13d24937f5e1f314d1151cada986c5e9d82642dec3e3db",
+      "bytes": 65,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-balanced-20261009-round-6-xlang3-public.stderr.log",
+      "path": "doc/performance/data/date-constructor-entry-balanced-20261009-round-6-xlang3-public.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-balanced-20261009-round-6-xlang3-public.stdout.log",
+      "path": "doc/performance/data/date-constructor-entry-balanced-20261009-round-6-xlang3-public.stdout.log",
+      "sha256": "1a795f97165f47a269c92d4a31de1464d3ee7e80220685e425e85b896144bdd1",
+      "bytes": 2601,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "doc/performance/data/date-constructor-entry-balanced-20261009.json",
+      "path": "doc/performance/data/date-constructor-entry-balanced-20261009.json",
+      "sha256": "8a51721c8503b3b6929a279f0b4585bf15f4bfe093d282c31cd676b6b5bdc8d2",
+      "bytes": 237372,
+      "kind": "actual_raw_receipt_log_or_ir"
+    },
+    {
+      "source": "scratch/performance/apply-python-new-vm-continuation-root-20261009.py",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009/controllers/apply-python-new-vm-continuation-root-20261009.py",
+      "sha256": "d1764f943455f5dec7d595f83e1c09a2b5e407d160311ea9c1c83fe973b2dce4",
+      "bytes": 8473,
+      "kind": "frozen_actual_controller_or_proof"
+    },
+    {
+      "source": "scratch/performance/fix-python-new-tuple-api-r4-root-20261009.py",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009/controllers/fix-python-new-tuple-api-r4-root-20261009.py",
+      "sha256": "9c532af993f5cfe1b78fe61b6473b4083ced28a700006d01a7efbe2957a185d5",
+      "bytes": 4452,
+      "kind": "frozen_actual_controller_or_proof"
+    },
+    {
+      "source": "scratch/performance/build-python-new-vm-continuation-r3-root-20261009.py",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009/controllers/build-python-new-vm-continuation-r3-root-20261009.py",
+      "sha256": "6ba1a36eaa4ce9a46863c439d15bb1cbd3c015b35c8e0b5014cda57cead7f92a",
+      "bytes": 3525,
+      "kind": "frozen_actual_controller_or_proof"
+    },
+    {
+      "source": "scratch/performance/build-python-new-vm-continuation-r3-root-20261009.cmd",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009/controllers/build-python-new-vm-continuation-r3-root-20261009.cmd",
+      "sha256": "2efd6c0b5662ca4cef35bd337077ecb3a13ad95e919c8e42ca4bcbd99a62dc8b",
+      "bytes": 370,
+      "kind": "frozen_actual_controller_or_proof"
+    },
+    {
+      "source": "scratch/performance/build-python-new-vm-continuation-r4-root-20261009.py",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009/controllers/build-python-new-vm-continuation-r4-root-20261009.py",
+      "sha256": "08f18deadbd766c7944de440b6966db904417bb7754c7f18c50eb36046da7faf",
+      "bytes": 3525,
+      "kind": "frozen_actual_controller_or_proof"
+    },
+    {
+      "source": "scratch/performance/build-python-new-vm-continuation-r4-root-20261009.cmd",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009/controllers/build-python-new-vm-continuation-r4-root-20261009.cmd",
+      "sha256": "2efd6c0b5662ca4cef35bd337077ecb3a13ad95e919c8e42ca4bcbd99a62dc8b",
+      "bytes": 370,
+      "kind": "frozen_actual_controller_or_proof"
+    },
+    {
+      "source": "scratch/performance/check-python-new-reference-root-20261009.py",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009/controllers/check-python-new-reference-root-20261009.py",
+      "sha256": "e5d3b7d8a21bf6f148d70b249ef86981cfa1b8ac9f22919ec264e2659e2ee8b8",
+      "bytes": 4386,
+      "kind": "frozen_actual_controller_or_proof"
+    },
+    {
+      "source": "scratch/performance/check-python-new-cpython-first-root-20261009.py",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009/controllers/check-python-new-cpython-first-root-20261009.py",
+      "sha256": "77f262bc90ef3fd15500cfa4d3fc6554b3339cdf5e70dddcd6cfe49d6ebdad6e",
+      "bytes": 2479,
+      "kind": "frozen_actual_controller_or_proof"
+    },
+    {
+      "source": "scratch/performance/check-python-new-focused-root-20261009.py",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009/controllers/check-python-new-focused-root-20261009.py",
+      "sha256": "59950f59d309acecf301af1b7c04bb7b77759e31c27a3f504a70dd2b6c6f6e3f",
+      "bytes": 5633,
+      "kind": "frozen_actual_controller_or_proof"
+    },
+    {
+      "source": "scratch/performance/check-python-new-ir-eligibility-root-20261009.py",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009/controllers/check-python-new-ir-eligibility-root-20261009.py",
+      "sha256": "15c559ed6ba3bc93c1e0b496f61131545db71d72c1d45a0e9812d817dd8a0de7",
+      "bytes": 5427,
+      "kind": "frozen_actual_controller_or_proof"
+    },
+    {
+      "source": "scratch/performance/check-python-new-ir-eligibility-r2-root-20261009.py",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009/controllers/check-python-new-ir-eligibility-r2-root-20261009.py",
+      "sha256": "d46a0fa39fff872e1107827d80cf9cc60d504295edf75d420b2de8a2adcb09eb",
+      "bytes": 6228,
+      "kind": "frozen_actual_controller_or_proof"
+    },
+    {
+      "source": "scratch/performance/python-new-original-unpickle-probe-root-20261009.py",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009/controllers/python-new-original-unpickle-probe-root-20261009.py",
+      "sha256": "11d14af6c0180624841f137e4cd02ab0430a03fa372bbfdfc92d0bceb9583e81",
+      "bytes": 2320,
+      "kind": "frozen_actual_controller_or_proof"
+    },
+    {
+      "source": "scratch/performance/python-new-original-unpickle-probe-r2-root-20261009.py",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009/controllers/python-new-original-unpickle-probe-r2-root-20261009.py",
+      "sha256": "94a1e5065e529a3102c1b1ff008de8fe8d7fb213e2690b943bb236374ac3c965",
+      "bytes": 2444,
+      "kind": "frozen_actual_controller_or_proof"
+    },
+    {
+      "source": "scratch/performance/validate-python-new-vm-continuation-r4-trial-proposed-20261009.py",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009/controllers/validate-python-new-vm-continuation-r4-trial-proposed-20261009.py",
+      "sha256": "8b4e99e85597ce4565fe792a0b24c6e77ad47ca61ac931830721182370aefcd0",
+      "bytes": 39387,
+      "kind": "frozen_actual_controller_or_proof"
+    },
+    {
+      "source": "scratch/performance/python-new-vm-continuation-r4-validation-provenance-proposed-20261009.json",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009/controllers/python-new-vm-continuation-r4-validation-provenance-proposed-20261009.json",
+      "sha256": "20fada601b1acde438a7a00c1fb9beafddbcdcd26edfd74d0bad0f299e98fdef",
+      "bytes": 6689,
+      "kind": "frozen_actual_controller_or_proof"
+    },
+    {
+      "source": "scratch/performance/python-new-vm-continuation-r4-validation-diff-proposed-20261009.patch",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009/controllers/python-new-vm-continuation-r4-validation-diff-proposed-20261009.patch",
+      "sha256": "d76d4777068f8ea3ce19ea50f07c0d08c8deab0db1e87f718f268dbb4b7970a9",
+      "bytes": 41260,
+      "kind": "frozen_actual_controller_or_proof"
+    },
+    {
+      "source": "scratch/performance/python-new-vm-continuation-r4-tuple-api-root-20261009.patch",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009/controllers/python-new-vm-continuation-r4-tuple-api-root-20261009.patch",
+      "sha256": "987b1bba11d6a32ca03f6ff9583a38205b61a1aec76d80796b3dd12210e57db5",
+      "bytes": 1120,
+      "kind": "frozen_actual_controller_or_proof"
+    },
+    {
+      "source": "scratch/performance/run-python-new-vm-continuation-r4-full-pyperformance-refresh-proposed-20261009.py",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009/controllers/run-python-new-vm-continuation-r4-full-pyperformance-refresh-proposed-20261009.py",
+      "sha256": "f4b6f00e55fdf0ce4d4987a02a148ac5f495a10fa697e50da6825c7790552183",
+      "bytes": 33987,
+      "kind": "frozen_actual_controller_or_proof"
+    },
+    {
+      "source": "scratch/performance/run-python-new-vm-continuation-r4-full-pyperformance-refresh-r2-root-20261009.py",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009/controllers/run-python-new-vm-continuation-r4-full-pyperformance-refresh-r2-root-20261009.py",
+      "sha256": "f5587d5326658062b90e1b1acfb531bf0d4cc79f9ce1a363ed1de01b180adbca",
+      "bytes": 33984,
+      "kind": "frozen_actual_controller_or_proof"
+    },
+    {
+      "source": "scratch/performance/python-new-vm-continuation-r4-full-pyperformance-refresh-provenance-proposed-20261009.json",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009/controllers/python-new-vm-continuation-r4-full-pyperformance-refresh-provenance-proposed-20261009.json",
+      "sha256": "bbe4a32802218f0ef80780116ecf65bf4487af43f75bd74cc277c7280d47f181",
+      "bytes": 6949,
+      "kind": "frozen_actual_controller_or_proof"
+    },
+    {
+      "source": "scratch/performance/python-new-vm-continuation-r4-full97-r2-root-provenance-20261009.json",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009/controllers/python-new-vm-continuation-r4-full97-r2-root-provenance-20261009.json",
+      "sha256": "304ce5f665f7dda2a2280dbc8ce0e3609b3425394c19e185414f6bc3505cad2f",
+      "bytes": 1617,
+      "kind": "frozen_actual_controller_or_proof"
+    },
+    {
+      "source": "scratch/performance/measure-date-constructor-entry-three-runtime-r2-proposed-20261009.py",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009/controllers/measure-date-constructor-entry-three-runtime-r2-proposed-20261009.py",
+      "sha256": "c9d9684eaac4db1429e0a3b53950379e67438ca09c31b0c3c8b52954822717a5",
+      "bytes": 21969,
+      "kind": "frozen_actual_controller_or_proof"
+    },
+    {
+      "source": "scratch/performance/date-constructor-entry-three-runtime-r2-provenance-proposed-20261009.json",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009/controllers/date-constructor-entry-three-runtime-r2-provenance-proposed-20261009.json",
+      "sha256": "1d292e86defd88d77bf41aa85d0e7b6c7c41aa54a812f6ecb9810834f244404c",
+      "bytes": 7579,
+      "kind": "frozen_actual_controller_or_proof"
+    },
+    {
+      "source": "scratch/performance/date-constructor-entry-three-runtime-child-proposed-20261009.py",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009/controllers/date-constructor-entry-three-runtime-child-proposed-20261009.py",
+      "sha256": "19057739ba879cf4b01ca506aa69b01e3dc3f4a9d39c70b6641286984a390462",
+      "bytes": 7211,
+      "kind": "frozen_actual_controller_or_proof"
+    },
+    {
+      "source": "scratch/performance/date-constructor-entry-three-runtime-child-identity-delta-proposed-20261009.patch",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009/controllers/date-constructor-entry-three-runtime-child-identity-delta-proposed-20261009.patch",
+      "sha256": "9d75a78a2d23c04bf17f4504f7a4b26e151bf94fce8abdcae24f8122f77516e5",
+      "bytes": 2167,
+      "kind": "frozen_actual_controller_or_proof"
+    },
+    {
+      "source": "scratch/performance/date-constructor-entry-three-runtime-r2-schema-delta-proposed-20261009.patch",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009/controllers/date-constructor-entry-three-runtime-r2-schema-delta-proposed-20261009.patch",
+      "sha256": "a0052e16494831a377e3c1f459bade716babd6080d197b1d40b89a3c2d931b71",
+      "bytes": 11210,
+      "kind": "frozen_actual_controller_or_proof"
+    },
+    {
+      "source": "scratch/performance/measure-date-constructor-entry-balanced-proposed-20261009.py",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009/controllers/measure-date-constructor-entry-balanced-proposed-20261009.py",
+      "sha256": "14eac8ec2dc7b4ed903819b5b623f7b26eafb0385c35bfe3cf90334a58926284",
+      "bytes": 13791,
+      "kind": "frozen_actual_controller_or_proof"
+    },
+    {
+      "source": "scratch/performance/date-constructor-entry-child-proposed-20261009.py",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009/controllers/date-constructor-entry-child-proposed-20261009.py",
+      "sha256": "37f9afee6cc5051efee02996f59f99fa6801aadfe93afb5033218b40859bf4b6",
+      "bytes": 6815,
+      "kind": "frozen_actual_controller_or_proof"
+    },
+    {
+      "source": "scratch/performance/date-constructor-entry-balanced-provenance-proposed-20261009.json",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009/controllers/date-constructor-entry-balanced-provenance-proposed-20261009.json",
+      "sha256": "556e5697ac4bef0eb5dfc90176f64fad26caeb5430b7c460e9d6d0440d64547e",
+      "bytes": 6918,
+      "kind": "frozen_actual_controller_or_proof"
+    },
+    {
+      "source": "scratch/performance/python-new-vm-continuation-proposed-20261009.patch",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009/proposals/python-new-vm-continuation-proposed-20261009.patch",
+      "sha256": "a174625c0cc2cf32bba4bdd87a2daf5f21d95d1991419a8a4362c8b65a1b5402",
+      "bytes": 26659,
+      "kind": "immutable_proposal_history"
+    },
+    {
+      "source": "scratch/performance/python-new-vm-continuation-proposed-20261009-provenance.json",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009/proposals/python-new-vm-continuation-proposed-20261009-provenance.json",
+      "sha256": "a9d1d09e561b6f72f5d9a73bc3ac5a6a5fd9e659a662a006751eabb9d9fc54c0",
+      "bytes": 35893,
+      "kind": "immutable_proposal_history"
+    },
+    {
+      "source": "scratch/performance/python-new-vm-continuation-proposed-20261009-design.md",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009/proposals/python-new-vm-continuation-proposed-20261009-design.md",
+      "sha256": "c9c776d3d0abe0c06b0f3f311c8a2822b6d918d58bf2dcda19dce5c873e0ba1d",
+      "bytes": 7514,
+      "kind": "immutable_proposal_history"
+    },
+    {
+      "source": "scratch/performance/python-new-vm-continuation-proposed-20261009-fixture.py",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009/proposals/python-new-vm-continuation-proposed-20261009-fixture.py",
+      "sha256": "095b1d0b3cf8b38133efa781e911c4025d380e0af53bf2761940517680828f32",
+      "bytes": 8834,
+      "kind": "immutable_proposal_history"
+    },
+    {
+      "source": "scratch/performance/python-new-vm-continuation-proposed-20261009-expected.out",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009/proposals/python-new-vm-continuation-proposed-20261009-expected.out",
+      "sha256": "8b89241811a7b183c32134f75928729322466dab8f6c2ae27c57acda3edb27d8",
+      "bytes": 401,
+      "kind": "immutable_proposal_history"
+    },
+    {
+      "source": "scratch/performance/python-new-vm-continuation-r2-proposed-20261009.patch",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009/proposals/python-new-vm-continuation-r2-proposed-20261009.patch",
+      "sha256": "e0055159006fc6e8d8c015af407e0c08f5b31d667c6ddb4dbde24fede1bbd8e9",
+      "bytes": 29025,
+      "kind": "immutable_proposal_history"
+    },
+    {
+      "source": "scratch/performance/python-new-vm-continuation-r2-proposed-20261009-provenance.json",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009/proposals/python-new-vm-continuation-r2-proposed-20261009-provenance.json",
+      "sha256": "3866294d746aa635f2d8648e52cba0b2c90d35ea4a40cc51caedbd8ceef87e7f",
+      "bytes": 36256,
+      "kind": "immutable_proposal_history"
+    },
+    {
+      "source": "scratch/performance/python-new-vm-continuation-r2-proposed-20261009-design.md",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009/proposals/python-new-vm-continuation-r2-proposed-20261009-design.md",
+      "sha256": "a6e6a7d36d049bd1ab7451ccf5b3ecde8bd0d9001ce0512e7c97be4eebdfde84",
+      "bytes": 8106,
+      "kind": "immutable_proposal_history"
+    },
+    {
+      "source": "scratch/performance/python-new-vm-continuation-r2-proposed-20261009-fixture.py",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009/proposals/python-new-vm-continuation-r2-proposed-20261009-fixture.py",
+      "sha256": "095b1d0b3cf8b38133efa781e911c4025d380e0af53bf2761940517680828f32",
+      "bytes": 8834,
+      "kind": "immutable_proposal_history"
+    },
+    {
+      "source": "scratch/performance/python-new-vm-continuation-r2-proposed-20261009-expected.out",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009/proposals/python-new-vm-continuation-r2-proposed-20261009-expected.out",
+      "sha256": "8b89241811a7b183c32134f75928729322466dab8f6c2ae27c57acda3edb27d8",
+      "bytes": 401,
+      "kind": "immutable_proposal_history"
+    },
+    {
+      "source": "scratch/performance/python-new-vm-continuation-r3-proposed-20261009.patch",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009/proposals/python-new-vm-continuation-r3-proposed-20261009.patch",
+      "sha256": "98af072bc98f6bfa0294bb25facb40bbf65f5fdf34b0706cb4b3821781cc7272",
+      "bytes": 29610,
+      "kind": "immutable_proposal_history"
+    },
+    {
+      "source": "scratch/performance/python-new-vm-continuation-r3-proposed-20261009-provenance.json",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009/proposals/python-new-vm-continuation-r3-proposed-20261009-provenance.json",
+      "sha256": "bad21d7500fbfd3413315c62bf8428e5eb11fcbde66193974d9df1b668ee9ddd",
+      "bytes": 36975,
+      "kind": "immutable_proposal_history"
+    },
+    {
+      "source": "scratch/performance/python-new-vm-continuation-r3-proposed-20261009-design.md",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009/proposals/python-new-vm-continuation-r3-proposed-20261009-design.md",
+      "sha256": "b50f497dad1184116f0fca8269617575fee2eb6026f7d9079ae9b48e8bf49547",
+      "bytes": 8953,
+      "kind": "immutable_proposal_history"
+    },
+    {
+      "source": "scratch/performance/python-new-vm-continuation-r3-proposed-20261009-fixture.py",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009/proposals/python-new-vm-continuation-r3-proposed-20261009-fixture.py",
+      "sha256": "095b1d0b3cf8b38133efa781e911c4025d380e0af53bf2761940517680828f32",
+      "bytes": 8834,
+      "kind": "immutable_proposal_history"
+    },
+    {
+      "source": "scratch/performance/python-new-vm-continuation-r3-proposed-20261009-expected.out",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009/proposals/python-new-vm-continuation-r3-proposed-20261009-expected.out",
+      "sha256": "8b89241811a7b183c32134f75928729322466dab8f6c2ae27c57acda3edb27d8",
+      "bytes": 401,
+      "kind": "immutable_proposal_history"
+    },
+    {
+      "source": "scratch/performance/python-new-vm-continuation-r3-proposed-20261009-completion-finalizer-fixture.py",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009/proposals/python-new-vm-continuation-r3-proposed-20261009-completion-finalizer-fixture.py",
+      "sha256": "ebe016f733a0b59225d4e20a8ed4389dcc82dac2dc10476468e52118e65322ff",
+      "bytes": 1864,
+      "kind": "cp_first_finalizer_source"
+    },
+    {
+      "source": "scratch/performance/python-new-vm-continuation-r3-proposed-20261009-completion-finalizer-expected.out",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009/proposals/python-new-vm-continuation-r3-proposed-20261009-completion-finalizer-expected.out",
+      "sha256": "07aaecf01131ae40fe870a0184dd691547c7af1d1b8fd978f5676b17d9cdf5b5",
+      "bytes": 70,
+      "kind": "cp_first_finalizer_source"
+    },
+    {
+      "source": "src/executor/xlang_vm/ops/xlang_vm_ops_call.h",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009/source132-owned/src/executor/xlang_vm/ops/xlang_vm_ops_call.h",
+      "sha256": "263882e8ed1e41f60a0addd3df2370edad00655aa5d86f4d8611a53e5f5a7574",
+      "bytes": 251812,
+      "kind": "measured_owned_source"
+    },
+    {
+      "source": "build-repro/controls/lambda-eager-comprehension-capture-accepted-r5-20261009/source-snapshot/src/executor/xlang_vm/ops/xlang_vm_ops_call.h",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009/source128-inputs/src/executor/xlang_vm/ops/xlang_vm_ops_call.h",
+      "sha256": "271ca4bff6ce954c262d8c7fa3d22fdf769de3ab3ffa77cdf6369bd1fce8210c",
+      "bytes": 245956,
+      "kind": "exact_owned_parent_input"
+    },
+    {
+      "source": "src/executor/xlang_vm/xlang_frame.h",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009/source132-owned/src/executor/xlang_vm/xlang_frame.h",
+      "sha256": "d7854b3fad57ff873110891bc0c8f286cabe9fadafa1ffbbf0763267500166e4",
+      "bytes": 42633,
+      "kind": "measured_owned_source"
+    },
+    {
+      "source": "build-repro/controls/lambda-eager-comprehension-capture-accepted-r5-20261009/source-snapshot/src/executor/xlang_vm/xlang_frame.h",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009/source128-inputs/src/executor/xlang_vm/xlang_frame.h",
+      "sha256": "c144ecfa382778c73b9f4ad3a34a2644dae080afdcde307855cd961623400ff2",
+      "bytes": 42421,
+      "kind": "exact_owned_parent_input"
+    },
+    {
+      "source": "src/executor/xlang_vm/xlang_vm_loop.cpp",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009/source132-owned/src/executor/xlang_vm/xlang_vm_loop.cpp",
+      "sha256": "9a0108d9a30f6bd34e072b9e100670a27cd1769c61577e5294363279ca8902d9",
+      "bytes": 111284,
+      "kind": "measured_owned_source"
+    },
+    {
+      "source": "build-repro/controls/lambda-eager-comprehension-capture-accepted-r5-20261009/source-snapshot/src/executor/xlang_vm/xlang_vm_loop.cpp",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009/source128-inputs/src/executor/xlang_vm/xlang_vm_loop.cpp",
+      "sha256": "edf6c52d37cc85990a1cfd995b769786773e13bdf70bc8908bd52d3d803da30d",
+      "bytes": 103656,
+      "kind": "exact_owned_parent_input"
+    },
+    {
+      "source": "src/executor/xlang_vm/xlang_vm_op_rows.h",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009/source132-owned/src/executor/xlang_vm/xlang_vm_op_rows.h",
+      "sha256": "f8994fb30fa11e3c08ed4c06724772a1d6e211a14ecd8cac6e112c5897bb95d4",
+      "bytes": 29495,
+      "kind": "measured_owned_source"
+    },
+    {
+      "source": "build-repro/controls/lambda-eager-comprehension-capture-accepted-r5-20261009/source-snapshot/src/executor/xlang_vm/xlang_vm_op_rows.h",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009/source128-inputs/src/executor/xlang_vm/xlang_vm_op_rows.h",
+      "sha256": "76b4c9d8116088e5e6487a24307b7b9fb90ed97322337ffaf39030fae349f08f",
+      "bytes": 29413,
+      "kind": "exact_owned_parent_input"
+    },
+    {
+      "source": "tests/run_fixtures.py",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009/source132-owned/tests/run_fixtures.py",
+      "sha256": "c6835d82cd516583eedbb50aea1f9ce3e95bb4ec8d12bc80243c79cec33c7cd1",
+      "bytes": 13056,
+      "kind": "measured_owned_source"
+    },
+    {
+      "source": "build-repro/controls/lambda-eager-comprehension-capture-accepted-r5-20261009/source-snapshot/tests/run_fixtures.py",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009/source128-inputs/tests/run_fixtures.py",
+      "sha256": "74716b6ac4ddb261be46d4a21d59e159142f11b9603995460e5bd848902cd53a",
+      "bytes": 12997,
+      "kind": "exact_owned_parent_input"
+    },
+    {
+      "source": "tests/run_fixtures.ps1",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009/source132-owned/tests/run_fixtures.ps1",
+      "sha256": "233836cce51b46be7ba3245f151c2eb6642ccda68e8994ac5295eb3fa13b7494",
+      "bytes": 15113,
+      "kind": "measured_owned_source"
+    },
+    {
+      "source": "build-repro/controls/lambda-eager-comprehension-capture-accepted-r5-20261009/source-snapshot/tests/run_fixtures.ps1",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009/source128-inputs/tests/run_fixtures.ps1",
+      "sha256": "94c9a87aefe1f9e9289c93ff0a4239755ea9e8690e5966899c0ff5ad5bdd64f9",
+      "bytes": 15040,
+      "kind": "exact_owned_parent_input"
+    },
+    {
+      "source": "tests/fixtures/core/python_new_vm_continuation.py",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009/source132-owned/tests/fixtures/core/python_new_vm_continuation.py",
+      "sha256": "095b1d0b3cf8b38133efa781e911c4025d380e0af53bf2761940517680828f32",
+      "bytes": 8834,
+      "kind": "measured_owned_source"
+    },
+    {
+      "source": "tests/fixtures/expected/python_new_vm_continuation.out",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009/source132-owned/tests/fixtures/expected/python_new_vm_continuation.out",
+      "sha256": "8b89241811a7b183c32134f75928729322466dab8f6c2ae27c57acda3edb27d8",
+      "bytes": 401,
+      "kind": "measured_owned_source"
+    },
+    {
+      "source": "tests/fixtures/core/python_new_completion_finalizer.py",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009/source132-owned/tests/fixtures/core/python_new_completion_finalizer.py",
+      "sha256": "ebe016f733a0b59225d4e20a8ed4389dcc82dac2dc10476468e52118e65322ff",
+      "bytes": 1864,
+      "kind": "measured_owned_source"
+    },
+    {
+      "source": "tests/fixtures/expected/python_new_completion_finalizer.out",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009/source132-owned/tests/fixtures/expected/python_new_completion_finalizer.out",
+      "sha256": "07aaecf01131ae40fe870a0184dd691547c7af1d1b8fd978f5676b17d9cdf5b5",
+      "bytes": 70,
+      "kind": "measured_owned_source"
+    },
+    {
+      "source": "build-repro/controls/lambda-eager-comprehension-capture-accepted-r5-20261009/preserved-release-provenance.json",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009/control/preserved-release-provenance.json",
+      "sha256": "9271314856ede7f173396b2f39449a01d785f61a1579ce5f93c7786a2961dfad",
+      "bytes": 102420,
+      "kind": "parent_binary_source_hash_manifest_no_binaries"
+    },
+    {
+      "source": "scratch/performance/python-new-vm-continuation-r4-checkpoint-report-proposed-20261009.md",
+      "path": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009/report-template.md",
+      "sha256": "5bd66cdb69a722cc9e7156d58e95816670558154dfd2cb2a3f066c75fe3ca4bd",
+      "bytes": 4783,
+      "kind": "report_template"
+    }
+  ],
+  "file_count": 267,
+  "owned_attribute_additions": [
+    "/doc/performance/data/python-new-* -text",
+    "/doc/performance/data/python-new-*/** -text",
+    "/doc/performance/data/pyperformance-xlang3-python-new-r4-* -text",
+    "/doc/performance/data/pyperformance-xlang3-python-new-r4-*/** -text",
+    "/doc/performance/data/date-constructor-entry-cp-r5-r4-* -text",
+    "/doc/performance/python-new-vm-continuation-r4-checkpoint-20261009.md text eol=lf"
+  ],
+  "whole97_status": "pending; two strict preflight refusals, zero benchmark children started",
+  "no_runtime_binary_or_object_copies": true
+}

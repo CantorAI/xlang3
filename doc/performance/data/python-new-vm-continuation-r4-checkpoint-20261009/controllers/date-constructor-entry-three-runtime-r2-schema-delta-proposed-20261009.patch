@@ -1,0 +1,135 @@
+diff --git a/scratch/performance/measure-date-constructor-entry-three-runtime-proposed-20261009.py b/scratch/performance/measure-date-constructor-entry-three-runtime-r2-proposed-20261009.py
+index 42216017..3fe39e22 100644
+--- a/scratch/performance/measure-date-constructor-entry-three-runtime-proposed-20261009.py
++++ b/scratch/performance/measure-date-constructor-entry-three-runtime-r2-proposed-20261009.py
+@@ -32,7 +32,7 @@ ORIGINAL_PROOF = ROOT / 'scratch/performance/date-constructor-entry-balanced-pro
+ ORIGINAL_PROOF_SHA = '556e5697ac4bef0eb5dfc90176f64fad26caeb5430b7c460e9d6d0440d64547e'
+ SOURCE = ROOT / 'scratch/performance/date-constructor-entry-three-runtime-child-proposed-20261009.py'
+ SOURCE_SHA = '19057739ba879cf4b01ca506aa69b01e3dc3f4a9d39c70b6641286984a390462'
+-PROOF = ROOT / 'scratch/performance/date-constructor-entry-three-runtime-provenance-proposed-20261009.json'
++PROOF = ROOT / 'scratch/performance/date-constructor-entry-three-runtime-r2-provenance-proposed-20261009.json'
+ WATCH = ROOT / 'scratch/performance/validate-call-ex-cross-activation-constructor-resume-r3-20261008.py'
+ WATCH_SHA = '50007db5cc6adc2e54012fdfbd48514699513f990906d4a508582ba73d6ae0bf'
+ SELECTIONS = ('cpython-python', 'xlang3-control', 'xlang3-candidate')
+@@ -72,8 +72,10 @@ parser.add_argument('--applied-source', type=Path, required=True)
+ parser.add_argument('--applied-source-sha256', required=True)
+ parser.add_argument('--build-receipt', type=Path, required=True)
+ parser.add_argument('--build-receipt-sha256', required=True)
++parser.add_argument('--focused-receipt', type=Path, required=True)
++parser.add_argument('--focused-receipt-sha256', required=True)
+ parser.add_argument('--head', required=True, help='Exact actual 40-hex HEAD supplied by root')
+-parser.add_argument('--prefix', default='date-constructor-entry-cp-r5-candidate-20261009')
++parser.add_argument('--prefix', default='date-constructor-entry-cp-r5-r4-20261009')
+ args = parser.parse_args()
+ assert re.fullmatch(r'[a-z0-9-]+', args.prefix) and re.fullmatch(r'[0-9a-f]{40}', args.head)
+ PREFIX = args.prefix
+@@ -86,28 +88,50 @@ assert proof['controller_sha256'] == sha(Path(__file__)) and proof['child_sha256
+ original = read(ORIGINAL_PROOF, ORIGINAL_PROOF_SHA)
+ assert sha(ORIGINAL_CHILD) == ORIGINAL_CHILD_SHA and sha(ORIGINAL_MANAGER) == ORIGINAL_MANAGER_SHA
+ assert sha(SOURCE) == SOURCE_SHA and sha(WATCH) == WATCH_SHA
+-applied_path, build_path = (p.resolve(strict=True) for p in (args.applied_source, args.build_receipt))
+-assert applied_path.is_relative_to(DATA.resolve()) and build_path.is_relative_to(DATA.resolve())
++applied_path, build_path, focused_path = (p.resolve(strict=True) for p in (args.applied_source, args.build_receipt, args.focused_receipt))
++assert all(p.is_relative_to(DATA.resolve()) for p in (applied_path, build_path, focused_path))
++assert args.applied_source_sha256 == proof['applied_source_sha256']
++assert args.build_receipt_sha256 == proof['build_receipt_sha256']
++assert args.focused_receipt_sha256 == proof['focused_receipt_sha256']
+ applied = read(applied_path, args.applied_source_sha256)
+ build = read(build_path, args.build_receipt_sha256)
++focused = read(focused_path, args.focused_receipt_sha256)
+ assert applied['terminal'] and applied['source_count'] == len(applied['source_sha256'])
+ sources = applied['source_sha256']
+-assert len(sources) >= 128
++assert len(sources) == 132
+ for name, value in sources.items():
+     path = Path(name)
+     assert not path.is_absolute() and '..' not in path.parts and (ROOT/path).resolve().is_relative_to(ROOT.resolve())
+     assert re.fullmatch(r'[0-9a-f]{64}', value)
+-assert build['status'] == 'build_passed' and build['terminal'] and build['actual_root_tool_exit_code'] == 0
+-assert build['configuration'] == 'Release' and Path(build['build_directory']).resolve() == RELEASE.parent.resolve()
+-assert build['source_inventory_sha256'] == args.applied_source_sha256
+-assert build['source_count'] == applied['source_count'] and build['source_sha256'] == sources
++# R4 records actual command/exit/source guards, not R5 configuration metadata.
++assert build['status'] == 'build_passed' and build['terminal'] and build['passed'] and build['exit_code'] == 0
++assert not build['timed'] and build['source_unchanged'] and build['accepted_control_unchanged'] and build['fixed_baseline_unchanged']
++assert build['application_sha256'] == args.applied_source_sha256
++assert build['source_count'] == applied['source_count'] == 132 and build['source_sha256'] == sources
++assert build['hashes_before'] == build['hashes_after']
++assert len(build['command']) == 4 and build['command'][:3] == ['cmd.exe', '/d', '/c']
++build_cmd = Path(build['command'][3]).resolve(strict=True)
++assert build_cmd.is_relative_to((ROOT/'scratch/performance').resolve()) and build_cmd.suffix.lower() == '.cmd'
++assert str(build_cmd) in build['hashes_before']
++assert sha(build_cmd) == build['hashes_before'][str(build_cmd)] == proof['build_cmd_sha256']
++cmd_lines = build_cmd.read_bytes().decode('utf-8-sig').replace('\r\n', '\n').splitlines()
++assert r'cd /d D:\CantorAI\xlang3' in cmd_lines
++assert proof['expected_cmd_build_line'] in cmd_lines
+ candidate_binaries = normalize_release(build['binaries_sha256'])
+-assert len(candidate_binaries) == 178 and tree(RELEASE) == candidate_binaries
+-assert sha(RELEASE/'xlang3.exe') == build['candidate_binary_sha256']['exe'] == candidate_binaries['xlang3.exe']
+-assert sha(RELEASE/'xlang3_runtime.dll') == build['candidate_binary_sha256']['dll'] == candidate_binaries['xlang3_runtime.dll']
+-build_log = Path(build['log'])
+-build_log = build_log.resolve(strict=True) if build_log.is_absolute() else (ROOT/build_log).resolve(strict=True)
++assert build['binary_file_count'] == len(candidate_binaries) == 178 and tree(RELEASE) == candidate_binaries
++assert sha(RELEASE/'xlang3.exe') == build['exe_sha256'] == candidate_binaries['xlang3.exe']
++assert sha(RELEASE/'xlang3_runtime.dll') == build['dll_sha256'] == candidate_binaries['xlang3_runtime.dll']
++assert Path(build['log']).name == build['log']
++build_log = (DATA/build['log']).resolve(strict=True)
+ assert build_log.is_relative_to(DATA.resolve()) and sha(build_log) == build['log_sha256']
++assert focused['status'] == 'focused_passed' and focused['terminal'] and focused['passed'] and not focused['timed']
++assert focused['hashes_unchanged'] and focused['hashes_before'] == focused['hashes_after']
++assert focused['application_sha256'] == args.applied_source_sha256 and focused['build_sha256'] == args.build_receipt_sha256
++assert focused['source_count'] == 132 and focused['source_sha256'] == sources
++assert normalize_release(focused['binaries_sha256']) == candidate_binaries
++assert len(focused['expected_names']) == len(set(focused['expected_names'])) == len(focused['phases']) == 19
++assert [row['name'] for row in focused['phases']] == focused['expected_names']
++assert all(row['passed'] and row['exit_code'] == 0 for row in focused['phases'])
+ control = read(CONTROL_MANIFEST, CONTROL_SHA)
+ validation = read(VALIDATION, VALIDATION_SHA)
+ assert control['status'] == 'preserved_fully_validated_lambda_capture_r5' and control['terminal']
+@@ -123,7 +147,7 @@ control_sources = CONTROL_MANIFEST.parent/'source-snapshot'
+ assert tree(control_release) == control['files_sha256'] and tree(control_sources) == control['source_snapshot_sha256']
+ assert control['files_sha256'] == normalize_release(validation['binaries_sha256'])
+ baseline = tree(BASELINE)
+-assert len(baseline) == 177 and baseline == control['fixed_baseline_sha256'] == validation['baseline_sha256'] == build['baseline_sha256']
++assert len(baseline) == 177 and baseline == control['fixed_baseline_sha256'] == validation['baseline_sha256']
+ gate_path = DATA/validation['fixed_gate']['output']
+ gate = read(gate_path, validation['fixed_gate']['sha256'])
+ assert validation['fixed_gate']['exit_code'] == 0 and gate['status'] == 'pass'
+@@ -138,11 +162,20 @@ for path, expected in ((Path(__file__), proof['controller_sha256']), (PROOF, arg
+         (SOURCE, SOURCE_SHA), (ORIGINAL_CHILD, ORIGINAL_CHILD_SHA), (ORIGINAL_MANAGER, ORIGINAL_MANAGER_SHA),
+         (ORIGINAL_PROOF, ORIGINAL_PROOF_SHA), (WATCH, WATCH_SHA), (applied_path, args.applied_source_sha256),
+         (build_path, args.build_receipt_sha256), (build_log, build['log_sha256']),
++        (focused_path, args.focused_receipt_sha256),
+         (CONTROL_MANIFEST, CONTROL_SHA), (VALIDATION, VALIDATION_SHA), (gate_path, validation['fixed_gate']['sha256'])):
+     track(path, expected)
+ for path, expected in CP_PINS.items(): track(path, expected)
+ for path, expected in original['original_sources'].items(): track(path, expected)
+ for path, expected in sources.items(): track(ROOT/path, expected)
++for path, expected in applied['unowned_tracked_dirty_sha256'].items(): track(ROOT/path, expected)
++for receipt in (build, focused):
++    for path, expected in receipt['hashes_after'].items(): track(path, expected)
++for row in focused['phases']:
++    for stream in ('stdout', 'stderr'):
++        path = Path(row[stream])
++        assert path.name == row[stream]
++        track(DATA/path, row[stream+'_sha256'])
+ for path, expected in candidate_binaries.items(): track(RELEASE/path, expected)
+ for path, expected in control['files_sha256'].items(): track(control_release/path, expected)
+ for path, expected in control['source_snapshot_sha256'].items(): track(control_sources/path, expected)
+@@ -159,13 +192,15 @@ record = dict(status='preflight', terminal=False, diagnostic_only=True, official
+     whole_goal_complete=False, head=head, accepted_base=ACCEPTED_BASE,
+     applied_source=str(applied_path), applied_source_sha256=args.applied_source_sha256,
+     build_receipt=str(build_path), build_receipt_sha256=args.build_receipt_sha256,
++    focused_receipt=str(focused_path), focused_receipt_sha256=args.focused_receipt_sha256,
++    focused_phase_count=19, candidate_build_cmd_sha256=sha(build_cmd),
+     source_count=len(sources), source_sha256=sources, binaries_sha256=candidate_binaries,
+     accepted_control_manifest_sha256=CONTROL_SHA, accepted_control_source_sha256=control['source_snapshot_sha256'],
+     accepted_control_binaries_sha256=control['files_sha256'], baseline_sha256=baseline, hashes_before=before,
+     phases=[], idle_guards=[], orders=orders, case_orders=case_orders, repeats_per_selection=6,
+     operation_counts=dict(operations_per_case=10000, cases_per_child=4, children=18,
+                           total_timed_case_loops=72, total_timed_operations=720000),
+-    candidate_correctness_scope='Successful actual build pinned; no new full correctness/gate acceptance is asserted by this artificial diagnostic.',
++    candidate_correctness_scope='Actual R4 build and same-source19 untimed focused phases passed and pinned; no new full correctness/gate acceptance is asserted by this artificial diagnostic.',
+     scope='All six CP/control/candidate permutations; each runtime occupies every position twice. Original four artificial loops and mirrored case orders retained; no native date timing, official score, workload share, trimming, retry or predicted gain')
+ def save():
+     OUT.write_text(json.dumps(record, indent=2)+'\n', encoding='utf-8')

@@ -1,0 +1,9 @@
+usage: pickle.py [-h] pickle_file [pickle_file ...]
+
+display contents of the pickle files
+
+positional arguments:
+  pickle_file  the pickle file
+
+options:
+  -h, --help   show this help message and exit

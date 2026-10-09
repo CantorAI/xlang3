@@ -1,0 +1,13 @@
+selection,case,median_microseconds_per_call
+cpython-python,date_class,0.41709000361151993
+cpython-python,date_saved_new,0.36740500072482973
+cpython-python,plain_class,0.11585500033106655
+cpython-python,plain_saved_new,0.07729000062681735
+xlang3-control,date_class,7.867684998200275
+xlang3-control,date_saved_new,5.227199997170828
+xlang3-control,plain_class,2.019954999559559
+xlang3-control,plain_saved_new,0.8367150003323331
+xlang3-candidate,date_class,6.017224999959581
+xlang3-candidate,date_saved_new,5.450919998111203
+xlang3-candidate,plain_class,1.457534998189658
+xlang3-candidate,plain_saved_new,0.8565349999116734

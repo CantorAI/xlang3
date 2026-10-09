@@ -1,0 +1,130 @@
+{
+  "status": "frozen_root_only_constructor_entry_diagnostic_proposal",
+  "child": "scratch/performance/date-constructor-entry-child-proposed-20261009.py",
+  "child_sha256": "37f9afee6cc5051efee02996f59f99fa6801aadfe93afb5033218b40859bf4b6",
+  "controller": "scratch/performance/measure-date-constructor-entry-balanced-proposed-20261009.py",
+  "controller_sha256": "14eac8ec2dc7b4ed903819b5b623f7b26eafb0385c35bfe3cf90334a58926284",
+  "derived_controller": "scratch/performance/measure-date-boundary-accepted-r5-r2-root-20261009.py",
+  "derived_controller_sha256": "e1a4cde998436185e2ea03f1af380b85f19894530bcd2109cb7d106292703998",
+  "input_sha256": {
+    "scratch/performance/measure-date-boundary-accepted-r5-r2-root-20261009.py": "e1a4cde998436185e2ea03f1af380b85f19894530bcd2109cb7d106292703998",
+    "scratch/performance/date-native-boundary-loop-cost-proposed-20261009.py": "348590de539ceb46d3fb557c00169da7ad252fefea9bbbe96b1ed05df738039f",
+    "scratch/performance/date-native-boundary-loop-cost-provenance-proposed-20261009.json": "3c3f66573f71077c942d11e9b97b1c3aa0e5a5c87be91adceaa74f520648a8ef",
+    "scratch/performance/validate-call-ex-cross-activation-constructor-resume-r3-20261008.py": "50007db5cc6adc2e54012fdfbd48514699513f990906d4a508582ba73d6ae0bf",
+    "doc/performance/data/date-native-boundary-loop-cost-accepted-r5-r2-20261009.json": "377d5b7ef473aa4e59bc1ecfef6a25c3891d47eb94764a01fe9e8247c55a25cc",
+    "doc/performance/data/lambda-eager-comprehension-capture-r5-validation-r5-20261009.json": "6a41ee3fe92453d6472f2bb1c24b2da7ef125ac8425d27efdffa9f2262ab2d35",
+    "doc/performance/data/lambda-eager-comprehension-capture-r5-validation-r5-20261009-fixed-gate.json": "adb6584eb4213fd3e964a60fa4e62273bf3a63e75c18190e2292be806f346f33",
+    "doc/performance/data/date-native-boundary-untimed-diagnostic-20261009.json": "c3fe5e89d75bef3cdf92d86601227c2a3f7ac42b6841f48094c42a09c1bdae09"
+  },
+  "original_sources": {
+    "C:/Python/Python314/Lib/datetime.py": "8262c677654011417ae08751ae9c38edc8ca802d21c65232452529248a17aae9",
+    "C:/Python/Python314/Lib/_pydatetime.py": "63249ee7bac11a6c1cee7fae0355f1432d17c60bd3d503346cf9eab2cb875ec9"
+  },
+  "binary_sha256": {
+    "C:/Python/Python314/python.exe": "4942b86a6597e5aee0128daa00050ed79bc21f6e709a78eb19cbfeb0c2f39ac9",
+    "C:/Python/Python314/python314.dll": "0f9857ffdfe010fe6b99328d58c2e3c7472ce75f336bf9c2ad9bd5bca3bce700",
+    "D:/CantorAI/xlang3/build-repro/main-verify-20261006/Release/xlang3.exe": "d399a4cc2e7a514d523b33cddef3c3145f1380d72a40f460d1f35c9ec8be78db",
+    "D:/CantorAI/xlang3/build-repro/main-verify-20261006/Release/xlang3_runtime.dll": "d9e0a2e27e85d8ba44e57d7f6fb5f20d4d7361cf53c3d872b823b43f40c2007e"
+  },
+  "prior_date_component_receipt": "doc/performance/data/date-native-boundary-loop-cost-accepted-r5-r2-20261009.json",
+  "prior_date_component_receipt_sha256": "377d5b7ef473aa4e59bc1ecfef6a25c3891d47eb94764a01fe9e8247c55a25cc",
+  "prior_untimed_receipt": "doc/performance/data/date-native-boundary-untimed-diagnostic-20261009.json",
+  "prior_untimed_receipt_sha256": "c3fe5e89d75bef3cdf92d86601227c2a3f7ac42b6841f48094c42a09c1bdae09",
+  "head": "4b1cfefc80f0bbb9e1f60c09c46d83619ded0e17",
+  "validated_candidate_receipt_sha256": "6a41ee3fe92453d6472f2bb1c24b2da7ef125ac8425d27efdffa9f2262ab2d35",
+  "fixed_gate_sha256": "adb6584eb4213fd3e964a60fa4e62273bf3a63e75c18190e2292be806f346f33",
+  "source_count": 128,
+  "release_count": 178,
+  "baseline_count": 177,
+  "repetitions_per_runtime": 6,
+  "child_count": 12,
+  "cases_per_child": 4,
+  "operations_per_case": 10000,
+  "total_timed_case_loops": 48,
+  "total_timed_operations": 480000,
+  "cases": [
+    "date_class",
+    "date_saved_new",
+    "plain_class",
+    "plain_saved_new"
+  ],
+  "runtime_orders": [
+    [
+      "cpython-python",
+      "xlang3-public"
+    ],
+    [
+      "xlang3-public",
+      "cpython-python"
+    ],
+    [
+      "cpython-python",
+      "xlang3-public"
+    ],
+    [
+      "xlang3-public",
+      "cpython-python"
+    ],
+    [
+      "cpython-python",
+      "xlang3-public"
+    ],
+    [
+      "xlang3-public",
+      "cpython-python"
+    ]
+  ],
+  "case_orders": [
+    [
+      "date_class",
+      "date_saved_new",
+      "plain_class",
+      "plain_saved_new"
+    ],
+    [
+      "plain_saved_new",
+      "plain_class",
+      "date_saved_new",
+      "date_class"
+    ],
+    [
+      "date_saved_new",
+      "plain_class",
+      "plain_saved_new",
+      "date_class"
+    ],
+    [
+      "date_class",
+      "plain_saved_new",
+      "plain_class",
+      "date_saved_new"
+    ],
+    [
+      "plain_class",
+      "plain_saved_new",
+      "date_class",
+      "date_saved_new"
+    ],
+    [
+      "date_saved_new",
+      "date_class",
+      "plain_saved_new",
+      "plain_class"
+    ]
+  ],
+  "balance": "Three runtime rounds CP then X and three X then CP. Adjacent pairs reverse every case position; six rounds have the same case schedule for both runtimes. Position counts are not claimed uniform; every case has exact mean position1.5 across mirrored rounds.",
+  "child_semantics": "CP explicit _pydatetime.date versus X public datetime.date==_pydatetime.date. Date(state) and saved date.__new__(date,state) share exact state07bc0507/type/fields; minimal EntryOnly(state) versus saved __new__(EntryOnly,state) share return object.__new__(cls) body with empty slots and inherited object.__init__ untouched.",
+  "untimed_checks": "One validation/warm invocation per case, exact type/date fields/_getstate, selected callable/code identities, no library monkeypatch, trace/profile absent. All checks/import/hash/metadata outside timers.",
+  "timer_scope": "Includes Python loop, result replacement, and normal class construction versus saved-function entry. No official score, native-date timing, workload fraction, extrapolated speed, trimming, retries, or acceptance threshold.",
+  "process_policy": "Strict canonical50007 watch and all-tool pre/post idle; no worker exemptions. Owned child120s cap/tree cleanup, split xb stdout/stderr hashes, watchdog finish and postguards always retained. Failure stops once with later rows unmeasured.",
+  "coverage_limit": "Current recorded source128/Release178 and fixed177 protected; explicit datetime/_pydatetime sources, CP exe/DLL and native datetime origin when present. Not a complete transitive stdlib/import-source inventory.",
+  "author_execution": false,
+  "author_ast": false,
+  "author_build": false,
+  "author_runtime": false,
+  "engine_edits": false,
+  "live_docs_edits": false,
+  "staging": false,
+  "native_datetime_proposal_applied": false,
+  "launch_template": "C:/Python/Python314/python.exe -I scratch/performance/measure-date-constructor-entry-balanced-proposed-20261009.py --proof-sha256 FROZEN_PROOF_SHA --prefix date-constructor-entry-balanced-20261009"
+}

@@ -717,3 +717,10 @@
 /doc/performance/data/lambda-*/** -text
 /doc/performance/lambda-eager-comprehension-capture-r5-checkpoint-20261009.md text eol=lf
 /doc/performance/lambda-eager-comprehension-capture-r5-checkpoint-20261009.svg text eol=lf
+/doc/performance/data/python-new-* -text
+/doc/performance/data/python-new-*/** -text
+/doc/performance/data/pyperformance-xlang3-python-new-r4-* -text
+/doc/performance/data/pyperformance-xlang3-python-new-r4-*/** -text
+/doc/performance/data/date-constructor-entry-cp-r5-r4-* -text
+/doc/performance/python-new-vm-continuation-r4-checkpoint-20261009.md text eol=lf
+/doc/performance/data/date-constructor-entry-balanced-* -text

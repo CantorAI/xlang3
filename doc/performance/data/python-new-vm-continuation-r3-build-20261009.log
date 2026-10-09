@@ -1,0 +1,27 @@
+[0/2] Re-checking globbed directories...
+[1/33] Building CXX object CMakeFiles\xlang3_runtime.dir\Release\src\executor\xlang_vm\xlang_vm_loop.cpp.obj
+FAILED: [code=2] CMakeFiles/xlang3_runtime.dir/Release/src/executor/xlang_vm/xlang_vm_loop.cpp.obj 
+C:\PROGRA~1\MICROS~1\18\COMMUN~1\VC\Tools\MSVC\1451~1.362\bin\Hostx64\x64\cl.exe  /nologo /TP -DXLANG3_BUILD_SHARED -Dxlang3_runtime_EXPORTS -DCMAKE_INTDIR=\"Release\" -ID:\CantorAI\xlang3\sdk -ID:\CantorAI\xlang3\src -ID:\CantorAI\xlang3\src\internal -ID:\CantorAI\xlang3\src\runtime\modules\thread -ID:\CantorAI\xlang3\src\runtime\modules\task -ID:\CantorAI\xlang3\src\runtime\modules\system -ID:\CantorAI\xlang3\modules\ctypes -ID:\CantorAI\xlang3\third_party\nlohmann_json -ID:\CantorAI\xlang3\build-repro\main-verify-20261006\third_party\zlib -ID:\CantorAI\xlang3\third_party\zlib -ID:\CantorAI\xlang3\third_party\bzip2 /DWIN32 /D_WINDOWS /EHsc /O2 /Ob3 /DNDEBUG -std:c++17 -MD /MP /showIncludes /FoCMakeFiles\xlang3_runtime.dir\Release\src\executor\xlang_vm\xlang_vm_loop.cpp.obj /FdCMakeFiles\xlang3_runtime.dir\Release\ /FS -c D:\CantorAI\xlang3\src\executor\xlang_vm\xlang_vm_loop.cpp
+D:\CantorAI\xlang3\src\executor\xlang_vm\xlang_vm_loop.cpp(2084): error C2039: 'data': is not a member of 'xlang3::TupleItems'
+D:\CantorAI\xlang3\src\internal\xlang3/value.h(450): note: see declaration of 'xlang3::TupleItems'
+D:\CantorAI\xlang3\src\executor\xlang_vm\xlang_vm_loop.cpp(2084): error C2039: '__this': is not a member of 'xlang3::TupleItems'
+D:\CantorAI\xlang3\src\internal\xlang3/value.h(450): note: see declaration of 'xlang3::TupleItems'
+D:\CantorAI\xlang3\src\executor\xlang_vm\xlang_vm_loop.cpp(2083): error C2660: 'xlang3::runtime_call_callable_kw': function does not take 6 arguments
+D:\CantorAI\xlang3\src\internal\xlang3/functional_iterators.h(113): note: see declaration of 'xlang3::runtime_call_callable_kw'
+D:\CantorAI\xlang3\src\executor\xlang_vm\xlang_vm_loop.cpp(2083): note: while trying to match the argument list '(xlang3::Runtime, xlang3::Value, uint32_t, const std::vector<std::pair<std::string,xlang3::Value>,std::allocator<std::pair<std::string,xlang3::Value>>>, xlang3::Value, std::string)'
+[2/33] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\executor\xlang_vm\xlang_vm_loop.cpp.obj
+FAILED: [code=2] CMakeFiles/xlang3_runtime_static.dir/Release/src/executor/xlang_vm/xlang_vm_loop.cpp.obj 
+C:\PROGRA~1\MICROS~1\18\COMMUN~1\VC\Tools\MSVC\1451~1.362\bin\Hostx64\x64\cl.exe  /nologo /TP -DCMAKE_INTDIR=\"Release\" -ID:\CantorAI\xlang3\sdk -ID:\CantorAI\xlang3\src -ID:\CantorAI\xlang3\src\internal -ID:\CantorAI\xlang3\src\runtime\modules\thread -ID:\CantorAI\xlang3\src\runtime\modules\task -ID:\CantorAI\xlang3\src\runtime\modules\system -ID:\CantorAI\xlang3\modules\ctypes -ID:\CantorAI\xlang3\third_party\nlohmann_json -ID:\CantorAI\xlang3\build-repro\main-verify-20261006\third_party\zlib -ID:\CantorAI\xlang3\third_party\zlib -ID:\CantorAI\xlang3\third_party\bzip2 /DWIN32 /D_WINDOWS /EHsc /O2 /Ob3 /DNDEBUG -std:c++17 -MD /MP /showIncludes /FoCMakeFiles\xlang3_runtime_static.dir\Release\src\executor\xlang_vm\xlang_vm_loop.cpp.obj /FdCMakeFiles\xlang3_runtime_static.dir\Release\xlang3_runtime_static.pdb /FS -c D:\CantorAI\xlang3\src\executor\xlang_vm\xlang_vm_loop.cpp
+D:\CantorAI\xlang3\src\executor\xlang_vm\xlang_vm_loop.cpp(2084): error C2039: 'data': is not a member of 'xlang3::TupleItems'
+D:\CantorAI\xlang3\src\internal\xlang3/value.h(450): note: see declaration of 'xlang3::TupleItems'
+D:\CantorAI\xlang3\src\executor\xlang_vm\xlang_vm_loop.cpp(2084): error C2039: '__this': is not a member of 'xlang3::TupleItems'
+D:\CantorAI\xlang3\src\internal\xlang3/value.h(450): note: see declaration of 'xlang3::TupleItems'
+D:\CantorAI\xlang3\src\executor\xlang_vm\xlang_vm_loop.cpp(2083): error C2660: 'xlang3::runtime_call_callable_kw': function does not take 6 arguments
+D:\CantorAI\xlang3\src\internal\xlang3/functional_iterators.h(113): note: see declaration of 'xlang3::runtime_call_callable_kw'
+D:\CantorAI\xlang3\src\executor\xlang_vm\xlang_vm_loop.cpp(2083): note: while trying to match the argument list '(xlang3::Runtime, xlang3::Value, uint32_t, const std::vector<std::pair<std::string,xlang3::Value>,std::allocator<std::pair<std::string,xlang3::Value>>>, xlang3::Value, std::string)'
+[3/33] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\executor\xlang_vm\xlang_vm_attr.cpp.obj
+[4/33] Building CXX object CMakeFiles\xlang3_runtime.dir\Release\src\executor\xlang_vm\xlang_vm_attr.cpp.obj
+[5/33] Building CXX object CMakeFiles\xlang3_runtime.dir\Release\src\executor\xlang_vm\xlang_interpreter.cpp.obj
+[6/33] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\executor\xlang_vm\xlang_interpreter.cpp.obj
+[7/33] Building CXX object CMakeFiles\xlang3_interpreter_tests.dir\Release\tests\cpp\interpreter_tests.cpp.obj
+ninja: build stopped: subcommand failed.

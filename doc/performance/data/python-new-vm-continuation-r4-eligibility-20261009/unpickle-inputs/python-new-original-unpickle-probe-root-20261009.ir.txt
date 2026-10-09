@@ -1,0 +1,341 @@
+entry: #1
+
+module_slots: %0=__name__ %1=__doc__ %2=__file__ %3=__package__ %4=__path__ %5=importlib %6=Path %7=sys %8=types %9=ROOT %10=SITE %11=pickle %12=datetime %13=_pydatetime %14=source %15=spec %16=benchmark %17=date %18=selected_class %19=arguments %20=raw_new %21=options
+
+function #0 #genexpr
+  first_line: 0
+  generator: true
+  async: false
+  coroutine: false
+  params: %0=#genexpr.iterable0
+  signature:
+  locals: %0=#genexpr.iterable0 %1=#comp.0.tool
+  cells:
+  free_vars:
+  registers: 11
+  constants: 3
+  names: #0=monitoring #1=get_events
+  call_args #0: r5
+  0: LoadLocal line=0 pos=0:0-0:0 dst=0 a=0 b=0 c=0
+  1: GetIter line=0 pos=0:0-0:0 dst=1 a=0 b=0 c=0
+  2: IterNext line=0 pos=0:0-0:0 dst=2 a=1 b=11 c=0
+  3: StoreLocal line=0 pos=0:0-0:0 dst=1 a=2 b=0 c=0
+  4: LoadModuleAttr line=31 pos=31:12-31:26 dst=3 a=7 b=0 c=4
+  5: LoadLocal line=31 pos=31:12-31:43 dst=5 a=1 b=0 c=0
+  6: CallMethod line=31 pos=31:12-31:43 dst=6 a=3 b=1 c=0
+  7: LoadConst line=0 pos=0:0-0:0 dst=7 a=0 b=0 c=0
+  8: Compare line=0 pos=0:0-0:0 dst=8 a=6 b=7 c=0
+       compare=Eq
+  9: Yield line=0 pos=0:0-0:0 dst=0 a=8 b=0 c=0
+  10: Jump line=0 pos=0:0-0:0 dst=2 a=0 b=0 c=0
+  11: LoadConst line=0 pos=0:0-0:0 dst=9 a=1 b=0 c=0
+  12: StoreLocal line=0 pos=0:0-0:0 dst=1 a=9 b=0 c=0
+  13: DeleteLocal line=0 pos=0:0-0:0 dst=1 a=0 b=0 c=0
+  14: ReturnConst line=0 pos=0:0-0:0 dst=0 a=2 b=0 c=0
+
+function #1 <module>
+  doc: Exercise original unpickle inputs once; report eligibility inputs, no score.
+  first_line: 1
+  generator: false
+  async: false
+  coroutine: false
+  params:
+  signature:
+  locals:
+  cells:
+  free_vars:
+  registers: 227
+  constants: 32
+  names: #0=importlib.util #1=importlib #2=Path #3=pathlib #4=sys #5=types #6=path #7=str #8=insert #9=modules #10=pickle #11=datetime #12=_pydatetime #13=Pickler #14=_Pickler #15=Unpickler #16=_Unpickler #17=AssertionError #18=date #19=util #20=spec_from_file_location #21=module_from_spec #22=loader #23=exec_module #24=DICT #25=__reduce__ #26=type #27=tuple #28=bytes #29=vars #30=staticmethod #31=__func__ #32=FunctionType #33=__new__ #34=__code__ #35=co_flags #36=__module__ #37=getprofile #38=gettrace #39=all #40=range #41=BENCHMARKS #42=bench_unpickle #43=SimpleNamespace #44=HIGHEST_PROTOCOL #45=protocol #46=print
+  call_args #0: r6
+  call_args #1: r15
+  call_args #2: r13 r16
+  call_args #3:
+  call_args #4:
+  call_args #5: r46
+  call_args #6: r52
+  call_args #7: r50 r53
+  call_args #8: r57
+  call_args #9: r61
+  call_args #10:
+  call_args #11: r77
+  call_args #12:
+  call_args #13: r84
+  call_args #14: r97
+  call_args #15:
+  call_args #16: r111
+  call_args #17: r116
+  call_args #18: r122
+  call_args #19:
+  call_args #20:
+  call_args #21:
+  call_args #22:
+  call_args #23:
+  call_args #24:
+  call_args #25:
+  call_args #26: r172
+  call_args #27: r173
+  call_args #28: r175
+  call_args #29:
+  call_args #30:
+  call_args #31:
+  call_args #32: r202 r203 r204
+  call_args #33:
+  call_args #34:
+  call_args #35:
+  call_args #36: r218
+  call_args #37: r221
+  call_args #38: r224
+  call_spec #0: protocol=r192
+  tuple_items #0: r183 r185
+  function_closure #0:
+  0: ImportModule line=2 pos=2:1-2:22 dst=0 a=0 b=0 c=0
+  1: ImportModule line=2 pos=2:1-2:22 dst=1 a=1 b=0 c=0
+  2: StoreModuleSlot line=2 pos=2:1-2:22 dst=5 a=1 b=0 c=0
+  3: ImportFrom line=3 pos=3:1-3:25 dst=2 a=3 b=2 c=0
+  4: StoreModuleSlot line=3 pos=3:1-3:25 dst=6 a=2 b=0 c=0
+  5: ImportModule line=4 pos=4:1-4:11 dst=3 a=4 b=0 c=0
+  6: StoreModuleSlot line=4 pos=4:1-4:11 dst=7 a=3 b=0 c=0
+  7: ImportModule line=5 pos=5:1-5:13 dst=4 a=5 b=0 c=0
+  8: StoreModuleSlot line=5 pos=5:1-5:13 dst=8 a=4 b=0 c=0
+  9: LoadModuleSlot line=7 pos=7:8-7:34 dst=5 a=6 b=0 c=0
+  10: LoadConst line=7 pos=7:8-7:34 dst=6 a=0 b=0 c=0
+  11: Call line=7 pos=7:8-7:34 dst=7 a=5 b=0 c=0
+  12: StoreModuleSlot line=7 pos=7:8-7:34 dst=9 a=7 b=0 c=0
+  13: LoadModuleSlot line=8 pos=8:8-8:82 dst=8 a=9 b=0 c=0
+  14: LoadConst line=8 pos=8:8-8:82 dst=9 a=1 b=0 c=0
+  15: Div line=8 pos=8:8-8:82 dst=10 a=8 b=9 c=0
+  16: StoreModuleSlot line=8 pos=8:8-8:84 dst=10 a=10 b=0 c=0
+  17: LoadModuleAttr line=9 pos=9:1-9:9 dst=11 a=7 b=6 c=12
+  18: LoadConst line=9 pos=9:1-9:30 dst=13 a=2 b=0 c=0
+  19: LoadGlobal line=9 pos=9:20-9:29 dst=14 a=7 b=0 c=0
+  20: LoadModuleSlot line=9 pos=9:20-9:29 dst=15 a=10 b=0 c=0
+  21: Call line=9 pos=9:20-9:29 dst=16 a=14 b=1 c=0
+  22: CallMethod line=9 pos=9:1-9:30 dst=17 a=11 b=8 c=2
+  23: Pop line=9 pos=9:1-9:30 dst=0 a=17 b=0 c=0
+  24: LoadModuleAttr line=11 pos=11:1-11:12 dst=18 a=7 b=9 c=19
+  25: LoadConstPair line=11 pos=11:26-11:30 dst=20 a=3 b=21 c=4
+  26: SetItem line=11 pos=11:26-11:30 dst=18 a=20 b=21 c=0
+  27: ImportModule line=12 pos=12:1-12:14 dst=22 a=10 b=0 c=0
+  28: StoreModuleSlot line=12 pos=12:1-12:14 dst=11 a=22 b=0 c=0
+  29: ImportModule line=13 pos=13:1-13:16 dst=23 a=11 b=0 c=0
+  30: StoreModuleSlot line=13 pos=13:1-13:16 dst=12 a=23 b=0 c=0
+  31: ImportModule line=14 pos=14:1-14:19 dst=24 a=12 b=0 c=0
+  32: StoreModuleSlot line=14 pos=14:1-14:19 dst=13 a=24 b=0 c=0
+  33: LoadModuleAttr line=15 pos=15:8-15:22 dst=25 a=11 b=13 c=26
+  34: LoadModuleAttr line=15 pos=15:26-15:41 dst=27 a=11 b=14 c=28
+  35: Is line=15 pos=15:1-15:83 dst=29 a=25 b=27 c=0
+  36: MoveJumpIfFalse line=15 pos=15:1-15:83 dst=30 a=29 b=41 c=0
+  37: LoadModuleAttr line=15 pos=15:46-15:62 dst=31 a=11 b=15 c=32
+  38: LoadModuleAttr line=15 pos=15:66-15:83 dst=33 a=11 b=16 c=34
+  39: Is line=15 pos=15:1-15:83 dst=35 a=31 b=33 c=0
+  40: Move line=15 pos=15:1-15:83 dst=30 a=35 b=0 c=0
+  41: JumpIfFalse line=15 pos=15:1-15:83 dst=43 a=30 b=0 c=0
+  42: Jump line=15 pos=15:1-15:83 dst=45 a=0 b=0 c=0
+  43: CallGlobal line=15 pos=15:1-15:83 dst=37 a=17 b=3 c=0
+  44: Raise line=15 pos=15:1-15:83 dst=0 a=37 b=0 c=0
+  45: LoadModuleAttr line=16 pos=16:8-16:21 dst=38 a=12 b=18 c=39
+  46: LoadModuleAttr line=16 pos=16:25-16:41 dst=40 a=13 b=18 c=41
+  47: IsJumpIfFalse line=16 pos=16:1-16:41 dst=49 a=38 b=40 c=0
+  48: Jump line=16 pos=16:1-16:41 dst=51 a=0 b=0 c=0
+  49: CallGlobal line=16 pos=16:1-16:41 dst=44 a=17 b=4 c=0
+  50: Raise line=16 pos=16:1-16:41 dst=0 a=44 b=0 c=0
+  51: LoadModuleSlot line=17 pos=17:10-17:118 dst=45 a=6 b=0 c=0
+  52: LoadConst line=17 pos=17:10-17:118 dst=46 a=5 b=0 c=0
+  53: Call line=17 pos=17:10-17:118 dst=47 a=45 b=5 c=0
+  54: StoreModuleSlot line=17 pos=17:10-17:118 dst=14 a=47 b=0 c=0
+  55: LoadModuleAttr line=18 pos=18:8-18:22 dst=48 a=5 b=19 c=49
+  56: LoadConst line=18 pos=18:8-18:88 dst=50 a=6 b=0 c=0
+  57: LoadGlobal line=18 pos=18:76-18:87 dst=51 a=7 b=0 c=0
+  58: LoadModuleSlot line=18 pos=18:76-18:87 dst=52 a=14 b=0 c=0
+  59: Call line=18 pos=18:76-18:87 dst=53 a=51 b=6 c=0
+  60: CallMethod line=18 pos=18:8-18:88 dst=54 a=48 b=20 c=7
+  61: StoreModuleSlot line=18 pos=18:8-18:88 dst=15 a=54 b=0 c=0
+  62: LoadModuleAttr line=19 pos=19:13-19:27 dst=55 a=5 b=19 c=56
+  63: LoadModuleSlot line=19 pos=19:13-19:50 dst=57 a=15 b=0 c=0
+  64: CallMethod line=19 pos=19:13-19:50 dst=58 a=55 b=21 c=8
+  65: StoreModuleSlot line=19 pos=19:13-19:50 dst=16 a=58 b=0 c=0
+  66: LoadModuleAttr line=20 pos=20:1-20:12 dst=59 a=15 b=22 c=60
+  67: LoadModuleSlot line=20 pos=20:1-20:35 dst=61 a=16 b=0 c=0
+  68: CallMethod line=20 pos=20:1-20:35 dst=62 a=59 b=23 c=9
+  69: Pop line=20 pos=20:1-20:35 dst=0 a=62 b=0 c=0
+  70: LoadModuleAttr line=21 pos=21:8-21:22 dst=63 a=16 b=24 c=64
+  71: GetItemConst line=21 pos=21:8-21:34 dst=66 a=63 b=7 c=65
+  72: StoreModuleSlot line=21 pos=21:8-21:34 dst=17 a=66 b=0 c=0
+  73: LoadModuleSlot line=22 pos=22:29-22:46 dst=67 a=17 b=0 c=0
+  74: CallMethod line=22 pos=22:29-22:46 dst=68 a=67 b=25 c=10
+  75: UnpackSequence line=22 pos=22:29-22:46 dst=69 a=68 b=2 c=0
+  76: StoreModuleSlot line=22 pos=22:29-22:46 dst=18 a=69 b=0 c=0
+  77: StoreModuleSlot line=22 pos=22:29-22:46 dst=19 a=70 b=0 c=0
+  78: LoadModuleSlot line=23 pos=23:1-23:72 dst=71 a=18 b=0 c=0
+  79: LoadModuleAttr line=23 pos=23:26-23:39 dst=72 a=12 b=18 c=73
+  80: Is line=23 pos=23:1-23:72 dst=74 a=71 b=72 c=0
+  81: MoveJumpIfFalse line=23 pos=23:1-23:72 dst=75 a=74 b=88 c=0
+  82: LoadGlobal line=23 pos=23:44-23:64 dst=76 a=26 b=0 c=0
+  83: LoadModuleSlot line=23 pos=23:44-23:64 dst=77 a=18 b=0 c=0
+  84: Call line=23 pos=23:44-23:64 dst=78 a=76 b=11 c=0
+  85: LoadGlobal line=23 pos=23:1-23:72 dst=79 a=26 b=0 c=0
+  86: Is line=23 pos=23:1-23:72 dst=80 a=78 b=79 c=0
+  87: Move line=23 pos=23:1-23:72 dst=75 a=80 b=0 c=0
+  88: JumpIfFalse line=23 pos=23:1-23:72 dst=90 a=75 b=0 c=0
+  89: Jump line=23 pos=23:1-23:72 dst=92 a=0 b=0 c=0
+  90: CallGlobal line=23 pos=23:1-23:72 dst=82 a=17 b=12 c=0
+  91: Raise line=23 pos=23:1-23:72 dst=0 a=82 b=0 c=0
+  92: LoadGlobal line=24 pos=24:8-24:23 dst=83 a=26 b=0 c=0
+  93: LoadModuleSlot line=24 pos=24:8-24:23 dst=84 a=19 b=0 c=0
+  94: Call line=24 pos=24:8-24:23 dst=85 a=83 b=13 c=0
+  95: LoadGlobal line=24 pos=24:1-24:115 dst=86 a=27 b=0 c=0
+  96: Is line=24 pos=24:1-24:115 dst=87 a=85 b=86 c=0
+  97: MoveJumpIfFalse line=24 pos=24:1-24:115 dst=88 a=87 b=103 c=0
+  98: LoadModuleSlot line=24 pos=24:37-24:51 dst=89 a=19 b=0 c=0
+  99: Len line=24 pos=24:37-24:51 dst=90 a=89 b=0 c=0
+  100: LoadConst line=24 pos=24:1-24:115 dst=91 a=8 b=0 c=0
+  101: Compare line=24 pos=24:1-24:115 dst=92 a=90 b=91 c=0
+       compare=Eq
+  102: Move line=24 pos=24:1-24:115 dst=88 a=92 b=0 c=0
+  103: MoveJumpIfFalse line=24 pos=24:1-24:115 dst=93 a=88 b=111 c=0
+  104: LoadGlobal line=24 pos=24:61-24:79 dst=94 a=26 b=0 c=0
+  105: LoadModuleSlot line=24 pos=24:66-24:78 dst=95 a=19 b=0 c=0
+  106: GetItemConst line=24 pos=24:66-24:78 dst=97 a=95 b=9 c=96
+  107: Call line=24 pos=24:61-24:79 dst=98 a=94 b=14 c=0
+  108: LoadGlobal line=24 pos=24:1-24:115 dst=99 a=28 b=0 c=0
+  109: Is line=24 pos=24:1-24:115 dst=100 a=98 b=99 c=0
+  110: Move line=24 pos=24:1-24:115 dst=93 a=100 b=0 c=0
+  111: MoveJumpIfFalse line=24 pos=24:1-24:115 dst=101 a=93 b=118 c=0
+  112: LoadModuleSlot line=24 pos=24:97-24:109 dst=102 a=19 b=0 c=0
+  113: GetItemConst line=24 pos=24:97-24:109 dst=104 a=102 b=10 c=103
+  114: Len line=24 pos=24:93-24:110 dst=105 a=104 b=0 c=0
+  115: LoadConst line=24 pos=24:1-24:115 dst=106 a=11 b=0 c=0
+  116: Compare line=24 pos=24:1-24:115 dst=107 a=105 b=106 c=0
+       compare=Eq
+  117: Move line=24 pos=24:1-24:115 dst=101 a=107 b=0 c=0
+  118: JumpIfFalse line=24 pos=24:1-24:115 dst=120 a=101 b=0 c=0
+  119: Jump line=24 pos=24:1-24:115 dst=122 a=0 b=0 c=0
+  120: CallGlobal line=24 pos=24:1-24:115 dst=109 a=17 b=15 c=0
+  121: Raise line=24 pos=24:1-24:115 dst=0 a=109 b=0 c=0
+  122: LoadGlobal line=25 pos=25:11-25:31 dst=110 a=29 b=0 c=0
+  123: LoadModuleSlot line=25 pos=25:11-25:31 dst=111 a=18 b=0 c=0
+  124: Call line=25 pos=25:11-25:31 dst=112 a=110 b=16 c=0
+  125: GetItemConst line=25 pos=25:11-25:42 dst=114 a=112 b=12 c=113
+  126: StoreModuleSlot line=25 pos=25:11-25:42 dst=20 a=114 b=0 c=0
+  127: LoadGlobal line=26 pos=26:8-26:21 dst=115 a=26 b=0 c=0
+  128: LoadModuleSlot line=26 pos=26:8-26:21 dst=116 a=20 b=0 c=0
+  129: Call line=26 pos=26:8-26:21 dst=117 a=115 b=17 c=0
+  130: LoadGlobal line=26 pos=26:1-26:86 dst=118 a=30 b=0 c=0
+  131: Is line=26 pos=26:1-26:86 dst=119 a=117 b=118 c=0
+  132: MoveJumpIfFalse line=26 pos=26:1-26:86 dst=120 a=119 b=139 c=0
+  133: LoadGlobal line=26 pos=26:42-26:64 dst=121 a=26 b=0 c=0
+  134: LoadModuleAttr line=26 pos=26:47-26:63 dst=122 a=20 b=31 c=123
+  135: Call line=26 pos=26:42-26:64 dst=124 a=121 b=18 c=0
+  136: LoadModuleAttr line=26 pos=26:68-26:86 dst=125 a=8 b=32 c=126
+  137: Is line=26 pos=26:1-26:86 dst=127 a=124 b=125 c=0
+  138: Move line=26 pos=26:1-26:86 dst=120 a=127 b=0 c=0
+  139: JumpIfFalse line=26 pos=26:1-26:86 dst=141 a=120 b=0 c=0
+  140: Jump line=26 pos=26:1-26:86 dst=143 a=0 b=0 c=0
+  141: CallGlobal line=26 pos=26:1-26:86 dst=129 a=17 b=19 c=0
+  142: Raise line=26 pos=26:1-26:86 dst=0 a=129 b=0 c=0
+  143: LoadModuleAttr line=27 pos=27:8-27:24 dst=130 a=20 b=31 c=131
+  144: LoadModuleAttr line=27 pos=27:28-27:50 dst=132 a=18 b=33 c=133
+  145: IsJumpIfFalse line=27 pos=27:1-27:50 dst=147 a=130 b=132 c=0
+  146: Jump line=27 pos=27:1-27:50 dst=149 a=0 b=0 c=0
+  147: CallGlobal line=27 pos=27:1-27:50 dst=136 a=17 b=20 c=0
+  148: Raise line=27 pos=27:1-27:50 dst=0 a=136 b=0 c=0
+  149: LoadModuleAttr line=28 pos=28:8-28:30 dst=139 a=18 b=33 c=140
+  150: LoadAttr line=28 pos=28:8-28:39 dst=138 a=139 b=34 c=0
+  151: LoadAttr line=28 pos=28:8-28:48 dst=137 a=138 b=35 c=0
+  152: LoadConstPair line=28 pos=28:1-28:85 dst=141 a=13 b=142 c=14
+  153: BitOr line=28 pos=28:1-28:85 dst=143 a=141 b=142 c=0
+  154: LoadConst line=28 pos=28:1-28:85 dst=144 a=15 b=0 c=0
+  155: BitOr line=28 pos=28:1-28:85 dst=145 a=143 b=144 c=0
+  156: LoadConst line=28 pos=28:1-28:85 dst=146 a=16 b=0 c=0
+  157: BitOr line=28 pos=28:1-28:85 dst=147 a=145 b=146 c=0
+  158: BitAnd line=28 pos=28:1-28:85 dst=148 a=137 b=147 c=0
+  159: LoadConst line=28 pos=28:1-28:85 dst=149 a=17 b=0 c=0
+  160: CompareJumpIfFalse line=28 pos=28:1-28:85 dst=162 a=148 b=149 c=0
+  161: Jump line=28 pos=28:1-28:85 dst=164 a=0 b=0 c=0
+  162: CallGlobal line=28 pos=28:1-28:85 dst=152 a=17 b=21 c=0
+  163: Raise line=28 pos=28:1-28:85 dst=0 a=152 b=0 c=0
+  164: LoadModuleAttr line=29 pos=29:8-29:33 dst=153 a=18 b=36 c=154
+  165: LoadConst line=29 pos=29:1-29:50 dst=155 a=18 b=0 c=0
+  166: CompareJumpIfFalse line=29 pos=29:1-29:50 dst=168 a=153 b=155 c=0
+  167: Jump line=29 pos=29:1-29:50 dst=170 a=0 b=0 c=0
+  168: CallGlobal line=29 pos=29:1-29:50 dst=158 a=17 b=22 c=0
+  169: Raise line=29 pos=29:1-29:50 dst=0 a=158 b=0 c=0
+  170: LoadModuleSlot line=30 pos=30:8-30:24 dst=159 a=7 b=0 c=0
+  171: CallMethod line=30 pos=30:8-30:24 dst=160 a=159 b=37 c=23
+  172: LoadConst line=30 pos=30:1-30:59 dst=161 a=19 b=0 c=0
+  173: Is line=30 pos=30:1-30:59 dst=162 a=160 b=161 c=0
+  174: MoveJumpIfFalse line=30 pos=30:1-30:59 dst=163 a=162 b=180 c=0
+  175: LoadModuleSlot line=30 pos=30:37-30:51 dst=164 a=7 b=0 c=0
+  176: CallMethod line=30 pos=30:37-30:51 dst=165 a=164 b=38 c=24
+  177: LoadConst line=30 pos=30:1-30:59 dst=166 a=20 b=0 c=0
+  178: Is line=30 pos=30:1-30:59 dst=167 a=165 b=166 c=0
+  179: Move line=30 pos=30:1-30:59 dst=163 a=167 b=0 c=0
+  180: JumpIfFalse line=30 pos=30:1-30:59 dst=182 a=163 b=0 c=0
+  181: Jump line=30 pos=30:1-30:59 dst=184 a=0 b=0 c=0
+  182: CallGlobal line=30 pos=30:1-30:59 dst=169 a=17 b=25 c=0
+  183: Raise line=30 pos=30:1-30:59 dst=0 a=169 b=0 c=0
+  184: LoadGlobal line=31 pos=31:8-31:70 dst=170 a=39 b=0 c=0
+  185: LoadGlobal line=31 pos=31:61-31:69 dst=171 a=40 b=0 c=0
+  186: LoadConst line=31 pos=31:61-31:69 dst=172 a=21 b=0 c=0
+  187: Call line=31 pos=31:61-31:69 dst=173 a=171 b=26 c=0
+  188: MakeFunction line=31 pos=31:8-31:70 dst=174 a=0 b=0 c=4294967295
+  189: Call line=31 pos=31:8-31:70 dst=175 a=174 b=27 c=0
+  190: Call line=31 pos=31:8-31:70 dst=176 a=170 b=28 c=0
+  191: JumpIfFalse line=31 pos=31:1-31:70 dst=193 a=176 b=0 c=0
+  192: Jump line=31 pos=31:1-31:70 dst=195 a=0 b=0 c=0
+  193: CallGlobal line=31 pos=31:1-31:70 dst=178 a=17 b=29 c=0
+  194: Raise line=31 pos=31:1-31:70 dst=0 a=178 b=0 c=0
+  195: LoadModuleAttr line=32 pos=32:8-32:28 dst=179 a=16 b=41 c=180
+  196: GetItemConst line=32 pos=32:8-32:40 dst=182 a=179 b=22 c=181
+  197: LoadModuleAttr line=32 pos=32:45-32:69 dst=183 a=16 b=42 c=184
+  198: LoadConst line=32 pos=32:1-32:74 dst=185 a=23 b=0 c=0
+  199: MakeTuple line=32 pos=32:1-32:74 dst=186 a=0 b=0 c=0
+  200: CompareJumpIfFalse line=32 pos=32:1-32:74 dst=202 a=182 b=186 c=0
+  201: Jump line=32 pos=32:1-32:74 dst=204 a=0 b=0 c=0
+  202: CallGlobal line=32 pos=32:1-32:74 dst=189 a=17 b=30 c=0
+  203: Raise line=32 pos=32:1-32:74 dst=0 a=189 b=0 c=0
+  204: LoadModuleAttr line=33 pos=33:11-33:32 dst=190 a=8 b=43 c=191
+  205: LoadModuleAttr line=33 pos=33:42-33:65 dst=192 a=11 b=44 c=193
+  206: CallEx line=33 pos=33:11-33:66 dst=194 a=190 b=0 c=0
+  207: StoreModuleSlot line=33 pos=33:11-33:66 dst=21 a=194 b=0 c=0
+  208: LoadModuleAttr line=34 pos=34:8-34:24 dst=195 a=21 b=45 c=196
+  209: LoadConst line=34 pos=34:1-34:29 dst=197 a=24 b=0 c=0
+  210: CompareJumpIfFalse line=34 pos=34:1-34:29 dst=212 a=195 b=197 c=0
+  211: Jump line=34 pos=34:1-34:29 dst=214 a=0 b=0 c=0
+  212: CallGlobal line=34 pos=34:1-34:29 dst=200 a=17 b=31 c=0
+  213: Raise line=34 pos=34:1-34:29 dst=0 a=200 b=0 c=0
+  214: LoadModuleSlot line=38 pos=38:1-38:45 dst=201 a=16 b=0 c=0
+  215: LoadConst line=38 pos=38:1-38:45 dst=202 a=25 b=0 c=0
+  216: LoadModuleSlot line=38 pos=38:1-38:45 dst=203 a=11 b=0 c=0
+  217: LoadModuleSlot line=38 pos=38:1-38:45 dst=204 a=21 b=0 c=0
+  218: CallMethod line=38 pos=38:1-38:45 dst=205 a=201 b=42 c=32
+  219: Pop line=38 pos=38:1-38:45 dst=0 a=205 b=0 c=0
+  220: LoadModuleSlot line=39 pos=39:8-39:24 dst=206 a=7 b=0 c=0
+  221: CallMethod line=39 pos=39:8-39:24 dst=207 a=206 b=37 c=33
+  222: LoadConst line=39 pos=39:1-39:59 dst=208 a=26 b=0 c=0
+  223: Is line=39 pos=39:1-39:59 dst=209 a=207 b=208 c=0
+  224: MoveJumpIfFalse line=39 pos=39:1-39:59 dst=210 a=209 b=230 c=0
+  225: LoadModuleSlot line=39 pos=39:37-39:51 dst=211 a=7 b=0 c=0
+  226: CallMethod line=39 pos=39:37-39:51 dst=212 a=211 b=38 c=34
+  227: LoadConst line=39 pos=39:1-39:59 dst=213 a=27 b=0 c=0
+  228: Is line=39 pos=39:1-39:59 dst=214 a=212 b=213 c=0
+  229: Move line=39 pos=39:1-39:59 dst=210 a=214 b=0 c=0
+  230: JumpIfFalse line=39 pos=39:1-39:59 dst=232 a=210 b=0 c=0
+  231: Jump line=39 pos=39:1-39:59 dst=234 a=0 b=0 c=0
+  232: CallGlobal line=39 pos=39:1-39:59 dst=216 a=17 b=35 c=0
+  233: Raise line=39 pos=39:1-39:59 dst=0 a=216 b=0 c=0
+  234: LoadGlobal line=40 pos=40:1-40:78 dst=217 a=46 b=0 c=0
+  235: LoadConst line=40 pos=40:1-40:78 dst=218 a=28 b=0 c=0
+  236: Call line=40 pos=40:1-40:78 dst=219 a=217 b=36 c=0
+  237: Pop line=40 pos=40:1-40:78 dst=0 a=219 b=0 c=0
+  238: LoadGlobal line=41 pos=41:1-41:87 dst=220 a=46 b=0 c=0
+  239: LoadConst line=41 pos=41:1-41:87 dst=221 a=29 b=0 c=0
+  240: Call line=41 pos=41:1-41:87 dst=222 a=220 b=37 c=0
+  241: Pop line=41 pos=41:1-41:87 dst=0 a=222 b=0 c=0
+  242: LoadGlobal line=42 pos=42:1-42:83 dst=223 a=46 b=0 c=0
+  243: LoadConst line=42 pos=42:1-42:83 dst=224 a=30 b=0 c=0
+  244: Call line=42 pos=42:1-42:83 dst=225 a=223 b=38 c=0
+  245: Pop line=42 pos=42:1-42:83 dst=0 a=225 b=0 c=0
+  246: ReturnConst line=0 pos=0:0-0:0 dst=0 a=31 b=0 c=0
+

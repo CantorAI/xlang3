@@ -1,0 +1,21 @@
+{
+  "status": "full97_controller_actual_validator_binding_corrected",
+  "controller": "scratch\\performance\\run-python-new-vm-continuation-r4-full-pyperformance-refresh-r2-root-20261009.py",
+  "controller_sha256": "f5587d5326658062b90e1b1acfb531bf0d4cc79f9ce1a363ed1de01b180adbca",
+  "parent_controller": "scratch\\performance\\run-python-new-vm-continuation-r4-full-pyperformance-refresh-proposed-20261009.py",
+  "parent_controller_sha256": "f4b6f00e55fdf0ce4d4987a02a148ac5f495a10fa697e50da6825c7790552183",
+  "parent_proof_sha256": "bbe4a32802218f0ef80780116ecf65bf4487af43f75bd74cc277c7280d47f181",
+  "actual_correctness_receipt_sha256": "9c631bc3ff95060b59b77ab19c42b0c22816dc51b61da9e0ead8d8aac15ce8dc",
+  "actual_validator": "scratch\\performance\\validate-python-new-vm-continuation-r4-trial-proposed-20261009.py",
+  "actual_validator_sha256": "8b4e99e85597ce4565fe792a0b24c6e77ad47ca61ac931830721182370aefcd0",
+  "correction": "Only validator path and digest changed. Use actual8b and authenticated same-build9c correctness; heldf78 controller is not substituted.",
+  "original_workloads_and_execution_region_byte_identical": true,
+  "ast_passed": true,
+  "future_full_validation_required": true,
+  "full_validation_hash": null,
+  "benchmarks_executed": false,
+  "engine_changes": false,
+  "staging": false,
+  "required_scope": "Actual full_validated/trial_validated same-source132/Release178/default11 gate21/5/.10 and original unpickle CP3.14.7/X20, then one fullall97 attempt.",
+  "controller_preparation_sha256": "729434b8d1b31a445fd78c7130f9213de265c173c441fbe9add92189867f40f9"
+}
