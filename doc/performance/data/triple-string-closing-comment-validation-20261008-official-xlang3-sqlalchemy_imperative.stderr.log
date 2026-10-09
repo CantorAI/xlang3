@@ -1,0 +1,62 @@
+D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlalchemy\sql\sqltypes.py:2030: DeprecationWarning: datetime.datetime.utcfromtimestamp() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.fromtimestamp(t, datetime.UTC).
+  epoch = dt.datetime.utcfromtimestamp(0)
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\data-files\benchmarks\bm_sqlalchemy_imperative\run_benchmark.py", line 10, in <module>
+    Person = Table('person', metadata,
+                   Column('id', Integer, primary_key=True),
+                   Column('name', String(250), nullable=False))
+  File "<string>", line 2, in __new__
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlalchemy\util\deprecations.py", line 298, in warned
+    return fn(*args, **kwargs)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlalchemy\sql\schema.py", line 599, in __new__
+                with util.safe_reraise():
+                ^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<2 lines>...
+    def __init__(self, *args, **kw):
+    ^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlalchemy\util\langhelpers.py", line 70, in __exit__
+    compat.raise_(
+    ~~~~~~~~~~~~~^
+        exc_value,
+        ^^^^^^^^^^
+        with_traceback=exc_tb,
+        ^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlalchemy\util\compat.py", line 207, in raise_
+    raise exception
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlalchemy\sql\schema.py", line 595, in __new__
+    table._init(name, metadata, *args, **kw)
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlalchemy\sql\schema.py", line 630, in _init
+    PrimaryKeyConstraint(
+    ~~~~~~~~~~~~~~~~~~~~~
+        _implicit_generated=True
+        ~~~~~~~~~~~~~~~~~~~~~~~~
+    )._set_parent_with_dispatch(self)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlalchemy\sql\base.py", line 1025, in _set_parent_with_dispatch
+    self._set_parent(parent, **kw)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlalchemy\sql\schema.py", line 3852, in _set_parent
+    table_pks = [c for c in table.c if c.primary_key]
+                            ^^^^^^^
+RuntimeError: property getter is not callable
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\run.py", line 171, in run_benchmarks
+    result = bench.run(
+        bench_venv.python,
+    ...<3 lines>...
+        verbose=options.verbose,
+    )
+  File "D:\CantorAI\xlang3\benchmarks\diagnostics\run_pyperformance_xlang3_shimmed.py", line 157, in run_named_benchmark
+    return original_benchmark_run(benchmark, *positional, **keywords)
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 193, in run
+    bench = _run_perf_script(
+        python,
+    ...<4 lines>...
+        verbose=verbose,
+    )
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 250, in _run_perf_script
+    raise RuntimeError("Benchmark died")
+RuntimeError: Benchmark died

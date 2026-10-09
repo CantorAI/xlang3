@@ -1,0 +1,275 @@
+{
+  "status": "terminal_closing_comment_failure_reproduced",
+  "terminal": true,
+  "diagnostic_only": true,
+  "scored": false,
+  "engine_changes": false,
+  "hashes_before": {
+    "D:\\CantorAI\\xlang3\\src\\parser\\lexer.cpp": "52bf409a30bd4fc207b93351da69f883ed81da3660e3cc99e74b5e402c2a690c",
+    "D:\\CantorAI\\xlang3\\src\\parser\\parser.cpp": "0ccc9f0270aeedd95d0daefe21ec7ba2b4522a70c5c5d3077a919913078ca6d5",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlalchemy-triple-closing-comment-design-proposed-20261008.md": "63d59cac29abef87a6198fcd8ef1971fca70e37d6728de7efc1474d6c8e44b09",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlalchemy-direct-native-parser-proposed-20261008.cpp": "2986ea9d5008b1b07fb186bff2603c9dceedeebff8a5b41c5ab0b3343c23751d",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlalchemy-direct-native-parser-provenance-proposed-20261008.json": "a78721c2215d800d209d28f35bfbaa73478a0bb17ce09c7cc0dd4e81fa71e39f",
+    "D:\\CantorAI\\xlang3\\doc\\performance\\data\\sqlalchemy-direct-native-parser-root-20261008.json": "8639e001f802b75759192015962681a8c4b6cbbc5513c0750be556797008b8aa",
+    "D:\\CantorAI\\xlang3\\doc\\performance\\data\\sqlalchemy-direct-parser-cpython3147-20261008.json": "658ba1b39bf8180ed9f98a2a3bf36b2b61be29676b58ae1903d645d602f90cae",
+    "D:\\CantorAI\\xlang3\\doc\\performance\\parser-triple-quoted-hash-benchmark-unblock-20261003.md": "a7f290793d4443ee338d4c9d4c6380c8c4c8580fdc62ceac9b8623c8817e1015",
+    "D:\\CantorAI\\xlang3\\tests\\cpp\\parser_tests.cpp": "dcfc69580c4c53aa061b6a5e4885f4edd73c1a9947de4ace7b525bd2607c1be2",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlalchemy-triple-closing-comment-proposed-20261008\\double_no_comment.py": "d8afa967dcb2808b22e17109f4a6545b51abad413faefb305be69346be821d74",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlalchemy-triple-closing-comment-proposed-20261008\\double_closing_comment.py": "d80cc6524d2fe519db367220db0d8d0357eb58154c2a3e373eacc02588abd09e",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlalchemy-triple-closing-comment-proposed-20261008\\single_no_comment.py": "7d817fe370f56392a388be645694b35fc1b3c4dc509d1535aefcaeeb1f473bcc",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlalchemy-triple-closing-comment-proposed-20261008\\single_closing_comment.py": "64d9709f90e7dbb5a6a074fc042e96c3c294a9b0ad9d6677dad19800f8f27ee9",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\measure-triple-closing-comment-reproducer-root-20261008.py": "4baaefc78b74a9f5533c0121e898f41586a00e6a6c437b523a549f66e6694b26",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlalchemy-triple-closing-comment-r2-provenance-proposed-20261008.json": "44378c66e1c140cbfde0ddbdb0182cfc0000f765ff5a2f0c19aaddeec1656bfb",
+    "C:\\Python\\Python314\\python.exe": "4942b86a6597e5aee0128daa00050ed79bc21f6e709a78eb19cbfeb0c2f39ac9",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlalchemy-direct-native-parser-20261008\\direct-parser.exe": "4b1b6144e4e49afbad3eb0046ccc3b7e6dab9fbf2a9b3882d347625350b416e8",
+    "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe": "c6358221bd7836f877c566557269b4bf9a011a9a2ca33060eeb2e00b4e6de5b4",
+    "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3_runtime.dll": "64640e503a103341dd44d220eba17ef802219b9df639bb1be5cbe5f2bf847564"
+  },
+  "phases": [
+    {
+      "case": "double_no_comment",
+      "runtime": "cpython3147",
+      "command": [
+        "C:\\Python\\Python314\\python.exe",
+        "-I",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlalchemy-triple-closing-comment-proposed-20261008\\double_no_comment.py"
+      ],
+      "exit_code": 0,
+      "stdout_log": "sqlalchemy-triple-closing-comment-20261008-double_no_comment-cpython3147.stdout.log",
+      "stdout_sha256": "d3172834b1874c0a8cb035ab1e2b55e68734e8ece1c7280b79c39389255cf4ab",
+      "stderr_log": "sqlalchemy-triple-closing-comment-20261008-double_no_comment-cpython3147.stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "case": "double_no_comment",
+      "runtime": "direct-native-parser",
+      "command": [
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlalchemy-direct-native-parser-20261008\\direct-parser.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlalchemy-triple-closing-comment-proposed-20261008\\double_no_comment.py"
+      ],
+      "exit_code": 0,
+      "stdout_log": "sqlalchemy-triple-closing-comment-20261008-double_no_comment-direct-native-parser.stdout.log",
+      "stdout_sha256": "f8995c88eda33aef55703442af837b3b9976ec9062fdf9b056e17ca662bdac60",
+      "stderr_log": "sqlalchemy-triple-closing-comment-20261008-double_no_comment-direct-native-parser.stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "result": {
+        "mode": "direct_native_parser_diagnostic_only",
+        "input": "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlalchemy-triple-closing-comment-proposed-20261008\\double_no_comment.py",
+        "loaded_runtime_dll": "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3_runtime.dll",
+        "input_bytes": 228,
+        "lexer_error_count": 0,
+        "parser_error_count": 0,
+        "module_statement_count": 4,
+        "lexer_errors": [],
+        "parser_errors": [],
+        "parse_source_wrapper_used": false,
+        "imports_executed": false,
+        "python_executed": false
+      }
+    },
+    {
+      "case": "double_no_comment",
+      "runtime": "xlang3",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlalchemy-triple-closing-comment-proposed-20261008\\double_no_comment.py"
+      ],
+      "exit_code": 0,
+      "stdout_log": "sqlalchemy-triple-closing-comment-20261008-double_no_comment-xlang3.stdout.log",
+      "stdout_sha256": "d3172834b1874c0a8cb035ab1e2b55e68734e8ece1c7280b79c39389255cf4ab",
+      "stderr_log": "sqlalchemy-triple-closing-comment-20261008-double_no_comment-xlang3.stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "case": "double_closing_comment",
+      "runtime": "cpython3147",
+      "command": [
+        "C:\\Python\\Python314\\python.exe",
+        "-I",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlalchemy-triple-closing-comment-proposed-20261008\\double_closing_comment.py"
+      ],
+      "exit_code": 0,
+      "stdout_log": "sqlalchemy-triple-closing-comment-20261008-double_closing_comment-cpython3147.stdout.log",
+      "stdout_sha256": "be9bfcbce8b6bcdc7a6233aa86e8dfad50c04b6c18ec753cecd2a443828d6caf",
+      "stderr_log": "sqlalchemy-triple-closing-comment-20261008-double_closing_comment-cpython3147.stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "case": "double_closing_comment",
+      "runtime": "direct-native-parser",
+      "command": [
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlalchemy-direct-native-parser-20261008\\direct-parser.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlalchemy-triple-closing-comment-proposed-20261008\\double_closing_comment.py"
+      ],
+      "exit_code": 1,
+      "stdout_log": "sqlalchemy-triple-closing-comment-20261008-double_closing_comment-direct-native-parser.stdout.log",
+      "stdout_sha256": "bdf3dc9d39bb160227f9cb80ba1c55bea5e1685fbff0718f94c0294ba13e4464",
+      "stderr_log": "sqlalchemy-triple-closing-comment-20261008-double_closing_comment-direct-native-parser.stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "result": {
+        "mode": "direct_native_parser_diagnostic_only",
+        "input": "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlalchemy-triple-closing-comment-proposed-20261008\\double_closing_comment.py",
+        "loaded_runtime_dll": "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3_runtime.dll",
+        "input_bytes": 262,
+        "lexer_error_count": 0,
+        "parser_error_count": 2,
+        "module_statement_count": 4,
+        "lexer_errors": [],
+        "parser_errors": [
+          "line 8, column 112: expected expression",
+          "line 8, column 112: expected ')' after call arguments"
+        ],
+        "parse_source_wrapper_used": false,
+        "imports_executed": false,
+        "python_executed": false
+      }
+    },
+    {
+      "case": "double_closing_comment",
+      "runtime": "xlang3",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlalchemy-triple-closing-comment-proposed-20261008\\double_closing_comment.py"
+      ],
+      "exit_code": 1,
+      "stdout_log": "sqlalchemy-triple-closing-comment-20261008-double_closing_comment-xlang3.stdout.log",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_log": "sqlalchemy-triple-closing-comment-20261008-double_closing_comment-xlang3.stderr.log",
+      "stderr_sha256": "fb04c57ddaa8d5dd368ec576b973cafcd1658242482df3fd56fcb2c41ab63444"
+    },
+    {
+      "case": "single_no_comment",
+      "runtime": "cpython3147",
+      "command": [
+        "C:\\Python\\Python314\\python.exe",
+        "-I",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlalchemy-triple-closing-comment-proposed-20261008\\single_no_comment.py"
+      ],
+      "exit_code": 0,
+      "stdout_log": "sqlalchemy-triple-closing-comment-20261008-single_no_comment-cpython3147.stdout.log",
+      "stdout_sha256": "965f9a306e46805790fb2503d2627a5fed9b69f4dcbc6a8412459ad9d85a0a7c",
+      "stderr_log": "sqlalchemy-triple-closing-comment-20261008-single_no_comment-cpython3147.stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "case": "single_no_comment",
+      "runtime": "direct-native-parser",
+      "command": [
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlalchemy-direct-native-parser-20261008\\direct-parser.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlalchemy-triple-closing-comment-proposed-20261008\\single_no_comment.py"
+      ],
+      "exit_code": 0,
+      "stdout_log": "sqlalchemy-triple-closing-comment-20261008-single_no_comment-direct-native-parser.stdout.log",
+      "stdout_sha256": "2cce53dd8c9b370a0384de25aa6ccb45bb5cf8eb171ebf9e5c7578b14be5d51e",
+      "stderr_log": "sqlalchemy-triple-closing-comment-20261008-single_no_comment-direct-native-parser.stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "result": {
+        "mode": "direct_native_parser_diagnostic_only",
+        "input": "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlalchemy-triple-closing-comment-proposed-20261008\\single_no_comment.py",
+        "loaded_runtime_dll": "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3_runtime.dll",
+        "input_bytes": 228,
+        "lexer_error_count": 0,
+        "parser_error_count": 0,
+        "module_statement_count": 4,
+        "lexer_errors": [],
+        "parser_errors": [],
+        "parse_source_wrapper_used": false,
+        "imports_executed": false,
+        "python_executed": false
+      }
+    },
+    {
+      "case": "single_no_comment",
+      "runtime": "xlang3",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlalchemy-triple-closing-comment-proposed-20261008\\single_no_comment.py"
+      ],
+      "exit_code": 0,
+      "stdout_log": "sqlalchemy-triple-closing-comment-20261008-single_no_comment-xlang3.stdout.log",
+      "stdout_sha256": "965f9a306e46805790fb2503d2627a5fed9b69f4dcbc6a8412459ad9d85a0a7c",
+      "stderr_log": "sqlalchemy-triple-closing-comment-20261008-single_no_comment-xlang3.stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "case": "single_closing_comment",
+      "runtime": "cpython3147",
+      "command": [
+        "C:\\Python\\Python314\\python.exe",
+        "-I",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlalchemy-triple-closing-comment-proposed-20261008\\single_closing_comment.py"
+      ],
+      "exit_code": 0,
+      "stdout_log": "sqlalchemy-triple-closing-comment-20261008-single_closing_comment-cpython3147.stdout.log",
+      "stdout_sha256": "3fd084ad5584418443fbe67b1aa9cae75fdbb28afd96128a5d9310b76016aaee",
+      "stderr_log": "sqlalchemy-triple-closing-comment-20261008-single_closing_comment-cpython3147.stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "case": "single_closing_comment",
+      "runtime": "direct-native-parser",
+      "command": [
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlalchemy-direct-native-parser-20261008\\direct-parser.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlalchemy-triple-closing-comment-proposed-20261008\\single_closing_comment.py"
+      ],
+      "exit_code": 1,
+      "stdout_log": "sqlalchemy-triple-closing-comment-20261008-single_closing_comment-direct-native-parser.stdout.log",
+      "stdout_sha256": "7a7eaaff47f00fb81f3f0d72dfaa15726112758dd69456ab6abc34d1f0f59069",
+      "stderr_log": "sqlalchemy-triple-closing-comment-20261008-single_closing_comment-direct-native-parser.stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "result": {
+        "mode": "direct_native_parser_diagnostic_only",
+        "input": "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlalchemy-triple-closing-comment-proposed-20261008\\single_closing_comment.py",
+        "loaded_runtime_dll": "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3_runtime.dll",
+        "input_bytes": 262,
+        "lexer_error_count": 0,
+        "parser_error_count": 2,
+        "module_statement_count": 4,
+        "lexer_errors": [],
+        "parser_errors": [
+          "line 8, column 112: expected expression",
+          "line 8, column 112: expected ')' after call arguments"
+        ],
+        "parse_source_wrapper_used": false,
+        "imports_executed": false,
+        "python_executed": false
+      }
+    },
+    {
+      "case": "single_closing_comment",
+      "runtime": "xlang3",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlalchemy-triple-closing-comment-proposed-20261008\\single_closing_comment.py"
+      ],
+      "exit_code": 1,
+      "stdout_log": "sqlalchemy-triple-closing-comment-20261008-single_closing_comment-xlang3.stdout.log",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_log": "sqlalchemy-triple-closing-comment-20261008-single_closing_comment-xlang3.stderr.log",
+      "stderr_sha256": "fb04c57ddaa8d5dd368ec576b973cafcd1658242482df3fd56fcb2c41ab63444"
+    }
+  ],
+  "failure_reproduced": true,
+  "hashes_after": {
+    "D:\\CantorAI\\xlang3\\src\\parser\\lexer.cpp": "52bf409a30bd4fc207b93351da69f883ed81da3660e3cc99e74b5e402c2a690c",
+    "D:\\CantorAI\\xlang3\\src\\parser\\parser.cpp": "0ccc9f0270aeedd95d0daefe21ec7ba2b4522a70c5c5d3077a919913078ca6d5",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlalchemy-triple-closing-comment-design-proposed-20261008.md": "63d59cac29abef87a6198fcd8ef1971fca70e37d6728de7efc1474d6c8e44b09",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlalchemy-direct-native-parser-proposed-20261008.cpp": "2986ea9d5008b1b07fb186bff2603c9dceedeebff8a5b41c5ab0b3343c23751d",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlalchemy-direct-native-parser-provenance-proposed-20261008.json": "a78721c2215d800d209d28f35bfbaa73478a0bb17ce09c7cc0dd4e81fa71e39f",
+    "D:\\CantorAI\\xlang3\\doc\\performance\\data\\sqlalchemy-direct-native-parser-root-20261008.json": "8639e001f802b75759192015962681a8c4b6cbbc5513c0750be556797008b8aa",
+    "D:\\CantorAI\\xlang3\\doc\\performance\\data\\sqlalchemy-direct-parser-cpython3147-20261008.json": "658ba1b39bf8180ed9f98a2a3bf36b2b61be29676b58ae1903d645d602f90cae",
+    "D:\\CantorAI\\xlang3\\doc\\performance\\parser-triple-quoted-hash-benchmark-unblock-20261003.md": "a7f290793d4443ee338d4c9d4c6380c8c4c8580fdc62ceac9b8623c8817e1015",
+    "D:\\CantorAI\\xlang3\\tests\\cpp\\parser_tests.cpp": "dcfc69580c4c53aa061b6a5e4885f4edd73c1a9947de4ace7b525bd2607c1be2",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlalchemy-triple-closing-comment-proposed-20261008\\double_no_comment.py": "d8afa967dcb2808b22e17109f4a6545b51abad413faefb305be69346be821d74",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlalchemy-triple-closing-comment-proposed-20261008\\double_closing_comment.py": "d80cc6524d2fe519db367220db0d8d0357eb58154c2a3e373eacc02588abd09e",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlalchemy-triple-closing-comment-proposed-20261008\\single_no_comment.py": "7d817fe370f56392a388be645694b35fc1b3c4dc509d1535aefcaeeb1f473bcc",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlalchemy-triple-closing-comment-proposed-20261008\\single_closing_comment.py": "64d9709f90e7dbb5a6a074fc042e96c3c294a9b0ad9d6677dad19800f8f27ee9",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\measure-triple-closing-comment-reproducer-root-20261008.py": "4baaefc78b74a9f5533c0121e898f41586a00e6a6c437b523a549f66e6694b26",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlalchemy-triple-closing-comment-r2-provenance-proposed-20261008.json": "44378c66e1c140cbfde0ddbdb0182cfc0000f765ff5a2f0c19aaddeec1656bfb",
+    "C:\\Python\\Python314\\python.exe": "4942b86a6597e5aee0128daa00050ed79bc21f6e709a78eb19cbfeb0c2f39ac9",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlalchemy-direct-native-parser-20261008\\direct-parser.exe": "4b1b6144e4e49afbad3eb0046ccc3b7e6dab9fbf2a9b3882d347625350b416e8",
+    "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe": "c6358221bd7836f877c566557269b4bf9a011a9a2ca33060eeb2e00b4e6de5b4",
+    "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3_runtime.dll": "64640e503a103341dd44d220eba17ef802219b9df639bb1be5cbe5f2bf847564"
+  },
+  "hashes_unchanged": true
+}

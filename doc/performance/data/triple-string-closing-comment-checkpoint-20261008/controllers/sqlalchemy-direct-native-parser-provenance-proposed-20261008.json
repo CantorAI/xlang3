@@ -1,0 +1,91 @@
+{
+  "status": "frozen_direct_native_parser_diagnostic_proposal",
+  "head": "87f5293782d21592df3bcc4ea924e659c906b6da",
+  "files_sha256": {
+    "scratch/performance/sqlalchemy-direct-native-parser-proposed-20261008.cpp": "2986ea9d5008b1b07fb186bff2603c9dceedeebff8a5b41c5ab0b3343c23751d",
+    "scratch/performance/compile-sqlalchemy-direct-native-parser-proposed-20261008.cmd": "83707021c99910b85cbe291208e2df718d998da0a78f93706e5646793728391e",
+    "scratch/performance/sqlalchemy-of-attribute-valid-control-proposed-20261008.py": "4ed41d4cd1f01b72dc08e5a6877763fd9dfd1664c914298dda173021ee65e8b1",
+    "scratch/performance/sqlalchemy-typo-hint-error-context-control-proposed-20261008.py": "af00d7185b6498746c14ff1ab5962cda080493917497eed1db234651dc1447ea",
+    "src/parser/parser.cpp": "0ccc9f0270aeedd95d0daefe21ec7ba2b4522a70c5c5d3077a919913078ca6d5",
+    "src/parser/lexer.cpp": "52bf409a30bd4fc207b93351da69f883ed81da3660e3cc99e74b5e402c2a690c",
+    "src/internal/xlang3/parser.h": "a909e658b2260d41c672e5da26be9893ba117f5eda9b0626a6be6c3b214487fb",
+    "src/internal/xlang3/ast.h": "b04689e74189f83a1e20b9e05a3b5a6b25eb664af97c6f23f1219e220650a74c",
+    "build-repro/main-verify-20261006/Release/xlang3_runtime.lib": "9cdfc1c018a3e8f98eb71053e3841a8fcb5d1ccd2420007de748c6d2af1a14d2",
+    "build-repro/main-verify-20261006/Release/xlang3_runtime.dll": "64640e503a103341dd44d220eba17ef802219b9df639bb1be5cbe5f2bf847564",
+    "build-repro/main-verify-20261006/Release/xlang3.exe": "c6358221bd7836f877c566557269b4bf9a011a9a2ca33060eeb2e00b4e6de5b4",
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/exports.def": "96f351422223fb6de341b185a0a94b02a68ca5fbb9435608276ac49c02c3143a",
+    "venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlalchemy/sql/selectable.py": "eac5df2ea20a1acbbe0d866bb09864f9e310e3718e676cd395274e17c60547f2",
+    "scratch/performance/sqlalchemy-parser-followup-20261007.md": "5e6f22a8e94d35c8957a411eb23a4c076c0d814116590df67e9fb20cc19e6983",
+    "doc/performance/package-runtime-protocol-reproducers-20261007.md": "e5d88de3066da911dd3edb8400c74d92b94849d0ac31e602a1785ddbf3089abf",
+    "benchmarks/diagnostics/package_runtime_protocol_probe.py": "5307a50504eb66c605e5b44971449a0dad90f774f9a877d82db19d8fd3f5717b",
+    "doc/performance/data/sqlalchemy-direct-parser-cpython3147-20261008.json": "658ba1b39bf8180ed9f98a2a3bf36b2b61be29676b58ae1903d645d602f90cae"
+  },
+  "helper": "scratch/performance/sqlalchemy-direct-native-parser-proposed-20261008.cpp",
+  "compile_wrapper": "scratch/performance/compile-sqlalchemy-direct-native-parser-proposed-20261008.cmd",
+  "fixed_release": "build-repro/main-verify-20261006/Release",
+  "import_library": "build-repro/main-verify-20261006/Release/xlang3_runtime.lib",
+  "loaded_dll_identity_field": "loaded_runtime_dll",
+  "current_dll_sha256": "64640e503a103341dd44d220eba17ef802219b9df639bb1be5cbe5f2bf847564",
+  "actual_cpython_ast_receipt": "doc/performance/data/sqlalchemy-direct-parser-cpython3147-20261008.json",
+  "actual_cpython_ast_receipt_sha256": "658ba1b39bf8180ed9f98a2a3bf36b2b61be29676b58ae1903d645d602f90cae",
+  "input": "venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlalchemy/sql/selectable.py",
+  "input_sha256": "eac5df2ea20a1acbbe0d866bb09864f9e310e3718e676cd395274e17c60547f2",
+  "input_bytes": 218005,
+  "compiler": "VS18 Community vcvars64, matching Release parser-test /EHsc /O2 /Ob3 /DNDEBUG /std:c++17 /MD /DXLANG3_USE_SHARED flags; no CMake configure/build",
+  "export_lines": {
+    "Lexer_constructor": 10318,
+    "Parser_constructor": 10366,
+    "Parser_parse_module": 19190,
+    "Lexer_tokenize": 20176
+  },
+  "mechanism": {
+    "hint_table": "src/parser/parser.cpp:436-487",
+    "hazardous_preflight": "src/parser/parser.cpp:515-518",
+    "unrestricted_hint": "src/parser/parser.cpp:520",
+    "error_replacement": "src/parser/parser.cpp:525-526",
+    "original_error_result": "src/parser/parser.cpp:559",
+    "normal_attribute_parse": "src/parser/parser.cpp:1948-1958",
+    "actual_full_trace": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-full-fast-20261008.log:2154"
+  },
+  "controls": [
+    {
+      "path": "scratch/performance/sqlalchemy-of-attribute-valid-control-proposed-20261008.py",
+      "expected": "CP and direct native parsing should accept; proposed observation until root executes"
+    },
+    {
+      "path": "scratch/performance/sqlalchemy-typo-hint-error-context-control-proposed-20261008.py",
+      "expected": "CP and direct parser should report real invalid RHS on line2; wrapper may instead redirect to valid of identifier on line1; no assertion that underlying full-module syntax is known"
+    }
+  ],
+  "output_fields": [
+    "mode",
+    "input",
+    "loaded_runtime_dll",
+    "input_bytes",
+    "lexer_error_count",
+    "parser_error_count",
+    "module_statement_count",
+    "lexer_errors",
+    "parser_errors",
+    "parse_source_wrapper_used",
+    "imports_executed",
+    "python_executed"
+  ],
+  "exit_codes": {
+    "0": "raw parser accepted",
+    "1": "raw parser errors retained, expected diagnostic outcome for unsupported syntax",
+    "2": "helper usage/file/module identity failure"
+  },
+  "compile_command": "cmd.exe /d /c scratch\\performance\\compile-sqlalchemy-direct-native-parser-proposed-20261008.cmd",
+  "helper_cli": "scratch/performance/sqlalchemy-direct-native-parser-20261008/direct-parser.exe <one exact input file>",
+  "launch_policy": "Root sets fixed Release first in a temporary child PATH and verifies loaded_runtime_dll in JSON; hash helper/inputs/DLL before+after. One root-owned diagnosis, bounded child cap and retained raw streams. No library import or execution, no timing claim.",
+  "source_owner_policy": "Owned std::string exact file bytes remains alive until Lexer, Parser and result AST retire; lexical errors copied before move",
+  "history_limit": "Oct7 standalone of probe already passed; Oct7 followup already identified masked hint. No prior implementation fix found in top-level preserved .patch set. Genuine full-module unsupported syntax remains unresolved until raw result capture.",
+  "python_execution_by_author": false,
+  "ast_execution_by_author": false,
+  "build_execution_by_author": false,
+  "runtime_execution_by_author": false,
+  "engine_edits": false,
+  "library_edits": false,
+  "staging": false
+}

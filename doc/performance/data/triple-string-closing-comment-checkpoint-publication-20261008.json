@@ -1,0 +1,932 @@
+{
+  "status": "parser_correctness_and_default_gate_passed_official_x_failures_retained",
+  "terminal": true,
+  "full_validated": false,
+  "whole97_rerun": false,
+  "files": [
+    {
+      "path": "doc/performance/data/sqlalchemy-direct-native-parser-20261008-compile.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/sqlalchemy-direct-native-parser-20261008-compile.stdout.log",
+      "sha256": "827e2839ce29fa2cc2d1bcea2c46a03469781ed7a8bd3241fdfcff8844629a59",
+      "bytes": 55,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/sqlalchemy-direct-native-parser-20261008-full-selectable.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/sqlalchemy-direct-native-parser-20261008-full-selectable.stdout.log",
+      "sha256": "7ca9f0325bc55bb6608c5c0d7ea13e0279a2c8c02376682dbde6ef0eac4ca7a0",
+      "bytes": 815,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/sqlalchemy-direct-native-parser-20261008-invalid-context.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/sqlalchemy-direct-native-parser-20261008-invalid-context.stdout.log",
+      "sha256": "8d93fae3a21f84330dce02eaccf23e89edfa7032690a835d762261d41f895d0f",
+      "bytes": 523,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/sqlalchemy-direct-native-parser-20261008-valid-of.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/sqlalchemy-direct-native-parser-20261008-valid-of.stdout.log",
+      "sha256": "8b623558bd35a2f2ad070e8f7a89ffd8a089d0992ab6fa035b9696d541d10add",
+      "bytes": 479,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/sqlalchemy-direct-native-parser-root-20261008.json",
+      "sha256": "8639e001f802b75759192015962681a8c4b6cbbc5513c0750be556797008b8aa",
+      "bytes": 10259,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/sqlalchemy-direct-parser-cpython3147-20261008.json",
+      "sha256": "658ba1b39bf8180ed9f98a2a3bf36b2b61be29676b58ae1903d645d602f90cae",
+      "bytes": 1076,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/sqlalchemy-triple-closing-comment-20261008-double_closing_comment-cpython3147.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/sqlalchemy-triple-closing-comment-20261008-double_closing_comment-cpython3147.stdout.log",
+      "sha256": "be9bfcbce8b6bcdc7a6233aa86e8dfad50c04b6c18ec753cecd2a443828d6caf",
+      "bytes": 29,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/sqlalchemy-triple-closing-comment-20261008-double_closing_comment-direct-native-parser.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/sqlalchemy-triple-closing-comment-20261008-double_closing_comment-direct-native-parser.stdout.log",
+      "sha256": "bdf3dc9d39bb160227f9cb80ba1c55bea5e1685fbff0718f94c0294ba13e4464",
+      "bytes": 597,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/sqlalchemy-triple-closing-comment-20261008-double_closing_comment-xlang3.stderr.log",
+      "sha256": "fb04c57ddaa8d5dd368ec576b973cafcd1658242482df3fd56fcb2c41ab63444",
+      "bytes": 108,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/sqlalchemy-triple-closing-comment-20261008-double_closing_comment-xlang3.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/sqlalchemy-triple-closing-comment-20261008-double_no_comment-cpython3147.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/sqlalchemy-triple-closing-comment-20261008-double_no_comment-cpython3147.stdout.log",
+      "sha256": "d3172834b1874c0a8cb035ab1e2b55e68734e8ece1c7280b79c39389255cf4ab",
+      "bytes": 24,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/sqlalchemy-triple-closing-comment-20261008-double_no_comment-direct-native-parser.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/sqlalchemy-triple-closing-comment-20261008-double_no_comment-direct-native-parser.stdout.log",
+      "sha256": "f8995c88eda33aef55703442af837b3b9976ec9062fdf9b056e17ca662bdac60",
+      "bytes": 495,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/sqlalchemy-triple-closing-comment-20261008-double_no_comment-xlang3.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/sqlalchemy-triple-closing-comment-20261008-double_no_comment-xlang3.stdout.log",
+      "sha256": "d3172834b1874c0a8cb035ab1e2b55e68734e8ece1c7280b79c39389255cf4ab",
+      "bytes": 24,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/sqlalchemy-triple-closing-comment-20261008-single_closing_comment-cpython3147.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/sqlalchemy-triple-closing-comment-20261008-single_closing_comment-cpython3147.stdout.log",
+      "sha256": "3fd084ad5584418443fbe67b1aa9cae75fdbb28afd96128a5d9310b76016aaee",
+      "bytes": 29,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/sqlalchemy-triple-closing-comment-20261008-single_closing_comment-direct-native-parser.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/sqlalchemy-triple-closing-comment-20261008-single_closing_comment-direct-native-parser.stdout.log",
+      "sha256": "7a7eaaff47f00fb81f3f0d72dfaa15726112758dd69456ab6abc34d1f0f59069",
+      "bytes": 597,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/sqlalchemy-triple-closing-comment-20261008-single_closing_comment-xlang3.stderr.log",
+      "sha256": "fb04c57ddaa8d5dd368ec576b973cafcd1658242482df3fd56fcb2c41ab63444",
+      "bytes": 108,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/sqlalchemy-triple-closing-comment-20261008-single_closing_comment-xlang3.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/sqlalchemy-triple-closing-comment-20261008-single_no_comment-cpython3147.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/sqlalchemy-triple-closing-comment-20261008-single_no_comment-cpython3147.stdout.log",
+      "sha256": "965f9a306e46805790fb2503d2627a5fed9b69f4dcbc6a8412459ad9d85a0a7c",
+      "bytes": 24,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/sqlalchemy-triple-closing-comment-20261008-single_no_comment-direct-native-parser.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/sqlalchemy-triple-closing-comment-20261008-single_no_comment-direct-native-parser.stdout.log",
+      "sha256": "2cce53dd8c9b370a0384de25aa6ccb45bb5cf8eb171ebf9e5c7578b14be5d51e",
+      "bytes": 495,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/sqlalchemy-triple-closing-comment-20261008-single_no_comment-xlang3.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/sqlalchemy-triple-closing-comment-20261008-single_no_comment-xlang3.stdout.log",
+      "sha256": "965f9a306e46805790fb2503d2627a5fed9b69f4dcbc6a8412459ad9d85a0a7c",
+      "bytes": 24,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/sqlalchemy-triple-closing-comment-reproducer-20261008.json",
+      "sha256": "fcadeb7d1417867b4318158c2ef3140c7ea56b2f9c8af4875a2c4e596bf4673a",
+      "bytes": 18492,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-applied-source-20261008.json",
+      "sha256": "1890c86d5c90a25e017577d7147a5324d000af6673e7d830b6c516d0874e95db",
+      "bytes": 16116,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-build-20261008.log",
+      "sha256": "5494c61fb96b5a9e17c093a063813b1d9eadcede67c9931d6bf1c87c5ecf67d9",
+      "bytes": 526,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-build-terminal-20261008.json",
+      "sha256": "368b7c4eeb61b78ee9e2fe0ef80a72dab6b926985763e3c02503d6ea7e891d5a",
+      "bytes": 54891,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-focused-20261008-cpp-parser.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-focused-20261008-cpp-parser.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-focused-20261008-double_closing_comment-direct-parser.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-focused-20261008-double_closing_comment-direct-parser.stdout.log",
+      "sha256": "4854a39047a3444035114b07fac9c76fe48cf796111cc714d2f51eb6ae39f760",
+      "bytes": 500,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-focused-20261008-double_closing_comment-xlang3.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-focused-20261008-double_closing_comment-xlang3.stdout.log",
+      "sha256": "be9bfcbce8b6bcdc7a6233aa86e8dfad50c04b6c18ec753cecd2a443828d6caf",
+      "bytes": 29,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-focused-20261008-double_no_comment-direct-parser.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-focused-20261008-double_no_comment-direct-parser.stdout.log",
+      "sha256": "f8995c88eda33aef55703442af837b3b9976ec9062fdf9b056e17ca662bdac60",
+      "bytes": 495,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-focused-20261008-double_no_comment-xlang3.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-focused-20261008-double_no_comment-xlang3.stdout.log",
+      "sha256": "d3172834b1874c0a8cb035ab1e2b55e68734e8ece1c7280b79c39389255cf4ab",
+      "bytes": 24,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-focused-20261008-full-selectable-direct-parser.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-focused-20261008-full-selectable-direct-parser.stdout.log",
+      "sha256": "c5c78b00051d97cf6c8e8ab6dfa4395f59cf151cc088bfca98e03f7393c831cf",
+      "bytes": 506,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-focused-20261008-single_closing_comment-direct-parser.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-focused-20261008-single_closing_comment-direct-parser.stdout.log",
+      "sha256": "107d00b10ea5ef3756d15d3f7fa6715bf6947e8d9ddaf0f1dc511f3129f2bc09",
+      "bytes": 500,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-focused-20261008-single_closing_comment-xlang3.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-focused-20261008-single_closing_comment-xlang3.stdout.log",
+      "sha256": "3fd084ad5584418443fbe67b1aa9cae75fdbb28afd96128a5d9310b76016aaee",
+      "bytes": 29,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-focused-20261008-single_no_comment-direct-parser.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-focused-20261008-single_no_comment-direct-parser.stdout.log",
+      "sha256": "2cce53dd8c9b370a0384de25aa6ccb45bb5cf8eb171ebf9e5c7578b14be5d51e",
+      "bytes": 495,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-focused-20261008-single_no_comment-xlang3.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-focused-20261008-single_no_comment-xlang3.stdout.log",
+      "sha256": "965f9a306e46805790fb2503d2627a5fed9b69f4dcbc6a8412459ad9d85a0a7c",
+      "bytes": 24,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-focused-20261008.json",
+      "sha256": "a3b6860b4b841e1b711bccaf34b325df98e30b92ab9d8cd9d6b886b593cba447",
+      "bytes": 45926,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-validation-20261008-ctest-inventory.external-process-observations.jsonl",
+      "sha256": "a2380b2e0a143aa62ab9a0e5898214cc8d9f6deb9c9fb62a94acb90c64fb83a1",
+      "bytes": 65,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-validation-20261008-ctest-inventory.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-validation-20261008-ctest-inventory.stdout.log",
+      "sha256": "1104a32a60d19adbf6bb99a36bf2c20e00f7c2b9ad27a9bf4a04c2ce58036aa4",
+      "bytes": 8756,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-validation-20261008-ctest.external-process-observations.jsonl",
+      "sha256": "3d8e218fbe2c765b301c78aea520c1d706be6cee89f9a219459a2b7a88b907fe",
+      "bytes": 106,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-validation-20261008-ctest.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-validation-20261008-ctest.stdout.log",
+      "sha256": "d35c4e2f40f86ef711268386b0d7f7b5b169096e265f782e7c72a7a972f885ed",
+      "bytes": 1171,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-validation-20261008-fixed-gate.external-process-observations.jsonl",
+      "sha256": "21bfb4d678e8da03a4039670927e99c22797a28c2add2b1df61e503b56975a30",
+      "bytes": 3575,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-validation-20261008-fixed-gate.json",
+      "sha256": "5b775bb172fe68672c27c3713357e2f8501e3d1b59c711f42ee525a3213178c4",
+      "bytes": 62485,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-validation-20261008-fixed-gate.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-validation-20261008-fixed-gate.stdout.log",
+      "sha256": "b80a329190785262a6fa35ee60e5d2f623c920875770272fc107d5cae8e16940",
+      "bytes": 646,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-validation-20261008-full-fixtures-clean.external-process-observations.jsonl",
+      "sha256": "efdf76bbd776c7db070ac7a4494b1a83beb8ddd8cb6e8022799330343fbede8d",
+      "bytes": 1235,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-validation-20261008-full-fixtures-clean.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-validation-20261008-full-fixtures-clean.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-validation-20261008-official-cpython3147-sqlalchemy_declarative-fast.json",
+      "sha256": "eb4e86f2bdf40ec314754dc060a7918076f9ddc79a00516e4cc1d324d03a33ef",
+      "bytes": 1705,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-validation-20261008-official-cpython3147-sqlalchemy_declarative.external-process-observations.jsonl",
+      "sha256": "10ae291d752353a07c1baad22bb15ce8d9ff845407369056b8f99855c09ef82c",
+      "bytes": 520,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-validation-20261008-official-cpython3147-sqlalchemy_declarative.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-validation-20261008-official-cpython3147-sqlalchemy_declarative.stdout.log",
+      "sha256": "1a3d94a7908d40e7edbc34b6c5a7927ae7f8634d79180b955e3840e531550102",
+      "bytes": 896,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-validation-20261008-official-cpython3147-sqlalchemy_imperative-fast.json",
+      "sha256": "ba92538c561cf606457a3c55f44c1e319f8ccd78df64b6c4ce8c167c006a5a00",
+      "bytes": 1827,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-validation-20261008-official-cpython3147-sqlalchemy_imperative.external-process-observations.jsonl",
+      "sha256": "4ea214648d4f8fcd2293593c1d3334415be1a28ec5aac7379a8cce12cec7b542",
+      "bytes": 520,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-validation-20261008-official-cpython3147-sqlalchemy_imperative.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-validation-20261008-official-cpython3147-sqlalchemy_imperative.stdout.log",
+      "sha256": "42054e1b9206382c6395dfca7db47d3a84cc0aff723472ac62444d547a85b4d7",
+      "bytes": 892,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-validation-20261008-official-xlang3-sqlalchemy_declarative.external-process-observations.jsonl",
+      "sha256": "923c8b54ac40350506e46ca57ed81f25077132d616b48525222f32ec4269ad11",
+      "bytes": 130,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-validation-20261008-official-xlang3-sqlalchemy_declarative.stderr.log",
+      "sha256": "07fd46ccd8ec31993e58442af8d7205133d7e87f751715b512551b293a0507e5",
+      "bytes": 5141,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-validation-20261008-official-xlang3-sqlalchemy_declarative.stdout.log",
+      "sha256": "26bb0801cc2156662c71318c1497bc843ee417e147a20b7bfcd300bfd6e27248",
+      "bytes": 424,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-validation-20261008-official-xlang3-sqlalchemy_imperative.external-process-observations.jsonl",
+      "sha256": "3f0125976e4b1fa884862a7f1a540a29fdf063548e3bfdc0e5114209dfd7e541",
+      "bytes": 130,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-validation-20261008-official-xlang3-sqlalchemy_imperative.stderr.log",
+      "sha256": "b1d37125700b835e71ecee2ebf41d33c03c99705e33853705ecf75cb5f0d13ec",
+      "bytes": 3657,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-validation-20261008-official-xlang3-sqlalchemy_imperative.stdout.log",
+      "sha256": "3abff51af195ce9b4f7eefc142848e7bffd3e9f7df2f6dd29e493dd73b9bbd34",
+      "bytes": 421,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-validation-20261008-old_xlang_sqlite_api.external-process-observations.jsonl",
+      "sha256": "f35a3d778a3e1fe8eb0245ffcd9731ed13efb864e3d8057cc6a5b42f99c9c62e",
+      "bytes": 65,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-validation-20261008-old_xlang_sqlite_api.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-validation-20261008-old_xlang_sqlite_api.stdout.log",
+      "sha256": "36449d6aaa8b51b49315f871c305cf5e7568199909ce178a331245b7fe4a6a92",
+      "bytes": 237,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-validation-20261008-python_sqlite3_api.external-process-observations.jsonl",
+      "sha256": "005283b3ed1f627b3d4066c95c106da727b36b953693d1fe652af37672cf245c",
+      "bytes": 65,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-validation-20261008-python_sqlite3_api.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-validation-20261008-python_sqlite3_api.stdout.log",
+      "sha256": "c9ae392c8a76084bb521fcd89dc73d8617755aae1741c705f2ba60efe9606ecb",
+      "bytes": 538,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-validation-20261008.json",
+      "sha256": "05ffba4d1786c93448812db6ba22debc5f1c4be62ba6571ead209e49a234777a",
+      "bytes": 520208,
+      "kind": "actual_receipt_or_raw_evidence"
+    },
+    {
+      "path": "doc/performance/data/pickle-native-utf8-postfix-native-sampling-r2-20261008.json",
+      "sha256": "4c627d679d44d9d89b8dd8799f52a6ff1dfbba3356d7dde4f81c8f6b0f99a4fa",
+      "bytes": 1119188,
+      "kind": "historical_pre_lexer_native_diagnostic"
+    },
+    {
+      "path": "doc/performance/data/pickle-native-utf8-postfix-native-sampling-r2-20261008-samples.jsonl",
+      "sha256": "f5184b91cc75d711c207b776de3debcc7d5c8ae8d86ec0a9c052e13a5d74a277",
+      "bytes": 50309,
+      "kind": "historical_pre_lexer_native_diagnostic"
+    },
+    {
+      "path": "doc/performance/data/pickle-native-utf8-postfix-native-sampling-r2-20261008-native-sampling.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "historical_pre_lexer_native_diagnostic"
+    },
+    {
+      "path": "doc/performance/data/pickle-native-utf8-postfix-native-sampling-r2-20261008-native-sampling.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "historical_pre_lexer_native_diagnostic"
+    },
+    {
+      "path": "doc/performance/data/pickle-native-utf8-postfix-native-sampling-r2-20261008-child.stdout.log",
+      "sha256": "747a98a22394458bf37cae4dec2e79974b6ebb1b01b6523d80c5437520b576a7",
+      "bytes": 5574,
+      "kind": "historical_pre_lexer_native_diagnostic"
+    },
+    {
+      "path": "doc/performance/data/pickle-native-utf8-postfix-native-sampling-r2-20261008-child.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "historical_pre_lexer_native_diagnostic"
+    },
+    {
+      "path": "doc/performance/data/pickle-native-utf8-postfix-native-sampling-r2-20261008-native-sampling.external-process-observations.jsonl",
+      "sha256": "5c5aea46e3f0571bc6f6800ee1cceb7f658d28bc1aa5d3cf9376d352f0d259c2",
+      "bytes": 195,
+      "kind": "historical_pre_lexer_native_diagnostic"
+    },
+    {
+      "path": "doc/performance/data/pickle-native-utf8-postfix-native-coff-attribution-20261008.json",
+      "sha256": "7f282393a9063d00302d75c91fcbbc9a93e77fa5f0c544503cbfbcb8732b1ae8",
+      "bytes": 2497483,
+      "kind": "historical_pre_lexer_native_diagnostic"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-checkpoint-20261008/controllers/sqlalchemy-direct-native-parser-proposed-20261008.cpp",
+      "sha256": "2986ea9d5008b1b07fb186bff2603c9dceedeebff8a5b41c5ab0b3343c23751d",
+      "bytes": 3890,
+      "kind": "controller_or_frozen_proposal"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-checkpoint-20261008/controllers/compile-sqlalchemy-direct-native-parser-proposed-20261008.cmd",
+      "sha256": "83707021c99910b85cbe291208e2df718d998da0a78f93706e5646793728391e",
+      "bytes": 813,
+      "kind": "controller_or_frozen_proposal"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-checkpoint-20261008/controllers/sqlalchemy-direct-native-parser-provenance-proposed-20261008.json",
+      "sha256": "a78721c2215d800d209d28f35bfbaa73478a0bb17ce09c7cc0dd4e81fa71e39f",
+      "bytes": 6454,
+      "kind": "controller_or_frozen_proposal"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-checkpoint-20261008/controllers/check-sqlalchemy-direct-parser-cpython-root-20261008.py",
+      "sha256": "ededfcde658d845aaa8b220e54ebc4ff5f26133cef02acbff95bd3ffe8eec791",
+      "bytes": 2062,
+      "kind": "controller_or_frozen_proposal"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-checkpoint-20261008/controllers/run-sqlalchemy-direct-parser-root-20261008.py",
+      "sha256": "8337c1f31001f9fc75811dac0fc995a63d02f9d2c615103e5438bb73aafd9b1a",
+      "bytes": 4451,
+      "kind": "controller_or_frozen_proposal"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-checkpoint-20261008/controllers/measure-triple-closing-comment-reproducer-root-20261008.py",
+      "sha256": "4baaefc78b74a9f5533c0121e898f41586a00e6a6c437b523a549f66e6694b26",
+      "bytes": 4488,
+      "kind": "controller_or_frozen_proposal"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-checkpoint-20261008/controllers/sqlalchemy-triple-closing-comment-provenance-proposed-20261008.json",
+      "sha256": "6ba880a4f4aaba5f9e720c60f7ef8a01d02e5870021b26902d31874c9485296b",
+      "bytes": 4647,
+      "kind": "controller_or_frozen_proposal"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-checkpoint-20261008/controllers/sqlalchemy-triple-closing-comment-r2-provenance-proposed-20261008.json",
+      "sha256": "44378c66e1c140cbfde0ddbdb0182cfc0000f765ff5a2f0c19aaddeec1656bfb",
+      "bytes": 5642,
+      "kind": "controller_or_frozen_proposal"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-checkpoint-20261008/controllers/sqlalchemy-triple-closing-comment-design-proposed-20261008.md",
+      "sha256": "63d59cac29abef87a6198fcd8ef1971fca70e37d6728de7efc1474d6c8e44b09",
+      "bytes": 2516,
+      "kind": "controller_or_frozen_proposal"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-checkpoint-20261008/controllers/triple-string-closing-comment-proposed-20261008.patch",
+      "sha256": "10029d039e3671cd8ca412406bf1290d4a861bc50e7f2e2e09f004995c988707",
+      "bytes": 6955,
+      "kind": "controller_or_frozen_proposal"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-checkpoint-20261008/controllers/triple-string-closing-comment-proposed-20261008-provenance.json",
+      "sha256": "279a10cfb06301350b307874f4e358cf59fa1b08817481ffaff9f8ba145b4260",
+      "bytes": 17974,
+      "kind": "controller_or_frozen_proposal"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-checkpoint-20261008/controllers/preserve-triple-closing-comment-parent-root-20261008.py",
+      "sha256": "069e6b6ff9e7e9c3b107dfa4fa7b458060a7bee9788dc62eb9402009981e8f21",
+      "bytes": 4663,
+      "kind": "controller_or_frozen_proposal"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-checkpoint-20261008/controllers/apply-triple-closing-comment-root-20261008.py",
+      "sha256": "f1895a0cdab9519753126f4ce3e58465d6093b9c26fad0f8c744f46e6daa3148",
+      "bytes": 3115,
+      "kind": "controller_or_frozen_proposal"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-checkpoint-20261008/controllers/build-triple-closing-comment-root-20261008.cmd",
+      "sha256": "e16dcf1be42eaf387a87d88681b4eb0c877e1dc71da2c49656787a86f3ab931d",
+      "bytes": 447,
+      "kind": "controller_or_frozen_proposal"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-checkpoint-20261008/controllers/check-triple-closing-comment-focused-root-20261008.py",
+      "sha256": "55fef42c458e2bbf9733b95cfeda24b17aacd6e839e4aeed46669af8ccb910c1",
+      "bytes": 5755,
+      "kind": "controller_or_frozen_proposal"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-checkpoint-20261008/controllers/validate-triple-string-closing-comment-trial-proposed-20261008.py",
+      "sha256": "ca9c482a8e5eb42f5a1c989760a822280e9fdf80927e1c9c1c2d4138a21c2408",
+      "bytes": 29125,
+      "kind": "controller_or_frozen_proposal"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-checkpoint-20261008/controllers/triple-string-closing-comment-full-validation-provenance-proposed-20261008.json",
+      "sha256": "8d5a5dd4767940e5c2086e1171f7fae3ea1e0d6d4728273cbd992fe8e4a2e48a",
+      "bytes": 7628,
+      "kind": "controller_or_frozen_proposal"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-checkpoint-20261008/controllers/validate-triple-string-closing-comment-trial-r2-proposed-20261008.py",
+      "sha256": "f1d561d95a5ecea7efe9b4d4f4678e200c05d3ab9e8f019f945fc86314965ca5",
+      "bytes": 29812,
+      "kind": "controller_or_frozen_proposal"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-checkpoint-20261008/controllers/triple-string-closing-comment-full-validation-r2-provenance-proposed-20261008.json",
+      "sha256": "7e5769c07d6dd694f89bd5cddcdf5a3f29489dba285d79bdbb60214deb38cc9b",
+      "bytes": 8164,
+      "kind": "controller_or_frozen_proposal"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-checkpoint-20261008/controllers/validate-call-ex-cross-activation-constructor-resume-r3-20261008.py",
+      "sha256": "50007db5cc6adc2e54012fdfbd48514699513f990906d4a508582ba73d6ae0bf",
+      "bytes": 38543,
+      "kind": "controller_or_frozen_proposal"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-checkpoint-20261008/controllers/run-pickle-native-utf8-postfix-native-sampling-r2-root-20261008.py",
+      "sha256": "4896ba36ad798c43df902621b70648969e74a8704bbfb18711fd268d24e05c23",
+      "bytes": 35022,
+      "kind": "controller_or_frozen_proposal"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-checkpoint-20261008/controllers/run-pickle-native-utf8-postfix-native-sampling-r2-root-20261008.provenance.json",
+      "sha256": "d1c56d0168540d67aed4ef32fefb99d16ac3f37bbd71ab5d9ebfee4c604ab98c",
+      "bytes": 591,
+      "kind": "controller_or_frozen_proposal"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-checkpoint-20261008/controllers/attribute-pickle-native-utf8-postfix-native-coff-proposed-20261008.py",
+      "sha256": "c3af01ab90e033799fc9d81a541c22cf12489f635b285515070421abd7594502",
+      "bytes": 25100,
+      "kind": "controller_or_frozen_proposal"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-checkpoint-20261008/controllers/pickle-native-utf8-postfix-native-coff-attribution-provenance-proposed-20261008.json",
+      "sha256": "0ae76cda6daa15c0bc47ca91d0fc2ba7b2aef5b08a3545973a27e98e9f614409",
+      "bytes": 2361,
+      "kind": "controller_or_frozen_proposal"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-checkpoint-20261008/controllers/pickle-native-utf8-postfix-native-sampling-inputs-proposed-20261008.json",
+      "sha256": "a8be77e20bab1a752a870872e194ecabe3354626398916d6e155510002b282d5",
+      "bytes": 105712,
+      "kind": "controller_or_frozen_proposal"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-checkpoint-20261008/reproducer/double_closing_comment.py",
+      "sha256": "d80cc6524d2fe519db367220db0d8d0357eb58154c2a3e373eacc02588abd09e",
+      "bytes": 262,
+      "kind": "unchanged_reproducer"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-checkpoint-20261008/reproducer/double_no_comment.py",
+      "sha256": "d8afa967dcb2808b22e17109f4a6545b51abad413faefb305be69346be821d74",
+      "bytes": 228,
+      "kind": "unchanged_reproducer"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-checkpoint-20261008/reproducer/single_closing_comment.py",
+      "sha256": "64d9709f90e7dbb5a6a074fc042e96c3c294a9b0ad9d6677dad19800f8f27ee9",
+      "bytes": 262,
+      "kind": "unchanged_reproducer"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-checkpoint-20261008/reproducer/single_no_comment.py",
+      "sha256": "7d817fe370f56392a388be645694b35fc1b3c4dc509d1535aefcaeeb1f473bcc",
+      "bytes": 228,
+      "kind": "unchanged_reproducer"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-checkpoint-20261008/support/benchmarks/diagnostics/run_pyperformance_xlang3_shimmed.py",
+      "sha256": "c078ee77d5d66165f0bf4b2d782df56e71868ada827c81c5c53516c8d017ceaf",
+      "bytes": 12642,
+      "kind": "existing_controller_dependency"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-checkpoint-20261008/support/benchmarks/diagnostics/pyperf_compat/sitecustomize.py",
+      "sha256": "2ffc217fe20497156bfcb1cebc7fb87203f33c6d4d3dbb6ecbcbcf91ea4cb317",
+      "bytes": 1266,
+      "kind": "existing_controller_dependency"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-checkpoint-20261008/support/benchmarks/diagnostics/preserve_pyperformance_partial.py",
+      "sha256": "0dfbc86863421165ecfda246b17dcc4846a41306a49aaf346456b78273bf7c06",
+      "bytes": 2381,
+      "kind": "existing_controller_dependency"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-checkpoint-20261008/support/benchmarks/check_regression.py",
+      "sha256": "579934598caddc37409fed03181b0cd42408853a34bde65dff48b777e4e8ffef",
+      "bytes": 10569,
+      "kind": "existing_controller_dependency"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-checkpoint-20261008/source124-parent-parser/src/parser/lexer.cpp",
+      "sha256": "52bf409a30bd4fc207b93351da69f883ed81da3660e3cc99e74b5e402c2a690c",
+      "bytes": 44226,
+      "kind": "five_additional_parent_parser_sources"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-checkpoint-20261008/source124-parent-parser/src/parser/parser.cpp",
+      "sha256": "0ccc9f0270aeedd95d0daefe21ec7ba2b4522a70c5c5d3077a919913078ca6d5",
+      "bytes": 87108,
+      "kind": "five_additional_parent_parser_sources"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-checkpoint-20261008/source124-parent-parser/src/internal/xlang3/parser.h",
+      "sha256": "a909e658b2260d41c672e5da26be9893ba117f5eda9b0626a6be6c3b214487fb",
+      "bytes": 6788,
+      "kind": "five_additional_parent_parser_sources"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-checkpoint-20261008/source124-parent-parser/src/internal/xlang3/ast.h",
+      "sha256": "b04689e74189f83a1e20b9e05a3b5a6b25eb664af97c6f23f1219e220650a74c",
+      "bytes": 15896,
+      "kind": "five_additional_parent_parser_sources"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-checkpoint-20261008/source124-parent-parser/tests/cpp/parser_tests.cpp",
+      "sha256": "dcfc69580c4c53aa061b6a5e4885f4edd73c1a9947de4ace7b525bd2607c1be2",
+      "bytes": 8398,
+      "kind": "five_additional_parent_parser_sources"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-checkpoint-20261008/source124-current-parser/src/parser/lexer.cpp",
+      "sha256": "fc144ed8797dc0e3f1b75cff737cdc7b58015a9c51bb3274ebd7870d842cc990",
+      "bytes": 44629,
+      "kind": "two_current_owned_candidates"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-checkpoint-20261008/source124-current-parser/tests/cpp/parser_tests.cpp",
+      "sha256": "2eba5207ba2213f77b9ed57df568588d1ac1a2c5ee459e6daa0d6e1d5247bd33",
+      "bytes": 11812,
+      "kind": "two_current_owned_candidates"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-checkpoint-20261008/parent-preserved-release-provenance.json",
+      "sha256": "c25be037d188eb0b83a3885acfa16085e49bd1192fdbbf15010182feeb78f6b3",
+      "bytes": 101030,
+      "kind": "parent_hash_manifest_no_binaries"
+    },
+    {
+      "path": "doc/performance/data/pickle-native-utf8-postfix-native-sampling-20261008.json",
+      "sha256": "e8b357b75498aec149f1eec0787c9a63926c12fba2b27d0b08f1c4555a527ffe",
+      "bytes": 28879,
+      "kind": "historical_busy_preflight_no_child"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-checkpoint-20261008/controllers/export-triple-string-closing-comment-checkpoint-proposed-20261008.py",
+      "sha256": "babf959ec8de6d2714a492d02ba8e0cd309fba57ff7678030cdbd0408d335103",
+      "bytes": 13957,
+      "kind": "frozen_export_metadata"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-checkpoint-20261008/controllers/triple-string-closing-comment-checkpoint-export-inputs-proposed-20261008.json",
+      "sha256": "e4d88f6044a3046f9cdfa191c15887567215157a33fa3f75320851ec2c71cbd6",
+      "bytes": 62903,
+      "kind": "frozen_export_metadata"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-checkpoint-20261008/controllers/triple-string-closing-comment-checkpoint-export-provenance-proposed-20261008.json",
+      "sha256": "76851c1390f67febfbfa58d90ca95992611e094a835adca401167bfdcff0153d",
+      "bytes": 3126,
+      "kind": "frozen_export_metadata"
+    },
+    {
+      "path": "doc/performance/triple-string-closing-comment-checkpoint-20261008.md",
+      "sha256": "9617fcfb457ab030c2c3bd91d71f245224757758abcacb950539fedd49b8a768",
+      "bytes": 4744,
+      "kind": "report"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-official-cpython-values-20261008.csv",
+      "sha256": "1b2e8f72732dab1ada47cce1ac07fc539165a7a8ba9defd84d9150cc433f65a6",
+      "bytes": 2408,
+      "kind": "all_40_official_values"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-official-xlang3-failures-20261008.csv",
+      "sha256": "04ccc61c5ec735e3d6baad9d5544ad81f90b2c2f383db18c02ab3b7ebb4300b4",
+      "bytes": 636,
+      "kind": "two_failed_attempts"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-fixed-gate-summary-20261008.csv",
+      "sha256": "554b3a34f9ead9e604161547432563a93a13a2fd79dffb87358c3b985022f6ff",
+      "bytes": 923,
+      "kind": "fixed_gate_summary"
+    },
+    {
+      "path": "doc/performance/data/triple-string-closing-comment-fixed-gate-values-20261008.csv",
+      "sha256": "6bab4666e3ee4847d3f8ad1d4df52e34ec7c9d323c7a178d5dfb02426f41aad8",
+      "bytes": 77109,
+      "kind": "all_fixed_gate_arrays"
+    }
+  ],
+  "owned_source_sha256": {
+    "src/parser/lexer.cpp": "fc144ed8797dc0e3f1b75cff737cdc7b58015a9c51bb3274ebd7870d842cc990",
+    "tests/cpp/parser_tests.cpp": "2eba5207ba2213f77b9ed57df568588d1ac1a2c5ee459e6daa0d6e1d5247bd33"
+  },
+  "validation_sha256": "05ffba4d1786c93448812db6ba22debc5f1c4be62ba6571ead209e49a234777a",
+  "source_count": 124,
+  "binary_count": 178,
+  "fixed_baseline_count": 177,
+  "correctness_passed": true,
+  "fixed_gate_passed": true,
+  "official_cp_values": 40,
+  "official_x_completed_scores": 0,
+  "plan_sha256": "e4d88f6044a3046f9cdfa191c15887567215157a33fa3f75320851ec2c71cbd6",
+  "controller_sha256": "babf959ec8de6d2714a492d02ba8e0cd309fba57ff7678030cdbd0408d335103",
+  "proof_sha256": "76851c1390f67febfbfa58d90ca95992611e094a835adca401167bfdcff0153d",
+  "staging_metadata_scope": "Scratch preview only; not a published relative link.",
+  "published_source119_reference": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119",
+  "historical_native_diagnostic_scope": "Exact source119 and pre-lexer Release identity; 124 samples and 110 observed native ranges, not CPU shares or attribution to the parser candidate. Raw aliases/unresolved/opaque object limits retained."
+}

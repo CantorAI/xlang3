@@ -699,3 +699,10 @@
 /doc/performance/data/pyperformance-xlang3-dict-scalar-append*/** -text
 /doc/performance/native-str-utf8-encode-diagnosis-20261008.md text eol=lf
 /doc/performance/native-str-utf8-official-pickle-20261008.svg text eol=lf
+
+/doc/performance/data/triple-string-closing-comment-* -text
+/doc/performance/data/triple-string-closing-comment-*/** -text
+/doc/performance/data/sqlalchemy-direct-* -text
+/doc/performance/data/sqlalchemy-triple-closing-comment-* -text
+/doc/performance/data/pickle-native-utf8-postfix-* -text
+/doc/performance/triple-string-closing-comment-checkpoint-20261008.md text eol=lf

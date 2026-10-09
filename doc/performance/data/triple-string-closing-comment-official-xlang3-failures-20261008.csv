@@ -1,0 +1,3 @@
+benchmark,runtime,exit_code,complete_score,error,stdout_log,stderr_log
+sqlalchemy_declarative,xlang3,1,False,RuntimeError: property getter is not callable,triple-string-closing-comment-validation-20261008-official-xlang3-sqlalchemy_declarative.stdout.log,triple-string-closing-comment-validation-20261008-official-xlang3-sqlalchemy_declarative.stderr.log
+sqlalchemy_imperative,xlang3,1,False,RuntimeError: property getter is not callable,triple-string-closing-comment-validation-20261008-official-xlang3-sqlalchemy_imperative.stdout.log,triple-string-closing-comment-validation-20261008-official-xlang3-sqlalchemy_imperative.stderr.log

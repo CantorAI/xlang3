@@ -1,0 +1,13 @@
+{
+  "controller": "scratch\\performance\\run-pickle-native-utf8-postfix-native-sampling-r2-root-20261008.py",
+  "controller_sha256": "4896ba36ad798c43df902621b70648969e74a8704bbfb18711fd268d24e05c23",
+  "parent_controller_sha256": "a1307c6ead08139f76a2420bf8eb91ae0986911386b9a02761555d95e9b4be30",
+  "failed_preflight_sha256": "e8b357b75498aec149f1eec0787c9a63926c12fba2b27d0b08f1c4555a527ffe",
+  "only_changes": [
+    "Sibling prefix",
+    "Authenticate preserved child-free failed preflight"
+  ],
+  "strict_guards_unchanged": true,
+  "inputs_unchanged": true,
+  "root_ast_passed": true
+}

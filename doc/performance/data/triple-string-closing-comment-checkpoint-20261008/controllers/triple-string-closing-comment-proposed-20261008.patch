@@ -1,0 +1,126 @@
+diff --git a/src/parser/lexer.cpp b/src/parser/lexer.cpp
+index 5fe2ac2c..c3d12ed3 100644
+--- a/src/parser/lexer.cpp
++++ b/src/parser/lexer.cpp
+@@ -34,12 +34,13 @@ std::string_view trim_left_ascii(std::string_view text) {
+   return text.substr(offset);
+ }
+ 
+-std::string_view trim_inline_comment_for_join(std::string_view line) {
+-  // Match the lexer's triple-quote state before treating '#' as a comment;
+-  // regex and docstring literals commonly contain both '#' and apostrophes.
+-  bool in_string = false;
+-  bool triple_string = false;
+-  char quote = 0;
++std::string_view trim_inline_comment_for_join(std::string_view line,
++                                            bool in_string = false,
++                                            char quote = 0,
++                                            bool triple_string = false) {
++  // Start in the physical line's inherited quote state: an interior '#' is
++  // literal, but a real comment after its closing delimiter must be trimmed.
++  // Copies keep this scan independent of update_line_join_state's next state.
+   bool escaped = false;
+   for (size_t i = 0; i < line.size(); ++i) {
+     const char ch = line[i];
+@@ -560,11 +561,13 @@ void remove_trailing_backslash(std::string& line) {
+   }
+ }
+ 
+-void append_joined_line(std::string& logical_line, std::string_view line, bool inside_triple_string) {
++void append_joined_line(std::string& logical_line, std::string_view line,
++                        bool continued_string, char continued_quote,
++                        bool continued_triple) {
++  // Preserve literal newlines, then remove only comments outside the string.
+   logical_line.push_back('\n');
+-  logical_line += inside_triple_string
+-      ? std::string(line)
+-      : std::string(trim_inline_comment_for_join(line));
++  logical_line.append(trim_inline_comment_for_join(
++      line, continued_string, continued_quote, continued_triple));
+ }
+ 
+ std::string_view append_triple_string_tail(std::string& logical_line,
+@@ -783,7 +786,7 @@ LexResult Lexer::tokenize() {
+           const auto next_line = lines[++line_index];
+           logical_end_line = next_line.line;
+           append_joined_line(logical_line, next_line.text,
+-                             continued_string && continued_triple);
++                             continued_string, continued_quote, continued_triple);
+           should_join = update_line_join_state(next_line.text, bracket_depth, explicit_continue,
+                                                continued_string, continued_quote, continued_triple);
+         }
+@@ -814,7 +817,7 @@ LexResult Lexer::tokenize() {
+       const auto next_line = lines[++line_index];
+       logical_end_line = next_line.line;
+       append_joined_line(logical_line, next_line.text,
+-                         continued_string && continued_triple);
++                         continued_string, continued_quote, continued_triple);
+       should_join = update_line_join_state(next_line.text, bracket_depth, explicit_continue,
+                                            continued_string, continued_quote, continued_triple);
+     }
+diff --git a/tests/cpp/parser_tests.cpp b/tests/cpp/parser_tests.cpp
+index e85e9687..13ff0462 100644
+--- a/tests/cpp/parser_tests.cpp
++++ b/tests/cpp/parser_tests.cpp
+@@ -135,6 +135,61 @@ pattern = (
+       continued_triple_regex.errors.empty(),
+       "comment trimming should preserve # and quotes inside a joined raw triple string");
+ 
++  auto check_joined_literals = [&](const std::string& source,
++                                   const std::vector<std::string>& expected,
++                                   const std::string& label) {
++    auto parsed = xlang3::parse_source(source);
++    xlang3::test::expect_true(result, parsed.errors.empty(), label + " should parse");
++    if (!parsed.errors.empty()) return;
++    auto* assignment = parsed.module.body.size() == 1
++        ? dynamic_cast<xlang3::ast::AssignStmt*>(parsed.module.body[0].get()) : nullptr;
++    auto* call = assignment ? dynamic_cast<xlang3::ast::CallExpr*>(assignment->value.get()) : nullptr;
++    xlang3::test::expect_true(result, call && call->args.size() == expected.size(),
++        label + " should retain all call arguments");
++    if (!call || call->args.size() != expected.size()) return;
++    for (size_t index = 0; index < expected.size(); ++index) {
++      auto* literal = dynamic_cast<xlang3::ast::LiteralExpr*>(call->args[index].get());
++      xlang3::test::expect_true(result, literal && literal->kind == xlang3::ast::LiteralExpr::Kind::String &&
++          literal->text == expected[index], label + " should preserve exact literal contents");
++    }
++  };
++  const std::string joined_body = "alpha\n# interior hash, \"double\" and 'single'\nomega";
++  const char joined_quotes[] = {'"', '\''};
++  const bool joined_choices[] = {false, true};
++  for (char quote : joined_quotes) {
++    const std::string delimiter(3, quote);
++    for (bool raw_prefix : joined_choices) {
++      for (bool suffix_comment : joined_choices) {
++        const std::string source = "result = keep(\n    " + std::string(raw_prefix ? "r" : "") +
++            delimiter + joined_body + delimiter + "," +
++            (suffix_comment ? " # real closing-line comment" : "") + "\n)\n";
++        check_joined_literals(source, {joined_body},
++            std::string(quote == '"' ? "double" : "single") +
++            (raw_prefix ? " raw" : " normal") + (suffix_comment ? " closing comment" : " no comment"));
++      }
++      const std::string escaped_body = "alpha\n\\" + delimiter + " still literal\nomega";
++      const std::string escaped_expected = raw_prefix ? escaped_body :
++          "alpha\n" + delimiter + " still literal\nomega";
++      check_joined_literals("result = keep(\n    " + std::string(raw_prefix ? "r" : "") + delimiter +
++          escaped_body + delimiter + ", # real comment after actual close\n)\n",
++          {escaped_expected}, std::string(quote == '"' ? "double" : "single") +
++          (raw_prefix ? " raw escaped close" : " normal escaped close"));
++    }
++  }
++  check_joined_literals("result = keep(\n    \"\"\"" + joined_body +
++      "\"\"\", \"suffix # remains literal\", # real comment after second string\n)\n",
++      {joined_body, "suffix # remains literal"}, "closed triple followed by quoted suffix");
++  const std::string malformed_joined[] = {
++      "result = keep(\n    \"\"\"alpha\n# literal hash\n)\n",
++      "result = keep(\n    \"\"\"alpha\nomega\"\"\", # real comment\n",
++      "result = keep(\n    \"\"\"alpha\nomega''', # remains inside unclosed double string\n)\n",
++  };
++  for (const auto& source : malformed_joined) {
++    auto parsed = xlang3::parse_source(source);
++    xlang3::test::expect_true(result, !parsed.errors.empty(),
++        "comment handling must still reject malformed strings or missing call delimiters");
++  }
++
+   auto statements = xlang3::parse_source(
+       "class Box[T](Base):\n"
+       "    pass\n"

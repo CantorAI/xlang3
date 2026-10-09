@@ -1,0 +1,150 @@
+{
+  "status": "terminal_direct_native_parser_diagnosis",
+  "terminal": true,
+  "diagnostic_only": true,
+  "scored": false,
+  "engine_rebuilt": false,
+  "library_modified": false,
+  "hashes_before": {
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\run-sqlalchemy-direct-parser-root-20261008.py": "8337c1f31001f9fc75811dac0fc995a63d02f9d2c615103e5438bb73aafd9b1a",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlalchemy-direct-native-parser-proposed-20261008.cpp": "2986ea9d5008b1b07fb186bff2603c9dceedeebff8a5b41c5ab0b3343c23751d",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\compile-sqlalchemy-direct-native-parser-proposed-20261008.cmd": "83707021c99910b85cbe291208e2df718d998da0a78f93706e5646793728391e",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlalchemy-of-attribute-valid-control-proposed-20261008.py": "4ed41d4cd1f01b72dc08e5a6877763fd9dfd1664c914298dda173021ee65e8b1",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlalchemy-typo-hint-error-context-control-proposed-20261008.py": "af00d7185b6498746c14ff1ab5962cda080493917497eed1db234651dc1447ea",
+    "D:\\CantorAI\\xlang3\\src\\internal\\xlang3\\parser.h": "a909e658b2260d41c672e5da26be9893ba117f5eda9b0626a6be6c3b214487fb",
+    "D:\\CantorAI\\xlang3\\src\\internal\\xlang3\\ast.h": "b04689e74189f83a1e20b9e05a3b5a6b25eb664af97c6f23f1219e220650a74c",
+    "D:\\CantorAI\\xlang3\\src\\parser\\parser.cpp": "0ccc9f0270aeedd95d0daefe21ec7ba2b4522a70c5c5d3077a919913078ca6d5",
+    "D:\\CantorAI\\xlang3\\src\\parser\\lexer.cpp": "52bf409a30bd4fc207b93351da69f883ed81da3660e3cc99e74b5e402c2a690c",
+    "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe": "c6358221bd7836f877c566557269b4bf9a011a9a2ca33060eeb2e00b4e6de5b4",
+    "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3_runtime.dll": "64640e503a103341dd44d220eba17ef802219b9df639bb1be5cbe5f2bf847564",
+    "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3_runtime.lib": "9cdfc1c018a3e8f98eb71053e3841a8fcb5d1ccd2420007de748c6d2af1a14d2",
+    "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\sqlalchemy\\sql\\selectable.py": "eac5df2ea20a1acbbe0d866bb09864f9e310e3718e676cd395274e17c60547f2",
+    "D:\\CantorAI\\xlang3\\doc\\performance\\data\\sqlalchemy-direct-parser-cpython3147-20261008.json": "658ba1b39bf8180ed9f98a2a3bf36b2b61be29676b58ae1903d645d602f90cae",
+    "C:\\Python\\Python314\\python.exe": "4942b86a6597e5aee0128daa00050ed79bc21f6e709a78eb19cbfeb0c2f39ac9"
+  },
+  "phases": [
+    {
+      "name": "compile",
+      "command": [
+        "C:\\WINDOWS\\System32\\cmd.exe",
+        "/d",
+        "/c",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\compile-sqlalchemy-direct-native-parser-proposed-20261008.cmd"
+      ],
+      "stdout_log": "sqlalchemy-direct-native-parser-20261008-compile.stdout.log",
+      "stderr_log": "sqlalchemy-direct-native-parser-20261008-compile.stderr.log",
+      "exit_code": 0,
+      "stdout_sha256": "827e2839ce29fa2cc2d1bcea2c46a03469781ed7a8bd3241fdfcff8844629a59",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "valid-of",
+      "command": [
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlalchemy-direct-native-parser-20261008\\direct-parser.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlalchemy-of-attribute-valid-control-proposed-20261008.py"
+      ],
+      "stdout_log": "sqlalchemy-direct-native-parser-20261008-valid-of.stdout.log",
+      "stderr_log": "sqlalchemy-direct-native-parser-20261008-valid-of.stderr.log",
+      "exit_code": 0,
+      "stdout_sha256": "8b623558bd35a2f2ad070e8f7a89ffd8a089d0992ab6fa035b9696d541d10add",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "result": {
+        "mode": "direct_native_parser_diagnostic_only",
+        "input": "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlalchemy-of-attribute-valid-control-proposed-20261008.py",
+        "loaded_runtime_dll": "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3_runtime.dll",
+        "input_bytes": 55,
+        "lexer_error_count": 0,
+        "parser_error_count": 0,
+        "module_statement_count": 1,
+        "lexer_errors": [],
+        "parser_errors": [],
+        "parse_source_wrapper_used": false,
+        "imports_executed": false,
+        "python_executed": false
+      }
+    },
+    {
+      "name": "invalid-context",
+      "command": [
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlalchemy-direct-native-parser-20261008\\direct-parser.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlalchemy-typo-hint-error-context-control-proposed-20261008.py"
+      ],
+      "stdout_log": "sqlalchemy-direct-native-parser-20261008-invalid-context.stdout.log",
+      "stderr_log": "sqlalchemy-direct-native-parser-20261008-invalid-context.stderr.log",
+      "exit_code": 1,
+      "stdout_sha256": "8d93fae3a21f84330dce02eaccf23e89edfa7032690a835d762261d41f895d0f",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "result": {
+        "mode": "direct_native_parser_diagnostic_only",
+        "input": "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlalchemy-typo-hint-error-context-control-proposed-20261008.py",
+        "loaded_runtime_dll": "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3_runtime.dll",
+        "input_bytes": 20,
+        "lexer_error_count": 0,
+        "parser_error_count": 1,
+        "module_statement_count": 2,
+        "lexer_errors": [],
+        "parser_errors": [
+          "line 2, column 9: expected expression"
+        ],
+        "parse_source_wrapper_used": false,
+        "imports_executed": false,
+        "python_executed": false
+      }
+    },
+    {
+      "name": "full-selectable",
+      "command": [
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlalchemy-direct-native-parser-20261008\\direct-parser.exe",
+        "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\sqlalchemy\\sql\\selectable.py"
+      ],
+      "stdout_log": "sqlalchemy-direct-native-parser-20261008-full-selectable.stdout.log",
+      "stderr_log": "sqlalchemy-direct-native-parser-20261008-full-selectable.stderr.log",
+      "exit_code": 1,
+      "stdout_sha256": "7ca9f0325bc55bb6608c5c0d7ea13e0279a2c8c02376682dbde6ef0eac4ca7a0",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "result": {
+        "mode": "direct_native_parser_diagnostic_only",
+        "input": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\sqlalchemy\\sql\\selectable.py",
+        "loaded_runtime_dll": "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3_runtime.dll",
+        "input_bytes": 218005,
+        "lexer_error_count": 0,
+        "parser_error_count": 6,
+        "module_statement_count": 92,
+        "lexer_errors": [],
+        "parser_errors": [
+          "line 893, column 969: expected expression",
+          "line 893, column 969: expected ')' after call arguments",
+          "line 923, column 1467: expected expression",
+          "line 923, column 1467: expected ')' after call arguments",
+          "line 950, column 1263: expected expression",
+          "line 950, column 1263: expected ')' after call arguments"
+        ],
+        "parse_source_wrapper_used": false,
+        "imports_executed": false,
+        "python_executed": false
+      }
+    }
+  ],
+  "source_identity_limit": "Named files only; no complete transitive-header or clean-checkout claim",
+  "started_utc": "2026-10-09T06:26:04.330189+00:00",
+  "helper_sha256": "4b1b6144e4e49afbad3eb0046ccc3b7e6dab9fbf2a9b3882d347625350b416e8",
+  "hashes_after": {
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\run-sqlalchemy-direct-parser-root-20261008.py": "8337c1f31001f9fc75811dac0fc995a63d02f9d2c615103e5438bb73aafd9b1a",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlalchemy-direct-native-parser-proposed-20261008.cpp": "2986ea9d5008b1b07fb186bff2603c9dceedeebff8a5b41c5ab0b3343c23751d",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\compile-sqlalchemy-direct-native-parser-proposed-20261008.cmd": "83707021c99910b85cbe291208e2df718d998da0a78f93706e5646793728391e",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlalchemy-of-attribute-valid-control-proposed-20261008.py": "4ed41d4cd1f01b72dc08e5a6877763fd9dfd1664c914298dda173021ee65e8b1",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\sqlalchemy-typo-hint-error-context-control-proposed-20261008.py": "af00d7185b6498746c14ff1ab5962cda080493917497eed1db234651dc1447ea",
+    "D:\\CantorAI\\xlang3\\src\\internal\\xlang3\\parser.h": "a909e658b2260d41c672e5da26be9893ba117f5eda9b0626a6be6c3b214487fb",
+    "D:\\CantorAI\\xlang3\\src\\internal\\xlang3\\ast.h": "b04689e74189f83a1e20b9e05a3b5a6b25eb664af97c6f23f1219e220650a74c",
+    "D:\\CantorAI\\xlang3\\src\\parser\\parser.cpp": "0ccc9f0270aeedd95d0daefe21ec7ba2b4522a70c5c5d3077a919913078ca6d5",
+    "D:\\CantorAI\\xlang3\\src\\parser\\lexer.cpp": "52bf409a30bd4fc207b93351da69f883ed81da3660e3cc99e74b5e402c2a690c",
+    "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe": "c6358221bd7836f877c566557269b4bf9a011a9a2ca33060eeb2e00b4e6de5b4",
+    "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3_runtime.dll": "64640e503a103341dd44d220eba17ef802219b9df639bb1be5cbe5f2bf847564",
+    "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3_runtime.lib": "9cdfc1c018a3e8f98eb71053e3841a8fcb5d1ccd2420007de748c6d2af1a14d2",
+    "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\sqlalchemy\\sql\\selectable.py": "eac5df2ea20a1acbbe0d866bb09864f9e310e3718e676cd395274e17c60547f2",
+    "D:\\CantorAI\\xlang3\\doc\\performance\\data\\sqlalchemy-direct-parser-cpython3147-20261008.json": "658ba1b39bf8180ed9f98a2a3bf36b2b61be29676b58ae1903d645d602f90cae",
+    "C:\\Python\\Python314\\python.exe": "4942b86a6597e5aee0128daa00050ed79bc21f6e709a78eb19cbfeb0c2f39ac9"
+  },
+  "hashes_unchanged": true,
+  "completed_utc": "2026-10-09T06:26:07.075086+00:00"
+}
