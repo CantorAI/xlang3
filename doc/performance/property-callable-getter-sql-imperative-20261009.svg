@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="300" viewBox="0 0 980 300" role="img" aria-labelledby="title desc">
+  <title id="title">Original SQLAlchemy imperative elapsed time</title>
+  <desc id="desc">Mean XLang3 time is 226.661290 milliseconds and saved CPython 3.14.7 time is 11.1890175 milliseconds. Twenty values each; historical unpaired fast-mode comparison. XLang3 takes 20.2575 times as long.</desc>
+  <rect width="980" height="300" fill="#fff"/>
+  <g font-family="Arial, sans-serif" fill="#17212b">
+    <text x="28" y="34" font-size="22" font-weight="700">SQLAlchemy imperative: elapsed time</text>
+    <text x="28" y="59" font-size="13">Original workload · mean of all 20 values per runtime · lower time is faster</text>
+    <g stroke="#dde3e8" stroke-width="1">
+      <path d="M170 78V194 M322 78V194 M474 78V194 M626 78V194 M778 78V194 M930 78V194"/>
+    </g>
+    <text x="158" y="112" text-anchor="end" font-size="14">XLang3 source126</text>
+    <text x="158" y="171" text-anchor="end" font-size="14">CPython 3.14.7</text>
+    <rect x="170" y="86" width="689.050322" height="38" rx="3" fill="#a75526"/>
+    <rect x="170" y="145" width="34.014613" height="38" rx="3" fill="#2672a1"/>
+    <text x="871" y="111" font-size="14" font-weight="700">226.66 ms</text>
+    <text x="216" y="170" font-size="14" font-weight="700">11.19 ms</text>
+    <g font-size="12" text-anchor="middle">
+      <text x="170" y="211">0</text><text x="322" y="211">50</text><text x="474" y="211">100</text>
+      <text x="626" y="211">150</text><text x="778" y="211">200</text><text x="930" y="211">250 ms</text>
+    </g>
+    <text x="28" y="248" font-size="14" font-weight="700">XLang3 takes 20.2575× as long as the saved CP reference.</text>
+    <text x="28" y="274" font-size="12">Historical unpaired fast-mode results; warnings retained. Declarative still fails; no whole-suite or isolated gain claim.</text>
+  </g>
+</svg>

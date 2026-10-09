@@ -706,3 +706,9 @@
 /doc/performance/data/sqlalchemy-triple-closing-comment-* -text
 /doc/performance/data/pickle-native-utf8-postfix-* -text
 /doc/performance/triple-string-closing-comment-checkpoint-20261008.md text eol=lf
+
+/doc/performance/data/property-callable-getter-* -text
+/doc/performance/data/property-callable-getter-*/** -text
+/doc/performance/data/date-native-boundary-* -text
+/doc/performance/property-callable-getter-checkpoint-20261009.md text eol=lf
+/doc/performance/property-callable-getter-sql-imperative-20261009.svg text eol=lf

@@ -1,0 +1,284 @@
+diff --git a/src/executor/xlang_vm/ops/xlang_vm_ops_attr.h b/src/executor/xlang_vm/ops/xlang_vm_ops_attr.h
+index 1247bee4..5d45d6dc 100644
+--- a/src/executor/xlang_vm/ops/xlang_vm_ops_attr.h
++++ b/src/executor/xlang_vm/ops/xlang_vm_ops_attr.h
+@@ -956,7 +956,30 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_attr(
+       regs[in.dst] = std::move(native_result);
+       return XlangVMOpFlow::Next;
+     }
+-    return raise_runtime_error("property getter is not callable") ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
++    // A property getter may be a callable object (for example attrgetter),
++    // a bound method or a staticmethod wrapper. Keep the proven function and
++    // native paths above; other getters use property.__get__'s generic runtime
++    // dispatch once, without adding guards to warmed inline property reads.
++    // Own the selected getter and receiver across callbacks/class replacement,
++    // and restore the complete execution depth before cleanup can reenter.
++    Value getter(property->fget);
++    Value getter_result;
++    bool ok = false;
++    {
++      XlangRuntimeExecutionSuspension suspension;
++      ok = runtime_call_callable(runtime, getter, self_arg, 1, getter_result, error);
++    }
++    if (!ok) {
++      Value pending;
++      if (runtime.take_pending_exception(pending)) {
++        return raise_exception_value(std::move(pending))
++            ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
++      }
++      return raise_runtime_error(error.empty() ? "property getter failed" : error)
++          ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
++    }
++    regs[in.dst] = std::move(getter_result);
++    return XlangVMOpFlow::Next;
+   }
+   if (!loaded_from_instance && object_value_has_descriptor_get(attr)) {
+     if (auto* instance = value_as_instance(regs[in.a])) {
+diff --git a/tests/run_fixtures.py b/tests/run_fixtures.py
+index b80531bb..00d16e8b 100644
+--- a/tests/run_fixtures.py
++++ b/tests/run_fixtures.py
+@@ -50,7 +50,7 @@ scalar_loop functions module_getattr_call nested_function_no_closure if_else syn
+ syntax_simple_suites statement_syntax module_statement_partials structural_pattern_matching
+ expression_operators modulo_type_error chained_comparisons function_class_syntax future_annotations future_class_conditional_annotations function_metadata function_kwdefaults_live function_code_replacement function_annotation_getattr annotation_fake_globals annotation_lambda_ast deferred_annotation_closure
+ object_type_model type_self_metaclass_repr object_attribute_hooks inherited_getattr_slots inherited_eq_ne getattr_nondata_descriptor_precedence prepared_namespace_transform private_slots_mangling private_generator_name_mangling subprocess_inherits_chdir descriptor_protocol special_truth_descriptor instance_stored_descriptor_value instance_dict_assignment instance_dict_contains_dispatch dict_get_missing_semantics dynamic_builtins_lookup custom_getattribute_descriptor load_attr_cache_precedence multiple_inheritance_attribute_storage default_object_repr code_traceback_model mro_model tuple_compare_scalar_fastpath object_hash_identity_fastpath
+-property_descriptor super_live_receiver super_method_call_dispatch partialmethod_init_keywords chained_object_methods builtin_alias builtin_function_batch dynamic_execution_builtins globals_locals_identity
++property_descriptor property_callable_getter super_live_receiver super_method_call_dispatch partialmethod_init_keywords chained_object_methods builtin_alias builtin_function_batch dynamic_execution_builtins globals_locals_identity
+ abc_runtime native_module_function_binding try_loop_exception_scope math_combinatorics math_factorial_owned_limbs csv_reader_dialect_keyword array_w_unicode native_array_shared_buffer subscription_dispatch regex_lookbehind_anchor_alternative ssl_timed_socket value_alias_assignment ctypes_structure_layout ctypes_pointer_return ctypes_cast_errcheck_array itertools_zip_longest_shared minmax_custom_key
+ iterator_protocol builtin_iterator_identity ast_recursive_visitor ast_match_patterns ast_while_live_local ast_traceback_multiline vm_borrowed_local_overwrite match_protocol_semantics tuples tuple_methods dict_views dict_iterator_ownership container_dynamic_repr slices slots_model raw_strings string_compat
+ binary_buffers bytes_decode_descriptor bytes_percent_width bytes_translate_delete bytes_isascii percent_mapping_protocol format_repr_runtime str_subclass_add str_subclass_percent str_subclass_comparison int_subclass_bitwise module_class_constructor_frame_growth builtin_types_edges builtin_literal_namespace builtin_subclass_init branch_join_instruction_fusion descriptor_noncallable frozenset_type_methods set_subclass_protocol set_identity_before_equality dict_custom_hash_equality metaclass_binary_operator metaclass_dynamic_keyword_expansion new_class_attribute generic_union_substitution optional_union_none_type typing_literal_union generic_class_parameters module_subclass_descriptor dict_init_mappingproxy ast_runtime_parser ast_call_arguments compile_source_identity ast_constructor_defaults compile_ast_module annotation_string_format fstring_not_equal match_nested_as match_soft_keyword_annotation starred_expressions starred_protocol_iterables dict_set_comprehensions nested_comprehensions generator_expressions comprehension_multiple_filters
+diff --git a/tests/run_fixtures.ps1 b/tests/run_fixtures.ps1
+index ff2118b2..d05ed602 100644
+--- a/tests/run_fixtures.ps1
++++ b/tests/run_fixtures.ps1
+@@ -100,6 +100,7 @@ $cases = @(
+     "code_traceback_model",
+     "mro_model",
+     "property_descriptor",
++    "property_callable_getter",
+     "chained_object_methods",
+     "builtin_alias",
+     "builtin_function_batch",
+diff --git a/tests/fixtures/core/property_callable_getter.py b/tests/fixtures/core/property_callable_getter.py
+new file mode 100644
+--- /dev/null
++++ b/tests/fixtures/core/property_callable_getter.py
+@@ -0,0 +1,207 @@
++# Copyright (C) 2026 CantorAI Inc. and The XLang Foundation
++# Licensed under the Apache License, Version 2.0 (the "License");
++# you may not use this file except in compliance with the License.
++# You may obtain a copy of the License at
++#
++#     http://www.apache.org/licenses/LICENSE-2.0
++#
++# Unless required by applicable law or agreed to in writing, software
++# distributed under the License is distributed on an "AS IS" BASIS,
++# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++# See the License for the specific language governing permissions and
++# limitations under the License.
++"""Generic property getter callability, mutation, ownership and errors."""
++import gc
++import operator
++import sys
++import weakref
++
++
++def read_value(receiver):
++    return receiver.value
++
++
++class Getter:
++    def __call__(self, receiver):
++        return receiver.payload
++
++
++class Box:
++    def __init__(self, payload):
++        self.payload = payload
++
++    value = property(Getter())
++
++
++box = Box(("id", "name"))
++assert callable(Box.value.fget)
++for unused in range(4):
++    assert read_value(box) == ("id", "name")
++assert getattr(box, "value") == Box.value.__get__(box, Box) == box.payload
++Box.value = property(operator.attrgetter("payload"))
++for unused in range(4):
++    assert read_value(box) == box.payload
++print("PASS property_callable_instance_and_attrgetter")
++
++
++class BoundGetter:
++    def get(self, receiver):
++        return receiver.payload + 1
++
++
++class Result:
++    def __init__(self, receiver):
++        self.payload = receiver.payload
++
++
++box.payload = 7
++Box.value = property(BoundGetter().get)
++assert read_value(box) == 8
++Box.value = property(staticmethod(lambda receiver: receiver.payload + 2))
++assert read_value(box) == 9
++Box.value = property(Result)
++assert read_value(box).payload == 7
++# Keep the existing function and native-function getter paths covered.
++Box.value = property(lambda receiver: receiver.payload + 3)
++assert read_value(box) == 10
++Box.value = property(id)
++assert read_value(box) == id(box)
++Box.value = property(type)
++assert read_value(box) is Box
++print("PASS property_callable_kinds_and_existing_paths")
++
++
++class Replacement:
++    def __call__(self, receiver):
++        return "replacement"
++
++
++class MutatingGetter:
++    def __call__(self, receiver):
++        type(receiver).value = property(Replacement())
++        return "original"
++
++
++Box.value = property(MutatingGetter())
++assert read_value(box) == "original"
++assert read_value(box) == "replacement"
++
++
++def replacement_call(self, receiver):
++    return "changed call"
++
++
++Replacement.__call__ = replacement_call
++assert read_value(box) == "changed call"
++del Box.value
++try:
++    read_value(box)
++except AttributeError:
++    pass
++else:
++    raise AssertionError("deleted property remained visible")
++Box.value = property(Getter())
++assert read_value(box) == 7
++print("PASS property_callable_lookup_mutation")
++
++
++marker = LookupError("callable getter marker")
++
++
++class FailingGetter:
++    def __call__(self, receiver):
++        raise marker
++
++
++Box.value = property(FailingGetter())
++try:
++    read_value(box)
++except LookupError as caught:
++    assert caught is marker
++    names = []
++    traceback = caught.__traceback__
++    while traceback is not None:
++        names.append(traceback.tb_frame.f_code.co_name)
++        traceback = traceback.tb_next
++    assert "__call__" in names and "read_value" in names
++else:
++    raise AssertionError("getter exception was lost")
++marker.__traceback__ = None
++Box.value = property(41)
++try:
++    read_value(box)
++except TypeError:
++    pass
++else:
++    raise AssertionError("noncallable getter did not raise TypeError")
++Box.value = property()
++try:
++    read_value(box)
++except AttributeError:
++    pass
++else:
++    raise AssertionError("missing getter did not raise AttributeError")
++print("PASS property_callable_exception_identity_and_traceback")
++
++
++released = []
++
++
++def lifetime_case():
++    class OwnerGetter:
++        def __call__(self, receiver):
++            assert reference() is self and not released
++            type(receiver).value = property(Getter())
++            gc.collect()
++            assert reference() is self and not released
++            return receiver.payload
++
++        def __del__(self):
++            released.append("getter")
++
++    Box.value = property(OwnerGetter())
++    reference = weakref.ref(Box.value.fget)
++    local = Box("alive")
++    assert read_value(local) == "alive"
++    assert read_value(local) == "alive"
++    return reference
++
++
++getter_reference = lifetime_case()
++gc.collect()
++assert getter_reference() is None and released == ["getter"]
++print("PASS property_callable_selected_owner_lifetime")
++
++
++observer_events = []
++getter_code = Getter.__call__.__code__
++
++
++def profile(frame, event, arg):
++    if frame.f_code is getter_code and event in ("call", "return"):
++        observer_events.append(event)
++
++
++Box.value = property(Getter())
++sys.setprofile(profile)
++try:
++    assert read_value(box) == 7
++finally:
++    sys.setprofile(None)
++assert observer_events == ["call", "return"]
++observer_events.clear()
++
++
++def trace(frame, event, arg):
++    if frame.f_code is getter_code and event in ("call", "return"):
++        observer_events.append(event)
++    return trace
++
++
++sys.settrace(trace)
++try:
++    assert read_value(box) == 7
++finally:
++    sys.settrace(None)
++assert observer_events == ["call", "return"]
++print("PASS property_callable_observer_frames")
+diff --git a/tests/fixtures/expected/property_callable_getter.out b/tests/fixtures/expected/property_callable_getter.out
+new file mode 100644
+--- /dev/null
++++ b/tests/fixtures/expected/property_callable_getter.out
+@@ -0,0 +1,6 @@
++PASS property_callable_instance_and_attrgetter
++PASS property_callable_kinds_and_existing_paths
++PASS property_callable_lookup_mutation
++PASS property_callable_exception_identity_and_traceback
++PASS property_callable_selected_owner_lifetime
++PASS property_callable_observer_frames

@@ -1,0 +1,4 @@
+getter-kind operator operator attrgetter True
+PASS direct-getter
+PASS explicit-property-get
+PASS builtin-getattr

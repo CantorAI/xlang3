@@ -1,0 +1,12 @@
+local_slots              pass         0.990x
+scalar_arithmetic        pass         0.999x
+range_for                pass         1.015x
+function_calls           pass         1.022x
+class_construct          pass         1.007x
+list_append              pass         0.982x
+property_access          pass         0.960x
+deepcopy_memo            pass         0.901x
+json_dumps               pass         1.019x
+gc_traversal             pass         0.757x
+subparsers               pass         0.921x
+Performance check: pass. Report: D:\CantorAI\xlang3\doc\performance\data\property-callable-getter-validation-20261009-fixed-gate.json
