@@ -1,0 +1,37 @@
+{
+  "status": "frozen_scratch_only_report_adapter_unexecuted",
+  "controller": "scratch/performance/report-dict-scalar-append-full-pyperformance-refresh-proposed-20261008.py",
+  "controller_sha256": "23346bf427cce51ee6e782a95debe97fc328f11ab2e8f4c4ee692a3dca42bef2",
+  "template": "scratch/performance/report-full-pyperformance-refresh-r2-20261008.py",
+  "template_sha256": "5dcfe5279ef2071673f4564fa2523ffa0c008b056176e1738ec2a46a100170a6",
+  "comparison_generator": "benchmarks/diagnostics/summarize_pyperformance_comparison.py",
+  "comparison_generator_sha256": "c067fcea41ea66be0249209bb86e1ca06c8b9e93b6696076a69d0f0e9aa76255",
+  "selected_run_provenance_sha256": "afa6a190d0cb545c1ac32e115ed173a17c3776c5223c3e0a6b9cd8352eb58ca8",
+  "selected_run_status": "finished_with_benchmark_failures",
+  "attempted_definitions": 97,
+  "completed_definitions": 73,
+  "failed_definitions": 24,
+  "raw_subtests": 82,
+  "current_source_count": 115,
+  "current_release_count": 178,
+  "fixed_baseline_count": 177,
+  "current_trial_sha256": "0b6f05e17c2878efa135656abcce38338934069b59a9460de9f2ba98a8516dd0",
+  "current_correctness_sha256": "3d78a8aa54b812289826af708f982a187a348e2272f8e69c0321f965449961f5",
+  "current_focused_sha256": "0737ff2f405151ed29fdfa22bc0177ea77d18f3b63bdf7aff4662972efb94a38",
+  "current_manager_sha256": "7c868a85ed63615c06916ea119019afd06ce93773a25745ab8fa255d7ed2f096",
+  "raw_watch_sha256": "6be6ee164f6e94f7fcb638cb3f328b715d9d91eb5e0ce5b2e3076f09338cea52",
+  "bounded_changes": [
+    "Bind terminal valid capture/source115/current trial+correctness+focus+build with complete Release178/baseline177 verification; binaries not copied",
+    "Archive actual controller/proofs/rawwatch/split logs/official target evidence/current source/partial bytes",
+    "CP3.14.7 unoptimized controller required; fresh directory/prefix",
+    "Saved CP log wording; explicit historical unpaired/full successful-subtest-only aggregate scope",
+    "Fresh Oct8 targeted pickle separate and dirty worktree/owned subset reproducibility caveat"
+  ],
+  "unchanged": [
+    "Generator/scoring/mean and geometric mean algorithms",
+    "All97 status index, failed-definition and GC exclusions, all raw values/warnings/partials/no trimming",
+    "Original full-run/workloads/timeouts/inputs/controller bytes"
+  ],
+  "python_ast_build_runtime_report_execution_by_author": false,
+  "live_engine_or_original_input_edits_by_author": false
+}

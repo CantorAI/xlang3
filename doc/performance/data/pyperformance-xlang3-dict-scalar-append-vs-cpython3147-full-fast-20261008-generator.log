@@ -1,0 +1,6 @@
+Completed definitions: 73/97; failed: 24; matched subtests: 81; faster: 1; geomean CPython/XLang3: 0.12455x
+unmapped XLang3 result names: []
+wrote D:\CantorAI\xlang3\scratch\performance\dict-scalar-append-full-report-preview-20261008\pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008.md
+wrote D:\CantorAI\xlang3\scratch\performance\dict-scalar-append-full-report-preview-20261008\data\pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-all-97-status.csv
+wrote D:\CantorAI\xlang3\scratch\performance\dict-scalar-append-full-report-preview-20261008\data\pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-subtests.csv
+wrote D:\CantorAI\xlang3\scratch\performance\dict-scalar-append-full-report-preview-20261008\pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008.svg

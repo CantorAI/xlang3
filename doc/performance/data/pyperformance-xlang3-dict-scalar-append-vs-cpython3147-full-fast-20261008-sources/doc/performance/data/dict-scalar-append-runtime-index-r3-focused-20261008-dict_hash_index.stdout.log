@@ -1,0 +1,8 @@
+identity 1000 1000
+mixed True 1
+collision 2 3 3 2
+original True
+deleted 1 False True
+pop-reinsert 1 True
+clear-reinsert 1 5
+hash-error RuntimeError bad hash

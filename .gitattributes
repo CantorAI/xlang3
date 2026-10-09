@@ -686,3 +686,7 @@
 /doc/performance/dict-scalar-append-runtime-index-trial-20261008.md text eol=lf
 /doc/performance/dict-scalar-append-runtime-index-trial-20261008.svg text eol=lf
 /doc/performance/pickle-memo-index-freshness-investigation-20261008.md text eol=lf
+
+/doc/performance/data/pyperformance-xlang3-dict-scalar-append* -text
+/doc/performance/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008.md text eol=lf
+/doc/performance/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008.svg text eol=lf

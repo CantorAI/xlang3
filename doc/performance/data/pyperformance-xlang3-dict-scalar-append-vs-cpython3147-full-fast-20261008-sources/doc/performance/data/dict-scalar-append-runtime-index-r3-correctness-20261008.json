@@ -1,0 +1,62 @@
+{
+  "status": "correctness_passed_performance_pending",
+  "terminal": true,
+  "correctness_passed": true,
+  "full_validated": false,
+  "source_inventory_sha256": "dc1b869fe0475e3bdd017aa3b667f755cb7a4dd7ad881494f8afb34af387f45e",
+  "source_count": 115,
+  "recorded_sources_match": true,
+  "candidate_release_matches_focused": true,
+  "fixed_baseline_matches": true,
+  "fixture_counts": {
+    "core": 398,
+    "compatibility_sections": 11,
+    "expected_failure_cases": 3
+  },
+  "ctest_count": 9,
+  "native_api_checks": 2,
+  "phases": [
+    {
+      "name": "full-fixtures-clean",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_log": "dict-scalar-append-runtime-index-r3-full-fixtures-clean-20261008.stdout.log",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_log": "dict-scalar-append-runtime-index-r3-full-fixtures-clean-20261008.stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "ctest",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_log": "dict-scalar-append-runtime-index-r3-ctest-20261008.stdout.log",
+      "stdout_sha256": "e63406107c0cbb29e78974875ed0850ec53f1116f9091d25c850369dafc2cc01",
+      "stderr_log": "dict-scalar-append-runtime-index-r3-ctest-20261008.stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "old_xlang_sqlite_api",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_log": "dict-scalar-append-runtime-index-r3-old_xlang_sqlite_api-20261008.stdout.log",
+      "stdout_sha256": "36449d6aaa8b51b49315f871c305cf5e7568199909ce178a331245b7fe4a6a92",
+      "stderr_log": "dict-scalar-append-runtime-index-r3-old_xlang_sqlite_api-20261008.stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "python_sqlite3_api",
+      "exit_code": 0,
+      "passed": true,
+      "stdout_log": "dict-scalar-append-runtime-index-r3-python_sqlite3_api-20261008.stdout.log",
+      "stdout_sha256": "c9ae392c8a76084bb521fcd89dc73d8617755aae1741c705f2ba60efe9606ecb",
+      "stderr_log": "dict-scalar-append-runtime-index-r3-python_sqlite3_api-20261008.stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "timing_preflight_sha256": "e22ceeaf7ff914f01b4c62c0273ea6c48c6cb291f9c5187e9b4b9e6e1153cbd9",
+  "timing_children_launched": 0,
+  "fixed_gate": null,
+  "official_pickle": null,
+  "engine_committed": false,
+  "completed_utc": "2026-10-09T00:37:44.0790619Z"
+}

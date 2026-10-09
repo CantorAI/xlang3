@@ -1,0 +1,166 @@
+/*
+Copyright (C) 2026 CantorAI Inc. and The XLang Foundation
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+#pragma once
+
+#include "xlang3/runtime.h"
+
+namespace xlang3 {
+
+// Let _winapi.CloseHandle release the native completion-port registry too.
+bool close_overlapped_iocp_port(int64_t handle);
+
+void register_core_builtins(Runtime& runtime);
+void register_object_type_builtins(Runtime& runtime);
+bool runtime_type_of_value(Runtime& runtime, const Value& value, Value& out);
+// Native helpers use intrinsic attribute semantics (including Python hooks),
+// without looking up a user-rebound builtin or emitting a synthetic c_call.
+bool runtime_getattr(Runtime& runtime, const Value& object, const Value& name,
+                     Value& out, std::string& error, const Value* default_value = nullptr);
+bool runtime_setattr(Runtime& runtime, const Value& object, const Value& name,
+                     const Value& value, std::string& error);
+bool runtime_warn(Runtime& runtime, const Value& message, const Value& category,
+                  int64_t stacklevel, std::string& error);
+bool runtime_repr(Runtime& runtime, const Value& value, Value& out,
+                  std::string& error, bool ascii_only = false);
+void register_exception_builtins(Runtime& runtime);
+void register_functional_builtins(Runtime& runtime);
+void register_io_builtins(Runtime& runtime);
+bool builtin_str_from_value(Runtime& runtime, const Value& value, Value& out, std::string& error);
+void register_sequence_builtins(Runtime& runtime);
+void register_raw_block_builtins(Runtime& runtime);
+void register_ipc_builtins(Runtime& runtime);
+void register_builtin_modules(Runtime& runtime);
+void register_math_module(Runtime& runtime);
+void register_sys_module(Runtime& runtime);
+bool sys_int_string_exceeds_limit(std::string_view text, int base);
+int64_t sys_coroutine_origin_tracking_depth();
+constexpr int64_t kSysMonitoringEventPyStart = 1;
+constexpr int64_t kSysMonitoringEventPyResume = 2;
+constexpr int64_t kSysMonitoringEventPyReturn = 4;
+constexpr int64_t kSysMonitoringEventPyYield = 8;
+constexpr int64_t kSysMonitoringEventCall = 16;
+constexpr int64_t kSysMonitoringEventLine = 32;
+constexpr int64_t kSysMonitoringEventInstruction = 64;
+constexpr int64_t kSysMonitoringEventJump = 128;
+constexpr int64_t kSysMonitoringEventBranchLeft = 256;
+constexpr int64_t kSysMonitoringEventBranchRight = 512;
+constexpr int64_t kSysMonitoringEventStopIteration = 1024;
+constexpr int64_t kSysMonitoringEventRaise = 2048;
+constexpr int64_t kSysMonitoringEventExceptionHandled = 4096;
+constexpr int64_t kSysMonitoringEventPyUnwind = 8192;
+constexpr int64_t kSysMonitoringEventPyThrow = 16384;
+constexpr int64_t kSysMonitoringEventReraise = 32768;
+constexpr int64_t kSysMonitoringEventCReturn = 65536;
+constexpr int64_t kSysMonitoringEventCRaise = 131072;
+constexpr int64_t kSysMonitoringEventAll = 262143;
+bool sys_monitoring_event_may_dispatch(int64_t event);
+bool sys_monitoring_global_event_may_dispatch(int64_t event);
+int64_t sys_monitoring_code_events(const ir::Module* module, uint32_t function_id);
+uint64_t sys_monitoring_configuration_generation();
+bool sys_monitoring_location_may_dispatch(
+    const ir::Module* module,
+    uint32_t function_id,
+    int64_t event,
+    int64_t instruction_offset);
+bool sys_monitoring_function_may_dispatch(
+    const ir::Module* module,
+    uint32_t function_id);
+bool sys_monitoring_dispatch_event(
+    Runtime& runtime,
+    int64_t event,
+    const Value& code,
+    int64_t instruction_offset,
+    const Value* arg,
+    std::string& error);
+void register_time_module(Runtime& runtime);
+void register_abc_module(Runtime& runtime);
+void register_atexit_module(Runtime& runtime);
+void register_ast_module(Runtime& runtime);
+void register_binascii_module(Runtime& runtime);
+void register_bz2_module(Runtime& runtime);
+void register_cmath_module(Runtime& runtime);
+void register_decimal_module(Runtime& runtime);
+void register_io_module(Runtime& runtime);
+void register_json_module(Runtime& runtime);
+void register_functools_module(Runtime& runtime);
+void register_csv_module(Runtime& runtime);
+void register_os_module(Runtime& runtime);
+void register_posix_process_module(Runtime& runtime);
+void register_stat_module(Runtime& runtime);
+void register_string_module(Runtime& runtime);
+void register_imp_module(Runtime& runtime);
+void register_sysconfig_native_module(Runtime& runtime);
+void register_warnings_module(Runtime& runtime);
+void register_errno_module(Runtime& runtime);
+void register_faulthandler_module(Runtime& runtime);
+void register_gc_module(Runtime& runtime);
+void register_lsprof_module(Runtime& runtime);
+void register_array_module(Runtime& runtime);
+void register_bisect_module(Runtime& runtime);
+void register_heapq_module(Runtime& runtime);
+void register_itertools_module(Runtime& runtime);
+void register_codecs_module(Runtime& runtime);
+void register_locale_module(Runtime& runtime);
+void register_multibytecodec_module(Runtime& runtime);
+void register_contextvars_module(Runtime& runtime);
+void register_ctypes_module(Runtime& runtime);
+void register_unicodedata_module(Runtime& runtime);
+bool unicodedata_lookup_codepoint(std::string_view name, uint32_t& codepoint);
+void register_struct_module(Runtime& runtime);
+void register_signal_module(Runtime& runtime);
+bool signal_events_pending();
+bool signal_dispatch_pending(Runtime& runtime, std::string& error);
+void register_sha2_module(Runtime& runtime);
+void register_sre_module(Runtime& runtime);
+void register_collections_module(Runtime& runtime);
+void register_typing_module(Runtime& runtime);
+void register_queue_module(Runtime& runtime);
+void register_importlib_module(Runtime& runtime);
+void register_interpreter_modules(Runtime& runtime);
+void unregister_interpreter_runtime(Runtime& runtime);
+void register_random_module(Runtime& runtime);
+void register_weakref_module(Runtime& runtime);
+Value make_weakref_ref(Runtime& runtime, const Value& target);
+bool weakref_get_target(const Value& ref, Value& out);
+bool weakref_cached_hash(const Value& ref, size_t& out);
+bool weakref_find_ref(const Value& target, Value& out);
+void weakref_invalidate_target(Object* target);
+bool weakref_callbacks_pending();
+void weakref_dispatch_callbacks(Runtime& runtime);
+uint64_t weakref_collect_cycles(Runtime& runtime);
+void register_marshal_module(Runtime& runtime);
+bool marshal_load_code_module(
+    Runtime& runtime,
+    std::string_view data,
+    std::shared_ptr<const ir::Module>& out,
+    std::string& error);
+void register_msvcrt_module(Runtime& runtime);
+void register_opcode_module(Runtime& runtime);
+void register_operator_module(Runtime& runtime);
+void register_pickle_module(Runtime& runtime);
+void register_pyexpat_module(Runtime& runtime);
+void register_overlapped_module(Runtime& runtime);
+void register_asyncio_module(Runtime& runtime);
+void initialize_asyncio_module_compat(Runtime& runtime);
+void register_multiprocessing_module(Runtime& runtime);
+void register_winapi_module(Runtime& runtime);
+void register_winreg_module(Runtime& runtime);
+void register_zlib_module(Runtime& runtime);
+void register_zipimport_module(Runtime& runtime);
+void register_socket_modules(Runtime& runtime);
+void register_thread_modules(Runtime& runtime);
+void register_task_modules(Runtime& runtime);
+
+} // namespace xlang3
