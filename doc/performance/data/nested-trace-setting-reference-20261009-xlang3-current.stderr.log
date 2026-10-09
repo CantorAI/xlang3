@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\scratch\performance\nested-trace-setting-fixture-proposed-20261009.py", line 37, in <module>
+    assert sys.gettrace() is first_trace
+AssertionError

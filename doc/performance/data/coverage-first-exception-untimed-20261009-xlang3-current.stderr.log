@@ -1,0 +1,2 @@
+runtime: sys.excepthook failed: uncaught exception in diagnostic_excepthook (D:\CantorAI\xlang3\scratch\performance\coverage-untimed-first-exception-child-20261009.py:10): <class 'UnboundLocalError'>: cannot access local variable 'value' where it is not associated with a value
+runtime: uncaught exception in _trace (D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\coverage\pytracer.py:115): <class 'IndexError'>: pop from empty list

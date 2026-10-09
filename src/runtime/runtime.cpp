@@ -1126,8 +1126,19 @@ void Runtime::set_trace_function(Value trace_function) {
   Value next;
   value_assign_fast(next, trace_function);
   auto& state = current_frame_state(*this);
-  value_set_invalid(state.trace_function);
-  state.trace_function = next;
+  auto& saved_frames = current_frame_stack(*this);
+  // Tracing is a thread setting. A nested callback's change must survive
+  // restoration of its caller's frame; keep this work in the cold setter.
+  // Publish every new hook before retiring old owners. Their cleanup may
+  // reenter and replace tracing, so perform no later publication afterward.
+  std::vector<Value> retired_traces;
+  retired_traces.reserve(saved_frames.size() + 1);
+  retired_traces.push_back(std::move(state.trace_function));
+  for (auto& saved : saved_frames)
+    retired_traces.push_back(std::move(saved.trace_function));
+  value_assign_fast(state.trace_function, next);
+  for (auto& saved : saved_frames)
+    value_assign_fast(saved.trace_function, next);
 }
 
 const Value& Runtime::trace_function() const {

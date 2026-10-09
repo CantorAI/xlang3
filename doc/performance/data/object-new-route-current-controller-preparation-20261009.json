@@ -1,0 +1,10 @@
+{
+  "terminal": true,
+  "status": "prepared_not_executed",
+  "timed": false,
+  "source_controller_sha256": "33122585395550b783240d7ff04b7a64d62ea9363627342340180de7d673b1e8",
+  "current_controller_sha256": "9972fa198f22a25c62c9dbac06804435ceecb2b999bf201acbfb18c8bcd5bfff",
+  "current_verification_sha256": "2eed66816104ad7be26da62413b306fbf080a2271e848a471e8d99cea9a86981",
+  "controller_preparation_sha256": "4494cd2be18186de58d0cb5321da65dcbbd110b5d7c54a062d39b346773ec745",
+  "scope": "Only source/build provenance and output prefix changed. Same 18 serial children, six runtime permutations, mirrored two-case orders, 10000 operations per case, watchdog and strict idle guards. No timing loops, repetitions, thresholds or control binaries changed."
+}

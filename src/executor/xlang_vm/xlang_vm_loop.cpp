@@ -1278,10 +1278,20 @@ RuntimeResult Interpreter::run_function(
 
   auto emit_trace_event = [&](VMFrame& trace_frame, const char* event_name, const Value& arg) -> bool {
     const bool is_call_event = std::string_view(event_name) == std::string_view("call");
-    const Value& hook = is_call_event ? runtime_.trace_function() : trace_frame.trace_function;
-    if (hook.tag == ValueTag::Invalid || hook.tag == ValueTag::None || runtime_.trace_dispatch_active()) {
+    const Value& thread_hook = runtime_.trace_function();
+    const Value& borrowed_hook = is_call_event ? thread_hook : trace_frame.trace_function;
+    // sys.settrace(None) suspends every trace event, including existing local
+    // hooks. Keep local hooks intact for reactivation, but never dispatch them
+    // after global tracing is disabled (Coverage relies on balanced returns).
+    // This check stays in event dispatch, outside ordinary opcode execution;
+    // trace_event_may_dispatch is only a sticky capability hint, not enablement.
+    if (thread_hook.tag == ValueTag::Invalid || thread_hook.tag == ValueTag::None ||
+        borrowed_hook.tag == ValueTag::Invalid || borrowed_hook.tag == ValueTag::None || runtime_.trace_dispatch_active()) {
       return true;
     }
+    // A callback may remove the hook from active and saved thread states.
+    // Own it through frame materialization and callback result/error handling.
+    Value hook(borrowed_hook);
     runtime_.set_current_frame(
         &trace_frame.module_owner,
         trace_frame.function_id,

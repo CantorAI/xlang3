@@ -724,3 +724,13 @@
 /doc/performance/data/date-constructor-entry-cp-r5-r4-* -text
 /doc/performance/python-new-vm-continuation-r4-checkpoint-20261009.md text eol=lf
 /doc/performance/data/date-constructor-entry-balanced-* -text
+
+/doc/performance/data/nested-trace-setting-* -text
+/doc/performance/data/trace-disable-local-events-* -text
+/doc/performance/data/trace-disable-local-events-*/** -text
+/doc/performance/data/coverage-first-exception-* -text
+/doc/performance/data/coverage-trace-events-* -text
+/doc/performance/data/coverage-backend-* -text
+/doc/performance/data/object-new-route-* -text
+/doc/performance/data/object-new-route-*/** -text
+/doc/performance/trace-disable-local-events-checkpoint-20261009.md text eol=lf

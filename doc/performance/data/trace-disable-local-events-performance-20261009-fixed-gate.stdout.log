@@ -1,0 +1,13 @@
+local_slots              pass         0.972x
+scalar_arithmetic        pass         0.990x
+range_for                pass         1.001x
+function_calls           pass         1.016x
+class_construct          pass         1.008x
+list_append              pass         1.002x
+property_access          pass         0.956x
+deepcopy_memo            pass         0.905x
+json_dumps: confirming inconclusive with a fresh run
+json_dumps               inconclusive 1.048x
+gc_traversal             pass         0.749x
+subparsers               pass         0.906x
+Performance check: inconclusive. Report: D:\CantorAI\xlang3\doc\performance\data\trace-disable-local-events-performance-20261009-fixed-gate.json

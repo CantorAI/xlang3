@@ -1,0 +1,9 @@
+[0/2] Re-checking globbed directories...
+[1/31] Building CXX object CMakeFiles\xlang3_runtime.dir\Release\src\runtime\runtime.cpp.obj
+[2/31] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\runtime\runtime.cpp.obj
+[3/31] Building CXX object CMakeFiles\xlang3_interpreter_tests.dir\Release\tests\cpp\interpreter_tests.cpp.obj
+[4/31] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\executor\xlang_vm\xlang_vm_loop.cpp.obj
+[5/31] Building CXX object CMakeFiles\xlang3_runtime.dir\Release\src\executor\xlang_vm\xlang_vm_loop.cpp.obj
+[6/31] Linking CXX static library Release\xlang3_runtime_static.lib
+[7/31] Linking CXX shared library Release\xlang3_runtime.dll
+[8/9] Linking CXX executable Release\xlang3_interpreter_tests.exe
