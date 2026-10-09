@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\scratch\performance\gc-unreachable-instance-cycle-child-20261009.py", line 26, in <module>
+    assert collected >= 1, 'unreachable instance cycle not collected'
+AssertionError: unreachable instance cycle not collected

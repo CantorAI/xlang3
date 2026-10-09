@@ -734,3 +734,9 @@
 /doc/performance/data/object-new-route-* -text
 /doc/performance/data/object-new-route-*/** -text
 /doc/performance/trace-disable-local-events-checkpoint-20261009.md text eol=lf
+
+/doc/performance/data/frame-context-coalescing-* -text
+/doc/performance/data/frame-context-coalescing-trial-sources-20261009/** -text
+/doc/performance/data/frame-context-coalescing-evidence-20261009/** -text
+/doc/performance/data/gc-unreachable-instance-cycle-untimed-20261009* -text
+/doc/performance/data/original-unpickle-call-counts-20261009* -text

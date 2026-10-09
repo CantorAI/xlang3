@@ -1,0 +1,9 @@
+Benchmarks with tag 'serialize':
+================================
+
+Benchmark hidden because not significant (1): unpickle_pure_python
+
+All benchmarks:
+===============
+
+Benchmark hidden because not significant (1): unpickle_pure_python
