@@ -79,7 +79,7 @@ std::string native_module_source_file(Runtime& runtime, const std::string& name)
     const auto candidate = root / relative_file;
     std::error_code ec;
     if (std::filesystem::is_regular_file(candidate, ec)) {
-      return candidate.generic_string();
+      return candidate.generic_u8string();
     }
     auto package_path = root;
     size_t start = 0;
@@ -96,7 +96,7 @@ std::string native_module_source_file(Runtime& runtime, const std::string& name)
     }
     const auto package_init = package_path / "__init__.py";
     if (std::filesystem::is_regular_file(package_init, ec)) {
-      return package_init.generic_string();
+      return package_init.generic_u8string();
     }
   }
   return {};

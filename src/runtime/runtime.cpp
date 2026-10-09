@@ -398,7 +398,7 @@ std::string module_source_file_from_roots(const Runtime& runtime, const std::str
     std::error_code ec;
     const auto candidate = root / relative_file;
     if (std::filesystem::is_regular_file(candidate, ec)) {
-      return candidate.generic_string();
+      return candidate.generic_u8string();
     }
   }
   return {};
@@ -817,7 +817,7 @@ void Runtime::initialize() {
       std::error_code ec;
       if (std::filesystem::is_regular_file(root / "os.py", ec)) {
         std::string ignored;
-        module_set_attr(sys_it->second, "_stdlib_dir", Value::string(root.string()), ignored);
+        module_set_attr(sys_it->second, "_stdlib_dir", Value::string(root.u8string()), ignored);
         break;
       }
     }
@@ -1093,7 +1093,7 @@ bool Runtime::publish_sys_path(std::string& error) {
   std::vector<Value> values;
   values.reserve(import_roots_.size());
   for (const auto& root : import_roots_) {
-    values.push_back(Value::string(root.string()));
+    values.push_back(Value::string(root.u8string()));
   }
   return module_set_attr(sys, "path", Value::list(std::move(values)), error);
 }

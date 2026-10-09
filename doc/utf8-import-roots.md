@@ -28,3 +28,23 @@ fixed accepted Release baseline. All 11 cases passed with 21 paired samples,
 five warmups and the unchanged 10% per-case threshold. Seven changed-source
 hashes remained frozen through build, correctness and performance validation.
 The report and exact local receipt hashes are in the accompanying evidence.
+
+The follow-up working-directory fix also retains UTF-8 in initial `sys.prefix`,
+standard-library prefix paths, CLI `sys.path` publication and module-source
+metadata. A VS Code launch with an actual Unicode working directory exposed
+ANSI conversion during runtime initialization even when the package itself
+used ASCII paths. The C ABI regression now creates its runtime inside the
+owned Unicode directory and checks native/source imports and prefix metadata.
+The CLI probe checks Unicode `os.getcwd()` and its correct empty first path
+entry for `-c`. The embedding C ABI does not automatically publish `sys.path`;
+that remains a separate compatibility limitation rather than a claim made by
+this regression.
+
+The follow-up Release build and all three focused checks passed. Its allowed
+SDK suite again ran 53 checks with 51 passes and the same two failures,
+independently reproduced with the preserved unchanged `5e86144` Release.
+All 11 default performance cases passed against the same fixed accepted
+baseline, with 21 paired samples, five warmups and the unchanged threshold.
+Four mapped source files remained unchanged through validation. Failed test
+assumptions and the performance guard metadata error remain recorded in
+[working-directory validation](utf8-working-directory-local.json).

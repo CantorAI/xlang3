@@ -1187,7 +1187,7 @@ std::string executable_path() {
 #endif
   std::error_code ec;
   auto path = std::filesystem::current_path(ec) / "xlang3";
-  return path.string();
+  return path.u8string();
 }
 
 std::string runtime_prefix(const Runtime& runtime) {
@@ -1200,23 +1200,23 @@ std::string runtime_prefix(const Runtime& runtime) {
     // source-backed standard library as third-party code.
     if (std::filesystem::is_regular_file(root / "os.py", ec)) {
 #ifdef _WIN32
-      if (root.filename() == "Lib") return root.parent_path().string();
+      if (root.filename() == "Lib") return root.parent_path().u8string();
 #else
       if (root.filename() == "python3.14" && root.parent_path().filename() == "lib")
-        return root.parent_path().parent_path().string();
+        return root.parent_path().parent_path().u8string();
 #endif
-      return root.parent_path().string();
+      return root.parent_path().u8string();
     }
     ec.clear();
     if (std::filesystem::is_regular_file(root / "Lib" / "os.py", ec)) {
-      return root.string();
+      return root.u8string();
     }
     ec.clear();
   }
   if (!roots.empty()) {
-    return roots.front().string();
+    return roots.front().u8string();
   }
-  return std::filesystem::current_path(ec).string();
+  return std::filesystem::current_path(ec).u8string();
 }
 
 std::string runtime_stdlib_dir(const Runtime& runtime) {
@@ -1224,19 +1224,19 @@ std::string runtime_stdlib_dir(const Runtime& runtime) {
   const auto& roots = runtime.import_roots();
   for (const auto& root : roots) {
     if (std::filesystem::is_regular_file(root / "os.py", ec)) {
-      return root.string();
+      return root.u8string();
     }
     ec.clear();
     const auto lib = root / "Lib";
     if (std::filesystem::is_regular_file(lib / "os.py", ec)) {
-      return lib.string();
+      return lib.u8string();
     }
     ec.clear();
   }
 #ifdef _WIN32
-  return (std::filesystem::path(runtime_prefix(runtime)) / "Lib").string();
+  return (std::filesystem::u8path(runtime_prefix(runtime)) / "Lib").u8string();
 #else
-  return (std::filesystem::path(runtime_prefix(runtime)) / "lib" / "python3.14").string();
+  return (std::filesystem::u8path(runtime_prefix(runtime)) / "lib" / "python3.14").u8string();
 #endif
 }
 
@@ -4908,8 +4908,8 @@ void register_sys_module(Runtime& runtime) {
   object_set_attr(implementation, "__xlang3_string_value__", Value::string(std::move(implementation_repr)), error);
   const std::string exe = executable_path();
   const std::string stdlib_dir = runtime_stdlib_dir(runtime);
-  std::filesystem::path prefix_path = runtime_prefix(runtime);
-  const std::filesystem::path stdlib_path(stdlib_dir);
+  std::filesystem::path prefix_path = std::filesystem::u8path(runtime_prefix(runtime));
+  const std::filesystem::path stdlib_path = std::filesystem::u8path(stdlib_dir);
 #ifdef _WIN32
   if (stdlib_path.filename() == "Lib") prefix_path = stdlib_path.parent_path();
 #else
@@ -4917,7 +4917,7 @@ void register_sys_module(Runtime& runtime) {
       stdlib_path.parent_path().filename() == "lib")
     prefix_path = stdlib_path.parent_path().parent_path();
 #endif
-  const std::string prefix = prefix_path.string();
+  const std::string prefix = prefix_path.u8string();
   module_set_attr(sys, "executable", Value::string(exe), error);
   module_set_attr(sys, "_base_executable", Value::string(exe), error);
   module_set_attr(sys, "prefix", Value::string(prefix), error);
