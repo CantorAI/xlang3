@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="535" viewBox="0 0 900 535" role="img" aria-labelledby="title desc">
+<title id="title">GC repair experiments through R6: elapsed milliseconds, lower is faster</title>
+<desc id="desc">Separate original fast runs. CPython 3.14.7 reference shown is the fresh R6 run. R2 through R5b fail the fixed gate; R6 is inconclusive. No engine acceptance or full-suite win.</desc>
+<rect width="900" height="535" fill="white"/>
+<g font-family="Arial,sans-serif" font-size="14" fill="#182b43">
+<text x="24" y="28" font-size="19" font-weight="bold">GC repair experiments — elapsed time (lower is faster)</text>
+<text x="24" y="51">Unpaired fast runs; all candidates remain uncommitted.</text>
+<text x="24" y="89" font-weight="bold">create_gc_cycles</text>
+<text x="24" y="119">CPython 3.14.7 (R6)</text>
+<rect x="230" y="104" width="103.4483" height="19" fill="#64748b"/>
+<text x="341.4483" y="119">1.592 ms</text>
+<text x="24" y="146">XLang3 R2</text>
+<rect x="230" y="131" width="216.8570" height="19" fill="#d97706"/>
+<text x="454.8570" y="146">3.336 ms</text>
+<text x="24" y="173">XLang3 R3</text>
+<rect x="230" y="158" width="214.5719" height="19" fill="#2563eb"/>
+<text x="452.5719" y="173">3.301 ms</text>
+<text x="24" y="200">XLang3 R4</text>
+<rect x="230" y="185" width="198.2914" height="19" fill="#0d9488"/>
+<text x="436.2914" y="200">3.051 ms</text>
+<text x="24" y="227">XLang3 R5b</text>
+<rect x="230" y="212" width="212.9885" height="19" fill="#7c3aed"/>
+<text x="450.9885" y="227">3.277 ms</text>
+<text x="24" y="254">XLang3 R6</text>
+<rect x="230" y="239" width="177.8534" height="19" fill="#059669"/>
+<text x="415.8534" y="254">2.736 ms</text>
+<text x="24" y="294" font-weight="bold">gc_traversal</text>
+<text x="24" y="324">CPython 3.14.7 (R6)</text>
+<rect x="230" y="309" width="156.3950" height="19" fill="#64748b"/>
+<text x="394.3950" y="324">2.406 ms</text>
+<text x="24" y="351">XLang3 R2</text>
+<rect x="230" y="336" width="461.4380" height="19" fill="#d97706"/>
+<text x="699.4380" y="351">7.099 ms</text>
+<text x="24" y="378">XLang3 R3</text>
+<rect x="230" y="363" width="269.2665" height="19" fill="#2563eb"/>
+<text x="507.2665" y="378">4.143 ms</text>
+<text x="24" y="405">XLang3 R4</text>
+<rect x="230" y="390" width="203.1336" height="19" fill="#0d9488"/>
+<text x="441.1336" y="405">3.125 ms</text>
+<text x="24" y="432">XLang3 R5b</text>
+<rect x="230" y="417" width="184.3418" height="19" fill="#7c3aed"/>
+<text x="422.3418" y="432">2.836 ms</text>
+<text x="24" y="459">XLang3 R6</text>
+<rect x="230" y="444" width="163.9727" height="19" fill="#059669"/>
+<text x="401.9727" y="459">2.523 ms</text>
+<text x="24" y="508">R2–R5b gates failed; R6 gate inconclusive. Individual cases do not update full97.</text>
+</g></svg>

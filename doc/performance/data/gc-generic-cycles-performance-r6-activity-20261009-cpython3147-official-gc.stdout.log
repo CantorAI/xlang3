@@ -1,0 +1,45 @@
+Benchmark dependency sites: D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages
+Python benchmark suite 1.14.0
+
+
+==================================================
+( 1/2) creating venv for benchmark (gc_collect)
+
+(trying common venv first)
+
+==================================================
+( 2/2) creating venv for benchmark (gc_traversal)
+
+(trying common venv first)
+
+[1/2] gc_collect...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+create_gc_cycles: Mean +- std dev: 1.59 ms +- 0.12 ms
+[2/2] gc_traversal...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+gc_traversal: Mean +- std dev: 2.41 ms +- 0.24 ms
+
+Performance version: 1.14.0
+
+### create_gc_cycles ###
+Mean +- std dev: 1.59 ms +- 0.12 ms
+
+### gc_traversal ###
+Mean +- std dev: 2.41 ms +- 0.24 ms
+
