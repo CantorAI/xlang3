@@ -1,0 +1,60 @@
+{
+  "status": "scratch_only_unexecuted_native_sampling_controller",
+  "controller": "scratch/performance/run-pickle-dict-index-postfix-native-sampling-proposed-20261008.py",
+  "controller_sha256": "606e3d5874d4afc7266b3ea3d94a5935adc7169663b29c99c6fa22146c4dc673",
+  "references_sha256": {
+    "scratch/performance/run-pickle-frame-retirement-r4-original-body-and-sampling-proposed-20261008.py": "04c423462a4902a917061319e3488711c60d04caf193581d2be258b44d1f8d13",
+    "scratch/performance/pickle-dict-index-postfix-native-sampling-inputs-proposed-20261008.json": "94da69c6bb258e736f6d599803997399afe1d2e6e233ac8bf358028e7b7922ea",
+    "doc/performance/data/dict-scalar-append-runtime-index-r3-applied-source-20261008.json": "dc1b869fe0475e3bdd017aa3b667f755cb7a4dd7ad881494f8afb34af387f45e",
+    "doc/performance/data/dict-scalar-append-runtime-index-r3-focused-20261008.json": "0737ff2f405151ed29fdfa22bc0177ea77d18f3b63bdf7aff4662972efb94a38",
+    "doc/performance/data/dict-scalar-append-runtime-index-r3-correctness-20261008.json": "3d78a8aa54b812289826af708f982a187a348e2272f8e69c0321f965449961f5",
+    "doc/performance/data/dict-scalar-append-runtime-index-r3-validation-20261008.json": "0b6f05e17c2878efa135656abcce38338934069b59a9460de9f2ba98a8516dd0",
+    "doc/performance/data/pyperformance-xlang3-dict-scalar-append-full-fast-20261008-provenance.json": "afa6a190d0cb545c1ac32e115ed173a17c3776c5223c3e0a6b9cd8352eb58ca8",
+    "doc/performance/data/dict-scalar-append-original-body-paired-20261008.json": "c97989d6589be1eb721e608978cc69ae01227b190630ffe4f4e84564fcd1fc0e",
+    "doc/performance/data/pickle-frame-locals-retirement-r4-original-body-r2-20261008.json": "fab10dd8e053a9ca82448ba8eccc9e1cb339633602b6dcdb408d844aab882576",
+    "scratch/performance/measure-dict-scalar-append-original-body-paired-r2-proposed-20261008.py": "de0aaf91f5c31f3e14d6a18d780440670c44dfbf157bd3c608d545f591852f0f",
+    "scratch/performance/pickle-original-pure-python-diagnostic-proposed-20261008.py": "5295c899d95d023ca2fb3b511e9bf78b58cb49e4a256770c65adf0d614b14109",
+    "scratch/performance/sample-pprint-native-cpu-20261008.exe": "754d9bd7735fbd5f0d3d93f383b4b00ebd052e44eaa74174f2850531072cfa12",
+    "scratch/performance/sample-pprint-native-cpu-proposed-20261008.cpp": "00571bcb8c06b72ed98ad085283dcf1a7389f91ebc7bdaa4fba2af33aa65d0a7",
+    "scratch/performance/sample-pprint-native-cpu-build-20261008.log": "b17eabbf197e998e6387e3c8f0fcafb758139f2f6f147c85779efc74891d933c",
+    "build-repro/controls/dict-scalar-append-runtime-index-parent-20261008/preserved-release-provenance.json": "35738253af6bd1f41c2a8a6b83233f1007e1ec1d913e234e6d3f3ae971d07707"
+  },
+  "current_source_count": 115,
+  "current_release_count": 178,
+  "baseline_count": 177,
+  "objects_count": 149,
+  "object_formats_unparsed_by_author": true,
+  "engine_mutations": 0,
+  "manager_or_child_execution_by_author": false,
+  "ast_or_python_by_author": false,
+  "builds_by_author": 0,
+  "originals_unchanged": true,
+  "invocation_count": 1,
+  "fresh_CP_or_unsampled_body_invocations": 0,
+  "full97_scope": {
+    "attempted": 97,
+    "completed": 73,
+    "failed": 24,
+    "raw_subtests": 82,
+    "capture_valid": true,
+    "suite_passed": false
+  },
+  "parity_scope": "Exact existing paired current-candidate raw audits + historical CP raw body signature; official rows supply workload metadata, not byte signatures",
+  "launch_command": [
+    "C:/Python/Python314/python.exe",
+    "-I",
+    "D:/CantorAI/xlang3/scratch/performance/run-pickle-dict-index-postfix-native-sampling-proposed-20261008.py",
+    "--prefix",
+    "pickle-dict-index-postfix-native-sampling-20261008"
+  ],
+  "root_must_check_ast_before_launch": true,
+  "notes": [
+    "Root alone launches after report publication and strict idle preflight.",
+    "Unchanged sampler754d owns only one fixed XLang3 child with original child5295/benchmark31c0/protocol5/2460 dumps.",
+    "No cProfile, retry, scored elapsed time, CP win or acceptance claim.",
+    "Child before/after signature and all raw streams retained; sampler Job closes on cleanup.",
+    "Current149 object hashes and physical source mappings are frozen separately and copied to receipt, with source subset/dirty/transitive header coverage limits.",
+    "No old R4 module bases/RVAs/COFF counts reused; later format-aware decoder must rebind actual new receipt.",
+    "Original R4 body manager, child, sampler source/executable/build log unchanged."
+  ]
+}

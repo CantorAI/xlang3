@@ -1,0 +1,619 @@
+/*
+Copyright (C) 2026 CantorAI Inc. and The XLang Foundation
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+#include "xlang3/value_hash.h"
+
+#include "xlang3/builtins.h"
+#include "xlang3/functional_iterators.h"
+#include "xlang3/object_model.h"
+#include "xlang3/runtime.h"
+#include "xlang3/set_object.h"
+
+#include <cmath>
+#include <functional>
+#include <limits>
+
+namespace xlang3 {
+
+namespace {
+
+constexpr size_t kHashNotCached = static_cast<size_t>(-1);
+
+size_t immutable_bytes_hash(const BytesObject& object) {
+  size_t hash = object.cached_hash.load(std::memory_order_relaxed);
+  if (hash != kHashNotCached) return hash;
+  hash = std::hash<std::string_view>{}(bytes_object_view(object));
+  // A real sentinel-valued bytes hash remains correct, simply uncached.
+  object.cached_hash.store(hash, std::memory_order_relaxed);
+  return hash;
+}
+
+bool intrinsic_tuple_hash_member(const Value& item) {
+  if (item.tag == ValueTag::None || item.tag == ValueTag::Bool ||
+      item.tag == ValueTag::Int64) return true;
+  if (item.tag != ValueTag::Object || item.as.obj == nullptr) return false;
+  switch (item.as.obj->kind) {
+    case ObjectKind::String:
+    case ObjectKind::Bytes:
+    case ObjectKind::BigInt:
+      return true;
+    case ObjectKind::Tuple: {
+      const auto* nested = reinterpret_cast<const TupleObject*>(item.as.obj);
+      return nested->construction_complete &&
+          nested->cached_intrinsic_hash.load(std::memory_order_relaxed) != kHashNotCached;
+    }
+    default:
+      return false;
+  }
+}
+
+struct HashBinaryView {
+  const char* data = nullptr;
+  size_t size = 0;
+  bool readonly = true;
+};
+
+HashBinaryView hash_binary_view(const Value& value, std::string& scratch) {
+  if (auto* bytes = value_as_bytes(value)) {
+    const auto view = bytes_object_view(*bytes);
+    return {view.data(), view.size(), true};
+  }
+  if (auto* bytearray = value_as_bytearray(value)) {
+    return {bytearray->value.data(), bytearray->value.size(), false};
+  }
+  if (auto* memoryview = value_as_memoryview(value)) {
+    if (memoryview->released) {
+      return {};
+    }
+    if (memoryview->external) {
+      const auto storage = memoryview_object_view(*memoryview);
+      // Native owners can change their buffer even through a read-only view.
+      return {storage.data(), storage.size(), false};
+    }
+    if (!memoryview->contiguous) {
+      std::string error;
+      if (!memoryview_copy_bytes(*memoryview, scratch, error)) return {};
+      return {scratch.data(), scratch.size(), memoryview->readonly && value_as_bytes(memoryview->owner) != nullptr};
+    }
+    const auto owner = hash_binary_view(memoryview->owner, scratch);
+    if (owner.data == nullptr || memoryview->offset > owner.size || owner.size - memoryview->offset < memoryview->size) {
+      return {};
+    }
+    return {owner.data + memoryview->offset, memoryview->size, memoryview->readonly && owner.readonly};
+  }
+  return {};
+}
+
+bool is_binary_like_value(const Value& value) {
+  return value_as_bytes(value) != nullptr || value_as_bytearray(value) != nullptr || value_as_memoryview(value) != nullptr;
+}
+
+bool string_payload_view(const Value& value, std::string_view& out) {
+  if (auto* string = value_as_string(value)) {
+    out = string_object_view(*string);
+    return true;
+  }
+  auto* instance = value_as_instance(value);
+  if (instance == nullptr) {
+    return false;
+  }
+  for (const auto& attr : instance->attrs) {
+    if (attr.first == "__xlang3_string_value__") {
+      if (auto* string = value_as_string(attr.second)) {
+        out = string_object_view(*string);
+        return true;
+      }
+      return false;
+    }
+  }
+  return false;
+}
+
+bool int_payload_value(const Value& value, int64_t& out) {
+  if (value_int_like_to_i64(value, out)) {
+    return true;
+  }
+  auto* instance = value_as_instance(value);
+  if (instance == nullptr) {
+    return false;
+  }
+  for (const auto& attr : instance->attrs) {
+    if (attr.first == "__xlang3_int_value__") {
+      if (attr.second.tag == ValueTag::Int64) {
+        out = attr.second.as.i64;
+        return true;
+      }
+      if (attr.second.tag == ValueTag::Bool) {
+        out = attr.second.as.b ? 1 : 0;
+        return true;
+      }
+      return false;
+    }
+  }
+  return false;
+}
+
+template <typename HashValue>
+bool hash_generic_alias(const GenericAliasObject& alias, HashValue hash_value,
+                        size_t& out, std::string& error) {
+  size_t args_hash = 0;
+  if (alias.is_union) {
+    const auto* args = value_as_tuple(alias.args);
+    if (args == nullptr) {
+      error = "invalid union arguments";
+      return false;
+    }
+    // Union equality ignores member order, so its hash must do the same.
+    for (const auto& item : args->items) {
+      size_t item_hash = 0;
+      if (!hash_value(item, item_hash, error)) return false;
+      args_hash += item_hash;
+    }
+    out = args_hash ^ (args->items.size() * static_cast<size_t>(0x9e3779b9u));
+    return true;
+  }
+  size_t origin_hash = 0;
+  if (!hash_value(alias.origin, origin_hash, error) ||
+      !hash_value(alias.args, args_hash, error)) return false;
+  out = origin_hash ^ (args_hash + static_cast<size_t>(0x9e3779b9u) +
+                       (origin_hash << 6) + (origin_hash >> 2));
+  return true;
+}
+
+} // namespace
+
+bool value_key_equal(const Value& lhs, const Value& rhs) {
+  if (lhs.tag == ValueTag::Bool || rhs.tag == ValueTag::Bool ||
+      lhs.tag == ValueTag::Int64 || rhs.tag == ValueTag::Int64 ||
+      value_as_bigint(lhs) != nullptr || value_as_bigint(rhs) != nullptr) {
+    Value equal;
+    if (value_int_like_compare("==", lhs, rhs, equal) && equal.tag == ValueTag::Bool) {
+      return equal.as.b;
+    }
+  }
+  int64_t left_int = 0;
+  int64_t right_int = 0;
+  if (int_payload_value(lhs, left_int) && int_payload_value(rhs, right_int)) {
+    return left_int == right_int;
+  }
+  std::string_view left_string;
+  std::string_view right_string;
+  if (string_payload_view(lhs, left_string) && string_payload_view(rhs, right_string)) {
+    return left_string == right_string;
+  }
+  if (lhs.tag == ValueTag::Bool && rhs.tag == ValueTag::Int64) {
+    return (lhs.as.b ? 1 : 0) == rhs.as.i64;
+  }
+  if (lhs.tag == ValueTag::Int64 && rhs.tag == ValueTag::Bool) {
+    return lhs.as.i64 == (rhs.as.b ? 1 : 0);
+  }
+  if (lhs.tag == ValueTag::Int64 && rhs.tag == ValueTag::Int64) {
+    return lhs.as.i64 == rhs.as.i64;
+  }
+  if ((lhs.tag == ValueTag::Int64 || lhs.tag == ValueTag::Double) &&
+      (rhs.tag == ValueTag::Int64 || rhs.tag == ValueTag::Double)) {
+    const double a = lhs.tag == ValueTag::Int64 ? static_cast<double>(lhs.as.i64) : lhs.as.f64;
+    const double b = rhs.tag == ValueTag::Int64 ? static_cast<double>(rhs.as.i64) : rhs.as.f64;
+    return a == b || (lhs.tag == ValueTag::Double && rhs.tag == ValueTag::Double &&
+                      lhs.flags != 0 && lhs.flags == rhs.flags);
+  }
+  if (is_binary_like_value(lhs) && is_binary_like_value(rhs)) {
+    std::string left_scratch, right_scratch;
+    const auto left = hash_binary_view(lhs, left_scratch);
+    const auto right = hash_binary_view(rhs, right_scratch);
+    return left.data != nullptr && right.data != nullptr && left.size == right.size &&
+           (left.size == 0 || std::char_traits<char>::compare(left.data, right.data, left.size) == 0);
+  }
+  if (lhs.tag != rhs.tag) {
+    return false;
+  }
+  switch (lhs.tag) {
+    case ValueTag::Invalid:
+    case ValueTag::None:
+      return true;
+    case ValueTag::Bool:
+      return lhs.as.b == rhs.as.b;
+    case ValueTag::Int64:
+      return lhs.as.i64 == rhs.as.i64;
+    case ValueTag::Double:
+      return lhs.as.f64 == rhs.as.f64 ||
+          (lhs.flags != 0 && lhs.flags == rhs.flags);
+    case ValueTag::Object:
+      if (lhs.as.obj == rhs.as.obj) {
+        return true;
+      }
+      if (lhs.as.obj != nullptr && rhs.as.obj != nullptr &&
+          lhs.as.obj->kind == ObjectKind::String && rhs.as.obj->kind == ObjectKind::String) {
+        return string_object_view(*reinterpret_cast<StringObject*>(lhs.as.obj)) ==
+               string_object_view(*reinterpret_cast<StringObject*>(rhs.as.obj));
+      }
+      if (auto* left = value_as_complex(lhs)) {
+        if (auto* right = value_as_complex(rhs)) {
+          return left->real == right->real && left->imag == right->imag;
+        }
+      }
+      if (lhs.as.obj != nullptr && rhs.as.obj != nullptr &&
+          lhs.as.obj->kind == ObjectKind::Bytes && rhs.as.obj->kind == ObjectKind::Bytes) {
+        return bytes_object_view(*reinterpret_cast<BytesObject*>(lhs.as.obj)) ==
+               bytes_object_view(*reinterpret_cast<BytesObject*>(rhs.as.obj));
+      }
+      if (lhs.as.obj != nullptr && rhs.as.obj != nullptr &&
+          lhs.as.obj->kind == ObjectKind::Tuple && rhs.as.obj->kind == ObjectKind::Tuple) {
+        const auto* left = reinterpret_cast<TupleObject*>(lhs.as.obj);
+        const auto* right = reinterpret_cast<TupleObject*>(rhs.as.obj);
+        if (left->items.size() != right->items.size()) {
+          return false;
+        }
+        for (size_t i = 0; i < left->items.size(); ++i) {
+          if (!value_key_equal(left->items[i], right->items[i])) {
+            return false;
+          }
+        }
+        return true;
+      }
+      if (auto* left = value_as_bound_method(lhs)) {
+        if (auto* right = value_as_bound_method(rhs)) {
+          return value_key_equal(left->self, right->self) &&
+              value_is(left->function, right->function);
+        }
+      }
+      if (auto* left_code = value_as_code(lhs)) {
+        auto* right_code = value_as_code(rhs);
+        return right_code != nullptr &&
+            left_code->module.get() == right_code->module.get() &&
+            left_code->function_id == right_code->function_id &&
+            left_code->mode == right_code->mode &&
+            left_code->filename_override == right_code->filename_override &&
+            left_code->name_override == right_code->name_override &&
+            left_code->qualname_override == right_code->qualname_override &&
+            left_code->first_line_override == right_code->first_line_override &&
+            left_code->flags_override == right_code->flags_override;
+      }
+      if (auto* left_alias = value_as_generic_alias(lhs)) {
+        auto* right_alias = value_as_generic_alias(rhs);
+        if (right_alias == nullptr || left_alias->is_union != right_alias->is_union) return false;
+        if (!left_alias->is_union) {
+          return value_key_equal(left_alias->origin, right_alias->origin) &&
+                 value_key_equal(left_alias->args, right_alias->args);
+        }
+        const auto* left_args = value_as_tuple(left_alias->args);
+        const auto* right_args = value_as_tuple(right_alias->args);
+        if (left_args == nullptr || right_args == nullptr ||
+            left_args->items.size() != right_args->items.size()) return false;
+        std::vector<bool> matched(right_args->items.size(), false);
+        for (const auto& item : left_args->items) {
+          bool found = false;
+          for (size_t i = 0; i < right_args->items.size(); ++i) {
+            if (!matched[i] && value_key_equal(item, right_args->items[i])) {
+              matched[i] = true;
+              found = true;
+              break;
+            }
+          }
+          if (!found) return false;
+        }
+        return true;
+      }
+      if (auto* left_instance = value_as_instance(lhs)) {
+        auto* left_class = value_as_class(left_instance->klass);
+        auto* right_instance = value_as_instance(rhs);
+        auto* right_class = right_instance == nullptr ? nullptr : value_as_class(right_instance->klass);
+        if (left_class != nullptr && right_class != nullptr &&
+            class_has_builtin_base_name(left_class, "ReferenceType") &&
+            class_has_builtin_base_name(right_class, "ReferenceType")) {
+          Value left_target;
+          Value right_target;
+          if (weakref_get_target(lhs, left_target) && weakref_get_target(rhs, right_target)) {
+            return value_is(left_target, right_target) || value_key_equal(left_target, right_target);
+          }
+        }
+      }
+      return false;
+  }
+  return false;
+}
+
+bool value_hash_key(const Value& value, size_t& out, std::string& error) {
+  switch (value.tag) {
+    case ValueTag::Invalid:
+      error = "invalid value is not hashable";
+      return false;
+    case ValueTag::None:
+      out = 0x9e3779b97f4a7c15ull;
+      return true;
+    case ValueTag::Bool:
+      return value_int_like_hash(value, out);
+    case ValueTag::Int64:
+      return value_int_like_hash(value, out);
+    case ValueTag::Double: {
+      if (std::isnan(value.as.f64)) {
+        out = static_cast<size_t>(value.flags);
+        return true;
+      }
+      double integral = 0.0;
+      if (std::isfinite(value.as.f64) && std::modf(value.as.f64, &integral) == 0.0 &&
+          integral >= static_cast<double>(std::numeric_limits<int64_t>::min()) &&
+          integral < 9223372036854775808.0) {
+        return value_int_like_hash(
+            Value::int64(static_cast<int64_t>(integral)), out);
+      }
+      out = std::hash<double>{}(value.as.f64);
+      return true;
+    }
+    case ValueTag::Object:
+      // Class objects use identity hashing in the current runtime. Keep this
+      // hot case ahead of the generic builtin-kind probes: stdlib set lookups
+      // (notably copy.deepcopy's _atomic_types) hash these objects repeatedly.
+      if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Class) {
+        out = std::hash<const void*>{}(value.as.obj);
+        return true;
+      }
+      // Exact strings are immutable and cannot contain Python numeric payloads.
+      // Read their cached hash before numeric conversion: those conversions
+      // otherwise repeat four failed generic attribute lookups on every hash.
+      // String subclasses remain Instance objects on the ordinary hook path.
+      if (auto* string = value_as_string(value)) {
+        out = string_object_hash(*string);
+        return true;
+      }
+      {
+        if (value_int_like_hash(value, out)) {
+          return true;
+        }
+        int64_t int_payload = 0;
+        if (int_payload_value(value, int_payload)) {
+          return value_int_like_hash(Value::int64(int_payload), out);
+        }
+        std::string_view string_payload;
+        if (string_payload_view(value, string_payload)) {
+          out = std::hash<std::string_view>{}(string_payload);
+          return true;
+        }
+      }
+      if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Bytes) {
+        out = immutable_bytes_hash(*reinterpret_cast<BytesObject*>(value.as.obj));
+        return true;
+      }
+      if (auto* complex = value_as_complex(value)) {
+        const size_t real_hash = std::hash<double>{}(complex->real);
+        const size_t imag_hash = std::hash<double>{}(complex->imag);
+        out = real_hash + static_cast<size_t>(1000003) * imag_hash;
+        return true;
+      }
+      if (auto* view = value_as_memoryview(value)) {
+        std::string scratch;
+        const auto bytes = hash_binary_view(value, scratch);
+        if (view->released || bytes.data == nullptr) {
+          error = "operation forbidden on released memoryview object";
+          return false;
+        }
+        if (!bytes.readonly || (view->format != "B" && view->format != "b" && view->format != "c")) {
+          error = "unhashable type: 'memoryview'";
+          return false;
+        }
+        out = std::hash<std::string_view>{}(std::string_view(bytes.data, bytes.size));
+        return true;
+      }
+      if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Tuple) {
+        const auto* tuple = reinterpret_cast<TupleObject*>(value.as.obj);
+        const size_t cached = tuple->cached_intrinsic_hash.load(std::memory_order_relaxed);
+        if (cached != kHashNotCached) { out = cached; return true; }
+        size_t hash = 0x345678ul;
+        bool intrinsic = tuple->construction_complete;
+        for (const auto& item : tuple->items) {
+          size_t item_hash = 0;
+          if (!value_hash_key(item, item_hash, error)) {
+            return false;
+          }
+          hash = (hash ^ item_hash) * 1000003ul;
+          hash ^= tuple->items.size();
+          intrinsic = intrinsic && intrinsic_tuple_hash_member(item);
+        }
+        out = hash == static_cast<size_t>(-1) ? static_cast<size_t>(-2) : hash;
+        // A fresh BPE pair participates in multiple native dict hashes. Reuse
+        // the completed immutable result without suppressing Python callbacks,
+        // caching partial builders, or retaining failures. Nested caches prove
+        // the same guard recursively, without an additional tree walk.
+        if (intrinsic) tuple->cached_intrinsic_hash.store(out, std::memory_order_relaxed);
+        return true;
+      }
+      if (auto* alias = value_as_generic_alias(value)) {
+        return hash_generic_alias(*alias, value_hash_key, out, error);
+      }
+      if (auto* code = value_as_code(value)) {
+        auto combine = [](size_t seed, size_t item) {
+          return seed ^ (item + static_cast<size_t>(0x9e3779b9u) + (seed << 6) + (seed >> 2));
+        };
+        size_t hash = std::hash<const void*>{}(code->module.get());
+        hash = combine(hash, std::hash<uint32_t>{}(code->function_id));
+        hash = combine(hash, std::hash<std::string>{}(code->mode));
+        hash = combine(hash, std::hash<std::string>{}(code->filename_override));
+        hash = combine(hash, std::hash<std::string>{}(code->name_override));
+        hash = combine(hash, std::hash<std::string>{}(code->qualname_override));
+        hash = combine(hash, std::hash<int64_t>{}(code->first_line_override));
+        hash = combine(hash, std::hash<int64_t>{}(code->flags_override));
+        out = hash;
+        return true;
+      }
+      if (value.as.obj != nullptr) {
+        switch (value.as.obj->kind) {
+          case ObjectKind::ByteArray:
+            error = "unhashable type: 'bytearray'";
+            return false;
+          case ObjectKind::List:
+            error = "unhashable type: 'list'";
+            return false;
+          case ObjectKind::Dict:
+            error = "unhashable type: 'dict'";
+            return false;
+          case ObjectKind::Set:
+            if (auto* set = value_as_set(value); set != nullptr && set->frozen) {
+              if (set->hash_cached) {
+                out = set->cached_hash;
+                return true;
+              }
+              size_t hash = 0x2f4f0f1f0e0d0c0bull;
+              for (const size_t item_hash : set->item_hashes) {
+                size_t shuffled = item_hash ^ (item_hash << 16) ^ static_cast<size_t>(89869747);
+                shuffled *= static_cast<size_t>(3644798167u);
+                hash ^= shuffled;
+              }
+              hash ^= set->items.size() * static_cast<size_t>(1927868237u);
+              out = hash == static_cast<size_t>(-1) ? static_cast<size_t>(-2) : hash;
+              set->cached_hash = out;
+              set->hash_cached = true;
+              return true;
+            }
+            error = "unhashable type: 'set'";
+            return false;
+          case ObjectKind::DictKeysView:
+          case ObjectKind::DictValuesView:
+          case ObjectKind::DictItemsView:
+            error = "object is not hashable";
+            return false;
+          default:
+            out = std::hash<const void*>{}(value.as.obj);
+            return true;
+        }
+      }
+      error = "object is not hashable";
+      return false;
+  }
+  error = "value is not hashable";
+  return false;
+}
+
+bool runtime_value_hash_key(Runtime& runtime, const Value& value, size_t& out, std::string& error) {
+  // CPython inspect's cached MRO probe keys are tuples of weakref.ref objects.
+  // Those refs cache their referent hash after the first lookup. Read that
+  // stable slot directly on subsequent probes instead of repeating Python
+  // __hash__ attribute binding and native-call dispatch for every MRO member.
+  if (weakref_cached_hash(value, out)) return true;
+  if (auto* instance = value_as_instance(value)) {
+    // CPython resolves __hash__ from the type slot, so an instance attribute
+    // named __hash__ does not replace hashing behavior. The common inherited
+    // object.__hash__ slot is exactly XLang3's identity hash; avoid binding a
+    // temporary BoundMethod and redispatching to that known native callback.
+    Value class_hash;
+    std::string class_hash_error;
+    if (object_get_class_attr_for_instance(value, "__hash__", class_hash, class_hash_error)) {
+      if (class_hash.tag == ValueTag::None) {
+        auto* klass = value_as_class(instance->klass);
+        error = "unhashable type: '" +
+            std::string(klass == nullptr ? "object" : klass->name) + "'";
+        return false;
+      }
+      auto* native_hash = value_as_native_function(class_hash);
+      if (native_hash != nullptr && native_hash->name == "object.__hash__") {
+        return value_hash_key(value, out, error);
+      }
+    }
+    Value hash_method;
+    std::string attr_error;
+    if (object_get_attr(value, "__hash__", hash_method, attr_error)) {
+      if (hash_method.tag == ValueTag::None) {
+        auto* klass = value_as_class(instance->klass);
+        error = "unhashable type: '" +
+            std::string(klass == nullptr ? "object" : klass->name) + "'";
+        return false;
+      }
+      Value hash_value;
+      error.clear();
+      if (!runtime_call_callable(runtime, hash_method, nullptr, 0, hash_value, error)) return false;
+      if (hash_value.tag != ValueTag::Int64) {
+        error = "__hash__ method should return an integer";
+        return false;
+      }
+      out = static_cast<size_t>(hash_value.as.i64);
+      return true;
+    }
+  }
+  if (auto* klass = value_as_class(value)) {
+    if (value_as_class(klass->metaclass) == nullptr) {
+      // Internal synthetic classes may not publish a Python metaclass; retain
+      // their pre-existing identity hash instead of attempting descriptor lookup.
+      return value_hash_key(value, out, error);
+    }
+    const Value* builtin_type = runtime.find_builtin("type");
+    if (builtin_type != nullptr && value_is(klass->metaclass, *builtin_type)) {
+      // Classes with the exact builtin metaclass use type's identity hash.
+      // This is also the guarded key shape used by copy.deepcopy's dispatch
+      // table, so keep it out of Python descriptor/call dispatch.
+      return value_hash_key(value, out, error);
+    }
+    // A custom metaclass can override hashing for its class objects. Resolve
+    // its special method through the regular descriptor and call machinery.
+    Value hash_method;
+    if (!object_get_special_method(runtime, value, "__hash__", hash_method, error)) {
+      return false;
+    }
+    if (hash_method.tag == ValueTag::None) {
+      auto* meta = value_as_class(klass->metaclass);
+      error = "unhashable type: '" + std::string(meta == nullptr ? "type" : meta->name) + "'";
+      return false;
+    }
+    Value hash_value;
+    if (!runtime_call_callable(runtime, hash_method, nullptr, 0, hash_value, error)) {
+      return false;
+    }
+    if (hash_value.tag != ValueTag::Int64) {
+      error = "__hash__ method should return an integer";
+      return false;
+    }
+    out = static_cast<size_t>(hash_value.as.i64);
+    return true;
+  }
+  if (const auto* tuple = value_as_tuple(value)) {
+    const size_t cached = tuple->cached_intrinsic_hash.load(std::memory_order_relaxed);
+    if (cached != kHashNotCached) { out = cached; return true; }
+    size_t hash = 0x345678ul;
+    bool intrinsic = tuple->construction_complete;
+    for (const auto& item : tuple->items) {
+      size_t item_hash = 0;
+      if (!runtime_value_hash_key(runtime, item, item_hash, error)) return false;
+      hash = (hash ^ item_hash) * 1000003ul;
+      hash ^= tuple->items.size();
+      intrinsic = intrinsic && intrinsic_tuple_hash_member(item);
+    }
+    out = hash == static_cast<size_t>(-1) ? static_cast<size_t>(-2) : hash;
+    if (intrinsic) tuple->cached_intrinsic_hash.store(out, std::memory_order_relaxed);
+    return true;
+  }
+  if (const auto* alias = value_as_generic_alias(value)) {
+    return hash_generic_alias(*alias,
+        [&runtime](const Value& item, size_t& item_hash, std::string& item_error) {
+          return runtime_value_hash_key(runtime, item, item_hash, item_error);
+        }, out, error);
+  }
+  if (const auto* set = value_as_set(value); set != nullptr && set->frozen) {
+    if (set->hash_cached) {
+      out = set->cached_hash;
+      return true;
+    }
+    size_t hash = 0x2f4f0f1f0e0d0c0bull;
+    for (const size_t item_hash : set->item_hashes) {
+      size_t shuffled = item_hash ^ (item_hash << 16) ^ static_cast<size_t>(89869747);
+      shuffled *= static_cast<size_t>(3644798167u);
+      hash ^= shuffled;
+    }
+    hash ^= set->items.size() * static_cast<size_t>(1927868237u);
+    out = hash == static_cast<size_t>(-1) ? static_cast<size_t>(-2) : hash;
+    set->cached_hash = out;
+    set->hash_cached = true;
+    return true;
+  }
+  return value_hash_key(value, out, error);
+}
+
+} // namespace xlang3

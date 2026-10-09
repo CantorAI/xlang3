@@ -1,0 +1,49 @@
+{
+  "status": "frozen_scratch_file_only_attribution_unexecuted",
+  "controller": "scratch/performance/attribute-pickle-dict-index-postfix-native-coff-proposed-20261008.py",
+  "controller_sha256": "52af6e002c9d5a4c1f868a72dfeb29604fb203e9fb73c0fd2b7d953a3c25a564",
+  "references_sha256": {
+    "doc/performance/data/pickle-dict-index-postfix-native-sampling-20261008.json": "3bf3fa2bd0d5a393b6ed027b535f4bf0691f4e4b1b7f46d415d0271f0f6aad40",
+    "scratch/performance/pickle-dict-index-postfix-native-sampling-inputs-proposed-20261008.json": "94da69c6bb258e736f6d599803997399afe1d2e6e233ac8bf358028e7b7922ea",
+    "scratch/performance/run-pickle-dict-index-postfix-native-sampling-proposed-20261008.py": "606e3d5874d4afc7266b3ea3d94a5935adc7169663b29c99c6fa22146c4dc673",
+    "scratch/performance/attribute-sqlglot-native-exports-20261008.py": "e535c5d629e5fb4bfc1a360f7b730df0a9d13de86c6231c92e39244b1aa7920e",
+    "scratch/performance/match-sqlglot-native-coff-20261008.py": "796b3cf6860c428f0dd76f36d30bcc2a6d9cf958f15fef1467e8271047e58411",
+    "scratch/performance/inspect-r4-native-coff-format-proposed-20261008.py": "2b78c2f18f53c8364caab72368a4717c24a8396cad21d9a9dda687585c60f607"
+  },
+  "sample_count": 124,
+  "all_current_exclusive_locations": true,
+  "all_overlapping_inclusive_locations": true,
+  "max_ranges": 4096,
+  "range_limit_behavior": "fail closed if exceeded; never select/truncate leading ranges",
+  "object_count": 149,
+  "current_source_count": 115,
+  "current_release_count": 178,
+  "baseline_count": 177,
+  "observed_runtime_module": {
+    "base": 140719706865664,
+    "size": 19972096,
+    "sha256": "19218af32ff4fdfb802144a713591c2126fcc0f1233ae04a08cfecc975922523"
+  },
+  "unchanged_matching": [
+    "Complete containing .pdata range versus COFF function prefix",
+    "Mask only explicit COFF relocation bytes",
+    "Cheap16-byte rejection cannot admit a match",
+    "Minimum32-byte complete match unchanged",
+    "Preserve every decorated/demangled alias and match",
+    "ClassicAMD64 admission only; opaque /GL anonymousv1 and other formats explicit unsupported",
+    "Materialize complete object functions before accepting any match; reader failures zero accepted functions"
+  ],
+  "no_old_R4_range_or_count_reuse": true,
+  "no_binary_archives": true,
+  "no_target_image_loading": true,
+  "OS_demangler_scope": "Existing e535 helper uses OS DbgHelp for symbol name formatting only; target DLL never loaded",
+  "python_ast_decoder_runtime_build_execution_by_author": false,
+  "live_engine_test_edits": false,
+  "launch_command": [
+    "C:/Python/Python314/python.exe",
+    "-I",
+    "D:/CantorAI/xlang3/scratch/performance/attribute-pickle-dict-index-postfix-native-coff-proposed-20261008.py"
+  ],
+  "output": "doc/performance/data/pickle-dict-index-postfix-native-coff-attribution-20261008.json",
+  "root_must_AST_check": true
+}

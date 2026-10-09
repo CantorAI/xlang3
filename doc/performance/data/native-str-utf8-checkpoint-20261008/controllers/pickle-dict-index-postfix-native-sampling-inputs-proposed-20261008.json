@@ -1,0 +1,919 @@
+{
+  "status": "frozen_read_only_current_object_inputs",
+  "source_inventory_sha256": "dc1b869fe0475e3bdd017aa3b667f755cb7a4dd7ad881494f8afb34af387f45e",
+  "recorded_source_count": 115,
+  "candidate_binary_sha256": {
+    "exe": "0447d8a9ead0abc63b8d7061842960198b335240620a9c79b47d09de93c1a249",
+    "dll": "19218af32ff4fdfb802144a713591c2126fcc0f1233ae04a08cfecc975922523"
+  },
+  "object_roots": [
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release",
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release"
+  ],
+  "root_counts": {
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release": 85,
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release": 64
+  },
+  "object_count": 149,
+  "objects": {
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/api/buffer_api.cpp.obj": {
+      "object_sha256": "4a2e25b40ebfa60cacbaf9f4fa0f9f01c3245dada9bb8dc697fbf27a30c8a178",
+      "source": "src/api/buffer_api.cpp",
+      "source_sha256": "05faff1d603aa9df726f42a2c3d56054eea5c85151ab8ceff9a4c3846321f8a3",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/api/c_api.cpp.obj": {
+      "object_sha256": "eca78780c3420a32e6e5718245a8d3fb8440b42f65b1f501a403ff6e2430c9c6",
+      "source": "src/api/c_api.cpp",
+      "source_sha256": "797d206df243f348338dcb4b112f7d5313f85834c1d56213ee9eef80b1fb9b50",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/api/ipc_api.cpp.obj": {
+      "object_sha256": "e33b90352550005a346b96483a21394be9867aa16e349e09e310838f0b3f89ff",
+      "source": "src/api/ipc_api.cpp",
+      "source_sha256": "95758e44fd8de2a7e5fc18961d37961f7b0d14267f38de4f7d5a67feeae13292",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/api/native_serialization_api.cpp.obj": {
+      "object_sha256": "7f8cc3e4faf70027aebfa5cd677d06f42ecac5346e4f3ed418a611e53f47ca00",
+      "source": "src/api/native_serialization_api.cpp",
+      "source_sha256": "da8c25b130f1daaaa6cb47367f6c10d04f73259226dadf8690bfa1ef1e7071d3",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/api/protocol_api.cpp.obj": {
+      "object_sha256": "e4cd13c6fb350500a4cba190d360a7871c52b8f99fdde5a189737172321e4c94",
+      "source": "src/api/protocol_api.cpp",
+      "source_sha256": "2d0e225c3b4de84e59e7bf4546e8fa2fac386f1e489974cdc3baf3af15fba082",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/api/stream_api.cpp.obj": {
+      "object_sha256": "a36aa731a1f15996caa3f8542d61e1e77af11016dd6344f6fb27cda8898ee744",
+      "source": "src/api/stream_api.cpp",
+      "source_sha256": "bbca71952172403f4c3dd0bbeb37e66439b351e02419d350558c7e77bab8c220",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/builtins/builtin_modules.cpp.obj": {
+      "object_sha256": "a97c59a84d12c67636c21bb206a432fe0d946d327e31e500f4f50c7ffcb72b91",
+      "source": "src/builtins/builtin_modules.cpp",
+      "source_sha256": "05709d2af467b5778795114f47ff63132a041cc6da6fd9f1daf0e98dcbdde173",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/builtins/builtins.cpp.obj": {
+      "object_sha256": "49539931eb21600fc9715e8e62b2608011ba4bb21a03eebeeae26ad8953722d1",
+      "source": "src/builtins/builtins.cpp",
+      "source_sha256": "135c805d32dd03b8740b08c1833bee09fa5d91d88b2bc4ea4fe2704bd184cb19",
+      "source_in_recorded_inventory": true
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/builtins/exception_builtins.cpp.obj": {
+      "object_sha256": "6a2f024889031b4cdd021f731c760e664c09c5019ee660054083256865832557",
+      "source": "src/builtins/exception_builtins.cpp",
+      "source_sha256": "ee0abee0934c0eb96658c7716be735be4b13d0f66274bea87d46d772b25f40d2",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/builtins/functional_builtins.cpp.obj": {
+      "object_sha256": "b6313697227a064801ca2c1b1059e13fc001455d299b7f4cea61e1a0a0472146",
+      "source": "src/builtins/functional_builtins.cpp",
+      "source_sha256": "ca8094ecce251bf2e473141399d67541a9abda7d4f39321c7a0968d3db6c58e0",
+      "source_in_recorded_inventory": true
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/builtins/io_builtins.cpp.obj": {
+      "object_sha256": "cba248d947a48af3371402549df4c0dad001ebe3c32802fc2906a9078fbb5cf1",
+      "source": "src/builtins/io_builtins.cpp",
+      "source_sha256": "9604ee7231926f18b603639821ac8504bfdbb8cfc28138618e3c5194d6294822",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/builtins/math_module.cpp.obj": {
+      "object_sha256": "07bfaa227b4f55c1b6eec498b69040b4ffacf829e1ebb28605bec2f8eb8f688a",
+      "source": "src/builtins/math_module.cpp",
+      "source_sha256": "c6ae3cf370d35f92eaf14ce195ba97a781a28f709c615edb7bb9200ddb39d62d",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/builtins/object_type_builtins.cpp.obj": {
+      "object_sha256": "4b62fc1d6dfd2f68b7b2ef7212d8df06b0ba053e013fb024d0b0241ce9ecd22c",
+      "source": "src/builtins/object_type_builtins.cpp",
+      "source_sha256": "171aafd05b11396b5522a2a45d490b37dbce0924c00b661b4f2e1ba41fa7a3d3",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/builtins/raw_block_builtins.cpp.obj": {
+      "object_sha256": "55de512534dcd800799770c6f07b7b06be9bbc57d9168881eaa13873ced7691c",
+      "source": "src/builtins/raw_block_builtins.cpp",
+      "source_sha256": "35fc140d5f1b215cc681227bf1cd4a0dc1ea96553740e88ca543700e3b1c38a2",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/builtins/sequence_builtins.cpp.obj": {
+      "object_sha256": "fad5b42481e12c40b754f8508e13cadbee3e80f6b7083f64f66e2ec91dfd8503",
+      "source": "src/builtins/sequence_builtins.cpp",
+      "source_sha256": "6afc90d03f86848d114ff14c40856e79098f52e38725d1936fa7306aa951b200",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/debug/dap_session.cpp.obj": {
+      "object_sha256": "840b14c84971eb3c8821c6402f731d0351ee5a9e9f82f00e7ed3ad2b1efb1d75",
+      "source": "src/debug/dap_session.cpp",
+      "source_sha256": "6908a383a308795b9e688975981196840c3f3a32873033e2b4b623a82e2feb46",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/debug/debug_session.cpp.obj": {
+      "object_sha256": "0d48442bfb33c0e24826b6ee34f0f7a37276f3d1d6aad2a647b6bb42fc19d7c2",
+      "source": "src/debug/debug_session.cpp",
+      "source_sha256": "b23a164a071dbd9ad763ed48af301d61b4621169628db901677bb566fa50884d",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/executor/xlang_vm/xlang_interpreter.cpp.obj": {
+      "object_sha256": "b272cbb03e8b7b0ee50ec8203c303bf465c0487cdf25700f8348be81a8292e93",
+      "source": "src/executor/xlang_vm/xlang_interpreter.cpp",
+      "source_sha256": "f309acf74a45f5d212d97f0f0b51b65ed7ff9b86a56bbbdf0ae5047125341ab8",
+      "source_in_recorded_inventory": true
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/executor/xlang_vm/xlang_vm_attr.cpp.obj": {
+      "object_sha256": "447ef3a0f2416aedb30724ff42498362c4a933668bab94acb92965d2c7e81837",
+      "source": "src/executor/xlang_vm/xlang_vm_attr.cpp",
+      "source_sha256": "9633377725d293f8e206ec8bc1c554ef6333ce6c05c3ecfe92c8281cec89934c",
+      "source_in_recorded_inventory": true
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/executor/xlang_vm/xlang_vm_loop.cpp.obj": {
+      "object_sha256": "50afc292f30a6d1c0fb463b3a00c52aea8d73b9168df1b064a3d3475ff480e7a",
+      "source": "src/executor/xlang_vm/xlang_vm_loop.cpp",
+      "source_sha256": "edf6c52d37cc85990a1cfd995b769786773e13bdf70bc8908bd52d3d803da30d",
+      "source_in_recorded_inventory": true
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/import/import_loader.cpp.obj": {
+      "object_sha256": "7ae22c0c513e470784a5132578cf2b32cdaf18b791c6f512440c1f62f1206b84",
+      "source": "src/import/import_loader.cpp",
+      "source_sha256": "bb12d15c31df96f3b4810a93101dae915f8668c9f70a2e6f949dd467d2538206",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/import/native_package_loader.cpp.obj": {
+      "object_sha256": "39681fcbbb32f1807f2ab7de362932b9bdcc0119ed19021ef0e1f93068b4b217",
+      "source": "src/import/native_package_loader.cpp",
+      "source_sha256": "eb34eb4d10a4c72e39cec20dab602cb54f1d6ea427c5af5702f6be226acc3d6b",
+      "source_in_recorded_inventory": true
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/ipc/ipc_runtime.cpp.obj": {
+      "object_sha256": "0a96c39e78462701e9d8ecea1b935ab93d3dfebb46425e2e2aecd93079a3715c",
+      "source": "src/ipc/ipc_runtime.cpp",
+      "source_sha256": "7ef4bbfb3b7c01371c576f3bb559cb3856fd2cd68a465cf1a67c07be5365444c",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/ipc/shared_memory_block_stream.cpp.obj": {
+      "object_sha256": "b32d253fc67c759b1aced4142315f6e54fb07b926b5b61b9860b076bb2458490",
+      "source": "src/ipc/shared_memory_block_stream.cpp",
+      "source_sha256": "8ad4a1769d3d52caaf608d80950d0aca5a9de02b56655260b871fc78a4491430",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/ipc/shared_memory_transport_win32.cpp.obj": {
+      "object_sha256": "32c71da2902873aa32898e60f6596b1aefad670dbf10ccd378788eb49450fbf1",
+      "source": "src/ipc/shared_memory_transport_win32.cpp",
+      "source_sha256": "a6813265dbe78f6b86e2fba5dc6d20c580e30332bb0d12a21a82e235918596e8",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/ipc/shared_memory_transport.cpp.obj": {
+      "object_sha256": "eb670e7da68df9c2eb971d9edd7bb2fc98ce6fda04e38c6d568b9e4df38f0e81",
+      "source": "src/ipc/shared_memory_transport.cpp",
+      "source_sha256": "93b315781ff815f958ca4f103d30d87276a85125d92061028d58a7678fa43c8f",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/ir/codec.cpp.obj": {
+      "object_sha256": "7208e89b3f0e91f0c2cd81adfe2ea6b65e9b17a0612fe0ccc95abbcd9dbb2217",
+      "source": "src/ir/codec.cpp",
+      "source_sha256": "6726f090de59651f7570007c130e2b7129fac3a2133f67905c374d841f9da384",
+      "source_in_recorded_inventory": true
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/ir/dump.cpp.obj": {
+      "object_sha256": "ed9d7e9c97f11e10258565b7905105670d61296b58de0eff7dc12ba8d470bb7f",
+      "source": "src/ir/dump.cpp",
+      "source_sha256": "f21ba927c25f7c1d272b18840694635e1883849cb07f6d45653045659ba08039",
+      "source_in_recorded_inventory": true
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/parser/lexer.cpp.obj": {
+      "object_sha256": "2961aa57eabba0a5bac82081787d4a524a975bd93b58ef6570bd86a922954092",
+      "source": "src/parser/lexer.cpp",
+      "source_sha256": "52bf409a30bd4fc207b93351da69f883ed81da3660e3cc99e74b5e402c2a690c",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/parser/parser.cpp.obj": {
+      "object_sha256": "3e5361ccefb2406ca01828c7e8918d971cb6265395c8eb9e4b515d23355a9d26",
+      "source": "src/parser/parser.cpp",
+      "source_sha256": "0ccc9f0270aeedd95d0daefe21ec7ba2b4522a70c5c5d3077a919913078ca6d5",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/parser/source_cursor.cpp.obj": {
+      "object_sha256": "2f1af1ba032cd7dc40c0e80e776a875e7451871adc98e2139216eaaa552b5d50",
+      "source": "src/parser/source_cursor.cpp",
+      "source_sha256": "522aaea9e8c0ecf4a3ab6880dca5973729fbf31f9c074d19a97079cc25fd2b47",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/rpc/memory_file_store.cpp.obj": {
+      "object_sha256": "c80cbde7947c17dfcc3d81729c5447ca16bb2a82dcc96b0d63031bd56219f0e0",
+      "source": "src/rpc/memory_file_store.cpp",
+      "source_sha256": "3c0399f157f5e0bf3f7a21811dd1b53de78124735060942450b542d15f5e0eba",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/rpc/object_table.cpp.obj": {
+      "object_sha256": "3c6b23847af49803dfa72a6beea03e928d47ee8ec29bd99ebbb2845f242804ce",
+      "source": "src/rpc/object_table.cpp",
+      "source_sha256": "6954bc44aa6c7ced6019c878d953c28d5e8dd79f280939acff2e810e6e749b2b",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/attribute.cpp.obj": {
+      "object_sha256": "7beb78494d0d43da744fc98a077412f2346bb2f331f330c6b74ed34525cd1ac3",
+      "source": "src/runtime/attribute.cpp",
+      "source_sha256": "0e6d514f8168812bbe33dcc985d7811e0f0ec97383bbeb273d1582500df57f4d",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/bigint.cpp.obj": {
+      "object_sha256": "597c1fc1469a9f49db05f4eedae14e0d7424908e1c33a6a6b339498f5c26fe93",
+      "source": "src/runtime/bigint.cpp",
+      "source_sha256": "b7e927d36a926f63f540190a6b3ebcaab4975f60d55bc406fd10d2ddf012e26a",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/c_api_bridge.cpp.obj": {
+      "object_sha256": "ebfc4d38a65957ebed0d75b956ab63e488414a45aeb95fce26dd13ec6f239b0f",
+      "source": "src/runtime/c_api_bridge.cpp",
+      "source_sha256": "0864f04072096ea8f36b4c508643def71987d93069fea272f9bab965243caa53",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/exceptions.cpp.obj": {
+      "object_sha256": "fb20f04ba91285abff73f7ffcf3ecbccbc9ac431e22a074be809c9c56dcbea2a",
+      "source": "src/runtime/exceptions.cpp",
+      "source_sha256": "d5c13f7126a415d7b297ddb9f27052ddd35feb6595976654ba6bf017410f5dde",
+      "source_in_recorded_inventory": true
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/expression.cpp.obj": {
+      "object_sha256": "e02e10e4f6bb6ae25448f3395fd5dc3f27d68a21260fcd235fda869cf7f24cfe",
+      "source": "src/runtime/expression.cpp",
+      "source_sha256": "3c35701f2e04d1e2bd5bf45963fba35ecf4ddb059ef64aace37e9f5fb82fdd47",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/functional_iterators.cpp.obj": {
+      "object_sha256": "ee3379fbda5a1849c8b72cb655572d45a8764f2505bf39d9f3ef04a9c779f5f4",
+      "source": "src/runtime/functional_iterators.cpp",
+      "source_sha256": "4a038c4b5152b87f8fa4d8d83a0f4961b069b8731cd99a4245c74ee5eee21e2e",
+      "source_in_recorded_inventory": true
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/generator.cpp.obj": {
+      "object_sha256": "bf2781cf72e19d8842ebdddd7f22eba5cb39bb650bb39bd9be94f2043b5a690c",
+      "source": "src/runtime/generator.cpp",
+      "source_sha256": "8316896bb60aa35c956d3f3b55047d79e955a6da89de67be91837fc3593f934b",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/interpreter_events.cpp.obj": {
+      "object_sha256": "08a001aa5295de766d8ef5a6e128afee4659c7c38f21e5321e71dbb0eca0ec79",
+      "source": "src/runtime/interpreter_events.cpp",
+      "source_sha256": "49e16fe303ca9346c3f0759832f95166f93d5dca88666c3640b8813ba130eca4",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/mapping.cpp.obj": {
+      "object_sha256": "be710beecbbad607b52cfee49c1178c98b2bc551a2a9fb0041e91b824aa24bca",
+      "source": "src/runtime/mapping.cpp",
+      "source_sha256": "c06a143e985a8f67703e11d58aad3a12fa6d3cb964e77a68a7fbf3193d290fbf",
+      "source_in_recorded_inventory": true
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/memory/x3_bucket_allocator.cpp.obj": {
+      "object_sha256": "6f8da851f38d26968e55e11ce2da04bf86f2d01f83c98848e6d5086e511b5e0c",
+      "source": "src/runtime/memory/x3_bucket_allocator.cpp",
+      "source_sha256": "53a095e9b94d8078adccb2c19f274367db7f55488b096987688f07d0d9245747",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/memory/x3_memory.cpp.obj": {
+      "object_sha256": "a7aead2ae6f45522b0e5092586ecef78443c0c7b5fca5a2994d5c3979dabca2d",
+      "source": "src/runtime/memory/x3_memory.cpp",
+      "source_sha256": "33bce038de276b784423a42a3b69f94b898bb57fb4f48be640af1cbd82c2fac3",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/memory/x3_object_pool.cpp.obj": {
+      "object_sha256": "361c4185727835315af06846011b848e133be7c565ce199f5656c897bc9d3e93",
+      "source": "src/runtime/memory/x3_object_pool.cpp",
+      "source_sha256": "12716b98f63f42d147dc35686db8ab9fc627cfad9f546b7a735b1b7166d0acb5",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/memory/x3_page_allocator.cpp.obj": {
+      "object_sha256": "060d513d5c699e433e2cf6588bee6aab69fa962193d65184552f3c7bc45e98ad",
+      "source": "src/runtime/memory/x3_page_allocator.cpp",
+      "source_sha256": "36fe4939c9288492c1aabbc0007fe84e5bb6a550a7a2731d518b60ec00f1ab97",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/memory/x3_runtime_memory.cpp.obj": {
+      "object_sha256": "2bc8f6176ed65bdde167ba3686d554b648d36aae7c59213276402e1e0896f698",
+      "source": "src/runtime/memory/x3_runtime_memory.cpp",
+      "source_sha256": "4f5ff1263f4a13b9c72d5805dc4efcea046a19fba5d0e4ec37ab172a4237dc4f",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/memory/x3_temp_arena.cpp.obj": {
+      "object_sha256": "1fccb7c8519d70586bbfdf2edce27120643dd33cca75d47a0ba80403144d2eca",
+      "source": "src/runtime/memory/x3_temp_arena.cpp",
+      "source_sha256": "889b75acca0815ffbb13c5737bba1c358bcf7a384c482e001678974db91f5e6b",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/methods/bytes_methods.cpp.obj": {
+      "object_sha256": "7bd0a40f7f99147d0f1628ec8481f799bc332e2b7a028164280e3923745b792d",
+      "source": "src/runtime/methods/bytes_methods.cpp",
+      "source_sha256": "660db7174f984c4a145bddde76cf42c8e2cacaa156c34fc52855f8db785c00af",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/methods/dict_methods.cpp.obj": {
+      "object_sha256": "02b258e41e8869fa9a31562c3440ce6f4b43d2699c77c53711604d17f84bce9a",
+      "source": "src/runtime/methods/dict_methods.cpp",
+      "source_sha256": "9241c105d298a226273a7fae2e66b1bd1cd816656f57bf478240050c25b56135",
+      "source_in_recorded_inventory": true
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/methods/file_methods.cpp.obj": {
+      "object_sha256": "3e714822b3c1e2fb33234e48c32261993377bbc17a5af7ebe8735d114c61d5f6",
+      "source": "src/runtime/methods/file_methods.cpp",
+      "source_sha256": "425110987b2557eb637adfcd10efccce226dafede14a036c5609ac97550218a9",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/methods/int_methods.cpp.obj": {
+      "object_sha256": "b9af0caa48a870565e0f4a0458e1bf84e01f9f707ce249fdf8f0be5bfe25283d",
+      "source": "src/runtime/methods/int_methods.cpp",
+      "source_sha256": "b0c15ea93f31d473eeab55cf050d1d97fbbb64a0a9675a079c2f8038be384e6f",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/methods/iterator_methods.cpp.obj": {
+      "object_sha256": "0451441c51052e0d6d5d12a16b6908ffabfb4957279b745615c67406e2325b28",
+      "source": "src/runtime/methods/iterator_methods.cpp",
+      "source_sha256": "0a8f37721115218048136c6b7ee3b98a85c333e4bebb714f26d160567d4311b1",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/methods/list_methods.cpp.obj": {
+      "object_sha256": "6c3f4e3541398af6903385ddd52e744b5c013db14153bca6b92e3246d42b060b",
+      "source": "src/runtime/methods/list_methods.cpp",
+      "source_sha256": "f85de0589596f6ad20411754df5d5ddfeda7f4cffe6f05607df4027311b74d10",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/methods/property_methods.cpp.obj": {
+      "object_sha256": "9b7a0b3c169d19d6ed3bfd8e489d63aab057db91876838e7c8bcc7fe075bf7e0",
+      "source": "src/runtime/methods/property_methods.cpp",
+      "source_sha256": "2f0c9654b30e4885e730b27e2f63c85b12600b83cef184dff329e0b0263dfefd",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/methods/set_methods.cpp.obj": {
+      "object_sha256": "5acdb471a1eab3ef576c05801f113cdd8c9e5b901c0a80adfc15bf0d17e846ba",
+      "source": "src/runtime/methods/set_methods.cpp",
+      "source_sha256": "5e07e871609579635fbf06d987f461688160f648f012c399c4965c21c0809aba",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/methods/string_methods.cpp.obj": {
+      "object_sha256": "422f0cdb1ce9e22d79bc5c194729e10a02aed896cee8e29eff2f417156508310",
+      "source": "src/runtime/methods/string_methods.cpp",
+      "source_sha256": "52860b33aaf0dcdc7fbe4f991725f31e21ba722bfce7dcceccbffa5fcc0ec4ae",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/methods/tuple_methods.cpp.obj": {
+      "object_sha256": "67a4baecbe8d71ae1349753024e5b2a0874aaa2cd93d32d0126fb30da4e5ff19",
+      "source": "src/runtime/methods/tuple_methods.cpp",
+      "source_sha256": "5accc27187e99650cde5ebb56fcaced9101446a2b94709f6b472b29527a0ab16",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/module_object.cpp.obj": {
+      "object_sha256": "d55379b594b461c31b15a7f68cee50357b7a88a0e928993c1a36b4eb0573e8dc",
+      "source": "src/runtime/module_object.cpp",
+      "source_sha256": "ff2a6d0bff9d76f47a0d13c09c8927bcc554c9e1cb3ce5abc583f1aa67069da3",
+      "source_in_recorded_inventory": true
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/module_slots.cpp.obj": {
+      "object_sha256": "a66ee07c42a97839598968336c6f65f7befb4a9f0b4f3374993005080466cf6e",
+      "source": "src/runtime/module_slots.cpp",
+      "source_sha256": "35ce111869b6590abdbbcbaed9755965611261b097a2546ff7090df43e9a9edf",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/object_model.cpp.obj": {
+      "object_sha256": "f7654700aa2c49649c2a17ed2dc16de3d8e8a9fc1810d7b48a5c7af44423831e",
+      "source": "src/runtime/object_model.cpp",
+      "source_sha256": "10806dd37498170b7172f469ca44d190698f85c0a6adb2bed104053df1c0fedc",
+      "source_in_recorded_inventory": true
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/perf_counters.cpp.obj": {
+      "object_sha256": "630b3687a6a8950d5957e043337123712ea0aa299894beba5fdd852ad528719d",
+      "source": "src/runtime/perf_counters.cpp",
+      "source_sha256": "a0d837e0a018cba36f82cc08dea6f524147ce7230e4dd0b331d96f87cff0835a",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/runtime.cpp.obj": {
+      "object_sha256": "8d08eace45a1d6025c2b93fc8505c782e329ce0ccebb0781f51595292497051d",
+      "source": "src/runtime/runtime.cpp",
+      "source_sha256": "2d7a0836eea66c376f652276d35edaa412edf792ab74c220711cd4bd3a14ca98",
+      "source_in_recorded_inventory": true
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/sequence.cpp.obj": {
+      "object_sha256": "40d06d2a50eb21e85f26c5234e158a8603727d9e16e78292fcb073232f736994",
+      "source": "src/runtime/sequence.cpp",
+      "source_sha256": "934c24e1afc3be755ce7bb01abc499fbec566460f406f361b660eb33c942c093",
+      "source_in_recorded_inventory": true
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/set_object.cpp.obj": {
+      "object_sha256": "5a9c6023267ec6bd6c9aca104446c923b02d789371e32191836ad7466133c5f4",
+      "source": "src/runtime/set_object.cpp",
+      "source_sha256": "efca67b7b1d1c15816802aeef71299a8616cb7bf5d3907b15c475404ad4df33f",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/unicode_data.cpp.obj": {
+      "object_sha256": "20531a67e9daaf252550a35e1178203117115f5d89efcb3e7b2648ebaf05ab03",
+      "source": "src/runtime/unicode_data.cpp",
+      "source_sha256": "3fb612613a54f79ca47206b846fc74d872bcf72fbaf405b2bbe1da73b536f843",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/unicode_names.cpp.obj": {
+      "object_sha256": "80a6d2955c88d1d90c17f0a97c2c678b24fd37b345852048076f0b58e4d7178a",
+      "source": "src/runtime/unicode_names.cpp",
+      "source_sha256": "a5feae86ad2c2815d15694fa117781761c31d556ea9a39cecf3b9624306c0cf9",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/value_hash.cpp.obj": {
+      "object_sha256": "dbd7bcf12861fd1d2c2154cf2fcd8979e5d9b50b61acc7c56285921bb36bf522",
+      "source": "src/runtime/value_hash.cpp",
+      "source_sha256": "aeb9abb4697569a3b28485000337e31d21f2cd9227dbf2ea0e76e2e125d439ed",
+      "source_in_recorded_inventory": true
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/value.cpp.obj": {
+      "object_sha256": "299e3a676deb4f22bc1ab5769d4dc6cfd0be1fb1e4065012006522b0703ac69c",
+      "source": "src/runtime/value.cpp",
+      "source_sha256": "18be33a526dbcc6627490a12a68aefc9e168d42afbf238ce38fa240e74bba0e0",
+      "source_in_recorded_inventory": true
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/vfs.cpp.obj": {
+      "object_sha256": "ba3c6ee8f54fc230e882e99b5f7fc0d4199c7f397b3144be1b8f0d71dfcc7ca7",
+      "source": "src/runtime/vfs.cpp",
+      "source_sha256": "4710d43538b91b404a8c11343b553294c16e4accf3a1f9762e88fdf526daf457",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/sema/lower.cpp.obj": {
+      "object_sha256": "4661061a19b5089a4e2062043660239f1e2d1a3eb8bd6714db9bb949f809ef25",
+      "source": "src/sema/lower.cpp",
+      "source_sha256": "12aae5ef15a98288aa359112ee8a6bd64f0213a228a3b11132849fad0f62fb04",
+      "source_in_recorded_inventory": true
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/sema/scope_analysis.cpp.obj": {
+      "object_sha256": "3af517d0e0b106f385c07b45108e40a6e830f5c54845fd0e5894f9f119c2e7b9",
+      "source": "src/sema/scope_analysis.cpp",
+      "source_sha256": "a8ddc01fbc94413b8ad3d1624812abc1701dfed1ec9e62621032cdd6e5f3177e",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/sema/xlang_module_globals.cpp.obj": {
+      "object_sha256": "77c9df30687d863adf4af5c7b21593a69baab1567996c872c8c44692de3d04b9",
+      "source": "src/sema/xlang_module_globals.cpp",
+      "source_sha256": "2c3355cf9b0b45427bfff76743df4b77c1c4ca618cb96f75f5e571474c4ac892",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/serialize/block_stream.cpp.obj": {
+      "object_sha256": "1c5a96d3c9da3461ca2f961e531ff5efe59eae3e64c2b1640ae9a83df8ed116b",
+      "source": "src/serialize/block_stream.cpp",
+      "source_sha256": "f069c07eca738441072f0e90ffdc7f903518439fa8b611398453f55fe0aee7ba",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/serialize/ipc_value_marshal.cpp.obj": {
+      "object_sha256": "19ba5a97778a4452338a209eedc6dbf7ea0f5d075bfe5a43bc8d3ecc1f4f029f",
+      "source": "src/serialize/ipc_value_marshal.cpp",
+      "source_sha256": "58fe681445a0cfc0929246f4c694788b5de2ca1e6ab9cc5c0f7134f6555b9e22",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/serialize/value_graph_lifetime.cpp.obj": {
+      "object_sha256": "ef438f52398ee8dc2a64caccf357e62b5ffedc08b70ed96671a5c7d395f4673c",
+      "source": "src/serialize/value_graph_lifetime.cpp",
+      "source_sha256": "66a56c2b298a5cec161fd41baaf6c97978c5a6e6f9a037d7e9e67edf1c4e09c8",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/serialize/value_graph_reader.cpp.obj": {
+      "object_sha256": "d79b217cceb6c0eaa48d079f66f92f79a5369a053ce527123f99029c7d487509",
+      "source": "src/serialize/value_graph_reader.cpp",
+      "source_sha256": "33e783e7508adaca6372383fc9b5b593509a7dc66669168ee3116a58ef90d662",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/serialize/value_graph_writer.cpp.obj": {
+      "object_sha256": "a83b54f53c2621df7a69e82d507fce6380f54dbab80daf2bfcb47b143e3e3c59",
+      "source": "src/serialize/value_graph_writer.cpp",
+      "source_sha256": "68630506eedec3ec07176a7a8646cde49310171e597871525c8a627da50d850f",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/serialize/xlang_stream.cpp.obj": {
+      "object_sha256": "7daac653aaf45a6c0e662b3e18583220a26d864b3b310cfce9611047ff788fec",
+      "source": "src/serialize/xlang_stream.cpp",
+      "source_sha256": "1d3c703f51922df0047261080bac500435724e59186592fe68184d2da13713aa",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/tensor/tensor_api.cpp.obj": {
+      "object_sha256": "398328ac852ec34ca73fb52f6c815ff31573d1696ea6b074b309b4437173b316",
+      "source": "src/tensor/tensor_api.cpp",
+      "source_sha256": "07006fae14850be6aca61a26d2ae8a3957b7b87e11bfd708f40495a27c3ea9f9",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/tensor/tensor_cpu.cpp.obj": {
+      "object_sha256": "50193f73500e5d0eb91e41b8e1ca48a88a1952840c3ff39153a3ac87f60351e9",
+      "source": "src/tensor/tensor_cpu.cpp",
+      "source_sha256": "74bc4f36fb9e0d58dc3d10641a046f2703bfdb8280df2bb64da7a1b073fe9ba3",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/tensor/tensor_graph.cpp.obj": {
+      "object_sha256": "6bcf0ea8e437b82433b263fb6a9ae7db8ef745f8eaf3e16fe936255768e892f2",
+      "source": "src/tensor/tensor_graph.cpp",
+      "source_sha256": "178c3a5da4203244bdd733ab660c8eb86a606908f9a181a1d1391a3eae8dd9db",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/tensor/tensor_module.cpp.obj": {
+      "object_sha256": "dfdf8f4bb41e0ff3c0b3307e0826abaed67332877d443a6aedd43a4fe83958e4",
+      "source": "src/tensor/tensor_module.cpp",
+      "source_sha256": "66c5f0bd9c1f0dc7225cacaf0dc7a559a36c91ef053ad7e8f0741bdfd0557e52",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/tensor/tensor_serialization.cpp.obj": {
+      "object_sha256": "2476951858d5768cda0004cf2d74e72eba748252c551ab34ed72bbba527d443a",
+      "source": "src/tensor/tensor_serialization.cpp",
+      "source_sha256": "3e142e813067545a893ce61f3c3c8d90b4539819633218979e32f507aaf3b8be",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/tensor/tensor_storage.cpp.obj": {
+      "object_sha256": "f7e1397a93b0e16bc8c69759b8574a57ae51de740e5c6224dcbb7a297155f8de",
+      "source": "src/tensor/tensor_storage.cpp",
+      "source_sha256": "4bdea1b09914bdc0d4f58af3322dedb672a59230174ca625169caefb50071b7d",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/abc_module.cpp.obj": {
+      "object_sha256": "fe05db5e1f11da30ac4e0bcb2a136389eb0349431a1a2aa4ea9aeb959b07841e",
+      "source": "src/runtime/modules/system/abc_module.cpp",
+      "source_sha256": "5a51025f6eefe046864d5c400a0dcd11f33b71794236ab9ab007411897632985",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/array_module.cpp.obj": {
+      "object_sha256": "c56480cc5fa099005e3a27b72067cdc1883de58a7d2b735e5dbe1369b716c81e",
+      "source": "src/runtime/modules/system/array_module.cpp",
+      "source_sha256": "6f0b3a1c6d112456542d90664fe086868739c6b262640c3fa979a4f06befd04a",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/ast_module.cpp.obj": {
+      "object_sha256": "8be542e9d2502935991c3f82f2844c0a133e49f57b4e55129767f1854a9d836b",
+      "source": "src/runtime/modules/system/ast_module.cpp",
+      "source_sha256": "0cd5e2ed9c9db84a6870ac2b1e4c65e421a7a1c1b052e8bed96003b9eabd1a1d",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/asyncio_future.cpp.obj": {
+      "object_sha256": "f3dd30947f17ff11f43cb17287fbf1f998155dc1febb769e69c597bc8aecb523",
+      "source": "src/runtime/modules/system/asyncio_future.cpp",
+      "source_sha256": "1d615b0cf23623cf0ab277ce3a3ba85c2c197dddf9c2ae80a0ac18eb699ce403",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/asyncio_module.cpp.obj": {
+      "object_sha256": "908fa4b7c845e4fff4ba9fdeaede78325db47fb5e0febc895ca6296df30b02f4",
+      "source": "src/runtime/modules/system/asyncio_module.cpp",
+      "source_sha256": "e977029516ba827b7becded5edf3073fad9ba65fcfb6f97790b5b3f93585e0fd",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/asyncio_task.cpp.obj": {
+      "object_sha256": "e51f717d9715fbe6cb89156ee1f23916e090d95d3d79ce000543964f38babc5f",
+      "source": "src/runtime/modules/system/asyncio_task.cpp",
+      "source_sha256": "78ca9fb2197953146d3630c5313312553afe4b626608a6cfcfa7ff5bc6194d19",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/atexit_module.cpp.obj": {
+      "object_sha256": "0f7b404476f5d39075dcc739cdd4035839da1db5004a29109bb1ce33698cbd42",
+      "source": "src/runtime/modules/system/atexit_module.cpp",
+      "source_sha256": "1ec5695a07b997791971cad0f56214948acc23aa67530ff7e03ef4659a82259c",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/binascii_module.cpp.obj": {
+      "object_sha256": "1b5e6c0f9314ebfa99114b2ed77362e921a358036e914b7b015328716aa69e85",
+      "source": "src/runtime/modules/system/binascii_module.cpp",
+      "source_sha256": "91884984e967bc225320ee3334f301a791a08f31d9e09ea55204ef4e6149551b",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/bisect_module.cpp.obj": {
+      "object_sha256": "4721465fd1d621962183f088000d410b95d14c78edec1698d015fecf83f006f8",
+      "source": "src/runtime/modules/system/bisect_module.cpp",
+      "source_sha256": "e8b6497918f6a4dc1675b7197fdc376ccffc0d3465a917108ac306a34ad73396",
+      "source_in_recorded_inventory": true
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/bz2_module.cpp.obj": {
+      "object_sha256": "78cf4c5495eefd9724c3d0ab0b6114208b83b3ab3bd157b8ae6f9b1b26952f35",
+      "source": "src/runtime/modules/system/bz2_module.cpp",
+      "source_sha256": "59a978f81c9d87cb2cc8a9fe3b16f4d4074d8f5785ac3b6c2249133893d84b00",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/cmath_module.cpp.obj": {
+      "object_sha256": "8d5f202a062811435ee2a1a886ca856b0523e40920f41c85364a6c2e5ab23c55",
+      "source": "src/runtime/modules/system/cmath_module.cpp",
+      "source_sha256": "2ffc60ff9ea3ab3460061b75f46fc7dbf26d604bf1a0605133ff6a666eb8db87",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/codecs_module.cpp.obj": {
+      "object_sha256": "232e717a5539dcafd0ea88c03b6edc9335d8cef57c260d0fc4c6af4c20303b96",
+      "source": "src/runtime/modules/system/codecs_module.cpp",
+      "source_sha256": "6a0184a50ac0026fc0c54a3bff5da3f26961aaa1e76e2b7cc2a8d6cd1848c7f1",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/collections_module.cpp.obj": {
+      "object_sha256": "5b983b7c1904df3db7f24942225ddfd8afed5a166d7e1ea6c0082152c3e12864",
+      "source": "src/runtime/modules/system/collections_module.cpp",
+      "source_sha256": "d8ba67b14c814d0e9e5a4e1674506eaa4e0a86dc2051018c552570bbdddbe728",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/contextvars_module.cpp.obj": {
+      "object_sha256": "7e483c7387f1c66f1e64d5af4a3a445b68e91d8d904b4e921c3609d68435a571",
+      "source": "src/runtime/modules/system/contextvars_module.cpp",
+      "source_sha256": "829002229ee12aa8320d2e8956082970f8f5c2e57500d8069e18652636dacee4",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/csv_module.cpp.obj": {
+      "object_sha256": "454f0a5fcb7421abe09aeb91e2e3aeb394dc35162c4032ad180cc258d8a670a7",
+      "source": "src/runtime/modules/system/csv_module.cpp",
+      "source_sha256": "0969f3324b5893c3616192e42df9a92500fa020be008f2f1202a329f186a398d",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/ctypes_module.cpp.obj": {
+      "object_sha256": "e23c8cc99b889ea625661a44c657a9109caa015ff8349b0c264cdb6426040364",
+      "source": "src/runtime/modules/system/ctypes_module.cpp",
+      "source_sha256": "b44cdc9ab417ffd4489aac7f636946bda32c8d14f83acdadc604fec634b411e3",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/decimal_module.cpp.obj": {
+      "object_sha256": "aff5ebe4c55c7bf3fc0a46391094661a0bb636bb3145384373327855b5246ea4",
+      "source": "src/runtime/modules/system/decimal_module.cpp",
+      "source_sha256": "c8eb8865bc80afa440d2989482ef3600798d4984e4adfdd18ccb1e016136a759",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/errno_module.cpp.obj": {
+      "object_sha256": "f47abde75f2a81d56852109e1ed0896b6692c868d73d161ee302f8a85d1b7398",
+      "source": "src/runtime/modules/system/errno_module.cpp",
+      "source_sha256": "d68c3fa739994e5298ee83a733b7941be4d48a9b974ac37ca8ab5fc5cf6aaaf9",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/faulthandler_module.cpp.obj": {
+      "object_sha256": "40e416e0baf679745c5311e1d9225316bac2114c76f2137307f5a1b6d874e446",
+      "source": "src/runtime/modules/system/faulthandler_module.cpp",
+      "source_sha256": "142896e162a58d4abda541e666ca66bc776a3fd35335cd0dcf671e2d20022375",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/functools_module.cpp.obj": {
+      "object_sha256": "49dc65f763bf2cc3cc913155a8211bfe1c6476f5e1cf0ebe936b200f90b21865",
+      "source": "src/runtime/modules/system/functools_module.cpp",
+      "source_sha256": "5bf7ffd665385aba83e9fd0b40ecdda7ebf78c55bbcbfbcddf593a2c84723bf9",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/gc_module.cpp.obj": {
+      "object_sha256": "539c38daf74a26473419d8697a2582ef209fde550748441290b48a01491ef7a3",
+      "source": "src/runtime/modules/system/gc_module.cpp",
+      "source_sha256": "6901925b5e1768ac0bf76c2ea89da99359a8303310ffaa36ff41009bfbce35f8",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/heapq_module.cpp.obj": {
+      "object_sha256": "9809f38b8f708379e72da24ec80fcb3df9373a30fcfe5f88242591e2cfc26121",
+      "source": "src/runtime/modules/system/heapq_module.cpp",
+      "source_sha256": "0f6cbf97cd5f0065f22206232bc01b09ae8cf65b5bc1d35f71196933c330771c",
+      "source_in_recorded_inventory": true
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/imp_module.cpp.obj": {
+      "object_sha256": "9becaaa0aeec7182778a7733b04f770d88e3e0b3dac52689f712256acf449d8d",
+      "source": "src/runtime/modules/system/imp_module.cpp",
+      "source_sha256": "f403660108cd5b87131fb6fcf27b9d8a9081eb8929964e0444452875b1d923c4",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/importlib_module.cpp.obj": {
+      "object_sha256": "2b6181d7f4ccb123a2cbad2b5d35b3378fe8d3e52660d4c91063e6a0254bdf39",
+      "source": "src/runtime/modules/system/importlib_module.cpp",
+      "source_sha256": "8d13fc442fd54613a975dbe9cdf2130b058e8fbd4b8b78f4649e6c67ca5aab46",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/interpreters_module.cpp.obj": {
+      "object_sha256": "9a7708e0cf91e7e163bff0bdd054cee97b62a5e0548ca730e1d2ffb2ad1ae203",
+      "source": "src/runtime/modules/system/interpreters_module.cpp",
+      "source_sha256": "7fce9edd7f37815dfadcc5612b399e2702d4d5ac254f4c61925cc28b5cb3a226",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/io_module.cpp.obj": {
+      "object_sha256": "dd69b482b45e0c745421d75fa88760612814ce72c60e94d87eb1947c070ac006",
+      "source": "src/runtime/modules/system/io_module.cpp",
+      "source_sha256": "db132cc95ce3cbb98c827c4300d8ce93573e787876621c7f8d1b3b904c2d6cb5",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/itertools_module.cpp.obj": {
+      "object_sha256": "ce45dc621b6477b07884d3768bb0c0819743254924252c70cb6514a54e14f77d",
+      "source": "src/runtime/modules/system/itertools_module.cpp",
+      "source_sha256": "41df49864e49a0b2f2c96bdcec36aa06adf84783e768d72b492d66bbe4012bf0",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/json_module.cpp.obj": {
+      "object_sha256": "819e4ba4a42e32121afae1b83b587425800d40bff395ac13a44e620542532931",
+      "source": "src/runtime/modules/system/json_module.cpp",
+      "source_sha256": "801a254340d4d2f3ea892b68d8b8b8657a309e1f1ec4ff0313430d30e0e4d701",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/locale_module.cpp.obj": {
+      "object_sha256": "13f0b48b609f2e316399ddc15683d566a3868663283158449c0fd77485871d37",
+      "source": "src/runtime/modules/system/locale_module.cpp",
+      "source_sha256": "2e5a3295d7957f0c1a6cc8f1d27cad5e191d79b3da9f921e06056da7493ca724",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/lsprof_module.cpp.obj": {
+      "object_sha256": "7a742cf40b20b53a910c44a6570b07b30a6fcdfefbe6d5095988cf770c5e2c5c",
+      "source": "src/runtime/modules/system/lsprof_module.cpp",
+      "source_sha256": "016ae8f5cba583d9101083b8377587090d10c2325b3fbb7519f5e6c4d142059b",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/marshal_module.cpp.obj": {
+      "object_sha256": "6f30ae500c6b92e772122adcaeccfe2089017ef865b477bf5fc4d1305735fe01",
+      "source": "src/runtime/modules/system/marshal_module.cpp",
+      "source_sha256": "9570f9ea055e9dc613617124b7daa7cc1699b466bb338f95b0e34df5207f37af",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/msvcrt_module.cpp.obj": {
+      "object_sha256": "4c9e8a56d31495f2cffde75e85d0b35073d36ca5d57b061878cbd35523b0c1b5",
+      "source": "src/runtime/modules/system/msvcrt_module.cpp",
+      "source_sha256": "2cd430d9f7f75547b90023f06811b9740bc3cebb7596706e996249d2263f77db",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/multibytecodec_module.cpp.obj": {
+      "object_sha256": "1926776dd415f80474732843a656d60c892584d22ef7030ff330c47136358640",
+      "source": "src/runtime/modules/system/multibytecodec_module.cpp",
+      "source_sha256": "83cf9aeab571018a2238e8529b4c6f718c294b73a9d64b45d2e39938c60d4247",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/multiprocessing_module.cpp.obj": {
+      "object_sha256": "3ede7d81dadc833490177f8a9384c6dcb69fdc1b1f7dee570af3edc44de1d399",
+      "source": "src/runtime/modules/system/multiprocessing_module.cpp",
+      "source_sha256": "4d1a6b5f1ba67cc42e378b60fb72886f4b5d36c991f94bda9edf7c93f74e6239",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/opcode_module.cpp.obj": {
+      "object_sha256": "08bb7fc4f2c402e4aacd6606079ff8cdaab90f6d09ab2843dd6b5e0ceaa07bfe",
+      "source": "src/runtime/modules/system/opcode_module.cpp",
+      "source_sha256": "cffdb5b33da2b5bb4a0f04c9c2ce90031eed0ddcff9683c5a506c5a329026336",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/operator_module.cpp.obj": {
+      "object_sha256": "d627d456ca64c7e2997ab46071435696cabdf5b4c864382346c29331292f5816",
+      "source": "src/runtime/modules/system/operator_module.cpp",
+      "source_sha256": "52e0f01bc943e78275e865505a733f295e14aa66a3f22851cbdb3fbbc9ccd34e",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/os_module.cpp.obj": {
+      "object_sha256": "f4de93f3748a6cfbad76cdd32845edd23dbf60a6f52529d58e0c650a485e071b",
+      "source": "src/runtime/modules/system/os_module.cpp",
+      "source_sha256": "75247d7382d073b6e7392d2734f40770da13da0c0e6ad6f831b25877bd1857d2",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/overlapped_module.cpp.obj": {
+      "object_sha256": "f43905e2d235df92c9310a767dc5666b6647185ede881f1249a7b428bf0e9dd6",
+      "source": "src/runtime/modules/system/overlapped_module.cpp",
+      "source_sha256": "44f34957a48c171f800b636e9ad9889789d0456ec34f748f7c301216e3b37daa",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/pickle_module.cpp.obj": {
+      "object_sha256": "00e361003b53f1425ffa1eb6b019f9d2de435099720f8fdbf16f0fcc88284f59",
+      "source": "src/runtime/modules/system/pickle_module.cpp",
+      "source_sha256": "d2f40517db08f51375effcda525b648c25354c7177ac3bf084bc4a688d5ca83c",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/posix_process_module.cpp.obj": {
+      "object_sha256": "14f866e8d8aef93cbf600fb027741445891ef52fb945d430b528ef21ad056e13",
+      "source": "src/runtime/modules/system/posix_process_module.cpp",
+      "source_sha256": "e3b08f84550902b5a1807dcbe0404d4b0ab8296e3a5798cb8b2711eabb63cba2",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/pyexpat_module.cpp.obj": {
+      "object_sha256": "32dca89094af8f8c4977c690c9f65d1c98d9151852b2814fcd1abe0fba6d889d",
+      "source": "src/runtime/modules/system/pyexpat_module.cpp",
+      "source_sha256": "e7cc0094f5c916bd28dc351caf8cdba43f85995436308c06d20e5b64cbc58243",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/queue_module.cpp.obj": {
+      "object_sha256": "c7afdadab9fefac273591bee7a420efb26f5fb642f7e67e364ae56e70efcdb92",
+      "source": "src/runtime/modules/system/queue_module.cpp",
+      "source_sha256": "b8cdde4dfe8c6707db2944373790cf638d3a00dc13033cbcd09c26f396711f51",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/random_module.cpp.obj": {
+      "object_sha256": "6e36f2075ae78a47e321695abda731694e6f445062e117a8ea0285da2970fec3",
+      "source": "src/runtime/modules/system/random_module.cpp",
+      "source_sha256": "105032ef9ab020f01cacdd58b0d313df204dd5f40e975980d141dd13f5a168af",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/sha2_module.cpp.obj": {
+      "object_sha256": "96c86d4989de44ea5f5184e5166979a7441341dccba744be099097da5ef72c68",
+      "source": "src/runtime/modules/system/sha2_module.cpp",
+      "source_sha256": "fc35f211828a1f8809a418e8c2a5b0c98b2f60554c2a47ed94c0f7fb018d4cb8",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/signal_module.cpp.obj": {
+      "object_sha256": "341f6253b09f1a1fa3b1032ad69ba3cc2a394fa34cf52cd3101ff749c87491a7",
+      "source": "src/runtime/modules/system/signal_module.cpp",
+      "source_sha256": "83902dcff7721df541fdba2b7b471cabb253512784d46019be646f1dd302ffb5",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/socket_select_module.cpp.obj": {
+      "object_sha256": "643ae192b7745ff1182e60e940172e4af00496827fef7d6f933539e3c2ec5289",
+      "source": "src/runtime/modules/system/socket_select_module.cpp",
+      "source_sha256": "346796323b9bf133d45ea22f73f4a1ea3448a97f8d6633e1a5dd29761fa77b6f",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/source_encoding.cpp.obj": {
+      "object_sha256": "84b5818b88a064ab0869aac0399c571b2c905540c664356f24b007abb876027f",
+      "source": "src/runtime/modules/system/source_encoding.cpp",
+      "source_sha256": "cc02777b223fdecb8898da821c7a53ec11c5b5df71716b49f39fb3321b3ad3bf",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/sre_module.cpp.obj": {
+      "object_sha256": "ad6da0c6ef9370420906bbf89b74c77ff177bbca734eba85b345e8228e28bad0",
+      "source": "src/runtime/modules/system/sre_module.cpp",
+      "source_sha256": "619712066cee99eb7daae21da0939a43c022f579effdcb0e5298c8f145f119b1",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/stat_module.cpp.obj": {
+      "object_sha256": "c8bec8761389c744c2c4c074481900bae5753627fdcb1e1eabfcbb6cec4131e6",
+      "source": "src/runtime/modules/system/stat_module.cpp",
+      "source_sha256": "dd60b4806959205302bb3cfaf6d77f218ea0f0ae4eff7f9612aaf91298c2590d",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/string_module.cpp.obj": {
+      "object_sha256": "26179c7d5d47da8c25284955e8fa9b0c7b0c22a02b2c7a019790048a77aba416",
+      "source": "src/runtime/modules/system/string_module.cpp",
+      "source_sha256": "e4d808c58e996946726ef64f12d9df3699e39e286896814dec7abd535642aae3",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/struct_module.cpp.obj": {
+      "object_sha256": "2eb8a9dfcc3342c330b7bb021f4492c31031b964ec406b4b123d538f3fd8711b",
+      "source": "src/runtime/modules/system/struct_module.cpp",
+      "source_sha256": "0b46e65caf5c0d4349936bf12de3a2d38c7e075e920162cd498c7e71c0e89f9a",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/sys_module.cpp.obj": {
+      "object_sha256": "b5f57dcdb76d5a43575448e1acb969e6bfe385b5f3a29ba85c4581e204776a61",
+      "source": "src/runtime/modules/system/sys_module.cpp",
+      "source_sha256": "84d469d90d0ad669c139910e2f42ef2b1dfdbd832cd341d67e4efea36bf112ba",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/sysconfig_native_module.cpp.obj": {
+      "object_sha256": "9e48aca172b59add9be8f4b14a69f430ca73833ceb9204371da1eb33f1a45692",
+      "source": "src/runtime/modules/system/sysconfig_native_module.cpp",
+      "source_sha256": "7e58d74d323134cd0c3e2b8d837b7e6bb3f330c7e516143f091229a4204c9660",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/time_module.cpp.obj": {
+      "object_sha256": "0992f24aa0ff94578f00c80f8e4b2b4c69326e5979d1441172c820ac6fc082f0",
+      "source": "src/runtime/modules/system/time_module.cpp",
+      "source_sha256": "0f19a565e1402777b9e0d23620fed1c6d7519f89690d74bfb5aa0419a7be39e5",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/tokenize_module.cpp.obj": {
+      "object_sha256": "a284fffc736262a8032ed35214bce5c71e70d03bba3fd10335142a5668591e6e",
+      "source": "src/runtime/modules/system/tokenize_module.cpp",
+      "source_sha256": "1eee4f5bd3f2bfac4cc8173e1def30d52e87f6d1409e8a8e50d3dc0c249b1678",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/typing_module.cpp.obj": {
+      "object_sha256": "0fcf83308bfddfc2ddaf6217b8f6d5e20ee8b7a68955404fda83430a970d68b5",
+      "source": "src/runtime/modules/system/typing_module.cpp",
+      "source_sha256": "5f8350667862b15416bd9e96d7369702ff1a132e913c03b8223aaf7c572537d2",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/unicodedata_module.cpp.obj": {
+      "object_sha256": "f6a463cf36535ab5021c0810f6dc61bfaf09b618ca6bc74403dc5a06cc36e135",
+      "source": "src/runtime/modules/system/unicodedata_module.cpp",
+      "source_sha256": "35c30daf0db235a8c8d7cbee9417d08e9c4d1f6b5eac5d40f4b8e3eb64784909",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/warnings_module.cpp.obj": {
+      "object_sha256": "8dcd82cf8b90380c70de7d77ab12d3bf2baf01e6920af5105f5be6efbc7066bc",
+      "source": "src/runtime/modules/system/warnings_module.cpp",
+      "source_sha256": "72d6e1b0f098caba205d4ccaa96b6531b34ed9c4285fe2cea50b34c72a63c8b8",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/weakref_module.cpp.obj": {
+      "object_sha256": "ed3b84953b646b861652ebe48af92384d0fe6679905e40f49363cee6a2cb6c73",
+      "source": "src/runtime/modules/system/weakref_module.cpp",
+      "source_sha256": "a4d0a52d7ffa14f48c9c0226c71c80b635720f4b7153658b2e6da25be269cb73",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/winapi_module.cpp.obj": {
+      "object_sha256": "d7cd80275b2ed46751064cd2e1b624752d81c5a22d8235f49d6435da126bf69b",
+      "source": "src/runtime/modules/system/winapi_module.cpp",
+      "source_sha256": "681c4463f38608530481aee000c95cdc38295e0364b43d2231667b95d12d1ba4",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/winreg_module.cpp.obj": {
+      "object_sha256": "f46d1315009a666bc184c242d2b8c8cdf38bcdb2e296ed4196036fe0eb7e0dc0",
+      "source": "src/runtime/modules/system/winreg_module.cpp",
+      "source_sha256": "ea9b4f3fa2132f1d3d9cd036001cc517fcf98eb82493c22b46a919d4256b52af",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/zip_archive.cpp.obj": {
+      "object_sha256": "528ede1cdcf30a75abd8b05bec4b2ab449a38245690bc1859a575cd6f9216a6b",
+      "source": "src/runtime/modules/system/zip_archive.cpp",
+      "source_sha256": "77827ca8d8701e985bb70487c94439b414eaa74b6c34f850ad411f864313091d",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/zipimport_module.cpp.obj": {
+      "object_sha256": "eafee806b1df98f8b13f0e3f16f8852b2b3c4a8b6ceeaf3c0c082b16ba0aadae",
+      "source": "src/runtime/modules/system/zipimport_module.cpp",
+      "source_sha256": "af9c8fb8a9bdbfba1ca718221e44c9f3e7f46dd6dddbfa31e07e94eebc54d677",
+      "source_in_recorded_inventory": false
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/zlib_module.cpp.obj": {
+      "object_sha256": "6a221a421bf6b18dfb5ad2ae1310336b2a045f153ff9a5b950bc6074b011cdba",
+      "source": "src/runtime/modules/system/zlib_module.cpp",
+      "source_sha256": "6fffab4c374f852cc3c5f93ebd0c651ce50e363c33fe0ca283ac6c01bb4106c6",
+      "source_in_recorded_inventory": false
+    }
+  },
+  "build_metadata_sha256": {
+    "build-repro/main-verify-20261006/build.ninja": "59a88590e0f26cb449764bc83f6f859afb9310a0f2def514e71802298dc1e122",
+    "build-repro/main-verify-20261006/CMakeCache.txt": "c5627cacedec85839ffb69135e4d57487c01ae180b1f294160224900f5a142ef"
+  },
+  "source_identity_limit": "Physical translation-unit source mappings and 115 recorded files are byte-pinned. This does not claim a clean checkout, complete transitive header dependency coverage, ownership of unrelated dirty inputs, or support for every COFF format."
+}

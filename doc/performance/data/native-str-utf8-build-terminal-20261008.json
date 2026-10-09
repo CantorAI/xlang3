@@ -1,0 +1,13 @@
+{
+  "status": "build_passed",
+  "terminal": true,
+  "exit_code": 0,
+  "actual_root_tool_exit_code": 0,
+  "session_id": 71481,
+  "build_directory": "build-repro/main-verify-20261006",
+  "configuration": "Release",
+  "log": "doc/performance/data/native-str-utf8-build-20261008.log",
+  "log_sha256": "36bc134ffbda6f38cd76f6a8e4e33d4e72332876e102798d737a2f1bc8f46c09",
+  "applied_source_sha256": "96ba3820206e00029a26231b15accb79ff94e1ba33098d769e586d7a28b12f83",
+  "completed_utc": "2026-10-09T05:08:15.0466629Z"
+}

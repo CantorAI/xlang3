@@ -1,0 +1,77 @@
+{
+  "status": "frozen_scratch_root_only_full_trial_manager_unexecuted",
+  "controller_sha256": "e02a8aa15973a1b153348807f7ca4b0c4adb0bcbd3f3a42042f69d7da0f46133",
+  "paired_controller_sha256": "731363d7878ff2a1e16ff1068d1a3138e928b3d757c46a07b38c18b8ce63f298",
+  "files_sha256": {
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\validate-native-str-utf8-original-pickle-trial-proposed-20261008.py": "e02a8aa15973a1b153348807f7ca4b0c4adb0bcbd3f3a42042f69d7da0f46133",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\measure-native-str-utf8-original-pickle-paired-proposed-20261008.py": "731363d7878ff2a1e16ff1068d1a3138e928b3d757c46a07b38c18b8ce63f298",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\validate-dict-scalar-append-r3-performance-root-20261008.py": "f1bb4601feae1fa8cd9978474a58a0c2b0cebb39dec019666a89e61fafc5857c",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\validate-frame-locals-retirement-r4-full-r2-proposed-20261008.py": "d085bc17f9ceb7297edb059fbd00378a4dfd251418ea29b396f416c2c789eb96",
+    "D:\\CantorAI\\xlang3\\doc\\performance\\data\\dict-scalar-append-runtime-index-r3-correctness-20261008.json": "3d78a8aa54b812289826af708f982a187a348e2272f8e69c0321f965449961f5",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\native-str-utf8-encode-proposed-20261008-provenance.json": "4fd1a6d4d2b9c6c85f7dcdc0f87a6d633e9fbefb3bc61899c0dda9f48732b570",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\native-str-utf8-encode-trial-decision-proposed-20261008.json": "7c0516afb8dea0ecbede40bde8bc8361dd4da2d9728e1ecdb1970c5af8db3fcb",
+    "D:\\CantorAI\\xlang3\\doc\\performance\\data\\native-str-utf8-focused-20261008.json": "92803ffcd0287c7f17bf8431c399519891289ee143304bed7b6b4c6e1c532808",
+    "D:\\CantorAI\\xlang3\\doc\\performance\\data\\native-str-utf8-build-terminal-20261008.json": "55fd6ac5c90df146a8c0d6cd280adb2d8c364a93cf6cbb6fa8057db186746055"
+  },
+  "required_future_input": "Actual successful frozen-pair receipt+SHA from current119/focus928/build55fd; no guessed pair hash.",
+  "current_input_scope": "NativeUTF8 exact7 target package; parent117+fixture/out=119, Release178, fixed baseline177, preserved149 parent objects.",
+  "entry_rule": "Exactly7 alternating unchanged2460-dump child pairs, raw14 hashes/watch valid, median parent/candidate>1.05, stored bootstrap95 lower>1.0, no trimming/retry. Existing producer algorithm unchanged.",
+  "fresh_phases": [
+    "full-fixtures-clean",
+    "ctest-inventory",
+    "ctest",
+    "old_xlang_sqlite_api",
+    "python_sqlite3_api",
+    "fixed-gate",
+    "official-xlang3",
+    "official-cpython3147"
+  ],
+  "fixture_counts": {
+    "compatibility_sections": 11,
+    "core": 399,
+    "expected_failure_cases": 3
+  },
+  "ctest_count": 9,
+  "native_api_count": 2,
+  "no_old_correctness_reuse": true,
+  "fixed_gate": {
+    "repeats": 21,
+    "changed": false,
+    "case_count": 11,
+    "warmup": 5,
+    "baseline": "build-repro/Release/xlang3.exe",
+    "threshold": 0.1
+  },
+  "official": {
+    "warnings_retained": true,
+    "protocol": 5,
+    "inner_loops": 20,
+    "values_per_runtime": 20,
+    "pickle_module": "pickle",
+    "fresh_runtimes": [
+      "fixed XLang3",
+      "CPython3.14.7"
+    ],
+    "parent_timeout_seconds": 360,
+    "definition": "pickle_pure_python",
+    "unpaired": true,
+    "case_timeout_seconds": 300
+  },
+  "phase_logic": "Full correctness commands/counts derive from existing R4 full validator and actual dict-r3 four-phase correctness receipt. Gate/official commands and metadata use prior validated f1bb performance manager. Strict50007 watch, split-byte logs, robust owned-child cleanup, partial/failed generated output hashes retained.",
+  "scope": "No full97 run, no pure-Python library/benchmark changes, no automatic acceptance/commit/restore; full_validated only after all fresh phases and20 values each.",
+  "author_python_execution": false,
+  "author_ast_execution": false,
+  "author_runtime_execution": false,
+  "author_build_execution": false,
+  "engine_or_test_changes": [],
+  "prefix": "native-str-utf8-trial-validation-20261008",
+  "launch_arguments": [
+    "source-inventory+SHA",
+    "focused-receipt+SHA",
+    "proposal-provenance+SHA",
+    "build-receipt+SHA",
+    "paired-receipt+SHA",
+    "paired-controller-sha256",
+    "prefix"
+  ]
+}

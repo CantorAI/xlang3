@@ -690,3 +690,12 @@
 /doc/performance/data/pyperformance-xlang3-dict-scalar-append* -text
 /doc/performance/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008.md text eol=lf
 /doc/performance/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008.svg text eol=lf
+
+/doc/performance/data/native-str-utf8-* -text
+/doc/performance/data/native-str-utf8-*/** -text
+/doc/performance/data/native-utf8-encoding-current-vs-cpython3147-20261008* -text
+/doc/performance/data/pickle-dict-index-postfix-native-sampling-20261008* -text
+/doc/performance/data/pickle-dict-index-postfix-native-coff-attribution-20261008* -text
+/doc/performance/data/pyperformance-xlang3-dict-scalar-append*/** -text
+/doc/performance/native-str-utf8-encode-diagnosis-20261008.md text eol=lf
+/doc/performance/native-str-utf8-official-pickle-20261008.svg text eol=lf

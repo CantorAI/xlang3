@@ -1,0 +1,66 @@
+{
+  "status": "frozen_scratch_root_only_pair_manager_unexecuted",
+  "controller_sha256": "731363d7878ff2a1e16ff1068d1a3138e928b3d757c46a07b38c18b8ce63f298",
+  "files_sha256": {
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\measure-native-str-utf8-original-pickle-paired-proposed-20261008.py": "731363d7878ff2a1e16ff1068d1a3138e928b3d757c46a07b38c18b8ce63f298",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\measure-dict-scalar-append-original-body-paired-r2-proposed-20261008.py": "de0aaf91f5c31f3e14d6a18d780440670c44dfbf157bd3c608d545f591852f0f",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\native-str-utf8-encode-proposed-20261008-provenance.json": "4fd1a6d4d2b9c6c85f7dcdc0f87a6d633e9fbefb3bc61899c0dda9f48732b570",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\native-str-utf8-encode-trial-decision-proposed-20261008.json": "7c0516afb8dea0ecbede40bde8bc8361dd4da2d9728e1ecdb1970c5af8db3fcb",
+    "D:\\CantorAI\\xlang3\\build-repro\\controls\\native-str-utf8-encode-parent-20261008\\preserved-release-provenance.json": "cd5035f531a513104f2948286e81d4996bb01a9b6dc4c84353303f370de4bd97",
+    "D:\\CantorAI\\xlang3\\doc\\performance\\data\\native-str-utf8-applied-source-20261008.json": "96ba3820206e00029a26231b15accb79ff94e1ba33098d769e586d7a28b12f83",
+    "D:\\CantorAI\\xlang3\\doc\\performance\\data\\native-str-utf8-focused-20261008.json": "92803ffcd0287c7f17bf8431c399519891289ee143304bed7b6b4c6e1c532808",
+    "D:\\CantorAI\\xlang3\\doc\\performance\\data\\native-str-utf8-build-terminal-20261008.json": "55fd6ac5c90df146a8c0d6cd280adb2d8c364a93cf6cbb6fa8057db186746055",
+    "D:\\CantorAI\\xlang3\\doc\\performance\\data\\native-str-utf8-cpython-semantics-20261008.json": "f3c91eb53ca3f903838367c2bd111b72ba778ae36d507d88b4f4fa95d0f313e4",
+    "D:\\CantorAI\\xlang3\\doc\\performance\\data\\dict-scalar-append-original-body-paired-20261008.json": "c97989d6589be1eb721e608978cc69ae01227b190630ffe4f4e84564fcd1fc0e",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\pickle-original-pure-python-diagnostic-proposed-20261008.py": "5295c899d95d023ca2fb3b511e9bf78b58cb49e4a256770c65adf0d614b14109",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\validate-call-ex-cross-activation-constructor-resume-r3-20261008.py": "50007db5cc6adc2e54012fdfbd48514699513f990906d4a508582ba73d6ae0bf"
+  },
+  "parent_counts": {
+    "source": 117,
+    "release": 178,
+    "native_objects": 149,
+    "fixed_baseline": 177
+  },
+  "candidate_counts": {
+    "core_after_registration": 399,
+    "recorded_sources": 119,
+    "focused_phases": 8,
+    "release": 178,
+    "new_core_fixture": "native_str_utf8_encode"
+  },
+  "workload": "Unchanged5295 child, original pure-Python pickle protocol5,41 outer loops x3 seeded objects x20 dumps=2460 each;14 child invocations=34440 dumps",
+  "pair_rule": {
+    "median_parent_over_candidate_strictly_greater_than": 1.05,
+    "bootstrap95_lower_strictly_greater_than": 1.0,
+    "bootstrap_resamples": 50000,
+    "bootstrap_seed": 20261008,
+    "pairs": 7,
+    "retry": 0,
+    "retain_all_raw": true,
+    "alternating_order": true,
+    "trim": 0
+  },
+  "changes": "Bounded parent/control/proposal/focus/build/parity schema adaptation of de0aaf91. Loop workload, timing field, alternating order, bootstrap algorithm, strict50007 watcher and cleanup/raw-finally logic preserved.",
+  "actual_schema_notes": [
+    "Focus exact8 order; raw stdout is matched to expected bytes with CRLF normalization, optional output_matches_expected honored if present.",
+    "Actual build_passed terminal/log/applied_source fields, no invented command/build_log fields.",
+    "c979 current parent byte/roundtrip proof replaces historical body-only parent schema; original CP parity remains linked and no CP body is run.",
+    "Source117 is old115 plus two explicitly recorded encoding files. Parent149 native objects and build metadata remain immutable context, candidate actual source119 and Release178 pinned."
+  ],
+  "pair_only": true,
+  "scored": false,
+  "acceptance": false,
+  "full_validation_required_after_useful_signal": true,
+  "author_python_execution": false,
+  "author_ast_execution": false,
+  "author_runtime_execution": false,
+  "author_build_execution": false,
+  "engine_or_test_changes": [],
+  "launch_argument_paths": {
+    "proposal-provenance": "scratch/performance/native-str-utf8-encode-proposed-20261008-provenance.json",
+    "prefix": "native-str-utf8-original-pickle-paired-20261008",
+    "build-receipt": "doc/performance/data/native-str-utf8-build-terminal-20261008.json",
+    "source-inventory": "doc/performance/data/native-str-utf8-applied-source-20261008.json",
+    "focused-receipt": "doc/performance/data/native-str-utf8-focused-20261008.json"
+  }
+}

@@ -1,0 +1,1152 @@
+/*
+Copyright (C) 2026 CantorAI Inc. and The XLang Foundation
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+#include "xlang3/functional_iterators.h"
+
+#include "xlang3/builtins.h"
+#include "xlang3/generator.h"
+#include "xlang3/interpreter.h"
+#include "xlang3/interpreter_events.h"
+#include "xlang3/attribute.h"
+#include "xlang3/mapping.h"
+#include "xlang3/module_object.h"
+#include "xlang3/object_model.h"
+#include "xlang3/perf_counters.h"
+#include "xlang3/sequence.h"
+#include "xlang3/value_hash.h"
+#include "../executor/xlang_vm/xlang_vm_inline_call.h"
+
+#include <utility>
+
+namespace xlang3 {
+
+namespace {
+
+template <typename T>
+T* allocate_functional_iterator(ObjectKind kind) {
+  auto* obj = new T();
+  obj->header.kind = kind;
+  obj->header.refcnt = 1;
+  xlang_perf_count_object_alloc(kind);
+  gc_track_object(&obj->header);
+  return obj;
+}
+
+bool raise_type_error(Runtime& runtime, std::string message, std::string& error) {
+  error = std::move(message);
+  runtime.raise_class_error("TypeError", error);
+  return false;
+}
+
+bool resolve_class_new_callable(const Value& class_value, ClassObject* klass, Value& out) {
+  if (klass == nullptr || class_has_builtin_base_name(klass, "type")) {
+    return false;
+  }
+
+  Value new_attr;
+  std::string ignored;
+  if (!object_lookup_class_attr(class_value, "__new__", new_attr, ignored)) {
+    return false;
+  }
+  if (auto* method = value_as_static_method(new_attr)) {
+    value_assign_fast(out, method->function);
+  } else {
+    value_assign_fast(out, new_attr);
+  }
+
+  if (auto* native = value_as_native_function(out)) {
+    if (native->name == "object.__new__" || native->name == "type.__new__") {
+      return false;
+    }
+    return true;
+  }
+  return value_as_function(out) != nullptr;
+}
+
+} // namespace
+
+void runtime_initialize_exception_constructor_args(Runtime& runtime, Value& instance,
+                                                   const Value* args, uint32_t argc) {
+  auto* object = value_as_instance(instance);
+  auto* klass = object == nullptr ? nullptr : value_as_class(object->klass);
+  const Value* base_value = runtime.find_builtin("BaseException");
+  auto* base = base_value == nullptr ? nullptr : value_as_class(*base_value);
+  if (klass == nullptr || base == nullptr || !class_is_subclass(klass, base)) return;
+  std::vector<Value> items;
+  if (args != nullptr) items.assign(args, args + argc);
+  std::string ignored;
+  object_set_attr(instance, "args", Value::tuple(std::move(items)), ignored);
+}
+
+Value functional_enumerate_iterator(Value iterator, int64_t start) {
+  Value value;
+  value.tag = ValueTag::Object;
+  auto* obj = allocate_functional_iterator<EnumerateIteratorObject>(ObjectKind::EnumerateIterator);
+  obj->iterator = std::move(iterator);
+  obj->index = start;
+  value.as.obj = &obj->header;
+  return value;
+}
+
+Value functional_zip_iterator(Runtime* runtime, std::vector<Value> iterators, bool strict) {
+  Value value;
+  value.tag = ValueTag::Object;
+  auto* obj = allocate_functional_iterator<ZipIteratorObject>(ObjectKind::ZipIterator);
+  obj->runtime = runtime;
+  obj->iterators = std::move(iterators);
+  obj->strict = strict;
+  value.as.obj = &obj->header;
+  return value;
+}
+
+Value functional_zip_longest_iterator(std::vector<Value> iterators, Value fillvalue) {
+  Value value;
+  value.tag = ValueTag::Object;
+  auto* obj = allocate_functional_iterator<ZipLongestIteratorObject>(ObjectKind::ZipLongestIterator);
+  obj->active = iterators.size();
+  obj->exhausted.resize(iterators.size(), false);
+  obj->iterators = std::move(iterators);
+  obj->fillvalue = std::move(fillvalue);
+  value.as.obj = &obj->header;
+  return value;
+}
+
+Value functional_map_iterator(Runtime* runtime, Value callable, std::vector<Value> iterators) {
+  Value value;
+  value.tag = ValueTag::Object;
+  auto* obj = allocate_functional_iterator<MapIteratorObject>(ObjectKind::MapIterator);
+  obj->runtime = runtime;
+  obj->callable = std::move(callable);
+  obj->iterators = std::move(iterators);
+  value.as.obj = &obj->header;
+  return value;
+}
+
+Value functional_filter_iterator(Runtime* runtime, Value predicate, Value iterator, bool invert) {
+  Value value;
+  value.tag = ValueTag::Object;
+  auto* obj = allocate_functional_iterator<FilterIteratorObject>(ObjectKind::FilterIterator);
+  obj->runtime = runtime;
+  obj->predicate = std::move(predicate);
+  obj->iterator = std::move(iterator);
+  obj->invert = invert;
+  value.as.obj = &obj->header;
+  return value;
+}
+
+Value functional_callable_iterator(Runtime* runtime, Value callable, Value sentinel) {
+  Value value;
+  value.tag = ValueTag::Object;
+  auto* obj = allocate_functional_iterator<CallableIteratorObject>(ObjectKind::CallableIterator);
+  obj->runtime = runtime;
+  obj->callable = std::move(callable);
+  obj->sentinel = std::move(sentinel);
+  value.as.obj = &obj->header;
+  return value;
+}
+
+Value functional_chain_iterator(std::vector<Value> iterators) {
+  Value value;
+  value.tag = ValueTag::Object;
+  auto* obj = allocate_functional_iterator<ChainIteratorObject>(ObjectKind::ChainIterator);
+  obj->iterators = std::move(iterators);
+  obj->index = 0;
+  value.as.obj = &obj->header;
+  return value;
+}
+
+Value functional_chain_from_iterable_iterator(Runtime* runtime, Value outer_iterator) {
+  Value value;
+  value.tag = ValueTag::Object;
+  auto* obj = allocate_functional_iterator<ChainIteratorObject>(ObjectKind::ChainIterator);
+  obj->runtime = runtime;
+  obj->outer_iterator = std::move(outer_iterator);
+  obj->current_iterator = Value::invalid();
+  obj->from_iterable = true;
+  value.as.obj = &obj->header;
+  return value;
+}
+
+Value functional_protocol_iterator(Runtime* runtime, Value iterator) {
+  Value value;
+  value.tag = ValueTag::Object;
+  auto* obj = allocate_functional_iterator<ProtocolIteratorObject>(ObjectKind::ProtocolIterator);
+  obj->runtime = runtime;
+  obj->iterator = std::move(iterator);
+  value.as.obj = &obj->header;
+  return value;
+}
+
+Value functional_getitem_iterator(Runtime* runtime, Value iterable) {
+  Value value;
+  value.tag = ValueTag::Object;
+  auto* obj = allocate_functional_iterator<ProtocolIteratorObject>(ObjectKind::ProtocolIterator);
+  obj->runtime = runtime;
+  obj->iterator = std::move(iterable);
+  obj->use_getitem = true;
+  value.as.obj = &obj->header;
+  return value;
+}
+
+bool value_is_functional_iterator(const Value& value) {
+  if (value.tag != ValueTag::Object || value.as.obj == nullptr) {
+    return false;
+  }
+  return value.as.obj->kind == ObjectKind::EnumerateIterator ||
+         value.as.obj->kind == ObjectKind::ZipIterator ||
+         value.as.obj->kind == ObjectKind::ZipLongestIterator ||
+         value.as.obj->kind == ObjectKind::MapIterator ||
+         value.as.obj->kind == ObjectKind::FilterIterator ||
+         value.as.obj->kind == ObjectKind::CallableIterator ||
+         value.as.obj->kind == ObjectKind::ChainIterator ||
+         value.as.obj->kind == ObjectKind::ProtocolIterator;
+}
+
+void functional_iterator_release_object(Object* object) {
+  switch (object->kind) {
+    case ObjectKind::EnumerateIterator:
+      delete reinterpret_cast<EnumerateIteratorObject*>(object);
+      break;
+    case ObjectKind::ZipIterator:
+      delete reinterpret_cast<ZipIteratorObject*>(object);
+      break;
+    case ObjectKind::ZipLongestIterator:
+      delete reinterpret_cast<ZipLongestIteratorObject*>(object);
+      break;
+    case ObjectKind::MapIterator:
+      delete reinterpret_cast<MapIteratorObject*>(object);
+      break;
+    case ObjectKind::FilterIterator:
+      delete reinterpret_cast<FilterIteratorObject*>(object);
+      break;
+    case ObjectKind::CallableIterator:
+      delete reinterpret_cast<CallableIteratorObject*>(object);
+      break;
+    case ObjectKind::ChainIterator:
+      delete reinterpret_cast<ChainIteratorObject*>(object);
+      break;
+    case ObjectKind::ProtocolIterator:
+      delete reinterpret_cast<ProtocolIteratorObject*>(object);
+      break;
+    default:
+      break;
+  }
+}
+
+std::string functional_iterator_to_string(const Value& value) {
+  if (value.tag != ValueTag::Object || value.as.obj == nullptr) {
+    return "<iterator>";
+  }
+  switch (value.as.obj->kind) {
+    case ObjectKind::EnumerateIterator:
+      return "<enumerate object>";
+    case ObjectKind::ZipIterator:
+      return "<zip object>";
+    case ObjectKind::ZipLongestIterator:
+      return "<itertools.zip_longest object>";
+    case ObjectKind::MapIterator:
+      return "<map object>";
+    case ObjectKind::FilterIterator:
+      return "<filter object>";
+    case ObjectKind::CallableIterator:
+      return "<callable_iterator>";
+    case ObjectKind::ChainIterator:
+      return "<itertools.chain object>";
+    case ObjectKind::ProtocolIterator:
+      return "<iterator>";
+    default:
+      return "<iterator>";
+  }
+}
+
+bool runtime_call_callable(
+    Runtime& runtime,
+    const Value& callable,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error) {
+  runtime_set_object_finalization_context(&runtime);
+  if (auto* method = value_as_static_method(callable)) {
+    return runtime_call_callable(runtime, method->function, args, argc, out, error);
+  }
+  if (auto* alias = value_as_generic_alias(callable)) {
+    if (alias->is_union) {
+      return raise_type_error(runtime, "cannot instantiate a union type", error);
+    }
+    return runtime_call_callable(runtime, alias->origin, args, argc, out, error);
+  }
+  if (auto* native = value_as_native_function(callable)) {
+    if (native->callback == nullptr) {
+      return raise_type_error(runtime, "native callable does not support this call path", error);
+    }
+    Value code = Value::none();
+    constexpr int64_t native_monitoring_mask =
+        kSysMonitoringEventCall | kSysMonitoringEventCRaise | kSysMonitoringEventCReturn;
+    const bool monitoring_possible = sys_monitoring_event_may_dispatch(native_monitoring_mask);
+    const bool monitor_call = monitoring_possible &&
+        sys_monitoring_global_event_may_dispatch(kSysMonitoringEventCall);
+    const bool monitor_raise = monitoring_possible &&
+        sys_monitoring_global_event_may_dispatch(kSysMonitoringEventCRaise);
+    const bool monitor_return = monitoring_possible &&
+        sys_monitoring_global_event_may_dispatch(kSysMonitoringEventCReturn);
+    Value callable_name = monitor_call || monitor_raise || monitor_return
+        ? Value::string(native->name) : Value::none();
+    if (monitor_call) {
+      if (!sys_monitoring_dispatch_event(runtime, kSysMonitoringEventCall, code, -1, &callable_name, error)) {
+        return false;
+      }
+    }
+    if (!native->callback(runtime, args, argc, out, error, native->user_data)) {
+      if (monitor_raise) {
+        std::string monitoring_error;
+        (void)sys_monitoring_dispatch_event(
+            runtime, kSysMonitoringEventCRaise, code, -1, &callable_name, monitoring_error);
+      }
+      return false;
+    }
+    return !monitor_return ||
+        sys_monitoring_dispatch_event(
+            runtime, kSysMonitoringEventCReturn, code, -1, &callable_name, error);
+  }
+
+  if (auto* function = value_as_function(callable)) {
+    if (function->module != nullptr &&
+        function->function_id < function->module->functions.size() &&
+        function->module->functions[function->function_id].is_generator) {
+      std::vector<Value> generator_args;
+      generator_args.reserve(argc);
+      for (uint32_t i = 0; i < argc; ++i) {
+        generator_args.push_back(args[i]);
+      }
+      const auto& target_fn = function->module->functions[function->function_id];
+      out = Value::generator(&runtime, callable, std::move(generator_args), target_fn.is_async, target_fn.is_coroutine);
+      return true;
+    }
+    CallArgsView call_args;
+    call_args.leading = args;
+    call_args.leading_count = argc;
+    if (function->module != nullptr &&
+        function->function_id < function->module->functions.size()) {
+      const auto& target = function->module->functions[function->function_id];
+      XlangVMTrivialFunctionSpec spec;
+      // Native callbacks use the same guarded IR shortcut as ordinary VM calls.
+      // Counter.__missing__ and constant-key callbacks otherwise construct an
+      // interpreter/frame for every key. Keep Python authoritative: inspect the
+      // current code/signature, require a capture-free trivial body, and retain
+      // normal entry for async/generators, argument errors and observability.
+      // Native loops lack the surrounding VM safepoint: queued asynchronous
+      // work must also take normal entry so it cannot be starved by inlining.
+      // This is generic function optimization, not a native library replacement.
+      if (!target.is_generator && !target.is_async && !target.is_coroutine &&
+          xlang_vm_analyze_trivial_function(*function->module, *function, argc, spec) &&
+          interpreter_pending_events() == 0 &&
+          xlang_vm_inline_python_function_allowed(runtime, *function->module, *function)) {
+        return xlang_vm_execute_trivial_function(call_args, spec, out);
+      }
+      XlangVMCapturedItemFunctionSpec item_spec;
+      if (xlang_vm_analyze_captured_item_function(*function->module, *function, argc, item_spec) &&
+          interpreter_pending_events() == 0 &&
+          xlang_vm_inline_python_function_allowed(runtime, *function->module, *function)) {
+        const auto* cell = value_as_cell(function->closure[item_spec.free_slot]);
+        // Captured names/arguments already bind by index. A proven, nonfallible
+        // dict hit can reuse those slots without constructing an Interpreter.
+        // Resolve the live cell on every call; retain the Python frame for
+        // misses, overrides, hashing/equality callbacks and observability.
+        // Do not speculate with user code then replay it in the fallback.
+        // Receiver/key stay borrowed: own only the hit result before releasing
+        // old output, just as normal entry releases its frame before assignment.
+        if (cell != nullptr && mapping_get_intrinsic_item_if_present(
+                cell->value, args[item_spec.argument], out)) return true;
+      }
+    }
+    Interpreter interpreter(runtime);
+    RuntimeResult result = interpreter.run_function_value(function, call_args);
+    // run_function() owns the handled-exception boundary and restores the
+    // caller's active exception. Do not snapshot/restore it again here: native
+    // callbacks such as Context.run can enter this path for every event-loop
+    // callback, so the duplicate ownership work is on a hot re-entry path.
+    if (!result.errors.empty()) {
+      if (result.exception.tag != ValueTag::Invalid) {
+        error = result.errors.front();
+        runtime.set_pending_exception(result.exception);
+        return false;
+      }
+      Value pending;
+      if (runtime.take_pending_exception(pending)) {
+        error = result.errors.front();
+        runtime.set_pending_exception(std::move(pending));
+        return false;
+      }
+      error = result.errors.front();
+      runtime.raise_class_error("RuntimeError", error);
+      return false;
+    }
+    value_assign_fast(out, result.value);
+    return true;
+  }
+
+  if (auto* klass = value_as_class(callable)) {
+    if (argc == 1) {
+      Value enum_member;
+      if (class_try_enum_value_lookup(callable, args[0], enum_member)) {
+        value_assign_fast(out, enum_member);
+        return true;
+      }
+    }
+    const Value* builtin_type = runtime.find_builtin("type");
+    auto* metaclass = value_as_class(klass->metaclass);
+    const bool default_metaclass = metaclass != nullptr &&
+        (metaclass->name == "type" ||
+         (builtin_type != nullptr && value_is(klass->metaclass, *builtin_type)));
+    if (metaclass != nullptr && !default_metaclass) {
+      Value meta_call;
+      std::string meta_call_error;
+      if (class_get_bound_attr(
+              runtime, klass->metaclass, callable, "__call__", meta_call, meta_call_error)) {
+        return runtime_call_callable(runtime, meta_call, args, argc, out, error);
+      }
+    }
+    bool handled = false;
+    if (!runtime_call_builtin_constructor(runtime, *klass, args, argc, {}, handled, out, error)) return false;
+    if (handled) return true;
+    Value new_callable;
+    if (resolve_class_new_callable(callable, klass, new_callable)) {
+      std::vector<Value> new_args;
+      new_args.reserve(static_cast<size_t>(argc) + 1);
+      new_args.push_back(callable);
+      for (uint32_t i = 0; i < argc; ++i) {
+        new_args.push_back(args[i]);
+      }
+      Value new_result;
+      if (!runtime_call_callable(
+              runtime,
+              new_callable,
+              new_args.data(),
+              static_cast<uint32_t>(new_args.size()),
+              new_result,
+              error)) {
+        return false;
+      }
+      auto* instance = value_as_instance(new_result);
+      auto* module_instance = value_as_module(new_result);
+      auto* instance_class = instance != nullptr ? value_as_class(instance->klass)
+          : module_instance != nullptr ? value_as_class(module_instance->klass) : nullptr;
+      if (instance_class != nullptr && class_is_subclass(instance_class, klass)) {
+        Value init;
+        std::string init_error;
+        if ((module_instance != nullptr
+                 ? module_get_attr(new_result, "__init__", init, init_error)
+                 : object_get_attr(new_result, "__init__", init, init_error)) &&
+            init.tag != ValueTag::Invalid) {
+          Value ignored;
+          if (!runtime_call_callable(runtime, init, args, argc, ignored, error)) {
+            return false;
+          }
+        }
+      }
+      value_assign_fast(out, new_result);
+      return true;
+    }
+
+    Value instance = Value::instance(callable);
+    runtime_initialize_exception_constructor_args(runtime, instance, args, argc);
+    Value init;
+    std::string init_error;
+    if (object_get_attr(instance, "__init__", init, init_error) && init.tag != ValueTag::Invalid) {
+      Value ignored;
+      if (!runtime_call_callable(runtime, init, args, argc, ignored, error)) {
+        return false;
+      }
+    } else {
+      if (argc != 0) {
+        return raise_type_error(runtime, "class construction expected no arguments", error);
+      }
+    }
+    value_assign_fast(out, instance);
+    return true;
+  }
+
+  if (value_as_event(callable) != nullptr) {
+    return event_fire(runtime, callable, args, argc, out, error);
+  }
+
+  if (auto* instance = value_as_instance(callable)) {
+    Value call_method;
+    std::string call_error;
+    if (object_get_attr(callable, "__call__", call_method, call_error)) {
+      if (auto* bound = value_as_bound_method(call_method)) {
+        if (value_as_instance(bound->self) == value_as_instance(callable)) {
+          return runtime_call_callable(runtime, call_method, args, argc, out, error);
+        }
+      }
+    }
+  }
+
+  if (auto* bound = value_as_bound_method(callable)) {
+    if (argc == 0) {
+      // Hashing and other native protocol callbacks often call a bound Python
+      // method with only self. Keep its argument on the stack instead of
+      // allocating a one-element vector for every native-to-Python entry.
+      // Own both fields before dispatch: output may alias the LAST callable
+      // owner, and a native callback can replace output then reread args or
+      // collect/reenter. Release self before the target, like BoundMethod.
+      // Ordinary dispatch retains binding, tracing, monitoring and errors;
+      // explicit arguments keep the existing general vector path below.
+      Value function = bound->function;
+      Value self = bound->self;
+      return runtime_call_callable(runtime, function, &self, 1, out, error);
+    }
+    std::vector<Value> bound_args;
+    bound_args.reserve(static_cast<size_t>(argc) + 1);
+    bound_args.push_back(bound->self);
+    for (uint32_t i = 0; i < argc; ++i) {
+      bound_args.push_back(args[i]);
+    }
+    return runtime_call_callable(
+        runtime,
+        bound->function,
+        bound_args.data(),
+        static_cast<uint32_t>(bound_args.size()),
+        out,
+        error);
+  }
+
+  return raise_type_error(runtime, "object is not callable", error);
+}
+
+bool runtime_call_callable_kw(
+    Runtime& runtime,
+    const Value& callable,
+    const Value* args,
+    uint32_t argc,
+    const std::vector<std::pair<std::string, Value>>& kwargs,
+    Value& out,
+    std::string& error) {
+  if (auto* alias = value_as_generic_alias(callable)) {
+    return runtime_call_callable_kw(runtime, alias->origin, args, argc, kwargs, out, error);
+  }
+  if (kwargs.empty()) {
+    return runtime_call_callable(runtime, callable, args, argc, out, error);
+  }
+
+  if (value_as_event(callable)) {
+    return event_fire_kw(runtime, callable, args, argc, kwargs, out, error);
+  }
+
+  if (auto* klass = value_as_class(callable)) {
+    const Value* builtin_type = runtime.find_builtin("type");
+    auto* metaclass = value_as_class(klass->metaclass);
+    const bool default_metaclass = metaclass != nullptr &&
+        (metaclass->name == "type" ||
+         (builtin_type != nullptr && value_is(klass->metaclass, *builtin_type)));
+    if (metaclass != nullptr && !default_metaclass) {
+      Value meta_call;
+      std::string meta_call_error;
+      if (class_get_bound_attr(
+              runtime, klass->metaclass, callable, "__call__", meta_call, meta_call_error)) {
+        return runtime_call_callable_kw(runtime, meta_call, args, argc, kwargs, out, error);
+      }
+    }
+    return runtime_construct_class_kw(runtime, callable, args, argc, kwargs, out, error);
+  }
+
+  if (auto* bound = value_as_bound_method(callable)) {
+    std::vector<Value> bound_args;
+    bound_args.reserve(static_cast<size_t>(argc) + 1);
+    bound_args.push_back(bound->self);
+    for (uint32_t i = 0; i < argc; ++i) bound_args.push_back(args[i]);
+    return runtime_call_callable_kw(runtime, bound->function, bound_args.data(),
+        static_cast<uint32_t>(bound_args.size()), kwargs, out, error);
+  }
+  if (value_as_instance(callable) != nullptr) {
+    Value method;
+    if (!object_get_attr(callable, "__call__", method, error)) return false;
+    return runtime_call_callable_kw(runtime, method, args, argc, kwargs, out, error);
+  }
+
+  if (auto* native = value_as_native_function(callable)) {
+    if (native->keyword_callback == nullptr) {
+      error = native->name + " does not accept keyword arguments";
+      return false;
+    }
+    std::vector<NativeKeywordArg> native_kwargs;
+    native_kwargs.reserve(kwargs.size());
+    for (const auto& item : kwargs) {
+      native_kwargs.push_back(NativeKeywordArg{item.first.c_str(), &item.second});
+    }
+    return native->keyword_callback(
+        runtime,
+        args,
+        argc,
+        native_kwargs.data(),
+        static_cast<uint32_t>(native_kwargs.size()),
+        out,
+        error,
+        native->user_data);
+  }
+
+  if (auto* function = value_as_function(callable)) {
+    std::vector<Value> keyword_values;
+    std::vector<ir::CallKeywordArg> keyword_specs;
+    keyword_values.reserve(kwargs.size());
+    keyword_specs.reserve(kwargs.size());
+    for (const auto& item : kwargs) {
+      keyword_specs.push_back(ir::CallKeywordArg{item.first, static_cast<uint32_t>(keyword_values.size())});
+      keyword_values.push_back(item.second);
+    }
+    CallArgsView call_args;
+    call_args.leading = args;
+    call_args.leading_count = argc;
+    call_args.registers = keyword_values.data();
+    call_args.keyword_args = &keyword_specs;
+    Interpreter interpreter(runtime);
+    RuntimeResult result = interpreter.run_function_value(function, call_args);
+    if (!result.errors.empty()) {
+      if (result.exception.tag != ValueTag::Invalid) {
+        error = result.errors.front();
+        runtime.set_pending_exception(result.exception);
+        return false;
+      }
+      Value pending;
+      if (runtime.take_pending_exception(pending)) {
+        error = result.errors.front();
+        runtime.set_pending_exception(std::move(pending));
+        return false;
+      }
+      error = result.errors.front();
+      runtime.raise_class_error("RuntimeError", error);
+      return false;
+    }
+    value_assign_fast(out, result.value);
+    return true;
+  }
+
+  error = "object does not accept keyword arguments";
+  return false;
+}
+
+bool runtime_construct_class_kw(
+    Runtime& runtime,
+    const Value& class_value,
+    const Value* args,
+    uint32_t argc,
+    const std::vector<std::pair<std::string, Value>>& kwargs,
+    Value& out,
+    std::string& error) {
+  auto* klass = value_as_class(class_value);
+  if (klass == nullptr) {
+    return raise_type_error(runtime, "type.__call__ expected a class", error);
+  }
+  bool handled = false;
+  if (!runtime_call_builtin_constructor(runtime, *klass, args, argc, kwargs, handled, out, error)) return false;
+  if (handled) return true;
+  Value instance;
+  Value new_callable;
+  if (resolve_class_new_callable(class_value, klass, new_callable)) {
+    std::vector<Value> new_args;
+    new_args.reserve(static_cast<size_t>(argc) + 1);
+    new_args.push_back(class_value);
+    for (uint32_t i = 0; i < argc; ++i) new_args.push_back(args[i]);
+    if (!runtime_call_callable_kw(runtime, new_callable, new_args.data(),
+        static_cast<uint32_t>(new_args.size()), kwargs, instance, error)) return false;
+    auto* object = value_as_instance(instance);
+    auto* module_object = value_as_module(instance);
+    auto* actual_class = object ? value_as_class(object->klass)
+        : module_object ? value_as_class(module_object->klass) : nullptr;
+    if (!actual_class || !class_is_subclass(actual_class, klass)) {
+      value_assign_fast(out, instance);
+      return true;
+    }
+  } else {
+    instance = Value::instance(class_value);
+    runtime_initialize_exception_constructor_args(runtime, instance, args, argc);
+  }
+  Value init;
+  std::string init_error;
+  if (!(value_as_module(instance) != nullptr
+            ? module_get_attr(instance, "__init__", init, init_error)
+            : object_get_attr(instance, "__init__", init, init_error)) ||
+      init.tag == ValueTag::Invalid) {
+    return raise_type_error(runtime, "class construction does not accept keyword arguments", error);
+  }
+  Value ignored;
+  if (!runtime_call_callable_kw(runtime, init, args, argc, kwargs, ignored, error)) return false;
+  if (ignored.tag != ValueTag::None) {
+    return raise_type_error(runtime, "__init__ must return None", error);
+  }
+  value_assign_fast(out, instance);
+  return true;
+}
+
+bool runtime_get_iter(Runtime& runtime, const Value& iterable, Value& out, std::string& error) {
+  const bool protocol_first =
+      value_as_instance(iterable) != nullptr ||
+      value_as_class(iterable) != nullptr ||
+      value_as_mapping_proxy(iterable) != nullptr;
+  if (!protocol_first && sequence_get_iter(iterable, out, error)) {
+    return true;
+  }
+
+  if (auto* klass = value_as_class(iterable)) {
+    if (klass->metaclass.tag != ValueTag::Invalid) {
+      Value meta_iter;
+      std::string meta_error;
+      if (object_lookup_class_attr(klass->metaclass, "__iter__", meta_iter, meta_error)) {
+        Value iter_method;
+        if (auto* method = value_as_static_method(meta_iter)) {
+          value_assign_fast(iter_method, method->function);
+        } else if (auto* method = value_as_class_method(meta_iter)) {
+          Value function;
+          value_assign_fast(function, method->function);
+          iter_method = Value::bound_method(klass->metaclass, std::move(function));
+        } else if (value_as_function(meta_iter) != nullptr || value_as_native_function(meta_iter) != nullptr) {
+          iter_method = Value::bound_method(iterable, std::move(meta_iter));
+        } else {
+          value_assign_fast(iter_method, meta_iter);
+        }
+        Value iter_result;
+        std::string call_error;
+        if (!runtime_call_callable(runtime, iter_method, nullptr, 0, iter_result, call_error)) {
+          error = call_error.empty() ? "__iter__ call failed" : call_error;
+          return false;
+        }
+        std::string concrete_error;
+        if (sequence_get_iter(iter_result, out, concrete_error)) {
+          error.clear();
+          return true;
+        }
+        error = concrete_error.empty() ? "__iter__ returned non-iterator" : concrete_error;
+        return false;
+      }
+    }
+  }
+
+  Value iter_result;
+  bool handled_instance_protocol = false;
+  if (auto* instance = value_as_instance(iterable)) {
+    // Special-method lookup for iter(obj) is type-based. When __iter__ is an
+    // ordinary Python/native class function, pass self directly instead of
+    // allocating a temporary bound method for each nested iterator.
+    Value class_method;
+    std::string ignored;
+    if (object_get_class_attr_for_instance(iterable, "__iter__", class_method, ignored)) {
+      handled_instance_protocol = true;
+      const auto* native = value_as_native_function(class_method);
+      if (value_as_function(class_method) != nullptr ||
+          (native != nullptr && native->bind_as_descriptor)) {
+        Value self = iterable;
+        if (!runtime_call_callable(runtime, class_method, &self, 1, iter_result, error)) {
+          error = error.empty() ? "__iter__ call failed" : error;
+          return false;
+        }
+      } else {
+        // Preserve descriptor binding for staticmethod, classmethod, and
+        // custom descriptors while still looking the special method up on
+        // the type rather than through the instance's __getattribute__.
+        Value iter_method;
+        if (!class_get_bound_attr(
+                runtime, instance->klass, iterable, "__iter__", iter_method, error)) {
+          error = error.empty() ? "object is not iterable" : error;
+          return false;
+        }
+        std::string call_error;
+        if (!runtime_call_callable(runtime, iter_method, nullptr, 0, iter_result, call_error)) {
+          error = call_error.empty() ? "__iter__ call failed" : call_error;
+          return false;
+        }
+      }
+    } else {
+      // An instance-level __iter__ is ignored by Python's special-method
+      // lookup. Keep XLang's built-in sequence-storage fallback, then check
+      // the legacy __getitem__ protocol on the class itself.
+      if (sequence_get_iter(iterable, out, error)) return true;
+      Value class_getitem;
+      if (object_get_class_attr_for_instance(iterable, "__getitem__", class_getitem, ignored)) {
+        out = functional_getitem_iterator(&runtime, iterable);
+        error.clear();
+        return true;
+      }
+      error = "object is not iterable";
+      return false;
+    }
+  }
+
+  if (!handled_instance_protocol) {
+    Value iter_method;
+    std::string attr_error;
+    if (!attribute_get(iterable, "__iter__", iter_method, attr_error)) {
+      Value getitem_method;
+      std::string getitem_error;
+      if (attribute_get(iterable, "__getitem__", getitem_method, getitem_error)) {
+        out = functional_getitem_iterator(&runtime, iterable);
+        error.clear();
+        return true;
+      }
+      if (protocol_first && sequence_get_iter(iterable, out, error)) {
+        return true;
+      }
+      error = error.empty() ? "object is not iterable" : error;
+      return false;
+    }
+
+    std::string call_error;
+    if (!runtime_call_callable(runtime, iter_method, nullptr, 0, iter_result, call_error)) {
+      error = call_error.empty() ? "__iter__ call failed" : call_error;
+      return false;
+    }
+  }
+
+  std::string concrete_error;
+  if (sequence_get_iter(iter_result, out, concrete_error)) {
+    error.clear();
+    return true;
+  }
+
+  out = functional_protocol_iterator(&runtime, std::move(iter_result));
+  error.clear();
+  return true;
+}
+
+bool runtime_collect_iterable(Runtime& runtime, const Value& iterable, std::vector<Value>& out, std::string& error) {
+  Value iterator;
+  if (!runtime_get_iter(runtime, iterable, iterator, error)) {
+    Value pending;
+    if (!runtime.take_pending_exception(pending)) {
+      runtime.raise_class_error("TypeError", error);
+    } else {
+      runtime.set_pending_exception(std::move(pending));
+    }
+    return false;
+  }
+  for (;;) {
+    bool done = false;
+    Value item;
+    if (!sequence_iter_next(iterator, done, item, error)) {
+      Value pending;
+      if (!runtime.take_pending_exception(pending)) {
+        runtime.raise_class_error("TypeError", error);
+      } else {
+        runtime.set_pending_exception(std::move(pending));
+      }
+      return false;
+    }
+    if (done) {
+      return true;
+    }
+    out.push_back(std::move(item));
+  }
+}
+
+bool functional_iterator_next(Value& iterator, bool& done, Value& out, std::string& error) {
+  done = false;
+  if (iterator.tag != ValueTag::Object || iterator.as.obj == nullptr) {
+    error = "invalid iterator";
+    return false;
+  }
+
+  if (iterator.as.obj->kind == ObjectKind::EnumerateIterator) {
+    auto* obj = reinterpret_cast<EnumerateIteratorObject*>(iterator.as.obj);
+    Value item;
+    if (!sequence_iter_next(obj->iterator, done, item, error)) {
+      return false;
+    }
+    if (done) {
+      value_set_none(out);
+      return true;
+    }
+    // Each result is an independent immutable tuple because callers may retain
+    // earlier rows; any reuse optimization must first prove the prior row is
+    // unshared, as CPython's enumerate iterator does.
+    out = Value::tuple({Value::int64(obj->index), std::move(item)});
+    ++obj->index;
+    return true;
+  }
+
+  if (iterator.as.obj->kind == ObjectKind::ZipIterator) {
+    auto* obj = reinterpret_cast<ZipIteratorObject*>(iterator.as.obj);
+    std::vector<Value> row;
+    row.reserve(obj->iterators.size());
+    for (auto& child : obj->iterators) {
+      Value item;
+      if (!sequence_iter_next(child, done, item, error)) {
+        return false;
+      }
+      if (done) {
+        if (obj->strict) {
+          if (!row.empty()) {
+            error = "zip() argument " + std::to_string(row.size() + 1) +
+                    " is shorter than argument 1";
+            if (obj->runtime != nullptr) {
+              obj->runtime->raise_class_error("ValueError", error);
+            }
+            return false;
+          }
+          for (size_t remaining = 1; remaining < obj->iterators.size(); ++remaining) {
+            Value extra;
+            bool extra_done = false;
+            if (!sequence_iter_next(obj->iterators[remaining], extra_done, extra, error)) {
+              return false;
+            }
+            if (!extra_done) {
+              error = "zip() argument " + std::to_string(remaining + 1) +
+                      " is longer than argument 1";
+              if (obj->runtime != nullptr) {
+                obj->runtime->raise_class_error("ValueError", error);
+              }
+              return false;
+            }
+          }
+        }
+        value_set_none(out);
+        return true;
+      }
+      row.push_back(std::move(item));
+    }
+    out = Value::tuple(std::move(row));
+    return true;
+  }
+
+  if (iterator.as.obj->kind == ObjectKind::ZipLongestIterator) {
+    auto* obj = reinterpret_cast<ZipLongestIteratorObject*>(iterator.as.obj);
+    if (obj->active == 0) {
+      done = true;
+      value_set_none(out);
+      return true;
+    }
+    std::vector<Value> row;
+    row.reserve(obj->iterators.size());
+    for (size_t index = 0; index < obj->iterators.size(); ++index) {
+      if (obj->exhausted[index]) {
+        row.push_back(obj->fillvalue);
+        continue;
+      }
+      Value item;
+      bool child_done = false;
+      if (!sequence_iter_next(obj->iterators[index], child_done, item, error)) return false;
+      if (child_done) {
+        obj->exhausted[index] = true;
+        --obj->active;
+        row.push_back(obj->fillvalue);
+      } else {
+        row.push_back(std::move(item));
+      }
+    }
+    if (obj->active == 0) {
+      done = true;
+      value_set_none(out);
+      return true;
+    }
+    out = Value::tuple(std::move(row));
+    return true;
+  }
+
+  if (iterator.as.obj->kind == ObjectKind::MapIterator) {
+    auto* obj = reinterpret_cast<MapIteratorObject*>(iterator.as.obj);
+    if (obj->runtime == nullptr) {
+      error = "map iterator has no runtime";
+      return false;
+    }
+    std::vector<Value> call_args;
+    call_args.reserve(obj->iterators.size());
+    for (auto& child : obj->iterators) {
+      Value item;
+      if (!sequence_iter_next(child, done, item, error)) {
+        return false;
+      }
+      if (done) {
+        value_set_none(out);
+        return true;
+      }
+      call_args.push_back(std::move(item));
+    }
+    return runtime_call_callable(
+        *obj->runtime,
+        obj->callable,
+        call_args.data(),
+        static_cast<uint32_t>(call_args.size()),
+        out,
+        error);
+  }
+
+  if (iterator.as.obj->kind == ObjectKind::FilterIterator) {
+    auto* obj = reinterpret_cast<FilterIteratorObject*>(iterator.as.obj);
+    if (obj->runtime == nullptr) {
+      error = "filter iterator has no runtime";
+      return false;
+    }
+    for (;;) {
+      Value item;
+      if (!sequence_iter_next(obj->iterator, done, item, error)) {
+        return false;
+      }
+      if (done) {
+        value_set_none(out);
+        return true;
+      }
+      bool keep = false;
+      if (obj->predicate.tag == ValueTag::None) {
+        keep = value_truthy(item);
+      } else {
+        Value predicate_result;
+        if (!runtime_call_callable(*obj->runtime, obj->predicate, &item, 1, predicate_result, error)) {
+          return false;
+        }
+        keep = value_truthy(predicate_result);
+      }
+      if (obj->invert ? !keep : keep) {
+        out = std::move(item);
+        return true;
+      }
+    }
+  }
+
+  if (iterator.as.obj->kind == ObjectKind::CallableIterator) {
+    auto* obj = reinterpret_cast<CallableIteratorObject*>(iterator.as.obj);
+    if (obj->runtime == nullptr) {
+      error = "callable iterator has no runtime";
+      return false;
+    }
+    if (!runtime_call_callable(*obj->runtime, obj->callable, nullptr, 0, out, error)) {
+      Value pending;
+      if (obj->runtime->take_pending_exception(pending)) {
+        if (auto* klass = value_as_class(obj->runtime->exception_type(pending));
+            klass != nullptr && klass->name == "StopIteration") {
+          done = true;
+          value_set_none(out);
+          error.clear();
+          return true;
+        }
+        obj->runtime->set_pending_exception(std::move(pending));
+      }
+      return false;
+    }
+    if (value_key_equal(out, obj->sentinel)) {
+      done = true;
+      value_set_none(out);
+      return true;
+    }
+    done = false;
+    return true;
+  }
+
+  if (iterator.as.obj->kind == ObjectKind::ChainIterator) {
+    auto* obj = reinterpret_cast<ChainIteratorObject*>(iterator.as.obj);
+    if (obj->from_iterable) {
+      if (obj->runtime == nullptr) {
+        error = "chain iterator has no runtime";
+        return false;
+      }
+      for (;;) {
+        if (obj->current_iterator.tag != ValueTag::Invalid) {
+          bool child_done = false;
+          if (!sequence_iter_next(obj->current_iterator, child_done, out, error)) {
+            return false;
+          }
+          if (!child_done) {
+            done = false;
+            return true;
+          }
+          value_set_invalid(obj->current_iterator);
+        }
+        Value child_iterable;
+        bool outer_done = false;
+        if (!sequence_iter_next(obj->outer_iterator, outer_done, child_iterable, error)) {
+          return false;
+        }
+        if (outer_done) {
+          done = true;
+          value_set_none(out);
+          return true;
+        }
+        if (!runtime_get_iter(*obj->runtime, child_iterable, obj->current_iterator, error)) {
+          return false;
+        }
+      }
+    }
+    while (obj->index < obj->iterators.size()) {
+      Value item;
+      bool child_done = false;
+      if (!sequence_iter_next(obj->iterators[obj->index], child_done, item, error)) {
+        return false;
+      }
+      if (!child_done) {
+        done = false;
+        out = std::move(item);
+        return true;
+      }
+      ++obj->index;
+    }
+    done = true;
+    value_set_none(out);
+    return true;
+  }
+
+  if (iterator.as.obj->kind == ObjectKind::ProtocolIterator) {
+    auto* obj = reinterpret_cast<ProtocolIteratorObject*>(iterator.as.obj);
+    if (obj->runtime == nullptr) {
+      error = "protocol iterator has no runtime";
+      return false;
+    }
+    if (obj->use_getitem) {
+      Value getitem;
+      std::string attr_error;
+      if (!attribute_get(obj->iterator, "__getitem__", getitem, attr_error)) {
+        error = attr_error;
+        return false;
+      }
+      Value index = Value::int64(static_cast<int64_t>(obj->index));
+      if (!runtime_call_callable(*obj->runtime, getitem, &index, 1, out, error)) {
+        Value pending;
+        if (obj->runtime->take_pending_exception(pending)) {
+          if (auto* klass = value_as_class(obj->runtime->exception_type(pending)); klass != nullptr && klass->name == "IndexError") {
+            done = true;
+            value_set_none(out);
+            return true;
+          }
+          obj->runtime->set_pending_exception(std::move(pending));
+        }
+        return false;
+      }
+      ++obj->index;
+      done = false;
+      return true;
+    }
+    Value next_method;
+    std::string attr_error;
+    if (!attribute_get(obj->iterator, "__next__", next_method, attr_error)) {
+      error = attr_error;
+      return false;
+    }
+    if (!runtime_call_callable(*obj->runtime, next_method, nullptr, 0, out, error)) {
+      Value pending;
+      if (obj->runtime->take_pending_exception(pending)) {
+        if (auto* klass = value_as_class(obj->runtime->exception_type(pending)); klass != nullptr && klass->name == "StopIteration") {
+          done = true;
+          value_set_none(out);
+          return true;
+        }
+        obj->runtime->set_pending_exception(std::move(pending));
+      }
+      return false;
+    }
+    done = false;
+    return true;
+  }
+
+  error = "invalid iterator";
+  return false;
+}
+
+} // namespace xlang3

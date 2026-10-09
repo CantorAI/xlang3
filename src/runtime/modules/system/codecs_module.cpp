@@ -2328,6 +2328,22 @@ bool codecs_charmap_encode(Runtime& runtime, const Value* args, uint32_t argc, V
 
 } // namespace
 
+bool runtime_encode_utf8(Runtime& runtime, const Value& text,
+                         const std::string& errors, Value& out,
+                         std::string& error) {
+  // Reuse the same native byte loop and UnicodeEncodeError positions as
+  // _codecs.utf_8_encode, without its (bytes, consumed-characters) tuple.
+  // Pin the original argument through exception construction and output
+  // retirement; publishing out may run cleanup that reenters the runtime.
+  const Value owned_text(text);
+  Value encoded;
+  if (!encode_with_codec(runtime, owned_text, "utf_8", errors, encoded, error)) {
+    return false;
+  }
+  out = std::move(encoded);
+  return true;
+}
+
 void register_codecs_module(Runtime& runtime) {
   NativeModuleBuilder builder(runtime, "_codecs");
   auto codec_function = [&](const char* name, NativeFunctionCallback callback, const char* encoding) {

@@ -1,0 +1,214 @@
+diff --git a/tests/fixtures/core/native_str_utf8_encode.py b/tests/fixtures/core/native_str_utf8_encode.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..2ee49e44ef330e658288017b6d9986541c7d5004
+--- /dev/null
++++ b/tests/fixtures/core/native_str_utf8_encode.py
+@@ -0,0 +1,170 @@
++# Copyright (C) 2026 CantorAI Inc. and The XLang Foundation
++# Licensed under the Apache License, Version 2.0 (the "License");
++# you may not use this file except in compliance with the License.
++# You may obtain a copy of the License at
++# http://www.apache.org/licenses/LICENSE-2.0
++# Unless required by applicable law or agreed to in writing, software
++# distributed under the License is distributed on an "AS IS" BASIS,
++# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++# See the License for the specific language governing permissions and
++# limitations under the License.
++
++import _codecs
++import codecs
++import sys
++
++
++text = 'A\u00e9\u4e2d\U0001f600\x00'
++expected = b'A\xc3\xa9\xe4\xb8\xad\xf0\x9f\x98\x80\x00'
++assert text.encode() == expected
++for spelling in ('utf-8', 'utf8', 'utf_8', 'UTF-8', ' UTF--8 '):
++    assert text.encode(spelling) == expected
++assert ''.encode() == b''
++for spelling in ('u8', 'cp65001'):
++    assert text.encode(spelling) == expected
++print('PASS native_str_utf8_basics')
++
++bad = 'A\ud800\udfffZ'
++try:
++    bad.encode()
++except UnicodeEncodeError as error:
++    assert error.encoding == 'utf-8'
++    assert error.object is bad and error.start == 1 and error.end == 3
++    assert error.reason == 'surrogates not allowed'
++else:
++    raise AssertionError('strict UTF-8 must reject surrogates')
++assert bad.encode('utf-8', 'surrogatepass') == b'A\xed\xa0\x80\xed\xbf\xbfZ'
++assert 'A\udc80\udcffZ'.encode('utf-8', 'surrogateescape') == b'A\x80\xffZ'
++assert bad.encode('utf-8', 'ignore') == b'AZ'
++assert bad.encode('utf-8', 'replace') == b'A??Z'
++assert bad.encode('utf-8', 'backslashreplace') == b'A\\ud800\\udfffZ'
++assert bad.encode('utf-8', 'namereplace') == b'A\\ud800\\udfffZ'
++assert bad.encode('utf-8', 'xmlcharrefreplace') == b'A&#55296;&#57343;Z'
++print('PASS native_str_utf8_surrogates')
++
++assert text.encode(encoding='utf-8', errors='strict') == expected
++assert bad.encode(errors='surrogatepass') == b'A\xed\xa0\x80\xed\xbf\xbfZ'
++try:
++    text.encode('utf-8', encoding='utf-8')
++except TypeError:
++    pass
++else:
++    raise AssertionError('duplicate encoding must be rejected')
++try:
++    text.encode(unexpected='utf-8')
++except TypeError:
++    pass
++else:
++    raise AssertionError('unknown keyword must be rejected')
++print('PASS native_str_utf8_keywords')
++
++old_lookup = _codecs.lookup
++old_encode = _codecs.encode
++bypass_calls = []
++
++
++def blocked_codec(*args, **kwargs):
++    bypass_calls.append(args)
++    raise AssertionError('common UTF-8 str.encode must not call the module registry facade')
++
++
++_codecs.lookup = blocked_codec
++_codecs.encode = blocked_codec
++try:
++    assert text.encode() == expected
++    assert text.encode('UTF--8') == expected
++    assert bad.encode('utf_8', 'surrogatepass') == b'A\xed\xa0\x80\xed\xbf\xbfZ'
++    assert text.encode(encoding='utf8', errors='strict') == expected
++    assert bypass_calls == []
++finally:
++    _codecs.lookup = old_lookup
++    _codecs.encode = old_encode
++print('PASS native_str_utf8_registry_bypass')
++
++codec_name = 'x_native_utf8_trial'
++registry_calls = []
++
++
++def custom_encoder(value, errors='strict'):
++    registry_calls.append(('encode', value, errors))
++    return b'custom:' + value.encode('ascii'), len(value)
++
++
++def custom_decoder(value, errors='strict'):
++    return '', len(value)
++
++
++def custom_search(name):
++    if name == codec_name:
++        registry_calls.append(('lookup', name))
++        return codecs.CodecInfo(name=codec_name, encode=custom_encoder,
++                                decode=custom_decoder)
++    return None
++
++
++codecs.register(custom_search)
++try:
++    assert 'body'.encode(codec_name) == b'custom:body'
++    assert 'next'.encode(encoding=codec_name, errors='strict') == b'custom:next'
++    assert [row for row in registry_calls if row[0] == 'encode'] == [
++        ('encode', 'body', 'strict'), ('encode', 'next', 'strict')]
++finally:
++    codecs.unregister(custom_search)
++print('PASS native_str_utf8_custom_codec')
++
++
++class EncodingName(str):
++    pass
++
++
++class EncodeOverride(str):
++    def encode(self, encoding='utf-8', errors='strict'):
++        return b'override'
++
++
++assert text.encode(EncodingName('utf-8'), EncodingName('strict')) == expected
++assert EncodeOverride(text).encode() == b'override'
++print('PASS native_str_utf8_subclass_fallback')
++
++handler_calls = []
++
++
++def custom_error_handler(error):
++    handler_calls.append(error)
++    raise AssertionError('valid Unicode must not invoke an error handler')
++
++
++handler_name = 'x_native_utf8_error_trial'
++codecs.register_error(handler_name, custom_error_handler)
++assert codecs.lookup_error(handler_name) is custom_error_handler
++assert text.encode('utf-8', handler_name) == expected
++assert handler_calls == []
++# Surrogate failures under custom handlers are a separately recorded existing
++# native-codec limitation, not repaired or claimed by this shortcut fixture.
++print('PASS native_str_utf8_custom_error_fallback')
++
++events = []
++
++
++def profile(frame, event, arg):
++    if event in ('c_call', 'c_return', 'c_exception'):
++        # Existing XLang native event arguments can be their qualified name;
++        # this checks the unchanged encode boundary, not callable-arg parity.
++        name = arg if isinstance(arg, str) else getattr(arg, '__name__', '')
++        if name in ('encode', 'str.encode'):
++            events.append(event)
++
++
++sys.setprofile(profile)
++try:
++    assert text.encode() == expected
++    try:
++        bad.encode()
++    except UnicodeEncodeError:
++        pass
++    else:
++        raise AssertionError('observed strict encode must fail')
++finally:
++    sys.setprofile(None)
++assert events == ['c_call', 'c_return', 'c_call', 'c_exception']
++print('PASS native_str_utf8_observer_boundary')
+diff --git a/tests/fixtures/expected/native_str_utf8_encode.out b/tests/fixtures/expected/native_str_utf8_encode.out
+new file mode 100644
+index 0000000000000000000000000000000000000000..a4faedb2e7d8f67accad2ed342d088048aa46224
+--- /dev/null
++++ b/tests/fixtures/expected/native_str_utf8_encode.out
+@@ -0,0 +1,8 @@
++PASS native_str_utf8_basics
++PASS native_str_utf8_surrogates
++PASS native_str_utf8_keywords
++PASS native_str_utf8_registry_bypass
++PASS native_str_utf8_custom_codec
++PASS native_str_utf8_subclass_fallback
++PASS native_str_utf8_custom_error_fallback
++PASS native_str_utf8_observer_boundary
+diff --git a/tests/run_fixtures.ps1 b/tests/run_fixtures.ps1
+index 12c9158dfed092ebcb02550685ef88b3665d2f88..ff2118b20fe699b4311790b20dc9a648ee89a62d 100644
+--- a/tests/run_fixtures.ps1
++++ b/tests/run_fixtures.ps1
+@@ -28,6 +28,7 @@ $cases = @(
+     "ordinary_canonical_slot_constructor",
+     "call_module_global_binding",
+     "sorted_exact_integer_keys",
++    "native_str_utf8_encode",
+     "synchronous_class_argument_lifetime",
+     "nested_profile_setting",
+     "class_namespace_lifetime",
+diff --git a/tests/run_fixtures.py b/tests/run_fixtures.py
+index a198d7283b5ebf2242e18cfd740e26a86d731c03..b80531bbc1dd4fe535970e2af2bd5c0512166b6d 100644
+--- a/tests/run_fixtures.py
++++ b/tests/run_fixtures.py
+@@ -15,6 +15,7 @@ sorted_key_nested_handled_context
+ ordinary_canonical_slot_constructor
+ call_module_global_binding
+ sorted_exact_integer_keys
++native_str_utf8_encode
+ synchronous_class_argument_lifetime
+ nested_profile_setting
+ class_namespace_lifetime

@@ -112,6 +112,11 @@ void register_bisect_module(Runtime& runtime);
 void register_heapq_module(Runtime& runtime);
 void register_itertools_module(Runtime& runtime);
 void register_codecs_module(Runtime& runtime);
+// Bytes-only native UTF-8 entry; callers must preserve str argument validation
+// and restrict registry bypass to CPython's common UTF-8 spellings/error modes.
+bool runtime_encode_utf8(Runtime& runtime, const Value& text,
+                         const std::string& errors, Value& out,
+                         std::string& error);
 void register_locale_module(Runtime& runtime);
 void register_multibytecodec_module(Runtime& runtime);
 void register_contextvars_module(Runtime& runtime);

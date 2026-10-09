@@ -1,0 +1,25 @@
+{
+  "status": "cpython_semantics_passed",
+  "terminal": true,
+  "scored": false,
+  "command": [
+    "C:\\Python\\Python314\\python.exe",
+    "-I",
+    "-B",
+    "-u",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\native-str-utf8-encode-fixture-proposed-20261008.py"
+  ],
+  "proposal_sha256": "4fd1a6d4d2b9c6c85f7dcdc0f87a6d633e9fbefb3bc61899c0dda9f48732b570",
+  "fixture_sha256": "e17e0e129dd7308c162352a975e8db04b6b15de14ba8ce1e4b1959ae03e69f5b",
+  "expected_sha256": "62b1414c54f1890bb1f2cb4348837056b43d11210b3101635ffb8b3b63cd094b",
+  "started_utc": "2026-10-09T05:05:09.493562+00:00",
+  "pid": 11844,
+  "exit_code": 0,
+  "stdout_log": "native-str-utf8-cpython-semantics-20261008.stdout.log",
+  "stdout_sha256": "37d4cc520f79856b0176905e39f100f1b8459e1d9c577f153d527b2bfbd7c8c5",
+  "stderr_log": "native-str-utf8-cpython-semantics-20261008.stderr.log",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "hashes_unchanged": true,
+  "passed": true,
+  "completed_utc": "2026-10-09T05:05:09.554244+00:00"
+}

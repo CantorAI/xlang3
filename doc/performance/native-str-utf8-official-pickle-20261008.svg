@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="320" viewBox="0 0 960 320" role="img" aria-labelledby="title desc">
+<title id="title">Original pure-Python pickle, native UTF-8 checkpoint</title>
+<desc id="desc">Fresh unpaired official means: CPython 0.257790 milliseconds, XLang3 3.570568. XLang3 takes 13.850687 times CPython time. Separate paired parent-to-candidate body improvement 1.106001 times.</desc>
+<rect width="960" height="320" fill="white"/><g font-family="Arial, sans-serif" fill="#182332">
+<text x="28" y="36" font-size="22" font-weight="bold">Original pure-Python pickle · protocol 5</text>
+<text x="28" y="63" font-size="15">Fresh official mean milliseconds · lower is faster · 20 values per runtime</text>
+<text x="28" y="119" font-size="16">CPython 3.14.7</text><rect x="215" y="96" width="39.7092" height="33" fill="#237a57"/>
+<text x="264.7092" y="119" font-size="16">0.257790 ms</text>
+<text x="28" y="181" font-size="16">XLang3 candidate</text><rect x="215" y="158" width="550" height="33" fill="#ba6424"/>
+<text x="775" y="181" font-size="16">3.570568 ms</text>
+<text x="28" y="232" font-size="16">XLang3 is 13.85× slower than CPython here; no whole-suite win.</text>
+<text x="28" y="266" font-size="15">Separate XLang3 parent/candidate body screen: 1.106001× gain, 95% CI [1.101779, 1.114201].</text>
+<text x="28" y="292" font-size="14">Fast-mode warnings retained. Seven paired bodies are unscored; official runs are unpaired.</text></g></svg>

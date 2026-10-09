@@ -1,0 +1,15 @@
+pair,order,role,seconds,pair_parent_over_candidate,stdout,stdout_sha256
+1,1,parent,3.176238000043668,1.1120007929378566,native-str-utf8-original-pickle-paired-20261008-pair-01-parent.stdout.log,d841824051e8f57c09ef554e0b1c0c067cefc2db2821cbcae38817e8e10277d9
+1,2,candidate,2.8563270999584347,1.1120007929378566,native-str-utf8-original-pickle-paired-20261008-pair-01-candidate.stdout.log,607993aa9249f519ed5ae28942a130604f920e956192ac22f8586d11169cdc68
+2,1,candidate,2.8648399999947287,1.1042267630951554,native-str-utf8-original-pickle-paired-20261008-pair-02-candidate.stdout.log,36a9bf74302939b79cda836c93d5753621b4c4991f53ad758c7957b4f367aaaf
+2,2,parent,3.1634329999797046,1.1042267630951554,native-str-utf8-original-pickle-paired-20261008-pair-02-parent.stdout.log,a9ac5de5c7e5fdf0ad02440335c89353e70573fcf6ac5d64a02f3c1dd0dbf0c3
+3,1,parent,3.1811992000439204,1.1142006967092535,native-str-utf8-original-pickle-paired-20261008-pair-03-parent.stdout.log,9f47a037b3b2997641b80e3422e8eeb27021f85402fc917a0efa5342b8d56400
+3,2,candidate,2.8551402000011876,1.1142006967092535,native-str-utf8-original-pickle-paired-20261008-pair-03-candidate.stdout.log,988a5958c300ff59c51dbed1b1c95c50002393d6daa59d781c330d085e4be1c6
+4,1,candidate,2.8741420000442304,1.1060012344282661,native-str-utf8-original-pickle-paired-20261008-pair-04-candidate.stdout.log,3055652772e3ad69f6e974facf026285afc4be903ad902acafbb377b8e0ba2b5
+4,2,parent,3.178804599971045,1.1060012344282661,native-str-utf8-original-pickle-paired-20261008-pair-04-parent.stdout.log,c9430870ee6e26b6c40739eefbe8b67fea3bb0e0c45a06f1c2d08dc3cd980d9e
+5,1,parent,3.201365499990061,1.1181271800086643,native-str-utf8-original-pickle-paired-20261008-pair-05-parent.stdout.log,f78bf6dcaf04667497a8e9cf164760446fe87dc4b1882ca5db2c187529e4d8e4
+5,2,candidate,2.8631496999878436,1.1181271800086643,native-str-utf8-original-pickle-paired-20261008-pair-05-candidate.stdout.log,13c15fe511fa968b0e8c6eb8d128f0c3d2bbfa8c4f245a4def1a9275dafefb8f
+6,1,candidate,2.892751000006683,1.1012327711439447,native-str-utf8-original-pickle-paired-20261008-pair-06-candidate.stdout.log,c8d8d810e442f5967ebadabaa76be02f0fe4042aedfab3a8f43465a83fc7b130
+6,2,parent,3.185592199966777,1.1012327711439447,native-str-utf8-original-pickle-paired-20261008-pair-06-parent.stdout.log,1921c86f56d7b0e7ab91ba9bda20d2561f27ebd00f487c27f8bd2f6208b8c563
+7,1,parent,3.1809385999804363,1.101778674326069,native-str-utf8-original-pickle-paired-20261008-pair-07-parent.stdout.log,5536ad5977b525c28b8fa94b4a0bd4a191831d85978afd5e00d56a158f3a41ef
+7,2,candidate,2.8870940000051633,1.101778674326069,native-str-utf8-original-pickle-paired-20261008-pair-07-candidate.stdout.log,74ee9ad51d012907da4723541ca35561e6fb6ccc61117c3469292ecf22a7f35b
