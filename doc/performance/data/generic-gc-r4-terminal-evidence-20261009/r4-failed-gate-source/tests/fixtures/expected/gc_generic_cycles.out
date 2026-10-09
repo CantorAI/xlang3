@@ -1,0 +1,5 @@
+PASS ordinary-instance-container-slot-cycles
+PASS reachable-cycle-and-tail
+PASS reachable-finalizer-boundary
+PASS other-thread-frame-root
+PASS handled-exception-preserved

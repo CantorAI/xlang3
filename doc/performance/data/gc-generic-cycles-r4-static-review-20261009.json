@@ -1,0 +1,22 @@
+{
+  "status": "static_ready_performance_pending",
+  "reviewer": "/root/class_scope_design",
+  "scope": "Read-only comparison of current R4 gc_plain_cycles.h against preserved R3; no execution or editing",
+  "r4_header_sha256": "5b1c5afa8692dfdd764a656ee5ae303398bff1fb26024a49bcfcca78f1f993c3",
+  "r3_header_sha256": "1438311d52a4d8e2cb8516faf1035c4e3198bc9a9388fb442a806ec3692cee2e",
+  "concrete_blockers_found": [],
+  "findings": [
+    "Owning-run multiplicities retain every strong reference; borrowed Values remain excluded.",
+    "last_parent deduplicates source/target adjacency without deduplicating incoming ownership counts.",
+    "Cached children adjacency represents the same owning edges previously rescanned during reachability.",
+    "Graph construction and marking remain inside execution serialization, with no intervening callback or mutation.",
+    "Opaque-boundary propagation, snapshot pins, preallocated clearing and candidate-before-metadata retirement are unchanged.",
+    "Added adjacency allocations occur before graph mutation."
+  ],
+  "remaining_limits": [
+    "Conservative exclusion of weakref, native and finalizer components.",
+    "No complete cyclic-finalizer collection claim.",
+    "No safety claim for unsynchronized embedding mutation.",
+    "Full fixed-gate performance acceptance is still required."
+  ]
+}
