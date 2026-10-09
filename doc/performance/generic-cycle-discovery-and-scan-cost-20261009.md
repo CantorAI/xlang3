@@ -1,8 +1,8 @@
 # Generic cycle discovery and scan cost, 2026-10-09
 
-Ordinary unreachable instance/container cycles were missing from XLang3's collector discovery. The candidate adds a generic owning-edge graph pass and passes fresh correctness validation, but R2, R3, R4 and R5b fail the unchanged fixed performance gate, and R6 is inconclusive. R6 reduces original traversal time to 2.523 ms from the first repaired version's 7.099 ms across separate fast runs. It remains slower than its fresh CPython 3.14.7 reference and is uncommitted. No engine acceptance or whole-suite speed win is established by these results.
+Ordinary unreachable instance/container cycles were missing from XLang3's collector discovery. R7b repairs generic owning-edge discovery and passes fresh full correctness, the unchanged fixed Release gate, and both affected original GC benchmarks. Fresh original traversal measures 1.970 ms versus CPython 3.14.7's 2.348 ms, a nominal 1.192× speed ratio. Cycle creation/collection remains 1.336× slower than CPython. This is an accepted GC checkpoint; the new full97 capture is pending, and the overall speed goal remains unfinished.
 
-The existing accepted `95feaff2` engine and fixed `build-repro/Release` baseline remain preserved. GitHub `aef4dc0b` records the original independent missing-cycle reproduction and the previously rejected frame-context experiment. The generic GC candidate remains uncommitted.
+The preceding accepted `95feaff2` engine and fixed `build-repro/Release` baseline remain preserved. GitHub `aef4dc0b` records the original independent missing-cycle reproduction and the previously rejected frame-context experiment. R2 through R5b fail the gate, and R6 is inconclusive; none of those experimental versions is an accepted baseline. R7b's validated source143/Release178 are preserved separately. The fixed baseline177 is unchanged.
 
 ## Repair and ownership rules
 
@@ -23,6 +23,7 @@ Each version runs the complete unchanged 11-case fixed Release gate: 21 repeats,
 | R4 | Also reuse unique forward adjacency for reachability | 1.412× | Failed |
 | R5b | Also compare bounded groups of four equal owning Values using SSE2 on x86-64 | 1.220× | Failed |
 | R6 | Also store unique adjacency in one contiguous indexed edge buffer | 1.117× | Inconclusive |
+| R7b | Also use bounded registry indexes with identity checks and exact pointer fallback | 1.060× | Passed |
 
 | Original benchmark | R2 CPython 3.14.7 | R2 XLang3 | R3 CPython 3.14.7 | R3 XLang3 |
 | --- | ---: | ---: | ---: | ---: |
@@ -64,6 +65,17 @@ R6's first GC gate attempt confirms a regression at 1.142× (95% interval 1.117�
 
 The packed-run helper checks the complete 16-byte Value representation, including flags, and admits only non-null owning object references. Four unaligned SSE2 loads occur only within the sequence bounds. Scalar tails, mixed elements and other architectures retain the ordinary path. Equal owning references still add their full multiplicity; borrowed lanes are never converted into owners. C++ fixtures cover short and long runs, boundary tails, borrowed/scalar interruptions, externally rooted descendants and tuple/list cycles.
 
+| Original benchmark, R7b fresh fast runs | CPython 3.14.7 | XLang3 R7b | CPython time / XLang3 time |
+| --- | ---: | ---: | ---: |
+| `create_gc_cycles` | 1.5851 ms | 2.1177 ms | 0.748× |
+| `gc_traversal` | 2.3484 ms | 1.9699 ms | 1.192× |
+
+R7b's complete unchanged gate exits 0. Its GC candidate/baseline ratio is 1.0598× with a 95% interval of 1.0314–1.0986×, within the original 1.10 boundary; all other cases pass. This is release-gate acceptance, not a claim that the corrected collector is faster than the old incomplete collector. The original fast runs retain all 80 values and their stability warnings. The CPython comparison is sequential and unpaired, so 1.192× is a nominal traversal result rather than a significance claim or whole-suite speedup.
+
+![GC elapsed times through the accepted R7b checkpoint](generic-cycle-discovery-scan-cost-r2-r7b-20261009.svg)
+
+[All 480 original scored values through R7b](data/gc-generic-cycles-r2-r7b-scored-values-20261009.csv) preserve every version's own CPython reference and XLang3 samples.
+
 ## Phase attribution and current experiment
 
 The temporary R4 and R5b diagnostics have now completed on idle observation windows. Five fresh processes each execute the unchanged fixed GC workload's four collections. The table contains median phase durations across 20 collections per version. These are instrumented diagnostic timings, not official benchmark scores or performance-gate acceptance. Printing is excluded from the next individual phase; the enclosing `plain_total` includes diagnostic output, so phase medians must not be added to reconstruct a scored total.
@@ -81,11 +93,13 @@ The temporary R4 and R5b diagnostics have now completed on idle observation wind
 
 The owning-edge scan remains the largest individual phase of the new pass. Cached reachability is already a small cost in this workload. R6 therefore changes adjacency construction: one vector stores unique edges and integer links to each source's children and target's parents. It reserves initial capacity, avoids separate growing vectors per node, and preserves the ownership counts, unsafe backward closure and external-root forward closure. Links identify vector positions and survive vector reallocation; they point to earlier indices or the end sentinel. Code comments record both the allocation rationale and the distinction between unique topology and ownership multiplicity.
 
-R6 source142/Release178 are preserved after its terminal measurements. The next R7 experiment replaces per-node pointer-hash allocations with a local bounded registry-index table. It checks actual pointer identity and lazily rebuilds the exact pointer map on any lookup mismatch. Sparse or untracked indexes select hashing immediately. Snapshot pins keep objects alive but do not freeze indexes: another thread's cached-zero-object teardown may compact the registry. Synthetic unregistered-header tests exercise that movement without corrupting the live registry, along with weakref-bit masking, index collisions, huge sparse slots, missing objects and an empty graph. R7 has compiled; correctness and performance validation remain pending. Its proposed mechanism is not scored as a gain.
+R6 source142/Release178 are preserved after its terminal measurements. R7 replaces per-node pointer-hash allocations with a local bounded registry-index table. It checks actual pointer identity and lazily rebuilds the exact pointer map on any lookup mismatch. Sparse or untracked indexes select hashing immediately. Snapshot pins keep objects alive but do not freeze indexes: another thread's cached-zero-object teardown may compact the registry. Synthetic unregistered-header tests simulate that movement without corrupting the live registry, along with weakref-bit masking, index collisions, huge sparse slots, missing objects and an empty graph. Independent review found that the first R7 test's sentinel prevented its later huge-slot branch from executing. R7b adds a separate valid-first/huge-second case, then rebuilds and repeats full correctness before any timing. Engine bytes remain unchanged between R7 and R7b.
+
+The accepted change is in generic runtime collection, not IR lowering or a C++ rewrite of Python library bodies. Performance comments explain the full ownership multiplicity, bounded packed loads, allocation savings and pointer fallback after index movement. Conservative native/finalizer boundaries remain; this checkpoint does not establish complete collector parity with CPython.
 
 ## Correctness and provenance
 
-R2, R3, R4, R5b and R6 each pass fresh CPython/XLang3 oracle transcripts, 406 core fixtures, 11 compatibility sections, three expected-failure checks, nine selected CTests and both SQLite API checks. Tests cover unseeded instance/list/dict/mixed/slotted/cell cycles, duplicate ownership, borrowed refs, external native roots, another thread's VM root, opaque cleanup boundaries and pending/handled exception identity. Fixture identity checks use a non-owning marker in addition to addresses, avoiding a false failure when `gc.get_objects()` allocates a list at a reclaimed address.
+R2, R3, R4, R5b, R6, R7 and R7b each pass fresh CPython/XLang3 oracle transcripts, 406 core fixtures, 11 compatibility sections, three expected-failure checks, nine selected CTests and both SQLite API checks. Tests cover unseeded instance/list/dict/mixed/slotted/cell cycles, duplicate ownership, borrowed refs, external native roots, another thread's VM root, opaque cleanup boundaries and pending/handled exception identity. Fixture identity checks use a non-owning marker in addition to addresses, avoiding a false failure when `gc.get_objects()` allocates a list at a reclaimed address.
 
 The first R2 attempt had a C++ test link failure from using an internal unexported snapshot helper. The integration repair tests through registered `gc.get_objects()` instead, without introducing a new export; collection sequencing is explicit. The earlier failed build inputs and raw log remain available. No benchmark ran on that failed build.
 
@@ -108,5 +122,6 @@ R6's first readiness waiter launched no measurement phase and was stopped only t
 - R5b [application](data/gc-generic-cycles-applied-source-r5b-20261009.json), [build](data/gc-generic-cycles-build-r5b-20261009.json), [correctness](data/gc-generic-cycles-correctness-r5b-20261009.json), [gate and original scores](data/gc-generic-cycles-performance-r5b-20261009.json), [phase diagnostic](data/gc-generic-cycles-r5b-phase-diagnostic-20261009.json), [normal restoration](data/gc-generic-cycles-r5b-after-phase-restored-20261009.json).
 - R6 [application](data/gc-generic-cycles-applied-source-r6-20261009.json), [build](data/gc-generic-cycles-build-r6-20261009.json), [fresh correctness](data/gc-generic-cycles-correctness-r6-20261009.json), [stopped pre-timing wait](data/gc-generic-cycles-performance-r6-pre-timing-wait-stopped-20261009.json).
 - R6 terminal [gate and original scores](data/gc-generic-cycles-performance-r6-activity-20261009.json).
+- R7b [application](data/gc-generic-cycles-applied-source-r7b-20261009.json), [build](data/gc-generic-cycles-build-r7b-20261009.json), [fresh correctness](data/gc-generic-cycles-correctness-r7b-20261009.json), [passing gate and original scores](data/gc-generic-cycles-performance-r7b-activity-20261009.json), [independent static review](data/gc-generic-cycles-r7b-static-review-20261009.json), [preserved validated checkpoint](data/gc-generic-cycles-r7b-preserved-validated-checkpoint-20261009.json).
 
-The earlier full97 report is unchanged: individual repaired GC results do not turn its recorded failures into completed cases. The overall performance goal remains unfinished. Completed phase attribution, R5b's measured scan change, and R6's fresh correctness are concrete progress; they do not establish goal completion.
+The earlier full97 report is unchanged: individual repaired GC results do not turn its recorded failures into completed cases. Its retained whole-suite capture measured constructor source132 (`5997b264`); the later tracing checkpoint retained that matrix rather than measuring source137 again. A source143 capture must be recorded separately. The overall performance goal remains unfinished. The generic discovery repair, passing gate and nominal original traversal win are concrete progress; they do not establish full-suite completion.

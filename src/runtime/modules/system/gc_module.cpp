@@ -21,8 +21,10 @@ limitations under the License.
 #include "xlang3/object_model.h"
 #include "xlang3/sequence.h"
 #include "xlang3/set_object.h"
+#include "gc_plain_cycles.h"
 
 #include <algorithm>
+#include <atomic>
 #include <array>
 #include <mutex>
 
@@ -147,6 +149,15 @@ void emit_pending_file_resource_warnings(Runtime& runtime);
 
 namespace {
 
+std::atomic_bool& gc_collection_active() {
+  static std::atomic_bool active{false};
+  return active;
+}
+
+struct GcCollectionScope {
+  ~GcCollectionScope() { gc_collection_active().store(false, std::memory_order_release); }
+};
+
 struct GcState {
   bool enabled = true;
   std::array<int64_t, 3> thresholds{700, 10, 10};
@@ -186,10 +197,19 @@ bool gc_collect(Runtime& runtime, const Value* args, uint32_t argc, Value& out, 
     error = "gc.collect() generation must be an integer between 0 and 2";
     return false;
   }
+  // Finalizers/native cleanup can call gc.collect recursively or from another
+  // thread. Keep one process-wide collection active through both passes and
+  // snapshot retirement; reentry must not inspect a partly retired graph.
+  if (gc_collection_active().exchange(true, std::memory_order_acq_rel)) {
+    value_set_int64(out, 0);
+    return true;
+  }
+  GcCollectionScope collection_scope;
   runtime.synchronize_modules_from_registry();
   runtime.release_dead_frame_registers();
   emit_pending_socket_resource_warnings(runtime);
-  const uint64_t collected = weakref_collect_cycles(runtime);
+  uint64_t collected = weakref_collect_cycles(runtime);
+  collected += gc_collect_plain_cycles();
   emit_pending_file_resource_warnings(runtime);
   weakref_dispatch_callbacks(runtime);
   value_set_int64(out, static_cast<int64_t>(collected));
