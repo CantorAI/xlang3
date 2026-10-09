@@ -1,0 +1,26 @@
+{
+  "status": "untimed_original_pickle_input_inspection_passed",
+  "terminal": true,
+  "executable": "C:\\Python\\Python314\\python.exe",
+  "version_info": [
+    3,
+    14,
+    7
+  ],
+  "benchmark_source": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\pyperformance\\data-files\\benchmarks\\bm_pickle\\run_benchmark.py",
+  "benchmark_sha256": "31c0e30be79514b45db0d4e858632eb429b0fea3edbac6463ad5f34d92f3cab8",
+  "controller_sha256": "4bf0c90262fd8a2037c6ed6235f9fff3743d6470cf9e77d6811a8e3e8bae6940",
+  "date_occurrences_per_object": {
+    "DICT": 1,
+    "TUPLE": 0,
+    "DICT_GROUP": 0
+  },
+  "static_dump_call_sites_per_object": 20,
+  "objects_per_outer_iteration": 3,
+  "dumps_per_outer_iteration": 60,
+  "pyperf_inner_loops": 20,
+  "source_unchanged": true,
+  "timed": false,
+  "workload_cost_fraction_estimated": false,
+  "limitation": "Input occurrence and AST call counts establish workload structure; they do not measure executed reducer counts or time shares."
+}
