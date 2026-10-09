@@ -207,7 +207,8 @@ X3Status x3_runtime_add_import_root(X3Runtime* runtime, const char* path) {
   if (rt == nullptr || path == nullptr) {
     return fail(rt, "runtime/path is null");
   }
-  rt->add_import_root(std::filesystem::path(path));
+  try {rt->add_import_root(std::filesystem::u8path(path));}
+  catch (const std::exception&) {return fail(rt, "invalid UTF-8 import root");}
   return X3_STATUS_OK;
 }
 
@@ -238,7 +239,8 @@ X3Status x3_runtime_eval_file(X3Runtime* runtime, const char* path, X3Value* res
     return fail(rt, lowered.errors.front());
   }
 
-  rt->prepend_import_root(std::filesystem::path(path).parent_path());
+  try {rt->prepend_import_root(std::filesystem::u8path(path).parent_path());}
+  catch (const std::exception&) {return fail(rt, "invalid UTF-8 source path");}
   xlang3::Interpreter interpreter(*rt);
   auto module = std::make_shared<xlang3::ir::Module>(std::move(lowered.module));
   auto exec_result = interpreter.run(std::move(module));

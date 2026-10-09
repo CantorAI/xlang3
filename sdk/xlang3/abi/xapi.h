@@ -62,6 +62,7 @@ typedef X3Status (*X3EventChanged)(void* context, uint64_t count);
 /* On success the event owns context until replacement or destruction. */
 X3_API X3Status x3_event_set_change_handler(X3Runtime*, X3Value,
     X3EventChanged callback, void* context, void (*cleanup)(void*));
+/* Filesystem path arguments use UTF-8, including Windows Unicode paths. */
 X3_API X3Status x3_runtime_add_import_root(X3Runtime* runtime, const char* path);
 X3_API X3Status x3_runtime_import_remote(X3Runtime* runtime, const char* name,
     const char* endpoint, X3Value* result);

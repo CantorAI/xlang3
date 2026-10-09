@@ -546,6 +546,13 @@ add_test(
   NAME xlang3_native_package_real_tests
   COMMAND xlang3_native_package_real_tests $<TARGET_FILE_DIR:xlang_json_native_package>
 )
+if(WIN32)
+  add_executable(xlang3_utf8_import_root_tests tests/cpp/utf8_import_root_tests.cpp)
+  target_link_libraries(xlang3_utf8_import_root_tests PRIVATE xlang3_runtime)
+  target_compile_definitions(xlang3_utf8_import_root_tests PRIVATE XLANG3_USE_SHARED)
+  add_test(NAME xlang3_utf8_import_root_tests COMMAND xlang3_utf8_import_root_tests $<TARGET_FILE:xlang_json_native_package>)
+  set_tests_properties(xlang3_utf8_import_root_tests PROPERTIES TIMEOUT 30)
+endif()
 
 add_library(xlang1_compat_sample_package SHARED
   tests/cpp/xlang1_compat_package.cpp

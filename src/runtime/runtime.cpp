@@ -2828,7 +2828,7 @@ bool Runtime::import_star(const std::string& module_name, Value& target_module, 
 #if !defined(XLANG3_EMBEDDED)
 void Runtime::add_import_root(std::filesystem::path root) {
   const bool host_path =
-      vfs_->uses_host_paths() && !vfs_->is_mounted_path(root.generic_string());
+      vfs_->uses_host_paths() && !vfs_->is_mounted_path(root.generic_u8string());
   root = normalize_import_root(std::move(root), host_path);
   if (has_import_root(import_roots_, root)) {
     return;
@@ -2838,7 +2838,7 @@ void Runtime::add_import_root(std::filesystem::path root) {
 
 void Runtime::prepend_import_root(std::filesystem::path root) {
   const bool host_path =
-      vfs_->uses_host_paths() && !vfs_->is_mounted_path(root.generic_string());
+      vfs_->uses_host_paths() && !vfs_->is_mounted_path(root.generic_u8string());
   root = normalize_import_root(std::move(root), host_path);
   if (has_import_root(import_roots_, root)) {
     auto found = std::find(import_roots_.begin(), import_roots_.end(), root);
