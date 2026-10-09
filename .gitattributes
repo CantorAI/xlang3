@@ -679,3 +679,10 @@
 /doc/performance/data/frame-locals-retained* -text
 /doc/performance/frame-locals-retirement-checkpoint-20261008.md text eol=lf
 /doc/performance/frame-locals-retirement-checkpoint-20261008.svg text eol=lf
+
+/doc/performance/data/dict-scalar-append* -text
+/doc/performance/data/dict-scalar-append-checkpoint-20261008/** -text
+/doc/performance/data/pickle-frame-locals-retirement-r4* -text
+/doc/performance/dict-scalar-append-runtime-index-trial-20261008.md text eol=lf
+/doc/performance/dict-scalar-append-runtime-index-trial-20261008.svg text eol=lf
+/doc/performance/pickle-memo-index-freshness-investigation-20261008.md text eol=lf

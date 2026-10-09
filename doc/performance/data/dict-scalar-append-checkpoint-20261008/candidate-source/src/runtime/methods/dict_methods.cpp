@@ -1,0 +1,771 @@
+/*
+Copyright (C) 2026 CantorAI Inc. and The XLang Foundation
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+#include "xlang3/builtin_methods.h"
+
+#include "xlang3/functional_iterators.h"
+#include "xlang3/mapping.h"
+#include "xlang3/module_object.h"
+#include "xlang3/object_model.h"
+#include "xlang3/runtime.h"
+#include "xlang3/sequence.h"
+#include "xlang3/value_hash.h"
+
+namespace xlang3 {
+
+namespace {
+
+bool is_key_miss_error(const std::string& error) {
+  return error == "key not found";
+}
+
+bool raise_dict_key_error(Runtime& runtime, const Value& key, std::string& error) {
+  if (is_key_miss_error(error) || error.empty()) {
+    error = value_to_repr(key);
+  }
+  runtime.raise_class_error("KeyError", error);
+  return false;
+}
+
+bool raise_dict_type_error(Runtime& runtime, std::string& error) {
+  runtime.raise_class_error("TypeError", error);
+  return false;
+}
+
+const Value* mappingproxy_protocol_source(const Value& object) {
+  auto* proxy = value_as_mapping_proxy(object);
+  if (proxy == nullptr) {
+    return nullptr;
+  }
+  const Value& source = proxy->source;
+  if (value_as_dict(source) != nullptr ||
+      value_as_module(source) != nullptr ||
+      value_as_class(source) != nullptr ||
+      value_as_mapping_proxy(source) != nullptr) {
+    return nullptr;
+  }
+  return &source;
+}
+
+bool call_mapping_method(
+    Runtime& runtime,
+    const Value& source,
+    const char* name,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error) {
+  Value method;
+  std::string attr_error;
+  if (!object_get_attr(source, name, method, attr_error)) {
+    error = attr_error.empty() ? std::string("mapping object has no ") + name : attr_error;
+    return false;
+  }
+  return runtime_call_callable(runtime, method, args, argc, out, error);
+}
+
+bool mappingproxy_protocol_copy(Runtime& runtime, const Value& source, Value& out, std::string& error) {
+  std::vector<std::pair<Value, Value>> entries;
+  Value iterator;
+  if (!runtime_get_iter(runtime, source, iterator, error)) {
+    return false;
+  }
+  while (true) {
+    bool done = false;
+    Value key;
+    if (!sequence_iter_next(iterator, done, key, error)) {
+      return false;
+    }
+    if (done) {
+      out = Value::dict(std::move(entries));
+      return true;
+    }
+    Value value;
+    if (!call_mapping_method(runtime, source, "__getitem__", &key, 1, value, error)) {
+      return false;
+    }
+    entries.push_back({std::move(key), std::move(value)});
+  }
+}
+
+bool dict_len_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 1, "dict.__len__", error)) {
+    return raise_dict_type_error(runtime, error);
+  }
+  if (const Value* source = mappingproxy_protocol_source(args[0])) {
+    return call_mapping_method(runtime, *source, "__len__", nullptr, 0, out, error);
+  }
+  return mapping_len(args[0], out, error);
+}
+
+bool dict_get_method_impl(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2 && argc != 3) {
+    error = "dict.get expected 2 or 3 arguments, got " + std::to_string(argc);
+    return raise_dict_type_error(runtime, error);
+  }
+  if (const Value* source = mappingproxy_protocol_source(args[0])) {
+    if (call_mapping_method(runtime, *source, "get", args + 1, argc - 1, out, error)) {
+      return true;
+    }
+    Value pending;
+    if (runtime.take_pending_exception(pending)) {
+      runtime.set_pending_exception(std::move(pending));
+      return false;
+    }
+    if (argc == 3) {
+      error.clear();
+      out = args[2];
+      return true;
+    }
+    error.clear();
+    value_set_none(out);
+    return true;
+  }
+  if (mapping_get_item_runtime(runtime, args[0], args[1], out, error, false)) {
+    return true;
+  }
+  // Hash/equality callbacks already transported their Python exception. Keep
+  // that exact owner before interpreting text as a miss or making TypeError.
+  // Successful native lookups do not perform this cold exception transfer.
+  Value pending;
+  if (runtime.take_pending_exception(pending)) {
+    runtime.set_pending_exception(std::move(pending));
+    return false;
+  }
+  if (!is_key_miss_error(error)) {
+    return raise_dict_type_error(runtime, error);
+  }
+  error.clear();
+  out = argc == 3 ? args[2] : Value::none();
+  return true;
+}
+
+bool dict_keys_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 1, "dict.keys", error)) {
+    return raise_dict_type_error(runtime, error);
+  }
+  if (const Value* source = mappingproxy_protocol_source(args[0])) {
+    return call_mapping_method(runtime, *source, "keys", nullptr, 0, out, error);
+  }
+  if (!mapping_is_mapping(args[0])) {
+    error = "dict.keys target is not a mapping";
+    return raise_dict_type_error(runtime, error);
+  }
+  out = mapping_keys_view(args[0]);
+  return true;
+}
+
+bool dict_values_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 1, "dict.values", error)) {
+    return raise_dict_type_error(runtime, error);
+  }
+  if (const Value* source = mappingproxy_protocol_source(args[0])) {
+    return call_mapping_method(runtime, *source, "values", nullptr, 0, out, error);
+  }
+  if (!mapping_is_mapping(args[0])) {
+    error = "dict.values target is not a mapping";
+    return raise_dict_type_error(runtime, error);
+  }
+  out = mapping_values_view(args[0]);
+  return true;
+}
+
+bool dict_items_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 1, "dict.items", error)) {
+    return raise_dict_type_error(runtime, error);
+  }
+  if (const Value* source = mappingproxy_protocol_source(args[0])) {
+    return call_mapping_method(runtime, *source, "items", nullptr, 0, out, error);
+  }
+  if (!mapping_is_mapping(args[0])) {
+    error = "dict.items target is not a mapping";
+    return raise_dict_type_error(runtime, error);
+  }
+  out = mapping_items_view(args[0]);
+  return true;
+}
+
+bool dict_getitem_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 2, "dict.__getitem__", error)) {
+    return raise_dict_type_error(runtime, error);
+  }
+  if (const Value* source = mappingproxy_protocol_source(args[0])) {
+    return call_mapping_method(runtime, *source, "__getitem__", args + 1, 1, out, error);
+  }
+  if (mapping_get_item_runtime(runtime, args[0], args[1], out, error, false)) {
+    return true;
+  }
+  if (!is_key_miss_error(error)) {
+    return raise_dict_type_error(runtime, error);
+  }
+  if (value_as_instance(args[0]) == nullptr) {
+    return raise_dict_key_error(runtime, args[1], error);
+  }
+  if (mapping_call_missing(runtime, args[0], args[1], out, error)) {
+    return true;
+  }
+  if (is_key_miss_error(error)) {
+    return raise_dict_key_error(runtime, args[1], error);
+  }
+  return false;
+}
+
+bool dict_delitem_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 2, "dict.__delitem__", error)) {
+    return raise_dict_type_error(runtime, error);
+  }
+  Value target = args[0];
+  if (!mapping_delete_item(target, args[1], error)) {
+    if (is_key_miss_error(error)) {
+      return raise_dict_key_error(runtime, args[1], error);
+    }
+    return raise_dict_type_error(runtime, error);
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool dict_contains_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 2, "dict.__contains__", error)) {
+    return raise_dict_type_error(runtime, error);
+  }
+  if (const Value* source = mappingproxy_protocol_source(args[0])) {
+    return call_mapping_method(runtime, *source, "__contains__", args + 1, 1, out, error);
+  }
+  Value ignored;
+  std::string get_error;
+  if (mapping_get_item_runtime(runtime, args[0], args[1], ignored, get_error, false)) {
+    value_set_bool(out, true);
+    return true;
+  }
+  if (!is_key_miss_error(get_error)) {
+    error = std::move(get_error);
+    return raise_dict_type_error(runtime, error);
+  }
+  error.clear();
+  value_set_bool(out, false);
+  return true;
+}
+
+bool dict_view_contains_method(Runtime& runtime, const Value* args, uint32_t argc,
+                               Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 2, "dict view.__contains__", error)) {
+    return raise_dict_type_error(runtime, error);
+  }
+  bool contains = false;
+  if (!mapping_contains(args[0], args[1], contains, error)) {
+    return raise_dict_type_error(runtime, error);
+  }
+  value_set_bool(out, contains);
+  return true;
+}
+
+bool dict_iter_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 1, "dict.__iter__", error)) {
+    return raise_dict_type_error(runtime, error);
+  }
+  if (const Value* source = mappingproxy_protocol_source(args[0])) {
+    Value keys;
+    if (!call_mapping_method(runtime, *source, "keys", nullptr, 0, keys, error)) {
+      return false;
+    }
+    return runtime_get_iter(runtime, keys, out, error);
+  }
+  return mapping_get_iter(args[0], out, error);
+}
+
+bool dict_eq_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 2, "dict.__eq__", error)) {
+    return false;
+  }
+  auto storage = [](const Value& value) -> DictObject* {
+    if (auto* dict = value_as_dict(value)) return dict;
+    if (auto* instance = value_as_instance(value)) return value_as_dict(instance->mapping_storage);
+    return nullptr;
+  };
+  auto* left = storage(args[0]);
+  auto* right = storage(args[1]);
+  if (left == nullptr || right == nullptr) {
+    value_set_bool(out, false);
+    return true;
+  }
+  if (left->entries.size() != right->entries.size()) {
+    value_set_bool(out, false);
+    return true;
+  }
+  for (const auto& entry : left->entries) {
+    Value right_value;
+    if (!mapping_get_item(args[1], entry.first, right_value, error)) {
+      value_set_bool(out, false);
+      return true;
+    }
+    Value equal;
+    if (!runtime_value_compare(runtime, "==", entry.second, right_value, equal, error)) {
+      return false;
+    }
+    if (!value_truthy(equal)) {
+      value_set_bool(out, false);
+      return true;
+    }
+  }
+  value_set_bool(out, true);
+  return true;
+}
+
+bool dict_pop_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2 && argc != 3) {
+    error = "dict.pop expected 2 or 3 arguments, got " + std::to_string(argc);
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (!mapping_is_mapping(args[0])) {
+    error = "dict.pop target is not a mapping";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  size_t ignored = 0;
+  if (!value_hash_key(args[1], ignored, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value target = args[0];
+  // CPython's native dict methods operate on the dict storage of subclasses;
+  // they do not dispatch an overridden __getitem__ or __delitem__.
+  if (mapping_get_item_runtime(runtime, target, args[1], out, error, false)) {
+    std::string delete_error;
+    mapping_delete_item_runtime(runtime, target, args[1], delete_error);
+    return true;
+  }
+  if (argc == 3) {
+    error.clear();
+    out = args[2];
+    return true;
+  }
+  return raise_dict_key_error(runtime, args[1], error);
+}
+
+bool dict_clear_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 1, "dict.clear", error)) {
+    return raise_dict_type_error(runtime, error);
+  }
+  Value target = args[0];
+  if (!mapping_clear(target, error)) {
+    return raise_dict_type_error(runtime, error);
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool dict_copy_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 1, "dict.copy", error)) {
+    return raise_dict_type_error(runtime, error);
+  }
+  if (const Value* source = mappingproxy_protocol_source(args[0])) {
+    return mappingproxy_protocol_copy(runtime, *source, out, error);
+  }
+  if (!mapping_is_mapping(args[0])) {
+    error = "dict.copy target is not a mapping";
+    return raise_dict_type_error(runtime, error);
+  }
+  out = mapping_copy(args[0]);
+  return true;
+}
+
+bool dict_popitem_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 1, "dict.popitem", error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value target = args[0];
+  if (!mapping_is_mapping(target)) {
+    error = "dict.popitem target is not a mapping";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (!mapping_popitem(target, out, error)) {
+    runtime.raise_class_error("KeyError", error);
+    return false;
+  }
+  return true;
+}
+
+bool dict_setdefault_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2 && argc != 3) {
+    error = "dict.setdefault expected 2 or 3 arguments, got " + std::to_string(argc);
+    return raise_dict_type_error(runtime, error);
+  }
+  if (!mapping_is_mapping(args[0])) {
+    error = "dict.setdefault target is not a mapping";
+    return raise_dict_type_error(runtime, error);
+  }
+  Value target = args[0];
+  // Native setdefault queries storage, not Python __getitem__/__missing__.
+  // Sharing the subscript dispatcher here would both allocate callbacks and
+  // return a missing-hook result without inserting the requested default.
+  if (mapping_get_item_runtime(runtime, target, args[1], out, error, false)) {
+    return true;
+  }
+  if (!is_key_miss_error(error)) {
+    return raise_dict_type_error(runtime, error);
+  }
+  error.clear();
+  const Value& default_value = argc == 3 ? args[2] : Value::none();
+  if (!mapping_set_item_runtime(runtime, target, args[1], default_value, error)) {
+    return raise_dict_type_error(runtime, error);
+  }
+  value_assign_fast(out, default_value);
+  return true;
+}
+
+bool update_one_mapping_or_pairs(Runtime& runtime, Value& target, const Value& source, std::string& error) {
+  if (mapping_is_mapping(source)) {
+    Value iterator;
+    if (!mapping_get_iter(source, iterator, error)) {
+      return false;
+    }
+    while (true) {
+      bool done = false;
+      Value key;
+      if (!mapping_iter_next(iterator, done, key, error)) {
+        return false;
+      }
+      if (done) {
+        return true;
+      }
+      Value value;
+      if (!mapping_get_item_runtime(runtime, source, key, value, error) ||
+          !mapping_set_item_runtime(runtime, target, key, value, error)) {
+        return false;
+      }
+    }
+  }
+
+  Value keys_method;
+  std::string attr_error;
+  if (object_get_attr(source, "keys", keys_method, attr_error)) {
+    Value keys_result;
+    if (!runtime_call_callable(runtime, keys_method, nullptr, 0, keys_result, error)) {
+      return false;
+    }
+    Value getitem_method;
+    if (!object_get_attr(source, "__getitem__", getitem_method, attr_error)) {
+      error = "mapping object has no __getitem__";
+      return false;
+    }
+    std::vector<Value> keys;
+    if (!runtime_collect_iterable(runtime, keys_result, keys, error)) {
+      return false;
+    }
+    for (const auto& key : keys) {
+      Value value;
+      if (!runtime_call_callable(runtime, getitem_method, &key, 1, value, error) ||
+          !mapping_set_item_runtime(runtime, target, key, value, error)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  Value iterator;
+  if (!runtime_get_iter(runtime, source, iterator, error)) {
+    return false;
+  }
+  while (true) {
+    bool done = false;
+    Value pair;
+    if (!sequence_iter_next(iterator, done, pair, error)) {
+      return false;
+    }
+    if (done) {
+      return true;
+    }
+    Value key;
+    Value value;
+    if (auto* tuple = value_as_tuple(pair)) {
+      if (tuple->items.size() != 2) {
+        error = "dictionary update sequence element has length " + std::to_string(tuple->items.size()) + "; 2 is required";
+        runtime.raise_class_error("ValueError", error);
+        return false;
+      }
+      key = tuple->items[0];
+      value = tuple->items[1];
+    } else if (auto* list = value_as_list(pair)) {
+      if (list->items.size() != 2) {
+        error = "dictionary update sequence element has length " + std::to_string(list->items.size()) + "; 2 is required";
+        runtime.raise_class_error("ValueError", error);
+        return false;
+      }
+      key = list->items[0];
+      value = list->items[1];
+    } else {
+      error = "dictionary update sequence element is not a pair";
+      runtime.raise_class_error("ValueError", error);
+      return false;
+    }
+    if (!mapping_set_item_runtime(runtime, target, key, value, error)) {
+      return false;
+    }
+  }
+}
+
+bool dict_update_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc > 2) {
+    error = "dict.update expected at most 1 positional argument, got " + std::to_string(argc - 1);
+    return raise_dict_type_error(runtime, error);
+  }
+  if (!mapping_is_mapping(args[0])) {
+    error = "dict.update target is not a mapping";
+    return raise_dict_type_error(runtime, error);
+  }
+  if (argc == 2) {
+    Value target = args[0];
+    if (!update_one_mapping_or_pairs(runtime, target, args[1], error)) {
+      Value pending;
+      if (runtime.take_pending_exception(pending)) {
+        runtime.set_pending_exception(std::move(pending));
+        return false;
+      }
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool dict_update_method_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  if (!dict_update_method(runtime, args, argc, out, error, user_data)) {
+    return false;
+  }
+  Value target = args[0];
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    if (kwargs[i].name == nullptr || kwargs[i].value == nullptr) {
+      continue;
+    }
+    if (!mapping_set_item(target, Value::string(kwargs[i].name), *kwargs[i].value, error)) {
+      return false;
+    }
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool dict_setitem_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (!method_check_argc(argc, 3, "dict.__setitem__", error)) {
+    return raise_dict_type_error(runtime, error);
+  }
+  Value target = args[0];
+  if (auto* instance = value_as_instance(target)) {
+    if (value_as_dict(instance->mapping_storage) != nullptr) {
+      target = instance->mapping_storage;
+    }
+  }
+  if (!mapping_set_item_runtime(runtime, target, args[1], args[2], error)) {
+    return raise_dict_type_error(runtime, error);
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool dict_fromkeys_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 2 || argc > 3) {
+    error = "dict.fromkeys expected iterable and optional value";
+    return false;
+  }
+  Value result;
+  if (auto* klass = value_as_class(args[0]); klass != nullptr && klass->name != "dict") {
+    if (!runtime_call_callable(runtime, args[0], nullptr, 0, result, error)) {
+      return false;
+    }
+    if (!mapping_is_mapping(result)) {
+      error = "dict.fromkeys class did not create a mapping";
+      return false;
+    }
+  } else {
+    result = Value::dict({});
+  }
+  const Value fill = argc == 3 ? args[2] : Value::none();
+  Value iterator;
+  if (!runtime_get_iter(runtime, args[1], iterator, error)) {
+    return false;
+  }
+  while (true) {
+    bool done = false;
+    Value key;
+    if (!sequence_iter_next(iterator, done, key, error)) {
+      return false;
+    }
+    if (done) {
+      out = std::move(result);
+      return true;
+    }
+    if (!mapping_set_item_runtime(runtime, result, key, fill, error)) {
+      Value pending;
+      if (runtime.take_pending_exception(pending)) {
+        runtime.set_pending_exception(std::move(pending));
+      } else {
+        if (error.rfind("unhashable type:", 0) == 0) {
+          error = "cannot use '" + std::string(value_binary_type_name(key)) +
+                  "' as a dict key (" + error + ")";
+        }
+        runtime.raise_class_error("TypeError", error);
+      }
+      return false;
+    }
+  }
+}
+
+} // namespace
+
+Value make_dict_fromkeys_classmethod() {
+  Value function = Value::native_function(
+      0, "dict.fromkeys", dict_fromkeys_method, nullptr, nullptr,
+      builtin_method_fast_adapter<dict_fromkeys_method, 3>);
+  builtin_method_set_text_signature(function, "($type, iterable, value=None, /)");
+  return Value::class_method(std::move(function));
+}
+
+static BuiltinMethodSpec kDictMethods[] = {
+    {"__contains__", "dict.__contains__", dict_contains_method,
+     builtin_method_fast_adapter<dict_contains_method, 2>},
+    {"__delitem__", "dict.__delitem__", dict_delitem_method},
+    {"__eq__", "dict.__eq__", dict_eq_method},
+    {"__getitem__", "dict.__getitem__", dict_getitem_method,
+     builtin_method_fast_adapter<dict_getitem_method, 2>},
+    {"__iter__", "dict.__iter__", dict_iter_method},
+    {"__len__", "dict.__len__", dict_len_method,
+     builtin_method_fast_adapter<dict_len_method, 1>},
+    {"__setitem__", "dict.__setitem__", dict_setitem_method,
+     builtin_method_fast_adapter<dict_setitem_method, 3>},
+    {"clear", "dict.clear", dict_clear_method},
+    {"copy", "dict.copy", dict_copy_method},
+    {"get", "dict.get", dict_get_method_impl,
+     builtin_method_fast_adapter<dict_get_method_impl, 3>},
+    {"items", "dict.items", dict_items_method,
+     builtin_method_fast_adapter<dict_items_method, 1>},
+    {"keys", "dict.keys", dict_keys_method,
+     builtin_method_fast_adapter<dict_keys_method, 1>},
+    {"pop", "dict.pop", dict_pop_method,
+     builtin_method_fast_adapter<dict_pop_method, 3>},
+    {"popitem", "dict.popitem", dict_popitem_method},
+    {"setdefault", "dict.setdefault", dict_setdefault_method,
+     builtin_method_fast_adapter<dict_setdefault_method, 3>},
+    {"update", "dict.update", dict_update_method,
+     builtin_method_fast_adapter<dict_update_method, 2>, false, dict_update_method_kw},
+    {"values", "dict.values", dict_values_method,
+     builtin_method_fast_adapter<dict_values_method, 1>},
+};
+
+static BuiltinMethodSpec kMappingProxyMethods[] = {
+    {"__contains__", "mappingproxy.__contains__", dict_contains_method,
+     builtin_method_fast_adapter<dict_contains_method, 2>},
+    {"__getitem__", "mappingproxy.__getitem__", dict_getitem_method,
+     builtin_method_fast_adapter<dict_getitem_method, 2>},
+    {"__iter__", "mappingproxy.__iter__", dict_iter_method},
+    {"__len__", "mappingproxy.__len__", dict_len_method,
+     builtin_method_fast_adapter<dict_len_method, 1>},
+    {"copy", "mappingproxy.copy", dict_copy_method},
+    {"get", "mappingproxy.get", dict_get_method_impl,
+     builtin_method_fast_adapter<dict_get_method_impl, 3>},
+    {"items", "mappingproxy.items", dict_items_method,
+     builtin_method_fast_adapter<dict_items_method, 1>},
+    {"keys", "mappingproxy.keys", dict_keys_method,
+     builtin_method_fast_adapter<dict_keys_method, 1>},
+    {"values", "mappingproxy.values", dict_values_method,
+     builtin_method_fast_adapter<dict_values_method, 1>},
+};
+
+static BuiltinMethodSpec kDictViewMethods[] = {
+    {"__contains__", "dict_keys.__contains__", dict_view_contains_method,
+     builtin_method_fast_adapter<dict_view_contains_method, 2>},
+};
+
+const BuiltinMethodSpec* dict_find_method_spec(const Value& object, const std::string& name) {
+  const BuiltinMethodSpec* methods = kDictMethods;
+  size_t method_count = std::size(kDictMethods);
+  if (value_as_mapping_proxy(object) != nullptr) {
+    methods = kMappingProxyMethods;
+    method_count = std::size(kMappingProxyMethods);
+  } else if (auto* view = value_as_dict_view(object)) {
+    if (view->kind == DictIterationKind::Values) return nullptr;
+    methods = kDictViewMethods;
+    method_count = std::size(kDictViewMethods);
+  } else if (value_as_dict(object) == nullptr) {
+    return nullptr;
+  }
+  for (size_t index = 0; index < method_count; ++index) {
+    if (name == methods[index].name) return &methods[index];
+  }
+  return nullptr;
+}
+
+bool dict_get_method(const Value& object, const std::string& name, Value& out) {
+  if (value_as_mapping_proxy(object) != nullptr) {
+    return bind_builtin_method_from_table(object, name, kMappingProxyMethods, std::size(kMappingProxyMethods), out);
+  }
+  if (auto* view = value_as_dict_view(object)) {
+    if (view->kind == DictIterationKind::Values) return false;
+    return bind_builtin_method_from_table(object, name, kDictViewMethods,
+                                          std::size(kDictViewMethods), out);
+  }
+  if (value_as_dict(object) == nullptr && value_as_module(object) == nullptr) {
+    return false;
+  }
+  return bind_builtin_method_from_table(object, name, kDictMethods, std::size(kDictMethods), out);
+}
+
+bool dict_install_class_methods(Runtime& runtime, ClassObject& dict_class) {
+  for (const auto& method : kDictMethods) {
+    dict_class.attrs[method.name] =
+        runtime.make_native_function(
+            method.full_name,
+            method.callback,
+            nullptr,
+            nullptr,
+            method.fast_callback,
+            method.fast_releases_vm_lock,
+            method.keyword_callback);
+  }
+  dict_class.has_descriptors = true;
+  dict_class.version = next_class_version_tag();
+  return true;
+}
+
+bool dict_is_canonical_getitem(const NativeFunctionObject& function) {
+  // A native function's display name is not proof of its implementation.
+  return function.callback == dict_getitem_method &&
+      function.fast_callback == builtin_method_fast_adapter<dict_getitem_method, 2> &&
+      function.keyword_callback == nullptr && function.user_data == nullptr &&
+      function.bind_as_descriptor && !function.capture_expressions &&
+      !function.fast_releases_vm_lock;
+}
+
+bool dict_install_view_class_methods(Runtime& runtime, ClassObject& view_class) {
+  view_class.attrs["__contains__"] = runtime.make_native_function(
+      "dict view.__contains__", dict_view_contains_method, nullptr, nullptr,
+      builtin_method_fast_adapter<dict_view_contains_method, 2>);
+  view_class.has_descriptors = true;
+  view_class.version = next_class_version_tag();
+  return true;
+}
+
+} // namespace xlang3

@@ -1,0 +1,1844 @@
+/*
+Copyright (C) 2026 CantorAI Inc. and The XLang Foundation
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+#include "xlang3/sequence.h"
+#include "runtime/memory/object_cache_lifetime.h"
+
+#include "xlang3/functional_iterators.h"
+#include "xlang3/generator.h"
+#include "xlang3/attribute.h"
+#include "xlang3/mapping.h"
+#include "xlang3/module_object.h"
+#include "xlang3/object_model.h"
+#include "xlang3/perf_counters.h"
+#include "xlang3/runtime.h"
+#include "xlang3/set_object.h"
+
+#include <algorithm>
+#include <array>
+#include <cstddef>
+#include <cstdint>
+#include <cstdlib>
+#include <cstring>
+#include <limits>
+#include <string>
+#include <string_view>
+#include <utility>
+
+namespace xlang3 {
+
+namespace {
+
+template <typename T>
+T* allocate_sequence_object(ObjectKind kind) {
+  auto* obj = new T();
+  obj->header.kind = kind;
+  obj->header.refcnt = 1;
+  xlang_perf_count_object_alloc(kind);
+  gc_track_object(&obj->header);
+  return obj;
+}
+
+struct ListObjectFreeList {
+  ~ListObjectFreeList() {
+    memory::object_caches_alive = false;
+    for (auto* object : items) {
+      delete object;
+    }
+    for (auto* iterator : sequence_iterators) {
+      delete iterator;
+    }
+  }
+
+  std::vector<ListObject*> items;
+  std::vector<SequenceIteratorObject*> sequence_iterators;
+};
+
+thread_local ListObjectFreeList list_object_free_list;
+
+ListObject* allocate_list_object() {
+  xlang_perf_count_object_alloc(ObjectKind::List);
+  if (memory::object_caches_alive && !list_object_free_list.items.empty()) {
+    auto* obj = list_object_free_list.items.back();
+    list_object_free_list.items.pop_back();
+    obj->header.kind = ObjectKind::List;
+    obj->header.refcnt = 1;
+    gc_track_object(&obj->header);
+    return obj;
+  }
+  auto* obj = new ListObject();
+  obj->header.kind = ObjectKind::List;
+  obj->header.refcnt = 1;
+  gc_track_object(&obj->header);
+  return obj;
+}
+
+void recycle_list_object(ListObject* object) {
+  object->items.clear();
+  if (memory::object_caches_alive && list_object_free_list.items.size() < 4096) {
+    list_object_free_list.items.push_back(object);
+    return;
+  }
+  delete object;
+}
+
+SequenceIteratorObject* allocate_sequence_iterator_object() {
+  xlang_perf_count_object_alloc(ObjectKind::SequenceIterator);
+  if (memory::object_caches_alive && !list_object_free_list.sequence_iterators.empty()) {
+    auto* obj = list_object_free_list.sequence_iterators.back();
+    list_object_free_list.sequence_iterators.pop_back();
+    obj->header.kind = ObjectKind::SequenceIterator;
+    obj->header.refcnt = 1;
+    gc_track_object(&obj->header);
+    return obj;
+  }
+  auto* obj = new SequenceIteratorObject();
+  obj->header.kind = ObjectKind::SequenceIterator;
+  obj->header.refcnt = 1;
+  gc_track_object(&obj->header);
+  return obj;
+}
+
+void recycle_sequence_iterator_object(SequenceIteratorObject* object) {
+  value_set_invalid(object->source);
+  object->index = 0;
+  if (memory::object_caches_alive && list_object_free_list.sequence_iterators.size() < 1024) {
+    list_object_free_list.sequence_iterators.push_back(object);
+    return;
+  }
+  delete object;
+}
+
+std::string repr_items(const std::vector<Value>& items, const char* open, const char* close) {
+  std::string text = open;
+  for (size_t i = 0; i < items.size(); ++i) {
+    if (i != 0) {
+      text += ", ";
+    }
+    text += value_to_repr(items[i]);
+  }
+  text += close;
+  return text;
+}
+
+bool normalize_index(int64_t raw_index, uint64_t size, uint64_t& out) {
+  int64_t index = raw_index;
+  const auto signed_size = static_cast<int64_t>(size);
+  if (index < 0) {
+    index += signed_size;
+  }
+  if (index < 0 || index >= signed_size) {
+    return false;
+  }
+  out = static_cast<uint64_t>(index);
+  return true;
+}
+
+bool sequence_integer_index(const Value& value, int64_t& out) {
+  if (value.tag == ValueTag::Int64) {
+    out = value.as.i64;
+    return true;
+  }
+  if (value.tag == ValueTag::Bool) {
+    out = value.as.b ? 1 : 0;
+    return true;
+  }
+  // Integer subclasses (including IntEnum) retain their underlying value in
+  // the runtime's integer slot. An ordinary Enum has no such slot.
+  if (value_as_instance(value) != nullptr) {
+    Value integer;
+    std::string ignored;
+    if (object_get_attr(value, "__xlang3_int_value__", integer, ignored) &&
+        integer.tag == ValueTag::Int64) {
+      out = integer.as.i64;
+      return true;
+    }
+  }
+  return false;
+}
+
+int64_t range_length(int64_t start, int64_t stop, int64_t step) {
+  if (step > 0) {
+    if (start >= stop) {
+      return 0;
+    }
+    return ((stop - start - 1) / step) + 1;
+  }
+  if (start <= stop) {
+    return 0;
+  }
+  const int64_t neg_step = -step;
+  return ((start - stop - 1) / neg_step) + 1;
+}
+
+size_t normalized_slice_length(int64_t start, int64_t stop, int64_t step) {
+  if (step > 0) {
+    if (start >= stop) return 0;
+    return static_cast<size_t>((stop - start - 1) / step + 1);
+  }
+  if (start <= stop) return 0;
+  // Avoid negating INT64_MIN; normalized slice bounds keep this distance
+  // positive and no larger than the source sequence.
+  const uint64_t step_magnitude = static_cast<uint64_t>(-(step + 1)) + 1;
+  const uint64_t distance = static_cast<uint64_t>(start - stop - 1);
+  return static_cast<size_t>(distance / step_magnitude + 1);
+}
+
+template <typename Callback>
+void for_slice_indices(int64_t start, int64_t stop, int64_t step, Callback callback) {
+  // A final i += step can overflow even when the slice contains one item.
+  // Count first and advance only when another valid index remains. This keeps
+  // huge-step list/tuple/binary oracles correct and never probes outside storage.
+  int64_t index = start;
+  for (size_t remaining = normalized_slice_length(start, stop, step); remaining != 0; --remaining) {
+    callback(index);
+    if (remaining > 1) index += step;
+  }
+}
+
+bool slice_part_to_i64(const Value& value, int64_t& out, bool& is_none, std::string& error) {
+  is_none = value.tag == ValueTag::None;
+  if (is_none) {
+    out = 0;
+    return true;
+  }
+  if (value.tag == ValueTag::Int64) {
+    out = value.as.i64;
+    return true;
+  }
+  if (value.tag == ValueTag::Bool) {
+    // bool implements Python's integer index protocol for slices.
+    out = value.as.b ? 1 : 0;
+    return true;
+  }
+  if (value_as_bigint(value) != nullptr) {
+    if (!value_bigint_to_i64(value, out)) {
+      bool negative = false;
+      const uint32_t* limbs = nullptr;
+      uint32_t count = 0;
+      value_bigint_limb_view(value, negative, limbs, count);
+      out = negative ? std::numeric_limits<int64_t>::min()
+                     : std::numeric_limits<int64_t>::max();
+    }
+    return true;
+  }
+  if (value.tag != ValueTag::Int64) {
+    error = "slice indices must be integers or None";
+    return false;
+  }
+  return false;
+}
+
+bool normalize_slice(const SliceObject& slice, int64_t length, int64_t& start, int64_t& stop, int64_t& step, std::string& error) {
+  bool start_none = false;
+  bool stop_none = false;
+  bool step_none = false;
+  if (!slice_part_to_i64(slice.step, step, step_none, error) ||
+      !slice_part_to_i64(slice.start, start, start_none, error) ||
+      !slice_part_to_i64(slice.stop, stop, stop_none, error)) {
+    return false;
+  }
+  if (step_none) {
+    step = 1;
+  }
+  if (step == 0) {
+    error = "slice step cannot be zero";
+    return false;
+  }
+  if (start_none) {
+    start = step < 0 ? length - 1 : 0;
+  } else {
+    if (start < 0) start += length;
+    if (step < 0) {
+      if (start < 0) start = -1;
+      if (start >= length) start = length - 1;
+    } else {
+      if (start < 0) start = 0;
+      if (start > length) start = length;
+    }
+  }
+  if (stop_none) {
+    stop = step < 0 ? -1 : length;
+  } else {
+    if (stop < 0) stop += length;
+    if (step < 0) {
+      if (stop < 0) stop = -1;
+      if (stop >= length) stop = length - 1;
+    } else {
+      if (stop < 0) stop = 0;
+      if (stop > length) stop = length;
+    }
+  }
+  return true;
+}
+
+struct BinaryStorageView {
+  const char* data = nullptr;
+  size_t size = 0;
+  bool readonly = true;
+};
+
+BinaryStorageView binary_storage(const Value& value) {
+  if (auto* bytes = value_as_bytes(value)) {
+    const auto view = bytes_object_view(*bytes);
+    return BinaryStorageView{view.data(), view.size(), true};
+  }
+  if (auto* bytearray = value_as_bytearray(value)) {
+    return BinaryStorageView{bytearray->value.data(), bytearray->value.size(), false};
+  }
+  if (auto* view = value_as_memoryview(value)) {
+    if (view->released) {
+      return {};
+    }
+    const auto storage = memoryview_owner_view(*view);
+    return BinaryStorageView{storage.data(), storage.size(), memoryview_owner_writable_data(*view) == nullptr};
+  }
+  return {};
+}
+
+bool memoryview_byte_offset(
+    const MemoryViewObject& view,
+    const Value& index,
+    size_t& byte_offset,
+    std::string& error) {
+  const size_t itemsize = memoryview_format_itemsize(view.format);
+  if (itemsize == 0 || view.size % itemsize != 0) {
+    error = "unsupported memoryview format";
+    return false;
+  }
+  const size_t ndim = view.shape.empty() ? 1 : view.shape.size();
+  const auto* tuple = value_as_tuple(index);
+  if (tuple == nullptr && ndim != 1) {
+    error = "multi-dimensional sub-views are not implemented";
+    return false;
+  }
+  if (tuple != nullptr && tuple->items.size() != ndim) {
+    error = "memoryview: invalid slice key";
+    return false;
+  }
+  byte_offset = view.offset;
+  for (size_t dimension = 0; dimension < ndim; ++dimension) {
+    const Value& component = tuple == nullptr ? index : tuple->items[dimension];
+    int64_t raw_index = 0;
+    if (!sequence_integer_index(component, raw_index)) {
+      error = "memoryview: invalid slice key";
+      return false;
+    }
+    const int64_t extent = view.shape.empty()
+        ? static_cast<int64_t>(view.size / itemsize)
+        : view.shape[dimension];
+    uint64_t resolved = 0;
+    if (!normalize_index(raw_index, static_cast<uint64_t>(extent), resolved)) {
+      error = "index out of bounds on dimension " + std::to_string(dimension + 1);
+      return false;
+    }
+    // Offsets are relative to the physical owner, including a negative stride.
+    // Never reinterpret a strided export as compact snapshot storage.
+    const int64_t stride = view.strides.empty()
+        ? static_cast<int64_t>(itemsize)
+        : view.strides[dimension];
+    byte_offset += static_cast<size_t>(resolved) * static_cast<size_t>(stride);
+  }
+  return true;
+}
+
+bool memoryview_decode_scalar(
+    const MemoryViewObject& view,
+    const char* storage,
+    size_t byte_offset,
+    Value& out,
+    std::string& error) {
+  const size_t itemsize = memoryview_format_itemsize(view.format);
+  const auto owner_size = memoryview_owner_view(view).size();
+  if (byte_offset > owner_size || itemsize > owner_size - byte_offset) {
+    error = "memoryview index out of range";
+    return false;
+  }
+  const char code = view.format.empty() ? 'B' : view.format.back();
+  if (code == 'c') {
+    out = Value::bytes(std::string(storage + byte_offset, 1));
+    return true;
+  }
+  if (code == '?') {
+    value_set_bool(out, storage[byte_offset] != 0);
+    return true;
+  }
+  if (code == 'f') {
+    float value = 0.0f;
+    std::memcpy(&value, storage + byte_offset, sizeof(value));
+    out = Value::number(static_cast<double>(value));
+    return true;
+  }
+  if (code == 'd') {
+    double value = 0.0;
+    std::memcpy(&value, storage + byte_offset, sizeof(value));
+    out = Value::number(value);
+    return true;
+  }
+  uint64_t raw = 0;
+  std::memcpy(&raw, storage + byte_offset, itemsize);
+  const bool signed_format = code == 'b' || code == 'h' || code == 'i' ||
+      code == 'l' || code == 'q' || code == 'n';
+  if (signed_format) {
+    if (itemsize < sizeof(raw)) {
+      const uint64_t sign_bit = uint64_t{1} << (itemsize * 8 - 1);
+      if ((raw & sign_bit) != 0) raw |= (~uint64_t{0}) << (itemsize * 8);
+    }
+    value_set_int64(out, static_cast<int64_t>(raw));
+  } else {
+    out = value_bigint_from_u64(raw);
+  }
+  return true;
+}
+
+bool memoryview_encode_scalar(
+    const MemoryViewObject& view,
+    const Value& item,
+    char* storage,
+    size_t byte_offset,
+    std::string& error) {
+  const size_t itemsize = memoryview_format_itemsize(view.format);
+  const auto owner_size = memoryview_owner_view(view).size();
+  if (byte_offset > owner_size || itemsize > owner_size - byte_offset) {
+    error = "memoryview index out of range";
+    return false;
+  }
+  const char code = view.format.empty() ? 'B' : view.format.back();
+  if (code == 'c') {
+    const auto bytes = binary_storage(item);
+    if (bytes.data == nullptr || bytes.size != 1) {
+      error = "memoryview: invalid type for format 'c'";
+      return false;
+    }
+    storage[byte_offset] = bytes.data[0];
+    return true;
+  }
+  if (code == 'f' || code == 'd') {
+    double number = 0.0;
+    if (item.tag == ValueTag::Double) number = item.as.f64;
+    else if (item.tag == ValueTag::Int64) number = static_cast<double>(item.as.i64);
+    else {
+      error = std::string("memoryview: invalid type for format '") + code + "'";
+      return false;
+    }
+    if (code == 'f') {
+      const float value = static_cast<float>(number);
+      std::memcpy(storage + byte_offset, &value, sizeof(value));
+    } else {
+      std::memcpy(storage + byte_offset, &number, sizeof(number));
+    }
+    return true;
+  }
+  if (code == '?') {
+    storage[byte_offset] = value_truthy(item) ? 1 : 0;
+    return true;
+  }
+  const bool signed_format = code == 'b' || code == 'h' || code == 'i' ||
+      code == 'l' || code == 'q' || code == 'n';
+  uint64_t raw = 0;
+  if (signed_format) {
+    int64_t integer = 0;
+    if (!value_int_like_to_i64(item, integer)) {
+      error = std::string("memoryview: invalid type for format '") + code + "'";
+      return false;
+    }
+    if (itemsize < sizeof(integer)) {
+      const int64_t minimum = -(int64_t{1} << (itemsize * 8 - 1));
+      const int64_t maximum = (int64_t{1} << (itemsize * 8 - 1)) - 1;
+      if (integer < minimum || integer > maximum) {
+        error = "memoryview: invalid value for format";
+        return false;
+      }
+    }
+    raw = static_cast<uint64_t>(integer);
+  } else {
+    if (item.tag == ValueTag::Int64 && item.as.i64 >= 0) raw = static_cast<uint64_t>(item.as.i64);
+    else if (!value_bigint_to_u64(item, raw)) {
+      error = std::string("memoryview: invalid type for format '") + code + "'";
+      return false;
+    }
+    if (itemsize < sizeof(raw) && raw >= (uint64_t{1} << (itemsize * 8))) {
+      error = "memoryview: invalid value for format";
+      return false;
+    }
+  }
+  std::memcpy(storage + byte_offset, &raw, itemsize);
+  return true;
+}
+
+bool struct_sequence_storage(const Value& value, Value& out) {
+  if (value_as_instance(value) == nullptr) {
+    return false;
+  }
+  std::string ignored;
+  if (!object_get_attr(value, "__xlang3_tuple_value__", out, ignored)) {
+    return false;
+  }
+  return value_as_tuple(out) != nullptr;
+}
+
+std::string binary_slice_text(std::string_view storage, int64_t start, int64_t stop, int64_t step) {
+  std::string text;
+  for_slice_indices(start, stop, step, [&](int64_t i) {
+    text.push_back(storage[static_cast<size_t>(i)]);
+  });
+  return text;
+}
+
+std::string utf8_slice_text(const StringObject& storage, int64_t start, int64_t stop, int64_t step) {
+  const auto text = string_object_view(storage);
+  if (step == 1) {
+    if (stop <= start) return {};
+    const size_t first = string_object_byte_offset(storage, static_cast<size_t>(start));
+    const size_t last = string_object_byte_offset(storage, static_cast<size_t>(stop));
+    return std::string(text.substr(first, last - first));
+  }
+  // A tiny slice must not build offsets for every character of its source.
+  // Reuse immutable indexing metadata; count selected elements so enormous
+  // positive/negative steps never overflow while advancing past the last one.
+  if ((step > 0 && start >= stop) || (step < 0 && start <= stop)) return {};
+  const uint64_t distance = static_cast<uint64_t>(step > 0 ? stop - start : start - stop);
+  const uint64_t magnitude = step > 0 ? static_cast<uint64_t>(step) : 0 - static_cast<uint64_t>(step);
+  uint64_t remaining = (distance - 1) / magnitude + 1;
+  std::string result;
+  for (int64_t index = start; remaining != 0; --remaining) {
+    result.append(string_object_codepoint_at(storage, static_cast<size_t>(index)));
+    if (remaining > 1) index += step;
+  }
+  return result;
+}
+
+bool int_to_byte(const Value& value, unsigned char& out, std::string& error) {
+  if (value.tag != ValueTag::Int64 || value.as.i64 < 0 || value.as.i64 > 255) {
+    error = "byte must be in range(0, 256)";
+    return false;
+  }
+  out = static_cast<unsigned char>(value.as.i64);
+  return true;
+}
+
+bool collect_byte_replacement(const Value& value, std::string& out, std::string& error) {
+  const auto storage = binary_storage(value);
+  if (storage.data != nullptr) {
+    out.assign(storage.data, storage.size);
+    return true;
+  }
+  Value iterator;
+  if (!sequence_get_iter(value, iterator, error)) {
+    return false;
+  }
+  while (true) {
+    bool done = false;
+    Value next;
+    if (!sequence_iter_next(iterator, done, next, error)) {
+      return false;
+    }
+    if (done) {
+      return true;
+    }
+    unsigned char byte = 0;
+    if (!int_to_byte(next, byte, error)) {
+      return false;
+    }
+    out.push_back(static_cast<char>(byte));
+  }
+}
+
+} // namespace
+
+ListObject* value_as_list_storage(Value& value) {
+  if (auto* list = value_as_list(value)) {
+    return list;
+  }
+  auto* instance = value_as_instance(value);
+  if (instance == nullptr) {
+    return nullptr;
+  }
+  return value_as_list(instance->sequence_storage);
+}
+
+ListObject* value_as_mutable_list_storage(const Value& value) {
+  if (auto* list = value_as_list(value)) {
+    return list;
+  }
+  auto* instance = value_as_instance(value);
+  if (instance == nullptr) {
+    return nullptr;
+  }
+  return value_as_list(instance->sequence_storage);
+}
+
+const ListObject* value_as_list_storage(const Value& value) {
+  if (auto* list = value_as_list(value)) {
+    return list;
+  }
+  auto* instance = value_as_instance(value);
+  if (instance == nullptr) {
+    return nullptr;
+  }
+  return value_as_list(instance->sequence_storage);
+}
+
+Value Value::list(std::vector<Value> items) {
+  Value v;
+  v.tag = ValueTag::Object;
+  auto* obj = allocate_list_object();
+  obj->items = std::move(items);
+  v.as.obj = &obj->header;
+  return v;
+}
+
+Value Value::list_reserved(size_t capacity) {
+  Value v;
+  v.tag = ValueTag::Object;
+  auto* obj = allocate_list_object();
+  obj->items.clear();
+  obj->items.reserve(capacity);
+  v.as.obj = &obj->header;
+  return v;
+}
+
+Value Value::range(int64_t start, int64_t stop, int64_t step) {
+  Value v;
+  v.tag = ValueTag::Object;
+  auto* obj = allocate_sequence_object<RangeObject>(ObjectKind::Range);
+  obj->start = start;
+  obj->stop = stop;
+  obj->step = step;
+  obj->int64_backed = true;
+  obj->start_value = Value::int64(start);
+  obj->stop_value = Value::int64(stop);
+  obj->step_value = Value::int64(step);
+  v.as.obj = &obj->header;
+  return v;
+}
+
+Value Value::range_values(Value start, Value stop, Value step) {
+  int64_t start_i64 = 0;
+  int64_t stop_i64 = 0;
+  int64_t step_i64 = 1;
+  if (value_int_like_to_i64(start, start_i64) &&
+      value_int_like_to_i64(stop, stop_i64) &&
+      value_int_like_to_i64(step, step_i64)) {
+    return Value::range(start_i64, stop_i64, step_i64);
+  }
+  Value v;
+  v.tag = ValueTag::Object;
+  auto* obj = allocate_sequence_object<RangeObject>(ObjectKind::Range);
+  obj->int64_backed = false;
+  value_assign_fast(obj->start_value, start);
+  value_assign_fast(obj->stop_value, stop);
+  value_assign_fast(obj->step_value, step);
+  v.as.obj = &obj->header;
+  return v;
+}
+
+Value Value::range_iterator(int64_t current, int64_t stop, int64_t step) {
+  Value v;
+  v.tag = ValueTag::Object;
+  auto* obj = allocate_sequence_object<RangeIteratorObject>(ObjectKind::RangeIterator);
+  obj->current = current;
+  obj->stop = stop;
+  obj->step = step;
+  obj->int64_backed = true;
+  obj->current_value = Value::int64(current);
+  obj->stop_value = Value::int64(stop);
+  obj->step_value = Value::int64(step);
+  v.as.obj = &obj->header;
+  return v;
+}
+
+Value Value::range_iterator_values(Value current, Value stop, Value step) {
+  int64_t current_i64 = 0;
+  int64_t stop_i64 = 0;
+  int64_t step_i64 = 1;
+  if (value_int_like_to_i64(current, current_i64) &&
+      value_int_like_to_i64(stop, stop_i64) &&
+      value_int_like_to_i64(step, step_i64)) {
+    return Value::range_iterator(current_i64, stop_i64, step_i64);
+  }
+  Value v;
+  v.tag = ValueTag::Object;
+  auto* obj = allocate_sequence_object<RangeIteratorObject>(ObjectKind::RangeIterator);
+  obj->int64_backed = false;
+  value_assign_fast(obj->current_value, current);
+  value_assign_fast(obj->stop_value, stop);
+  value_assign_fast(obj->step_value, step);
+  v.as.obj = &obj->header;
+  return v;
+}
+
+Value Value::sequence_iterator(Value source, uint64_t index) {
+  Value v;
+  v.tag = ValueTag::Object;
+  auto* obj = allocate_sequence_iterator_object();
+  obj->source = std::move(source);
+  obj->index = index;
+  v.as.obj = &obj->header;
+  return v;
+}
+
+void sequence_release_object(Object* object) {
+  switch (object->kind) {
+    case ObjectKind::List:
+      recycle_list_object(reinterpret_cast<ListObject*>(object));
+      break;
+    case ObjectKind::Range:
+      delete reinterpret_cast<RangeObject*>(object);
+      break;
+    case ObjectKind::RangeIterator:
+      delete reinterpret_cast<RangeIteratorObject*>(object);
+      break;
+    case ObjectKind::SequenceIterator:
+      recycle_sequence_iterator_object(reinterpret_cast<SequenceIteratorObject*>(object));
+      break;
+    default:
+      break;
+  }
+}
+
+std::string sequence_to_string(const Value& value) {
+  if (auto* list = value_as_list(value)) {
+    return repr_items(list->items, "[", "]");
+  }
+  if (auto* range = value_as_range(value)) {
+    if (range->int64_backed && range->start == 0 && range->step == 1) {
+      return "range(" + std::to_string(range->stop) + ")";
+    }
+    if (!range->int64_backed) {
+      return "range(" + value_to_string(range->start_value) + ", " +
+             value_to_string(range->stop_value) + ", " + value_to_string(range->step_value) + ")";
+    }
+    return "range(" + std::to_string(range->start) + ", " +
+           std::to_string(range->stop) + ", " + std::to_string(range->step) + ")";
+  }
+  if (value_as_range_iterator(value) != nullptr) {
+    return "<range_iterator>";
+  }
+  if (value_as_sequence_iterator(value) != nullptr) {
+    return "<sequence_iterator>";
+  }
+  return "<sequence>";
+}
+
+bool sequence_truthy(const Value& value) {
+  if (auto* list = value_as_list(value)) {
+    return !list->items.empty();
+  }
+  if (auto* range = value_as_range(value)) {
+    if (!range->int64_backed) {
+      Value compare;
+      std::string error;
+      const bool positive = value_int_like_compare(">", range->step_value, Value::int64(0), compare) &&
+                            compare.tag == ValueTag::Bool && compare.as.b;
+      if (positive) {
+        return value_int_like_compare("<", range->start_value, range->stop_value, compare) &&
+               compare.tag == ValueTag::Bool && compare.as.b;
+      }
+      return value_int_like_compare(">", range->start_value, range->stop_value, compare) &&
+             compare.tag == ValueTag::Bool && compare.as.b;
+    }
+    return range->step > 0 ? range->start < range->stop : range->start > range->stop;
+  }
+  if (value_as_range_iterator(value) != nullptr) {
+    return true;
+  }
+  if (value_as_sequence_iterator(value) != nullptr) {
+    return true;
+  }
+  return true;
+}
+
+bool sequence_get_iter(const Value& iterable, Value& out, std::string& error) {
+  if (auto* range = value_as_range(iterable)) {
+    if (range->int64_backed) {
+      out = Value::range_iterator(range->start, range->stop, range->step);
+    } else {
+      out = Value::range_iterator_values(range->start_value, range->stop_value, range->step_value);
+    }
+    return true;
+  }
+  if (value_as_dict(iterable) != nullptr || value_as_mapping_proxy(iterable) != nullptr ||
+      value_as_dict_view(iterable) != nullptr || value_as_module(iterable) != nullptr) {
+    return mapping_get_iter(iterable, out, error);
+  }
+  if (value_as_set(iterable) != nullptr) {
+    return set_get_iter(iterable, out, error);
+  }
+  if (value_as_generator(iterable) != nullptr) {
+    return generator_get_iter(iterable, out, error);
+  }
+  if (value_as_range_iterator(iterable) != nullptr ||
+      value_as_sequence_iterator(iterable) != nullptr ||
+      value_as_dict_iterator(iterable) != nullptr ||
+      value_as_set_iterator(iterable) != nullptr) {
+    value_assign_fast(out, iterable);
+    return true;
+  }
+  if (iterable.tag == ValueTag::Object && iterable.as.obj != nullptr && iterable.as.obj->kind == ObjectKind::File) {
+    auto* file = reinterpret_cast<FileObject*>(iterable.as.obj);
+    if (file->closed) {
+      error = "file.__iter__ on closed file";
+      return false;
+    }
+    value_assign_fast(out, iterable);
+    return true;
+  }
+  if (value_is_functional_iterator(iterable)) {
+    value_assign_fast(out, iterable);
+    return true;
+  }
+  if (value_as_list(iterable) != nullptr ||
+      (iterable.tag == ValueTag::Object && iterable.as.obj != nullptr &&
+       (iterable.as.obj->kind == ObjectKind::Tuple ||
+        iterable.as.obj->kind == ObjectKind::String ||
+        iterable.as.obj->kind == ObjectKind::Bytes ||
+        iterable.as.obj->kind == ObjectKind::ByteArray ||
+        iterable.as.obj->kind == ObjectKind::MemoryView))) {
+    out = Value::sequence_iterator(iterable, 0);
+    return true;
+  }
+  Value struct_tuple;
+  if (struct_sequence_storage(iterable, struct_tuple)) {
+    out = Value::sequence_iterator(struct_tuple, 0);
+    return true;
+  }
+  if (auto* instance = value_as_instance(iterable)) {
+    if (value_as_list(instance->sequence_storage) != nullptr) {
+      out = Value::sequence_iterator(instance->sequence_storage, 0);
+      return true;
+    }
+    if (value_as_dict(instance->mapping_storage) != nullptr) {
+      return mapping_get_iter(instance->mapping_storage, out, error);
+    }
+    Value data;
+    std::string ignored;
+    if (object_get_attr(iterable, "data", data, ignored)) {
+      if (sequence_get_iter(data, out, ignored)) {
+        error.clear();
+        return true;
+      }
+    }
+  }
+  error = "object is not iterable";
+  return false;
+}
+
+bool sequence_iter_next(Value& iterator, bool& done, Value& out, std::string& error) {
+  if (auto* range = value_as_range_iterator(iterator)) {
+    if (!range->int64_backed) {
+      Value compare;
+      std::string cmp_error;
+      const bool positive = value_int_like_compare(">", range->step_value, Value::int64(0), compare) &&
+                            compare.tag == ValueTag::Bool && compare.as.b;
+      const char* op = positive ? ">=" : "<=";
+      if (!value_compare(op, range->current_value, range->stop_value, compare, cmp_error)) {
+        error = cmp_error;
+        return false;
+      }
+      done = compare.tag == ValueTag::Bool && compare.as.b;
+      if (done) {
+        value_set_none(out);
+        return true;
+      }
+      value_assign_fast(out, range->current_value);
+      Value next;
+      if (!value_add(range->current_value, range->step_value, next, error)) {
+        return false;
+      }
+      value_assign_fast(range->current_value, next);
+      return true;
+    }
+    done = range->step > 0 ? range->current >= range->stop : range->current <= range->stop;
+    if (done) {
+      value_set_none(out);
+      return true;
+    }
+    value_set_int64(out, range->current);
+    range->current += range->step;
+    return true;
+  }
+  if (auto* seq = value_as_sequence_iterator(iterator)) {
+    if (seq->source.tag == ValueTag::Invalid) {
+      done = true;
+      value_set_none(out);
+      return true;
+    }
+    Value index = Value::int64(static_cast<int64_t>(seq->index));
+    if (!sequence_get_item(seq->source, index, out, error)) {
+      if (error == "index out of range" ||
+          (value_as_memoryview(seq->source) != nullptr &&
+           error == "index out of bounds on dimension 1")) {
+        error.clear();
+        done = true;
+        value_set_none(out);
+        value_set_invalid(seq->source);
+        return true;
+      }
+      return false;
+    }
+    ++seq->index;
+    done = false;
+    return true;
+  }
+  if (value_as_dict_iterator(iterator) != nullptr) {
+    return mapping_iter_next(iterator, done, out, error);
+  }
+  if (value_as_set_iterator(iterator) != nullptr) {
+    return set_iter_next(iterator, done, out, error);
+  }
+  if (value_as_generator(iterator) != nullptr) {
+    return generator_iter_next(iterator, done, out, error);
+  }
+  if (iterator.tag == ValueTag::Object && iterator.as.obj != nullptr && iterator.as.obj->kind == ObjectKind::File) {
+    auto* file = reinterpret_cast<FileObject*>(iterator.as.obj);
+    if (file->closed) {
+      error = "file.__next__ on closed file";
+      return false;
+    }
+    if (file->fd_backed) {
+      if (file->runtime == nullptr) {
+        error = "file iterator has no runtime";
+        return false;
+      }
+      Value next_method;
+      if (!attribute_get(iterator, "__next__", next_method, error)) {
+        return false;
+      }
+      if (!runtime_call_callable(
+              *file->runtime, next_method, nullptr, 0, out, error)) {
+        Value pending;
+        if (file->runtime->take_pending_exception(pending)) {
+          auto* klass = value_as_class(file->runtime->exception_type(pending));
+          if (klass != nullptr && klass->name == "StopIteration") {
+            done = true;
+            value_set_none(out);
+            return true;
+          }
+          file->runtime->set_pending_exception(std::move(pending));
+        }
+        return false;
+      }
+      done = false;
+      return true;
+    }
+    const size_t start = std::min(file->cursor, file->buffer.size());
+    if (start >= file->buffer.size()) {
+      done = true;
+      value_set_none(out);
+      return true;
+    }
+    size_t end = start;
+    while (end < file->buffer.size()) {
+      ++end;
+      if (file->buffer[end - 1] == '\n') {
+        break;
+      }
+    }
+    std::string line = file->buffer.substr(start, end - start);
+    out = file->binary ? Value::bytes(std::move(line)) : Value::string(std::move(line));
+    file->cursor = end;
+    done = false;
+    return true;
+  }
+  if (value_is_functional_iterator(iterator)) {
+    return functional_iterator_next(iterator, done, out, error);
+  }
+  error = "invalid iterator";
+  return false;
+}
+
+bool sequence_list_append(const Value& list, const Value& item, std::string& error) {
+  // The list object is shared mutable storage; appending changes its contents,
+  // never the Value handle. Taking a const handle avoids a retain/release copy
+  // in the cached list.append callback on every loop iteration.
+  auto* obj = value_as_mutable_list_storage(list);
+  if (obj == nullptr) {
+    error = "list append target is not a list: " + value_to_repr(list);
+    return false;
+  }
+  obj->items.push_back(item);
+  return true;
+}
+
+bool sequence_get_item(
+    const Value& object, const Value& index, Value& out, std::string& error,
+    Runtime* runtime) {
+  if (auto* alias = value_as_generic_alias(object)) {
+    std::vector<Value> parameters;
+    auto is_type_parameter = [](const Value& value) {
+      if (value_as_type_param(value) != nullptr) return true;
+      auto* instance = value_as_instance(value);
+      auto* klass = instance == nullptr ? nullptr : value_as_class(instance->klass);
+      return klass != nullptr &&
+          (klass->name == "TypeVar" || klass->name == "ParamSpec" ||
+           klass->name == "TypeVarTuple");
+    };
+    auto collect_parameters = [&](auto&& self, const Value& value) -> void {
+      if (is_type_parameter(value)) {
+        for (const auto& existing : parameters) {
+          if (value_is(existing, value)) return;
+        }
+        parameters.push_back(value);
+        return;
+      }
+      if (auto* nested = value_as_generic_alias(value)) {
+        self(self, nested->args);
+        return;
+      }
+      if (auto* tuple = value_as_tuple(value)) {
+        for (const auto& item : tuple->items) self(self, item);
+        return;
+      }
+      if (runtime != nullptr && value_as_instance(value) != nullptr) {
+        Value nested_parameters;
+        std::string ignored;
+        if (object_get_attr(value, "__parameters__", nested_parameters,
+                            ignored)) {
+          if (auto* tuple = value_as_tuple(nested_parameters)) {
+            for (const auto& item : tuple->items) self(self, item);
+          }
+        }
+      }
+    };
+    collect_parameters(collect_parameters, alias->args);
+    if (!parameters.empty()) {
+      std::vector<Value> arguments;
+      if (auto* tuple = value_as_tuple(index)) arguments = tuple->items;
+      else arguments.push_back(index);
+      if (arguments.size() != parameters.size()) {
+        error = "generic type argument count does not match its parameters";
+        return false;
+      }
+      bool substitution_failed = false;
+      auto substitute = [&](auto&& self, const Value& value) -> Value {
+        for (size_t i = 0; i < parameters.size(); ++i) {
+          if (value_is(value, parameters[i])) {
+            // GenericAlias normalizes string substitutions to ForwardRef,
+            // including substitutions nested inside a union or another alias.
+            if (runtime != nullptr && value_as_string(arguments[i]) != nullptr) {
+              Value annotationlib;
+              Value forward_ref;
+              Value resolved;
+              if (!runtime->import_module("annotationlib", annotationlib, error) ||
+                  !module_get_attr(annotationlib, "ForwardRef", forward_ref, error) ||
+                  !runtime_call_callable(*runtime, forward_ref, &arguments[i], 1,
+                                         resolved, error)) {
+                substitution_failed = true;
+                return Value::invalid();
+              }
+              return resolved;
+            }
+            return arguments[i];
+          }
+        }
+        if (auto* tuple = value_as_tuple(value)) {
+          std::vector<Value> items;
+          items.reserve(tuple->items.size());
+          for (const auto& item : tuple->items) items.push_back(self(self, item));
+          return Value::tuple(std::move(items));
+        }
+        if (auto* nested = value_as_generic_alias(value)) {
+          Value result = Value::generic_alias(nested->origin, self(self, nested->args));
+          auto* result_alias = value_as_generic_alias(result);
+          result_alias->is_union = nested->is_union;
+          value_assign_fast(result_alias->klass, nested->klass);
+          return result;
+        }
+        if (runtime != nullptr && value_as_instance(value) != nullptr) {
+          Value nested_parameters;
+          std::string ignored;
+          auto* parameter_tuple = object_get_attr(
+              value, "__parameters__", nested_parameters, ignored)
+              ? value_as_tuple(nested_parameters) : nullptr;
+          if (parameter_tuple != nullptr && !parameter_tuple->items.empty()) {
+            Value nested_args;
+            Value copy_with;
+            if (object_get_attr(value, "__args__", nested_args, ignored) &&
+                object_get_attr(value, "copy_with", copy_with, ignored)) {
+              Value replaced_args = self(self, nested_args);
+              Value result;
+              std::string call_error;
+              if (runtime_call_callable(
+                      *runtime, copy_with, &replaced_args, 1, result, call_error)) {
+                return result;
+              }
+            }
+          }
+        }
+        return value;
+      };
+      Value substituted_args = substitute(substitute, alias->args);
+      if (substitution_failed) return false;
+      out = Value::generic_alias(alias->origin, std::move(substituted_args));
+      auto* result_alias = value_as_generic_alias(out);
+      result_alias->is_union = alias->is_union;
+      value_assign_fast(result_alias->klass, alias->klass);
+      return true;
+    }
+    if (alias->is_union) {
+      error = "union type is not subscriptable";
+      return false;
+    }
+    error = value_to_string(object) + " is not a generic class";
+    if (runtime != nullptr) runtime->raise_class_error("TypeError", error);
+    return false;
+  }
+  if (auto* klass = value_as_class(object);
+      klass != nullptr && runtime != nullptr &&
+      runtime->find_builtin("type") != nullptr &&
+      value_as_class(*runtime->find_builtin("type")) == klass) {
+    Value args;
+    if (value_as_tuple(index) != nullptr) value_assign_fast(args, index);
+    else args = Value::tuple({index});
+    out = Value::generic_alias(object, std::move(args));
+    return true;
+  }
+  if (auto* klass = value_as_class(object);
+      klass != nullptr && runtime != nullptr &&
+      runtime->find_builtin("Union") != nullptr &&
+      value_as_class(*runtime->find_builtin("Union")) == klass) {
+    std::vector<Value> items;
+    if (auto* tuple = value_as_tuple(index)) items = tuple->items;
+    else items.push_back(index);
+    const Value* none_type = runtime->find_builtin("NoneType");
+    Value forward_ref;
+    for (auto& item : items) {
+      if (item.tag == ValueTag::None && none_type != nullptr)
+        value_assign_fast(item, *none_type);
+      if (value_as_string(item) != nullptr) {
+        if (forward_ref.tag == ValueTag::Invalid) {
+          Value annotationlib;
+          if (!runtime->import_module("annotationlib", annotationlib, error) ||
+              !module_get_attr(annotationlib, "ForwardRef", forward_ref, error))
+            return false;
+        }
+        Value converted;
+        if (!runtime_call_callable(*runtime, forward_ref, &item, 1, converted, error))
+          return false;
+        item = std::move(converted);
+      }
+    }
+    out = Value::generic_alias(object, Value::tuple(std::move(items)));
+    value_as_generic_alias(out)->is_union = true;
+    return true;
+  }
+  if (auto* range = value_as_range(object)) {
+    const int64_t length = range_length(range->start, range->stop, range->step);
+    if (auto* slice = value_as_slice(index)) {
+      int64_t start = 0;
+      int64_t stop = 0;
+      int64_t step = 1;
+      if (!normalize_slice(*slice, length, start, stop, step, error)) {
+        return false;
+      }
+      const int64_t new_start = range->start + start * range->step;
+      const int64_t new_step = range->step * step;
+      const int64_t new_length = range_length(start, stop, step);
+      const int64_t new_stop = new_start + new_step * new_length;
+      out = Value::range(new_start, new_stop, new_step);
+      return true;
+    }
+    int64_t raw_index = 0;
+    if (!sequence_integer_index(index, raw_index)) {
+      error = "sequence index must be int";
+      return false;
+    }
+    uint64_t resolved = 0;
+    if (!normalize_index(raw_index, static_cast<uint64_t>(length), resolved)) {
+      error = "index out of range";
+      return false;
+    }
+    out = Value::int64(range->start + static_cast<int64_t>(resolved) * range->step);
+    return true;
+  }
+  if (auto* list = value_as_list(object)) {
+    if (auto* slice = value_as_slice(index)) {
+      int64_t start = 0;
+      int64_t stop = 0;
+      int64_t step = 1;
+      if (!normalize_slice(*slice, static_cast<int64_t>(list->items.size()), start, stop, step, error)) {
+        return false;
+      }
+      std::vector<Value> items;
+      // The slice length is known after normalization. Reserve once so a
+      // short reverse slice does not grow its backing vector geometrically.
+      items.reserve(normalized_slice_length(start, stop, step));
+      for_slice_indices(start, stop, step, [&](int64_t i) {
+        items.push_back(list->items[static_cast<size_t>(i)]);
+      });
+      out = Value::list(std::move(items));
+      return true;
+    }
+    int64_t raw_index = 0;
+    if (!sequence_integer_index(index, raw_index)) {
+      error = "sequence index must be int";
+      return false;
+    }
+    uint64_t resolved = 0;
+    if (!normalize_index(raw_index, static_cast<uint64_t>(list->items.size()), resolved)) {
+      error = "index out of range";
+      return false;
+    }
+    Value item = list->items[static_cast<size_t>(resolved)];
+    value_move_assign_fast(out, item);
+    return true;
+  }
+  if (value_as_dict(object) != nullptr || value_as_mapping_proxy(object) != nullptr || value_as_module(object) != nullptr) {
+    return mapping_get_item(object, index, out, error);
+  }
+  if (auto* instance = value_as_instance(object)) {
+    Value struct_tuple;
+    if (struct_sequence_storage(object, struct_tuple)) {
+      return sequence_get_item(struct_tuple, index, out, error);
+    }
+    if (value_as_list(instance->sequence_storage) != nullptr) {
+      return sequence_get_item(instance->sequence_storage, index, out, error);
+    }
+    if (value_as_dict(instance->mapping_storage) != nullptr) {
+      return mapping_get_item(instance->mapping_storage, index, out, error);
+    }
+  }
+  if (object.tag == ValueTag::Object && object.as.obj != nullptr && object.as.obj->kind == ObjectKind::Tuple) {
+    auto* tuple = reinterpret_cast<TupleObject*>(object.as.obj);
+    if (auto* slice = value_as_slice(index)) {
+      int64_t start = 0;
+      int64_t stop = 0;
+      int64_t step = 1;
+      if (!normalize_slice(*slice, static_cast<int64_t>(tuple->items.size()), start, stop, step, error)) {
+        return false;
+      }
+      std::vector<Value> items;
+      items.reserve(normalized_slice_length(start, stop, step));
+      for_slice_indices(start, stop, step, [&](int64_t i) {
+        items.push_back(tuple->items[static_cast<size_t>(i)]);
+      });
+      out = Value::tuple(std::move(items));
+      return true;
+    }
+    int64_t raw_index = 0;
+    if (!sequence_integer_index(index, raw_index)) {
+      error = "sequence index must be int";
+      return false;
+    }
+    uint64_t resolved = 0;
+    if (!normalize_index(raw_index, static_cast<uint64_t>(tuple->items.size()), resolved)) {
+      error = "index out of range";
+      return false;
+    }
+    Value item = tuple->items[static_cast<size_t>(resolved)];
+    value_move_assign_fast(out, item);
+    return true;
+  }
+  if (object.tag == ValueTag::Object && object.as.obj != nullptr && object.as.obj->kind == ObjectKind::String) {
+    auto* string = reinterpret_cast<StringObject*>(object.as.obj);
+    const auto view = string_object_view(*string);
+    const bool ascii = string_object_is_ascii(*string);
+    const auto codepoint_count = string_object_length(*string);
+    if (auto* slice = value_as_slice(index)) {
+      int64_t start = 0;
+      int64_t stop = 0;
+      int64_t step = 1;
+      if (!normalize_slice(*slice, static_cast<int64_t>(codepoint_count), start, stop, step, error)) {
+        return false;
+      }
+      if (ascii) {
+        out = Value::string(step == 1
+            ? std::string(view.substr(static_cast<size_t>(start),
+                                      static_cast<size_t>(std::max<int64_t>(0, stop - start))))
+            : binary_slice_text(view, start, stop, step));
+      } else {
+        out = Value::string(utf8_slice_text(*string, start, stop, step));
+      }
+      return true;
+    }
+    int64_t raw_index = 0;
+    if (!sequence_integer_index(index, raw_index)) {
+      error = "sequence index must be int";
+      return false;
+    }
+    uint64_t resolved = 0;
+    if (!normalize_index(raw_index, static_cast<uint64_t>(codepoint_count), resolved)) {
+      error = "index out of range";
+      return false;
+    }
+    const auto ch = string_object_codepoint_at(*string, static_cast<size_t>(resolved));
+    out = Value::string_view(ch);
+    return true;
+  }
+  if (object.tag == ValueTag::Object && object.as.obj != nullptr && object.as.obj->kind == ObjectKind::Bytes) {
+    auto* bytes = reinterpret_cast<BytesObject*>(object.as.obj);
+    const auto view = bytes_object_view(*bytes);
+    if (auto* slice = value_as_slice(index)) {
+      int64_t start = 0;
+      int64_t stop = 0;
+      int64_t step = 1;
+      if (!normalize_slice(*slice, static_cast<int64_t>(view.size()), start, stop, step, error)) {
+        return false;
+      }
+      out = Value::bytes(binary_slice_text(view, start, stop, step));
+      return true;
+    }
+    int64_t raw_index = 0;
+    if (!sequence_integer_index(index, raw_index)) {
+      error = "sequence index must be int";
+      return false;
+    }
+    uint64_t resolved = 0;
+    if (!normalize_index(raw_index, static_cast<uint64_t>(view.size()), resolved)) {
+      error = "index out of range";
+      return false;
+    }
+    value_set_int64(out, static_cast<unsigned char>(view[static_cast<size_t>(resolved)]));
+    return true;
+  }
+  if (object.tag == ValueTag::Object && object.as.obj != nullptr &&
+      (object.as.obj->kind == ObjectKind::ByteArray || object.as.obj->kind == ObjectKind::MemoryView)) {
+    if (auto* released_view = value_as_memoryview(object); released_view != nullptr && released_view->released) {
+      error = "operation forbidden on released memoryview object";
+      return false;
+    }
+    const auto storage = binary_storage(object);
+    if (storage.data == nullptr) {
+      error = "invalid binary object";
+      return false;
+    }
+    const std::string_view storage_view(storage.data, storage.size);
+    if (auto* slice = value_as_slice(index)) {
+      const auto* memory_view = object.as.obj->kind == ObjectKind::MemoryView
+          ? reinterpret_cast<const MemoryViewObject*>(object.as.obj) : nullptr;
+      if (memory_view != nullptr && !memory_view->shape.empty() && memory_view->shape.size() != 1) {
+        error = "multi-dimensional slicing is not implemented";
+        return false;
+      }
+      const size_t itemsize = memory_view == nullptr ? 1 : memoryview_format_itemsize(memory_view->format);
+      const int64_t logical_size = memory_view == nullptr
+          ? static_cast<int64_t>(storage.size)
+          : static_cast<int64_t>(memoryview_item_count(*memory_view));
+      int64_t start = 0;
+      int64_t stop = 0;
+      int64_t step = 1;
+      if (!normalize_slice(*slice, logical_size, start, stop, step, error)) {
+        return false;
+      }
+      if (memory_view != nullptr) {
+        const size_t selected_items = normalized_slice_length(start, stop, step);
+        const size_t source_offset = memory_view->offset;
+        const int64_t source_stride = memory_view->strides.empty()
+            ? static_cast<int64_t>(itemsize) : memory_view->strides[0];
+        const std::string format = memory_view->format;
+        const bool source_contiguous = memory_view->contiguous;
+        const bool readonly = memory_view->readonly;
+        // Flattening retains both the physical buffer and logical exporter,
+        // and takes an independent export for every derived view. Size remains
+        // logical nbytes; offset/strides describe owner coordinates.
+        out = Value::memoryview(object, 0, selected_items * itemsize, readonly);
+        auto* sliced = value_as_memoryview(out);
+        sliced->offset = selected_items == 0 ? source_offset
+            : source_offset + static_cast<size_t>(start) * static_cast<size_t>(source_stride);
+        sliced->format = format;
+        sliced->shape = {static_cast<int64_t>(selected_items)};
+        const uint64_t stride_bits = static_cast<uint64_t>(source_stride) * static_cast<uint64_t>(step);
+        int64_t selected_stride = 0;
+        std::memcpy(&selected_stride, &stride_bits, sizeof(selected_stride));
+        sliced->strides = {selected_stride};
+        sliced->contiguous = selected_items <= 1 ||
+            (source_contiguous && selected_stride == static_cast<int64_t>(itemsize));
+      } else {
+        auto text = binary_slice_text(storage_view, start, stop, step);
+        out = object.as.obj->kind == ObjectKind::ByteArray ? Value::bytearray(std::move(text)) : Value::bytes(std::move(text));
+      }
+      return true;
+    }
+    if (object.as.obj->kind == ObjectKind::MemoryView) {
+      const auto* memory_view = reinterpret_cast<const MemoryViewObject*>(object.as.obj);
+      size_t byte_offset = 0;
+      if (!memoryview_byte_offset(*memory_view, index, byte_offset, error)) return false;
+      return memoryview_decode_scalar(*memory_view, storage.data, byte_offset, out, error);
+    }
+    int64_t raw_index = 0;
+    if (!sequence_integer_index(index, raw_index)) {
+      error = "sequence index must be int";
+      return false;
+    }
+    uint64_t resolved = 0;
+    if (!normalize_index(raw_index, static_cast<uint64_t>(storage.size), resolved)) {
+      error = "index out of range";
+      return false;
+    }
+    value_set_int64(out, static_cast<unsigned char>(storage.data[static_cast<size_t>(resolved)]));
+    return true;
+  }
+  if (instance_get_native_data(object, "typing._Alias") != nullptr) {
+    value_assign_fast(out, object);
+    return true;
+  }
+  error = "object is not subscriptable";
+  return false;
+}
+
+bool sequence_set_item(Value& object, const Value& index, const Value& item, std::string& error) {
+  if (auto* list = value_as_list(object)) {
+    if (auto* slice = value_as_slice(index)) {
+      int64_t start = 0;
+      int64_t stop = 0;
+      int64_t step = 1;
+      if (!normalize_slice(*slice, static_cast<int64_t>(list->items.size()), start, stop, step, error)) {
+        return false;
+      }
+      std::vector<Value> replacement;
+      const std::vector<Value>* replacement_items = nullptr;
+      if (auto* replacement_list = value_as_list(item)) {
+        if (replacement_list == list) {
+          // Self-assignment needs a snapshot because the target may overlap
+          // the source slice while it is being replaced.
+          replacement = replacement_list->items;
+          replacement_items = &replacement;
+        } else {
+          replacement_items = &replacement_list->items;
+        }
+      } else if (auto* replacement_tuple = value_as_tuple(item)) {
+        replacement.reserve(replacement_tuple->items.size());
+        for (const auto& value : replacement_tuple->items) {
+          replacement.push_back(value);
+        }
+        replacement_items = &replacement;
+      } else {
+        Value iterator;
+        if (!sequence_get_iter(item, iterator, error)) {
+          return false;
+        }
+        while (true) {
+          bool done = false;
+          Value next;
+          if (!sequence_iter_next(iterator, done, next, error)) {
+            return false;
+          }
+          if (done) {
+            break;
+          }
+          replacement.push_back(std::move(next));
+        }
+        replacement_items = &replacement;
+      }
+      if (step == 1) {
+        const size_t first = static_cast<size_t>(start);
+        const size_t last = static_cast<size_t>(std::max(start, stop));
+        const size_t removed_count = last - first;
+        if (removed_count == replacement_items->size()) {
+          if (replacement_items == &replacement) {
+            // Reuse the already-materialized RHS vector as retirement storage.
+            // Old elements stay alive until every target slot is updated, and
+            // the target vector keeps its capacity on same-size slice writes.
+            for (size_t i = 0; i < removed_count; ++i) {
+              std::swap(list->items[first + i], replacement[i]);
+            }
+          } else {
+            // Match CPython's small recycle buffer: most short equal-size
+            // slice writes need no temporary heap allocation, and displaced
+            // Values stay alive until every destination slot is canonical.
+            std::array<Value, 8> retired;
+            if (removed_count <= retired.size()) {
+              for (size_t i = 0; i < removed_count; ++i) {
+                value_move_assign_fast(retired[i], list->items[first + i]);
+              }
+              for (size_t i = 0; i < removed_count; ++i) {
+                value_assign_fast(list->items[first + i], (*replacement_items)[i]);
+              }
+            } else {
+              replacement.resize(removed_count);
+              for (size_t i = 0; i < removed_count; ++i) {
+                value_move_assign_fast(replacement[i], list->items[first + i]);
+              }
+              for (size_t i = 0; i < removed_count; ++i) {
+                value_assign_fast(list->items[first + i], (*replacement_items)[i]);
+              }
+            }
+          }
+          return true;
+        }
+        list->items.erase(
+            list->items.begin() + static_cast<std::ptrdiff_t>(first),
+            list->items.begin() + static_cast<std::ptrdiff_t>(last));
+        list->items.insert(
+            list->items.begin() + static_cast<std::ptrdiff_t>(first),
+            replacement_items->begin(),
+            replacement_items->end());
+        return true;
+      }
+      std::vector<size_t> indexes;
+      for_slice_indices(start, stop, step, [&](int64_t i) {
+        indexes.push_back(static_cast<size_t>(i));
+      });
+      if (indexes.size() != replacement_items->size()) {
+        error = "attempt to assign sequence of size " + std::to_string(replacement_items->size()) +
+                " to extended slice of size " + std::to_string(indexes.size());
+        return false;
+      }
+      for (size_t i = 0; i < indexes.size(); ++i) {
+        value_assign_fast(list->items[indexes[i]], (*replacement_items)[i]);
+      }
+      return true;
+    }
+    int64_t raw_index = 0;
+    if (!sequence_integer_index(index, raw_index)) {
+      error = "sequence index must be int";
+      return false;
+    }
+    uint64_t resolved = 0;
+    if (!normalize_index(raw_index, static_cast<uint64_t>(list->items.size()), resolved)) {
+      error = "index out of range";
+      return false;
+    }
+    list->items[static_cast<size_t>(resolved)] = item;
+    return true;
+  }
+  if (value_as_dict(object) != nullptr || value_as_module(object) != nullptr ||
+      value_as_mapping_proxy(object) != nullptr) {
+    return mapping_set_item(object, index, item, error);
+  }
+  if (auto* instance = value_as_instance(object)) {
+    if (value_as_list(instance->sequence_storage) != nullptr) {
+      return sequence_set_item(instance->sequence_storage, index, item, error);
+    }
+    if (value_as_dict(instance->mapping_storage) != nullptr) {
+      return mapping_set_item(instance->mapping_storage, index, item, error);
+    }
+  }
+  if (auto* bytearray = value_as_bytearray(object)) {
+    if (auto* slice = value_as_slice(index)) {
+      int64_t start = 0;
+      int64_t stop = 0;
+      int64_t step = 1;
+      if (!normalize_slice(*slice, static_cast<int64_t>(bytearray->value.size()), start, stop, step, error)) {
+        return false;
+      }
+      std::string replacement;
+      if (!collect_byte_replacement(item, replacement, error)) {
+        return false;
+      }
+      if (step == 1) {
+        const auto count = static_cast<size_t>(std::max<int64_t>(0, stop - start));
+        if (replacement.size() == count) {
+          std::copy(replacement.begin(), replacement.end(), bytearray->value.begin() + start);
+          return true;
+        }
+        if (bytearray->buffer_exports) {
+          error = "Existing exports of data: object cannot be re-sized";
+          return false;
+        }
+        bytearray->value.erase(
+            bytearray->value.begin() + static_cast<std::ptrdiff_t>(start),
+            bytearray->value.begin() + static_cast<std::ptrdiff_t>(stop));
+        bytearray->value.insert(
+            bytearray->value.begin() + static_cast<std::ptrdiff_t>(start),
+            replacement.begin(),
+            replacement.end());
+        return true;
+      }
+      std::vector<size_t> indexes;
+      for_slice_indices(start, stop, step, [&](int64_t i) {
+        indexes.push_back(static_cast<size_t>(i));
+      });
+      if (indexes.size() != replacement.size()) {
+        error = "attempt to assign bytes of size " + std::to_string(replacement.size()) +
+                " to extended slice of size " + std::to_string(indexes.size());
+        return false;
+      }
+      for (size_t i = 0; i < indexes.size(); ++i) {
+        bytearray->value[indexes[i]] = replacement[i];
+      }
+      return true;
+    }
+    int64_t raw_index = 0;
+    if (!sequence_integer_index(index, raw_index)) {
+      error = "sequence index must be int";
+      return false;
+    }
+    uint64_t resolved = 0;
+    if (!normalize_index(raw_index, static_cast<uint64_t>(bytearray->value.size()), resolved)) {
+      error = "index out of range";
+      return false;
+    }
+    unsigned char byte = 0;
+    if (!int_to_byte(item, byte, error)) {
+      return false;
+    }
+    bytearray->value[static_cast<size_t>(resolved)] = static_cast<char>(byte);
+    return true;
+  }
+  if (auto* view = value_as_memoryview(object)) {
+    if (view->released) {
+      error = "operation forbidden on released memoryview object";
+      return false;
+    }
+    if (view->readonly) {
+      error = "cannot modify read-only memory";
+      return false;
+    }
+    char* storage = memoryview_owner_writable_data(*view);
+    if (storage == nullptr) {
+      error = "memoryview owner is not writable";
+      return false;
+    }
+    if (auto* slice = value_as_slice(index)) {
+      if (view->shape.size() > 1) { error = "multi-dimensional slicing is not implemented"; return false; }
+      const size_t itemsize = memoryview_format_itemsize(view->format);
+      if (itemsize == 0) { error = "unsupported memoryview format"; return false; }
+      int64_t start = 0, stop = 0, step = 1;
+      if (!normalize_slice(*slice, static_cast<int64_t>(memoryview_item_count(*view)), start, stop, step, error)) return false;
+      const size_t count = normalized_slice_length(start, stop, step);
+      std::string replacement;
+      if (auto* rhs = value_as_memoryview(item)) {
+        if (rhs->format != view->format || rhs->shape.size() > 1) {
+          error = "memoryview assignment: lvalue and rvalue have different structures"; return false;
+        }
+        if (!memoryview_copy_bytes(*rhs, replacement, error)) return false;
+      } else {
+        if (view->format != "B" || !collect_byte_replacement(item, replacement, error)) {
+          error = "memoryview assignment: lvalue and rvalue have different structures"; return false;
+        }
+      }
+      if (replacement.size() != count * itemsize) {
+        error = "memoryview assignment: lvalue and rvalue have different structures"; return false;
+      }
+      size_t input_offset = 0;
+      bool valid = true;
+      for_slice_indices(start, stop, step, [&](int64_t logical) {
+        if (!valid) return;
+        size_t physical = 0;
+        if (!memoryview_byte_offset(*view, Value::int64(logical), physical, error)) { valid = false; return; }
+        const size_t owner_size = memoryview_owner_view(*view).size();
+        if (physical > owner_size || itemsize > owner_size - physical) { error = "memoryview index out of range"; valid = false; return; }
+        std::memcpy(storage + physical, replacement.data() + input_offset, itemsize);
+        input_offset += itemsize;
+      });
+      return valid;
+    }
+    size_t byte_offset = 0;
+    if (!memoryview_byte_offset(*view, index, byte_offset, error)) return false;
+    return memoryview_encode_scalar(*view, item, storage, byte_offset, error);
+  }
+  error = "object does not support item assignment";
+  return false;
+}
+
+bool sequence_delete_item(Value& object, const Value& index, std::string& error) {
+  if (auto* list = value_as_list(object)) {
+    if (auto* slice = value_as_slice(index)) {
+      int64_t start = 0;
+      int64_t stop = 0;
+      int64_t step = 1;
+      if (!normalize_slice(*slice, static_cast<int64_t>(list->items.size()), start, stop, step, error)) {
+        return false;
+      }
+      if (step == 1) {
+        if (start < stop) {
+          list->items.erase(
+              list->items.begin() + static_cast<std::ptrdiff_t>(start),
+              list->items.begin() + static_cast<std::ptrdiff_t>(stop));
+        }
+        return true;
+      }
+      std::vector<size_t> indexes;
+      for_slice_indices(start, stop, step, [&](int64_t i) {
+        indexes.push_back(static_cast<size_t>(i));
+      });
+      std::sort(indexes.begin(), indexes.end(), [](size_t lhs, size_t rhs) { return lhs > rhs; });
+      for (const auto index_to_delete : indexes) {
+        list->items.erase(list->items.begin() + static_cast<std::ptrdiff_t>(index_to_delete));
+      }
+      return true;
+    }
+    int64_t raw_index = 0;
+    if (!sequence_integer_index(index, raw_index)) {
+      error = "sequence index must be int";
+      return false;
+    }
+    uint64_t resolved = 0;
+    if (!normalize_index(raw_index, static_cast<uint64_t>(list->items.size()), resolved)) {
+      error = "index out of range";
+      return false;
+    }
+    list->items.erase(list->items.begin() + static_cast<std::ptrdiff_t>(resolved));
+    return true;
+  }
+  if (value_as_dict(object) != nullptr || value_as_module(object) != nullptr) {
+    return mapping_delete_item(object, index, error);
+  }
+  if (auto* instance = value_as_instance(object)) {
+    if (value_as_list(instance->sequence_storage) != nullptr ||
+        value_as_bytearray(instance->sequence_storage) != nullptr) {
+      return sequence_delete_item(instance->sequence_storage, index, error);
+    }
+    if (value_as_dict(instance->mapping_storage) != nullptr) {
+      return mapping_delete_item(instance->mapping_storage, index, error);
+    }
+  }
+  if (auto* bytearray = value_as_bytearray(object)) {
+    if (auto* slice = value_as_slice(index)) {
+      int64_t start = 0;
+      int64_t stop = 0;
+      int64_t step = 1;
+      if (!normalize_slice(*slice, static_cast<int64_t>(bytearray->value.size()), start, stop, step, error)) {
+        return false;
+      }
+      if (step == 1) {
+        if (start < stop) {
+          if (bytearray->buffer_exports) {
+            error = "Existing exports of data: object cannot be re-sized";
+            return false;
+          }
+          bytearray->value.erase(
+              bytearray->value.begin() + static_cast<std::ptrdiff_t>(start),
+              bytearray->value.begin() + static_cast<std::ptrdiff_t>(stop));
+        }
+        return true;
+      }
+      std::vector<size_t> indexes;
+      for_slice_indices(start, stop, step, [&](int64_t i) {
+        indexes.push_back(static_cast<size_t>(i));
+      });
+      std::sort(indexes.begin(), indexes.end(), [](size_t lhs, size_t rhs) { return lhs > rhs; });
+      if (!indexes.empty() && bytearray->buffer_exports) {
+        error = "Existing exports of data: object cannot be re-sized";
+        return false;
+      }
+      for (const auto index_to_delete : indexes) {
+        bytearray->value.erase(bytearray->value.begin() + static_cast<std::ptrdiff_t>(index_to_delete));
+      }
+      return true;
+    }
+    int64_t raw_index = 0;
+    if (!sequence_integer_index(index, raw_index)) {
+      error = "sequence index must be int";
+      return false;
+    }
+    uint64_t resolved = 0;
+    if (!normalize_index(raw_index, static_cast<uint64_t>(bytearray->value.size()), resolved)) {
+      error = "index out of range";
+      return false;
+    }
+    if (bytearray->buffer_exports) {
+      error = "Existing exports of data: object cannot be re-sized";
+      return false;
+    }
+    bytearray->value.erase(bytearray->value.begin() + static_cast<std::ptrdiff_t>(resolved));
+    return true;
+  }
+  error = "object does not support item deletion";
+  return false;
+}
+
+bool sequence_len(const Value& value, Value& out, std::string& error) {
+  if (auto* iterator = value_as_sequence_iterator(value)) {
+    if (iterator->source.tag == ValueTag::Invalid) {
+      value_set_int64(out, 0);
+      return true;
+    }
+    Value source_length;
+    if (!sequence_len(iterator->source, source_length, error) || source_length.tag != ValueTag::Int64) return false;
+    const uint64_t length = static_cast<uint64_t>(std::max<int64_t>(0, source_length.as.i64));
+    value_set_int64(out, static_cast<int64_t>(iterator->index >= length ? 0 : length - iterator->index));
+    return true;
+  }
+  if (auto* list = value_as_list(value)) {
+    value_set_int64(out, static_cast<int64_t>(list->items.size()));
+    return true;
+  }
+  if (value.tag == ValueTag::Object && value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Tuple) {
+    auto* tuple = reinterpret_cast<TupleObject*>(value.as.obj);
+    value_set_int64(out, static_cast<int64_t>(tuple->items.size()));
+    return true;
+  }
+  if (value.tag == ValueTag::Object && value.as.obj != nullptr && value.as.obj->kind == ObjectKind::String) {
+    auto* string = reinterpret_cast<StringObject*>(value.as.obj);
+    value_set_int64(out, static_cast<int64_t>(string_object_length(*string)));
+    return true;
+  }
+  if (value.tag == ValueTag::Object && value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Bytes) {
+    auto* bytes = reinterpret_cast<BytesObject*>(value.as.obj);
+    value_set_int64(out, static_cast<int64_t>(bytes->size));
+    return true;
+  }
+  if (auto* range = value_as_range(value)) {
+    if (!range->int64_backed) {
+      error = "range length requires int-backed range";
+      return false;
+    }
+    value_set_int64(out, range_length(range->start, range->stop, range->step));
+    return true;
+  }
+  if (auto* bytearray = value_as_bytearray(value)) {
+    value_set_int64(out, static_cast<int64_t>(bytearray->value.size()));
+    return true;
+  }
+  if (auto* view = value_as_memoryview(value)) {
+    if (view->released) {
+      error = "operation forbidden on released memoryview object";
+      return false;
+    }
+    value_set_int64(out, view->shape.empty()
+        ? static_cast<int64_t>(memoryview_item_count(*view))
+        : view->shape.front());
+    return true;
+  }
+  if (value_as_dict(value) != nullptr || value_as_dict_view(value) != nullptr || value_as_module(value) != nullptr) {
+    return mapping_len(value, out, error);
+  }
+  if (auto* instance = value_as_instance(value)) {
+    Value struct_tuple;
+    if (struct_sequence_storage(value, struct_tuple)) {
+      return sequence_len(struct_tuple, out, error);
+    }
+    Value bytes_payload;
+    std::string ignored;
+    Value string_payload;
+    if (object_get_attr(value, "__xlang3_string_value__", string_payload, ignored)) {
+      if (auto* string = value_as_string(string_payload)) {
+        Value override;
+        if (object_lookup_class_attr_before_base(instance->klass, "__len__", "str", override, ignored)) {
+          // Let the caller dispatch a subclass override instead of bypassing
+          // it with the native payload's cached character count.
+          error = "object has no len()";
+          return false;
+        }
+        value_set_int64(out, static_cast<int64_t>(string_object_length(*string)));
+        return true;
+      }
+    }
+    if (object_get_attr(value, "__xlang3_bytes_value__", bytes_payload, ignored)) {
+      if (auto* bytes = value_as_bytes(bytes_payload)) {
+        value_set_int64(out, static_cast<int64_t>(bytes->size));
+        return true;
+      }
+    }
+    // A collection subclass may also have a Python attribute dictionary.
+    // Its collection payload determines len(); the attribute dictionary is
+    // only the mapping payload for actual dict subclasses.
+    if (instance->sequence_storage.tag != ValueTag::Invalid) {
+      return sequence_len(instance->sequence_storage, out, error);
+    }
+    if (value_as_dict(instance->mapping_storage) != nullptr) {
+      return mapping_len(instance->mapping_storage, out, error);
+    }
+  }
+  if (value_as_set(value) != nullptr) {
+    return set_len(value, out, error);
+  }
+  error = "object has no len()";
+  return false;
+}
+
+} // namespace xlang3

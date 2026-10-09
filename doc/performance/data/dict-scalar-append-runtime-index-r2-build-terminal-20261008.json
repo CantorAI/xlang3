@@ -1,0 +1,18 @@
+{
+  "status": "build_completed",
+  "terminal": true,
+  "exit_code": 0,
+  "command": [
+    "cmd.exe",
+    "/d",
+    "/c",
+    "scratch\\performance\\build-dict-scalar-append-runtime-index-root-20261008.cmd"
+  ],
+  "working_directory": "D:\\CantorAI\\xlang3",
+  "source_inventory_sha256": "882665bc69198d3f1f5bbd675fc87edba88d6cee63c176b144ee267e236c8d93",
+  "build_log": "doc/performance/data/dict-scalar-append-runtime-index-build-20261008.log",
+  "build_log_sha256": "02fb65475e71e2a91aba48d3ca9c59ca5b7fedb4beacf0e5068ae1ecc9d83cfa",
+  "wrapper": "scratch/performance/build-dict-scalar-append-runtime-index-root-20261008.cmd",
+  "wrapper_sha256": "90cbc0a73ab94e42e11b488992853e738edf6898c22906a96b3bb35b9d5702ad",
+  "completed_utc": "2026-10-09T00:27:09.0357983Z"
+}

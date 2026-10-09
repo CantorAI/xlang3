@@ -1,0 +1,728 @@
+# Copyright (C) 2026 CantorAI Inc. and The XLang Foundation
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+cmake_minimum_required(VERSION 3.20)
+
+project(xlang3 LANGUAGES C CXX)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+option(XLANG3_RELEASE_OB3 "Use MSVC /Ob3 inline expansion for Release builds" ON)
+if(MSVC AND XLANG3_RELEASE_OB3)
+  string(REPLACE "/Ob2" "/Ob3" CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
+  # CMake's Release defaults already contain /Ob2. Replace it so MSVC sees a
+  # single inline policy instead of an overriding pair on every compilation.
+endif()
+
+option(XLANG3_EMBEDDED "Build the static embedded runtime subset" OFF)
+set(XLANG3_RELEASE_PGO_STAGE "OFF" CACHE STRING
+  "MSVC Release PGO mode for xlang3_runtime: OFF, INSTRUMENT, or OPTIMIZE")
+set_property(CACHE XLANG3_RELEASE_PGO_STAGE PROPERTY STRINGS OFF INSTRUMENT OPTIMIZE)
+set(XLANG3_RELEASE_PGO_EXPORTS_DEF "" CACHE FILEPATH
+  "Existing xlang3_runtime exports.def to preserve the DLL ABI in MSVC PGO builds")
+set(XLANG3_RELEASE_PGO_DATABASE "" CACHE FILEPATH
+  "MSVC PGO database path shared by INSTRUMENT and OPTIMIZE builds")
+
+if(NOT XLANG3_EMBEDDED)
+set(YAML_CPP_BUILD_CONTRIB OFF CACHE BOOL "" FORCE)
+set(YAML_CPP_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
+set(YAML_CPP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(YAML_CPP_INSTALL OFF CACHE BOOL "" FORCE)
+set(YAML_BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+set(ZLIB_BUILD_SHARED OFF CACHE BOOL "" FORCE)
+set(ZLIB_BUILD_STATIC ON CACHE BOOL "" FORCE)
+set(ZLIB_BUILD_TESTING OFF CACHE BOOL "" FORCE)
+add_subdirectory(third_party/yaml-cpp EXCLUDE_FROM_ALL)
+add_subdirectory(third_party/zlib EXCLUDE_FROM_ALL)
+add_library(bzip2static STATIC
+  third_party/bzip2/blocksort.c
+  third_party/bzip2/huffman.c
+  third_party/bzip2/crctable.c
+  third_party/bzip2/randtable.c
+  third_party/bzip2/compress.c
+  third_party/bzip2/decompress.c
+  third_party/bzip2/bzlib.c
+)
+target_include_directories(bzip2static PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/third_party/bzip2)
+add_subdirectory(modules/json)
+add_subdirectory(modules/sqlite)
+add_subdirectory(modules/yaml)
+add_subdirectory(modules/device)
+add_subdirectory(modules/net)
+add_subdirectory(modules/hashlib)
+add_subdirectory(modules/pydantic_core)
+add_subdirectory(modules/argon2)
+add_subdirectory(modules/cffi)
+add_subdirectory(modules/cryptography)
+add_subdirectory(modules/httptools)
+add_subdirectory(modules/rpds)
+add_subdirectory(modules/zstd)
+add_subdirectory(modules/zstandard)
+add_subdirectory(modules/brotli)
+add_subdirectory(modules/mmap)
+if(WIN32)
+  add_subdirectory(modules/psutil)
+endif()
+if(CMAKE_RUNTIME_OUTPUT_DIRECTORY)
+  foreach(native_module xlang_json_native_package xlang_sqlite3_native_package
+      xlang_yaml_native_package xlang_device_native_package xlang_net_native_package
+      xlang_ssl_native_package xlang_hashlib_native_package xlang_blake2_native_package
+      xlang_pydantic_core_native_package xlang_argon2_cffi_native_package
+      xlang_cffi_backend_native_package xlang_httptools_url_native_package
+      xlang_httptools_parser_native_package
+      xlang_zstd_native_package xlang_zstandard_native_package
+      xlang_brotli_native_package xlang_mmap_native_package)
+    set_target_properties(${native_module} PROPERTIES
+      RUNTIME_OUTPUT_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/modules"
+      LIBRARY_OUTPUT_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/modules")
+  endforeach()
+  if(TARGET xlang_psutil_windows_native_package)
+    set_target_properties(xlang_psutil_windows_native_package PROPERTIES
+      RUNTIME_OUTPUT_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/modules"
+      LIBRARY_OUTPUT_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/modules")
+  endif()
+  if(TARGET xlang_rpds_native_package)
+    set_target_properties(xlang_rpds_native_package PROPERTIES
+      RUNTIME_OUTPUT_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/modules"
+      LIBRARY_OUTPUT_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/modules")
+  endif()
+endif()
+endif()
+
+set(XLANG3_RUNTIME_SOURCES
+  src/builtins/builtins.cpp
+  src/builtins/builtin_modules.cpp
+  src/builtins/exception_builtins.cpp
+  src/builtins/functional_builtins.cpp
+  src/builtins/io_builtins.cpp
+  src/builtins/math_module.cpp
+  src/builtins/object_type_builtins.cpp
+  src/builtins/raw_block_builtins.cpp
+  src/builtins/sequence_builtins.cpp
+  src/ipc/ipc_runtime.cpp
+  src/ipc/shared_memory_block_stream.cpp
+  src/ipc/shared_memory_transport.cpp
+  src/serialize/block_stream.cpp
+  src/serialize/ipc_value_marshal.cpp
+  src/serialize/xlang_stream.cpp
+  src/runtime/c_api_bridge.cpp
+  src/runtime/exceptions.cpp
+  src/runtime/expression.cpp
+  src/runtime/functional_iterators.cpp
+  src/runtime/generator.cpp
+  src/runtime/attribute.cpp
+  src/runtime/methods/list_methods.cpp
+  src/runtime/methods/dict_methods.cpp
+  src/runtime/methods/file_methods.cpp
+  src/runtime/methods/int_methods.cpp
+  src/runtime/methods/set_methods.cpp
+  src/runtime/methods/string_methods.cpp
+  src/runtime/methods/tuple_methods.cpp
+  src/runtime/methods/bytes_methods.cpp
+  src/runtime/methods/iterator_methods.cpp
+  src/runtime/methods/property_methods.cpp
+  src/runtime/memory/x3_bucket_allocator.cpp
+  src/runtime/memory/x3_memory.cpp
+  src/runtime/memory/x3_object_pool.cpp
+  src/runtime/memory/x3_page_allocator.cpp
+  src/runtime/memory/x3_runtime_memory.cpp
+  src/runtime/memory/x3_temp_arena.cpp
+  src/runtime/perf_counters.cpp
+  src/runtime/interpreter_events.cpp
+  src/runtime/bigint.cpp
+  src/runtime/value.cpp
+  src/runtime/value_hash.cpp
+  src/runtime/object_model.cpp
+  src/runtime/sequence.cpp
+  src/runtime/mapping.cpp
+  src/runtime/set_object.cpp
+  src/runtime/module_object.cpp
+  src/runtime/module_slots.cpp
+  src/runtime/runtime.cpp
+  src/runtime/unicode_data.cpp
+  src/runtime/unicode_names.cpp
+  src/runtime/vfs.cpp
+  src/parser/source_cursor.cpp
+  src/parser/lexer.cpp
+  src/parser/parser.cpp
+  src/sema/scope_analysis.cpp
+  src/sema/xlang_module_globals.cpp
+  src/sema/lower.cpp
+  src/ir/codec.cpp
+  src/executor/xlang_vm/xlang_interpreter.cpp
+  src/executor/xlang_vm/xlang_vm_attr.cpp
+  src/executor/xlang_vm/xlang_vm_loop.cpp
+  src/rpc/object_table.cpp
+  src/rpc/memory_file_store.cpp
+)
+
+if(WIN32)
+  list(APPEND XLANG3_RUNTIME_SOURCES
+    src/ipc/shared_memory_transport_win32.cpp
+  )
+else()
+  list(APPEND XLANG3_RUNTIME_SOURCES
+    src/ipc/shared_memory_transport_posix.cpp
+  )
+endif()
+
+set(XLANG3_THREAD_RUNTIME_SOURCES
+  src/runtime/modules/thread/runtime_lock.cpp
+  src/runtime/modules/thread/thread_module.cpp
+  src/runtime/modules/thread/thread_objects.cpp
+)
+
+set(XLANG3_TASK_RUNTIME_SOURCES
+  src/runtime/modules/task/task_module.cpp
+  src/runtime/modules/task/task_objects.cpp
+)
+
+set(XLANG3_SYSTEM_RUNTIME_SOURCES
+  src/runtime/modules/system/abc_module.cpp
+  src/runtime/modules/system/ast_module.cpp
+  src/runtime/modules/system/atexit_module.cpp
+  src/runtime/modules/system/binascii_module.cpp
+  src/runtime/modules/system/bisect_module.cpp
+  src/runtime/modules/system/heapq_module.cpp
+  src/runtime/modules/system/bz2_module.cpp
+  src/runtime/modules/system/cmath_module.cpp
+  src/runtime/modules/system/decimal_module.cpp
+  src/runtime/modules/system/codecs_module.cpp
+  src/runtime/modules/system/locale_module.cpp
+  src/runtime/modules/system/multibytecodec_module.cpp
+  src/runtime/modules/system/collections_module.cpp
+  src/runtime/modules/system/contextvars_module.cpp
+  src/runtime/modules/system/asyncio_module.cpp
+  src/runtime/modules/system/asyncio_future.cpp
+  src/runtime/modules/system/asyncio_task.cpp
+  src/runtime/modules/system/csv_module.cpp
+  src/runtime/modules/system/ctypes_module.cpp
+  src/runtime/modules/system/errno_module.cpp
+  src/runtime/modules/system/faulthandler_module.cpp
+  src/runtime/modules/system/functools_module.cpp
+    src/runtime/modules/system/gc_module.cpp
+    src/runtime/modules/system/lsprof_module.cpp
+    src/runtime/modules/system/array_module.cpp
+  src/runtime/modules/system/imp_module.cpp
+  src/runtime/modules/system/importlib_module.cpp
+  src/runtime/modules/system/interpreters_module.cpp
+  src/runtime/modules/system/itertools_module.cpp
+  src/runtime/modules/system/io_module.cpp
+  src/runtime/modules/system/json_module.cpp
+  src/runtime/modules/system/marshal_module.cpp
+  src/runtime/modules/system/msvcrt_module.cpp
+  src/runtime/modules/system/multiprocessing_module.cpp
+  src/runtime/modules/system/opcode_module.cpp
+  src/runtime/modules/system/operator_module.cpp
+  src/runtime/modules/system/os_module.cpp
+  src/runtime/modules/system/overlapped_module.cpp
+  src/runtime/modules/system/pickle_module.cpp
+  src/runtime/modules/system/pyexpat_module.cpp
+  src/runtime/modules/system/queue_module.cpp
+  src/runtime/modules/system/random_module.cpp
+  src/runtime/modules/system/signal_module.cpp
+  src/runtime/modules/system/sha2_module.cpp
+  src/runtime/modules/system/socket_select_module.cpp
+  src/runtime/modules/system/sre_module.cpp
+  src/runtime/modules/system/source_encoding.cpp
+  src/runtime/modules/system/stat_module.cpp
+  src/runtime/modules/system/string_module.cpp
+  src/runtime/modules/system/struct_module.cpp
+  src/runtime/modules/system/sysconfig_native_module.cpp
+  src/runtime/modules/system/sys_module.cpp
+  src/runtime/modules/system/time_module.cpp
+  src/runtime/modules/system/tokenize_module.cpp
+  src/runtime/modules/system/typing_module.cpp
+  src/runtime/modules/system/unicodedata_module.cpp
+  src/runtime/modules/system/weakref_module.cpp
+  src/runtime/modules/system/warnings_module.cpp
+  src/runtime/modules/system/winapi_module.cpp
+  src/runtime/modules/system/posix_process_module.cpp
+  src/runtime/modules/system/winreg_module.cpp
+  src/runtime/modules/system/zlib_module.cpp
+  src/runtime/modules/system/zip_archive.cpp
+  src/runtime/modules/system/zipimport_module.cpp
+)
+
+if(NOT XLANG3_EMBEDDED)
+  list(APPEND XLANG3_RUNTIME_SOURCES
+    src/debug/debug_session.cpp
+    src/debug/dap_session.cpp
+    src/ir/dump.cpp
+    src/api/c_api.cpp
+    src/api/buffer_api.cpp
+    src/tensor/tensor_storage.cpp
+    src/tensor/tensor_serialization.cpp
+    src/tensor/tensor_graph.cpp
+    src/tensor/tensor_cpu.cpp
+    src/tensor/tensor_module.cpp
+    src/tensor/tensor_api.cpp
+    src/api/protocol_api.cpp
+    src/api/stream_api.cpp
+    src/api/native_serialization_api.cpp
+    src/api/ipc_api.cpp
+    src/serialize/value_graph_writer.cpp
+    src/serialize/value_graph_reader.cpp
+    src/serialize/value_graph_lifetime.cpp
+    src/import/import_loader.cpp
+    src/import/native_package_loader.cpp
+  )
+endif()
+
+if(XLANG3_EMBEDDED)
+add_library(xlang3_runtime_embedded STATIC ${XLANG3_RUNTIME_SOURCES})
+target_compile_definitions(xlang3_runtime_embedded PUBLIC XLANG3_EMBEDDED=1 XLANG3_SIZE_OPT=1)
+target_include_directories(xlang3_runtime_embedded
+  PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/sdk
+  PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/internal
+)
+target_compile_features(xlang3_runtime_embedded PUBLIC cxx_std_17)
+return()
+endif()
+
+add_library(xlang3_runtime SHARED ${XLANG3_RUNTIME_SOURCES})
+add_library(xlang3_runtime_static STATIC ${XLANG3_RUNTIME_SOURCES})
+add_library(xlang3_thread_runtime STATIC ${XLANG3_THREAD_RUNTIME_SOURCES})
+add_library(xlang3_task_runtime STATIC ${XLANG3_TASK_RUNTIME_SOURCES})
+add_library(xlang3_system_runtime STATIC ${XLANG3_SYSTEM_RUNTIME_SOURCES})
+add_subdirectory(modules/ctypes)
+
+set(XLANG3_MULTIARCH "${CMAKE_LIBRARY_ARCHITECTURE}")
+if(APPLE AND NOT XLANG3_MULTIARCH)
+  set(XLANG3_MULTIARCH "darwin")
+endif()
+target_compile_definitions(xlang3_system_runtime PRIVATE
+  XLANG3_MULTIARCH="${XLANG3_MULTIARCH}")
+
+find_package(Threads REQUIRED)
+
+set_target_properties(xlang3_thread_runtime xlang3_task_runtime
+  xlang3_system_runtime zlibstatic bzip2static PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+set_target_properties(xlang3_runtime PROPERTIES
+  WINDOWS_EXPORT_ALL_SYMBOLS ON
+)
+
+if(NOT XLANG3_RELEASE_PGO_STAGE STREQUAL "OFF")
+  if(NOT MSVC OR NOT WIN32)
+    message(FATAL_ERROR "XLANG3_RELEASE_PGO_STAGE requires MSVC on Windows")
+  endif()
+  if(NOT XLANG3_RELEASE_PGO_STAGE MATCHES "^(INSTRUMENT|OPTIMIZE)$")
+    message(FATAL_ERROR "XLANG3_RELEASE_PGO_STAGE must be OFF, INSTRUMENT, or OPTIMIZE")
+  endif()
+  if(NOT EXISTS "${XLANG3_RELEASE_PGO_EXPORTS_DEF}")
+    message(FATAL_ERROR "Set XLANG3_RELEASE_PGO_EXPORTS_DEF to the current Release exports.def")
+  endif()
+  if(XLANG3_RELEASE_PGO_DATABASE STREQUAL "")
+    message(FATAL_ERROR "Set XLANG3_RELEASE_PGO_DATABASE for both MSVC PGO stages")
+  endif()
+
+  # CMake's automatic export scanner cannot inspect /GL objects. Reuse the
+  # ordinary Release export list so the PGO build changes code generation
+  # without changing the native DLL's exported ABI.
+  set_target_properties(xlang3_runtime PROPERTIES
+    WINDOWS_EXPORT_ALL_SYMBOLS OFF
+    INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE
+  )
+  target_link_options(xlang3_runtime PRIVATE
+    "/DEF:${XLANG3_RELEASE_PGO_EXPORTS_DEF}"
+  )
+  if(XLANG3_RELEASE_PGO_STAGE STREQUAL "INSTRUMENT")
+    target_link_options(xlang3_runtime PRIVATE
+      "$<$<CONFIG:Release>:/GENPROFILE:PGD=${XLANG3_RELEASE_PGO_DATABASE}>"
+    )
+  else()
+    target_link_options(xlang3_runtime PRIVATE
+      "$<$<CONFIG:Release>:/USEPROFILE:PGD=${XLANG3_RELEASE_PGO_DATABASE}>"
+    )
+  endif()
+endif()
+
+set_target_properties(xlang3_runtime_static PROPERTIES
+  OUTPUT_NAME "xlang3_runtime_static"
+)
+
+target_compile_definitions(xlang3_runtime PRIVATE XLANG3_BUILD_SHARED)
+
+foreach(xlang3_runtime_target xlang3_runtime xlang3_runtime_static xlang3_thread_runtime xlang3_task_runtime xlang3_system_runtime)
+target_include_directories(${xlang3_runtime_target}
+  PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/sdk
+  PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/internal
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/runtime/modules/thread
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/runtime/modules/task
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/runtime/modules/system
+    ${CMAKE_CURRENT_SOURCE_DIR}/modules/ctypes
+)
+
+target_compile_features(${xlang3_runtime_target} PUBLIC cxx_std_17)
+if(MSVC)
+  target_compile_options(${xlang3_runtime_target} PRIVATE /MP)
+endif()
+endforeach()
+
+# CMake's WINDOWS_EXPORT_ALL_SYMBOLS scanner cannot inspect MSVC /GL objects,
+# so keep the shared runtime on ordinary /O2 and apply whole-program
+# optimization to the native component libraries that feed it.
+set_property(TARGET xlang3_thread_runtime xlang3_task_runtime xlang3_system_runtime
+  PROPERTY INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE)
+
+target_include_directories(xlang3_runtime PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/third_party/nlohmann_json)
+target_include_directories(xlang3_runtime_static PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/third_party/nlohmann_json)
+target_include_directories(xlang3_system_runtime PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/third_party/nlohmann_json)
+
+target_link_libraries(xlang3_system_runtime PUBLIC ZLIB::ZLIBSTATIC bzip2static)
+if(APPLE)
+  find_package(Iconv REQUIRED)
+  target_link_libraries(xlang3_system_runtime PUBLIC Iconv::Iconv)
+  find_library(XLANG3_SYSTEMCONFIGURATION_FRAMEWORK SystemConfiguration REQUIRED)
+  find_library(XLANG3_COREFOUNDATION_FRAMEWORK CoreFoundation REQUIRED)
+  target_link_libraries(xlang3_system_runtime PUBLIC
+    ${XLANG3_SYSTEMCONFIGURATION_FRAMEWORK} ${XLANG3_COREFOUNDATION_FRAMEWORK})
+endif()
+target_link_libraries(xlang3_runtime PRIVATE xlang3_thread_runtime xlang3_task_runtime xlang3_system_runtime xlang3_ctypes_ffi ZLIB::ZLIBSTATIC Threads::Threads)
+target_link_libraries(xlang3_runtime_static PRIVATE xlang3_thread_runtime xlang3_task_runtime xlang3_system_runtime xlang3_ctypes_ffi ZLIB::ZLIBSTATIC Threads::Threads)
+
+if(WIN32)
+  target_link_libraries(xlang3_runtime PRIVATE ws2_32 advapi32)
+  target_link_libraries(xlang3_runtime_static PRIVATE ws2_32 advapi32)
+endif()
+
+add_executable(xlang3 src/xlang3.cpp)
+add_executable(xlang3_charconv_compat_tests tests/cpp/charconv_compat_tests.cpp)
+target_include_directories(xlang3_charconv_compat_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/sdk)
+target_link_libraries(xlang3 PRIVATE xlang3_runtime)
+target_compile_definitions(xlang3 PRIVATE XLANG3_USE_SHARED)
+target_include_directories(xlang3 PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/internal)
+if(WIN32)
+  # The unmodified Python 3.14 venv redirector resolves python.exe in the
+  # base interpreter directory. Ship that name as the same XLang3 executable
+  # so virtual-environment children run XLang3, not a CPython binary.
+  add_custom_command(TARGET xlang3 POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+      "$<TARGET_FILE:xlang3>" "$<TARGET_FILE_DIR:xlang3>/python.exe")
+endif()
+if(MSVC)
+  # Native validators and protocol adapters can legitimately recurse through
+  # deeply nested Python object graphs. Reserve enough virtual stack for the
+  # runtime's configured recursion limits on Windows; pages are committed only
+  # as they are used.
+  target_link_options(xlang3 PRIVATE /STACK:8388608)
+endif()
+
+enable_testing()
+if(WIN32)
+  find_program(XLANG3_POWERSHELL NAMES powershell pwsh REQUIRED)
+  find_program(XLANG3_PYTHON314_EXECUTABLE NAMES python.exe
+    PATHS "C:/Python/Python314" NO_DEFAULT_PATH)
+else()
+  find_package(Python3 REQUIRED COMPONENTS Interpreter)
+  if(Python3_VERSION VERSION_GREATER_EQUAL "3.14")
+    set(XLANG3_PYTHON314_EXECUTABLE "${Python3_EXECUTABLE}")
+  endif()
+endif()
+add_test(NAME xlang3_import_errors
+  COMMAND xlang3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/cli/import_errors.py)
+add_test(NAME xlang3_bytes_split
+  COMMAND xlang3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/cli/bytes_split.py)
+option(XLANG3_BUILD_CPYTHON_BRIDGE "Build the optional CPython 3.14 extension" OFF)
+if(XLANG3_BUILD_CPYTHON_BRIDGE)
+  add_subdirectory(cpython_bridge)
+endif()
+add_executable(xlang3_cpp_ipc_client tests/cpp/ipc_client.cpp)
+target_link_libraries(xlang3_cpp_ipc_client PRIVATE xlang3_runtime)
+target_compile_definitions(xlang3_cpp_ipc_client PRIVATE XLANG3_USE_SHARED)
+
+function(add_xlang3_cpp_test name source)
+  add_executable(${name} ${source})
+  target_link_libraries(${name} PRIVATE xlang3_runtime)
+  target_compile_definitions(${name} PRIVATE XLANG3_USE_SHARED)
+  target_include_directories(${name} PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/internal
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/nlohmann_json
+  )
+  add_test(NAME ${name} COMMAND ${name})
+endfunction()
+
+add_xlang3_cpp_test(xlang3_smoke tests/smoke.cpp)
+add_xlang3_cpp_test(xlang3_abi_ownership tests/cpp/abi_ownership_tests.cpp)
+add_executable(xlang3_embedded_package_tests tests/cpp/embedded_package_tests.cpp)
+add_executable(xlang3_static_runtime_shutdown tests/cpp/static_runtime_shutdown.cpp)
+target_link_libraries(xlang3_static_runtime_shutdown PRIVATE xlang3_runtime)
+target_compile_definitions(xlang3_static_runtime_shutdown PRIVATE XLANG3_USE_SHARED)
+add_test(NAME xlang3_static_runtime_shutdown COMMAND xlang3_static_runtime_shutdown)
+target_link_libraries(xlang3_embedded_package_tests PRIVATE xlang3_runtime)
+target_compile_definitions(xlang3_embedded_package_tests PRIVATE XLANG3_USE_SHARED)
+add_test(NAME xlang3_embedded_package_tests COMMAND xlang3_embedded_package_tests)
+add_executable(xlang3_sdk_stream_call_tests tests/cpp/sdk_stream_call_tests.cpp)
+target_link_libraries(xlang3_sdk_stream_call_tests PRIVATE xlang3_runtime)
+target_compile_definitions(xlang3_sdk_stream_call_tests PRIVATE XLANG3_USE_SHARED)
+add_test(NAME xlang3_sdk_stream_call_tests COMMAND xlang3_sdk_stream_call_tests ${CMAKE_CURRENT_SOURCE_DIR}/tests/cpp)
+add_executable(xlang3_graph_process_tests tests/serialize/graph_process_tests.cpp)
+add_library(xlang3_graph_native_package SHARED tests/serialize/native_package.cpp)
+target_include_directories(xlang3_graph_native_package PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/sdk)
+set_target_properties(xlang3_graph_native_package PROPERTIES
+  OUTPUT_NAME "xlang_graph_native.x3pkg" PREFIX ""
+  RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/$<CONFIG>/modules"
+  LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/$<CONFIG>/modules"
+  ARCHIVE_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/$<CONFIG>/modules")
+add_dependencies(xlang3_graph_process_tests xlang3_graph_native_package)
+target_link_libraries(xlang3_graph_process_tests PRIVATE xlang3_runtime)
+target_compile_definitions(xlang3_graph_process_tests PRIVATE XLANG3_USE_SHARED)
+add_test(NAME xlang3_graph_producer COMMAND xlang3_graph_process_tests write ${CMAKE_CURRENT_BINARY_DIR}/graph_payload.bin ${CMAKE_CURRENT_SOURCE_DIR}/tests/serialize/graph_source.py $<TARGET_FILE_DIR:xlang3_graph_native_package>)
+set_tests_properties(xlang3_graph_producer PROPERTIES FIXTURES_SETUP serialized_graph)
+add_test(NAME xlang3_graph_consumer COMMAND xlang3_graph_process_tests read ${CMAKE_CURRENT_BINARY_DIR}/graph_payload.bin ${CMAKE_CURRENT_SOURCE_DIR}/tests/serialize/graph_source.py $<TARGET_FILE_DIR:xlang3_graph_native_package>)
+set_tests_properties(xlang3_graph_consumer PROPERTIES FIXTURES_REQUIRED serialized_graph)
+foreach(failure IN ITEMS BAD_VERSION NO_CODEC DECODE_FAIL)
+  add_test(NAME xlang3_graph_reject_${failure} COMMAND xlang3_graph_process_tests reject ${CMAKE_CURRENT_BINARY_DIR}/graph_payload.bin ${CMAKE_CURRENT_SOURCE_DIR}/tests/serialize/graph_source.py $<TARGET_FILE_DIR:xlang3_graph_native_package>)
+  set_tests_properties(xlang3_graph_reject_${failure} PROPERTIES FIXTURES_REQUIRED serialized_graph ENVIRONMENT "XLANG3_TEST_GRAPH_${failure}=1")
+endforeach()
+add_xlang3_cpp_test(xlang3_runtime_value_tests tests/cpp/runtime_value_tests.cpp)
+add_xlang3_cpp_test(xlang3_vfs_tests tests/cpp/vfs_tests.cpp)
+target_sources(xlang3_vfs_tests PRIVATE
+  ports/rp2040/embedded/device_file_system.cpp
+)
+target_include_directories(xlang3_vfs_tests PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/ports/rp2040
+)
+add_executable(xlang3_tensor_cpu_tests tests/tensor/cpu_tests.cpp)
+target_link_libraries(xlang3_tensor_cpu_tests PRIVATE xlang3_runtime)
+target_compile_definitions(xlang3_tensor_cpu_tests PRIVATE XLANG3_USE_SHARED)
+add_test(NAME xlang3_tensor_cpu COMMAND xlang3_tensor_cpu_tests)
+set_tests_properties(xlang3_tensor_cpu PROPERTIES TIMEOUT 60)
+add_test(NAME xlang3_tensor_cpu_graph COMMAND xlang3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/tensor/cpu_graph.py)
+set_tests_properties(xlang3_tensor_cpu_graph PROPERTIES TIMEOUT 60)
+add_test(NAME xlang3_tensor_cpu_reference COMMAND xlang3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/tensor/cpu_reference.py)
+set_tests_properties(xlang3_tensor_cpu_reference PROPERTIES TIMEOUT 60)
+add_xlang3_cpp_test(xlang3_ipc_capacity_tests tests/cpp/ipc_capacity_tests.cpp)
+add_xlang3_cpp_test(xlang3_memory_tests tests/cpp/memory_tests.cpp)
+add_xlang3_cpp_test(xlang3_parser_tests tests/cpp/parser_tests.cpp)
+add_xlang3_cpp_test(xlang3_interpreter_tests tests/cpp/interpreter_tests.cpp)
+add_xlang3_cpp_test(xlang3_debug_session_tests tests/cpp/debug_session_tests.cpp)
+add_xlang3_cpp_test(xlang3_dap_session_tests tests/cpp/dap_session_tests.cpp)
+add_xlang3_cpp_test(xlang3_module_slot_tests tests/cpp/module_slot_tests.cpp)
+add_xlang3_cpp_test(xlang3_task_tests tests/cpp/task_tests.cpp)
+add_xlang3_cpp_test(xlang3_ir_codec_tests tests/cpp/ir_codec_tests.cpp)
+
+add_executable(xlang3_native_package_real_tests tests/cpp/native_package_real_tests.cpp)
+target_link_libraries(xlang3_native_package_real_tests PRIVATE xlang3_runtime)
+target_compile_definitions(xlang3_native_package_real_tests PRIVATE XLANG3_USE_SHARED)
+target_include_directories(xlang3_native_package_real_tests PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/internal
+  ${CMAKE_CURRENT_SOURCE_DIR}/tests/cpp
+)
+add_test(
+  NAME xlang3_native_package_real_tests
+  COMMAND xlang3_native_package_real_tests $<TARGET_FILE_DIR:xlang_json_native_package>
+)
+
+add_library(xlang1_compat_sample_package SHARED
+  tests/cpp/xlang1_compat_package.cpp
+)
+set_target_properties(xlang1_compat_sample_package PROPERTIES
+  OUTPUT_NAME "xlang1_compat_sample.x3pkg"
+  PREFIX ""
+  RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/$<CONFIG>/modules"
+  LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/$<CONFIG>/modules"
+  ARCHIVE_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/$<CONFIG>/modules"
+)
+target_include_directories(xlang1_compat_sample_package PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/sdk
+)
+if(NOT PROJECT_IS_TOP_LEVEL)
+  add_custom_command(TARGET xlang1_compat_sample_package POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:xlang3>/modules"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different "$<TARGET_FILE:xlang1_compat_sample_package>"
+      "$<TARGET_FILE_DIR:xlang3>/modules/$<TARGET_FILE_NAME:xlang1_compat_sample_package>")
+endif()
+
+add_library(xlang3_curmodule_probe_package SHARED
+  tests/cpp/curmodule_probe_package.cpp
+)
+set_target_properties(xlang3_curmodule_probe_package PROPERTIES
+  OUTPUT_NAME "xlang_curmodule_probe.x3pkg"
+  PREFIX ""
+  RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/$<CONFIG>/modules"
+  LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/$<CONFIG>/modules"
+  ARCHIVE_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/$<CONFIG>/modules"
+)
+target_include_directories(xlang3_curmodule_probe_package PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/sdk
+)
+if(NOT PROJECT_IS_TOP_LEVEL)
+  add_custom_command(TARGET xlang3_curmodule_probe_package POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:xlang3>/modules"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different "$<TARGET_FILE:xlang3_curmodule_probe_package>"
+      "$<TARGET_FILE_DIR:xlang3>/modules/$<TARGET_FILE_NAME:xlang3_curmodule_probe_package>")
+endif()
+
+add_executable(xlang3_xlang1_compat_package_tests tests/cpp/xlang1_compat_package_tests.cpp)
+target_link_libraries(xlang3_xlang1_compat_package_tests PRIVATE xlang3_runtime)
+target_compile_definitions(xlang3_xlang1_compat_package_tests PRIVATE XLANG3_USE_SHARED)
+target_include_directories(xlang3_xlang1_compat_package_tests PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/sdk
+)
+add_dependencies(xlang3_xlang1_compat_package_tests xlang1_compat_sample_package)
+add_executable(xlang3_native_path_tests tests/cpp/native_path_tests.cpp)
+target_link_libraries(xlang3_native_path_tests PRIVATE xlang3_runtime)
+target_compile_definitions(xlang3_native_path_tests PRIVATE XLANG3_USE_SHARED)
+add_dependencies(xlang3_native_path_tests xlang1_compat_sample_package)
+add_test(NAME xlang3_native_library_path
+  COMMAND xlang3_native_path_tests $<TARGET_FILE:xlang1_compat_sample_package>)
+set_tests_properties(xlang3_native_library_path PROPERTIES TIMEOUT 30)
+add_test(NAME xlang3_expression_decorators
+  COMMAND xlang3 -c "exec(open('${CMAKE_CURRENT_SOURCE_DIR}/tests/cpp/expression_decorators.py').read())")
+set_tests_properties(xlang3_expression_decorators PROPERTIES
+  WORKING_DIRECTORY "$<TARGET_FILE_DIR:xlang1_compat_sample_package>")
+if(WIN32)
+  add_test(NAME xlang3_expression_decorators_ipc
+    COMMAND ${XLANG3_POWERSHELL} -NoProfile -ExecutionPolicy Bypass
+      -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/ipc/run_lrpc_smoke.ps1
+      -XLang3 $<TARGET_FILE:xlang3>
+      -NativeModules $<TARGET_FILE_DIR:xlang1_compat_sample_package>
+      -ClientScript expression_client.py -Expected expression_expected.out)
+else()
+  add_test(NAME xlang3_os_readlink
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/cli/test_readlink.py
+      $<TARGET_FILE:xlang3>)
+  add_test(NAME xlang3_posix_subprocess
+    COMMAND xlang3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/cli/posix_subprocess.py)
+  set_tests_properties(xlang3_posix_subprocess PROPERTIES TIMEOUT 60)
+  foreach(ipc_case IN ITEMS client pressure_client expression_client)
+    if(ipc_case STREQUAL "client")
+      set(ipc_expected "expected.out")
+    elseif(ipc_case STREQUAL "pressure_client")
+      set(ipc_expected "pressure_expected.out")
+    else()
+      set(ipc_expected "expression_expected.out")
+    endif()
+    add_test(NAME xlang3_ipc_${ipc_case}
+      COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/ipc/run_lrpc_smoke.py
+        $<TARGET_FILE:xlang3> --client ${ipc_case}.py --expected ${ipc_expected}
+        --native-modules $<TARGET_FILE_DIR:xlang1_compat_sample_package>)
+    set_tests_properties(xlang3_ipc_${ipc_case} PROPERTIES TIMEOUT 180)
+  endforeach()
+endif()
+add_test(
+  NAME xlang3_xlang1_compat_package_tests
+  COMMAND xlang3_xlang1_compat_package_tests $<TARGET_FILE_DIR:xlang1_compat_sample_package>
+)
+
+add_executable(xlang3_sdk_c_header_smoke tests/sdk_c_header_smoke.c)
+target_include_directories(xlang3_sdk_c_header_smoke PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/sdk)
+add_test(NAME xlang3_sdk_c_header_smoke COMMAND xlang3_sdk_c_header_smoke)
+
+add_test(
+  NAME xlang3_cli_yaml_module_import
+  COMMAND xlang3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/yaml_module.py $<TARGET_FILE_DIR:xlang_yaml_native_package>
+)
+
+add_test(
+  NAME xlang3_cli_device_module_import
+  COMMAND xlang3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/device_module.py $<TARGET_FILE_DIR:xlang_device_native_package>
+)
+
+add_test(
+  NAME xlang3_curmodule_probe_import
+  COMMAND xlang3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/curmodule_probe_import.py
+)
+
+add_test(
+  NAME xlang3_cli_net_module_import
+  COMMAND xlang3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/net/module.py $<TARGET_FILE_DIR:xlang_net_native_package>
+)
+
+if(XLANG3_PYTHON314_EXECUTABLE)
+  add_test(NAME xlang3_cli_asyncio_accelerator
+    COMMAND ${XLANG3_PYTHON314_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_expected.py
+      $<TARGET_FILE:xlang3>
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/asyncio_accelerator.py
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/asyncio_accelerator.out)
+  if(WIN32)
+    add_test(NAME xlang3_cli_overlapped_completion
+      COMMAND ${XLANG3_PYTHON314_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_expected.py
+        $<TARGET_FILE:xlang3>
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/overlapped_completion.py
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/overlapped_completion.out)
+  endif()
+  execute_process(
+    COMMAND ${XLANG3_PYTHON314_EXECUTABLE} -c "import sysconfig; print(sysconfig.get_path('stdlib'))"
+    OUTPUT_VARIABLE XLANG3_PYTHON314_STDLIB
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+  add_test(NAME xlang3_cli_ssl_module
+    COMMAND ${XLANG3_PYTHON314_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_expected.py
+      $<TARGET_FILE:xlang3>
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/ssl_module.py
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/ssl_module.out
+      $<TARGET_FILE_DIR:xlang_ssl_native_package>
+      ${XLANG3_PYTHON314_STDLIB})
+  add_test(NAME xlang3_cli_hashlib_module
+    COMMAND ${XLANG3_PYTHON314_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_expected.py
+      $<TARGET_FILE:xlang3>
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/hashlib_module.py
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/hashlib_module.out
+      $<TARGET_FILE_DIR:xlang_hashlib_native_package>
+      ${XLANG3_PYTHON314_STDLIB})
+  add_test(NAME xlang3_cli_argon2_module
+    COMMAND ${XLANG3_PYTHON314_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_expected.py
+      $<TARGET_FILE:xlang3>
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/argon2/argon2_module.py
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/argon2/argon2_module.out
+      $<TARGET_FILE_DIR:xlang_argon2_cffi_native_package>
+      ${XLANG3_PYTHON314_STDLIB})
+endif()
+
+if(WIN32)
+  add_test(NAME xlang3_cli_real_native_imports COMMAND ${XLANG3_POWERSHELL} -NoProfile -ExecutionPolicy Bypass -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/run_real_native_import_tests.ps1 -XLang3 $<TARGET_FILE:xlang3>)
+  add_test(NAME xlang3_xlang1_compat_import COMMAND ${XLANG3_POWERSHELL} -NoProfile -ExecutionPolicy Bypass -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/run_xlang1_compat_import.ps1 -XLang3 $<TARGET_FILE:xlang3>)
+  add_test(NAME xlang3_cli_net_module_server_client COMMAND ${XLANG3_POWERSHELL} -NoProfile -ExecutionPolicy Bypass -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/net/run_module.ps1 -XLang3 $<TARGET_FILE:xlang3> -NativeModules $<TARGET_FILE_DIR:xlang_net_native_package>)
+  add_test(NAME xlang3_cli_sqlite_module_imports COMMAND ${XLANG3_POWERSHELL} -NoProfile -ExecutionPolicy Bypass -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/sqlite/run_sqlite_tests.ps1 -XLang3 $<TARGET_FILE:xlang3> -NativeModules $<TARGET_FILE_DIR:xlang_sqlite3_native_package>)
+  add_test(NAME xlang3_cli_fixtures COMMAND ${XLANG3_POWERSHELL} -NoProfile -ExecutionPolicy Bypass -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_fixtures.ps1 -XLang3 $<TARGET_FILE:xlang3>)
+  add_test(NAME xlang3_cli_compat COMMAND ${XLANG3_POWERSHELL} -NoProfile -ExecutionPolicy Bypass -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/cli/run_cli_compat.ps1 -XLang3 $<TARGET_FILE:xlang3> -WorkDir ${CMAKE_CURRENT_BINARY_DIR}/cli_compat)
+  add_test(NAME xlang3_cli_pickle_interop COMMAND ${XLANG3_POWERSHELL} -NoProfile -ExecutionPolicy Bypass -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/cli/run_pickle_interop.ps1 -XLang3 $<TARGET_FILE:xlang3> -WorkDir ${CMAKE_CURRENT_BINARY_DIR}/pickle_interop)
+  add_test(NAME xlang3_ipc_lrpc_smoke COMMAND ${XLANG3_POWERSHELL} -NoProfile -ExecutionPolicy Bypass -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/ipc/run_lrpc_smoke.ps1 -XLang3 $<TARGET_FILE:xlang3> -NativeClient $<TARGET_FILE:xlang3_cpp_ipc_client>)
+  add_test(NAME xlang3_ipc_lrpc_server_exit COMMAND ${XLANG3_POWERSHELL} -NoProfile -ExecutionPolicy Bypass -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/ipc/run_lrpc_server_exit.ps1 -XLang3 $<TARGET_FILE:xlang3>)
+  add_test(NAME xlang3_ipc_lrpc_backpressure COMMAND ${XLANG3_POWERSHELL} -NoProfile -ExecutionPolicy Bypass -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/ipc/run_lrpc_smoke.ps1 -XLang3 $<TARGET_FILE:xlang3> -ClientScript pressure_client.py -Expected pressure_expected.out)
+  add_test(NAME xlang3_ipc_lrpc_backpressure_server_exit COMMAND ${XLANG3_POWERSHELL} -NoProfile -ExecutionPolicy Bypass -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/ipc/run_pressure_exit.ps1 -XLang3 $<TARGET_FILE:xlang3>)
+  add_test(NAME xlang3_cli_dap_stdio_smoke COMMAND ${XLANG3_POWERSHELL} -NoProfile -ExecutionPolicy Bypass -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/cli/run_dap_stdio_smoke.ps1 -XLang3 $<TARGET_FILE:xlang3>)
+  add_test(NAME xlang3_cli_debugpy_adapter_smoke COMMAND $<TARGET_FILE:xlang3> ${CMAKE_CURRENT_SOURCE_DIR}/tests/cli/run_debugpy_adapter_smoke.py $<TARGET_FILE:xlang3>)
+  add_test(NAME xlang3_cli_visual_studio_debugpy_launch COMMAND $<TARGET_FILE:xlang3> ${CMAKE_CURRENT_SOURCE_DIR}/tests/cli/run_debugpy_launch_smoke.py $<TARGET_FILE:xlang3>)
+  set_tests_properties(xlang3_cli_visual_studio_debugpy_launch PROPERTIES TIMEOUT 360)
+else()
+  set(XLANG3_EXPECTED_RUNNER ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_expected.py)
+  add_test(NAME xlang3_cli_real_native_imports COMMAND ${Python3_EXECUTABLE} ${XLANG3_EXPECTED_RUNNER} $<TARGET_FILE:xlang3> ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/real_native_imports.py ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/real_native_imports.out)
+  add_test(NAME xlang3_xlang1_compat_import COMMAND ${Python3_EXECUTABLE} ${XLANG3_EXPECTED_RUNNER} $<TARGET_FILE:xlang3> ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/xlang1_compat_import.py ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/xlang1_compat_import.out)
+  add_test(NAME xlang3_cli_net_module_server_client COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/net/run_module.py $<TARGET_FILE:xlang3> $<TARGET_FILE_DIR:xlang_net_native_package>)
+  foreach(sqlite_case IN ITEMS old_xlang_sqlite_api python_sqlite3_api)
+    add_test(NAME xlang3_cli_sqlite_${sqlite_case} COMMAND ${Python3_EXECUTABLE} ${XLANG3_EXPECTED_RUNNER} $<TARGET_FILE:xlang3> ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/sqlite/${sqlite_case}.py ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/sqlite/${sqlite_case}.out $<TARGET_FILE_DIR:xlang_sqlite3_native_package>)
+  endforeach()
+  add_test(NAME xlang3_cli_fixtures COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_fixtures.py $<TARGET_FILE:xlang3>)
+  add_test(NAME xlang3_cli_compat COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/cli/run_cli_compat.py $<TARGET_FILE:xlang3> ${CMAKE_CURRENT_BINARY_DIR}/cli_compat)
+  add_test(NAME xlang3_cli_pickle_interop COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/cli/run_pickle_interop.py $<TARGET_FILE:xlang3> ${CMAKE_CURRENT_BINARY_DIR}/pickle_interop)
+  add_test(NAME xlang3_ipc_lrpc_smoke COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/ipc/run_lrpc_smoke.py $<TARGET_FILE:xlang3> --native-client $<TARGET_FILE:xlang3_cpp_ipc_client>)
+  add_test(NAME xlang3_ipc_lrpc_server_exit COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/ipc/run_server_exit.py $<TARGET_FILE:xlang3>)
+  add_test(NAME xlang3_ipc_lrpc_backpressure_server_exit COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/ipc/run_pressure_exit.py $<TARGET_FILE:xlang3>)
+  add_test(NAME xlang3_cli_dap_stdio_smoke COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/cli/run_dap_stdio_smoke.py $<TARGET_FILE:xlang3>)
+endif()
+if(TEST xlang3_ipc_lrpc_backpressure)
+  set_tests_properties(xlang3_ipc_lrpc_backpressure PROPERTIES TIMEOUT 120)
+endif()
+set_tests_properties(xlang3_ipc_lrpc_backpressure_server_exit PROPERTIES TIMEOUT 45)

@@ -1,0 +1,2986 @@
+/*
+Copyright (C) 2026 CantorAI Inc. and The XLang Foundation
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+#include "xlang3/runtime.h"
+#include "source_encoding.h"
+#include "ipc/ipc_runtime.h"
+#include "modules/thread/runtime_lock.h"
+
+#include "xlang3/attribute.h"
+#include "xlang3/builtins.h"
+#include "xlang3/eval_locals.h"
+#include "xlang3/functional_iterators.h"
+#include "xlang3/generator.h"
+#include "xlang3/ir.h"
+#if !defined(XLANG3_EMBEDDED)
+#include "xlang3/import_loader.h"
+#include "xlang3/native_package_loader.h"
+#endif
+#include "xlang3/module_object.h"
+#include "xlang3/perf_counters.h"
+#include "xlang3/mapping.h"
+#include "xlang3/object_model.h"
+#include "xlang3/sequence.h"
+#include "xlang3/vfs.h"
+
+#include <algorithm>
+#include <cstdlib>
+#include <cstring>
+#include <iostream>
+#include <mutex>
+#include <thread>
+#include <unordered_map>
+#include <unordered_set>
+#include <utility>
+
+#if !defined(XLANG3_EMBEDDED)
+#if defined(_WIN32)
+#include <windows.h>
+#elif defined(__APPLE__) || defined(__linux__)
+#include <dlfcn.h>
+#endif
+#endif
+
+namespace xlang3 {
+
+void xlang_thread_join_runtime_threads(Runtime* runtime);
+void xlang_thread_detach_runtime_daemon_threads(Runtime* runtime);
+
+namespace {
+thread_local Runtime* g_object_finalization_runtime = nullptr;
+// Track recursive acquisitions in TLS so the hot nested-import path does not
+// serialize on a second mutex; the per-runtime atomic remains available to
+// _imp.lock_held().
+thread_local std::vector<Runtime*> g_import_lock_stack;
+}
+
+Runtime* runtime_for_object_finalization() {
+  return g_object_finalization_runtime;
+}
+
+void runtime_set_object_finalization_context(Runtime* runtime) {
+  g_object_finalization_runtime = runtime;
+}
+
+namespace {
+
+struct RuntimeCurrentFrameState {
+  const std::shared_ptr<const ir::Module>* module_owner = nullptr;
+  const Value* globals_module = nullptr;
+  Value current_globals_module;
+  uint32_t function_id = 0;
+  uint32_t instruction_index = 0;
+  const RuntimeFrameView* frame_stack = nullptr;
+  size_t frame_stack_count = 0;
+  const std::vector<std::string>* local_names = nullptr;
+  const Value* local_values = nullptr;
+  size_t local_count = 0;
+  Value trace_function;
+  bool trace_dispatch_active = false;
+  Value profile_function;
+  bool profile_dispatch_active = false;
+};
+
+using CurrentFrameMap = std::unordered_map<const Runtime*, RuntimeCurrentFrameState>;
+using CurrentFrameStackMap = std::unordered_map<const Runtime*, std::vector<RuntimeCurrentFrameState>>;
+using ActiveExceptionMap = std::unordered_map<const Runtime*, Value>;
+using PendingExceptionMap = std::unordered_map<const Runtime*, Value>;
+
+#if defined(__APPLE__)
+// Darwin tears down main-thread TLS before executable-owned global objects. Keep
+// the containers alive so a global X::Runtime can still perform orderly cleanup.
+CurrentFrameMap& current_frames() {
+  thread_local auto* frames = new CurrentFrameMap();
+  return *frames;
+}
+CurrentFrameStackMap& current_frame_stacks() {
+  thread_local auto* stacks = new CurrentFrameStackMap();
+  return *stacks;
+}
+ActiveExceptionMap& active_exceptions() {
+  thread_local auto* exceptions = new ActiveExceptionMap();
+  return *exceptions;
+}
+PendingExceptionMap& pending_exceptions() {
+  thread_local auto* exceptions = new PendingExceptionMap();
+  return *exceptions;
+}
+#else
+thread_local CurrentFrameMap g_runtime_current_frames;
+thread_local CurrentFrameStackMap g_runtime_current_frame_stack;
+thread_local ActiveExceptionMap g_runtime_active_exceptions;
+thread_local PendingExceptionMap g_runtime_pending_exceptions;
+CurrentFrameMap& current_frames() { return g_runtime_current_frames; }
+CurrentFrameStackMap& current_frame_stacks() { return g_runtime_current_frame_stack; }
+ActiveExceptionMap& active_exceptions() { return g_runtime_active_exceptions; }
+PendingExceptionMap& pending_exceptions() { return g_runtime_pending_exceptions; }
+#endif
+
+thread_local const Runtime* g_cached_current_frame_runtime = nullptr;
+thread_local RuntimeCurrentFrameState* g_cached_current_frame_state = nullptr;
+thread_local const Runtime* g_cached_current_frame_stack_runtime = nullptr;
+thread_local std::vector<RuntimeCurrentFrameState>* g_cached_current_frame_stack = nullptr;
+
+std::mutex g_runtime_frame_registry_mutex;
+struct PublishedRuntimeFrameView {
+  std::shared_ptr<const ir::Module> module_owner;
+  Value globals_module;
+  std::vector<Value> local_values;
+  size_t instruction_index = 0;
+  uint32_t function_id = 0;
+  uint64_t activation_id = 0;
+};
+struct PublishedRuntimeFrameState {
+  RuntimeCurrentFrameState state;
+  std::vector<PublishedRuntimeFrameView> owned_frames;
+  std::vector<RuntimeFrameView> frame_stack;
+};
+std::unordered_map<const Runtime*, std::unordered_map<int64_t, PublishedRuntimeFrameState>> g_runtime_frame_registry;
+std::mutex g_runtime_exception_registry_mutex;
+std::unordered_map<const Runtime*, std::unordered_map<int64_t, Value>> g_runtime_exception_registry;
+
+int64_t runtime_current_thread_ident() {
+  return static_cast<int64_t>(std::hash<std::thread::id>{}(std::this_thread::get_id()) & 0x7fffffffffffffffll);
+}
+
+RuntimeCurrentFrameState& current_frame_state(const Runtime& runtime) {
+  if (g_cached_current_frame_runtime == &runtime && g_cached_current_frame_state != nullptr) {
+    return *g_cached_current_frame_state;
+  }
+  // All insertions into the thread-local map pass through this function. If
+  // an insertion rehashes it, the cache is immediately replaced with the
+  // newly requested entry; switching back to another Runtime performs a new
+  // lookup. The common single-Runtime VM path therefore avoids a hash lookup
+  // on every opcode without weakening per-thread frame isolation.
+  auto& state = current_frames()[&runtime];
+  g_cached_current_frame_runtime = &runtime;
+  g_cached_current_frame_state = &state;
+  return state;
+}
+
+std::vector<RuntimeCurrentFrameState>& current_frame_stack(const Runtime& runtime) {
+  if (g_cached_current_frame_stack_runtime == &runtime &&
+      g_cached_current_frame_stack != nullptr) {
+    return *g_cached_current_frame_stack;
+  }
+  auto& stack = current_frame_stacks()[&runtime];
+  g_cached_current_frame_stack_runtime = &runtime;
+  g_cached_current_frame_stack = &stack;
+  return stack;
+}
+
+void publish_current_frame_state(const Runtime& runtime) {
+  std::lock_guard<std::mutex> lock(g_runtime_frame_registry_mutex);
+  const auto& source = current_frame_state(runtime);
+  auto& published = g_runtime_frame_registry[&runtime][runtime_current_thread_ident()];
+  published.state = source;
+  published.owned_frames.clear();
+  published.frame_stack.clear();
+  if (source.frame_stack != nullptr && source.frame_stack_count != 0) {
+    published.owned_frames.resize(source.frame_stack_count);
+    for (size_t i = 0; i < source.frame_stack_count; ++i) {
+      const auto& frame = source.frame_stack[i];
+      auto& owned = published.owned_frames[i];
+      if (frame.module_owner != nullptr) owned.module_owner = *frame.module_owner;
+      if (frame.globals_module != nullptr) value_assign_fast(owned.globals_module, *frame.globals_module);
+      // Cross-thread snapshots are used to identify live stacks. Exact locals
+      // for a stopped thread come from the debugger's live frame callback;
+      // retaining arbitrary local objects here changes their finalization time.
+      owned.local_values.clear();
+      if (frame.instruction_index != nullptr) owned.instruction_index = *frame.instruction_index;
+      owned.function_id = frame.function_id;
+      owned.activation_id = frame.activation_id;
+    }
+    published.frame_stack.reserve(published.owned_frames.size());
+    for (auto& owned : published.owned_frames) {
+      const std::vector<std::string>* local_names = nullptr;
+      if (owned.module_owner != nullptr && owned.function_id < owned.module_owner->functions.size()) {
+        local_names = &owned.module_owner->functions[owned.function_id].locals;
+      }
+      published.frame_stack.push_back(RuntimeFrameView{
+          &owned.module_owner,
+          &owned.globals_module,
+          local_names,
+          owned.local_values.data(),
+          &owned.instruction_index,
+          owned.local_values.size(),
+          owned.function_id,
+          owned.activation_id,
+          nullptr,
+          nullptr,
+          0,
+          nullptr,
+      });
+    }
+  }
+  published.state.frame_stack = published.frame_stack.empty() ? nullptr : published.frame_stack.data();
+  published.state.frame_stack_count = published.frame_stack.size();
+}
+
+void clear_current_frame_state(const Runtime& runtime) {
+  std::lock_guard<std::mutex> lock(g_runtime_frame_registry_mutex);
+  auto runtime_it = g_runtime_frame_registry.find(&runtime);
+  if (runtime_it == g_runtime_frame_registry.end()) {
+    return;
+  }
+  runtime_it->second.erase(runtime_current_thread_ident());
+  if (runtime_it->second.empty()) {
+    g_runtime_frame_registry.erase(runtime_it);
+  }
+}
+
+void clear_runtime_frame_states(const Runtime& runtime) {
+  std::lock_guard<std::mutex> lock(g_runtime_frame_registry_mutex);
+  g_runtime_frame_registry.erase(&runtime);
+}
+
+} // namespace
+
+Value& runtime_current_exception_state(const Runtime& runtime) {
+  return active_exceptions()[&runtime];
+}
+
+Value& runtime_pending_exception_state(const Runtime& runtime) {
+  return pending_exceptions()[&runtime];
+}
+
+void runtime_publish_current_exception_state(const Runtime& runtime) {
+  Value retired;
+  {
+    std::lock_guard<std::mutex> lock(g_runtime_exception_registry_mutex);
+    auto& published = g_runtime_exception_registry[&runtime][runtime_current_thread_ident()];
+    retired = std::move(published);
+    published = runtime_current_exception_state(runtime);
+  }
+  // Releasing an exception can run a finalizer, which may re-enter the runtime.
+  // Keep that release outside the registry lock.
+}
+
+void runtime_clear_exception_states(const Runtime& runtime) {
+  std::unordered_map<int64_t, Value> retired;
+  {
+    std::lock_guard<std::mutex> lock(g_runtime_exception_registry_mutex);
+    auto found = g_runtime_exception_registry.find(&runtime);
+    if (found != g_runtime_exception_registry.end()) {
+      retired = std::move(found->second);
+      g_runtime_exception_registry.erase(found);
+    }
+  }
+}
+
+namespace {
+
+#if !defined(XLANG3_EMBEDDED)
+void ostream_output_write(void* context, const char* data, std::size_t size) {
+  auto* out = static_cast<std::ostream*>(context);
+  out->write(data, static_cast<std::streamsize>(size));
+}
+
+void runtime_module_anchor() {}
+
+std::filesystem::path runtime_library_dir() {
+#if defined(_WIN32)
+  HMODULE module = nullptr;
+  if (GetModuleHandleExA(
+          GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+          reinterpret_cast<LPCSTR>(&runtime_module_anchor),
+          &module) != 0) {
+    char path[MAX_PATH] = {};
+    const DWORD length = GetModuleFileNameA(module, path, MAX_PATH);
+    if (length > 0 && length < MAX_PATH) {
+      return std::filesystem::path(path).parent_path();
+    }
+  }
+#elif defined(__APPLE__) || defined(__linux__)
+  Dl_info info{};
+  if (dladdr(reinterpret_cast<void*>(&runtime_module_anchor), &info) != 0 && info.dli_fname != nullptr) {
+    std::error_code error;
+    const auto path = std::filesystem::absolute(info.dli_fname, error);
+    if (!error) return path.parent_path();
+    return std::filesystem::path(info.dli_fname).parent_path();
+  }
+#endif
+  return {};
+}
+
+void add_default_import_layout(Runtime& runtime, const std::filesystem::path& base) {
+  if (base.empty()) {
+    return;
+  }
+  runtime.add_import_root(base / "lib");
+  runtime.add_import_root(base / "lib" / "python3.14");
+  runtime.add_import_root(base / "modules");
+  runtime.add_import_root(base / "site-packages");
+  runtime.add_import_root(base);
+}
+
+void add_import_root_if_dir(Runtime& runtime, const std::filesystem::path& root) {
+  if (root.empty()) {
+    return;
+  }
+  std::error_code ec;
+  if (std::filesystem::is_directory(root, ec)) {
+    runtime.add_import_root(root);
+  }
+}
+
+void add_default_python_lib_roots(Runtime& runtime) {
+  if (const char* explicit_lib = std::getenv("XLANG3_PYTHON_LIB")) {
+    add_import_root_if_dir(runtime, explicit_lib);
+  }
+  if (const char* explicit_debugpy = std::getenv("XLANG3_DEBUGPY_ROOT")) {
+    add_import_root_if_dir(runtime, explicit_debugpy);
+    add_import_root_if_dir(runtime, std::filesystem::path(explicit_debugpy) / "_vendored" / "pydevd");
+  }
+#if defined(_WIN32)
+  add_import_root_if_dir(runtime, "C:/Python/Python314/Lib");
+#else
+  add_import_root_if_dir(runtime, "/usr/local/lib/python3.14");
+  add_import_root_if_dir(runtime, "/usr/lib/python3.14");
+#endif
+}
+
+std::filesystem::path normalize_import_root(
+    std::filesystem::path root,
+    bool host_paths) {
+  if (!host_paths) {
+    if (root.empty()) root = "/";
+    const auto normalized = root.lexically_normal();
+    return normalized.empty() ? root : normalized;
+  }
+  if (root.empty()) {
+    root = std::filesystem::current_path();
+  }
+  std::error_code ec;
+  auto absolute = std::filesystem::absolute(root, ec);
+  if (!ec) {
+    root = std::move(absolute);
+  }
+  auto normalized = root.lexically_normal();
+  return normalized.empty() ? root : normalized;
+}
+
+bool has_import_root(const std::vector<std::filesystem::path>& roots, const std::filesystem::path& root) {
+  return std::find(roots.begin(), roots.end(), root) != roots.end();
+}
+
+std::filesystem::path module_relative_source_path(const std::string& name) {
+  std::filesystem::path path;
+  size_t start = 0;
+  for (;;) {
+    const size_t dot = name.find('.', start);
+    const auto part = name.substr(start, dot == std::string::npos ? std::string::npos : dot - start);
+    if (!part.empty()) {
+      path /= part;
+    }
+    if (dot == std::string::npos) {
+      break;
+    }
+    start = dot + 1;
+  }
+  path += ".py";
+  return path;
+}
+
+std::string module_source_file_from_roots(const Runtime& runtime, const std::string& name) {
+  const auto relative_file = module_relative_source_path(name);
+  for (const auto& root : runtime.import_roots()) {
+    std::error_code ec;
+    const auto candidate = root / relative_file;
+    if (std::filesystem::is_regular_file(candidate, ec)) {
+      return candidate.generic_string();
+    }
+  }
+  return {};
+}
+#endif
+
+bool module_has_real_attr(const Value& module, const std::string& name) {
+  uint32_t slot = 0;
+  std::string ignored;
+  return module_find_attr_slot(module, name, slot, ignored);
+}
+
+Value make_import_metadata_class(const std::string& class_name, const std::string& module_name) {
+  std::vector<std::pair<std::string, Value>> attrs;
+  attrs.push_back({"__module__", Value::string(module_name)});
+  attrs.push_back({"__name__", Value::string(class_name)});
+  return Value::class_object(class_name, std::move(attrs));
+}
+
+bool is_frozen_import_metadata_module(const std::string& name) {
+  return name == "abc" || name == "_frozen_importlib" || name == "_frozen_importlib_external" ||
+         name == "importlib._bootstrap" || name == "importlib._bootstrap_external";
+}
+
+bool runtime_loader_get_filename(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1 || argc > 2) {
+    error = "loader.get_filename expected self and optional fullname";
+    return false;
+  }
+  if (!object_get_attr(args[0], "path", out, error)) {
+    error = "loader has no path";
+    return false;
+  }
+  return true;
+}
+
+bool runtime_loader_get_data(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "loader.get_data expected self and path";
+    return false;
+  }
+  auto* path_string = value_as_string(args[1]);
+  if (path_string == nullptr) {
+    error = "loader.get_data path must be str";
+    return false;
+  }
+  std::vector<uint8_t> bytes;
+  if (!runtime.vfs().read_file(string_object_to_string(*path_string), bytes, error)) {
+    return false;
+  }
+  out = Value::bytes(std::string(reinterpret_cast<const char*>(bytes.data()), bytes.size()));
+  return true;
+}
+
+bool runtime_loader_get_source(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "loader.get_source expected self and fullname";
+    return false;
+  }
+  Value path_value;
+  if (!object_get_attr(args[0], "path", path_value, error)) {
+    value_set_none(out);
+    error.clear();
+    return true;
+  }
+  auto* path = value_as_string(path_value);
+  if (path == nullptr) {
+    error = "loader path must be str";
+    return false;
+  }
+  std::vector<uint8_t> bytes;
+  if (!runtime.vfs().read_file(string_object_to_string(*path), bytes, error)) {
+    return false;
+  }
+  out = Value::string(std::string(reinterpret_cast<const char*>(bytes.data()), bytes.size()));
+  return true;
+}
+
+bool runtime_loader_compile_source(
+    Runtime& runtime,
+    const Value& source_value,
+    const Value& path_value,
+    Value& out,
+    std::string& error) {
+  auto* path = value_as_string(path_value);
+  if (path == nullptr) {
+    error = "loader source path must be str";
+    return false;
+  }
+  std::string source;
+  if (auto* text = value_as_string(source_value)) {
+    source = string_object_to_string(*text);
+  } else if (auto* bytes = value_as_bytes(source_value)) {
+    const std::string encoded = bytes_object_to_string(*bytes);
+    if (!runtime.decode_python_source(encoded, source, error)) return false;
+  } else if (auto* bytes = value_as_bytearray(source_value)) {
+    const std::string encoded(
+        reinterpret_cast<const char*>(bytes->value.data()), bytes->value.size());
+    if (!runtime.decode_python_source(encoded, source, error)) return false;
+  } else {
+    error = "source_to_code() argument 1 must be str or bytes";
+    return false;
+  }
+  const Value* compile_builtin = runtime.find_builtin("compile");
+  if (compile_builtin == nullptr) {
+    error = "compile builtin is not registered";
+    return false;
+  }
+  Value compile_args[] = {
+      Value::string(std::move(source)), path_value, Value::string("exec")};
+  return runtime_call_callable(runtime, *compile_builtin, compile_args, 3, out, error);
+}
+
+bool runtime_loader_source_to_code(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc < 3 || argc > 4) {
+    error = "loader.source_to_code expected data, path, and optional optimize";
+    return false;
+  }
+  return runtime_loader_compile_source(runtime, args[1], args[2], out, error);
+}
+
+bool runtime_loader_source_to_code_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void* user_data) {
+  if (kwargc > 1 ||
+      (kwargc == 1 &&
+       (kwargs[0].name == nullptr || std::string_view(kwargs[0].name) != "_optimize"))) {
+    error = "source_to_code() got an unexpected keyword argument";
+    return false;
+  }
+  return runtime_loader_source_to_code(runtime, args, argc, out, error, user_data);
+}
+
+bool runtime_loader_get_code(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc != 2) {
+    error = "loader.get_code expected self and fullname";
+    return false;
+  }
+  Value path_value;
+  if (!object_get_attr(args[0], "path", path_value, error)) return false;
+  auto* path = value_as_string(path_value);
+  if (path == nullptr) {
+    error = "loader path must be str";
+    return false;
+  }
+  std::vector<uint8_t> bytes;
+  if (!runtime.vfs().read_file(string_object_to_string(*path), bytes, error)) return false;
+  Value source = Value::bytes(std::string(
+      reinterpret_cast<const char*>(bytes.data()), bytes.size()));
+  return runtime_loader_compile_source(runtime, source, path_value, out, error);
+}
+
+bool runtime_loader_get_resource_reader(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "loader.get_resource_reader expected self and fullname";
+    return false;
+  }
+  Value readers_module;
+  if (!runtime.import_module("importlib.resources.readers", readers_module, error)) {
+    return false;
+  }
+  Value file_reader_class;
+  if (!module_get_attr(readers_module, "FileReader", file_reader_class, error)) {
+    return false;
+  }
+  Value reader_args[] = {args[0]};
+  return runtime_call_callable(runtime, file_reader_class, reader_args, 1, out, error);
+}
+
+bool runtime_namespace_resource_reader_files(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "NamespaceResourceReader.files expected self";
+    return false;
+  }
+  return object_get_attr(args[0], "__files", out, error);
+}
+
+bool runtime_namespace_loader_get_resource_reader(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "loader.get_resource_reader expected self and fullname";
+    return false;
+  }
+  auto* fullname_string = value_as_string(args[1]);
+  if (fullname_string == nullptr) {
+    error = "loader.get_resource_reader fullname must be str";
+    return false;
+  }
+  Value package;
+  if (!runtime.import_module(string_object_to_string(*fullname_string), package, error)) {
+    return false;
+  }
+  Value package_path;
+  if (!module_get_attr(package, "__path__", package_path, error)) {
+    return false;
+  }
+  Value readers_module;
+  if (!runtime.import_module("importlib.resources.readers", readers_module, error)) {
+    return false;
+  }
+  Value multiplexed_path_class;
+  if (!module_get_attr(readers_module, "MultiplexedPath", multiplexed_path_class, error)) {
+    return false;
+  }
+  auto* paths = value_as_list(package_path);
+  if (paths == nullptr) {
+    error = "namespace package __path__ must be iterable";
+    return false;
+  }
+  Value files;
+  if (!runtime_call_callable(runtime, multiplexed_path_class, paths->items.data(), static_cast<uint32_t>(paths->items.size()), files, error)) {
+    return false;
+  }
+  out = Value::instance(Value::class_object(
+      "NamespaceResourceReader",
+      {{"files", runtime.make_native_function("NamespaceResourceReader.files", runtime_namespace_resource_reader_files)}}));
+  std::string ignored;
+  object_set_attr(out, "__files", files, ignored);
+  return true;
+}
+
+Value make_runtime_loader(Runtime& runtime, const std::string& class_name, const std::string& module_name, const Value& path = Value::invalid()) {
+  if (class_name == "BuiltinImporter" || class_name == "FrozenImporter") {
+    return make_import_metadata_class(class_name, "_frozen_importlib");
+  }
+  if ((class_name == "SourceFileLoader" || class_name == "NamespaceLoader") &&
+      runtime.has_registered_module("_frozen_importlib_external")) {
+    Value external;
+    Value loader_class;
+    std::string ignored;
+    if (runtime.import_module("_frozen_importlib_external", external, ignored) &&
+        module_get_attr(external, class_name, loader_class, ignored) &&
+        value_as_class(loader_class) != nullptr) {
+      auto loader = Value::instance(loader_class);
+      object_set_attr(loader, "name", Value::string(module_name), ignored);
+      if (path.tag != ValueTag::Invalid) object_set_attr(loader, "path", path, ignored);
+      return loader;
+    }
+  }
+  std::vector<std::pair<std::string, Value>> attrs;
+  attrs.push_back({"__module__", Value::string("_frozen_importlib")});
+  attrs.push_back({"__name__", Value::string(class_name)});
+  if (class_name == "SourceFileLoader") {
+    attrs.push_back({"get_filename", runtime.make_native_function("xlang3.SourceFileLoader.get_filename", runtime_loader_get_filename)});
+    attrs.push_back({"get_data", runtime.make_native_function("xlang3.SourceFileLoader.get_data", runtime_loader_get_data)});
+    attrs.push_back({"get_source", runtime.make_native_function("xlang3.SourceFileLoader.get_source", runtime_loader_get_source)});
+    attrs.push_back({"get_code", runtime.make_native_function("xlang3.SourceFileLoader.get_code", runtime_loader_get_code)});
+    attrs.push_back({"source_to_code", runtime.make_native_function(
+        "xlang3.SourceFileLoader.source_to_code", runtime_loader_source_to_code,
+        nullptr, nullptr, nullptr, false, runtime_loader_source_to_code_kw)});
+    attrs.push_back({"get_resource_reader", runtime.make_native_function("xlang3.SourceFileLoader.get_resource_reader", runtime_loader_get_resource_reader)});
+  }
+  if (class_name == "NamespaceLoader") {
+    attrs.push_back({"get_resource_reader", runtime.make_native_function("xlang3.NamespaceLoader.get_resource_reader", runtime_namespace_loader_get_resource_reader)});
+  }
+  auto loader = Value::instance(Value::class_object(class_name, std::move(attrs)));
+  std::string ignored;
+  object_set_attr(loader, "name", Value::string(module_name), ignored);
+  if (path.tag != ValueTag::Invalid) {
+    object_set_attr(loader, "path", path, ignored);
+  }
+  return loader;
+}
+
+Value make_runtime_module_spec(
+    const std::string& name,
+    const Value& loader,
+    const Value& origin,
+    const Value& submodule_search_locations) {
+  auto spec = Value::instance(make_import_metadata_class("ModuleSpec", "_frozen_importlib"));
+  std::string ignored;
+  object_set_attr(spec, "name", Value::string(name), ignored);
+  object_set_attr(spec, "loader", loader, ignored);
+  object_set_attr(spec, "origin", origin, ignored);
+  object_set_attr(spec, "cached", Value::none(), ignored);
+  const auto dot = name.rfind('.');
+  object_set_attr(
+      spec,
+      "parent",
+      Value::string(submodule_search_locations.tag != ValueTag::None
+          ? name
+          : (dot == std::string::npos ? "" : name.substr(0, dot))),
+      ignored);
+  const std::string origin_text = origin.tag == ValueTag::None ? "" : value_to_string(origin);
+  object_set_attr(
+      spec,
+      "has_location",
+      Value::boolean(origin.tag != ValueTag::None && origin_text != "built-in" && origin_text != "frozen"),
+      ignored);
+  object_set_attr(spec, "submodule_search_locations", submodule_search_locations, ignored);
+  return spec;
+}
+
+void ensure_module_import_metadata(Runtime& runtime, Value& module, const std::string& name) {
+  if (value_as_module(module) == nullptr) {
+    return;
+  }
+
+  std::string ignored;
+  if (!module_has_real_attr(module, "__package__")) {
+    const auto dot = name.rfind('.');
+    module_set_attr(module, "__package__", Value::string(dot == std::string::npos ? "" : name.substr(0, dot)), ignored);
+  }
+
+  Value path;
+  const bool has_path = module_get_attr(module, "__path__", path, ignored) && path.tag != ValueTag::Invalid;
+  Value file;
+  const bool has_file = module_get_attr(module, "__file__", file, ignored) && file.tag != ValueTag::Invalid && file.tag != ValueTag::None;
+  const bool is_frozen = is_frozen_import_metadata_module(name);
+  Value loader = is_frozen ? make_runtime_loader(runtime, "FrozenImporter", name)
+                           : (has_path && !has_file ? make_runtime_loader(runtime, "NamespaceLoader", name)
+                                                    : make_runtime_loader(runtime, has_file ? "SourceFileLoader" : "BuiltinImporter", name, file));
+  if (!module_has_real_attr(module, "__loader__")) {
+    module_set_attr(module, "__loader__", loader, ignored);
+  } else {
+    module_get_attr(module, "__loader__", loader, ignored);
+  }
+
+  if (!module_has_real_attr(module, "__spec__")) {
+    Value origin = is_frozen ? Value::string("frozen") : (has_file ? file : (has_path ? Value::none() : Value::string("built-in")));
+    module_set_attr(module, "__spec__", make_runtime_module_spec(name, loader, origin, has_path ? path : Value::none()), ignored);
+  }
+  Value spec;
+  Value cached;
+  if (module_get_attr(module, "__spec__", spec, ignored) && spec.tag != ValueTag::None &&
+      module_get_attr(module, "__cached__", cached, ignored) &&
+      cached.tag != ValueTag::Invalid && cached.tag != ValueTag::None) {
+    object_set_attr(spec, "cached", cached, ignored);
+  }
+}
+
+bool module_spec_origin_is(const Value& module, const char* expected) {
+  Value spec;
+  std::string ignored;
+  if (!module_get_attr(module, "__spec__", spec, ignored)) {
+    return false;
+  }
+  Value origin;
+  if (!object_get_attr(spec, "origin", origin, ignored)) {
+    return false;
+  }
+  auto* text = value_as_string(origin);
+  return text != nullptr && string_object_to_string(*text) == expected;
+}
+
+void canonicalize_module_loader_from_bootstrap(std::unordered_map<std::string, Value>& modules, Value& module) {
+  if (value_as_module(module) == nullptr) {
+    return;
+  }
+  const bool builtin_origin = module_spec_origin_is(module, "built-in");
+  const bool frozen_origin = module_spec_origin_is(module, "frozen");
+  if (!builtin_origin && !frozen_origin) {
+    return;
+  }
+  auto bootstrap_it = modules.find("_frozen_importlib");
+  if (bootstrap_it == modules.end()) {
+    return;
+  }
+  Value loader;
+  std::string ignored;
+  const char* loader_name = builtin_origin ? "BuiltinImporter" : "FrozenImporter";
+  if (!module_get_attr(bootstrap_it->second, loader_name, loader, ignored)) {
+    return;
+  }
+  module_set_attr(module, "__loader__", loader, ignored);
+  Value spec;
+  if (module_get_attr(module, "__spec__", spec, ignored)) {
+    object_set_attr(spec, "loader", loader, ignored);
+  }
+}
+
+} // namespace
+
+void Runtime::initialize() {
+  runtime_set_object_finalization_context(this);
+  make_native_function("xlang3.SourceFileLoader.get_filename", runtime_loader_get_filename);
+  make_native_function("xlang3.SourceFileLoader.get_data", runtime_loader_get_data);
+  make_native_function("xlang3.SourceFileLoader.get_source", runtime_loader_get_source);
+  make_native_function("xlang3.SourceFileLoader.get_resource_reader", runtime_loader_get_resource_reader);
+  make_native_function("xlang3.NamespaceLoader.get_resource_reader", runtime_namespace_loader_get_resource_reader);
+  modules_dict_ = Value::dict({});
+  register_core_builtins(*this);
+#if !defined(XLANG3_EMBEDDED)
+  const auto library_dir = runtime_library_dir();
+  add_default_import_layout(*this, library_dir);
+  // Installed POSIX packages can place the runtime in bin/lib while the
+  // executables and native packages remain in bin. Embedded hosts need the
+  // same adjacent standard library as the CLI, without host environment paths.
+  if (library_dir.filename() == "lib") {
+    std::error_code ec;
+    if (std::filesystem::is_regular_file(library_dir / "python3.14" / "os.py", ec)) {
+      add_default_import_layout(*this, library_dir.parent_path());
+    }
+  }
+  add_default_python_lib_roots(*this);
+  auto sys_it = modules_.find("sys");
+  if (sys_it != modules_.end()) {
+    for (const auto& root : import_roots_) {
+      std::error_code ec;
+      if (std::filesystem::is_regular_file(root / "os.py", ec)) {
+        std::string ignored;
+        module_set_attr(sys_it->second, "_stdlib_dir", Value::string(root.string()), ignored);
+        break;
+      }
+    }
+  }
+  for (auto& entry : modules_) {
+    Value existing;
+    std::string ignored;
+    if (module_get_attr(entry.second, "__file__", existing, ignored) && existing.tag != ValueTag::Invalid) {
+      continue;
+    }
+    ignored.clear();
+    const auto source_file = module_source_file_from_roots(*this, entry.first);
+    if (!source_file.empty()) {
+      module_set_attr(entry.second, "__file__", Value::string(source_file), ignored);
+    }
+  }
+#endif
+}
+
+#if !defined(XLANG3_EMBEDDED)
+Runtime::Runtime(std::ostream& out)
+    : output_{&out, ostream_output_write},
+      vfs_(std::make_unique<Vfs>()) {
+  initialize();
+}
+#endif
+
+Runtime::Runtime(OutputSink output)
+    : output_(output),
+      vfs_(std::make_unique<Vfs>()) {
+  initialize();
+}
+
+void Runtime::set_last_error(std::string error) {
+  std::lock_guard<std::mutex> lock(last_error_mutex_);
+  last_errors_[std::this_thread::get_id()] = std::move(error);
+}
+
+const std::string& Runtime::last_error() const {
+  std::lock_guard<std::mutex> lock(last_error_mutex_);
+  // Rehashing preserves references; only the calling thread modifies its entry.
+  return last_errors_[std::this_thread::get_id()];
+}
+
+Runtime::~Runtime() {
+  unregister_interpreter_runtime(*this);
+  std::string ignored;
+  bool threading_shutdown_completed = false;
+  auto threading_it = modules_.find("threading");
+  if (threading_it != modules_.end()) {
+    Value shutdown;
+    if (module_get_attr(threading_it->second, "_shutdown", shutdown, ignored)) {
+      Value shutdown_result;
+      std::string shutdown_error;
+      threading_shutdown_completed = runtime_call_callable(
+          *this, shutdown, nullptr, 0, shutdown_result, shutdown_error);
+      if (!threading_shutdown_completed) {
+        if (!shutdown_error.empty()) {
+          std::cerr << shutdown_error << '\n';
+          const std::string marker = "<class '";
+          const size_t marker_pos = shutdown_error.find(marker);
+          const size_t name_end = marker_pos == std::string::npos
+              ? std::string::npos
+              : shutdown_error.find("'>: ", marker_pos + marker.size());
+          if (name_end != std::string::npos) {
+            const std::string name = shutdown_error.substr(
+                marker_pos + marker.size(), name_end - marker_pos - marker.size());
+            std::cerr << name << ": " << shutdown_error.substr(name_end + 4) << '\n';
+          }
+        }
+        Value pending;
+        (void)take_pending_exception(pending);
+      }
+    }
+  }
+  if (!threading_shutdown_completed) {
+    xlang_thread_join_runtime_threads(this);
+  }
+  clear_current_frame();
+  clear_runtime_frame_states(*this);
+  runtime_clear_exception_states(*this);
+  {
+    std::lock_guard<std::mutex> lock(live_frame_snapshots_mutex_);
+    live_frame_snapshots_.clear();
+    live_frame_snapshot_index_.clear();
+    has_live_frame_snapshots_.store(false, std::memory_order_release);
+  }
+  ignored.clear();
+  if (!run_exit_functions(ignored) && !ignored.empty()) {
+    std::cerr << ignored << '\n';
+  }
+  finalizing_ = true;
+  std::vector<Value> retained_values;
+  for (const auto& module_entry : modules_) {
+    if (auto* module = value_as_module(module_entry.second)) {
+      for (const auto& value : module->slots) {
+        if (value_as_instance(value) != nullptr) retained_values.push_back(value);
+      }
+    }
+  }
+  std::vector<Object*> finalized;
+  finalized.reserve(retained_values.size());
+  for (auto it = retained_values.rbegin(); it != retained_values.rend(); ++it) {
+    auto* instance = value_as_instance(*it);
+    if (instance == nullptr ||
+        std::find(finalized.begin(), finalized.end(), &instance->header) != finalized.end()) {
+      continue;
+    }
+    finalized.push_back(&instance->header);
+    Value finalizer;
+    std::string attr_error;
+    if (!attribute_get(*it, "__del__", finalizer, attr_error)) continue;
+    Value finalizer_result;
+    std::string finalizer_error;
+    if (!runtime_call_callable(*this, finalizer, nullptr, 0, finalizer_result, finalizer_error)) {
+      std::string finalizer_name = "__del__";
+      if (auto* klass = value_as_class(instance->klass)) finalizer_name = klass->name + ".__del__";
+      std::cerr << "Exception ignored while calling deallocator <function " << finalizer_name << ">:\n";
+      if (!finalizer_error.empty()) std::cerr << finalizer_error << '\n';
+      Value pending;
+      (void)take_pending_exception(pending);
+    }
+  }
+  if (!threading_shutdown_completed) {
+    xlang_thread_join_runtime_threads(this);
+  }
+  xlang_thread_detach_runtime_daemon_threads(this);
+  ipc_detach_runtime(*this);
+  value_set_invalid(pending_exception_);
+  value_set_invalid(runtime_pending_exception_state(*this));
+  value_set_invalid(active_exception_);
+  value_set_invalid(runtime_current_exception_state(*this));
+  value_set_invalid(current_globals_module_);
+  value_set_invalid(trace_function_);
+  value_set_invalid(thread_trace_function_);
+  value_set_invalid(profile_function_);
+  value_set_invalid(thread_profile_function_);
+  value_set_invalid(debug_hook_);
+  // Finalizer discovery temporarily retains module-level instances. Release
+  // those references before tearing down native package hosts because a native
+  // instance destructor may call back through the host while releasing values
+  // owned by its native payload.
+  retained_values.clear();
+  collect_serialized_objects(true);
+  native_codecs_.clear();
+  // Module/function and sys.modules cycles must not retain native instances
+  // beyond package cleanup, which releases the hosts used by their destructors.
+  for (auto& entry : modules_) {
+    if (auto* module = value_as_module(entry.second)) {
+      module->slots.clear();
+      module->name_to_slot.clear();
+      module->extra_globals.clear();
+      ++module->version;
+      module_sync_namespace_dict(*module);
+    }
+  }
+  native_symbols_.clear();
+  modules_.clear();
+  value_set_invalid(modules_dict_);
+  builtins_.clear();
+  for (auto it = native_package_cleanups_.rbegin(); it != native_package_cleanups_.rend(); ++it) {
+    if (it->second != nullptr) {
+      it->second(it->first);
+    }
+  }
+  if (runtime_for_object_finalization() == this) {
+    runtime_set_object_finalization_context(nullptr);
+  }
+}
+
+void Runtime::write_output(const char* data, std::size_t size) {
+  if (data == nullptr || size == 0 || output_.write == nullptr) {
+    return;
+  }
+  output_.write(output_.context, data, size);
+}
+
+bool Runtime::uses_process_stdout() const {
+#if !defined(XLANG3_EMBEDDED)
+  return output_.write == ostream_output_write && output_.context == &std::cout;
+#else
+  return false;
+#endif
+}
+
+void Runtime::write_output(const char* text) {
+  if (text == nullptr) {
+    return;
+  }
+  write_output(text, std::strlen(text));
+}
+
+void Runtime::register_builtin(std::string name, Value value) {
+  builtins_[std::move(name)] = std::move(value);
+}
+
+void Runtime::register_native_builtin(
+    std::string name,
+    NativeFunctionCallback callback,
+    NativeFastCallCallback fast_callback,
+    bool fast_releases_vm_lock,
+    NativeKeywordFunctionCallback keyword_callback) {
+  auto function_value = make_native_function(
+      name,
+      callback,
+      nullptr,
+      nullptr,
+      fast_callback,
+      fast_releases_vm_lock,
+      keyword_callback,
+      false);
+  register_builtin(std::move(name), std::move(function_value));
+}
+
+const Value* Runtime::find_builtin(const std::string& name) const {
+  auto it = builtins_.find(name);
+  if (it == builtins_.end()) {
+    return nullptr;
+  }
+  return &it->second;
+}
+
+bool Runtime::resolve_builtin(const std::string& name, Value& out) const {
+  // Dict-backed dynamic execution supplies its own builtins namespace. Do not
+  // fall through an explicitly empty/custom namespace to the global builtins.
+  if (mapping_is_dict(current_globals_module()) && name.rfind("__xlang3_", 0) != 0) {
+    Value namespace_value;
+    std::string ignored;
+    const auto& state = current_frame_state(*this);
+    const Value* captured = state.frame_stack != nullptr && state.frame_stack_count != 0
+        ? state.frame_stack[state.frame_stack_count - 1].captured_builtins : nullptr;
+    bool found = captured != nullptr && captured->tag != ValueTag::Invalid;
+    if (found) value_assign_fast(namespace_value, *captured);
+    else found = mapping_get_string_item(current_globals_module(), "__builtins__", namespace_value, ignored);
+    if (found) {
+      if (value_as_module(namespace_value) != nullptr)
+        return module_get_attr(namespace_value, name, out, ignored);
+      if (mapping_is_dict(namespace_value))
+        return mapping_get_string_item(namespace_value, name, out, ignored);
+      return false;
+    }
+  }
+  const auto module = modules_.find("builtins");
+  if (module != modules_.end()) {
+    std::string ignored;
+    if (module_get_attr(module->second, name, out, ignored)) return true;
+    if (name.rfind("__xlang3_", 0) != 0) return false;
+  }
+  const Value* builtin = find_builtin(name);
+  if (builtin == nullptr) return false;
+  value_assign_fast(out, *builtin);
+  return true;
+}
+
+void Runtime::set_current_globals_module(const Value& globals_module) {
+  auto& state = current_frame_state(*this);
+  if (state.current_globals_module.tag == ValueTag::Object &&
+      globals_module.tag == ValueTag::Object &&
+      state.current_globals_module.as.obj == globals_module.as.obj) {
+    return;
+  }
+  Value next;
+  value_assign_fast(next, globals_module);
+  value_set_invalid(state.current_globals_module);
+  state.current_globals_module = next;
+}
+
+const Value& Runtime::current_globals_module() const {
+  const auto& state = current_frame_state(*this);
+  return state.current_globals_module.tag == ValueTag::Invalid ? current_globals_module_ : state.current_globals_module;
+}
+
+bool Runtime::set_sys_argv(const std::vector<std::string>& argv, std::string& error) {
+  Value sys;
+  if (!import_module("sys", sys, error)) {
+    return false;
+  }
+  std::vector<Value> values;
+  values.reserve(argv.size());
+  for (const auto& item : argv) {
+    values.push_back(Value::string(item));
+  }
+  return module_set_attr(sys, "argv", Value::list(std::move(values)), error);
+}
+
+#if !defined(XLANG3_EMBEDDED)
+bool Runtime::publish_sys_path(std::string& error) {
+  Value sys;
+  if (!import_module("sys", sys, error)) {
+    return false;
+  }
+  std::vector<Value> values;
+  values.reserve(import_roots_.size());
+  for (const auto& root : import_roots_) {
+    values.push_back(Value::string(root.string()));
+  }
+  return module_set_attr(sys, "path", Value::list(std::move(values)), error);
+}
+#endif
+
+void Runtime::set_trace_function(Value trace_function) {
+  if (trace_function.tag != ValueTag::Invalid && trace_function.tag != ValueTag::None) {
+    trace_possible_.store(true, std::memory_order_relaxed);
+  }
+  Value next;
+  value_assign_fast(next, trace_function);
+  auto& state = current_frame_state(*this);
+  value_set_invalid(state.trace_function);
+  state.trace_function = next;
+}
+
+const Value& Runtime::trace_function() const {
+  const auto& state = current_frame_state(*this);
+  return state.trace_function.tag == ValueTag::Invalid ? trace_function_ : state.trace_function;
+}
+
+bool Runtime::trace_dispatch_active() const {
+  return current_frame_state(*this).trace_dispatch_active;
+}
+
+void Runtime::set_trace_dispatch_active(bool active) {
+  current_frame_state(*this).trace_dispatch_active = active;
+}
+
+void Runtime::set_thread_trace_function(Value trace_function) {
+  if (trace_function.tag != ValueTag::Invalid && trace_function.tag != ValueTag::None) {
+    trace_possible_.store(true, std::memory_order_relaxed);
+  }
+  Value next;
+  value_assign_fast(next, trace_function);
+  value_set_invalid(thread_trace_function_);
+  thread_trace_function_ = next;
+}
+
+void Runtime::set_profile_function(Value profile_function) {
+  if (profile_function.tag != ValueTag::Invalid && profile_function.tag != ValueTag::None) {
+    profile_possible_.store(true, std::memory_order_relaxed);
+  }
+  Value next;
+  value_assign_fast(next, profile_function);
+  auto& state = current_frame_state(*this);
+  auto& saved_frames = current_frame_stack(*this);
+  // The hook is a thread setting, not a saved-frame setting. A native callback
+  // or finalizer can install or disable it in a nested Interpreter; restoring
+  // its caller's frame must preserve that change. Update only this cold setter
+  // rather than adding observer work to ordinary entry/pop or opcode dispatch.
+  // Unpublish every old hook into owning temporaries before publishing the new
+  // hook, then retire them after all snapshots agree. Old-hook cleanup may
+  // reenter and replace the hook again, without stale publication afterwards.
+  std::vector<Value> retired_profiles;
+  retired_profiles.reserve(saved_frames.size() + 1);
+  retired_profiles.push_back(std::move(state.profile_function));
+  for (auto& saved : saved_frames)
+    retired_profiles.push_back(std::move(saved.profile_function));
+  value_assign_fast(state.profile_function, next);
+  for (auto& saved : saved_frames)
+    value_assign_fast(saved.profile_function, next);
+}
+
+const Value& Runtime::profile_function() const {
+  const auto& state = current_frame_state(*this);
+  return state.profile_function.tag == ValueTag::Invalid ? profile_function_ : state.profile_function;
+}
+
+bool Runtime::profile_dispatch_active() const {
+  return current_frame_state(*this).profile_dispatch_active;
+}
+
+void Runtime::set_profile_dispatch_active(bool active) {
+  current_frame_state(*this).profile_dispatch_active = active;
+}
+
+bool Runtime::emit_profile_event(const char* event_name, const Value& arg, std::string& error) {
+  return emit_profile_event_for_frame(current_frame_snapshot(), event_name, arg, error);
+}
+
+bool Runtime::emit_profile_event_for_frame(const Value& frame, const char* event_name, const Value& arg, std::string& error) {
+  const Value& borrowed_hook = profile_function();
+  if (borrowed_hook.tag == ValueTag::Invalid || borrowed_hook.tag == ValueTag::None || profile_dispatch_active()) {
+    return true;
+  }
+  if (frame.tag == ValueTag::None) {
+    return true;
+  }
+  // A hook can remove its last setting owner while executing. Keep the actual
+  // callable alive through callback/result cleanup, only on active dispatch.
+  Value hook;
+  value_assign_fast(hook, borrowed_hook);
+  Value profile_args[3] = {
+      frame,
+      Value::string(event_name == nullptr ? "" : event_name),
+      arg,
+  };
+  set_profile_dispatch_active(true);
+  struct ProfileDispatchGuard {
+    Runtime& runtime;
+    ~ProfileDispatchGuard() { runtime.set_profile_dispatch_active(false); }
+  } guard{*this};
+  Value ignored;
+  return runtime_call_callable(*this, hook, profile_args, 3, ignored, error);
+}
+
+void Runtime::set_thread_profile_function(Value profile_function) {
+  if (profile_function.tag != ValueTag::Invalid && profile_function.tag != ValueTag::None) {
+    profile_possible_.store(true, std::memory_order_relaxed);
+  }
+  Value next;
+  value_assign_fast(next, profile_function);
+  value_set_invalid(thread_profile_function_);
+  thread_profile_function_ = next;
+}
+
+void Runtime::refresh_debug_poll_needed() {
+  const bool debug_session_active = debug_enabled_ || value_as_function(debug_hook_) != nullptr;
+  debug_poll_needed_ = debug_session_active && !debug_dispatch_active_ &&
+                       (debug_pause_requested_ ||
+                        debug_step_mode_ != RuntimeDebugStepMode::Continue ||
+                        !debug_breakpoints_.empty());
+}
+
+void Runtime::set_debug_hook(Value hook) {
+  Value next;
+  value_assign_fast(next, hook);
+  value_set_invalid(debug_hook_);
+  debug_hook_ = next;
+  refresh_debug_poll_needed();
+}
+
+void Runtime::set_debug_dispatch_active(bool active) {
+  debug_dispatch_active_ = active;
+  refresh_debug_poll_needed();
+}
+
+void Runtime::set_debug_enabled(bool enabled) {
+  debug_enabled_ = enabled;
+  refresh_debug_poll_needed();
+}
+
+void Runtime::set_debug_pause_on_hit(bool enabled) {
+  debug_pause_on_hit_ = enabled;
+}
+
+void Runtime::debug_request_pause() {
+  debug_pause_requested_ = true;
+  refresh_debug_poll_needed();
+}
+
+void Runtime::debug_add_breakpoint(std::string file, uint32_t line) {
+  if (file.empty() || line == 0) {
+    return;
+  }
+  for (const auto& breakpoint : debug_breakpoints_) {
+    if (breakpoint.line == line && breakpoint.file == file) {
+      return;
+    }
+  }
+  debug_breakpoints_.push_back(RuntimeDebugBreakpoint{std::move(file), line});
+  refresh_debug_poll_needed();
+}
+
+void Runtime::debug_clear_breakpoints() {
+  debug_breakpoints_.clear();
+  refresh_debug_poll_needed();
+}
+
+void Runtime::debug_step_into(size_t frame_count, uint32_t line) {
+  debug_step_mode_ = RuntimeDebugStepMode::StepInto;
+  debug_step_frame_count_ = frame_count;
+  debug_step_line_ = line;
+  refresh_debug_poll_needed();
+}
+
+void Runtime::debug_step_over(size_t frame_count, uint32_t line) {
+  debug_step_mode_ = RuntimeDebugStepMode::StepOver;
+  debug_step_frame_count_ = frame_count;
+  debug_step_line_ = line;
+  refresh_debug_poll_needed();
+}
+
+void Runtime::debug_step_out(size_t frame_count) {
+  debug_step_mode_ = RuntimeDebugStepMode::StepOut;
+  debug_step_frame_count_ = frame_count;
+  debug_step_line_ = 0;
+  refresh_debug_poll_needed();
+}
+
+void Runtime::debug_continue() {
+  debug_step_mode_ = RuntimeDebugStepMode::Continue;
+  debug_step_frame_count_ = 0;
+  debug_step_line_ = 0;
+  debug_pause_requested_ = false;
+  refresh_debug_poll_needed();
+}
+
+RuntimePauseReason Runtime::debug_step_pause_reason(size_t frame_count, uint32_t line) const {
+  if (debug_pause_requested_) {
+    return RuntimePauseReason::PauseRequest;
+  }
+  if (line == 0) {
+    return RuntimePauseReason::None;
+  }
+  if (debug_step_mode_ == RuntimeDebugStepMode::StepInto) {
+    if (frame_count > debug_step_frame_count_ || line != debug_step_line_) {
+      return RuntimePauseReason::Step;
+    }
+    return RuntimePauseReason::None;
+  }
+  if (debug_step_mode_ == RuntimeDebugStepMode::StepOver &&
+      frame_count <= debug_step_frame_count_ &&
+      line != debug_step_line_) {
+    return RuntimePauseReason::StepOver;
+  }
+  if (debug_step_mode_ == RuntimeDebugStepMode::StepOut && frame_count < debug_step_frame_count_) {
+    return RuntimePauseReason::StepOut;
+  }
+  return RuntimePauseReason::None;
+}
+
+bool Runtime::debug_skip_breakpoint_at_step_origin(size_t frame_count, uint32_t line) const {
+  if (debug_step_mode_ == RuntimeDebugStepMode::Continue || debug_step_line_ == 0) {
+    return false;
+  }
+  return frame_count == debug_step_frame_count_ && line == debug_step_line_;
+}
+
+bool Runtime::debug_breakpoint_matches(std::string_view file, uint32_t line) const {
+  if (line == 0) {
+    return false;
+  }
+  for (const auto& breakpoint : debug_breakpoints_) {
+    if (breakpoint.line != line) {
+      continue;
+    }
+    if (file == breakpoint.file) {
+      return true;
+    }
+    if (file.size() > breakpoint.file.size() &&
+        file.substr(file.size() - breakpoint.file.size()) == breakpoint.file) {
+      return true;
+    }
+  }
+  return false;
+}
+
+void Runtime::set_current_frame(
+    const std::shared_ptr<const ir::Module>* module_owner,
+    uint32_t function_id,
+    const Value* globals_module,
+    uint32_t instruction_index) {
+  auto& state = current_frame_state(*this);
+  state.module_owner = module_owner;
+  state.function_id = function_id;
+  state.globals_module = globals_module;
+  state.instruction_index = instruction_index;
+}
+
+void Runtime::push_current_frame_state() {
+  current_frame_stack(*this).push_back(current_frame_state(*this));
+}
+
+void Runtime::pop_current_frame_state() {
+  auto& stack = current_frame_stack(*this);
+  if (stack.empty()) {
+    clear_current_frame();
+    return;
+  }
+  current_frame_state(*this) = std::move(stack.back());
+  stack.pop_back();
+  // Nested Python callbacks, including PEP 669 handlers, enter this path very
+  // frequently. Retain the empty vector's capacity for the next callback
+  // instead of allocating and freeing one state record for every invocation.
+  const auto& state = current_frame_state(*this);
+  if (state.module_owner == nullptr && state.globals_module == nullptr && state.frame_stack == nullptr) {
+    clear_current_frame_state(*this);
+  }
+}
+
+void Runtime::set_current_frame_stack(const RuntimeFrameView* frames, size_t count) {
+  auto& state = current_frame_state(*this);
+  state.frame_stack = frames;
+  state.frame_stack_count = count;
+}
+
+size_t Runtime::saved_python_frame_depth() const {
+  const auto saved = current_frame_stacks().find(this);
+  if (saved == current_frame_stacks().end()) return 0;
+  size_t depth = 0;
+  for (const auto& state : saved->second) {
+    if (state.frame_stack != nullptr) depth += state.frame_stack_count;
+    else if (state.module_owner != nullptr && state.globals_module != nullptr) ++depth;
+  }
+  return depth;
+}
+
+void Runtime::publish_current_frame_for_thread_inspection() {
+  publish_current_frame_state(*this);
+}
+
+bool Runtime::decode_python_source(
+    std::string_view bytes,
+    std::string& source,
+    std::string& error) const {
+  PythonSourceText decoded;
+  if (!decode_python_source_bytes(bytes, decoded, error)) {
+    return false;
+  }
+  source = std::move(decoded.text);
+  return true;
+}
+
+void Runtime::release_dead_frame_registers() {
+  auto& state = current_frame_state(*this);
+  if (state.frame_stack == nullptr) {
+    return;
+  }
+  for (size_t frame_index = 0; frame_index < state.frame_stack_count; ++frame_index) {
+    const auto& frame = state.frame_stack[frame_index];
+    if (frame.register_values == nullptr || frame.register_last_use == nullptr ||
+        frame.instruction_index == nullptr) {
+      continue;
+    }
+    const size_t last_use_count = frame.register_last_use->size();
+    const size_t register_count =
+        frame.register_count < last_use_count ? frame.register_count : last_use_count;
+    for (size_t reg = 0; reg < register_count; ++reg) {
+      if ((*frame.register_last_use)[reg] < *frame.instruction_index) {
+        value_set_invalid(frame.register_values[reg]);
+      }
+    }
+    if (frame_index + 1 < state.frame_stack_count && frame.native_call_args != nullptr) {
+      frame.native_call_args->clear();
+    }
+  }
+}
+
+void Runtime::clear_current_frame() {
+  auto& state = current_frame_state(*this);
+  state.module_owner = nullptr;
+  state.globals_module = nullptr;
+  state.function_id = 0;
+  state.instruction_index = 0;
+  state.frame_stack = nullptr;
+  state.frame_stack_count = 0;
+  clear_current_frame_locals();
+  clear_current_frame_state(*this);
+}
+
+namespace {
+
+Value locals_snapshot_from_view(const RuntimeFrameView& view) {
+  xlang_perf_count_frame_locals_materialization();
+  if (view.local_names == nullptr || view.local_values == nullptr) {
+    return Value::dict({});
+  }
+  const size_t count = view.local_count < view.local_names->size() ? view.local_count : view.local_names->size();
+  std::vector<std::pair<Value, Value>> entries;
+  entries.reserve(count);
+  for (size_t i = 0; i < count; ++i) {
+    const auto& name = (*view.local_names)[i];
+    if (name.empty() || name[0] == '#') {
+      continue;
+    }
+    if (view.local_values[i].tag == ValueTag::Invalid) {
+      continue;
+    }
+    entries.push_back({Value::string(name), view.local_values[i]});
+  }
+  return Value::dict(std::move(entries));
+}
+
+Value frame_locals_from_view(Runtime& runtime, const RuntimeFrameView& view) {
+  if (view.module_owner != nullptr && view.module_owner->get() != nullptr &&
+      view.globals_module != nullptr && view.function_id == view.module_owner->get()->entry) {
+    const auto* fn = &view.module_owner->get()->functions[view.function_id];
+    if (const Value* eval_locals = current_eval_locals(runtime, fn)) return *eval_locals;
+    return module_namespace_dict(*view.globals_module);
+  }
+  return locals_snapshot_from_view(view);
+}
+
+const ir::Function::LogicalFrameRange* active_logical_frame_range(const RuntimeFrameView& view) {
+  if (view.module_owner == nullptr || view.module_owner->get() == nullptr ||
+      view.instruction_index == nullptr) return nullptr;
+  const auto& module = **view.module_owner;
+  if (view.function_id >= module.functions.size()) return nullptr;
+  const uint32_t instruction = static_cast<uint32_t>(*view.instruction_index);
+  const ir::Function::LogicalFrameRange* active = nullptr;
+  for (const auto& range : module.functions[view.function_id].logical_frame_ranges) {
+    if (instruction < range.start_instruction || instruction >= range.end_instruction ||
+        range.function_id >= module.functions.size()) continue;
+    if (active == nullptr || range.end_instruction - range.start_instruction <
+        active->end_instruction - active->start_instruction) active = &range;
+  }
+  return active;
+}
+
+Value logical_frame_locals_from_view(const RuntimeFrameView& view,
+                                     const ir::Function::LogicalFrameRange& range) {
+  if (view.local_values == nullptr || range.locals_slot >= view.local_count ||
+      view.local_values[range.locals_slot].tag == ValueTag::Invalid) return Value::dict({});
+  return view.local_values[range.locals_slot];
+}
+
+void initialize_lazy_frame_locals(Runtime& runtime, Value& frame_value, const RuntimeFrameView& view) {
+  auto* frame = value_as_frame(frame_value);
+  if (frame == nullptr) return;
+  if (view.module_owner != nullptr && view.module_owner->get() != nullptr &&
+      view.globals_module != nullptr && view.function_id == view.module_owner->get()->entry) {
+    const auto* fn = &view.module_owner->get()->functions[view.function_id];
+    const Value* eval_locals = current_eval_locals(runtime, fn);
+    frame->locals = eval_locals == nullptr ? module_namespace_dict(*view.globals_module) : *eval_locals;
+    frame->local_snapshot.clear();
+    frame->has_lazy_locals = false;
+    return;
+  }
+  value_set_invalid(frame->locals);
+  if (view.local_values == nullptr || view.local_count == 0) {
+    frame->local_snapshot.clear();
+  } else {
+    frame->local_snapshot.assign(view.local_values, view.local_values + view.local_count);
+  }
+  frame->has_lazy_locals = true;
+}
+
+Value materialize_frame_from_stack(
+    Runtime& runtime,
+    const RuntimeFrameView* frames,
+    size_t index,
+    const Value& builtins,
+    const Value& base_back) {
+  const auto& view = frames[index];
+  if (view.module_owner == nullptr || view.module_owner->get() == nullptr || view.globals_module == nullptr ||
+      view.instruction_index == nullptr) {
+    return Value::none();
+  }
+  Value back = base_back;
+  if (index != 0) {
+    back = materialize_frame_from_stack(runtime, frames, index - 1, builtins, base_back);
+  }
+  Value physical = Value::frame(
+      *view.module_owner,
+      view.function_id,
+      *view.globals_module,
+      static_cast<uint32_t>(*view.instruction_index),
+      Value::invalid(),
+      std::move(back),
+      view.captured_builtins != nullptr && view.captured_builtins->tag != ValueTag::Invalid
+          ? (value_as_module(*view.captured_builtins) != nullptr
+              ? module_namespace_dict(*view.captured_builtins) : *view.captured_builtins)
+          : builtins,
+      view.activation_id);
+  if (view.generator_owner != nullptr)
+    frame_set_generator_owner(runtime, physical, *view.generator_owner);
+  initialize_lazy_frame_locals(runtime, physical, view);
+  const auto& module = **view.module_owner;
+  if (view.function_id >= module.functions.size()) {
+    return physical;
+  }
+  const uint32_t instruction = static_cast<uint32_t>(*view.instruction_index);
+  const auto* active_range = active_logical_frame_range(view);
+  if (active_range == nullptr) {
+    return physical;
+  }
+  Value logical = Value::frame(
+      *view.module_owner,
+      active_range->function_id,
+      *view.globals_module,
+      instruction,
+      Value::invalid(),
+      std::move(physical),
+      builtins,
+      view.activation_id ^ (uint64_t{1} << 63));
+  if (auto* logical_frame = value_as_frame(logical)) {
+    logical_frame->locals = logical_frame_locals_from_view(view, *active_range);
+    logical_frame->local_snapshot.clear();
+    logical_frame->has_lazy_locals = false;
+  }
+  return logical;
+}
+
+Value materialize_frame_state(
+    Runtime& runtime,
+    const RuntimeCurrentFrameState& state,
+    const Value& builtins,
+    const Value& base_back) {
+  if (state.frame_stack != nullptr && state.frame_stack_count != 0) {
+    return materialize_frame_from_stack(runtime, state.frame_stack, state.frame_stack_count - 1, builtins, base_back);
+  }
+  if (state.module_owner == nullptr || state.globals_module == nullptr || state.module_owner->get() == nullptr) {
+    return base_back;
+  }
+  RuntimeFrameView view;
+  view.local_names = state.local_names;
+  view.local_values = state.local_values;
+  view.local_count = state.local_count;
+  Value frame = Value::frame(
+      *state.module_owner,
+      state.function_id,
+      *state.globals_module,
+      state.instruction_index,
+      Value::invalid(),
+      base_back,
+      builtins);
+  initialize_lazy_frame_locals(runtime, frame, view);
+  return frame;
+}
+
+} // namespace
+
+void Runtime::visit_active_generator_references(
+    const GeneratorObject* generator,
+    const std::function<void(const Value&)>& visit) const {
+  const auto visit_state = [&](const RuntimeCurrentFrameState& state) {
+    if (state.frame_stack == nullptr || state.frame_stack_count == 0 ||
+        state.frame_stack[0].generator_owner != generator)
+      return;
+    for (size_t frame_index = 0; frame_index < state.frame_stack_count;
+         ++frame_index) {
+      const auto& frame = state.frame_stack[frame_index];
+      if (frame.local_values != nullptr)
+        for (size_t index = 0; index < frame.local_count; ++index)
+          visit(frame.local_values[index]);
+      if (frame.register_values != nullptr)
+        for (size_t index = 0; index < frame.register_count; ++index)
+          visit(frame.register_values[index]);
+      if (frame.native_call_args != nullptr)
+        for (const auto& value : *frame.native_call_args) visit(value);
+      if (frame.closure != nullptr)
+        for (const auto& value : *frame.closure) visit(value);
+    }
+  };
+  const auto saved_it = current_frame_stacks().find(this);
+  if (saved_it != current_frame_stacks().end())
+    for (const auto& state : saved_it->second) visit_state(state);
+  visit_state(current_frame_state(*this));
+}
+
+Value Runtime::current_frame_snapshot() const {
+  const auto& state = current_frame_state(*this);
+  xlang_perf_count_frame_snapshot(state.frame_stack_count);
+  Value builtins = Value::dict({});
+  auto builtins_it = modules_.find("builtins");
+  if (builtins_it != modules_.end()) {
+    builtins = module_namespace_dict(builtins_it->second);
+  }
+  Value saved_back = Value::none();
+  auto saved_it = current_frame_stacks().find(this);
+  if (saved_it != current_frame_stacks().end()) {
+    for (const auto& saved_state : saved_it->second) {
+      saved_back = materialize_frame_state(
+          const_cast<Runtime&>(*this), saved_state, builtins, saved_back);
+    }
+  }
+  Value snapshot = materialize_frame_state(
+      const_cast<Runtime&>(*this), state, builtins, saved_back);
+  std::vector<Value> deferred_releases;
+  std::vector<std::vector<Value>> deferred_snapshots;
+  std::vector<Value> materialized;
+  {
+    std::lock_guard<std::mutex> lock(live_frame_snapshots_mutex_);
+    for (Value frame_value = snapshot; value_as_frame(frame_value) != nullptr;) {
+      materialized.push_back(frame_value);
+      auto* frame = value_as_frame(frame_value);
+      if (frame->back.tag == ValueTag::Invalid || frame->back.tag == ValueTag::None) {
+        break;
+      }
+      frame_value = frame->back;
+    }
+    Value canonical_back = Value::none();
+    for (size_t index = materialized.size(); index > 0; --index) {
+      auto* fresh = value_as_frame(materialized[index - 1]);
+      fresh->owner_thread_ident = runtime_current_thread_ident();
+      Value canonical = materialized[index - 1];
+      auto tracked_it = live_frame_snapshot_index_.find(fresh->activation_id);
+      if (tracked_it != live_frame_snapshot_index_.end()) {
+        auto* tracked = tracked_it->second;
+        if (tracked != nullptr && tracked->live &&
+            tracked->module.get() == fresh->module.get() &&
+            tracked->function_id == fresh->function_id) {
+          const bool same_globals =
+              tracked->globals_module.tag == fresh->globals_module.tag &&
+              (tracked->globals_module.tag != ValueTag::Object ||
+               tracked->globals_module.as.obj == fresh->globals_module.as.obj);
+          const bool same_back =
+              tracked->back.tag == canonical_back.tag &&
+              (tracked->back.tag != ValueTag::Object ||
+               tracked->back.as.obj == canonical_back.as.obj);
+          if (same_globals && same_back) {
+            tracked->instruction_index = fresh->instruction_index;
+            tracked->owner_thread_ident = fresh->owner_thread_ident;
+            deferred_releases.push_back(std::move(tracked->locals));
+            deferred_snapshots.emplace_back();
+            deferred_snapshots.back().swap(tracked->local_snapshot);
+            deferred_releases.push_back(std::move(tracked->back));
+            deferred_releases.push_back(std::move(tracked->builtins));
+            tracked->locals = fresh->locals;
+            tracked->local_snapshot = fresh->local_snapshot;
+            tracked->has_lazy_locals = fresh->has_lazy_locals;
+            if (tracked->generator_ref.tag == ValueTag::Invalid &&
+                fresh->generator_ref.tag != ValueTag::Invalid)
+              tracked->generator_ref = fresh->generator_ref;
+            tracked->back = canonical_back;
+            tracked->builtins = fresh->builtins;
+            for (const auto& tracked_value : live_frame_snapshots_) {
+              if (tracked_value.as.obj == &tracked->header) {
+                canonical = tracked_value;
+                break;
+              }
+            }
+          }
+        }
+      }
+      if (canonical.tag == ValueTag::Object && canonical.as.obj == materialized[index - 1].as.obj) {
+        deferred_releases.push_back(std::move(fresh->back));
+        fresh->back = canonical_back;
+        fresh->live = true;
+        live_frame_snapshots_.push_back(canonical);
+        live_frame_snapshot_index_[fresh->activation_id] = fresh;
+      }
+      canonical_back = canonical;
+    }
+    snapshot = canonical_back;
+    has_live_frame_snapshots_.store(
+        !live_frame_snapshots_.empty(), std::memory_order_release);
+  }
+  return snapshot;
+}
+
+Value Runtime::track_live_frame_snapshot(Value frame_value) {
+  auto* frame = value_as_frame(frame_value);
+  if (frame == nullptr || frame->activation_id == 0) {
+    return frame_value;
+  }
+  // tb_lineno owns the instruction position at which the traceback was
+  // captured.  The referenced frame itself remains live, so f_lineno and
+  // f_locals continue to follow the running activation.
+  frame->refresh_instruction = true;
+  frame->owner_thread_ident = runtime_current_thread_ident();
+  std::lock_guard<std::mutex> lock(live_frame_snapshots_mutex_);
+  if (const auto found = live_frame_snapshot_index_.find(frame->activation_id);
+      found != live_frame_snapshot_index_.end()) {
+    auto* tracked = found->second;
+    if (tracked != nullptr && tracked->live && tracked->module.get() == frame->module.get() &&
+        tracked->function_id == frame->function_id) {
+      tracked->instruction_index = frame->instruction_index;
+      tracked->refresh_instruction = true;
+      tracked->owner_thread_ident = frame->owner_thread_ident;
+      for (const auto& tracked_value : live_frame_snapshots_) {
+        if (tracked_value.tag == ValueTag::Object && tracked_value.as.obj == &tracked->header) {
+          return tracked_value;
+        }
+      }
+    }
+  }
+  frame->live = true;
+  live_frame_snapshots_.push_back(frame_value);
+  live_frame_snapshot_index_[frame->activation_id] = frame;
+  has_live_frame_snapshots_.store(true, std::memory_order_release);
+  return frame_value;
+}
+
+void Runtime::refresh_live_frame_snapshots(bool refresh_traceback_locals,
+                                           bool force_prune) {
+  if (!has_live_frame_snapshots_.load(std::memory_order_acquire)) {
+    return;
+  }
+  const auto& state = current_frame_state(*this);
+  const int64_t current_thread_ident = runtime_current_thread_ident();
+  std::vector<Value> deferred_releases;
+  std::vector<std::vector<Value>> deferred_snapshots;
+  std::unique_lock<std::mutex> lock(live_frame_snapshots_mutex_);
+  if (live_frame_snapshots_.empty()) return;
+  xlang_perf_count_frame_refresh(live_frame_snapshots_.size());
+  for (auto& tracked_value : live_frame_snapshots_) {
+    if (auto* tracked = value_as_frame(tracked_value)) {
+      if (tracked->owner_thread_ident == current_thread_ident) {
+        tracked->live = false;
+      }
+    }
+  }
+  for (auto& tracked_value : live_frame_snapshots_) {
+    auto* tracked = value_as_frame(tracked_value);
+    if (tracked == nullptr) {
+      continue;
+    }
+    const RuntimeFrameView* matching_view = nullptr;
+    auto match_frame_view = [&](const RuntimeCurrentFrameState& candidate_state) {
+      if (matching_view != nullptr || candidate_state.frame_stack == nullptr) {
+        return;
+      }
+      for (size_t index = 0; index < candidate_state.frame_stack_count; ++index) {
+        const auto& candidate = candidate_state.frame_stack[index];
+        if (candidate.module_owner != nullptr && candidate.module_owner->get() == tracked->module.get() &&
+            candidate.globals_module != nullptr && candidate.function_id == tracked->function_id &&
+            candidate.activation_id == tracked->activation_id) {
+          matching_view = &candidate;
+          return;
+        }
+      }
+    };
+    match_frame_view(state);
+    auto saved_states = current_frame_stacks().find(this);
+    if (saved_states != current_frame_stacks().end()) {
+      for (const auto& saved_state : saved_states->second) {
+        match_frame_view(saved_state);
+      }
+    }
+    if (matching_view != nullptr) {
+      if (refresh_traceback_locals) {
+        deferred_releases.push_back(std::move(tracked->locals));
+        deferred_snapshots.emplace_back();
+        deferred_snapshots.back().swap(tracked->local_snapshot);
+        tracked->locals = frame_locals_from_view(*this, *matching_view);
+        tracked->has_lazy_locals = false;
+      }
+      tracked->live = true;
+      if (tracked->refresh_instruction && matching_view->instruction_index != nullptr) {
+        tracked->instruction_index = static_cast<uint32_t>(*matching_view->instruction_index);
+      }
+      continue;
+    }
+    if (state.module_owner != nullptr && state.module_owner->get() == tracked->module.get() &&
+        state.function_id == tracked->function_id) {
+      RuntimeFrameView current_view;
+      current_view.module_owner = state.module_owner;
+      current_view.globals_module = state.globals_module;
+      current_view.function_id = state.function_id;
+      current_view.local_names = state.local_names;
+      current_view.local_values = state.local_values;
+      current_view.local_count = state.local_count;
+      if (refresh_traceback_locals) {
+        deferred_releases.push_back(std::move(tracked->locals));
+        deferred_snapshots.emplace_back();
+        deferred_snapshots.back().swap(tracked->local_snapshot);
+        tracked->locals = frame_locals_from_view(*this, current_view);
+        tracked->has_lazy_locals = false;
+      }
+      if (tracked->refresh_instruction) {
+        tracked->instruction_index = state.instruction_index;
+      }
+      tracked->live = true;
+    }
+  }
+  for (const auto& value : live_frame_snapshots_) {
+    const auto* frame = value_as_frame(value);
+    if (frame == nullptr ||
+        (!frame->live && frame->owner_thread_ident == current_thread_ident)) {
+      deferred_releases.push_back(value);
+    }
+  }
+  live_frame_snapshots_.erase(
+      std::remove_if(
+          live_frame_snapshots_.begin(),
+          live_frame_snapshots_.end(),
+          [](const Value& value) {
+            const auto* frame = value_as_frame(value);
+            return frame == nullptr ||
+                (!frame->live && frame->owner_thread_ident == runtime_current_thread_ident());
+          }),
+      live_frame_snapshots_.end());
+  live_frame_snapshot_index_.clear();
+  for (const auto& value : live_frame_snapshots_) {
+    if (auto* frame = value_as_frame(value); frame != nullptr && frame->activation_id != 0) {
+      live_frame_snapshot_index_[frame->activation_id] = frame;
+    }
+  }
+  has_live_frame_snapshots_.store(
+      !live_frame_snapshots_.empty(), std::memory_order_release);
+
+  // Reference-graph pruning prevents the registry from retaining a live frame
+  // after Python drops its last reference. It does not need to rebuild two
+  // hash tables on every nested call and return.
+  if (!refresh_traceback_locals && !force_prune &&
+      (++live_frame_prune_ticks_ & 0xffu) != 0) {
+    return;
+  }
+
+  // The registry must retain frame objects only while Python code holds a
+  // live snapshot. Keeping every frame ever returned by sys._getframe() made
+  // each later function call refresh an ever-growing list of snapshots.
+  std::unordered_map<const Object*, uint32_t> internal_back_references;
+  std::unordered_set<const Object*> tracked_objects;
+  for (const auto& value : live_frame_snapshots_) {
+    if (value.tag == ValueTag::Object && value.as.obj != nullptr) {
+      tracked_objects.insert(value.as.obj);
+    }
+  }
+  for (const auto& value : live_frame_snapshots_) {
+    const auto* frame = value_as_frame(value);
+    if (frame != nullptr && frame->back.tag == ValueTag::Object &&
+        tracked_objects.find(frame->back.as.obj) != tracked_objects.end()) {
+      ++internal_back_references[frame->back.as.obj];
+    }
+  }
+  std::unordered_set<const Object*> retained_objects;
+  for (const auto& value : live_frame_snapshots_) {
+    const auto* frame = value_as_frame(value);
+    if (frame == nullptr) {
+      continue;
+    }
+    const uint32_t internal_references =
+        1u + internal_back_references[value.as.obj];
+    if (value.as.obj->refcnt.load(std::memory_order_relaxed) <= internal_references) {
+      continue;
+    }
+    for (const FrameObject* current = frame; current != nullptr;) {
+      retained_objects.insert(&current->header);
+      current = value_as_frame(current->back);
+    }
+  }
+  for (const auto& value : live_frame_snapshots_) {
+    if (value.tag != ValueTag::Object ||
+        retained_objects.find(value.as.obj) == retained_objects.end()) {
+      deferred_releases.push_back(value);
+    }
+  }
+  live_frame_snapshots_.erase(
+      std::remove_if(
+          live_frame_snapshots_.begin(),
+          live_frame_snapshots_.end(),
+          [&](const Value& value) {
+            return value.tag != ValueTag::Object ||
+                retained_objects.find(value.as.obj) == retained_objects.end();
+          }),
+      live_frame_snapshots_.end());
+  live_frame_snapshot_index_.clear();
+  for (const auto& value : live_frame_snapshots_) {
+    if (auto* frame = value_as_frame(value); frame != nullptr && frame->activation_id != 0) {
+      live_frame_snapshot_index_[frame->activation_id] = frame;
+    }
+  }
+  has_live_frame_snapshots_.store(
+      !live_frame_snapshots_.empty(), std::memory_order_release);
+  lock.unlock();
+}
+
+void Runtime::retire_live_frame_snapshot(
+    uint64_t activation_id,
+    uint32_t instruction_index,
+    const Value* local_values,
+    size_t local_count) {
+  if (activation_id == 0 || !has_live_frame_snapshots_.load(std::memory_order_acquire)) return;
+  std::vector<Value> old_local_snapshot;
+  Value displaced_materialized_locals;
+  std::vector<Value> retired_refs;
+  {
+    std::lock_guard<std::mutex> lock(live_frame_snapshots_mutex_);
+    const auto found = live_frame_snapshot_index_.find(activation_id);
+    if (found == live_frame_snapshot_index_.end()) return;
+    FrameObject* retired = found->second;
+    if (retired != nullptr) {
+      retired->instruction_index = instruction_index;
+      if (retired->has_lazy_locals && local_values != nullptr) {
+        old_local_snapshot.swap(retired->local_snapshot);
+        retired->local_snapshot.assign(local_values, local_values + local_count);
+        if (retired->module != nullptr &&
+            retired->function_id < retired->module->functions.size()) {
+          const auto& names = retired->module->functions[retired->function_id].locals;
+          const size_t count = names.size() < retired->local_snapshot.size()
+              ? names.size() : retired->local_snapshot.size();
+          for (size_t index = 0; index < count; ++index)
+            if (!names[index].empty() && names[index][0] == '#')
+              old_local_snapshot.push_back(
+                  std::move(retired->local_snapshot[index]));
+        }
+      } else if (local_values != nullptr && retired->module != nullptr &&
+                 retired->function_id < retired->module->functions.size() &&
+                 retired->function_id != retired->module->entry) {
+        auto* materialized = value_as_dict(retired->locals);
+        if (materialized != nullptr && materialized->backing_module == nullptr) {
+          // Reading f_locals while executing does not freeze future locals.
+          // Keep an escaped mapping alias current at retirement, without
+          // adding per-instruction work or replacing module/eval namespaces.
+          RuntimeFrameView final_view;
+          final_view.local_names = &retired->module->functions[retired->function_id].locals;
+          final_view.local_values = local_values;
+          final_view.local_count = local_count;
+          displaced_materialized_locals = locals_snapshot_from_view(final_view);
+          auto* displaced = value_as_dict(displaced_materialized_locals);
+          // Frame locals proxies also retain user-added extra keys. Preserve
+          // those existing owners without hash/equality callbacks; only known
+          // visible physical local names are replaced or deleted by this copy.
+          const auto& names = *final_view.local_names;
+          for (const auto& entry : materialized->entries) {
+            const auto* key = value_as_string(entry.first);
+            const bool physical_name = key != nullptr && std::any_of(
+                names.begin(), names.end(), [&](const std::string& name) {
+                  return !name.empty() && name[0] != '#' &&
+                      string_object_view(*key) == std::string_view(name);
+                });
+            if (!physical_name) displaced->entries.push_back(entry);
+          }
+          materialized->entries.swap(displaced->entries);
+          // Entries are authoritative, including same-sized replacements.
+          // Both dictionaries changed entries; invalidate every index proof.
+          materialized->indexed_entry_count = displaced->indexed_entry_count = static_cast<size_t>(-1);
+          materialized->runtime_hash_indexed_entry_count = displaced->runtime_hash_indexed_entry_count = static_cast<size_t>(-1);
+          materialized->intrinsic_hash_checked_entry_count = displaced->intrinsic_hash_checked_entry_count = static_cast<size_t>(-1);
+          // Displaced Value owners remain in the outer temporary until the
+          // frame is retired and the registry mutex has been released.
+        }
+      }
+      retired->live = false;
+    }
+    Object* retired_object = retired != nullptr ? &retired->header : nullptr;
+    live_frame_snapshot_index_.erase(found);
+    for (const auto& value : live_frame_snapshots_) {
+      if (value.tag == ValueTag::Object && value.as.obj == retired_object)
+        retired_refs.push_back(value);
+    }
+    live_frame_snapshots_.erase(
+        std::remove_if(
+            live_frame_snapshots_.begin(), live_frame_snapshots_.end(),
+            [&](const Value& value) {
+              return value.tag == ValueTag::Object && value.as.obj == retired_object;
+            }),
+        live_frame_snapshots_.end());
+    has_live_frame_snapshots_.store(!live_frame_snapshots_.empty(), std::memory_order_release);
+  }
+}
+
+uint64_t Runtime::allocate_frame_activation_id() {
+  return next_frame_activation_id_.fetch_add(1, std::memory_order_relaxed);
+}
+
+void Runtime::set_current_frame_locals(const std::vector<std::string>* names, const Value* values, size_t count) {
+  auto& state = current_frame_state(*this);
+  state.local_names = names;
+  state.local_values = values;
+  state.local_count = count;
+}
+
+void Runtime::clear_current_frame_locals() {
+  auto& state = current_frame_state(*this);
+  state.local_names = nullptr;
+  state.local_values = nullptr;
+  state.local_count = 0;
+}
+
+bool Runtime::try_current_frame_first_argument(Value& out) const {
+  const auto& state = current_frame_state(*this);
+  const RuntimeFrameView* frame = nullptr;
+  if (state.frame_stack != nullptr && state.frame_stack_count != 0) {
+    const auto& view = state.frame_stack[state.frame_stack_count - 1];
+    // Inlined logical frames keep a separate locals mapping. Do not confuse
+    // their receiver with the first parameter of the enclosing physical frame.
+    if (active_logical_frame_range(view) != nullptr ||
+        view.module_owner != state.module_owner || view.function_id != state.function_id ||
+        view.local_values != state.local_values) return false;
+    frame = &view;
+  }
+  if (state.module_owner == nullptr || state.module_owner->get() == nullptr ||
+      state.local_names == nullptr || state.local_values == nullptr ||
+      state.local_count == 0 || state.local_names->empty()) return false;
+  const auto& module = **state.module_owner;
+  if (state.function_id == module.entry || state.function_id >= module.functions.size()) return false;
+  const auto& function = module.functions[state.function_id];
+  if (function.params.empty() || function.params[0].empty() ||
+      (*state.local_names)[0] != function.params[0]) return false;
+  const Value* receiver = &state.local_values[0];
+  for (size_t index = 0; index < function.cell_slots.size(); ++index) {
+    if (function.cell_slots[index] != 0) continue;
+    if (frame == nullptr || frame->cell_values == nullptr || index >= frame->cell_count) return false;
+    auto* cell = value_as_cell(frame->cell_values[index]);
+    if (cell == nullptr) return false;
+    // A nested nonlocal assignment updates the cell, not the stale local copy.
+    receiver = &cell->value;
+    break;
+  }
+  // Parameter binding puts the first argument in local slot zero. Prove that
+  // layout above and retain only this live value: zero-argument super() must not
+  // allocate/hash a dictionary containing every local on each Python call.
+  // Unusual frame layouts use the existing snapshot path. An invalid live
+  // value reports deletion to the caller instead of reviving a stale receiver.
+  value_assign_fast(out, *receiver);
+  return true;
+}
+
+Value Runtime::current_locals_snapshot() const {
+  const auto& state = current_frame_state(*this);
+  if (state.frame_stack != nullptr && state.frame_stack_count != 0) {
+    const auto& view = state.frame_stack[state.frame_stack_count - 1];
+    if (const auto* range = active_logical_frame_range(view)) {
+      return logical_frame_locals_from_view(view, *range);
+    }
+  }
+  if (state.module_owner != nullptr && state.module_owner->get() != nullptr &&
+      state.globals_module != nullptr &&
+      state.function_id == state.module_owner->get()->entry) {
+    const ir::Function* function = &state.module_owner->get()->functions[state.function_id];
+    if (const Value* eval_locals = current_eval_locals(const_cast<Runtime&>(*this), function)) return *eval_locals;
+    if (mapping_is_dict(*state.globals_module)) return *state.globals_module;
+    return module_namespace_dict(*state.globals_module);
+  }
+  if (state.local_names == nullptr || state.local_values == nullptr) {
+    return Value::dict({});
+  }
+  const size_t count =
+      state.local_count < state.local_names->size() ? state.local_count : state.local_names->size();
+  std::vector<std::pair<Value, Value>> entries;
+  entries.reserve(count);
+  for (size_t i = 0; i < count; ++i) {
+    const auto& name = (*state.local_names)[i];
+    if (name.empty() || name[0] == '#') {
+      continue;
+    }
+    if (state.local_values[i].tag == ValueTag::Invalid) {
+      continue;
+    }
+    entries.push_back({Value::string(name), state.local_values[i]});
+  }
+  return Value::dict(std::move(entries));
+}
+
+namespace {
+
+Value frame_snapshot_from_state(Runtime& runtime,
+                                const RuntimeCurrentFrameState& state,
+                                const Value& builtins) {
+  if (state.frame_stack != nullptr && state.frame_stack_count != 0) {
+    return materialize_frame_from_stack(runtime, state.frame_stack,
+                                        state.frame_stack_count - 1,
+                                        builtins, Value::none());
+  }
+  if (state.module_owner == nullptr || state.globals_module == nullptr ||
+      state.module_owner->get() == nullptr) {
+    return Value::none();
+  }
+  return Value::frame(
+      *state.module_owner,
+      state.function_id,
+      *state.globals_module,
+      state.instruction_index,
+      state.function_id == state.module_owner->get()->entry
+          ? module_namespace_dict(*state.globals_module)
+          : locals_snapshot_from_view(RuntimeFrameView{
+                state.module_owner,
+                state.globals_module,
+                state.local_names,
+                state.local_values,
+                nullptr,
+                state.local_count,
+                state.function_id,
+            }),
+      Value::invalid(),
+      builtins);
+}
+
+} // namespace
+
+Value Runtime::current_frame_snapshots(const std::vector<int64_t>& live_thread_ids) const {
+  Value builtins = Value::dict({});
+  auto builtins_it = modules_.find("builtins");
+  if (builtins_it != modules_.end()) {
+    builtins = module_namespace_dict(builtins_it->second);
+  }
+  std::vector<std::pair<Value, Value>> entries;
+  std::lock_guard<std::mutex> lock(g_runtime_frame_registry_mutex);
+  auto runtime_it = g_runtime_frame_registry.find(this);
+  entries.reserve(live_thread_ids.size());
+  for (const auto ident : live_thread_ids) {
+    Value frame = Value::none();
+    if (ident == runtime_current_thread_ident()) {
+      frame = current_frame_snapshot();
+    } else if (runtime_it != g_runtime_frame_registry.end()) {
+      auto frame_it = runtime_it->second.find(ident);
+      if (frame_it != runtime_it->second.end()) {
+        frame = frame_snapshot_from_state(const_cast<Runtime&>(*this),
+                                          frame_it->second.state, builtins);
+      }
+    }
+    entries.push_back({Value::int64(ident), std::move(frame)});
+  }
+  if (entries.empty()) {
+    entries.push_back({Value::int64(runtime_current_thread_ident()), current_frame_snapshot()});
+  }
+  return Value::dict(std::move(entries));
+}
+
+Value Runtime::code_object(std::shared_ptr<const ir::Module> module, uint32_t function_id) {
+  if (module == nullptr || function_id >= module->functions.size()) return Value::none();
+  std::lock_guard<std::mutex> lock(code_objects_mutex_);
+  auto& objects = code_objects_[module.get()];
+  if (objects.size() < module->functions.size()) {
+    objects.resize(module->functions.size(), Value::invalid());
+  }
+  if (objects[function_id].tag == ValueTag::Invalid) {
+    objects[function_id] = Value::code(std::move(module), function_id);
+  }
+  return objects[function_id];
+}
+
+Value Runtime::current_exception_snapshots(const std::vector<int64_t>& live_thread_ids) const {
+  std::vector<std::pair<Value, Value>> entries;
+  std::lock_guard<std::mutex> lock(g_runtime_exception_registry_mutex);
+  auto runtime_it = g_runtime_exception_registry.find(this);
+  entries.reserve(live_thread_ids.size());
+  for (const auto ident : live_thread_ids) {
+    Value exception = Value::none();
+    if (runtime_it != g_runtime_exception_registry.end()) {
+      auto exception_it = runtime_it->second.find(ident);
+      if (exception_it != runtime_it->second.end() && exception_it->second.tag != ValueTag::Invalid) {
+        exception = exception_it->second;
+      }
+    }
+    entries.push_back({Value::int64(ident), std::move(exception)});
+  }
+  if (entries.empty()) {
+    const auto& exception = runtime_current_exception_state(*this);
+    entries.push_back({
+        Value::int64(runtime_current_thread_ident()),
+        exception.tag == ValueTag::Invalid ? Value::none() : exception,
+    });
+  }
+  return Value::dict(std::move(entries));
+}
+
+uint32_t Runtime::current_frame_function_id() const {
+  const auto& state = current_frame_state(*this);
+  if (state.frame_stack != nullptr && state.frame_stack_count != 0) {
+    return state.frame_stack[state.frame_stack_count - 1].function_id;
+  }
+  return state.function_id;
+}
+
+const std::shared_ptr<const ir::Module>* Runtime::current_frame_module_owner() const {
+  const auto& state = current_frame_state(*this);
+  if (state.frame_stack != nullptr && state.frame_stack_count != 0) {
+    return state.frame_stack[state.frame_stack_count - 1].module_owner;
+  }
+  return state.module_owner;
+}
+
+bool Runtime::current_frame_free_var(const std::string& name, Value& out) const {
+  const auto& state = current_frame_state(*this);
+  if (state.frame_stack == nullptr || state.frame_stack_count == 0) return false;
+  const auto& frame = state.frame_stack[state.frame_stack_count - 1];
+  if (frame.module_owner == nullptr || frame.module_owner->get() == nullptr ||
+      frame.closure == nullptr ||
+      frame.function_id >= (*frame.module_owner)->functions.size()) return false;
+  const auto& names = (*frame.module_owner)->functions[frame.function_id].free_vars;
+  for (size_t index = 0; index < names.size() && index < frame.closure->size(); ++index) {
+    if (names[index] != name) continue;
+    const Value& captured = (*frame.closure)[index];
+    if (auto* cell = value_as_cell(captured)) {
+      if (cell->value.tag == ValueTag::Invalid) return false;
+      value_assign_fast(out, cell->value);
+    } else {
+      value_assign_fast(out, captured);
+    }
+    return true;
+  }
+  return false;
+}
+
+void Runtime::register_exit_function(
+    Value callable,
+    std::vector<Value> args,
+    std::vector<std::pair<std::string, Value>> kwargs) {
+  exit_functions_.push_back(ExitFunction{std::move(callable), std::move(args), std::move(kwargs)});
+}
+
+void Runtime::unregister_exit_function(const Value& callable) {
+  exit_functions_.erase(
+      std::remove_if(
+          exit_functions_.begin(),
+          exit_functions_.end(),
+          [&](const ExitFunction& entry) {
+            if (entry.callable.tag != callable.tag) {
+              return false;
+            }
+            if (entry.callable.tag == ValueTag::Object) {
+              return entry.callable.as.obj == callable.as.obj;
+            }
+            if (entry.callable.tag == ValueTag::Int64) {
+              return entry.callable.as.i64 == callable.as.i64;
+            }
+            return false;
+          }),
+      exit_functions_.end());
+}
+
+Value Runtime::make_native_function(
+    std::string name,
+    NativeFunctionCallback callback,
+    void* user_data,
+    void (*user_data_cleanup)(void*),
+    NativeFastCallCallback fast_callback,
+    bool fast_releases_vm_lock,
+    NativeKeywordFunctionCallback keyword_callback,
+    bool bind_as_descriptor) {
+  const uint32_t native_id = next_native_id_++;
+  auto result = Value::native_function(
+      native_id,
+      std::move(name),
+      callback,
+      user_data,
+      user_data_cleanup,
+      fast_callback,
+      fast_releases_vm_lock,
+      keyword_callback,
+      bind_as_descriptor);
+  if (user_data == nullptr && user_data_cleanup == nullptr) {
+    native_symbols_.emplace(value_as_native_function(result)->name, result);
+  }
+  return result;
+}
+
+const Value* Runtime::find_native_symbol(const std::string& name) const {
+  auto it = native_symbols_.find(name);
+  return it == native_symbols_.end() ? nullptr : &it->second;
+}
+bool Runtime::register_native_codec(std::shared_ptr<NativeSerializationCodec> codec) {
+  if (native_codecs_.count(codec->type_id)) return false;
+  for (const auto& item : native_codecs_) if (item.second->native_type == codec->native_type) return false;
+  auto inserted = native_codecs_.emplace(codec->type_id, std::move(codec));
+  if (!native_codec_registrations_.empty()) {
+    try { native_codec_registrations_.back().push_back(inserted.first->first); }
+    catch (...) { native_codecs_.erase(inserted.first); throw; }
+  }
+  return true;
+}
+void Runtime::begin_native_codec_registration() {
+  native_codec_registrations_.emplace_back();
+}
+void Runtime::end_native_codec_registration(bool commit) {
+  auto registered = std::move(native_codec_registrations_.back());
+  native_codec_registrations_.pop_back();
+  if (!commit) for (const auto& name : registered) native_codecs_.erase(name);
+}
+const NativeSerializationCodec* Runtime::find_native_codec(const std::string& type, bool local_type) const {
+  if (local_type) {
+    for (const auto& item : native_codecs_) if (item.second->native_type == type) return item.second.get();
+    return nullptr;
+  }
+  auto it = native_codecs_.find(type);
+  return it == native_codecs_.end() ? nullptr : it->second.get();
+}
+
+void Runtime::register_module(std::string name, Value module) {
+  std::string key = name;
+  ensure_module_import_metadata(*this, module, key);
+  modules_[std::move(name)] = std::move(module);
+  auto it = modules_.find(key);
+  if (it != modules_.end() && modules_dict_.tag != ValueTag::Invalid) {
+    canonicalize_module_loader_from_bootstrap(modules_, it->second);
+    std::string ignored;
+    mapping_set_item(modules_dict_, Value::string(key), it->second, ignored);
+  }
+}
+
+void Runtime::unregister_module(const std::string& name) {
+  modules_.erase(name);
+  if (modules_dict_.tag != ValueTag::Invalid) {
+    std::string ignored;
+    mapping_delete_item(modules_dict_, Value::string(name), ignored);
+  }
+}
+
+void Runtime::register_native_package_cleanup(void* data, void (*cleanup)(void*)) {
+  if (cleanup == nullptr) {
+    return;
+  }
+  native_package_cleanups_.push_back(std::make_pair(data, cleanup));
+}
+
+void Runtime::register_raw_block_handler(std::string language, std::string provider, RawBlockHandler handler) {
+  raw_block_handlers_[std::move(language) + "\n" + std::move(provider)] = handler;
+}
+
+bool Runtime::execute_raw_block(
+    RawBlockContext& context,
+    const std::string& language,
+    const std::string& provider,
+    const std::string& body,
+    std::string& error) {
+  auto it = raw_block_handlers_.find(language + "\n" + provider);
+  if (it == raw_block_handlers_.end()) {
+    it = raw_block_handlers_.find(language + "\n");
+  }
+  if (it == raw_block_handlers_.end() || it->second == nullptr) {
+    error = "no raw block provider registered for '" + language + " " + provider + "'";
+    return false;
+  }
+  return it->second(*this, context, language, provider, body, error);
+}
+
+void Runtime::acquire_import_lock() {
+  // Grow before locking so allocation failure cannot strand the import mutex.
+  if (g_import_lock_stack.size() == g_import_lock_stack.capacity()) {
+    g_import_lock_stack.reserve(g_import_lock_stack.capacity() == 0
+        ? 8
+        : g_import_lock_stack.capacity() * 2);
+  }
+  // Recursive acquisitions by this thread succeed immediately. Only genuine
+  // cross-thread contention releases the VM execution token while waiting.
+  if (!import_mutex_.try_lock()) {
+    XlangRuntimeExecutionSuspension execution_suspension;
+    import_mutex_.lock();
+  }
+  g_import_lock_stack.push_back(this);
+  import_lock_depth_.fetch_add(1, std::memory_order_release);
+}
+
+bool Runtime::release_import_lock() {
+  // Runtime locks are independent even when a host nests them. Remove this
+  // runtime's most recent acquisition, not only the global stack's top entry.
+  const auto acquisition = std::find(
+      g_import_lock_stack.rbegin(), g_import_lock_stack.rend(), this);
+  if (acquisition == g_import_lock_stack.rend()) return false;
+  g_import_lock_stack.erase(std::next(acquisition).base());
+  import_lock_depth_.fetch_sub(1, std::memory_order_release);
+  import_mutex_.unlock();
+  return true;
+}
+
+bool Runtime::import_lock_held() const {
+  return import_lock_depth_.load(std::memory_order_acquire) != 0;
+}
+
+bool Runtime::import_module(const std::string& name, Value& out, std::string& error, bool* module_not_found) {
+  acquire_import_lock();
+  struct ImportLockGuard {
+    Runtime& runtime;
+    ~ImportLockGuard() { runtime.release_import_lock(); }
+  } import_lock{*this};
+  if (module_not_found != nullptr) { *module_not_found = false; }
+  static const bool trace_imports = std::getenv("XLANG3_TRACE_IMPORTS") != nullptr;
+  static const bool diag_missing_imports = std::getenv("XLANG3_DIAG_MISSING_IMPORTS") != nullptr;
+  if (trace_imports) {
+    std::cerr << "xlang3 import: " << name << "\n";
+  }
+  if (finalizing_ && name != "builtins" && name != "sys") {
+    error = "module '" + name + "' is unavailable during interpreter shutdown";
+    if (module_not_found != nullptr) {
+      *module_not_found = true;
+    }
+    return false;
+  }
+#if !defined(XLANG3_EMBEDDED)
+  if (name == "_asyncio" && !asyncio_compat_initialized_ &&
+      !asyncio_compat_initializing_ && !import_roots_.empty()) {
+    // Initialize WeakSet-backed accelerator exports on first use, after the
+    // standard-library import roots exist. This keeps non-asyncio runtimes
+    // from paying Python import/startup costs for asyncio compatibility.
+    asyncio_compat_initializing_ = true;
+    initialize_asyncio_module_compat(*this);
+    asyncio_compat_initializing_ = false;
+    asyncio_compat_initialized_ = true;
+  }
+#endif
+  auto bind_existing_submodule = [&](const Value& module) {
+    const auto dot = name.rfind('.');
+    if (dot == std::string::npos || dot == 0) return;
+    const auto parent = modules_.find(name.substr(0, dot));
+    if (parent == modules_.end()) return;
+    std::string ignored;
+    const std::string child_name = name.substr(dot + 1);
+    Value existing;
+    if (module_get_attr(parent->second, child_name, existing, ignored) &&
+        existing.tag != ValueTag::Invalid) {
+      return;
+    }
+    (void)module_set_attr(parent->second, child_name, module, ignored);
+  };
+  if (modules_dict_.tag != ValueTag::Invalid) {
+    Value registry_module;
+    std::string registry_error;
+    if (mapping_get_string_item(modules_dict_, name, registry_module, registry_error)) {
+      if (registry_module.tag == ValueTag::None) {
+        error = "import of " + name + " halted; None in sys.modules";
+        if (module_not_found != nullptr) {
+          *module_not_found = true;
+        }
+        return false;
+      }
+      if (value_as_module(registry_module) != nullptr) {
+        modules_[name] = registry_module;
+        bind_existing_submodule(registry_module);
+      }
+      value_assign_fast(out, registry_module);
+      return true;
+    } else {
+      auto cached = modules_.find(name);
+      Value cached_file;
+      Value cached_path;
+      std::string ignored;
+      if (cached != modules_.end()) {
+        const bool source_backed =
+            (module_get_attr(cached->second, "__file__", cached_file, ignored) &&
+             cached_file.tag != ValueTag::Invalid && cached_file.tag != ValueTag::None) ||
+            (module_get_attr(cached->second, "__path__", cached_path, ignored) &&
+             cached_path.tag != ValueTag::Invalid && cached_path.tag != ValueTag::None);
+        if (source_backed) {
+          modules_.erase(cached);
+        } else if (auto* original = value_as_module(cached->second)) {
+          Value fresh = Value::module(original->name);
+          auto* cloned = value_as_module(fresh);
+          cloned->version = original->version;
+          cloned->name_to_slot = original->name_to_slot;
+          cloned->slots = original->slots;
+          cloned->extra_globals = original->extra_globals;
+          modules_[name] = fresh;
+          std::string registry_error;
+          (void)mapping_set_item(modules_dict_, Value::string(name), fresh, registry_error);
+          value_assign_fast(out, fresh);
+          return true;
+        }
+      }
+    }
+  }
+  auto it = modules_.find(name);
+  if (it == modules_.end()) {
+    if (modules_dict_.tag != ValueTag::Invalid) {
+      Value registry_module;
+      std::string registry_error;
+      if (mapping_get_string_item(modules_dict_, name, registry_module, registry_error) &&
+          value_as_module(registry_module) != nullptr) {
+        modules_[name] = registry_module;
+        value_assign_fast(out, registry_module);
+        return true;
+      }
+    }
+    const auto dot = name.rfind('.');
+    const auto extension = dot == std::string::npos ? std::string_view{} : std::string_view(name).substr(dot);
+    const bool native_library_path = extension == ".dll" || extension == ".so" || extension == ".dylib";
+    // A library suffix is not a Python child module; loading its stem first
+    // would execute the same native initializer twice.
+#if !defined(XLANG3_EMBEDDED)
+    if (native_library_path) {
+      bool library_found = false;
+      const bool loaded = import_native_package(*this, name, NativePackageLookupMode::ExactNameOnly, out, error, &library_found);
+      if (!loaded && module_not_found != nullptr) { *module_not_found = !library_found; }
+      return loaded;
+    }
+#endif
+    if (dot != std::string::npos && dot > 0 && !native_library_path) {
+      const std::string parent_name = name.substr(0, dot);
+      Value parent_module;
+      std::string parent_error;
+      bool parent_missing = false;
+      if (!import_module(parent_name, parent_module, parent_error, &parent_missing)) {
+        error = std::move(parent_error);
+        if (module_not_found != nullptr) { *module_not_found = parent_missing; }
+        return false;
+      } else {
+        auto submodule_it = modules_.find(name);
+        if (submodule_it != modules_.end()) {
+          value_assign_fast(out, submodule_it->second);
+          return true;
+        }
+        if (modules_dict_.tag != ValueTag::Invalid) {
+          Value registry_module;
+          std::string registry_error;
+          if (mapping_get_string_item(modules_dict_, name, registry_module, registry_error) &&
+              value_as_module(registry_module) != nullptr) {
+            modules_[name] = registry_module;
+            value_assign_fast(out, registry_module);
+            return true;
+          }
+        }
+      }
+    }
+#if !defined(XLANG3_EMBEDDED)
+    // Consult user-installed meta-path finder instances before the filesystem
+    // fallback. Built-in finder classes remain native fast paths below.
+    auto sys_module_it = modules_.find("sys");
+    if (sys_module_it != modules_.end()) {
+      Value meta_path;
+      std::string meta_error;
+      if (module_get_attr(sys_module_it->second, "meta_path", meta_path, meta_error)) {
+        if (auto* finders = value_as_list(meta_path)) {
+          for (const auto& finder : finders->items) {
+            if (value_as_instance(finder) == nullptr) continue;
+            Value find_spec;
+            if (!object_get_attr(finder, "find_spec", find_spec, meta_error)) {
+              meta_error.clear();
+              continue;
+            }
+            Value search_path = Value::none();
+            if (dot != std::string::npos && dot > 0) {
+              auto parent_it = modules_.find(name.substr(0, dot));
+              if (parent_it != modules_.end()) {
+                Value parent_path;
+                if (module_get_attr(parent_it->second, "__path__", parent_path, meta_error)) {
+                  search_path = parent_path;
+                }
+                meta_error.clear();
+              }
+            }
+            Value finder_args[] = {Value::string(name), search_path, Value::none()};
+            Value spec;
+            if (!runtime_call_callable(*this, find_spec, finder_args, 3, spec, error)) {
+              return false;
+            }
+            if (spec.tag == ValueTag::None || spec.tag == ValueTag::Invalid) continue;
+            auto bootstrap_it = modules_.find("_frozen_importlib");
+            Value load;
+            if (bootstrap_it == modules_.end() ||
+                !module_get_attr(bootstrap_it->second, "_load", load, error) ||
+                !runtime_call_callable(*this, load, &spec, 1, out, error)) {
+              return false;
+            }
+            return true;
+          }
+        }
+      }
+    }
+    std::string python_error;
+    if (import_python_module(*this, name, out, python_error)) {
+      return true;
+    }
+    const bool python_source_not_found = python_error == "module '" + name + "' not found";
+    const auto missing_module_message = [&] {
+      std::string message = "No module named '" + name + "'";
+      if (dot != std::string::npos && dot > 0) {
+        const std::string parent_name = name.substr(0, dot);
+        const auto parent = modules_.find(parent_name);
+        Value path;
+        std::string ignored;
+        if (parent != modules_.end() &&
+            (!module_get_attr(parent->second, "__path__", path, ignored) ||
+             path.tag == ValueTag::Invalid || path.tag == ValueTag::None)) {
+          message += "; '" + parent_name + "' is not a package";
+        }
+      }
+      return message;
+    };
+    const bool non_ascii_module_name = std::any_of(
+        name.begin(), name.end(), [](unsigned char ch) { return ch >= 0x80; });
+    if (python_source_not_found && non_ascii_module_name) {
+      error = missing_module_message();
+      if (module_not_found != nullptr) *module_not_found = true;
+      return false;
+    }
+    std::string native_error;
+    bool exact_library_found = false;
+    if (python_source_not_found &&
+        import_native_package(*this, name, NativePackageLookupMode::ExactNameOnly, out, native_error, &exact_library_found)) {
+      return true;
+    }
+    std::string prefixed_native_error;
+    bool prefixed_library_found = false;
+    if (python_source_not_found &&
+        import_native_package(*this, name, NativePackageLookupMode::IncludeXlangPrefixFallback, out, prefixed_native_error, &prefixed_library_found)) {
+      return true;
+    }
+    if (python_source_not_found && !exact_library_found &&
+        !prefixed_library_found) {
+      error = missing_module_message();
+    } else if (!python_error.empty() && !native_error.empty()) {
+      error = python_error + "; native package candidates tried:\n" + native_error + "\n" + prefixed_native_error;
+    } else {
+      error = native_error.empty() ? python_error : native_error;
+    }
+    if (module_not_found != nullptr) {
+      *module_not_found = python_source_not_found && !exact_library_found && !prefixed_library_found;
+    }
+    if (diag_missing_imports) {
+      std::cerr << "XLANG3_MISSING_IMPORT name=\"" << name << "\"";
+      if (python_source_not_found) {
+        std::cerr << " python_source=\"not_found\"";
+      } else if (!python_error.empty()) {
+        std::cerr << " python_source=\"error\"";
+      }
+      if (!native_error.empty()) {
+        std::cerr << " native=\"tried\"";
+      }
+      std::cerr << "\n";
+    }
+#else
+    error = "module '" + name + "' not found in embedded runtime";
+    if (module_not_found != nullptr) { *module_not_found = true; }
+#endif
+    return false;
+  }
+  value_assign_fast(out, it->second);
+  if (modules_dict_.tag != ValueTag::Invalid) {
+    std::string registry_error;
+    (void)mapping_set_item(modules_dict_, Value::string(name), out, registry_error);
+  }
+  return true;
+}
+
+void Runtime::synchronize_modules_from_registry() {
+  if (modules_dict_.tag == ValueTag::Invalid) return;
+  for (auto it = modules_.begin(); it != modules_.end();) {
+    Value registered;
+    std::string ignored;
+    if (!mapping_get_item(modules_dict_, Value::string(it->first), registered, ignored)) {
+      it = modules_.erase(it);
+      continue;
+    }
+    if (!value_is(it->second, registered)) value_assign_fast(it->second, registered);
+    ++it;
+  }
+}
+
+void Runtime::hide_cached_module(const std::string& name) {
+  if (modules_dict_.tag == ValueTag::Invalid) return;
+  std::string ignored;
+  mapping_delete_item(modules_dict_, Value::string(name), ignored);
+}
+
+bool Runtime::has_registered_module(const std::string& name) const {
+  return modules_.find(name) != modules_.end();
+}
+
+bool Runtime::may_have_python_import_miss(const std::string& name) const {
+  std::lock_guard<std::mutex> lock(python_import_misses_mutex_);
+  return python_import_miss_names_.find(name) != python_import_miss_names_.end();
+}
+
+bool Runtime::has_python_import_miss(const std::string& key) const {
+  std::lock_guard<std::mutex> lock(python_import_misses_mutex_);
+  return python_import_misses_.find(key) != python_import_misses_.end();
+}
+
+void Runtime::remember_python_import_miss(const std::string& name, std::string key) {
+  std::lock_guard<std::mutex> lock(python_import_misses_mutex_);
+  python_import_miss_names_.insert(name);
+  python_import_misses_.insert(std::move(key));
+}
+
+void Runtime::clear_python_import_misses() {
+  {
+    std::lock_guard<std::mutex> lock(python_import_misses_mutex_);
+    python_import_miss_names_.clear();
+    python_import_misses_.clear();
+  }
+  {
+    std::lock_guard<std::mutex> lock(python_import_directory_cache_mutex_);
+    python_import_directory_cache_.clear();
+  }
+}
+
+std::shared_ptr<const std::unordered_set<std::string>>
+Runtime::python_import_directory_entries(const std::string& path, std::string& error) {
+  int64_t mtime_ns = 0;
+  if (!vfs_->directory_mtime(path, mtime_ns, error)) {
+    return {};
+  }
+  {
+    std::lock_guard<std::mutex> lock(python_import_directory_cache_mutex_);
+    const auto cached = python_import_directory_cache_.find(path);
+    if (cached != python_import_directory_cache_.end() &&
+        cached->second.mtime_ns == mtime_ns) {
+      return cached->second.entries;
+    }
+  }
+  std::vector<std::string> names;
+  if (!vfs_->list_dir(path, names, error)) return {};
+  auto entries = std::make_shared<std::unordered_set<std::string>>();
+  entries->reserve(names.size());
+  for (auto& name : names) entries->insert(std::move(name));
+  {
+    std::lock_guard<std::mutex> lock(python_import_directory_cache_mutex_);
+    python_import_directory_cache_[path] = PythonImportDirectoryCacheEntry{mtime_ns, entries};
+  }
+  return entries;
+}
+
+bool Runtime::import_from(const std::string& module_name, const std::string& attr_name, Value& out, std::string& error, bool* module_not_found) {
+  if (module_not_found != nullptr) { *module_not_found = false; }
+  std::string resolved_module = module_name;
+  while (!resolved_module.empty() && resolved_module.front() == '.') {
+    resolved_module.erase(resolved_module.begin());
+  }
+  Value module;
+  if (!import_module(resolved_module, module, error, module_not_found)) {
+    return false;
+  }
+  if (module_get_attr(module, attr_name, out, error) && out.tag != ValueTag::Invalid) {
+    return true;
+  }
+  const auto describe_missing_from_import = [&]() {
+    Value spec;
+    Value initializing;
+    std::string ignored;
+    if (!module_get_attr(module, "__spec__", spec, ignored) || spec.tag == ValueTag::None ||
+        !object_get_attr(spec, "_initializing", initializing, ignored) ||
+        initializing.tag != ValueTag::Bool || !initializing.as.b) {
+      return;
+    }
+    error = "cannot import name '" + attr_name + "' from partially initialized module '" +
+        resolved_module + "' (most likely due to a circular import)";
+    Value file;
+    if (module_get_attr(module, "__file__", file, ignored) && file.tag != ValueTag::None &&
+        value_as_string(file) != nullptr) {
+      error += " (" + value_to_string(file) + ")";
+    }
+  };
+  if (resolved_module == "builtins" || resolved_module == "_builtins") {
+    if (const auto* builtin = find_builtin(attr_name)) {
+      value_assign_fast(out, *builtin);
+      return true;
+    }
+  }
+
+  // A package may expose a lazy attribute through PEP 562 __getattr__.
+  // Resolve it before looking for a child module, as importlib's from-list
+  // handling does.  A missing lazy attribute falls through to child import;
+  // an exception raised while computing one must reach the caller.
+  Value module_getattr;
+  std::string getattr_error;
+  if (module_get_attr(module, "__getattr__", module_getattr, getattr_error)) {
+    Value attr_arg = Value::string(attr_name);
+    Value dynamic_attr;
+    std::string call_error;
+    if (runtime_call_callable(*this, module_getattr, &attr_arg, 1, dynamic_attr, call_error)) {
+      value_assign_fast(out, dynamic_attr);
+      return true;
+    }
+    Value pending;
+    if (take_pending_exception(pending)) {
+      auto* klass = value_as_class(exception_type(pending));
+      const bool missing_attribute = klass != nullptr &&
+          (klass->name == "AttributeError" ||
+           class_has_builtin_base_name(klass, "AttributeError"));
+      if (!missing_attribute) {
+        set_pending_exception(std::move(pending));
+        error = call_error;
+        return false;
+      }
+    }
+  }
+
+  Value package_path;
+  std::string package_path_error;
+  if (!module_get_attr(module, "__path__", package_path, package_path_error)) {
+    describe_missing_from_import();
+    return false;
+  }
+
+  std::string submodule_error;
+  bool submodule_not_found = false;
+  if (import_module(resolved_module.empty() ? attr_name : resolved_module + "." + attr_name,
+                    out, submodule_error, &submodule_not_found)) {
+    return true;
+  }
+  if (!submodule_not_found) {
+    error = submodule_error;
+    return false;
+  }
+
+  Value ignored_pending;
+  take_pending_exception(ignored_pending);
+  if (!submodule_error.empty()) {
+    error = submodule_error;
+  }
+  describe_missing_from_import();
+  return false;
+}
+
+bool Runtime::import_star(const std::string& module_name, Value& target_module, std::string& error, bool* module_not_found) {
+  if (module_not_found != nullptr) { *module_not_found = false; }
+  std::string resolved_module = module_name;
+  while (!resolved_module.empty() && resolved_module.front() == '.') {
+    resolved_module.erase(resolved_module.begin());
+  }
+  Value module;
+  if (!import_module(resolved_module, module, error, module_not_found)) {
+    return false;
+  }
+  auto* source = value_as_module(module);
+  if (source == nullptr) {
+    error = "star import source is not a module";
+    return false;
+  }
+  auto* target = value_as_module(target_module);
+  if (target == nullptr) {
+    error = "star import target is not a module";
+    return false;
+  }
+
+  Value export_names;
+  std::string export_error;
+  if (module_get_attr(module, "__all__", export_names, export_error)) {
+    auto export_one = [&](const Value& name_value) -> bool {
+      auto* name_string = value_as_string(name_value);
+      if (name_string == nullptr) {
+        error = "__all__ entries must be strings";
+        return false;
+      }
+      const std::string name = string_object_to_string(*name_string);
+      Value item;
+      if (!module_get_attr(module, name, item, error)) {
+        return false;
+      }
+      return module_set_attr(target_module, name, item, error);
+    };
+
+    if (auto* names = value_as_tuple(export_names)) {
+      for (const auto& name : names->items) {
+        if (!export_one(name)) {
+          return false;
+        }
+      }
+      return true;
+    }
+    if (auto* names = value_as_list(export_names)) {
+      for (const auto& name : names->items) {
+        if (!export_one(name)) {
+          return false;
+        }
+      }
+      return true;
+    }
+    error = "__all__ must be a sequence of strings";
+    return false;
+  }
+
+  // Getters may modify the module namespace while the import is in progress.
+  std::vector<std::string> names;
+  names.reserve(source->name_to_slot.size());
+  for (const auto& item : source->name_to_slot) {
+    if (!item.first.empty() && item.first[0] != '_' && item.second < source->slots.size() &&
+        source->slots[item.second].tag != ValueTag::Invalid)
+      names.push_back(item.first);
+  }
+  for (const auto& name : names) {
+    Value value;
+    if (!module_get_attr(module, name, value, error) ||
+        !module_set_attr(target_module, name, value, error)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+#if !defined(XLANG3_EMBEDDED)
+void Runtime::add_import_root(std::filesystem::path root) {
+  const bool host_path =
+      vfs_->uses_host_paths() && !vfs_->is_mounted_path(root.generic_string());
+  root = normalize_import_root(std::move(root), host_path);
+  if (has_import_root(import_roots_, root)) {
+    return;
+  }
+  import_roots_.push_back(std::move(root));
+}
+
+void Runtime::prepend_import_root(std::filesystem::path root) {
+  const bool host_path =
+      vfs_->uses_host_paths() && !vfs_->is_mounted_path(root.generic_string());
+  root = normalize_import_root(std::move(root), host_path);
+  if (has_import_root(import_roots_, root)) {
+    auto found = std::find(import_roots_.begin(), import_roots_.end(), root);
+    if (found == import_roots_.begin()) return;
+    std::filesystem::path existing = std::move(*found);
+    import_roots_.erase(found);
+    import_roots_.insert(import_roots_.begin(), std::move(existing));
+    return;
+  }
+  import_roots_.insert(import_roots_.begin(), std::move(root));
+}
+
+void Runtime::replace_import_roots(std::vector<std::filesystem::path> roots) {
+  import_roots_.clear();
+  for (auto& root : roots) {
+    add_import_root(std::move(root));
+  }
+}
+#endif
+
+} // namespace xlang3

@@ -1,0 +1,21 @@
+{
+  "status": "decision_frozen_before_any_engine_edit_or_candidate_measurement",
+  "hypothesis": "Maintain an already-fresh native runtime hash bucket after an exact scalar append, avoiding repeated full-key rebuilds in append/native-get workloads.",
+  "parent_source_inventory": "doc/performance/data/frame-locals-retirement-r4-registered-source-20261008.json",
+  "parent_source_inventory_sha256": "e696ed5b31449e7ed29c173df79de3b55292597418231f417af887574c60e4c8",
+  "parent_dll_sha256": "af8fd3f8feef21977fab3fedb27b0e7dd3d3feb8bfcc951f127565331339ce39",
+  "public_dll_state_diagnostic": "doc/performance/data/dict-scalar-append-freshness-diagnostic-r3-20261008.json",
+  "observed_state": "64 already-fresh indexes became stale after native scalar appends; subsequent lookups refreshed tables whose entry counts sum to 2080. This is index-state evidence, not a measured hash-call counter or official timing.",
+  "original_body": "Unchanged benchmark function: protocol5,41 outer loops,3 seeded objects,20 dumps per object,2460 total dumps; strict byte signatures and roundtrips.",
+  "parent_control": "Preserved validated R4 Release178; fixed accepted baseline177 remains untouched.",
+  "performance_screen": {
+    "order_balanced_parent_candidate_pairs": 7,
+    "retain_all_samples": true,
+    "speed_ratio": "parent original-body seconds divided by candidate original-body seconds",
+    "required_median_speed_ratio_strictly_greater_than": 1.05,
+    "required_bootstrap_95_percent_lower_bound_strictly_greater_than": 1.0,
+    "official_benchmark_required_after_screen": "pickle_pure_python, original pyperformance definition,20 values"
+  },
+  "release_requirements": "Strict public DLL eligibility/invalidation/ownership tests and relevant Python cases, complete correctness suite and unchanged default11 fixed-baseline gate with21 repeats/5 warmups/0.10. No engine commit without the passing gate; reject/restore if the paired screen shows no useful gain.",
+  "scope_exclusions": "No DictSet/BPE construction optimization, Python-library translation, whole-key-set reclassification, setter lookup/equality/overwrite rewrite, stale-index admission, complete dictionary callback reentry repair, or claim of a full97 improvement from this case. Existing unrelated numeric/subclass failures remain recorded."
+}

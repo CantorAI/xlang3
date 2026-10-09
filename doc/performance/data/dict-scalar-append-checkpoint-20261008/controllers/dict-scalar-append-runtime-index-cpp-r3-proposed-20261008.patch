@@ -1,0 +1,34 @@
+diff --git a/tests/cpp/dict_scalar_append_index_cases.h b/tests/cpp/dict_scalar_append_index_cases.h
+index 49c79e62..c52c7b7f 100644
+--- a/tests/cpp/dict_scalar_append_index_cases.h
++++ b/tests/cpp/dict_scalar_append_index_cases.h
+@@ -337,21 +337,26 @@ inline void check_dict_scalar_append_index_cases(CaseResult& result) {
+   {
+     Value dictionary = Value::dict_reserved(1);
+     std::string error;
+-    bool ok = mapping_set_item(dictionary, Value::string("source"), Value::string("destination"), error) &&
++    bool ok = mapping_set_item(dictionary, Value::string("source payload"), Value::string("destination payload"), error) &&
+         warm(runtime, dictionary);
+     auto* storage = value_as_dict(dictionary);
+     error.clear();
+     ok = ok && mapping_set_item(dictionary, storage->entries[0].second, storage->entries[0].first, error) &&
+         storage->entries.size() == 2 && fresh(*storage, true) &&
+-        value_key_equal(storage->entries[1].first, Value::string("destination")) &&
++        value_key_equal(storage->entries[1].first, Value::string("destination payload")) &&
+         value_is(storage->entries[1].second, storage->entries[0].first);
+     Value borrowed;
+     borrowed.tag = ValueTag::Object;
+     borrowed.flags = kXlangValueBorrowedRefFlag;
+     borrowed.as.obj = storage->entries[0].second.as.obj;
++    // Identifier strings can be immortal/interned and intentionally skip
++    // refcount changes. This spaced payload must exercise a mortal owner.
++    const auto* borrowed_string = value_as_string(borrowed);
++    const bool mortal = borrowed_string != nullptr && !string_object_is_immortal(*borrowed_string);
++    expect_true(result, mortal, "borrowed scalar append refcount proof requires a mortal string payload");
+     const auto refs = borrowed.as.obj->refcnt.load();
+     error.clear();
+-    ok = ok && mapping_set_item(dictionary, Value::string("borrowed"), borrowed, error) &&
++    ok = ok && mortal && mapping_set_item(dictionary, Value::string("borrowed"), borrowed, error) &&
+         fresh(*storage, true) && storage->entries[2].second.flags == 0 &&
+         borrowed.as.obj->refcnt.load() == refs + 1;
+     expect_true(result, ok, "scalar append must own borrowed/entry-aliased inputs before storage reallocates");

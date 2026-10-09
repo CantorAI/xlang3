@@ -1,0 +1,383 @@
+/*
+Copyright (C) 2026 CantorAI Inc. and The XLang Foundation
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+#pragma once
+
+#include "xlang3/value.h"
+#include "xlang3/vfs.h"
+
+#if !defined(XLANG3_EMBEDDED)
+#include <filesystem>
+#include <ostream>
+#endif
+#include <cstddef>
+#include <cstdint>
+#include <atomic>
+#include <functional>
+#include <memory>
+#include <mutex>
+#include <string>
+#include <string_view>
+#include <thread>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
+
+namespace xlang3 {
+
+Runtime* runtime_for_object_finalization();
+void runtime_set_object_finalization_context(Runtime* runtime);
+
+struct OutputSink {
+  void* context = nullptr;
+  void (*write)(void* context, const char* data, std::size_t size) = nullptr;
+};
+
+struct NativeSerializationCodec {
+  std::string type_id;
+  std::string native_type;
+  uint32_t version = 0;
+  std::function<bool(const Value&, Value&, std::string&)> encode;
+  std::function<bool(Value&, const Value&, std::string&)> decode;
+};
+
+struct GeneratorObject;
+
+using NativeAstKindLookup = std::string_view (*)(const Value&, bool, void*);
+
+struct RuntimeFrameView {
+  const std::shared_ptr<const ir::Module>* module_owner = nullptr;
+  const Value* globals_module = nullptr;
+  const std::vector<std::string>* local_names = nullptr;
+  const Value* local_values = nullptr;
+  const size_t* instruction_index = nullptr;
+  size_t local_count = 0;
+  uint32_t function_id = 0;
+  uint64_t activation_id = 0;
+  Value* register_values = nullptr;
+  const std::vector<size_t>* register_last_use = nullptr;
+  size_t register_count = 0;
+  std::vector<Value>* native_call_args = nullptr;
+  const std::vector<Value>* closure = nullptr;
+  GeneratorObject* generator_owner = nullptr;
+  const Value* cell_values = nullptr;
+  size_t cell_count = 0;
+  const Value* captured_builtins = nullptr;
+};
+
+enum class RuntimeDebugStepMode : uint8_t {
+  Continue,
+  StepInto,
+  StepOver,
+  StepOut,
+};
+
+enum class RuntimePauseReason : uint8_t {
+  None,
+  Breakpoint,
+  Step,
+  StepOver,
+  StepOut,
+  PauseRequest,
+};
+
+struct RuntimeDebugBreakpoint {
+  std::string file;
+  uint32_t line = 0;
+};
+
+struct RawBlockContext {
+  std::function<bool(const std::string& name, Value& out, std::string& error)> get_var;
+  std::function<bool(const std::string& name, const Value& value, std::string& error)> set_var;
+};
+
+struct ExitFunction {
+  Value callable;
+  std::vector<Value> args;
+  std::vector<std::pair<std::string, Value>> kwargs;
+};
+
+class Runtime {
+public:
+  using RawBlockHandler = bool (*)(
+      Runtime& runtime,
+      RawBlockContext& context,
+      const std::string& language,
+      const std::string& provider,
+      const std::string& body,
+      std::string& error);
+
+#if !defined(XLANG3_EMBEDDED)
+  explicit Runtime(std::ostream& out);
+#endif
+  explicit Runtime(OutputSink output);
+  ~Runtime();
+
+  void write_output(const char* data, std::size_t size);
+  bool uses_process_stdout() const;
+  void write_output(const std::string& text) { write_output(text.data(), text.size()); }
+  void write_output(const char* text);
+  void write_output(char ch) { write_output(&ch, 1); }
+
+  void register_builtin(std::string name, Value value);
+  void register_native_builtin(
+      std::string name,
+      NativeFunctionCallback callback,
+      NativeFastCallCallback fast_callback = nullptr,
+      bool fast_releases_vm_lock = false,
+      NativeKeywordFunctionCallback keyword_callback = nullptr);
+  const Value* find_builtin(const std::string& name) const;
+  bool resolve_builtin(const std::string& name, Value& out) const;
+  const Value* find_native_symbol(const std::string& name) const;
+  bool register_native_codec(std::shared_ptr<NativeSerializationCodec> codec);
+  void begin_native_codec_registration();
+  void end_native_codec_registration(bool commit);
+  const NativeSerializationCodec* find_native_codec(const std::string& type_id, bool local_type = false) const;
+  Value make_exception(std::string class_name, std::string message);
+  Value make_exception_from_class(Value klass, std::string message);
+  Value exception_type(const Value& exception);
+  bool raise_class_error(std::string class_name, std::string message);
+  void set_pending_exception(Value exception);
+  bool take_pending_exception(Value& out);
+  void set_active_exception(Value exception);
+  void clear_active_exception();
+  const Value& active_exception() const;
+  Value make_native_function(
+      std::string name,
+      NativeFunctionCallback callback,
+      void* user_data = nullptr,
+      void (*user_data_cleanup)(void*) = nullptr,
+      NativeFastCallCallback fast_callback = nullptr,
+      bool fast_releases_vm_lock = false,
+      NativeKeywordFunctionCallback keyword_callback = nullptr,
+      bool bind_as_descriptor = true);
+  void register_module(std::string name, Value module);
+  void unregister_module(const std::string& name);
+  void synchronize_modules_from_registry();
+  void hide_cached_module(const std::string& name);
+  const Value& module_registry_dict() const { return modules_dict_; }
+  void register_native_package_cleanup(void* data, void (*cleanup)(void*));
+  void register_native_ast_kind_lookup(NativeAstKindLookup lookup, void* context) {
+    native_ast_kind_lookup_ = lookup;
+    native_ast_kind_context_ = context;
+  }
+  std::string_view native_ast_node_kind(const Value& node) const {
+    return native_ast_kind_lookup_ == nullptr ? std::string_view{}
+        : native_ast_kind_lookup_(node, false, native_ast_kind_context_);
+  }
+  std::string_view native_ast_class_kind(const Value& klass) const {
+    return native_ast_kind_lookup_ == nullptr ? std::string_view{}
+        : native_ast_kind_lookup_(klass, true, native_ast_kind_context_);
+  }
+  void retain_serialized_objects(std::vector<Value> objects);
+  uint64_t collect_serialized_objects(bool force = false);
+  void register_raw_block_handler(std::string language, std::string provider, RawBlockHandler handler);
+  bool execute_raw_block(
+      RawBlockContext& context,
+      const std::string& language,
+      const std::string& provider,
+      const std::string& body,
+      std::string& error);
+  bool import_module(const std::string& name, Value& out, std::string& error, bool* module_not_found = nullptr);
+  void acquire_import_lock();
+  bool release_import_lock();
+  bool import_lock_held() const;
+  bool has_registered_module(const std::string& name) const;
+  bool may_have_python_import_miss(const std::string& name) const;
+  bool has_python_import_miss(const std::string& key) const;
+  void remember_python_import_miss(const std::string& name, std::string key);
+  void clear_python_import_misses();
+  std::shared_ptr<const std::unordered_set<std::string>> python_import_directory_entries(
+      const std::string& path, std::string& error);
+  bool import_from(const std::string& module_name, const std::string& attr_name, Value& out, std::string& error, bool* module_not_found = nullptr);
+  bool import_star(const std::string& module_name, Value& target_module, std::string& error, bool* module_not_found = nullptr);
+  Vfs& vfs() { return *vfs_; }
+  const Vfs& vfs() const { return *vfs_; }
+#if !defined(XLANG3_EMBEDDED)
+  void add_import_root(std::filesystem::path root);
+  void prepend_import_root(std::filesystem::path root);
+  void replace_import_roots(std::vector<std::filesystem::path> roots);
+  const std::vector<std::filesystem::path>& import_roots() const { return import_roots_; }
+  bool publish_sys_path(std::string& error);
+#endif
+  void set_last_error(std::string error);
+  const std::string& last_error() const;
+  void set_current_globals_module(const Value& globals_module);
+  const Value& current_globals_module() const;
+  bool set_sys_argv(const std::vector<std::string>& argv, std::string& error);
+  bool decode_python_source(std::string_view bytes, std::string& source, std::string& error) const;
+  void set_trace_function(Value trace_function);
+  const Value& trace_function() const;
+  bool trace_event_may_dispatch() const {
+    return trace_possible_.load(std::memory_order_relaxed);
+  }
+  bool trace_dispatch_active() const;
+  void set_trace_dispatch_active(bool active);
+  void set_thread_trace_function(Value trace_function);
+  const Value& thread_trace_function() const { return thread_trace_function_; }
+  void set_profile_function(Value profile_function);
+  const Value& profile_function() const;
+  bool profile_event_may_dispatch() const {
+    return profile_possible_.load(std::memory_order_relaxed);
+  }
+  bool profile_dispatch_active() const;
+  void set_profile_dispatch_active(bool active);
+  bool emit_profile_event(const char* event_name, const Value& arg, std::string& error);
+  bool emit_profile_event_for_frame(const Value& frame, const char* event_name, const Value& arg, std::string& error);
+  void set_thread_profile_function(Value profile_function);
+  const Value& thread_profile_function() const { return thread_profile_function_; }
+  void set_current_frame(
+      const std::shared_ptr<const ir::Module>* module_owner,
+      uint32_t function_id,
+      const Value* globals_module,
+      uint32_t instruction_index);
+  void push_current_frame_state();
+  void pop_current_frame_state();
+  void set_current_frame_stack(const RuntimeFrameView* frames, size_t count);
+  size_t saved_python_frame_depth() const;
+  void publish_current_frame_for_thread_inspection();
+  void release_dead_frame_registers();
+  void clear_current_frame();
+  Value current_frame_snapshot() const;
+  void visit_active_generator_references(
+      const GeneratorObject* generator,
+      const std::function<void(const Value&)>& visit) const;
+  Value track_live_frame_snapshot(Value frame);
+  void refresh_live_frame_snapshots(bool refresh_traceback_locals = false,
+                                    bool force_prune = false);
+  void retire_live_frame_snapshot(
+      uint64_t activation_id, uint32_t instruction_index,
+      const Value* local_values, size_t local_count);
+  uint64_t allocate_frame_activation_id();
+  uint32_t current_frame_function_id() const;
+  const std::shared_ptr<const ir::Module>* current_frame_module_owner() const;
+  bool current_frame_free_var(const std::string& name, Value& out) const;
+  bool try_current_frame_first_argument(Value& out) const;
+  void set_current_frame_locals(const std::vector<std::string>* names, const Value* values, size_t count);
+  void clear_current_frame_locals();
+  Value current_locals_snapshot() const;
+  Value code_object(std::shared_ptr<const ir::Module> module, uint32_t function_id);
+  Value current_frame_snapshots(const std::vector<int64_t>& live_thread_ids) const;
+  Value current_exception_snapshots(const std::vector<int64_t>& live_thread_ids) const;
+  void set_debug_hook(Value hook);
+  const Value& debug_hook() const { return debug_hook_; }
+  bool debug_enabled() const { return debug_enabled_; }
+  bool debug_dispatch_active() const { return debug_dispatch_active_; }
+  void set_debug_dispatch_active(bool active);
+  bool debug_poll_needed() const { return debug_poll_needed_; }
+  bool debug_step_active() const { return debug_step_mode_ != RuntimeDebugStepMode::Continue; }
+  bool debug_pause_on_hit() const { return debug_pause_on_hit_; }
+  void set_debug_enabled(bool enabled);
+  void set_debug_pause_on_hit(bool enabled);
+  void debug_request_pause();
+  void debug_add_breakpoint(std::string file, uint32_t line);
+  void debug_clear_breakpoints();
+  void debug_step_into(size_t frame_count, uint32_t line);
+  void debug_step_over(size_t frame_count, uint32_t line);
+  void debug_step_out(size_t frame_count);
+  void debug_continue();
+  RuntimePauseReason debug_step_pause_reason(size_t frame_count, uint32_t line) const;
+  bool debug_skip_breakpoint_at_step_origin(size_t frame_count, uint32_t line) const;
+  bool debug_breakpoint_matches(std::string_view file, uint32_t line) const;
+  void register_exit_function(Value callable, std::vector<Value> args, std::vector<std::pair<std::string, Value>> kwargs = {});
+  void unregister_exit_function(const Value& callable);
+  bool run_exit_functions(std::string& error);
+  int recursion_limit() const { return recursion_limit_; }
+  void set_recursion_limit(int limit) { recursion_limit_ = limit; }
+  bool no_debug_ranges() const { return no_debug_ranges_; }
+  void set_no_debug_ranges(bool disabled) { no_debug_ranges_ = disabled; }
+  bool finalizing() const { return finalizing_; }
+
+private:
+  void initialize();
+  void refresh_debug_poll_needed();
+
+  OutputSink output_;
+  std::unique_ptr<Vfs> vfs_;
+  mutable std::mutex last_error_mutex_;
+  mutable std::unordered_map<std::thread::id, std::string> last_errors_;
+  Value pending_exception_;
+  Value active_exception_;
+  Value current_globals_module_;
+  Value trace_function_;
+  Value thread_trace_function_;
+  std::atomic_bool trace_possible_{false};
+  Value profile_function_;
+  Value thread_profile_function_;
+  std::atomic_bool profile_possible_{false};
+  Value debug_hook_;
+  bool debug_dispatch_active_ = false;
+  bool debug_poll_needed_ = false;
+  bool debug_enabled_ = false;
+  bool no_debug_ranges_ = false;
+  bool finalizing_ = false;
+  bool debug_pause_on_hit_ = false;
+  bool debug_pause_requested_ = false;
+  RuntimeDebugStepMode debug_step_mode_ = RuntimeDebugStepMode::Continue;
+  size_t debug_step_frame_count_ = 0;
+  uint32_t debug_step_line_ = 0;
+  std::vector<RuntimeDebugBreakpoint> debug_breakpoints_;
+  mutable std::mutex live_frame_snapshots_mutex_;
+  mutable std::vector<Value> live_frame_snapshots_;
+  mutable std::unordered_map<uint64_t, FrameObject*> live_frame_snapshot_index_;
+  mutable std::atomic<bool> has_live_frame_snapshots_{false};
+  mutable uint32_t live_frame_prune_ticks_ = 0;
+  const std::shared_ptr<const ir::Module>* current_frame_module_owner_ = nullptr;
+  const Value* current_frame_globals_module_ = nullptr;
+  uint32_t current_frame_function_id_ = 0;
+  uint32_t current_frame_instruction_index_ = 0;
+  std::atomic<uint64_t> next_frame_activation_id_{1};
+  const RuntimeFrameView* current_frame_stack_ = nullptr;
+  size_t current_frame_stack_count_ = 0;
+  const std::vector<std::string>* current_local_names_ = nullptr;
+  const Value* current_local_values_ = nullptr;
+  size_t current_local_count_ = 0;
+  uint32_t next_native_id_ = 1;
+  bool asyncio_compat_initialized_ = false;
+  bool asyncio_compat_initializing_ = false;
+  std::unordered_map<std::string, Value> builtins_;
+  std::unordered_map<std::string, Value> modules_;
+  mutable std::recursive_mutex import_mutex_;
+  std::atomic_uint32_t import_lock_depth_{0};
+  mutable std::mutex python_import_misses_mutex_;
+  std::unordered_set<std::string> python_import_miss_names_;
+  std::unordered_set<std::string> python_import_misses_;
+  struct PythonImportDirectoryCacheEntry {
+    int64_t mtime_ns = 0;
+    std::shared_ptr<const std::unordered_set<std::string>> entries;
+  };
+  mutable std::mutex python_import_directory_cache_mutex_;
+  std::unordered_map<std::string, PythonImportDirectoryCacheEntry> python_import_directory_cache_;
+  Value modules_dict_;
+  std::vector<std::pair<void*, void (*)(void*)>> native_package_cleanups_;
+  // The native AST package owns the retained canonical classes. Its private
+  // lookup remains stable when Python rebinds _ast.AST or another public name.
+  NativeAstKindLookup native_ast_kind_lookup_ = nullptr;
+  void* native_ast_kind_context_ = nullptr;
+  std::vector<Value> serialized_objects_;
+  std::unordered_map<std::string, Value> native_symbols_;
+  std::mutex code_objects_mutex_;
+  std::unordered_map<const ir::Module*, std::vector<Value>> code_objects_;
+  std::unordered_map<std::string, std::shared_ptr<NativeSerializationCodec>> native_codecs_;
+  std::vector<std::vector<std::string>> native_codec_registrations_;
+  std::unordered_map<std::string, RawBlockHandler> raw_block_handlers_;
+  std::vector<ExitFunction> exit_functions_;
+  bool exit_functions_running_ = false;
+  int recursion_limit_ = 1000;
+#if !defined(XLANG3_EMBEDDED)
+  std::vector<std::filesystem::path> import_roots_;
+#endif
+};
+
+} // namespace xlang3

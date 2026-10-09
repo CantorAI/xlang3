@@ -1,0 +1,37 @@
+{
+  "status": "terminal_completed_index_state_diagnostic",
+  "terminal": true,
+  "scored": false,
+  "build_changes": false,
+  "engine_changes": false,
+  "source_count": 111,
+  "release_count": 178,
+  "fixed_baseline_count": 177,
+  "busy": [],
+  "input_hashes": {
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\dict-scalar-append-freshness-diagnostic-r3-root-20261008.exe": "6da03812b6a5b19d703ec4af11f21c248f5caa8c5b39b122f42a6f922fb66197",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\dict-scalar-append-freshness-diagnostic-r3-root-20261008.cpp": "58a16dca465b3e6590b46c117a6ddf7783c4ad8bb421ca9d07158424ad3bcb97",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\dict-scalar-append-freshness-diagnostic-r3-root-20261008.obj": "fae0207ea8708e6c15fddf8c452e0d17059c452866e6398ae75aa2c583e1430f",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\build-dict-scalar-append-freshness-diagnostic-r3-root-20261008.cmd": "7280b97dc26d68cf40fc3e3420a072b829c98b482330fdf512f1340d0253db3b",
+    "D:\\CantorAI\\xlang3\\doc\\performance\\data\\dict-scalar-append-freshness-diagnostic-build-r3-20261008.log": "7f5ee4770df547a596247873e75145041dc4a52f5e6965bc82c00f9dfcc79443",
+    "D:\\CantorAI\\xlang3\\doc\\performance\\data\\frame-locals-retirement-r4-full-validation-20261008.json": "b28809dcfc420906e3c3f656fdd9584140d0a80d778673a43342799ea64e75ec"
+  },
+  "started_utc": "2026-10-09T00:06:58.306054+00:00",
+  "exit_code": 0,
+  "stdout_log": "dict-scalar-append-freshness-diagnostic-r3-20261008.stdout.log",
+  "stdout_sha256": "94e5afb5ee7b18a8fe122f3664e2716c5acf0215f2eeec317429145d143cfa63",
+  "stderr_log": "dict-scalar-append-freshness-diagnostic-r3-20261008.stderr.log",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "hashes_unchanged": true,
+  "completed_utc": "2026-10-09T00:06:59.946610+00:00",
+  "result": {
+    "status": "completed_public_dll_index_state_diagnostic",
+    "loaded_runtime_verified": true,
+    "scored": false,
+    "append_count": 64,
+    "fresh_before_append": 64,
+    "stale_after_append": 64,
+    "entries_in_rebuilt_tables_after_append": 2080,
+    "all_values_correct": true
+  }
+}

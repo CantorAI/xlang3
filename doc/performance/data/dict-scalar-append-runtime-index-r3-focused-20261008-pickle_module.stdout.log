@@ -1,0 +1,29 @@
+TypeError
+ValueError
+b'abc'
+ValueError
+ValueError
+True
+True
+True
+large protocol rejected
+True
+True
+True True
+True True
+True True 1
+bytearray b'mutable'
+1 b'buffer'
+b'buffer'
+['loaded:persistent-marker']
+0
+1
+False True True
+False False False
+True
+True
+persistent load unsupported
+True
+TypeError
+ValueError
+True

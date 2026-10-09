@@ -1,0 +1,19 @@
+{
+  "status": "preliminary_cpp_failed",
+  "terminal": true,
+  "passed": false,
+  "exit_code": 1,
+  "source_count": 115,
+  "source_inventory_sha256": "882665bc69198d3f1f5bbd675fc87edba88d6cee63c176b144ee267e236c8d93",
+  "recorded_sources_match": true,
+  "fixed_baseline_match": true,
+  "command": [
+    "build-repro/main-verify-20261006/Release/xlang3_interpreter_tests.exe"
+  ],
+  "stdout_log": "dict-scalar-append-runtime-index-cpp-preliminary-20261008.stdout.log",
+  "stderr_log": "dict-scalar-append-runtime-index-cpp-preliminary-20261008.stderr.log",
+  "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "stderr_sha256": "7558b83cfa1a5b88dddebce35b54d54300facf602a25d1aa850ddd932c288796",
+  "diagnosis": "Borrowed test uses auto-immortal identifier string destination but requires refcount +1. retain intentionally skips immortal strings. No candidate timing yet.",
+  "completed_utc": "2026-10-09T00:28:40.2308315Z"
+}

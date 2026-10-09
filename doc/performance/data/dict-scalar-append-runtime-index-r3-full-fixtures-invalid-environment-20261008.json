@@ -1,0 +1,13 @@
+{
+  "status": "invalid_full_fixture_environment",
+  "terminal": true,
+  "exit_code": 1,
+  "full_correctness_passed": false,
+  "failed_fixture": "sys_startup_config",
+  "cause": "PYTHONIOENCODING=utf-8 overrides default surrogateescape stdin/stdout errors; inherited benchmark settings were incorrectly used for full correctness.",
+  "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "stderr_sha256": "7c55da2b76a3977352ef7a647bf35957e40725a2374146b41ea2eb46eba226e2",
+  "clean_startup_exit_code": 0,
+  "clean_startup_stdout_sha256": "f3885c23afd425f12c65fdba9b3e5fab1e15aa4c5edfcb9ebecb6f4da829688b",
+  "completed_utc": "2026-10-09T00:35:22.9750022Z"
+}
