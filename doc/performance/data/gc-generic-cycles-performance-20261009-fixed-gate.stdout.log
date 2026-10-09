@@ -1,0 +1,13 @@
+local_slots              pass         0.994x
+scalar_arithmetic        pass         1.005x
+range_for                pass         0.993x
+function_calls           pass         1.021x
+class_construct          pass         1.016x
+list_append              pass         1.005x
+property_access          pass         0.953x
+deepcopy_memo            pass         0.912x
+json_dumps               pass         1.021x
+gc_traversal: confirming regression with a fresh run
+gc_traversal             regression   3.438x
+subparsers               pass         0.921x
+Performance check: regression. Report: D:\CantorAI\xlang3\doc\performance\data\gc-generic-cycles-performance-20261009-fixed-gate.json
