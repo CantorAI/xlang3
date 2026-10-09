@@ -1,0 +1,15 @@
+{
+  "status": "artifact_verification_passed",
+  "scope": "Documentation checks, not engine tests or benchmark reruns.",
+  "initial_publication_manifest_sha256": "98e8d405ba64c3ceb6521cdf3295b32306fc89c9ea589ae3bd15b4b6f15c44d7",
+  "all_97_definition_rows": 97,
+  "raw_subtest_rows": 84,
+  "scored_subtests": 83,
+  "independent_raw_mean_method": "sum of timed run.values divided by count; no warmups",
+  "speed_elapsed_reciprocals_verified": true,
+  "svg_names_bars_and_baseline_verified": true,
+  "full_markdown_rows_verified": 181,
+  "saved_reference_files_already_tracked": true,
+  "engine_changed": false,
+  "verifier_sha256": "e3bf927189d9633abae20621f8a418fd2b85eb8100f7d487d81d33564d658882"
+}

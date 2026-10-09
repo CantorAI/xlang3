@@ -1,0 +1,15 @@
+{
+  "status": "prepared_metadata_only_checkpoint_rebase",
+  "parent": "D:\\CantorAI\\xlang3\\scratch\\performance\\run-python-new-vm-continuation-r4-full-pyperformance-refresh-r2-root-20261009.py",
+  "parent_sha256": "f5587d5326658062b90e1b1acfb531bf0d4cc79f9ce1a363ed1de01b180adbca",
+  "controller": "D:\\CantorAI\\xlang3\\scratch\\performance\\run-python-new-vm-continuation-r4-full-pyperformance-checkpoint-r3-root-20261009.py",
+  "controller_sha256": "e6bfe187644d0b255e635eeb06f7b202a78a5cda9d829f7b096c8635562c46d3",
+  "head": "5997b264f8b71c38b57c98763788702f38146217",
+  "engine_source_unchanged": true,
+  "timed_execution_region_identical": true,
+  "original_working_attributes_sha256": "751c445e9450cf1058f4d252166c0ee644d9a825428496fc53d904e49d59986a",
+  "actual_working_attributes_sha256": "99c702bda507319d141a0d034d4b7b4cc879bddd2f393175b62f31b48b04bd8a",
+  "appended_doc_attributes_sha256": "1e8a275caea66bf806431caa7ced3896e85ce285df4ccc8c894de497af3a347a",
+  "ast_passed": true,
+  "executed": false
+}
