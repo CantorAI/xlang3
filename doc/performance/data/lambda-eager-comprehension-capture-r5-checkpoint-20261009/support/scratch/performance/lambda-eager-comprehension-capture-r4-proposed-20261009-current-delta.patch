@@ -1,0 +1,35 @@
+diff --git a/src/sema/lower.cpp b/src/sema/lower.cpp
+index 40dfa294..b42f8504 100644
+--- a/src/sema/lower.cpp
++++ b/src/sema/lower.cpp
+@@ -3221,7 +3221,7 @@ private:
+       } else {
+         emit(ir::Op::StoreGlobal, add_name(resolved), reg);
+       }
+-    } else if (auto free_it = free_indices_.find(name); free_it != free_indices_.end()) {
++    } else if (auto free_it = free_indices_.find(resolved); free_it != free_indices_.end()) {
+       emit(ir::Op::StoreFree, free_it->second, reg);
+     } else if (is_cell_local(resolved)) {
+       emit(ir::Op::StoreCell, cell_indices_[resolved], reg);
+@@ -3240,7 +3240,7 @@ private:
+       } else {
+         emit(ir::Op::DeleteGlobal, add_name(resolved));
+       }
+-    } else if (auto free_it = free_indices_.find(name); free_it != free_indices_.end()) {
++    } else if (auto free_it = free_indices_.find(resolved); free_it != free_indices_.end()) {
+       const auto invalid = new_reg();
+       emit(ir::Op::LoadConst, invalid, add_const(Value::invalid()));
+       emit(ir::Op::StoreFree, free_it->second, invalid);
+diff --git a/src/internal/xlang3/pyc_magic.h b/src/internal/xlang3/pyc_magic.h
+index 457e545a..b8b90680 100644
+--- a/src/internal/xlang3/pyc_magic.h
++++ b/src/internal/xlang3/pyc_magic.h
+@@ -21,7 +21,7 @@ namespace xlang3 {
+ // Bump for changed IR encodings, marshal layouts or lowering semantics.
+ // Structurally readable source caches can still retain obsolete owner lifetimes
+ // (for example a completed synthetic class frame) after a compiler correction.
+-inline constexpr char kPycMagic[4] = {'O', 'X', '\x11', '\n'};
++inline constexpr char kPycMagic[4] = {'O', 'X', '\x12', '\n'};
+ inline constexpr std::string_view kPycMagicView{kPycMagic, sizeof(kPycMagic)};
+ 
+ } // namespace xlang3

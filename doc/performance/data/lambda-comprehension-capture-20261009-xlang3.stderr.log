@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\scratch\performance\lambda-comprehension-capture-reproducer-proposed-20261009.py", line 52, in <module>
+    assert listed(record) == record
+           ~~~~~~^^^^^^^^
+  File "D:\CantorAI\xlang3\scratch\performance\lambda-comprehension-capture-reproducer-proposed-20261009.py", line 41, in <lambda>
+    return lambda rec: tuple([getter(rec) for getter in getters])
+                       ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+NameError: free variable 'getters' is not defined

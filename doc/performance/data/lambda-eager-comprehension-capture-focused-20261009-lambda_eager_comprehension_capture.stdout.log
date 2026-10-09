@@ -1,0 +1,2 @@
+PASS ordinary_and_generator_controls
+PASS returned_lambda_all_eager_types

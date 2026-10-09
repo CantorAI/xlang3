@@ -1,0 +1,10 @@
+ordinary calls, returned wrappers and native sorted
+slot property replacement, deletion and restoration
+custom descriptors, alias, foreign and non-own layouts
+setattr, new and metaclass dispatch
+live initializer code, defaults and keyword signature
+binding failures and original exception context
+class, initializer and slot payload ownership
+profile and trace expose initializer frames
+local monitoring exposes initializer entry and return
+old output finalizer changes the next dispatch and observers

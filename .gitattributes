@@ -712,3 +712,8 @@
 /doc/performance/data/date-native-boundary-* -text
 /doc/performance/property-callable-getter-checkpoint-20261009.md text eol=lf
 /doc/performance/property-callable-getter-sql-imperative-20261009.svg text eol=lf
+
+/doc/performance/data/lambda-* -text
+/doc/performance/data/lambda-*/** -text
+/doc/performance/lambda-eager-comprehension-capture-r5-checkpoint-20261009.md text eol=lf
+/doc/performance/lambda-eager-comprehension-capture-r5-checkpoint-20261009.svg text eol=lf

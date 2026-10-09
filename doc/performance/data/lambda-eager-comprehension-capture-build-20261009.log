@@ -1,0 +1,33 @@
+[0/2] Re-checking globbed directories...
+[1/33] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\zipimport_module.cpp.obj
+[2/33] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\importlib_module.cpp.obj
+[3/33] Linking CXX static library Release\xlang3_system_runtime.lib
+[4/33] Building CXX object CMakeFiles\xlang3_runtime.dir\Release\src\import\import_loader.cpp.obj
+[5/33] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\import\import_loader.cpp.obj
+[6/33] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\sema\lower.cpp.obj
+[7/33] Building CXX object CMakeFiles\xlang3_runtime.dir\Release\src\sema\lower.cpp.obj
+[8/33] Linking CXX static library Release\xlang3_runtime_static.lib
+[9/33] Linking CXX shared library Release\xlang3_runtime.dll
+[10/33] Linking CXX executable Release\xlang3_cpp_ipc_client.exe
+[11/33] Linking CXX executable Release\xlang3_smoke.exe
+[12/33] Linking CXX executable Release\xlang3_sdk_stream_call_tests.exe
+[13/33] Linking CXX executable Release\xlang3_static_runtime_shutdown.exe
+[14/33] Linking CXX executable Release\xlang3_abi_ownership.exe
+[15/33] Linking CXX executable Release\xlang3_embedded_package_tests.exe
+[16/33] Linking CXX executable Release\xlang3_graph_process_tests.exe
+[17/33] Linking CXX executable Release\xlang3.exe
+[18/33] Linking CXX executable Release\xlang3_runtime_value_tests.exe
+[19/33] Linking CXX executable Release\xlang3_vfs_tests.exe
+[20/33] Linking CXX executable Release\xlang3_ipc_capacity_tests.exe
+[21/33] Linking CXX executable Release\xlang3_memory_tests.exe
+[22/33] Linking CXX executable Release\xlang3_tensor_cpu_tests.exe
+[23/33] Linking CXX executable Release\xlang3_parser_tests.exe
+[24/33] Linking CXX executable Release\xlang3_debug_session_tests.exe
+[25/33] Linking CXX executable Release\xlang3_module_slot_tests.exe
+[26/33] Linking CXX executable Release\xlang3_interpreter_tests.exe
+[27/33] Linking CXX executable Release\xlang3_ir_codec_tests.exe
+[28/33] Linking CXX executable Release\xlang3_native_package_real_tests.exe
+[29/33] Linking CXX executable Release\xlang3_task_tests.exe
+[30/33] Linking CXX executable Release\xlang3_xlang1_compat_package_tests.exe
+[31/33] Linking CXX executable Release\xlang3_native_path_tests.exe
+[32/33] Linking CXX executable Release\xlang3_dap_session_tests.exe

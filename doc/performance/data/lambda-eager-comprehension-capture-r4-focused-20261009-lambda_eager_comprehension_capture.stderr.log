@@ -1,0 +1,6 @@
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\tests\fixtures\core\lambda_eager_comprehension_capture.py", line 128, in <module>
+    assert [dict_old[index]() for index in (1, 2)] == [(2, 7), (2, 7)]
+            ~~~~~~~~~~~~~~~^^
+  File "D:\CantorAI\xlang3\tests\fixtures\core\lambda_eager_comprehension_capture.py", line 0, in <lambda>
+NameError: free variable 'item' is not defined. Did you mean: 'iter'?

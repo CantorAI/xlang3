@@ -1,0 +1,1531 @@
+{
+  "status": "frozen_export_requires_future_terminal_samecandidate_default_gate_pass",
+  "head": "f67a484bcea285a3360cbed334fe98b4fbc2868b",
+  "preview_root": "scratch/performance/lambda-eager-comprehension-capture-r5-checkpoint-export-preview-proposed-20261009",
+  "archive_root": "doc/performance/data/lambda-eager-comprehension-capture-r5-checkpoint-20261009",
+  "application": "doc/performance/data/lambda-eager-comprehension-capture-r5-applied-source-20261009.json",
+  "application_sha256": "455070f024691a9223abedea366278e1399b9789340d8954bad7549d06cdb29e",
+  "correctness_receipt": "doc/performance/data/lambda-eager-comprehension-capture-r5-validation-r4-20261009.json",
+  "correctness_receipt_sha256": "831d93a597ec231f0f934a36848153dd21c68b33b7bd213d31658da8c3d85454",
+  "validation_controller": "scratch/performance/validate-lambda-eager-comprehension-capture-r5-trial-r3-root-20261009.py",
+  "validation_controller_sha256": "7409327c4135e44620f0c7b056fdc7f2eb4d012145dfab8ac0264e6e219dd944",
+  "ir_eligibility_sha256": "ea2fcad8f1ca097cf4719e83c1ccbd0a16bad4b39482f43f514b30bbb7856b81",
+  "historical_cp_receipt_sha256": "05ffba4d1786c93448812db6ba22debc5f1c4be62ba6571ead209e49a234777a",
+  "release_root": "build-repro/main-verify-20261006/Release",
+  "fixed_baseline_root": "build-repro/Release",
+  "owned_source_sha256": {
+    "src/sema/lower.cpp": "0b916989d506ac23554db329b0dc542131ce8ddb1845e3c3b85e70b190ac3717",
+    "src/internal/xlang3/pyc_magic.h": "7709647f07079da18e414c7353fbbff706343eccb01e0d4e2c7fd0e5e12a524f",
+    "tests/run_fixtures.py": "74716b6ac4ddb261be46d4a21d59e159142f11b9603995460e5bd848902cd53a",
+    "tests/run_fixtures.ps1": "94c9a87aefe1f9e9289c93ff0a4239755ea9e8690e5966899c0ff5ad5bdd64f9",
+    "tests/fixtures/core/lambda_eager_comprehension_capture.py": "fdaa8cb392c3edc8e1dfb0a1ef7556f23b32f0b3525631681155c646c9a74990",
+    "tests/fixtures/expected/lambda_eager_comprehension_capture.out": "8666bdaa0eacca4e23dd0a261747eef70bd427b68576d78c21e622ce415b6c86"
+  },
+  "owned_input_paths": {
+    "src/sema/lower.cpp": "build-repro/controls/lambda-eager-comprehension-capture-parent-20261009/source-snapshot/src/sema/lower.cpp",
+    "src/internal/xlang3/pyc_magic.h": "build-repro/controls/lambda-eager-comprehension-capture-parent-20261009/source-snapshot/src/internal/xlang3/pyc_magic.h",
+    "tests/run_fixtures.py": "build-repro/controls/lambda-eager-comprehension-capture-parent-20261009/source-snapshot/tests/run_fixtures.py",
+    "tests/run_fixtures.ps1": "build-repro/controls/lambda-eager-comprehension-capture-parent-20261009/source-snapshot/tests/run_fixtures.ps1"
+  },
+  "new_owned_targets": [
+    "tests/fixtures/core/lambda_eager_comprehension_capture.py",
+    "tests/fixtures/expected/lambda_eager_comprehension_capture.out"
+  ],
+  "report_template": "scratch/performance/lambda-eager-comprehension-capture-r5-checkpoint-report-proposed-20261009.md",
+  "report_template_sha256": "17bb910219a074abc6124d96baa8ff760ed072d519840bec94f2b85d63c3a1a0",
+  "owned_attribute_additions": [
+    "/doc/performance/data/lambda-* -text",
+    "/doc/performance/data/lambda-*/** -text",
+    "/doc/performance/lambda-eager-comprehension-capture-r5-checkpoint-20261009.md text eol=lf",
+    "/doc/performance/lambda-eager-comprehension-capture-r5-checkpoint-20261009.svg text eol=lf"
+  ],
+  "files": [
+    {
+      "source": "doc/performance/data/lambda-capture-cpython-escaping-cell-observation-20261009.bytecode.txt",
+      "path": "doc/performance/data/lambda-capture-cpython-escaping-cell-observation-20261009.bytecode.txt",
+      "sha256": "81fb3b20c9b0877a268d20c05562de3d326b5fafa0646dc83afab6c4ac095ccb",
+      "bytes": 5094,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-capture-cpython-escaping-cell-observation-20261009.json",
+      "path": "doc/performance/data/lambda-capture-cpython-escaping-cell-observation-20261009.json",
+      "sha256": "265c556c1bce3feae6cefcd0f39eccf23c42b5efdb87db5aa47bca566a082530",
+      "bytes": 4378,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-comprehension-capture-20261009-cpython3147.stderr.log",
+      "path": "doc/performance/data/lambda-comprehension-capture-20261009-cpython3147.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-comprehension-capture-20261009-cpython3147.stdout.log",
+      "path": "doc/performance/data/lambda-comprehension-capture-20261009-cpython3147.stdout.log",
+      "sha256": "e8a5311774eeeedc6f3e09af7ea9f9a39bc50f02cc95b158937e2f33f576ec41",
+      "bytes": 98,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-comprehension-capture-20261009-xlang3.stderr.log",
+      "path": "doc/performance/data/lambda-comprehension-capture-20261009-xlang3.stderr.log",
+      "sha256": "77b1b8ffc20b30a44e8c0bd447488c1126cc04d9741c5b67748146ca2574ba92",
+      "bytes": 549,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-comprehension-capture-20261009-xlang3.stdout.log",
+      "path": "doc/performance/data/lambda-comprehension-capture-20261009-xlang3.stdout.log",
+      "sha256": "a1b0a24c8b7a8c3f637535a9ee95d803422bced1b54f9474675d44db99cacd7b",
+      "bytes": 59,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-comprehension-capture-reproducer-20261009.json",
+      "path": "doc/performance/data/lambda-comprehension-capture-reproducer-20261009.json",
+      "sha256": "587d4d9dff8117407bde29b8bf475668ee29542cdfac5764d20fcc545277bf70",
+      "bytes": 106074,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-applied-source-20261009.json",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-applied-source-20261009.json",
+      "sha256": "832aee81bf463904d60fe3c3af479babdc5c04633409eb7ea69189aaf3334cd2",
+      "bytes": 17331,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-build-20261009.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-build-20261009.log",
+      "sha256": "40f81e332ecfd25a830df1da12e960a80d970eb1b14c338267cbe8044d9203cc",
+      "bytes": 2443,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-build-terminal-20261009.json",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-build-terminal-20261009.json",
+      "sha256": "0aa9679086df980119760cd77c033c403ce688b70629aba9798dd20e08905fca",
+      "bytes": 55924,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-cpython-reference-20261009.json",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-cpython-reference-20261009.json",
+      "sha256": "abbb1b85f75469700153e574f367ff006c927c7fac73f2d61ce9c052a326bee8",
+      "bytes": 39824,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-cpython-reference-20261009.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-cpython-reference-20261009.stderr.log",
+      "sha256": "79a6d752fd3644fac71b538d6a1131f7c2e10426bc197dae5ee406fe5d4fabdd",
+      "bytes": 297,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-cpython-reference-20261009.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-cpython-reference-20261009.stdout.log",
+      "sha256": "bd33815f00bad566e68dc6498d5517317bdbc95cebde0f71599cd5318fc468c8",
+      "bytes": 190,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-cpython-reference-r3-20261009.json",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-cpython-reference-r3-20261009.json",
+      "sha256": "1ac44bedf1b2777be889c86ebe0b07d416c200a68c75888204b302608e934b54",
+      "bytes": 39835,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-cpython-reference-r3-20261009.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-cpython-reference-r3-20261009.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-cpython-reference-r3-20261009.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-cpython-reference-r3-20261009.stdout.log",
+      "sha256": "eaecb16ca18b7973a369060496daa0fab404dd1957d3b35488fbf3513966abcd",
+      "bytes": 331,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-focused-20261009-cpp-interpreter.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-focused-20261009-cpp-interpreter.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-focused-20261009-cpp-interpreter.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-focused-20261009-cpp-interpreter.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-focused-20261009-cpp-ir-codec.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-focused-20261009-cpp-ir-codec.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-focused-20261009-cpp-ir-codec.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-focused-20261009-cpp-ir-codec.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-focused-20261009-lambda_eager_comprehension_capture.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-focused-20261009-lambda_eager_comprehension_capture.stderr.log",
+      "sha256": "b6e194abb7493d5a40fa087cbfccef69cd03ae05741b2319ebadc9a08676f6be",
+      "bytes": 418,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-focused-20261009-lambda_eager_comprehension_capture.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-focused-20261009-lambda_eager_comprehension_capture.stdout.log",
+      "sha256": "79f0d8a269b3a67165bfb6f7fadce2c61e7961b51a4c471bf89dc002f0120985",
+      "bytes": 76,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-focused-20261009.json",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-focused-20261009.json",
+      "sha256": "97c5513c9502c37b3e1ec28c783f09f3760994c3cbefe17b3c637e2c635ba45f",
+      "bytes": 41682,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-focused-remaining-20261009-class_method_annotation_capture.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-focused-remaining-20261009-class_method_annotation_capture.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-focused-remaining-20261009-class_method_annotation_capture.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-focused-remaining-20261009-class_method_annotation_capture.stdout.log",
+      "sha256": "2faf359688c218da44fcdc3d32ceeb46724c067be9b5cd5376a62db04ef2c743",
+      "bytes": 137,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-focused-remaining-20261009-compile_ast_list_comprehension.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-focused-remaining-20261009-compile_ast_list_comprehension.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-focused-remaining-20261009-compile_ast_list_comprehension.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-focused-remaining-20261009-compile_ast_list_comprehension.stdout.log",
+      "sha256": "fd8f2a10f0100edc7362cc29424a78e71076e950692b8c01975e26773c3c3d67",
+      "bytes": 20,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-focused-remaining-20261009-compile_ast_set_dict_comprehension.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-focused-remaining-20261009-compile_ast_set_dict_comprehension.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-focused-remaining-20261009-compile_ast_set_dict_comprehension.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-focused-remaining-20261009-compile_ast_set_dict_comprehension.stdout.log",
+      "sha256": "5bd984bee0d5f9ede35e01ec3fd767ec981456e4976f083ec34f1f1cf44456c7",
+      "bytes": 51,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-focused-remaining-20261009-comprehension_iterable_scope.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-focused-remaining-20261009-comprehension_iterable_scope.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-focused-remaining-20261009-comprehension_iterable_scope.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-focused-remaining-20261009-comprehension_iterable_scope.stdout.log",
+      "sha256": "0a9746c5843c8f0d8e4711b84bce957b6cb885c1142c0e403848d49c1b5dd135",
+      "bytes": 82,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-focused-remaining-20261009-comprehension_target_lifetime.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-focused-remaining-20261009-comprehension_target_lifetime.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-focused-remaining-20261009-comprehension_target_lifetime.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-focused-remaining-20261009-comprehension_target_lifetime.stdout.log",
+      "sha256": "5aa0d346453e06168eb516342f60d261e4ebd4f15c48b7404d6ada08dc80c0e6",
+      "bytes": 75,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-focused-remaining-20261009-function_code_replacement.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-focused-remaining-20261009-function_code_replacement.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-focused-remaining-20261009-function_code_replacement.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-focused-remaining-20261009-function_code_replacement.stdout.log",
+      "sha256": "a18e22d750aac8ea3a29a41e2fcc2fd270469764cf33572d27d1ea27bd25f7eb",
+      "bytes": 30,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-focused-remaining-20261009-inline_property_dynamic_attr.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-focused-remaining-20261009-inline_property_dynamic_attr.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-focused-remaining-20261009-inline_property_dynamic_attr.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-focused-remaining-20261009-inline_property_dynamic_attr.stdout.log",
+      "sha256": "6816f1e4325b70d34ab90bdff7090c39a5fd0c001a3ea1180e1c96c08c51ebb4",
+      "bytes": 28,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-focused-remaining-20261009-nested_comprehension_capture.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-focused-remaining-20261009-nested_comprehension_capture.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-focused-remaining-20261009-nested_comprehension_capture.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-focused-remaining-20261009-nested_comprehension_capture.stdout.log",
+      "sha256": "73868f901c5b03f7c7f82ccaba240bff0fe7ee46263f216b88dfcc1be644f182",
+      "bytes": 212,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-focused-remaining-20261009-nested_generator_comprehension_capture.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-focused-remaining-20261009-nested_generator_comprehension_capture.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-focused-remaining-20261009-nested_generator_comprehension_capture.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-focused-remaining-20261009-nested_generator_comprehension_capture.stdout.log",
+      "sha256": "b8729e2c2583421b40f03a41a00e0ff58ee2ce090855199817f933f8945a16a8",
+      "bytes": 7,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-focused-remaining-20261009-ordinary_canonical_slot_constructor.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-focused-remaining-20261009-ordinary_canonical_slot_constructor.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-focused-remaining-20261009-ordinary_canonical_slot_constructor.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-focused-remaining-20261009-ordinary_canonical_slot_constructor.stdout.log",
+      "sha256": "07760154040ced80af10cb9c3b1f59b1f901902d8fcf659dd28fbac1eb9cffef",
+      "bytes": 512,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-focused-remaining-20261009.json",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-focused-remaining-20261009.json",
+      "sha256": "d9bca8a4f607bf0749c19977a10bbb5d9e53717e87baaf8ae440e04cbb974b1e",
+      "bytes": 114679,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r4-applied-source-20261009.json",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r4-applied-source-20261009.json",
+      "sha256": "05e005a9d3d5f913e64908e143a406433b5e7bfb5a65b35bb2670cd12eaea015",
+      "bytes": 17557,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r4-build-20261009.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r4-build-20261009.log",
+      "sha256": "bfa852945b625c2a7cff7505e978d5da457cec9d3ae5b62cf84ffbd3bf8d8033",
+      "bytes": 882,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r4-build-terminal-20261009.json",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r4-build-terminal-20261009.json",
+      "sha256": "a14343ff797015d3444f40da210e927a6a1991b218d877956825754f1049ceb0",
+      "bytes": 55927,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r4-emitted-ir-20261009.json",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r4-emitted-ir-20261009.json",
+      "sha256": "77df4a10f439c2ff8f8b6efb7f5341b7f6bca2868e9141aca92a5695092f64c9",
+      "bytes": 51601,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r4-emitted-ir-20261009.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r4-emitted-ir-20261009.stderr.log",
+      "sha256": "20dcf3695e0addc5f4138c2c66ce22c3fc6bebddf74d655c73b927f9ef139b2a",
+      "bytes": 563,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r4-emitted-ir-20261009.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r4-emitted-ir-20261009.stdout.log",
+      "sha256": "bd33815f00bad566e68dc6498d5517317bdbc95cebde0f71599cd5318fc468c8",
+      "bytes": 190,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-20261009-cpp-interpreter.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-20261009-cpp-interpreter.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-20261009-cpp-interpreter.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-20261009-cpp-interpreter.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-20261009-cpp-ir-codec.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-20261009-cpp-ir-codec.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-20261009-cpp-ir-codec.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-20261009-cpp-ir-codec.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-20261009-lambda_eager_comprehension_capture.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-20261009-lambda_eager_comprehension_capture.stderr.log",
+      "sha256": "4a20bd6ad8e5f8bb6f0d9e65a70c6ee5f7c1656ad5d820c949162e0bbd004801",
+      "bytes": 428,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-20261009-lambda_eager_comprehension_capture.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-20261009-lambda_eager_comprehension_capture.stdout.log",
+      "sha256": "bd33815f00bad566e68dc6498d5517317bdbc95cebde0f71599cd5318fc468c8",
+      "bytes": 190,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-20261009.json",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-20261009.json",
+      "sha256": "0a45ab494636f79625ed1e0a0c4d02ddf03eec7b3eed9be16d5e1400aafe0b16",
+      "bytes": 44159,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-annotation_lambda_ast.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-annotation_lambda_ast.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-annotation_lambda_ast.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-annotation_lambda_ast.stdout.log",
+      "sha256": "5aa351bd8e800b30ca88a87f2794767bc952908940b27540101d88b6bd5563ba",
+      "bytes": 99,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-class_method_annotation_capture.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-class_method_annotation_capture.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-class_method_annotation_capture.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-class_method_annotation_capture.stdout.log",
+      "sha256": "2faf359688c218da44fcdc3d32ceeb46724c067be9b5cd5376a62db04ef2c743",
+      "bytes": 137,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-closure_cell_semantics.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-closure_cell_semantics.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-closure_cell_semantics.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-closure_cell_semantics.stdout.log",
+      "sha256": "6520e4880f3fc22260585e75aa92e0016eb0f9120e6416336d7a40efd736ef72",
+      "bytes": 79,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-compile_ast_lambda_generator.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-compile_ast_lambda_generator.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-compile_ast_lambda_generator.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-compile_ast_lambda_generator.stdout.log",
+      "sha256": "9bdba532a40af3a5b73c266858838e891ed316dba24bbff84ee4c472698a475e",
+      "bytes": 31,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-compile_ast_list_comprehension.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-compile_ast_list_comprehension.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-compile_ast_list_comprehension.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-compile_ast_list_comprehension.stdout.log",
+      "sha256": "fd8f2a10f0100edc7362cc29424a78e71076e950692b8c01975e26773c3c3d67",
+      "bytes": 20,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-compile_ast_set_dict_comprehension.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-compile_ast_set_dict_comprehension.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-compile_ast_set_dict_comprehension.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-compile_ast_set_dict_comprehension.stdout.log",
+      "sha256": "5bd984bee0d5f9ede35e01ec3fd767ec981456e4976f083ec34f1f1cf44456c7",
+      "bytes": 51,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-comprehension_iterable_scope.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-comprehension_iterable_scope.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-comprehension_iterable_scope.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-comprehension_iterable_scope.stdout.log",
+      "sha256": "0a9746c5843c8f0d8e4711b84bce957b6cb885c1142c0e403848d49c1b5dd135",
+      "bytes": 82,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-comprehension_multiple_filters.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-comprehension_multiple_filters.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-comprehension_multiple_filters.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-comprehension_multiple_filters.stdout.log",
+      "sha256": "ddb54b66ea46829a97b609ac3b2a49abce2f36a5df02f0625e508d87f440751e",
+      "bytes": 173,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-comprehension_target_lifetime.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-comprehension_target_lifetime.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-comprehension_target_lifetime.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-comprehension_target_lifetime.stdout.log",
+      "sha256": "5aa0d346453e06168eb516342f60d261e4ebd4f15c48b7404d6ada08dc80c0e6",
+      "bytes": 75,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-function_code_replacement.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-function_code_replacement.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-function_code_replacement.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-function_code_replacement.stdout.log",
+      "sha256": "a18e22d750aac8ea3a29a41e2fcc2fd270469764cf33572d27d1ea27bd25f7eb",
+      "bytes": 30,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-generator_expressions.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-generator_expressions.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-generator_expressions.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-generator_expressions.stdout.log",
+      "sha256": "f3386ee77950707aa32e2587198b43030d13efd730006421028f6dbad9fd8d7d",
+      "bytes": 21,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-inline_property_dynamic_attr.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-inline_property_dynamic_attr.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-inline_property_dynamic_attr.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-inline_property_dynamic_attr.stdout.log",
+      "sha256": "6816f1e4325b70d34ab90bdff7090c39a5fd0c001a3ea1180e1c96c08c51ebb4",
+      "bytes": 28,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-nested_comprehension_capture.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-nested_comprehension_capture.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-nested_comprehension_capture.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-nested_comprehension_capture.stdout.log",
+      "sha256": "73868f901c5b03f7c7f82ccaba240bff0fe7ee46263f216b88dfcc1be644f182",
+      "bytes": 212,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-nested_comprehensions.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-nested_comprehensions.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-nested_comprehensions.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-nested_comprehensions.stdout.log",
+      "sha256": "115dc04feb2bb18f8e70e98cbd6fc6a907752c4490a423d74f4c10a8747676ec",
+      "bytes": 84,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-nested_generator_comprehension_capture.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-nested_generator_comprehension_capture.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-nested_generator_comprehension_capture.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-nested_generator_comprehension_capture.stdout.log",
+      "sha256": "b8729e2c2583421b40f03a41a00e0ff58ee2ce090855199817f933f8945a16a8",
+      "bytes": 7,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-nonlocal_counter.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-nonlocal_counter.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-nonlocal_counter.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-nonlocal_counter.stdout.log",
+      "sha256": "b473937a154bd045a97897598c994065977bae6e521296011356b15a91f0f4db",
+      "bytes": 6,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-ordinary_canonical_slot_constructor.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-ordinary_canonical_slot_constructor.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-ordinary_canonical_slot_constructor.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-ordinary_canonical_slot_constructor.stdout.log",
+      "sha256": "07760154040ced80af10cb9c3b1f59b1f901902d8fcf659dd28fbac1eb9cffef",
+      "bytes": 512,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-private_generator_name_mangling.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-private_generator_name_mangling.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-private_generator_name_mangling.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-private_generator_name_mangling.stdout.log",
+      "sha256": "c300fb3b09e3460e4f0bdc67ad882291b17380530e71621ca277ff58ff9c213a",
+      "bytes": 47,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-private_slots_mangling.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-private_slots_mangling.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-private_slots_mangling.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009-private_slots_mangling.stdout.log",
+      "sha256": "b21668e40acf2d5d902b11a3e33d38f26cb0241e5149d5f98707cf3cd9725314",
+      "bytes": 21,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009.json",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r4-focused-remaining-20261009.json",
+      "sha256": "1ce59b1c54cf43f02b6250251d7a03527a76cc95f9ab1db86fdd0da06116f490",
+      "bytes": 127045,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-applied-source-20261009.json",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-applied-source-20261009.json",
+      "sha256": "455070f024691a9223abedea366278e1399b9789340d8954bad7549d06cdb29e",
+      "bytes": 17575,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-build-20261009.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-build-20261009.log",
+      "sha256": "aa8c64f5e5410df2cdd2355359e913d91e60a2ffe50bd5a695c6988b94049c39",
+      "bytes": 882,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-build-terminal-20261009.json",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-build-terminal-20261009.json",
+      "sha256": "5a18941f71560ec98879872a0039703df19ad4856cd8225e375f3a3302b41fea",
+      "bytes": 55927,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-20261009-cpp-interpreter.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-20261009-cpp-interpreter.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-20261009-cpp-interpreter.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-20261009-cpp-interpreter.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-20261009-cpp-ir-codec.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-20261009-cpp-ir-codec.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-20261009-cpp-ir-codec.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-20261009-cpp-ir-codec.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-20261009-lambda_eager_comprehension_capture.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-20261009-lambda_eager_comprehension_capture.stderr.log",
+      "sha256": "257289038b785ea5873546022f880be79dddbab26176a7f99cf11f92aed230e2",
+      "bytes": 170,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-20261009-lambda_eager_comprehension_capture.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-20261009-lambda_eager_comprehension_capture.stdout.log",
+      "sha256": "eaecb16ca18b7973a369060496daa0fab404dd1957d3b35488fbf3513966abcd",
+      "bytes": 331,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-20261009.json",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-20261009.json",
+      "sha256": "24edd8537766760a12dde6b8f0591cd423e8b8426b76291c220af2999fb7c049",
+      "bytes": 44181,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-annotation_lambda_ast.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-annotation_lambda_ast.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-annotation_lambda_ast.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-annotation_lambda_ast.stdout.log",
+      "sha256": "5aa351bd8e800b30ca88a87f2794767bc952908940b27540101d88b6bd5563ba",
+      "bytes": 99,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-class_method_annotation_capture.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-class_method_annotation_capture.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-class_method_annotation_capture.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-class_method_annotation_capture.stdout.log",
+      "sha256": "2faf359688c218da44fcdc3d32ceeb46724c067be9b5cd5376a62db04ef2c743",
+      "bytes": 137,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-closure_cell_semantics.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-closure_cell_semantics.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-closure_cell_semantics.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-closure_cell_semantics.stdout.log",
+      "sha256": "6520e4880f3fc22260585e75aa92e0016eb0f9120e6416336d7a40efd736ef72",
+      "bytes": 79,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-compile_ast_lambda_generator.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-compile_ast_lambda_generator.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-compile_ast_lambda_generator.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-compile_ast_lambda_generator.stdout.log",
+      "sha256": "9bdba532a40af3a5b73c266858838e891ed316dba24bbff84ee4c472698a475e",
+      "bytes": 31,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-compile_ast_list_comprehension.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-compile_ast_list_comprehension.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-compile_ast_list_comprehension.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-compile_ast_list_comprehension.stdout.log",
+      "sha256": "fd8f2a10f0100edc7362cc29424a78e71076e950692b8c01975e26773c3c3d67",
+      "bytes": 20,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-compile_ast_set_dict_comprehension.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-compile_ast_set_dict_comprehension.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-compile_ast_set_dict_comprehension.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-compile_ast_set_dict_comprehension.stdout.log",
+      "sha256": "5bd984bee0d5f9ede35e01ec3fd767ec981456e4976f083ec34f1f1cf44456c7",
+      "bytes": 51,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-comprehension_iterable_scope.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-comprehension_iterable_scope.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-comprehension_iterable_scope.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-comprehension_iterable_scope.stdout.log",
+      "sha256": "0a9746c5843c8f0d8e4711b84bce957b6cb885c1142c0e403848d49c1b5dd135",
+      "bytes": 82,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-comprehension_multiple_filters.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-comprehension_multiple_filters.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-comprehension_multiple_filters.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-comprehension_multiple_filters.stdout.log",
+      "sha256": "ddb54b66ea46829a97b609ac3b2a49abce2f36a5df02f0625e508d87f440751e",
+      "bytes": 173,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-comprehension_target_lifetime.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-comprehension_target_lifetime.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-comprehension_target_lifetime.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-comprehension_target_lifetime.stdout.log",
+      "sha256": "5aa0d346453e06168eb516342f60d261e4ebd4f15c48b7404d6ada08dc80c0e6",
+      "bytes": 75,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-function_code_replacement.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-function_code_replacement.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-function_code_replacement.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-function_code_replacement.stdout.log",
+      "sha256": "a18e22d750aac8ea3a29a41e2fcc2fd270469764cf33572d27d1ea27bd25f7eb",
+      "bytes": 30,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-generator_expressions.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-generator_expressions.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-generator_expressions.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-generator_expressions.stdout.log",
+      "sha256": "f3386ee77950707aa32e2587198b43030d13efd730006421028f6dbad9fd8d7d",
+      "bytes": 21,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-inline_property_dynamic_attr.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-inline_property_dynamic_attr.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-inline_property_dynamic_attr.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-inline_property_dynamic_attr.stdout.log",
+      "sha256": "6816f1e4325b70d34ab90bdff7090c39a5fd0c001a3ea1180e1c96c08c51ebb4",
+      "bytes": 28,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-lambda_eager_comprehension_capture.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-lambda_eager_comprehension_capture.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-lambda_eager_comprehension_capture.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-lambda_eager_comprehension_capture.stdout.log",
+      "sha256": "eaecb16ca18b7973a369060496daa0fab404dd1957d3b35488fbf3513966abcd",
+      "bytes": 331,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-nested_comprehension_capture.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-nested_comprehension_capture.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-nested_comprehension_capture.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-nested_comprehension_capture.stdout.log",
+      "sha256": "73868f901c5b03f7c7f82ccaba240bff0fe7ee46263f216b88dfcc1be644f182",
+      "bytes": 212,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-nested_comprehensions.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-nested_comprehensions.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-nested_comprehensions.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-nested_comprehensions.stdout.log",
+      "sha256": "115dc04feb2bb18f8e70e98cbd6fc6a907752c4490a423d74f4c10a8747676ec",
+      "bytes": 84,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-nested_generator_comprehension_capture.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-nested_generator_comprehension_capture.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-nested_generator_comprehension_capture.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-nested_generator_comprehension_capture.stdout.log",
+      "sha256": "b8729e2c2583421b40f03a41a00e0ff58ee2ce090855199817f933f8945a16a8",
+      "bytes": 7,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-nonlocal_counter.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-nonlocal_counter.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-nonlocal_counter.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-nonlocal_counter.stdout.log",
+      "sha256": "b473937a154bd045a97897598c994065977bae6e521296011356b15a91f0f4db",
+      "bytes": 6,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-ordinary_canonical_slot_constructor.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-ordinary_canonical_slot_constructor.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-ordinary_canonical_slot_constructor.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-ordinary_canonical_slot_constructor.stdout.log",
+      "sha256": "07760154040ced80af10cb9c3b1f59b1f901902d8fcf659dd28fbac1eb9cffef",
+      "bytes": 512,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-private_generator_name_mangling.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-private_generator_name_mangling.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-private_generator_name_mangling.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-private_generator_name_mangling.stdout.log",
+      "sha256": "c300fb3b09e3460e4f0bdc67ad882291b17380530e71621ca277ff58ff9c213a",
+      "bytes": 47,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-private_slots_mangling.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-private_slots_mangling.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-private_slots_mangling.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009-private_slots_mangling.stdout.log",
+      "sha256": "b21668e40acf2d5d902b11a3e33d38f26cb0241e5149d5f98707cf3cd9725314",
+      "bytes": 21,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009.json",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-focused-complete-20261009.json",
+      "sha256": "9d3dc798e925c9b87fc9e8c6e82dd4cbc1ddeac7189b93b0311df3daf742005e",
+      "bytes": 58469,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-ir-eligibility-20261009.json",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-ir-eligibility-20261009.json",
+      "sha256": "ea2fcad8f1ca097cf4719e83c1ccbd0a16bad4b39482f43f514b30bbb7856b81",
+      "bytes": 113760,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-range-ir-20261009.json",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-range-ir-20261009.json",
+      "sha256": "6b5b9858f3ab3ed79b9709d801e7c7d3edac4a46bce46a89dc44101109ae0de7",
+      "bytes": 67399,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-range-ir-20261009.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-range-ir-20261009.stderr.log",
+      "sha256": "45fac8c419a9b0b590b18bb9dd755dd549d8d4d5a169d3baee95e73955529263",
+      "bytes": 158,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-range-ir-20261009.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-range-ir-20261009.stdout.log",
+      "sha256": "73868f901c5b03f7c7f82ccaba240bff0fe7ee46263f216b88dfcc1be644f182",
+      "bytes": 212,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-validation-r2-20261009.json",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-validation-r2-20261009.json",
+      "sha256": "91597ba05c740fce2e9ea609fcc13fce26a1ecf4331e5fd343e637b738fd5ef5",
+      "bytes": 2408,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-validation-r3-20261009.json",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-validation-r3-20261009.json",
+      "sha256": "3d81edce17f090f1792eb09334bd26cc1419b177a49fa3a07d91f0bf25b6a271",
+      "bytes": 1627,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-validation-r4-20261009-ctest-inventory.external-process-observations.jsonl",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-validation-r4-20261009-ctest-inventory.external-process-observations.jsonl",
+      "sha256": "c9eaf5a21861435218dc9ead457b14385547220c74a2d2f1c8e2402495a02214",
+      "bytes": 107,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-validation-r4-20261009-ctest-inventory.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-validation-r4-20261009-ctest-inventory.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-validation-r4-20261009-ctest-inventory.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-validation-r4-20261009-ctest-inventory.stdout.log",
+      "sha256": "1104a32a60d19adbf6bb99a36bf2c20e00f7c2b9ad27a9bf4a04c2ce58036aa4",
+      "bytes": 8756,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-validation-r4-20261009-ctest.external-process-observations.jsonl",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-validation-r4-20261009-ctest.external-process-observations.jsonl",
+      "sha256": "c1c76122399ceab0b2a9c4936d372f47510d8875744152add10bc5239a2eeb39",
+      "bytes": 150,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-validation-r4-20261009-ctest.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-validation-r4-20261009-ctest.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-validation-r4-20261009-ctest.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-validation-r4-20261009-ctest.stdout.log",
+      "sha256": "b632fb28ec54dfbc767eb0a91d14b61e9638ffa620252bf73c98d3dc89b2ddb1",
+      "bytes": 1171,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-validation-r4-20261009-full-fixtures-clean.external-process-observations.jsonl",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-validation-r4-20261009-full-fixtures-clean.external-process-observations.jsonl",
+      "sha256": "21e5ea303cafcae55244a13c871d5c41412873e2beb4db3fa7c2287ee25e3370",
+      "bytes": 2247,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-validation-r4-20261009-full-fixtures-clean.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-validation-r4-20261009-full-fixtures-clean.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-validation-r4-20261009-full-fixtures-clean.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-validation-r4-20261009-full-fixtures-clean.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-validation-r4-20261009-old_xlang_sqlite_api.external-process-observations.jsonl",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-validation-r4-20261009-old_xlang_sqlite_api.external-process-observations.jsonl",
+      "sha256": "ae143ab0c164cf978c109f1437a01fcc7dc0baf02b96c5f26c05cf0699908679",
+      "bytes": 107,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-validation-r4-20261009-old_xlang_sqlite_api.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-validation-r4-20261009-old_xlang_sqlite_api.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-validation-r4-20261009-old_xlang_sqlite_api.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-validation-r4-20261009-old_xlang_sqlite_api.stdout.log",
+      "sha256": "36449d6aaa8b51b49315f871c305cf5e7568199909ce178a331245b7fe4a6a92",
+      "bytes": 237,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-validation-r4-20261009-python_sqlite3_api.external-process-observations.jsonl",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-validation-r4-20261009-python_sqlite3_api.external-process-observations.jsonl",
+      "sha256": "9d1f884a1fb45c5b27b524a4be4ec78c856969e5090199000a8ce19b46c8bb98",
+      "bytes": 107,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-validation-r4-20261009-python_sqlite3_api.stderr.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-validation-r4-20261009-python_sqlite3_api.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-validation-r4-20261009-python_sqlite3_api.stdout.log",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-validation-r4-20261009-python_sqlite3_api.stdout.log",
+      "sha256": "c9ae392c8a76084bb521fcd89dc73d8617755aae1741c705f2ba60efe9606ecb",
+      "bytes": 538,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "doc/performance/data/lambda-eager-comprehension-capture-r5-validation-r4-20261009.json",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-validation-r4-20261009.json",
+      "sha256": "831d93a597ec231f0f934a36848153dd21c68b33b7bd213d31658da8c3d85454",
+      "bytes": 644329,
+      "kind": "actual_raw_or_receipt"
+    },
+    {
+      "source": "scratch/performance/lambda-comprehension-capture-reproducer-provenance-proposed-20261009.json",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-checkpoint-20261009/support/scratch/performance/lambda-comprehension-capture-reproducer-provenance-proposed-20261009.json",
+      "sha256": "9409d6cd8a623435f13f2ac12ace01ffe363ceab591341bbe63e80cc70e8c8c4",
+      "bytes": 6422,
+      "kind": "frozen_inspection_source"
+    },
+    {
+      "source": "scratch/performance/lambda-eager-comprehension-capture-r3-proposed-20261009.patch",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-checkpoint-20261009/support/scratch/performance/lambda-eager-comprehension-capture-r3-proposed-20261009.patch",
+      "sha256": "85e74f4a7191408664fe6f10b8554d62b2ee8d6dd163c3f8ffdce0191300bc01",
+      "bytes": 15313,
+      "kind": "frozen_inspection_source"
+    },
+    {
+      "source": "scratch/performance/lambda-eager-comprehension-capture-r3-proposed-20261009-provenance.json",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-checkpoint-20261009/support/scratch/performance/lambda-eager-comprehension-capture-r3-proposed-20261009-provenance.json",
+      "sha256": "68d024b1e32cc46801c4730fe13bdfe075d8967bb4310a104945a87d7d5c479d",
+      "bytes": 43500,
+      "kind": "frozen_inspection_source"
+    },
+    {
+      "source": "scratch/performance/lambda-eager-comprehension-capture-r4-proposed-20261009.patch",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-checkpoint-20261009/support/scratch/performance/lambda-eager-comprehension-capture-r4-proposed-20261009.patch",
+      "sha256": "c7ff31771a246f2e8aa75943cab145d1f55013a8e2b52c9c78716428fca0acca",
+      "bytes": 16241,
+      "kind": "frozen_inspection_source"
+    },
+    {
+      "source": "scratch/performance/lambda-eager-comprehension-capture-r4-proposed-20261009-current-delta.patch",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-checkpoint-20261009/support/scratch/performance/lambda-eager-comprehension-capture-r4-proposed-20261009-current-delta.patch",
+      "sha256": "4534d08600638997e496b292396063763b73e49508816c870a9c795d02f0ba8e",
+      "bytes": 1757,
+      "kind": "frozen_inspection_source"
+    },
+    {
+      "source": "scratch/performance/lambda-eager-comprehension-capture-r4-proposed-20261009-provenance.json",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-checkpoint-20261009/support/scratch/performance/lambda-eager-comprehension-capture-r4-proposed-20261009-provenance.json",
+      "sha256": "d270906ad12826bfd98dbb9d4582e12cc80738a1f35abf4cca682ef86982fd20",
+      "bytes": 57123,
+      "kind": "frozen_inspection_source"
+    },
+    {
+      "source": "scratch/performance/lambda-eager-comprehension-capture-r5-proposed-20261009.patch",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-checkpoint-20261009/support/scratch/performance/lambda-eager-comprehension-capture-r5-proposed-20261009.patch",
+      "sha256": "186de53dbc7e75007ce93fe33dfe5e6998a1ad0729ac0f887f8f866f678572f3",
+      "bytes": 21711,
+      "kind": "frozen_inspection_source"
+    },
+    {
+      "source": "scratch/performance/lambda-eager-comprehension-capture-r5-proposed-20261009-current-delta.patch",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-checkpoint-20261009/support/scratch/performance/lambda-eager-comprehension-capture-r5-proposed-20261009-current-delta.patch",
+      "sha256": "ce58f99dcb7f60125c6f09ccfb7d4975dad55332a027f8e8f669fb3f919b97d2",
+      "bytes": 6299,
+      "kind": "frozen_inspection_source"
+    },
+    {
+      "source": "scratch/performance/lambda-eager-comprehension-capture-r5-proposed-20261009-provenance.json",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-checkpoint-20261009/support/scratch/performance/lambda-eager-comprehension-capture-r5-proposed-20261009-provenance.json",
+      "sha256": "ca1f333f7d01105d352e5fe583190a5b276f8d414209b0d448b6df9cd832e88a",
+      "bytes": 60543,
+      "kind": "frozen_inspection_source"
+    },
+    {
+      "source": "scratch/performance/validate-lambda-eager-comprehension-capture-r4-trial-proposed-20261009.py",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-checkpoint-20261009/support/scratch/performance/validate-lambda-eager-comprehension-capture-r4-trial-proposed-20261009.py",
+      "sha256": "e0463d427a25e014536f57e2a7b25f4081264145e750921331fbf2376f5c13f3",
+      "bytes": 39636,
+      "kind": "frozen_inspection_source"
+    },
+    {
+      "source": "scratch/performance/lambda-eager-comprehension-capture-r4-full-validation-provenance-proposed-20261009.json",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-checkpoint-20261009/support/scratch/performance/lambda-eager-comprehension-capture-r4-full-validation-provenance-proposed-20261009.json",
+      "sha256": "6e899d1e4ae1ef35aa00bcea2aec4cfd7a6dcb1a7b01a6dc68683a906e2aea5f",
+      "bytes": 6436,
+      "kind": "frozen_inspection_source"
+    },
+    {
+      "source": "scratch/performance/validate-lambda-eager-comprehension-capture-r5-trial-proposed-20261009.py",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-checkpoint-20261009/support/scratch/performance/validate-lambda-eager-comprehension-capture-r5-trial-proposed-20261009.py",
+      "sha256": "2a133ceaf8cb5099629e765a3fb4ad81c12c9ce8ad5fb16e323a1e1430afc527",
+      "bytes": 41562,
+      "kind": "frozen_inspection_source"
+    },
+    {
+      "source": "scratch/performance/lambda-eager-comprehension-capture-r5-full-validation-provenance-proposed-20261009.json",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-checkpoint-20261009/support/scratch/performance/lambda-eager-comprehension-capture-r5-full-validation-provenance-proposed-20261009.json",
+      "sha256": "decfaa8dd5be0eaf935bf9390d1d341cf03011833829783279651e058aa10feb",
+      "bytes": 8612,
+      "kind": "frozen_inspection_source"
+    },
+    {
+      "source": "scratch/performance/validate-lambda-eager-comprehension-capture-r5-trial-r2-root-20261009.py",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-checkpoint-20261009/support/scratch/performance/validate-lambda-eager-comprehension-capture-r5-trial-r2-root-20261009.py",
+      "sha256": "748286d928186e070de91568530e5e1d342eb6128b8793612212693b38575558",
+      "bytes": 41658,
+      "kind": "frozen_inspection_source"
+    },
+    {
+      "source": "scratch/performance/lambda-eager-comprehension-capture-r5-full-validation-r2-root-provenance-20261009.json",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-checkpoint-20261009/support/scratch/performance/lambda-eager-comprehension-capture-r5-full-validation-r2-root-provenance-20261009.json",
+      "sha256": "f36ef6ec7f829ee411aac971fe2490297699c7d138a7a14698eaa9fdf2aff626",
+      "bytes": 9616,
+      "kind": "frozen_inspection_source"
+    },
+    {
+      "source": "scratch/performance/validate-lambda-eager-comprehension-capture-r5-trial-r3-root-20261009.py",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-checkpoint-20261009/support/scratch/performance/validate-lambda-eager-comprehension-capture-r5-trial-r3-root-20261009.py",
+      "sha256": "7409327c4135e44620f0c7b056fdc7f2eb4d012145dfab8ac0264e6e219dd944",
+      "bytes": 41775,
+      "kind": "frozen_inspection_source"
+    },
+    {
+      "source": "scratch/performance/lambda-eager-comprehension-capture-r5-full-validation-r3-root-provenance-20261009.json",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-checkpoint-20261009/support/scratch/performance/lambda-eager-comprehension-capture-r5-full-validation-r3-root-provenance-20261009.json",
+      "sha256": "0dba6993c338c2a0e914b4033a4f0d037fa77a74d10a1a2dc3fac5c6cf5a7003",
+      "bytes": 11006,
+      "kind": "frozen_inspection_source"
+    },
+    {
+      "source": "scratch/performance/apply-lambda-capture-r5-root-20261009.py",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-checkpoint-20261009/support/scratch/performance/apply-lambda-capture-r5-root-20261009.py",
+      "sha256": "582893e5bb2dba254135717ccc66f1bf96615497f8ea7f2cbd75090b370bb61e",
+      "bytes": 4168,
+      "kind": "frozen_inspection_source"
+    },
+    {
+      "source": "scratch/performance/build-lambda-capture-r5-root-20261009.cmd",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-checkpoint-20261009/support/scratch/performance/build-lambda-capture-r5-root-20261009.cmd",
+      "sha256": "126005ff92bb02dbae9a6146352790f60e063cfbbc82881a0fa466aa165d7413",
+      "bytes": 455,
+      "kind": "frozen_inspection_source"
+    },
+    {
+      "source": "scratch/performance/check-lambda-capture-r5-focused-root-20261009.py",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-checkpoint-20261009/support/scratch/performance/check-lambda-capture-r5-focused-root-20261009.py",
+      "sha256": "6569dbf73d22582897bb429d6f2246cd5cab7352a080872ac9f787c5b756ed0f",
+      "bytes": 7331,
+      "kind": "frozen_inspection_source"
+    },
+    {
+      "source": "scratch/performance/check-lambda-capture-r5-complete-root-20261009.py",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-checkpoint-20261009/support/scratch/performance/check-lambda-capture-r5-complete-root-20261009.py",
+      "sha256": "ec99dd74f53c58bb399a3f2e50da8f17b6263ad205980a87fe668e8a768f1e1f",
+      "bytes": 6739,
+      "kind": "frozen_inspection_source"
+    },
+    {
+      "source": "scratch/performance/check-lambda-capture-r5-ir-eligibility-root-20261009.py",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-checkpoint-20261009/support/scratch/performance/check-lambda-capture-r5-ir-eligibility-root-20261009.py",
+      "sha256": "3ce20a62185f8f673739177a926c5ee092bcabd7b7b75ca455a5388c04e3e9b4",
+      "bytes": 6087,
+      "kind": "frozen_inspection_source"
+    },
+    {
+      "source": "scratch/performance/capture-lambda-r5-range-ir-root-20261009.py",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-checkpoint-20261009/support/scratch/performance/capture-lambda-r5-range-ir-root-20261009.py",
+      "sha256": "2a2bf3532882531758fe80b112be8402eabb71cf7a5b298f15502ac2756a1adb",
+      "bytes": 3373,
+      "kind": "frozen_inspection_source"
+    },
+    {
+      "source": "scratch/performance/check-lambda-capture-r4-focused-root-20261009.py",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-checkpoint-20261009/support/scratch/performance/check-lambda-capture-r4-focused-root-20261009.py",
+      "sha256": "3f9ae3a542637b5ab7705c15024acb6ba959bfdee85257a0912d0c77f30bcb8e",
+      "bytes": 6980,
+      "kind": "frozen_inspection_source"
+    },
+    {
+      "source": "scratch/performance/check-lambda-capture-r4-remaining-root-20261009.py",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-checkpoint-20261009/support/scratch/performance/check-lambda-capture-r4-remaining-root-20261009.py",
+      "sha256": "a7058c345ebc9003fba4322a0eb8221f309beec68fe71dde9e07818bda9ddb41",
+      "bytes": 4496,
+      "kind": "frozen_inspection_source"
+    },
+    {
+      "source": "scratch/performance/inspect-lambda-capture-r4-ir-root-20261009.py",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-checkpoint-20261009/support/scratch/performance/inspect-lambda-capture-r4-ir-root-20261009.py",
+      "sha256": "bd629b31efde4d5491375ef401486d013b965a98e4064e09415ab9469ed13b77",
+      "bytes": 2902,
+      "kind": "frozen_inspection_source"
+    },
+    {
+      "source": "scratch/performance/check-lambda-capture-cpython-r3-root-20261009.py",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-checkpoint-20261009/support/scratch/performance/check-lambda-capture-cpython-r3-root-20261009.py",
+      "sha256": "f15a9bca460443d3928f9652580ae4c4c0c476e8b6270f37f003a5c040ce3444",
+      "bytes": 3380,
+      "kind": "frozen_inspection_source"
+    },
+    {
+      "source": "src/sema/lower.cpp",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-checkpoint-20261009/source128-owned/src/sema/lower.cpp",
+      "sha256": "0b916989d506ac23554db329b0dc542131ce8ddb1845e3c3b85e70b190ac3717",
+      "bytes": 317079,
+      "kind": "owned_candidate_source"
+    },
+    {
+      "source": "src/internal/xlang3/pyc_magic.h",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-checkpoint-20261009/source128-owned/src/internal/xlang3/pyc_magic.h",
+      "sha256": "7709647f07079da18e414c7353fbbff706343eccb01e0d4e2c7fd0e5e12a524f",
+      "bytes": 1045,
+      "kind": "owned_candidate_source"
+    },
+    {
+      "source": "tests/run_fixtures.py",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-checkpoint-20261009/source128-owned/tests/run_fixtures.py",
+      "sha256": "74716b6ac4ddb261be46d4a21d59e159142f11b9603995460e5bd848902cd53a",
+      "bytes": 12997,
+      "kind": "owned_candidate_source"
+    },
+    {
+      "source": "tests/run_fixtures.ps1",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-checkpoint-20261009/source128-owned/tests/run_fixtures.ps1",
+      "sha256": "94c9a87aefe1f9e9289c93ff0a4239755ea9e8690e5966899c0ff5ad5bdd64f9",
+      "bytes": 15040,
+      "kind": "owned_candidate_source"
+    },
+    {
+      "source": "tests/fixtures/core/lambda_eager_comprehension_capture.py",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-checkpoint-20261009/source128-owned/tests/fixtures/core/lambda_eager_comprehension_capture.py",
+      "sha256": "fdaa8cb392c3edc8e1dfb0a1ef7556f23b32f0b3525631681155c646c9a74990",
+      "bytes": 5525,
+      "kind": "owned_candidate_source"
+    },
+    {
+      "source": "tests/fixtures/expected/lambda_eager_comprehension_capture.out",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-checkpoint-20261009/source128-owned/tests/fixtures/expected/lambda_eager_comprehension_capture.out",
+      "sha256": "8666bdaa0eacca4e23dd0a261747eef70bd427b68576d78c21e622ce415b6c86",
+      "bytes": 323,
+      "kind": "owned_candidate_source"
+    },
+    {
+      "source": "build-repro/controls/lambda-eager-comprehension-capture-parent-20261009/source-snapshot/src/sema/lower.cpp",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-checkpoint-20261009/source126-net-inputs/src/sema/lower.cpp",
+      "sha256": "12aae5ef15a98288aa359112ee8a6bd64f0213a228a3b11132849fad0f62fb04",
+      "bytes": 311484,
+      "kind": "owned_parent_input"
+    },
+    {
+      "source": "build-repro/controls/lambda-eager-comprehension-capture-parent-20261009/source-snapshot/src/internal/xlang3/pyc_magic.h",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-checkpoint-20261009/source126-net-inputs/src/internal/xlang3/pyc_magic.h",
+      "sha256": "2f45558470b77def716afce97a195f642b6064a63d445c56ae76e0ee80400cc5",
+      "bytes": 1045,
+      "kind": "owned_parent_input"
+    },
+    {
+      "source": "build-repro/controls/lambda-eager-comprehension-capture-parent-20261009/source-snapshot/tests/run_fixtures.py",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-checkpoint-20261009/source126-net-inputs/tests/run_fixtures.py",
+      "sha256": "8a3374f25c7383f145e73bfb2183d3d2f70b65c4074db1d185468a89ddacb667",
+      "bytes": 12962,
+      "kind": "owned_parent_input"
+    },
+    {
+      "source": "build-repro/controls/lambda-eager-comprehension-capture-parent-20261009/source-snapshot/tests/run_fixtures.ps1",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-checkpoint-20261009/source126-net-inputs/tests/run_fixtures.ps1",
+      "sha256": "84cabb32b6ef88439d0f309437259a5dc1363562edb101f6cc06d1a9dd0d3028",
+      "bytes": 14998,
+      "kind": "owned_parent_input"
+    },
+    {
+      "source": "build-repro/controls/lambda-eager-comprehension-capture-parent-20261009/preserved-release-provenance.json",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-checkpoint-20261009/controls/lambda-eager-comprehension-capture-parent-20261009/preserved-release-provenance.json",
+      "sha256": "865ed0cfaed6e20bc47710808ebbe29cc56ed8d11426ba2e90e008490308b0e1",
+      "bytes": 102237,
+      "kind": "hash_manifest_no_binaries"
+    },
+    {
+      "source": "build-repro/controls/lambda-eager-comprehension-capture-failed-r4-20261009/preserved-release-provenance.json",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-checkpoint-20261009/controls/lambda-eager-comprehension-capture-failed-r4-20261009/preserved-release-provenance.json",
+      "sha256": "0741e4210f7763e65d8871618e77776ef476477b768b539bd22e3af249e2d594",
+      "bytes": 103454,
+      "kind": "hash_manifest_no_binaries"
+    },
+    {
+      "source": "build-repro/controls/property-callable-getter-parent-20261009/preserved-release-provenance.json",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-checkpoint-20261009/controls/property-callable-getter-parent-20261009/preserved-release-provenance.json",
+      "sha256": "608aadc303532321de8ba8cf464ce7d341ba6366373d386ab2230e865c9f6573",
+      "bytes": 101955,
+      "kind": "hash_manifest_no_binaries"
+    },
+    {
+      "source": "scratch/performance/lambda-capture-r4-emitted-ir-20261009/lambda_eager_comprehension_capture.ir.txt",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-checkpoint-20261009/raw-ir/scratch/performance/lambda-capture-r4-emitted-ir-20261009/lambda_eager_comprehension_capture.ir.txt",
+      "sha256": "e54304badf6db148b63c52ecdc07adb62fd9dfe4e4e2aa45da2b1b50ad0542c8",
+      "bytes": 83143,
+      "kind": "exact_emitted_IR"
+    },
+    {
+      "source": "scratch/performance/lambda-capture-r5-emitted-ir-20261009/lambda_eager_comprehension_capture/lambda_eager_comprehension_capture.ir.txt",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-checkpoint-20261009/raw-ir/scratch/performance/lambda-capture-r5-emitted-ir-20261009/lambda_eager_comprehension_capture/lambda_eager_comprehension_capture.ir.txt",
+      "sha256": "f689077762a25862a7d65b4419347766d9d299a4946c01cb577238a03f00d10e",
+      "bytes": 83185,
+      "kind": "exact_emitted_IR"
+    },
+    {
+      "source": "scratch/performance/lambda-capture-r5-emitted-ir-20261009/nested_comprehension_capture/nested_comprehension_capture.ir.txt",
+      "path": "doc/performance/data/lambda-eager-comprehension-capture-r5-checkpoint-20261009/raw-ir/scratch/performance/lambda-capture-r5-emitted-ir-20261009/nested_comprehension_capture/nested_comprehension_capture.ir.txt",
+      "sha256": "ab7bc38e80c4d67415d8b42db8ccc996cec1e2b24ac2dc6c2916716f072277a1",
+      "bytes": 17094,
+      "kind": "exact_emitted_IR"
+    }
+  ],
+  "copy_count": 212,
+  "future_terminal_validation": "Mandatory explicit CLI path/SHA; unavailable at authoring. Requires terminal/hashstable/correctness and fresh default11 gate PASS before preview writes. Official outcomes solely actual receipt.",
+  "source_archive_limit": "Six owned current deltas and four net-parent inputs; source128 full identity in receipts/proofs plus prior published119/parser124/property126 closure. Hash manifests only for controls/binaries/objects; no binary/object copies."
+}

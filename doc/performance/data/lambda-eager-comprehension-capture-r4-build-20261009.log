@@ -1,0 +1,10 @@
+[0/2] Re-checking globbed directories...
+[1/33] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\importlib_module.cpp.obj
+[2/33] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\zipimport_module.cpp.obj
+[3/33] Linking CXX static library Release\xlang3_system_runtime.lib
+[4/33] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\import\import_loader.cpp.obj
+[5/33] Building CXX object CMakeFiles\xlang3_runtime.dir\Release\src\import\import_loader.cpp.obj
+[6/33] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\sema\lower.cpp.obj
+[7/33] Building CXX object CMakeFiles\xlang3_runtime.dir\Release\src\sema\lower.cpp.obj
+[8/33] Linking CXX static library Release\xlang3_runtime_static.lib
+[9/33] Linking CXX shared library Release\xlang3_runtime.dll

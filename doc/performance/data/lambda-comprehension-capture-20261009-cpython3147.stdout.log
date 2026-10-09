@@ -1,0 +1,3 @@
+PASS ordinary_outer_capture
+PASS generator_outer_capture
+PASS list_comprehension_outer_capture

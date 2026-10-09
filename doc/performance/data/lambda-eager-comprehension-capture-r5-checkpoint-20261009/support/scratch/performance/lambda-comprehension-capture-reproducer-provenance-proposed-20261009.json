@@ -1,0 +1,65 @@
+{
+  "status": "scratch_untimed_reproducer_unexecuted",
+  "execution_performed": false,
+  "ast_validation_performed": false,
+  "engine_patch_prepared": false,
+  "root_owns_execution": true,
+  "whole_goal_complete": false,
+  "reproducer": {
+    "path": "scratch/performance/lambda-comprehension-capture-reproducer-proposed-20261009.py",
+    "sha256": "4cbcf32a80de7a0667799994ce6e896a348d4293b561527f0bb188fb7f8be893",
+    "scope": "Three untimed returned-lambda cases: ordinary outer-list reads, generator comprehension control, and list comprehension. No imports, SQLAlchemy work, timers, profiling, or engine-specific API.",
+    "proposed_success_stdout": "PASS ordinary_outer_capture\nPASS generator_outer_capture\nPASS list_comprehension_outer_capture\n",
+    "success_stdout_is_observed_reference": false,
+    "failure_policy": "The first failing assertion or exception is left uncaught. No retries or output normalization."
+  },
+  "actual_prerequisite": {
+    "receipt": "doc/performance/data/property-callable-getter-validation-20261009.json",
+    "receipt_sha256": "ced396d6e97ed41bf03310519c18e020dd1b8239f61ec7ad6444a66a4392682f",
+    "status": "trial_validation_failed",
+    "terminal": true,
+    "correctness_passed": true,
+    "full_validated": false,
+    "hashes_unchanged": true,
+    "source_count": 126,
+    "source_inventory_sha256": "eff9bb36dc01a25269863e599a8e9f782a2706d189f3b47e2fb07cd8f0baf8c6",
+    "exe_sha256": "c6358221bd7836f877c566557269b4bf9a011a9a2ca33060eeb2e00b4e6de5b4",
+    "dll_sha256": "3b11484d85689c7d93ec8a8550b85757b0ef684005f777e2b04f72dd14ffd2f5",
+    "declarative_stderr": "doc/performance/data/property-callable-getter-validation-20261009-official-xlang3-sqlalchemy_declarative.stderr.log",
+    "declarative_stderr_sha256": "64aa4fa68fa0c42ca09c64f5d140c52279ee3b28f632ae9688ea23e93d13fda2",
+    "observed_error": "NameError: free variable 'getters' is not defined at sqlalchemy/engine/result.py:48, returned lambda in _row_as_tuple",
+    "limits": "The SQLAlchemy failure is observed; the proposed small reproducer and explanatory cell-initialization mechanism have not been executed or IR-dumped. No performance or current full97 claim."
+  },
+  "source_sha256": {
+    "src/sema/lower.cpp": "12aae5ef15a98288aa359112ee8a6bd64f0213a228a3b11132849fad0f62fb04",
+    "src/sema/scope_analysis.cpp": "a8ddc01fbc94413b8ad3d1624812abc1701dfed1ec9e62621032cdd6e5f3177e",
+    "src/executor/xlang_vm/ops/xlang_vm_ops_variables.h": "76b3c926a5f8e4b1e76a5946e57c4f6eb78db81d8f03f7acc023c3baa124e22e",
+    "venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/sqlalchemy/engine/result.py": "d43f5780143ac2f016c673b496ee57f27a142e7f7ba2b20fcd7fea0ac9a6e0f8",
+    "doc/performance/sqlglot-comprehension-capture-fix-20261004.md": "51e38b36e5f55c5933bad109c803d9ab38ea28ff685e952d8bca59b33a711645",
+    "tests/fixtures/core/comprehension_target_lifetime.py": "66a9021b98c770da6eae4c6d4b7237a68a7c74fb97a1fa05785682280023f991",
+    "tests/fixtures/core/nested_generator_comprehension_capture.py": "385637f64286982000b49d308e4874975e4a8d66698af566bf457529e7f122e1",
+    "agent/python314_compat/tasks/fastapi.md": "b59ecf949f1cae6a531717c3031498ec1ba47638ee1fb9f781f5638bab239a7f"
+  },
+  "static_findings": [
+    "The complete collect_expression_captures function in lower.cpp:2092-2244 handles literal ListExpr/SetExpr/DictExpr, GeneratorExpr and LambdaExpr; it has no ListCompExpr/SetCompExpr/DictCompExpr branch.",
+    "FunctionLowerer constructor calls prepare_captured_locals before lowering statements. store_named_value emits StoreCell only for an already identified cell local. lower_function_value may discover the child's free name and ensure its parent cell later. finish has no general earlier StoreLocal-to-StoreCell conversion.",
+    "scope_analysis.cpp does traverse eager comprehension expressions when discovering child free reads. The VM load_free branch raises the observed message when an existing free Cell contains Invalid. Together these source facts support a missed early cell-initialization hypothesis.",
+    "The generator control uses the existing GeneratorExpr collector branch. The ordinary control directly reads its outer list. The failing-shape case puts that list only in the first iterable of an eager comprehension inside the returned lambda.",
+    "SQLAlchemy _row_as_tuple first constructs getters using methodcaller, then returns exactly a lambda whose tuple(list-comprehension) consumes getters. The small reproducer uses a literal list of ordinary functions to exclude operator and the preceding construction comprehension."
+  ],
+  "history_exclusions": [
+    "Retained Sep23 hidden-target/cell support is documented at agent/python314_compat/tasks/fastapi.md:1293-1303. Sep27 escaping-lambda alias lifetime support at line 2668 and comprehension_target_lifetime.py cover lambda INSIDE a comprehension capturing its target, the inverse nesting.",
+    "The Oct4 SQLGlot fix deferred StoreLocalPair fusion for comprehension target stores before later target capture discovery. It does not add missing eager-comprehension traversal to the capture collector.",
+    "Targeted committed documentation and preserved-patch audit found no matching generic lambda-to-eager-comprehension outer-iterable capture repair. Held class-scope patches copy existing lambda alias logic; they are not evidence of an implemented matching repair."
+  ],
+  "proposed_root_commands": {
+    "cpython3147": ["C:/Python/Python314/python.exe", "-I", "D:/CantorAI/xlang3/scratch/performance/lambda-comprehension-capture-reproducer-proposed-20261009.py"],
+    "current_xlang3": ["D:/CantorAI/xlang3/build-repro/main-verify-20261006/Release/xlang3.exe", "D:/CantorAI/xlang3/scratch/performance/lambda-comprehension-capture-reproducer-proposed-20261009.py"]
+  },
+  "later_repair_requirements_if_reproduced": [
+    "Identify free references before assignments are emitted; no VM missing-locals workaround or late arbitrary-store rewrite.",
+    "Handle list, set and dict comprehensions with correct first-iterable enclosing scope, bound target shadowing, filters, additional clauses and nested lambdas.",
+    "Preserve late binding and escaping target cells; retain existing generator and ordinary closure behavior.",
+    "Durable semantic coverage and any compiler source-cache magic change require a separate reviewed proposal after root observes the minimal failure."
+  ]
+}

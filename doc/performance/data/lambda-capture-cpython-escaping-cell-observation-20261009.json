@@ -1,0 +1,151 @@
+{
+  "status": "terminal_cpython_escaping_cells_observed",
+  "terminal": true,
+  "timed": false,
+  "command_executable": "C:\\Python\\Python314\\python.exe",
+  "version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+  "version_info": [
+    3,
+    14,
+    7
+  ],
+  "source_sha256": "ad135d4b366c98c69b8f8476a9d6d4a456149dc74fd20fa766a535a8ff9ffe38",
+  "isolated_function_source_sha256": "9005931fec90845a7202c172b6ecec7e42ff770dddc70b89d7adb2a5b5ef1d3f",
+  "extraction_scope": "Exact escaping_factory AST source segment; preceding/following fixture assertions omitted for observation only",
+  "results": [
+    {
+      "kind": "list",
+      "outer_after_first": 2,
+      "outer_after_second": 4,
+      "old_closures_before_second": [
+        [
+          2,
+          7
+        ],
+        [
+          2,
+          7
+        ]
+      ],
+      "old_closures_after_second": [
+        [
+          2,
+          7
+        ],
+        [
+          2,
+          7
+        ]
+      ],
+      "new_closures": [
+        [
+          4,
+          7
+        ],
+        [
+          4,
+          7
+        ]
+      ],
+      "freevars": [
+        "item",
+        "offset"
+      ]
+    },
+    {
+      "kind": "set",
+      "outer_after_first": 2,
+      "outer_after_second": 4,
+      "old_closures_before_second": [
+        [
+          2,
+          7
+        ],
+        [
+          2,
+          7
+        ]
+      ],
+      "old_closures_after_second": [
+        [
+          2,
+          7
+        ],
+        [
+          2,
+          7
+        ]
+      ],
+      "new_closures": [
+        [
+          4,
+          7
+        ],
+        [
+          4,
+          7
+        ]
+      ],
+      "freevars": [
+        "item",
+        "offset"
+      ]
+    },
+    {
+      "kind": "dict",
+      "outer_after_first": 2,
+      "outer_after_second": 4,
+      "old_closures_before_second": [
+        [
+          2,
+          7
+        ],
+        [
+          2,
+          7
+        ]
+      ],
+      "old_closures_after_second": [
+        [
+          2,
+          7
+        ],
+        [
+          2,
+          7
+        ]
+      ],
+      "new_closures": [
+        [
+          4,
+          7
+        ],
+        [
+          4,
+          7
+        ]
+      ],
+      "freevars": [
+        "item",
+        "offset"
+      ]
+    }
+  ],
+  "bytecode_log": "lambda-capture-cpython-escaping-cell-observation-20261009.bytecode.txt",
+  "bytecode_sha256": "81fb3b20c9b0877a268d20c05562de3d326b5fafa0646dc83afab6c4ac095ccb",
+  "hashes_before": {
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\observe-cpython-escaping-cells-root-20261009.py": "9abe1c788aac3ddeb9e6523f4697475a8e72e85b18a6295f8270bed6b02c2c69",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\lambda-eager-comprehension-capture-r2-proposed-20261009-provenance.json": "e2f592f197b7f4404e065c582a2f99680dae423919024d458c8d7fe58b3d6eca",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\lambda-eager-comprehension-capture-r2-proposed-20261009-candidates\\tests\\fixtures\\core\\lambda_eager_comprehension_capture.py": "ad135d4b366c98c69b8f8476a9d6d4a456149dc74fd20fa766a535a8ff9ffe38",
+    "C:\\Python\\Python314\\python.exe": "4942b86a6597e5aee0128daa00050ed79bc21f6e709a78eb19cbfeb0c2f39ac9",
+    "C:\\Python\\Python314\\python314.dll": "0f9857ffdfe010fe6b99328d58c2e3c7472ce75f336bf9c2ad9bd5bca3bce700"
+  },
+  "hashes_after": {
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\observe-cpython-escaping-cells-root-20261009.py": "9abe1c788aac3ddeb9e6523f4697475a8e72e85b18a6295f8270bed6b02c2c69",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\lambda-eager-comprehension-capture-r2-proposed-20261009-provenance.json": "e2f592f197b7f4404e065c582a2f99680dae423919024d458c8d7fe58b3d6eca",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\lambda-eager-comprehension-capture-r2-proposed-20261009-candidates\\tests\\fixtures\\core\\lambda_eager_comprehension_capture.py": "ad135d4b366c98c69b8f8476a9d6d4a456149dc74fd20fa766a535a8ff9ffe38",
+    "C:\\Python\\Python314\\python.exe": "4942b86a6597e5aee0128daa00050ed79bc21f6e709a78eb19cbfeb0c2f39ac9",
+    "C:\\Python\\Python314\\python314.dll": "0f9857ffdfe010fe6b99328d58c2e3c7472ce75f336bf9c2ad9bd5bca3bce700"
+  },
+  "hashes_unchanged": true
+}

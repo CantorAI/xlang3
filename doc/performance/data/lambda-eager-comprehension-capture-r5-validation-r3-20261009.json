@@ -1,0 +1,38 @@
+{
+  "status": "trial_validation_failed",
+  "terminal": true,
+  "full_validated": false,
+  "whole_goal_complete": false,
+  "correctness_reused_same_candidate": false,
+  "correctness_passed": false,
+  "phases": [],
+  "idle_guards": [
+    {
+      "phase": "preflight",
+      "timed": false,
+      "busy": [
+        {
+          "Name": "ctest.exe",
+          "ProcessId": 33464
+        }
+      ],
+      "logged_untimed_msbuild": [
+        {
+          "Name": "MSBuild.exe",
+          "ProcessId": 9352
+        }
+      ],
+      "timing_allowance": false
+    }
+  ],
+  "fixed_gate": null,
+  "official_results": {},
+  "fresh_correctness": true,
+  "scope": "Fresh R5 source128 complete correctness/default11 gate and original X SQLAlchemy; historical exact-input CP3.14.7 reference, no parent correctness reuse, paired claim or full97 run",
+  "started_utc": "2026-10-09T09:14:13.964173+00:00",
+  "error": "AssertionError: [{'Name': 'ctest.exe', 'ProcessId': 33464}]",
+  "error_traceback": "Traceback (most recent call last):\n  File \"D:\\CantorAI\\xlang3\\scratch\\performance\\validate-lambda-eager-comprehension-capture-r5-trial-r3-root-20261009.py\", line 309, in main\n    require_idle('preflight', timed=False)\n    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"D:\\CantorAI\\xlang3\\scratch\\performance\\validate-lambda-eager-comprehension-capture-r5-trial-r3-root-20261009.py\", line 122, in require_idle\n    assert not busy, busy\n           ^^^^^^^^\nAssertionError: [{'Name': 'ctest.exe', 'ProcessId': 33464}]\n",
+  "hashes_after": {},
+  "hashes_unchanged": true,
+  "completed_utc": "2026-10-09T09:14:14.611286+00:00"
+}
