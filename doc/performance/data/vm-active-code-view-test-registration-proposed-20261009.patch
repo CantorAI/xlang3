@@ -1,0 +1,12 @@
+diff --git a/tests/run_fixtures.py b/tests/run_fixtures.py
+--- a/tests/run_fixtures.py
++++ b/tests/run_fixtures.py
+@@ -68,1 +68,2 @@
+ gc_generic_cycles
++vm_active_code_view
+diff --git a/tests/run_fixtures.ps1 b/tests/run_fixtures.ps1
+--- a/tests/run_fixtures.ps1
++++ b/tests/run_fixtures.ps1
+@@ -251,1 +251,2 @@
+     "gc_generic_cycles",
++    "vm_active_code_view",

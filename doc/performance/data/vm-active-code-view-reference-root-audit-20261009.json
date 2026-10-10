@@ -1,0 +1,11 @@
+{
+  "status": "verified_preserved_reference_transcripts",
+  "raw_sha256": {
+    "doc\\performance\\data\\vm-active-code-view-reference-20261009-cpython3147.stdout.log": "b650c5d0fd39682f1a13deffbbf7c7c3f1f4ee941bfcff36fb61e6a4fb58eb86",
+    "doc\\performance\\data\\vm-active-code-view-reference-20261009-cpython3147.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "doc\\performance\\data\\vm-active-code-view-reference-20261009-xlang3-control.stdout.log": "b650c5d0fd39682f1a13deffbbf7c7c3f1f4ee941bfcff36fb61e6a4fb58eb86",
+    "doc\\performance\\data\\vm-active-code-view-reference-20261009-xlang3-control.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "fixture_sha256": "549b33469a72b797964045ebb5a9b7c9e99ec8fc45949d03e082a29e321505a1",
+  "scope": "Root file audit of previously executed CPython3.14.7 and unchanged R7b three-group reference. No rerun, new candidate validation, CPU percentage, or speed claim."
+}
