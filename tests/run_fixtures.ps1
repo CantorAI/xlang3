@@ -16,6 +16,12 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+# XLang3 writes UTF-8. Windows PowerShell otherwise decodes native stdout
+# using IBM437 when CTest launches it without a console, corrupting Unicode
+# before the fixture comparison even though Get-Content already reads UTF-8.
+[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
+$OutputEncoding = [Console]::OutputEncoding
+
 if (-not $XLang3) {
     throw "XLang3 executable path is required"
 }

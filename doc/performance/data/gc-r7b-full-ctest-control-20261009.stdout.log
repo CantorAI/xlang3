@@ -1,0 +1,389 @@
+Test project D:/CantorAI/xlang3/build-repro/main-verify-20261006
+      Start  1: xlang3_import_errors
+ 1/55 Test  #1: xlang3_import_errors .......................   Passed    0.05 sec
+      Start  2: xlang3_bytes_split
+ 2/55 Test  #2: xlang3_bytes_split .........................   Passed    0.04 sec
+      Start  3: xlang3_smoke
+ 3/55 Test  #3: xlang3_smoke ...............................   Passed    0.09 sec
+      Start  4: xlang3_abi_ownership
+ 4/55 Test  #4: xlang3_abi_ownership .......................   Passed    0.06 sec
+      Start  5: xlang3_static_runtime_shutdown
+ 5/55 Test  #5: xlang3_static_runtime_shutdown .............   Passed    0.07 sec
+      Start  6: xlang3_embedded_package_tests
+ 6/55 Test  #6: xlang3_embedded_package_tests ..............   Passed    0.06 sec
+      Start  7: xlang3_sdk_stream_call_tests
+ 7/55 Test  #7: xlang3_sdk_stream_call_tests ...............   Passed    0.06 sec
+      Start  8: xlang3_graph_producer
+ 8/55 Test  #8: xlang3_graph_producer ......................   Passed    0.05 sec
+      Start  9: xlang3_graph_consumer
+ 9/55 Test  #9: xlang3_graph_consumer ......................   Passed    0.04 sec
+      Start 10: xlang3_graph_reject_BAD_VERSION
+10/55 Test #10: xlang3_graph_reject_BAD_VERSION ............   Passed    0.04 sec
+      Start 11: xlang3_graph_reject_NO_CODEC
+11/55 Test #11: xlang3_graph_reject_NO_CODEC ...............   Passed    0.03 sec
+      Start 12: xlang3_graph_reject_DECODE_FAIL
+12/55 Test #12: xlang3_graph_reject_DECODE_FAIL ............   Passed    0.03 sec
+      Start 13: xlang3_runtime_value_tests
+13/55 Test #13: xlang3_runtime_value_tests .................   Passed    0.16 sec
+      Start 14: xlang3_vfs_tests
+14/55 Test #14: xlang3_vfs_tests ...........................   Passed    0.14 sec
+      Start 15: xlang3_tensor_cpu
+15/55 Test #15: xlang3_tensor_cpu ..........................   Passed    0.27 sec
+      Start 16: xlang3_tensor_cpu_graph
+16/55 Test #16: xlang3_tensor_cpu_graph ....................   Passed    0.04 sec
+      Start 17: xlang3_tensor_cpu_reference
+17/55 Test #17: xlang3_tensor_cpu_reference ................   Passed    0.05 sec
+      Start 18: xlang3_ipc_capacity_tests
+18/55 Test #18: xlang3_ipc_capacity_tests ..................   Passed    0.06 sec
+      Start 19: xlang3_memory_tests
+19/55 Test #19: xlang3_memory_tests ........................   Passed    0.07 sec
+      Start 20: xlang3_parser_tests
+20/55 Test #20: xlang3_parser_tests ........................   Passed    0.07 sec
+      Start 21: xlang3_interpreter_tests
+21/55 Test #21: xlang3_interpreter_tests ...................   Passed    0.49 sec
+      Start 22: xlang3_debug_session_tests
+22/55 Test #22: xlang3_debug_session_tests .................   Passed    0.09 sec
+      Start 23: xlang3_dap_session_tests
+23/55 Test #23: xlang3_dap_session_tests ...................   Passed    0.14 sec
+      Start 24: xlang3_module_slot_tests
+24/55 Test #24: xlang3_module_slot_tests ...................   Passed    0.09 sec
+      Start 25: xlang3_task_tests
+25/55 Test #25: xlang3_task_tests ..........................   Passed    0.09 sec
+      Start 26: xlang3_ir_codec_tests
+26/55 Test #26: xlang3_ir_codec_tests ......................   Passed    0.06 sec
+      Start 27: xlang3_native_package_real_tests
+27/55 Test #27: xlang3_native_package_real_tests ...........   Passed    0.09 sec
+      Start 28: xlang3_native_library_path
+28/55 Test #28: xlang3_native_library_path .................   Passed    0.08 sec
+      Start 29: xlang3_expression_decorators
+29/55 Test #29: xlang3_expression_decorators ...............   Passed    0.05 sec
+      Start 30: xlang3_expression_decorators_ipc
+30/55 Test #30: xlang3_expression_decorators_ipc ...........   Passed    0.88 sec
+      Start 31: xlang3_xlang1_compat_package_tests
+31/55 Test #31: xlang3_xlang1_compat_package_tests .........   Passed    0.09 sec
+      Start 32: xlang3_sdk_c_header_smoke
+32/55 Test #32: xlang3_sdk_c_header_smoke ..................   Passed    0.06 sec
+      Start 33: xlang3_cli_yaml_module_import
+33/55 Test #33: xlang3_cli_yaml_module_import ..............   Passed    0.04 sec
+      Start 34: xlang3_cli_device_module_import
+34/55 Test #34: xlang3_cli_device_module_import ............   Passed    0.04 sec
+      Start 35: xlang3_curmodule_probe_import
+35/55 Test #35: xlang3_curmodule_probe_import ..............   Passed    0.04 sec
+      Start 36: xlang3_cli_net_module_import
+36/55 Test #36: xlang3_cli_net_module_import ...............   Passed    0.07 sec
+      Start 37: xlang3_cli_asyncio_accelerator
+37/55 Test #37: xlang3_cli_asyncio_accelerator .............   Passed    1.05 sec
+      Start 38: xlang3_cli_overlapped_completion
+38/55 Test #38: xlang3_cli_overlapped_completion ...........   Passed    0.25 sec
+      Start 39: xlang3_cli_ssl_module
+39/55 Test #39: xlang3_cli_ssl_module ......................   Passed    0.20 sec
+      Start 40: xlang3_cli_hashlib_module
+40/55 Test #40: xlang3_cli_hashlib_module ..................   Passed    0.18 sec
+      Start 41: xlang3_cli_argon2_module
+41/55 Test #41: xlang3_cli_argon2_module ...................   Passed    0.11 sec
+      Start 42: xlang3_cli_real_native_imports
+42/55 Test #42: xlang3_cli_real_native_imports .............   Passed    0.39 sec
+      Start 43: xlang3_xlang1_compat_import
+43/55 Test #43: xlang3_xlang1_compat_import ................   Passed    0.30 sec
+      Start 44: xlang3_cli_net_module_server_client
+44/55 Test #44: xlang3_cli_net_module_server_client ........   Passed    1.17 sec
+      Start 45: xlang3_cli_sqlite_module_imports
+45/55 Test #45: xlang3_cli_sqlite_module_imports ...........   Passed    0.36 sec
+      Start 46: xlang3_cli_fixtures
+46/55 Test #46: xlang3_cli_fixtures ........................***Failed    8.35 sec
+fixture sorted_key_scoped_entry ok
+fixture sorted_key_iteration_owner ok
+fixture sorted_key_nested_handled_context ok
+fixture ordinary_canonical_slot_constructor ok
+fixture call_module_global_binding ok
+fixture sorted_exact_integer_keys ok
+fixture native_str_utf8_encode ok
+fixture synchronous_class_argument_lifetime ok
+fixture nested_profile_setting ok
+fixture nested_trace_setting ok
+fixture trace_disable_local_events ok
+fixture class_namespace_lifetime ok
+fixture class_method_annotation_capture ok
+fixture explicit_slot_descriptor_fallback ok
+fixture slot_descriptor_owner ok
+fixture dict_get_exception_preservation ok
+fixture call_method_dict_cache_touch ok
+fixture inherited_call_ex_constructor ok
+fixture call_ex_cross_activation_constructor ok
+fixture sqlite_statement_cache ok
+fixture native_bound_zero_args ok
+fixture identity_last_use ok
+fixture hash_exception_preservation ok
+fixture sqlite_cursor_completion ok
+fixture sqlite_native_aggregate ok
+fixture scalar_loop ok
+fixture functions ok
+fixture keyword_method_call ok
+fixture module_getattr_call ok
+fixture nested_function_no_closure ok
+fixture if_else ok
+fixture syntax_logical_lines ok
+fixture docstring_suite_execution ok
+fixture runtime_specialization_semantics ok
+fixture syntax_simple_suites ok
+fixture statement_syntax ok
+fixture module_statement_partials ok
+fixture module_subclass_constructor ok
+fixture module_subclass_import_probe ok
+fixture structural_pattern_matching ok
+fixture expression_operators ok
+fixture modulo_type_error ok
+fixture bigint_base_format ok
+fixture chained_comparisons ok
+fixture function_class_syntax ok
+fixture future_annotations ok
+fixture function_metadata ok
+fixture function_annotation_getattr ok
+fixture annotation_fake_globals ok
+fixture annotation_lambda_ast ok
+fixture generic_class_annotation_scope ok
+fixture generic_class_frame_locals ok
+fixture float_identity_containers ok
+fixture bool_numeric_properties ok
+fixture decorator_warning_line ok
+fixture breakpoint_builtin ok
+fixture deferred_annotation_closure ok
+fixture object_type_model ok
+fixture object_attribute_hooks ok
+fixture inherited_eq_ne ok
+fixture getattr_nondata_descriptor_precedence ok
+fixture set_identity_before_equality ok
+fixture dict_custom_hash_equality ok
+fixture metaclass_binary_operator ok
+fixture metaclass_dynamic_keyword_expansion ok
+fixture new_class_attribute ok
+fixture generic_union_substitution ok
+fixture optional_union_none_type ok
+fixture generic_class_parameters ok
+fixture module_subclass_descriptor ok
+fixture dict_init_mappingproxy ok
+fixture ast_runtime_parser ok
+fixture ast_assert_roundtrip ok
+fixture compile_ast_module ok
+fixture annotation_string_format ok
+fixture descriptor_protocol ok
+fixture default_object_repr ok
+fixture code_traceback_model ok
+fixture mro_model ok
+fixture property_descriptor ok
+fixture property_callable_getter ok
+fixture lambda_eager_comprehension_capture ok
+fixture python_new_vm_continuation ok
+fixture python_new_completion_finalizer ok
+fixture chained_object_methods ok
+fixture builtin_alias ok
+fixture builtin_function_batch ok
+fixture dynamic_execution_builtins ok
+fixture globals_locals_identity ok
+fixture iterator_protocol ok
+fixture tuples ok
+fixture tuple_methods ok
+fixture dict_views ok
+fixture slices ok
+fixture string_slice_offsets ok
+fixture regex_borrowed_ascii_match ok
+fixture abc_descriptor_abstract ok
+fixture super_replaced_method ok
+fixture functional_iterator_abc ok
+fixture metaclass_getattr ok
+fixture metaclass_getattribute ok
+fixture inspect_class_source_block ok
+fixture dict_view_contains ok
+fixture importlib_pathlike_spec ok
+fixture bytes_subclass_constructor ok
+fixture class_with_bindings ok
+fixture comprehension_iterable_scope ok
+fixture container_str_repr ok
+fixture class_attr_callable ok
+fixture vars_class_mappingproxy ok
+fixture typing_generic_class_getitem ok
+fixture builtin_type_signatures ok
+fixture deferred_nested_annotation ok
+fixture operator_or_typing_alias ok
+fixture ast_lambda_annotation ok
+fixture slots_model ok
+fixture raw_strings ok
+fixture string_compat ok
+fixture percent_mapping_protocol ok
+fixture str_subclass_add ok
+fixture str_subclass_percent ok
+fixture str_subclass_comparison ok
+fixture int_subclass_bitwise ok
+fixture module_class_constructor_frame_growth ok
+fixture binary_buffers ok
+fixture bytes_translate_delete ok
+fixture bytes_count_integer ok
+fixture set_union_bulk ok
+fixture zlib_strict_decompressor_kwargs ok
+fixture sum_start_keyword ok
+fixture int_enum_subtraction ok
+fixture gzip_missing_cleanup ok
+fixture gzip_finalizer_cleanup ok
+fixture dict_hash_index ok
+fixture bytes_isascii ok
+fixture typing_literal_union ok
+fixture sequence_contains_method ok
+fixture instance_dict_contains_dispatch ok
+fixture dict_get_missing_semantics ok
+fixture assigned_binary_special_method ok
+fixture dynamic_builtins_lookup ok
+fixture custom_getattribute_descriptor ok
+fixture multiple_inheritance_attribute_storage ok
+fixture builtin_types_edges ok
+fixture starred_expressions ok
+fixture dict_set_comprehensions ok
+fixture nested_comprehensions ok
+fixture generator_expressions ok
+fixture closure_in_raise ok
+fixture walrus_operator ok
+fixture named_expression_call_trailing_comma ok
+fixture unpacking ok
+fixture annotated_assignment ok
+fixture augmented_assignment ok
+fixture lists_for ok
+fixture sequences_index ok
+fixture dict_set ok
+fixture raw_blocks ok
+fixture re_sub_callable_none ok
+fixture re_escaped_punctuation ok
+fixture native_import ok
+fixture sha2_complete ok
+json_module output mismatch. Expected 'xlang3
+2
+True
+{'u': '??', 'a': [-4, 0.001, True, None]}
+{'same': 2}
+{'a': 2, '': 4}
+{'raw': 'ac', 'empty': ''}
+([1], 5)
+('�', 5)
+('�', 3)
+data
+123456789012345678901234567890
+[inf, -inf, 0.0, -0.0, 1.7976931348623157e+308]
+{'x': 'i:4'}
+invalid JSON fallback
+{"a": 1, "b": [2, 3]}
+[{"value": 7}, {"value": 7}]
+{"unicode": "\u0105\u0107\u017c\ud83e\uddea", "quote": "a\"b\\c", "controls": "\n\t", "nested": [null, true, false, 
+-4, [5, 6]]}
+{"a": 1, "b": 2}
+{"unicode": "acz"}
+{"1": "integer key"}
+[1.0, -0.0, 1e+20, 1e-07, 1267650600228229401496703205376]
+cycle detected', got 'xlang3
+2
+True
+{'u': '🧪', 'a': [-4, 0.001, True, None]}
+{'same': 2}
+{'a': 2, '': 4}
+{'raw': 'ąć', 'empty': ''}
+([1], 5)
+('é', 5)
+('é', 3)
+data
+123456789012345678901234567890
+[inf, -inf, 0.0, -0.0, 1.7976931348623157e+308]
+{'x': 'i:4'}
+invalid JSON fallback
+{"a": 1, "b": [2, 3]}
+[{"value": 7}, {"value": 7}]
+{"unicode": "\u0105\u0107\u017c\ud83e\uddea", "quote": "a\"b\\c", "controls": "\n\t", "nested": [null, true, false, 
+-4, [5, 6]]}
+{"a": 1, "b": 2}
+{"unicode": "ąćż"}
+{"1": "integer key"}
+[1.0, -0.0, 1e+20, 1e-07, 1267650600228229401496703205376]
+cycle detected'
+At D:\CantorAI\xlang3\tests\run_fixtures.ps1:384 char:9
++         throw "$case output mismatch. Expected '$expected', got '$act ...
++         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : OperationStopped: (json_module out...cycle detected':String) [], RuntimeException
+    + FullyQualifiedErrorId : json_module output mismatch. Expected 'xlang3
+2
+True
+{'u': '??', 'a': [-4, 0.001, True, None]}
+{'same': 2}
+{'a': 2, '': 4}
+{'raw': 'ac', 'empty': ''}
+([1], 5)
+('�', 5)
+('�', 3)
+data
+123456789012345678901234567890
+[inf, -inf, 0.0, -0.0, 1.7976931348623157e+308]
+{'x': 'i:4'}
+invalid JSON fallback
+{"a": 1, "b": [2, 3]}
+[{"value": 7}, {"value": 7}]
+    {"unicode": "\u0105\u0107\u017c\ud83e\uddea", "quote": "a\"b\\c", "controls": "\n\t", "nested": [null, true, false 
+   , -4, [5, 6]]}
+{"a": 1, "b": 2}
+{"unicode": "acz"}
+{"1": "integer key"}
+[1.0, -0.0, 1e+20, 1e-07, 1267650600228229401496703205376]
+cycle detected', got 'xlang3
+2
+True
+{'u': '🧪', 'a': [-4, 0.001, True, None]}
+{'same': 2}
+{'a': 2, '': 4}
+{'raw': 'ąć', 'empty': ''}
+([1], 5)
+('é', 5)
+('é', 3)
+data
+123456789012345678901234567890
+[inf, -inf, 0.0, -0.0, 1.7976931348623157e+308]
+{'x': 'i:4'}
+invalid JSON fallback
+{"a": 1, "b": [2, 3]}
+[{"value": 7}, {"value": 7}]
+    {"unicode": "\u0105\u0107\u017c\ud83e\uddea", "quote": "a\"b\\c", "controls": "\n\t", "nested": [null, true, false 
+   , -4, [5, 6]]}
+{"a": 1, "b": 2}
+{"unicode": "ąćż"}
+{"1": "integer key"}
+[1.0, -0.0, 1e+20, 1e-07, 1267650600228229401496703205376]
+cycle detected'
+ 
+
+      Start 47: xlang3_cli_compat
+47/55 Test #47: xlang3_cli_compat ..........................   Passed    0.78 sec
+      Start 48: xlang3_cli_pickle_interop
+48/55 Test #48: xlang3_cli_pickle_interop ..................   Passed    0.45 sec
+      Start 49: xlang3_ipc_lrpc_smoke
+49/55 Test #49: xlang3_ipc_lrpc_smoke ......................   Passed    0.88 sec
+      Start 50: xlang3_ipc_lrpc_server_exit
+50/55 Test #50: xlang3_ipc_lrpc_server_exit ................   Passed    0.58 sec
+      Start 51: xlang3_ipc_lrpc_backpressure
+51/55 Test #51: xlang3_ipc_lrpc_backpressure ...............   Passed    2.82 sec
+      Start 52: xlang3_ipc_lrpc_backpressure_server_exit
+52/55 Test #52: xlang3_ipc_lrpc_backpressure_server_exit ...   Passed    1.09 sec
+      Start 53: xlang3_cli_dap_stdio_smoke
+53/55 Test #53: xlang3_cli_dap_stdio_smoke .................   Passed    0.42 sec
+      Start 54: xlang3_cli_debugpy_adapter_smoke
+54/55 Test #54: xlang3_cli_debugpy_adapter_smoke ...........   Passed    4.90 sec
+      Start 55: xlang3_cli_visual_studio_debugpy_launch
+55/55 Test #55: xlang3_cli_visual_studio_debugpy_launch ....***Failed    0.19 sec
+Traceback (most recent call last):
+  File "D:/CantorAI/xlang3/tests/cli/run_debugpy_launch_smoke.py", line 374, in <module>
+    raise SystemExit(main())
+                     ~~~~^^
+  File "D:/CantorAI/xlang3/tests/cli/run_debugpy_launch_smoke.py", line 69, in main
+    raise RuntimeError("Visual Studio profile does not use xlang3.exe directly")
+RuntimeError: Visual Studio profile does not use xlang3.exe directly
+
+
+96% tests passed, 2 tests failed out of 55
+
+Total Test time (real) =  28.39 sec
+
+The following tests FAILED:
+	 46 - xlang3_cli_fixtures (Failed)
+	 55 - xlang3_cli_visual_studio_debugpy_launch (Failed)
