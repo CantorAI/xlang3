@@ -1,0 +1,15 @@
+Benchmark dependency sites: D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages
+Full-case timeout overrides: networkx*=600s
+Python benchmark suite 1.14.0
+
+
+==================================================
+( 1/1) creating venv for benchmark (pprint)
+
+(trying common venv first)
+
+[1/1] pprint...
+..........Full-case timeout: pprint exceeded 300 seconds
+ERROR: Benchmark pprint timed out
+
+ERROR: No benchmark was run

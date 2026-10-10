@@ -1,0 +1,26 @@
+Benchmark dependency sites: D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages
+Full-case timeout overrides: networkx*=600s
+Python benchmark suite 1.14.0
+
+
+==================================================
+( 1/1) creating venv for benchmark (xml_etree)
+
+(trying common venv first)
+
+[1/1] xml_etree...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+xml_etree_pure_python_parse: Mean +- std dev: 8.13 sec +- 0.12 sec
+.Full-case timeout: xml_etree exceeded 300 seconds
+Preserved partial failed-definition output: xml_etree-e45cef294d51b3bb.json
+ERROR: Benchmark xml_etree timed out
+
+ERROR: No benchmark was run

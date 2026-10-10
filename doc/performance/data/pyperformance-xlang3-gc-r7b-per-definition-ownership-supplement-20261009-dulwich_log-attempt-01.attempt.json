@@ -1,0 +1,187 @@
+{
+  "attempt_id": "pyperformance-xlang3-gc-r7b-per-definition-ownership-supplement-20261009-dulwich_log-attempt-01",
+  "definition": "dulwich_log",
+  "started_utc": "2026-10-10T03:03:25.525661+00:00",
+  "session": "001",
+  "state": "finished",
+  "valid": true,
+  "definition_status": "failed",
+  "measurement_valid": true,
+  "owned_child_cleanup_completed": true,
+  "raw_sha256": {
+    "pyperformance-xlang3-gc-r7b-per-definition-ownership-supplement-20261009-dulwich_log-attempt-01.merged.log": "cfd9b0d2199768e8addd49a819ef61127b013aaca1bb3314aa7b7c2a1b97a736",
+    "pyperformance-xlang3-gc-r7b-per-definition-ownership-supplement-20261009-dulwich_log-attempt-01.external-process-observations.jsonl": "d1d1d8aa43b6f973b825b439ec84913dde2b819730b475b825b23e2f89d02d95"
+  },
+  "idle_guards": [
+    {
+      "label": "before-attempt",
+      "checked_utc": "2026-10-10T03:03:26.691390+00:00",
+      "passed": true,
+      "busy": [],
+      "dormant": []
+    },
+    {
+      "label": "immediately-before-child",
+      "checked_utc": "2026-10-10T03:03:30.364597+00:00",
+      "passed": true,
+      "busy": [],
+      "dormant": []
+    }
+  ],
+  "candidate_binding_digest": "af19128ff6bd605f4e28a21a6a9bb4e01042c963bf6d19d951e8dcd3569b238a",
+  "known_orphan_worker_pid": null,
+  "known_orphan_worker_creation": null,
+  "counter_reset_scope": "Fresh helper admission only here, untimed before this attempt; never reset during the phase.",
+  "runtime_activity_policy": "Every helper scan also rejects foreign python*/xlang3 processes. Only this manager and observed creation-pinned descendants are admitted; unrelated command lines are not exported.",
+  "dormant_worker_admission": {
+    "status": "no_worker_exception_requested",
+    "exception_used": false
+  },
+  "pre_idle": {
+    "label": "before-attempt",
+    "checked_utc": "2026-10-10T03:03:26.691390+00:00",
+    "passed": true,
+    "busy": [],
+    "dormant": []
+  },
+  "pre_identity": {
+    "passed": true,
+    "checked_file_count": 18190,
+    "observed_sha256_map_digest": "bac1258e4ceb99652a9a714edff37d3f96940c54a52986ea027af3c4221b2c10",
+    "expected_sha256_map_digest": "bac1258e4ceb99652a9a714edff37d3f96940c54a52986ea027af3c4221b2c10",
+    "mismatches": [],
+    "tree_changes": {},
+    "head": "21e2eadaba7d317932374a63d3c2d70dff4e25c1",
+    "checked_utc": "2026-10-10T03:03:29.751387+00:00"
+  },
+  "launch_idle": {
+    "label": "immediately-before-child",
+    "checked_utc": "2026-10-10T03:03:30.364597+00:00",
+    "passed": true,
+    "busy": [],
+    "dormant": []
+  },
+  "command": [
+    "C:\\Python\\Python314\\python.exe",
+    "D:\\CantorAI\\xlang3\\benchmarks\\diagnostics\\run_pyperformance_xlang3_shimmed.py",
+    "--runtime",
+    "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+    "--benchmarks",
+    "dulwich_log",
+    "--mode",
+    "fast",
+    "--case-timeout",
+    "300",
+    "--case-timeout-override",
+    "networkx*=600",
+    "--dependency-site",
+    "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages",
+    "--output",
+    "D:\\CantorAI\\xlang3\\doc\\performance\\data\\pyperformance-xlang3-gc-r7b-per-definition-ownership-supplement-20261009-dulwich_log-attempt-01.pyperf.json"
+  ],
+  "case_cap_seconds": 300,
+  "manager_wall_cap_seconds": 420,
+  "pid": 9080,
+  "child_launched": true,
+  "child_identity": {
+    "Name": "python.exe",
+    "ProcessId": 9080,
+    "ParentProcessId": 32136,
+    "CreationDate": "/Date(1791601410365)/"
+  },
+  "exit_code": 1,
+  "external_process_watch": {
+    "log": "pyperformance-xlang3-gc-r7b-per-definition-ownership-supplement-20261009-dulwich_log-attempt-01.external-process-observations.jsonl",
+    "sha256": "d1d1d8aa43b6f973b825b439ec84913dde2b819730b475b825b23e2f89d02d95",
+    "poll_interval_seconds": 1,
+    "dormant_worker_admission": null,
+    "overlaps": [],
+    "scanner_errors": [],
+    "measurement_valid": true,
+    "scope": "All observed build/test tools invalidate timing except the exact admitted cached worker while its cumulative CPU counters and identity remain unchanged and it has no build parent or new child.",
+    "limit": "New tools entirely between samples may be missed; the admitted worker CPU counters are cumulative and never reset during this manager."
+  },
+  "observed_owned_process_identities": [
+    {
+      "Name": "python.exe",
+      "ProcessId": 32136,
+      "ParentProcessId": 20088,
+      "CreationDate": "/Date(1791598576646)/"
+    },
+    {
+      "Name": "python.exe",
+      "ProcessId": 9080,
+      "ParentProcessId": 32136,
+      "CreationDate": "/Date(1791601410365)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 20792,
+      "ParentProcessId": 32136,
+      "CreationDate": "/Date(1791601410365)/"
+    },
+    {
+      "Name": "conhost.exe",
+      "ProcessId": 33064,
+      "ParentProcessId": 9080,
+      "CreationDate": "/Date(1791601410378)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 2360,
+      "ParentProcessId": 32136,
+      "CreationDate": "/Date(1791601410402)/"
+    },
+    {
+      "Name": "xlang3.exe",
+      "ProcessId": 36524,
+      "ParentProcessId": 9080,
+      "CreationDate": "/Date(1791601410576)/"
+    },
+    {
+      "Name": "xlang3.exe",
+      "ProcessId": 20916,
+      "ParentProcessId": 9080,
+      "CreationDate": "/Date(1791601410842)/"
+    },
+    {
+      "Name": "xlang3.exe",
+      "ProcessId": 34624,
+      "ParentProcessId": 20916,
+      "CreationDate": "/Date(1791601411374)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 14416,
+      "ParentProcessId": 32136,
+      "CreationDate": "/Date(1791601411918)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 34428,
+      "ParentProcessId": 32136,
+      "CreationDate": "/Date(1791601412549)/"
+    }
+  ],
+  "post_idle": {
+    "passed": true,
+    "checked_utc": "2026-10-10T03:03:33.614732+00:00",
+    "busy": [],
+    "dormant": []
+  },
+  "post_identity": {
+    "passed": true,
+    "checked_file_count": 18190,
+    "observed_sha256_map_digest": "bac1258e4ceb99652a9a714edff37d3f96940c54a52986ea027af3c4221b2c10",
+    "expected_sha256_map_digest": "bac1258e4ceb99652a9a714edff37d3f96940c54a52986ea027af3c4221b2c10",
+    "mismatches": [],
+    "tree_changes": {},
+    "head": "21e2eadaba7d317932374a63d3c2d70dff4e25c1",
+    "checked_utc": "2026-10-10T03:03:36.822777+00:00"
+  },
+  "failure": "Benchmark died",
+  "failure_detail": "ERROR: Benchmark dulwich_log failed: Benchmark died",
+  "partial_timings_never_scored": true,
+  "finished_utc": "2026-10-10T03:03:36.824174+00:00",
+  "timing_scoring_permitted": false
+}

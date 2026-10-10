@@ -1,0 +1,510 @@
+{
+  "attempt_id": "pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-async_tree_eager_tg-attempt-01",
+  "definition": "async_tree_eager_tg",
+  "started_utc": "2026-10-10T00:05:14.703480+00:00",
+  "session": "001",
+  "state": "finished",
+  "valid": false,
+  "definition_status": "invalid",
+  "measurement_valid": false,
+  "owned_child_cleanup_completed": true,
+  "raw_sha256": {
+    "pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-async_tree_eager_tg-attempt-01.merged.log": "bc5f090cbfed2496fc82cc58a529a9a97c1cc27cedea1c99a5cb36547e790da5",
+    "pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-async_tree_eager_tg-attempt-01.pyperf.json": "4b7598f471b2ea14e28692a6370ea2cd6d06d42439e69b9a9d723593bf6618d5",
+    "pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-async_tree_eager_tg-attempt-01.external-process-observations.jsonl": "8331e24bd9bf64e1a9a0b7d9501a6143ef71affcf2391725473af7c537dc926b"
+  },
+  "idle_guards": [
+    {
+      "label": "before-attempt",
+      "checked_utc": "2026-10-10T00:05:16.406487+00:00",
+      "passed": true,
+      "busy": [],
+      "dormant": []
+    },
+    {
+      "label": "immediately-before-child",
+      "checked_utc": "2026-10-10T00:05:20.312300+00:00",
+      "passed": true,
+      "busy": [],
+      "dormant": []
+    }
+  ],
+  "candidate_binding_digest": "acd69fc5e3c350b172958276ddbd90f3f585794e8634b5541b80c2a233194c00",
+  "known_orphan_worker_pid": 18252,
+  "known_orphan_worker_creation": "/Date(1791586119443)/",
+  "counter_reset_scope": "Fresh helper admission only here, untimed before this attempt; never reset during the phase.",
+  "runtime_activity_policy": "Every helper scan also rejects foreign python*/xlang3 processes. Only this manager and observed creation-pinned descendants are admitted; unrelated command lines are not exported.",
+  "dormant_worker_admission": {
+    "status": "known_worker_already_exited",
+    "exception_used": false
+  },
+  "pre_idle": {
+    "label": "before-attempt",
+    "checked_utc": "2026-10-10T00:05:16.406487+00:00",
+    "passed": true,
+    "busy": [],
+    "dormant": []
+  },
+  "pre_identity": {
+    "passed": true,
+    "checked_file_count": 17810,
+    "observed_sha256_map_digest": "a9cb9fcadd403b2788f93bc16e238b9f2e526c892abf3c9b12399f18191e21dc",
+    "expected_sha256_map_digest": "a9cb9fcadd403b2788f93bc16e238b9f2e526c892abf3c9b12399f18191e21dc",
+    "mismatches": [],
+    "tree_changes": {},
+    "head": "21e2eadaba7d317932374a63d3c2d70dff4e25c1",
+    "checked_utc": "2026-10-10T00:05:19.755272+00:00"
+  },
+  "launch_idle": {
+    "label": "immediately-before-child",
+    "checked_utc": "2026-10-10T00:05:20.312300+00:00",
+    "passed": true,
+    "busy": [],
+    "dormant": []
+  },
+  "command": [
+    "C:\\Python\\Python314\\python.exe",
+    "D:\\CantorAI\\xlang3\\benchmarks\\diagnostics\\run_pyperformance_xlang3_shimmed.py",
+    "--runtime",
+    "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+    "--benchmarks",
+    "async_tree_eager_tg",
+    "--mode",
+    "fast",
+    "--case-timeout",
+    "300",
+    "--case-timeout-override",
+    "networkx*=600",
+    "--dependency-site",
+    "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages",
+    "--output",
+    "D:\\CantorAI\\xlang3\\doc\\performance\\data\\pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-async_tree_eager_tg-attempt-01.pyperf.json"
+  ],
+  "case_cap_seconds": 300,
+  "manager_wall_cap_seconds": 420,
+  "pid": 3168,
+  "child_launched": true,
+  "child_identity": {
+    "Name": "python.exe",
+    "ProcessId": 3168,
+    "ParentProcessId": 8220,
+    "CreationDate": "/Date(1791590720313)/"
+  },
+  "exit_code": 0,
+  "external_process_watch": {
+    "log": "pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-async_tree_eager_tg-attempt-01.external-process-observations.jsonl",
+    "sha256": "8331e24bd9bf64e1a9a0b7d9501a6143ef71affcf2391725473af7c537dc926b",
+    "poll_interval_seconds": 1,
+    "dormant_worker_admission": null,
+    "overlaps": [],
+    "scanner_errors": [
+      {
+        "observed_utc": "2026-10-10T00:05:21.866781+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:05:23.410154+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:05:24.924624+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:05:26.455032+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:05:27.909207+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:05:29.393046+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:05:30.895647+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:05:32.347165+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:05:33.813641+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:05:35.236340+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:05:36.720328+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:05:38.173952+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:05:39.612067+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:05:41.128865+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:05:42.595275+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:05:44.017814+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:05:45.470482+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:05:46.958072+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:05:48.469722+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:05:49.908744+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:05:51.379934+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:05:52.846171+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:05:54.268891+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:05:55.737497+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:05:57.188913+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:05:58.719644+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:06:00.206591+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:06:01.704834+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:06:03.129261+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:06:04.549330+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:06:06.099973+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:06:07.581896+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:06:09.002658+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:06:10.469740+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:06:11.922410+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:06:13.345770+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:06:14.860013+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:06:16.297746+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:06:17.750433+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:06:19.172706+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:06:20.627916+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:06:22.063367+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:06:23.515781+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:06:24.954434+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:06:26.421974+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:06:27.893163+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:06:29.390545+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:06:30.893377+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:06:32.363025+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:06:33.813833+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:06:35.269783+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:06:36.720488+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:06:38.127715+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:06:39.550298+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:06:40.985354+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:06:42.437762+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:06:43.908273+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:06:45.378271+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:06:46.877455+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:06:48.309836+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:06:49.783090+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:06:51.235637+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:06:52.671813+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:06:54.142666+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:06:55.609491+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:06:57.094284+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:06:58.532537+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:07:00.001992+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:07:01.454258+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:07:02.937397+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:07:04.390073+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:07:05.859556+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:07:07.406513+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:07:08.921532+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:07:10.390211+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:07:11.843647+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:07:13.297457+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:07:14.797959+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:07:16.265464+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:07:17.718607+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      },
+      {
+        "observed_utc": "2026-10-10T00:07:19.187917+00:00",
+        "error": "RuntimeError('Unproven descendant after parent-PID reuse')"
+      }
+    ],
+    "measurement_valid": false,
+    "scope": "All observed build/test tools invalidate timing except the exact admitted cached worker while its cumulative CPU counters and identity remain unchanged and it has no build parent or new child.",
+    "limit": "New tools entirely between samples may be missed; the admitted worker CPU counters are cumulative and never reset during this manager."
+  },
+  "observed_owned_process_identities": [
+    {
+      "Name": "python.exe",
+      "ProcessId": 8220,
+      "ParentProcessId": 17284,
+      "CreationDate": "/Date(1791588639476)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 35296,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590720313)/"
+    },
+    {
+      "Name": "python.exe",
+      "ProcessId": 3168,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590720313)/"
+    },
+    {
+      "Name": "conhost.exe",
+      "ProcessId": 31188,
+      "ParentProcessId": 3168,
+      "CreationDate": "/Date(1791590720322)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 4336,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590720352)/"
+    },
+    {
+      "Name": "xlang3.exe",
+      "ProcessId": 15880,
+      "ParentProcessId": 3168,
+      "CreationDate": "/Date(1791590720527)/"
+    },
+    {
+      "Name": "xlang3.exe",
+      "ProcessId": 21416,
+      "ParentProcessId": 3168,
+      "CreationDate": "/Date(1791590720801)/"
+    },
+    {
+      "Name": "xlang3.exe",
+      "ProcessId": 32176,
+      "ParentProcessId": 21416,
+      "CreationDate": "/Date(1791590721206)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 33316,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590721867)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 8404,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590840236)/"
+    }
+  ],
+  "post_idle": {
+    "passed": true,
+    "checked_utc": "2026-10-10T00:07:21.104025+00:00",
+    "busy": [],
+    "dormant": []
+  },
+  "post_identity": {
+    "passed": true,
+    "checked_file_count": 17810,
+    "observed_sha256_map_digest": "a9cb9fcadd403b2788f93bc16e238b9f2e526c892abf3c9b12399f18191e21dc",
+    "expected_sha256_map_digest": "a9cb9fcadd403b2788f93bc16e238b9f2e526c892abf3c9b12399f18191e21dc",
+    "mismatches": [],
+    "tree_changes": {},
+    "head": "21e2eadaba7d317932374a63d3c2d70dff4e25c1",
+    "checked_utc": "2026-10-10T00:07:24.331379+00:00"
+  },
+  "finished_utc": "2026-10-10T00:07:24.332333+00:00",
+  "timing_scoring_permitted": false
+}

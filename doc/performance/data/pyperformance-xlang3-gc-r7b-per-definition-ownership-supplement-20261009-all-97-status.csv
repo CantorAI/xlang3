@@ -1,0 +1,98 @@
+﻿benchmark,XLang3 status,retained origin,XLang3 subtests,failure detail,global child launches,recorded attempts,retained attempt,CPython status
+2to3,completed,original-v1,2to3=2721 ms,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-2to3-attempt-01,historical October7 completed
+argparse,completed,original-v1,many_optionals=8.577 ms,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-argparse-attempt-01,historical October7 completed
+argparse_subparsers,completed,original-v1,subparsers=131.2 ms,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-argparse_subparsers-attempt-01,historical October7 completed
+async_generators,completed,original-v1,async_generators=2484 ms,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-async_generators-attempt-01,historical October7 completed
+async_tree,completed,supplement-v2,async_tree_none=3782 ms,,2,2,pyperformance-xlang3-gc-r7b-per-definition-ownership-supplement-20261009-async_tree-attempt-01,historical October7 completed
+async_tree_cpu_io_mixed,completed,original-v1,async_tree_cpu_io_mixed=4921 ms,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-async_tree_cpu_io_mixed-attempt-01,historical October7 completed
+async_tree_cpu_io_mixed_tg,completed,supplement-v2,async_tree_cpu_io_mixed_tg=4823 ms,,2,2,pyperformance-xlang3-gc-r7b-per-definition-ownership-supplement-20261009-async_tree_cpu_io_mixed_tg-attempt-01,historical October7 completed
+async_tree_eager,completed,supplement-v2,async_tree_eager=1322 ms,,2,2,pyperformance-xlang3-gc-r7b-per-definition-ownership-supplement-20261009-async_tree_eager-attempt-01,historical October7 completed
+async_tree_eager_cpu_io_mixed,completed,original-v1,async_tree_eager_cpu_io_mixed=2727 ms,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-async_tree_eager_cpu_io_mixed-attempt-01,historical October7 completed
+async_tree_eager_cpu_io_mixed_tg,completed,original-v1,async_tree_eager_cpu_io_mixed_tg=4922 ms,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-async_tree_eager_cpu_io_mixed_tg-attempt-01,historical October7 completed
+async_tree_eager_io,failed,supplement-v2,,ERROR: Benchmark async_tree_eager_io timed out,2,2,pyperformance-xlang3-gc-r7b-per-definition-ownership-supplement-20261009-async_tree_eager_io-attempt-01,historical October7 completed
+async_tree_eager_io_tg,failed,supplement-v2,,ERROR: Benchmark async_tree_eager_io_tg timed out,2,2,pyperformance-xlang3-gc-r7b-per-definition-ownership-supplement-20261009-async_tree_eager_io_tg-attempt-01,historical October7 completed
+async_tree_eager_memoization,completed,original-v1,async_tree_eager_memoization=3505 ms,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-async_tree_eager_memoization-attempt-01,historical October7 completed
+async_tree_eager_memoization_tg,completed,original-v1,async_tree_eager_memoization_tg=5689 ms,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-async_tree_eager_memoization_tg-attempt-01,historical October7 completed
+async_tree_eager_tg,completed,supplement-v2,async_tree_eager_tg=3464 ms,,2,2,pyperformance-xlang3-gc-r7b-per-definition-ownership-supplement-20261009-async_tree_eager_tg-attempt-01,historical October7 completed
+async_tree_io,failed,supplement-v2,,ERROR: Benchmark async_tree_io timed out,2,2,pyperformance-xlang3-gc-r7b-per-definition-ownership-supplement-20261009-async_tree_io-attempt-01,historical October7 completed
+async_tree_io_tg,failed,supplement-v2,,ERROR: Benchmark async_tree_io_tg timed out,2,2,pyperformance-xlang3-gc-r7b-per-definition-ownership-supplement-20261009-async_tree_io_tg-attempt-01,historical October7 completed
+async_tree_memoization,completed,original-v1,async_tree_memoization=5475 ms,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-async_tree_memoization-attempt-01,historical October7 completed
+async_tree_memoization_tg,completed,original-v1,async_tree_memoization_tg=5561 ms,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-async_tree_memoization_tg-attempt-01,historical October7 completed
+async_tree_tg,completed,original-v1,async_tree_none_tg=3775 ms,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-async_tree_tg-attempt-01,historical October7 completed
+asyncio_tcp,completed,original-v1,asyncio_tcp=3884 ms,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-asyncio_tcp-attempt-01,historical October7 completed
+asyncio_tcp_ssl,failed,supplement-v2,,ERROR: Benchmark asyncio_tcp_ssl timed out,2,2,pyperformance-xlang3-gc-r7b-per-definition-ownership-supplement-20261009-asyncio_tcp_ssl-attempt-01,historical October7 completed
+asyncio_websockets,completed,original-v1,asyncio_websockets=471.2 ms,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-asyncio_websockets-attempt-01,historical October7 completed
+base64,failed,supplement-v2,,ERROR: Benchmark base64 timed out,2,2,pyperformance-xlang3-gc-r7b-per-definition-ownership-supplement-20261009-base64-attempt-01,historical October7 completed
+bpe_tokeniser,failed,supplement-v2,,ERROR: Benchmark bpe_tokeniser timed out,2,2,pyperformance-xlang3-gc-r7b-per-definition-ownership-supplement-20261009-bpe_tokeniser-attempt-01,historical October7 completed
+chameleon,completed,original-v1,chameleon=139.6 ms,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-chameleon-attempt-01,historical October7 completed
+chaos,completed,original-v1,chaos=450.3 ms,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-chaos-attempt-01,historical October7 completed
+comprehensions,completed,supplement-v2,comprehensions=170.4 µs,,2,2,pyperformance-xlang3-gc-r7b-per-definition-ownership-supplement-20261009-comprehensions-attempt-01,historical October7 completed
+concurrent_imap,failed,supplement-v2,,ERROR: Benchmark concurrent_imap failed: Benchmark died,2,2,pyperformance-xlang3-gc-r7b-per-definition-ownership-supplement-20261009-concurrent_imap-attempt-01,historical October7 completed
+coroutines,completed,original-v1,coroutines=136.4 ms,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-coroutines-attempt-01,historical October7 completed
+coverage,completed,original-v1,coverage=4933 ms,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-coverage-attempt-01,historical October7 completed
+crypto_pyaes,completed,original-v1,crypto_pyaes=333.5 ms,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-crypto_pyaes-attempt-01,historical October7 completed
+dask,failed,supplement-v2,,ERROR: Benchmark dask failed: Benchmark died,2,2,pyperformance-xlang3-gc-r7b-per-definition-ownership-supplement-20261009-dask-attempt-01,historical October7 completed
+deepcopy,completed,original-v1,deepcopy=2.568 ms; deepcopy_reduce=27.3 µs; deepcopy_memo=282.4 µs,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-deepcopy-attempt-01,historical October7 completed
+deltablue,completed,original-v1,deltablue=39.16 ms,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-deltablue-attempt-01,historical October7 completed
+django_template,completed,original-v1,django_template=508.4 ms,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-django_template-attempt-01,historical October7 completed
+docutils,failed,supplement-v2,,ERROR: Benchmark docutils failed: Benchmark died,2,2,pyperformance-xlang3-gc-r7b-per-definition-ownership-supplement-20261009-docutils-attempt-01,historical October7 completed
+dulwich_log,failed,supplement-v2,,ERROR: Benchmark dulwich_log failed: Benchmark died,2,2,pyperformance-xlang3-gc-r7b-per-definition-ownership-supplement-20261009-dulwich_log-attempt-01,historical October7 completed
+fannkuch,completed,original-v1,fannkuch=283.3 ms,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-fannkuch-attempt-01,historical October7 completed
+fastapi,failed,supplement-v2,,ERROR: Benchmark fastapi timed out,2,2,pyperformance-xlang3-gc-r7b-per-definition-ownership-supplement-20261009-fastapi-attempt-01,historical October7 completed
+float,completed,original-v1,float=76.34 ms,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-float-attempt-01,historical October7 completed
+gc_collect,completed,original-v1,create_gc_cycles=2.075 ms,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-gc_collect-attempt-01,historical October7 completed
+gc_traversal,completed,original-v1,gc_traversal=2.034 ms,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-gc_traversal-attempt-01,historical October7 completed
+generators,completed,original-v1,generators=325.1 ms,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-generators-attempt-01,historical October7 completed
+genshi,completed,original-v1,genshi_text=387.6 ms; genshi_xml=888.2 ms,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-genshi-attempt-01,historical October7 completed
+go,completed,original-v1,go=904 ms,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-go-attempt-01,historical October7 completed
+hexiom,completed,original-v1,hexiom=45.61 ms,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-hexiom-attempt-01,historical October7 completed
+html5lib,completed,original-v1,html5lib=670.1 ms,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-html5lib-attempt-01,historical October7 completed
+json_dumps,completed,original-v1,json_dumps=34.56 ms,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-json_dumps-attempt-01,historical October7 completed
+json_loads,completed,original-v1,json_loads=80.9 µs,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-json_loads-attempt-01,historical October7 completed
+logging,completed,original-v1,logging_format=93.54 µs; logging_silent=1.098 µs; logging_simple=87.33 µs,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-logging-attempt-01,historical October7 completed
+mako,failed,supplement-v2,,ERROR: Benchmark mako failed: Benchmark died,2,2,pyperformance-xlang3-gc-r7b-per-definition-ownership-supplement-20261009-mako-attempt-01,historical October7 completed
+mdp,failed,supplement-v2,,ERROR: Benchmark mdp failed: Benchmark died,2,2,pyperformance-xlang3-gc-r7b-per-definition-ownership-supplement-20261009-mdp-attempt-01,historical October7 completed
+meteor_contest,completed,original-v1,meteor_contest=1198 ms,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-meteor_contest-attempt-01,historical October7 completed
+nbody,completed,original-v1,nbody=288.4 ms,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-nbody-attempt-01,historical October7 completed
+networkx,completed,original-v1,shortest_path=1006 ms,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-networkx-attempt-01,historical October7 completed
+networkx_connected_components,completed,original-v1,connected_components=742.4 ms,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-networkx_connected_components-attempt-01,historical October7 completed
+networkx_k_core,completed,supplement-v2,k_core=5866 ms,,2,2,pyperformance-xlang3-gc-r7b-per-definition-ownership-supplement-20261009-networkx_k_core-attempt-01,historical October7 completed
+nqueens,completed,original-v1,nqueens=851.5 ms,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-nqueens-attempt-01,historical October7 completed
+pathlib,completed,original-v1,pathlib=564.9 ms,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-pathlib-attempt-01,historical October7 completed
+pickle,completed,supplement-v2,pickle=19.86 µs,,2,2,pyperformance-xlang3-gc-r7b-per-definition-ownership-supplement-20261009-pickle-attempt-01,historical October7 completed
+pickle_dict,completed,original-v1,pickle_dict=23.96 µs,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-pickle_dict-attempt-01,historical October7 completed
+pickle_list,completed,original-v1,pickle_list=3.933 µs,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-pickle_list-attempt-01,historical October7 completed
+pickle_pure_python,completed,original-v1,pickle_pure_python=3.603 ms,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-pickle_pure_python-attempt-01,historical October7 completed
+pidigits,completed,original-v1,pidigits=220.3 ms,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-pidigits-attempt-01,historical October7 completed
+pprint,failed,supplement-v2,,ERROR: Benchmark pprint timed out,2,2,pyperformance-xlang3-gc-r7b-per-definition-ownership-supplement-20261009-pprint-attempt-01,historical October7 completed
+pyflate,completed,original-v1,pyflate=2589 ms,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-pyflate-attempt-01,historical October7 completed
+python_startup,completed,supplement-v2,python_startup=32.8 ms,,2,2,pyperformance-xlang3-gc-r7b-per-definition-ownership-supplement-20261009-python_startup-attempt-01,historical October7 completed
+python_startup_no_site,completed,original-v1,python_startup_no_site=19.49 ms,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-python_startup_no_site-attempt-01,historical October7 completed
+raytrace,completed,original-v1,raytrace=2166 ms,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-raytrace-attempt-01,historical October7 completed
+regex_compile,completed,original-v1,regex_compile=1238 ms,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-regex_compile-attempt-01,historical October7 completed
+regex_dna,completed,original-v1,regex_dna=213.3 ms,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-regex_dna-attempt-01,historical October7 completed
+regex_effbot,completed,supplement-v2,regex_effbot=12.48 ms,,2,2,pyperformance-xlang3-gc-r7b-per-definition-ownership-supplement-20261009-regex_effbot-attempt-01,historical October7 completed
+regex_v8,completed,supplement-v2,regex_v8=63.27 ms,,2,2,pyperformance-xlang3-gc-r7b-per-definition-ownership-supplement-20261009-regex_v8-attempt-01,historical October7 completed
+richards,completed,original-v1,richards=356.1 ms,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-richards-attempt-01,historical October7 completed
+richards_super,completed,original-v1,richards_super=439 ms,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-richards_super-attempt-01,historical October7 completed
+scimark,completed,original-v1,scimark_fft=931.3 ms; scimark_lu=1373 ms; scimark_monte_carlo=546.7 ms; scimark_sor=862.7 ms; scimark_sparse_mat_mult=16.98 ms,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-scimark-attempt-01,historical October7 completed
+spectral_norm,completed,original-v1,spectral_norm=509.9 ms,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-spectral_norm-attempt-01,historical October7 completed
+sphinx,failed,supplement-v2,,ERROR: Benchmark sphinx failed: Benchmark died,2,2,pyperformance-xlang3-gc-r7b-per-definition-ownership-supplement-20261009-sphinx-attempt-01,historical October7 completed
+sqlalchemy_declarative,completed,original-v1,sqlalchemy_declarative=1324 ms,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-sqlalchemy_declarative-attempt-01,historical October7 completed
+sqlalchemy_imperative,completed,original-v1,sqlalchemy_imperative=229.7 ms,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-sqlalchemy_imperative-attempt-01,historical October7 completed
+sqlglot_v2,completed,original-v1,sqlglot_v2_normalize=1613 ms,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-sqlglot_v2-attempt-01,historical October7 completed
+sqlglot_v2_optimize,completed,original-v1,sqlglot_v2_optimize=753.5 ms,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-sqlglot_v2_optimize-attempt-01,historical October7 completed
+sqlglot_v2_parse,completed,original-v1,sqlglot_v2_parse=19 ms,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-sqlglot_v2_parse-attempt-01,historical October7 completed
+sqlglot_v2_transpile,completed,original-v1,sqlglot_v2_transpile=22.69 ms,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-sqlglot_v2_transpile-attempt-01,historical October7 completed
+sqlite_synth,completed,original-v1,sqlite_synth=6.192 µs,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-sqlite_synth-attempt-01,historical October7 completed
+sympy,failed,supplement-v2,,ERROR: Benchmark sympy failed: Benchmark died,2,2,pyperformance-xlang3-gc-r7b-per-definition-ownership-supplement-20261009-sympy-attempt-01,historical October7 completed
+telco,completed,original-v1,telco=42.52 ms,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-telco-attempt-01,historical October7 completed
+tomli_loads,failed,supplement-v2,,ERROR: Benchmark tomli_loads timed out,2,2,pyperformance-xlang3-gc-r7b-per-definition-ownership-supplement-20261009-tomli_loads-attempt-01,historical October7 completed
+tornado_http,completed,original-v1,tornado_http=1458 ms,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-tornado_http-attempt-01,historical October7 completed
+typing_runtime_protocols,completed,original-v1,typing_runtime_protocols=2.896 ms,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-typing_runtime_protocols-attempt-01,historical October7 completed
+unpack_sequence,completed,original-v1,unpack_sequence=156.8 ns,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-unpack_sequence-attempt-01,historical October7 completed
+unpickle,completed,original-v1,unpickle=65.08 µs,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-unpickle-attempt-01,historical October7 completed
+unpickle_list,completed,original-v1,unpickle_list=10.79 µs,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-unpickle_list-attempt-01,historical October7 completed
+unpickle_pure_python,completed,original-v1,unpickle_pure_python=2.381 ms,,1,1,pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-unpickle_pure_python-attempt-01,historical October7 completed
+xdsl,failed,supplement-v2,,ERROR: Benchmark xdsl failed: Benchmark died,2,2,pyperformance-xlang3-gc-r7b-per-definition-ownership-supplement-20261009-xdsl-attempt-01,historical October7 completed
+xml_etree,failed,supplement-v2,,ERROR: Benchmark xml_etree timed out,2,2,pyperformance-xlang3-gc-r7b-per-definition-ownership-supplement-20261009-xml_etree-attempt-01,historical October7 completed

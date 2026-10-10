@@ -1,0 +1,45 @@
+{
+  "status": "verified_preview_only_not_published",
+  "files": [
+    {
+      "source": "scratch/performance/gc-r7b-full97-composite-r3-preview-20261009/pyperformance-xlang3-gc-r7b-per-definition-ownership-supplement-20261009-all-97-status.csv",
+      "destination": "doc/performance/data/pyperformance-xlang3-gc-r7b-per-definition-ownership-supplement-20261009-all-97-status.csv",
+      "sha256": "ebbb34a3531625f17d7898a65d19aba3748324b50bcdab0a95212fb393cce2f4",
+      "bytes": 18722
+    },
+    {
+      "source": "scratch/performance/gc-r7b-full97-composite-r3-preview-20261009/pyperformance-xlang3-gc-r7b-per-definition-ownership-supplement-20261009-all-124-subtests.csv",
+      "destination": "doc/performance/data/pyperformance-xlang3-gc-r7b-per-definition-ownership-supplement-20261009-all-124-subtests.csv",
+      "sha256": "25fa3f20d87e6c7023d0d4d628411ac0f2a91a8abd670554bd0a4055b88cea98",
+      "bytes": 17811
+    },
+    {
+      "source": "scratch/performance/gc-r7b-full97-composite-r3-preview-20261009/pyperformance-xlang3-gc-r7b-per-definition-ownership-supplement-20261009-all-attempts.csv",
+      "destination": "doc/performance/data/pyperformance-xlang3-gc-r7b-per-definition-ownership-supplement-20261009-all-attempts.csv",
+      "sha256": "de239d32075e6e92727a386e4397f3b482569b41d1913a3344a4a7b2667cc799",
+      "bytes": 58525
+    },
+    {
+      "source": "scratch/performance/gc-r7b-full97-composite-r3-preview-20261009/pyperformance-xlang3-gc-r7b-per-definition-ownership-supplement-20261009-speedup.svg",
+      "destination": "doc/performance/pyperformance-xlang3-gc-r7b-per-definition-ownership-supplement-20261009-speedup.svg",
+      "sha256": "4aae13ef4590e831e28949f0a4d7fe7141270c7d5d340a5b2003dab851b563c6",
+      "bytes": 19812
+    },
+    {
+      "source": "scratch/performance/gc-r7b-full97-composite-r3-preview-20261009/pyperformance-xlang3-gc-r7b-per-definition-ownership-supplement-20261009.md",
+      "destination": "doc/performance/pyperformance-xlang3-gc-r7b-per-definition-ownership-supplement-20261009.md",
+      "sha256": "93efa3ed71a5062f801c2d50019c0806d13c6eb73f52f32c7c1fcd22b7ba33af",
+      "bytes": 25237
+    },
+    {
+      "source": "scratch/performance/gc-r7b-full97-composite-r3-preview-20261009/pyperformance-xlang3-gc-r7b-per-definition-ownership-supplement-20261009-report-provenance.json",
+      "destination": "doc/performance/data/pyperformance-xlang3-gc-r7b-per-definition-ownership-supplement-20261009-report-provenance.json",
+      "sha256": "8beae31d286ecac054d7cc77e7077ce16b470beacadcec5dc3b50c3ccde33907",
+      "bytes": 273504
+    }
+  ],
+  "file_count": 6,
+  "input_hashes_unchanged": true,
+  "original_ledger_sha256": "4662c4d85745f6823cdca3757d734b1f3e883b065f6fe0991009f5422b4a0a38",
+  "composite_ledger_sha256": "1b4722611ba85bcd570ac6223c5106c1551eda67accafb3cf0309211f1196128"
+}

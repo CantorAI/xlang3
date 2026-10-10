@@ -1,0 +1,32 @@
+{
+  "status": "csv_raw_audit_passed",
+  "all97_rows": 97,
+  "all124_rows": 124,
+  "all_attempt_rows": 127,
+  "reconstructed_attempts": 127,
+  "invalid_attempts": 30,
+  "retained_definitions": 97,
+  "scored_subtests": 86,
+  "unscored_subtests": 38,
+  "completed_definitions": 77,
+  "failed_definitions": 20,
+  "geometric_mean_cp_divided_by_x": 0.12663556685065097,
+  "issues": [],
+  "sample_population_correction": "Use each authenticated expected_subtest_samples population, including 60 startup values; do not force a global20 value count.",
+  "startup_population_checks": [
+    {
+      "subtest": "python_startup",
+      "expected_scored_values": 60,
+      "actual_scored_values": 60,
+      "unit": "second",
+      "passed": true
+    },
+    {
+      "subtest": "python_startup_no_site",
+      "expected_scored_values": 60,
+      "actual_scored_values": 60,
+      "unit": "second",
+      "passed": true
+    }
+  ]
+}

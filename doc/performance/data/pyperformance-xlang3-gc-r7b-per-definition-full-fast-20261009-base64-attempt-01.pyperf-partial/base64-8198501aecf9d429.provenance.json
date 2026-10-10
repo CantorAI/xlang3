@@ -1,0 +1,43 @@
+{
+  "definition": "base64",
+  "definition_status": "failed",
+  "exit_code": 124,
+  "partial_output": "base64-8198501aecf9d429.json",
+  "sha256": "8198501aecf9d429cb16bed48c34ad6ded0934951c2a554d2a3b61ad3cc68df4",
+  "bytes": 13119,
+  "json_valid": true,
+  "timed_subtests": [
+    {
+      "name": "base64_small",
+      "values": 20
+    },
+    {
+      "name": "base64_large",
+      "values": 20
+    },
+    {
+      "name": "urlsafe_base64_small",
+      "values": 20
+    },
+    {
+      "name": "base32_small",
+      "values": 20
+    },
+    {
+      "name": "base32_large",
+      "values": 20
+    },
+    {
+      "name": "base16_small",
+      "values": 20
+    },
+    {
+      "name": "base16_large",
+      "values": 20
+    },
+    {
+      "name": "ascii85_small",
+      "values": 20
+    }
+  ]
+}
