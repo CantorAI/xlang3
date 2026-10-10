@@ -1,0 +1,7 @@
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\scratch\performance\coverage-original-body-allocation-child-proposed-20261010.py", line 140, in <module>
+    main()
+    ~~~~^^
+  File "D:\CantorAI\xlang3\scratch\performance\coverage-original-body-allocation-child-proposed-20261010.py", line 61, in main
+    length = filename(library._handle, buffer, len(buffer))
+TypeError: expected integer for ctypes argument

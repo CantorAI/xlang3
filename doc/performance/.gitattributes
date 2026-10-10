@@ -4,3 +4,5 @@
 /pyperformance-xlang3-gc-r7b-per-definition-ownership-supplement-20261009.md text eol=lf
 /pyperformance-xlang3-gc-r7b-per-definition-ownership-supplement-20261009-speedup.svg text eol=lf
 /data/vm-active-code-view* -text
+/data/raytrace-original-worker-ir* -text
+/data/coverage-f-code-allocation* -text

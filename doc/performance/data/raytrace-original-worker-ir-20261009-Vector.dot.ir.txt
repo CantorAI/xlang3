@@ -1,0 +1,31 @@
+function #7 dot
+  qualname: Vector.dot
+  first_line: 51
+  generator: false
+  async: false
+  coroutine: false
+  params: %0=self %1=other
+  signature: %0=self/poskw/d4294967295 %1=other/poskw/d4294967295
+  locals: %0=self %1=other
+  cells:
+  free_vars:
+  registers: 20
+  constants: 1
+  names: #0=mustBeVector #1=x #2=y #3=z
+  call_args #0:
+  0: CallLocalMethod line=52 pos=52:9-52:29 dst=1 a=1 b=0 c=0
+  1: Pop line=52 pos=52:9-52:29 dst=0 a=1 b=0 c=0
+  2: LoadLocalAttr line=53 pos=53:17-53:23 dst=2 a=0 b=1 c=3
+  3: LoadLocalAttr line=53 pos=53:26-53:33 dst=4 a=1 b=1 c=5
+  4: Mul line=53 pos=53:17-53:33 dst=6 a=2 b=4 c=0
+  5: LoadLocalAttr line=53 pos=53:38-53:44 dst=7 a=0 b=2 c=8
+  6: LoadLocalAttr line=53 pos=53:47-53:54 dst=9 a=1 b=2 c=10
+  7: Mul line=53 pos=53:38-53:54 dst=11 a=7 b=9 c=0
+  8: Add line=53 pos=53:9-53:76 dst=12 a=6 b=11 c=0
+  9: LoadLocalAttr line=53 pos=53:59-53:65 dst=13 a=0 b=3 c=14
+  10: LoadLocalAttr line=53 pos=53:68-53:75 dst=15 a=1 b=3 c=16
+  11: Mul line=53 pos=53:59-53:75 dst=17 a=13 b=15 c=0
+  12: Add line=53 pos=53:9-53:76 dst=18 a=12 b=17 c=0
+  13: Return line=53 pos=53:9-53:76 dst=0 a=18 b=0 c=0
+  14: ReturnConst line=0 pos=0:0-0:0 dst=0 a=0 b=0 c=0
+
