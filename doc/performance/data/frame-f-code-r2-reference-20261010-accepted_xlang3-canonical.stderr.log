@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\scratch\performance\frame-f-code-preexisting-identity-metadata-probe-proposed-20261010.py", line 35, in <module>
+    assert id(frame.f_code) == id(canonical_code)
+AssertionError

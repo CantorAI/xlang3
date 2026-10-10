@@ -1,0 +1,205 @@
+{
+  "schema": "frame-f-code-cache-r2-numeric-parent-integration-v1",
+  "status": "frozen_scratch_root_execution_proposal_unexecuted",
+  "controller": "scratch/performance/apply-build-frame-f-code-cache-r2-proposed-20261010.py",
+  "controller_sha256": "6964467891efcc7290702e04fd529f164834b247404231921216ec1882a0c31f",
+  "based_on": "Existing 259-line apply/build pattern; no new runtime or benchmark harness.",
+  "input_sha256": {
+    "scratch/performance/apply-build-two-argument-ir-lifetime-guard-20261010.py": "ac0a3356a616acada5200f25e884e4a8a19016957572c3ea4d14891803dc78ab",
+    "scratch/performance/frame-f-code-lazy-cache-r2-proposed-20261010-provenance.json": "4b7da282acf73b4eb3da569a28268b5c262fa95270c818d4d4f078f3555afbb0",
+    "scratch/performance/frame-f-code-lazy-cache-r2-proposed-20261010.patch": "39e79918d7c249623e61357fff6e562d06dc2edbf29e1164dda7fa4c4e38afd9",
+    "scratch/performance/check-frame-f-code-r2-reference-20261010.py": "7258d2a456ce2f8ef6fc8612d9ed939d91a7d5cdc181e1b3d0b07d19ea29fab6",
+    "scratch/performance/frame-f-code-preexisting-identity-metadata-probe-proposed-20261010.py": "6c27c8f42b72839186a5e0a6d1c31acda07e4486561008837756b69f117b74ea",
+    "scratch/performance/build-python-new-vm-continuation-r4-root-20261009.cmd": "2efd6c0b5662ca4cef35bd337077ecb3a13ad95e919c8e42ca4bcbd99a62dc8b",
+    "doc/performance/data/two-argument-double-ir-plan-r3-trial-20261010-application.json": "b6aec3660100c754eff3dea59a67ddd42f92842f57138cfe17fde7594181e02a",
+    "doc/performance/data/two-argument-double-ir-plan-r3-trial-20261010-build.json": "0e24b3ff4053f049c1febb43e49a22b3a9d8c99447839dac0e58af1b184eba0f",
+    "doc/performance/data/frame-f-code-r2-reference-20261010.json": "04a8c326a4393ad9ab7ee2dfc3c5d97e45a1c32d643aa378347cca5abacdb029",
+    "build-repro/controls/gc-generic-cycles-r7b-accepted-20261009/provenance.json": "aa2d9f715ad11e78ffa58024c10631c37e7d83d816c4a8cb0523f6469287547f",
+    "doc/performance/data/frame-f-code-r2-reference-20261010-cpython3147-fixture.stdout.log": "662627d99430f8331aae3b72d1341eb5af3c3167a372084abcb73f5e5d9d5369",
+    "doc/performance/data/frame-f-code-r2-reference-20261010-cpython3147-fixture.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "doc/performance/data/frame-f-code-r2-reference-20261010-cpython3147-canonical.stdout.log": "964703e30578db98ba598285ecd4e5c8ac48044f7ab7588e0d18d9aabe8c96f4",
+    "doc/performance/data/frame-f-code-r2-reference-20261010-cpython3147-canonical.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "doc/performance/data/frame-f-code-r2-reference-20261010-cpython3147-assigned_metadata.stdout.log": "04f50e26aebdf6e51b21bf65c4bb12e5703c1fe97e4e50c20a3375b9b83360f1",
+    "doc/performance/data/frame-f-code-r2-reference-20261010-cpython3147-assigned_metadata.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "doc/performance/data/frame-f-code-r2-reference-20261010-accepted_xlang3-fixture.stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "doc/performance/data/frame-f-code-r2-reference-20261010-accepted_xlang3-fixture.stderr.log": "0a8d654070fe5e1fc196b23d6b75ec8254f7af99359adaa3c17fc9f31e008189",
+    "doc/performance/data/frame-f-code-r2-reference-20261010-accepted_xlang3-canonical.stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "doc/performance/data/frame-f-code-r2-reference-20261010-accepted_xlang3-canonical.stderr.log": "89ac02ce3d0c6608ce9236847a3487aa13a85558c3626b393ec020925e84e941",
+    "doc/performance/data/frame-f-code-r2-reference-20261010-accepted_xlang3-assigned_metadata.stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "doc/performance/data/frame-f-code-r2-reference-20261010-accepted_xlang3-assigned_metadata.stderr.log": "c27ae239e5fd83818a14fa4c910b1c1759713bd48790a52c8e4308d641887030",
+    "doc/performance/data/frame-f-code-r2-reference-20261010-guarded_numeric_xlang3-fixture.stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "doc/performance/data/frame-f-code-r2-reference-20261010-guarded_numeric_xlang3-fixture.stderr.log": "0a8d654070fe5e1fc196b23d6b75ec8254f7af99359adaa3c17fc9f31e008189",
+    "doc/performance/data/frame-f-code-r2-reference-20261010-guarded_numeric_xlang3-canonical.stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "doc/performance/data/frame-f-code-r2-reference-20261010-guarded_numeric_xlang3-canonical.stderr.log": "89ac02ce3d0c6608ce9236847a3487aa13a85558c3626b393ec020925e84e941",
+    "doc/performance/data/frame-f-code-r2-reference-20261010-guarded_numeric_xlang3-assigned_metadata.stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "doc/performance/data/frame-f-code-r2-reference-20261010-guarded_numeric_xlang3-assigned_metadata.stderr.log": "c27ae239e5fd83818a14fa4c910b1c1759713bd48790a52c8e4308d641887030"
+  },
+  "head": "46496cf5ddb903e25927cce616c29c2f81032566",
+  "parent_basis": {
+    "numeric_gate_valid": false,
+    "accepted_control_unchanged": true,
+    "explicit_source_supplement": {
+      "path": "src/runtime/modules/system/weakref_module.cpp",
+      "sha256": "a4d0a52d7ffa14f48c9c0226c71c80b635720f4b7153658b2e6da25be269cb73",
+      "already_compiled_native_source": true,
+      "absent_from_parent145": true
+    },
+    "inherited_correctness": false,
+    "archive_source_count": 146,
+    "fixed_baseline_file_count": 177,
+    "original_recorded_source_count": 145,
+    "numeric_parent_accepted": false,
+    "release_file_count": 178
+  },
+  "source_population": {
+    "incremental_raw_existing_sha256": {
+      "src/runtime/object_model.cpp": "10806dd37498170b7172f469ca44d190698f85c0a6adb2bed104053df1c0fedc",
+      "tests/run_fixtures.ps1": "8c14e668af9555917be20e2e8f2ec04af5fa51050c2b46c89f7768f12882d9bb",
+      "src/internal/xlang3/value.h": "29c22ab3ede487e0bc96b1b2a836751d41285ee7a2498eae771408a4371c6959",
+      "src/runtime/modules/system/gc_module.cpp": "2704641de7f68f59c41341f067af924a07c8214d9a5f85b5dcffccf4cd2fc47a",
+      "tests/run_fixtures.py": "ab78aaa2eab17bcd95a429b940c170eba9eefd5c07126eafbebc4f3ee27e446b",
+      "src/runtime/modules/system/weakref_module.cpp": "a4d0a52d7ffa14f48c9c0226c71c80b635720f4b7153658b2e6da25be269cb73"
+    },
+    "incremental_owned_targets": [
+      "src/runtime/object_model.cpp",
+      "tests/fixtures/expected/frame_f_code_cache.out",
+      "tests/run_fixtures.ps1",
+      "src/internal/xlang3/value.h",
+      "src/runtime/modules/system/gc_module.cpp",
+      "tests/run_fixtures.py",
+      "src/runtime/modules/system/weakref_module.cpp",
+      "tests/fixtures/core/frame_f_code_cache.py"
+    ],
+    "cumulative_owned_targets": [
+      "src/executor/xlang_vm/ops/xlang_vm_ops_call.h",
+      "src/executor/xlang_vm/xlang_vm_inline_call.h",
+      "src/executor/xlang_vm/xlang_vm_op_rows.h",
+      "src/internal/xlang3/value.h",
+      "src/runtime/modules/system/gc_module.cpp",
+      "src/runtime/modules/system/weakref_module.cpp",
+      "src/runtime/object_model.cpp",
+      "tests/fixtures/core/frame_f_code_cache.py",
+      "tests/fixtures/core/two_argument_double_ir_plan.py",
+      "tests/fixtures/expected/frame_f_code_cache.out",
+      "tests/fixtures/expected/two_argument_double_ir_plan.out",
+      "tests/run_fixtures.ps1",
+      "tests/run_fixtures.py"
+    ],
+    "numeric_owned_target_count": 8,
+    "incremental_owned_target_count": 8,
+    "recorded_subset_limit": "Current guarded numeric trial145 plus explicit weakref_module.cpp supplement146; candidate adds exactly2 frame fixture files148. Recorded source subset, not complete compiler-input closure or accepted numeric performance claim.",
+    "candidate_recorded_source_count": 148,
+    "cumulative_owned_engine_count": 7,
+    "numeric_owned_targets": [
+      "src/executor/xlang_vm/ops/xlang_vm_ops_call.h",
+      "src/executor/xlang_vm/xlang_vm_inline_call.h",
+      "src/executor/xlang_vm/xlang_vm_op_rows.h",
+      "src/internal/xlang3/value.h",
+      "tests/run_fixtures.py",
+      "tests/run_fixtures.ps1",
+      "tests/fixtures/core/two_argument_double_ir_plan.py",
+      "tests/fixtures/expected/two_argument_double_ir_plan.out"
+    ],
+    "cumulative_owned_engine_paths": [
+      "src/executor/xlang_vm/ops/xlang_vm_ops_call.h",
+      "src/executor/xlang_vm/xlang_vm_inline_call.h",
+      "src/executor/xlang_vm/xlang_vm_op_rows.h",
+      "src/internal/xlang3/value.h",
+      "src/runtime/modules/system/gc_module.cpp",
+      "src/runtime/modules/system/weakref_module.cpp",
+      "src/runtime/object_model.cpp"
+    ],
+    "cumulative_owned_target_count": 13,
+    "incremental_candidate_sha256": {
+      "src/runtime/object_model.cpp": "99c0566083baceb242a886b2e696177413fc78e9de1aee00e9118aa9e594b9e4",
+      "tests/fixtures/expected/frame_f_code_cache.out": "2e3f8ca90f1a219f82b7405ce1931a145534440a81fb09f331d4d01d6c2e0917",
+      "tests/run_fixtures.ps1": "0c368aba813c4694e890379021f9c77811ceda571afb225caa078719dda3de18",
+      "src/internal/xlang3/value.h": "f85fa432da89e4cfbf8288ee47214df7ee075c12cc46576648394632ec5755c6",
+      "src/runtime/modules/system/gc_module.cpp": "437ee60a8a3deabf51d0024c93ad5e78e06be605f92be77dbe0b46176b785a75",
+      "tests/run_fixtures.py": "f49e244b4cc0256e6b4d44232d8d79c9ab68c42dfd48e49ca22fd6016f47b85d",
+      "src/runtime/modules/system/weakref_module.cpp": "8e5071fd1de61697be9584d22ec74c716f63b9ea5d3c2b0fa6bab52ef78c1298",
+      "tests/fixtures/core/frame_f_code_cache.py": "c59eb4b0869352fe2e2d9a140215d23a43432f997176d4a19cd08a97f104be17"
+    }
+  },
+  "preservation": {
+    "protected_input_sha256": {
+      "tests/cli/run_debugpy_launch_smoke.py": "dae4af562bc1d84a6983d91d5a7d4a0d96d000855aebfa07e872a8710d2221e8"
+    },
+    "numeric_unshared_paths_retained": "The three other numeric engine headers and numeric fixture/output remain byte exact; both numeric registrations remain present once.",
+    "rollback": "Restore only six overwritten targets and remove only two newly owned fixture files on application failure. Retain failed receipt and archive; never overwrite old evidence.",
+    "archive": "build-repro/controls/frame-f-code-cache-numeric-unaccepted-parent-20261010",
+    "before_any_owned_mutation": "Copy and verify complete source146, current Release178, all six supplied unowned tracked dirty files, exact nine-row reference evidence and proposal. Recheck parent before first write.",
+    "unowned_tracked_dirty_sha256": {
+      ".gitattributes": "4ebf3e1878183ec76a285bc0b2c482c875ee1d0dbbc288ad685edbdfa51f0e3d",
+      "CMakeLists.txt": "29126ab0246dd89f091b61c33bfa9edd463f4b5b8d81fa5b0129a1c1f890b855",
+      "benchmarks/diagnostics/native_vm_opcode_timer.h": "bb9a541a20b7a4265920ee5322ddf9285674a26a3807e625a026a6c9e3ad7453",
+      "src/internal/xlang3/builtins.h": "d5035976c1283a1cdeb6a0c838f7fe83ed754527eb465d140a804d31de26f681",
+      "tests/cpp/runtime_value_tests.cpp": "7b5ac4f61c3937985f374d506602866d81a15db9596914789345696772a5f261",
+      "tests/fixtures/core/sqlite_statement_cache.py": "d2ec917ab11e9c4f1e672bd0eef60c2aaa7400160cd6b6fb76ca6e151d2b3701"
+    },
+    "original145_map_separate_from_supplement146": true
+  },
+  "root_commands": [
+    "C:/Python/Python314/python.exe -I scratch/performance/apply-build-frame-f-code-cache-r2-proposed-20261010.py apply",
+    "C:/Python/Python314/python.exe -I scratch/performance/apply-build-frame-f-code-cache-r2-proposed-20261010.py build --application-sha256 <actual-application-sha256>"
+  ],
+  "outputs": {
+    "application": "doc/performance/data/frame-f-code-cache-r2-trial-20261010-application.json",
+    "archive_manifest": "build-repro/controls/frame-f-code-cache-numeric-unaccepted-parent-20261010/provenance.json",
+    "build": "doc/performance/data/frame-f-code-cache-r2-trial-20261010-build.json",
+    "build_log": "doc/performance/data/frame-f-code-cache-r2-trial-20261010-build.log"
+  },
+  "build_policy": {
+    "configure": false,
+    "timeout_seconds": 1800,
+    "fixed_release": "build-repro/main-verify-20261006/Release",
+    "command": [
+      "cmd.exe",
+      "/d",
+      "/c",
+      "D:/CantorAI/xlang3/scratch/performance/build-python-new-vm-continuation-r4-root-20261009.cmd"
+    ],
+    "new_build_directory": false,
+    "timeout_cleanup": "Held primary handle only; timeout never claims descendant cleanup or successful build."
+  },
+  "required_fresh_validation": {
+    "canonical_and_assigned_metadata": "R2 reference CP PASS / accepted and numeric X strict FAIL stays immutable. Re-run strict candidate probes as diagnostic evidence; do not weaken, register as xfail, or claim this cache fixes canonical identity or assigned metadata.",
+    "python": {
+      "fresh_for_combined_candidate": true,
+      "core": 408,
+      "compat": 11,
+      "expected_errors": 3
+    },
+    "candidate_fixture": "frame_f_code_cache: unchanged strict five CP-first groups",
+    "affected_originals": [
+      "coverage",
+      "raytrace"
+    ],
+    "no_numeric_correctness_reuse": true,
+    "gate": {
+      "strict_idle_watch_pre_during_post": true,
+      "warmup": 5,
+      "baseline": "build-repro/Release/xlang3.exe",
+      "unchanged_default_policy": true,
+      "threshold": 0.1,
+      "case_count": 11,
+      "repeats": 21
+    },
+    "performance_or_acceptance_claim": false,
+    "ctest": {
+      "all_actual_results_required": true,
+      "inventory": 55
+    },
+    "benchmark_body_changes": false,
+    "native_api_tests": 2
+  },
+  "preparation": {
+    "build_executed": false,
+    "git_index_changed": false,
+    "python_executed": false,
+    "engine_applied": false,
+    "ast_executed": false,
+    "runtime_executed": false,
+    "file_only_raw6_candidate8_hash_checks": "All matched during author preparation."
+  }
+}

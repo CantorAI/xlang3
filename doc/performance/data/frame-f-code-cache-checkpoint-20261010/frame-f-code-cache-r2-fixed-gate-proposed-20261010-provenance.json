@@ -1,0 +1,141 @@
+{
+  "schema": "frame-f-code-cache-r2-combined-fixed-gate-v1",
+  "status": "frozen_scratch_root_execution_proposal_unexecuted",
+  "controller": "scratch/performance/check-frame-f-code-cache-r2-fixed-gate-proposed-20261010.py",
+  "controller_sha256": "4f19f891f1829d3a915a550aa4c9d5a4f5d64870e78960e3c9b96b222974bf47",
+  "input_sha256": {
+    "scratch/performance/validate-two-argument-double-ir-plan-r2-trial-r7-gate-telemetry-proposed-20261010.py": "34f9e66330bbf8f3a674c8fc4448c494f3f9b3da4e84eca25b356c5bf0b3231e",
+    "scratch/performance/validate-two-argument-double-ir-plan-r2-trial-r7-gate-telemetry-proposed-20261010-provenance.json": "9f1ea68fd97907487250b50fa9cf27fa05748a04e818eb452f969e12622529a0",
+    "scratch/performance/gc-phase-dormant-msbuild-activity-watch-20261009.py": "6dea8abf4f66ff0d2a95830e4c560202359c57502f0f635ecf9e1dda5494bd48",
+    "scratch/performance/check-frame-f-code-cache-r2-correctness-proposed-20261010.py": "9c3cd1f0b60f1b8507df04d1789e3a8ddae722724c65a30a1dbc7ff856c123ff",
+    "scratch/performance/frame-f-code-cache-r2-correctness-proposed-20261010-provenance.json": "38802d19a94e3c6276af4113894c7926f287bd8145c46fe38295facc2a334d82",
+    "scratch/performance/apply-build-frame-f-code-cache-r2-proposed-20261010.py": "6964467891efcc7290702e04fd529f164834b247404231921216ec1882a0c31f",
+    "scratch/performance/frame-f-code-lazy-cache-r2-proposed-20261010-provenance.json": "4b7da282acf73b4eb3da569a28268b5c262fa95270c818d4d4f078f3555afbb0",
+    "doc/performance/data/frame-f-code-cache-r2-trial-20261010-application.json": "37f0cc99feec21b72481a257b287e92fb04ceb047f309aaaa6fe801338390f3a",
+    "doc/performance/data/frame-f-code-cache-r2-trial-20261010-build.json": "249f35338294c2e6a8e822ed107db3035e2c50b47b5dd46acdbfed26c607a081",
+    "doc/performance/data/frame-f-code-cache-r2-trial-20261010-build.log": "4698c375e40fabbe36485364a99eea64a57b51dcf94d5a607c0c96ebb7a2509e",
+    "doc/performance/data/frame-f-code-cache-r2-candidate-semantic-20261010.json": "dc9c6fd38888dbecb9ee4ef4be7d0d087a87d2a6414961f25086ced67eabcfb4",
+    "doc/performance/data/frame-f-code-cache-r2-correctness-20261010.json": "8d33f97d67b41d8d0566a8d2f44385fc34369d839787165940e69bbc4c1236db",
+    "build-repro/controls/frame-f-code-cache-numeric-unaccepted-parent-20261010/provenance.json": "2674c32475d96a907fe3c6bc9bd9e49b28cf5700b16bde21617b53d4032d7b13",
+    "benchmarks/check_regression.py": "579934598caddc37409fed03181b0cd42408853a34bde65dff48b777e4e8ffef",
+    "doc/performance/data/frame-f-code-cache-r2-correctness-20261010-python-fixtures.stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "doc/performance/data/frame-f-code-cache-r2-correctness-20261010-python-fixtures.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "doc/performance/data/frame-f-code-cache-r2-correctness-20261010-python-fixtures.external-process-observations.jsonl": "ab925fe62a5120e8b853dc744c4b0c1e3e354b03504a8a1afa67c090c98e5ddf",
+    "doc/performance/data/frame-f-code-cache-r2-correctness-20261010-ctest-inventory.stdout.log": "04c6656859881a021efd68ac170514336c8a6f997bd23ce3299663be0a792136",
+    "doc/performance/data/frame-f-code-cache-r2-correctness-20261010-ctest-inventory.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "doc/performance/data/frame-f-code-cache-r2-correctness-20261010-ctest-inventory.external-process-observations.jsonl": "dd481cd8efc81d8500630742ca306f386f5cdce87109beada6357040e74b47f0",
+    "doc/performance/data/frame-f-code-cache-r2-correctness-20261010-ctest-all55.stdout.log": "ab6239df0a91b038dcc81120b58cd50a04b045a05e0f4940430e6236a3e4eb64",
+    "doc/performance/data/frame-f-code-cache-r2-correctness-20261010-ctest-all55.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "doc/performance/data/frame-f-code-cache-r2-correctness-20261010-ctest-all55.external-process-observations.jsonl": "1c075b57ab11772cc41f43ebb1b531c2adea95e451364b75f1d6c86268d60d13",
+    "doc/performance/data/frame-f-code-cache-r2-correctness-20261010-probe-canonical.stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "doc/performance/data/frame-f-code-cache-r2-correctness-20261010-probe-canonical.stderr.log": "89ac02ce3d0c6608ce9236847a3487aa13a85558c3626b393ec020925e84e941",
+    "doc/performance/data/frame-f-code-cache-r2-correctness-20261010-probe-canonical.external-process-observations.jsonl": "99efdaddbdf2ccecd6e33f290e6ec36bc63d36c10da50d7d0473ff55b0159805",
+    "doc/performance/data/frame-f-code-cache-r2-correctness-20261010-probe-assigned_metadata.stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "doc/performance/data/frame-f-code-cache-r2-correctness-20261010-probe-assigned_metadata.stderr.log": "c27ae239e5fd83818a14fa4c910b1c1759713bd48790a52c8e4308d641887030",
+    "doc/performance/data/frame-f-code-cache-r2-correctness-20261010-probe-assigned_metadata.external-process-observations.jsonl": "1dbf0a33e6c5e524b1787d415492242e94e88354169d37ae83966f98808e449d",
+    "benchmarks/cases/local_slots.py": "7207d49fc38bc57f33d130f2287b78a81b0cac694cd1b8e3c9f93ec634f677f4",
+    "benchmarks/cases/scalar_arithmetic.py": "7261bd3010be2d8cd4353925f71f178bfa4ef2ecf01bb112df806216250df379",
+    "benchmarks/cases/range_for.py": "92698844ac9441a1ca412d945f4ab7d9dc7f7b0463c3a675864f31a2ec0209f5",
+    "benchmarks/cases/function_calls.py": "1c1f4935461cc230bceae7ca35bdec4ac1b5de019016f916e7889768a76cd7fa",
+    "benchmarks/cases/class_construct.py": "35a38b537ecce9db90c081eb9abde35367cda467b55716647bc31f255d443974",
+    "benchmarks/cases/list_append.py": "7ff1462c7ca1c9b4db197894dc720ae169069884027db0d56273b40a6a93ac4a",
+    "benchmarks/cases/property_access.py": "33cd28a3cccb7b9397b34b0d6bfdd53797ab437c67cd8a4057fdc309c8a4b3fe",
+    "benchmarks/cases/deepcopy_memo.py": "6cb2078356a1675d2daefad67337461c48023d6b9b335d022c5742c99edee5a3",
+    "benchmarks/cases/json_dumps.py": "90896a2162f10b795b132927deeaacc5ddbf185933aa63481bc0b1c9d18ce643",
+    "benchmarks/cases/gc_traversal.py": "778c764389c326a2be4232dd08eb53cc16ee67c5d71788618120aff551a68f81",
+    "benchmarks/cases/subparsers.py": "287ce7d9c6eb4489c6eebd33986d8923143a88016ba4c5e7bab14b73a24282a1"
+  },
+  "root_command_without_worker_exception": "C:/Python/Python314/python.exe -I scratch/performance/check-frame-f-code-cache-r2-fixed-gate-proposed-20261010.py --application doc/performance/data/frame-f-code-cache-r2-trial-20261010-application.json --application-sha256 37f0cc99feec21b72481a257b287e92fb04ceb047f309aaaa6fe801338390f3a --build doc/performance/data/frame-f-code-cache-r2-trial-20261010-build.json --build-sha256 249f35338294c2e6a8e822ed107db3035e2c50b47b5dd46acdbfed26c607a081 --semantic-receipt doc/performance/data/frame-f-code-cache-r2-candidate-semantic-20261010.json --semantic-sha256 dc9c6fd38888dbecb9ee4ef4be7d0d087a87d2a6414961f25086ced67eabcfb4 --correctness-receipt doc/performance/data/frame-f-code-cache-r2-correctness-20261010.json --correctness-sha256 8d33f97d67b41d8d0566a8d2f44385fc34369d839787165940e69bbc4c1236db",
+  "default_output_prefix": "frame-f-code-cache-r2-fixed-gate-20261010",
+  "current_combined_lineage": {
+    "unowned_tracked_dirty_paths": 6,
+    "inherited_old_numeric_correctness": false,
+    "current_correctness_sha256": "8d33f97d67b41d8d0566a8d2f44385fc34369d839787165940e69bbc4c1236db",
+    "source_count": 148,
+    "fixed_baseline_file_count": 177,
+    "numeric_parent_accepted": false,
+    "protected_debugpy_input": 1,
+    "release_file_count": 178,
+    "archived_unaccepted_numeric_source_count": 146
+  },
+  "authentication": {
+    "fixture_counts": [
+      408,
+      11,
+      3
+    ],
+    "all_prior_source_test_release_baseline_archive_pins_rechecked": true,
+    "no_correctness_execution": true,
+    "ctest_actual_passes": 55,
+    "no_benchmark_modes": true,
+    "all_prior_raw_stdout_stderr_and_watch_hashes": true,
+    "producers": [
+      "6964467891efcc7290702e04fd529f164834b247404231921216ec1882a0c31f",
+      "9c3cd1f0b60f1b8507df04d1789e3a8ddae722724c65a30a1dbc7ff856c123ff"
+    ],
+    "canonical_assigned_strict_failures_retained": true,
+    "api_actual_results": 2,
+    "fresh_correctness_phase_names": [
+      "python-fixtures",
+      "ctest-inventory",
+      "ctest-all55"
+    ]
+  },
+  "fixed_gate": {
+    "cases": [
+      "local_slots",
+      "scalar_arithmetic",
+      "range_for",
+      "function_calls",
+      "class_construct",
+      "list_append",
+      "property_access",
+      "deepcopy_memo",
+      "json_dumps",
+      "gc_traversal",
+      "subparsers"
+    ],
+    "case_count": 11,
+    "baseline": "build-repro/Release/xlang3.exe",
+    "threshold": 0.1,
+    "settings_changed": false,
+    "controller_sha256": "579934598caddc37409fed03181b0cd42408853a34bde65dff48b777e4e8ffef",
+    "arrays": "Every retained attempt has21 baseline and21 candidate values; all11 final statuses must pass.",
+    "warmup": 5,
+    "repeats": 21,
+    "candidate": "build-repro/main-verify-20261006/Release/xlang3.exe",
+    "manager_cap_seconds": 1800
+  },
+  "activity_policy": {
+    "optional_worker_policy": "Explicit one hash-pinned proof, unchanged R7 structural/raw snapshot authentication and one immutable CPU baseline. No automatic admission, no per-phase reset, no foreign CTest/build/runtime allowance.",
+    "limit": "One-second scanner can miss short external processes between snapshots; no precise CPU accounting claim.",
+    "failure_telemetry": "Exact offending scan only, inherited R7 mechanism; failures remain latched.",
+    "helper_sha256": "6dea8abf4f66ff0d2a95830e4c560202359c57502f0f635ecf9e1dda5494bd48",
+    "phase_lf_block_exactly_reused": true,
+    "owned_console_cleanup_wait_seconds": 10,
+    "known_worker_flags": [
+      "--known-worker-proof",
+      "--known-worker-sha256"
+    ],
+    "pre_during_post_guards": true,
+    "actual_exception_used": "Derived from observed dormant_worker_rows; requested is separate from actual use.",
+    "Activity_source_sha256": "34f9e66330bbf8f3a674c8fc4448c494f3f9b3da4e84eca25b356c5bf0b3231e",
+    "default_worker_admission": "None; strict build/test/runtime scanner policy."
+  },
+  "preservation": {
+    "builds": false,
+    "full_validated_claim": false,
+    "original_benchmark_completed_claim": false,
+    "engine_edits": false,
+    "full_closure_expansion": false,
+    "raw_streams_and_partial_gate_output_retained": true,
+    "existing_correctness_receipt_and_negative_probe_flags_unchanged": true
+  },
+  "preparation": {
+    "git_index_changed": false,
+    "ast_executed": false,
+    "gate_executed": false,
+    "process_scan_executed": false,
+    "python_executed": false
+  }
+}

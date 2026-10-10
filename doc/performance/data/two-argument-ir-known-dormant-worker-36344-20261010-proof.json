@@ -1,0 +1,41 @@
+{
+  "schema": "numeric-ir-dormant-msbuild-proof-v1",
+  "terminal": true,
+  "passed": true,
+  "helper_sha256": "6dea8abf4f66ff0d2a95830e4c560202359c57502f0f635ecf9e1dda5494bd48",
+  "worker": {
+    "Name": "MSBuild.exe",
+    "ProcessId": 36344,
+    "ParentProcessId": 35084,
+    "CreationDate": "/Date(1791613031161)/",
+    "KernelModeTime": 33437500,
+    "UserModeTime": 82812500,
+    "CommandLine": "\"C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\MSBuild\\Current\\Bin\\amd64\\MSBuild.exe\" /noautoresponse /nologo /nodemode:1 /nodeReuse:true /low:false"
+  },
+  "children": [
+    {
+      "Name": "conhost.exe",
+      "ProcessId": 6212,
+      "ParentProcessId": 36344,
+      "CreationDate": "/Date(1791613031169)/",
+      "KernelModeTime": 156250,
+      "UserModeTime": 0,
+      "CommandLine": ""
+    }
+  ],
+  "observations": [
+    {
+      "observed_utc": "2026-10-10T06:23:46.518204+00:00",
+      "raw_path": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\two-argument-ir-known-dormant-worker-36344-20261010-snapshot-1.json",
+      "raw_sha256": "f818abf8686ee627e2bb1fb069bfb04dceeeedae546a5f085dadcfa77cb14f45"
+    },
+    {
+      "observed_utc": "2026-10-10T06:23:49.060484+00:00",
+      "raw_path": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\two-argument-ir-known-dormant-worker-36344-20261010-snapshot-2.json",
+      "raw_sha256": "d2ed53af275a4385dea7b7cdaabeb60bb17ff2ae0a9f850a103f966cabd59726"
+    }
+  ],
+  "controller_sha256": "1600ced298047d8055f8c83dc60661e31e0d88ed1b3baecdf775c0493a43699e",
+  "refusal_receipt_sha256": "ef275d59e3e805f449cf27a9b5fbf70a451b2ddd63d950ab29c4bcb9b7224acc",
+  "scope": "Only this orphan reusable worker identity and unchanged cumulative CPU; all other active jobs remain forbidden. Not a machine-idle or launch certificate."
+}

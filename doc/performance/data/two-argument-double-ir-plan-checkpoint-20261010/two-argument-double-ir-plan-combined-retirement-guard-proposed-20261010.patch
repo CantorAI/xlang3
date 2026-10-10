@@ -1,0 +1,88 @@
+diff --git a/src/executor/xlang_vm/xlang_vm_inline_call.h b/src/executor/xlang_vm/xlang_vm_inline_call.h
+index 5dc5d835..8b12ce99 100644
+--- a/src/executor/xlang_vm/xlang_vm_inline_call.h
++++ b/src/executor/xlang_vm/xlang_vm_inline_call.h
+@@ -563,10 +563,33 @@ inline bool xlang_vm_try_two_argument_double_method(
+   InstanceObject* instances[2] = {value_as_instance(inputs[0]), value_as_instance(inputs[1])};
+   for (auto* instance : instances) {
+     if (instance == nullptr || instance->native_get_attr != nullptr ||
++        !instance->native_type.empty() || instance->native_data != nullptr ||
++        instance->native_owner != nullptr || instance->native_data_cleanup != nullptr ||
++        instance->native_gc_traverse != nullptr || !instance->native_gc_references.empty() ||
++        instance->mapping_storage.tag == ValueTag::Object ||
++        instance->sequence_storage.tag == ValueTag::Object ||
+         instance_slot_count(instance) != 0 ||
+         value_as_dict(instance_attribute_storage(*instance)) != nullptr) return false;
++    // An otherwise-unused owned payload can observe destruction too. Only
++    // immediate values and callback-free native immutable leaves may retire
++    // with a frame-elided receiver; reject weakref roles on those leaves.
++    for (const auto& attr : instance->attrs) {
++      const auto& payload = attr.second;
++      if (payload.tag != ValueTag::Object) continue;
++      const auto* object = payload.as.obj;
++      if (object == nullptr ||
++          (object->kind != ObjectKind::String && object->kind != ObjectKind::Bytes) ||
++          (object->gc_tracking_state.load(std::memory_order_relaxed) &
++           kObjectWeakrefFlagsMask) != 0) return false;
++    }
+     const auto* klass = value_as_class(instance->klass);
+     if (klass == nullptr || klass->has_getattribute_hook) return false;
++    // A frame-elided call cannot move observable input retirement. Reuse the
++    // version-cached release-finalizer predicate; weakref roles need only an
++    // atomic header check, without locking or consulting the weakref registry.
++    if ((instance->header.gc_tracking_state.load(std::memory_order_relaxed) &
++         kObjectWeakrefFlagsMask) != 0 ||
++        class_has_release_finalizer(instance->klass)) return false;
+   }
+   auto* guarded_instance = instances[guard_call.a];
+   const auto& guard_name = method.names[guard_call.b];
+diff --git a/src/executor/xlang_vm/ops/xlang_vm_ops_call.h b/src/executor/xlang_vm/ops/xlang_vm_ops_call.h
+index 67a87371..8eae6190 100644
+--- a/src/executor/xlang_vm/ops/xlang_vm_ops_call.h
++++ b/src/executor/xlang_vm/ops/xlang_vm_ops_call.h
+@@ -1296,7 +1296,9 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
+               cache.function != nullptr && call_arg_regs.size() == 1 &&
+               !call_args.has_keywords() && !call_args.has_expansion()) {
+             Value planned_result;
+-            if (xlang_vm_try_two_argument_double_method(runtime, module,
++            // Keep ordinary frame-completion retirement for an old object output.
++            if (regs[in.dst].tag != ValueTag::Object &&
++                xlang_vm_try_two_argument_double_method(runtime, module,
+                     *cache.function, regs[in.a], regs[call_arg_regs[0]], planned_result, vm_frame_count)) {
+               value_assign_fast(regs[in.dst], planned_result);
+               return XlangVMOpFlow::Next;
+@@ -1624,7 +1626,9 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
+           if (call_arg_regs.size() == 1 && !call_args.has_keywords() &&
+               !call_args.has_expansion()) {
+             Value planned_result;
+-            if (xlang_vm_try_two_argument_double_method(runtime, module,
++            // Keep ordinary frame-completion retirement for an old object output.
++            if (regs[in.dst].tag != ValueTag::Object &&
++                xlang_vm_try_two_argument_double_method(runtime, module,
+                     *fn_obj, regs[in.a], regs[call_arg_regs[0]], planned_result, vm_frame_count)) {
+               value_assign_fast(regs[in.dst], planned_result);
+               return XlangVMOpFlow::Next;
+@@ -1797,7 +1801,9 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
+           if (call_arg_regs.size() == 1 && !call_args.has_keywords() &&
+               !call_args.has_expansion()) {
+             Value planned_result;
+-            if (xlang_vm_try_two_argument_double_method(runtime, module,
++            // Keep ordinary frame-completion retirement for an old object output.
++            if (regs[in.dst].tag != ValueTag::Object &&
++                xlang_vm_try_two_argument_double_method(runtime, module,
+                     *fn_obj, regs[in.a], regs[call_arg_regs[0]], planned_result, vm_frame_count)) {
+               value_assign_fast(regs[in.dst], planned_result);
+               return XlangVMOpFlow::Next;
+diff --git a/src/internal/xlang3/value.h b/src/internal/xlang3/value.h
+index c5cb705e..e58bbb37 100644
+--- a/src/internal/xlang3/value.h
++++ b/src/internal/xlang3/value.h
+@@ -1243,6 +1243,8 @@ std::string value_to_string(const Value& value);
+ std::string value_to_repr(const Value& value);
+ bool value_truthy(const Value& value);
+ bool value_finalize_temporary_instance(Runtime& runtime, const Value& value);
++// Shared version-cached finalizer predicate used by release and guarded execution.
++bool class_has_release_finalizer(const Value& klass_value);
+ const char* value_binary_type_name(const Value& value);
+ 
+ bool value_add(const Value& lhs, const Value& rhs, Value& out, std::string& error);

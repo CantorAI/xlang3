@@ -6,3 +6,8 @@
 /data/vm-active-code-view* -text
 /data/raytrace-original-worker-ir* -text
 /data/coverage-f-code-allocation* -text
+/data/two-argument-* -text
+/data/two-argument-double-ir-plan-checkpoint-20261010/** -text
+/data/frame-f-code-* -text
+/data/frame-f-code-cache-checkpoint-20261010/** -text
+/data/coverage-frame-f-code-* -text

@@ -1,0 +1,133 @@
+{
+  "schema": "frame-f-code-cache-r2-original-official-fast20-cap-r2-v1",
+  "status": "frozen_scratch_root_execution_proposal_unexecuted",
+  "controller": "scratch/performance/measure-frame-f-code-cache-r2-original-official-cap-r2-proposed-20261010.py",
+  "controller_sha256": "3bd39e9fb415ecee2dc9cc9a2b1b2ccf54a76856195795b414e79242a6b06aa4",
+  "input_sha256": {
+    "scratch/performance/measure-two-argument-ir-original-raytrace-r4-proposed-20261010.py": "89f62dbde84ef785d555b7f3f28cfe20595fba1a95febc653dcf9fe6c8b44967",
+    "scratch/performance/run-gc-r7b-all97-per-definition-ledger-proposed-20261009.py": "48fafce1a804f1970c63e20ce47c66f593686d2df98f2c678ea8a56ec987e4b6",
+    "scratch/performance/run-gc-r7b-all97-ownership-supplement-r3-proposed-20261009.py": "517113f30f85dc73c62434865e564e2bca6a21331ef988dc438f10ceb4416f53",
+    "scratch/performance/gc-phase-dormant-msbuild-activity-watch-20261009.py": "6dea8abf4f66ff0d2a95830e4c560202359c57502f0f635ecf9e1dda5494bd48",
+    "scratch/performance/check-frame-f-code-cache-r2-fixed-gate-proposed-20261010.py": "4f19f891f1829d3a915a550aa4c9d5a4f5d64870e78960e3c9b96b222974bf47",
+    "benchmarks/diagnostics/run_pyperformance_xlang3_shimmed.py": "c078ee77d5d66165f0bf4b2d782df56e71868ada827c81c5c53516c8d017ceaf",
+    "benchmarks/diagnostics/pyperf_compat/sitecustomize.py": "2ffc217fe20497156bfcb1cebc7fb87203f33c6d4d3dbb6ecbcbcf91ea4cb317",
+    "benchmarks/diagnostics/preserve_pyperformance_partial.py": "0dfbc86863421165ecfda246b17dcc4846a41306a49aaf346456b78273bf7c06",
+    "doc/performance/data/frame-f-code-cache-r2-trial-20261010-application.json": "37f0cc99feec21b72481a257b287e92fb04ceb047f309aaaa6fe801338390f3a",
+    "doc/performance/data/frame-f-code-cache-r2-trial-20261010-build.json": "249f35338294c2e6a8e822ed107db3035e2c50b47b5dd46acdbfed26c607a081",
+    "doc/performance/data/frame-f-code-cache-r2-candidate-semantic-20261010.json": "dc9c6fd38888dbecb9ee4ef4be7d0d087a87d2a6414961f25086ced67eabcfb4",
+    "doc/performance/data/frame-f-code-cache-r2-correctness-20261010.json": "8d33f97d67b41d8d0566a8d2f44385fc34369d839787165940e69bbc4c1236db",
+    "doc/performance/data/frame-f-code-cache-r2-fixed-gate-r2-20261010.json": "8040c95e3317039e5db4bcc68c90ce0d171e86a777d7da32d75b85dad120551b",
+    "doc/performance/data/frame-f-code-cache-r2-fixed-gate-r2-20261010-fixed-gate.json": "544521ca1cc10e955ab6449b23f2f37504da1c1728d8487240c4706b2ac0c759",
+    "build-repro/controls/gc-generic-cycles-r7b-accepted-20261009/provenance.json": "aa2d9f715ad11e78ffa58024c10631c37e7d83d816c4a8cb0523f6469287547f",
+    "scratch/performance/frame-f-code-cache-r2-original-official-proposed-20261010-provenance.json": "33d0dd7447b18b110a0f0deb5234c9e257be2f208c9ab47bee90bcfc0cd12e69",
+    "scratch/performance/measure-frame-f-code-cache-r2-original-official-proposed-20261010.py": "d8144cedf6c8974d6d2ae55cb6da4149ca05b6693b80c16c551d56ad5fe03e06",
+    "doc/performance/data/frame-f-code-cache-r2-original-coverage-20261010.json": "ce090d9230a032087ce933d0b5bf731e2ebdcae43a4cd447066a059261d548ed",
+    "doc/performance/data/frame-f-code-cache-r2-original-coverage-20261010-control.stdout.log": "62c09552eae847a928fc59b845c8e4d2a43830ff4eff25e90f6ea741d7f46d21",
+    "doc/performance/data/frame-f-code-cache-r2-original-coverage-20261010-control.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "root_commands_without_worker_exception": [
+    "C:/Python/Python314/python.exe -I scratch/performance/measure-frame-f-code-cache-r2-original-official-cap-r2-proposed-20261010.py coverage --application doc/performance/data/frame-f-code-cache-r2-trial-20261010-application.json --application-sha256 37f0cc99feec21b72481a257b287e92fb04ceb047f309aaaa6fe801338390f3a --build doc/performance/data/frame-f-code-cache-r2-trial-20261010-build.json --build-sha256 249f35338294c2e6a8e822ed107db3035e2c50b47b5dd46acdbfed26c607a081 --focus doc/performance/data/frame-f-code-cache-r2-candidate-semantic-20261010.json --focus-sha256 dc9c6fd38888dbecb9ee4ef4be7d0d087a87d2a6414961f25086ced67eabcfb4 --correctness doc/performance/data/frame-f-code-cache-r2-correctness-20261010.json --correctness-sha256 8d33f97d67b41d8d0566a8d2f44385fc34369d839787165940e69bbc4c1236db --gate doc/performance/data/frame-f-code-cache-r2-fixed-gate-r2-20261010.json --gate-sha256 8040c95e3317039e5db4bcc68c90ce0d171e86a777d7da32d75b85dad120551b --prefix frame-f-code-cache-r2-original-coverage-cap900-r2-20261010"
+  ],
+  "selected_definitions": {
+    "coverage": {
+      "original_operation": "Original coverage.Coverage start, fibonacci25, stop; original pyperf loop count and timer unchanged. Original tracing is intrinsic benchmark work.",
+      "source": "C:/Python/Python314/Lib/site-packages/pyperformance/data-files/benchmarks/bm_coverage/run_benchmark.py",
+      "pyproject_sha256": "a13963c75f871130a042e485abf9b171c77b70e339ddb074a9fb47defc1f0a77",
+      "source_sha256": "19da183fabd314c1374a9bbc541142300669d30d2b9e129d4378dc836b181de6"
+    },
+    "raytrace": {
+      "width": 100,
+      "source": "C:/Python/Python314/Lib/site-packages/pyperformance/data-files/benchmarks/bm_raytrace/run_benchmark.py",
+      "pyproject_sha256": "b003d38fa3d472ac4a67a0e692160ba3e87c0b2dc60b94737767a79da45f159c",
+      "height": 100,
+      "source_sha256": "88ef4d9060d8e8f6ce40f376477aaf89cc808fa44813225a3071a05a1467f017"
+    }
+  },
+  "execution": {
+    "hook_sha256": "2ffc217fe20497156bfcb1cebc7fb87203f33c6d4d3dbb6ecbcbcf91ea4cb317",
+    "dependency_site": "venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages",
+    "automatic_retries": false,
+    "runner": "benchmarks/diagnostics/run_pyperformance_xlang3_shimmed.py",
+    "definitions_only": [
+      "coverage",
+      "raytrace"
+    ],
+    "values_per_runtime": 20,
+    "mode": "fast",
+    "library_or_body_changes": false,
+    "counter_replica_prefilter_modes": false,
+    "child_invocations_per_definition": 2,
+    "manager_child_cap_seconds": {
+      "raytrace": 420,
+      "coverage": 960
+    },
+    "full_case_cap_seconds": {
+      "raytrace": 300,
+      "coverage": 900
+    },
+    "runner_sha256": "c078ee77d5d66165f0bf4b2d782df56e71868ada827c81c5c53516c8d017ceaf",
+    "per_definition_runtime_order": [
+      "accepted_R7b_control",
+      "combined_candidate"
+    ]
+  },
+  "lineage": {
+    "candidate_release_count": 178,
+    "fresh_combined_correctness_required": true,
+    "numeric_parent_accepted": false,
+    "candidate_recorded_source_count": 148,
+    "old_numeric_live_source145_required": false,
+    "threshold": 0.1,
+    "accepted_control_source_count": 143,
+    "gate_counts": [
+      11,
+      21,
+      5
+    ],
+    "fixed_baseline_file_count": 177,
+    "fresh_same_combined_default_gate": "8040c95e3317039e5db4bcc68c90ce0d171e86a777d7da32d75b85dad120551b",
+    "accepted_control_release_count": 178
+  },
+  "borrowed_phase": {
+    "changes": "Add one indentation level; selected original name/unit guard supports coverage, raytrace100x100 guard retained; rename official_values_accepted field. Official branch remains fixed; CLI cannot select counter or body-prefilter paths. R2 changes only coverage case cap300→900 and manager cap420→960. Raytrace remains300/420; no other controller code changes.",
+    "source_sha256": "89f62dbde84ef785d555b7f3f28cfe20595fba1a95febc653dcf9fe6c8b44967",
+    "optional_worker": "Explicit path+SHA proof only, R4 pure-file binder and one helper CPU baseline for the whole manager. Default NONE; no new active-worker exclusion or automatic admission.",
+    "mean_reader": "Exactly20 positive finite pyperf values from one original benchmark; statistics.mean.",
+    "timing": "Existing strict pre/launch/during/post activity and identity guards unchanged; failure remains invalid with all raw files/partial outputs retained.",
+    "source": "measure-two-argument-ir-original-raytrace-r4-proposed-20261010.py",
+    "ancestry": "Existing R3 birth-aware ownership class and held-process-handle cleanup unchanged."
+  },
+  "output_defaults": [
+    "doc/performance/data/frame-f-code-cache-r2-original-coverage-cap900-r2-20261010.json"
+  ],
+  "provenance_limits": [
+    "Recorded source148 and Release178 identities; accepted source143/Release178; selected benchmark and complete non-bytecode SITE/pyperf/pyperformance trees are checked at root execution. Not complete compiler or CPython stdlib closure.",
+    "Sequential official accepted-X/combined-X comparison is unpaired and not a cache-only causal estimate. CP comparison remains a separate future task; full97 is not refreshed.",
+    "Inherited canonical-code and assigned-code metadata strict failures remain preserved and unrepaired."
+  ],
+  "preparation": {
+    "python_executed": false,
+    "build_executed": false,
+    "engine_edits": false,
+    "ast_executed": false,
+    "benchmark_executed": false,
+    "process_scans": false,
+    "git_edits": false
+  },
+  "bounded_cap_delta": {
+    "sample_count_and_workload_unchanged": true,
+    "actual_control_timeout_receipt": "doc/performance/data/frame-f-code-cache-r2-original-coverage-20261010.json",
+    "parent_controller_sha256": "d8144cedf6c8974d6d2ae55cb6da4149ca05b6693b80c16c551d56ad5fe03e06",
+    "inverse_two_replacements_recovers_entire_parent_text": true,
+    "actual_control_timeout_receipt_sha256": "ce090d9230a032087ce933d0b5bf731e2ebdcae43a4cd447066a059261d548ed",
+    "automatic_retries": false,
+    "changed_source_lines": 2,
+    "parent_controller": "scratch/performance/measure-frame-f-code-cache-r2-original-official-proposed-20261010.py",
+    "parent_proof": "scratch/performance/frame-f-code-cache-r2-original-official-proposed-20261010-provenance.json",
+    "raytrace_caps_unchanged": true,
+    "parent_proof_sha256": "33d0dd7447b18b110a0f0deb5234c9e257be2f208c9ab47bee90bcfc0cd12e69",
+    "failed_attempt_preserved": true,
+    "reason": "Original accepted-control coverage exhausted300s full-case cap after seven dots, with valid activity watch and unchanged input hashes. Candidate was not launched.",
+    "fresh_prefix_required": "Root command explicitly supplies fresh cap900-r2 prefix; default inherited prefix remains protected from overwriting R1."
+  }
+}

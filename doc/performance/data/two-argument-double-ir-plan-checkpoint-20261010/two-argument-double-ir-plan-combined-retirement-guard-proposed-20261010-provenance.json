@@ -1,0 +1,58 @@
+{
+  "schema": "two-argument-double-ir-combined-retirement-guard-scratch-proposal",
+  "status": "frozen_static_only_root_application_compile_and_validation_pending",
+  "patch": "scratch/performance/two-argument-double-ir-plan-combined-retirement-guard-proposed-20261010.patch",
+  "patch_sha256": "4434d547291c71f0c61d0608fd4f46de0f3bd6803ce37f8529858c9a6756a184",
+  "candidate_root": "scratch/performance/two-argument-double-ir-plan-combined-retirement-guard-proposed-20261010-candidates",
+  "owned_paths": [
+    "src/executor/xlang_vm/xlang_vm_inline_call.h",
+    "src/executor/xlang_vm/ops/xlang_vm_ops_call.h",
+    "src/internal/xlang3/value.h"
+  ],
+  "raw_before_sha256": {
+    "src/executor/xlang_vm/xlang_vm_inline_call.h": "d6abbad220b259ee33f7868a54b21ee6b5db776f2971ac73635fef030de4c16c",
+    "src/executor/xlang_vm/ops/xlang_vm_ops_call.h": "d315925229e74af8770ee56b5da667d845fd66a33441e9b1bb1f6a613b8fe476",
+    "src/internal/xlang3/value.h": "b3b88f529eb86acc117ccf5fbf61ac44e6572a96189d60389d1c6728c9bf75b1"
+  },
+  "candidate_sha256": {
+    "src/executor/xlang_vm/xlang_vm_inline_call.h": "8522b3e6b493e91d182dd16c20ae1cebab8ffff152ccdf1e3a4daf6143dcaeb4",
+    "src/executor/xlang_vm/ops/xlang_vm_ops_call.h": "228f954953c19e23c526750c43effb71abeb6333be7658063a6032a42484c8d4",
+    "src/internal/xlang3/value.h": "29c22ab3ede487e0bc96b1b2a836751d41285ee7a2498eae771408a4371c6959"
+  },
+  "net_trial_scope": "Root composes this current-R2 delta with existing original3 engine headers; value.h increases net owned engines to4. All targets already belong to recorded source145; no new recorded input or registered fixture.",
+  "guards": [
+    "Only immediate attrs or native String/Bytes leaves without weakref-role flags. Unknown/null Object payloads and other Object kinds decline.",
+    "Native type/data/owner/cleanup/native-GC payload or owned mapping/sequence Object storage declines; ordinary all-Double attrs remain eligible.",
+    "Receiver inherited __del__ uses unchanged existing version-cached predicate; receiver weakref roles decline without registry locking.",
+    "All three numeric helper invocation sites decline if old caller destination has Object tag, before helper invocation, preserving ordinary frame-completion retirement."
+  ],
+  "owned_declaration": "value.h: one comment and identical bool class_has_release_finalizer(const Value& klass_value) declaration only. Preserve all existing dirty working bytes; stage only owned hunk.",
+  "implementation_pin": {
+    "src/runtime/value.cpp": "18be33a526dbcc6627490a12a68aefc9e168d42afbf238ce38fa240e74bba0e0"
+  },
+  "linkage": "Existing external definition value.cpp1665, cross-TU GC call and current exported symbol; no new implementation/cachefield/export required.",
+  "preserved_proposals": {
+    "direct_patch": "64d32b511f1a228a7472f29b608c8b8a1fcd0e6d6feb0c8bfc4a5fe586084664",
+    "cached_patch": "e8d40658f3b421b8853ccef38a5b9a85f90461e24756b5a96173c59f70851189",
+    "cached_proof": "47b1bff1da87965fc7c21cb0b9d57d8ce1f0e4c7e9184287b5a10c22c13356d1"
+  },
+  "root_reported_evidence_sha256": {
+    "original_lifetime": "e180d4069d2521e5d994610549c5c357b9090cfa5706da106f206917e974d14e",
+    "alias": "bfd5aecaff018b543a434feb068a7762e87f69b66735dbaa6a76491e2bb278fb",
+    "replacement": "56338dcc5f8b1a77dc84341ba458c4805b4395912a401268d49f60c3c19633bf",
+    "owned_payload_r1": "6e9c7593de160ed90f499f1142f94b2de1b49d78dcd09d8ec40dcf5e29915a1a",
+    "owned_payload_r2": "c695cc9a33913741bdf90a8639711b61d656a9e3bf04eb7b2a5e8e4560cba1c4"
+  },
+  "evidence_limits": "Original temporary CP passes while both X fail with different caller names. Alias allpass; output replacement CPpass/bothXfail identically. Payload CPpass/bothXfail; actual observation is masked by preexisting lifetime/error behavior. No sorting defect or exact payload finalizer-context cause is inferred. No assertion weakened.",
+  "validation_pending": [
+    "Independent exact guard/patch static review.",
+    "Root apply/build, strict8 fresh same-candidate semantic results, original lifetime control-relative comparison preserving CP baseline mismatch.",
+    "Fresh full correctness/all55/API2, unchanged fixed11gate21/5/.10 and meaningful original raytrace measurements because admission changed."
+  ],
+  "author_actions": {
+    "tracked_source_edits": false,
+    "Python_AST_runtime_build": false,
+    "Git_mutations": false
+  },
+  "limits": "Conservative guards for identified direct/payload/output retirement boundaries; no claim to repair generic finalizer reentry, caller-locals publication, canonical frame metadata or full CP lifetime parity."
+}

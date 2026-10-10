@@ -1,0 +1,12 @@
+{
+  "terminal": true,
+  "passed": false,
+  "scored": false,
+  "child_processes_launched": 0,
+  "controller_sha256": "481be4d30fbd629c4a6f189a052feb66af2af82f33d38f726fea6b959cb9129f",
+  "status": "preflight_pin_collision_with_xlang_python314_proxy",
+  "mismatched_prior_reference_paths": [
+    "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\python.exe"
+  ],
+  "scope": "Harness preflight only; no candidate lifetime observation produced."
+}

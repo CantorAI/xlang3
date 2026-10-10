@@ -4213,7 +4213,13 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       if (frame->module == nullptr) {
         value_set_none(out);
       } else {
-        out = Value::code(frame->module, frame->function_id);
+        // A frame retains its original IR across function.__code__ writes and
+        // suspension. Cache only its existing materialization; do not consult
+        // the mutated function or introduce a Runtime-wide owning code cache.
+        if (frame->code_object.tag == ValueTag::Invalid) {
+          frame->code_object = Value::code(frame->module, frame->function_id);
+        }
+        value_assign_fast(out, frame->code_object);
       }
       return true;
     }

@@ -1199,6 +1199,8 @@ void visit_strong_object_edges(Object* object, Object* cycle_root, Visit visit) 
     edge(value->doc);
     edge(value->name);
   } else if (auto* value = value_as_frame(borrowed)) {
+    // Match the frame's lazy owning f_code edge in strong-component accounting.
+    edge(value->code_object);
     edge(value->globals_module);
     edge(value->locals);
     for (const auto& item : value->local_snapshot) edge(item);

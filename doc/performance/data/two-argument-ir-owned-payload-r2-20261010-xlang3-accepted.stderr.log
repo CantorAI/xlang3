@@ -1,0 +1,7 @@
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\scratch\performance\two-argument-ir-owned-payload-probe-r2-proposed-20261010.py", line 31, in <module>
+    invoke_temporary()
+    ~~~~~~~~~~~~~~~~^^
+  File "D:\CantorAI\xlang3\scratch\performance\two-argument-ir-owned-payload-probe-r2-proposed-20261010.py", line 29, in invoke_temporary
+    assert len(events) == 2 and ('other', 'invoke_temporary') in events and ('self', 'invoke_temporary') in events, events
+_frozen_importlib.ModuleSpec: <_frozen_importlib.ModuleSpec object at 0x23a526703e0>

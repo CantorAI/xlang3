@@ -1,0 +1,77 @@
+{
+  "schema": "two-argument-double-ir-plan-engine-r2-fixture-r3",
+  "status": "scratch_frozen_pending_independent_review_CP_reference_build_and_route_evidence",
+  "patch": "scratch/performance/two-argument-double-ir-plan-r2-proposed-20261009.patch",
+  "patch_sha256": "da97037a0d0ae7c764b17bcc9e4784b36f7b73265a8186f268e57c0f95ad8bfa",
+  "candidate_root": "scratch/performance/two-argument-double-ir-plan-r2-proposed-20261009-candidates",
+  "raw_input_root": "scratch/performance/two-argument-double-ir-plan-r2-proposed-20261009-raw-inputs",
+  "owned_engine_paths": [
+    "src/executor/xlang_vm/xlang_vm_inline_call.h",
+    "src/executor/xlang_vm/ops/xlang_vm_ops_call.h",
+    "src/executor/xlang_vm/xlang_vm_op_rows.h"
+  ],
+  "input_sha256": {
+    "src/executor/xlang_vm/xlang_vm_inline_call.h": "f6038df4eecca5e26c4eb8eef40b165e5bb082adf39735d6d7808bfdb36f13bf",
+    "src/executor/xlang_vm/ops/xlang_vm_ops_call.h": "263882e8ed1e41f60a0addd3df2370edad00655aa5d86f4d8611a53e5f5a7574",
+    "src/executor/xlang_vm/xlang_vm_op_rows.h": "f8994fb30fa11e3c08ed4c06724772a1d6e211a14ecd8cac6e112c5897bb95d4"
+  },
+  "candidate_sha256": {
+    "src/executor/xlang_vm/xlang_vm_inline_call.h": "d6abbad220b259ee33f7868a54b21ee6b5db776f2971ac73635fef030de4c16c",
+    "src/executor/xlang_vm/ops/xlang_vm_ops_call.h": "d315925229e74af8770ee56b5da667d845fd66a33441e9b1bb1f6a613b8fe476",
+    "src/executor/xlang_vm/xlang_vm_op_rows.h": "18cb8de4a0c4b25080fdaaed78f6ab11b4ff5eac69b03875e5ba0cffb17c4903"
+  },
+  "source_subset_only": true,
+  "live_owned_input_bytes_unchanged": true,
+  "design": "scratch/performance/two-argument-double-ir-plan-engine-r2-fixture-r3-proposed-20261009-design.md",
+  "design_sha256": "effa56566cf511df9a658e786d85a8260aa079867378ba5e9e2209452e18976b",
+  "fixture": "scratch/performance/two-argument-double-ir-plan-fixture-r3-proposed-20261009.py",
+  "fixture_sha256": "406434854572605d6e699d54bcd2c1b9b524b1f403aeec70f7190c5f57b514f4",
+  "proposed_expected_output": "scratch/performance/two-argument-double-ir-plan-fixture-r3-proposed-20261009.out",
+  "proposed_expected_sha256": "154e54becd1e12cb2d4a8461bc8739f786a9a9136a1cbec8be8bf40ad6adaeac",
+  "fixture_groups": 8,
+  "fixture_output_observed": false,
+  "runtime_eligibility_observed": false,
+  "preserved_r1_patch": "D:\\CantorAI\\xlang3\\scratch\\performance\\two-argument-double-ir-plan-proposed-20261009.patch",
+  "preserved_r1_patch_sha256": "2dc36cef33be9b4db3ac0a6e382e23b2d0b89464acc306fc86cc48cecf0400eb",
+  "preserved_r1_proof": "scratch/performance/two-argument-double-ir-plan-proposed-20261009-provenance.json",
+  "preserved_r1_proof_sha256": "e3cd47558feaaaac7b37b7e98914890aa522d124c3b0659b3eb2d77d8134e57f",
+  "preserved_fixture_r2_proof": "scratch/performance/two-argument-double-ir-plan-r2-proposed-20261009-provenance.json",
+  "preserved_fixture_r2_proof_sha256": "6d45d5542deb1a673198d33b29f96ab57c0fe89cc5f116538fae5cf457aedd51",
+  "preserved_fixture_r2": "scratch/performance/two-argument-double-ir-plan-fixture-r2-proposed-20261009.py",
+  "preserved_fixture_r2_sha256": "201cd7c2ada28a95627c21cb7840b162dae83affbb88207b26321ff9d6c97811",
+  "runtime_observation": "scratch/performance/raytrace-original-worker-ir-20261009/receipt.json",
+  "runtime_observation_sha256": "d77f921ef071dce2e6c52b9fd7a66d13fd2df873c9cacd0bc91eb21444241a6e",
+  "dot_ir_sha256": "961328dcbb170793917ac5b84497732a6d68a4ba93fb850067c892957607228f",
+  "history_sha256": {
+    "doc/performance/double-arithmetic-fastpath-trial-20261006.md": "4137561eead9b433dbcce53cb8002fbd6a3f021a99e9f7eb9084448f3c447fc0",
+    "doc/performance/polymorphic-user-function-call-trial-20260930.md": "c82c5507a9dacd1fd84900701a4e5590535133338dd3e321d6fb7daec8f743da",
+    "doc/performance/raytrace-specialization-comparison-20261006.md": "b21da7652fa91ea911469f4b100513fa83f875a02e894f3e1e85e037e24a5702",
+    "doc/performance/generic-exact-call-trial-20261006.md": "65a5ce6c61ed1413dd629532109ca9722e1bc8905b4112852bd90357a263aab6",
+    "scratch/performance/inline-call-binding.patch": "820222ac691840ae4e8f4819d9cf2c15ff4dee3873c4bc2a9a0db3d55229195a",
+    "scratch/performance/inline-bound-forwarder.patch": "1c8500d0d707fb12eac26502c293120e5a376bd63f96fbc7e66033804dc0cd92",
+    "scratch/performance/polymorphic-python-call-cache-experiment.patch": "47ee399949cc7fefb29689f2fb562474737613404c2f2f1665cb7c7933283494"
+  },
+  "recursion_guard": "unknown-zero declines; two-frame headroom under min(limit,1024) using subtraction of current VM count and saved Python depth",
+  "auxiliary_register_guard": "LoadLocalAttr dst/c are actual-count bounded fresh distinct writes; aux/call-result nonnumeric; arithmetic only previously defined numeric regs",
+  "new_cache_or_ABI_fields": false,
+  "persistent_user_owners_added": false,
+  "compiler_lowering_or_IR_changed": false,
+  "author_runtime_or_AST_or_build_execution": false,
+  "performance_claim": false,
+  "root_CP_reference_command": [
+    "C:/Python/Python314/python.exe",
+    "-I",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\two-argument-double-ir-plan-fixture-r3-proposed-20261009.py"
+  ],
+  "root_candidate_fixture_command": [
+    "D:/CantorAI/xlang3/build-repro/main-verify-20261006/Release/xlang3.exe",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\two-argument-double-ir-plan-fixture-r3-proposed-20261009.py"
+  ],
+  "validation_limits": [
+    "No build/AST/runtime performed by author",
+    "Eight-group transcript unobserved until root CP-first run",
+    "Actual eligible-call coverage unknown",
+    "Uncached lookup/scan cost and unchanged original raytrace gain unmeasured",
+    "Full original gate required before acceptance"
+  ]
+}

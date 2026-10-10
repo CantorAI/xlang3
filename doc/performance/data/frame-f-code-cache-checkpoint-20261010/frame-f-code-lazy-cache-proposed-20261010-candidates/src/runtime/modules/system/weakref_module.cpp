@@ -1,0 +1,2055 @@
+/*
+Copyright (C) 2026 CantorAI Inc. and The XLang Foundation
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+#include "xlang3/builtins.h"
+#include "xlang3/interpreter_events.h"
+
+#include "xlang3/attribute.h"
+#include "xlang3/builtin_methods.h"
+#include "xlang3/functional_iterators.h"
+#include "xlang3/generator.h"
+#include "xlang3/mapping.h"
+#include "xlang3/module_object.h"
+#include "xlang3/object_model.h"
+#include "xlang3/sequence.h"
+#include "xlang3/set_object.h"
+#include "xlang3/value_hash.h"
+
+#include <algorithm>
+#include <atomic>
+#include <cstring>
+#include <deque>
+#include <mutex>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
+
+namespace xlang3 {
+
+namespace {
+
+static constexpr const char* kWeakrefCallbackAttr = "__xlang3_weakref_callback__";
+static constexpr const char* kWeakrefHashAttr = "__xlang3_weakref_hash__";
+Value weakref_reference_type_value = Value::invalid();
+std::atomic_uint64_t weakref_reference_type_version{0};
+
+struct WeakrefEntry {
+  Object* ref = nullptr;
+  Object* target = nullptr;
+};
+
+static constexpr const char* kDequeNativeType = "_collections.deque";
+static constexpr const char* kDequeIteratorNativeType = "_collections.deque_iterator";
+
+struct DequeState {
+  std::recursive_mutex mutex;
+  std::deque<Value> items;
+  int64_t maxlen;
+  uint64_t version;
+};
+
+struct DequeIteratorState {
+  Value deque;
+  uint64_t version;
+  size_t index;
+  bool reverse;
+};
+
+std::vector<WeakrefEntry>& weakref_registry() {
+  static auto* refs = new std::vector<WeakrefEntry>();
+  return *refs;
+}
+
+// These indexes contain raw pointers, just like the enumeration registry:
+// neither the referent nor the reference is kept alive. All accesses share
+// weakref_registry_mutex, and invalidation removes keys before memory reuse.
+// Keep enumeration separate so collector traversal and callback order retain
+// their existing behavior; ordinary ref reuse/dereference must not scan every
+// unrelated weak reference imported by a Python library such as inspect.
+std::unordered_map<Object*, Object*>& weakref_target_by_reference() {
+  static auto* targets = new std::unordered_map<Object*, Object*>();
+  return *targets;
+}
+
+std::unordered_map<Object*, std::vector<Object*>>& weakref_references_by_target() {
+  static auto* references = new std::unordered_map<Object*, std::vector<Object*>>();
+  return *references;
+}
+
+// Caller holds the registry lock. Erase preserves registration order within a
+// target, including the reverse registration order used for callbacks.
+void remove_weakref_target_index(Object* target, Object* reference) {
+  if (target == nullptr) return;
+  auto& index = weakref_references_by_target();
+  auto found = index.find(target);
+  if (found == index.end()) return;
+  auto& references = found->second;
+  references.erase(std::remove(references.begin(), references.end(), reference), references.end());
+  if (references.empty()) index.erase(found);
+}
+
+std::recursive_mutex& weakref_registry_mutex() {
+  static auto* mutex = new std::recursive_mutex();
+  return *mutex;
+}
+
+bool weakref_retain_if_alive(Object* object, Value& out) {
+  if (object == nullptr) return false;
+  if (object->kind == ObjectKind::String &&
+      string_object_is_immortal(*reinterpret_cast<StringObject*>(object))) {
+    Value retained;
+    retained.tag = ValueTag::Object;
+    retained.flags = 0;
+    retained.as.obj = object;
+    out = std::move(retained);
+    return true;
+  }
+  uint32_t count = object->refcnt.load(std::memory_order_acquire);
+  while (count != 0 && count != UINT32_MAX) {
+    if (object->refcnt.compare_exchange_weak(
+            count, count + 1, std::memory_order_acq_rel,
+            std::memory_order_acquire)) {
+      Value retained;
+      retained.tag = ValueTag::Object;
+      retained.flags = 0;
+      retained.as.obj = object;
+      out = std::move(retained);
+      return true;
+    }
+  }
+  return false;
+}
+
+std::vector<Value>& pending_weakref_callbacks() {
+  static auto* callbacks = new std::vector<Value>();
+  return *callbacks;
+}
+
+std::mutex& pending_weakref_callbacks_mutex() {
+  static auto* mutex = new std::mutex();
+  return *mutex;
+}
+
+std::atomic<bool>& pending_weakref_callbacks_flag() {
+  static auto* flag = new std::atomic<bool>(false);
+  return *flag;
+}
+
+bool weakrefable_target(const Value& value) {
+  if (value.tag != ValueTag::Object || value.as.obj == nullptr) {
+    return false;
+  }
+  if (auto* instance = value_as_instance(value)) {
+    auto* klass = value_as_class(instance->klass);
+    return klass == nullptr || klass->allow_weakref;
+  }
+  return true;
+}
+
+bool weakref_target_matches(const Value& ref, const Value& target) {
+  Value ref_target;
+  return weakref_get_target(ref, ref_target) && value_is(ref_target, target);
+}
+
+void register_weakref_instance(const Value& ref, const Value& target) {
+  std::lock_guard lock(weakref_registry_mutex());
+  auto& refs = weakref_registry();
+  Object* ref_pointer = ref.tag == ValueTag::Object ? ref.as.obj : nullptr;
+  Object* target_pointer = target.tag == ValueTag::Object ? target.as.obj : nullptr;
+  if (ref_pointer != nullptr)
+    ref_pointer->gc_tracking_state.fetch_or(
+        kObjectWeakrefReferenceFlag, std::memory_order_release);
+  if (target_pointer != nullptr)
+    target_pointer->gc_tracking_state.fetch_or(
+        kObjectWeakrefTargetFlag, std::memory_order_release);
+  auto& targets = weakref_target_by_reference();
+  auto found = targets.find(ref_pointer);
+  if (found != targets.end()) {
+    if (found->second == target_pointer) return;
+    remove_weakref_target_index(found->second, ref_pointer);
+    found->second = target_pointer;
+    // Reinitialization is rare; preserve the enumeration entry's original
+    // position instead of changing global callback registration order.
+    for (auto& existing : refs) {
+      if (existing.ref == ref_pointer) {
+        existing.target = target_pointer;
+        break;
+      }
+    }
+  } else {
+    refs.push_back({ref_pointer, target_pointer});
+    targets.emplace(ref_pointer, target_pointer);
+  }
+  if (target_pointer != nullptr)
+    weakref_references_by_target()[target_pointer].push_back(ref_pointer);
+}
+
+std::vector<Value> weakref_candidates_for_target(Object* target) {
+  std::vector<Value> candidates;
+  std::lock_guard lock(weakref_registry_mutex());
+  const auto& index = weakref_references_by_target();
+  const auto found = index.find(target);
+  if (found == index.end()) return candidates;
+  candidates.reserve(found->second.size());
+  for (Object* reference : found->second) {
+    Value candidate;
+    if (weakref_retain_if_alive(reference, candidate))
+      candidates.push_back(std::move(candidate));
+  }
+  return candidates;
+}
+
+Value weakref_reference_type(Runtime& runtime);
+Value weakref_proxy_type(Runtime& runtime);
+Value weakref_callable_proxy_type(Runtime& runtime);
+
+bool weakref_reference_new(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 2 || argc > 3) {
+    error = "weakref.ReferenceType.__new__() expected a type, object, and optional callback";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  auto* requested_class = value_as_class(args[0]);
+  auto* reference_class = value_as_class(weakref_reference_type(runtime));
+  if (requested_class == nullptr || reference_class == nullptr ||
+      !class_is_subclass(requested_class, reference_class)) {
+    error = "weakref.ReferenceType.__new__() first argument must be a subtype of ReferenceType";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (!weakrefable_target(args[1])) {
+    error = "cannot create weak reference to object";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if ((argc == 2 || args[2].tag == ValueTag::None) && value_is(args[0], weakref_reference_type(runtime)) && args[1].tag == ValueTag::Object) {
+    for (const auto& candidate : weakref_candidates_for_target(args[1].as.obj)) {
+      auto* instance = value_as_instance(candidate);
+      if (instance == nullptr || !value_is(instance->klass, args[0])) continue;
+      Value callback;
+      std::string ignored;
+      if (object_get_attr(candidate, kWeakrefCallbackAttr, callback, ignored) && callback.tag == ValueTag::None) {
+        value_assign_fast(out, candidate);
+        return true;
+      }
+    }
+  }
+  out = Value::instance(args[0]);
+  if (!object_set_attr(out, kWeakrefCallbackAttr, argc == 3 ? args[2] : Value::none(), error)) {
+    return false;
+  }
+  register_weakref_instance(out, args[1]);
+  return true;
+}
+
+bool weakref_reference_new_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg*,
+    uint32_t,
+    Value& out,
+    std::string& error,
+    void*) {
+  // ReferenceType's object and callback parameters are positional-only.
+  // Subclasses may consume additional keywords in their __init__ method; the
+  // base allocator ignores those keywords, as CPython's weakref type does.
+  if (argc >= 1 && !value_is(args[0], weakref_reference_type(runtime))) {
+    return weakref_reference_new(runtime, args, argc, out, error, nullptr);
+  }
+  error = "weakref.ReferenceType.__new__() takes no keyword arguments";
+  runtime.raise_class_error("TypeError", error);
+  return false;
+}
+bool weakref_reference_call(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "weakref object expected no arguments";
+    return false;
+  }
+  Value target;
+  if (!weakref_get_target(args[0], target)) {
+    value_set_none(out);
+    return true;
+  }
+  value_assign_fast(out, target);
+  return true;
+}
+
+bool weakref_reference_callback(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "weakref.ReferenceType.__callback__ getter expected a reference";
+    return false;
+  }
+  std::string ignored;
+  if (!object_get_attr(args[0], kWeakrefCallbackAttr, out, ignored)) {
+    value_set_none(out);
+  }
+  return true;
+}
+
+bool weakref_reference_repr(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "weakref.ReferenceType.__repr__() expected self";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value target;
+  if (!weakref_get_target(args[0], target)) {
+    out = Value::string("<weakref; dead>");
+    return true;
+  }
+  Value type;
+  if (!runtime_type_of_value(runtime, target, type)) {
+    return false;
+  }
+  auto* klass = value_as_class(type);
+  const std::string name = klass == nullptr ? value_to_string(type) : klass->name;
+  out = Value::string("<weakref to '" + name + "'>");
+  return true;
+}
+bool weakref_reference_hash(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "weakref.__hash__() expected self";
+    return false;
+  }
+  std::string ignored;
+  if (object_get_attr(args[0], kWeakrefHashAttr, out, ignored)) return true;
+  Value target;
+  if (!weakref_get_target(args[0], target)) {
+    error = "weak object has gone away";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  size_t hash = 0;
+  if (value_as_instance(target) != nullptr) {
+    Value hash_method;
+    std::string attr_error;
+    if (object_get_attr(target, "__hash__", hash_method, attr_error)) {
+      if (hash_method.tag == ValueTag::None) {
+        error = "unhashable type";
+        runtime.raise_class_error("TypeError", error);
+        return false;
+      }
+      if (!runtime_call_callable(runtime, hash_method, nullptr, 0, out, error)) {
+        return false;
+      }
+      if (out.tag != ValueTag::Int64) {
+        error = "__hash__ method should return an integer";
+        runtime.raise_class_error("TypeError", error);
+        return false;
+      }
+      hash = static_cast<size_t>(out.as.i64);
+    } else if (!value_hash_key(target, hash, error)) {
+      return false;
+    }
+  } else if (!value_hash_key(target, hash, error)) {
+    return false;
+  }
+  out = Value::int64(static_cast<int64_t>(hash));
+  Value self = args[0];
+  (void)object_set_attr(self, kWeakrefHashAttr, out, ignored);
+  return true;
+}
+
+bool weakref_reference_compare(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    Value& out,
+    std::string& error,
+    const char* op) {
+  if (argc != 2) {
+    error = "weakref comparison expected one argument";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (value_is(args[0], args[1])) {
+    value_set_bool(out, std::string_view(op) == "==");
+    return true;
+  }  Value left_target;
+  if (!weakref_get_target(args[0], left_target)) {
+    const bool equal = value_is(args[0], args[1]);
+    value_set_bool(out, std::string_view(op) == "==" ? equal : !equal);
+    return true;
+  }
+  auto* right_instance = value_as_instance(args[1]);
+  auto* right_class = right_instance == nullptr ? nullptr : value_as_class(right_instance->klass);
+  auto* reference_class = value_as_class(weakref_reference_type(runtime));
+  if (right_class == nullptr || reference_class == nullptr ||
+      !class_is_subclass(right_class, reference_class)) {
+    const Value* not_implemented = runtime.find_builtin("NotImplemented");
+    if (not_implemented == nullptr) {
+      error = "NotImplemented is unavailable";
+      return false;
+    }
+    value_assign_fast(out, *not_implemented);
+    return true;
+  }
+  Value right_value;
+  if (!weakref_get_target(args[1], right_value)) {
+    const bool equal = value_is(args[0], args[1]);
+    value_set_bool(out, std::string_view(op) == "==" ? equal : !equal);
+    return true;
+  }
+  if (std::string_view(op) == "!=") {
+    Value equal;
+    if (!runtime_value_compare(runtime, "==", left_target, right_value, equal, error)) {
+      return false;
+    }
+    bool truth = false;
+    if (!runtime_truthy(runtime, equal, truth, error)) {
+      return false;
+    }
+    value_set_bool(out, !truth);
+    return true;
+  }
+  return runtime_value_compare(runtime, op, left_target, right_value, out, error);
+}
+
+bool weakref_reference_order(Runtime& runtime, const Value*, uint32_t, Value&, std::string& error, void*) {
+  error = "weakref objects are not orderable";
+  runtime.raise_class_error("TypeError", error);
+  return false;
+}
+bool weakref_reference_eq(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return weakref_reference_compare(runtime, args, argc, out, error, "==");
+}
+
+bool weakref_reference_ne(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return weakref_reference_compare(runtime, args, argc, out, error, "!=");
+}
+
+bool weakref_reference_init(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 2 || argc > 3) {
+    error = "weakref.ReferenceType() expected object and optional callback";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (!weakrefable_target(args[1])) {
+    error = "cannot create weak reference to object";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value existing_target;
+  if (!weakref_get_target(args[0], existing_target)) {
+    Value self = args[0];
+    if (!object_set_attr(self, kWeakrefCallbackAttr, argc == 3 ? args[2] : Value::none(), error)) {
+      return false;
+    }
+    register_weakref_instance(self, args[1]);
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool weakref_reference_class_getitem(
+    Runtime& runtime, const Value* args, uint32_t argc,
+    Value& out, std::string& error, void*) {
+  if (argc != 2 || value_as_class(args[0]) == nullptr) {
+    error = "ReferenceType.__class_getitem__ expects a class and one argument";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value parameters;
+  if (value_as_tuple(args[1]) != nullptr) value_assign_fast(parameters, args[1]);
+  else parameters = Value::tuple({args[1]});
+  out = Value::generic_alias(args[0], std::move(parameters));
+  return true;
+}
+
+Value weakref_reference_type(Runtime& runtime) {
+  if (weakref_reference_type_value.tag != ValueTag::Invalid) {
+    return weakref_reference_type_value;
+  }
+  std::vector<std::pair<std::string, Value>> attrs;
+  attrs.push_back({"__module__", Value::string("weakref")});
+  attrs.push_back({"__xlang3_compact_repr__", Value::boolean(true)});
+  attrs.push_back({"__class_getitem__", Value::class_method(
+      runtime.make_native_function(
+          "weakref.ReferenceType.__class_getitem__",
+          weakref_reference_class_getitem))});
+  attrs.push_back({"__new__", Value::static_method(
+      runtime.make_native_function(
+          "weakref.ReferenceType.__new__", weakref_reference_new,
+          nullptr, nullptr, nullptr, false, weakref_reference_new_kw))});
+  attrs.push_back({"__init__", runtime.make_native_function("weakref.ReferenceType.__init__", weakref_reference_init)});
+  attrs.push_back({"__call__", runtime.make_native_function(
+      "weakref.ReferenceType.__call__", weakref_reference_call, nullptr, nullptr,
+      builtin_method_fast_adapter<weakref_reference_call, 1>)});
+  attrs.push_back({"__callback__", Value::property(
+      runtime.make_native_function("weakref.ReferenceType.__callback__", weakref_reference_callback),
+      Value::none(), Value::none(), Value::none())});
+  attrs.push_back({"__hash__", runtime.make_native_function("weakref.ReferenceType.__hash__", weakref_reference_hash)});
+  attrs.push_back({"__repr__", runtime.make_native_function("weakref.ReferenceType.__repr__", weakref_reference_repr)});
+  attrs.push_back({"__str__", runtime.make_native_function("weakref.ReferenceType.__str__", weakref_reference_repr)});
+  attrs.push_back({"__eq__", runtime.make_native_function("weakref.ReferenceType.__eq__", weakref_reference_eq)});
+  attrs.push_back({"__ne__", runtime.make_native_function("weakref.ReferenceType.__ne__", weakref_reference_ne)});
+  attrs.push_back({"__lt__", runtime.make_native_function("weakref.ReferenceType.__lt__", weakref_reference_order)});
+  attrs.push_back({"__le__", runtime.make_native_function("weakref.ReferenceType.__le__", weakref_reference_order)});
+  attrs.push_back({"__gt__", runtime.make_native_function("weakref.ReferenceType.__gt__", weakref_reference_order)});
+  attrs.push_back({"__ge__", runtime.make_native_function("weakref.ReferenceType.__ge__", weakref_reference_order)});
+  Value object_base = Value::invalid();
+  if (const auto* builtin_object = runtime.find_builtin("object")) {
+    value_assign_fast(object_base, *builtin_object);
+  }
+  weakref_reference_type_value = Value::class_object("ReferenceType", std::move(attrs), std::move(object_base));
+  if (auto* reference_class = value_as_class(weakref_reference_type_value)) {
+    reference_class->restrict_instance_attrs = true;
+    reference_class->allow_instance_dict = false;
+    reference_class->allow_weakref = false;
+    class_forget_slot_declarations(reference_class);
+    reference_class->instance_slot_names = {kWeakrefCallbackAttr, kWeakrefHashAttr};
+    reference_class->instance_slot_indices.clear();
+    for (size_t i = 0; i < reference_class->instance_slot_names.size(); ++i) {
+      reference_class->instance_slot_indices[reference_class->instance_slot_names[i]] =
+          static_cast<uint32_t>(i);
+    }
+    weakref_reference_type_version.store(reference_class->version, std::memory_order_relaxed);
+  }
+  return weakref_reference_type_value;
+}
+
+bool weakref_ref(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1 || argc > 2) {
+    error = "weakref.ref() expected object and optional callback";
+    return false;
+  }
+  if (!weakrefable_target(args[0])) {
+    error = "cannot create weak reference to object";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if ((argc == 1 || args[1].tag == ValueTag::None) && args[0].tag == ValueTag::Object) {
+    const Value reference_type = weakref_reference_type(runtime);
+    for (const auto& candidate : weakref_candidates_for_target(args[0].as.obj)) {
+      auto* instance = value_as_instance(candidate);
+      if (instance == nullptr || !value_is(instance->klass, reference_type)) continue;
+      Value callback;
+      std::string ignored;
+      if (object_get_attr(candidate, kWeakrefCallbackAttr, callback, ignored) && callback.tag == ValueTag::None) {
+        value_assign_fast(out, candidate);
+        return true;
+      }
+    }
+  }
+  out = make_weakref_ref(runtime, args[0]);
+  if (argc == 2) {
+    return object_set_attr(out, kWeakrefCallbackAttr, args[1], error);
+  } else {
+    return object_set_attr(out, kWeakrefCallbackAttr, Value::none(), error);
+  }
+}
+
+bool weakref_proxy_getattr(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2 || value_as_string(args[1]) == nullptr) {
+    error = "weak proxy attribute name must be str";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value target;
+  if (!weakref_get_target(args[0], target)) {
+    error = "weakly-referenced object no longer exists";
+    runtime.raise_class_error("ReferenceError", error);
+    return false;
+  }
+  if (!object_get_attr(
+          target,
+          string_object_to_string(*value_as_string(args[1])),
+          out,
+          error)) {
+    runtime.raise_class_error("AttributeError", error);
+    return false;
+  }
+  return true;
+}
+
+bool weakref_proxy_setattr(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 3 || value_as_string(args[1]) == nullptr) {
+    error = "weak proxy attribute name must be str";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value target;
+  if (!weakref_get_target(args[0], target)) {
+    error = "weakly-referenced object no longer exists";
+    runtime.raise_class_error("ReferenceError", error);
+    return false;
+  }
+  Value mutable_target = target;
+  if (!object_set_attr(
+          mutable_target,
+          string_object_to_string(*value_as_string(args[1])),
+          args[2],
+          error)) {
+    return false;
+  }
+  value_assign_fast(out, args[2]);
+  return true;
+}
+
+bool weakref_proxy_delattr(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2 || value_as_string(args[1]) == nullptr) {
+    error = "weak proxy attribute name must be str";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value target;
+  if (!weakref_get_target(args[0], target)) {
+    error = "weakly-referenced object no longer exists";
+    runtime.raise_class_error("ReferenceError", error);
+    return false;
+  }
+  Value mutable_target = target;
+  if (!object_delete_attr(
+          mutable_target,
+          string_object_to_string(*value_as_string(args[1])),
+          error)) {
+    return false;
+  }
+  value_set_none(out);
+  return true;
+}
+
+bool weakref_proxy_forward(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* data) {
+  if (argc < 1 || data == nullptr) {
+    error = "weak proxy special method expected self";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value target;
+  if (!weakref_get_target(args[0], target)) {
+    error = "weakly-referenced object no longer exists";
+    runtime.raise_class_error("ReferenceError", error);
+    return false;
+  }
+  const char* method_name = static_cast<const char*>(data);
+  if (std::strcmp(method_name, "__next__") == 0 && argc == 1) {
+    Value iterator = target;
+    bool done = false;
+    if (!sequence_iter_next(iterator, done, out, error)) {
+      error = "Weakref proxy referenced a non-iterator";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    if (done) {
+      error = "";
+      runtime.raise_class_error("StopIteration", error);
+      return false;
+    }
+    return true;
+  }
+  Value method;
+  if (!object_get_attr(target, method_name, method, error)) {
+    if (argc == 2 && std::strcmp(method_name, "__add__") == 0) {
+      error.clear();
+      return value_add(target, args[1], out, error);
+    }
+    if (argc == 2 && std::strcmp(method_name, "__radd__") == 0) {
+      error.clear();
+      return value_add(args[1], target, out, error);
+    }
+    if (std::strcmp(method_name, "__bool__") != 0) return false;
+    Value length_method;
+    std::string ignored;
+    if (!object_get_attr(target, "__len__", length_method, ignored)) {
+      value_set_bool(out, true);
+      return true;
+    }
+    Value length;
+    if (!runtime_call_callable(runtime, length_method, nullptr, 0, length, error)) return false;
+    bool truth = false;
+    if (!runtime_truthy(runtime, length, truth, error)) return false;
+    value_set_bool(out, truth);
+    return true;
+  }
+  return runtime_call_callable(runtime, method, args + 1, argc - 1, out, error);
+}
+
+bool weakref_proxy_hash(Runtime& runtime, const Value*, uint32_t, Value&, std::string& error, void*) {
+  error = "unhashable type: 'weakref.ProxyType'";
+  runtime.raise_class_error("TypeError", error);
+  return false;
+}
+
+bool weakref_callable_proxy_call(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1) {
+    error = "weak callable proxy expected self";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value target;
+  if (!weakref_get_target(args[0], target)) {
+    error = "weakly-referenced object no longer exists";
+    runtime.raise_class_error("ReferenceError", error);
+    return false;
+  }
+  return runtime_call_callable(runtime, target, args + 1, argc - 1, out, error);
+}
+
+bool weakref_proxy_contains(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "weak proxy __contains__ expected self and item";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value target;
+  if (!weakref_get_target(args[0], target)) {
+    error = "weakly-referenced object no longer exists";
+    runtime.raise_class_error("ReferenceError", error);
+    return false;
+  }
+  Value method;
+  std::string ignored;
+  if (object_get_attr(target, "__contains__", method, ignored)) {
+    return runtime_call_callable(runtime, method, args + 1, 1, out, error);
+  }
+  std::vector<Value> items;
+  if (!runtime_collect_iterable(runtime, target, items, error)) return false;
+  for (const auto& candidate : items) {
+    Value equal;
+    if (!runtime_value_compare(runtime, "==", candidate, args[1], equal, error)) return false;
+    bool matches = false;
+    if (!runtime_truthy(runtime, equal, matches, error)) return false;
+    if (matches) {
+      value_set_bool(out, true);
+      return true;
+    }
+  }
+  value_set_bool(out, false);
+  return true;
+}
+
+bool weakref_callable_proxy_call_kw(
+    Runtime& runtime,
+    const Value* args,
+    uint32_t argc,
+    const NativeKeywordArg* kwargs,
+    uint32_t kwargc,
+    Value& out,
+    std::string& error,
+    void*) {
+  if (argc < 1) {
+    error = "weak callable proxy expected self";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  Value target;
+  if (!weakref_get_target(args[0], target)) {
+    error = "weakly-referenced object no longer exists";
+    runtime.raise_class_error("ReferenceError", error);
+    return false;
+  }
+  std::vector<std::pair<std::string, Value>> forwarded;
+  forwarded.reserve(kwargc);
+  for (uint32_t i = 0; i < kwargc; ++i) {
+    if (kwargs[i].name == nullptr || kwargs[i].value == nullptr) {
+      error = "weak callable proxy received invalid keyword argument";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    forwarded.emplace_back(kwargs[i].name, *kwargs[i].value);
+  }
+  return runtime_call_callable_kw(runtime, target, args + 1, argc - 1, forwarded, out, error);
+}
+
+Value weakref_proxy_type(Runtime& runtime) {
+  static Value proxy_type = Value::invalid();
+  if (proxy_type.tag == ValueTag::Invalid) {
+    proxy_type = Value::class_object(
+        "ProxyType",
+        {{"__module__", Value::string("weakref")},
+         {"__getattr__", runtime.make_native_function(
+             "weakref.ProxyType.__getattr__", weakref_proxy_getattr)},
+         {"__setattr__", runtime.make_native_function(
+             "weakref.ProxyType.__setattr__", weakref_proxy_setattr)},
+         {"__delattr__", runtime.make_native_function(
+             "weakref.ProxyType.__delattr__", weakref_proxy_delattr)},
+         {"__bool__", runtime.make_native_function("weakref.ProxyType.__bool__", weakref_proxy_forward, const_cast<char*>("__bool__"))},
+         {"__eq__", runtime.make_native_function("weakref.ProxyType.__eq__", weakref_proxy_forward, const_cast<char*>("__eq__"))},
+         {"__ne__", runtime.make_native_function("weakref.ProxyType.__ne__", weakref_proxy_forward, const_cast<char*>("__ne__"))},
+         {"__hash__", runtime.make_native_function("weakref.ProxyType.__hash__", weakref_proxy_hash)},
+         {"__str__", runtime.make_native_function("weakref.ProxyType.__str__", weakref_proxy_forward, const_cast<char*>("__str__"))},
+         {"__repr__", runtime.make_native_function("weakref.ProxyType.__repr__", weakref_proxy_forward, const_cast<char*>("__repr__"))},
+         {"__bytes__", runtime.make_native_function("weakref.ProxyType.__bytes__", weakref_proxy_forward, const_cast<char*>("__bytes__"))},
+         {"__int__", runtime.make_native_function("weakref.ProxyType.__int__", weakref_proxy_forward, const_cast<char*>("__int__"))},
+         {"__add__", runtime.make_native_function("weakref.ProxyType.__add__", weakref_proxy_forward, const_cast<char*>("__add__"))},
+         {"__radd__", runtime.make_native_function("weakref.ProxyType.__radd__", weakref_proxy_forward, const_cast<char*>("__radd__"))},
+         {"__sub__", runtime.make_native_function("weakref.ProxyType.__sub__", weakref_proxy_forward, const_cast<char*>("__sub__"))},
+         {"__mul__", runtime.make_native_function("weakref.ProxyType.__mul__", weakref_proxy_forward, const_cast<char*>("__mul__"))},
+         {"__floordiv__", runtime.make_native_function("weakref.ProxyType.__floordiv__", weakref_proxy_forward, const_cast<char*>("__floordiv__"))},
+         {"__ifloordiv__", runtime.make_native_function("weakref.ProxyType.__ifloordiv__", weakref_proxy_forward, const_cast<char*>("__ifloordiv__"))},
+         {"__matmul__", runtime.make_native_function("weakref.ProxyType.__matmul__", weakref_proxy_forward, const_cast<char*>("__matmul__"))},
+         {"__rmatmul__", runtime.make_native_function("weakref.ProxyType.__rmatmul__", weakref_proxy_forward, const_cast<char*>("__rmatmul__"))},
+         {"__imatmul__", runtime.make_native_function("weakref.ProxyType.__imatmul__", weakref_proxy_forward, const_cast<char*>("__imatmul__"))},
+         {"__index__", runtime.make_native_function("weakref.ProxyType.__index__", weakref_proxy_forward, const_cast<char*>("__index__"))},
+         {"__neg__", runtime.make_native_function("weakref.ProxyType.__neg__", weakref_proxy_forward, const_cast<char*>("__neg__"))},
+         {"__invert__", runtime.make_native_function("weakref.ProxyType.__invert__", weakref_proxy_forward, const_cast<char*>("__invert__"))},
+         {"__len__", runtime.make_native_function("weakref.ProxyType.__len__", weakref_proxy_forward, const_cast<char*>("__len__"))},
+         {"__iter__", runtime.make_native_function("weakref.ProxyType.__iter__", weakref_proxy_forward, const_cast<char*>("__iter__"))},
+         {"__reversed__", runtime.make_native_function("weakref.ProxyType.__reversed__", weakref_proxy_forward, const_cast<char*>("__reversed__"))},
+         {"__next__", runtime.make_native_function("weakref.ProxyType.__next__", weakref_proxy_forward, const_cast<char*>("__next__"))},
+         {"__getitem__", runtime.make_native_function("weakref.ProxyType.__getitem__", weakref_proxy_forward, const_cast<char*>("__getitem__"))},
+         {"__setitem__", runtime.make_native_function("weakref.ProxyType.__setitem__", weakref_proxy_forward, const_cast<char*>("__setitem__"))},
+         {"__delitem__", runtime.make_native_function("weakref.ProxyType.__delitem__", weakref_proxy_forward, const_cast<char*>("__delitem__"))},
+         {"__contains__", runtime.make_native_function("weakref.ProxyType.__contains__", weakref_proxy_contains)}});
+  }
+  return proxy_type;
+}
+
+Value weakref_callable_proxy_type(Runtime& runtime) {
+  static Value proxy_type = Value::invalid();
+  if (proxy_type.tag == ValueTag::Invalid) {
+    proxy_type = Value::class_object(
+        "CallableProxyType",
+        {{"__module__", Value::string("weakref")},
+         {"__getattr__", runtime.make_native_function(
+             "weakref.CallableProxyType.__getattr__", weakref_proxy_getattr)},
+         {"__setattr__", runtime.make_native_function(
+             "weakref.CallableProxyType.__setattr__", weakref_proxy_setattr)},
+         {"__delattr__", runtime.make_native_function(
+             "weakref.CallableProxyType.__delattr__", weakref_proxy_delattr)},
+         {"__call__", runtime.make_native_function(
+             "weakref.CallableProxyType.__call__", weakref_callable_proxy_call,
+             nullptr, nullptr, nullptr, false, weakref_callable_proxy_call_kw)},
+         {"__bool__", runtime.make_native_function("weakref.CallableProxyType.__bool__", weakref_proxy_forward, const_cast<char*>("__bool__"))},
+         {"__eq__", runtime.make_native_function("weakref.CallableProxyType.__eq__", weakref_proxy_forward, const_cast<char*>("__eq__"))},
+         {"__ne__", runtime.make_native_function("weakref.CallableProxyType.__ne__", weakref_proxy_forward, const_cast<char*>("__ne__"))},
+         {"__hash__", runtime.make_native_function("weakref.CallableProxyType.__hash__", weakref_proxy_hash)},
+         {"__str__", runtime.make_native_function("weakref.CallableProxyType.__str__", weakref_proxy_forward, const_cast<char*>("__str__"))},
+         {"__repr__", runtime.make_native_function("weakref.CallableProxyType.__repr__", weakref_proxy_forward, const_cast<char*>("__repr__"))},
+         {"__bytes__", runtime.make_native_function("weakref.CallableProxyType.__bytes__", weakref_proxy_forward, const_cast<char*>("__bytes__"))},
+         {"__int__", runtime.make_native_function("weakref.CallableProxyType.__int__", weakref_proxy_forward, const_cast<char*>("__int__"))},
+         {"__add__", runtime.make_native_function("weakref.CallableProxyType.__add__", weakref_proxy_forward, const_cast<char*>("__add__"))},
+         {"__radd__", runtime.make_native_function("weakref.CallableProxyType.__radd__", weakref_proxy_forward, const_cast<char*>("__radd__"))},
+         {"__sub__", runtime.make_native_function("weakref.CallableProxyType.__sub__", weakref_proxy_forward, const_cast<char*>("__sub__"))},
+         {"__mul__", runtime.make_native_function("weakref.CallableProxyType.__mul__", weakref_proxy_forward, const_cast<char*>("__mul__"))},
+         {"__floordiv__", runtime.make_native_function("weakref.CallableProxyType.__floordiv__", weakref_proxy_forward, const_cast<char*>("__floordiv__"))},
+         {"__ifloordiv__", runtime.make_native_function("weakref.CallableProxyType.__ifloordiv__", weakref_proxy_forward, const_cast<char*>("__ifloordiv__"))},
+         {"__matmul__", runtime.make_native_function("weakref.CallableProxyType.__matmul__", weakref_proxy_forward, const_cast<char*>("__matmul__"))},
+         {"__rmatmul__", runtime.make_native_function("weakref.CallableProxyType.__rmatmul__", weakref_proxy_forward, const_cast<char*>("__rmatmul__"))},
+         {"__imatmul__", runtime.make_native_function("weakref.CallableProxyType.__imatmul__", weakref_proxy_forward, const_cast<char*>("__imatmul__"))},
+         {"__index__", runtime.make_native_function("weakref.CallableProxyType.__index__", weakref_proxy_forward, const_cast<char*>("__index__"))},
+         {"__neg__", runtime.make_native_function("weakref.CallableProxyType.__neg__", weakref_proxy_forward, const_cast<char*>("__neg__"))},
+         {"__invert__", runtime.make_native_function("weakref.CallableProxyType.__invert__", weakref_proxy_forward, const_cast<char*>("__invert__"))},
+         {"__len__", runtime.make_native_function("weakref.CallableProxyType.__len__", weakref_proxy_forward, const_cast<char*>("__len__"))},
+         {"__iter__", runtime.make_native_function("weakref.CallableProxyType.__iter__", weakref_proxy_forward, const_cast<char*>("__iter__"))},
+         {"__reversed__", runtime.make_native_function("weakref.CallableProxyType.__reversed__", weakref_proxy_forward, const_cast<char*>("__reversed__"))},
+         {"__next__", runtime.make_native_function("weakref.CallableProxyType.__next__", weakref_proxy_forward, const_cast<char*>("__next__"))},
+         {"__getitem__", runtime.make_native_function("weakref.CallableProxyType.__getitem__", weakref_proxy_forward, const_cast<char*>("__getitem__"))},
+         {"__setitem__", runtime.make_native_function("weakref.CallableProxyType.__setitem__", weakref_proxy_forward, const_cast<char*>("__setitem__"))},
+         {"__delitem__", runtime.make_native_function("weakref.CallableProxyType.__delitem__", weakref_proxy_forward, const_cast<char*>("__delitem__"))},
+         {"__contains__", runtime.make_native_function("weakref.CallableProxyType.__contains__", weakref_proxy_contains)}});
+  }
+  return proxy_type;
+}
+
+bool weakref_proxy(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 1 || argc > 2) {
+    error = "weakref.proxy() expected object and optional callback";
+    return false;
+  }
+  if (!weakrefable_target(args[0])) {
+    error = "cannot create weak reference to object";
+    return false;
+  }
+  Value call_method;
+  std::string callable_error;
+  const bool callable = object_get_attr(args[0], "__call__", call_method, callable_error);
+  const Value proxy_type = callable ? weakref_callable_proxy_type(runtime) : weakref_proxy_type(runtime);
+  if ((argc == 1 || args[1].tag == ValueTag::None) && args[0].tag == ValueTag::Object) {
+    for (const auto& candidate : weakref_candidates_for_target(args[0].as.obj)) {
+      auto* instance = value_as_instance(candidate);
+      if (instance == nullptr || !value_is(instance->klass, proxy_type)) continue;
+      Value callback;
+      if (object_get_attr(candidate, kWeakrefCallbackAttr, callback, callable_error) && callback.tag == ValueTag::None) {
+        value_assign_fast(out, candidate);
+        return true;
+      }
+    }
+  }
+  out = Value::instance(proxy_type);
+  if (!object_set_attr(
+          out,
+          kWeakrefCallbackAttr,
+          argc == 2 ? args[1] : Value::none(),
+          error)) {
+    return false;
+  }
+  register_weakref_instance(out, args[0]);
+  return true;
+}
+
+bool weakref_getweakrefcount(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "weakref.getweakrefcount() expected object";
+    return false;
+  }
+  runtime.release_dead_frame_registers();
+  int64_t count = 0;
+  if (args[0].tag == ValueTag::Object) {
+    std::lock_guard lock(weakref_registry_mutex());
+    const auto& index = weakref_references_by_target();
+    const auto found = index.find(args[0].as.obj);
+    if (found != index.end()) count = static_cast<int64_t>(found->second.size());
+  }
+  value_set_int64(out, count);
+  return true;
+}
+
+bool weakref_getweakrefs(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "weakref.getweakrefs() expected object";
+    return false;
+  }
+  runtime.release_dead_frame_registers();
+  std::vector<Value> refs;
+  std::vector<Value> subclass_refs;
+  if (args[0].tag == ValueTag::Object) {
+    for (auto& owned : weakref_candidates_for_target(args[0].as.obj)) {
+      auto* instance = value_as_instance(owned);
+      if (instance != nullptr && value_is(instance->klass, weakref_reference_type(runtime))) {
+        refs.push_back(std::move(owned));
+      } else {
+        subclass_refs.push_back(std::move(owned));
+      }
+    }
+  }
+  refs.insert(refs.end(), subclass_refs.begin(), subclass_refs.end());
+  out = Value::list(std::move(refs));
+  return true;
+}
+
+bool weakref_remove_dead_weakref(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "_weakref._remove_dead_weakref() expected dict and key";
+    return false;
+  }
+  Value mapping = args[0];
+  std::string ignored;
+  (void)mapping_delete_item(mapping, args[1], ignored);
+  value_set_none(out);
+  return true;
+}
+
+void add_weakref_exports(NativeModuleBuilder& builder, Runtime& runtime) {
+  Value proxy_factory = runtime.make_native_function("weakref.proxy", weakref_proxy);
+  Value reference_type = weakref_reference_type(runtime);
+  Value proxy_type = weakref_proxy_type(runtime);
+  Value callable_proxy_type = weakref_callable_proxy_type(runtime);
+  builder.value("ref", reference_type)
+      .value("ReferenceType", std::move(reference_type))
+      .value("proxy", proxy_factory)
+      .value("ProxyType", std::move(proxy_type))
+      .value("CallableProxyType", std::move(callable_proxy_type))
+      .function("getweakrefcount", weakref_getweakrefcount)
+      .function("getweakrefs", weakref_getweakrefs)
+      .function("_remove_dead_weakref", weakref_remove_dead_weakref);
+}
+
+} // namespace
+
+bool weakref_cached_hash(const Value& ref, size_t& out) {
+  auto* instance = value_as_instance(ref);
+  // Do not initialize the weakref builtin as a side effect of hashing an
+  // unrelated instance; only recognize the type after its module created it.
+  if (instance == nullptr || weakref_reference_type_value.tag == ValueTag::Invalid ||
+      !value_is(instance->klass, weakref_reference_type_value)) {
+    return false;
+  }
+  auto* klass = value_as_class(instance->klass);
+  if (klass == nullptr || klass->version !=
+          weakref_reference_type_version.load(std::memory_order_relaxed) ||
+      instance_slot_count(instance) <= 1) {
+    return false;
+  }
+  // The exact builtin class identity plus its unchanged version proves both
+  // the native __hash__ implementation and fixed slot layout are intact. The
+  // immutable cached hash can then be read without dynamic attribute dispatch.
+  constexpr uint32_t kCachedHashSlot = 1;
+  const Value& cached = instance_slot_at(instance, kCachedHashSlot);
+  if (cached.tag != ValueTag::Int64) return false;
+  out = static_cast<size_t>(cached.as.i64);
+  return true;
+}
+
+Value make_weakref_ref(Runtime& runtime, const Value& target) {
+  Value ref = Value::instance(weakref_reference_type(runtime));
+  std::string ignored;
+  object_set_attr(ref, kWeakrefCallbackAttr, Value::none(), ignored);
+  register_weakref_instance(ref, target);
+  return ref;
+}
+
+bool weakref_get_target(const Value& ref, Value& out) {
+  if (ref.tag != ValueTag::Object) return false;
+  std::lock_guard lock(weakref_registry_mutex());
+  const auto& index = weakref_target_by_reference();
+  const auto found = index.find(ref.as.obj);
+  return found != index.end() && weakref_retain_if_alive(found->second, out);
+}
+
+bool weakref_find_ref(const Value& target, Value& out) {
+  std::lock_guard lock(weakref_registry_mutex());
+  if (target.tag != ValueTag::Object) return false;
+  const auto& index = weakref_references_by_target();
+  const auto found = index.find(target.as.obj);
+  return found != index.end() && !found->second.empty() &&
+         weakref_retain_if_alive(found->second.front(), out);
+}
+
+void weakref_invalidate_target(Object* target) {
+  if (target == nullptr) {
+    return;
+  }
+  if ((target->gc_tracking_state.load(std::memory_order_acquire) &
+       kObjectWeakrefFlagsMask) == 0) return;
+  uint64_t roles = 0;
+  std::vector<Value> callback_candidates;
+  {
+    std::lock_guard lock(weakref_registry_mutex());
+    // Registration sets these flags under this same lock. Re-read and clear
+    // while holding it so a concurrent registration cannot be lost between a
+    // fast precheck and invalidation.
+    roles = target->gc_tracking_state.fetch_and(
+        kGcObjectIndexMask, std::memory_order_acq_rel) &
+        kObjectWeakrefFlagsMask;
+    if (roles == 0) return;
+    auto& refs = weakref_registry();
+    if ((roles & kObjectWeakrefTargetFlag) != 0) {
+      for (auto entry = refs.rbegin(); entry != refs.rend(); ++entry) {
+        if (entry->target != target) continue;
+        if (entry->ref != target && entry->ref != nullptr) {
+          Value owned;
+          if (weakref_retain_if_alive(entry->ref, owned))
+            callback_candidates.push_back(std::move(owned));
+        }
+        entry->target = nullptr;
+        weakref_target_by_reference()[entry->ref] = nullptr;
+      }
+      weakref_references_by_target().erase(target);
+    }
+    if ((roles & kObjectWeakrefReferenceFlag) != 0) {
+      auto& targets = weakref_target_by_reference();
+      auto found = targets.find(target);
+      if (found != targets.end()) {
+        remove_weakref_target_index(found->second, target);
+        targets.erase(found);
+      }
+      refs.erase(
+          std::remove_if(
+              refs.begin(), refs.end(),
+              [&](const WeakrefEntry& entry) { return entry.ref == target; }),
+          refs.end());
+    }
+  }
+  for (auto& ref : callback_candidates) {
+    Value callback;
+    std::string ignored;
+    if (object_get_attr(ref, kWeakrefCallbackAttr, callback, ignored) &&
+        callback.tag != ValueTag::None) {
+      std::lock_guard lock(pending_weakref_callbacks_mutex());
+      pending_weakref_callbacks().push_back(std::move(ref));
+      pending_weakref_callbacks_flag().store(true, std::memory_order_release);
+      interpreter_set_pending_event(kInterpreterEventWeakrefCallbacks);
+    }
+  }
+}
+
+bool weakref_callbacks_pending() {
+  return pending_weakref_callbacks_flag().load(std::memory_order_acquire);
+}
+
+void weakref_dispatch_callbacks(Runtime& runtime) {
+  if (!weakref_callbacks_pending()) return;
+  thread_local bool dispatching = false;
+  if (dispatching) return;
+  dispatching = true;
+  while (true) {
+    std::vector<Value> callbacks;
+    {
+      std::lock_guard lock(pending_weakref_callbacks_mutex());
+      callbacks = std::move(pending_weakref_callbacks());
+      pending_weakref_callbacks().clear();
+      pending_weakref_callbacks_flag().store(false, std::memory_order_release);
+      // Clear under the queue lock so an enqueue cannot race the drain and
+      // leave pending work without a VM wakeup bit.
+      interpreter_clear_pending_event(kInterpreterEventWeakrefCallbacks);
+    }
+    if (callbacks.empty()) break;
+    for (const auto& ref : callbacks) {
+      Value callback;
+      std::string ignored;
+      if (!object_get_attr(ref, kWeakrefCallbackAttr, callback, ignored) ||
+          callback.tag == ValueTag::None) continue;
+      Value mutable_ref = ref;
+      (void)object_set_attr(mutable_ref, kWeakrefCallbackAttr, Value::none(), ignored);
+      Value result;
+      if (!runtime_call_callable(runtime, callback, &ref, 1, result, ignored)) {
+        Value pending;
+        (void)runtime.take_pending_exception(pending);
+      }
+    }
+  }
+  dispatching = false;
+}
+
+template <class Visit>
+void visit_strong_object_edges(Object* object, Object* cycle_root, Visit visit) {
+  if (object == nullptr) return;
+  Value borrowed;
+  borrowed.tag = ValueTag::Object;
+  borrowed.flags = kXlangValueBorrowedRefFlag;
+  borrowed.as.obj = object;
+  auto edge = [&](const Value& value) {
+    if (value.tag == ValueTag::Object && value.as.obj != nullptr &&
+        (value.flags & kXlangValueBorrowedRefFlag) == 0)
+      visit(value.as.obj);
+  };
+  if (auto* value = value_as_list(borrowed)) {
+    for (const auto& item : value->items) edge(item);
+  } else if (auto* value = value_as_tuple(borrowed)) {
+    for (const auto& item : value->items) edge(item);
+  } else if (auto* value = value_as_set(borrowed)) {
+    for (const auto& item : value->items) edge(item);
+  } else if (auto* value = value_as_dict(borrowed)) {
+    for (const auto& item : value->entries) {
+      edge(item.first);
+      edge(item.second);
+    }
+  } else if (auto* value = value_as_mapping_proxy(borrowed)) {
+    edge(value->source);
+  } else if (auto* value = value_as_dict_view(borrowed)) {
+    edge(value->source);
+  } else if (auto* value = value_as_slice(borrowed)) {
+    edge(value->start);
+    edge(value->stop);
+    edge(value->step);
+  } else if (auto* value = value_as_memoryview(borrowed)) {
+    edge(value->owner);
+    edge(value->exporter);
+  } else if (auto* value = value_as_cell(borrowed)) {
+    edge(value->value);
+  } else if (auto* value = value_as_module(borrowed)) {
+    for (const auto& item : value->slots) edge(item);
+  } else if (auto* value = value_as_function(borrowed)) {
+    edge(value->builtins);
+    edge(value->annotations);
+    edge(value->doc);
+    edge(value->attrs_dict);
+    for (const auto& item : value->closure) edge(item);
+    for (const auto& item : value->defaults) edge(item);
+    for (const auto& item : value->positional_defaults) edge(item);
+    for (const auto& item : value->kwdefaults) edge(item.second);
+    edge(value->kwdefaults_dict);
+    edge(value->code_object);
+  } else if (auto* value = value_as_native_function(borrowed)) {
+    if (value->attrs_dict != nullptr) edge(*value->attrs_dict);
+  } else if (auto* value = value_as_generic_alias(borrowed)) {
+    edge(value->origin);
+    edge(value->args);
+    edge(value->klass);
+  } else if (auto* value = value_as_type_param(borrowed)) {
+    edge(value->bound);
+    edge(value->default_value);
+  } else if (auto* value = value_as_class(borrowed)) {
+    edge(value->base);
+    edge(value->metaclass);
+    for (const auto& base : value->bases) edge(base);
+    for (const auto& member : value->mro_cache) edge(member);
+    for (const auto& item : value->attrs) edge(item.second);
+  } else if (auto* value = value_as_instance(borrowed)) {
+    if (value->klass.tag == ValueTag::Object &&
+        value->klass.as.obj == cycle_root)
+      edge(value->klass);
+    edge(value->mapping_storage);
+    edge(value->sequence_storage);
+    for (uint32_t index = 0; index < value->slot_count; ++index)
+      edge(instance_slot_at(value, index));
+    for (const auto& item : value->attrs) edge(item.second);
+    instance_visit_native_gc_references(*value, visit);
+  } else if (auto* value = value_as_bound_method(borrowed)) {
+    edge(value->self);
+    edge(value->function);
+  } else if (auto* value = value_as_static_method(borrowed)) {
+    edge(value->function);
+    edge(value->attrs_dict);
+  } else if (auto* value = value_as_class_method(borrowed)) {
+    edge(value->function);
+    edge(value->attrs_dict);
+  } else if (auto* value = value_as_super(borrowed)) {
+    edge(value->klass);
+    edge(value->self);
+  } else if (auto* value = value_as_slot_descriptor(borrowed)) {
+    edge(value->owner_class);
+  } else if (auto* value = value_as_property(borrowed)) {
+    edge(value->fget);
+    edge(value->fset);
+    edge(value->fdel);
+    edge(value->doc);
+    edge(value->name);
+  } else if (auto* value = value_as_frame(borrowed)) {
+    // Match the frame's lazy owning f_code edge in strong-component accounting.
+    edge(value->code_object);
+    edge(value->globals_module);
+    edge(value->locals);
+    for (const auto& item : value->local_snapshot) edge(item);
+    edge(value->back);
+    edge(value->builtins);
+    edge(value->trace);
+  } else if (auto* value = value_as_traceback(borrowed)) {
+    edge(value->frame);
+    edge(value->next);
+  } else if (auto* value = value_as_generator(borrowed)) {
+    // Suspended coroutines own their locals and cells through saved VM frames.
+    // Traverse those edges so Task/Future cycles broken only by coroutine
+    // suspension remain visible to the native-payload cycle collector.
+    edge(value->function);
+    for (const auto& item : value->args) edge(item);
+    edge(value->pending_send);
+    edge(value->pending_throw);
+    edge(value->return_value);
+    edge(value->awaiting);
+    edge(value->origin);
+    generator_vm_visit_references(*value, edge);
+  } else if (auto* value = value_as_async_generator_awaitable(borrowed)) {
+    edge(value->generator);
+    for (const auto& item : value->args) edge(item);
+  }
+}
+
+bool class_has_module_root(Runtime& runtime, const ClassObject* klass) {
+  const auto* module = value_as_module(klass->globals_module);
+  const auto holds_class = [klass](const Value& value) {
+    return value.tag == ValueTag::Object && value.as.obj == &klass->header;
+  };
+  const auto module_holds_class = [&](const ModuleObject* owner) {
+    if (owner == nullptr) return false;
+    for (const auto& value : owner->slots)
+      if (holds_class(value)) return true;
+    for (const auto& entry : owner->extra_globals)
+      if (holds_class(entry.second)) return true;
+    if (const auto* namespace_dict = value_as_dict(owner->namespace_dict))
+      for (const auto& entry : namespace_dict->entries)
+        if (holds_class(entry.second)) return true;
+    return false;
+  };
+  if (module_holds_class(module)) return true;
+
+  // Source-backed classes can lack globals_module while keeping a canonical
+  // __module__ name. Resolve that registered module binding so each GC pass
+  // does not walk the same huge stdlib graph for every module-owned subclass.
+  const auto module_attr = klass->attrs.find("__module__");
+  if (module_attr == klass->attrs.end()) return false;
+  const auto* module_name = value_as_string(module_attr->second);
+  if (module_name == nullptr) return false;
+  Value registered_module;
+  std::string ignored;
+  if (!mapping_get_string_item(runtime.module_registry_dict(),
+          string_object_view(*module_name), registered_module, ignored)) return false;
+  return module_holds_class(value_as_module(registered_module));
+}
+
+uint64_t collect_isolated_class_component(Runtime& runtime, ClassObject* klass) {
+  constexpr size_t kMaximumCandidateObjects = 50000;
+  std::vector<Object*> nodes{&klass->header};
+  std::unordered_map<Object*, size_t> indices{{&klass->header, 0}};
+  std::vector<std::vector<size_t>> adjacency;
+  for (size_t index = 0; index < nodes.size(); ++index) {
+    if (nodes.size() > kMaximumCandidateObjects) return 0;
+    adjacency.emplace_back();
+    visit_strong_object_edges(nodes[index], &klass->header, [&](Object* target) {
+      // Module-owned classes are external roots. Traversing one can pull the
+      // entire live import graph into a local class-cycle search. Local classes
+      // remain eligible, including cycles spanning multiple classes.
+      if (target->kind == ObjectKind::Class && target != &klass->header &&
+          class_has_module_root(runtime, reinterpret_cast<ClassObject*>(target))) return;
+      auto [position, inserted] = indices.emplace(target, nodes.size());
+      if (inserted) nodes.push_back(target);
+      adjacency[index].push_back(position->second);
+    });
+  }
+  std::vector<std::vector<size_t>> reverse(nodes.size());
+  for (size_t source = 0; source < adjacency.size(); ++source)
+    for (size_t target : adjacency[source]) reverse[target].push_back(source);
+  std::vector<bool> reaches_class(nodes.size(), false);
+  std::vector<size_t> pending{0};
+  reaches_class[0] = true;
+  for (size_t index = 0; index < pending.size(); ++index) {
+    for (size_t predecessor : reverse[pending[index]]) {
+      if (!reaches_class[predecessor]) {
+        reaches_class[predecessor] = true;
+        pending.push_back(predecessor);
+      }
+    }
+  }
+  if (pending.size() == 1 &&
+      std::find(adjacency[0].begin(), adjacency[0].end(), 0) == adjacency[0].end())
+    return 0;
+  std::vector<uint64_t> internal_references(nodes.size(), 0);
+  for (size_t source = 0; source < adjacency.size(); ++source) {
+    if (!reaches_class[source]) continue;
+    for (size_t target : adjacency[source])
+      if (reaches_class[target]) ++internal_references[target];
+  }
+  for (size_t index = 0; index < nodes.size(); ++index) {
+    if (reaches_class[index] &&
+        nodes[index]->refcnt.load(std::memory_order_relaxed) !=
+            internal_references[index]) {
+      return 0;
+    }
+  }
+
+  std::vector<std::string> cyclic_attributes;
+  for (const auto& item : klass->attrs) {
+    if (item.second.tag != ValueTag::Object) continue;
+    const auto found = indices.find(item.second.as.obj);
+    if (found != indices.end() && reaches_class[found->second])
+      cyclic_attributes.push_back(item.first);
+  }
+  const bool cyclic_mro = std::any_of(
+      klass->mro_cache.begin(), klass->mro_cache.end(), [&](const Value& item) {
+        const auto found = item.tag == ValueTag::Object ? indices.find(item.as.obj) : indices.end();
+        return found != indices.end() && reaches_class[found->second];
+      });
+  if (cyclic_attributes.empty() && !cyclic_mro) return 0;
+  Value borrowed;
+  borrowed.tag = ValueTag::Object;
+  borrowed.flags = kXlangValueBorrowedRefFlag;
+  borrowed.as.obj = &klass->header;
+  Value keep_alive;
+  value_assign_fast(keep_alive, borrowed);
+  for (const auto& name : cyclic_attributes) {
+    const auto found = klass->attrs.find(name);
+    if (found != klass->attrs.end()) value_set_invalid(found->second);
+  }
+  if (cyclic_mro) {
+    klass->mro_cache.clear();
+    klass->mro_cache_version = 0;
+  }
+  const uint64_t collected = static_cast<uint64_t>(pending.size());
+  value_set_invalid(keep_alive);
+  return collected;
+}
+
+uint64_t collect_isolated_function_component(FunctionObject* function) {
+  constexpr size_t kMaximumCandidateObjects = 4096;
+  auto* root = &function->header;
+  // Ordinary attribute cycles normally leave one strong reference. Keep
+  // that cheap rejection for unexposed defaults: framework weak registries
+  // can hold thousands of live functions. A live keyword-default dictionary
+  // can add another back-edge, so verify its candidate component's complete
+  // internal reference counts instead of rejecting it solely at refcount > 1.
+  const auto root_refcount = root->refcnt.load(std::memory_order_relaxed);
+  if (root_refcount != 1 && function->kwdefaults_dict.tag != ValueTag::Object) {
+    return 0;
+  }
+  bool has_path_to_function = false;
+  const Value* dictionaries[] = {&function->attrs_dict, &function->kwdefaults_dict};
+  for (const auto* dictionary : dictionaries) {
+    const auto* attrs_dict = value_as_dict(*dictionary);
+    if (attrs_dict == nullptr && mapping_is_dict(*dictionary)) {
+      const auto* instance = value_as_instance(*dictionary);
+      if (instance != nullptr) attrs_dict = value_as_dict(instance->mapping_storage);
+    }
+    if (attrs_dict == nullptr) continue;
+    for (const auto& entry : attrs_dict->entries) {
+      if (entry.second.tag != ValueTag::Object || entry.second.as.obj == nullptr)
+        continue;
+      if (entry.second.as.obj == root) {
+        has_path_to_function = true;
+        break;
+      }
+      const auto* instance = value_as_instance(entry.second);
+      if (instance == nullptr || !instance_has_native_gc_references(*instance)) continue;
+
+      // Most native-backed attributes do not point back to their owner.  Check
+      // reachability before constructing the complete reference graph so a
+      // gc.collect() remains proportional to actual cycle candidates.
+      constexpr size_t kMaximumReachabilityObjects = 2048;
+      std::vector<Object*> pending;
+      pending.reserve(instance->native_gc_references.size() + 12);
+      instance_visit_native_gc_references(*instance,
+          [&](Object* target) { pending.push_back(target); });
+      std::unordered_set<Object*> visited;
+      while (!pending.empty() && visited.size() < kMaximumReachabilityObjects) {
+        auto* candidate = pending.back();
+        pending.pop_back();
+        if (candidate == root) {
+          has_path_to_function = true;
+          break;
+        }
+        if (candidate == nullptr || !visited.insert(candidate).second) continue;
+        visit_strong_object_edges(candidate, root, [&](Object* target) {
+          if (target != nullptr && visited.find(target) == visited.end())
+            pending.push_back(target);
+        });
+      }
+      if (has_path_to_function) break;
+    }
+    if (has_path_to_function) break;
+  }
+  if (!has_path_to_function) return 0;
+  std::vector<Object*> nodes{root};
+  std::unordered_map<Object*, size_t> indices{{root, 0}};
+  std::vector<std::vector<size_t>> adjacency;
+  bool graph_too_large = false;
+  for (size_t index = 0; index < nodes.size(); ++index) {
+    adjacency.emplace_back();
+    const auto add_edge = [&](Object* target) {
+      if (graph_too_large) return;
+      const auto found = indices.find(target);
+      if (found != indices.end()) {
+        adjacency[index].push_back(found->second);
+        return;
+      }
+      if (nodes.size() >= kMaximumCandidateObjects) {
+        graph_too_large = true;
+        return;
+      }
+      auto [position, inserted] = indices.emplace(target, nodes.size());
+      if (inserted) nodes.push_back(target);
+      adjacency[index].push_back(position->second);
+    };
+    if (index == 0) {
+      for (const auto* dictionary : dictionaries) {
+        if (dictionary->tag == ValueTag::Object && dictionary->as.obj != nullptr)
+          add_edge(dictionary->as.obj);
+      }
+    } else {
+      visit_strong_object_edges(nodes[index], root, add_edge);
+    }
+    if (graph_too_large) return 0;
+  }
+
+  std::vector<std::vector<size_t>> reverse(nodes.size());
+  for (size_t source = 0; source < adjacency.size(); ++source)
+    for (size_t target : adjacency[source]) reverse[target].push_back(source);
+  std::vector<bool> reaches_function(nodes.size(), false);
+  std::vector<size_t> pending{0};
+  reaches_function[0] = true;
+  for (size_t index = 0; index < pending.size(); ++index) {
+    for (size_t predecessor : reverse[pending[index]]) {
+      if (!reaches_function[predecessor]) {
+        reaches_function[predecessor] = true;
+        pending.push_back(predecessor);
+      }
+    }
+  }
+  if (pending.size() <= 1) return 0;
+
+  std::vector<uint64_t> internal_references(nodes.size(), 0);
+  for (size_t source = 0; source < adjacency.size(); ++source) {
+    if (!reaches_function[source]) continue;
+    for (size_t target : adjacency[source])
+      if (reaches_function[target]) ++internal_references[target];
+  }
+  for (size_t index = 0; index < nodes.size(); ++index) {
+    if (reaches_function[index] &&
+        nodes[index]->refcnt.load(std::memory_order_relaxed) !=
+            internal_references[index]) {
+      return 0;
+    }
+  }
+
+  const auto attrs = indices.find(
+      function->attrs_dict.tag == ValueTag::Object
+          ? function->attrs_dict.as.obj
+          : nullptr);
+  const auto keyword_defaults = indices.find(
+      function->kwdefaults_dict.tag == ValueTag::Object
+          ? function->kwdefaults_dict.as.obj : nullptr);
+  const bool clear_attrs = attrs != indices.end() && reaches_function[attrs->second];
+  const bool clear_keyword_defaults = keyword_defaults != indices.end() &&
+      reaches_function[keyword_defaults->second];
+  if (!clear_attrs && !clear_keyword_defaults) return 0;
+
+  Value borrowed;
+  borrowed.tag = ValueTag::Object;
+  borrowed.flags = kXlangValueBorrowedRefFlag;
+  borrowed.as.obj = root;
+  Value keep_alive;
+  value_assign_fast(keep_alive, borrowed);
+  if (clear_attrs) value_set_invalid(function->attrs_dict);
+  if (clear_keyword_defaults) value_set_none(function->kwdefaults_dict);
+  const uint64_t collected = static_cast<uint64_t>(pending.size());
+  value_set_invalid(keep_alive);
+  return collected;
+}
+
+uint64_t collect_isolated_native_instance_component(InstanceObject* instance) {
+  constexpr size_t kMaximumCandidateObjects = 4096;
+  auto* root = &instance->header;
+  if (instance->native_data_clear == nullptr ||
+      !instance_has_native_gc_references(*instance)) return 0;
+
+  std::vector<Object*> nodes{root};
+  std::unordered_map<Object*, size_t> indices{{root, 0}};
+  std::vector<std::vector<size_t>> adjacency;
+  bool has_edge_to_root = false;
+  for (size_t index = 0; index < nodes.size(); ++index) {
+    if (nodes.size() > kMaximumCandidateObjects) return 0;
+    adjacency.emplace_back();
+    visit_strong_object_edges(nodes[index], root, [&](Object* target) {
+      // Class-owned cycles are collected from their class root separately.
+      if (target->kind == ObjectKind::Class && target != root) return;
+      has_edge_to_root |= target == root;
+      auto [position, inserted] = indices.emplace(target, nodes.size());
+      if (inserted) nodes.push_back(target);
+      adjacency[index].push_back(position->second);
+    });
+  }
+  // Every reachable object has been visited above. A native instance can be
+  // part of a collectible cycle only if some traversed edge points back to
+  // its root; reject ordinary payload graphs before allocating the reverse
+  // graph and refcount vectors. Retain the one-node self-cycle case below.
+  if (!has_edge_to_root) return 0;
+  std::vector<std::vector<size_t>> reverse(nodes.size());
+  for (size_t source = 0; source < adjacency.size(); ++source)
+    for (size_t target : adjacency[source]) reverse[target].push_back(source);
+  std::vector<bool> reaches_root(nodes.size(), false);
+  std::vector<size_t> pending{0};
+  reaches_root[0] = true;
+  for (size_t index = 0; index < pending.size(); ++index) {
+    for (size_t predecessor : reverse[pending[index]]) {
+      if (!reaches_root[predecessor]) {
+        reaches_root[predecessor] = true;
+        pending.push_back(predecessor);
+      }
+    }
+  }
+  // A native payload can own the sole edge back to its instance (for example
+  // Future.set_result(future)). That one-node SCC is collectible too; the
+  // reference-count check below rejects externally rooted instances.
+  std::vector<uint64_t> internal_references(nodes.size(), 0);
+  for (size_t source = 0; source < adjacency.size(); ++source) {
+    if (!reaches_root[source]) continue;
+    for (size_t target : adjacency[source])
+      if (reaches_root[target]) ++internal_references[target];
+  }
+  for (size_t index = 0; index < nodes.size(); ++index) {
+    if (reaches_root[index] &&
+        nodes[index]->refcnt.load(std::memory_order_relaxed) !=
+            internal_references[index]) return 0;
+  }
+  Value borrowed;
+  borrowed.tag = ValueTag::Object;
+  borrowed.flags = kXlangValueBorrowedRefFlag;
+  borrowed.as.obj = root;
+  Value keep_alive;
+  value_assign_fast(keep_alive, borrowed);
+  auto clear = instance->native_data_clear;
+  instance->native_data_clear = nullptr;
+  instance->native_gc_traverse = nullptr;
+  clear(instance->native_owner);
+  instance->native_gc_references.clear();
+  const uint64_t collected = static_cast<uint64_t>(pending.size());
+  value_set_invalid(keep_alive);
+  return collected;
+}
+
+std::unordered_set<ClassObject*> collect_class_hierarchy(Runtime& runtime) {
+  std::unordered_set<ClassObject*> classes;
+  const Value* object_type = runtime.find_builtin("object");
+  auto* root = object_type == nullptr ? nullptr : value_as_class(*object_type);
+  if (root == nullptr) return classes;
+  std::vector<ClassObject*> pending{root};
+  while (!pending.empty()) {
+    auto* klass = pending.back();
+    pending.pop_back();
+    if (!classes.insert(klass).second) continue;
+    for (auto* subclass : klass->subclasses)
+      if (subclass != nullptr) pending.push_back(subclass);
+  }
+  return classes;
+}
+
+uint64_t weakref_collect_cycles(Runtime& runtime) {
+  std::lock_guard registry_lock(weakref_registry_mutex());
+  // Class inheritance already tracks live subclasses without owning them.
+  // Search local classes too: a local generic origin can hold a specialization
+  // alive even when only the specialization has a weak reference.
+  const auto class_hierarchy = collect_class_hierarchy(runtime);
+  std::vector<ClassObject*> local_classes;
+  local_classes.reserve(class_hierarchy.size());
+  for (auto* klass : class_hierarchy)
+    if (!class_has_module_root(runtime, klass)) local_classes.push_back(klass);
+  uint64_t collected = 0;
+  for (auto* klass : local_classes) {
+    if (!object_model_class_is_live(klass)) continue;
+    collected += collect_isolated_class_component(runtime, klass);
+  }
+
+  std::vector<ClassObject*> candidates;
+  std::unordered_set<ClassObject*> seen;
+  for (const auto& entry : weakref_registry()) {
+    if (entry.target != nullptr && entry.target->kind == ObjectKind::Class) {
+      auto* klass = reinterpret_cast<ClassObject*>(entry.target);
+      if (seen.insert(klass).second) {
+        candidates.push_back(klass);
+      }
+    }
+  }
+
+  for (auto* klass : candidates) {
+    const Object* candidate_object = &klass->header;
+    const bool still_registered = std::any_of(
+        weakref_registry().begin(),
+        weakref_registry().end(),
+        [&](const WeakrefEntry& entry) { return entry.target == candidate_object; });
+    if (!still_registered) {
+      continue;
+    }
+    // A class still bound in its defining module cannot be an isolated cycle.
+    // Resolve __module__ for source-backed classes missing globals_module too;
+    // otherwise every gc.collect() rescans the same imported stdlib graph.
+    if (class_has_module_root(runtime, klass)) continue;
+    std::unordered_map<InstanceObject*, uint32_t> instance_attr_refs;
+    std::vector<std::string> cyclic_attrs;
+    for (const auto& attr : klass->attrs) {
+      auto* instance = value_as_instance(attr.second);
+      if (instance != nullptr && value_as_class(instance->klass) == klass) {
+        ++instance_attr_refs[instance];
+        cyclic_attrs.push_back(attr.first);
+      }
+    }
+    if (instance_attr_refs.empty() ||
+        klass->header.refcnt.load(std::memory_order_relaxed) != instance_attr_refs.size()) {
+      collected += collect_isolated_class_component(runtime, klass);
+      continue;
+    }
+    bool isolated = true;
+    for (const auto& item : instance_attr_refs) {
+      if (item.first->header.refcnt.load(std::memory_order_relaxed) != item.second) {
+        isolated = false;
+        break;
+      }
+    }
+    if (!isolated) {
+      collected += collect_isolated_class_component(runtime, klass);
+      continue;
+    }
+
+    Value borrowed;
+    borrowed.tag = ValueTag::Object;
+    borrowed.flags = kXlangValueBorrowedRefFlag;
+    borrowed.as.obj = &klass->header;
+    Value keep_alive;
+    value_assign_fast(keep_alive, borrowed);
+    for (const auto& name : cyclic_attrs) {
+      auto attr = klass->attrs.find(name);
+      if (attr != klass->attrs.end()) {
+        value_set_invalid(attr->second);
+      }
+    }
+    collected += 1 + instance_attr_refs.size();
+    value_set_invalid(keep_alive);
+  }
+  std::vector<FunctionObject*> function_candidates;
+  std::unordered_set<FunctionObject*> seen_functions;
+  for (const auto& entry : weakref_registry()) {
+    if (entry.target != nullptr && entry.target->kind == ObjectKind::Function) {
+      auto* function = reinterpret_cast<FunctionObject*>(entry.target);
+      if (seen_functions.insert(function).second) function_candidates.push_back(function);
+    }
+  }
+  for (auto* function : function_candidates) {
+    const Object* candidate_object = &function->header;
+    const bool still_registered = std::any_of(
+        weakref_registry().begin(), weakref_registry().end(),
+        [&](const WeakrefEntry& entry) { return entry.target == candidate_object; });
+    if (still_registered) collected += collect_isolated_function_component(function);
+  }
+  std::vector<Object*> native_candidates(
+      native_gc_instance_registry().begin(), native_gc_instance_registry().end());
+  for (auto* candidate : native_candidates) {
+    if (native_gc_instance_registry().find(candidate) ==
+        native_gc_instance_registry().end()) continue;
+    auto* candidate_instance = reinterpret_cast<InstanceObject*>(candidate);
+    collected += collect_isolated_native_instance_component(
+        candidate_instance);
+  }
+  std::vector<FileObject*> file_candidates;
+  std::unordered_set<FileObject*> file_candidate_set;
+  for (const auto& entry : weakref_registry()) {
+    if (entry.target != nullptr && entry.target->kind == ObjectKind::File &&
+        file_candidate_set.insert(reinterpret_cast<FileObject*>(entry.target)).second) {
+      file_candidates.push_back(reinterpret_cast<FileObject*>(entry.target));
+    }
+  }
+  for (auto* file : file_candidates) {
+    uint32_t internal_refs = 0;
+    for (const auto& attr : file->attrs) {
+      if (attr.second.tag == ValueTag::Object && attr.second.as.obj == &file->header) {
+        ++internal_refs;
+      }
+    }
+    if (internal_refs == 0 || file->header.refcnt.load(std::memory_order_relaxed) != internal_refs) {
+      continue;
+    }
+    Value borrowed;
+    borrowed.tag = ValueTag::Object;
+    borrowed.flags = kXlangValueBorrowedRefFlag;
+    borrowed.as.obj = &file->header;
+    Value keep_alive;
+    value_assign_fast(keep_alive, borrowed);
+    for (auto& attr : file->attrs) {
+      value_set_invalid(attr.second);
+    }
+    ++collected;
+    value_set_invalid(keep_alive);
+  }
+  std::vector<Object*> instance_candidates;
+  std::unordered_set<Object*> instance_candidate_set;
+  std::unordered_set<Object*> registered_weakrefs;
+  registered_weakrefs.reserve(weakref_registry().size());
+  for (const auto& entry : weakref_registry()) {
+    if (entry.ref != nullptr) registered_weakrefs.insert(entry.ref);
+  }
+  const auto unwrap_protocol_iterator_instance = [](const Value& value) -> InstanceObject* {
+    const Value* current = &value;
+    for (int depth = 0; depth < 16; ++depth) {
+      if (current->tag != ValueTag::Object || current->as.obj == nullptr ||
+          current->as.obj->kind != ObjectKind::ProtocolIterator) {
+        break;
+      }
+      const auto* iterator = reinterpret_cast<const ProtocolIteratorObject*>(current->as.obj);
+      current = &iterator->iterator;
+    }
+    return value_as_instance(*current);
+  };
+  const auto add_instance = [&](const Value& value) {
+    if (auto* instance = value_as_instance(value)) {
+      if (instance_candidate_set.insert(reinterpret_cast<Object*>(instance)).second) {
+        instance_candidates.push_back(reinterpret_cast<Object*>(instance));
+      }
+      return;
+    }
+    if (auto* instance = unwrap_protocol_iterator_instance(value)) {
+      if (instance_candidate_set.insert(reinterpret_cast<Object*>(instance)).second) {
+        instance_candidates.push_back(reinterpret_cast<Object*>(instance));
+      }
+    }
+  };
+  for (const auto& entry : weakref_registry()) {
+    if (entry.target != nullptr && entry.target->kind == ObjectKind::Instance &&
+        instance_candidate_set.insert(entry.target).second) {
+      instance_candidates.push_back(entry.target);
+    }
+  }
+  for (size_t index = 0; index < instance_candidates.size(); ++index) {
+    auto* instance = reinterpret_cast<InstanceObject*>(instance_candidates[index]);
+    const auto add_native_instance_refs = [&](InstanceObject* candidate) {
+      Value candidate_value;
+      candidate_value.tag = ValueTag::Object;
+      candidate_value.flags = kXlangValueBorrowedRefFlag;
+      candidate_value.as.obj = reinterpret_cast<Object*>(candidate);
+      if (auto* deque = static_cast<DequeState*>(instance_get_native_data(candidate_value, kDequeNativeType))) {
+        for (const auto& item : deque->items) {
+          add_instance(item);
+        }
+      }
+      if (auto* iterator = static_cast<DequeIteratorState*>(
+              instance_get_native_data(candidate_value, kDequeIteratorNativeType))) {
+        add_instance(iterator->deque);
+      }
+    };
+    add_instance(instance->mapping_storage);
+    add_instance(instance->sequence_storage);
+    for (const auto& attr : instance->attrs) {
+      add_instance(attr.second);
+      if (attr.second.tag != ValueTag::Object || attr.second.as.obj == nullptr) continue;
+      if (registered_weakrefs.find(attr.second.as.obj) != registered_weakrefs.end()) {
+        Value ref;
+        ref.tag = ValueTag::Object;
+        ref.flags = kXlangValueBorrowedRefFlag;
+        ref.as.obj = attr.second.as.obj;
+        Value callback;
+        std::string ignored;
+        if (object_get_attr(ref, kWeakrefCallbackAttr, callback, ignored)) {
+          if (const auto* method = value_as_bound_method(callback)) add_instance(method->self);
+        }
+      }
+    }
+    add_native_instance_refs(instance);
+    for (uint32_t slot = 0; slot < instance_slot_count(instance); ++slot) {
+      add_instance(instance_slot_at(instance, slot));
+    }
+  }
+  if (!instance_candidates.empty()) {
+    std::unordered_map<Object*, std::vector<Object*>> weakref_owners;
+    for (auto* candidate : instance_candidates) {
+      const auto* instance = reinterpret_cast<const InstanceObject*>(candidate);
+      std::unordered_set<Object*> owned_refs;
+      for (const auto& attr : instance->attrs) {
+        if (attr.second.tag != ValueTag::Object || attr.second.as.obj == nullptr ||
+            registered_weakrefs.find(attr.second.as.obj) == registered_weakrefs.end() ||
+            !owned_refs.insert(attr.second.as.obj).second) continue;
+        weakref_owners[attr.second.as.obj].push_back(candidate);
+      }
+    }
+    std::unordered_map<Object*, uint32_t> internal_refs;
+    std::unordered_map<Object*, std::vector<Object*>> candidate_edges;
+    for (auto* candidate : instance_candidates) {
+      internal_refs[candidate] = 0;
+    }
+    const auto count_candidate_ref = [&](Object* source, const Value& value) {
+      Object* target = nullptr;
+      if (auto* instance = value_as_instance(value)) {
+        target = reinterpret_cast<Object*>(instance);
+      } else if (auto* instance = unwrap_protocol_iterator_instance(value)) {
+        target = reinterpret_cast<Object*>(instance);
+      }
+      if (target != nullptr && instance_candidate_set.find(target) != instance_candidate_set.end()) {
+        ++internal_refs[target];
+        candidate_edges[source].push_back(target);
+      }
+    };
+    const auto add_native_instance_ref = [&](InstanceObject* candidate) {
+      Value candidate_value;
+      candidate_value.tag = ValueTag::Object;
+      candidate_value.flags = kXlangValueBorrowedRefFlag;
+      candidate_value.as.obj = reinterpret_cast<Object*>(candidate);
+      if (auto* deque = static_cast<DequeState*>(instance_get_native_data(candidate_value, kDequeNativeType))) {
+        for (const auto& item : deque->items) {
+          count_candidate_ref(reinterpret_cast<Object*>(candidate), item);
+        }
+      }
+      if (auto* iterator = static_cast<DequeIteratorState*>(
+              instance_get_native_data(candidate_value, kDequeIteratorNativeType))) {
+        count_candidate_ref(reinterpret_cast<Object*>(candidate), iterator->deque);
+      }
+    };
+    for (auto* candidate : instance_candidates) {
+      auto* instance = reinterpret_cast<InstanceObject*>(candidate);
+      count_candidate_ref(candidate, instance->klass);
+      count_candidate_ref(candidate, instance->mapping_storage);
+      count_candidate_ref(candidate, instance->sequence_storage);
+      for (const auto& attr : instance->attrs) {
+        count_candidate_ref(candidate, attr.second);
+      }
+      add_native_instance_ref(instance);
+      for (uint32_t index = 0; index < instance_slot_count(instance); ++index) {
+        count_candidate_ref(candidate, instance_slot_at(instance, index));
+      }
+    }
+    bool has_internal_callback_edge = false;
+    std::unordered_set<Object*> deque_iterator_cycles;
+    bool has_picklebuffer_cycle = false;
+    for (auto* candidate : instance_candidates) {
+      const auto* instance = reinterpret_cast<const InstanceObject*>(candidate);
+      const auto* candidate_class = value_as_class(instance->klass);
+      if (candidate_class != nullptr && candidate_class->name == "PickleBuffer") {
+        Value candidate_value;
+        candidate_value.tag = ValueTag::Object;
+        candidate_value.flags = kXlangValueBorrowedRefFlag;
+        candidate_value.as.obj = candidate;
+        Value source;
+        std::string ignored;
+        if (object_get_attr(candidate_value, "__xlang3_pickle_buffer__", source, ignored) &&
+            source.tag != ValueTag::None && internal_refs[candidate] != 0 &&
+            candidate->refcnt.load(std::memory_order_relaxed) == internal_refs[candidate]) {
+          has_picklebuffer_cycle = true;
+        }
+      }
+      for (const auto& attr : instance->attrs) {
+        auto* iterator_instance = unwrap_protocol_iterator_instance(attr.second);
+        if (iterator_instance == nullptr) continue;
+        const auto* iterator_class = value_as_class(iterator_instance->klass);
+        if (iterator_class == nullptr ||
+            (iterator_class->name != "_deque_iterator" && iterator_class->name != "_deque_reverse_iterator")) {
+          continue;
+        }
+        const auto refcnt = candidate->refcnt.load(std::memory_order_relaxed);
+        if (refcnt <= internal_refs[candidate] + 1) {
+          deque_iterator_cycles.insert(candidate);
+          deque_iterator_cycles.insert(reinterpret_cast<Object*>(iterator_instance));
+        }
+      }
+    }
+    for (const auto& entry : weakref_registry()) {
+      if (entry.ref == nullptr) {
+        continue;
+      }
+      const auto owners = weakref_owners.find(entry.ref);
+      if (owners == weakref_owners.end()) {
+        continue;
+      }
+      Value ref;
+      ref.tag = ValueTag::Object;
+      ref.flags = kXlangValueBorrowedRefFlag;
+      ref.as.obj = entry.ref;
+      Value callback;
+      std::string ignored;
+      if (!object_get_attr(ref, kWeakrefCallbackAttr, callback, ignored)) {
+        continue;
+      }
+      if (const auto* method = value_as_bound_method(callback)) {
+        if (auto* self = value_as_instance(method->self)) {
+          auto* self_object = reinterpret_cast<Object*>(self);
+          if (instance_candidate_set.find(self_object) != instance_candidate_set.end()) {
+            ++internal_refs[self_object];
+            for (auto* owner : owners->second) {
+              candidate_edges[owner].push_back(self_object);
+            }
+            has_internal_callback_edge = true;
+          }
+        } else if (auto* self = unwrap_protocol_iterator_instance(method->self)) {
+          auto* self_object = reinterpret_cast<Object*>(self);
+          if (instance_candidate_set.find(self_object) != instance_candidate_set.end()) {
+            ++internal_refs[self_object];
+            for (auto* owner : owners->second) {
+              candidate_edges[owner].push_back(self_object);
+            }
+            has_internal_callback_edge = true;
+          }
+        }
+      }
+    }
+    // Start with objects whose references are all internal to the candidate
+    // graph.  Only cyclic components of that subgraph need explicit breaking:
+    // an acyclic tail is released naturally when its owning cycle is broken.
+    // This also prevents a rooted object from losing an acyclic child merely
+    // because that child's only reference is the edge from its live owner.
+    std::unordered_set<Object*> internally_owned;
+    for (auto* candidate : instance_candidates) {
+      if (internal_refs[candidate] != 0 &&
+          candidate->refcnt.load(std::memory_order_relaxed) == internal_refs[candidate]) {
+        internally_owned.insert(candidate);
+      }
+    }
+    std::vector<Object*> collectible;
+    for (auto* candidate : internally_owned) {
+      std::unordered_set<Object*> visited;
+      std::vector<Object*> pending{candidate};
+      bool cyclic = false;
+      while (!pending.empty() && !cyclic) {
+        auto* source = pending.back();
+        pending.pop_back();
+        if (!visited.insert(source).second) continue;
+        auto edge_it = candidate_edges.find(source);
+        if (edge_it == candidate_edges.end()) continue;
+        for (auto* target : edge_it->second) {
+          if (internally_owned.find(target) == internally_owned.end()) continue;
+          if (target == candidate) {
+            cyclic = true;
+            break;
+          }
+          if (visited.find(target) == visited.end()) pending.push_back(target);
+        }
+      }
+      if (cyclic) {
+        const auto reaches_candidate = [&](Object* origin) {
+          std::unordered_set<Object*> seen;
+          std::vector<Object*> work{origin};
+          while (!work.empty()) {
+            auto* source = work.back();
+            work.pop_back();
+            if (!seen.insert(source).second) continue;
+            if (source == candidate) return true;
+            auto edge_it = candidate_edges.find(source);
+            if (edge_it == candidate_edges.end()) continue;
+            for (auto* target : edge_it->second) {
+              if (internally_owned.find(target) != internally_owned.end()) work.push_back(target);
+            }
+          }
+          return false;
+        };
+        std::unordered_set<Object*> component;
+        component.insert(candidate);
+        for (auto* member : visited) {
+          if (reaches_candidate(member)) component.insert(member);
+        }
+        bool rooted_from_outside = false;
+        for (const auto& edges : candidate_edges) {
+          if (component.find(edges.first) != component.end()) continue;
+          for (auto* target : edges.second) {
+            if (component.find(target) != component.end()) {
+              rooted_from_outside = true;
+              break;
+            }
+          }
+          if (rooted_from_outside) break;
+        }
+        if (!rooted_from_outside) collectible.push_back(candidate);
+      }
+    }
+    for (auto* candidate : deque_iterator_cycles) {
+      if (internally_owned.find(candidate) != internally_owned.end() &&
+          std::find(collectible.begin(), collectible.end(), candidate) == collectible.end()) {
+        collectible.push_back(candidate);
+      }
+    }
+    if (!collectible.empty()) {
+      std::vector<Value> keep_alive;
+      keep_alive.reserve(collectible.size());
+      for (auto* candidate : collectible) {
+        Value borrowed;
+        borrowed.tag = ValueTag::Object;
+        borrowed.flags = kXlangValueBorrowedRefFlag;
+        borrowed.as.obj = candidate;
+        Value owned;
+        value_assign_fast(owned, borrowed);
+        keep_alive.push_back(std::move(owned));
+      }
+      for (auto* candidate : collectible) {
+        auto* instance = reinterpret_cast<InstanceObject*>(candidate);
+        Value candidate_value;
+        candidate_value.tag = ValueTag::Object;
+        candidate_value.flags = kXlangValueBorrowedRefFlag;
+        candidate_value.as.obj = candidate;
+        if (instance->native_data_clear != nullptr && instance->native_owner != nullptr) {
+          auto clear = instance->native_data_clear;
+          instance->native_data_clear = nullptr;
+          instance->native_gc_traverse = nullptr;
+          clear(instance->native_owner);
+          instance->native_gc_references.clear();
+        }
+        if (auto* deque = static_cast<DequeState*>(instance_get_native_data(candidate_value, kDequeNativeType))) {
+          for (auto& item : deque->items) {
+            value_set_invalid(item);
+          }
+          deque->items.clear();
+        }
+        if (auto* iterator = static_cast<DequeIteratorState*>(
+                instance_get_native_data(candidate_value, kDequeIteratorNativeType))) {
+          value_set_invalid(iterator->deque);
+          iterator->deque = Value::invalid();
+        }
+        value_set_invalid(instance->mapping_storage);
+        value_set_invalid(instance->sequence_storage);
+        for (auto& attr : instance->attrs) {
+          value_set_invalid(attr.second);
+        }
+        for (uint32_t index = 0; index < instance_slot_count(instance); ++index) {
+          value_set_invalid(instance_slot_at(instance, index));
+        }
+      }
+      for (auto* candidate : deque_iterator_cycles) {
+        if (internally_owned.find(candidate) != internally_owned.end()) {
+          weakref_invalidate_target(candidate);
+        }
+      }
+      collected += collectible.size();
+    }
+  }
+  return collected;
+}
+
+void register_weakref_module(Runtime& runtime) {
+  NativeModuleBuilder low_level(runtime, "_weakref");
+  add_weakref_exports(low_level, runtime);
+  runtime.register_module("_weakref", low_level.finish());
+}
+
+} // namespace xlang3

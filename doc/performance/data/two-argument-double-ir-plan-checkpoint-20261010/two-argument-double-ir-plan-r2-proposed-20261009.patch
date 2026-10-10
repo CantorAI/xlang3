@@ -1,0 +1,245 @@
+diff --git a/src/executor/xlang_vm/xlang_vm_inline_call.h b/src/executor/xlang_vm/xlang_vm_inline_call.h
+index cf904940..5dc5d835 100644
+--- a/src/executor/xlang_vm/xlang_vm_inline_call.h
++++ b/src/executor/xlang_vm/xlang_vm_inline_call.h
+@@ -482,6 +482,143 @@ XLANG3_HOT_INLINE bool xlang_vm_execute_trivial_function(
+   return true;
+ }
+ 
++// A bounded, uncached IR executor for a two-argument numeric method family.
++// This removes a normal Python frame only after ALL lookup and operand guards
++// have passed. Rejected inputs execute the original frame exactly once. It is
++// deliberately not a library/name specialization or a partial call replay.
++inline bool xlang_vm_try_two_argument_double_method(
++    Runtime& runtime, const ir::Module& current_module,
++    const FunctionObject& fn_obj, const Value& self, const Value& other,
++    Value& out, size_t vm_frame_count) {
++  const auto active_hook = [](const Value& hook) {
++    return hook.tag != ValueTag::Invalid && hook.tag != ValueTag::None;
++  };
++
++  // No persistent receiver/function owners or expanded CallSiteCache payload.
++  // Current IR is selected on every attempt, so __code__ replacement cannot
++  // leave a body plan referring to an earlier module or function generation.
++  const ir::Module* method_module = fn_obj.module != nullptr ? fn_obj.module.get() : &current_module;
++  if (fn_obj.function_id >= method_module->functions.size()) return false;
++  const auto& method = method_module->functions[fn_obj.function_id];
++  constexpr size_t limit = 32;
++  if (method.is_generator || method.is_async || method.is_coroutine ||
++      !method.free_vars.empty() || !method.cell_slots.empty() ||
++      !xlang_vm_has_direct_positional_signature(method, 2) ||
++      method.locals.size() != 2 || method.register_count > limit ||
++      method.code.size() < 5 || method.code.size() > 24 ||
++      method.code[0].op != ir::Op::CallLocalMethod) return false;
++  const auto& guard_call = method.code[0];
++  const auto& discard = method.code[1];
++  const auto& ret = method.code[method.code.size() - 2];
++  const auto& implicit_return = method.code.back();
++  if (guard_call.op != ir::Op::CallLocalMethod || guard_call.a > 1 ||
++      guard_call.dst >= method.register_count ||
++      guard_call.b >= method.names.size() || guard_call.c >= method.call_args.size() ||
++      !method.call_args[guard_call.c].empty() ||
++      discard.op != ir::Op::Pop || discard.a != guard_call.dst ||
++      ret.op != ir::Op::Return || ret.a >= method.register_count ||
++      implicit_return.op != ir::Op::ReturnConst ||
++      implicit_return.a >= method.constants.size() ||
++      method.constants[implicit_return.a].tag != ValueTag::None) return false;
++  // LoadLocalAttr writes its numeric destination AND an auxiliary receiver
++  // register. Admit only fresh writes within the actual register count, and
++  // keep receiver/call results nonnumeric so no reused auxiliary can masquerade
++  // as an earlier scalar. This makes primitive preloading equivalent to SSA.
++  std::array<bool, limit> written{};
++  std::array<bool, limit> numeric{};
++  written[guard_call.dst] = true;
++  for (size_t ip = 2; ip + 2 < method.code.size(); ++ip) {
++    const auto& op = method.code[ip];
++    if (op.dst >= method.register_count || written[op.dst]) return false;
++    if (op.op == ir::Op::LoadLocalAttr) {
++      if (op.a > 1 || op.b >= method.names.size() ||
++          op.c >= method.register_count || op.c == op.dst || written[op.c]) return false;
++      written[op.c] = true;
++    } else if (op.op == ir::Op::Add || op.op == ir::Op::Sub || op.op == ir::Op::Mul) {
++      if (op.a >= method.register_count || op.b >= method.register_count ||
++          !numeric[op.a] || !numeric[op.b] || op.c != 0) return false;
++    } else return false;
++    written[op.dst] = true;
++    numeric[op.dst] = true;
++  }
++  if (!numeric[ret.a]) return false;
++  if (runtime.debug_step_active() || active_hook(runtime.debug_hook()) ||
++      active_hook(runtime.trace_function()) || active_hook(runtime.profile_function()) ||
++      sys_monitoring_event_may_dispatch(kSysMonitoringEventAll) ||
++      !xlang_vm_inline_python_function_allowed(runtime, current_module, fn_obj)) return false;
++  // Preserve the ordinary push_frame budget for the method and its leading
++  // Python guard. A default/unknown frame count never grants admission.
++  // Subtraction keeps both saved-depth and headroom checks overflow-safe.
++  const size_t effective_limit = std::min(
++      static_cast<size_t>(runtime.recursion_limit()), size_t{1024});
++  if (vm_frame_count == 0 || vm_frame_count >= effective_limit) return false;
++  const size_t after_live_frames = effective_limit - vm_frame_count;
++  const size_t saved_depth = runtime.saved_python_frame_depth();
++  if (saved_depth >= after_live_frames || after_live_frames - saved_depth < 2) return false;
++  const auto module_owner = fn_obj.module;
++  // Constructor copies own borrowed inputs too. The helper's only output is a
++  // fresh scalar; its caller publishes that scalar into the live destination.
++  // All instance/class/IR access is finished before that overwrite may finalize.
++  const Value inputs[2] = {Value(self), Value(other)};
++  InstanceObject* instances[2] = {value_as_instance(inputs[0]), value_as_instance(inputs[1])};
++  for (auto* instance : instances) {
++    if (instance == nullptr || instance->native_get_attr != nullptr ||
++        instance_slot_count(instance) != 0 ||
++        value_as_dict(instance_attribute_storage(*instance)) != nullptr) return false;
++    const auto* klass = value_as_class(instance->klass);
++    if (klass == nullptr || klass->has_getattribute_hook) return false;
++  }
++  auto* guarded_instance = instances[guard_call.a];
++  const auto& guard_name = method.names[guard_call.b];
++  for (const auto& attr : guarded_instance->attrs)
++    if (attr.first == guard_name) return false;
++  Value guarded_callable;
++  std::string lookup_error;
++  if (!object_lookup_class_attr(guarded_instance->klass, guard_name, guarded_callable, lookup_error) ||
++      !lookup_error.empty()) return false;
++  const auto* guard_function = value_as_function(guarded_callable);
++  if (guard_function == nullptr) return false;
++  const auto* guard_module = guard_function->module != nullptr
++      ? guard_function->module.get() : &current_module;
++  if (guard_function->function_id >= guard_module->functions.size() ||
++      guard_module->functions[guard_function->function_id].is_async ||
++      guard_module->functions[guard_function->function_id].is_coroutine) return false;
++  XlangVMTrivialFunctionSpec guard_spec;
++  if (
++      !xlang_vm_inline_python_function_allowed(runtime, current_module, *guard_function) ||
++      !xlang_vm_analyze_trivial_function(current_module, *guard_function, 1, guard_spec) ||
++      !guard_spec.returns_argument || guard_spec.argument != 0) return false;
++  // Restrict this prototype to missing class attributes plus present native
++  // instance fields. Any property, slot or other descriptor takes the original
++  // lookup path, before invoking __get__, __getattribute__ or a callable shadow.
++  std::array<double, limit> values{};
++  for (size_t ip = 2; ip + 2 < method.code.size(); ++ip) {
++    const auto& op = method.code[ip];
++    if (op.op != ir::Op::LoadLocalAttr) continue;
++    auto* instance = instances[op.a];
++    const auto& name = method.names[op.b];
++    Value class_attribute;
++    lookup_error.clear();
++    if (object_lookup_class_attr(instance->klass, name, class_attribute, lookup_error) ||
++        !lookup_error.empty()) return false;
++    const auto found = std::find_if(instance->attrs.begin(), instance->attrs.end(),
++        [&](const auto& attr) { return attr.first == name; });
++    if (found == instance->attrs.end() || found->second.tag != ValueTag::Double) return false;
++    values[op.dst] = found->second.as.f64;
++  }
++  // The leading call was proved to return its receiver without effects, and
++  // its sole consumer discards it. All remaining operations are exact Double
++  // arithmetic. Keep instruction order; no reassociation or fused multiply-add.
++  for (size_t ip = 2; ip + 2 < method.code.size(); ++ip) {
++    const auto& op = method.code[ip];
++    if (op.op == ir::Op::Add) values[op.dst] = values[op.a] + values[op.b];
++    else if (op.op == ir::Op::Sub) values[op.dst] = values[op.a] - values[op.b];
++    else if (op.op == ir::Op::Mul) values[op.dst] = values[op.a] * values[op.b];
++  }
++  value_assign_fast(out, Value::number(values[ret.a]));
++  return true;
++}
++
+ inline bool xlang_vm_analyze_self_binary_method(
+     const ir::Module& current_module,
+     const FunctionObject& fn_obj,
+diff --git a/src/executor/xlang_vm/ops/xlang_vm_ops_call.h b/src/executor/xlang_vm/ops/xlang_vm_ops_call.h
+index 14f7bb3e..67a87371 100644
+--- a/src/executor/xlang_vm/ops/xlang_vm_ops_call.h
++++ b/src/executor/xlang_vm/ops/xlang_vm_ops_call.h
+@@ -904,7 +904,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
+     ExecuteSelfSlotConstSumMethod&& execute_self_slot_const_sum_method_fn,
+     RaiseRuntimeError&& raise_runtime_error,
+     RaiseExceptionValue&& raise_exception_value,
+-    const Value* monitoring_code = nullptr) {
++    const Value* monitoring_code = nullptr, size_t vm_frame_count = 0) {
+   if (in.b >= fn.names.size() || in.c >= fn.call_args.size()) {
+     result.errors.push_back("invalid method call");
+     return XlangVMOpFlow::ReturnResult;
+@@ -1291,6 +1291,17 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
+         auto& cache = instr_cache[ip].call;
+         if (cache.callee_object == &klass->header && cache.class_version == klass->version &&
+             (cache.function == nullptr || cache.function_code_version == cache.function->code_version)) {
++          if ((cache.kind == CallSiteKind::UserFunction ||
++               cache.kind == CallSiteKind::ExactPositionalFunction) &&
++              cache.function != nullptr && call_arg_regs.size() == 1 &&
++              !call_args.has_keywords() && !call_args.has_expansion()) {
++            Value planned_result;
++            if (xlang_vm_try_two_argument_double_method(runtime, module,
++                    *cache.function, regs[in.a], regs[call_arg_regs[0]], planned_result, vm_frame_count)) {
++              value_assign_fast(regs[in.dst], planned_result);
++              return XlangVMOpFlow::Next;
++            }
++          }
+           if (cache.kind == CallSiteKind::ExactPositionalFunction) {
+             bool handled = false;
+             const auto flow = push_exact_positional_method_frame(
+@@ -1610,6 +1621,15 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
+             cache.native = nullptr;
+             cache.class_version = klass->version;
+           }
++          if (call_arg_regs.size() == 1 && !call_args.has_keywords() &&
++              !call_args.has_expansion()) {
++            Value planned_result;
++            if (xlang_vm_try_two_argument_double_method(runtime, module,
++                    *fn_obj, regs[in.a], regs[call_arg_regs[0]], planned_result, vm_frame_count)) {
++              value_assign_fast(regs[in.dst], planned_result);
++              return XlangVMOpFlow::Next;
++            }
++          }
+           if (inline_python_function_allowed(runtime, module, *fn_obj) && call_arg_regs.empty()) {
+             uint32_t direct_slot = 0;
+             if (analyze_self_slot_method_fn(module, *fn_obj, direct_slot)) {
+@@ -1774,6 +1794,15 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
+             cache.native = nullptr;
+             cache.class_version = klass->version;
+           }
++          if (call_arg_regs.size() == 1 && !call_args.has_keywords() &&
++              !call_args.has_expansion()) {
++            Value planned_result;
++            if (xlang_vm_try_two_argument_double_method(runtime, module,
++                    *fn_obj, regs[in.a], regs[call_arg_regs[0]], planned_result, vm_frame_count)) {
++              value_assign_fast(regs[in.dst], planned_result);
++              return XlangVMOpFlow::Next;
++            }
++          }
+           if (inline_python_function_allowed(runtime, module, *fn_obj) && call_arg_regs.empty()) {
+             uint32_t direct_slot = 0;
+             if (analyze_self_slot_method_fn(module, *fn_obj, direct_slot)) {
+@@ -5538,7 +5567,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_local_method(
+     ExecuteSelfSlotConstSumMethod&& execute_self_slot_const_sum_method,
+     RaiseRuntimeError&& raise_runtime_error, RaiseExceptionValue&& raise_exception_value,
+     RaiseUnboundLocalError&& raise_unbound_local_error,
+-    const Value* monitoring_code = nullptr) {
++    const Value* monitoring_code = nullptr, size_t vm_frame_count = 0) {
+   if (in.a >= locals.size() || in.dst >= regs.size()) {
+     result.errors.push_back("invalid local slot in method call");
+     return XlangVMOpFlow::ReturnResult;
+@@ -5565,7 +5594,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_local_method(
+       std::forward<AnalyzeSelfSlotConstSumMethod>(analyze_self_slot_const_sum_method),
+       std::forward<ExecuteSelfSlotConstSumMethod>(execute_self_slot_const_sum_method),
+       std::forward<RaiseRuntimeError>(raise_runtime_error),
+-      std::forward<RaiseExceptionValue>(raise_exception_value), monitoring_code);
++      std::forward<RaiseExceptionValue>(raise_exception_value), monitoring_code, vm_frame_count);
+ }
+ 
+ } // namespace xlang3::xlang_vm::ops
+diff --git a/src/executor/xlang_vm/xlang_vm_op_rows.h b/src/executor/xlang_vm/xlang_vm_op_rows.h
+index 383f7bfc..565d83c8 100644
+--- a/src/executor/xlang_vm/xlang_vm_op_rows.h
++++ b/src/executor/xlang_vm/xlang_vm_op_rows.h
+@@ -62,9 +62,9 @@ XLANG3_VM_FLOW_TRACKED_REFRESH_MONITORING(Call, xlang3::xlang_vm::ops::call(in,
+ XLANG3_VM_FLOW_TRACKED_REFRESH_MONITORING(CallLocal, xlang3::xlang_vm::ops::call_local(in, fn, module, module_owner, runtime_, regs, locals, instr_cache, native_call_args, ip, result, execution_lock, make_generator_if_needed, push_frame, call_builtin_type_constructor, analyze_arg_binary_function, execute_arg_binary_function, analyze_slot_constructor, execute_slot_constructor, raise_runtime_error, raise_exception_value, raise_unbound_local_error))
+ XLANG3_VM_FLOW_TRACKED_REFRESH_MONITORING(CallGlobal, xlang3::xlang_vm::ops::call_global(in, fn, module, module_owner, runtime_, regs, globals_module, globals_, globals_version_, instr_cache, native_call_args, ip, result, execution_lock, make_generator_if_needed, push_frame, call_builtin_type_constructor, analyze_arg_binary_function, execute_arg_binary_function, analyze_slot_constructor, execute_slot_constructor, raise_runtime_error, raise_exception_value, raise_name_error))
+ XLANG3_VM_FLOW_TRACKED_REFRESH_MONITORING(CallEx, xlang3::xlang_vm::ops::call_ex(in, fn, module, module_owner, frame.monitoring_code, runtime_, regs, frames, frame_count, instr_cache, native_call_args, ip, result, execution_lock, make_generator_if_needed, push_frame, call_builtin_type_constructor, raise_runtime_error, raise_exception_value, generator == nullptr && !resuming_pause))
+-XLANG3_VM_FLOW_TRACKED_REFRESH_MONITORING(CallMethod, xlang3::xlang_vm::ops::call_method(in, fn, module, module_owner, runtime_, regs, instr_cache, native_call_args, ip, result, execution_lock, make_generator_if_needed, push_frame, call_builtin_type_constructor, analyze_const_method, analyze_self_binary_method, execute_self_binary_method, analyze_self_slot_method, execute_self_slot_method, analyze_self_slot_const_sum_method, execute_self_slot_const_sum_method, raise_runtime_error, raise_exception_value, &frame.monitoring_code))
++XLANG3_VM_FLOW_TRACKED_REFRESH_MONITORING(CallMethod, xlang3::xlang_vm::ops::call_method(in, fn, module, module_owner, runtime_, regs, instr_cache, native_call_args, ip, result, execution_lock, make_generator_if_needed, push_frame, call_builtin_type_constructor, analyze_const_method, analyze_self_binary_method, execute_self_binary_method, analyze_self_slot_method, execute_self_slot_method, analyze_self_slot_const_sum_method, execute_self_slot_const_sum_method, raise_runtime_error, raise_exception_value, &frame.monitoring_code, frame_count))
+ XLANG3_VM_FLOW_TRACKED_REFRESH_MONITORING(CallMethodEx, xlang3::xlang_vm::ops::call_method_ex(in, fn, module, module_owner, frame.monitoring_code, runtime_, regs, instr_cache, native_call_args, ip, result, execution_lock, make_generator_if_needed, push_frame, raise_runtime_error, raise_exception_value))
+-XLANG3_VM_FLOW_TRACKED_REFRESH_MONITORING(CallLocalMethod, xlang3::xlang_vm::ops::call_local_method(in, fn, module, module_owner, runtime_, regs, locals, instr_cache, native_call_args, ip, result, execution_lock, make_generator_if_needed, push_frame, call_builtin_type_constructor, analyze_const_method, analyze_self_binary_method, execute_self_binary_method, analyze_self_slot_method, execute_self_slot_method, analyze_self_slot_const_sum_method, execute_self_slot_const_sum_method, raise_runtime_error, raise_exception_value, raise_unbound_local_error, &frame.monitoring_code))
++XLANG3_VM_FLOW_TRACKED_REFRESH_MONITORING(CallLocalMethod, xlang3::xlang_vm::ops::call_local_method(in, fn, module, module_owner, runtime_, regs, locals, instr_cache, native_call_args, ip, result, execution_lock, make_generator_if_needed, push_frame, call_builtin_type_constructor, analyze_const_method, analyze_self_binary_method, execute_self_binary_method, analyze_self_slot_method, execute_self_slot_method, analyze_self_slot_const_sum_method, execute_self_slot_const_sum_method, raise_runtime_error, raise_exception_value, raise_unbound_local_error, &frame.monitoring_code, frame_count))
+ XLANG3_VM_FLOW_TRACKED_REFRESH_MONITORING(CallModuleMethod, xlang3::xlang_vm::ops::call_module_method(in, fn, module, module_owner, frame.monitoring_code, runtime_, regs, globals_module, instr_cache, native_call_args, ip, result, execution_lock, make_generator_if_needed, push_frame, raise_runtime_error, raise_exception_value))
+ XLANG3_VM_FLOW_TRACKED(ImportModule, xlang3::xlang_vm::ops::import_module(in, fn, runtime_, regs, result, raise_import_error))
+ XLANG3_VM_FLOW_TRACKED(ImportModuleThru, xlang3::xlang_vm::ops::import_module_thru(in, fn, runtime_, regs, result, raise_import_error))

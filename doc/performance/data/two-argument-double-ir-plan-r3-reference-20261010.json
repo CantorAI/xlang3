@@ -1,0 +1,46 @@
+{
+  "terminal": true,
+  "scored": false,
+  "status": "semantic_reference_passed",
+  "phases": [
+    {
+      "name": "cpython3147",
+      "command": [
+        "C:\\Python\\Python314\\python.exe",
+        "-I",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\two-argument-double-ir-plan-fixture-r3-proposed-20261009.py"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "2303543e489c5848facf1b9842a12f8f394bbaee65b7b275a4362afad19f9691",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "passed": true
+    },
+    {
+      "name": "xlang3-accepted",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\two-argument-double-ir-plan-fixture-r3-proposed-20261009.py"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "2303543e489c5848facf1b9842a12f8f394bbaee65b7b275a4362afad19f9691",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "passed": true
+    }
+  ],
+  "inputs_unchanged": true,
+  "pins": {
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\two-argument-double-ir-plan-fixture-r3-proposed-20261009.py": "406434854572605d6e699d54bcd2c1b9b524b1f403aeec70f7190c5f57b514f4",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\two-argument-double-ir-plan-fixture-r3-proposed-20261009.out": "154e54becd1e12cb2d4a8461bc8739f786a9a9136a1cbec8be8bf40ad6adaeac",
+    "C:\\Python\\Python314\\python.exe": "4942b86a6597e5aee0128daa00050ed79bc21f6e709a78eb19cbfeb0c2f39ac9",
+    "C:\\Python\\Python314\\python314.dll": "0f9857ffdfe010fe6b99328d58c2e3c7472ce75f336bf9c2ad9bd5bca3bce700",
+    "D:\\CantorAI\\xlang3\\.gitattributes": "4ebf3e1878183ec76a285bc0b2c482c875ee1d0dbbc288ad685edbdfa51f0e3d",
+    "D:\\CantorAI\\xlang3\\CMakeLists.txt": "29126ab0246dd89f091b61c33bfa9edd463f4b5b8d81fa5b0129a1c1f890b855",
+    "D:\\CantorAI\\xlang3\\benchmarks\\diagnostics\\native_vm_opcode_timer.h": "bb9a541a20b7a4265920ee5322ddf9285674a26a3807e625a026a6c9e3ad7453",
+    "D:\\CantorAI\\xlang3\\src\\internal\\xlang3\\builtins.h": "d5035976c1283a1cdeb6a0c838f7fe83ed754527eb465d140a804d31de26f681",
+    "D:\\CantorAI\\xlang3\\tests\\cpp\\runtime_value_tests.cpp": "7b5ac4f61c3937985f374d506602866d81a15db9596914789345696772a5f261",
+    "D:\\CantorAI\\xlang3\\tests\\fixtures\\core\\sqlite_statement_cache.py": "d2ec917ab11e9c4f1e672bd0eef60c2aaa7400160cd6b6fb76ca6e151d2b3701"
+  },
+  "controller_sha256": "d6da04396b604b1b8f44f04fa158eee9dc7b85cb1453be72a80e4e5626793e16",
+  "candidate_engine_applied": false,
+  "scope": "Eight proposed semantic groups on both fixed references before engine changes; no optimization eligibility or speed claim."
+}

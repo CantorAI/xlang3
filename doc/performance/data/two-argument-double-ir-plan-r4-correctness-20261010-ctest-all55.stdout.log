@@ -1,0 +1,888 @@
+UpdateCTestConfiguration  from :D:/CantorAI/xlang3/build-repro/main-verify-20261006/DartConfiguration.tcl
+Test project D:/CantorAI/xlang3/build-repro/main-verify-20261006
+Constructing a list of tests
+Done constructing a list of tests
+Updating test list for fixtures
+Added 0 tests to meet fixture requirements
+Checking test dependency graph...
+Checking test dependency graph end
+test 1
+      Start  1: xlang3_import_errors
+
+1: Test command: D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3.exe "D:/CantorAI/xlang3/tests/cli/import_errors.py"
+1: Working Directory: D:/CantorAI/xlang3/build-repro/main-verify-20261006
+1: Test timeout computed to be: 10000000
+1: import-errors-passed
+ 1/55 Test  #1: xlang3_import_errors .......................   Passed    0.04 sec
+test 2
+      Start  2: xlang3_bytes_split
+
+2: Test command: D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3.exe "D:/CantorAI/xlang3/tests/cli/bytes_split.py"
+2: Working Directory: D:/CantorAI/xlang3/build-repro/main-verify-20261006
+2: Test timeout computed to be: 10000000
+2: bytes-split-passed
+ 2/55 Test  #2: xlang3_bytes_split .........................   Passed    0.04 sec
+test 3
+      Start  3: xlang3_smoke
+
+3: Test command: D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3_smoke.exe
+3: Working Directory: D:/CantorAI/xlang3/build-repro/main-verify-20261006
+3: Test timeout computed to be: 10000000
+ 3/55 Test  #3: xlang3_smoke ...............................   Passed    0.06 sec
+test 4
+      Start  4: xlang3_abi_ownership
+
+4: Test command: D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3_abi_ownership.exe
+4: Working Directory: D:/CantorAI/xlang3/build-repro/main-verify-20261006
+4: Test timeout computed to be: 10000000
+4: ABI borrowed-reference and concurrent interning tests passed
+ 4/55 Test  #4: xlang3_abi_ownership .......................   Passed    0.03 sec
+test 5
+      Start  5: xlang3_static_runtime_shutdown
+
+5: Test command: D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3_static_runtime_shutdown.exe
+5: Working Directory: D:/CantorAI/xlang3/build-repro/main-verify-20261006
+5: Test timeout computed to be: 10000000
+5: global runtime retained until process teardown
+ 5/55 Test  #5: xlang3_static_runtime_shutdown .............   Passed    0.08 sec
+test 6
+      Start  6: xlang3_embedded_package_tests
+
+6: Test command: D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3_embedded_package_tests.exe
+6: Working Directory: D:/CantorAI/xlang3/build-repro/main-verify-20261006
+6: Test timeout computed to be: 10000000
+6: Embedded C++ package passed
+ 6/55 Test  #6: xlang3_embedded_package_tests ..............   Passed    0.06 sec
+test 7
+      Start  7: xlang3_sdk_stream_call_tests
+
+7: Test command: D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3_sdk_stream_call_tests.exe "D:/CantorAI/xlang3/tests/cpp"
+7: Working Directory: D:/CantorAI/xlang3/build-repro/main-verify-20261006
+7: Test timeout computed to be: 10000000
+7: SDK streams and keyword calls passed
+ 7/55 Test  #7: xlang3_sdk_stream_call_tests ...............   Passed    0.09 sec
+test 8
+      Start  8: xlang3_graph_producer
+
+8: Test command: D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3_graph_process_tests.exe "write" "D:/CantorAI/xlang3/build-repro/main-verify-20261006/graph_payload.bin" "D:/CantorAI/xlang3/tests/serialize/graph_source.py" "D:/CantorAI/xlang3/build-repro/main-verify-20261006/Release/modules"
+8: Working Directory: D:/CantorAI/xlang3/build-repro/main-verify-20261006
+8: Test timeout computed to be: 10000000
+8: Graph producer passed
+ 8/55 Test  #8: xlang3_graph_producer ......................   Passed    0.10 sec
+test 9
+      Start  9: xlang3_graph_consumer
+
+9: Test command: D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3_graph_process_tests.exe "read" "D:/CantorAI/xlang3/build-repro/main-verify-20261006/graph_payload.bin" "D:/CantorAI/xlang3/tests/serialize/graph_source.py" "D:/CantorAI/xlang3/build-repro/main-verify-20261006/Release/modules"
+9: Working Directory: D:/CantorAI/xlang3/build-repro/main-verify-20261006
+9: Test timeout computed to be: 10000000
+9: Graph consumer passed without producer source
+ 9/55 Test  #9: xlang3_graph_consumer ......................   Passed    0.04 sec
+test 10
+      Start 10: xlang3_graph_reject_BAD_VERSION
+
+10: Test command: D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3_graph_process_tests.exe "reject" "D:/CantorAI/xlang3/build-repro/main-verify-20261006/graph_payload.bin" "D:/CantorAI/xlang3/tests/serialize/graph_source.py" "D:/CantorAI/xlang3/build-repro/main-verify-20261006/Release/modules"
+10: Working Directory: D:/CantorAI/xlang3/build-repro/main-verify-20261006
+10: Environment variables: 
+10:  XLANG3_TEST_GRAPH_BAD_VERSION=1
+10: Test timeout computed to be: 10000000
+10: Native restore rejected with cleanup
+10/55 Test #10: xlang3_graph_reject_BAD_VERSION ............   Passed    0.04 sec
+test 11
+      Start 11: xlang3_graph_reject_NO_CODEC
+
+11: Test command: D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3_graph_process_tests.exe "reject" "D:/CantorAI/xlang3/build-repro/main-verify-20261006/graph_payload.bin" "D:/CantorAI/xlang3/tests/serialize/graph_source.py" "D:/CantorAI/xlang3/build-repro/main-verify-20261006/Release/modules"
+11: Working Directory: D:/CantorAI/xlang3/build-repro/main-verify-20261006
+11: Environment variables: 
+11:  XLANG3_TEST_GRAPH_NO_CODEC=1
+11: Test timeout computed to be: 10000000
+11: Native restore rejected with cleanup
+11/55 Test #11: xlang3_graph_reject_NO_CODEC ...............   Passed    0.03 sec
+test 12
+      Start 12: xlang3_graph_reject_DECODE_FAIL
+
+12: Test command: D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3_graph_process_tests.exe "reject" "D:/CantorAI/xlang3/build-repro/main-verify-20261006/graph_payload.bin" "D:/CantorAI/xlang3/tests/serialize/graph_source.py" "D:/CantorAI/xlang3/build-repro/main-verify-20261006/Release/modules"
+12: Working Directory: D:/CantorAI/xlang3/build-repro/main-verify-20261006
+12: Environment variables: 
+12:  XLANG3_TEST_GRAPH_DECODE_FAIL=1
+12: Test timeout computed to be: 10000000
+12: Native restore rejected with cleanup
+12/55 Test #12: xlang3_graph_reject_DECODE_FAIL ............   Passed    0.03 sec
+test 13
+      Start 13: xlang3_runtime_value_tests
+
+13: Test command: D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3_runtime_value_tests.exe
+13: Working Directory: D:/CantorAI/xlang3/build-repro/main-verify-20261006
+13: Test timeout computed to be: 10000000
+13/55 Test #13: xlang3_runtime_value_tests .................   Passed    0.21 sec
+test 14
+      Start 14: xlang3_vfs_tests
+
+14: Test command: D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3_vfs_tests.exe
+14: Working Directory: D:/CantorAI/xlang3/build-repro/main-verify-20261006
+14: Test timeout computed to be: 10000000
+14/55 Test #14: xlang3_vfs_tests ...........................   Passed    0.08 sec
+test 15
+      Start 15: xlang3_tensor_cpu
+
+15: Test command: D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3_tensor_cpu_tests.exe
+15: Working Directory: D:/CantorAI/xlang3/build-repro/main-verify-20261006
+15: Test timeout computed to be: 60
+15: tensor-cpu-passed
+15/55 Test #15: xlang3_tensor_cpu ..........................   Passed    0.30 sec
+test 16
+      Start 16: xlang3_tensor_cpu_graph
+
+16: Test command: D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3.exe "D:/CantorAI/xlang3/tests/tensor/cpu_graph.py"
+16: Working Directory: D:/CantorAI/xlang3/build-repro/main-verify-20261006
+16: Test timeout computed to be: 60
+16: tensor-created
+16: tensor-graph-built
+16: tensor-repeated-run-passed
+16: tensor-arithmetic-passed
+16: tensor-layout-matmul-passed
+16: tensor-dtypes-empty-passed
+16: tensor-fusion-passed
+16: tensor-cpu-graph-passed
+16/55 Test #16: xlang3_tensor_cpu_graph ....................   Passed    0.04 sec
+test 17
+      Start 17: xlang3_tensor_cpu_reference
+
+17: Test command: D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3.exe "D:/CantorAI/xlang3/tests/tensor/cpu_reference.py"
+17: Working Directory: D:/CantorAI/xlang3/build-repro/main-verify-20261006
+17: Test timeout computed to be: 60
+17: tensor-cpu-reference-passed 309
+17/55 Test #17: xlang3_tensor_cpu_reference ................   Passed    0.05 sec
+test 18
+      Start 18: xlang3_ipc_capacity_tests
+
+18: Test command: D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3_ipc_capacity_tests.exe
+18: Working Directory: D:/CantorAI/xlang3/build-repro/main-verify-20261006
+18: Test timeout computed to be: 10000000
+18: IPC admission fairness passed
+18/55 Test #18: xlang3_ipc_capacity_tests ..................   Passed    0.05 sec
+test 19
+      Start 19: xlang3_memory_tests
+
+19: Test command: D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3_memory_tests.exe
+19: Working Directory: D:/CantorAI/xlang3/build-repro/main-verify-20261006
+19: Test timeout computed to be: 10000000
+19/55 Test #19: xlang3_memory_tests ........................   Passed    0.06 sec
+test 20
+      Start 20: xlang3_parser_tests
+
+20: Test command: D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3_parser_tests.exe
+20: Working Directory: D:/CantorAI/xlang3/build-repro/main-verify-20261006
+20: Test timeout computed to be: 10000000
+20/55 Test #20: xlang3_parser_tests ........................   Passed    0.07 sec
+test 21
+      Start 21: xlang3_interpreter_tests
+
+21: Test command: D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3_interpreter_tests.exe
+21: Working Directory: D:/CantorAI/xlang3/build-repro/main-verify-20261006
+21: Test timeout computed to be: 10000000
+21/55 Test #21: xlang3_interpreter_tests ...................   Passed    0.41 sec
+test 22
+      Start 22: xlang3_debug_session_tests
+
+22: Test command: D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3_debug_session_tests.exe
+22: Working Directory: D:/CantorAI/xlang3/build-repro/main-verify-20261006
+22: Test timeout computed to be: 10000000
+22/55 Test #22: xlang3_debug_session_tests .................   Passed    0.08 sec
+test 23
+      Start 23: xlang3_dap_session_tests
+
+23: Test command: D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3_dap_session_tests.exe
+23: Working Directory: D:/CantorAI/xlang3/build-repro/main-verify-20261006
+23: Test timeout computed to be: 10000000
+23/55 Test #23: xlang3_dap_session_tests ...................   Passed    0.06 sec
+test 24
+      Start 24: xlang3_module_slot_tests
+
+24: Test command: D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3_module_slot_tests.exe
+24: Working Directory: D:/CantorAI/xlang3/build-repro/main-verify-20261006
+24: Test timeout computed to be: 10000000
+24/55 Test #24: xlang3_module_slot_tests ...................   Passed    0.10 sec
+test 25
+      Start 25: xlang3_task_tests
+
+25: Test command: D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3_task_tests.exe
+25: Working Directory: D:/CantorAI/xlang3/build-repro/main-verify-20261006
+25: Test timeout computed to be: 10000000
+25/55 Test #25: xlang3_task_tests ..........................   Passed    0.08 sec
+test 26
+      Start 26: xlang3_ir_codec_tests
+
+26: Test command: D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3_ir_codec_tests.exe
+26: Working Directory: D:/CantorAI/xlang3/build-repro/main-verify-20261006
+26: Test timeout computed to be: 10000000
+26/55 Test #26: xlang3_ir_codec_tests ......................   Passed    0.07 sec
+test 27
+      Start 27: xlang3_native_package_real_tests
+
+27: Test command: D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3_native_package_real_tests.exe "D:/CantorAI/xlang3/build-repro/main-verify-20261006/Release/modules"
+27: Working Directory: D:/CantorAI/xlang3/build-repro/main-verify-20261006
+27: Test timeout computed to be: 10000000
+27/55 Test #27: xlang3_native_package_real_tests ...........   Passed    0.08 sec
+test 28
+      Start 28: xlang3_native_library_path
+
+28: Test command: D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3_native_path_tests.exe "D:/CantorAI/xlang3/build-repro/main-verify-20261006/Release/modules/xlang1_compat_sample.x3pkg.dll"
+28: Working Directory: D:/CantorAI/xlang3/build-repro/main-verify-20261006
+28: Test timeout computed to be: 30
+28: native-library-path-single-initialization-passed
+28: native-library-absolute-stem-passed
+28/55 Test #28: xlang3_native_library_path .................   Passed    0.08 sec
+test 29
+      Start 29: xlang3_expression_decorators
+
+29: Test command: D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3.exe "-c" "exec(open('D:/CantorAI/xlang3/tests/cpp/expression_decorators.py').read())"
+29: Working Directory: D:/CantorAI/xlang3/build-repro/main-verify-20261006/Release/modules
+29: Test timeout computed to be: 10000000
+29/55 Test #29: xlang3_expression_decorators ...............   Passed    0.04 sec
+test 30
+      Start 30: xlang3_expression_decorators_ipc
+
+30: Test command: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe "-NoProfile" "-ExecutionPolicy" "Bypass" "-File" "D:/CantorAI/xlang3/tests/ipc/run_lrpc_smoke.ps1" "-XLang3" "D:/CantorAI/xlang3/build-repro/main-verify-20261006/Release/xlang3.exe" "-NativeModules" "D:/CantorAI/xlang3/build-repro/main-verify-20261006/Release/modules" "-ClientScript" "expression_client.py" "-Expected" "expression_expected.out"
+30: Working Directory: D:/CantorAI/xlang3/build-repro/main-verify-20261006
+30: Test timeout computed to be: 10000000
+30: ipc lrpc smoke ok
+30/55 Test #30: xlang3_expression_decorators_ipc ...........   Passed    0.61 sec
+test 31
+      Start 31: xlang3_xlang1_compat_package_tests
+
+31: Test command: D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3_xlang1_compat_package_tests.exe "D:/CantorAI/xlang3/build-repro/main-verify-20261006/Release/modules"
+31: Working Directory: D:/CantorAI/xlang3/build-repro/main-verify-20261006
+31: Test timeout computed to be: 10000000
+31/55 Test #31: xlang3_xlang1_compat_package_tests .........   Passed    0.05 sec
+test 32
+      Start 32: xlang3_sdk_c_header_smoke
+
+32: Test command: D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3_sdk_c_header_smoke.exe
+32: Working Directory: D:/CantorAI/xlang3/build-repro/main-verify-20261006
+32: Test timeout computed to be: 10000000
+32/55 Test #32: xlang3_sdk_c_header_smoke ..................   Passed    0.01 sec
+test 33
+      Start 33: xlang3_cli_yaml_module_import
+
+33: Test command: D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3.exe "D:/CantorAI/xlang3/tests/native/yaml_module.py" "D:/CantorAI/xlang3/build-repro/main-verify-20261006/Release/modules"
+33: Working Directory: D:/CantorAI/xlang3/build-repro/main-verify-20261006
+33: Test timeout computed to be: 10000000
+33: xlang3
+33: 2
+33: True
+33: 1
+33: 2
+33/55 Test #33: xlang3_cli_yaml_module_import ..............   Passed    0.04 sec
+test 34
+      Start 34: xlang3_cli_device_module_import
+
+34: Test command: D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3.exe "D:/CantorAI/xlang3/tests/native/device_module.py" "D:/CantorAI/xlang3/build-repro/main-verify-20261006/Release/modules"
+34: Working Directory: D:/CantorAI/xlang3/build-repro/main-verify-20261006
+34: Test timeout computed to be: 10000000
+34: xlang3-device
+34: True
+34/55 Test #34: xlang3_cli_device_module_import ............   Passed    0.04 sec
+test 35
+      Start 35: xlang3_curmodule_probe_import
+
+35: Test command: D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3.exe "D:/CantorAI/xlang3/tests/native/curmodule_probe_import.py"
+35: Working Directory: D:/CantorAI/xlang3/build-repro/main-verify-20261006
+35: Test timeout computed to be: 10000000
+35: curModule ok
+35/55 Test #35: xlang3_curmodule_probe_import ..............   Passed    0.04 sec
+test 36
+      Start 36: xlang3_cli_net_module_import
+
+36: Test command: D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3.exe "D:/CantorAI/xlang3/tests/native/net/module.py" "D:/CantorAI/xlang3/build-repro/main-verify-20261006/Release/modules"
+36: Working Directory: D:/CantorAI/xlang3/build-repro/main-verify-20261006
+36: Test timeout computed to be: 10000000
+36: ok
+36: direct
+36: True
+36: True
+36: a%20b
+36: a b
+36: 4
+36: True
+36: bytes True
+36: True
+36: True
+36: smtp.example.invalid 2525 scope
+36: True
+36: index.html
+36: text/html
+36/55 Test #36: xlang3_cli_net_module_import ...............   Passed    0.07 sec
+test 37
+      Start 37: xlang3_cli_asyncio_accelerator
+
+37: Test command: C:\Python\Python314\python.exe "D:/CantorAI/xlang3/tests/run_expected.py" "D:/CantorAI/xlang3/build-repro/main-verify-20261006/Release/xlang3.exe" "D:/CantorAI/xlang3/tests/native/asyncio_accelerator.py" "D:/CantorAI/xlang3/tests/native/asyncio_accelerator.out"
+37: Working Directory: D:/CantorAI/xlang3/build-repro/main-verify-20261006
+37: Test timeout computed to be: 10000000
+37/55 Test #37: xlang3_cli_asyncio_accelerator .............   Passed    0.28 sec
+test 38
+      Start 38: xlang3_cli_overlapped_completion
+
+38: Test command: C:\Python\Python314\python.exe "D:/CantorAI/xlang3/tests/run_expected.py" "D:/CantorAI/xlang3/build-repro/main-verify-20261006/Release/xlang3.exe" "D:/CantorAI/xlang3/tests/native/overlapped_completion.py" "D:/CantorAI/xlang3/tests/native/overlapped_completion.out"
+38: Working Directory: D:/CantorAI/xlang3/build-repro/main-verify-20261006
+38: Test timeout computed to be: 10000000
+38/55 Test #38: xlang3_cli_overlapped_completion ...........   Passed    0.28 sec
+test 39
+      Start 39: xlang3_cli_ssl_module
+
+39: Test command: C:\Python\Python314\python.exe "D:/CantorAI/xlang3/tests/run_expected.py" "D:/CantorAI/xlang3/build-repro/main-verify-20261006/Release/xlang3.exe" "D:/CantorAI/xlang3/tests/native/ssl_module.py" "D:/CantorAI/xlang3/tests/native/ssl_module.out" "D:/CantorAI/xlang3/build-repro/main-verify-20261006/Release/modules" "C:\Python\Python314\Lib"
+39: Working Directory: D:/CantorAI/xlang3/build-repro/main-verify-20261006
+39: Test timeout computed to be: 10000000
+39/55 Test #39: xlang3_cli_ssl_module ......................   Passed    0.18 sec
+test 40
+      Start 40: xlang3_cli_hashlib_module
+
+40: Test command: C:\Python\Python314\python.exe "D:/CantorAI/xlang3/tests/run_expected.py" "D:/CantorAI/xlang3/build-repro/main-verify-20261006/Release/xlang3.exe" "D:/CantorAI/xlang3/tests/native/hashlib_module.py" "D:/CantorAI/xlang3/tests/native/hashlib_module.out" "D:/CantorAI/xlang3/build-repro/main-verify-20261006/Release/modules" "C:\Python\Python314\Lib"
+40: Working Directory: D:/CantorAI/xlang3/build-repro/main-verify-20261006
+40: Test timeout computed to be: 10000000
+40/55 Test #40: xlang3_cli_hashlib_module ..................   Passed    0.15 sec
+test 41
+      Start 41: xlang3_cli_argon2_module
+
+41: Test command: C:\Python\Python314\python.exe "D:/CantorAI/xlang3/tests/run_expected.py" "D:/CantorAI/xlang3/build-repro/main-verify-20261006/Release/xlang3.exe" "D:/CantorAI/xlang3/tests/native/argon2/argon2_module.py" "D:/CantorAI/xlang3/tests/native/argon2/argon2_module.out" "D:/CantorAI/xlang3/build-repro/main-verify-20261006/Release/modules" "C:\Python\Python314\Lib"
+41: Working Directory: D:/CantorAI/xlang3/build-repro/main-verify-20261006
+41: Test timeout computed to be: 10000000
+41/55 Test #41: xlang3_cli_argon2_module ...................   Passed    0.12 sec
+test 42
+      Start 42: xlang3_cli_real_native_imports
+
+42: Test command: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe "-NoProfile" "-ExecutionPolicy" "Bypass" "-File" "D:/CantorAI/xlang3/tests/native/run_real_native_import_tests.ps1" "-XLang3" "D:/CantorAI/xlang3/build-repro/main-verify-20261006/Release/xlang3.exe"
+42: Working Directory: D:/CantorAI/xlang3/build-repro/main-verify-20261006
+42: Test timeout computed to be: 10000000
+42: real native import fixture ok
+42/55 Test #42: xlang3_cli_real_native_imports .............   Passed    0.34 sec
+test 43
+      Start 43: xlang3_xlang1_compat_import
+
+43: Test command: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe "-NoProfile" "-ExecutionPolicy" "Bypass" "-File" "D:/CantorAI/xlang3/tests/native/run_xlang1_compat_import.ps1" "-XLang3" "D:/CantorAI/xlang3/build-repro/main-verify-20261006/Release/xlang3.exe"
+43: Working Directory: D:/CantorAI/xlang3/build-repro/main-verify-20261006
+43: Test timeout computed to be: 10000000
+43: xlang1 compat import fixture ok
+43/55 Test #43: xlang3_xlang1_compat_import ................   Passed    0.30 sec
+test 44
+      Start 44: xlang3_cli_net_module_server_client
+
+44: Test command: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe "-NoProfile" "-ExecutionPolicy" "Bypass" "-File" "D:/CantorAI/xlang3/tests/native/net/run_module.ps1" "-XLang3" "D:/CantorAI/xlang3/build-repro/main-verify-20261006/Release/xlang3.exe" "-NativeModules" "D:/CantorAI/xlang3/build-repro/main-verify-20261006/Release/modules"
+44: Working Directory: D:/CantorAI/xlang3/build-repro/main-verify-20261006
+44: Test timeout computed to be: 10000000
+44: Starting net test server: D:\CantorAI\xlang3\tests\native\net\server.py
+44: Net test server is listening on 127.0.0.1:18173
+44: Running net test client: D:\CantorAI\xlang3\tests\native\net\client.py
+44: Net test client output:
+44:   True
+44:   200
+44:   hello
+44:   small
+44:   True
+44:   65536
+44:   True
+44:   4
+44:   True
+44:   True
+44:   True
+44:   True
+44:   200
+44:   hello
+44:   True
+44:   200
+44: Net server/client test PASS
+44/55 Test #44: xlang3_cli_net_module_server_client ........   Passed    1.14 sec
+test 45
+      Start 45: xlang3_cli_sqlite_module_imports
+
+45: Test command: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe "-NoProfile" "-ExecutionPolicy" "Bypass" "-File" "D:/CantorAI/xlang3/tests/native/sqlite/run_sqlite_tests.ps1" "-XLang3" "D:/CantorAI/xlang3/build-repro/main-verify-20261006/Release/xlang3.exe" "-NativeModules" "D:/CantorAI/xlang3/build-repro/main-verify-20261006/Release/modules"
+45: Working Directory: D:/CantorAI/xlang3/build-repro/main-verify-20261006
+45: Test timeout computed to be: 10000000
+45: sqlite fixture old_xlang_sqlite_api ok
+45: sqlite fixture python_sqlite3_api ok
+45/55 Test #45: xlang3_cli_sqlite_module_imports ...........   Passed    0.36 sec
+test 46
+      Start 46: xlang3_cli_fixtures
+
+46: Test command: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe "-NoProfile" "-ExecutionPolicy" "Bypass" "-File" "D:/CantorAI/xlang3/tests/run_fixtures.ps1" "-XLang3" "D:/CantorAI/xlang3/build-repro/main-verify-20261006/Release/xlang3.exe"
+46: Working Directory: D:/CantorAI/xlang3/build-repro/main-verify-20261006
+46: Test timeout computed to be: 10000000
+46: fixture sorted_key_scoped_entry ok
+46: fixture sorted_key_iteration_owner ok
+46: fixture sorted_key_nested_handled_context ok
+46: fixture ordinary_canonical_slot_constructor ok
+46: fixture call_module_global_binding ok
+46: fixture sorted_exact_integer_keys ok
+46: fixture native_str_utf8_encode ok
+46: fixture synchronous_class_argument_lifetime ok
+46: fixture nested_profile_setting ok
+46: fixture nested_trace_setting ok
+46: fixture trace_disable_local_events ok
+46: fixture class_namespace_lifetime ok
+46: fixture class_method_annotation_capture ok
+46: fixture explicit_slot_descriptor_fallback ok
+46: fixture slot_descriptor_owner ok
+46: fixture dict_get_exception_preservation ok
+46: fixture call_method_dict_cache_touch ok
+46: fixture inherited_call_ex_constructor ok
+46: fixture call_ex_cross_activation_constructor ok
+46: fixture sqlite_statement_cache ok
+46: fixture native_bound_zero_args ok
+46: fixture identity_last_use ok
+46: fixture hash_exception_preservation ok
+46: fixture sqlite_cursor_completion ok
+46: fixture sqlite_native_aggregate ok
+46: fixture scalar_loop ok
+46: fixture functions ok
+46: fixture keyword_method_call ok
+46: fixture module_getattr_call ok
+46: fixture nested_function_no_closure ok
+46: fixture if_else ok
+46: fixture syntax_logical_lines ok
+46: fixture docstring_suite_execution ok
+46: fixture runtime_specialization_semantics ok
+46: fixture syntax_simple_suites ok
+46: fixture statement_syntax ok
+46: fixture module_statement_partials ok
+46: fixture module_subclass_constructor ok
+46: fixture module_subclass_import_probe ok
+46: fixture structural_pattern_matching ok
+46: fixture expression_operators ok
+46: fixture modulo_type_error ok
+46: fixture bigint_base_format ok
+46: fixture chained_comparisons ok
+46: fixture function_class_syntax ok
+46: fixture future_annotations ok
+46: fixture function_metadata ok
+46: fixture function_annotation_getattr ok
+46: fixture annotation_fake_globals ok
+46: fixture annotation_lambda_ast ok
+46: fixture generic_class_annotation_scope ok
+46: fixture generic_class_frame_locals ok
+46: fixture float_identity_containers ok
+46: fixture bool_numeric_properties ok
+46: fixture decorator_warning_line ok
+46: fixture breakpoint_builtin ok
+46: fixture deferred_annotation_closure ok
+46: fixture object_type_model ok
+46: fixture object_attribute_hooks ok
+46: fixture inherited_eq_ne ok
+46: fixture getattr_nondata_descriptor_precedence ok
+46: fixture set_identity_before_equality ok
+46: fixture dict_custom_hash_equality ok
+46: fixture metaclass_binary_operator ok
+46: fixture metaclass_dynamic_keyword_expansion ok
+46: fixture new_class_attribute ok
+46: fixture generic_union_substitution ok
+46: fixture optional_union_none_type ok
+46: fixture generic_class_parameters ok
+46: fixture module_subclass_descriptor ok
+46: fixture dict_init_mappingproxy ok
+46: fixture ast_runtime_parser ok
+46: fixture ast_assert_roundtrip ok
+46: fixture compile_ast_module ok
+46: fixture annotation_string_format ok
+46: fixture descriptor_protocol ok
+46: fixture default_object_repr ok
+46: fixture code_traceback_model ok
+46: fixture mro_model ok
+46: fixture property_descriptor ok
+46: fixture property_callable_getter ok
+46: fixture lambda_eager_comprehension_capture ok
+46: fixture python_new_vm_continuation ok
+46: fixture python_new_completion_finalizer ok
+46: fixture chained_object_methods ok
+46: fixture builtin_alias ok
+46: fixture builtin_function_batch ok
+46: fixture dynamic_execution_builtins ok
+46: fixture globals_locals_identity ok
+46: fixture iterator_protocol ok
+46: fixture tuples ok
+46: fixture tuple_methods ok
+46: fixture dict_views ok
+46: fixture slices ok
+46: fixture string_slice_offsets ok
+46: fixture regex_borrowed_ascii_match ok
+46: fixture abc_descriptor_abstract ok
+46: fixture super_replaced_method ok
+46: fixture functional_iterator_abc ok
+46: fixture metaclass_getattr ok
+46: fixture metaclass_getattribute ok
+46: fixture inspect_class_source_block ok
+46: fixture dict_view_contains ok
+46: fixture importlib_pathlike_spec ok
+46: fixture bytes_subclass_constructor ok
+46: fixture class_with_bindings ok
+46: fixture comprehension_iterable_scope ok
+46: fixture container_str_repr ok
+46: fixture class_attr_callable ok
+46: fixture vars_class_mappingproxy ok
+46: fixture typing_generic_class_getitem ok
+46: fixture builtin_type_signatures ok
+46: fixture deferred_nested_annotation ok
+46: fixture operator_or_typing_alias ok
+46: fixture ast_lambda_annotation ok
+46: fixture slots_model ok
+46: fixture raw_strings ok
+46: fixture string_compat ok
+46: fixture percent_mapping_protocol ok
+46: fixture str_subclass_add ok
+46: fixture str_subclass_percent ok
+46: fixture str_subclass_comparison ok
+46: fixture int_subclass_bitwise ok
+46: fixture module_class_constructor_frame_growth ok
+46: fixture binary_buffers ok
+46: fixture bytes_translate_delete ok
+46: fixture bytes_count_integer ok
+46: fixture set_union_bulk ok
+46: fixture zlib_strict_decompressor_kwargs ok
+46: fixture sum_start_keyword ok
+46: fixture int_enum_subtraction ok
+46: fixture gzip_missing_cleanup ok
+46: fixture gzip_finalizer_cleanup ok
+46: fixture dict_hash_index ok
+46: fixture bytes_isascii ok
+46: fixture typing_literal_union ok
+46: fixture sequence_contains_method ok
+46: fixture instance_dict_contains_dispatch ok
+46: fixture dict_get_missing_semantics ok
+46: fixture assigned_binary_special_method ok
+46: fixture dynamic_builtins_lookup ok
+46: fixture custom_getattribute_descriptor ok
+46: fixture multiple_inheritance_attribute_storage ok
+46: fixture builtin_types_edges ok
+46: fixture starred_expressions ok
+46: fixture dict_set_comprehensions ok
+46: fixture nested_comprehensions ok
+46: fixture generator_expressions ok
+46: fixture closure_in_raise ok
+46: fixture walrus_operator ok
+46: fixture named_expression_call_trailing_comma ok
+46: fixture unpacking ok
+46: fixture annotated_assignment ok
+46: fixture augmented_assignment ok
+46: fixture lists_for ok
+46: fixture sequences_index ok
+46: fixture dict_set ok
+46: fixture raw_blocks ok
+46: fixture re_sub_callable_none ok
+46: fixture re_escaped_punctuation ok
+46: fixture native_import ok
+46: fixture sha2_complete ok
+46: fixture json_module ok
+46: fixture math_module ok
+46: fixture time_module ok
+46: fixture native_sys_time_audit ok
+46: fixture os_process_windows ok
+46: fixture atexit_module ok
+46: fixture io_os_modules ok
+46: D:\CantorAI\xlang3\tests\fixtures\core\io_module_streams.py:143: ResourceWarning: unclosed buffered file
+46:   print([line for line in universal_lines])
+46: fixture io_module_streams ok
+46: fixture imp_stat_modules ok
+46: fixture pickle_module ok
+46: fixture collections_queue_modules ok
+46: fixture simple_queue_threadpool ok
+46: fixture types_module ok
+46: fixture traceback_module ok
+46: fixture linecache_module ok
+46: fixture runpy_module ok
+46: fixture importlib_module ok
+46: fixture import_cached_child_export ok
+46: fixture missing_module_exception ok
+46: fixture import_submodule_failure ok
+46: fixture compile_ast_decorators ok
+46: fixture compile_ast_class_annotations ok
+46: fixture compile_ast_with ok
+46: fixture compile_ast_unpack ok
+46: fixture compile_ast_scope ok
+46: fixture compile_ast_delete ok
+46: fixture compile_ast_try ok
+46: fixture compile_ast_yield ok
+46: fixture compile_ast_while ok
+46: fixture compile_ast_slice ok
+46: fixture compile_ast_list_comprehension ok
+46: fixture compile_ast_for ok
+46: fixture compile_ast_lambda_generator ok
+46: fixture compile_ast_ellipsis ok
+46: fixture compile_ast_set_dict_comprehension ok
+46: fixture compile_ast_starred ok
+46: fixture ast_leading_zero_literal ok
+46: fixture compile_ast_function_signature ok
+46: fixture compile_ast_break_continue ok
+46: fixture compile_ast_named_expr ok
+46: fixture compile_ast_await ok
+46: fixture class_name_assignment ok
+46: fixture exec_live_globals ok
+46: fixture exec_missing_name ok
+46: fixture int_subclass_copy ok
+46: fixture random_mt19937_state ok
+46: fixture init_subclass_exception ok
+46: fixture type_alias_statement ok
+46: fixture type_alias_ast ok
+46: fixture class_subscription ok
+46: fixture type_alias_union ok
+46: fixture generic_definition_ast ok
+46: fixture generic_class_base ok
+46: fixture generic_string_forward_ref ok
+46: fixture generic_alias_hash ok
+46: fixture generic_alias_resubscript ok
+46: fixture lambda_dict_unpack ok
+46: fixture dict_fromkeys_unhashable ok
+46: fixture resolved_prepare_bases ok
+46: fixture ast_nested_fstring_builtin ok
+46: fixture ast_container_format ok
+46: fixture builtin_generic_subclasses ok
+46: fixture type_parameter_repr ok
+46: fixture gc_class_components ok
+46: fixture gc_generic_cycles ok
+46: fixture two_argument_double_ir_plan ok
+46: fixture deque_class_getitem ok
+46: fixture sre_class_getitem ok
+46: fixture exception_group_class_getitem ok
+46: fixture recursive_property_error ok
+46: fixture importlib_spec_package ok
+46: fixture importlib_spec_loader_keywords ok
+46: fixture marshal_bigint_code ok
+46: fixture stale_bytecode_import ok
+46: fixture zlib_module ok
+46: fixture zipfile_module ok
+46: fixture zipimport_module ok
+46: fixture weakref_module ok
+46: fixture weakref_thread_lifetime ok
+46: fixture weakref_hash_cache ok
+46: fixture generator_frame_referrers ok
+46: fixture generator_result_release ok
+46: fixture delegated_exception_result ok
+46: fixture except_target_cleanup ok
+46: fixture comprehension_target_lifetime ok
+46: fixture set_weakref_hash ok
+46: fixture set_hash_caching ok
+46: fixture math_real_type_error ok
+46: fixture contextvar_generic_alias ok
+46: fixture set_remove_key_error ok
+46: fixture set_hash_equality ok
+46: fixture instance_mapping_comparison ok
+46: fixture instance_dict_attribute_delete ok
+46: fixture class_eq_hash_rule ok
+46: fixture dir_instance_mapping ok
+46: fixture instance_dict_method_visibility ok
+46: fixture object_init_subclass_keywords ok
+46: fixture type_subclasses_descriptor ok
+46: fixture private_name_all_underscores ok
+46: fixture private_generator_name_mangling ok
+46: fixture subprocess_inherits_chdir ok
+46: fixture object_getattribute_descriptor ok
+46: fixture builtin_iterator_identity ok
+46: fixture ast_recursive_visitor ok
+46: fixture ast_match_patterns ok
+46: fixture ast_while_live_local ok
+46: fixture ast_traceback_multiline ok
+46: fixture vm_borrowed_local_overwrite ok
+46: fixture compile_ast_source_locations ok
+46: fixture match_protocol_semantics ok
+46: fixture inspect_module ok
+46: fixture sequence_int_subclass ok
+46: fixture memoryview_iteration ok
+46: fixture socket_bytes_hostname ok
+46: fixture dict_values_equality ok
+46: fixture set_constructor_custom_hash ok
+46: fixture format_property_field ok
+46: fixture mmap_native ok
+46: fixture regex_lookbehind_capture ok
+46: fixture inspect_currentframe ok
+46: fixture debug_frame_metadata ok
+46: fixture debug_frame_source_edges ok
+46: fixture debug_breakpoint_step ok
+46: fixture logging_pathlib_modules ok
+46: fixture socket_select_modules ok
+46: fixture file_import ok
+46: fixture global_from_import ok
+46: fixture package_import ok
+46: fixture import_system_model ok
+46: fixture vfs_file_io ok
+46: fixture file_context_open ok
+46: fixture file_io_compat ok
+46: fixture filesystem_io_edges ok
+46: fixture exceptions ok
+46: fixture runtime_error_exceptions ok
+46: fixture exception_unwind_with ok
+46: fixture typed_exceptions ok
+46: fixture exception_chaining_sys ok
+46: fixture exception_self_context ok
+46: fixture exception_instance_dict ok
+46: fixture finally_blocks ok
+46: fixture classes ok
+46: fixture class_dynamic_attrs ok
+46: fixture context_managers ok
+46: fixture context_manager_exception_traceback ok
+46: fixture with_assignment_targets ok
+46: fixture with_manager_lifetime ok
+46: fixture input_builtin ok
+46: fixture exception_group_split ok
+46: fixture builtin_methods ok
+46: fixture trace_hooks ok
+46: fixture trace_events ok
+46: fixture trace_local_and_exception ok
+46: fixture debug_trace_profile_edges ok
+46: fixture sys_command_path ok
+46: fixture sys_startup_config ok
+46: fixture task_async ok
+46: fixture async_syntax ok
+46: fixture async_generator_await_exception_unwind ok
+46: fixture async_await_expression_precedence ok
+46: fixture async_generator_suppressed_cancellation ok
+46: fixture threading_runtime_edges ok
+46: fixture thread_target_lifetime ok
+46: fixture signal_main_thread ok
+46: fixture symlink_realpath ok
+46: fixture asyncio_runtime_edges ok
+46: fixture closures ok
+46: fixture nonlocal_counter ok
+46: fixture comprehension_multiple_filters ok
+46: fixture csv_reader_dialect_keyword ok
+46: fixture array_w_unicode ok
+46: fixture regex_lookbehind_anchor_alternative ok
+46: fixture ssl_timed_socket ok
+46: fixture value_alias_assignment ok
+46: fixture ctypes_structure_layout ok
+46: fixture ctypes_pointer_return ok
+46: fixture ctypes_cast_errcheck_array ok
+46: fixture itertools_zip_longest_shared ok
+46: fixture minmax_custom_key ok
+46: fixture math_combinatorics ok
+46: fixture try_loop_exception_scope ok
+46: fixture native_module_function_binding ok
+46: fixture classmethod_attr_int_compare ok
+46: compat section module_and_statement_syntax ok
+46: compat section function_and_class_syntax ok
+46: compat section expression_syntax ok
+46: compat section core_value_and_object_model ok
+46: compat section functions_and_calls ok
+46: compat section exceptions ok
+46: compat section containers ok
+46: compat section strings_and_unicode ok
+46: compat section imports_and_modules ok
+46: compat section builtins ok
+46: usage: tool [--off] --mode {fast,slow} [--tag TAG] [-v] [--const]
+46:             [--pair PAIR PAIR] [--scale SCALE]
+46: tool: error: argument --mode: invalid choice: 'bad' (choose from 'fast', 'slow')
+46: XLang3 allocator stats
+46: object_blocks=0
+46: bucket_blocks=27896
+46: large_blocks=2
+46: D:\CantorAI\xlang3\tests\fixtures\compat_sections\standard_modules.py:2766: DeprecationWarning: Parsing a day of month without a year is deprecated
+46:   parsed_month_day = time.strptime("08-26", "%m-%d")
+46: D:\CantorAI\xlang3\tests\fixtures\compat_sections\standard_modules.py:2819: DeprecationWarning: Parsing a day of month without a year is deprecated
+46:   parsed_space_day = time.strptime(" 6", "%e")
+46: D:\CantorAI\xlang3\tests\fixtures\compat_sections\standard_modules.py:2820: DeprecationWarning: Parsing a day of month without a year is deprecated
+46:   parsed_space_padded_day = time.strptime(" 7", "%d")
+46: D:\CantorAI\xlang3\tests\fixtures\compat_sections\standard_modules.py:2821: DeprecationWarning: Parsing a day of month without a year is deprecated
+46:   parsed_default_year_leap_day = time.strptime("02/29", "%m/%d")
+46: D:\CantorAI\xlang3\tests\fixtures\compat_sections\standard_modules.py:2989: DeprecationWarning: 'java_ver' is deprecated and slated for removal in Python 3.15
+46:   print(len(platform.win32_ver()), len(platform.mac_ver()), len(platform.java_ver()), platform.system_alias("SunOS", "5.10", "x")[0])
+46: D:\CantorAI\xlang3\tests\fixtures\compat_sections\standard_modules.py:2998: DeprecationWarning: sysconfig.expand_makefile_vars is deprecated and will be removed in Python 3.16. Use sysconfig.get_paths(vars=...) instead.
+46:   print(sysconfig.expand_makefile_vars("$(py_version)-${SOABI}", config_vars) == sysconfig.get_config_var("py_version") + "-" + sysconfig.get_config_var("SOABI"))
+46: D:\CantorAI\xlang3\tests\fixtures\compat_sections\standard_modules.py:3227: ResourceWarning: unclosed scandir iterator
+46:   print(sorted([item.name for item in path_dir.iterdir()]))
+46: compat section standard_modules ok
+46: C:\Python\Python314\Lib\importlib\resources\_adapters.py:147: DeprecationWarning: String arguments are deprecated. Pass a Traversable instead.
+46:   return self.spec.loader.get_resource_reader(self.spec.name)
+46: compat section system_stdlib ok
+46: fixture uncaught_exception ok
+46: fixture uncaught_runtime_error ok
+46: fixture unset_instance_attr ok
+46/55 Test #46: xlang3_cli_fixtures ........................   Passed   25.00 sec
+test 47
+      Start 47: xlang3_cli_compat
+
+47: Test command: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe "-NoProfile" "-ExecutionPolicy" "Bypass" "-File" "D:/CantorAI/xlang3/tests/cli/run_cli_compat.ps1" "-XLang3" "D:/CantorAI/xlang3/build-repro/main-verify-20261006/Release/xlang3.exe" "-WorkDir" "D:/CantorAI/xlang3/build-repro/main-verify-20261006/cli_compat"
+47: Working Directory: D:/CantorAI/xlang3/build-repro/main-verify-20261006
+47: Test timeout computed to be: 10000000
+47/55 Test #47: xlang3_cli_compat ..........................   Passed    0.72 sec
+test 48
+      Start 48: xlang3_cli_pickle_interop
+
+48: Test command: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe "-NoProfile" "-ExecutionPolicy" "Bypass" "-File" "D:/CantorAI/xlang3/tests/cli/run_pickle_interop.ps1" "-XLang3" "D:/CantorAI/xlang3/build-repro/main-verify-20261006/Release/xlang3.exe" "-WorkDir" "D:/CantorAI/xlang3/build-repro/main-verify-20261006/pickle_interop"
+48: Working Directory: D:/CantorAI/xlang3/build-repro/main-verify-20261006
+48: Test timeout computed to be: 10000000
+48: pickle interop ok
+48/55 Test #48: xlang3_cli_pickle_interop ..................   Passed    0.46 sec
+test 49
+      Start 49: xlang3_ipc_lrpc_smoke
+
+49: Test command: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe "-NoProfile" "-ExecutionPolicy" "Bypass" "-File" "D:/CantorAI/xlang3/tests/ipc/run_lrpc_smoke.ps1" "-XLang3" "D:/CantorAI/xlang3/build-repro/main-verify-20261006/Release/xlang3.exe" "-NativeClient" "D:/CantorAI/xlang3/build-repro/main-verify-20261006/Release/xlang3_cpp_ipc_client.exe"
+49: Working Directory: D:/CantorAI/xlang3/build-repro/main-verify-20261006
+49: Test timeout computed to be: 10000000
+49: C++ shared-memory IPC passed
+49: ipc lrpc smoke ok
+49/55 Test #49: xlang3_ipc_lrpc_smoke ......................   Passed    0.88 sec
+test 50
+      Start 50: xlang3_ipc_lrpc_server_exit
+
+50: Test command: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe "-NoProfile" "-ExecutionPolicy" "Bypass" "-File" "D:/CantorAI/xlang3/tests/ipc/run_lrpc_server_exit.ps1" "-XLang3" "D:/CantorAI/xlang3/build-repro/main-verify-20261006/Release/xlang3.exe"
+50: Working Directory: D:/CantorAI/xlang3/build-repro/main-verify-20261006
+50: Test timeout computed to be: 10000000
+50: ipc lrpc server-exit ok
+50/55 Test #50: xlang3_ipc_lrpc_server_exit ................   Passed    0.56 sec
+test 51
+      Start 51: xlang3_ipc_lrpc_backpressure
+
+51: Test command: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe "-NoProfile" "-ExecutionPolicy" "Bypass" "-File" "D:/CantorAI/xlang3/tests/ipc/run_lrpc_smoke.ps1" "-XLang3" "D:/CantorAI/xlang3/build-repro/main-verify-20261006/Release/xlang3.exe" "-ClientScript" "pressure_client.py" "-Expected" "pressure_expected.out"
+51: Working Directory: D:/CantorAI/xlang3/build-repro/main-verify-20261006
+51: Test timeout computed to be: 120
+51: ipc lrpc smoke ok
+51/55 Test #51: xlang3_ipc_lrpc_backpressure ...............   Passed    2.50 sec
+test 52
+      Start 52: xlang3_ipc_lrpc_backpressure_server_exit
+
+52: Test command: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe "-NoProfile" "-ExecutionPolicy" "Bypass" "-File" "D:/CantorAI/xlang3/tests/ipc/run_pressure_exit.ps1" "-XLang3" "D:/CantorAI/xlang3/build-repro/main-verify-20261006/Release/xlang3.exe"
+52: Working Directory: D:/CantorAI/xlang3/build-repro/main-verify-20261006
+52: Test timeout computed to be: 45
+52: pressure-server-exit-passed
+52/55 Test #52: xlang3_ipc_lrpc_backpressure_server_exit ...   Passed    1.11 sec
+test 53
+      Start 53: xlang3_cli_dap_stdio_smoke
+
+53: Test command: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe "-NoProfile" "-ExecutionPolicy" "Bypass" "-File" "D:/CantorAI/xlang3/tests/cli/run_dap_stdio_smoke.ps1" "-XLang3" "D:/CantorAI/xlang3/build-repro/main-verify-20261006/Release/xlang3.exe"
+53: Working Directory: D:/CantorAI/xlang3/build-repro/main-verify-20261006
+53: Test timeout computed to be: 10000000
+53/55 Test #53: xlang3_cli_dap_stdio_smoke .................   Passed    0.42 sec
+test 54
+      Start 54: xlang3_cli_debugpy_adapter_smoke
+
+54: Test command: D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3.exe "D:/CantorAI/xlang3/tests/cli/run_debugpy_adapter_smoke.py" "D:/CantorAI/xlang3/build-repro/main-verify-20261006/Release/xlang3.exe"
+54: Working Directory: D:/CantorAI/xlang3/build-repro/main-verify-20261006
+54: Test timeout computed to be: 10000000
+54: debugpy adapter DAP initialize/disconnect passed
+54: D:/CantorAI/xlang3/tests/cli/run_debugpy_adapter_smoke.py:154: ResourceWarning: unclosed buffered file
+54:   print("debugpy adapter DAP initialize/disconnect passed")
+54: D:/CantorAI/xlang3/tests/cli/run_debugpy_adapter_smoke.py:154: ResourceWarning: unclosed buffered file
+54:   print("debugpy adapter DAP initialize/disconnect passed")
+54/55 Test #54: xlang3_cli_debugpy_adapter_smoke ...........   Passed    1.84 sec
+test 55
+      Start 55: xlang3_cli_visual_studio_debugpy_launch
+
+55: Test command: D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3.exe "D:/CantorAI/xlang3/tests/cli/run_debugpy_launch_smoke.py" "D:/CantorAI/xlang3/build-repro/main-verify-20261006/Release/xlang3.exe"
+55: Working Directory: D:/CantorAI/xlang3/build-repro/main-verify-20261006
+55: Test timeout computed to be: 360
+55: [  0.012s] adapter started with xlang3.exe (pid 3820)
+55: [  0.404s] initialize response
+55: [  0.405s] launch request sent
+55: [  1.636s] initialized event
+55: [  1.648s] configurationDone response
+55: [  1.649s] launch response
+55: [  1.742s] stopped: breakpoint
+55: [  1.754s] stackTrace response
+55: [  1.761s] scopes response
+55: [  1.771s] variables response
+55: [  1.771s] local value inspected
+55: [  1.791s] hover value evaluated repeatedly
+55: [  1.814s] hover value evaluated at second breakpoint
+55: [  2.848s] asynchronous pause and stackTrace response
+55: [  3.477s] program output and terminated event
+55: Visual Studio debugpy launched XLang3, stopped, inspected locals, paused, continued, and exited
+55/55 Test #55: xlang3_cli_visual_studio_debugpy_launch ....   Passed    4.17 sec
+
+100% tests passed, 0 tests failed out of 55
+
+Total Test time (real) =  44.21 sec

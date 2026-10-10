@@ -1,0 +1,7 @@
+PASS distinct method names and argument routes
+PASS guard mutation and instance callable shadow
+PASS guard and field descriptors take original lookup
+PASS main and nested code replacement
+PASS custom lookup mixed numbers and exposed dictionary
+PASS exact exception and method traceback
+PASS profile and trace original frames

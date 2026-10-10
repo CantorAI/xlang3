@@ -347,6 +347,8 @@ bool gc_object_references_any(Runtime& runtime, const Value& source,
     edge(value->doc);
     edge(value->name);
   } else if (auto* value = value_as_frame(source)) {
+    // Lazy f_code is an owning Value on observed frames, visible to referrers.
+    edge(value->code_object);
     edge(value->globals_module);
     edge(value->locals);
     if (!value->live)

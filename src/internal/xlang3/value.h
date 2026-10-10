@@ -619,6 +619,10 @@ struct FrameObject {
   std::shared_ptr<const ir::Module> module;
   uint32_t function_id = 0;
   uint32_t instruction_index = 0;
+  // Coverage repeatedly reads f_code on its observed frame. Materialize that
+  // immutable module/function pair once per Python frame object, without adding
+  // owners or metadata to ordinary VM frames. This Value dies with the frame.
+  Value code_object;
   Value globals_module;
   Value locals;
   // Traceback frames retain local values compactly and construct the Python
@@ -1243,6 +1247,8 @@ std::string value_to_string(const Value& value);
 std::string value_to_repr(const Value& value);
 bool value_truthy(const Value& value);
 bool value_finalize_temporary_instance(Runtime& runtime, const Value& value);
+// Shared version-cached finalizer predicate used by release and guarded execution.
+bool class_has_release_finalizer(const Value& klass_value);
 const char* value_binary_type_name(const Value& value);
 
 bool value_add(const Value& lhs, const Value& rhs, Value& out, std::string& error);

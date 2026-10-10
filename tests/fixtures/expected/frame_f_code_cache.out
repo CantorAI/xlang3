@@ -1,0 +1,5 @@
+retained frame code identity and lifetime
+active frame retains old code after replacement
+suspended frame retains original code
+trace frame code survives callback and frame clear
+traceback frame code remains stable after clear

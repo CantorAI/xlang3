@@ -1,0 +1,54 @@
+{
+  "schema": "two-argument-double-ir-cached-retirement-guard-scratch-proposal",
+  "status": "frozen_static_only_root_validation_pending",
+  "patch": "scratch/performance/two-argument-double-ir-plan-cached-retirement-guard-proposed-20261010.patch",
+  "patch_sha256": "e8d40658f3b421b8853ccef38a5b9a85f90461e24756b5a96173c59f70851189",
+  "candidate_root": "scratch/performance/two-argument-double-ir-plan-cached-retirement-guard-proposed-20261010-candidates",
+  "raw_before_sha256": {
+    "src/executor/xlang_vm/xlang_vm_inline_call.h": "d6abbad220b259ee33f7868a54b21ee6b5db776f2971ac73635fef030de4c16c",
+    "src/internal/xlang3/value.h": "b3b88f529eb86acc117ccf5fbf61ac44e6572a96189d60389d1c6728c9bf75b1"
+  },
+  "candidate_sha256": {
+    "src/executor/xlang_vm/xlang_vm_inline_call.h": "e2edfea43ecd9608e632c3c12272a32c20328026608bd1508c39d9184ae9a312",
+    "src/internal/xlang3/value.h": "29c22ab3ede487e0bc96b1b2a836751d41285ee7a2498eae771408a4371c6959"
+  },
+  "additional_implementation_pin": {
+    "src/runtime/value.cpp": "18be33a526dbcc6627490a12a68aefc9e168d42afbf238ce38fa240e74bba0e0"
+  },
+  "owned_hunks": [
+    "xlang_vm_try_two_argument_double_method: six-line observable-input guard after valid ordinary class check",
+    "value.h: comment plus identical existing class_has_release_finalizer declaration after value_finalize_temporary_instance"
+  ],
+  "linkage_evidence": [
+    "value.cpp:1049 closes unnamed namespace; class_has_release_finalizer at1665 is defined in namespace xlang3 with external linkage.",
+    "gc_plain_cycles.h:32 already declares identical signature and invokes it at55 from another translation unit.",
+    "Current Release exports.def:17288 lists ?class_has_release_finalizer@xlang3@@YA_NAEBUValue@1@@Z. No new implementation or export symbol is required."
+  ],
+  "cache_policy": "Reuse unchanged class-version validated atomic release_finalizer_cache, including inherited raw __del__ lookup. Weakref flags decline via existing atomic header mask. No new fields/caches or duplicated cache logic.",
+  "evidence_sha256": {
+    "doc/performance/data/two-argument-ir-lifetime-20261010.json": "e180d4069d2521e5d994610549c5c357b9090cfa5706da106f206917e974d14e"
+  },
+  "root_reported_independent_results": {
+    "alias": "CP/control/candidate all pass; receiptbfd5aecaff018b543a434feb068a7762e87f69b66735dbaa6a76491e2bb278fb",
+    "replacement": "CP passes; both X fail identically and expose old result in f_locals; receipt56338dcc5f8b1a77dc84341ba458c4805b4395912a401268d49f60c3c19633bf"
+  },
+  "preserved_direct_lookup_alternative": {
+    "patch": "scratch/performance/two-argument-double-ir-plan-observable-retirement-guard-proposed-20261010.patch",
+    "sha256": "64d32b511f1a228a7472f29b608c8b8a1fcd0e6d6feb0c8bfc4a5fe586084664",
+    "proof_sha256": "b22e77ebaa6befce1d2d502175dabe67611b651e613421439a6cadbdb870108b"
+  },
+  "validation_requirements": [
+    "Root compile/apply and independent static review pending.",
+    "Original temporary probe must preserve ordinary accepted dispatch/retirement; existing CP caller-locals mismatch remains an explicit pre-existing failure.",
+    "No original probe/selection/strict8 assertion changed. No claim to repair CP finalization or result-publication parity.",
+    "Revised admission needs fresh meaningful original-body/gate evidence before acceptance; earlier 1.075x gain does not certify new engine."
+  ],
+  "author_execution": {
+    "engine_edits": false,
+    "runtime": false,
+    "Python_AST": false,
+    "build": false,
+    "Git_mutations": false
+  },
+  "ownership_scope": "Two new incremental engine-owned files, value.h declaration hunk only. Both targets already lie within current source145 inventory; proposal total owned numeric engine paths becomes four, without adding a recorded source file."
+}

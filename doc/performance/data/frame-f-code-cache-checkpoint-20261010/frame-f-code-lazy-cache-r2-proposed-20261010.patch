@@ -1,0 +1,245 @@
+diff --git a/src/internal/xlang3/value.h b/src/internal/xlang3/value.h
+--- a/src/internal/xlang3/value.h
++++ b/src/internal/xlang3/value.h
+@@ -619,6 +619,10 @@
+   std::shared_ptr<const ir::Module> module;
+   uint32_t function_id = 0;
+   uint32_t instruction_index = 0;
++  // Coverage repeatedly reads f_code on its observed frame. Materialize that
++  // immutable module/function pair once per Python frame object, without adding
++  // owners or metadata to ordinary VM frames. This Value dies with the frame.
++  Value code_object;
+   Value globals_module;
+   Value locals;
+   // Traceback frames retain local values compactly and construct the Python
+diff --git a/src/runtime/object_model.cpp b/src/runtime/object_model.cpp
+--- a/src/runtime/object_model.cpp
++++ b/src/runtime/object_model.cpp
+@@ -4213,7 +4213,13 @@
+       if (frame->module == nullptr) {
+         value_set_none(out);
+       } else {
+-        out = Value::code(frame->module, frame->function_id);
++        // A frame retains its original IR across function.__code__ writes and
++        // suspension. Cache only its existing materialization; do not consult
++        // the mutated function or introduce a Runtime-wide owning code cache.
++        if (frame->code_object.tag == ValueTag::Invalid) {
++          frame->code_object = Value::code(frame->module, frame->function_id);
++        }
++        value_assign_fast(out, frame->code_object);
+       }
+       return true;
+     }
+diff --git a/src/runtime/modules/system/gc_module.cpp b/src/runtime/modules/system/gc_module.cpp
+--- a/src/runtime/modules/system/gc_module.cpp
++++ b/src/runtime/modules/system/gc_module.cpp
+@@ -347,6 +347,8 @@
+     edge(value->doc);
+     edge(value->name);
+   } else if (auto* value = value_as_frame(source)) {
++    // Lazy f_code is an owning Value on observed frames, visible to referrers.
++    edge(value->code_object);
+     edge(value->globals_module);
+     edge(value->locals);
+     if (!value->live)
+diff --git a/src/runtime/modules/system/weakref_module.cpp b/src/runtime/modules/system/weakref_module.cpp
+--- a/src/runtime/modules/system/weakref_module.cpp
++++ b/src/runtime/modules/system/weakref_module.cpp
+@@ -1199,6 +1199,8 @@
+     edge(value->doc);
+     edge(value->name);
+   } else if (auto* value = value_as_frame(borrowed)) {
++    // Match the frame's lazy owning f_code edge in strong-component accounting.
++    edge(value->code_object);
+     edge(value->globals_module);
+     edge(value->locals);
+     for (const auto& item : value->local_snapshot) edge(item);
+diff --git a/tests/run_fixtures.py b/tests/run_fixtures.py
+--- a/tests/run_fixtures.py
++++ b/tests/run_fixtures.py
+@@ -19,6 +19,7 @@
+ synchronous_class_argument_lifetime
+ nested_profile_setting
+ nested_trace_setting
++frame_f_code_cache
+ trace_disable_local_events
+ class_namespace_lifetime
+ class_method_annotation_capture
+diff --git a/tests/run_fixtures.ps1 b/tests/run_fixtures.ps1
+--- a/tests/run_fixtures.ps1
++++ b/tests/run_fixtures.ps1
+@@ -38,6 +38,7 @@
+     "synchronous_class_argument_lifetime",
+     "nested_profile_setting",
+     "nested_trace_setting",
++    "frame_f_code_cache",
+     "trace_disable_local_events",
+     "class_namespace_lifetime",
+     "class_method_annotation_capture",
+diff --git a/tests/fixtures/core/frame_f_code_cache.py b/tests/fixtures/core/frame_f_code_cache.py
+new file mode 100644
+--- /dev/null
++++ b/tests/fixtures/core/frame_f_code_cache.py
+@@ -0,0 +1,152 @@
++# Copyright (C) 2026 CantorAI Inc. and The XLang Foundation
++# Licensed under the Apache License, Version 2.0 (the "License");
++# you may not use this file except in compliance with the License.
++# You may obtain a copy of the License at
++# http://www.apache.org/licenses/LICENSE-2.0
++# Unless required by applicable law or agreed to in writing, software
++# distributed under the License is distributed on an "AS IS" BASIS,
++# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++# See the License for the specific language governing permissions and
++# limitations under the License.
++"""Stable repeated reads of one retained frame, without changing its code."""
++import gc
++import sys
++
++
++def capture_plain_frame():
++    return sys._getframe()
++
++
++plain_frame = capture_plain_frame()
++plain_code = plain_frame.f_code
++plain_id = id(plain_code)
++assert plain_code.co_name == "capture_plain_frame"
++for unused in range(8):
++    assert id(plain_frame.f_code) == plain_id
++    assert plain_frame.f_code is plain_code
++plain_frame.clear()
++assert id(plain_frame.f_code) == plain_id
++assert plain_frame.f_code.co_name == "capture_plain_frame"
++del plain_frame
++gc.collect()
++assert plain_code.co_name == "capture_plain_frame"
++print("retained frame code identity and lifetime")
++
++
++def active_replacement_body():
++    return "new active body"
++
++
++def active_original_body():
++    frame = sys._getframe()
++    original_code = frame.f_code
++    original_id = id(original_code)
++    active_original_body.__code__ = active_replacement_body.__code__
++    assert frame.f_code.co_name == "active_original_body"
++    assert id(frame.f_code) == original_id
++    return "old active body", frame, original_code
++
++
++active_result, active_frame, active_code = active_original_body()
++assert active_result == "old active body"
++assert active_original_body() == "new active body"
++assert active_frame.f_code.co_name == "active_original_body"
++assert id(active_frame.f_code) == id(active_code)
++active_frame.clear()
++assert id(active_frame.f_code) == id(active_code)
++print("active frame retains old code after replacement")
++
++
++def suspended_original_body():
++    frame = sys._getframe()
++    original_code = frame.f_code
++    yield frame, original_code
++    assert id(frame.f_code) == id(original_code)
++    yield "old suspended continuation"
++
++
++def suspended_replacement_body():
++    yield "new generator body"
++
++
++suspended = suspended_original_body()
++suspended_frame, suspended_code = next(suspended)
++suspended_original_body.__code__ = suspended_replacement_body.__code__
++assert id(suspended_frame.f_code) == id(suspended_code)
++assert next(suspended) == "old suspended continuation"
++try:
++    next(suspended)
++except StopIteration:
++    pass
++else:
++    assert False, "old generator must finish"
++assert next(suspended_original_body()) == "new generator body"
++assert suspended_frame.f_code.co_name == "suspended_original_body"
++assert id(suspended_frame.f_code) == id(suspended_code)
++print("suspended frame retains original code")
++
++
++trace_frames = []
++trace_codes = []
++trace_events = []
++
++
++def observed_marker_for_code_cache(value):
++    intermediate = value + 1
++    return intermediate
++
++
++def trace_code_reads(frame, event, arg):
++    code = frame.f_code
++    if code.co_name == "observed_marker_for_code_cache":
++        if not trace_frames:
++            trace_frames.append(frame)
++            trace_codes.append(code)
++        assert id(frame) == id(trace_frames[0])
++        assert id(frame.f_code) == id(trace_codes[0])
++        if event in ("call", "return"):
++            trace_events.append(event)
++    return trace_code_reads
++
++
++previous_trace = sys.gettrace()
++try:
++    sys.settrace(trace_code_reads)
++    assert observed_marker_for_code_cache(41) == 42
++finally:
++    sys.settrace(previous_trace)
++assert trace_events == ["call", "return"]
++assert len(trace_frames) == 1
++retained_trace_frame, retained_trace_code = trace_frames[0], trace_codes[0]
++assert id(retained_trace_frame.f_code) == id(retained_trace_code)
++retained_trace_frame.clear()
++assert id(retained_trace_frame.f_code) == id(retained_trace_code)
++trace_frames.clear()
++del retained_trace_frame
++gc.collect()
++assert retained_trace_code.co_name == "observed_marker_for_code_cache"
++print("trace frame code survives callback and frame clear")
++
++
++def raise_for_code_cache():
++    raise ValueError("frame code cache traceback")
++
++
++failed_frame = None
++try:
++    raise_for_code_cache()
++except ValueError as error:
++    traceback = error.__traceback__
++    while traceback is not None:
++        candidate = traceback.tb_frame
++        if candidate.f_code.co_name == "raise_for_code_cache":
++            failed_frame = candidate
++            break
++        traceback = traceback.tb_next
++assert failed_frame is not None
++failed_code = failed_frame.f_code
++assert id(failed_frame.f_code) == id(failed_code)
++failed_frame.clear()
++assert id(failed_frame.f_code) == id(failed_code)
++assert failed_code.co_name == "raise_for_code_cache"
++print("traceback frame code remains stable after clear")
+diff --git a/tests/fixtures/expected/frame_f_code_cache.out b/tests/fixtures/expected/frame_f_code_cache.out
+new file mode 100644
+--- /dev/null
++++ b/tests/fixtures/expected/frame_f_code_cache.out
+@@ -0,0 +1,5 @@
++retained frame code identity and lifetime
++active frame retains old code after replacement
++suspended frame retains original code
++trace frame code survives callback and frame clear
++traceback frame code remains stable after clear
