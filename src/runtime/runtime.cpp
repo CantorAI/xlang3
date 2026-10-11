@@ -295,9 +295,10 @@ std::filesystem::path runtime_library_dir() {
           GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
           reinterpret_cast<LPCSTR>(&runtime_module_anchor),
           &module) != 0) {
-    char path[MAX_PATH] = {};
-    const DWORD length = GetModuleFileNameA(module, path, MAX_PATH);
-    if (length > 0 && length < MAX_PATH) {
+    std::wstring path(32768, L'\0');
+    const DWORD length = GetModuleFileNameW(module, path.data(), static_cast<DWORD>(path.size()));
+    if (length > 0 && length < path.size()) {
+      path.resize(length);
       return std::filesystem::path(path).parent_path();
     }
   }
@@ -311,6 +312,15 @@ std::filesystem::path runtime_library_dir() {
   }
 #endif
   return {};
+}
+
+std::string path_utf8(const std::filesystem::path& path) {
+#if defined(_WIN32)
+  const auto encoded = path.u8string();
+  return {reinterpret_cast<const char*>(encoded.data()), encoded.size()};
+#else
+  return path.string();
+#endif
 }
 
 void add_default_import_layout(Runtime& runtime, const std::filesystem::path& base) {
@@ -817,7 +827,7 @@ void Runtime::initialize() {
       std::error_code ec;
       if (std::filesystem::is_regular_file(root / "os.py", ec)) {
         std::string ignored;
-        module_set_attr(sys_it->second, "_stdlib_dir", Value::string(root.string()), ignored);
+        module_set_attr(sys_it->second, "_stdlib_dir", Value::string(path_utf8(root)), ignored);
         break;
       }
     }
@@ -1093,7 +1103,7 @@ bool Runtime::publish_sys_path(std::string& error) {
   std::vector<Value> values;
   values.reserve(import_roots_.size());
   for (const auto& root : import_roots_) {
-    values.push_back(Value::string(root.string()));
+    values.push_back(Value::string(path_utf8(root)));
   }
   return module_set_attr(sys, "path", Value::list(std::move(values)), error);
 }

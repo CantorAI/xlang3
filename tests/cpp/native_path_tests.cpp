@@ -2,10 +2,27 @@
 #include <iostream>
 #include <filesystem>
 #include <stdexcept>
+#include <chrono>
 
 int main(int argc, char** argv) {
   try {
     if (argc != 2) throw std::runtime_error("expected native library path");
+#if defined(_WIN32)
+    struct RestoreCurrentPath {
+      std::filesystem::path original, temporary;
+      ~RestoreCurrentPath() {
+        std::error_code ignored;
+        std::filesystem::current_path(original, ignored);
+        std::filesystem::remove_all(temporary, ignored);
+      }
+    } restore{std::filesystem::current_path(), {}};
+    std::wstring leaf = L"xlang3-runtime-path-";
+    leaf.push_back(static_cast<wchar_t>(0x96ea));
+    leaf += std::to_wstring(std::chrono::steady_clock::now().time_since_epoch().count());
+    restore.temporary = std::filesystem::temp_directory_path() / leaf;
+    std::filesystem::create_directories(restore.temporary);
+    std::filesystem::current_path(restore.temporary);
+#endif
     X::Runtime runtime;
     X::Module builtins(runtime, "builtins");
     X::Value callable, result;
