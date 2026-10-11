@@ -60,6 +60,11 @@ namespace xlang3 {
 
 namespace {
 
+std::string path_utf8(const std::filesystem::path& path) {
+  const auto encoded = path.u8string();
+  return {reinterpret_cast<const char*>(encoded.data()), encoded.size()};
+}
+
 struct NativeThunk {
   X3NativeFn callback = nullptr;
   X3NativeKeywordFn keyword_callback = nullptr;
@@ -120,11 +125,11 @@ std::vector<std::filesystem::path> native_library_candidates(const std::filesyst
 }
 
 bool is_python_source_root(const std::filesystem::path& root) {
-  const auto leaf = root.filename().string();
+  const auto leaf = path_utf8(root.filename());
   if (leaf == "Lib" || leaf == "lib" || leaf == "site-packages") {
     return true;
   }
-  const auto parent = root.parent_path().filename().string();
+  const auto parent = path_utf8(root.parent_path().filename());
   return parent == "site-packages";
 }
 
@@ -156,15 +161,16 @@ void* open_library(const std::filesystem::path& path, std::string& error) {
   HMODULE handle = LoadLibraryExW(absolute.c_str(), nullptr,
       LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR | LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
   if (handle == nullptr) {
-    error = "cannot load native package " + path.string() +
+    error = "cannot load native package " + path_utf8(path) +
         " (Windows error " + std::to_string(GetLastError()) + ")";
   }
   return reinterpret_cast<void*>(handle);
 #else
-  void* handle = dlopen(path.string().c_str(), RTLD_NOW | RTLD_LOCAL);
+  const auto encoded = path_utf8(path);
+  void* handle = dlopen(encoded.c_str(), RTLD_NOW | RTLD_LOCAL);
   if (handle == nullptr) {
     const char* dl_error = dlerror();
-    error = "cannot load native package " + path.string();
+    error = "cannot load native package " + path_utf8(path);
     if (dl_error != nullptr) {
       error += ": ";
       error += dl_error;
@@ -892,7 +898,7 @@ std::vector<std::filesystem::path> collect_native_library_candidates(
       if (auto* list = value_as_list(path)) {
         for (const auto& item : list->items) {
           if (auto* string = value_as_string(item)) {
-            roots.emplace_back(string_object_view(*string));
+            roots.emplace_back(std::filesystem::u8path(string_object_view(*string)));
           }
         }
       }
@@ -946,7 +952,7 @@ std::string format_native_not_found(const std::string& name, const std::vector<s
     return os.str();
   }
   for (const auto& candidate : candidates) {
-    os << "\n  " << candidate.string();
+    os << "\n  " << path_utf8(candidate);
   }
   return os.str();
 }
@@ -977,14 +983,14 @@ static bool initialize_native_package(
   package.root_module = Value::module(package_name);
   package.requested_module = Value::invalid();
   module_set_attr(package.root_module, "__name__", Value::string(package_name), error);
-  module_set_attr(package.root_module, "__file__", Value::string(library_path.string()), error);
-  module_set_attr(package.root_module, "__xlang3_file__", Value::string(library_path.string()), error);
+  module_set_attr(package.root_module, "__file__", Value::string(path_utf8(library_path)), error);
+  module_set_attr(package.root_module, "__xlang3_file__", Value::string(path_utf8(library_path)), error);
 
   auto* host = new X3PackageHost(kPackageHostTemplate);
   host->package_context = &package;
   host->runtime = reinterpret_cast<X3Runtime*>(&runtime);
   host->package_name = package.name.c_str();
-  const std::string library_path_text = library_path.string();
+  const std::string library_path_text = path_utf8(library_path);
   host->library_path = library_path_text.c_str();
 
   X3Value cur_module = to_c_value(runtime.current_globals_module());
@@ -1059,15 +1065,15 @@ bool import_native_package(Runtime& runtime, const std::string& package_name,
   auto init = reinterpret_cast<X3PackageInitFn>(find_symbol(handle, "Load"));
   auto* abi = static_cast<const uint32_t*>(find_symbol(handle, "xlang3_package_abi_version"));
   if (!init) {
-    error = "native package " + library_path.string() + " does not export Load";
+    error = "native package " + path_utf8(library_path) + " does not export Load";
     return false;
   }
   if (!abi) {
-    error = "native package " + library_path.string() + " does not export xlang3_package_abi_version";
+    error = "native package " + path_utf8(library_path) + " does not export xlang3_package_abi_version";
     return false;
   }
   if (*abi != X3_ABI_VERSION) {
-    error = "native package " + library_path.string() + " has xlang3 ABI " + std::to_string(*abi) +
+    error = "native package " + path_utf8(library_path) + " has xlang3 ABI " + std::to_string(*abi) +
         ", runtime expects " + std::to_string(X3_ABI_VERSION);
     return false;
   }
