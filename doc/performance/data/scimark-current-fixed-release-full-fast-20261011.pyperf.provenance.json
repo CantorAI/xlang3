@@ -1,0 +1,27 @@
+{
+  "benchmark_suite": "pyperformance 1.14.0",
+  "benchmark_group": "scimark",
+  "definitions_attempted": 1,
+  "subtests_completed": 5,
+  "status": "completed_with_unstable_fast_mode_samples",
+  "python": "3.14.7",
+  "python_executable": "C:\\Python\\Python314\\python.exe",
+  "python_executable_sha256": "4942B86A6597E5AEE0128DAA00050ED79BC21F6E709A78EB19CBFEB0C2F39AC9",
+  "xlang3_executable": "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+  "xlang3_executable_sha256": "B0D96D9E3EA5575C097776545BF378B1B311F97D45A62E73962764DC44FCDC2E",
+  "xlang3_runtime_dll": "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3_runtime.dll",
+  "xlang3_runtime_dll_sha256": "DFA3D5F15398F185B9B881D7821A26AFA283F95EC21C1D3B279B0D685B0E80C2",
+  "command": "C:\\Python\\Python314\\python.exe benchmarks\\diagnostics\\run_pyperformance_xlang3_shimmed.py --runtime build-repro\\main-verify-20261006\\Release\\xlang3.exe --benchmarks scimark --mode fast --case-timeout 300 --output doc\\performance\\data\\scimark-current-fixed-release-full-fast-20261011.pyperf.json --dependency-site C:\\Python\\Python314\\Lib\\site-packages",
+  "case_timeout_seconds": 300,
+  "dependency_site": "C:\\Python\\Python314\\Lib\\site-packages",
+  "overrides": [],
+  "elapsed_summaries": {
+    "scimark_fft": "991 ms +- 90 ms",
+    "scimark_lu": "1.01 s +- 0.02 s",
+    "scimark_monte_carlo": "551 ms +- 14 ms",
+    "scimark_sor": "843 ms +- 15 ms",
+    "scimark_sparse_mat_mult": "17.5 ms +- 0.2 ms"
+  },
+  "json_sha256": "FC0C8A7BCD2B8270AAFC79D63D875DFA50E3D26B038CE9E439D20F292DEC5CD1",
+  "stdout_note": "pyperf reported fast-mode results as potentially unstable; harness stdout was not saved as a raw log."
+}
