@@ -1,0 +1,23 @@
+{
+  "common_subtests": 74,
+  "before_over_after_geomean": 0.9855056116919378,
+  "cpython_over_before_geomean": 0.13093457050963622,
+  "cpython_over_after_geomean": 0.1290367540017202,
+  "newly_scored_subtests_without_completed_before": [
+    "chameleon",
+    "genshi_text"
+  ],
+  "excluded_correctness_subtests": [
+    "genshi_xml"
+  ],
+  "inputs_sha256": {
+    "pyperformance-xlang3-subscription-dispatch-full-fast-20261007.json": "97ad62500717aec8f5c20372de4ef02af53fa70a922298a5c85bd1a874201a16",
+    "pyperformance-xlang3-subscription-dispatch-full-fast-20261007-all-97-status.csv": "8b33ba0fd1905e40cfb90b9610efaf441422a84c5c838298fd39a55a30e82979",
+    "pyperformance-xlang3-super-method-call-full-fast-20261007.json": "09db99bfc93ac0f06e1fcf9a492e5f3c1655ade8fcfb177a01d264f37df01b0d",
+    "pyperformance-xlang3-super-method-call-vs-cpython3147-full-fast-20261007-all-97-status.csv": "2f840bbb7083f0c46f5a936f4d1e877292af04cb8207812d9e2aeb1310f78eba",
+    "pyperformance-xlang3-super-method-call-vs-cpython3147-full-fast-20261007-subtests.csv": "c419598660eca2eb61b26556f2792d27dbcf80b5646749a4ceb2bc567ae25b51",
+    "pyperformance-cpython3147-super-method-full-fast-20261007.json": "2b2434d235fb1ca717d0f4fd376b242551e50cd0baf80c802b75c096dbc46129",
+    "pyperformance-xlang3-super-method-call-vs-cpython3147-full-fast-20261007-comparison-provenance.json": "282927aa8948fea3bf4839b26a76164ec67f2135467bf7220759f56c11b0a2f2"
+  },
+  "provenance_qualification": "The frozen before engine included a native translation of Python typing Protocol logic that has since been removed to honor the user rule. This is not a clean one-change optimization experiment. The fresh CPython reference is explicitly derived here, without rewriting either original XLang3 provenance."
+}

@@ -1,0 +1,5 @@
+class decode and keywords True
+bytes subclasses and override dispatch True
+canonical receiver checks True
+decoder argument and Unicode errors True
+saved descriptors preserve owners True

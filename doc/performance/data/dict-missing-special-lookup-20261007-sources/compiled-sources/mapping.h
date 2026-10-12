@@ -1,0 +1,169 @@
+/*
+Copyright (C) 2026 CantorAI Inc. and The XLang Foundation
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+#pragma once
+
+#include "xlang3/compiler.h"
+#include "xlang3/value.h"
+
+#include <cstdint>
+#include <string>
+#include <string_view>
+#include <unordered_map>
+#include <utility>
+#include <vector>
+
+namespace xlang3 {
+
+class Runtime;
+struct ModuleObject;
+
+enum class DictIterationKind : uint8_t {
+  Keys,
+  Values,
+  Items,
+};
+
+struct DictObject {
+  Object header;
+  std::vector<std::pair<Value, Value>> entries;
+  // Module namespaces are exact dict objects while module slots remain the
+  // fast execution storage. This non-owning link keeps mutations coherent.
+  ModuleObject* backing_module = nullptr;
+  // Flat open-addressed table: integer-key probes are hot in dict membership,
+  // indexing, and interpreter memo tables, so avoid per-entry node allocation.
+  // Entries remain authoritative; slots store entry index + 1 (zero is empty).
+  mutable std::vector<size_t> integer_index;
+  mutable std::unordered_map<int64_t, std::vector<size_t>> runtime_hash_index;
+  mutable size_t runtime_hash_indexed_entry_count = static_cast<size_t>(-1);
+  // Native writes may share these buckets only when the entire key set has
+  // callback-free hashes/equality. Cache rejected eligibility as well, so a
+  // mixed dictionary does not rescan all keys before every fallback write.
+  mutable size_t intrinsic_hash_checked_entry_count = static_cast<size_t>(-1);
+  mutable bool intrinsic_hash_keys_only = false;
+  // Flat open-addressed slots store entry index + 1 (zero means empty). The
+  // authoritative strings and cached hashes remain in entries.
+  mutable std::vector<size_t> string_index;
+  mutable size_t indexed_entry_count = static_cast<size_t>(-1);
+  mutable bool index_has_other_keys = false;
+  mutable bool index_has_non_string_keys = false;
+};
+
+// Includes Python dict subclasses while excluding other mapping protocols.
+bool mapping_is_dict(const Value& value);
+
+struct MappingProxyObject {
+  Object header;
+  Value source;
+};
+
+struct DictViewObject {
+  Object header;
+  Value source;
+  DictIterationKind kind = DictIterationKind::Keys;
+};
+
+struct DictIteratorObject {
+  Object header;
+  Value source;
+  uint64_t index = 0;
+  DictIterationKind kind = DictIterationKind::Keys;
+};
+
+XLANG3_HOT_INLINE DictObject* value_as_dict(const Value& value) {
+  if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::Dict) {
+    return nullptr;
+  }
+  return reinterpret_cast<DictObject*>(value.as.obj);
+}
+
+XLANG3_HOT_INLINE MappingProxyObject* value_as_mapping_proxy(const Value& value) {
+  if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::MappingProxy) {
+    return nullptr;
+  }
+  return reinterpret_cast<MappingProxyObject*>(value.as.obj);
+}
+
+XLANG3_HOT_INLINE DictIteratorObject* value_as_dict_iterator(const Value& value) {
+  if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::DictIterator) {
+    return nullptr;
+  }
+  return reinterpret_cast<DictIteratorObject*>(value.as.obj);
+}
+
+XLANG3_HOT_INLINE DictViewObject* value_as_dict_view(const Value& value) {
+  if (value.tag != ValueTag::Object || value.as.obj == nullptr) {
+    return nullptr;
+  }
+  switch (value.as.obj->kind) {
+    case ObjectKind::DictKeysView:
+    case ObjectKind::DictValuesView:
+    case ObjectKind::DictItemsView:
+      return reinterpret_cast<DictViewObject*>(value.as.obj);
+    default:
+      return nullptr;
+  }
+}
+
+Value mapping_keys_view(Value source);
+Value mapping_values_view(Value source);
+Value mapping_items_view(Value source);
+Value mapping_proxy(Value source);
+
+void mapping_release_object(Object* object);
+std::string mapping_to_string(const Value& value);
+bool mapping_truthy(const Value& value);
+bool mapping_is_mapping(const Value& value);
+
+bool mapping_get_item(const Value& object, const Value& key, Value& out, std::string& error);
+// Return only a hit for an exact integer key in the built-in dict index.
+// Callers must use the generic mapping path on a miss so custom key equality
+// and dict-subclass overrides keep their normal semantics.
+bool mapping_get_integer_item_if_present(
+    const Value& object, int64_t key, Value& out);
+// Reuse an exact identity-hashed class or instance key already stored in a
+// plain dict; misses retain the generic hash/equality path.
+bool mapping_get_item_identity_key(
+    const Value& object, const Value& key, Value& out, std::string& error);
+// Fast path for the common exact-string lookup. It retains full dict key
+// semantics by falling back to mapping_get_item when non-string keys exist.
+bool mapping_get_string_item(
+    const Value& object, std::string_view key, Value& out, std::string& error,
+    size_t* found_index = nullptr);
+bool mapping_get_item_runtime(Runtime& runtime, const Value& object, const Value& key,
+                              Value& out, std::string& error,
+                              bool dispatch_override = true);
+// Type-based dict-subclass __missing__ dispatch. An absent method returns
+// false with "key not found"; descriptor/call failures retain their exception.
+bool mapping_call_missing(Runtime& runtime, const Value& object, const Value& key,
+                          Value& out, std::string& error);
+bool mapping_set_item(Value& object, const Value& key, const Value& item, std::string& error);
+// Update or erase an existing exact object-identity key without repeating the
+// generic hash/equality path. Missing keys retain ordinary dict behavior.
+bool mapping_set_item_identity_key(Value& object, const Value& key, const Value& item,
+                                   std::string& error);
+bool mapping_delete_item_identity_key(Value& object, const Value& key,
+                                      std::string& error);
+bool mapping_set_item_runtime(Runtime& runtime, Value& object, const Value& key, const Value& item, std::string& error);
+bool mapping_delete_item(Value& object, const Value& key, std::string& error);
+bool mapping_delete_item_runtime(Runtime& runtime, Value& object, const Value& key, std::string& error);
+bool mapping_get_iter(const Value& object, Value& out, std::string& error);
+bool mapping_iter_next(Value& iterator, bool& done, Value& out, std::string& error);
+bool mapping_len(const Value& value, Value& out, std::string& error);
+bool mapping_contains(const Value& container, const Value& item, bool& out, std::string& error);
+bool mapping_clear(Value& value, std::string& error);
+bool mapping_popitem(Value& value, Value& out, std::string& error);
+Value mapping_copy(const Value& value);
+
+} // namespace xlang3

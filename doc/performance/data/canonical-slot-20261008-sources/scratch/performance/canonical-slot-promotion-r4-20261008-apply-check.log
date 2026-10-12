@@ -1,0 +1,3 @@
+command: git apply --check -- scratch/performance/canonical-slot-promotion-r4-20261008.patch
+exit: 0
+

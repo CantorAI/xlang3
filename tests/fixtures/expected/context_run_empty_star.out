@@ -1,0 +1,10 @@
+callback ()
+callback ()
+callback ('from tuple',)
+callback ('from list',)
+iterated
+callback ()
+list iterated
+callback ()
+tuple iterated
+callback ()

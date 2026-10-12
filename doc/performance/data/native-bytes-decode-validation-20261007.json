@@ -1,0 +1,54 @@
+{
+  "status": "correctness_and_fixed_gate_passed",
+  "manager_version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+  "source_base_commit": "b3f9dc567cc66aa125a052cecf0797f90d89bbb8",
+  "source_files": {
+    "src/runtime/methods/bytes_methods.cpp": "660db7174f984c4a145bddde76cf42c8e2cacaa156c34fc52855f8db785c00af",
+    "tests/run_fixtures.py": "590405f0eae7b9249910f368a3ed4c772e35114f2d83b7da1b97a4d322954c46",
+    "tests/fixtures/core/bytes_decode_descriptor.py": "ad42c5fe8ff7e04a55f20b824d2adba69a331cd037dcfeefd956d40fe17bc26f",
+    "tests/fixtures/expected/bytes_decode_descriptor.out": "ce37c4a08d3ecdfc3e20fc8552c424af2f140b38d294ba8fd2555c0ebc009be7"
+  },
+  "sha256_start": {
+    "exe": "b1e8973ae266243f545920a83a5ac7e1686f56baaf443193514be59f43dd4afb",
+    "dll": "5de4fc57fe8ca070225a03cb00140016eee45a6a8a97400196f6c0f95e8fcf97"
+  },
+  "full_fixtures": {
+    "exit_code": 0,
+    "verified_exec_session": 32304,
+    "core_cases": 357,
+    "section_cases": 11,
+    "expected_failure_cases": 3,
+    "stdout": "empty on success"
+  },
+  "cpp_sdk": {
+    "exit_code": 0,
+    "tests_passed": 8,
+    "log": "native-bytes-decode-cpp-sdk-20261007.log"
+  },
+  "focused_fixture": {
+    "exit_code": 0,
+    "log": "native-bytes-decode-xlang3-fixture-20261007.log",
+    "cpython_reference": "native-bytes-decode-cpython3147-reference-20261007.json"
+  },
+  "fixed_gate": {
+    "status": "pass",
+    "report": "release-native-bytes-decode-fixed-gate-20261007.json",
+    "exit_code": 0,
+    "accepted": true,
+    "cases": 11,
+    "repeats": 21,
+    "warmup": 5,
+    "threshold": 0.1
+  },
+  "official_chameleon": {
+    "status": "finished_with_benchmark_failures",
+    "exit_code": 1,
+    "benchmarks": "chameleon",
+    "report": null,
+    "provenance": "pyperformance-xlang3-native-bytes-decode-chameleon-fast-20261007-provenance.json"
+  },
+  "sha256_end": {
+    "exe": "b1e8973ae266243f545920a83a5ac7e1686f56baaf443193514be59f43dd4afb",
+    "dll": "5de4fc57fe8ca070225a03cb00140016eee45a6a8a97400196f6c0f95e8fcf97"
+  }
+}

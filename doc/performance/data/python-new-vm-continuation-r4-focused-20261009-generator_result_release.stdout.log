@@ -1,0 +1,5 @@
+generator result 0 True False
+generator result 1 False True
+coroutine result 0 True
+coroutine reused 1 cannot reuse already awaited coroutine
+coroutine result referrers ['Future', 'coroutine:inspect_result', 'frame:rejected_future']

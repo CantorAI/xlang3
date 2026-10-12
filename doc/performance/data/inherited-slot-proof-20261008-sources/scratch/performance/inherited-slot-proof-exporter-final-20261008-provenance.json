@@ -1,0 +1,39 @@
+{
+  "status": "scratch_only_exporter_frozen_not_executed",
+  "default_output": "scratch/performance/inherited-slot-proof-report-preview-20261008",
+  "publication_output": "doc/performance",
+  "python_execution": false,
+  "runtime_build_benchmark_execution": false,
+  "expected_diagnostic_samples": 300,
+  "expected_diagnostic_rows": 4,
+  "compiled_working_source_fields": 19,
+  "separate_git_lf_targets": 11,
+  "source_policy": "Authoritative raw compiled working bytes and separately proven Git clean LF identities; no staging or actual source mutation",
+  "artifacts": [
+    {
+      "path": "scratch/performance/export-inherited-slot-proof-checkpoint-20261008.py",
+      "bytes": 36810,
+      "sha256": "db1582ad7327ff4df2aa68705423a4454235d068bcc348497cfea44b8ffcf36f"
+    },
+    {
+      "path": "scratch/performance/inherited-slot-proof-export-main-20261008.py",
+      "bytes": 26325,
+      "sha256": "943d8740d5374ae7b65a32fc831436a6b530ce5ec1f9535f338e3f2489dcf398"
+    },
+    {
+      "path": "scratch/performance/prepare-inherited-slot-proof-exporter-20261008.ps1",
+      "bytes": 3455,
+      "sha256": "6e89f85b0d3f1fefec25723e284f7f26ce0d39f787cfb4575e96fbc0c77266da"
+    },
+    {
+      "path": "scratch/performance/prepare-inherited-slot-proof-git-lf-20261008.ps1",
+      "bytes": 3107,
+      "sha256": "351ec3ef701905b6748d947fe720972cd49ccd9d5eeb1cb0474d7012d39036dd"
+    },
+    {
+      "path": "scratch/performance/inherited-slot-proof-git-lf-20261008-provenance.json",
+      "bytes": 6948,
+      "sha256": "9f43ce2c3fc56a046b4ea9f326e1de3c082e7c8070317bff86ded7977995d720"
+    }
+  ]
+}

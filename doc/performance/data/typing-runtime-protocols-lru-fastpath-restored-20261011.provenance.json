@@ -1,0 +1,11 @@
+{
+  "benchmark_suite": "pyperformance 1.14.0",
+  "python": "C:\\Python\\Python314\\python.exe (Python 3.14.7)",
+  "runtime": "build-repro/main-verify-20261006/Release/xlang3.exe",
+  "runtime_executable_sha256": "6633C0A520DABCECA4DA4046F78243569045FFDEFA51160C3883A4CB0C6DF590",
+  "runtime_dll_sha256": "0A256617FFF23ACF21D0E19A57F423195FA4E7359EE0C10DD1895589BCA63D1C",
+  "command": "python benchmarks/diagnostics/run_pyperformance_xlang3_shimmed.py --runtime build-repro/main-verify-20261006/Release/xlang3.exe --benchmarks typing_runtime_protocols --mode fast --case-timeout 300 --output doc/performance/data/typing-runtime-protocols-lru-fastpath-restored-20261011.json --dependency-site C:\\Python\\Python314\\Lib\\site-packages",
+  "result": "2.91 ms +- 0.21 ms",
+  "comparison": "Same-day control was 2.75 ms +- 0.07 ms; restored run is directionally slower, but sample variation precludes claiming a retained speedup or regression.",
+  "correctness": "55/55 CTest checks passed after restoring source"
+}

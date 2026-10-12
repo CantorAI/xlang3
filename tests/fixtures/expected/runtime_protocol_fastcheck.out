@@ -7,3 +7,4 @@ True
 True
 non-runtime protocol error True
 custom instancecheck True
+python protocol hook True True

@@ -43,3 +43,5 @@ bad-cast-'2B' ValueError memoryview: destination format must be a native single 
 bad-cast-'<H' ValueError memoryview: destination format must be a native single character format prefixed with an optional '@'
 assign-h NoneType None
 assigned-bytes b'\xfe\xff\x00\x00'
+bytearray-memoryview-add bytearray bytearray(b'chunk')
+memoryview-call-releases-export tuple (b'ab', bytearray(b'cdef'))

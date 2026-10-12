@@ -1,0 +1,2 @@
+class and method lazy annotations retain class captures
+method-only annotations capture class names while body retains enclosing scope

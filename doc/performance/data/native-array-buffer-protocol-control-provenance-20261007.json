@@ -1,0 +1,21 @@
+{
+  "diagnostic_only": true,
+  "timing": false,
+  "source_commit": "f2e76b14ce705ba596f3675990a0549aa03e919a",
+  "manager_version": "3.14.7",
+  "cpython_executable": "C:\\Python\\Python314\\python.exe",
+  "control_executable": "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+  "array_source_sha256": "641da83164d46b00ad6c56c58864c8023a38c1c06c5c6b16b728e2868ca9afb5",
+  "probe_source_sha256": "776e6ec058fb2d15c139f2f5274024b6389262b37d155abb1232692c6f71e459",
+  "exe_sha256": "0CC12A955922714F9322076F0B372DFC409524F2A45FB6EF199DB8C3D35D3C6B",
+  "dll_sha256": "4B06422A606C2F13CA8302BBCB9F362695208F91FFD0D024292A2ACF661C5920",
+  "cpython_passed": 8,
+  "cpython_failed": 0,
+  "xlang3_passed": 1,
+  "xlang3_failed": 7,
+  "process_exit_codes": {
+    "cpython": 0,
+    "xlang3": 0
+  },
+  "exit_code_note": "The diagnostic catches each case independently and writes pass/fail records; exit 0 means all records were produced, not that all checks passed."
+}

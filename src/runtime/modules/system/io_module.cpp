@@ -17,6 +17,7 @@ limitations under the License.
 
 #include "xlang3/attribute.h"
 #include "xlang3/functional_iterators.h"
+#include "xlang3/io_runtime.h"
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
 #include "xlang3/sequence.h"
@@ -4229,6 +4230,97 @@ bool io_base_tell(Runtime& runtime, const Value* args, uint32_t argc,
   return runtime_call_callable(runtime, seek, seek_args, 2, out, error);
 }
 
+bool io_base_iter(Runtime& runtime, const Value* args, uint32_t argc,
+                  Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "_io._IOBase.__iter__() expected no arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  // Check the virtual closed attribute, including a subclass property or
+  // __getattribute__ override. The internal IOBase flag is not authoritative
+  // for Python compressed-stream subclasses. find_builtin uses the original
+  // runtime primitive, independently of Python rebinding builtins.getattr.
+  const Value* getattr = runtime.find_builtin("getattr");
+  auto* native_getattr = getattr == nullptr ? nullptr : value_as_native_function(*getattr);
+  Value lookup[] = {args[0], Value::string("closed"), Value::boolean(false)};
+  Value closed;
+  if (native_getattr == nullptr || native_getattr->callback == nullptr ||
+      !native_getattr->callback(runtime, lookup, 3, closed, error, native_getattr->user_data)) return false;
+  bool is_closed = value_truthy(closed);
+  if (value_as_instance(closed) != nullptr &&
+      !runtime_instance_truthy(runtime, closed, is_closed, error)) return false;
+  if (is_closed) {
+    error = "I/O operation on closed file";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
+  value_assign_fast(out, args[0]);
+  return true;
+}
+
+bool io_base_next(Runtime& runtime, const Value* args, uint32_t argc,
+                  Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "_io._IOBase.__next__() expected no arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  // IOBase supplies only the iterator protocol. Resolve readline dynamically
+  // on every step so instance/class rebinding, descriptors, and Python hooks
+  // remain visible; do not substitute C++ for gzip's Python implementation.
+  const Value* getattr = runtime.find_builtin("getattr");
+  auto* native_getattr = getattr == nullptr ? nullptr : value_as_native_function(*getattr);
+  Value lookup[] = {args[0], Value::string("readline")};
+  Value readline;
+  if (native_getattr == nullptr || native_getattr->callback == nullptr ||
+      !native_getattr->callback(runtime, lookup, 2, readline, error, native_getattr->user_data) ||
+      !runtime_call_callable(runtime, readline, nullptr, 0, out, error)) return false;
+  bool empty = false;
+  if (const auto* bytes = value_as_bytes(out)) {
+    empty = bytes_object_view(*bytes).empty();
+  } else if (const auto* text = value_as_string(out)) {
+    // Only emptiness matters. Avoid scanning a UTF-8 line to count characters.
+    empty = string_object_view(*text).empty();
+  } else {
+    const Value* len = runtime.find_builtin("len");
+    auto* native_len = len == nullptr ? nullptr : value_as_native_function(*len);
+    Value length;
+    if (native_len == nullptr || native_len->callback == nullptr ||
+        !native_len->callback(runtime, &out, 1, length, error, native_len->user_data)) return false;
+    int64_t count = 0;
+    if (!value_int_like_to_i64(length, count)) {
+      Value index;
+      Value converted;
+      std::string ignored;
+      if (object_get_special_method(runtime, length, "__index__", index, ignored)) {
+        if (!runtime_call_callable(runtime, index, nullptr, 0, converted, error)) return false;
+        value_assign_fast(length, converted);
+      }
+      if (!value_int_like_to_i64(length, count)) {
+        error = "__len__() returned an invalid size";
+        runtime.raise_class_error(value_as_bigint(length) != nullptr ? "OverflowError" : "TypeError", error);
+        return false;
+      }
+    }
+    if (count < 0) {
+      error = "__len__() should return >= 0";
+      runtime.raise_class_error("ValueError", error);
+      return false;
+    }
+    empty = count == 0;
+  }
+  if (empty) {
+    value_set_invalid(out);
+    error = "StopIteration";
+    Value exhausted = runtime.make_exception("StopIteration", "");
+    runtime_initialize_exception_constructor_args(runtime, exhausted, nullptr, 0);
+    runtime.set_pending_exception(std::move(exhausted));
+    return false;
+  }
+  return true;
+}
+
 bool io_base_readline(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 1 || argc > 2) {
     error = "_io._IOBase.readline() expected optional limit";
@@ -4372,6 +4464,8 @@ void add_io_exports(NativeModuleBuilder& builder, Runtime& runtime, const Value&
       {"__del__", runtime.make_native_function("_io._IOBase.__del__", io_base_del)},
       {"__enter__", runtime.make_native_function("_io._IOBase.__enter__", io_base_enter)},
       {"__exit__", runtime.make_native_function("_io._IOBase.__exit__", io_base_exit)},
+      {"__iter__", runtime.make_native_function("_io._IOBase.__iter__", io_base_iter)},
+      {"__next__", runtime.make_native_function("_io._IOBase.__next__", io_base_next)},
       {"close", runtime.make_native_function("_io._IOBase.close", io_base_close)},
       {"flush", runtime.make_native_function("_io._IOBase.flush", io_base_check_closed)},
       {"closed", Value::property(std::move(closed_getter), Value::none(), Value::none(), Value::none())},
@@ -4476,6 +4570,48 @@ void add_io_exports(NativeModuleBuilder& builder, Runtime& runtime, const Value&
 }
 
 } // namespace
+
+bool io_stringio_write_fast(const Value& file, std::string_view text) {
+  auto* instance = value_as_instance(file);
+  if (instance == nullptr || instance->native_type != "_io.StringIO") return false;
+  auto* klass = value_as_class(instance->klass);
+  if (klass == nullptr || klass->name != "StringIO") return false;
+  // StringIO's mutable `write` method or an instance shadow must retain the
+  // full attribute protocol used by print(file=...).
+  for (const auto& attr : instance->attrs) {
+    if (attr.first == "write") return false;
+  }
+  if (klass->attrs.find("__getattribute__") != klass->attrs.end() ||
+      klass->attrs.find("__getattr__") != klass->attrs.end()) return false;
+  const auto write_attr = klass->attrs.find("write");
+  auto* write = write_attr == klass->attrs.end()
+      ? nullptr : value_as_native_function(write_attr->second);
+  if (write == nullptr || write->callback != stream_write ||
+      write->user_data == nullptr ||
+      std::string_view(static_cast<const char*>(write->user_data)) != "_io.StringIO") return false;
+  auto* state = static_cast<MemoryStreamState*>(
+      instance_get_native_data(file, "_io.StringIO"));
+  if (state == nullptr || state->binary || state->closed) return false;
+
+  // The common default-newline case can append the print buffer directly.
+  // Other StringIO newline modes still use the same translation and newline
+  // tracking as stream_write before applying the identical cursor overwrite.
+  std::string translated;
+  std::string_view data = text;
+  if (state->newline_is_none || state->newline != "\n") {
+    translated = translate_stringio_newlines(*state, std::string(text));
+    data = translated;
+  }
+  if (state->cursor > state->buffer.size()) state->cursor = state->buffer.size();
+  if (state->cursor + data.size() > state->buffer.size()) {
+    state->buffer.resize(state->cursor + data.size(), '\0');
+  }
+  std::copy(data.begin(), data.end(),
+      state->buffer.begin() + static_cast<std::ptrdiff_t>(state->cursor));
+  state->cursor += data.size();
+  memory_stream_update_exported_buffer(*state);
+  return true;
+}
 
 void register_io_module(Runtime& runtime) {
   Value string_io = make_memory_stream_class(runtime, "StringIO", "_io.StringIO", string_io_init, string_io_init_kw);

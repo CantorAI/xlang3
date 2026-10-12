@@ -1,0 +1,10 @@
+Benchmarks with tag 'serialize':
+================================
+
+Benchmark hidden because not significant (1): pickle
+
+All benchmarks:
+===============
+
+Benchmark hidden because not significant (1): pickle
+Ignored benchmarks (49) of doc\performance\data\pyperformance-xlang3-sum-int-gen-full-fast-20261006.json: 2to3, async_generators, async_tree_eager, async_tree_none, chaos, comprehensions, coroutines, deepcopy, deepcopy_memo, deepcopy_reduce, deltablue, fannkuch, float, gc_traversal, generators, go, hexiom, json_dumps, json_loads, logging_format, logging_silent, logging_simple, many_optionals, meteor_contest, nbody, nqueens, pathlib, pickle_dict, pickle_list, pickle_pure_python, pidigits, pyflate, python_startup, python_startup_no_site, raytrace, regex_compile, regex_dna, regex_effbot, regex_v8, richards, richards_super, spectral_norm, subparsers, telco, typing_runtime_protocols, unpack_sequence, unpickle, unpickle_list, unpickle_pure_python

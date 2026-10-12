@@ -1,0 +1,1 @@
+{"benchmarks":[{"runs":[{"values":[0.004039000006741844]}]}],"metadata":{"description":"struct.Struct.unpack on the official bm_base64 DATA_HUGE payload","duration":0.004799799993634224,"loops":1,"name":"base64_struct_unpack_huge","unit":"second"},"version":"1.0"}

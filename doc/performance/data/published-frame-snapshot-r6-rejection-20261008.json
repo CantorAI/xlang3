@@ -1,0 +1,57 @@
+{
+  "status": "trial_rejected_verified_c5_source_and_release_restored",
+  "terminal": true,
+  "completed_utc": "2026-10-08T19:57:49.473556+00:00",
+  "summary": {
+    "pair_ratios_c5_over_r6": [
+      1.0096110907356524,
+      1.0067507027581073,
+      0.9933897101555469,
+      1.0004890519227254,
+      0.9934598291859393,
+      1.00517866668608,
+      0.9918304166574919
+    ],
+    "median_pair_ratio": 1.0004890519227254,
+    "bootstrap95_ci": [
+      0.9933897101555469,
+      1.0067507027581073
+    ],
+    "useful_signal": false,
+    "decision": "reject_c6_retain_verified_c5",
+    "control_seconds": [
+      4.301946799969301,
+      4.292546899989247,
+      4.3336641999776475,
+      4.2938723000115715,
+      4.264990900002886,
+      4.310764599998947,
+      4.327697000000626
+    ],
+    "candidate_seconds": [
+      4.260994000011124,
+      4.263763499970082,
+      4.362501600000542,
+      4.2917733999784105,
+      4.293068300001323,
+      4.288555599981919,
+      4.363343700009864
+    ],
+    "scope": "Paired unscored original-body diagnostic; no official score, whole-suite claim or automatic acceptance/rollback",
+    "bootstrap_method": "Resample seven paired ratios with replacement; median statistic; linear percentile endpoints; fixed seed/count"
+  },
+  "rejected_control": "D:\\CantorAI\\xlang3\\build-repro\\controls\\published-frame-snapshot-r6-rejected-20261008",
+  "rejected_manifest_sha256": "f4431242628b4e3720cc84c9fbb5b0d4a59a38c66c2717fdef70ba8e7b25b1be",
+  "accepted_control": "D:\\CantorAI\\xlang3\\build-repro\\controls\\class-constructor-c5-before-snapshot-r6-20261008",
+  "accepted_manifest_sha256": "85910ee375f16c677153fc128fb17303868a849c124f5909d5ee03eeed764bdc",
+  "paired_receipt_sha256": "212c4f40121bf461d02ea33e5a3df56022c9b4f51a957319ca82fc5df07a1e35",
+  "restored_source": [
+    "src/runtime/runtime.cpp",
+    "tests/cpp/interpreter_tests.cpp"
+  ],
+  "removed_owned_file": "tests/cpp/published_frame_snapshot_cases.h",
+  "restored_release_count": 178,
+  "future_ninja_rebuild_forced": true,
+  "accepted_gate_baseline_changed": false,
+  "unrelated_changes_preserved": true
+}

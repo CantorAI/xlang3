@@ -1,0 +1,35 @@
+{
+  "status": "held_scratch_only_uncompiled_unexecuted_public_cpp_snapshot_tests",
+  "source_inventory": "D:/CantorAI/xlang3/doc/performance/data/class-constructor-plan-c5-applied-source-20261008.json",
+  "source_inventory_sha256": "69aaf03539202bbc7fced4dfe46df5f3a801a6d40b8e0360a68245de6ce71937",
+  "source_count": 106,
+  "raw_before_sha256": {
+    "tests/cpp/interpreter_tests.cpp": "59bdb1c2e85079d28ad7359ebdc3b0e76c0c56bf3880e79c8da6384418b2d172"
+  },
+  "required_absent_targets": [
+    "tests/cpp/published_frame_snapshot_cases.h"
+  ],
+  "candidate_root": "D:/CantorAI/xlang3/scratch/performance/published-frame-snapshot-tests-proposed-20261008-candidates",
+  "input_root": "D:/CantorAI/xlang3/scratch/performance/published-frame-snapshot-tests-proposed-20261008-inputs",
+  "mapping": {
+    "tests/cpp/published_frame_snapshot_cases.h": "tests/cpp/published_frame_snapshot_cases.h",
+    "tests/cpp/interpreter_tests.cpp": "tests/cpp/interpreter_tests.cpp"
+  },
+  "candidate_source_sha256": {
+    "tests/cpp/interpreter_tests.cpp": "5fb477af48b46648344f3a0ffe6a82132985e2e08691002f90f8583e9f546433",
+    "tests/cpp/published_frame_snapshot_cases.h": "6bccd0d990bb438cc92d2de029bf323c2f1ff48ca36a13e3d72723261b7b4e83"
+  },
+  "patch_sha256": "38a566cedffe29103dd79cf446643324d014e7ef1b749a6afca2f033fa55c444",
+  "cpp_fragment_sha256": "6bccd0d990bb438cc92d2de029bf323c2f1ff48ca36a13e3d72723261b7b4e83",
+  "preparer_sha256": "29457059e80ff8f635d09ebb8710dde38fa44d5ecb46a48181ab643a07d4537b",
+  "engine_patch": "scratch/performance/published-frame-same-owner-refresh-proposed-20261008.patch",
+  "engine_patch_sha256": "bd18ffd8e9c41c10a43110a531c9db24ec9503ab32a54a102dd4b239bf121429",
+  "engine_provenance_sha256": "ab41aa60a3e33963f8b1e1525631cc3c4ded1a83a4f601faeb0819dfa44972e6",
+  "git_apply_exact_check_exit": 0,
+  "git_apply_check_ignore_whitespace_exit": 0,
+  "all_actual_source_inputs_unchanged": true,
+  "compiler_runtime_ast_benchmark_executed": false,
+  "eligibility": "Actual exported Runtime publisher on joined worker; observer excluded from counter brackets. Cold Module Value retains >0;32 same-owner scalar refresh publications exactly0 Module Value retains/releases; distinct safe shared_ptr control-block positive coldretain/release and once-retirement audit. Counter enabled restored without reset or new instrumentation.",
+  "correctness": "Actual observer FrameObject Module/function/IP/activation/emptylocals/chain;changedglobals and Module owner;grow/shrink/null/clear fallback;profile/trace/local/global/control-block exactlyonce lifetime audits. Every context owns shared state; joined worker precedes Runtime destruction.",
+  "measured_gain": null
+}

@@ -1,0 +1,22 @@
+{
+  "reviewed_utc": "2026-10-10T03:06:01.2459862Z",
+  "status": "static_ready_not_executed",
+  "adapter_sha256": "8b90edaafbf1adbe1c09927044be798659ba80d88ef2ea20f62acdd091bcb6fc",
+  "builder_sha256": "120b53c7ffbe3788abf3224c08e16b6a765db8fb99085164fb96a6aaf794c0c1",
+  "checks": [
+    "Read complete adapter and frozen original/composite authentication routines; historical proof checks do not demand current old engine bytes",
+    "Current capture already pins preserved sources and Release; verified representative exact paths",
+    "Fixture directories exist and current runner uses those directories",
+    "Existing gate case rows use status pass and source_sha256; default unchanged gate retained",
+    "Three modified old source paths plus exactly two added fixture paths; candidate145 source pins expected",
+    "Original and fresh candidate HEAD/pin maps separate; no retrospective old timing certification",
+    "Strict timed watcher retained; owned CTest allowance is semantic and untimed only",
+    "Build uses exact established vcvars/CMake cmd SHA2efd and requires source/baseline/unowned/control stability plus child cleanup"
+  ],
+  "limits": [
+    "Capture27292 remains live; no AST, reference fixture, application, build or tests performed",
+    "Sequential original JSON comparison is unpaired; no gain acceptance claim",
+    "Root must establish terminal capture and actual host idle before applying/building",
+    "No engine commit before full correctness and complete gate0; material gain requires measured evidence"
+  ]
+}

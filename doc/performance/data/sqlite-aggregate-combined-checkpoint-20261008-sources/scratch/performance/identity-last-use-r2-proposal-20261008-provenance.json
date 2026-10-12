@@ -1,0 +1,55 @@
+{
+  "schema": 1,
+  "status": "scratch-only-unexecuted",
+  "head": "9de05e0d945a2d75ea50dfb7ddba4843363dfe41",
+  "patch": "D:\\CantorAI\\xlang3\\scratch\\performance\\identity-last-use-r2-proposal-20261008.patch",
+  "patch_sha256": "70cff5cc3dda8d2ed92fe0b5dfe28b868e9e7432071f831eb5de2bd4a7cd58e7",
+  "source_root": "D:\\CantorAI\\xlang3\\scratch\\performance\\identity-last-use-r2-proposal-20261008-sources",
+  "candidate_root": "D:\\CantorAI\\xlang3\\scratch\\performance\\identity-last-use-r2-proposal-20261008-candidates",
+  "actual_source_sha256_before": {
+    "src/internal/xlang3/ir.h": "5fe95e791afd451f674b001638985c3e7b0b2317b7fb9d890284fedd512ec8e1",
+    "src/ir/dump.cpp": "5c33a7833ff1786a8ff698d6e8b7ee5831603cef23f6ea43ffdb9418492ce0ec",
+    "src/ir/codec.cpp": "2c9fac9dddef37d52a1acd2e249fd91fe93c6fd89274a36bab539c2e5cd038ed",
+    "src/sema/lower.cpp": "73eb36ebcba12d09363adb81a361d4ec715a7a78e737c3772b02647d9a89853a",
+    "src/executor/xlang_vm/xlang_frame.h": "94aea78474df15608d7c31bdde8b70b104b3fb527d0b3cbefd51125d9cf56258",
+    "src/executor/xlang_vm/ops/xlang_vm_ops_arithmetic.h": "8104b810dd12b1913b9ba52da6760e1c0fbb04c4a075a25fddbeb63bcad4edef",
+    "src/executor/xlang_vm/xlang_vm_op_rows.h": "44b702ec262ede41ef88ac11814ba482ff30563081de3c1613354d08ca0a5bc9",
+    "tests/cpp/interpreter_tests.cpp": "4b711ad8d56b8fff2cff8731d46ff01ec3e7caec131dfc1f6de14fd9e1110ef3",
+    "tests/run_fixtures.py": "5f8198ed6a94f7051a16da39282c2152532613377c29da97d2ee1b0b8d999816"
+  },
+  "actual_source_sha256_after": {
+    "src/internal/xlang3/ir.h": "5fe95e791afd451f674b001638985c3e7b0b2317b7fb9d890284fedd512ec8e1",
+    "src/ir/dump.cpp": "5c33a7833ff1786a8ff698d6e8b7ee5831603cef23f6ea43ffdb9418492ce0ec",
+    "src/ir/codec.cpp": "2c9fac9dddef37d52a1acd2e249fd91fe93c6fd89274a36bab539c2e5cd038ed",
+    "src/sema/lower.cpp": "73eb36ebcba12d09363adb81a361d4ec715a7a78e737c3772b02647d9a89853a",
+    "src/executor/xlang_vm/xlang_frame.h": "94aea78474df15608d7c31bdde8b70b104b3fb527d0b3cbefd51125d9cf56258",
+    "src/executor/xlang_vm/ops/xlang_vm_ops_arithmetic.h": "8104b810dd12b1913b9ba52da6760e1c0fbb04c4a075a25fddbeb63bcad4edef",
+    "src/executor/xlang_vm/xlang_vm_op_rows.h": "44b702ec262ede41ef88ac11814ba482ff30563081de3c1613354d08ca0a5bc9",
+    "tests/cpp/interpreter_tests.cpp": "4b711ad8d56b8fff2cff8731d46ff01ec3e7caec131dfc1f6de14fd9e1110ef3",
+    "tests/run_fixtures.py": "5f8198ed6a94f7051a16da39282c2152532613377c29da97d2ee1b0b8d999816"
+  },
+  "candidate_source_sha256": {
+    "src/internal/xlang3/ir.h": "2715ef98a1cc452164a84017755f9ea0b8d251999898518794ebb680c9735dcb",
+    "src/ir/dump.cpp": "8566f6356027d1cae008d04512b36f0315858428d6343fae2d43c766457e4ac9",
+    "src/ir/codec.cpp": "a4c96775b0d7b8b6b0723904a8ea85378c5462cec4e288e4624d676107b7e5b8",
+    "src/sema/lower.cpp": "1b8524613c733c99d0057093ee20d747f5a386b522bbeec130811218665b7858",
+    "src/executor/xlang_vm/xlang_frame.h": "5061d0df3518a63d71ecd771587ce11a8ff1d6738c9fae5f29ed67909994e57c",
+    "src/executor/xlang_vm/ops/xlang_vm_ops_arithmetic.h": "3fe9755cb0eb9f7e0ecb93760152d23419bf93332ccf3634336cb6525415538e",
+    "src/executor/xlang_vm/xlang_vm_op_rows.h": "cde4139caca1947dd93c6a9da277cd49ac487bc65f46f717c793d3e07f4fc35b",
+    "tests/cpp/interpreter_tests.cpp": "a4f798262d07a8ff5db9b8ca475ca48b72ae6182adacc41b4725699b62073673",
+    "tests/run_fixtures.py": "5dd178f7773eb93f0fb4124d84a9a8471e19d6eab20166a4009bfe6903c0912a",
+    "tests/cpp/identity_last_use_cases.h": "1976ca2159822e4c94c8a641add6781e128acb107d6dcfb3901a692fca5765db",
+    "tests/fixtures/core/identity_last_use.py": "fcad09adfe9cdf69d43539860cca1d39f5deb8224e16c71462d07ee3bbd3f40d",
+    "tests/fixtures/expected/identity_last_use.out": "fa8eca5e8f2f38e3ca1455ba4a2adc285ef7f05c44f8a0fbf08cff2daa52e2aa"
+  },
+  "git_apply_check_exit": 0,
+  "cp_reference": "C:/Python/Python314/python.exe (must verify exact 3.14.7 before runtime validation)",
+  "executions": [
+    "PowerShell scratch copies/text transformation/hash",
+    "git diff --no-index",
+    "git apply --check read-only"
+  ],
+  "tests_run": false,
+  "build_run": false,
+  "runtime_run": false
+}

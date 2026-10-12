@@ -195,11 +195,13 @@ bool list_len_method(Runtime& runtime, const Value* args, uint32_t argc, Value& 
   return true;
 }
 
-bool list_append_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool list_append_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (!method_check_argc(argc, 2, "list.append", error)) {
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
   if (!sequence_list_append(args[0], args[1], error)) {
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
   value_set_none(out);
@@ -207,7 +209,7 @@ bool list_append_method(Runtime&, const Value* args, uint32_t argc, Value& out, 
 }
 
 bool list_append_fast_method(
-    Runtime&,
+    Runtime& runtime,
     const Value* leading,
     uint32_t leading_count,
     const Value* registers,
@@ -215,12 +217,17 @@ bool list_append_fast_method(
     uint32_t register_arg_count,
     Value& out,
     std::string& error,
-    void*) {
+    void* user_data) {
   if (leading_count != 1 || register_arg_count != 1 || leading == nullptr || registers == nullptr || register_args == nullptr) {
-    error = "list.append expected 1 argument";
-    return false;
+    // An unbound list.append(self, item) supplies both arguments in registers.
+    // Keep the ordinary bound append hot path below; adapt other valid layouts
+    // without allocating a heap argument vector, and retain native TypeErrors.
+    return builtin_fast_adapter<list_append_method, 2>(
+        runtime, leading, leading_count, registers, register_args,
+        register_arg_count, out, error, user_data);
   }
   if (!sequence_list_append(leading[0], registers[register_args[0]], error)) {
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
   value_set_none(out);

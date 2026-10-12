@@ -1,0 +1,1052 @@
+{
+  "status": "terminal_full97_evidence_publication",
+  "parent_head": "9c6160b416d40f2408b02971587df333bfd67b30",
+  "whole_goal_complete": false,
+  "engine_changes": false,
+  "run_provenance_sha256": "afa6a190d0cb545c1ac32e115ed173a17c3776c5223c3e0a6b9cd8352eb58ca8",
+  "export_manifest_sha256": "bfc2259fb417ccf31060671d2b661ed934d4f3fe418203741d7e9873cc4ee2e3",
+  "controller_sha256": "12908dc057034e9bec0a4407054e72c891ecf5d3bb11bf113b3b06ece636ff0d",
+  "all_97_attempted": true,
+  "completed_definitions": 73,
+  "failed_definitions": 24,
+  "scored_subtests": 81,
+  "reference_scope": "Fresh XLang3 vs saved October 7 CPython3.14.7; unpaired, fast mode. Separate fresh Oct8 pickle reference is not substituted.",
+  "provenance_limit": "Recorded source115 is a subset; candidate retains documented unowned dirty-build inputs.",
+  "files": [
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-full-fast-20261008-all-97.external-process-observations.jsonl",
+      "sha256": "6be6ee164f6e94f7fcb638cb3f328b715d9d91eb5e0ce5b2e3076f09338cea52",
+      "bytes": 364910
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-full-fast-20261008-partial/base64-79c24d2a70f20ed2.json",
+      "sha256": "79c24d2a70f20ed2234162ee3b7915b0a8c4c98098d2554bf27013064e6d5902",
+      "bytes": 13112
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-full-fast-20261008-partial/base64-79c24d2a70f20ed2.provenance.json",
+      "sha256": "cec0f7b792fed2c3230985492155a006c1ae1e725af6079bf006952c6b825ee0",
+      "bytes": 785
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-full-fast-20261008-partial/xml_etree-9beac5b4f047aace.json",
+      "sha256": "9beac5b4f047aace2490e8fb86625620436d558d5daccf077874ac73f17ce86a",
+      "bytes": 1640
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-full-fast-20261008-partial/xml_etree-9beac5b4f047aace.provenance.json",
+      "sha256": "7bca43b523f9d7b22b61763da6fd5e863078f65d5e5588b8a77ca52c6eb209eb",
+      "bytes": 362
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-full-fast-20261008-provenance.json",
+      "sha256": "afa6a190d0cb545c1ac32e115ed173a17c3776c5223c3e0a6b9cd8352eb58ca8",
+      "bytes": 2188815
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-full-fast-20261008.json",
+      "sha256": "e49e641c869b952daeab8a35c7cba6753d925c9a043edcd79a37d870265adb86",
+      "bytes": 141805
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-full-fast-20261008.log",
+      "sha256": "2424d549a4f1adba990b69ea788c64897c6265d804bc1f37028e7106f4f5fe83",
+      "bytes": 366822
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-all-97-status.csv",
+      "sha256": "f5caad6c8019f31bc1b49d97c65b5551928f16b1e7e54138136120b834ad3820",
+      "bytes": 11751
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-all-raw-values.csv",
+      "sha256": "b8250a2ed267d2eb44c7abd6caea5d716045fb2841ca2cc3e46dc21b5c1299fb",
+      "bytes": 340953
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-correctness-exclusions.json",
+      "sha256": "523082e7f6aef713a57ae397b5e0f061380561ac42cadbd0c691ff33a6951faf",
+      "bytes": 647
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-export-manifest.json",
+      "sha256": "bfc2259fb417ccf31060671d2b661ed934d4f3fe418203741d7e9873cc4ee2e3",
+      "bytes": 62296
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-failed-partial-subtests.csv",
+      "sha256": "12982862c9e3177031614d76d1150d6154e9f854c16d44b43f9f4d97f5b03d22",
+      "bytes": 2808
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-generator.log",
+      "sha256": "44914a87b67fcc952a687e79a1d1b9301efa08ae1aa2613387c2f21b23460310",
+      "bytes": 863
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-input-cpython3147.json",
+      "sha256": "ac474df5576ac85f6f5350363affecc439d4f658b4dfa3dbe291b46964276eb0",
+      "bytes": 217975
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-input-cpython3147.log",
+      "sha256": "6a1824eed3abad4cebae80356f0f600f1a8728755730d2f64c0bd7d4b3ca9e6c",
+      "bytes": 71763
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-input-xlang.json",
+      "sha256": "e49e641c869b952daeab8a35c7cba6753d925c9a043edcd79a37d870265adb86",
+      "bytes": 141805
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-input-xlang.log",
+      "sha256": "2424d549a4f1adba990b69ea788c64897c6265d804bc1f37028e7106f4f5fe83",
+      "bytes": 366822
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sample-variation.csv",
+      "sha256": "82dbe3a79d54059d7dc061ea325b6842d945c0d6bf23fff01498ce971ea36d80",
+      "bytes": 33830
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/CMakeLists.txt",
+      "sha256": "29126ab0246dd89f091b61c33bfa9edd463f4b5b8d81fa5b0129a1c1f890b855",
+      "bytes": 37588
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/benchmarks/diagnostics/preserve_pyperformance_partial.py",
+      "sha256": "0dfbc86863421165ecfda246b17dcc4846a41306a49aaf346456b78273bf7c06",
+      "bytes": 2381
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/benchmarks/diagnostics/pyperf_compat/sitecustomize.py",
+      "sha256": "2ffc217fe20497156bfcb1cebc7fb87203f33c6d4d3dbb6ecbcbcf91ea4cb317",
+      "bytes": 1266
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/benchmarks/diagnostics/run_pyperformance_xlang3_shimmed.py",
+      "sha256": "c078ee77d5d66165f0bf4b2d782df56e71868ada827c81c5c53516c8d017ceaf",
+      "bytes": 12642
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/benchmarks/diagnostics/summarize_pyperformance_comparison.py",
+      "sha256": "c067fcea41ea66be0249209bb86e1ca06c8b9e93b6696076a69d0f0e9aa76255",
+      "bytes": 22391
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/doc/performance/data/dict-scalar-append-runtime-index-r3-applied-source-20261008.json",
+      "sha256": "dc1b869fe0475e3bdd017aa3b667f755cb7a4dd7ad881494f8afb34af387f45e",
+      "bytes": 14282
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/doc/performance/data/dict-scalar-append-runtime-index-r3-build-20261008.log",
+      "sha256": "447d2f4a8055dfb7744b7fd0cf4f4ef258b6bd7b164964da1456390098c14cf9",
+      "bytes": 220
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/doc/performance/data/dict-scalar-append-runtime-index-r3-build-terminal-20261008.json",
+      "sha256": "3a43a929f5c8bc282a4fe5fc076f61ae11a4744dd15a41c430c933660bbf64db",
+      "bytes": 786
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/doc/performance/data/dict-scalar-append-runtime-index-r3-correctness-20261008.json",
+      "sha256": "3d78a8aa54b812289826af708f982a187a348e2272f8e69c0321f965449961f5",
+      "bytes": 2712
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/doc/performance/data/dict-scalar-append-runtime-index-r3-cpp-preliminary-20261008.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/doc/performance/data/dict-scalar-append-runtime-index-r3-cpp-preliminary-20261008.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/doc/performance/data/dict-scalar-append-runtime-index-r3-ctest-20261008.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/doc/performance/data/dict-scalar-append-runtime-index-r3-ctest-20261008.stdout.log",
+      "sha256": "e63406107c0cbb29e78974875ed0850ec53f1116f9091d25c850369dafc2cc01",
+      "bytes": 1171
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/doc/performance/data/dict-scalar-append-runtime-index-r3-focused-20261008-call_method_dict_cache_touch.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/doc/performance/data/dict-scalar-append-runtime-index-r3-focused-20261008-call_method_dict_cache_touch.stdout.log",
+      "sha256": "d78f549abd4794c2c75ebf8d513d8f7e59d501335410b43f0bf067a48eea1079",
+      "bytes": 526
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/doc/performance/data/dict-scalar-append-runtime-index-r3-focused-20261008-dict_custom_hash_equality.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/doc/performance/data/dict-scalar-append-runtime-index-r3-focused-20261008-dict_custom_hash_equality.stdout.log",
+      "sha256": "877ed2cb640dda03cb1bc7d48e680e943201337d462b33a3f303f53ab5aef9fc",
+      "bytes": 91
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/doc/performance/data/dict-scalar-append-runtime-index-r3-focused-20261008-dict_get_exception_preservation.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/doc/performance/data/dict-scalar-append-runtime-index-r3-focused-20261008-dict_get_exception_preservation.stdout.log",
+      "sha256": "60842ecafcb40633f4930824ec591922c2c5e4671a87200e92f64666a2d4d992",
+      "bytes": 216
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/doc/performance/data/dict-scalar-append-runtime-index-r3-focused-20261008-dict_get_missing_semantics.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/doc/performance/data/dict-scalar-append-runtime-index-r3-focused-20261008-dict_get_missing_semantics.stdout.log",
+      "sha256": "e9b7d9db1a082cee3fa642db72def6d1baeb23541515c0f33dbfadc70716b1a6",
+      "bytes": 98
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/doc/performance/data/dict-scalar-append-runtime-index-r3-focused-20261008-dict_hash_index.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/doc/performance/data/dict-scalar-append-runtime-index-r3-focused-20261008-dict_hash_index.stdout.log",
+      "sha256": "2c0801a8a645b51f079c0941cf78f36c9979fbf31273069a5c64cad1df156218",
+      "bytes": 165
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/doc/performance/data/dict-scalar-append-runtime-index-r3-focused-20261008-dict_integer_index_getitem.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/doc/performance/data/dict-scalar-append-runtime-index-r3-focused-20261008-dict_integer_index_getitem.stdout.log",
+      "sha256": "d050a8896025c5b8d707f2fc5d37d17509a2c44181e5cb0c68558030b2ac4f4a",
+      "bytes": 85
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/doc/performance/data/dict-scalar-append-runtime-index-r3-focused-20261008-dict_intrinsic_write_index.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/doc/performance/data/dict-scalar-append-runtime-index-r3-focused-20261008-dict_intrinsic_write_index.stdout.log",
+      "sha256": "6bab7667bb474be10671a85a86e63b4aa12a93e7a50faa99e188ab57e4fbbbd2",
+      "bytes": 378
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/doc/performance/data/dict-scalar-append-runtime-index-r3-focused-20261008-hash_exception_preservation.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/doc/performance/data/dict-scalar-append-runtime-index-r3-focused-20261008-hash_exception_preservation.stdout.log",
+      "sha256": "d6b626f45bea180d87ae227099885d951f70f580a03bd5254a45c42b6379e859",
+      "bytes": 157
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/doc/performance/data/dict-scalar-append-runtime-index-r3-focused-20261008-pickle_module.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/doc/performance/data/dict-scalar-append-runtime-index-r3-focused-20261008-pickle_module.stdout.log",
+      "sha256": "08c230f11a4740e04900bea8c5d6f8cfb18cb4db13b7b30af76c9f2a62ef4f7a",
+      "bytes": 339
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/doc/performance/data/dict-scalar-append-runtime-index-r3-focused-20261008.json",
+      "sha256": "0737ff2f405151ed29fdfa22bc0177ea77d18f3b63bdf7aff4662972efb94a38",
+      "bytes": 52533
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/doc/performance/data/dict-scalar-append-runtime-index-r3-full-fixtures-clean-20261008.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/doc/performance/data/dict-scalar-append-runtime-index-r3-full-fixtures-clean-20261008.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/doc/performance/data/dict-scalar-append-runtime-index-r3-old_xlang_sqlite_api-20261008.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/doc/performance/data/dict-scalar-append-runtime-index-r3-old_xlang_sqlite_api-20261008.stdout.log",
+      "sha256": "36449d6aaa8b51b49315f871c305cf5e7568199909ce178a331245b7fe4a6a92",
+      "bytes": 237
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/doc/performance/data/dict-scalar-append-runtime-index-r3-python_sqlite3_api-20261008.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/doc/performance/data/dict-scalar-append-runtime-index-r3-python_sqlite3_api-20261008.stdout.log",
+      "sha256": "c9ae392c8a76084bb521fcd89dc73d8617755aae1741c705f2ba60efe9606ecb",
+      "bytes": 538
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/doc/performance/data/dict-scalar-append-runtime-index-r3-validation-20261008-fixed-gate.json",
+      "sha256": "3f6d0548eff62a0225afc27ace1268a70478cd2ae13a66163db75360297bd135",
+      "bytes": 62459
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/doc/performance/data/dict-scalar-append-runtime-index-r3-validation-20261008-fixed-gate.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/doc/performance/data/dict-scalar-append-runtime-index-r3-validation-20261008-fixed-gate.stdout.log",
+      "sha256": "e66ab1d73250f6cb62972dec634fe2dfe727f2187db7c84c987649acb05863e8",
+      "bytes": 652
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/doc/performance/data/dict-scalar-append-runtime-index-r3-validation-20261008-official-cpython3147-pickle-fast.json",
+      "sha256": "08d83bfb735604508dba7ab4850ece3f6c64e355d0c0dd717e7f8587d044af82",
+      "bytes": 1969
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/doc/performance/data/dict-scalar-append-runtime-index-r3-validation-20261008-official-cpython3147.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/doc/performance/data/dict-scalar-append-runtime-index-r3-validation-20261008-official-cpython3147.stdout.log",
+      "sha256": "146bbe22a424e91dae1d6c306b6e4ce202f8e1083ba19995c48a9a4c724ddc84",
+      "bytes": 874
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/doc/performance/data/dict-scalar-append-runtime-index-r3-validation-20261008-official-xlang3-pickle-fast.json",
+      "sha256": "8a34bcc6b2d8386c63d18542151bf69014007a3f29770520762fcae7f4c2ea78",
+      "bytes": 1812
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/doc/performance/data/dict-scalar-append-runtime-index-r3-validation-20261008-official-xlang3.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/doc/performance/data/dict-scalar-append-runtime-index-r3-validation-20261008-official-xlang3.stdout.log",
+      "sha256": "70c66760c3b271d754b32487b725efac534fbc39d2e0f0adf7cabf53ddbfde29",
+      "bytes": 882
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/doc/performance/data/dict-scalar-append-runtime-index-r3-validation-20261008.json",
+      "sha256": "0b6f05e17c2878efa135656abcce38338934069b59a9460de9f2ba98a8516dd0",
+      "bytes": 351046
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/doc/performance/data/gc-traversal-coverage-exclusion-20261007.json",
+      "sha256": "ec8dccd973668436e39c9a3c9585ba4d24bb9c37e75fc97182bd42a399c4eb86",
+      "bytes": 1789
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/doc/performance/data/pyperformance-cpython3147-live-eval-full-fast-20261007-provenance.json",
+      "sha256": "3d6c8cb2c72c786583c382b835e8e411f56ca285963bc2835f757a13f399f85c",
+      "bytes": 41162
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/doc/performance/data/pyperformance-cpython3147-live-eval-full-fast-20261007.json",
+      "sha256": "ac474df5576ac85f6f5350363affecc439d4f658b4dfa3dbe291b46964276eb0",
+      "bytes": 217975
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/doc/performance/data/pyperformance-cpython3147-live-eval-full-fast-20261007.log",
+      "sha256": "6a1824eed3abad4cebae80356f0f600f1a8728755730d2f64c0bd7d4b3ca9e6c",
+      "bytes": 71763
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/doc/performance/data/pyperformance-xlang3-dict-scalar-append-full-fast-20261008-all-97.external-process-observations.jsonl",
+      "sha256": "6be6ee164f6e94f7fcb638cb3f328b715d9d91eb5e0ce5b2e3076f09338cea52",
+      "bytes": 364910
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/doc/performance/data/pyperformance-xlang3-dict-scalar-append-full-fast-20261008-partial/base64-79c24d2a70f20ed2.json",
+      "sha256": "79c24d2a70f20ed2234162ee3b7915b0a8c4c98098d2554bf27013064e6d5902",
+      "bytes": 13112
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/doc/performance/data/pyperformance-xlang3-dict-scalar-append-full-fast-20261008-partial/base64-79c24d2a70f20ed2.provenance.json",
+      "sha256": "cec0f7b792fed2c3230985492155a006c1ae1e725af6079bf006952c6b825ee0",
+      "bytes": 785
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/doc/performance/data/pyperformance-xlang3-dict-scalar-append-full-fast-20261008-partial/xml_etree-9beac5b4f047aace.json",
+      "sha256": "9beac5b4f047aace2490e8fb86625620436d558d5daccf077874ac73f17ce86a",
+      "bytes": 1640
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/doc/performance/data/pyperformance-xlang3-dict-scalar-append-full-fast-20261008-partial/xml_etree-9beac5b4f047aace.provenance.json",
+      "sha256": "7bca43b523f9d7b22b61763da6fd5e863078f65d5e5588b8a77ca52c6eb209eb",
+      "bytes": 362
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/doc/performance/data/pyperformance-xlang3-dict-scalar-append-full-fast-20261008-provenance.json",
+      "sha256": "afa6a190d0cb545c1ac32e115ed173a17c3776c5223c3e0a6b9cd8352eb58ca8",
+      "bytes": 2188815
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/doc/performance/data/pyperformance-xlang3-dict-scalar-append-full-fast-20261008.json",
+      "sha256": "e49e641c869b952daeab8a35c7cba6753d925c9a043edcd79a37d870265adb86",
+      "bytes": 141805
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/doc/performance/data/pyperformance-xlang3-dict-scalar-append-full-fast-20261008.log",
+      "sha256": "2424d549a4f1adba990b69ea788c64897c6265d804bc1f37028e7106f4f5fe83",
+      "bytes": 366822
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/doc/performance/data/pyperformance-xlang3-live-eval-vs-cpython3147-full-fast-20261007-all-97-status.csv",
+      "sha256": "022c1774d346fa381e0b36b7fa4a8d336e7a53466bff85b6073959799d50ab77",
+      "bytes": 11833
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/modules/sqlite/sqlite_handles.cpp",
+      "sha256": "a644d98065c47395df4cc81600edfbb2ddf5e9c6820521e2a2eb402c979f484f",
+      "bytes": 8829
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/modules/sqlite/sqlite_handles.h",
+      "sha256": "50d4ece32eb3d0aa2a6a5e73ab903a9c8d09e390fcba5b049d2351d2eac64b0b",
+      "bytes": 3207
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/modules/sqlite/sqlite_package.cpp",
+      "sha256": "034e5d03cd2b911a893126d8909e6c9605608701d05baba3e2cd0c8bd2e62c3d",
+      "bytes": 92172
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/modules/sqlite/sqlite_values.cpp",
+      "sha256": "c691c90ba6b7a43c12bce47dfef75101b22b76732303a196ac30b9d6ad3533dc",
+      "bytes": 5785
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/scratch/performance/build-dict-scalar-append-runtime-index-r3-root-20261008.cmd",
+      "sha256": "d343fcd9f11cdc70907c9c98073353fef6210f13327d44c12e57e70dcc03ebbe",
+      "bytes": 428
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/scratch/performance/check-dict-scalar-append-r3-focused-root-20261008.py",
+      "sha256": "4e39581ace17ce409f31f4fb0fb32b9a357edd8e9a00db4d8f6ac152e3627f71",
+      "bytes": 6818
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/scratch/performance/dict-scalar-append-full-pyperformance-refresh-manager-r2-provenance-proposed-20261008.json",
+      "sha256": "74c162aed6e099f827b0a0c61951ff9429980cd6304350e5c796191b6d0cfcc6",
+      "bytes": 3138
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/scratch/performance/dict-scalar-append-full-pyperformance-report-provenance-proposed-20261008.json",
+      "sha256": "0fb729dc10e64766ce57302878dfda3ff69e35c365b1a23fd3f42a55b13c7fb3",
+      "bytes": 2465
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/scratch/performance/dict-scalar-append-runtime-index-r3-proposed-20261008-provenance.json",
+      "sha256": "2d8b38ea6a87df13511201586e9e814b89b180444c34911d0ee26db9782e7614",
+      "bytes": 52816
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/scratch/performance/dict-scalar-append-runtime-index-r3-proposed-20261008.patch",
+      "sha256": "ad7cab62c540d82834879c7afb4a401c62dca61894e21ffecb11441060ea686f",
+      "bytes": 26979
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/scratch/performance/report-dict-scalar-append-full-pyperformance-refresh-proposed-20261008.py",
+      "sha256": "23346bf427cce51ee6e782a95debe97fc328f11ab2e8f4c4ee692a3dca42bef2",
+      "bytes": 27662
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/scratch/performance/run-dict-scalar-append-full-pyperformance-refresh-r2-proposed-20261008.py",
+      "sha256": "7c868a85ed63615c06916ea119019afd06ce93773a25745ab8fa255d7ed2f096",
+      "bytes": 23966
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/scratch/performance/validate-call-ex-cross-activation-constructor-resume-r3-20261008.py",
+      "sha256": "50007db5cc6adc2e54012fdfbd48514699513f990906d4a508582ba73d6ae0bf",
+      "bytes": 38543
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/scratch/performance/validate-dict-scalar-append-r3-performance-root-20261008.py",
+      "sha256": "f1bb4601feae1fa8cd9978474a58a0c2b0cebb39dec019666a89e61fafc5857c",
+      "bytes": 12823
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/sdk/xlang3/abi/xmodule.h",
+      "sha256": "248b22fecb08af7367dae4cd151e343db46e6f90aba44b6c552e22c91858440c",
+      "bytes": 10735
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/src/builtins/builtins.cpp",
+      "sha256": "135c805d32dd03b8740b08c1833bee09fa5d91d88b2bc4ea4fe2704bd184cb19",
+      "bytes": 3832
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/src/builtins/functional_builtins.cpp",
+      "sha256": "ca8094ecce251bf2e473141399d67541a9abda7d4f39321c7a0968d3db6c58e0",
+      "bytes": 231525
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/src/executor/xlang_vm/ops/xlang_vm_ops_arithmetic.h",
+      "sha256": "e9ef84b3936ab301d33de6ab5236b486ad0ded16db62cba44d96f04980b3ab57",
+      "bytes": 49270
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/src/executor/xlang_vm/ops/xlang_vm_ops_attr.h",
+      "sha256": "599604510360af33cdc1ba9fcbf65dd6f1971e3540449680aec8b5320928e30a",
+      "bytes": 77801
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/src/executor/xlang_vm/ops/xlang_vm_ops_call.h",
+      "sha256": "271ca4bff6ce954c262d8c7fa3d22fdf769de3ab3ffa77cdf6369bd1fce8210c",
+      "bytes": 245956
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/src/executor/xlang_vm/ops/xlang_vm_ops_fused.h",
+      "sha256": "b309a2ab1d0cae05e0798f6ae534955df8af546f4e75c830f34b6c3a4a586105",
+      "bytes": 5791
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/src/executor/xlang_vm/ops/xlang_vm_ops_import_raw.h",
+      "sha256": "44e642d4887558699ae46e51df7ea249dfe7b142ef0b8f826cb134c8243d5671",
+      "bytes": 7532
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/src/executor/xlang_vm/ops/xlang_vm_ops_variables.h",
+      "sha256": "76b3c926a5f8e4b1e76a5946e57c4f6eb78db81d8f03f7acc023c3baa124e22e",
+      "bytes": 61802
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/src/executor/xlang_vm/xlang_frame.h",
+      "sha256": "c144ecfa382778c73b9f4ad3a34a2644dae080afdcde307855cd961623400ff2",
+      "bytes": 42421
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/src/executor/xlang_vm/xlang_interpreter.cpp",
+      "sha256": "f309acf74a45f5d212d97f0f0b51b65ed7ff9b86a56bbbdf0ae5047125341ab8",
+      "bytes": 23829
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/src/executor/xlang_vm/xlang_vm_attr.cpp",
+      "sha256": "9633377725d293f8e206ec8bc1c554ef6333ce6c05c3ecfe92c8281cec89934c",
+      "bytes": 19817
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/src/executor/xlang_vm/xlang_vm_inline_call.h",
+      "sha256": "f6038df4eecca5e26c4eb8eef40b165e5bb082adf39735d6d7808bfdb36f13bf",
+      "bytes": 72105
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/src/executor/xlang_vm/xlang_vm_inline_support.h",
+      "sha256": "e7443366a917f5ac98c6df3f83dbf695287c56ee0f2be89b34fbe2c73334d86f",
+      "bytes": 123921
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/src/executor/xlang_vm/xlang_vm_loop.cpp",
+      "sha256": "edf6c52d37cc85990a1cfd995b769786773e13bdf70bc8908bd52d3d803da30d",
+      "bytes": 103656
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/src/executor/xlang_vm/xlang_vm_op_rows.h",
+      "sha256": "76b4c9d8116088e5e6487a24307b7b9fb90ed97322337ffaf39030fae349f08f",
+      "bytes": 29413
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/src/import/native_package_loader.cpp",
+      "sha256": "eb34eb4d10a4c72e39cec20dab602cb54f1d6ea427c5af5702f6be226acc3d6b",
+      "bytes": 44096
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/src/internal/xlang3/builtin_methods.h",
+      "sha256": "b0663650474d8d117b10ed3e459e9137d0b3424cc9d76d872e53957cbb8e1477",
+      "bytes": 12780
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/src/internal/xlang3/builtins.h",
+      "sha256": "1d2f392d18d62c35635e39cbf887c9bcf0cc422f4bd163beeb3036083122402b",
+      "bytes": 7775
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/src/internal/xlang3/functional_iterators.h",
+      "sha256": "cb25729f3bbc39911f68c46892d8e903a63c6a925ec412c42779a57758921886",
+      "bytes": 4168
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/src/internal/xlang3/interpreter.h",
+      "sha256": "d16f9cdcca9fc26ba33d8e4a0889ffe00f338fe6be9fb218223a2c0d67ad9bef",
+      "bytes": 4482
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/src/internal/xlang3/ir.h",
+      "sha256": "b6417aea98ee8169aa551d849492fd2dfdfca6300a6b491fe7cce85c3242f064",
+      "bytes": 12380
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/src/internal/xlang3/mapping.h",
+      "sha256": "43f8bbc91e2f224dde767d4f785a64e2c3429b269113ba85dd613eac297c3857",
+      "bytes": 7582
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/src/internal/xlang3/module_object.h",
+      "sha256": "8b5da9ea5eea7cf55b1aec8f1d413866d1405ca5aad08257d50f071c23a29fd2",
+      "bytes": 2844
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/src/internal/xlang3/object_model.h",
+      "sha256": "c447bcb0e388b5de946cc293264187eabd2e2fcb58b5cd5283fc126141d44434",
+      "bytes": 16204
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/src/internal/xlang3/perf_counters.h",
+      "sha256": "5db542b24a9959e1513cbe1c80d6ae15148d8612c6edf0a88f74dc07464e4c22",
+      "bytes": 7043
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/src/internal/xlang3/pyc_magic.h",
+      "sha256": "2f45558470b77def716afce97a195f642b6064a63d445c56ae76e0ee80400cc5",
+      "bytes": 1045
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/src/internal/xlang3/runtime.h",
+      "sha256": "4fa330fcee0c6c3b89e51c19be729bda0d321352f12fc40cc828ee5448ee8940",
+      "bytes": 16813
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/src/internal/xlang3/sequence.h",
+      "sha256": "1e91d40281adc32966a130b35720288b8d0b29bd7196bb506f8f401b685783df",
+      "bytes": 3457
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/src/internal/xlang3/value.h",
+      "sha256": "b3b88f529eb86acc117ccf5fbf61ac44e6572a96189d60389d1c6728c9bf75b1",
+      "bytes": 44257
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/src/ir/codec.cpp",
+      "sha256": "6726f090de59651f7570007c130e2b7129fac3a2133f67905c374d841f9da384",
+      "bytes": 37436
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/src/ir/dump.cpp",
+      "sha256": "f21ba927c25f7c1d272b18840694635e1883849cb07f6d45653045659ba08039",
+      "bytes": 17817
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/src/runtime/exceptions.cpp",
+      "sha256": "d5c13f7126a415d7b297ddb9f27052ddd35feb6595976654ba6bf017410f5dde",
+      "bytes": 8307
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/src/runtime/functional_iterators.cpp",
+      "sha256": "4a038c4b5152b87f8fa4d8d83a0f4961b069b8731cd99a4245c74ee5eee21e2e",
+      "bytes": 43334
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/src/runtime/mapping.cpp",
+      "sha256": "c06a143e985a8f67703e11d58aad3a12fa6d3cb964e77a68a7fbf3193d290fbf",
+      "bytes": 68015
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/src/runtime/methods/dict_methods.cpp",
+      "sha256": "9241c105d298a226273a7fae2e66b1bd1cd816656f57bf478240050c25b56135",
+      "bytes": 27065
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/src/runtime/module_object.cpp",
+      "sha256": "ff2a6d0bff9d76f47a0d13c09c8927bcc554c9e1cb3ce5abc583f1aa67069da3",
+      "bytes": 17878
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/src/runtime/modules/system/bisect_module.cpp",
+      "sha256": "e8b6497918f6a4dc1675b7197fdc376ccffc0d3465a917108ac306a34ad73396",
+      "bytes": 10742
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/src/runtime/modules/system/heapq_module.cpp",
+      "sha256": "0f6cbf97cd5f0065f22206232bc01b09ae8cf65b5bc1d35f71196933c330771c",
+      "bytes": 13074
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/src/runtime/modules/thread/runtime_lock.h",
+      "sha256": "80a5cf02f658c6217ec6586a38f35b3163faea361b24d79f4d22cdfbe97e6fb2",
+      "bytes": 5655
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/src/runtime/object_model.cpp",
+      "sha256": "10806dd37498170b7172f469ca44d190698f85c0a6adb2bed104053df1c0fedc",
+      "bytes": 236741
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/src/runtime/runtime.cpp",
+      "sha256": "2d7a0836eea66c376f652276d35edaa412edf792ab74c220711cd4bd3a14ca98",
+      "bytes": 116280
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/src/runtime/sequence.cpp",
+      "sha256": "934c24e1afc3be755ce7bb01abc499fbec566460f406f361b660eb33c942c093",
+      "bytes": 69613
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/src/runtime/value.cpp",
+      "sha256": "18be33a526dbcc6627490a12a68aefc9e168d42afbf238ce38fa240e74bba0e0",
+      "bytes": 156775
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/src/runtime/value_hash.cpp",
+      "sha256": "aeb9abb4697569a3b28485000337e31d21f2cd9227dbf2ea0e76e2e125d439ed",
+      "bytes": 26073
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/src/sema/lower.cpp",
+      "sha256": "12aae5ef15a98288aa359112ee8a6bd64f0213a228a3b11132849fad0f62fb04",
+      "bytes": 311484
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/tests/cpp/class_method_annotation_capture_cases.h",
+      "sha256": "ee63338ba3376b55caa7f1a0648b4e4017736cd7699b9d5b555acafe4dc49edf",
+      "bytes": 3294
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/tests/cpp/dict_get_exception_cases.h",
+      "sha256": "2a0f52867dd2c5f0bfae7dfa30e132fb2724611426522af26b9047c4a665365a",
+      "bytes": 7326
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/tests/cpp/dict_scalar_append_index_cases.h",
+      "sha256": "d075c93a35b99faa42834ef6c3fcc270f6ee7b2b69dcc60a6a5514a0c59100c8",
+      "bytes": 19735
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/tests/cpp/exception_loop_owner_cases.h",
+      "sha256": "f623aee1a95b231dc1f36c7ed5d426c1baa4c1a8da97f753c0318c6054ee3cb0",
+      "bytes": 8124
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/tests/cpp/frame_locals_retirement_cases.h",
+      "sha256": "1449d30c46298ed0d63d555ca5c5b826f39ec02586a9cbba11800c762e946eda",
+      "bytes": 7969
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/tests/cpp/hash_exception_cases.h",
+      "sha256": "3eba7cbdb81eaed2893ab62f8ce94636c0441f2614d4ba145abd639fa4a0a06d",
+      "bytes": 5056
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/tests/cpp/heapq_native_cases.h",
+      "sha256": "6970f40e26ed0662dbc346f3758d086cd4e8769b33f3037a6beb4d0e93ad1aa7",
+      "bytes": 11904
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/tests/cpp/identity_last_use_cases.h",
+      "sha256": "d719e470cd684456945fd7dfc9ebd0954905227aff346ad2764185280143b28c",
+      "bytes": 22971
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/tests/cpp/inherited_call_ex_constructor_cases.h",
+      "sha256": "6cbddb58280a365625b28b744a9435a5b160635553b250abb1fa3a2b6a2256ce",
+      "bytes": 17451
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/tests/cpp/interpreter_tests.cpp",
+      "sha256": "ca8550d8b694eff64d2a809831ee048eadc955b1b74e7dd809fa27ba01b849ca",
+      "bytes": 30092
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/tests/cpp/native_bound_zero_args_cases.h",
+      "sha256": "ef1c0aa7cfb9dcf67b498c619eadd99b2e8c383f0c82e4abb63f83faf3484e7c",
+      "bytes": 6307
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/tests/cpp/observable_builtin_method_cases.h",
+      "sha256": "dab30cb33fdb48c82e692d6c24d344a721f306d4a175bda0b08b5f9b46e879b0",
+      "bytes": 14613
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/tests/cpp/ordinary_canonical_slot_constructor_cases.h",
+      "sha256": "61ef47dd60f865f0d910f3aaa5f8514100e48f6fa7784d91ec6560623e846ae5",
+      "bytes": 26883
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/tests/cpp/scoped_sorted_key_cases.h",
+      "sha256": "08460b4fb51d8310290a28ecbc80de76c542d537fdc88f0a5d28bb81bc02f92a",
+      "bytes": 9740
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/tests/cpp/sqlite_aggregate_abi_cases.h",
+      "sha256": "424debac1951802dba2619736f4d935502ad261cc82bc13247beb27adac69f0a",
+      "bytes": 13254
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/tests/cpp/sqlite_aggregate_sdk_probe.py",
+      "sha256": "318c0a6e64b6c1cbb4f4a6cfa2b49b6186d271ae4bbfc09e04109d606649bc18",
+      "bytes": 918
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/tests/cpp/sqlite_statement_cache_cases.h",
+      "sha256": "fa803233a0d696403caf72206e3881ee61bceca790d4c667b4bcf0f5219cc99c",
+      "bytes": 8641
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/tests/cpp/sqlite_statement_cache_sdk_probe.py",
+      "sha256": "d78547e5953db054226c234554d753bacc35d64ab6a95d0de7cd0de647567f78",
+      "bytes": 1615
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/tests/fixtures/core/call_ex_cross_activation_constructor.py",
+      "sha256": "d8452cf7a3e41224da778807a550fd34ccaf32978fe65e329fab31a10a9ba91d",
+      "bytes": 5545
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/tests/fixtures/core/call_method_dict_cache_touch.py",
+      "sha256": "28ee6d59dfcec67f582032c9316410dbcb904ecf9b4d30e26ed63c2cb1cf285e",
+      "bytes": 5723
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/tests/fixtures/core/call_module_global_binding.py",
+      "sha256": "5558bd421e9d28746176287c25ee2259fb2a4040f32058309a44259c9addbc8d",
+      "bytes": 4105
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/tests/fixtures/core/class_method_annotation_capture.py",
+      "sha256": "68de96b73c5a6f3bb4e89110a840d1298533be05fd3f8d95452a6f72bfcc9bac",
+      "bytes": 1161
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/tests/fixtures/core/class_namespace_lifetime.py",
+      "sha256": "8c629e931a5da3aafc544a0e869d16ffc711b78cf4177f42e7ab90e4a539cecb",
+      "bytes": 2197
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/tests/fixtures/core/dict_get_exception_preservation.py",
+      "sha256": "8d623ccfd69a48c50911802cb12be5883860534de9a0ff9dcd61e41a4c9fe9d1",
+      "bytes": 3305
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/tests/fixtures/core/explicit_slot_descriptor_fallback.py",
+      "sha256": "96a4b1e491898e0e9e86ffcf737c2a3abc93fc30702aa56262d5e8f2242a6041",
+      "bytes": 1970
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/tests/fixtures/core/hash_exception_preservation.py",
+      "sha256": "f7378cf25ff91efe12773b7ad5aa5c45038a4d5ab7e7e957f90f6ec088aae150",
+      "bytes": 2435
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/tests/fixtures/core/identity_last_use.py",
+      "sha256": "59bf91eacb4d738d7a7ccfdf2590fa79670192bc6410a5775121345c77550cb4",
+      "bytes": 8952
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/tests/fixtures/core/inherited_call_ex_constructor.py",
+      "sha256": "9f428778c97b8e5f06d61f92f59992cc2af5f774f0084a09102ba4ae7028cd53",
+      "bytes": 7986
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/tests/fixtures/core/native_bound_zero_args.py",
+      "sha256": "b4441c1fa0d8708624f35c41051bb0d5f207c26bd87c812a78543e0a0032c0aa",
+      "bytes": 4331
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/tests/fixtures/core/nested_profile_setting.py",
+      "sha256": "9b2e6a38dc339115de0d0399f9fcf1fb8b22cd792bf270d480d42a7a8c8320bf",
+      "bytes": 1663
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/tests/fixtures/core/ordinary_canonical_slot_constructor.py",
+      "sha256": "66ccda4fb3380583d5a1dcae8757ebce278b59a066b7c2f80940af230b6d0acf",
+      "bytes": 8872
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/tests/fixtures/core/slot_descriptor_owner.py",
+      "sha256": "e060d66788862b0a7afc7112d5d41d128a78f54a053532f00a578d0fadeea916",
+      "bytes": 1990
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/tests/fixtures/core/sorted_exact_integer_keys.py",
+      "sha256": "2132af02bf00bdf2d9a7e132a2f7937a19fe607e78485a86f0dba22f73799d58",
+      "bytes": 4773
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/tests/fixtures/core/sorted_key_iteration_owner.py",
+      "sha256": "420f8350b3a52f07a94dd7fc8fe8e6a62504a6fa993d19417f009b02106d93f1",
+      "bytes": 3702
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/tests/fixtures/core/sorted_key_nested_handled_context.py",
+      "sha256": "b07f57cd7d8017bd0c9e316aa61d2b53c417d5c7a21ebd32bd14c72e545d5766",
+      "bytes": 493
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/tests/fixtures/core/sorted_key_scoped_entry.py",
+      "sha256": "ccf3922036d85af6f2c654c29046c924b993cb3c1be2b0d65e23fe5fe24f6f26",
+      "bytes": 7581
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/tests/fixtures/core/sqlite_cursor_completion.py",
+      "sha256": "3d3f6071911c60a54a3dbed4a6da8062a0fe76e92c83d6e7a92cb94fa84c80d6",
+      "bytes": 3650
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/tests/fixtures/core/sqlite_native_aggregate.py",
+      "sha256": "5e8b444a8f47eae17d597bbea7455f0b8301102ffe89c016b76fde1474a9a650",
+      "bytes": 9045
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/tests/fixtures/core/sqlite_statement_cache.py",
+      "sha256": "d2ec917ab11e9c4f1e672bd0eef60c2aaa7400160cd6b6fb76ca6e151d2b3701",
+      "bytes": 5999
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/tests/fixtures/core/synchronous_class_argument_lifetime.py",
+      "sha256": "03e9da6a612c5e4a254c5038a3e97fb84bd4337061e61eb8544b0f50e3962064",
+      "bytes": 974
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/tests/fixtures/expected/call_ex_cross_activation_constructor.out",
+      "sha256": "a9ec0e8783675a5839540e4cbf487135bad454ee4ee401232d2b1b728b329ee4",
+      "bytes": 201
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/tests/fixtures/expected/call_method_dict_cache_touch.out",
+      "sha256": "133d1022bee101d755b1d15a43bc9c8b50d6ac6662ffc02d2460cc8999c51579",
+      "bytes": 518
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/tests/fixtures/expected/call_module_global_binding.out",
+      "sha256": "17d12e90f532d48699853e3e9a8983d398e690f51c5028982529533158594c12",
+      "bytes": 180
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/tests/fixtures/expected/class_method_annotation_capture.out",
+      "sha256": "9972c9b1f2fdd09e7da86211ed0c751857535d88d5106902199e7980a2073ce1",
+      "bytes": 135
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/tests/fixtures/expected/class_namespace_lifetime.out",
+      "sha256": "f35e2622dc23c9544ee4dc5c0777c54e4eca16e15fcc0edc822958afa6488f33",
+      "bytes": 201
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/tests/fixtures/expected/dict_get_exception_preservation.out",
+      "sha256": "8f88f8a96b888d18937e8162af2601c9b51527b9166a251289f0588b35cfd16b",
+      "bytes": 213
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/tests/fixtures/expected/explicit_slot_descriptor_fallback.out",
+      "sha256": "e483778822db8a0e110d63a34d1bbb64857637f248f0ea18adfcbd8c2b8be06b",
+      "bytes": 108
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/tests/fixtures/expected/hash_exception_preservation.out",
+      "sha256": "d6b626f45bea180d87ae227099885d951f70f580a03bd5254a45c42b6379e859",
+      "bytes": 157
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/tests/fixtures/expected/identity_last_use.out",
+      "sha256": "be5a71bfe8c5071242d0acf992e8fa4d63515d12c09c28c70d9cff3b0c043d6d",
+      "bytes": 492
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/tests/fixtures/expected/inherited_call_ex_constructor.out",
+      "sha256": "eb2186fa5c6258c92fae1d4eeee7efa43492e4a1a5f7ab5e93bb889539bf011b",
+      "bytes": 464
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/tests/fixtures/expected/native_bound_zero_args.out",
+      "sha256": "742ffaebccdfe0fce29673e9b31ad5885e3f592dcfe2c172c57498bbd2d18e84",
+      "bytes": 438
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/tests/fixtures/expected/nested_profile_setting.out",
+      "sha256": "01ecf4bf1a5a75774e1c2fc10d7c7a969ad0d75af58304f5ee37e9b74bcae532",
+      "bytes": 132
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/tests/fixtures/expected/ordinary_canonical_slot_constructor.out",
+      "sha256": "570277a5c4866c36f62677059de54e72132b6df9224b48cb60647e2e9e9e3399",
+      "bytes": 502
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/tests/fixtures/expected/slot_descriptor_owner.out",
+      "sha256": "0b5d7a5e4ccd67dbf8f20901de7eba17406c1a2db074ede56c07c8c825e9fe99",
+      "bytes": 73
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/tests/fixtures/expected/sorted_exact_integer_keys.out",
+      "sha256": "7890d6581a7a61661e2d795d6e16c5dda7fe0779f0b35546505b7c755c9c3208",
+      "bytes": 297
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/tests/fixtures/expected/sorted_key_iteration_owner.out",
+      "sha256": "ec9d5bcd9dd1fa03ecab990d1e8e48a3d573e938328ba8cf13629219217f2a64",
+      "bytes": 132
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/tests/fixtures/expected/sorted_key_nested_handled_context.out",
+      "sha256": "92ca4b59af1fa87ef558a34cc96baebbb62cdaaaaac5e97b3d52d4ab88e0967f",
+      "bytes": 29
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/tests/fixtures/expected/sorted_key_scoped_entry.out",
+      "sha256": "ba8f18a40977207425881487b5ccde27f432cb5d75a1bde14fc14be9c8798d31",
+      "bytes": 207
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/tests/fixtures/expected/sqlite_cursor_completion.out",
+      "sha256": "ee14063d1e39079883efe711f04242b1b70e33d8d9d5ea073f85255784b73df6",
+      "bytes": 260
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/tests/fixtures/expected/sqlite_native_aggregate.out",
+      "sha256": "8f6ebc7a41de49cbe5f10eb5562fa88587df0bed67240dba4a7f5fc5f9edb2ba",
+      "bytes": 179
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/tests/fixtures/expected/sqlite_statement_cache.out",
+      "sha256": "9173c9f0a5076af30186351c98fd8c080903c31a9361c1b77823e3cbe492fd65",
+      "bytes": 445
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/tests/fixtures/expected/synchronous_class_argument_lifetime.out",
+      "sha256": "401358caef97a64d7bc97fc415106d9deffd14266138f1d7aa1246cbe5d4bfcd",
+      "bytes": 83
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/tests/run_fixtures.ps1",
+      "sha256": "de8e1661a532ca5856320281d5702aa47b09ac9eb6caf425ed520250ffbbcc0f",
+      "bytes": 14936
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-sources/tests/run_fixtures.py",
+      "sha256": "e68ee3cbe6ce3849c22538d6748da75a2952ecf4f9e32505dee3f16edea765bb",
+      "bytes": 12914
+    },
+    {
+      "path": "doc/performance/data/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008-subtests.csv",
+      "sha256": "3a286ad521ec28244cd2e3e8e5466c2dcde92d11488909904e88dfea2653861c",
+      "bytes": 6623
+    },
+    {
+      "path": "doc/performance/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008.md",
+      "sha256": "a1d9adccfffb2480f9a71caaa93ae73bae4020b3af1e07ab45e450f525bb3e4d",
+      "bytes": 7946
+    },
+    {
+      "path": "doc/performance/pyperformance-xlang3-dict-scalar-append-vs-cpython3147-full-fast-20261008.svg",
+      "sha256": "28f8eb08df1cc5159e60776600c31bb54b3c0985e76ec34ec5c9370eef1441db",
+      "bytes": 18019
+    }
+  ]
+}

@@ -1,0 +1,63 @@
+Benchmark dependency sites: D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages
+Python benchmark suite 1.14.0
+
+
+==================================================
+( 1/1) creating venv for benchmark (dask)
+
+(trying common venv first)
+
+[1/1] dask...
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\data-files\benchmarks\bm_dask\run_benchmark.py", line 7, in <module>
+    from dask.distributed import Client, Worker, Scheduler, wait
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\dask\distributed.py", line 13, in <module>
+    from distributed import *
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\distributed\__init__.py", line 23, in <module>
+    from distributed.actor import Actor, ActorFuture, BaseActorFuture
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\distributed\actor.py", line 13, in <module>
+    from distributed.client import Future
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\distributed\client.py", line 66, in <module>
+    from distributed.core import OKMessage
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\distributed\core.py", line 39, in <module>
+    from distributed.comm import (
+    ...<7 lines>...
+    )
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\distributed\comm\__init__.py", line 31, in <module>
+    _register_transports()
+    ~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\distributed\comm\__init__.py", line 20, in _register_transports
+    from distributed.comm import inproc, tcp, ws
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\distributed\comm\tcp.py", line 41, in <module>
+    from distributed.system import MEMORY_LIMIT
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\distributed\system.py", line 67, in <module>
+    MEMORY_LIMIT = memory_limit()
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\distributed\system.py", line 23, in memory_limit
+    limit = psutil.virtual_memory().total
+            ~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\psutil\__init__.py", line 2049, in virtual_memory
+    ret = _psplatform.virtual_memory()
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\psutil\_pswindows.py", line 187, in virtual_memory
+    mem = cext.virtual_mem()
+AttributeError: module 'psutil._psutil_windows' has no attribute 'virtual_mem'
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\run.py", line 171, in run_benchmarks
+    result = bench.run(
+        bench_venv.python,
+    ...<3 lines>...
+        verbose=options.verbose,
+    )
+  File "D:\CantorAI\xlang3\benchmarks\diagnostics\run_pyperformance_xlang3_shimmed.py", line 145, in run_named_benchmark
+    return original_benchmark_run(benchmark, *positional, **keywords)
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 193, in run
+    bench = _run_perf_script(
+        python,
+    ...<4 lines>...
+        verbose=verbose,
+    )
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 250, in _run_perf_script
+    raise RuntimeError("Benchmark died")
+RuntimeError: Benchmark died
+ERROR: Benchmark dask failed: Benchmark died
+
+ERROR: No benchmark was run

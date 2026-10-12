@@ -1,0 +1,26 @@
+{
+  "mode": "fast",
+  "direction": "CPython time divided by runtime time; >1 means faster than CPython",
+  "rows": [
+    {
+      "runtime": "cpython3147",
+      "benchmark": "tomli_loads",
+      "mean_seconds": 1.8700113500017324,
+      "stddev_seconds": 0.05188650729551129,
+      "measurement_values": 20,
+      "case_timeout_seconds": 900,
+      "json_file": "pyperformance-cpython3147-native-unicode-regex-tomli-fast-cap900-20261007.json",
+      "speed_relative_to_cpython3147": 1.0
+    },
+    {
+      "runtime": "xlang3",
+      "benchmark": "tomli_loads",
+      "mean_seconds": 22.254785084999458,
+      "stddev_seconds": 0.6500223760000782,
+      "measurement_values": 20,
+      "case_timeout_seconds": 900,
+      "json_file": "pyperformance-xlang3-native-unicode-regex-tomli-fast-cap900-20261007.json",
+      "speed_relative_to_cpython3147": 0.0840273830036754
+    }
+  ]
+}

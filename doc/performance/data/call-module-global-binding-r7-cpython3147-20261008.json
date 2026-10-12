@@ -1,0 +1,10 @@
+{
+  "terminal": true,
+  "status": "exact_cpython3147_output_captured",
+  "python_version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+  "script_sha256": "5558bd421e9d28746176287c25ee2259fb2a4040f32058309a44259c9addbc8d",
+  "fixture_sha256": "5558bd421e9d28746176287c25ee2259fb2a4040f32058309a44259c9addbc8d",
+  "expected_sha256": "17d12e90f532d48699853e3e9a8983d398e690f51c5028982529533158594c12",
+  "stdout_sha256": "390a9a78ed001d9058b6f122a5edc1b89b0ec28b20a6b5469648a42e2e44f1d7",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

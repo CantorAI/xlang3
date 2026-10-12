@@ -1,0 +1,20 @@
+{
+  "warning": "Historical terminal evidence; do not replay unchanged scripts.",
+  "files": {
+    "preserve-vm-captured-lookup-control-20261007.py": "24121e9d05b8ff0a8616df474e9a5d2075686f839cc39eef552ab8d6025bfd99",
+    "compare-vm-captured-lookup-20261007.py": "93dbe728c5aa786042d56f1c9a24421e06768cae04af7eec456eef282c514161",
+    "check-vm-captured-lookup-20261007.py": "94c7b87ada8875a661f36ba2b5245f5e0e36d1f1170e84fcfd9ff912b5c28960",
+    "prepare-vm-captured-lookup-r2-20261007.py": "ad1ef8d6530a7660d4ce8b3b9a14c078efda5cd8cbf45a48f120c32383d68e41",
+    "check-vm-captured-lookup-r2-20261007.py": "b5aa25d62d95228c2e519c9eb2647f08c0c1c9943933f320a510c17b85e4d565",
+    "validate-vm-captured-lookup-20261007.py": "8b1ae7e685bcef0026c5b59df042efe8e8d0721caf903553a760c1f0da9ba475",
+    "finalize-vm-captured-lookup-20261007.py": "ce1b0b732e823739148b5a45c85a2c137a5d5acb3cc16e560943cc3e453cd388",
+    "stage-vm-captured-lookup-20261007.py": "59aaccbf8232c69d9270e8720f7a8e1fc316fbd4d77285ba1c3c305fe92e732b",
+    "native-trivial-callback-probe-20261007.py": "5e9d74ed22141a9aa96e86293a42cb4d76eb2cb38252330273a87d368cfbcc67",
+    "dict-callback-boundary-probe-20261007.py": "4a5cb7358005574fc2426db47c430caac7d7b1b7c453ec386b991c350402a47b",
+    "vm-captured-lookup-before-fixture-repair-20261007.py": "c85f6ddb00806df74dfecfc1dc28073510c57376c180d0b7b63a38ce1462cff1",
+    "compiled-sources/src/executor/xlang_vm/ops/xlang_vm_ops_call.h": "fc47dc4c0faeb743bf17aceabb81d69182c70de6400d13c6dc97e75e07a29db0",
+    "compiled-sources/tests/run_fixtures.py": "fb922c1e0ce86bcff0ae46c3207e8c5b655dafd52adb97c0b8141eaddf05a348",
+    "compiled-sources/tests/fixtures/core/vm_captured_lookup.py": "09a3f31c11f7dbd3ca15899b3316695217be03f2635986df8cb20360872c8c7a",
+    "compiled-sources/tests/fixtures/expected/vm_captured_lookup.out": "ad4bea8dd8e6711102aaa64d0ebc044c6601a48259e1bea61b0b937d1736323f"
+  }
+}

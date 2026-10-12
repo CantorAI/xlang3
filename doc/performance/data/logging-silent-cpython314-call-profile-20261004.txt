@@ -1,0 +1,12 @@
+profiled workload logging_silent 0.00026000000070780516
+profiled Python calls, grouped by source/function
+[[["__init__.py","isEnabledFor"],10],[["__init__.py","debug"],10],[["run_benchmark.py","truncate_stream"],1],[["__init__.py","disable"],1],[["__init__.py","getEffectiveLevel"],1],[["run_benchmark.py","bench_silent"],1],[["profile_pyperformance_calls_direct.py","<lambda>"],1]]
+profiled benchmark function times (inclusive/self seconds)
+profile_pyperformance_calls_direct.py <lambda> 1 0.000295 1.7e-05
+run_benchmark.py bench_silent 1 0.000278 2.8e-05
+__init__.py debug 10 0.000246 1.8e-05
+__init__.py isEnabledFor 10 0.000228 0.000226
+run_benchmark.py truncate_stream 1 3e-06 3e-06
+__init__.py disable 1 1e-06 1e-06
+__init__.py getEffectiveLevel 1 1e-06 1e-06
+profiled benchmark-frame calls 25

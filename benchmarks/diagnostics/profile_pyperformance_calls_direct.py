@@ -67,6 +67,13 @@ class _ProfilingRunner:
             inclusive_seconds[key] += elapsed
             self_seconds[key] += exclusive
 
+        # Explicit warmup separates steady-state call frequencies from lazy
+        # imports (for example typing's first import of inspect). Profiling still
+        # changes execution; these are diagnostics, never pyperf scores.
+        warmups = max(0, int(os.environ.get("PYPERF_PROFILE_WARMUP_CALLS", "0")))
+        for _ in range(warmups):
+            function(*args, **kwargs)
+        print("diagnostic unprofiled warmup calls", warmups)
         sys.setprofile(profile)
         try:
             result = function(*args, **kwargs)

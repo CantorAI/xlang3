@@ -1,0 +1,12 @@
+{
+  "reviewer": "/root/class_scope_design",
+  "status": "static_READY_r7b",
+  "source_sha256": {
+    "src/runtime/modules/system/gc_plain_node_index.h": "51531f00bc9413ba95cd12462f469ede565bffde72379b9a78061455e772b6c4",
+    "src/runtime/modules/system/gc_plain_cycles.h": "8bc966f7b13892d73811d28ecc907ea8a6247b8c47e8303193ae0f3ef97194a9",
+    "tests/cpp/generic_gc_cases.h": "fdddc80f9b7118513686cc86af7917cc486863d8bfb6a64f8cd1df385c4eb654"
+  },
+  "mode": "Read-only static review, no runtime claim",
+  "transcript": "Engine bytes match reviewed R7. Dense lookup bounds/identity guard and exact pointer fallback precede mutation. The coverage gap is fixed: first slot is valid (1), so the separate case reaches the second huge slot and verifies sparse lookup. No edits, builds or execution performed.",
+  "root_runtime_evidence": "2b0308d6131394ef7f87bed13c722015b22af1d5b30ab43921bafe2560e39874"
+}

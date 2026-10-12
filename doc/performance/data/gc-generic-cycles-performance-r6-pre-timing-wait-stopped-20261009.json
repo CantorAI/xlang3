@@ -1,0 +1,12 @@
+{
+  "terminal": true,
+  "status": "owned_pre_timing_wait_stopped",
+  "owned_waiter_pid": 11968,
+  "stopped_utc": "2026-10-09T22:54:26.210426+00:00",
+  "performance_phases_started": 0,
+  "log": "gc-generic-cycles-performance-r6-idle-wait-20261009.jsonl",
+  "log_sha256": "976c9c42c8943c27108c6f68a1b978d34b3d298b9e2120fba5a67f3d84467619",
+  "reason": "Old cached worker 34420 exited; current worker 18252 has exited parent. Stop only owned waiter to select the current identity for the unchanged cumulative CPU activity admission. No foreign process stopped.",
+  "manager_sha256": "c157bdaeb69314e520c19cad6507ae9a96176a5dec45c6d99614f8d84b07984a",
+  "waiter_sha256": "2a322b8f3d67e698168ae8df767a981e532b6c8e0f89c9545d53db846d606e0a"
+}

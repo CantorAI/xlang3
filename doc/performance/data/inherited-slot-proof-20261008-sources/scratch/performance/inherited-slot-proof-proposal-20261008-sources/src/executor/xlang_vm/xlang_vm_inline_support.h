@@ -1,0 +1,3240 @@
+/*
+Copyright (C) 2026 CantorAI Inc. and The XLang Foundation
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+#pragma once
+
+#include "xlang_frame.h"
+#include "xlang_vm_arithmetic.h"
+#include "xlang_vm_inline_call.h"
+#include "xlang_vm_names.h"
+#include "xlang_vm_property_inline.h"
+#include "runtime_lock.h"
+
+#include "xlang3/compiler.h"
+#include "xlang3/attribute.h"
+#include "xlang3/builtins.h"
+#include "xlang3/functional_iterators.h"
+#include "xlang3/generator.h"
+#include "xlang3/mapping.h"
+#include "xlang3/module_object.h"
+#include "xlang3/object_model.h"
+#include "xlang3/sequence.h"
+#include "xlang3/set_object.h"
+#include "xlang3/value_hash.h"
+
+#include <algorithm>
+#include <array>
+#include <cctype>
+#include <charconv>
+#include <cmath>
+#include <cstdlib>
+#include <string>
+#include <string_view>
+#include <vector>
+
+/*
+Inline support used by the XlangVM loop and call op helpers.
+
+Keep these helpers header-only: they are hot-path call analysis and frame
+support routines. The loop cpp includes this file before entering namespace
+xlang3, so the functions live in the normal xlang3 namespace and can be passed
+as direct inline call targets to op handlers.
+*/
+
+namespace xlang3 {
+
+struct GeneratorVMState {
+  std::vector<VMFrame> frames;
+  size_t frame_count = 0;
+  uint32_t send_target = UINT32_MAX;
+  Value current_exception;
+  std::vector<Value> previous_exceptions;
+  std::vector<size_t> active_exception_handler_depths;
+  std::vector<size_t> active_exception_handler_frames;
+};
+
+XLANG3_HOT_INLINE bool generator_continuation_has_observers(
+    Runtime& runtime, const std::vector<VMFrame>& frames, size_t frame_count) {
+  const auto active_hook = [](const Value& hook) {
+    return hook.tag != ValueTag::Invalid && hook.tag != ValueTag::None;
+  };
+  if (runtime.debug_step_active() || active_hook(runtime.debug_hook()) ||
+      active_hook(runtime.trace_function()) || active_hook(runtime.profile_function()) ||
+      sys_monitoring_event_may_dispatch(kSysMonitoringEventAll)) {
+    return true;
+  }
+  const size_t count = std::min(frame_count, frames.size());
+  for (size_t index = 0; index < count; ++index) {
+    if (active_hook(frames[index].trace_function) || frames[index].monitoring_events != 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
+XLANG3_HOT_INLINE bool generator_continuation_has_active_exception_handlers(
+    const std::vector<VMFrame>& frames, size_t frame_count) {
+  const size_t count = std::min(frame_count, frames.size());
+  for (size_t index = 0; index < count; ++index) {
+    if (!frames[index].exception_handlers.empty()) return true;
+  }
+  return false;
+}
+
+XLANG3_HOT_INLINE GeneratorVMState* acquire_generator_vm_state(GeneratorObject* generator) {
+  if (generator != nullptr && generator->vm_state_reuse != nullptr) {
+    auto* state = static_cast<GeneratorVMState*>(generator->vm_state_reuse);
+    generator->vm_state_reuse = nullptr;
+    generator->vm_state_reuse_cleanup = nullptr;
+    return state;
+  }
+  return new GeneratorVMState();
+}
+
+struct RuntimeDebugPauseState {
+  std::vector<VMFrame> frames;
+  size_t frame_count = 0;
+  RuntimePauseReason reason = RuntimePauseReason::None;
+};
+
+XLANG3_HOT_INLINE bool analyze_const_method(const ir::Module& current_module, const FunctionObject& fn_obj, Value& out) {
+  const ir::Module* fn_module = nullptr;
+  if (!module_for_function(current_module, fn_obj, fn_module)) {
+    return false;
+  }
+  const auto& function = fn_module->functions[fn_obj.function_id];
+  if (!function.is_generator && function.params.size() == 1 &&
+      function.free_vars.empty() && function.cell_slots.empty() &&
+      !function.code.empty() && function.code[0].op == ir::Op::ReturnConst &&
+      function.code[0].a < function.constants.size()) {
+    value_assign_fast(out, function.constants[function.code[0].a]);
+    return true;
+  }
+  if (function.is_generator || function.params.size() != 1 || function.free_vars.size() != 0 || function.cell_slots.size() != 0 ||
+      function.code.size() < 2) {
+    return false;
+  }
+  const auto& load_const = function.code[0];
+  const auto& ret = function.code[1];
+  if (load_const.op != ir::Op::LoadConst || load_const.a >= function.constants.size() ||
+      ret.op != ir::Op::Return || ret.a != load_const.dst) {
+    return false;
+  }
+  value_assign_fast(out, function.constants[load_const.a]);
+  return true;
+}
+
+XLANG3_HOT_INLINE bool execute_inline_small_self_method(
+    const ir::Module& current_module,
+    const FunctionObject& fn_obj,
+    const Value& self,
+    Value& out,
+    bool& supported,
+    std::string& error) {
+  supported = false;
+  const ir::Module* fn_module = nullptr;
+  if (!module_for_function(current_module, fn_obj, fn_module)) {
+    return false;
+  }
+  const auto& function = fn_module->functions[fn_obj.function_id];
+  if (function.is_generator || function.params.size() != 1 || function.free_vars.size() != 0 || function.cell_slots.size() != 0 ||
+      function.register_count > 16 || function.code.size() > 16) {
+    return false;
+  }
+
+  supported = true;
+  std::array<Value, 16> temp_regs;
+  for (auto& value : temp_regs) {
+    value_set_invalid(value);
+  }
+
+  for (size_t local_ip = 0; local_ip < function.code.size(); ++local_ip) {
+    const auto& op = function.code[local_ip];
+    if (op.dst >= temp_regs.size()) {
+      supported = false;
+      return false;
+    }
+    switch (op.op) {
+      case ir::Op::LoadLocal:
+        if (op.a != 0) {
+          supported = false;
+          return false;
+        }
+        value_assign_fast(temp_regs[op.dst], self);
+        break;
+      case ir::Op::LoadLocalPair:
+        if (op.a != 0 || op.c != 0 || op.b >= temp_regs.size()) {
+          supported = false;
+          return false;
+        }
+        value_assign_fast(temp_regs[op.dst], self);
+        value_assign_fast(temp_regs[op.b], self);
+        break;
+      case ir::Op::LoadLocalConst:
+        if (op.a != 0 || op.b >= temp_regs.size() || op.c >= function.constants.size()) {
+          supported = false;
+          return false;
+        }
+        value_assign_fast(temp_regs[op.dst], self);
+        value_assign_fast(temp_regs[op.b], function.constants[op.c]);
+        break;
+      case ir::Op::LoadConstPair:
+        if (op.a >= function.constants.size() || op.b >= temp_regs.size() ||
+            op.c >= function.constants.size()) {
+          supported = false;
+          return false;
+        }
+        value_assign_fast(temp_regs[op.dst], function.constants[op.a]);
+        value_assign_fast(temp_regs[op.b], function.constants[op.c]);
+        break;
+      case ir::Op::LoadConst:
+        if (op.a >= function.constants.size()) {
+          supported = false;
+          return false;
+        }
+        value_assign_fast(temp_regs[op.dst], function.constants[op.a]);
+        break;
+      case ir::Op::LoadInstanceSlot: {
+        if (op.a >= temp_regs.size()) {
+          supported = false;
+          return false;
+        }
+        auto* instance = value_as_instance(temp_regs[op.a]);
+        if (instance == nullptr || op.b >= instance_slot_count(instance)) {
+          error = "invalid instance slot load";
+          return false;
+        }
+        const auto& slot = instance_slot_at(instance, op.b);
+        if (slot.tag == ValueTag::Invalid) {
+          error = "object has no attribute";
+          return false;
+        }
+        value_assign_fast(temp_regs[op.dst], slot);
+        break;
+      }
+      case ir::Op::LoadLocalInstanceSlot: {
+        if (op.a != 0) {
+          supported = false;
+          return false;
+        }
+        auto* instance = value_as_instance(self);
+        if (instance == nullptr || op.b >= instance_slot_count(instance)) {
+          error = "invalid instance slot load";
+          return false;
+        }
+        const auto& slot = instance_slot_at(instance, op.b);
+        if (slot.tag == ValueTag::Invalid) {
+          error = "object has no attribute";
+          return false;
+        }
+        value_assign_fast(temp_regs[op.dst], slot);
+        break;
+      }
+      case ir::Op::LoadAttr: {
+        if (op.a >= temp_regs.size() || op.b >= function.names.size()) {
+          supported = false;
+          return false;
+        }
+        Value descriptor;
+        std::string descriptor_error;
+        if (object_get_class_attr_for_instance(temp_regs[op.a], function.names[op.b], descriptor, descriptor_error)) {
+          if (auto* property = value_as_property(descriptor)) {
+            if (auto* getter = value_as_function(property->fget)) {
+              auto* instance = value_as_instance(temp_regs[op.a]);
+              InlinePropertyAccess property_spec;
+              if (instance != nullptr && analyze_property_getter(current_module, *getter, property_spec)) {
+                if (!execute_inline_property_getter_spec(*instance, property_spec, temp_regs[op.dst], error)) {
+                  return false;
+                }
+                break;
+              }
+            }
+          }
+        }
+        if (!object_get_attr(temp_regs[op.a], function.names[op.b], temp_regs[op.dst], error)) {
+          return false;
+        }
+        break;
+      }
+      case ir::Op::CallMethod: {
+        if (op.a >= temp_regs.size() || op.b >= function.names.size() || op.c >= function.call_args.size() ||
+            !function.call_args[op.c].empty()) {
+          supported = false;
+          return false;
+        }
+        auto* instance = value_as_instance(temp_regs[op.a]);
+        if (instance == nullptr) {
+          supported = false;
+          return false;
+        }
+        Value method_value;
+        std::string method_error;
+        if (!object_get_class_attr_for_instance(temp_regs[op.a], function.names[op.b], method_value, method_error)) {
+          supported = false;
+          return false;
+        }
+        if (auto* method_fn = value_as_function(method_value)) {
+          Value const_value;
+          if (analyze_const_method(current_module, *method_fn, const_value)) {
+            value_assign_fast(temp_regs[op.dst], const_value);
+            break;
+          }
+          SelfBinaryMethodSpec method_spec;
+          if (analyze_self_binary_method(current_module, *method_fn, method_spec)) {
+            if (!execute_self_binary_method(*instance, method_spec, temp_regs[op.dst], error)) {
+              return false;
+            }
+            break;
+          }
+        }
+        supported = false;
+        return false;
+      }
+      case ir::Op::Add:
+      case ir::Op::Sub:
+      case ir::Op::Mul:
+      case ir::Op::Div:
+        if (op.a >= temp_regs.size() || op.b >= temp_regs.size()) {
+          supported = false;
+          return false;
+        }
+        if (!xlang_vm_execute_binary_op(op.op, temp_regs[op.a], temp_regs[op.b], temp_regs[op.dst], error)) {
+          return false;
+        }
+        break;
+      case ir::Op::Len:
+        if (op.a >= temp_regs.size() ||
+            !sequence_len(temp_regs[op.a], temp_regs[op.dst], error)) {
+          // User-defined __len__ needs a normal frame and may be observable.
+          supported = false;
+          error.clear();
+          return false;
+        }
+        break;
+      case ir::Op::Mod:
+        // Percent formatting may invoke Python __str__ and __repr__. Execute
+        // it in the normal VM path, which has the Runtime needed for dispatch.
+        supported = false;
+        return false;
+      case ir::Op::Return:
+        if (op.a >= temp_regs.size()) {
+          supported = false;
+          return false;
+        }
+        value_assign_fast(out, temp_regs[op.a]);
+        return true;
+      case ir::Op::ReturnConst:
+        if (op.a >= function.constants.size()) {
+          supported = false;
+          return false;
+        }
+        value_assign_fast(out, function.constants[op.a]);
+        return true;
+      case ir::Op::ReturnLocal:
+        if (op.a != 0) {
+          supported = false;
+          return false;
+        }
+        value_assign_fast(out, self);
+        return true;
+      default:
+        supported = false;
+        return false;
+    }
+  }
+
+  supported = false;
+  return false;
+}
+
+// A Python method with a straight constant return may ignore explicit
+// positional arguments. Inlining is safe only when every declared argument
+// was supplied exactly and no keyword/expansion binding is involved; callers
+// enforce those call-shape guards before using this result.
+XLANG3_HOT_INLINE bool analyze_const_method_with_args(
+    const ir::Module& current_module, const FunctionObject& fn_obj,
+    uint32_t explicit_arg_count, Value& out) {
+  const ir::Module* fn_module = nullptr;
+  if (!module_for_function(current_module, fn_obj, fn_module)) return false;
+  const auto& function = fn_module->functions[fn_obj.function_id];
+  if (function.is_generator || function.params.size() != explicit_arg_count + 1 ||
+      function.signature.size() != function.params.size() ||
+      !function.free_vars.empty() || !function.cell_slots.empty()) {
+    return false;
+  }
+  for (const auto& param : function.signature) {
+    if (param.kind != ir::ParamKind::PosOnly && param.kind != ir::ParamKind::PosOrKeyword) {
+      return false;
+    }
+  }
+  // Lowering can retain an unreachable implicit return after a source-level
+  // return statement, so inspect the first terminating instruction only.
+  if (!function.code.empty() && function.code[0].op == ir::Op::ReturnConst &&
+      function.code[0].a < function.constants.size()) {
+    value_assign_fast(out, function.constants[function.code[0].a]);
+    return true;
+  }
+  if (function.code.size() == 2 && function.code[0].op == ir::Op::LoadConst &&
+      function.code[0].a < function.constants.size() &&
+      function.code[1].op == ir::Op::Return &&
+      function.code[1].a == function.code[0].dst) {
+    value_assign_fast(out, function.constants[function.code[0].a]);
+    return true;
+  }
+  return false;
+}
+
+struct SelfSlotMaximizeMethodSpec {
+  std::array<uint32_t, 3> name_indices{};
+};
+
+XLANG3_HOT_INLINE bool analyze_self_slot_maximize_method(
+    const ir::Module& current_module,
+    const FunctionObject& fn_obj,
+    SelfSlotMaximizeMethodSpec& spec) {
+  const ir::Module* fn_module = nullptr;
+  if (!module_for_function(current_module, fn_obj, fn_module)) return false;
+  const auto& function = fn_module->functions[fn_obj.function_id];
+  if (function.name != "maximize" || function.is_generator ||
+      function.params.size() != 2 || function.free_vars.size() != 0 ||
+      function.cell_slots.size() != 0 || function.code.size() != 38 ||
+      function.register_count > 64) {
+    return false;
+  }
+
+  // This exact three-field conditional-assignment shape comes from pyperformance's
+  // Point.maximize. Restrict the inline plan to slot-backed fields and preserve
+  // the original Python body for any different IR or value types.
+  for (uint32_t field = 0; field < 3; ++field) {
+    const uint32_t ip = field * 12;
+    const auto& pair = function.code[ip];
+    const auto& self_load = function.code[ip + 1];
+    const auto& other_load = function.code[ip + 2];
+    const auto& compare = function.code[ip + 3];
+    const auto& true_load = function.code[ip + 4];
+    const auto& true_pop = function.code[ip + 5];
+    const auto& true_move = function.code[ip + 6];
+    const auto& jump = function.code[ip + 7];
+    const auto& false_load = function.code[ip + 8];
+    const auto& false_pop = function.code[ip + 9];
+    const auto& false_move = function.code[ip + 10];
+    const auto& store = function.code[ip + 11];
+    if (pair.op != ir::Op::LoadLocalPair || pair.a != 0 || pair.c != 0 ||
+        self_load.op != ir::Op::LoadAttr || self_load.a != pair.b ||
+        self_load.b >= function.names.size() ||
+        other_load.op != ir::Op::LoadLocalAttr || other_load.a != 1 ||
+        other_load.b != self_load.b || compare.op != ir::Op::CompareJumpIfFalse ||
+        compare.a != self_load.dst || compare.b != other_load.dst ||
+        compare.c != static_cast<uint32_t>(ir::CompareOp::Gt) ||
+        compare.dst != ip + 8 || true_load.op != ir::Op::LoadLocalAttr ||
+        true_load.a != 0 || true_load.b != self_load.b ||
+        true_pop.op != ir::Op::Pop || true_pop.a != true_load.dst ||
+        true_move.op != ir::Op::Move || true_move.dst != pair.dst + 1 ||
+        true_move.a != true_load.dst || jump.op != ir::Op::Jump ||
+        jump.dst != ip + 11 || false_load.op != ir::Op::LoadLocalAttr ||
+        false_load.a != 1 || false_load.b != self_load.b ||
+        false_pop.op != ir::Op::Pop || false_pop.a != false_load.dst ||
+        false_move.op != ir::Op::Move || false_move.dst != pair.dst + 1 ||
+        false_move.a != false_load.dst || store.op != ir::Op::StoreAttr ||
+        store.dst != pair.dst || store.a != self_load.b ||
+        store.b != pair.dst + 1) {
+      return false;
+    }
+    spec.name_indices[field] = self_load.b;
+  }
+  return function.code[36].op == ir::Op::ReturnLocal &&
+      function.code[36].a == 0 &&
+      function.code[37].op == ir::Op::ReturnConst;
+}
+
+XLANG3_HOT_INLINE bool prepare_self_slot_maximize_method(
+    const ir::Module& current_module,
+    const FunctionObject& fn_obj,
+    const InstanceObject& self,
+    const SelfSlotMaximizeMethodSpec& spec,
+    std::array<uint32_t, 3>& slots) {
+  const auto* klass = value_as_class(self.klass);
+  if (klass == nullptr || klass->has_getattribute_hook ||
+      klass->has_getattr_hook || klass->has_setattr_hook ||
+      self.native_get_attr != nullptr || self.native_set_attr != nullptr) {
+    return false;
+  }
+  const ir::Module* fn_module = nullptr;
+  if (!module_for_function(current_module, fn_obj, fn_module)) return false;
+  const auto& function = fn_module->functions[fn_obj.function_id];
+  for (size_t index = 0; index < spec.name_indices.size(); ++index) {
+    const auto& name = function.names[spec.name_indices[index]];
+    const auto slot = klass->instance_slot_indices.find(name);
+    const auto descriptor = klass->attrs.find(name);
+    if (slot == klass->instance_slot_indices.end() ||
+        descriptor == klass->attrs.end()) {
+      return false;
+    }
+    const auto* slot_descriptor = value_as_slot_descriptor(descriptor->second);
+    if (slot_descriptor == nullptr || slot_descriptor->index != slot->second) {
+      return false;
+    }
+    slots[index] = slot->second;
+  }
+  return true;
+}
+
+XLANG3_HOT_INLINE bool execute_self_slot_maximize_method(
+    const Value& self_value,
+    const Value& other_value,
+    const std::array<uint32_t, 3>& slots,
+    Value& out) {
+  auto* self = value_as_instance(self_value);
+  auto* other = value_as_instance(other_value);
+  if (self == nullptr || other == nullptr ||
+      self->klass.as.obj != other->klass.as.obj ||
+      self->native_get_attr != nullptr || self->native_set_attr != nullptr ||
+      other->native_get_attr != nullptr || other->native_set_attr != nullptr) {
+    return false;
+  }
+  for (const uint32_t slot : slots) {
+    if (slot >= instance_slot_count(self) || slot >= instance_slot_count(other)) {
+      return false;
+    }
+    const auto& lhs = instance_slot_at(self, slot);
+    const auto& rhs = instance_slot_at(other, slot);
+    if (lhs.tag != ValueTag::Double || rhs.tag != ValueTag::Double) return false;
+  }
+  for (const uint32_t slot : slots) {
+    auto& lhs = instance_slot_at(self, slot);
+    const auto& rhs = instance_slot_at(other, slot);
+    if (!(lhs.as.f64 > rhs.as.f64)) value_assign_fast(lhs, rhs);
+  }
+  if (&out != &self_value) value_assign_fast(out, self_value);
+  return true;
+}
+
+struct SelfSlotNormalizeMethodSpec {
+  uint32_t sqrt_global_index = UINT32_MAX;
+  std::array<uint32_t, 3> name_indices{};
+};
+
+XLANG3_HOT_INLINE bool analyze_self_slot_normalize_method(
+    const ir::Module& current_module,
+    const FunctionObject& fn_obj,
+    SelfSlotNormalizeMethodSpec& spec) {
+  const ir::Module* fn_module = nullptr;
+  if (!module_for_function(current_module, fn_obj, fn_module)) return false;
+  const auto& function = fn_module->functions[fn_obj.function_id];
+  if (function.name != "normalize" || function.is_generator ||
+      function.params.size() != 1 || function.free_vars.size() != 0 ||
+      function.cell_slots.size() != 0 || function.code.size() != 30 ||
+      function.locals.size() != 5 || function.locals[1] != "x" ||
+      function.locals[2] != "y" || function.locals[3] != "z" ||
+      function.locals[4] != "norm" || function.names.size() != 3 ||
+      function.names[0] != "x" || function.names[1] != "y" ||
+      function.names[2] != "z" || function.call_args.empty()) {
+    return false;
+  }
+  const auto& code = function.code;
+  auto is = [&](size_t ip, ir::Op op, uint32_t dst, uint32_t a,
+                uint32_t b, uint32_t c) {
+    const auto& instr = code[ip];
+    return instr.op == op && instr.dst == dst && instr.a == a &&
+        instr.b == b && instr.c == c;
+  };
+  if (!is(0, ir::Op::LoadLocalAttr, 0, 0, 0, 1) ||
+      !is(1, ir::Op::StoreLocal, 1, 0, 0, 0) ||
+      !is(2, ir::Op::LoadLocalAttr, 2, 0, 1, 3) ||
+      !is(3, ir::Op::StoreLocal, 2, 2, 0, 0) ||
+      !is(4, ir::Op::LoadLocalAttr, 4, 0, 2, 5) ||
+      !is(5, ir::Op::StoreLocal, 3, 4, 0, 0) ||
+      code[6].op != ir::Op::LoadModuleSlot ||
+      code[6].dst != 6 || code[6].a >= fn_module->global_slots.size() ||
+      fn_module->global_slots[code[6].a] != "sqrt" ||
+      !is(7, ir::Op::LoadLocalPair, 7, 1, 8, 1) ||
+      !is(8, ir::Op::Mul, 9, 7, 8, 0) ||
+      !is(9, ir::Op::LoadLocalPair, 10, 2, 11, 2) ||
+      !is(10, ir::Op::Mul, 12, 10, 11, 0) ||
+      !is(11, ir::Op::Add, 13, 9, 12, 0) ||
+      !is(12, ir::Op::LoadLocalPair, 14, 3, 15, 3) ||
+      !is(13, ir::Op::Mul, 16, 14, 15, 0) ||
+      !is(14, ir::Op::Add, 17, 13, 16, 0) ||
+      code[15].op != ir::Op::Call || code[15].dst != 18 ||
+      code[15].a != 6 || code[15].c >= function.call_args.size() ||
+      function.call_args[code[15].c].size() != 1 ||
+      function.call_args[code[15].c][0] != 17 ||
+      !is(16, ir::Op::StoreLocal, 4, 18, 0, 0) ||
+      !is(17, ir::Op::LoadLocalPair, 19, 4, 22, 0) ||
+      !is(18, ir::Op::LoadAttr, 21, 22, 0, 0) ||
+      !is(19, ir::Op::Div, 20, 21, 19, 0) ||
+      !is(20, ir::Op::StoreAttr, 22, 0, 20, 0) ||
+      !is(21, ir::Op::LoadLocalPair, 23, 4, 26, 0) ||
+      !is(22, ir::Op::LoadAttr, 25, 26, 1, 0) ||
+      !is(23, ir::Op::Div, 24, 25, 23, 0) ||
+      !is(24, ir::Op::StoreAttr, 26, 1, 24, 0) ||
+      !is(25, ir::Op::LoadLocalPair, 27, 4, 30, 0) ||
+      !is(26, ir::Op::LoadAttr, 29, 30, 2, 0) ||
+      !is(27, ir::Op::Div, 28, 29, 27, 0) ||
+      !is(28, ir::Op::StoreAttr, 30, 2, 28, 0) ||
+      code[29].op != ir::Op::ReturnConst ||
+      code[29].a >= function.constants.size() ||
+      function.constants[code[29].a].tag != ValueTag::None) {
+    return false;
+  }
+  spec.sqrt_global_index = code[6].a;
+  spec.name_indices = {0, 1, 2};
+  return true;
+}
+
+XLANG3_HOT_INLINE bool prepare_self_slot_normalize_method(
+    Runtime& runtime,
+    const ir::Module& current_module,
+    const FunctionObject& fn_obj,
+    const InstanceObject& self,
+    const SelfSlotNormalizeMethodSpec& spec,
+    std::array<uint32_t, 3>& slots,
+    ModuleObject*& globals_module,
+    Value& expected_sqrt) {
+  auto* klass = value_as_class(self.klass);
+  globals_module = value_as_module(fn_obj.globals_module);
+  if (klass == nullptr || globals_module == nullptr ||
+      klass->has_getattribute_hook || klass->has_getattr_hook ||
+      klass->has_setattr_hook || self.native_get_attr != nullptr ||
+      self.native_set_attr != nullptr) {
+    return false;
+  }
+  const ir::Module* fn_module = nullptr;
+  if (!module_for_function(current_module, fn_obj, fn_module) ||
+      spec.sqrt_global_index >= fn_module->global_slots.size() ||
+      fn_module->global_slots[spec.sqrt_global_index] != "sqrt") {
+    return false;
+  }
+  Value bound_sqrt;
+  Value math_module;
+  Value canonical_sqrt;
+  std::string ignored;
+  if (!module_get_attr(fn_obj.globals_module, "sqrt", bound_sqrt, ignored) ||
+      !runtime.import_module("math", math_module, ignored) ||
+      !module_get_attr(math_module, "sqrt", canonical_sqrt, ignored) ||
+      value_as_native_function(bound_sqrt) == nullptr ||
+      bound_sqrt.as.obj != canonical_sqrt.as.obj) {
+    return false;
+  }
+  const auto& function = fn_module->functions[fn_obj.function_id];
+  for (size_t index = 0; index < spec.name_indices.size(); ++index) {
+    const auto& name = function.names[spec.name_indices[index]];
+    const auto slot = klass->instance_slot_indices.find(name);
+    const auto descriptor = klass->attrs.find(name);
+    if (slot == klass->instance_slot_indices.end() ||
+        descriptor == klass->attrs.end()) {
+      return false;
+    }
+    const auto* slot_descriptor = value_as_slot_descriptor(descriptor->second);
+    if (slot_descriptor == nullptr || slot_descriptor->index != slot->second) {
+      return false;
+    }
+    slots[index] = slot->second;
+  }
+  value_assign_fast(expected_sqrt, bound_sqrt);
+  return true;
+}
+
+XLANG3_HOT_INLINE bool execute_self_slot_normalize_method(
+    const Value& self_value,
+    const std::array<uint32_t, 3>& slots,
+    FunctionObject& function,
+    ModuleObject* expected_globals,
+    uint64_t& expected_globals_version,
+    const Value& expected_sqrt,
+    Value& out) {
+  auto* self = value_as_instance(self_value);
+  auto* globals = value_as_module(function.globals_module);
+  if (self == nullptr || globals == nullptr || globals != expected_globals ||
+      self->native_get_attr != nullptr || self->native_set_attr != nullptr) {
+    return false;
+  }
+  // Module versioning makes the captured sqrt guard O(1) on the hot path and
+  // forces a real global lookup after any module rebinding.
+  if (globals->version != expected_globals_version) {
+    Value current_sqrt;
+    std::string ignored;
+    if (!module_get_attr(function.globals_module, "sqrt", current_sqrt, ignored) ||
+        current_sqrt.tag != ValueTag::Object ||
+        current_sqrt.as.obj != expected_sqrt.as.obj) {
+      return false;
+    }
+    expected_globals_version = globals->version;
+  }
+  double values[3];
+  for (size_t index = 0; index < slots.size(); ++index) {
+    if (slots[index] >= instance_slot_count(self)) return false;
+    const auto& value = instance_slot_at(self, slots[index]);
+    if (value.tag != ValueTag::Double) return false;
+    values[index] = value.as.f64;
+  }
+  const double squared_norm =
+      (values[0] * values[0] + values[1] * values[1]) +
+      values[2] * values[2];
+  if (squared_norm == 0.0) return false;
+  const double norm = std::sqrt(squared_norm);
+  for (size_t index = 0; index < slots.size(); ++index) {
+    instance_slot_at(self, slots[index]) = Value::number(values[index] / norm);
+  }
+  value_assign_fast(out, Value::none());
+  return true;
+}
+
+XLANG3_HOT_INLINE bool analyze_self_slot_const_sum_method(
+    const ir::Module& current_module,
+    const FunctionObject& fn_obj,
+    const Value& self,
+    uint32_t& slot,
+    Value& constant) {
+  const ir::Module* fn_module = nullptr;
+  if (!module_for_function(current_module, fn_obj, fn_module)) {
+    return false;
+  }
+  const auto& function = fn_module->functions[fn_obj.function_id];
+  if (function.is_generator || function.params.size() != 1 || function.free_vars.size() != 0 || function.cell_slots.size() != 0 ||
+      function.register_count > 16 || function.code.size() > 16) {
+    return false;
+  }
+
+  enum class Kind : uint8_t { Unknown, Self, Slot, Const, Sum };
+  struct AbstractValue {
+    Kind kind;
+    uint32_t slot;
+    Value constant;
+  };
+
+  std::array<AbstractValue, 16> values;
+  for (auto& value : values) {
+    value.kind = Kind::Unknown;
+    value.slot = 0;
+    value_set_invalid(value.constant);
+  }
+  for (const auto& instr : function.code) {
+    if (instr.dst >= values.size()) {
+      return false;
+    }
+    switch (instr.op) {
+      case ir::Op::LoadLocal:
+        if (instr.a != 0) {
+          return false;
+        }
+        values[instr.dst].kind = Kind::Self;
+        break;
+      case ir::Op::LoadLocalPair:
+        if (instr.a != 0 || instr.c != 0 || instr.b >= values.size()) {
+          return false;
+        }
+        values[instr.dst].kind = Kind::Self;
+        values[instr.b].kind = Kind::Self;
+        break;
+      case ir::Op::LoadLocalConst:
+        if (instr.a != 0 || instr.b >= values.size() || instr.c >= function.constants.size()) {
+          return false;
+        }
+        values[instr.dst].kind = Kind::Self;
+        values[instr.b].kind = Kind::Const;
+        value_assign_fast(values[instr.b].constant, function.constants[instr.c]);
+        break;
+      case ir::Op::LoadConstPair:
+        if (instr.a >= function.constants.size() || instr.b >= values.size() ||
+            instr.c >= function.constants.size()) {
+          return false;
+        }
+        values[instr.dst].kind = Kind::Const;
+        value_assign_fast(values[instr.dst].constant, function.constants[instr.a]);
+        values[instr.b].kind = Kind::Const;
+        value_assign_fast(values[instr.b].constant, function.constants[instr.c]);
+        break;
+      case ir::Op::LoadInstanceSlot:
+        if (instr.a >= values.size() || values[instr.a].kind != Kind::Self) {
+          return false;
+        }
+        values[instr.dst].kind = Kind::Slot;
+        values[instr.dst].slot = instr.b;
+        break;
+      case ir::Op::LoadLocalInstanceSlot:
+        if (instr.a != 0) {
+          return false;
+        }
+        values[instr.dst].kind = Kind::Slot;
+        values[instr.dst].slot = instr.b;
+        break;
+      case ir::Op::LoadAttr: {
+        if (instr.a >= values.size() || instr.b >= function.names.size() || values[instr.a].kind != Kind::Self) {
+          return false;
+        }
+        Value descriptor;
+        std::string descriptor_error;
+        if (!object_get_class_attr_for_instance(self, function.names[instr.b], descriptor, descriptor_error)) {
+          return false;
+        }
+        auto* property = value_as_property(descriptor);
+        auto* getter = property == nullptr ? nullptr : value_as_function(property->fget);
+        InlinePropertyAccess property_spec;
+        if (getter == nullptr || !analyze_property_getter(current_module, *getter, property_spec) ||
+            property_spec.has_const) {
+          return false;
+        }
+        values[instr.dst].kind = Kind::Slot;
+        values[instr.dst].slot = property_spec.slot;
+        break;
+      }
+      case ir::Op::CallMethod: {
+        if (instr.a >= values.size() || instr.b >= function.names.size() || instr.c >= function.call_args.size() ||
+            values[instr.a].kind != Kind::Self || !function.call_args[instr.c].empty()) {
+          return false;
+        }
+        Value method_value;
+        std::string method_error;
+        if (!object_get_class_attr_for_instance(self, function.names[instr.b], method_value, method_error)) {
+          return false;
+        }
+        auto* method = value_as_function(method_value);
+        Value const_value;
+        if (method == nullptr || !analyze_const_method(current_module, *method, const_value)) {
+          return false;
+        }
+        values[instr.dst].kind = Kind::Const;
+        value_assign_fast(values[instr.dst].constant, const_value);
+        break;
+      }
+      case ir::Op::Add: {
+        if (instr.a >= values.size() || instr.b >= values.size()) {
+          return false;
+        }
+        const auto& lhs = values[instr.a];
+        const auto& rhs = values[instr.b];
+        if ((lhs.kind == Kind::Slot || lhs.kind == Kind::Sum) && rhs.kind == Kind::Const) {
+          values[instr.dst].kind = Kind::Sum;
+          values[instr.dst].slot = lhs.slot;
+          if (lhs.kind == Kind::Sum) {
+            std::string error;
+            if (!xlang_vm_execute_binary_op(ir::Op::Add, lhs.constant, rhs.constant, values[instr.dst].constant, error)) {
+              return false;
+            }
+          } else {
+            value_assign_fast(values[instr.dst].constant, rhs.constant);
+          }
+          break;
+        }
+        if (lhs.kind == Kind::Const && (rhs.kind == Kind::Slot || rhs.kind == Kind::Sum)) {
+          values[instr.dst].kind = Kind::Sum;
+          values[instr.dst].slot = rhs.slot;
+          if (rhs.kind == Kind::Sum) {
+            std::string error;
+            if (!xlang_vm_execute_binary_op(ir::Op::Add, lhs.constant, rhs.constant, values[instr.dst].constant, error)) {
+              return false;
+            }
+          } else {
+            value_assign_fast(values[instr.dst].constant, lhs.constant);
+          }
+          break;
+        }
+        return false;
+      }
+      case ir::Op::Return:
+        if (instr.a >= values.size()) {
+          return false;
+        }
+        if (values[instr.a].kind == Kind::Slot) {
+          return false;
+        }
+        if (values[instr.a].kind == Kind::Sum) {
+          slot = values[instr.a].slot;
+          value_assign_fast(constant, values[instr.a].constant);
+          return true;
+        }
+        return false;
+      default:
+        return false;
+    }
+  }
+  return false;
+}
+
+XLANG3_HOT_INLINE bool analyze_self_slot_method(
+    const ir::Module& current_module,
+    const FunctionObject& fn_obj,
+    uint32_t& slot) {
+  const ir::Module* fn_module = nullptr;
+  if (!module_for_function(current_module, fn_obj, fn_module)) {
+    return false;
+  }
+  const auto& function = fn_module->functions[fn_obj.function_id];
+  if (!function.is_generator && function.params.size() == 1 &&
+      function.free_vars.empty() && function.cell_slots.empty() &&
+      function.code.size() >= 2 &&
+      function.code[0].op == ir::Op::LoadLocalInstanceSlot && function.code[0].a == 0 &&
+      function.code[1].op == ir::Op::Return && function.code[1].a == function.code[0].dst) {
+    slot = function.code[0].b;
+    return true;
+  }
+  if (function.is_generator || function.params.size() != 1 || function.free_vars.size() != 0 || function.cell_slots.size() != 0 ||
+      function.code.size() < 3) {
+    return false;
+  }
+  const auto& load_self = function.code[0];
+  const auto& load_slot = function.code[1];
+  const auto& ret = function.code[2];
+  if (load_self.op != ir::Op::LoadLocal || load_self.a != 0 ||
+      load_slot.op != ir::Op::LoadInstanceSlot || load_slot.a != load_self.dst ||
+      ret.op != ir::Op::Return || ret.a != load_slot.dst) {
+    return false;
+  }
+  slot = load_slot.b;
+  return true;
+}
+
+XLANG3_HOT_INLINE bool execute_self_slot_method(
+    const InstanceObject& instance,
+    uint32_t slot,
+    Value& out,
+    std::string& error) {
+  if (slot >= instance_slot_count(&instance)) {
+    error = "invalid instance slot load";
+    return false;
+  }
+  const auto& slot_value = instance_slot_at(&instance, slot);
+  if (slot_value.tag == ValueTag::Invalid) {
+    error = "object has no attribute";
+    return false;
+  }
+  value_assign_fast(out, slot_value);
+  return true;
+}
+
+XLANG3_HOT_INLINE bool execute_self_slot_const_sum_method(
+    const InstanceObject& instance,
+    uint32_t slot,
+    const Value& constant,
+    Value& out,
+    std::string& error) {
+  if (slot >= instance_slot_count(&instance)) {
+    error = "invalid instance slot load";
+    return false;
+  }
+  const auto& slot_value = instance_slot_at(&instance, slot);
+  if (slot_value.tag == ValueTag::Invalid) {
+    error = "object has no attribute";
+    return false;
+  }
+  return xlang_vm_execute_binary_op(ir::Op::Add, slot_value, constant, out, error);
+}
+
+XLANG3_HOT_INLINE void destroy_generator_vm_state(void* state) {
+  delete static_cast<GeneratorVMState*>(state);
+}
+
+
+enum class XlangVMBuiltinConstructor : uint8_t {
+  Unknown,
+  Type,
+  Object,
+  Str,
+  Bool,
+  Int,
+  Float,
+  Slice,
+  Range,
+  List,
+  Tuple,
+  Set,
+  FrozenSet,
+  Dict,
+  MappingProxy,
+  Bytes,
+  ByteArray,
+  MemoryView,
+  Property,
+  ClassMethod,
+  StaticMethod,
+  Super,
+  Module,
+  Method,
+  Function,
+  Cell,
+  Traceback,
+};
+
+struct XlangVMBuiltinConstructorSpec {
+  const char* name;
+  XlangVMBuiltinConstructor kind;
+};
+
+struct XlangVMBuiltinConstructorError {
+  std::string message;
+  const char* type = "TypeError";
+  bool fully_handled = false;
+
+  XLANG3_HOT_INLINE void set(const char* error_type, std::string text) {
+    type = error_type;
+    message = std::move(text);
+  }
+};
+
+inline bool xlang_vm_collect_type_slots(const Value& value, std::vector<std::string>& slots) {
+  if (auto* string = value_as_string(value)) {
+    const auto name = string_object_to_string(*string);
+    if (name != "__dict__" && name != "__weakref__" &&
+        std::find(slots.begin(), slots.end(), name) == slots.end()) {
+      slots.push_back(name);
+    }
+    return true;
+  }
+  if (auto* tuple = value_as_tuple(value)) {
+    for (const auto& item : tuple->items) {
+      if (!xlang_vm_collect_type_slots(item, slots)) {
+        return false;
+      }
+    }
+    return true;
+  }
+  if (auto* list = value_as_list(value)) {
+    for (const auto& item : list->items) {
+      if (!xlang_vm_collect_type_slots(item, slots)) {
+        return false;
+      }
+    }
+    return true;
+  }
+  if (auto* set = value_as_set(value)) {
+    for (const auto& item : set->items) {
+      if (!xlang_vm_collect_type_slots(item, slots)) {
+        return false;
+      }
+    }
+    return true;
+  }
+  if (auto* dict = value_as_dict(value)) {
+    for (const auto& entry : dict->entries) {
+      if (!xlang_vm_collect_type_slots(entry.first, slots)) {
+        return false;
+      }
+    }
+    return true;
+  }
+  return false;
+}
+
+XLANG3_HOT_INLINE DictObject* xlang_vm_type_namespace_dict(const Value& value) {
+  if (auto* dict = value_as_dict(value)) {
+    return dict;
+  }
+  if (auto* instance = value_as_instance(value)) {
+    return value_as_dict(instance->mapping_storage);
+  }
+  return nullptr;
+}
+
+XLANG3_HOT_INLINE bool xlang_vm_collect_type_namespace_attrs(
+    Runtime& runtime,
+    const Value& namespace_value,
+    std::vector<std::pair<std::string, Value>>& attrs,
+    std::string& error) {
+  if (auto* namespace_dict = xlang_vm_type_namespace_dict(namespace_value)) {
+    attrs.reserve(namespace_dict->entries.size());
+    for (const auto& entry : namespace_dict->entries) {
+      auto* key = value_as_string(entry.first);
+      if (key == nullptr) {
+        error = "type() namespace keys must be strings";
+        return false;
+      }
+      attrs.push_back({string_object_to_string(*key), entry.second});
+    }
+    return true;
+  }
+  if (!mapping_is_mapping(namespace_value)) {
+    error = "type() argument 3 must be a mapping";
+    return false;
+  }
+
+  Value iterator;
+  if (!mapping_get_iter(namespace_value, iterator, error)) {
+    return false;
+  }
+  for (;;) {
+    bool done = false;
+    Value key_value;
+    if (!mapping_iter_next(iterator, done, key_value, error)) {
+      return false;
+    }
+    if (done) {
+      return true;
+    }
+    auto* key = value_as_string(key_value);
+    if (key == nullptr) {
+      error = "type() namespace keys must be strings";
+      return false;
+    }
+    Value item;
+    if (!mapping_get_item(namespace_value, key_value, item, error)) {
+      return false;
+    }
+    attrs.push_back({string_object_to_string(*key), item});
+  }
+}
+
+XLANG3_HOT_INLINE bool xlang_vm_inline_class_attrs_have(
+    const std::vector<std::pair<std::string, Value>>& attrs,
+    const std::string& name) {
+  for (const auto& attr : attrs) {
+    if (attr.first == name) {
+      return true;
+    }
+  }
+  return false;
+}
+
+XLANG3_HOT_INLINE void xlang_vm_collect_set_name_descriptors(
+    const std::vector<std::pair<std::string, Value>>& attrs,
+    std::vector<std::pair<std::string, Value>>& descriptors) {
+  for (const auto& attr : attrs) {
+    Value set_name;
+    std::string ignored;
+    if (attribute_get(attr.second, "__set_name__", set_name, ignored)) {
+      descriptors.push_back({attr.first, std::move(set_name)});
+    }
+  }
+}
+
+XLANG3_HOT_INLINE bool xlang_vm_call_set_name_descriptors(
+    Runtime& runtime,
+    const Value& cls,
+    const std::vector<std::pair<std::string, Value>>& descriptors,
+    std::string& error) {
+  for (const auto& descriptor : descriptors) {
+    Value name_arg = Value::string(descriptor.first);
+    Value call_args[] = {cls, name_arg};
+    Value ignored;
+    if (!runtime_call_callable(runtime, descriptor.second, call_args, 2, ignored, error)) {
+      if (error.empty()) {
+        error = "Error calling __set_name__";
+      }
+      return false;
+    }
+  }
+  return true;
+}
+
+XLANG3_HOT_INLINE bool xlang_vm_call_init_subclass_for_new_class(
+    Runtime& runtime,
+    const Value& cls,
+    TupleObject* bases,
+    const std::vector<std::pair<std::string, Value>>& keywords,
+    std::string& error) {
+  if (bases == nullptr || bases->items.empty()) {
+    return true;
+  }
+  Value hook;
+  if (!object_lookup_inherited_class_attr(cls, "__init_subclass__", hook, error)) {
+    error.clear();
+    return true;
+  }
+  Value ignored;
+  if (auto* method = value_as_class_method(hook)) {
+    Value call_args[] = {cls};
+    return runtime_call_callable_kw(runtime, method->function, call_args, 1, keywords, ignored, error);
+  }
+  if (auto* static_method = value_as_static_method(hook)) {
+    return runtime_call_callable_kw(runtime, static_method->function, nullptr, 0, keywords, ignored, error);
+  }
+  if (value_as_function(hook) != nullptr || value_as_native_function(hook) != nullptr) {
+    Value call_args[] = {cls};
+    return runtime_call_callable_kw(runtime, hook, call_args, 1, keywords, ignored, error);
+  }
+  return runtime_call_callable_kw(runtime, hook, nullptr, 0, keywords, ignored, error);
+}
+
+XLANG3_HOT_INLINE std::string xlang_vm_inline_current_module_name(Runtime& runtime) {
+  Value name_value;
+  std::string ignored;
+  if (module_get_attr(runtime.current_globals_module(), "__name__", name_value, ignored)) {
+    if (auto* name = value_as_string(name_value)) {
+      return string_object_to_string(*name);
+    }
+  }
+  return "__main__";
+}
+
+XLANG3_HOT_INLINE bool xlang_vm_value_has_abstract_marker(Runtime& runtime, const Value& value,
+                                                           bool& out, std::string& error) {
+  const Value* getattr_function = runtime.find_builtin("getattr");
+  if (getattr_function == nullptr) {
+    error = "getattr is unavailable";
+    return false;
+  }
+  Value getattr_args[] = {value, Value::string("__isabstractmethod__"), Value::boolean(false)};
+  Value marker;
+  if (!runtime_call_callable(runtime, *getattr_function, getattr_args, 3, marker, error)) return false;
+  return runtime_truthy(runtime, marker, out, error);
+}
+
+XLANG3_HOT_INLINE void xlang_vm_add_abstract_name(std::vector<Value>& names, const std::string& name) {
+  for (const auto& item : names) {
+    auto* string = value_as_string(item);
+    if (string != nullptr && string_object_to_string(*string) == name) {
+      return;
+    }
+  }
+  names.push_back(Value::string(name));
+}
+
+XLANG3_HOT_INLINE void xlang_vm_collect_abstract_names_from_iterable(const Value& value, std::vector<std::string>& names) {
+  auto add_name = [&names](const Value& item) {
+    auto* string = value_as_string(item);
+    if (string == nullptr) {
+      return;
+    }
+    const auto name = string_object_to_string(*string);
+    if (std::find(names.begin(), names.end(), name) == names.end()) {
+      names.push_back(name);
+    }
+  };
+  if (auto* set = value_as_set(value)) {
+    for (const auto& item : set->items) {
+      add_name(item);
+    }
+  } else if (auto* tuple = value_as_tuple(value)) {
+    for (const auto& item : tuple->items) {
+      add_name(item);
+    }
+  } else if (auto* list = value_as_list(value)) {
+    for (const auto& item : list->items) {
+      add_name(item);
+    }
+  }
+}
+
+XLANG3_HOT_INLINE bool xlang_vm_abc_abstract_methods_for_type_constructor_attrs(
+    Runtime& runtime, TupleObject* bases,
+    const std::vector<std::pair<std::string, Value>>& attrs, Value& out, std::string& error) {
+  std::vector<Value> abstracts;
+  std::vector<std::string> inherited_names;
+  for (const auto& base : bases->items) {
+    Value base_abstracts;
+    std::string ignored;
+    if (object_get_attr(base, "__abstractmethods__", base_abstracts, ignored)) {
+      xlang_vm_collect_abstract_names_from_iterable(base_abstracts, inherited_names);
+    }
+  }
+  for (const auto& name : inherited_names) {
+    Value override_value;
+    bool has_override = false;
+    for (const auto& attr : attrs) {
+      if (attr.first == name) {
+        value_assign_fast(override_value, attr.second);
+        has_override = true;
+        break;
+      }
+    }
+    bool is_abstract = false;
+    if (has_override && !xlang_vm_value_has_abstract_marker(runtime, override_value, is_abstract, error)) return false;
+    if (!has_override || is_abstract) {
+      xlang_vm_add_abstract_name(abstracts, name);
+    }
+  }
+  for (const auto& attr : attrs) {
+    bool is_abstract = false;
+    if (!xlang_vm_value_has_abstract_marker(runtime, attr.second, is_abstract, error)) return false;
+    if (is_abstract) {
+      xlang_vm_add_abstract_name(abstracts, attr.first);
+    }
+  }
+  out = Value::frozenset(std::move(abstracts));
+  return true;
+}
+
+XLANG3_HOT_INLINE bool xlang_vm_abc_abstract_methods_for_type_constructor(
+    Runtime& runtime, TupleObject* bases, DictObject* namespace_dict, Value& out, std::string& error) {
+  std::vector<std::pair<std::string, Value>> attrs;
+  attrs.reserve(namespace_dict->entries.size());
+  for (const auto& entry : namespace_dict->entries) {
+    auto* key = value_as_string(entry.first);
+    if (key != nullptr) {
+      attrs.push_back({string_object_to_string(*key), entry.second});
+    }
+  }
+  return xlang_vm_abc_abstract_methods_for_type_constructor_attrs(runtime, bases, attrs, out, error);
+}
+
+XLANG3_HOT_INLINE XlangVMBuiltinConstructor xlang_vm_find_builtin_constructor(const std::string& name) {
+  static constexpr XlangVMBuiltinConstructorSpec specs[] = {
+      {XlangVMNames::builtin_type, XlangVMBuiltinConstructor::Type},
+      {XlangVMNames::object_type, XlangVMBuiltinConstructor::Object},
+      {XlangVMNames::builtin_str, XlangVMBuiltinConstructor::Str},
+      {XlangVMNames::builtin_bool, XlangVMBuiltinConstructor::Bool},
+      {XlangVMNames::builtin_int, XlangVMBuiltinConstructor::Int},
+      {XlangVMNames::builtin_float, XlangVMBuiltinConstructor::Float},
+      {XlangVMNames::builtin_slice, XlangVMBuiltinConstructor::Slice},
+      {XlangVMNames::builtin_range, XlangVMBuiltinConstructor::Range},
+      {XlangVMNames::builtin_list, XlangVMBuiltinConstructor::List},
+      {XlangVMNames::builtin_tuple, XlangVMBuiltinConstructor::Tuple},
+      {XlangVMNames::builtin_set, XlangVMBuiltinConstructor::Set},
+      {XlangVMNames::builtin_frozenset, XlangVMBuiltinConstructor::FrozenSet},
+      {XlangVMNames::builtin_dict, XlangVMBuiltinConstructor::Dict},
+      {XlangVMNames::builtin_mappingproxy, XlangVMBuiltinConstructor::MappingProxy},
+      {XlangVMNames::builtin_bytes, XlangVMBuiltinConstructor::Bytes},
+      {XlangVMNames::builtin_bytearray, XlangVMBuiltinConstructor::ByteArray},
+      {XlangVMNames::builtin_memoryview, XlangVMBuiltinConstructor::MemoryView},
+      {XlangVMNames::builtin_property, XlangVMBuiltinConstructor::Property},
+      {XlangVMNames::builtin_classmethod, XlangVMBuiltinConstructor::ClassMethod},
+      {XlangVMNames::builtin_staticmethod, XlangVMBuiltinConstructor::StaticMethod},
+      {XlangVMNames::builtin_super, XlangVMBuiltinConstructor::Super},
+      {XlangVMNames::builtin_module, XlangVMBuiltinConstructor::Module},
+      {XlangVMNames::builtin_method, XlangVMBuiltinConstructor::Method},
+      {"function", XlangVMBuiltinConstructor::Function},
+      {"cell", XlangVMBuiltinConstructor::Cell},
+      {"traceback", XlangVMBuiltinConstructor::Traceback},
+  };
+  for (const auto& spec : specs) {
+    if (name == spec.name) {
+      return spec.kind;
+    }
+  }
+  return XlangVMBuiltinConstructor::Unknown;
+}
+
+XLANG3_HOT_INLINE XlangVMBuiltinConstructor xlang_vm_find_inherited_builtin_constructor(const ClassObject& klass) {
+  if (class_has_builtin_base_name(const_cast<ClassObject*>(&klass), XlangVMNames::builtin_type)) {
+    return XlangVMBuiltinConstructor::Type;
+  }
+  if (class_has_builtin_base_name(const_cast<ClassObject*>(&klass), XlangVMNames::builtin_int)) {
+    return XlangVMBuiltinConstructor::Int;
+  }
+  if (class_has_builtin_base_name(const_cast<ClassObject*>(&klass), XlangVMNames::builtin_str)) {
+    return XlangVMBuiltinConstructor::Str;
+  }
+  if (class_has_builtin_base_name(const_cast<ClassObject*>(&klass), XlangVMNames::builtin_float)) {
+    return XlangVMBuiltinConstructor::Float;
+  }
+  if (class_has_builtin_base_name(const_cast<ClassObject*>(&klass), XlangVMNames::builtin_bytes)) {
+    return XlangVMBuiltinConstructor::Bytes;
+  }
+  if (class_has_builtin_base_name(const_cast<ClassObject*>(&klass), XlangVMNames::builtin_bytearray)) {
+    return XlangVMBuiltinConstructor::ByteArray;
+  }
+  return XlangVMBuiltinConstructor::Unknown;
+}
+
+XLANG3_HOT_INLINE bool xlang_vm_class_is_builtin_module_class(const ClassObject& klass) {
+  if (klass.name == XlangVMNames::builtin_module) {
+    return true;
+  }
+  auto it = klass.attrs.find("__module__");
+  if (it == klass.attrs.end()) {
+    return true;
+  }
+  auto* module_name = value_as_string(it->second);
+  return module_name != nullptr && string_object_to_string(*module_name) == "builtins";
+}
+
+XLANG3_HOT_INLINE bool xlang_vm_infer_super_defining_class(
+    Runtime& runtime,
+    const Value& self,
+    Value& out,
+    std::string& error) {
+  Value lexical_class;
+  if (runtime.current_frame_free_var("__class__", lexical_class) &&
+      value_as_class(lexical_class) != nullptr) {
+    value_assign_fast(out, lexical_class);
+    return true;
+  }
+  auto* instance = value_as_instance(self);
+  Value subject_class;
+  if (instance != nullptr) {
+    value_assign_fast(subject_class, instance->klass);
+  } else if (self.tag == ValueTag::Object && self.as.obj != nullptr &&
+             self.as.obj->kind == ObjectKind::File &&
+             reinterpret_cast<FileObject*>(self.as.obj)->klass.tag != ValueTag::Invalid) {
+    value_assign_fast(subject_class, reinterpret_cast<FileObject*>(self.as.obj)->klass);
+  } else if (value_as_class(self) != nullptr) {
+    value_assign_fast(subject_class, self);
+  } else {
+    error = "super(): current self is not an instance or class";
+    return false;
+  }
+  Value mro_value;
+  if (!object_get_attr(subject_class, "__mro__", mro_value, error)) {
+    return false;
+  }
+  auto* mro = value_as_tuple(mro_value);
+  if (mro == nullptr) {
+    error = "super(): invalid method resolution order";
+    return false;
+  }
+  const uint32_t current_function_id = runtime.current_frame_function_id();
+  const auto* current_module_owner = runtime.current_frame_module_owner();
+  Value defining_class;
+  for (const auto& class_value : mro->items) {
+    auto* klass = value_as_class(class_value);
+    if (klass == nullptr) {
+      continue;
+    }
+    for (const auto& attr : klass->attrs) {
+      Value function_value;
+      if (auto* method = value_as_static_method(attr.second)) {
+        value_assign_fast(function_value, method->function);
+      } else if (auto* method = value_as_class_method(attr.second)) {
+        value_assign_fast(function_value, method->function);
+      } else if (auto* property = value_as_property(attr.second)) {
+        value_assign_fast(function_value, property->fget);
+      } else {
+        value_assign_fast(function_value, attr.second);
+      }
+      auto* function = value_as_function(function_value);
+      const bool same_module =
+          function != nullptr &&
+          current_module_owner != nullptr &&
+          function->module != nullptr &&
+          function->module.get() == current_module_owner->get();
+      if (same_module && function->function_id == current_function_id) {
+        value_assign_fast(defining_class, class_value);
+      }
+    }
+  }
+  if (defining_class.tag != ValueTag::Invalid) {
+    value_assign_fast(out, defining_class);
+    return true;
+  }
+  if (value_as_class(self) != nullptr) {
+    Value metaclass_value;
+    std::string meta_error;
+    if (object_get_attr(self, "__class__", metaclass_value, meta_error)) {
+      Value meta_mro_value;
+      auto* meta_mro = value_as_tuple(meta_mro_value);
+      if (object_get_attr(metaclass_value, "__mro__", meta_mro_value, meta_error) &&
+          (meta_mro = value_as_tuple(meta_mro_value)) != nullptr) {
+        for (const auto& class_value : meta_mro->items) {
+          auto* candidate = value_as_class(class_value);
+          if (candidate == nullptr) {
+            continue;
+          }
+          for (const auto& attr : candidate->attrs) {
+            Value function_value;
+            if (auto* method = value_as_static_method(attr.second)) {
+              value_assign_fast(function_value, method->function);
+            } else if (auto* method = value_as_class_method(attr.second)) {
+              value_assign_fast(function_value, method->function);
+            } else if (auto* property = value_as_property(attr.second)) {
+              value_assign_fast(function_value, property->fget);
+            } else {
+              value_assign_fast(function_value, attr.second);
+            }
+            auto* function = value_as_function(function_value);
+            const bool same_module =
+                function != nullptr &&
+                current_module_owner != nullptr &&
+                function->module != nullptr &&
+                function->module.get() == current_module_owner->get();
+            if (same_module && function->function_id == current_function_id) {
+              value_assign_fast(out, class_value);
+              return true;
+            }
+          }
+        }
+      }
+    }
+  }
+  value_assign_fast(out, subject_class);
+  return true;
+}
+
+XLANG3_HOT_INLINE bool xlang_vm_current_super_first_argument(
+    Runtime& runtime,
+    const Value& locals,
+    Value& out) {
+  std::string ignored;
+  const auto* owner = runtime.current_frame_module_owner();
+  if (owner != nullptr && *owner) {
+    const uint32_t function_id = runtime.current_frame_function_id();
+    if (function_id < (*owner)->functions.size() && !(*owner)->functions[function_id].params.empty()) {
+      const auto& first_name = (*owner)->functions[function_id].params[0];
+      if (!first_name.empty() && mapping_get_item(locals, Value::string(first_name), out, ignored)) {
+        return true;
+      }
+    }
+  }
+  return mapping_get_item(locals, Value::string("self"), out, ignored) ||
+         mapping_get_item(locals, Value::string("cls"), out, ignored);
+}
+
+XLANG3_HOT_INLINE bool xlang_vm_parse_int_text(std::string_view text, int base, int64_t& out) {
+  size_t begin = 0;
+  size_t end = text.size();
+  while (begin < end && std::isspace(static_cast<unsigned char>(text[begin]))) {
+    ++begin;
+  }
+  while (end > begin && std::isspace(static_cast<unsigned char>(text[end - 1]))) {
+    --end;
+  }
+  if (begin == end) {
+    return false;
+  }
+  bool negative = false;
+  if (text[begin] == '+' || text[begin] == '-') {
+    negative = text[begin] == '-';
+    ++begin;
+  }
+  if (begin == end || (base != 0 && (base < 2 || base > 36))) {
+    return false;
+  }
+  if (base == 0) {
+    base = 10;
+    if (end - begin >= 2 && text[begin] == '0') {
+      const char marker = static_cast<char>(std::tolower(static_cast<unsigned char>(text[begin + 1])));
+      if (marker == 'x') {
+        base = 16;
+        begin += 2;
+      } else if (marker == 'o') {
+        base = 8;
+        begin += 2;
+      } else if (marker == 'b') {
+        base = 2;
+        begin += 2;
+      }
+    }
+  } else if (end - begin >= 2 && text[begin] == '0') {
+    const char marker = static_cast<char>(std::tolower(static_cast<unsigned char>(text[begin + 1])));
+    if ((base == 16 && marker == 'x') || (base == 8 && marker == 'o') || (base == 2 && marker == 'b')) {
+      begin += 2;
+    }
+  }
+  if (begin == end) {
+    return false;
+  }
+  int64_t result = 0;
+  bool saw_digit = false;
+  bool previous_separator = false;
+  for (size_t i = begin; i < end; ++i) {
+    const unsigned char ch = static_cast<unsigned char>(text[i]);
+    if (ch == '_') {
+      if (!saw_digit || previous_separator || i + 1 == end) {
+        return false;
+      }
+      previous_separator = true;
+      continue;
+    }
+    int digit = -1;
+    if (ch >= '0' && ch <= '9') {
+      digit = ch - '0';
+    } else if (ch >= 'a' && ch <= 'z') {
+      digit = ch - 'a' + 10;
+    } else if (ch >= 'A' && ch <= 'Z') {
+      digit = ch - 'A' + 10;
+    }
+    if (digit < 0 || digit >= base) {
+      return false;
+    }
+    result = result * base + digit;
+    saw_digit = true;
+    previous_separator = false;
+  }
+  out = negative ? -result : result;
+  return saw_digit;
+}
+
+XLANG3_HOT_INLINE bool call_builtin_type_constructor(
+    Runtime& runtime,
+    const ClassObject& klass,
+    CallArgsView args,
+    XlangRuntimeExecutionGuard& execution_lock,
+    Value& out,
+    XlangVMBuiltinConstructorError& constructor_error) {
+  // CPython native heap types can keep a direct constructor beside their
+  // native payload implementation. Run it only while the exact class layout
+  // and its __new__/__init__ methods remain unchanged; subclasses and patched
+  // classes continue through normal class construction below.
+  if (klass.native_type_constructor != nullptr &&
+      klass.native_type_constructor_version == klass.version) {
+    bool handled = false;
+    std::string native_error;
+    const bool succeeded = klass.native_type_constructor(
+        runtime, klass, args, handled, out, native_error);
+    if (handled) {
+      constructor_error.fully_handled = true;
+      if (!succeeded) {
+        constructor_error.set("RuntimeError", native_error.empty()
+            ? "native type constructor failed" : std::move(native_error));
+      }
+      return true;
+    }
+  }
+
+  auto constructor = xlang_vm_find_builtin_constructor(klass.name);
+  bool exact_builtin_constructor = constructor != XlangVMBuiltinConstructor::Unknown;
+  if (constructor != XlangVMBuiltinConstructor::Unknown && !xlang_vm_class_is_builtin_module_class(klass)) {
+    constructor = XlangVMBuiltinConstructor::Unknown;
+    exact_builtin_constructor = false;
+  }
+  if (constructor == XlangVMBuiltinConstructor::Unknown) {
+    constructor = xlang_vm_find_inherited_builtin_constructor(klass);
+    exact_builtin_constructor = false;
+  }
+  if (constructor == XlangVMBuiltinConstructor::Unknown) {
+    return false;
+  }
+
+  auto& error = constructor_error.message;
+  constructor_error.type = "TypeError";
+
+  std::vector<Value> constructor_positional;
+  std::vector<std::pair<std::string, Value>> constructor_keywords;
+  CallArgsView constructor_args = args;
+
+  auto materialize_constructor_args = [&]() -> bool {
+    constructor_positional.clear();
+    constructor_keywords.clear();
+    constructor_positional.reserve(args.size());
+    for (size_t i = 0; i < args.size(); ++i) {
+      constructor_positional.push_back(args.get(i));
+    }
+    auto expand_star_arg = [&](uint32_t star_reg) -> bool {
+      Value iterator;
+      if (!runtime_get_iter(runtime, args.registers[star_reg], iterator, error)) {
+        error = "Value after * must be an iterable, not " +
+            std::string(value_binary_type_name(args.registers[star_reg]));
+        return false;
+      }
+      for (;;) {
+        bool done = false;
+        Value item;
+        if (!sequence_iter_next(iterator, done, item, error)) {
+          return false;
+        }
+        if (done) {
+          break;
+        }
+        constructor_positional.push_back(std::move(item));
+      }
+      return true;
+    };
+    if (args.star_args != nullptr && !args.star_args->empty()) {
+      for (uint32_t star_reg : *args.star_args) {
+        if (!expand_star_arg(star_reg)) {
+          return false;
+        }
+      }
+    } else if (args.star_arg != UINT32_MAX) {
+      if (!expand_star_arg(args.star_arg)) {
+        return false;
+      }
+    }
+    auto add_keyword = [&](std::string name, const Value& value) -> bool {
+      for (const auto& existing : constructor_keywords) {
+        if (existing.first == name) {
+          error = "got multiple values for keyword argument '" + name + "'";
+          return false;
+        }
+      }
+      constructor_keywords.push_back({std::move(name), value});
+      return true;
+    };
+    if (args.keyword_args != nullptr) {
+      for (const auto& keyword : *args.keyword_args) {
+        if (!add_keyword(keyword.name, args.registers[keyword.value_reg])) {
+          return false;
+        }
+      }
+    }
+    auto expand_kw_star_arg = [&](uint32_t kw_star_reg) -> bool {
+      auto* kwargs = value_as_dict(args.registers[kw_star_reg]);
+      if (kwargs == nullptr) {
+        error = "** argument must be dict";
+        return false;
+      }
+      for (const auto& entry : kwargs->entries) {
+        auto* key = value_as_string(entry.first);
+        if (key == nullptr) {
+          error = "** argument keys must be strings";
+          return false;
+        }
+        if (!add_keyword(string_object_to_string(*key), entry.second)) {
+          return false;
+        }
+      }
+      return true;
+    };
+    if (args.kw_star_args != nullptr && !args.kw_star_args->empty()) {
+      for (uint32_t kw_star_reg : *args.kw_star_args) {
+        if (!expand_kw_star_arg(kw_star_reg)) {
+          return false;
+        }
+      }
+    } else if (args.kw_star_arg != UINT32_MAX) {
+      if (!expand_kw_star_arg(args.kw_star_arg)) {
+        return false;
+      }
+    }
+    constructor_args.leading = constructor_positional.data();
+    constructor_args.leading_count = static_cast<uint32_t>(constructor_positional.size());
+    constructor_args.registers = nullptr;
+    constructor_args.register_args = nullptr;
+    constructor_args.keyword_args = nullptr;
+    constructor_args.star_arg = UINT32_MAX;
+    constructor_args.kw_star_arg = UINT32_MAX;
+    constructor_args.star_args = nullptr;
+    constructor_args.kw_star_args = nullptr;
+    return true;
+  };
+
+  if ((args.has_keywords() || args.has_expansion()) && !materialize_constructor_args()) {
+    return false;
+  }
+
+  auto reject_constructor_keywords = [&]() -> bool {
+    if (!constructor_keywords.empty()) {
+      error = klass.name + "() got an unexpected keyword argument '" + constructor_keywords.front().first + "'";
+      return false;
+    }
+    return true;
+  };
+
+  auto find_constructor_keyword = [&](const char* name) -> const Value* {
+    for (const auto& keyword : constructor_keywords) {
+      if (keyword.first == name) {
+        return &keyword.second;
+      }
+    }
+    return nullptr;
+  };
+
+  auto reject_constructor_keywords_except = [&](std::initializer_list<const char*> allowed) -> bool {
+    for (const auto& keyword : constructor_keywords) {
+      bool ok = false;
+      for (const char* name : allowed) {
+        if (keyword.first == name) {
+          ok = true;
+          break;
+        }
+      }
+      if (!ok) {
+        error = klass.name + "() got an unexpected keyword argument '" + keyword.first + "'";
+        return false;
+      }
+    }
+    return true;
+  };
+
+  auto require_constructor_string_keyword = [&](const Value* value, const char* name) -> bool {
+    if (value == nullptr || value->tag == ValueTag::None) {
+      return true;
+    }
+    if (value_as_string(*value) == nullptr) {
+      error = klass.name + "() " + std::string(name) + " must be str or None";
+      return false;
+    }
+    return true;
+  };
+
+  if (constructor == XlangVMBuiltinConstructor::Function) {
+    if (!reject_constructor_keywords_except({"name", "argdefs", "closure", "kwdefaults"})) {
+      return false;
+    }
+    if (constructor_args.size() < 2 || constructor_args.size() > 5) {
+      error = "function() expected at least 2 and at most 5 arguments";
+      return false;
+    }
+    auto* code = value_as_code(constructor_args.get(0));
+    if (code == nullptr || code->module == nullptr || code->function_id >= code->module->functions.size()) {
+      error = "function() argument 'code' must be a code object";
+      return false;
+    }
+    const Value& globals_value = constructor_args.get(1);
+    if (!mapping_is_mapping(globals_value)) {
+      error = "function() argument 'globals' must be a dict";
+      return false;
+    }
+
+    const Value* name_value = constructor_args.size() >= 3 ? &constructor_args.get(2) : find_constructor_keyword("name");
+    const Value* defaults_value = constructor_args.size() >= 4 ? &constructor_args.get(3) : find_constructor_keyword("argdefs");
+    const Value* closure_value = constructor_args.size() >= 5 ? &constructor_args.get(4) : find_constructor_keyword("closure");
+    const Value* kwdefaults_value = find_constructor_keyword("kwdefaults");
+
+    std::string function_name;
+    if (name_value != nullptr && name_value->tag != ValueTag::None) {
+      auto* name = value_as_string(*name_value);
+      if (name == nullptr) {
+        error = "function() argument 'name' must be a string";
+        return false;
+      }
+      function_name = string_object_to_string(*name);
+    }
+
+    std::vector<Value> defaults;
+    if (defaults_value != nullptr && defaults_value->tag != ValueTag::None) {
+      auto* tuple = value_as_tuple(*defaults_value);
+      if (tuple == nullptr) {
+        error = "function() argument 'argdefs' must be a tuple";
+        return false;
+      }
+      defaults = tuple->items;
+    }
+
+    std::vector<Value> closure;
+    if (closure_value != nullptr && closure_value->tag != ValueTag::None) {
+      auto* tuple = value_as_tuple(*closure_value);
+      if (tuple == nullptr) {
+        error = "function() argument 'closure' must be a tuple";
+        return false;
+      }
+      closure = tuple->items;
+      for (const auto& cell : closure) {
+        if (value_as_cell(cell) == nullptr) {
+          error = "function() argument 'closure' must contain cell objects";
+          return false;
+        }
+      }
+    }
+
+    std::vector<std::pair<std::string, Value>> kwdefaults;
+    if (kwdefaults_value != nullptr && kwdefaults_value->tag != ValueTag::None) {
+      if (!mapping_is_dict(*kwdefaults_value)) {
+        error = "function() argument 'kwdefaults' must be a dict";
+        return false;
+      }
+    }
+
+    out = Value::function(
+        code->function_id,
+        std::move(closure),
+        globals_value,
+        code->module,
+        std::move(defaults),
+        std::move(kwdefaults));
+    if (kwdefaults_value != nullptr &&
+        !object_set_attr(out, "__kwdefaults__", *kwdefaults_value, error)) {
+      return false;
+    }
+    if (auto* function = value_as_function(out)) {
+      value_assign_fast(function->code_object, constructor_args.get(0));
+      function_capture_builtins(runtime, *function, globals_value);
+    }
+    std::string ignored;
+    if (!function_name.empty()) {
+      object_set_attr(out, "__name__", Value::string(function_name), ignored);
+    }
+    return true;
+  }
+
+  if (constructor == XlangVMBuiltinConstructor::Cell) {
+    if (!reject_constructor_keywords()) return false;
+    if (constructor_args.size() > 1) {
+      error = "cell() expected at most 1 argument";
+      return false;
+    }
+    out = Value::cell(constructor_args.size() == 0 ? Value::invalid() : constructor_args.get(0));
+    return true;
+  }
+
+  if (constructor == XlangVMBuiltinConstructor::Traceback) {
+    if (!reject_constructor_keywords()) return false;
+    if (constructor_args.size() != 4 ||
+        (constructor_args.get(0).tag != ValueTag::None &&
+         value_as_traceback(constructor_args.get(0)) == nullptr) ||
+        value_as_frame(constructor_args.get(1)) == nullptr ||
+        constructor_args.get(2).tag != ValueTag::Int64 ||
+        constructor_args.get(3).tag != ValueTag::Int64) {
+      error = "traceback() expected (tb_next, frame, lasti, lineno)";
+      return false;
+    }
+    out = Value::traceback(
+        constructor_args.get(1), constructor_args.get(0),
+        constructor_args.get(3).as.i64, constructor_args.get(2).as.i64);
+    return true;
+  }
+
+  if (constructor == XlangVMBuiltinConstructor::Type) {
+    if (constructor_args.size() == 1) {
+      if (!reject_constructor_keywords()) return false;
+      return runtime_type_of_value(runtime, constructor_args.get(0), out);
+    }
+    if (constructor_args.size() != 3) {
+      error = "type() expected 1 or 3 arguments";
+      return false;
+    }
+    auto* name = value_as_string(constructor_args.get(0));
+    auto* bases = value_as_tuple(constructor_args.get(1));
+    if (name == nullptr) {
+      error = "type() argument 1 must be str";
+      return false;
+    }
+    if (bases == nullptr) {
+      error = "type() argument 2 must be tuple";
+      return false;
+    }
+    std::vector<std::pair<std::string, Value>> attrs;
+    if (!xlang_vm_collect_type_namespace_attrs(runtime, constructor_args.get(2), attrs, error)) {
+      return false;
+    }
+    std::vector<std::string> explicit_slots;
+    bool has_explicit_slots = false;
+    for (const auto& attr : attrs) {
+      if (attr.first == "__slots__") {
+        has_explicit_slots = true;
+        if (!xlang_vm_collect_type_slots(attr.second, explicit_slots)) {
+          error = "type() __slots__ must be a string or iterable of strings";
+          return false;
+        }
+      }
+    }
+    if (has_explicit_slots) {
+      for (const auto& slot : explicit_slots) {
+        for (const auto& attr : attrs) {
+          if (attr.first == slot && attr.first != "__doc__") {
+            error = "'" + slot + "' in __slots__ conflicts with class variable";
+            return false;
+          }
+        }
+      }
+    }
+    Value base = Value::invalid();
+    if (bases->items.empty()) {
+      if (const auto* object_type = runtime.find_builtin(XlangVMNames::object_type)) {
+        value_assign_fast(base, *object_type);
+      }
+    } else {
+      for (const auto& item : bases->items) {
+        if (value_as_class(item) == nullptr) {
+          error = "type() bases must be classes";
+          return false;
+        }
+      }
+      value_assign_fast(base, bases->items[0]);
+    }
+    Value metaclass;
+    metaclass.tag = ValueTag::Object;
+    metaclass.as.obj = const_cast<Object*>(&klass.header);
+    retain(metaclass);
+    std::string class_name = string_object_to_string(*name);
+    Value final_marker;
+    std::string final_error;
+    if (base.tag != ValueTag::Invalid &&
+        object_get_attr(base, "__xlang3_final_type__", final_marker, final_error) &&
+        value_truthy(final_marker)) {
+      auto* final_class = value_as_class(base);
+      error = "type '" + std::string(final_class == nullptr ? "object" : final_class->name) +
+          "' is not an acceptable base type";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    if (!xlang_vm_inline_class_attrs_have(attrs, "__module__")) {
+      attrs.push_back({"__module__", Value::string(xlang_vm_inline_current_module_name(runtime))});
+    }
+    if (!xlang_vm_inline_class_attrs_have(attrs, "__qualname__")) {
+      attrs.push_back({"__qualname__", Value::string(class_name)});
+    }
+    if (xlang_vm_inline_class_attrs_have(attrs, "__eq__") &&
+        !xlang_vm_inline_class_attrs_have(attrs, "__hash__")) {
+      attrs.push_back({"__hash__", Value::none()});
+    }
+    std::vector<std::pair<std::string, Value>> set_name_descriptors;
+    xlang_vm_collect_set_name_descriptors(attrs, set_name_descriptors);
+    Value abstract_methods = Value::invalid();
+    const bool needs_abstract_methods =
+        klass.name == "ABCMeta" || class_has_builtin_base_name(const_cast<ClassObject*>(&klass), "ABCMeta");
+    if (needs_abstract_methods) {
+      if (!xlang_vm_abc_abstract_methods_for_type_constructor_attrs(
+              runtime, bases, attrs, abstract_methods, error)) return false;
+    }
+    out = Value::class_object(class_name, std::move(attrs), base, {}, std::move(metaclass));
+    if (!xlang_vm_call_set_name_descriptors(runtime, out, set_name_descriptors, error)) {
+      return false;
+    }
+    if (bases->items.size() > 1) {
+      for (size_t i = 1; i < bases->items.size(); ++i) {
+        if (!class_set_base(out, bases->items[i], error)) {
+          return false;
+        }
+      }
+    }
+    if (needs_abstract_methods) {
+      if (!object_set_attr(out, "__abstractmethods__", abstract_methods, error)) {
+        return false;
+      }
+    }
+    if (!xlang_vm_call_init_subclass_for_new_class(runtime, out, bases, constructor_keywords, error)) {
+      return false;
+    }
+    return true;
+  }
+
+  if (constructor == XlangVMBuiltinConstructor::Object) {
+    if (!reject_constructor_keywords()) return false;
+    if (constructor_args.size() != 0) {
+      error = "object() expected no arguments";
+      return false;
+    }
+    if (const auto* object_type = runtime.find_builtin(XlangVMNames::object_type)) {
+      out = Value::instance(*object_type);
+      return true;
+    }
+    error = "object type is not registered";
+    return false;
+  }
+
+  if (constructor == XlangVMBuiltinConstructor::Str) {
+    if (!reject_constructor_keywords_except({"encoding", "errors"})) return false;
+    const Value* encoding = find_constructor_keyword("encoding");
+    const Value* errors_value = find_constructor_keyword("errors");
+    if (!require_constructor_string_keyword(encoding, "encoding") ||
+        !require_constructor_string_keyword(errors_value, "errors")) {
+      return false;
+    }
+    if (constructor_args.size() > 3) {
+      error = "str() expected at most 3 arguments";
+      return false;
+    }
+    auto finish_string = [&](const Value& text) -> bool {
+      if (exact_builtin_constructor) {
+        value_assign_fast(out, text);
+        return true;
+      }
+      Value klass_value;
+      klass_value.tag = ValueTag::Object;
+      klass_value.as.obj = const_cast<Object*>(&klass.header);
+      retain(klass_value);
+      out = Value::instance(std::move(klass_value));
+      std::string attr_error;
+      if (!object_set_attr(out, "__xlang3_string_value__", text, attr_error)) {
+        error = "str subclass construction failed";
+        return false;
+      }
+      return true;
+    };
+    if (constructor_args.size() >= 2) {
+      encoding = &constructor_args.get(1);
+      if (!require_constructor_string_keyword(encoding, "encoding")) return false;
+    }
+    if (constructor_args.size() >= 3) {
+      errors_value = &constructor_args.get(2);
+      if (!require_constructor_string_keyword(errors_value, "errors")) return false;
+    }
+    if (constructor_args.size() == 0) {
+      return finish_string(Value::string(""));
+    }
+    const Value& source = constructor_args.get(0);
+    if (encoding != nullptr && encoding->tag != ValueTag::None) {
+      std::string encoding_name = string_object_to_string(*value_as_string(*encoding));
+      std::transform(encoding_name.begin(), encoding_name.end(), encoding_name.begin(), [](unsigned char ch) {
+        return ch == '-' ? '_' : static_cast<char>(std::tolower(ch));
+      });
+      if (encoding_name == "latin1" || encoding_name == "iso8859_1" ||
+          encoding_name == "iso_8859_1" || encoding_name == "8859") encoding_name = "latin_1";
+      if (encoding_name == "utf8" || encoding_name == "u8" || encoding_name == "cp65001") encoding_name = "utf_8";
+      if (encoding_name == "us_ascii" || encoding_name == "646") encoding_name = "ascii";
+      std::string source_bytes;
+      if (auto* bytes = value_as_bytes(source)) {
+        source_bytes = bytes_object_to_string(*bytes);
+      } else if (auto* bytearray = value_as_bytearray(source)) {
+        source_bytes = bytearray->value;
+      } else if (auto* view = value_as_memoryview(source)) {
+        for (size_t i = 0; i < view->size; ++i) {
+          Value item;
+          if (!sequence_get_item(source, Value::int64(static_cast<int64_t>(i)), item, error)) {
+            return false;
+          }
+          source_bytes.push_back(static_cast<char>(item.as.i64));
+        }
+      } else {
+        error = "decoding to str requires a bytes-like object";
+        runtime.raise_class_error("TypeError", error);
+        return false;
+      }
+      Value decode;
+      if (!attribute_get(source, "decode", decode, error)) return false;
+      Value decode_args[2] = {
+          *encoding,
+          errors_value == nullptr || errors_value->tag == ValueTag::None
+              ? Value::string("strict")
+              : *errors_value};
+      Value decoded;
+      if (!runtime_call_callable(runtime, decode, decode_args, 2, decoded, error)) return false;
+      if (value_as_string(decoded) == nullptr) {
+        error = "decoder returned a non-string result";
+        runtime.raise_class_error("TypeError", error);
+        return false;
+      }
+      return finish_string(decoded);
+    }
+    Value text;
+    if (!builtin_str_from_value(runtime, source, text, error)) return false;
+    return finish_string(text);
+  }
+
+  if (constructor == XlangVMBuiltinConstructor::Bool) {
+    if (!reject_constructor_keywords()) return false;
+    if (constructor_args.size() > 1) {
+      error = "bool() expected at most 1 argument";
+      return false;
+    }
+    bool truth = false;
+    if (constructor_args.size() && !runtime_truthy(runtime, constructor_args.get(0), truth, error)) return false;
+    out = Value::boolean(truth);
+    return true;
+  }
+
+  if (constructor == XlangVMBuiltinConstructor::Int) {
+    if (!reject_constructor_keywords_except({"base"})) return false;
+    if (const Value* base_keyword = find_constructor_keyword("base")) {
+      if (constructor_args.size() == 0) {
+        error = "int() missing string argument";
+        return false;
+      }
+      if (constructor_args.size() >= 2) {
+        error = "int() takes at most 2 arguments (3 given)";
+        return false;
+      }
+      constructor_positional.push_back(*base_keyword);
+      constructor_args.leading = constructor_positional.data();
+      constructor_args.leading_count = static_cast<uint32_t>(constructor_positional.size());
+    }
+    if (constructor_args.size() > 2) {
+      error = "int() expected at most 2 arguments";
+      return false;
+    }
+    int base = 10;
+    if (constructor_args.size() == 2) {
+      if (constructor_args.get(1).tag != ValueTag::Int64) {
+        error = "int() base must be an integer";
+        return false;
+      }
+      base = static_cast<int>(constructor_args.get(1).as.i64);
+      const Value& value = constructor_args.get(0);
+      if (value_as_string(value) == nullptr && value_as_bytes(value) == nullptr &&
+          value_as_bytearray(value) == nullptr) {
+        error = "int() can't convert non-string with explicit base";
+        return false;
+      }
+    }
+    auto finish_int_value = [&](const Value& parsed) -> bool {
+      if (exact_builtin_constructor) {
+        value_assign_fast(out, parsed);
+        return true;
+      }
+      Value klass_value;
+      klass_value.tag = ValueTag::Object;
+      klass_value.as.obj = const_cast<Object*>(&klass.header);
+      retain(klass_value);
+      out = Value::instance(std::move(klass_value));
+      std::string attr_error;
+      return object_set_attr(out, "__xlang3_int_value__", parsed, attr_error);
+    };
+    auto finish_int = [&](int64_t parsed) -> bool {
+      return finish_int_value(Value::int64(parsed));
+    };
+    auto finish_double = [&](double number) -> bool {
+      if (!std::isfinite(number)) {
+        if (std::isnan(number)) {
+          constructor_error.set("ValueError", "cannot convert float NaN to integer");
+        } else {
+          constructor_error.set("OverflowError", "cannot convert float infinity to integer");
+        }
+        return false;
+      }
+      std::array<char, 512> buffer{};
+      const auto rendered = std::to_chars(
+          buffer.data(), buffer.data() + buffer.size(), std::trunc(number),
+          std::chars_format::fixed, 0);
+      if (rendered.ec != std::errc{}) {
+        error = "int() failed to convert float";
+        return false;
+      }
+      std::string parse_error;
+      const Value parsed = value_bigint_from_decimal(
+          std::string_view(buffer.data(), rendered.ptr - buffer.data()), 10,
+          parse_error);
+      if (parsed.tag == ValueTag::Invalid || !finish_int_value(parsed)) {
+        error = parse_error.empty() ? "int subclass construction failed" :
+            parse_error;
+        return false;
+      }
+      return true;
+    };
+    if (constructor_args.size() == 0) {
+      if (!finish_int(0)) {
+        error = "int subclass construction failed";
+        return false;
+      }
+      return true;
+    }
+    const Value& value = constructor_args.get(0);
+    if (value.tag == ValueTag::Int64) {
+      if (!finish_int(value.as.i64)) {
+        error = "int subclass construction failed";
+        return false;
+      }
+      return true;
+    }
+    if (value_as_bigint(value) != nullptr) {
+      if (!finish_int_value(value)) {
+        error = "int subclass construction failed";
+        return false;
+      }
+      return true;
+    }
+    if (value.tag == ValueTag::Bool) {
+      if (!finish_int(value.as.b ? 1 : 0)) {
+        error = "int subclass construction failed";
+        return false;
+      }
+      return true;
+    }
+    if (value.tag == ValueTag::Double) {
+      return finish_double(value.as.f64);
+    }
+    Value stored;
+    std::string stored_error;
+    if (constructor_args.size() == 1 &&
+        object_get_attr(value, "__xlang3_int_value__", stored, stored_error) &&
+        (stored.tag == ValueTag::Int64 || value_as_bigint(stored) != nullptr)) {
+      if (!finish_int_value(stored)) {
+        error = "int subclass construction failed";
+        return false;
+      }
+      return true;
+    }
+    if (constructor_args.size() == 1 &&
+        object_get_attr(value, "__xlang3_float_value__", stored, stored_error) &&
+        stored.tag == ValueTag::Double) {
+      return finish_double(stored.as.f64);
+    }
+    if (constructor_args.size() == 1 &&
+        object_get_attr(value, "_value_", stored, stored_error) &&
+        (stored.tag == ValueTag::Int64 || value_as_bigint(stored) != nullptr)) {
+      if (!finish_int_value(stored)) {
+        error = "int subclass construction failed";
+        return false;
+      }
+      return true;
+    }
+    if (constructor_args.size() == 1) {
+      Value convert_method;
+      Value converted;
+      std::string call_error;
+      if ((object_get_attr(value, "__int__", convert_method, call_error) ||
+           object_get_attr(value, "__index__", convert_method, call_error))) {
+        if (!runtime_call_callable(runtime, convert_method, nullptr, 0, converted, call_error)) {
+          error = call_error;
+          return false;
+        }
+        if (converted.tag == ValueTag::Int64 || value_as_bigint(converted) != nullptr) {
+          if (!finish_int_value(converted)) {
+            error = "int subclass construction failed";
+            return false;
+          }
+          return true;
+        }
+        if (converted.tag == ValueTag::Bool) {
+          if (!finish_int(converted.as.b ? 1 : 0)) {
+            error = "int subclass construction failed";
+            return false;
+          }
+          return true;
+        }
+        Value converted_stored;
+        std::string converted_error;
+        if ((object_get_attr(converted, "__xlang3_int_value__", converted_stored, converted_error) ||
+             object_get_attr(converted, "_value_", converted_stored, converted_error)) &&
+            (converted_stored.tag == ValueTag::Int64 || value_as_bigint(converted_stored) != nullptr)) {
+          if (!finish_int_value(converted_stored)) {
+            error = "int subclass construction failed";
+            return false;
+          }
+          return true;
+        }
+        error = "__int__ returned non-int";
+        return false;
+      }
+    }
+    if (auto* text = value_as_string(value)) {
+      std::string parse_error;
+      const auto view = string_object_view(*text);
+      if (sys_int_string_exceeds_limit(view, base)) {
+        constructor_error.set("ValueError", "Exceeds the limit for integer string conversion");
+        return false;
+      }
+      Value parsed = value_bigint_from_decimal(view, base, parse_error);
+      if (parsed.tag != ValueTag::Invalid) {
+        if (!finish_int_value(parsed)) {
+          error = "int subclass construction failed";
+          return false;
+        }
+        return true;
+      }
+      constructor_error.set("ValueError", "invalid literal for int()");
+      return false;
+    }
+    if (auto* bytes = value_as_bytes(value)) {
+      std::string parse_error;
+      const auto view = bytes_object_view(*bytes);
+      if (sys_int_string_exceeds_limit(view, base)) {
+        constructor_error.set("ValueError", "Exceeds the limit for integer string conversion");
+        return false;
+      }
+      Value parsed = value_bigint_from_decimal(view, base, parse_error);
+      if (parsed.tag != ValueTag::Invalid) {
+        if (!finish_int_value(parsed)) {
+          error = "int subclass construction failed";
+          return false;
+        }
+        return true;
+      }
+      constructor_error.set("ValueError", "invalid literal for int()");
+      return false;
+    }
+    if (auto* bytes = value_as_bytearray(value)) {
+      std::string parse_error;
+      if (sys_int_string_exceeds_limit(bytes->value, base)) {
+        constructor_error.set("ValueError", "Exceeds the limit for integer string conversion");
+        return false;
+      }
+      Value parsed = value_bigint_from_decimal(bytes->value, base, parse_error);
+      if (parsed.tag != ValueTag::Invalid) {
+        if (!finish_int_value(parsed)) {
+          error = "int subclass construction failed";
+          return false;
+        }
+        return true;
+      }
+      constructor_error.set("ValueError", "invalid literal for int()");
+      return false;
+    }
+    error = "int() argument must be a string, bytes-like object, number, or bool";
+    return false;
+  }
+
+  if (constructor == XlangVMBuiltinConstructor::Float) {
+    if (!reject_constructor_keywords()) return false;
+    if (constructor_args.size() > 1) {
+      error = "float() expected at most 1 argument";
+      return false;
+    }
+    auto finish_float = [&](double parsed) -> bool {
+      if (exact_builtin_constructor) {
+        out = Value::number(parsed);
+        return true;
+      }
+      Value klass_value;
+      klass_value.tag = ValueTag::Object;
+      klass_value.as.obj = const_cast<Object*>(&klass.header);
+      retain(klass_value);
+      out = Value::instance(std::move(klass_value));
+      std::string attr_error;
+      return object_set_attr(out, "__xlang3_float_value__", Value::number(parsed), attr_error);
+    };
+    auto parse_float_text = [](std::string_view text, double& parsed) -> bool {
+      size_t begin = 0;
+      size_t end = text.size();
+      while (begin < end &&
+             std::isspace(static_cast<unsigned char>(text[begin])))
+        ++begin;
+      while (end > begin &&
+             std::isspace(static_cast<unsigned char>(text[end - 1])))
+        --end;
+      std::string normalized;
+      normalized.reserve(end - begin);
+      for (size_t index = begin; index < end; ++index) {
+        const char ch = text[index];
+        if (ch == '_') {
+          if (index == begin || index + 1 >= end ||
+              !std::isdigit(static_cast<unsigned char>(text[index - 1])) ||
+              !std::isdigit(static_cast<unsigned char>(text[index + 1])))
+            return false;
+          continue;
+        }
+        normalized.push_back(ch);
+      }
+      if (normalized.empty()) return false;
+      char* parsed_end = nullptr;
+      parsed = std::strtod(normalized.c_str(), &parsed_end);
+      return parsed_end != normalized.c_str() && *parsed_end == '\0';
+    };
+    if (constructor_args.size() == 0) {
+      if (!finish_float(0.0)) {
+        error = "float subclass construction failed";
+        return false;
+      }
+      return true;
+    }
+    const Value& value = constructor_args.get(0);
+    if (value.tag == ValueTag::Double) {
+      if (!finish_float(value.as.f64)) {
+        error = "float subclass construction failed";
+        return false;
+      }
+      return true;
+    }
+    if (value.tag == ValueTag::Int64) {
+      if (!finish_float(static_cast<double>(value.as.i64))) {
+        error = "float subclass construction failed";
+        return false;
+      }
+      return true;
+    }
+    if (value.tag == ValueTag::Bool) {
+      if (!finish_float(value.as.b ? 1.0 : 0.0)) {
+        error = "float subclass construction failed";
+        return false;
+      }
+      return true;
+    }
+    Value stored;
+    std::string stored_error;
+    if (constructor_args.size() == 1 &&
+        object_get_attr(value, "__xlang3_float_value__", stored, stored_error) && stored.tag == ValueTag::Double) {
+      if (!finish_float(stored.as.f64)) {
+        error = "float subclass construction failed";
+        return false;
+      }
+      return true;
+    }
+    if (value_as_bigint(value) != nullptr) {
+      double parsed = 0.0;
+      const std::string text = value_to_string(value);
+      if (!parse_float_text(text, parsed) || !std::isfinite(parsed)) {
+        constructor_error.set("OverflowError", "int too large to convert to float");
+        return false;
+      }
+      if (!finish_float(parsed)) {
+        error = "float subclass construction failed";
+        return false;
+      }
+      return true;
+    }
+    if (constructor_args.size() == 1) {
+      Value convert_method;
+      std::string call_error;
+      if (object_get_attr(value, "__float__", convert_method, call_error)) {
+        Value converted;
+        if (!runtime_call_callable(runtime, convert_method, nullptr, 0, converted, call_error)) {
+          error = call_error;
+          return false;
+        }
+        if (converted.tag != ValueTag::Double) {
+          error = "__float__ returned non-float";
+          return false;
+        }
+        if (!finish_float(converted.as.f64)) {
+          error = "float subclass construction failed";
+          return false;
+        }
+        return true;
+      }
+    }
+    if (auto* text = value_as_string(value)) {
+      const std::string owned_text = string_object_to_string(*text);
+      double parsed = 0.0;
+      if (parse_float_text(owned_text, parsed)) {
+        if (!finish_float(parsed)) {
+          error = "float subclass construction failed";
+          return false;
+        }
+        return true;
+      }
+      constructor_error.set("ValueError", "could not convert string to float");
+      return false;
+    }
+    if (auto* bytes = value_as_bytes(value)) {
+      const std::string owned_text = bytes_object_to_string(*bytes);
+      double parsed = 0.0;
+      if (parse_float_text(owned_text, parsed)) {
+        if (!finish_float(parsed)) {
+          error = "float subclass construction failed";
+          return false;
+        }
+        return true;
+      }
+      constructor_error.set("ValueError", "could not convert string to float");
+      return false;
+    }
+    if (auto* bytes = value_as_bytearray(value)) {
+      double parsed = 0.0;
+      if (parse_float_text(bytes->value, parsed)) {
+        if (!finish_float(parsed)) {
+          error = "float subclass construction failed";
+          return false;
+        }
+        return true;
+      }
+      constructor_error.set("ValueError", "could not convert string to float");
+      return false;
+    }
+    error = "float() argument must be a string, bytes-like object, number, or bool";
+    return false;
+  }
+
+  if (constructor == XlangVMBuiltinConstructor::Range) {
+    if (!reject_constructor_keywords()) return false;
+    if (constructor_args.size() < 1 || constructor_args.size() > 3) {
+      error = "range() expected 1 to 3 arguments";
+      return false;
+    }
+    int64_t start = 0;
+    int64_t stop = 0;
+    int64_t step = 1;
+    auto read_int = [&](size_t index, int64_t& target) -> bool {
+      const Value& value = constructor_args.get(index);
+      if (!value_int_like_to_i64(value, target)) {
+        error = "range() arguments must be int";
+        return false;
+      }
+      return true;
+    };
+    if (constructor_args.size() == 1 && read_int(0, stop)) {
+      out = Value::range(0, stop, 1);
+      return true;
+    }
+    if (constructor_args.size() >= 2 &&
+        read_int(0, start) &&
+        read_int(1, stop) &&
+        (constructor_args.size() != 3 || read_int(2, step))) {
+      if (step == 0) {
+        error = "range() step must not be zero";
+        return false;
+      }
+      out = Value::range(start, stop, step);
+      return true;
+    }
+    error.clear();
+    Value range_start = constructor_args.size() == 1 ? Value::int64(0) : constructor_args.get(0);
+    Value range_stop = constructor_args.size() == 1 ? constructor_args.get(0) : constructor_args.get(1);
+    Value range_step = constructor_args.size() == 3 ? constructor_args.get(2) : Value::int64(1);
+    Value zero_compare;
+    if (!value_int_like_compare("==", range_step, Value::int64(0), zero_compare) ||
+        zero_compare.tag != ValueTag::Bool) {
+      error = "range() arguments must be int";
+      return false;
+    }
+    if (zero_compare.as.b) {
+      error = "range() step must not be zero";
+      return false;
+    }
+    out = Value::range_values(range_start, range_stop, range_step);
+    return true;
+  }
+
+  if (constructor == XlangVMBuiltinConstructor::Slice) {
+    if (!reject_constructor_keywords()) return false;
+    if (constructor_args.size() < 1 || constructor_args.size() > 3) {
+      error = "slice() expected 1 to 3 arguments";
+      return false;
+    }
+    Value start;
+    Value stop;
+    Value step;
+    if (constructor_args.size() == 1) {
+      value_set_none(start);
+      stop = constructor_args.get(0);
+      value_set_none(step);
+    } else {
+      start = constructor_args.get(0);
+      stop = constructor_args.get(1);
+      if (constructor_args.size() == 3) {
+        step = constructor_args.get(2);
+      } else {
+        value_set_none(step);
+      }
+    }
+    out = Value::slice(std::move(start), std::move(stop), std::move(step));
+    return true;
+  }
+
+  if (constructor == XlangVMBuiltinConstructor::List || constructor == XlangVMBuiltinConstructor::Tuple ||
+      constructor == XlangVMBuiltinConstructor::Set || constructor == XlangVMBuiltinConstructor::FrozenSet) {
+    if (!reject_constructor_keywords()) return false;
+    if (constructor_args.size() > 1) {
+      error = klass.name + "() expected at most 1 argument";
+      return false;
+    }
+    std::vector<Value> items;
+    if (constructor_args.size() == 1) {
+      if (!runtime_collect_iterable(runtime, constructor_args.get(0), items, error)) {
+        return false;
+      }
+    }
+    if (constructor == XlangVMBuiltinConstructor::List) {
+      if (exact_builtin_constructor) {
+        out = Value::list(std::move(items));
+      } else {
+        Value klass_value;
+        klass_value.tag = ValueTag::Object;
+        klass_value.as.obj = const_cast<Object*>(&klass.header);
+        retain(klass_value);
+        out = Value::instance(std::move(klass_value));
+        value_as_instance(out)->sequence_storage = Value::list(std::move(items));
+      }
+    } else if (constructor == XlangVMBuiltinConstructor::Tuple) {
+      Value tuple_storage = Value::tuple(std::move(items));
+      if (exact_builtin_constructor) {
+        value_assign_fast(out, tuple_storage);
+      } else {
+        Value klass_value;
+        klass_value.tag = ValueTag::Object;
+        klass_value.as.obj = const_cast<Object*>(&klass.header);
+        retain(klass_value);
+        out = Value::instance(std::move(klass_value));
+        std::string attr_error;
+        if (!object_set_attr(out, "__xlang3_tuple_value__", tuple_storage, attr_error)) {
+          error = "tuple subclass construction failed";
+          return false;
+        }
+      }
+    } else if (constructor == XlangVMBuiltinConstructor::FrozenSet ||
+               constructor == XlangVMBuiltinConstructor::Set) {
+      Value set_storage = Value::set({});
+      for (const auto& item : items) {
+        if (!set_add_runtime(runtime, set_storage, item, error)) {
+          Value pending;
+          if (runtime.take_pending_exception(pending)) {
+            runtime.set_pending_exception(std::move(pending));
+            return false;
+          }
+          error = "cannot use '" +
+              std::string(value_binary_type_name(item)) +
+              "' as a set element (" + error + ")";
+          runtime.raise_class_error("TypeError", error);
+          return false;
+        }
+      }
+      if (constructor == XlangVMBuiltinConstructor::FrozenSet)
+        value_as_set(set_storage)->frozen = true;
+      if (exact_builtin_constructor) {
+        out = std::move(set_storage);
+      } else {
+        Value klass_value;
+        klass_value.tag = ValueTag::Object;
+        klass_value.as.obj = const_cast<Object*>(&klass.header);
+        retain(klass_value);
+        out = Value::instance(std::move(klass_value));
+        value_as_instance(out)->sequence_storage = std::move(set_storage);
+      }
+    }
+    return true;
+  }
+
+  auto make_bytes_from_arg = [&](const Value& arg, std::string& bytes, std::string& local_error) -> bool {
+    if (arg.tag == ValueTag::Int64) {
+      if (arg.as.i64 < 0) {
+        local_error = "negative count";
+        return false;
+      }
+      bytes.assign(static_cast<size_t>(arg.as.i64), '\0');
+      return true;
+    }
+    if (auto* source = value_as_bytes(arg)) {
+      bytes = bytes_object_to_string(*source);
+      return true;
+    }
+    if (auto* source = value_as_bytearray(arg)) {
+      bytes = source->value;
+      return true;
+    }
+    if (auto* view = value_as_memoryview(arg)) {
+      if (view->released) {
+        local_error = "operation forbidden on released memoryview object";
+        return false;
+      }
+      return memoryview_copy_bytes(*view, bytes, local_error);
+    }
+    if (auto* string = value_as_string(arg)) {
+      local_error = "string argument without an encoding";
+      return false;
+    }
+    if (value_as_instance(arg) != nullptr) {
+      Value payload;
+      std::string payload_error;
+      if (object_get_attr(arg, "__xlang3_bytes_value__", payload, payload_error)) {
+        if (auto* source = value_as_bytes(payload)) {
+          bytes = bytes_object_to_string(*source);
+          return true;
+        }
+        if (auto* source = value_as_bytearray(payload)) {
+          bytes = source->value;
+          return true;
+        }
+        if (auto* source = value_as_memoryview(payload)) {
+          return memoryview_copy_bytes(*source, bytes, local_error);
+        }
+      }
+    }
+    Value bytes_method;
+    std::string attr_error;
+    if (attribute_get(arg, "__bytes__", bytes_method, attr_error)) {
+      Value converted;
+      if (!runtime_call_callable(runtime, bytes_method, nullptr, 0, converted, local_error)) {
+        return false;
+      }
+      auto* converted_bytes = value_as_bytes(converted);
+      if (converted_bytes == nullptr) {
+        local_error = "__bytes__ returned non-bytes";
+        return false;
+      }
+      bytes = bytes_object_to_string(*converted_bytes);
+      return true;
+    }
+    Value iterator;
+    if (!runtime_get_iter(runtime, arg, iterator, local_error)) {
+      return false;
+    }
+    for (;;) {
+      bool done = false;
+      Value item;
+      if (!sequence_iter_next(iterator, done, item, local_error)) {
+        return false;
+      }
+      if (done) break;
+      if (item.tag != ValueTag::Int64 || item.as.i64 < 0 || item.as.i64 > 255) {
+        local_error = "bytes-like object requires integers in range(0, 256)";
+        return false;
+      }
+      bytes.push_back(static_cast<char>(static_cast<unsigned char>(item.as.i64)));
+    }
+    return true;
+  };
+
+  if (constructor == XlangVMBuiltinConstructor::Dict) {
+    if (constructor_args.size() > 1) {
+      error = "dict() expected at most 1 argument";
+      return false;
+    }
+    if (exact_builtin_constructor) {
+      out = Value::dict({});
+    } else {
+      Value klass_value;
+      klass_value.tag = ValueTag::Object;
+      klass_value.as.obj = const_cast<Object*>(&klass.header);
+      retain(klass_value);
+      out = Value::instance(std::move(klass_value));
+    }
+    Value dict_target = out;
+    if (auto* instance = value_as_instance(out)) {
+      dict_target = instance->mapping_storage;
+    }
+    auto add_constructor_keywords_to_dict = [&]() -> bool {
+      for (const auto& keyword : constructor_keywords) {
+        if (!mapping_set_item(dict_target, Value::string(keyword.first), keyword.second, error)) {
+          return false;
+        }
+      }
+      return true;
+    };
+    if (constructor_args.size() == 0) {
+      return add_constructor_keywords_to_dict();
+    }
+    const Value& source = constructor_args.get(0);
+    if (auto* dict = value_as_dict(source)) {
+      for (const auto& entry : dict->entries) {
+        if (!mapping_set_item(dict_target, entry.first, entry.second, error)) {
+          return false;
+        }
+      }
+      return add_constructor_keywords_to_dict();
+    }
+    if (auto* instance = value_as_instance(source)) {
+      auto* source_class = value_as_class(instance->klass);
+      if (source_class != nullptr &&
+          class_has_builtin_base_name(source_class, "dict")) {
+        auto* storage = value_as_dict(instance->mapping_storage);
+        if (storage == nullptr) {
+          error = "dict subclass has no mapping storage";
+          return false;
+        }
+        for (const auto& entry : storage->entries) {
+          if (!mapping_set_item(dict_target, entry.first, entry.second, error)) {
+            return false;
+          }
+        }
+        return add_constructor_keywords_to_dict();
+      }
+    }
+    if (mapping_is_mapping(source)) {
+      Value iterator;
+      if (!mapping_get_iter(source, iterator, error)) {
+        return false;
+      }
+      for (;;) {
+        bool done = false;
+        Value key;
+        if (!mapping_iter_next(iterator, done, key, error)) {
+          return false;
+        }
+        if (done) {
+          break;
+        }
+        Value value;
+        if (!mapping_get_item(source, key, value, error) ||
+            !mapping_set_item(dict_target, key, value, error)) {
+          return false;
+        }
+      }
+      return add_constructor_keywords_to_dict();
+    }
+    Value keys_method;
+    std::string attr_error;
+    if (object_get_attr(source, "keys", keys_method, attr_error)) {
+      Value keys_result;
+      if (!runtime_call_callable(runtime, keys_method, nullptr, 0, keys_result, error)) {
+        return false;
+      }
+      Value getitem_method;
+      if (!object_get_attr(source, "__getitem__", getitem_method, attr_error)) {
+        error = "mapping object has no __getitem__";
+        return false;
+      }
+      std::vector<Value> keys;
+      if (!runtime_collect_iterable(runtime, keys_result, keys, error)) {
+        return false;
+      }
+      for (const auto& key : keys) {
+        Value value;
+        if (!runtime_call_callable(runtime, getitem_method, &key, 1, value, error) ||
+            !mapping_set_item(dict_target, key, value, error)) {
+          return false;
+        }
+      }
+      return add_constructor_keywords_to_dict();
+    }
+    Value iterator;
+    if (!runtime_get_iter(runtime, source, iterator, error)) {
+      return false;
+    }
+    for (;;) {
+      bool done = false;
+      Value item;
+      if (!sequence_iter_next(iterator, done, item, error)) {
+        return false;
+      }
+      if (done) {
+        break;
+      }
+      const TupleObject* tuple = value_as_tuple(item);
+      const ListObject* list = value_as_list(item);
+      const Value* key = nullptr;
+      const Value* value = nullptr;
+      if (tuple != nullptr && tuple->items.size() == 2) {
+        key = &tuple->items[0];
+        value = &tuple->items[1];
+      } else if (list != nullptr && list->items.size() == 2) {
+        key = &list->items[0];
+        value = &list->items[1];
+      } else {
+        error = "dictionary update sequence element has length other than 2";
+        runtime.raise_class_error("ValueError", error);
+        return false;
+      }
+      if (!mapping_set_item(dict_target, *key, *value, error)) {
+        return false;
+      }
+    }
+    return add_constructor_keywords_to_dict();
+  }
+
+  if (constructor == XlangVMBuiltinConstructor::MappingProxy) {
+    if (!reject_constructor_keywords()) return false;
+    if (constructor_args.size() != 1) {
+      error = "mappingproxy() expected mapping";
+      return false;
+    }
+    if (!mapping_is_mapping(constructor_args.get(0))) {
+      error = "mappingproxy() argument must be a mapping";
+      return false;
+    }
+    out = mapping_proxy(constructor_args.get(0));
+    return true;
+  }
+
+  if (constructor == XlangVMBuiltinConstructor::Bytes) {
+    if (!reject_constructor_keywords_except({"encoding", "errors"})) return false;
+    const Value* encoding = find_constructor_keyword("encoding");
+    const Value* errors_value = find_constructor_keyword("errors");
+    if (!require_constructor_string_keyword(encoding, "encoding") ||
+        !require_constructor_string_keyword(errors_value, "errors")) {
+      return false;
+    }
+    if (constructor_args.size() > 3) {
+      error = "bytes() expected at most 3 arguments";
+      return false;
+    }
+    if (constructor_args.size() == 0) {
+      if (exact_builtin_constructor) {
+        out = Value::bytes("");
+        return true;
+      }
+      Value klass_value;
+      klass_value.tag = ValueTag::Object;
+      klass_value.as.obj = const_cast<Object*>(&klass.header);
+      retain(klass_value);
+      out = Value::instance(std::move(klass_value));
+      std::string attr_error;
+      if (!object_set_attr(out, "__xlang3_bytes_value__", Value::bytes(""), attr_error)) {
+        error = "bytes subclass construction failed";
+        return false;
+      }
+      return true;
+    }
+    if (constructor_args.size() >= 2) {
+      encoding = &constructor_args.get(1);
+      if (!require_constructor_string_keyword(encoding, "encoding")) return false;
+    }
+    if (constructor_args.size() >= 3) {
+      errors_value = &constructor_args.get(2);
+      if (!require_constructor_string_keyword(errors_value, "errors")) return false;
+    }
+    std::string bytes;
+    if (auto* string = value_as_string(constructor_args.get(0))) {
+      if (encoding == nullptr || encoding->tag == ValueTag::None) {
+        error = "string argument without an encoding";
+        return false;
+      }
+      std::string encoding_name = string_object_to_string(*value_as_string(*encoding));
+      std::transform(encoding_name.begin(), encoding_name.end(), encoding_name.begin(), [](unsigned char ch) {
+        return ch == '-' ? '_' : static_cast<char>(std::tolower(ch));
+      });
+      if (encoding_name == "utf8" || encoding_name == "u8" || encoding_name == "cp65001") encoding_name = "utf_8";
+      if (encoding_name == "latin1" || encoding_name == "iso8859_1" ||
+          encoding_name == "iso_8859_1" || encoding_name == "8859") encoding_name = "latin_1";
+      if (encoding_name == "us_ascii" || encoding_name == "646") encoding_name = "ascii";
+      std::string errors_name = "strict";
+      if (errors_value != nullptr && errors_value->tag != ValueTag::None) {
+        errors_name = string_object_to_string(*value_as_string(*errors_value));
+      }
+      const std::string source = string_object_to_string(*string);
+      if (encoding_name == "utf_8") {
+        if (errors_name != "surrogatepass") {
+          for (size_t cursor = 0; cursor + 2 < source.size(); ++cursor) {
+            const unsigned char first = static_cast<unsigned char>(source[cursor]);
+            const unsigned char second = static_cast<unsigned char>(source[cursor + 1]);
+            const unsigned char third = static_cast<unsigned char>(source[cursor + 2]);
+            if (first == 0xedu && second >= 0xa0u && second <= 0xbfu &&
+                (third & 0xc0u) == 0x80u) {
+              error = "utf-8 codec can't encode surrogate";
+              runtime.raise_class_error("UnicodeEncodeError", error);
+              return false;
+            }
+          }
+        }
+        bytes = source;
+      } else if (encoding_name == "ascii" || encoding_name == "latin_1") {
+        for (size_t cursor = 0; cursor < source.size();) {
+          const unsigned char lead = static_cast<unsigned char>(source[cursor]);
+          size_t width = 1;
+          uint32_t codepoint = lead;
+          if ((lead & 0xe0u) == 0xc0u && cursor + 1 < source.size()) {
+            width = 2;
+            codepoint = ((lead & 0x1fu) << 6u) |
+                        (static_cast<unsigned char>(source[cursor + 1]) & 0x3fu);
+          } else if ((lead & 0xf0u) == 0xe0u && cursor + 2 < source.size()) {
+            width = 3;
+            codepoint = ((lead & 0x0fu) << 12u) |
+                        ((static_cast<unsigned char>(source[cursor + 1]) & 0x3fu) << 6u) |
+                        (static_cast<unsigned char>(source[cursor + 2]) & 0x3fu);
+          } else if ((lead & 0xf8u) == 0xf0u && cursor + 3 < source.size()) {
+            width = 4;
+            codepoint = ((lead & 0x07u) << 18u) |
+                        ((static_cast<unsigned char>(source[cursor + 1]) & 0x3fu) << 12u) |
+                        ((static_cast<unsigned char>(source[cursor + 2]) & 0x3fu) << 6u) |
+                        (static_cast<unsigned char>(source[cursor + 3]) & 0x3fu);
+          }
+          const uint32_t limit = encoding_name == "ascii" ? 0x7fu : 0xffu;
+          if (codepoint <= limit) {
+            bytes.push_back(static_cast<char>(codepoint));
+          } else if (errors_name == "ignore") {
+            // Omit characters that the selected codec cannot represent.
+          } else if (errors_name == "replace") {
+            bytes.push_back('?');
+          } else {
+            error = encoding_name == "ascii"
+                ? "ascii codec can't encode character"
+                : "latin-1 codec can't encode character";
+            runtime.raise_class_error("UnicodeEncodeError", error);
+            return false;
+          }
+          cursor += width;
+        }
+      } else {
+        error = "unknown encoding: " + encoding_name;
+        runtime.raise_class_error("LookupError", error);
+        return false;
+      }
+    } else if (!make_bytes_from_arg(constructor_args.get(0), bytes, error)) {
+      return false;
+    }
+    if (exact_builtin_constructor) {
+      out = Value::bytes(std::move(bytes));
+      return true;
+    }
+    Value klass_value;
+    klass_value.tag = ValueTag::Object;
+    klass_value.as.obj = const_cast<Object*>(&klass.header);
+    retain(klass_value);
+    out = Value::instance(std::move(klass_value));
+    std::string attr_error;
+    if (!object_set_attr(out, "__xlang3_bytes_value__", Value::bytes(std::move(bytes)), attr_error)) {
+      error = "bytes subclass construction failed";
+      return false;
+    }
+    return true;
+  }
+
+  if (constructor == XlangVMBuiltinConstructor::ByteArray) {
+    if (!reject_constructor_keywords_except({"encoding", "errors"})) return false;
+    const Value* encoding = find_constructor_keyword("encoding");
+    const Value* errors_value = find_constructor_keyword("errors");
+    if (!require_constructor_string_keyword(encoding, "encoding") ||
+        !require_constructor_string_keyword(errors_value, "errors")) {
+      return false;
+    }
+    if (constructor_args.size() > 3) {
+      error = "bytearray() expected at most 3 arguments";
+      return false;
+    }
+    auto finish_bytearray = [&](std::string bytes) -> bool {
+      if (exact_builtin_constructor) {
+        out = Value::bytearray(std::move(bytes));
+        return true;
+      }
+      Value klass_value;
+      klass_value.tag = ValueTag::Object;
+      klass_value.as.obj = const_cast<Object*>(&klass.header);
+      retain(klass_value);
+      out = Value::instance(std::move(klass_value));
+      std::string attr_error;
+      if (!object_set_attr(out, "__xlang3_bytes_value__", Value::bytearray(std::move(bytes)), attr_error)) {
+        error = "bytearray subclass construction failed";
+        return false;
+      }
+      return true;
+    };
+    if (constructor_args.size() == 0) {
+      if (!finish_bytearray("")) return false;
+      return true;
+    }
+    if (constructor_args.size() >= 2) {
+      encoding = &constructor_args.get(1);
+      if (!require_constructor_string_keyword(encoding, "encoding")) return false;
+    }
+    if (constructor_args.size() >= 3) {
+      errors_value = &constructor_args.get(2);
+      if (!require_constructor_string_keyword(errors_value, "errors")) return false;
+    }
+    std::string bytes;
+    if (auto* string = value_as_string(constructor_args.get(0))) {
+      if (encoding == nullptr || encoding->tag == ValueTag::None) {
+        error = "string argument without an encoding";
+        return false;
+      }
+      bytes = string_object_to_string(*string);
+    } else if (!make_bytes_from_arg(constructor_args.get(0), bytes, error)) {
+      return false;
+    }
+    return finish_bytearray(std::move(bytes));
+  }
+
+  if (constructor == XlangVMBuiltinConstructor::MemoryView) {
+    if (!reject_constructor_keywords()) return false;
+    if (constructor_args.size() != 1) {
+      error = "memoryview() expected 1 argument";
+      return false;
+    }
+    const Value& source = constructor_args.get(0);
+    if (auto* bytes = value_as_bytes(source)) {
+      out = Value::memoryview(source, 0, bytes->size, true);
+      return true;
+    }
+    if (auto* bytearray = value_as_bytearray(source)) {
+      out = Value::memoryview(source, 0, bytearray->value.size(), false);
+      return true;
+    }
+    if (auto* view = value_as_memoryview(source)) {
+      if (view->released) {
+        constructor_error.set("ValueError", "operation forbidden on released memoryview object");
+        return false;
+      }
+      out = Value::memoryview(source, 0, view->size, view->readonly);
+      return true;
+    }
+    if (value_as_instance(source) != nullptr) {
+      Value payload;
+      std::string ignored;
+      Value pickle_buffer;
+      if (object_get_attr(source, "__xlang3_pickle_buffer__", pickle_buffer, ignored) &&
+          pickle_buffer.tag == ValueTag::None) {
+        constructor_error.set("ValueError", "operation forbidden on released PickleBuffer object");
+        return false;
+      }
+      auto* source_instance = value_as_instance(source);
+      const bool native_array = instance_get_native_data(source, "array.array") != nullptr;
+      const bool have_payload = native_array && source_instance->native_get_attr != nullptr
+          ? source_instance->native_get_attr(source, "__xlang3_bytes_value__", payload, ignored)
+          : object_get_attr(source, "__xlang3_bytes_value__", payload, ignored);
+      if (have_payload) {
+        const auto* bytes = value_as_bytes(payload);
+        const auto* bytearray = value_as_bytearray(payload);
+        const auto* payload_view = value_as_memoryview(payload);
+        if (payload_view != nullptr && payload_view->released) {
+          constructor_error.set("ValueError", "operation forbidden on released memoryview object");
+          return false;
+        }
+        if (bytes != nullptr || bytearray != nullptr || payload_view != nullptr) {
+          // Array operations and every derived view must export the same
+          // physical bytearray. Retain the logical array separately for .obj;
+          // leaving owner as an instance bypasses bytearray resize protection.
+          Value owner = native_array ? payload : source;
+          Value exported_owner;
+          if (!native_array && object_get_attr(source, "__xlang3_memoryview_owner__", exported_owner, ignored) &&
+              exported_owner.tag != ValueTag::None) {
+            owner = std::move(exported_owner);
+          }
+          out = Value::memoryview(std::move(owner), 0,
+              bytes != nullptr ? bytes->size :
+                  bytearray != nullptr ? bytearray->value.size() : payload_view->size,
+              bytes != nullptr || (payload_view != nullptr && payload_view->readonly));
+          Value format;
+          const bool have_format = native_array && source_instance->native_get_attr != nullptr
+              ? source_instance->native_get_attr(source, "__xlang3_array_format__", format, ignored)
+              : object_get_attr(source, "typecode", format, ignored);
+          if (have_format) {
+            if (auto* text = value_as_string(format)) {
+              if (auto* result = value_as_memoryview(out)) {
+                result->format = string_object_to_string(*text);
+                if (native_array) {
+                  result->exporter = source;
+                  const size_t itemsize = memoryview_format_itemsize(result->format);
+                  if (itemsize != 0) {
+                    result->shape = {static_cast<int64_t>(result->size / itemsize)};
+                    result->strides = {static_cast<int64_t>(itemsize)};
+                  }
+                }
+              }
+            }
+          }
+          return true;
+        }
+      }
+    }
+    error = "memoryview() requires a bytes-like object";
+    return false;
+  }
+
+  if (constructor == XlangVMBuiltinConstructor::Property) {
+    if (!reject_constructor_keywords_except({"fget", "fset", "fdel", "doc"})) return false;
+    if (constructor_args.size() > 4) {
+      error = "property() expected at most 4 arguments";
+      return false;
+    }
+    const char* property_names[] = {"fget", "fset", "fdel", "doc"};
+    for (size_t i = 0; i < constructor_args.size() && i < std::size(property_names); ++i) {
+      if (find_constructor_keyword(property_names[i]) != nullptr) {
+        error = std::string("property() got multiple values for argument '") + property_names[i] + "'";
+        return false;
+      }
+    }
+    auto property_arg = [&](size_t index, const char* name) -> Value {
+      if (const Value* keyword = find_constructor_keyword(name)) {
+        return *keyword;
+      }
+      return constructor_args.size() > index ? constructor_args.get(index) : Value::none();
+    };
+    out = Value::property(
+        property_arg(0, "fget"),
+        property_arg(1, "fset"),
+        property_arg(2, "fdel"),
+        property_arg(3, "doc"));
+    return true;
+  }
+
+  if (constructor == XlangVMBuiltinConstructor::ClassMethod ||
+      constructor == XlangVMBuiltinConstructor::StaticMethod) {
+    if (!reject_constructor_keywords()) return false;
+    if (constructor_args.size() != 1) {
+      error = klass.name + "() expected 1 argument";
+      return false;
+    }
+    const Value& function = constructor_args.get(0);
+    out = constructor == XlangVMBuiltinConstructor::ClassMethod
+        ? Value::class_method(function)
+        : Value::static_method(function);
+    return true;
+  }
+
+  if (constructor == XlangVMBuiltinConstructor::Super) {
+    if (!reject_constructor_keywords()) return false;
+    if (constructor_args.size() != 0 && constructor_args.size() != 2) {
+      error = "super() expected 0 or 2 arguments";
+      return false;
+    }
+    Value klass;
+    Value self;
+    if (constructor_args.size() == 2) {
+      if (value_as_class(constructor_args.get(0)) == nullptr) {
+        error = "super() first argument must be type";
+        return false;
+      }
+      value_assign_fast(klass, constructor_args.get(0));
+      value_assign_fast(self, constructor_args.get(1));
+    } else {
+      if (!runtime.try_current_frame_first_argument(self)) {
+        Value locals = runtime.current_locals_snapshot();
+        if (!xlang_vm_current_super_first_argument(runtime, locals, self)) {
+          error = "super(): no current instance or class";
+          return false;
+        }
+      }
+      if (self.tag == ValueTag::Invalid) {
+        error = "super(): arg[0] deleted";
+        runtime.raise_class_error("RuntimeError", error);
+        return false;
+      }
+      if (!xlang_vm_infer_super_defining_class(runtime, self, klass, error)) {
+        return false;
+      }
+    }
+    out = Value::super_object(std::move(klass), std::move(self));
+    return true;
+  }
+
+  if (constructor == XlangVMBuiltinConstructor::Module) {
+    if (!reject_constructor_keywords()) return false;
+    if (constructor_args.size() < 1 || constructor_args.size() > 2) {
+      error = "module() expected name and optional doc";
+      return false;
+    }
+    auto* name = value_as_string(constructor_args.get(0));
+    if (name == nullptr) {
+      error = "module() argument 'name' must be str, not " +
+          std::string(value_binary_type_name(constructor_args.get(0)));
+      return false;
+    }
+    out = Value::module(string_object_to_string(*name));
+    std::string ignored;
+    module_set_attr(out, "__doc__", constructor_args.size() == 2 ? constructor_args.get(1) : Value::none(), ignored);
+    return true;
+  }
+
+  if (constructor == XlangVMBuiltinConstructor::Method) {
+    if (!reject_constructor_keywords()) return false;
+    if (constructor_args.size() != 2) {
+      error = "method() expected function and instance";
+      return false;
+    }
+    out = Value::bound_method(constructor_args.get(1), constructor_args.get(0));
+    return true;
+  }
+
+  return false;
+}
+
+
+
+} // namespace xlang3

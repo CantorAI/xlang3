@@ -1,0 +1,182 @@
+__filename = '<string>'
+
+__tokens = {112: ("python: options['table']", 3, 20), 157: ('python: row.values()', 4, 18), 200: ('python: c + 1', 5, 20), 237: ("python: 'column-' + str(d)", 6, 22), 278: ('python: d', 7, 13)}
+from chameleon.utils import lookup_attr as _lookup_attr
+from chameleon.tales import DEFAULT_MARKER as _DEFAULT_MARKER
+from chameleon.tales import DEFAULT_MARKER as _DEFAULT_MARKER
+from chameleon.tales import DEFAULT_MARKER as _DEFAULT_MARKER
+from chameleon.tales import DEFAULT_MARKER as _DEFAULT_MARKER
+from sys import exc_info as _exc_info
+_static_2112657957920 = {'xmlns': 'http://www.w3.org/1999/xhtml'}
+_static_2112657953920 = {}
+_static_2112658015120 = {}
+_static_2112658043920 = {'class': "python: 'column-' + str(d)"}
+import re
+import functools
+from itertools import chain as __chain
+from sys import intern
+__default = intern('__default__')
+__marker = object()
+g_re_amp = re.compile('&(?!([A-Za-z]+|#[0-9]+);)')
+g_re_needs_escape = re.compile('[&<>\\"\\\']').search
+__re_whitespace = functools.partial(re.compile('\\s+').sub, ' ')
+
+def initialize(macros, nothing, template):
+
+    def render(__stream, econtext, rcontext, __i18n_domain=None, __i18n_context=None, target_language=None):
+        __append = __stream.append
+        __re_amp = g_re_amp
+        __token = None
+        __re_needs_escape = g_re_needs_escape
+
+        def __convert(target):
+            if target is None:
+                return None
+            __tt = type(target)
+            if __tt is bytes:
+                target = decode(target)
+            elif __tt is not str:
+                if __tt is int or __tt is float:
+                    target = str(target)
+                else:
+                    __markup = getattr(target, '__html__', None)
+                    if __markup is None:
+                        __converted = translate(target, domain=__i18n_domain, context=__i18n_context, target_language=target_language)
+                        target = str(target) if target is __converted else __converted
+                    else:
+                        target = __markup()
+            return target
+
+        def __quote(target, quote, quote_entity, default, default_marker):
+            if target is None:
+                return None
+            if target is default_marker:
+                return default
+            __tt = type(target)
+            if __tt is bytes:
+                target = decode(target)
+            elif __tt is not str:
+                if __tt is int or __tt is float:
+                    return str(target)
+                __markup = getattr(target, '__html__', None)
+                if __markup is None:
+                    __converted = translate(target, domain=__i18n_domain, context=__i18n_context, target_language=target_language)
+                    target = str(target) if target is __converted else __converted
+                else:
+                    return __markup()
+            if target is not None:
+                try:
+                    escape = __re_needs_escape(target) is not None
+                except TypeError:
+                    pass
+                else:
+                    if escape:
+                        if '&' in target:
+                            target = target.replace('&', '&amp;')
+                        if '<' in target:
+                            target = target.replace('<', '&lt;')
+                        if '>' in target:
+                            target = target.replace('>', '&gt;')
+                        if quote is not None and quote in target:
+                            target = target.replace(quote, quote_entity)
+            return target
+        translate = econtext['__translate']
+        decode = econtext['__decode']
+        on_error_handler = econtext['__on_error_handler']
+        try:
+            getname = econtext.get_name
+            get = econtext.get
+            # <Static value=<ast.Dict object at 0x1ebe3de3b50> name=None at 1ebe3de4000> -> __attrs_2112651924144
+            __attrs_2112651924144 = _static_2112657957920
+            # <table ... (1:0)
+            # --------------------------------------------------------
+            __append('<table xmlns="http://www.w3.org/1999/xhtml">\n')
+            # <Static value=<ast.Dict object at 0x1ebe2d92400> name=None at 1ebe2d92590> -> __attrs_2112651937344
+            __attrs_2112651937344 = _static_2112657953920
+            __backup_row_2112611900144 = get('row', __marker)
+            # <Value "python: options['table']" (3:20)> -> __iterator
+            __token = 112
+            __iterator = getname('options')['table']
+            __iterator, ____index_2112651952944 = getname('repeat')('row', __iterator)
+            econtext['row'] = None
+            for __item in __iterator:
+                econtext['row'] = __item
+                # <tr ... (3:0)
+                # --------------------------------------------------------
+                __append('<tr>\n')
+                # <Static value=<ast.Dict object at 0x1ebe2d92400> name=None at 1ebe2d92590> -> __attrs_2112651951744
+                __attrs_2112651951744 = _static_2112658015120
+                __backup_c_2112611899952 = get('c', __marker)
+                # <Value 'python: row.values()' (4:18)> -> __iterator
+                __token = 157
+                __iterator = _lookup_attr(getname('row'), 'values')()
+                __iterator, ____index_2112651949344 = getname('repeat')('c', __iterator)
+                econtext['c'] = None
+                for __item in __iterator:
+                    econtext['c'] = __item
+                    # <td ... (4:0)
+                    # --------------------------------------------------------
+                    __append('<td>\n')
+                    # <Static value=<ast.Dict object at 0x1ebe3de5c20> name=None at 1ebe3de9dc0> -> __attrs_2112651957344
+                    __attrs_2112651957344 = _static_2112658043920
+                    __backup_d_2112631401136 = get('d', __marker)
+                    # <Value 'python: c + 1' (5:20)> -> __value
+                    __token = 200
+                    __value = getname('c') + 1
+                    econtext['d'] = __value
+                    # <span ... (5:0)
+                    # --------------------------------------------------------
+                    __append('<span')
+                    # <Symbol value=<DEFAULT> at 1ebe2d96be0> -> __default_2112651962144
+                    __default_2112651962144 = _DEFAULT_MARKER
+                    # <Substitution "python: 'column-' + str(d)" (6:22)> -> __attr_class
+                    __token = 237
+                    __attr_class = 'column-' + get('str', str)(getname('d'))
+                    __attr_class = __quote(__attr_class, '"', '&quot;', _DEFAULT_MARKER)
+                    if __attr_class is not None:
+                        __append(' class="%s"' % __attr_class)
+                    __append('>')
+                    # <Symbol value=<DEFAULT> at 1ebe2d96be0> -> __default_2112651959344
+                    __default_2112651959344 = _DEFAULT_MARKER
+                    # <Value 'python: d' (7:13)> -> __cache_2112651943344
+                    __token = 278
+                    __cache_2112651943344 = getname('d')
+                    # <BinOp left=<Value 'python: d' (7:13)> op=<class 'chameleon.nodes.Is'> right=<Symbol value=<DEFAULT> at 1ebe2d96be0> at 1ebe3de5770> -> __condition
+                    __expression = __cache_2112651943344
+                    # <Symbol value=<DEFAULT> at 1ebe2d96be0> -> __value
+                    __value = _DEFAULT_MARKER
+                    __condition = __expression is __value
+                    if __condition:
+                        pass
+                    else:
+                        __content = __cache_2112651943344
+                        __content = __quote(__content, None, '­', None, None)
+                        if __content is not None:
+                            __append(__content)
+                    __append('</span>')
+                    if __backup_d_2112631401136 is __marker:
+                        del econtext['d']
+                    else:
+                        econtext['d'] = __backup_d_2112631401136
+                    __append('\n</td>')
+                    ____index_2112651949344 -= 1
+                    if ____index_2112651949344 > 0:
+                        __append('\n')
+                if __backup_c_2112611899952 is __marker:
+                    del econtext['c']
+                else:
+                    econtext['c'] = __backup_c_2112611899952
+                __append('\n</tr>')
+                ____index_2112651952944 -= 1
+                if ____index_2112651952944 > 0:
+                    __append('\n')
+            if __backup_row_2112611900144 is __marker:
+                del econtext['row']
+            else:
+                econtext['row'] = __backup_row_2112611900144
+            __append('\n</table>')
+        except:
+            if __token is not None:
+                rcontext.setdefault('__error__', []).append(__tokens[__token] + (__filename, _exc_info()[1]))
+            raise
+    return {'render': render}

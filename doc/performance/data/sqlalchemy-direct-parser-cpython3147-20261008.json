@@ -1,0 +1,20 @@
+{
+  "status": "cpython3147_unchanged_source_and_of_attribute_parse_passed",
+  "terminal": true,
+  "diagnostic_only": true,
+  "scored": false,
+  "runtime": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+  "executable": "C:\\Python\\Python314\\python.exe",
+  "cpython_executable_sha256": "4942b86a6597e5aee0128daa00050ed79bc21f6e709a78eb19cbfeb0c2f39ac9",
+  "controller_sha256": "ededfcde658d845aaa8b220e54ebc4ff5f26133cef02acbff95bd3ffe8eec791",
+  "source": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\sqlalchemy\\sql\\selectable.py",
+  "source_sha256_before": "eac5df2ea20a1acbbe0d866bb09864f9e310e3718e676cd395274e17c60547f2",
+  "source_byte_count": 218005,
+  "module_imported": false,
+  "source_modified": false,
+  "started_utc": "2026-10-09T06:23:37.504153+00:00",
+  "module_statement_count": 92,
+  "of_attribute_control_passed": true,
+  "source_sha256_after": "eac5df2ea20a1acbbe0d866bb09864f9e310e3718e676cd395274e17c60547f2",
+  "completed_utc": "2026-10-09T06:23:37.518061+00:00"
+}

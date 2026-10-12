@@ -1,0 +1,140 @@
+entry: #3
+
+module_slots: %0=__name__ %1=__doc__ %2=__file__ %3=__package__ %4=__path__ %5=json %6=events %7=snapshots %8=Item %9=number %10=obj %11=value
+
+function #0 __init__
+  qualname: Item.__init__
+  first_line: 7
+  generator: false
+  async: false
+  coroutine: false
+  params: %0=self %1=value
+  signature: %0=self/poskw/d4294967295 %1=value/poskw/d4294967295
+  locals: %0=self %1=value
+  cells:
+  free_vars:
+  registers: 3
+  constants: 1
+  names: #0=value
+  0: LoadLocalPair line=8 pos=8:22-8:27 dst=0 a=0 b=1 c=1
+  1: StoreAttr line=8 pos=8:22-8:27 dst=0 a=0 b=1 c=0
+  2: ReturnConst line=0 pos=0:0-0:0 dst=0 a=0 b=0 c=0
+
+function #1 __del__
+  qualname: Item.__del__
+  first_line: 10
+  generator: false
+  async: false
+  coroutine: false
+  params: %0=self
+  signature: %0=self/poskw/d4294967295
+  locals: %0=self
+  cells:
+  free_vars:
+  registers: 5
+  constants: 1
+  names: #0=value #1=append
+  call_args #0: r1
+  0: LoadModuleSlot line=11 pos=11:9-11:34 dst=0 a=6 b=0 c=0
+  1: LoadLocalAttr line=11 pos=11:23-11:33 dst=1 a=0 b=0 c=2
+  2: CallMethod line=11 pos=11:9-11:34 dst=3 a=0 b=1 c=0
+  3: Pop line=11 pos=11:9-11:34 dst=0 a=3 b=0 c=0
+  4: ReturnConst line=0 pos=0:0-0:0 dst=0 a=0 b=0 c=0
+
+function #2 Item
+  first_line: 6
+  generator: false
+  async: false
+  coroutine: false
+  params:
+  signature:
+  locals:
+  cells:
+  free_vars:
+  registers: 0
+  constants: 0
+  names:
+
+function #3 <module>
+  first_line: 1
+  generator: false
+  async: false
+  coroutine: false
+  params:
+  signature:
+  locals: %0=#class.frame.0 %1=#class.annotations.1
+  cells: %1
+  free_vars:
+  registers: 40
+  constants: 13
+  names: #0=json #1=__name__ #2=Item #3=value #4=list #5=append #6=print #7=dumps
+  call_args #0: r25
+  call_args #1: r31
+  call_args #2: r32
+  call_args #3: r36
+  call_args #4: r37
+  tuple_items #0: r19 r20
+  list_items #0:
+  list_items #1:
+  dict_items #0:
+  dict_items #1:
+  function_closure #0:
+  function_closure #1:
+  class_attrs #0: __module__=r3 __qualname__=r4 __firstlineno__=r5 __init__=r13 __del__=r15 __static_attributes__=r7
+  class_instance_slots #0:
+  0: ImportModule line=1 pos=1:1-1:12 dst=0 a=0 b=0 c=0
+  1: StoreModuleSlot line=1 pos=1:1-1:12 dst=5 a=0 b=0 c=0
+  2: MakeList line=2 pos=2:10-2:12 dst=1 a=0 b=0 c=0
+  3: StoreModuleSlot line=2 pos=2:10-2:12 dst=6 a=1 b=0 c=0
+  4: MakeList line=3 pos=3:13-3:15 dst=2 a=1 b=0 c=0
+  5: StoreModuleSlot line=3 pos=3:13-3:15 dst=7 a=2 b=0 c=0
+  6: LoadGlobal line=6 pos=6:1-14:1 dst=3 a=1 b=0 c=0
+  7: LoadConstPair line=6 pos=6:1-14:1 dst=4 a=0 b=5 c=1
+  8: LoadConstPair line=6 pos=6:1-14:1 dst=6 a=2 b=7 c=3
+  9: MakeDict line=6 pos=6:1-14:1 dst=8 a=0 b=0 c=0
+  10: StoreLocal line=6 pos=6:1-14:1 dst=0 a=8 b=0 c=0
+  11: LoadConst line=6 pos=6:1-14:1 dst=9 a=4 b=0 c=0
+  12: DictSet line=6 pos=6:1-14:1 dst=8 a=9 b=3 c=0
+  13: LoadConst line=6 pos=6:1-14:1 dst=10 a=5 b=0 c=0
+  14: DictSet line=6 pos=6:1-14:1 dst=8 a=10 b=4 c=0
+  15: LoadConst line=6 pos=6:1-14:1 dst=11 a=6 b=0 c=0
+  16: DictSet line=6 pos=6:1-14:1 dst=8 a=11 b=5 c=0
+  17: MakeDict line=6 pos=6:1-14:1 dst=12 a=1 b=0 c=0
+  18: StoreCell line=6 pos=6:1-14:1 dst=0 a=12 b=0 c=0
+  19: MakeFunction line=6 pos=6:1-14:1 dst=13 a=0 b=0 c=4294967295
+  20: LoadConst line=6 pos=6:1-14:1 dst=14 a=7 b=0 c=0
+  21: DictSet line=6 pos=6:1-14:1 dst=8 a=14 b=13 c=0
+  22: MakeFunction line=6 pos=6:1-14:1 dst=15 a=1 b=1 c=4294967295
+  23: LoadConst line=6 pos=6:1-14:1 dst=16 a=8 b=0 c=0
+  24: DictSet line=6 pos=6:1-14:1 dst=8 a=16 b=15 c=0
+  25: LoadConst line=6 pos=6:1-14:1 dst=17 a=9 b=0 c=0
+  26: DictSet line=6 pos=6:1-14:1 dst=8 a=17 b=7 c=0
+  27: MakeClass line=6 pos=6:1-14:1 dst=18 a=2 b=0 c=0
+  28: StoreModuleSlot line=6 pos=6:1-14:1 dst=8 a=18 b=0 c=0
+  29: LoadConstPair line=14 pos=14:1-19:1 dst=19 a=10 b=20 c=11
+  30: MakeTuple line=14 pos=14:1-19:1 dst=21 a=0 b=0 c=0
+  31: GetIter line=14 pos=14:1-19:1 dst=22 a=21 b=0 c=0
+  32: IterNext line=14 pos=14:1-19:1 dst=23 a=22 b=48 c=0
+  33: StoreModuleSlot line=14 pos=14:1-19:1 dst=9 a=23 b=0 c=0
+  34: LoadModuleSlot line=15 pos=15:11-15:23 dst=24 a=8 b=0 c=0
+  35: LoadModuleSlot line=15 pos=15:11-15:23 dst=25 a=9 b=0 c=0
+  36: Call line=15 pos=15:11-15:23 dst=26 a=24 b=0 c=0
+  37: StoreModuleSlot line=15 pos=15:11-15:23 dst=10 a=26 b=0 c=0
+  38: LoadModuleAttr line=16 pos=16:13-16:22 dst=27 a=10 b=3 c=28
+  39: StoreModuleSlot line=16 pos=16:13-16:22 dst=11 a=27 b=0 c=0
+  40: DeleteModuleSlot line=17 pos=17:5-17:12 dst=10 a=0 b=0 c=0
+  41: LoadModuleSlot line=18 pos=18:5-18:35 dst=29 a=7 b=0 c=0
+  42: LoadGlobal line=18 pos=18:22-18:34 dst=30 a=4 b=0 c=0
+  43: LoadModuleSlot line=18 pos=18:22-18:34 dst=31 a=6 b=0 c=0
+  44: Call line=18 pos=18:22-18:34 dst=32 a=30 b=1 c=0
+  45: CallMethod line=18 pos=18:5-18:35 dst=33 a=29 b=5 c=2
+  46: Pop line=18 pos=18:5-18:35 dst=0 a=33 b=0 c=0
+  47: Jump line=14 pos=14:1-19:1 dst=32 a=0 b=0 c=0
+  48: LoadGlobal line=19 pos=19:1-19:29 dst=34 a=6 b=0 c=0
+  49: LoadModuleSlot line=19 pos=19:7-19:28 dst=35 a=5 b=0 c=0
+  50: LoadModuleSlot line=19 pos=19:7-19:28 dst=36 a=7 b=0 c=0
+  51: CallMethod line=19 pos=19:7-19:28 dst=37 a=35 b=7 c=3
+  52: Call line=19 pos=19:1-19:29 dst=38 a=34 b=4 c=0
+  53: Pop line=19 pos=19:1-19:29 dst=0 a=38 b=0 c=0
+  54: ReturnConst line=0 pos=0:0-0:0 dst=0 a=12 b=0 c=0
+

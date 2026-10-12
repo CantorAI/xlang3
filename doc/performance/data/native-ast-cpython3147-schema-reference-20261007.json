@@ -1,0 +1,1436 @@
+{
+  "version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+  "scope": "Only native _ast exports; excludes Python ast.py aliases and algorithms",
+  "classes": [
+    {
+      "name": "AST",
+      "base": "object",
+      "fields": [],
+      "has_field_types": false,
+      "field_types": {}
+    },
+    {
+      "name": "Add",
+      "base": "operator",
+      "fields": [],
+      "has_field_types": true,
+      "field_types": {}
+    },
+    {
+      "name": "And",
+      "base": "boolop",
+      "fields": [],
+      "has_field_types": true,
+      "field_types": {}
+    },
+    {
+      "name": "AnnAssign",
+      "base": "stmt",
+      "fields": [
+        "target",
+        "annotation",
+        "value",
+        "simple"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "target": "expr",
+        "annotation": "expr",
+        "value": "expr|NoneType",
+        "simple": "int"
+      }
+    },
+    {
+      "name": "Assert",
+      "base": "stmt",
+      "fields": [
+        "test",
+        "msg"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "test": "expr",
+        "msg": "expr|NoneType"
+      }
+    },
+    {
+      "name": "Assign",
+      "base": "stmt",
+      "fields": [
+        "targets",
+        "value",
+        "type_comment"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "targets": "list[expr]",
+        "value": "expr",
+        "type_comment": "str|NoneType"
+      }
+    },
+    {
+      "name": "AsyncFor",
+      "base": "stmt",
+      "fields": [
+        "target",
+        "iter",
+        "body",
+        "orelse",
+        "type_comment"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "target": "expr",
+        "iter": "expr",
+        "body": "list[stmt]",
+        "orelse": "list[stmt]",
+        "type_comment": "str|NoneType"
+      }
+    },
+    {
+      "name": "AsyncFunctionDef",
+      "base": "stmt",
+      "fields": [
+        "name",
+        "args",
+        "body",
+        "decorator_list",
+        "returns",
+        "type_comment",
+        "type_params"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "name": "str",
+        "args": "arguments",
+        "body": "list[stmt]",
+        "decorator_list": "list[expr]",
+        "returns": "expr|NoneType",
+        "type_comment": "str|NoneType",
+        "type_params": "list[type_param]"
+      }
+    },
+    {
+      "name": "AsyncWith",
+      "base": "stmt",
+      "fields": [
+        "items",
+        "body",
+        "type_comment"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "items": "list[withitem]",
+        "body": "list[stmt]",
+        "type_comment": "str|NoneType"
+      }
+    },
+    {
+      "name": "Attribute",
+      "base": "expr",
+      "fields": [
+        "value",
+        "attr",
+        "ctx"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "value": "expr",
+        "attr": "str",
+        "ctx": "expr_context"
+      }
+    },
+    {
+      "name": "AugAssign",
+      "base": "stmt",
+      "fields": [
+        "target",
+        "op",
+        "value"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "target": "expr",
+        "op": "operator",
+        "value": "expr"
+      }
+    },
+    {
+      "name": "Await",
+      "base": "expr",
+      "fields": [
+        "value"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "value": "expr"
+      }
+    },
+    {
+      "name": "BinOp",
+      "base": "expr",
+      "fields": [
+        "left",
+        "op",
+        "right"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "left": "expr",
+        "op": "operator",
+        "right": "expr"
+      }
+    },
+    {
+      "name": "BitAnd",
+      "base": "operator",
+      "fields": [],
+      "has_field_types": true,
+      "field_types": {}
+    },
+    {
+      "name": "BitOr",
+      "base": "operator",
+      "fields": [],
+      "has_field_types": true,
+      "field_types": {}
+    },
+    {
+      "name": "BitXor",
+      "base": "operator",
+      "fields": [],
+      "has_field_types": true,
+      "field_types": {}
+    },
+    {
+      "name": "BoolOp",
+      "base": "expr",
+      "fields": [
+        "op",
+        "values"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "op": "boolop",
+        "values": "list[expr]"
+      }
+    },
+    {
+      "name": "Break",
+      "base": "stmt",
+      "fields": [],
+      "has_field_types": true,
+      "field_types": {}
+    },
+    {
+      "name": "Call",
+      "base": "expr",
+      "fields": [
+        "func",
+        "args",
+        "keywords"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "func": "expr",
+        "args": "list[expr]",
+        "keywords": "list[keyword]"
+      }
+    },
+    {
+      "name": "ClassDef",
+      "base": "stmt",
+      "fields": [
+        "name",
+        "bases",
+        "keywords",
+        "body",
+        "decorator_list",
+        "type_params"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "name": "str",
+        "bases": "list[expr]",
+        "keywords": "list[keyword]",
+        "body": "list[stmt]",
+        "decorator_list": "list[expr]",
+        "type_params": "list[type_param]"
+      }
+    },
+    {
+      "name": "Compare",
+      "base": "expr",
+      "fields": [
+        "left",
+        "ops",
+        "comparators"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "left": "expr",
+        "ops": "list[cmpop]",
+        "comparators": "list[expr]"
+      }
+    },
+    {
+      "name": "Constant",
+      "base": "expr",
+      "fields": [
+        "value",
+        "kind"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "value": "object",
+        "kind": "str|NoneType"
+      }
+    },
+    {
+      "name": "Continue",
+      "base": "stmt",
+      "fields": [],
+      "has_field_types": true,
+      "field_types": {}
+    },
+    {
+      "name": "Del",
+      "base": "expr_context",
+      "fields": [],
+      "has_field_types": true,
+      "field_types": {}
+    },
+    {
+      "name": "Delete",
+      "base": "stmt",
+      "fields": [
+        "targets"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "targets": "list[expr]"
+      }
+    },
+    {
+      "name": "Dict",
+      "base": "expr",
+      "fields": [
+        "keys",
+        "values"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "keys": "list[expr]",
+        "values": "list[expr]"
+      }
+    },
+    {
+      "name": "DictComp",
+      "base": "expr",
+      "fields": [
+        "key",
+        "value",
+        "generators"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "key": "expr",
+        "value": "expr",
+        "generators": "list[comprehension]"
+      }
+    },
+    {
+      "name": "Div",
+      "base": "operator",
+      "fields": [],
+      "has_field_types": true,
+      "field_types": {}
+    },
+    {
+      "name": "Eq",
+      "base": "cmpop",
+      "fields": [],
+      "has_field_types": true,
+      "field_types": {}
+    },
+    {
+      "name": "ExceptHandler",
+      "base": "excepthandler",
+      "fields": [
+        "type",
+        "name",
+        "body"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "type": "expr|NoneType",
+        "name": "str|NoneType",
+        "body": "list[stmt]"
+      }
+    },
+    {
+      "name": "Expr",
+      "base": "stmt",
+      "fields": [
+        "value"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "value": "expr"
+      }
+    },
+    {
+      "name": "Expression",
+      "base": "mod",
+      "fields": [
+        "body"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "body": "expr"
+      }
+    },
+    {
+      "name": "FloorDiv",
+      "base": "operator",
+      "fields": [],
+      "has_field_types": true,
+      "field_types": {}
+    },
+    {
+      "name": "For",
+      "base": "stmt",
+      "fields": [
+        "target",
+        "iter",
+        "body",
+        "orelse",
+        "type_comment"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "target": "expr",
+        "iter": "expr",
+        "body": "list[stmt]",
+        "orelse": "list[stmt]",
+        "type_comment": "str|NoneType"
+      }
+    },
+    {
+      "name": "FormattedValue",
+      "base": "expr",
+      "fields": [
+        "value",
+        "conversion",
+        "format_spec"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "value": "expr",
+        "conversion": "int",
+        "format_spec": "expr|NoneType"
+      }
+    },
+    {
+      "name": "FunctionDef",
+      "base": "stmt",
+      "fields": [
+        "name",
+        "args",
+        "body",
+        "decorator_list",
+        "returns",
+        "type_comment",
+        "type_params"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "name": "str",
+        "args": "arguments",
+        "body": "list[stmt]",
+        "decorator_list": "list[expr]",
+        "returns": "expr|NoneType",
+        "type_comment": "str|NoneType",
+        "type_params": "list[type_param]"
+      }
+    },
+    {
+      "name": "FunctionType",
+      "base": "mod",
+      "fields": [
+        "argtypes",
+        "returns"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "argtypes": "list[expr]",
+        "returns": "expr"
+      }
+    },
+    {
+      "name": "GeneratorExp",
+      "base": "expr",
+      "fields": [
+        "elt",
+        "generators"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "elt": "expr",
+        "generators": "list[comprehension]"
+      }
+    },
+    {
+      "name": "Global",
+      "base": "stmt",
+      "fields": [
+        "names"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "names": "list[str]"
+      }
+    },
+    {
+      "name": "Gt",
+      "base": "cmpop",
+      "fields": [],
+      "has_field_types": true,
+      "field_types": {}
+    },
+    {
+      "name": "GtE",
+      "base": "cmpop",
+      "fields": [],
+      "has_field_types": true,
+      "field_types": {}
+    },
+    {
+      "name": "If",
+      "base": "stmt",
+      "fields": [
+        "test",
+        "body",
+        "orelse"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "test": "expr",
+        "body": "list[stmt]",
+        "orelse": "list[stmt]"
+      }
+    },
+    {
+      "name": "IfExp",
+      "base": "expr",
+      "fields": [
+        "test",
+        "body",
+        "orelse"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "test": "expr",
+        "body": "expr",
+        "orelse": "expr"
+      }
+    },
+    {
+      "name": "Import",
+      "base": "stmt",
+      "fields": [
+        "names"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "names": "list[alias]"
+      }
+    },
+    {
+      "name": "ImportFrom",
+      "base": "stmt",
+      "fields": [
+        "module",
+        "names",
+        "level"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "module": "str|NoneType",
+        "names": "list[alias]",
+        "level": "int|NoneType"
+      }
+    },
+    {
+      "name": "In",
+      "base": "cmpop",
+      "fields": [],
+      "has_field_types": true,
+      "field_types": {}
+    },
+    {
+      "name": "Interactive",
+      "base": "mod",
+      "fields": [
+        "body"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "body": "list[stmt]"
+      }
+    },
+    {
+      "name": "Interpolation",
+      "base": "expr",
+      "fields": [
+        "value",
+        "str",
+        "conversion",
+        "format_spec"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "value": "expr",
+        "str": "object",
+        "conversion": "int",
+        "format_spec": "expr|NoneType"
+      }
+    },
+    {
+      "name": "Invert",
+      "base": "unaryop",
+      "fields": [],
+      "has_field_types": true,
+      "field_types": {}
+    },
+    {
+      "name": "Is",
+      "base": "cmpop",
+      "fields": [],
+      "has_field_types": true,
+      "field_types": {}
+    },
+    {
+      "name": "IsNot",
+      "base": "cmpop",
+      "fields": [],
+      "has_field_types": true,
+      "field_types": {}
+    },
+    {
+      "name": "JoinedStr",
+      "base": "expr",
+      "fields": [
+        "values"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "values": "list[expr]"
+      }
+    },
+    {
+      "name": "LShift",
+      "base": "operator",
+      "fields": [],
+      "has_field_types": true,
+      "field_types": {}
+    },
+    {
+      "name": "Lambda",
+      "base": "expr",
+      "fields": [
+        "args",
+        "body"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "args": "arguments",
+        "body": "expr"
+      }
+    },
+    {
+      "name": "List",
+      "base": "expr",
+      "fields": [
+        "elts",
+        "ctx"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "elts": "list[expr]",
+        "ctx": "expr_context"
+      }
+    },
+    {
+      "name": "ListComp",
+      "base": "expr",
+      "fields": [
+        "elt",
+        "generators"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "elt": "expr",
+        "generators": "list[comprehension]"
+      }
+    },
+    {
+      "name": "Load",
+      "base": "expr_context",
+      "fields": [],
+      "has_field_types": true,
+      "field_types": {}
+    },
+    {
+      "name": "Lt",
+      "base": "cmpop",
+      "fields": [],
+      "has_field_types": true,
+      "field_types": {}
+    },
+    {
+      "name": "LtE",
+      "base": "cmpop",
+      "fields": [],
+      "has_field_types": true,
+      "field_types": {}
+    },
+    {
+      "name": "MatMult",
+      "base": "operator",
+      "fields": [],
+      "has_field_types": true,
+      "field_types": {}
+    },
+    {
+      "name": "Match",
+      "base": "stmt",
+      "fields": [
+        "subject",
+        "cases"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "subject": "expr",
+        "cases": "list[match_case]"
+      }
+    },
+    {
+      "name": "MatchAs",
+      "base": "pattern",
+      "fields": [
+        "pattern",
+        "name"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "pattern": "pattern|NoneType",
+        "name": "str|NoneType"
+      }
+    },
+    {
+      "name": "MatchClass",
+      "base": "pattern",
+      "fields": [
+        "cls",
+        "patterns",
+        "kwd_attrs",
+        "kwd_patterns"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "cls": "expr",
+        "patterns": "list[pattern]",
+        "kwd_attrs": "list[str]",
+        "kwd_patterns": "list[pattern]"
+      }
+    },
+    {
+      "name": "MatchMapping",
+      "base": "pattern",
+      "fields": [
+        "keys",
+        "patterns",
+        "rest"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "keys": "list[expr]",
+        "patterns": "list[pattern]",
+        "rest": "str|NoneType"
+      }
+    },
+    {
+      "name": "MatchOr",
+      "base": "pattern",
+      "fields": [
+        "patterns"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "patterns": "list[pattern]"
+      }
+    },
+    {
+      "name": "MatchSequence",
+      "base": "pattern",
+      "fields": [
+        "patterns"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "patterns": "list[pattern]"
+      }
+    },
+    {
+      "name": "MatchSingleton",
+      "base": "pattern",
+      "fields": [
+        "value"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "value": "object"
+      }
+    },
+    {
+      "name": "MatchStar",
+      "base": "pattern",
+      "fields": [
+        "name"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "name": "str|NoneType"
+      }
+    },
+    {
+      "name": "MatchValue",
+      "base": "pattern",
+      "fields": [
+        "value"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "value": "expr"
+      }
+    },
+    {
+      "name": "Mod",
+      "base": "operator",
+      "fields": [],
+      "has_field_types": true,
+      "field_types": {}
+    },
+    {
+      "name": "Module",
+      "base": "mod",
+      "fields": [
+        "body",
+        "type_ignores"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "body": "list[stmt]",
+        "type_ignores": "list[type_ignore]"
+      }
+    },
+    {
+      "name": "Mult",
+      "base": "operator",
+      "fields": [],
+      "has_field_types": true,
+      "field_types": {}
+    },
+    {
+      "name": "Name",
+      "base": "expr",
+      "fields": [
+        "id",
+        "ctx"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "id": "str",
+        "ctx": "expr_context"
+      }
+    },
+    {
+      "name": "NamedExpr",
+      "base": "expr",
+      "fields": [
+        "target",
+        "value"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "target": "expr",
+        "value": "expr"
+      }
+    },
+    {
+      "name": "Nonlocal",
+      "base": "stmt",
+      "fields": [
+        "names"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "names": "list[str]"
+      }
+    },
+    {
+      "name": "Not",
+      "base": "unaryop",
+      "fields": [],
+      "has_field_types": true,
+      "field_types": {}
+    },
+    {
+      "name": "NotEq",
+      "base": "cmpop",
+      "fields": [],
+      "has_field_types": true,
+      "field_types": {}
+    },
+    {
+      "name": "NotIn",
+      "base": "cmpop",
+      "fields": [],
+      "has_field_types": true,
+      "field_types": {}
+    },
+    {
+      "name": "Or",
+      "base": "boolop",
+      "fields": [],
+      "has_field_types": true,
+      "field_types": {}
+    },
+    {
+      "name": "ParamSpec",
+      "base": "type_param",
+      "fields": [
+        "name",
+        "default_value"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "name": "str",
+        "default_value": "expr|NoneType"
+      }
+    },
+    {
+      "name": "Pass",
+      "base": "stmt",
+      "fields": [],
+      "has_field_types": true,
+      "field_types": {}
+    },
+    {
+      "name": "Pow",
+      "base": "operator",
+      "fields": [],
+      "has_field_types": true,
+      "field_types": {}
+    },
+    {
+      "name": "RShift",
+      "base": "operator",
+      "fields": [],
+      "has_field_types": true,
+      "field_types": {}
+    },
+    {
+      "name": "Raise",
+      "base": "stmt",
+      "fields": [
+        "exc",
+        "cause"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "exc": "expr|NoneType",
+        "cause": "expr|NoneType"
+      }
+    },
+    {
+      "name": "Return",
+      "base": "stmt",
+      "fields": [
+        "value"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "value": "expr|NoneType"
+      }
+    },
+    {
+      "name": "Set",
+      "base": "expr",
+      "fields": [
+        "elts"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "elts": "list[expr]"
+      }
+    },
+    {
+      "name": "SetComp",
+      "base": "expr",
+      "fields": [
+        "elt",
+        "generators"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "elt": "expr",
+        "generators": "list[comprehension]"
+      }
+    },
+    {
+      "name": "Slice",
+      "base": "expr",
+      "fields": [
+        "lower",
+        "upper",
+        "step"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "lower": "expr|NoneType",
+        "upper": "expr|NoneType",
+        "step": "expr|NoneType"
+      }
+    },
+    {
+      "name": "Starred",
+      "base": "expr",
+      "fields": [
+        "value",
+        "ctx"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "value": "expr",
+        "ctx": "expr_context"
+      }
+    },
+    {
+      "name": "Store",
+      "base": "expr_context",
+      "fields": [],
+      "has_field_types": true,
+      "field_types": {}
+    },
+    {
+      "name": "Sub",
+      "base": "operator",
+      "fields": [],
+      "has_field_types": true,
+      "field_types": {}
+    },
+    {
+      "name": "Subscript",
+      "base": "expr",
+      "fields": [
+        "value",
+        "slice",
+        "ctx"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "value": "expr",
+        "slice": "expr",
+        "ctx": "expr_context"
+      }
+    },
+    {
+      "name": "TemplateStr",
+      "base": "expr",
+      "fields": [
+        "values"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "values": "list[expr]"
+      }
+    },
+    {
+      "name": "Try",
+      "base": "stmt",
+      "fields": [
+        "body",
+        "handlers",
+        "orelse",
+        "finalbody"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "body": "list[stmt]",
+        "handlers": "list[excepthandler]",
+        "orelse": "list[stmt]",
+        "finalbody": "list[stmt]"
+      }
+    },
+    {
+      "name": "TryStar",
+      "base": "stmt",
+      "fields": [
+        "body",
+        "handlers",
+        "orelse",
+        "finalbody"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "body": "list[stmt]",
+        "handlers": "list[excepthandler]",
+        "orelse": "list[stmt]",
+        "finalbody": "list[stmt]"
+      }
+    },
+    {
+      "name": "Tuple",
+      "base": "expr",
+      "fields": [
+        "elts",
+        "ctx"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "elts": "list[expr]",
+        "ctx": "expr_context"
+      }
+    },
+    {
+      "name": "TypeAlias",
+      "base": "stmt",
+      "fields": [
+        "name",
+        "type_params",
+        "value"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "name": "expr",
+        "type_params": "list[type_param]",
+        "value": "expr"
+      }
+    },
+    {
+      "name": "TypeIgnore",
+      "base": "type_ignore",
+      "fields": [
+        "lineno",
+        "tag"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "lineno": "int",
+        "tag": "str"
+      }
+    },
+    {
+      "name": "TypeVar",
+      "base": "type_param",
+      "fields": [
+        "name",
+        "bound",
+        "default_value"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "name": "str",
+        "bound": "expr|NoneType",
+        "default_value": "expr|NoneType"
+      }
+    },
+    {
+      "name": "TypeVarTuple",
+      "base": "type_param",
+      "fields": [
+        "name",
+        "default_value"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "name": "str",
+        "default_value": "expr|NoneType"
+      }
+    },
+    {
+      "name": "UAdd",
+      "base": "unaryop",
+      "fields": [],
+      "has_field_types": true,
+      "field_types": {}
+    },
+    {
+      "name": "USub",
+      "base": "unaryop",
+      "fields": [],
+      "has_field_types": true,
+      "field_types": {}
+    },
+    {
+      "name": "UnaryOp",
+      "base": "expr",
+      "fields": [
+        "op",
+        "operand"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "op": "unaryop",
+        "operand": "expr"
+      }
+    },
+    {
+      "name": "While",
+      "base": "stmt",
+      "fields": [
+        "test",
+        "body",
+        "orelse"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "test": "expr",
+        "body": "list[stmt]",
+        "orelse": "list[stmt]"
+      }
+    },
+    {
+      "name": "With",
+      "base": "stmt",
+      "fields": [
+        "items",
+        "body",
+        "type_comment"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "items": "list[withitem]",
+        "body": "list[stmt]",
+        "type_comment": "str|NoneType"
+      }
+    },
+    {
+      "name": "Yield",
+      "base": "expr",
+      "fields": [
+        "value"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "value": "expr|NoneType"
+      }
+    },
+    {
+      "name": "YieldFrom",
+      "base": "expr",
+      "fields": [
+        "value"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "value": "expr"
+      }
+    },
+    {
+      "name": "alias",
+      "base": "AST",
+      "fields": [
+        "name",
+        "asname"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "name": "str",
+        "asname": "str|NoneType"
+      }
+    },
+    {
+      "name": "arg",
+      "base": "AST",
+      "fields": [
+        "arg",
+        "annotation",
+        "type_comment"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "arg": "str",
+        "annotation": "expr|NoneType",
+        "type_comment": "str|NoneType"
+      }
+    },
+    {
+      "name": "arguments",
+      "base": "AST",
+      "fields": [
+        "posonlyargs",
+        "args",
+        "vararg",
+        "kwonlyargs",
+        "kw_defaults",
+        "kwarg",
+        "defaults"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "posonlyargs": "list[arg]",
+        "args": "list[arg]",
+        "vararg": "arg|NoneType",
+        "kwonlyargs": "list[arg]",
+        "kw_defaults": "list[expr]",
+        "kwarg": "arg|NoneType",
+        "defaults": "list[expr]"
+      }
+    },
+    {
+      "name": "boolop",
+      "base": "AST",
+      "fields": [],
+      "has_field_types": false,
+      "field_types": {}
+    },
+    {
+      "name": "cmpop",
+      "base": "AST",
+      "fields": [],
+      "has_field_types": false,
+      "field_types": {}
+    },
+    {
+      "name": "comprehension",
+      "base": "AST",
+      "fields": [
+        "target",
+        "iter",
+        "ifs",
+        "is_async"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "target": "expr",
+        "iter": "expr",
+        "ifs": "list[expr]",
+        "is_async": "int"
+      }
+    },
+    {
+      "name": "excepthandler",
+      "base": "AST",
+      "fields": [],
+      "has_field_types": false,
+      "field_types": {}
+    },
+    {
+      "name": "expr",
+      "base": "AST",
+      "fields": [],
+      "has_field_types": false,
+      "field_types": {}
+    },
+    {
+      "name": "expr_context",
+      "base": "AST",
+      "fields": [],
+      "has_field_types": false,
+      "field_types": {}
+    },
+    {
+      "name": "keyword",
+      "base": "AST",
+      "fields": [
+        "arg",
+        "value"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "arg": "str|NoneType",
+        "value": "expr"
+      }
+    },
+    {
+      "name": "match_case",
+      "base": "AST",
+      "fields": [
+        "pattern",
+        "guard",
+        "body"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "pattern": "pattern",
+        "guard": "expr|NoneType",
+        "body": "list[stmt]"
+      }
+    },
+    {
+      "name": "mod",
+      "base": "AST",
+      "fields": [],
+      "has_field_types": false,
+      "field_types": {}
+    },
+    {
+      "name": "operator",
+      "base": "AST",
+      "fields": [],
+      "has_field_types": false,
+      "field_types": {}
+    },
+    {
+      "name": "pattern",
+      "base": "AST",
+      "fields": [],
+      "has_field_types": false,
+      "field_types": {}
+    },
+    {
+      "name": "stmt",
+      "base": "AST",
+      "fields": [],
+      "has_field_types": false,
+      "field_types": {}
+    },
+    {
+      "name": "type_ignore",
+      "base": "AST",
+      "fields": [],
+      "has_field_types": false,
+      "field_types": {}
+    },
+    {
+      "name": "type_param",
+      "base": "AST",
+      "fields": [],
+      "has_field_types": false,
+      "field_types": {}
+    },
+    {
+      "name": "unaryop",
+      "base": "AST",
+      "fields": [],
+      "has_field_types": false,
+      "field_types": {}
+    },
+    {
+      "name": "withitem",
+      "base": "AST",
+      "fields": [
+        "context_expr",
+        "optional_vars"
+      ],
+      "has_field_types": true,
+      "field_types": {
+        "context_expr": "expr",
+        "optional_vars": "expr|NoneType"
+      }
+    }
+  ]
+}

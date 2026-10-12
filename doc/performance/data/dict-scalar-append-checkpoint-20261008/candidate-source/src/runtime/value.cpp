@@ -1,0 +1,4417 @@
+/*
+Copyright (C) 2026 CantorAI Inc. and The XLang Foundation
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+#include "xlang3/value.h"
+#ifndef XLANG3_EMBEDDED
+#include "tensor/tensor_internal.h"
+#endif
+#include "xlang3/expression.h"
+
+#include "xlang3/attribute.h"
+#include "xlang3/builtins.h"
+#include "xlang3/generator.h"
+#include "xlang3/functional_iterators.h"
+#include "xlang3/ir.h"
+#include "xlang3/mapping.h"
+#include "xlang3/module_object.h"
+#include "xlang3/object_model.h"
+#include "xlang3/perf_counters.h"
+#include "xlang3/runtime.h"
+#include "xlang3/sequence.h"
+#include "xlang3/set_object.h"
+#include "xlang3/value_hash.h"
+
+#include "runtime/memory/x3_runtime_memory.h"
+#include "runtime/memory/object_cache_lifetime.h"
+
+#include <algorithm>
+#include <array>
+#include <charconv>
+#include <cctype>
+#include <cmath>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <iomanip>
+#include <limits>
+#include <mutex>
+#include <new>
+#include <stdexcept>
+#include <system_error>
+#include <vector>
+#if defined(_WIN32)
+#include <io.h>
+#else
+#include <unistd.h>
+#endif
+#if !defined(XLANG3_EMBEDDED)
+#include <sstream>
+#include <unordered_map>
+#endif
+
+namespace xlang3 {
+
+struct StringUnicodeIndex {
+  static constexpr size_t stride = 128;
+  uint32_t characters = 0;
+  bool sparse = true;
+  std::vector<std::pair<uint32_t, uint32_t>> corrections;
+  std::vector<uint32_t> checkpoints;
+};
+static_assert(alignof(StringUnicodeIndex) >= 4);
+
+namespace {
+
+const StringUnicodeIndex& unicode_index(const StringObject& string) {
+  uintptr_t observed = string.unicode_metadata.load(std::memory_order_acquire);
+  if (const auto* cached = reinterpret_cast<const StringUnicodeIndex*>(observed & ~kStringMetadataFlags)) {
+    return *cached;
+  }
+  auto fresh = std::make_unique<StringUnicodeIndex>();
+  const auto text = string_object_view(string);
+  fresh->checkpoints.reserve(text.size() / StringUnicodeIndex::stride + 1);
+  uint32_t extra_bytes = 0;
+  for (size_t offset = 0; offset < text.size();) {
+    if (fresh->characters % StringUnicodeIndex::stride == 0) {
+      fresh->checkpoints.push_back(static_cast<uint32_t>(offset));
+    }
+    size_t width = utf8_codepoint_width(static_cast<unsigned char>(text[offset]));
+    if (width > text.size() - offset) width = 1;
+    offset += width;
+    ++fresh->characters;
+    if (width > 1) {
+      extra_bytes += static_cast<uint32_t>(width - 1);
+      if (fresh->sparse) {
+        if (fresh->corrections.size() < 128) {
+          fresh->corrections.emplace_back(fresh->characters, extra_bytes);
+        } else {
+          fresh->sparse = false;
+          std::vector<std::pair<uint32_t, uint32_t>>().swap(fresh->corrections);
+        }
+      }
+    }
+  }
+  if (fresh->sparse) std::vector<uint32_t>().swap(fresh->checkpoints);
+  // Rare multibyte characters should not force a table for every ASCII byte.
+  // Dense text uses bounded checkpoints; all later reads walk at most 127
+  // characters. Publish the completed immutable index to concurrent readers.
+  for (;;) {
+    if (const auto* cached = reinterpret_cast<const StringUnicodeIndex*>(observed & ~kStringMetadataFlags)) {
+      return *cached;
+    }
+    const uintptr_t desired = reinterpret_cast<uintptr_t>(fresh.get()) | (observed & kStringMetadataFlags);
+    if (string.unicode_metadata.compare_exchange_weak(
+            observed, desired, std::memory_order_acq_rel, std::memory_order_acquire)) {
+      return *fresh.release();
+    }
+  }
+}
+
+std::mutex g_file_resource_warning_mutex;
+std::vector<std::string> g_file_resource_warnings;
+
+void report_unraisable_finalizer(
+    Runtime& runtime, const Value& exception, const Value& finalizer) {
+  if (exception.tag == ValueTag::Invalid) return;
+  Value exception_type = Value::none();
+  (void)runtime_type_of_value(runtime, exception, exception_type);
+  Value record_class = Value::class_object("UnraisableHookArgs", {});
+  Value record = Value::instance(record_class);
+  std::string ignored;
+  object_set_attr(record, "exc_type", exception_type, ignored);
+  object_set_attr(record, "exc_value", exception, ignored);
+  Value traceback = Value::none();
+  (void)object_get_attr(exception, "__traceback__", traceback, ignored);
+  object_set_attr(record, "exc_traceback", traceback, ignored);
+  object_set_attr(record, "err_msg", Value::none(), ignored);
+  object_set_attr(record, "object", finalizer, ignored);
+  Value sys;
+  Value hook;
+  Value hook_result;
+  if (runtime.import_module("sys", sys, ignored) &&
+      module_get_attr(sys, "unraisablehook", hook, ignored) &&
+      !runtime_call_callable(runtime, hook, &record, 1, hook_result, ignored)) {
+    Value discarded;
+    (void)runtime.take_pending_exception(discarded);
+  }
+}
+
+#if defined(_WIN32)
+void ignore_value_close_invalid_parameter(
+    const wchar_t*,
+    const wchar_t*,
+    const wchar_t*,
+    unsigned int,
+    uintptr_t) {}
+
+intptr_t file_descriptor_native_handle_without_abort(int fd) {
+  const auto previous =
+      _set_thread_local_invalid_parameter_handler(ignore_value_close_invalid_parameter);
+  const intptr_t handle = _get_osfhandle(fd);
+  _set_thread_local_invalid_parameter_handler(previous);
+  return handle;
+}
+
+void close_file_descriptor_without_abort(int fd, intptr_t expected_handle) {
+  const auto previous =
+      _set_thread_local_invalid_parameter_handler(ignore_value_close_invalid_parameter);
+  const intptr_t current_handle = _get_osfhandle(fd);
+  if (expected_handle == -1 || current_handle == expected_handle) {
+    (void)_close(fd);
+  }
+  _set_thread_local_invalid_parameter_handler(previous);
+}
+#endif
+
+template <typename T>
+T* allocate_object(ObjectKind kind) {
+  auto* obj = new T();
+  obj->header.kind = kind;
+  obj->header.refcnt = 1;
+  xlang_perf_count_object_alloc(kind);
+  gc_track_object(&obj->header);
+  return obj;
+}
+
+struct SliceObjectFreeList {
+  ~SliceObjectFreeList() {
+    memory::object_caches_alive = false;
+    for (size_t i = 0; i < size; ++i) {
+      delete items[i];
+    }
+  }
+
+  std::array<SliceObject*, 256> items{};
+  size_t size = 0;
+};
+
+thread_local SliceObjectFreeList slice_object_free_list;
+
+SliceObject* allocate_slice_object() {
+  SliceObject* obj = nullptr;
+  if (memory::object_caches_alive && slice_object_free_list.size != 0) {
+    obj = slice_object_free_list.items[--slice_object_free_list.size];
+    slice_object_free_list.items[slice_object_free_list.size] = nullptr;
+  } else {
+    obj = new SliceObject();
+  }
+  // CPython keeps recently released slices on a freelist. This bounded
+  // thread-local cache avoids a heap allocation for each MakeSlice while
+  // keeping slice bounds off shared allocator locks.
+  obj->header.kind = ObjectKind::Slice;
+  obj->header.refcnt = 1;
+  xlang_perf_count_object_alloc(ObjectKind::Slice);
+  gc_track_object(&obj->header);
+  return obj;
+}
+
+void recycle_slice_object(SliceObject* obj) {
+  // Clear the bounds before caching so the freelist never keeps user values
+  // alive after the slice itself has reached zero references.
+  value_set_invalid(obj->start);
+  value_set_invalid(obj->stop);
+  value_set_invalid(obj->step);
+  if (memory::object_caches_alive && slice_object_free_list.size < slice_object_free_list.items.size()) {
+    slice_object_free_list.items[slice_object_free_list.size++] = obj;
+    return;
+  }
+  delete obj;
+}
+
+void release_string_block(StringObject* object) {
+  const size_t alloc_size = object->alloc_size;
+  auto* allocator = object->allocator != nullptr ? object->allocator : &memory::x3_thread_buckets();
+  delete reinterpret_cast<StringUnicodeIndex*>(
+      object->unicode_metadata.load(std::memory_order_relaxed) & ~kStringMetadataFlags);
+  object->~StringObject();
+  allocator->release(object, alloc_size);
+}
+
+StringObject* allocate_string_object(size_t size) {
+  constexpr size_t kMaxStringPayload =
+      static_cast<size_t>(std::numeric_limits<uint32_t>::max()) - sizeof(StringObject) - 1;
+  if (size > kMaxStringPayload) {
+    size = kMaxStringPayload;
+  }
+  const size_t total_size = sizeof(StringObject) + size + 1;
+  void* block = memory::x3_thread_buckets().allocate(total_size);
+  auto* obj = new (block) StringObject();
+  obj->header.kind = ObjectKind::String;
+  obj->header.refcnt = 1;
+  obj->size = static_cast<uint32_t>(size);
+  obj->alloc_size = static_cast<uint32_t>(total_size);
+  obj->allocator = &memory::x3_thread_buckets();
+  string_object_mutable_data(*obj)[size] = '\0';
+  xlang_perf_count_object_alloc(ObjectKind::String);
+  return obj;
+}
+
+void string_object_set_bytes(StringObject* object, const char* source, size_t size);
+
+using InternedStringTable = std::unordered_multimap<size_t, Value>;
+
+InternedStringTable& interned_string_table() {
+  static auto* table = new InternedStringTable();
+  return *table;
+}
+
+InternedStringTable::iterator find_interned_string(
+    InternedStringTable& table, std::string_view text) {
+  const auto range = table.equal_range(string_view_hash(text));
+  for (auto item = range.first; item != range.second; ++item) {
+    auto* string = value_as_string(item->second);
+    if (string != nullptr && string_object_view(*string) == text) return item;
+  }
+  return table.end();
+}
+
+std::mutex& interned_string_mutex() {
+  static auto* mutex = new std::mutex();
+  return *mutex;
+}
+
+Value make_plain_string(std::string_view value);
+
+Value ascii_character_value(unsigned char character) {
+  static auto* values = [] {
+    auto* cache = new std::array<Value, 128>();
+    for (size_t i = 0; i < cache->size(); ++i) {
+      const char byte = static_cast<char>(i);
+      (*cache)[i] = make_plain_string(std::string_view(&byte, 1));
+      string_object_set_immortal(*reinterpret_cast<StringObject*>((*cache)[i].as.obj), true);
+    }
+    return cache;
+  }();
+  return (*values)[character];
+}
+
+bool is_auto_internable_string(std::string_view value) {
+  for (unsigned char ch : value) {
+    if (ch < 128 && !(std::isalnum(ch) || ch == '_')) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool is_auto_immortal_string(std::string_view value) {
+  if (value.empty()) {
+    return true;
+  }
+  auto is_alpha_or_underscore = [](unsigned char ch) {
+    return (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || ch == '_';
+  };
+  auto is_alnum_or_underscore = [&](unsigned char ch) {
+    return is_alpha_or_underscore(ch) || (ch >= '0' && ch <= '9');
+  };
+  if (!is_alpha_or_underscore(static_cast<unsigned char>(value.front()))) {
+    return false;
+  }
+  for (size_t i = 1; i < value.size(); ++i) {
+    if (!is_alnum_or_underscore(static_cast<unsigned char>(value[i]))) {
+      return false;
+    }
+  }
+  return true;
+}
+
+Value make_plain_string(std::string_view value) {
+  Value v;
+  v.tag = ValueTag::Object;
+  auto* obj = allocate_string_object(value.size());
+  string_object_set_bytes(obj, value.data(), value.size());
+  v.as.obj = &obj->header;
+  return v;
+}
+
+#if !defined(XLANG3_EMBEDDED)
+std::string normalize_float_text(std::string text) {
+  for (char& ch : text) {
+    if (ch == 'E') {
+      ch = 'e';
+    }
+  }
+
+  const size_t exponent_pos = text.find('e');
+  if (exponent_pos != std::string::npos) {
+    const std::string exponent_text = text.substr(exponent_pos + 1);
+    if (exponent_text.empty()) {
+      return text;
+    }
+    size_t exponent_digits_pos = 0;
+    bool exponent_negative = false;
+    if (exponent_text[0] == '+' || exponent_text[0] == '-') {
+      exponent_negative = exponent_text[0] == '-';
+      exponent_digits_pos = 1;
+    }
+    int exponent = 0;
+    const char* first = exponent_text.data() + exponent_digits_pos;
+    const char* last = exponent_text.data() + exponent_text.size();
+    auto [ptr, ec] = std::from_chars(first, last, exponent);
+    const int signed_exponent = exponent_negative ? -exponent : exponent;
+    if (ec == std::errc() && ptr == last && signed_exponent >= -4 && signed_exponent < 16) {
+      std::string mantissa = text.substr(0, exponent_pos);
+      bool negative = false;
+      if (!mantissa.empty() && mantissa[0] == '-') {
+        negative = true;
+        mantissa.erase(mantissa.begin());
+      }
+      size_t decimal_pos = mantissa.find('.');
+      if (decimal_pos == std::string::npos) {
+        decimal_pos = mantissa.size();
+      } else {
+        mantissa.erase(decimal_pos, 1);
+      }
+      const int64_t new_decimal_pos = static_cast<int64_t>(decimal_pos) + signed_exponent;
+      if (new_decimal_pos <= 0) {
+        mantissa.insert(0, static_cast<size_t>(-new_decimal_pos), '0');
+        mantissa.insert(0, "0.");
+      } else if (static_cast<size_t>(new_decimal_pos) >= mantissa.size()) {
+        mantissa.append(static_cast<size_t>(new_decimal_pos) - mantissa.size(), '0');
+        mantissa += ".0";
+      } else {
+        mantissa.insert(static_cast<size_t>(new_decimal_pos), 1, '.');
+      }
+      if (negative) {
+        mantissa.insert(mantissa.begin(), '-');
+      }
+      return mantissa;
+    }
+    return text;
+  }
+
+  if (text != "nan" && text != "inf" && text != "-inf" && text.find('.') == std::string::npos) {
+    text += ".0";
+  }
+  return text;
+}
+
+std::string format_double_text(double value) {
+  if (std::isnan(value)) {
+    return "nan";
+  }
+  if (std::isinf(value)) {
+    return value < 0 ? "-inf" : "inf";
+  }
+
+  char buffer[128];
+  const double magnitude = std::abs(value);
+  const bool use_scientific = magnitude >= 1.0e16 ||
+      (magnitude != 0.0 && magnitude < 1.0e-4);
+  auto [ptr, ec] = use_scientific
+      ? std::to_chars(buffer, buffer + sizeof(buffer), value,
+                      std::chars_format::scientific)
+      : std::to_chars(buffer, buffer + sizeof(buffer), value,
+                      std::chars_format::general);
+  if (ec == std::errc()) {
+    return normalize_float_text(std::string(buffer, ptr));
+  }
+
+  std::ostringstream os;
+  os << std::setprecision(std::numeric_limits<double>::max_digits10) << value;
+  return normalize_float_text(os.str());
+}
+#endif
+
+Value intern_string_view(std::string_view value, bool immortal = true) {
+  if (value.size() == 1 && static_cast<unsigned char>(value[0]) < 128) {
+    return ascii_character_value(static_cast<unsigned char>(value[0]));
+  }
+  std::lock_guard<std::mutex> lock(interned_string_mutex());
+  auto& table = interned_string_table();
+  if (auto found = find_interned_string(table, value); found != table.end()) {
+    if (immortal) {
+      if (auto* string = value_as_string(found->second)) {
+        string_object_set_immortal(*string, true);
+      }
+    }
+    return found->second;
+  }
+  Value interned = make_plain_string(value);
+  if (auto* string = value_as_string(interned)) {
+    if (immortal) string_object_set_immortal(*string, true);
+  }
+  table.emplace(string_object_hash(*value_as_string(interned)), interned);
+  return interned;
+}
+
+BytesObject* allocate_bytes_object(size_t size) {
+  constexpr size_t kMaxBytesPayload =
+      static_cast<size_t>(std::numeric_limits<uint32_t>::max()) - sizeof(BytesObject) - 1;
+  if (size > kMaxBytesPayload) {
+    throw std::length_error("bytes value is too large");
+  }
+  const size_t total_size = sizeof(BytesObject) + size + 1;
+  void* block = memory::x3_thread_buckets().allocate(total_size);
+  auto* obj = new (block) BytesObject();
+  obj->header.kind = ObjectKind::Bytes;
+  obj->header.refcnt = 1;
+  obj->size = static_cast<uint32_t>(size);
+  obj->alloc_size = static_cast<uint32_t>(total_size);
+  obj->allocator = &memory::x3_thread_buckets();
+  bytes_object_mutable_data(*obj)[size] = '\0';
+  xlang_perf_count_object_alloc(ObjectKind::Bytes);
+  return obj;
+}
+
+constexpr size_t align_up_size(size_t value, size_t alignment) {
+  return (value + alignment - 1) & ~(alignment - 1);
+}
+
+constexpr size_t tuple_items_offset() {
+  return align_up_size(sizeof(TupleObject), alignof(Value));
+}
+
+void release_tuple_block(TupleObject* object) {
+  const size_t capacity = object->items.capacity();
+  Value* item_storage = object->items.begin();
+  const size_t alloc_size = object->alloc_size;
+  auto* allocator = object->allocator != nullptr ? object->allocator : &memory::x3_thread_buckets();
+  object->items.clear();
+  for (size_t i = 0; i < capacity; ++i) {
+    item_storage[i].~Value();
+  }
+  object->~TupleObject();
+  allocator->release(object, alloc_size);
+}
+
+struct TupleObjectFreeLists {
+  ~TupleObjectFreeLists() {
+    memory::object_caches_alive = false;
+    for (auto& list : small) {
+      for (auto* object : list) {
+        release_tuple_block(object);
+      }
+    }
+  }
+
+  std::array<std::vector<TupleObject*>, 9> small;
+};
+
+thread_local TupleObjectFreeLists tuple_object_free_lists;
+
+TupleObject* allocate_tuple_object(size_t capacity) {
+  constexpr size_t kMaxTupleItems =
+      (static_cast<size_t>(std::numeric_limits<uint32_t>::max()) - tuple_items_offset()) / sizeof(Value);
+  if (capacity > kMaxTupleItems) {
+    capacity = kMaxTupleItems;
+  }
+  // Zero-capacity tuples cannot contain references and gc_value_is_tracked()
+  // already reports them as untracked. Skip the collector's shared index (and
+  // its mutex) for the empty *args tuples created by ordinary Python calls.
+  if (memory::object_caches_alive && capacity < tuple_object_free_lists.small.size()) {
+    auto& list = tuple_object_free_lists.small[capacity];
+    if (!list.empty()) {
+      auto* obj = list.back();
+      list.pop_back();
+      obj->header.kind = ObjectKind::Tuple;
+      obj->header.refcnt = 1;
+      // Freelist reuse bypasses the constructor: a previous key's hash must
+      // not survive, and reserved builders must remain uncached until complete.
+      tuple_object_begin_construction(*obj);
+      xlang_perf_count_object_alloc(ObjectKind::Tuple);
+      if (capacity != 0) gc_track_object(&obj->header);
+      return obj;
+    }
+  }
+  const size_t total_size = tuple_items_offset() + capacity * sizeof(Value);
+  void* block = memory::x3_thread_buckets().allocate(total_size);
+  auto* obj = new (block) TupleObject();
+  xlang_perf_count_object_alloc(ObjectKind::Tuple);
+  obj->header.kind = ObjectKind::Tuple;
+  obj->header.refcnt = 1;
+  obj->alloc_size = static_cast<uint32_t>(total_size);
+  obj->allocator = &memory::x3_thread_buckets();
+  auto* item_storage = reinterpret_cast<Value*>(static_cast<unsigned char*>(block) + tuple_items_offset());
+  for (size_t i = 0; i < capacity; ++i) {
+    new (item_storage + i) Value();
+  }
+  obj->items.bind(item_storage, static_cast<uint32_t>(capacity));
+  if (capacity != 0) gc_track_object(&obj->header);
+  return obj;
+}
+
+void recycle_tuple_object(TupleObject* object) {
+  const uint32_t capacity = object->items.capacity();
+  object->items.clear();
+  if (memory::object_caches_alive && object->allocator == &memory::x3_thread_buckets() && capacity < tuple_object_free_lists.small.size()) {
+    auto& list = tuple_object_free_lists.small[capacity];
+    if (list.size() < 4096) {
+      list.push_back(object);
+      return;
+    }
+  }
+  release_tuple_block(object);
+}
+
+void string_object_set_bytes(StringObject* object, const char* source, size_t size) {
+  bool ascii = true;
+  for (size_t i = 0; i < size; ++i) {
+    if ((static_cast<unsigned char>(source[i]) & 0x80u) != 0) {
+      ascii = false;
+      break;
+    }
+  }
+  string_object_set_ascii(*object, ascii);
+  if (object->size != 0) {
+    std::memcpy(string_object_mutable_data(*object), source, object->size);
+  }
+}
+
+void recycle_string_object(StringObject* object) {
+  release_string_block(object);
+}
+
+void recycle_bytes_object(BytesObject* object) {
+  const size_t alloc_size = object->alloc_size;
+  auto* allocator = object->allocator != nullptr ? object->allocator : &memory::x3_thread_buckets();
+  object->~BytesObject();
+  allocator->release(object, alloc_size);
+}
+
+bool is_number(const Value& value) {
+  return value.tag == ValueTag::Int64 || value.tag == ValueTag::Bool || value.tag == ValueTag::Double;
+}
+
+bool is_small_integer_number(const Value& value) {
+  return value.tag == ValueTag::Int64 || value.tag == ValueTag::Bool;
+}
+
+int64_t small_integer_number(const Value& value) {
+  return value.tag == ValueTag::Bool ? (value.as.b ? 1 : 0) : value.as.i64;
+}
+
+bool checked_add_i64(int64_t lhs, int64_t rhs, int64_t& out) {
+#if defined(__GNUC__) || defined(__clang__)
+  return !__builtin_add_overflow(lhs, rhs, &out);
+#else
+  if ((rhs > 0 && lhs > std::numeric_limits<int64_t>::max() - rhs) ||
+      (rhs < 0 && lhs < std::numeric_limits<int64_t>::min() - rhs)) {
+    return false;
+  }
+  out = lhs + rhs;
+  return true;
+#endif
+}
+
+bool checked_sub_i64(int64_t lhs, int64_t rhs, int64_t& out) {
+#if defined(__GNUC__) || defined(__clang__)
+  return !__builtin_sub_overflow(lhs, rhs, &out);
+#else
+  if ((rhs < 0 && lhs > std::numeric_limits<int64_t>::max() + rhs) ||
+      (rhs > 0 && lhs < std::numeric_limits<int64_t>::min() + rhs)) {
+    return false;
+  }
+  out = lhs - rhs;
+  return true;
+#endif
+}
+
+bool checked_mul_i64(int64_t lhs, int64_t rhs, int64_t& out) {
+#if defined(__GNUC__) || defined(__clang__)
+  return !__builtin_mul_overflow(lhs, rhs, &out);
+#else
+  if (lhs == 0 || rhs == 0) {
+    out = 0;
+    return true;
+  }
+  if (lhs == -1) {
+    if (rhs == std::numeric_limits<int64_t>::min()) return false;
+    out = -rhs;
+    return true;
+  }
+  if (rhs == -1) {
+    if (lhs == std::numeric_limits<int64_t>::min()) return false;
+    out = -lhs;
+    return true;
+  }
+  if (lhs > 0) {
+    if (rhs > 0) {
+      if (lhs > std::numeric_limits<int64_t>::max() / rhs) return false;
+    } else if (rhs < std::numeric_limits<int64_t>::min() / lhs) {
+      return false;
+    }
+  } else {
+    if (rhs > 0) {
+      if (lhs < std::numeric_limits<int64_t>::min() / rhs) return false;
+    } else if (lhs != 0 && rhs < std::numeric_limits<int64_t>::max() / lhs) {
+      return false;
+    }
+  }
+  out = lhs * rhs;
+  return true;
+#endif
+}
+
+struct BinaryCompareView {
+  const char* data = nullptr;
+  size_t size = 0;
+};
+
+BinaryCompareView binary_compare_view(const Value& value, std::string& scratch) {
+  if (auto* bytes = value_as_bytes(value)) {
+    const auto view = bytes_object_view(*bytes);
+    return {view.data(), view.size()};
+  }
+  if (auto* bytearray = value_as_bytearray(value)) {
+    return {bytearray->value.data(), bytearray->value.size()};
+  }
+  if (auto* memoryview = value_as_memoryview(value)) {
+    if (memoryview->released) {
+      return {};
+    }
+    if (!memoryview->contiguous) {
+      std::string error;
+      if (!memoryview_copy_bytes(*memoryview, scratch, error)) return {};
+      return {scratch.data(), scratch.size()};
+    }
+    const auto view = memoryview_object_view(*memoryview);
+    return {view.data(), view.size()};
+  }
+  return {};
+}
+
+bool set_contains_value(const SetObject& set, const Value& value) {
+  for (const auto& item : set.items) {
+    if (value_key_equal(item, value)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool add_iterable_to_set(Value& target, const Value& iterable, std::string& error) {
+  Value iterator;
+  if (!sequence_get_iter(iterable, iterator, error)) {
+    return false;
+  }
+  while (true) {
+    bool done = false;
+    Value item;
+    if (!sequence_iter_next(iterator, done, item, error)) {
+      return false;
+    }
+    if (done) {
+      return true;
+    }
+    if (!set_add(target, item, error)) {
+      return false;
+    }
+  }
+}
+
+bool set_intersection_value(const Value& lhs, const Value& rhs, Value& out, std::string& error) {
+  auto* left = value_as_set(lhs);
+  if (left == nullptr) {
+    error = "unsupported operands for set intersection";
+    return false;
+  }
+  out = Value::set({});
+  Value iterator;
+  if (!sequence_get_iter(rhs, iterator, error)) {
+    return false;
+  }
+  while (true) {
+    bool done = false;
+    Value item;
+    if (!sequence_iter_next(iterator, done, item, error)) {
+      return false;
+    }
+    if (done) {
+      return true;
+    }
+    if (set_contains_value(*left, item) && !set_add(out, item, error)) {
+      return false;
+    }
+  }
+}
+
+bool set_difference_value(const Value& lhs, const Value& rhs, Value& out, std::string& error) {
+  auto* left = value_as_set(lhs);
+  if (left == nullptr) {
+    error = "unsupported operands for set difference";
+    return false;
+  }
+  out = Value::set({});
+  value_as_set(out)->items = left->items;
+  value_as_set(out)->item_hashes = left->item_hashes;
+  auto* result = value_as_set(out);
+  Value iterator;
+  if (!sequence_get_iter(rhs, iterator, error)) {
+    return false;
+  }
+  while (true) {
+    bool done = false;
+    Value item;
+    if (!sequence_iter_next(iterator, done, item, error)) {
+      return false;
+    }
+    if (done) {
+      return true;
+    }
+    for (auto it = result->items.begin(); it != result->items.end(); ++it) {
+      if (value_key_equal(*it, item)) {
+        const auto index = static_cast<size_t>(it - result->items.begin());
+        result->items.erase(it);
+        result->item_hashes.erase(result->item_hashes.begin() + index);
+        break;
+      }
+    }
+  }
+}
+
+bool set_symmetric_difference_value(const Value& lhs, const Value& rhs, Value& out, std::string& error) {
+  auto* left = value_as_set(lhs);
+  if (left == nullptr) {
+    error = "unsupported operands for set symmetric difference";
+    return false;
+  }
+  out = Value::set({});
+  value_as_set(out)->items = left->items;
+  value_as_set(out)->item_hashes = left->item_hashes;
+  auto* result = value_as_set(out);
+  Value iterator;
+  if (!sequence_get_iter(rhs, iterator, error)) {
+    return false;
+  }
+  while (true) {
+    bool done = false;
+    Value item;
+    if (!sequence_iter_next(iterator, done, item, error)) {
+      return false;
+    }
+    if (done) {
+      return true;
+    }
+    bool removed = false;
+    for (auto it = result->items.begin(); it != result->items.end(); ++it) {
+      if (value_key_equal(*it, item)) {
+        const auto index = static_cast<size_t>(it - result->items.begin());
+        result->items.erase(it);
+        result->item_hashes.erase(result->item_hashes.begin() + index);
+        removed = true;
+        break;
+      }
+    }
+    if (!removed && !set_add(out, item, error)) {
+      return false;
+    }
+  }
+}
+
+bool value_is_set_like_operand(const Value& value) {
+  if (value_as_set(value) != nullptr) {
+    return true;
+  }
+  if (auto* view = value_as_dict_view(value)) {
+    return view->kind == DictIterationKind::Keys || view->kind == DictIterationKind::Items;
+  }
+  return false;
+}
+
+bool value_materialize_set_like(const Value& value, Value& out, std::string& error) {
+  if (auto* set = value_as_set(value)) {
+    out = Value::set({});
+    value_as_set(out)->items = set->items;
+    value_as_set(out)->item_hashes = set->item_hashes;
+    return true;
+  }
+  if (auto* view = value_as_dict_view(value)) {
+    if (view->kind != DictIterationKind::Keys && view->kind != DictIterationKind::Items) {
+      error = "dict_values view is not set-like";
+      return false;
+    }
+    out = Value::set({});
+    return add_iterable_to_set(out, value, error);
+  }
+  error = "object is not set-like";
+  return false;
+}
+
+bool set_like_all_in(const Value& left_set_value, const Value& rhs, bool& out, std::string& error) {
+  auto* left_set = value_as_set(left_set_value);
+  if (left_set == nullptr) {
+    error = "object is not a set";
+    return false;
+  }
+  Value right_set_value;
+  if (!value_materialize_set_like(rhs, right_set_value, error)) {
+    return false;
+  }
+  auto* right_set = value_as_set(right_set_value);
+  out = true;
+  for (const auto& item : left_set->items) {
+    if (!set_contains_value(*right_set, item)) {
+      out = false;
+      return true;
+    }
+  }
+  return true;
+}
+
+bool set_like_compare_value(const std::string& op, const Value& lhs, const Value& rhs, Value& out, std::string& error) {
+  Value left_set_value;
+  Value right_set_value;
+  if (!value_materialize_set_like(lhs, left_set_value, error) ||
+      !value_materialize_set_like(rhs, right_set_value, error)) {
+    return false;
+  }
+  auto* left_set = value_as_set(left_set_value);
+  auto* right_set = value_as_set(right_set_value);
+
+  bool left_in_right = false;
+  if (!set_like_all_in(left_set_value, right_set_value, left_in_right, error)) {
+    return false;
+  }
+  bool result = false;
+  if (op == "==") {
+    result = left_set->items.size() == right_set->items.size() && left_in_right;
+  } else if (op == "!=") {
+    result = left_set->items.size() != right_set->items.size() || !left_in_right;
+  } else if (op == "<=") {
+    result = left_in_right;
+  } else if (op == "<") {
+    result = left_set->items.size() < right_set->items.size() && left_in_right;
+  } else if (op == ">=") {
+    bool right_in_left = false;
+    if (!set_like_all_in(right_set_value, left_set_value, right_in_left, error)) {
+      return false;
+    }
+    result = right_in_left;
+  } else if (op == ">") {
+    bool right_in_left = false;
+    if (!set_like_all_in(right_set_value, left_set_value, right_in_left, error)) {
+      return false;
+    }
+    result = left_set->items.size() > right_set->items.size() && right_in_left;
+  } else {
+    error = "unknown comparison operator";
+    return false;
+  }
+  value_set_bool(out, result);
+  return true;
+}
+
+double as_double(const Value& value) {
+  if (value.tag == ValueTag::Int64) {
+    return static_cast<double>(value.as.i64);
+  }
+  if (value.tag == ValueTag::Bool) {
+    return value.as.b ? 1.0 : 0.0;
+  }
+  return value.as.f64;
+}
+
+StringObject* as_string(Object* obj) {
+  return reinterpret_cast<StringObject*>(obj);
+}
+
+BytesObject* as_bytes(Object* obj) {
+  return reinterpret_cast<BytesObject*>(obj);
+}
+
+ByteArrayObject* as_bytearray(Object* obj) {
+  return reinterpret_cast<ByteArrayObject*>(obj);
+}
+
+TupleObject* as_tuple(Object* obj) {
+  return reinterpret_cast<TupleObject*>(obj);
+}
+
+std::string bytes_repr(std::string_view value) {
+  std::string text = "b'";
+  for (const unsigned char ch : value) {
+    if (ch == '\\' || ch == '\'') {
+      text.push_back('\\');
+      text.push_back(static_cast<char>(ch));
+    } else if (ch == '\n') {
+      text += "\\n";
+    } else if (ch == '\r') {
+      text += "\\r";
+    } else if (ch == '\t') {
+      text += "\\t";
+    } else if (ch >= 32 && ch < 127) {
+      text.push_back(static_cast<char>(ch));
+    } else {
+      constexpr char hex[] = "0123456789abcdef";
+      text += "\\x";
+      text.push_back(hex[ch >> 4]);
+      text.push_back(hex[ch & 0xf]);
+    }
+  }
+  text.push_back('\'');
+  return text;
+}
+
+std::string string_repr(std::string_view value) {
+  const bool has_single_quote = value.find('\'') != std::string_view::npos;
+  const bool has_double_quote = value.find('"') != std::string_view::npos;
+  const char quote = has_single_quote && !has_double_quote ? '"' : '\'';
+  std::string text;
+  text.push_back(quote);
+  constexpr char hex[] = "0123456789abcdef";
+  for (size_t index = 0; index < value.size(); ++index) {
+    const char ch = value[index];
+    const auto byte = static_cast<unsigned char>(ch);
+    if (ch == '\\' || ch == quote) {
+      text.push_back('\\');
+      text.push_back(ch);
+    } else if (ch == '\n') {
+      text += "\\n";
+    } else if (ch == '\r') {
+      text += "\\r";
+    } else if (ch == '\t') {
+      text += "\\t";
+    } else if (byte < 0x20u || byte == 0x7fu) {
+      text += "\\x";
+      text.push_back(hex[byte >> 4u]);
+      text.push_back(hex[byte & 0x0fu]);
+    } else if (byte == 0xedu && index + 2 < value.size()) {
+      const auto second = static_cast<unsigned char>(value[index + 1]);
+      const auto third = static_cast<unsigned char>(value[index + 2]);
+      if (second >= 0xa0u && second <= 0xbfu &&
+          third >= 0x80u && third <= 0xbfu) {
+        const uint32_t codepoint =
+            ((byte & 0x0fu) << 12u) | ((second & 0x3fu) << 6u) |
+            (third & 0x3fu);
+        text += "\\u";
+        for (int shift = 12; shift >= 0; shift -= 4)
+          text.push_back(hex[(codepoint >> shift) & 0x0fu]);
+        index += 2;
+      } else {
+        text.push_back(ch);
+      }
+    } else {
+      text.push_back(ch);
+    }
+  }
+  text.push_back(quote);
+  return text;
+}
+
+FunctionObject* as_function(Object* obj) {
+  return reinterpret_cast<FunctionObject*>(obj);
+}
+
+NativeFunctionObject* as_native_function(Object* obj) {
+  return reinterpret_cast<NativeFunctionObject*>(obj);
+}
+
+CodeObject* as_code(Object* obj) {
+  return reinterpret_cast<CodeObject*>(obj);
+}
+
+FrameObject* as_frame(Object* obj) {
+  return reinterpret_cast<FrameObject*>(obj);
+}
+
+TracebackObject* as_traceback(Object* obj) {
+  return reinterpret_cast<TracebackObject*>(obj);
+}
+
+FileObject* as_file(Object* obj) {
+  return reinterpret_cast<FileObject*>(obj);
+}
+
+#if defined(XLANG3_EMBEDDED)
+std::string format_i64(int64_t value) {
+  char buffer[32];
+  const int written = std::snprintf(buffer, sizeof(buffer), "%lld", static_cast<long long>(value));
+  if (written <= 0) {
+    return "0";
+  }
+  const auto size = static_cast<size_t>(written);
+  return std::string(buffer, size < sizeof(buffer) ? size : sizeof(buffer) - 1);
+}
+
+std::string format_f64(double value) {
+  char buffer[48];
+  const int written = std::snprintf(buffer, sizeof(buffer), "%.15g", value);
+  if (written <= 0) {
+    return "0";
+  }
+  const auto size = static_cast<size_t>(written);
+  return std::string(buffer, size < sizeof(buffer) ? size : sizeof(buffer) - 1);
+}
+#endif
+
+} // namespace
+
+size_t string_object_unicode_length(const StringObject& value) {
+  return unicode_index(value).characters;
+}
+
+size_t string_object_unicode_index(const StringObject& value, size_t byte_offset) {
+  const auto& cached = unicode_index(value);
+  if (byte_offset >= value.size) return cached.characters;
+  if (cached.sparse) {
+    auto found = std::upper_bound(cached.corrections.begin(), cached.corrections.end(), byte_offset,
+        [](size_t position, const std::pair<uint32_t, uint32_t>& entry) {
+          return position < static_cast<size_t>(entry.first) + entry.second;
+        });
+    return byte_offset - (found == cached.corrections.begin() ? 0 : (--found)->second);
+  }
+  auto found = std::upper_bound(cached.checkpoints.begin(), cached.checkpoints.end(), byte_offset);
+  --found; // Every nonempty dense string has a checkpoint at byte zero.
+  const size_t offset = *found;
+  const size_t index = static_cast<size_t>(found - cached.checkpoints.begin()) * StringUnicodeIndex::stride;
+  return index + utf8_codepoint_count(string_object_view(value).substr(offset, byte_offset - offset));
+}
+
+size_t string_object_unicode_offset(const StringObject& value, size_t index) {
+  const auto& cached = unicode_index(value);
+  if (index >= cached.characters) return value.size;
+  if (cached.sparse) {
+    auto found = std::upper_bound(cached.corrections.begin(), cached.corrections.end(), index,
+        [](size_t position, const std::pair<uint32_t, uint32_t>& entry) {
+          return position < entry.first;
+        });
+    return index + (found == cached.corrections.begin() ? 0 : (--found)->second);
+  }
+  const size_t offset = cached.checkpoints[index / StringUnicodeIndex::stride];
+  return offset + utf8_byte_offset(string_object_view(value).substr(offset),
+                                  index % StringUnicodeIndex::stride);
+}
+
+Value Value::complex(double real, double imag) {
+  Value value;
+  value.tag = ValueTag::Object;
+  auto* object = allocate_object<ComplexObject>(ObjectKind::Complex);
+  object->real = real;
+  object->imag = imag;
+  value.as.obj = &object->header;
+  return value;
+}
+
+Value Value::string(std::string value) {
+  return string_view(std::string_view(value.data(), value.size()));
+}
+
+Value Value::string_view(std::string_view value) {
+  if (value.size() == 1 && static_cast<unsigned char>(value[0]) < 128) {
+    return ascii_character_value(static_cast<unsigned char>(value[0]));
+  }
+  if (is_auto_internable_string(value)) {
+    return intern_string_view(value, is_auto_immortal_string(value));
+  }
+  return make_plain_string(value);
+}
+
+Value noninterned_string_value(std::string_view value) {
+  return make_plain_string(value);
+}
+
+Value Value::string_uninitialized(size_t size) {
+  Value v;
+  v.tag = ValueTag::Object;
+  auto* obj = allocate_string_object(size);
+  v.as.obj = &obj->header;
+  return v;
+}
+
+Value intern_string_value(const Value& value) {
+  auto* string = value_as_string(value);
+  if (string == nullptr) {
+    return Value::invalid();
+  }
+  const std::string_view text = string_object_view(*string);
+  if (text.size() == 1 && static_cast<unsigned char>(text[0]) < 128) {
+    return ascii_character_value(static_cast<unsigned char>(text[0]));
+  }
+  std::lock_guard<std::mutex> lock(interned_string_mutex());
+  auto& table = interned_string_table();
+  if (auto found = find_interned_string(table, text); found != table.end()) return found->second;
+  string_object_set_immortal(*string, false);
+  table.emplace(string_object_hash(*string), value);
+  return value;
+}
+
+bool string_value_is_interned(const Value& value) {
+  auto* string = value_as_string(value);
+  if (string == nullptr) return false;
+  const auto text = string_object_view(*string);
+  if (text.size() == 1 && static_cast<unsigned char>(text[0]) < 128) {
+    return value_is(ascii_character_value(static_cast<unsigned char>(text[0])), value);
+  }
+  std::lock_guard<std::mutex> lock(interned_string_mutex());
+  auto found = find_interned_string(interned_string_table(), text);
+  return found != interned_string_table().end() && value_is(found->second, value);
+}
+
+bool string_value_is_immortal_interned(const Value& value) {
+  auto* string = value_as_string(value);
+  if (!string || !string_object_is_immortal(*string)) return false;
+  const auto text = string_object_view(*string);
+  if (text.size() == 1 && static_cast<unsigned char>(text[0]) < 128) {
+    return value_is(ascii_character_value(static_cast<unsigned char>(text[0])), value);
+  }
+  std::lock_guard<std::mutex> lock(interned_string_mutex());
+  auto found = find_interned_string(interned_string_table(), text);
+  return found != interned_string_table().end() && value_is(found->second, value);
+}
+
+int64_t interned_string_count() {
+  std::lock_guard<std::mutex> lock(interned_string_mutex());
+  return static_cast<int64_t>(interned_string_table().size());
+}
+
+int64_t immortal_interned_string_count() {
+  std::lock_guard<std::mutex> lock(interned_string_mutex());
+  int64_t count = 0;
+  for (const auto& item : interned_string_table()) {
+    auto* string = value_as_string(item.second);
+    if (string != nullptr && string_object_is_immortal(*string)) {
+      ++count;
+    }
+  }
+  return count;
+}
+
+Value Value::bytes(std::string_view value) {
+  Value v;
+  v.tag = ValueTag::Object;
+  auto* obj = allocate_bytes_object(value.size());
+  if (!value.empty()) {
+    std::memcpy(bytes_object_mutable_data(*obj), value.data(), value.size());
+  }
+  v.as.obj = &obj->header;
+  return v;
+}
+
+Value Value::bytearray(std::string value) {
+  Value v;
+  v.tag = ValueTag::Object;
+  auto* obj = allocate_object<ByteArrayObject>(ObjectKind::ByteArray);
+  obj->value = std::move(value);
+  v.as.obj = &obj->header;
+  return v;
+}
+
+Value Value::memoryview(Value owner, size_t offset, size_t size, bool readonly) {
+  Value v;
+  v.tag = ValueTag::Object;
+  auto* obj = allocate_object<MemoryViewObject>(ObjectKind::MemoryView);
+  obj->owner = std::move(owner);
+  obj->offset = offset;
+  obj->size = size;
+  obj->format = "B";
+  obj->shape = {static_cast<int64_t>(size)};
+  obj->strides = {1};
+  obj->readonly = readonly;
+  obj->contiguous = true;
+  obj->released = false;
+  if (auto* source = value_as_memoryview(obj->owner)) {
+    if (source->released || offset > source->size || size > source->size - offset) {
+      delete obj;
+      throw std::invalid_argument("invalid memoryview source or bounds");
+    }
+    obj->external = source->external;
+    obj->offset += source->offset;
+    obj->format = source->format;
+    obj->shape = source->shape;
+    obj->strides = source->strides;
+    obj->readonly = readonly || source->readonly;
+    obj->contiguous = source->contiguous;
+    obj->exporter = source->exporter;
+    // Retain the underlying owner before dropping the source view reference.
+    Value root = source->owner;
+    obj->owner = std::move(root);
+  }
+  if (value_as_bytearray(obj->owner) != nullptr) {
+    ++value_as_bytearray(obj->owner)->buffer_exports;
+    obj->owns_bytearray_export = true;
+  }
+  v.as.obj = &obj->header;
+  return v;
+}
+
+std::string_view memoryview_owner_view(const MemoryViewObject& view) {
+  if (view.released) return {};
+  std::string_view storage;
+  if (view.external) {
+    storage = std::string_view(view.external->data ? view.external->data : "", view.external->size);
+  } else if (auto* bytes = value_as_bytes(view.owner)) {
+    storage = bytes_object_view(*bytes);
+  } else if (auto* bytes = value_as_bytearray(view.owner)) {
+    storage = std::string_view(bytes->value.data(), bytes->value.size());
+  } else if (auto* parent = value_as_memoryview(view.owner)) {
+    storage = memoryview_object_view(*parent);
+  } else if (value_as_instance(view.owner) != nullptr) {
+    Value payload;
+    std::string ignored;
+    if (!object_get_attr(view.owner, "__xlang3_bytes_value__", payload, ignored)) return {};
+    if (auto* bytes = value_as_bytes(payload)) storage = bytes_object_view(*bytes);
+    else if (auto* bytes = value_as_bytearray(payload)) storage = std::string_view(bytes->value.data(), bytes->value.size());
+    else if (auto* parent = value_as_memoryview(payload)) storage = memoryview_object_view(*parent);
+    else return {};
+  } else return {};
+  return storage;
+}
+
+std::string_view memoryview_object_view(const MemoryViewObject& view) {
+  if (!view.contiguous) return {};
+  const auto storage = memoryview_owner_view(view);
+  if (!storage.data() || view.offset > storage.size() || view.size > storage.size() - view.offset) return {};
+  return storage.substr(view.offset, view.size);
+}
+
+bool memoryview_copy_bytes(const MemoryViewObject& view, std::string& out, std::string& error) {
+  if (view.released) { error = "operation forbidden on released memoryview object"; return false; }
+  if (view.contiguous) {
+    const auto bytes = memoryview_object_view(view);
+    if (bytes.data() == nullptr && view.size != 0) { error = "invalid memoryview storage"; return false; }
+    out.assign(bytes.data() == nullptr ? "" : bytes.data(), bytes.size());
+    return true;
+  }
+  const auto storage = memoryview_owner_view(view);
+  const size_t itemsize = memoryview_format_itemsize(view.format);
+  if (itemsize == 0 || view.size % itemsize != 0) { error = "unsupported memoryview format"; return false; }
+  out.clear();
+  out.reserve(view.size);
+  const size_t count = view.size / itemsize;
+  for (size_t logical = 0; logical < count; ++logical) {
+    size_t remaining = logical;
+    size_t offset = view.offset;
+    if (view.shape.empty()) {
+      const int64_t stride = view.strides.empty() ? static_cast<int64_t>(itemsize) : view.strides[0];
+      offset += logical * static_cast<size_t>(stride);
+    } else {
+      for (size_t dimension = view.shape.size(); dimension != 0; --dimension) {
+        const size_t extent = static_cast<size_t>(view.shape[dimension - 1]);
+        if (extent == 0) { error = "invalid memoryview shape"; return false; }
+        const size_t coordinate = remaining % extent;
+        remaining /= extent;
+        const int64_t stride = view.strides.empty() ? static_cast<int64_t>(itemsize)
+                                                    : view.strides[dimension - 1];
+        // Unsigned arithmetic expresses signed displacement without signed
+        // overflow; final owner bounds validate every selected physical item.
+        offset += coordinate * static_cast<size_t>(stride);
+      }
+    }
+    if (offset > storage.size() || itemsize > storage.size() - offset) {
+      error = "memoryview index out of range"; return false;
+    }
+    out.append(storage.data() + offset, itemsize);
+  }
+  return true;
+}
+
+char* memoryview_owner_writable_data(const MemoryViewObject& view) {
+  if (view.readonly || view.released) return nullptr;
+  if (!view.external && !value_as_bytearray(view.owner)) {
+    if (auto* parent = value_as_memoryview(view.owner)) {
+      if (!memoryview_object_writable_data(*parent)) return nullptr;
+    } else if (value_as_instance(view.owner) != nullptr) {
+      Value payload;
+      std::string ignored;
+      if (!object_get_attr(view.owner, "__xlang3_bytes_value__", payload, ignored)) return nullptr;
+      if (value_as_bytearray(payload) == nullptr) {
+        auto* payload_view = value_as_memoryview(payload);
+        if (payload_view == nullptr || !memoryview_object_writable_data(*payload_view)) return nullptr;
+      }
+    } else return nullptr;
+  }
+  return const_cast<char*>(memoryview_owner_view(view).data());
+}
+
+char* memoryview_object_writable_data(const MemoryViewObject& view) {
+  if (!view.contiguous) return nullptr;
+  char* data = memoryview_owner_writable_data(view);
+  const auto span = memoryview_object_view(view);
+  return data != nullptr && span.data() != nullptr ? data + view.offset : nullptr;
+}
+
+Value Value::slice(Value start, Value stop, Value step) {
+  Value v;
+  v.tag = ValueTag::Object;
+  auto* obj = allocate_slice_object();
+  obj->start = std::move(start);
+  obj->stop = std::move(stop);
+  obj->step = std::move(step);
+  v.as.obj = &obj->header;
+  return v;
+}
+
+Value Value::tuple(std::vector<Value> items) {
+  Value v;
+  v.tag = ValueTag::Object;
+  auto* obj = allocate_tuple_object(items.size());
+  for (auto& item : items) {
+    obj->items.push_back_unchecked(std::move(item));
+  }
+  tuple_object_complete_construction(*obj);
+  v.as.obj = &obj->header;
+  return v;
+}
+
+Value Value::tuple_reserved(size_t capacity) {
+  Value v;
+  v.tag = ValueTag::Object;
+  auto* obj = allocate_tuple_object(capacity);
+  v.as.obj = &obj->header;
+  return v;
+}
+
+Value Value::cell(Value value) {
+  Value v;
+  v.tag = ValueTag::Object;
+  auto* obj = allocate_object<CellObject>(ObjectKind::Cell);
+  obj->value = std::move(value);
+  v.as.obj = &obj->header;
+  return v;
+}
+
+Value Value::function(uint32_t function_id, std::vector<Value> closure) {
+  return function(function_id, std::move(closure), Value::invalid());
+}
+
+Value Value::function(uint32_t function_id, std::vector<Value> closure, Value globals_module) {
+  return function(function_id, std::move(closure), std::move(globals_module), nullptr);
+}
+
+Value Value::function(
+    uint32_t function_id,
+    std::vector<Value> closure,
+    Value globals_module,
+    std::shared_ptr<const ir::Module> module,
+    std::vector<Value> defaults,
+    std::vector<std::pair<std::string, Value>> kwdefaults,
+    std::string qualname) {
+  Value v;
+  v.tag = ValueTag::Object;
+  auto* obj = allocate_object<FunctionObject>(ObjectKind::Function);
+  obj->function_id = function_id;
+  obj->closure = std::move(closure);
+  obj->defaults = std::move(defaults);
+  obj->kwdefaults = std::move(kwdefaults);
+  if (module != nullptr && function_id < module->functions.size()) {
+    const auto& fn = module->functions[function_id];
+    obj->type_params = fn.type_params;
+    // Calls bind from `defaults`; duplicating positional defaults here only
+    // supports the rarely inspected __defaults__ attribute. Defer that copy
+    // so repeatedly created nested functions do not allocate another vector.
+  } else {
+    obj->positional_defaults = obj->defaults;
+  }
+  obj->globals_module = std::move(globals_module);
+  if (qualname.empty() && module != nullptr && function_id < module->functions.size()) {
+    qualname = module->functions[function_id].qualname.empty() ? module->functions[function_id].name
+                                                               : module->functions[function_id].qualname;
+  }
+  obj->qualname = std::move(qualname);
+  obj->module = std::move(module);
+  v.as.obj = &obj->header;
+  return v;
+}
+
+Value Value::code(std::shared_ptr<const ir::Module> module, uint32_t function_id, std::string mode) {
+  Value v;
+  v.tag = ValueTag::Object;
+  auto* obj = allocate_object<CodeObject>(ObjectKind::Code);
+  obj->module = std::move(module);
+  obj->function_id = function_id;
+  obj->mode = std::move(mode);
+  v.as.obj = &obj->header;
+  return v;
+}
+
+Value Value::frame(
+    std::shared_ptr<const ir::Module> module,
+    uint32_t function_id,
+    Value globals_module,
+    uint32_t instruction_index,
+    Value locals,
+    Value back,
+    Value builtins,
+    uint64_t activation_id) {
+  Value v;
+  v.tag = ValueTag::Object;
+  auto* obj = allocate_object<FrameObject>(ObjectKind::Frame);
+  obj->module = std::move(module);
+  obj->function_id = function_id;
+  obj->instruction_index = instruction_index;
+  obj->globals_module = std::move(globals_module);
+  obj->locals = std::move(locals);
+  obj->back = std::move(back);
+  obj->builtins = std::move(builtins);
+  obj->activation_id = activation_id;
+  v.as.obj = &obj->header;
+  return v;
+}
+
+Value Value::traceback(Value frame, Value next, int64_t line, int64_t lasti) {
+  Value v;
+  v.tag = ValueTag::Object;
+  auto* obj = allocate_object<TracebackObject>(ObjectKind::Traceback);
+  obj->frame = std::move(frame);
+  obj->next = std::move(next);
+  obj->line = line;
+  obj->lasti = lasti;
+  v.as.obj = &obj->header;
+  return v;
+}
+
+void frame_materialize_locals(FrameObject& frame) {
+  if (!frame.has_lazy_locals) return;
+  std::vector<std::pair<Value, Value>> entries;
+  if (frame.module != nullptr && frame.function_id < frame.module->functions.size()) {
+    const auto& fn = frame.module->functions[frame.function_id];
+    entries.reserve(frame.local_snapshot.size());
+    const size_t local_count = std::min(fn.locals.size(), frame.local_snapshot.size());
+    for (size_t index = 0; index < local_count; ++index) {
+      const auto& name = fn.locals[index];
+      const auto& value = frame.local_snapshot[index];
+      if (!name.empty() && name[0] != '#' && value.tag != ValueTag::Invalid) {
+        entries.push_back({Value::string(name), value});
+      }
+    }
+    for (size_t index = 0; index < fn.free_vars.size(); ++index) {
+      const size_t snapshot_index = fn.locals.size() + index;
+      if (snapshot_index >= frame.local_snapshot.size()) break;
+      const auto& name = fn.free_vars[index];
+      const auto& value = frame.local_snapshot[snapshot_index];
+      if (!name.empty() && name[0] != '#' && value.tag != ValueTag::Invalid) {
+        entries.push_back({Value::string(name), value});
+      }
+    }
+  }
+  frame.locals = Value::dict(std::move(entries));
+  frame.local_snapshot.clear();
+  frame.has_lazy_locals = false;
+}
+
+Value Value::native_function(
+    uint32_t native_id,
+    std::string name,
+    NativeFunctionCallback callback,
+    void* user_data,
+    void (*user_data_cleanup)(void*),
+    NativeFastCallCallback fast_callback,
+    bool fast_releases_vm_lock,
+    NativeKeywordFunctionCallback keyword_callback,
+    bool bind_as_descriptor) {
+  Value v;
+  v.tag = ValueTag::Object;
+  auto* obj = allocate_object<NativeFunctionObject>(ObjectKind::NativeFunction);
+  obj->native_id = native_id;
+  obj->name = std::move(name);
+  obj->callback = callback;
+  obj->keyword_callback = keyword_callback;
+  obj->fast_callback = fast_callback;
+  obj->fast_releases_vm_lock = fast_releases_vm_lock;
+  obj->bind_as_descriptor = bind_as_descriptor;
+  obj->user_data = user_data;
+  obj->user_data_cleanup = user_data_cleanup;
+  v.as.obj = &obj->header;
+  return v;
+}
+
+Value Value::property(Value fget, Value fset, Value fdel, Value doc, bool is_abstract, bool doc_from_getter) {
+  Value v;
+  v.tag = ValueTag::Object;
+  auto* obj = allocate_object<PropertyObject>(ObjectKind::Property);
+  if ((doc_from_getter || doc.tag == ValueTag::None) && fget.tag != ValueTag::None && fget.tag != ValueTag::Invalid) {
+    Value getter_doc;
+    std::string ignored;
+    if (object_get_attr(fget, "__doc__", getter_doc, ignored)) {
+      doc = std::move(getter_doc);
+      doc_from_getter = true;
+    }
+  }
+  Value name = Value::invalid();
+  bool has_name = false;
+  bool name_from_getter = false;
+  if (fget.tag != ValueTag::None && fget.tag != ValueTag::Invalid) {
+    Value getter_name;
+    std::string ignored;
+    if (object_get_attr(fget, "__name__", getter_name, ignored)) {
+      name = std::move(getter_name);
+      has_name = true;
+      name_from_getter = true;
+    }
+  }
+  obj->fget = std::move(fget);
+  obj->fset = std::move(fset);
+  obj->fdel = std::move(fdel);
+  obj->doc = std::move(doc);
+  obj->name = std::move(name);
+  obj->is_abstract = is_abstract;
+  obj->doc_from_getter = doc_from_getter;
+  obj->has_name = has_name;
+  obj->name_from_getter = name_from_getter;
+  v.as.obj = &obj->header;
+  return v;
+}
+
+Value Value::event(std::string name) {
+  Value v;
+  v.tag = ValueTag::Object;
+  auto* obj = allocate_object<EventObject>(ObjectKind::Event);
+  obj->name = std::move(name);
+  v.as.obj = &obj->header;
+  return v;
+}
+
+Value Value::type_param(std::string name) {
+  Value v;
+  v.tag = ValueTag::Object;
+  auto* obj = allocate_object<TypeParamObject>(ObjectKind::TypeParam);
+  obj->name = std::move(name);
+  obj->bound = Value::none();
+  obj->default_value = Value::none();
+  v.as.obj = &obj->header;
+  return v;
+}
+
+Value Value::generic_alias(Value origin, Value args) {
+  Value v;
+  v.tag = ValueTag::Object;
+  auto* obj = allocate_object<GenericAliasObject>(ObjectKind::GenericAlias);
+  obj->origin = std::move(origin);
+  obj->args = std::move(args);
+  v.as.obj = &obj->header;
+  return v;
+}
+
+Value Value::union_type(std::vector<Value> args) {
+  Value v = Value::generic_alias(Value::invalid(), Value::tuple(std::move(args)));
+  value_as_generic_alias(v)->is_union = true;
+  return v;
+}
+
+Value Value::file(FileSystem* fs, std::string path, std::string mode, std::string buffer, bool writable) {
+  Value v;
+  v.tag = ValueTag::Object;
+  auto* obj = allocate_object<FileObject>(ObjectKind::File);
+  obj->fs = fs;
+  obj->path = std::move(path);
+  obj->mode = std::move(mode);
+  obj->buffer = std::move(buffer);
+  obj->writable = writable;
+  v.as.obj = &obj->header;
+  return v;
+}
+
+Value Value::fd_file(int fd, std::string name, std::string mode, bool readable, bool writable, bool binary, bool closefd) {
+  Value v;
+  v.tag = ValueTag::Object;
+  auto* obj = allocate_object<FileObject>(ObjectKind::File);
+  obj->path = std::move(name);
+  obj->mode = std::move(mode);
+  obj->readable = readable;
+  obj->writable = writable;
+  obj->binary = binary;
+  obj->fd_backed = true;
+  obj->fd = fd;
+#if defined(_WIN32)
+  obj->fd_native_handle = file_descriptor_native_handle_without_abort(fd);
+#endif
+  obj->closefd = closefd;
+  v.as.obj = &obj->header;
+  return v;
+}
+
+bool value_finalize_temporary_instance(Runtime& runtime, const Value& value) {
+  if (value.tag != ValueTag::Object || value.as.obj == nullptr ||
+      value.as.obj->kind != ObjectKind::Instance ||
+      value.as.obj->refcnt.load(std::memory_order_acquire) != 1 ||
+      runtime.finalizing()) {
+    return false;
+  }
+  auto* instance = reinterpret_cast<InstanceObject*>(value.as.obj);
+  if (instance->finalizer_started) return false;
+  Value marker;
+  std::string marker_error;
+  if (!object_lookup_class_attr(
+          instance->klass, "__xlang3_finalize_on_release__", marker,
+          marker_error) || !value_truthy(marker)) {
+    return false;
+  }
+  Value self;
+  self.tag = ValueTag::Object;
+  self.flags = kXlangValueBorrowedRefFlag;
+  self.as.obj = value.as.obj;
+  Value finalizer;
+  std::string lookup_error;
+  if (!attribute_get(self, "__del__", finalizer, lookup_error)) return false;
+  instance->finalizer_started = true;
+  Value saved_exception;
+  (void)runtime.take_pending_exception(saved_exception);
+  Value ignored;
+  std::string finalizer_error;
+  if (!runtime_call_callable(
+          runtime, finalizer, nullptr, 0, ignored, finalizer_error)) {
+    Value discarded;
+    (void)runtime.take_pending_exception(discarded);
+    report_unraisable_finalizer(runtime, discarded, finalizer);
+  }
+  if (saved_exception.tag != ValueTag::Invalid) {
+    runtime.set_pending_exception(std::move(saved_exception));
+  }
+  return true;
+}
+
+bool class_has_release_finalizer(const Value& klass_value) {
+  auto* klass = value_as_class(klass_value);
+  if (klass == nullptr) return false;
+  const uint64_t version = klass->version;
+  const uint64_t cached = klass->release_finalizer_cache.load(std::memory_order_acquire);
+  if (cached != 0 && (cached >> 1) == version) {
+    return (cached & 1u) != 0;
+  }
+
+  Value finalizer;
+  std::string lookup_error;
+  const bool present = object_lookup_class_attr(
+      klass_value, "__del__", finalizer, lookup_error);
+  // Class mutations bump version and invalidate this entry. Cache only if the
+  // lookup observed one stable version; normal instance destruction then
+  // avoids allocating an error string and walking the MRO for absent __del__.
+  if (klass->version == version && version < (uint64_t{1} << 63)) {
+    klass->release_finalizer_cache.store(
+        (version << 1) | static_cast<uint64_t>(present),
+        std::memory_order_release);
+  }
+  return present;
+}
+
+void release_last_reference(const Value& value) {
+  if (value.as.obj->kind == ObjectKind::Instance) {
+    auto* instance = reinterpret_cast<InstanceObject*>(value.as.obj);
+    Runtime* runtime = runtime_for_object_finalization();
+    if (runtime != nullptr && !runtime->finalizing() && !instance->finalizer_started &&
+        class_has_release_finalizer(instance->klass)) {
+      Value self;
+      self.tag = ValueTag::Object;
+      self.flags = kXlangValueBorrowedRefFlag;
+      self.as.obj = value.as.obj;
+      value.as.obj->refcnt.fetch_add(1, std::memory_order_relaxed);
+      Value finalizer;
+      std::string lookup_error;
+      if (attribute_get(self, "__del__", finalizer, lookup_error)) {
+        instance->finalizer_started = true;
+        Value saved_exception;
+        (void)runtime->take_pending_exception(saved_exception);
+        Value ignored;
+        std::string finalizer_error;
+        if (!runtime_call_callable(
+                *runtime, finalizer, nullptr, 0, ignored, finalizer_error)) {
+          Value discarded;
+          (void)runtime->take_pending_exception(discarded);
+          report_unraisable_finalizer(*runtime, discarded, finalizer);
+        }
+        value_set_invalid(finalizer);
+        if (saved_exception.tag != ValueTag::Invalid) {
+          runtime->set_pending_exception(std::move(saved_exception));
+        }
+      }
+      if (value.as.obj->refcnt.fetch_sub(1, std::memory_order_release) != 1)
+        return;
+      std::atomic_thread_fence(std::memory_order_acquire);
+    }
+  } else if (value.as.obj->kind == ObjectKind::File) {
+    auto* file = reinterpret_cast<FileObject*>(value.as.obj);
+    Runtime* runtime = file->runtime != nullptr ? file->runtime : runtime_for_object_finalization();
+    if (runtime != nullptr && !runtime->finalizing() && !file->finalizer_started &&
+        file->klass.tag != ValueTag::Invalid) {
+      Value self;
+      self.tag = ValueTag::Object;
+      self.flags = kXlangValueBorrowedRefFlag;
+      self.as.obj = value.as.obj;
+      Value finalizer;
+      std::string lookup_error;
+      if (attribute_get(self, "__del__", finalizer, lookup_error)) {
+        file->finalizer_started = true;
+        value.as.obj->refcnt.fetch_add(1, std::memory_order_relaxed);
+        Value saved_exception;
+        (void)runtime->take_pending_exception(saved_exception);
+        Value ignored;
+        std::string finalizer_error;
+        if (!runtime_call_callable(
+                *runtime, finalizer, nullptr, 0, ignored, finalizer_error)) {
+          Value discarded;
+          (void)runtime->take_pending_exception(discarded);
+          report_unraisable_finalizer(*runtime, discarded, finalizer);
+        }
+        value_set_invalid(finalizer);
+        if (saved_exception.tag != ValueTag::Invalid) {
+          runtime->set_pending_exception(std::move(saved_exception));
+        }
+        if (value.as.obj->refcnt.fetch_sub(1, std::memory_order_release) != 1) {
+          return;
+        }
+        std::atomic_thread_fence(std::memory_order_acquire);
+      }
+    }
+  }
+  // These caches keep zero-ref objects in thread-local storage and retain
+  // their GC index; their recyclers untrack objects only when deleting them.
+  if (value.as.obj->kind != ObjectKind::Instance &&
+      value.as.obj->kind != ObjectKind::Generator) {
+    gc_untrack_object(value.as.obj);
+  }
+  xlang_perf_count_object_final_release(value.as.obj->kind);
+  weakref_invalidate_target(value.as.obj);
+  switch (value.as.obj->kind) {
+    case ObjectKind::String:
+      recycle_string_object(as_string(value.as.obj));
+      break;
+    case ObjectKind::BigInt:
+      value_bigint_destroy(value_as_bigint(value));
+      break;
+    case ObjectKind::Complex:
+      delete value_as_complex(value);
+      break;
+    case ObjectKind::Bytes:
+      recycle_bytes_object(as_bytes(value.as.obj));
+      break;
+    case ObjectKind::ByteArray:
+      delete as_bytearray(value.as.obj);
+      break;
+    case ObjectKind::MemoryView:
+      if (auto* view = value_as_memoryview(value); view->owns_bytearray_export) {
+        if (auto* bytearray = value_as_bytearray(view->owner); bytearray != nullptr && bytearray->buffer_exports > 0) {
+          --bytearray->buffer_exports;
+        }
+        view->owns_bytearray_export = false;
+      }
+      delete value_as_memoryview(value);
+      break;
+    case ObjectKind::Slice:
+      recycle_slice_object(value_as_slice(value));
+      break;
+    case ObjectKind::Tuple:
+      recycle_tuple_object(as_tuple(value.as.obj));
+      break;
+    case ObjectKind::Dict:
+    case ObjectKind::MappingProxy:
+    case ObjectKind::DictKeysView:
+    case ObjectKind::DictValuesView:
+    case ObjectKind::DictItemsView:
+    case ObjectKind::DictIterator:
+      mapping_release_object(value.as.obj);
+      break;
+    case ObjectKind::Set:
+    case ObjectKind::SetIterator:
+      set_release_object(value.as.obj);
+      break;
+    case ObjectKind::Module:
+      module_release_object(value.as.obj);
+      break;
+    case ObjectKind::List:
+    case ObjectKind::Range:
+    case ObjectKind::RangeIterator:
+    case ObjectKind::SequenceIterator:
+      sequence_release_object(value.as.obj);
+      break;
+    case ObjectKind::EnumerateIterator:
+    case ObjectKind::ZipIterator:
+    case ObjectKind::ZipLongestIterator:
+    case ObjectKind::MapIterator:
+    case ObjectKind::FilterIterator:
+      functional_iterator_release_object(value.as.obj);
+      break;
+    case ObjectKind::Generator:
+    case ObjectKind::AsyncGeneratorAwaitable:
+      generator_release_object(value.as.obj);
+      break;
+    case ObjectKind::Cell:
+      delete reinterpret_cast<CellObject*>(value.as.obj);
+      break;
+    case ObjectKind::Function:
+      delete as_function(value.as.obj);
+      break;
+    case ObjectKind::NativeFunction:
+      if (as_native_function(value.as.obj)->user_data_cleanup != nullptr) {
+        as_native_function(value.as.obj)->user_data_cleanup(as_native_function(value.as.obj)->user_data);
+      }
+      delete as_native_function(value.as.obj)->attrs_dict;
+      delete as_native_function(value.as.obj);
+      break;
+    case ObjectKind::Code:
+      delete as_code(value.as.obj);
+      break;
+    case ObjectKind::Frame:
+      delete as_frame(value.as.obj);
+      break;
+    case ObjectKind::Traceback:
+      delete as_traceback(value.as.obj);
+      break;
+    case ObjectKind::Class:
+    case ObjectKind::Instance:
+    case ObjectKind::BoundMethod:
+    case ObjectKind::StaticMethod:
+    case ObjectKind::ClassMethod:
+    case ObjectKind::Super:
+    case ObjectKind::SlotDescriptor:
+      object_model_release_object(value.as.obj);
+      break;
+    case ObjectKind::Property:
+      delete value_as_property(value);
+      break;
+    case ObjectKind::Event:
+      delete value_as_event(value);
+      break;
+    case ObjectKind::File:
+      if (auto* file = as_file(value.as.obj); file != nullptr && file->fd_backed && file->closefd && file->fd >= 0 && !file->closed) {
+        {
+          std::lock_guard<std::mutex> lock(g_file_resource_warning_mutex);
+          g_file_resource_warnings.push_back(
+              "unclosed file <file '" + file->path + "'>");
+        }
+#if defined(_WIN32)
+        close_file_descriptor_without_abort(file->fd, file->fd_native_handle);
+#else
+        close(file->fd);
+#endif
+        file->fd = -1;
+      }
+      delete as_file(value.as.obj);
+      break;
+    case ObjectKind::GenericAlias:
+      delete value_as_generic_alias(value);
+      break;
+    case ObjectKind::TypeParam:
+      delete value_as_type_param(value);
+      break;
+    case ObjectKind::Expression:
+      delete reinterpret_cast<ExpressionObject*>(value.as.obj);
+      break;
+  }
+}
+
+void emit_pending_file_resource_warnings(Runtime& runtime) {
+  std::vector<std::string> pending;
+  {
+    std::lock_guard<std::mutex> lock(g_file_resource_warning_mutex);
+    pending.swap(g_file_resource_warnings);
+  }
+  if (pending.empty()) return;
+
+  std::string ignored;
+  Value warnings;
+  Value warn;
+  const Value* warning_class = runtime.find_builtin("ResourceWarning");
+  if (warning_class == nullptr ||
+      !runtime.import_module("warnings", warnings, ignored) ||
+      !module_get_attr(warnings, "warn", warn, ignored)) {
+    return;
+  }
+  for (auto message = pending.rbegin(); message != pending.rend(); ++message) {
+    Value warning_args[] = {Value::string(*message), *warning_class};
+    Value warning_result;
+    (void)runtime_call_callable(runtime, warn, warning_args, 2, warning_result, ignored);
+  }
+}
+
+std::string value_to_string(const Value& value) {
+  switch (value.tag) {
+    case ValueTag::Invalid:
+      return "<invalid>";
+    case ValueTag::None:
+      return "None";
+    case ValueTag::Bool:
+      return value.as.b ? "True" : "False";
+    case ValueTag::Int64:
+#if defined(XLANG3_EMBEDDED)
+      return format_i64(value.as.i64);
+#else
+      return std::to_string(value.as.i64);
+#endif
+    case ValueTag::Double: {
+#if defined(XLANG3_EMBEDDED)
+      return format_f64(value.as.f64);
+#else
+      return format_double_text(value.as.f64);
+#endif
+    }
+    case ValueTag::Object:
+      if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::BigInt) {
+        return value_bigint_to_string(value);
+      }
+      if (auto* complex = value_as_complex(value)) {
+        auto component = [](double part) {
+#if defined(XLANG3_EMBEDDED)
+          std::string text = format_f64(part);
+#else
+          std::string text = format_double_text(part);
+#endif
+          if (text.size() > 2 && text.compare(text.size() - 2, 2, ".0") == 0) {
+            text.resize(text.size() - 2);
+          }
+          return text;
+        };
+        const std::string imag = component(complex->imag);
+        if (complex->real == 0.0 && !std::signbit(complex->real)) {
+          return imag + "j";
+        }
+        return "(" + component(complex->real) + (std::signbit(complex->imag) ? "" : "+") + imag + "j)";
+      }
+      if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::String) {
+        return string_object_to_string(*as_string(value.as.obj));
+      }
+      if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Bytes) {
+        return bytes_repr(bytes_object_view(*as_bytes(value.as.obj)));
+      }
+      if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::ByteArray) {
+        return "bytearray(" + bytes_repr(as_bytearray(value.as.obj)->value) + ")";
+      }
+      if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::MemoryView) {
+        return "<memoryview>";
+      }
+      if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Slice) {
+        return "slice(" + value_to_string(value_as_slice(value)->start) + ", " +
+               value_to_string(value_as_slice(value)->stop) + ", " +
+               value_to_string(value_as_slice(value)->step) + ")";
+      }
+      if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Tuple) {
+        const auto& items = as_tuple(value.as.obj)->items;
+        std::string text = "(";
+        for (size_t i = 0; i < items.size(); ++i) {
+          if (i != 0) {
+            text += ", ";
+          }
+          text += value_to_repr(items[i]);
+        }
+        if (items.size() == 1) {
+          text += ",";
+        }
+        text += ")";
+        return text;
+      }
+      if (value.as.obj != nullptr &&
+          (value.as.obj->kind == ObjectKind::List ||
+           value.as.obj->kind == ObjectKind::Range ||
+           value.as.obj->kind == ObjectKind::RangeIterator ||
+           value.as.obj->kind == ObjectKind::SequenceIterator)) {
+        return sequence_to_string(value);
+      }
+      if (value_is_functional_iterator(value)) {
+        return functional_iterator_to_string(value);
+      }
+      if (value.as.obj != nullptr &&
+          (value.as.obj->kind == ObjectKind::Generator ||
+           value.as.obj->kind == ObjectKind::AsyncGeneratorAwaitable)) {
+        return generator_to_string(value);
+      }
+      if (value.as.obj != nullptr &&
+          (value.as.obj->kind == ObjectKind::Dict ||
+           value.as.obj->kind == ObjectKind::MappingProxy ||
+           value.as.obj->kind == ObjectKind::DictKeysView ||
+           value.as.obj->kind == ObjectKind::DictValuesView ||
+           value.as.obj->kind == ObjectKind::DictItemsView ||
+           value.as.obj->kind == ObjectKind::DictIterator)) {
+        return mapping_to_string(value);
+      }
+      if (value.as.obj != nullptr &&
+          (value.as.obj->kind == ObjectKind::Set ||
+           value.as.obj->kind == ObjectKind::SetIterator)) {
+        return set_to_string(value);
+      }
+      if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Module) {
+        return module_to_string(value);
+      }
+      if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Cell) {
+        return "<cell>";
+      }
+      if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Function) {
+        const auto* function = as_function(value.as.obj);
+        const std::string name = function->qualname.empty()
+            ? "<unknown>" : function->qualname;
+        char address[32]{};
+        std::snprintf(
+            address, sizeof(address), "0x%llx",
+            static_cast<unsigned long long>(
+                reinterpret_cast<uintptr_t>(value.as.obj)));
+        return "<function " + name + " at " + address + ">";
+      }
+      if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::NativeFunction) {
+        return "<built-in function " + as_native_function(value.as.obj)->name + ">";
+      }
+      if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Code) {
+        return "<code object>";
+      }
+      if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Frame) {
+        return "<frame object>";
+      }
+      if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Traceback) {
+        return "<traceback object>";
+      }
+      if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Property) {
+        return "<property object>";
+      }
+      if (auto* event = value_as_event(value)) {
+        return "<event '" + event->name + "'>";
+      }
+      if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::SlotDescriptor) {
+        return object_model_to_string(value);
+      }
+      if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::TypeParam) {
+        return "<type parameter " + value_as_type_param(value)->name + ">";
+      }
+      if (auto* generic_alias = value_as_generic_alias(value)) {
+        const auto* origin_class = value_as_class(generic_alias->origin);
+        if (generic_alias->is_union || (origin_class != nullptr && origin_class->name == "Union")) {
+          const auto* args = value_as_tuple(generic_alias->args);
+          if (args != nullptr) {
+            std::string text;
+            for (size_t i = 0; i < args->items.size(); ++i) {
+              if (i != 0) text += " | ";
+              if (auto* item_class = value_as_class(args->items[i])) {
+                text += item_class->name == "NoneType" ? "None" : item_class->name;
+              } else if (args->items[i].tag == ValueTag::None) {
+                text += "None";
+              } else {
+                text += value_to_string(args->items[i]);
+              }
+            }
+            return text;
+          }
+        }
+        auto class_type_name = [](ClassObject* klass) {
+          if (klass == nullptr) return std::string{};
+          std::string name = klass->name;
+          if (auto qualname = klass->attrs.find("__qualname__"); qualname != klass->attrs.end()) {
+            if (auto* text = value_as_string(qualname->second)) {
+              name = string_object_to_string(*text);
+            }
+          }
+          std::string module_name = "builtins";
+          if (auto module = klass->attrs.find("__module__"); module != klass->attrs.end()) {
+            if (auto* text = value_as_string(module->second)) {
+              module_name = string_object_to_string(*text);
+            }
+          }
+          return module_name == "builtins" ? name : module_name + "." + name;
+        };
+        std::string text;
+        if (auto* origin_class = value_as_class(generic_alias->origin)) {
+          text = class_type_name(origin_class);
+        } else {
+          text = value_to_string(generic_alias->origin);
+        }
+        text += "[";
+        if (const auto* args = value_as_tuple(generic_alias->args)) {
+          for (size_t i = 0; i < args->items.size(); ++i) {
+            if (i != 0) text += ", ";
+            if (auto* item_class = value_as_class(args->items[i])) {
+              text += item_class->name == "NoneType" ? "None" : class_type_name(item_class);
+            } else {
+              text += value_to_string(args->items[i]);
+            }
+          }
+        } else {
+          text += value_to_string(generic_alias->args);
+        }
+        text += "]";
+        return text;
+      }
+      if (value.as.obj != nullptr &&
+          (value.as.obj->kind == ObjectKind::Class ||
+           value.as.obj->kind == ObjectKind::Instance ||
+           value.as.obj->kind == ObjectKind::BoundMethod ||
+           value.as.obj->kind == ObjectKind::StaticMethod ||
+           value.as.obj->kind == ObjectKind::ClassMethod ||
+           value.as.obj->kind == ObjectKind::Super)) {
+        return object_model_to_string(value);
+      }
+      if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::File) {
+        return "<file '" + as_file(value.as.obj)->path + "'>";
+      }
+      return "<object>";
+  }
+  return "<unknown>";
+}
+
+std::string value_to_repr(const Value& value) {
+  if (value.tag == ValueTag::Object && value.as.obj != nullptr &&
+      value.as.obj->kind == ObjectKind::String) {
+    return string_repr(string_object_view(*as_string(value.as.obj)));
+  }
+  if (auto* instance = value_as_instance(value)) {
+    auto* klass = value_as_class(instance->klass);
+    if (klass != nullptr &&
+        (klass->name == "BaseException" ||
+         class_has_builtin_base_name(klass, "BaseException"))) {
+      for (const auto& attr : instance->attrs) {
+        if (attr.first == "args") {
+          if (auto* args = value_as_tuple(attr.second)) {
+            std::string result = klass->name + "(";
+            for (size_t i = 0; i < args->items.size(); ++i) {
+              if (i != 0) result += ", ";
+              result += value_to_repr(args->items[i]);
+            }
+            result += ")";
+            return result;
+          }
+        }
+      }
+      return klass->name + "()";
+    }
+  }
+  return value_to_string(value);
+}
+
+std::string format_percent_integer(int64_t value, uint32_t base, bool uppercase) {
+  static constexpr char kLowerDigits[] = "0123456789abcdef";
+  static constexpr char kUpperDigits[] = "0123456789ABCDEF";
+  const char* digits = uppercase ? kUpperDigits : kLowerDigits;
+  const bool negative = value < 0;
+  uint64_t magnitude = negative ? static_cast<uint64_t>(-(value + 1)) + 1u : static_cast<uint64_t>(value);
+  char buffer[80];
+  size_t pos = sizeof(buffer);
+  do {
+    buffer[--pos] = digits[magnitude % base];
+    magnitude /= base;
+  } while (magnitude != 0);
+  if (negative) {
+    buffer[--pos] = '-';
+  }
+  return std::string(buffer + pos, sizeof(buffer) - pos);
+}
+
+const Value* percent_integer_operand(const Value& value, Value& storage) {
+  if (value.tag == ValueTag::Int64 || value.tag == ValueTag::Bool || value_as_bigint(value) != nullptr) {
+    return &value;
+  }
+  std::string ignored;
+  if (value_as_instance(value) != nullptr &&
+      object_get_attr(value, "__xlang3_int_value__", storage, ignored) &&
+      (storage.tag == ValueTag::Int64 || value_as_bigint(storage) != nullptr)) {
+    return &storage;
+  }
+  return nullptr;
+}
+
+std::string format_percent_bigint(const Value& value, uint32_t base, bool uppercase) {
+  bool negative = false;
+  const uint32_t* limbs = nullptr;
+  uint32_t count = 0;
+  if (!value_bigint_limb_view(value, negative, limbs, count) || count == 0) return "0";
+  static constexpr char kLowerDigits[] = "0123456789abcdef";
+  static constexpr char kUpperDigits[] = "0123456789ABCDEF";
+  const char* digits = uppercase ? kUpperDigits : kLowerDigits;
+  const uint32_t group_bits = base == 8 ? 3u : 4u;
+  uint32_t high = limbs[count - 1];
+  uint32_t bit_length = (count - 1) * 32u;
+  while (high != 0) { ++bit_length; high >>= 1u; }
+  const uint32_t groups = (bit_length + group_bits - 1) / group_bits;
+  std::string result;
+  if (negative) result.push_back('-');
+  for (uint32_t group = groups; group > 0; --group) {
+    const uint32_t bit = (group - 1) * group_bits;
+    const uint32_t limb = bit / 32u;
+    const uint32_t shift = bit % 32u;
+    uint64_t window = limbs[limb];
+    if (shift + group_bits > 32u && limb + 1 < count) window |= static_cast<uint64_t>(limbs[limb + 1]) << 32u;
+    result.push_back(digits[(window >> shift) & (base - 1)]);
+  }
+  return result;
+}
+
+bool format_percent_character(const Value& value, std::string& out, std::string& error) {
+  if (auto* string = value_as_string(value)) {
+    const auto text = string_object_view(*string);
+    if (utf8_codepoint_count(text) != 1) {
+      error = "%c requires int or char";
+      return false;
+    }
+    out.assign(text.data(), text.size());
+    return true;
+  }
+  if (value.tag != ValueTag::Int64 || value.as.i64 < 0 || value.as.i64 > 0x10ffff) {
+    error = "%c arg not in range(0x110000)";
+    return false;
+  }
+  const uint32_t codepoint = static_cast<uint32_t>(value.as.i64);
+  if (codepoint <= 0x7fu) {
+    out.push_back(static_cast<char>(codepoint));
+  } else if (codepoint <= 0x7ffu) {
+    out.push_back(static_cast<char>(0xc0u | (codepoint >> 6u)));
+    out.push_back(static_cast<char>(0x80u | (codepoint & 0x3fu)));
+  } else if (codepoint <= 0xffffu) {
+    out.push_back(static_cast<char>(0xe0u | (codepoint >> 12u)));
+    out.push_back(static_cast<char>(0x80u | ((codepoint >> 6u) & 0x3fu)));
+    out.push_back(static_cast<char>(0x80u | (codepoint & 0x3fu)));
+  } else {
+    out.push_back(static_cast<char>(0xf0u | (codepoint >> 18u)));
+    out.push_back(static_cast<char>(0x80u | ((codepoint >> 12u) & 0x3fu)));
+    out.push_back(static_cast<char>(0x80u | ((codepoint >> 6u) & 0x3fu)));
+    out.push_back(static_cast<char>(0x80u | (codepoint & 0x3fu)));
+  }
+  return true;
+}
+
+const TupleObject* value_as_tuple_or_tuple_backed(const Value& value, Value& scratch);
+
+bool string_percent_arg(
+    Runtime* runtime,
+    const Value& args,
+    size_t& tuple_index,
+    const std::string& mapping_key,
+    Value& out,
+    std::string& error) {
+  if (!mapping_key.empty()) {
+    const Value key = Value::string(mapping_key);
+    const bool found = runtime != nullptr
+        ? mapping_get_item_runtime(*runtime, args, key, out, error)
+        : mapping_get_item(args, key, out, error);
+    if (!found) {
+      error = "format mapping key '" + mapping_key + "' not found";
+      return false;
+    }
+    return true;
+  }
+  if (auto* tuple = value_as_tuple(args)) {
+    if (tuple_index >= tuple->items.size()) {
+      error = "not enough arguments for format string";
+      return false;
+    }
+    value_assign_fast(out, tuple->items[tuple_index++]);
+    return true;
+  }
+  Value tuple_scratch;
+  if (const auto* tuple = value_as_tuple_or_tuple_backed(args, tuple_scratch)) {
+    if (tuple_index >= tuple->items.size()) {
+      error = "not enough arguments for format string";
+      return false;
+    }
+    value_assign_fast(out, tuple->items[tuple_index++]);
+    return true;
+  }
+  if (tuple_index != 0) {
+    error = "not enough arguments for format string";
+    return false;
+  }
+  value_assign_fast(out, args);
+  ++tuple_index;
+  return true;
+}
+
+bool string_percent_format(
+    Runtime* runtime,
+    const Value& lhs,
+    const Value& rhs,
+    Value& out,
+    std::string& error) {
+  auto* format_object = value_as_string(lhs);
+  if (format_object == nullptr) {
+    if (auto* instance = value_as_instance(lhs)) {
+      for (const auto& attr : instance->attrs) {
+        if (attr.first == "__xlang3_string_value__") {
+          format_object = value_as_string(attr.second);
+          break;
+        }
+      }
+    }
+  }
+  if (format_object == nullptr) {
+    return false;
+  }
+
+  const auto format = string_object_view(*format_object);
+  std::string result;
+  result.reserve(format.size());
+  size_t tuple_index = 0;
+
+  for (size_t i = 0; i < format.size(); ++i) {
+    const char ch = format[i];
+    if (ch != '%') {
+      result.push_back(ch);
+      continue;
+    }
+    if (i + 1 >= format.size()) {
+      error = "incomplete format";
+      return false;
+    }
+    if (format[i + 1] == '%') {
+      result.push_back('%');
+      ++i;
+      continue;
+    }
+
+    std::string mapping_key;
+    ++i;
+    if (format[i] == '(') {
+      const size_t key_start = i + 1;
+      const auto key_end = format.find(')', key_start);
+      if (key_end == std::string_view::npos) {
+        error = "incomplete format key";
+        return false;
+      }
+      mapping_key.assign(format.substr(key_start, key_end - key_start));
+      i = key_end + 1;
+      if (i >= format.size()) {
+        error = "incomplete format";
+        return false;
+      }
+    }
+
+    bool left_align = false;
+    char pad_char = ' ';
+    bool alternate_form = false;
+    bool force_sign = false;
+    bool space_sign = false;
+    while (i < format.size() && std::strchr("#0- +", format[i]) != nullptr) {
+      if (format[i] == '-') {
+        left_align = true;
+      } else if (format[i] == '0' && !left_align) {
+        pad_char = '0';
+      } else if (format[i] == '#') {
+        alternate_form = true;
+      } else if (format[i] == '+') {
+        force_sign = true;
+      } else if (format[i] == ' ') {
+        space_sign = true;
+      }
+      ++i;
+    }
+    int64_t width = 0;
+    bool has_width = false;
+    if (i < format.size() && format[i] == '*') {
+      Value width_arg;
+      if (!string_percent_arg(runtime, rhs, tuple_index, std::string(), width_arg, error)) {
+        return false;
+      }
+      if (width_arg.tag != ValueTag::Int64) {
+        error = "* wants int";
+        return false;
+      }
+      width = width_arg.as.i64;
+      if (width < 0) {
+        left_align = true;
+        width = -width;
+      }
+      has_width = true;
+      ++i;
+    }
+    while (i < format.size() && std::isdigit(static_cast<unsigned char>(format[i]))) {
+      has_width = true;
+      width = width * 10 + static_cast<int64_t>(format[i] - '0');
+      ++i;
+    }
+    bool has_precision = false;
+    int64_t precision = 0;
+    if (i < format.size() && format[i] == '.') {
+      has_precision = true;
+      ++i;
+      if (i < format.size() && format[i] == '*') {
+        Value precision_arg;
+        if (!string_percent_arg(runtime, rhs, tuple_index, std::string(), precision_arg, error)) {
+          return false;
+        }
+        if (precision_arg.tag != ValueTag::Int64) {
+          error = "* wants int";
+          return false;
+        }
+        precision = precision_arg.as.i64;
+        if (precision < 0) has_precision = false;
+        ++i;
+      } else {
+        while (i < format.size() && std::isdigit(static_cast<unsigned char>(format[i]))) {
+          precision = precision * 10 + static_cast<int64_t>(format[i] - '0');
+          ++i;
+        }
+      }
+    }
+    if (i < format.size() && (format[i] == 'h' || format[i] == 'l' || format[i] == 'L')) {
+      ++i;
+    }
+    if (i >= format.size()) {
+      error = "incomplete format";
+      return false;
+    }
+
+    Value arg;
+    if (!string_percent_arg(runtime, rhs, tuple_index, mapping_key, arg, error)) {
+      return false;
+    }
+
+    std::string formatted;
+    switch (format[i]) {
+      case 'c':
+        if (!format_percent_character(arg, formatted, error)) {
+          return false;
+        }
+        break;
+      case 's':
+        if (runtime != nullptr && value_as_instance(arg) != nullptr) {
+          Value string_result;
+          if (!builtin_str_from_value(*runtime, arg, string_result, error)) {
+            return false;
+          }
+          auto* string_object = value_as_string(string_result);
+          if (string_object == nullptr) {
+            error = "__str__ returned non-string";
+            runtime->raise_class_error("TypeError", error);
+            return false;
+          }
+          formatted = string_object_to_string(*string_object);
+        } else {
+          formatted = value_to_string(arg);
+        }
+        if (has_precision && precision < static_cast<int64_t>(formatted.size())) {
+          formatted.resize(static_cast<size_t>(precision));
+        }
+        break;
+      case 'r':
+      case 'a':
+        if (runtime != nullptr) {
+          // A container can contain Python objects even when its own tag is
+          // native. Runtime-free rendering loses nested __repr__ dispatch and
+          // string-subclass quoting; use the shared intrinsic instead.
+          Value repr_result;
+          if (!runtime_repr(*runtime, arg, repr_result, error, format[i] == 'a')) return false;
+          formatted = string_object_to_string(*value_as_string(repr_result));
+        } else {
+          formatted = value_to_repr(arg);
+        }
+        if (has_precision && precision < static_cast<int64_t>(formatted.size())) {
+          formatted.resize(static_cast<size_t>(precision));
+        }
+        break;
+      case 'd':
+      case 'i':
+      case 'u':
+        if (arg.tag == ValueTag::Int64) {
+          formatted = std::to_string(arg.as.i64);
+        } else if (arg.tag == ValueTag::Bool) {
+          formatted = arg.as.b ? "1" : "0";
+        } else if (arg.tag == ValueTag::Double) {
+          formatted = std::to_string(static_cast<int64_t>(arg.as.f64));
+        } else if (value_as_bigint(arg) != nullptr) {
+          formatted = value_bigint_to_string(arg);
+        } else {
+          error = "%d format requires an integer";
+          return false;
+        }
+        if (!formatted.empty() && formatted[0] != '-' && force_sign) {
+          formatted.insert(formatted.begin(), '+');
+        } else if (!formatted.empty() && formatted[0] != '-' && space_sign) {
+          formatted.insert(formatted.begin(), ' ');
+        }
+        break;
+      case 'o':
+      case 'x':
+      case 'X': {
+        Value integer_storage;
+        const Value* integer = percent_integer_operand(arg, integer_storage);
+        if (integer != nullptr && integer->tag == ValueTag::Int64) {
+          formatted = format_percent_integer(integer->as.i64, format[i] == 'o' ? 8u : 16u, format[i] == 'X');
+        } else if (integer != nullptr && value_as_bigint(*integer) != nullptr) {
+          formatted = format_percent_bigint(*integer, format[i] == 'o' ? 8u : 16u, format[i] == 'X');
+        } else {
+          error = "integer format requires an integer";
+          return false;
+        }
+        if (alternate_form && formatted != "0") {
+          formatted.insert(0, format[i] == 'o' ? "0o" : (format[i] == 'X' ? "0X" : "0x"));
+        }
+        if (!formatted.empty() && formatted[0] != '-' && force_sign) {
+          formatted.insert(formatted.begin(), '+');
+        } else if (!formatted.empty() && formatted[0] != '-' && space_sign) {
+          formatted.insert(formatted.begin(), ' ');
+        }
+        break;
+      }
+      case 'f':
+      case 'F':
+      case 'g':
+      case 'G':
+      case 'e':
+      case 'E':
+        if (!is_number(arg)) {
+          error = "%f format requires a number";
+          return false;
+        }
+        {
+          std::string spec = "%";
+          if (alternate_form) spec.push_back('#');
+          if (force_sign) spec.push_back('+');
+          else if (space_sign) spec.push_back(' ');
+          if (has_precision) spec += "." + std::to_string(precision);
+          spec.push_back(format[i]);
+          const double number = as_double(arg);
+          const int needed = std::snprintf(nullptr, 0, spec.c_str(), number);
+          if (needed < 0) {
+            error = "float formatting failed";
+            return false;
+          }
+          formatted.resize(static_cast<size_t>(needed));
+          std::snprintf(formatted.data(), formatted.size() + 1, spec.c_str(), number);
+        }
+        break;
+      default:
+        error = "unsupported format character";
+        return false;
+    }
+    if (has_width && width > static_cast<int64_t>(formatted.size())) {
+      const size_t pad_count = static_cast<size_t>(width - static_cast<int64_t>(formatted.size()));
+      if (left_align) {
+        result += formatted;
+        result.append(pad_count, ' ');
+      } else if (pad_char == '0' && !formatted.empty() &&
+                 (formatted[0] == '+' || formatted[0] == '-' || formatted[0] == ' ')) {
+        result.push_back(formatted[0]);
+        result.append(pad_count, '0');
+        result.append(formatted.substr(1));
+      } else {
+        result.append(pad_count, pad_char);
+        result += formatted;
+      }
+    } else {
+      result += formatted;
+    }
+  }
+
+  Value tuple_scratch;
+  const auto* tuple = value_as_tuple_or_tuple_backed(rhs, tuple_scratch);
+  if (tuple != nullptr && tuple_index < tuple->items.size()) {
+    error = "not all arguments converted during string formatting";
+    return false;
+  }
+  out = Value::string(std::move(result));
+  return true;
+}
+
+bool percent_bytes_view(const Value& value, std::string_view& out, std::string& packed) {
+  if (auto* bytes = value_as_bytes(value)) {
+    out = bytes_object_view(*bytes);
+    return true;
+  }
+  if (auto* array = value_as_bytearray(value)) {
+    out = array->value;
+    return true;
+  }
+  if (auto* view = value_as_memoryview(value); view != nullptr && !view->released) {
+    if (!view->contiguous) {
+      std::string error;
+      if (!memoryview_copy_bytes(*view, packed, error)) return false;
+      out = packed;
+      return true;
+    }
+    out = memoryview_object_view(*view);
+    return true;
+  }
+  if (value_as_instance(value) != nullptr) {
+    Value payload;
+    std::string ignored;
+    if (object_get_attr(value, "__xlang3_bytes_value__", payload, ignored)) {
+      if (auto* bytes = value_as_bytes(payload)) {
+        out = bytes_object_view(*bytes);
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+bool bytes_percent_format(Runtime* runtime, const Value& lhs, const Value& rhs, Value& out, std::string& error) {
+  auto* format_object = value_as_bytes(lhs);
+  if (format_object == nullptr) return false;
+  const auto format = bytes_object_view(*format_object);
+  std::string result;
+  size_t tuple_index = 0;
+  for (size_t index = 0; index < format.size(); ++index) {
+    if (format[index] != '%') {
+      result.push_back(format[index]);
+      continue;
+    }
+    if (++index >= format.size()) {
+      error = "incomplete format";
+      return false;
+    }
+    if (format[index] == '%') {
+      result.push_back('%');
+      continue;
+    }
+    bool alternate_form = false;
+    bool zero_pad = false;
+    bool left_align = false;
+    bool force_sign = false;
+    bool space_sign = false;
+    while (index < format.size()) {
+      if (format[index] == '#') alternate_form = true;
+      else if (format[index] == '0') zero_pad = true;
+      else if (format[index] == '-') left_align = true;
+      else if (format[index] == '+') force_sign = true;
+      else if (format[index] == ' ') space_sign = true;
+      else break;
+      ++index;
+    }
+    bool has_width = false;
+    int64_t width = 0;
+    if (index < format.size() && format[index] == '*') {
+      Value width_arg;
+      if (!string_percent_arg(nullptr, rhs, tuple_index, std::string(), width_arg, error)) return false;
+      if (width_arg.tag != ValueTag::Int64) {
+        error = "* wants int";
+        return false;
+      }
+      width = width_arg.as.i64;
+      if (width < 0) {
+        left_align = true;
+        width = -width;
+      }
+      has_width = true;
+      ++index;
+    }
+    while (index < format.size() && std::isdigit(static_cast<unsigned char>(format[index]))) {
+      has_width = true;
+      width = width * 10 + static_cast<int64_t>(format[index] - '0');
+      ++index;
+    }
+    bool has_precision = false;
+    int64_t precision = 0;
+    if (index < format.size() && format[index] == '.') {
+      has_precision = true;
+      ++index;
+      if (index < format.size() && format[index] == '*') {
+        Value precision_arg;
+        if (!string_percent_arg(nullptr, rhs, tuple_index, std::string(), precision_arg, error)) return false;
+        if (precision_arg.tag != ValueTag::Int64) {
+          error = "* wants int";
+          return false;
+        }
+        precision = precision_arg.as.i64;
+        if (precision < 0) has_precision = false;
+        ++index;
+      } else {
+        while (index < format.size() && std::isdigit(static_cast<unsigned char>(format[index]))) {
+          precision = precision * 10 + static_cast<int64_t>(format[index] - '0');
+          ++index;
+        }
+      }
+    }
+    if (index < format.size() &&
+        (format[index] == 'h' || format[index] == 'l' || format[index] == 'L')) {
+      ++index;
+    }
+    if (index >= format.size()) {
+      error = "incomplete format";
+      return false;
+    }
+    Value argument;
+    if (!string_percent_arg(nullptr, rhs, tuple_index, std::string(), argument, error)) {
+      return false;
+    }
+    std::string formatted;
+    switch (format[index]) {
+      case 'b':
+      case 's': {
+        std::string_view bytes;
+        std::string packed;
+        if (!percent_bytes_view(argument, bytes, packed)) {
+          error = "%b requires a bytes-like object";
+          return false;
+        }
+        const size_t size = has_precision && precision < static_cast<int64_t>(bytes.size())
+            ? static_cast<size_t>(precision) : bytes.size();
+        formatted.assign(bytes.data(), size);
+        break;
+      }
+      case 'c': {
+        if (argument.tag == ValueTag::Int64 && argument.as.i64 >= 0 && argument.as.i64 <= 255) {
+          formatted.push_back(static_cast<char>(argument.as.i64));
+          break;
+        }
+        std::string_view bytes;
+        std::string packed;
+        if (!percent_bytes_view(argument, bytes, packed) || bytes.size() != 1) {
+          error = "%c requires an integer in range(256) or a single byte";
+          return false;
+        }
+        formatted.push_back(bytes[0]);
+        break;
+      }
+      case 'd':
+      case 'i':
+      case 'u': {
+        Value integer_storage;
+        const Value* integer = percent_integer_operand(argument, integer_storage);
+        if (integer != nullptr && integer->tag == ValueTag::Int64) {
+          formatted = std::to_string(integer->as.i64);
+        } else if (integer != nullptr && value_as_bigint(*integer) != nullptr) {
+          formatted = value_bigint_to_string(*integer);
+        } else {
+          error = "%d format requires an integer";
+          return false;
+        }
+        if (!formatted.empty() && formatted[0] != '-' && force_sign) formatted.insert(formatted.begin(), '+');
+        else if (!formatted.empty() && formatted[0] != '-' && space_sign) formatted.insert(formatted.begin(), ' ');
+        break;
+      }
+      case 'o':
+      case 'x':
+      case 'X': {
+        Value integer_storage;
+        const Value* integer = percent_integer_operand(argument, integer_storage);
+        if (integer != nullptr && integer->tag == ValueTag::Int64) {
+          formatted = format_percent_integer(
+              integer->as.i64, format[index] == 'o' ? 8u : 16u,
+              format[index] == 'X');
+        } else if (integer != nullptr && value_as_bigint(*integer) != nullptr) {
+          formatted = format_percent_bigint(
+              *integer, format[index] == 'o' ? 8u : 16u,
+              format[index] == 'X');
+        } else {
+          error = "integer format requires an integer";
+          return false;
+        }
+        if (alternate_form && formatted != "0") {
+          formatted.insert(0, format[index] == 'o' ? "0o" : (format[index] == 'X' ? "0X" : "0x"));
+        }
+        if (!formatted.empty() && formatted[0] != '-' && force_sign) formatted.insert(formatted.begin(), '+');
+        else if (!formatted.empty() && formatted[0] != '-' && space_sign) formatted.insert(formatted.begin(), ' ');
+        break;
+      }
+      case 'r':
+      case 'a':
+        if (runtime != nullptr) {
+          Value repr_result;
+          // Bytes %r and %a both use ASCII-escaped repr, before precision.
+          if (!runtime_repr(*runtime, argument, repr_result, error, true)) return false;
+          formatted = string_object_to_string(*value_as_string(repr_result));
+        } else {
+          formatted = value_to_repr(argument);
+        }
+        if (has_precision && precision < static_cast<int64_t>(formatted.size()))
+          formatted.resize(static_cast<size_t>(precision));
+        break;
+      default:
+        error = "unsupported format character";
+        return false;
+    }
+    if (has_width && width > static_cast<int64_t>(formatted.size())) {
+      const size_t padding = static_cast<size_t>(width - static_cast<int64_t>(formatted.size()));
+      if (left_align) {
+        result += formatted;
+        result.append(padding, ' ');
+      } else if (zero_pad) {
+        size_t prefix = 0;
+        if (!formatted.empty() &&
+            (formatted[0] == '+' || formatted[0] == '-' || formatted[0] == ' ')) prefix = 1;
+        if (formatted.size() >= prefix + 2 && formatted[prefix] == '0' &&
+            (formatted[prefix + 1] == 'x' || formatted[prefix + 1] == 'X' ||
+             formatted[prefix + 1] == 'o')) prefix += 2;
+        result.append(formatted.data(), prefix);
+        result.append(padding, '0');
+        result.append(formatted.data() + prefix, formatted.size() - prefix);
+      } else {
+        result.append(padding, ' ');
+        result += formatted;
+      }
+    } else {
+      result += formatted;
+    }
+  }
+  Value tuple_scratch;
+  const auto* tuple = value_as_tuple_or_tuple_backed(rhs, tuple_scratch);
+  if (tuple != nullptr && tuple_index < tuple->items.size()) {
+    error = "not all arguments converted during bytes formatting";
+    return false;
+  }
+  out = Value::bytes(std::move(result));
+  return true;
+}
+
+bool const_bool_method_value(const Value& method, bool& out) {
+  auto* function_object = value_as_function(method);
+  if (function_object == nullptr || function_object->module == nullptr) {
+    return false;
+  }
+  const auto& module = *function_object->module;
+  if (function_object->function_id >= module.functions.size()) {
+    return false;
+  }
+  const auto& function = module.functions[function_object->function_id];
+  if (function.params.size() != 1 || !function.free_vars.empty() || !function.cell_slots.empty() ||
+      function.code.size() < 2) {
+    return false;
+  }
+  const auto& load_const = function.code[0];
+  const auto& ret = function.code[1];
+  if (load_const.op != ir::Op::LoadConst || load_const.a >= function.constants.size() ||
+      ret.op != ir::Op::Return || ret.a != load_const.dst) {
+    return false;
+  }
+  const auto& value = function.constants[load_const.a];
+  if (value.tag != ValueTag::Bool) {
+    return false;
+  }
+  out = value.as.b;
+  return true;
+}
+
+bool value_truthy(const Value& value) {
+  switch (value.tag) {
+    case ValueTag::Invalid:
+    case ValueTag::None:
+      return false;
+    case ValueTag::Bool:
+      return value.as.b;
+    case ValueTag::Int64:
+      return value.as.i64 != 0;
+    case ValueTag::Double:
+      return value.as.f64 != 0.0;
+    case ValueTag::Object:
+      if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::BigInt) {
+        return value_bigint_truthy(value);
+      }
+      if (auto* complex = value_as_complex(value)) {
+        return complex->real != 0.0 || complex->imag != 0.0;
+      }
+      if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::String) {
+        return as_string(value.as.obj)->size != 0;
+      }
+      if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Bytes) {
+        return as_bytes(value.as.obj)->size != 0;
+      }
+      if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::ByteArray) {
+        return !as_bytearray(value.as.obj)->value.empty();
+      }
+      if (auto* view = value_as_memoryview(value)) {
+        return view->size != 0;
+      }
+      if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Tuple) {
+        return !as_tuple(value.as.obj)->items.empty();
+      }
+      if (value.as.obj != nullptr &&
+          (value.as.obj->kind == ObjectKind::List ||
+           value.as.obj->kind == ObjectKind::Range ||
+           value.as.obj->kind == ObjectKind::RangeIterator ||
+           value.as.obj->kind == ObjectKind::SequenceIterator)) {
+        return sequence_truthy(value);
+      }
+      if (value_is_functional_iterator(value)) {
+        return true;
+      }
+      if (value.as.obj != nullptr &&
+          (value.as.obj->kind == ObjectKind::Generator ||
+           value.as.obj->kind == ObjectKind::AsyncGeneratorAwaitable)) {
+        return generator_truthy(value);
+      }
+      if (value.as.obj != nullptr &&
+          (value.as.obj->kind == ObjectKind::Dict ||
+           value.as.obj->kind == ObjectKind::MappingProxy ||
+           value.as.obj->kind == ObjectKind::DictKeysView ||
+           value.as.obj->kind == ObjectKind::DictValuesView ||
+           value.as.obj->kind == ObjectKind::DictItemsView ||
+           value.as.obj->kind == ObjectKind::DictIterator)) {
+        return mapping_truthy(value);
+      }
+      if (value.as.obj != nullptr &&
+          (value.as.obj->kind == ObjectKind::Set ||
+           value.as.obj->kind == ObjectKind::SetIterator)) {
+        return set_truthy(value);
+      }
+      if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Instance) {
+        bool native_truth = true;
+        if (instance_native_truthy(value, native_truth)) {
+          return native_truth;
+        }
+        Value bool_method;
+        std::string ignored;
+        if (object_get_class_attr_for_instance(value, "__bool__", bool_method, ignored)) {
+          bool out = true;
+          if (const_bool_method_value(bool_method, out)) {
+            return out;
+          }
+        }
+      }
+      return true;
+  }
+  return false;
+}
+
+const TupleObject* value_as_tuple_or_tuple_backed(const Value& value, Value& scratch) {
+  if (auto* tuple = value_as_tuple(value)) {
+    return tuple;
+  }
+  auto* instance = value_as_instance(value);
+  if (instance == nullptr) {
+    return nullptr;
+  }
+  auto* klass = value_as_class(instance->klass);
+  if (klass == nullptr || !class_has_builtin_base_name(klass, "tuple")) {
+    return nullptr;
+  }
+  std::string ignored;
+  if (!object_get_attr(value, "__xlang3_tuple_value__", scratch, ignored)) {
+    return nullptr;
+  }
+  return value_as_tuple(scratch);
+}
+
+const char* value_binary_type_name(const Value& value) {
+  switch (value.tag) {
+    case ValueTag::Invalid: return "invalid";
+    case ValueTag::None: return "NoneType";
+    case ValueTag::Bool: return "bool";
+    case ValueTag::Int64: return "int";
+    case ValueTag::Double: return "float";
+    case ValueTag::Object:
+      if (value.as.obj == nullptr) {
+        return "object";
+      }
+      switch (value.as.obj->kind) {
+        case ObjectKind::String: return "str";
+        case ObjectKind::BigInt: return "int";
+        case ObjectKind::Complex: return "complex";
+        case ObjectKind::Bytes: return "bytes";
+        case ObjectKind::ByteArray: return "bytearray";
+        case ObjectKind::MemoryView: return "memoryview";
+        case ObjectKind::Slice: return "slice";
+        case ObjectKind::Tuple: return "tuple";
+        case ObjectKind::List: return "list";
+        case ObjectKind::Dict: return "dict";
+        case ObjectKind::Set:
+          return value_as_set(value)->frozen ? "frozenset" : "set";
+        case ObjectKind::Module: return "module";
+        case ObjectKind::Function: return "function";
+        case ObjectKind::NativeFunction: return "builtin_function_or_method";
+        case ObjectKind::Class: return "type";
+        case ObjectKind::Instance:
+          if (auto* instance = value_as_instance(value)) {
+            if (auto* klass = value_as_class(instance->klass)) {
+              return klass->name.c_str();
+            }
+          }
+          return "object";
+        default: return "object";
+      }
+  }
+  return "object";
+}
+
+static bool numeric_subclass_value(const Value& value, Value& numeric) {
+  auto* instance = value_as_instance(value);
+  auto* klass = instance == nullptr ? nullptr : value_as_class(instance->klass);
+  if (klass == nullptr || (!class_has_builtin_base_name(klass, "int") &&
+                           !class_has_builtin_base_name(klass, "float"))) {
+    return false;
+  }
+  Value stored;
+  std::string ignored;
+  if ((object_get_attr(value, "__xlang3_int_value__", stored, ignored) ||
+       object_get_attr(value, "__xlang3_float_value__", stored, ignored) ||
+       object_get_attr(value, "_value_", stored, ignored)) &&
+      (stored.tag == ValueTag::Int64 || stored.tag == ValueTag::Double ||
+       value_as_bigint(stored) != nullptr)) {
+    numeric = std::move(stored);
+    return true;
+  }
+  return false;
+}
+
+bool value_add(const Value& lhs, const Value& rhs, Value& out, std::string& error) {
+  const auto weak_proxy_target = [](const Value& value, Value& target) {
+    auto* instance = value_as_instance(value);
+    auto* klass = instance == nullptr ? nullptr : value_as_class(instance->klass);
+    if (klass == nullptr || (klass->name != "ProxyType" && klass->name != "CallableProxyType")) {
+      return false;
+    }
+    return weakref_get_target(value, target);
+  };
+  Value proxy_lhs;
+  Value proxy_rhs;
+  const bool lhs_is_proxy = weak_proxy_target(lhs, proxy_lhs);
+  const bool rhs_is_proxy = weak_proxy_target(rhs, proxy_rhs);
+  if (lhs_is_proxy || rhs_is_proxy) {
+    return value_add(lhs_is_proxy ? proxy_lhs : lhs, rhs_is_proxy ? proxy_rhs : rhs, out, error);
+  }
+  Value numeric_lhs;
+  Value numeric_rhs;
+  const bool lhs_is_numeric_subclass = numeric_subclass_value(lhs, numeric_lhs);
+  const bool rhs_is_numeric_subclass = numeric_subclass_value(rhs, numeric_rhs);
+  if (lhs_is_numeric_subclass || rhs_is_numeric_subclass) {
+    return value_add(
+        lhs_is_numeric_subclass ? numeric_lhs : lhs,
+        rhs_is_numeric_subclass ? numeric_rhs : rhs,
+        out,
+        error);
+  }
+  if (lhs.tag == ValueTag::Int64 && rhs.tag == ValueTag::Int64) {
+    int64_t result = 0;
+    if (!checked_add_i64(lhs.as.i64, rhs.as.i64, result)) {
+      return value_int_like_add(lhs, rhs, out);
+    }
+    value_set_int64(out, result);
+    return true;
+  }
+  if (is_small_integer_number(lhs) && is_small_integer_number(rhs)) {
+    int64_t result = 0;
+    if (!checked_add_i64(small_integer_number(lhs), small_integer_number(rhs), result)) {
+      return value_int_like_add(lhs, rhs, out);
+    }
+    value_set_int64(out, result);
+    return true;
+  }
+  if (value_as_bigint(lhs) != nullptr || value_as_bigint(rhs) != nullptr) {
+    if (value_int_like_add(lhs, rhs, out)) {
+      return true;
+    }
+  }
+  if ((value_as_instance(lhs) != nullptr || value_as_instance(rhs) != nullptr) &&
+      value_int_like_add(lhs, rhs, out)) {
+    return true;
+  }
+  if (is_number(lhs) && is_number(rhs)) {
+    value_set_number(out, as_double(lhs) + as_double(rhs));
+    return true;
+  }
+  if (auto* left = value_as_complex(lhs)) {
+    if (auto* right = value_as_complex(rhs)) {
+      out = Value::complex(left->real + right->real, left->imag + right->imag);
+      return true;
+    }
+    if (is_number(rhs)) {
+      out = Value::complex(left->real + as_double(rhs), left->imag);
+      return true;
+    }
+  }
+  if (auto* right = value_as_complex(rhs)) {
+    if (is_number(lhs)) {
+      out = Value::complex(as_double(lhs) + right->real, right->imag);
+      return true;
+    }
+  }
+  if (lhs.tag == ValueTag::Object && rhs.tag == ValueTag::Object &&
+      lhs.as.obj != nullptr && rhs.as.obj != nullptr &&
+      lhs.as.obj->kind == ObjectKind::String && rhs.as.obj->kind == ObjectKind::String) {
+    const auto left = string_object_view(*as_string(lhs.as.obj));
+    const auto right = string_object_view(*as_string(rhs.as.obj));
+    out = Value::string_uninitialized(left.size() + right.size());
+    auto* string = value_as_string(out);
+    char* target = string_object_mutable_data(*string);
+    if (!left.empty()) {
+      std::memcpy(target, left.data(), left.size());
+    }
+    if (!right.empty()) {
+      std::memcpy(target + left.size(), right.data(), right.size());
+    }
+    string_object_set_ascii(*string, string_object_is_ascii(*as_string(lhs.as.obj)) &&
+                    string_object_is_ascii(*as_string(rhs.as.obj)));
+    return true;
+  }
+  if (lhs.tag == ValueTag::Object && rhs.tag == ValueTag::Object &&
+      lhs.as.obj != nullptr && rhs.as.obj != nullptr &&
+      lhs.as.obj->kind == ObjectKind::Bytes &&
+      (rhs.as.obj->kind == ObjectKind::Bytes || rhs.as.obj->kind == ObjectKind::ByteArray)) {
+    const auto left = bytes_object_view(*as_bytes(lhs.as.obj));
+    const auto right = rhs.as.obj->kind == ObjectKind::Bytes
+        ? bytes_object_view(*as_bytes(rhs.as.obj))
+        : std::string_view(as_bytearray(rhs.as.obj)->value);
+    std::string bytes;
+    bytes.resize(left.size() + right.size());
+    if (!left.empty()) {
+      std::memcpy(bytes.data(), left.data(), left.size());
+    }
+    if (!right.empty()) {
+      std::memcpy(bytes.data() + left.size(), right.data(), right.size());
+    }
+    out = Value::bytes(std::move(bytes));
+    return true;
+  }
+  if (auto* left_array = value_as_bytearray(lhs)) {
+    std::string_view right_bytes;
+    if (auto* right = value_as_bytes(rhs)) {
+      right_bytes = bytes_object_view(*right);
+    } else if (auto* right = value_as_bytearray(rhs)) {
+      right_bytes = right->value;
+    } else if (auto* right = value_as_memoryview(rhs)) {
+      // Buffer consumers such as Tornado append each socket read as a
+      // memoryview slice. Match bytearray's buffer-protocol concatenation and
+      // copy directly into the final allocation instead of materializing an
+      // intermediate bytes/string object for every read chunk.
+      if (right->released || !right->contiguous) {
+        error = "can't concat memoryview to bytearray";
+        return false;
+      }
+      right_bytes = memoryview_object_view(*right);
+    } else {
+      error = "unsupported operands for +";
+      return false;
+    }
+    std::string bytes;
+    bytes.reserve(left_array->value.size() + right_bytes.size());
+    bytes.append(left_array->value);
+    bytes.append(right_bytes);
+    out = Value::bytearray(std::move(bytes));
+    return true;
+  }
+  if (auto* left = value_as_list_storage(lhs)) {
+    if (auto* right = value_as_list_storage(rhs)) {
+      std::vector<Value> items;
+      items.reserve(left->items.size() + right->items.size());
+      for (const auto& item : left->items) {
+        items.push_back(item);
+      }
+      for (const auto& item : right->items) {
+        items.push_back(item);
+      }
+      out = Value::list(std::move(items));
+      return true;
+    }
+  }
+  Value left_tuple_scratch;
+  Value right_tuple_scratch;
+  if (auto* left = value_as_tuple_or_tuple_backed(lhs, left_tuple_scratch)) {
+    if (auto* right = value_as_tuple_or_tuple_backed(rhs, right_tuple_scratch)) {
+      std::vector<Value> items;
+      items.reserve(left->items.size() + right->items.size());
+      for (const auto& item : left->items) {
+        items.push_back(item);
+      }
+      for (const auto& item : right->items) {
+        items.push_back(item);
+      }
+      out = Value::tuple(std::move(items));
+      return true;
+    }
+  }
+#ifndef XLANG3_EMBEDDED
+  if (tensor::handles(lhs,rhs)) return tensor::binary(lhs,rhs,"add",out,error);
+#endif
+  error = std::string("unsupported operand type(s) for +: '") + value_binary_type_name(lhs) +
+          "' and '" + value_binary_type_name(rhs) + "'";
+  return false;
+}
+
+bool value_sub(const Value& lhs, const Value& rhs, Value& out, std::string& error) {
+  Value numeric_lhs;
+  Value numeric_rhs;
+  const bool lhs_is_numeric_subclass = numeric_subclass_value(lhs, numeric_lhs);
+  const bool rhs_is_numeric_subclass = numeric_subclass_value(rhs, numeric_rhs);
+  if (lhs_is_numeric_subclass || rhs_is_numeric_subclass) {
+    return value_sub(
+        lhs_is_numeric_subclass ? numeric_lhs : lhs,
+        rhs_is_numeric_subclass ? numeric_rhs : rhs,
+        out, error);
+  }
+  if (value_is_set_like_operand(lhs)) {
+    Value left_set;
+    if (!value_materialize_set_like(lhs, left_set, error)) {
+      return false;
+    }
+    return set_difference_value(left_set, rhs, out, error);
+  }
+  if (value_as_set(lhs) != nullptr) {
+    return set_difference_value(lhs, rhs, out, error);
+  }
+  if (lhs.tag == ValueTag::Int64 && rhs.tag == ValueTag::Int64) {
+    int64_t result = 0;
+    if (!checked_sub_i64(lhs.as.i64, rhs.as.i64, result)) {
+      return value_int_like_sub(lhs, rhs, out);
+    }
+    value_set_int64(out, result);
+    return true;
+  }
+  if (is_small_integer_number(lhs) && is_small_integer_number(rhs)) {
+    int64_t result = 0;
+    if (!checked_sub_i64(small_integer_number(lhs), small_integer_number(rhs), result)) {
+      return value_int_like_sub(lhs, rhs, out);
+    }
+    value_set_int64(out, result);
+    return true;
+  }
+  if (value_as_bigint(lhs) != nullptr || value_as_bigint(rhs) != nullptr) {
+    if (value_int_like_sub(lhs, rhs, out)) {
+      return true;
+    }
+  }
+  if (is_number(lhs) && is_number(rhs)) {
+    value_set_number(out, as_double(lhs) - as_double(rhs));
+    return true;
+  }
+  if (auto* left = value_as_complex(lhs)) {
+    if (auto* right = value_as_complex(rhs)) {
+      out = Value::complex(left->real - right->real, left->imag - right->imag);
+      return true;
+    }
+    if (is_number(rhs)) {
+      out = Value::complex(left->real - as_double(rhs), left->imag);
+      return true;
+    }
+  }
+  if (auto* right = value_as_complex(rhs)) {
+    if (is_number(lhs)) {
+      out = Value::complex(as_double(lhs) - right->real, -right->imag);
+      return true;
+    }
+  }
+#ifndef XLANG3_EMBEDDED
+  if (tensor::handles(lhs,rhs)) return tensor::binary(lhs,rhs,"sub",out,error);
+#endif
+  error = "unsupported operands for -";
+  return false;
+}
+
+bool value_mul(const Value& lhs, const Value& rhs, Value& out, std::string& error) {
+  if (lhs.tag == ValueTag::Int64 && rhs.tag == ValueTag::Int64) {
+    int64_t result = 0;
+    if (!checked_mul_i64(lhs.as.i64, rhs.as.i64, result)) {
+      return value_int_like_mul(lhs, rhs, out);
+    }
+    value_set_int64(out, result);
+    return true;
+  }
+  if (is_small_integer_number(lhs) && is_small_integer_number(rhs)) {
+    int64_t result = 0;
+    if (!checked_mul_i64(small_integer_number(lhs), small_integer_number(rhs), result)) {
+      return value_int_like_mul(lhs, rhs, out);
+    }
+    value_set_int64(out, result);
+    return true;
+  }
+  if (value_int_like_mul(lhs, rhs, out)) {
+    return true;
+  }
+  auto repeat_string = [&](const StringObject* text, int64_t count) {
+    if (count <= 0) {
+      out = Value::string("");
+      return true;
+    }
+    const auto view = string_object_view(*text);
+    std::string repeated;
+    repeated.reserve(view.size() * static_cast<size_t>(count));
+    for (int64_t i = 0; i < count; ++i) {
+      repeated.append(view.data(), view.size());
+    }
+    out = Value::string(std::move(repeated));
+    return true;
+  };
+  auto repeat_bytes = [&](const BytesObject* bytes, int64_t count) {
+    if (count <= 0) {
+      out = Value::bytes("");
+      return true;
+    }
+    const auto view = bytes_object_view(*bytes);
+    std::string repeated;
+    repeated.reserve(view.size() * static_cast<size_t>(count));
+    for (int64_t i = 0; i < count; ++i) {
+      repeated.append(view.data(), view.size());
+    }
+    out = Value::bytes(std::move(repeated));
+    return true;
+  };
+  auto repeat_bytearray = [&](const ByteArrayObject* bytes, int64_t count) {
+    if (count <= 0) {
+      out = Value::bytearray("");
+      return true;
+    }
+    std::string repeated;
+    repeated.reserve(bytes->value.size() * static_cast<size_t>(count));
+    for (int64_t i = 0; i < count; ++i) {
+      repeated.append(bytes->value);
+    }
+    out = Value::bytearray(std::move(repeated));
+    return true;
+  };
+  auto repeat_list = [&](const ListObject* list, int64_t count) {
+    if (count <= 0 || list->items.empty()) {
+      out = Value::list({});
+      return true;
+    }
+    std::vector<Value> repeated;
+    repeated.reserve(list->items.size() * static_cast<size_t>(count));
+    for (int64_t i = 0; i < count; ++i) {
+      repeated.insert(repeated.end(), list->items.begin(), list->items.end());
+    }
+    out = Value::list(std::move(repeated));
+    return true;
+  };
+  auto repeat_tuple = [&](const TupleObject* tuple, int64_t count) {
+    if (count <= 0 || tuple->items.empty()) {
+      out = Value::tuple({});
+      return true;
+    }
+    std::vector<Value> repeated;
+    repeated.reserve(tuple->items.size() * static_cast<size_t>(count));
+    for (int64_t i = 0; i < count; ++i) {
+      repeated.insert(repeated.end(), tuple->items.begin(), tuple->items.end());
+    }
+    out = Value::tuple(std::move(repeated));
+    return true;
+  };
+  auto repeat_count = [](const Value& value, int64_t& count) {
+    return value_int_like_to_i64(value, count);
+  };
+  int64_t count = 0;
+  if (auto* text = value_as_string(lhs)) {
+    if (repeat_count(rhs, count)) {
+      return repeat_string(text, count);
+    }
+  }
+  if (auto* text = value_as_string(rhs)) {
+    if (repeat_count(lhs, count)) {
+      return repeat_string(text, count);
+    }
+  }
+  if (auto* bytes = value_as_bytes(lhs)) {
+    if (repeat_count(rhs, count)) {
+      return repeat_bytes(bytes, count);
+    }
+  }
+  if (auto* bytes = value_as_bytes(rhs)) {
+    if (repeat_count(lhs, count)) {
+      return repeat_bytes(bytes, count);
+    }
+  }
+  if (auto* bytes = value_as_bytearray(lhs)) {
+    if (repeat_count(rhs, count)) {
+      return repeat_bytearray(bytes, count);
+    }
+  }
+  if (auto* bytes = value_as_bytearray(rhs)) {
+    if (repeat_count(lhs, count)) {
+      return repeat_bytearray(bytes, count);
+    }
+  }
+  if (auto* list = value_as_list(lhs)) {
+    if (repeat_count(rhs, count)) {
+      return repeat_list(list, count);
+    }
+  }
+  if (auto* list = value_as_list(rhs)) {
+    if (repeat_count(lhs, count)) {
+      return repeat_list(list, count);
+    }
+  }
+  if (lhs.tag == ValueTag::Object && lhs.as.obj != nullptr && lhs.as.obj->kind == ObjectKind::Tuple) {
+    if (repeat_count(rhs, count)) {
+      if (count == 1) { value_assign_fast(out, lhs); return true; }
+      return repeat_tuple(reinterpret_cast<TupleObject*>(lhs.as.obj), count);
+    }
+  }
+  if (rhs.tag == ValueTag::Object && rhs.as.obj != nullptr && rhs.as.obj->kind == ObjectKind::Tuple) {
+    if (repeat_count(lhs, count)) {
+      if (count == 1) { value_assign_fast(out, rhs); return true; }
+      return repeat_tuple(reinterpret_cast<TupleObject*>(rhs.as.obj), count);
+    }
+  }
+  if (is_number(lhs) && is_number(rhs)) {
+    value_set_number(out, as_double(lhs) * as_double(rhs));
+    return true;
+  }
+  if (auto* left = value_as_complex(lhs)) {
+    if (auto* right = value_as_complex(rhs)) {
+      out = Value::complex(
+          left->real * right->real - left->imag * right->imag,
+          left->real * right->imag + left->imag * right->real);
+      return true;
+    }
+    if (is_number(rhs)) {
+      out = Value::complex(left->real * as_double(rhs), left->imag * as_double(rhs));
+      return true;
+    }
+  }
+  if (auto* right = value_as_complex(rhs)) {
+    if (is_number(lhs)) {
+      out = Value::complex(as_double(lhs) * right->real, as_double(lhs) * right->imag);
+      return true;
+    }
+  }
+#ifndef XLANG3_EMBEDDED
+  if (tensor::handles(lhs,rhs)) return tensor::binary(lhs,rhs,"mul",out,error);
+#endif
+  error = std::string("unsupported operand type(s) for *: '") + value_binary_type_name(lhs) +
+          "' and '" + value_binary_type_name(rhs) + "'";
+  return false;
+}
+
+bool value_matmul(const Value& lhs, const Value& rhs, Value& out, std::string& error) {
+#ifndef XLANG3_EMBEDDED
+  if (tensor::handles(lhs,rhs)) return tensor::binary(lhs,rhs,"matmul",out,error);
+#endif
+  error = "unsupported operands for @";
+  return false;
+}
+
+bool value_div(const Value& lhs, const Value& rhs, Value& out, std::string& error) {
+  Value numeric_lhs;
+  Value numeric_rhs;
+  const bool lhs_is_numeric_subclass = numeric_subclass_value(lhs, numeric_lhs);
+  const bool rhs_is_numeric_subclass = numeric_subclass_value(rhs, numeric_rhs);
+  if (lhs_is_numeric_subclass || rhs_is_numeric_subclass) {
+    return value_div(lhs_is_numeric_subclass ? numeric_lhs : lhs,
+                     rhs_is_numeric_subclass ? numeric_rhs : rhs, out, error);
+  }
+  const bool lhs_bigint = value_as_bigint(lhs) != nullptr;
+  const bool rhs_bigint = value_as_bigint(rhs) != nullptr;
+  if ((!is_number(lhs) && !lhs_bigint) || (!is_number(rhs) && !rhs_bigint)) {
+#ifndef XLANG3_EMBEDDED
+    if (tensor::handles(lhs,rhs)) return tensor::binary(lhs,rhs,"div",out,error);
+#endif
+    error = "unsupported operands for /";
+    return false;
+  }
+  const double dividend = lhs_bigint ? std::stod(value_bigint_to_string(lhs)) : as_double(lhs);
+  const double divisor = rhs_bigint ? std::stod(value_bigint_to_string(rhs)) : as_double(rhs);
+  if (divisor == 0.0) {
+    error = "division by zero";
+    return false;
+  }
+  value_set_number(out, dividend / divisor);
+  return true;
+}
+
+bool value_floor_div(const Value& lhs, const Value& rhs, Value& out, std::string& error) {
+  if (value_as_bigint(lhs) != nullptr || value_as_bigint(rhs) != nullptr) {
+    Value remainder;
+    return value_int_like_divmod(lhs, rhs, out, remainder, error);
+  }
+  if (lhs.tag == ValueTag::Int64 && rhs.tag == ValueTag::Int64) {
+    if (rhs.as.i64 == 0) {
+      error = "integer division by zero";
+      return false;
+    }
+    // Signed hardware division traps for INT64_MIN / -1. Python promotes the
+    // quotient to bigint; check before either division or remainder instruction.
+    if (lhs.as.i64 == std::numeric_limits<int64_t>::min() && rhs.as.i64 == -1) {
+      out = value_bigint_from_u64(uint64_t{1} << 63u);
+      return true;
+    }
+    int64_t q = lhs.as.i64 / rhs.as.i64;
+    const int64_t r = lhs.as.i64 % rhs.as.i64;
+    if (r != 0 && ((r < 0) != (rhs.as.i64 < 0))) {
+      --q;
+    }
+    value_set_int64(out, q);
+    return true;
+  }
+  if (!is_number(lhs) || !is_number(rhs)) {
+    error = "unsupported operands for //";
+    return false;
+  }
+  const double divisor = as_double(rhs);
+  if (divisor == 0.0) {
+    error = "float floor division by zero";
+    return false;
+  }
+  value_set_number(out, std::floor(as_double(lhs) / divisor));
+  return true;
+}
+
+bool value_mod(const Value& lhs, const Value& rhs, Value& out, std::string& error) {
+  if (value_as_string(lhs) != nullptr || value_as_instance(lhs) != nullptr) {
+    if (string_percent_format(nullptr, lhs, rhs, out, error)) return true;
+    if (!error.empty()) return false;
+  }
+  if (value_as_bytes(lhs) != nullptr) {
+    return bytes_percent_format(nullptr, lhs, rhs, out, error);
+  }
+  if (value_as_bigint(lhs) != nullptr || value_as_bigint(rhs) != nullptr) {
+    Value quotient;
+    return value_int_like_divmod(lhs, rhs, quotient, out, error);
+  }
+  if (lhs.tag == ValueTag::Int64 && rhs.tag == ValueTag::Int64) {
+    if (rhs.as.i64 == 0) {
+      error = "integer modulo by zero";
+      return false;
+    }
+    if (lhs.as.i64 == std::numeric_limits<int64_t>::min() && rhs.as.i64 == -1) {
+      value_set_int64(out, 0);
+      return true;
+    }
+    int64_t result = lhs.as.i64 % rhs.as.i64;
+    if (result != 0 && ((result < 0) != (rhs.as.i64 < 0))) {
+      result += rhs.as.i64;
+    }
+    value_set_int64(out, result);
+    return true;
+  }
+  if (!is_number(lhs) || !is_number(rhs)) {
+    error = "unsupported operands for %";
+    return false;
+  }
+  const double divisor = as_double(rhs);
+  if (divisor == 0.0) {
+    error = "float modulo by zero";
+    return false;
+  }
+  double result = std::fmod(as_double(lhs), divisor);
+  if (result != 0.0 && ((result < 0.0) != (divisor < 0.0))) {
+    result += divisor;
+  }
+  value_set_number(out, result);
+  return true;
+}
+
+bool value_mod_runtime(Runtime& runtime, const Value& lhs, const Value& rhs, Value& out, std::string& error) {
+  if (value_as_string(lhs) != nullptr || value_as_instance(lhs) != nullptr) {
+    if (string_percent_format(&runtime, lhs, rhs, out, error)) return true;
+    if (!error.empty()) return false;
+  }
+  if (value_as_bytes(lhs) != nullptr) return bytes_percent_format(&runtime, lhs, rhs, out, error);
+  return value_mod(lhs, rhs, out, error);
+}
+
+bool value_pow(const Value& lhs, const Value& rhs, Value& out, std::string& error) {
+  if ((lhs.tag == ValueTag::Int64 || value_as_bigint(lhs) != nullptr) &&
+      (rhs.tag == ValueTag::Int64 || value_as_bigint(rhs) != nullptr)) {
+    if (value_int_like_pow(lhs, rhs, out, error)) {
+      return true;
+    }
+    if (!error.empty()) {
+      return false;
+    }
+  }
+  if (!is_number(lhs) || !is_number(rhs)) {
+    error = "unsupported operands for **";
+    return false;
+  }
+  if (lhs.tag == ValueTag::Int64 && rhs.tag == ValueTag::Int64 && rhs.as.i64 >= 0) {
+    int64_t result = 1;
+    int64_t base = lhs.as.i64;
+    uint64_t exponent = static_cast<uint64_t>(rhs.as.i64);
+    while (exponent != 0) {
+      if ((exponent & 1u) != 0) {
+        result *= base;
+      }
+      exponent >>= 1u;
+      if (exponent != 0) {
+        base *= base;
+      }
+    }
+    value_set_int64(out, result);
+    return true;
+  }
+  value_set_number(out, std::pow(as_double(lhs), as_double(rhs)));
+  return true;
+}
+
+bool value_bit_and(const Value& lhs, const Value& rhs, Value& out, std::string& error) {
+  const bool lhs_scalar_int = lhs.tag == ValueTag::Int64 || lhs.tag == ValueTag::Bool;
+  const bool rhs_scalar_int = rhs.tag == ValueTag::Int64 || rhs.tag == ValueTag::Bool;
+  if (lhs_scalar_int && rhs_scalar_int) {
+    const int64_t lhs_value = lhs.tag == ValueTag::Bool ? (lhs.as.b ? 1 : 0) : lhs.as.i64;
+    const int64_t rhs_value = rhs.tag == ValueTag::Bool ? (rhs.as.b ? 1 : 0) : rhs.as.i64;
+    if (lhs.tag == ValueTag::Bool && rhs.tag == ValueTag::Bool) {
+      value_set_bool(out, (lhs_value & rhs_value) != 0);
+    } else {
+      value_set_int64(out, lhs_value & rhs_value);
+    }
+    return true;
+  }
+
+  if (value_as_bigint(lhs) != nullptr || value_as_bigint(rhs) != nullptr) {
+    if (value_int_like_bit_and(lhs, rhs, out)) {
+      return true;
+    }
+  }
+  auto int_payload = [](const Value& value, int64_t& payload) {
+    if (value.tag == ValueTag::Int64) {
+      payload = value.as.i64;
+      return true;
+    }
+    Value attr;
+    std::string ignored;
+    if (object_get_attr(value, "__xlang3_int_value__", attr, ignored) && attr.tag == ValueTag::Int64) {
+      payload = attr.as.i64;
+      return true;
+    }
+    if (object_get_attr(value, "_value_", attr, ignored) && attr.tag == ValueTag::Int64) {
+      payload = attr.as.i64;
+      return true;
+    }
+    return false;
+  };
+  int64_t left_payload = 0;
+  int64_t right_payload = 0;
+  if ((lhs.tag != ValueTag::Int64 || rhs.tag != ValueTag::Int64) &&
+      int_payload(lhs, left_payload) && int_payload(rhs, right_payload)) {
+    out = Value::int64(left_payload & right_payload);
+    return true;
+  }
+  if (value_is_set_like_operand(lhs)) {
+    Value left_set;
+    if (!value_materialize_set_like(lhs, left_set, error)) {
+      return false;
+    }
+    return set_intersection_value(left_set, rhs, out, error);
+  }
+  if (value_as_set(lhs) != nullptr) {
+    return set_intersection_value(lhs, rhs, out, error);
+  }
+  if (lhs.tag != ValueTag::Int64 || rhs.tag != ValueTag::Int64) {
+    error = "unsupported operands for &";
+    return false;
+  }
+  value_set_int64(out, lhs.as.i64 & rhs.as.i64);
+  return true;
+}
+
+bool value_bit_or(const Value& lhs, const Value& rhs, Value& out, std::string& error) {
+  const bool lhs_scalar_int = lhs.tag == ValueTag::Int64 || lhs.tag == ValueTag::Bool;
+  const bool rhs_scalar_int = rhs.tag == ValueTag::Int64 || rhs.tag == ValueTag::Bool;
+  if (lhs_scalar_int && rhs_scalar_int) {
+    const int64_t lhs_value = lhs.tag == ValueTag::Bool ? (lhs.as.b ? 1 : 0) : lhs.as.i64;
+    const int64_t rhs_value = rhs.tag == ValueTag::Bool ? (rhs.as.b ? 1 : 0) : rhs.as.i64;
+    if (lhs.tag == ValueTag::Bool && rhs.tag == ValueTag::Bool) {
+      value_set_bool(out, (lhs_value | rhs_value) != 0);
+    } else {
+      value_set_int64(out, lhs_value | rhs_value);
+    }
+    return true;
+  }
+
+  if (value_as_bigint(lhs) != nullptr || value_as_bigint(rhs) != nullptr) {
+    if (value_int_like_bit_or(lhs, rhs, out)) {
+      return true;
+    }
+  }
+  auto int_payload = [](const Value& value, int64_t& payload) {
+    if (value.tag == ValueTag::Int64) {
+      payload = value.as.i64;
+      return true;
+    }
+    Value attr;
+    std::string ignored;
+    if (object_get_attr(value, "__xlang3_int_value__", attr, ignored) && attr.tag == ValueTag::Int64) {
+      payload = attr.as.i64;
+      return true;
+    }
+    if (object_get_attr(value, "_value_", attr, ignored) && attr.tag == ValueTag::Int64) {
+      payload = attr.as.i64;
+      return true;
+    }
+    return false;
+  };
+  int64_t left_payload = 0;
+  int64_t right_payload = 0;
+  if ((lhs.tag != ValueTag::Int64 || rhs.tag != ValueTag::Int64) &&
+      int_payload(lhs, left_payload) && int_payload(rhs, right_payload)) {
+    out = Value::int64(left_payload | right_payload);
+    return true;
+  }
+  const auto dict_storage = [](const Value& value) -> const DictObject* {
+    if (auto* dict = value_as_dict(value)) return dict;
+    if (auto* instance = value_as_instance(value)) {
+      auto* klass = value_as_class(instance->klass);
+      if (klass != nullptr && class_has_builtin_base_name(klass, "dict")) {
+        return value_as_dict(instance->mapping_storage);
+      }
+    }
+    return nullptr;
+  };
+  if (const auto* left = dict_storage(lhs)) {
+    const auto* right = dict_storage(rhs);
+    if (right != nullptr) {
+    std::vector<std::pair<Value, Value>> entries;
+    entries.reserve(left->entries.size() + right->entries.size());
+    for (const auto& entry : left->entries) {
+      entries.push_back(entry);
+    }
+    out = Value::dict(std::move(entries));
+    for (const auto& entry : right->entries) {
+      if (!mapping_set_item(out, entry.first, entry.second, error)) {
+        return false;
+      }
+    }
+    return true;
+    }
+  }
+  if (value_as_set(lhs) != nullptr) {
+    if (value_as_set(rhs) != nullptr)
+      return set_union_values(lhs, rhs, out, error);
+    out = Value::set({});
+    value_as_set(out)->items = value_as_set(lhs)->items;
+    value_as_set(out)->item_hashes = value_as_set(lhs)->item_hashes;
+    return add_iterable_to_set(out, rhs, error);
+  }
+  if (auto* view = value_as_dict_view(lhs)) {
+    if (view->kind == DictIterationKind::Keys || view->kind == DictIterationKind::Items) {
+      if (!value_materialize_set_like(lhs, out, error)) {
+        return false;
+      }
+      return add_iterable_to_set(out, rhs, error);
+    }
+  }
+  if (auto* view = value_as_dict_view(rhs)) {
+    if (view->kind == DictIterationKind::Keys || view->kind == DictIterationKind::Items) {
+      if (!value_materialize_set_like(rhs, out, error)) {
+        return false;
+      }
+      return add_iterable_to_set(out, lhs, error);
+    }
+  }
+  const auto type_like = [](const Value& value) {
+    if (value.tag == ValueTag::None) {
+      return true;
+    }
+    if (value_as_class(value) != nullptr ||
+        value_as_function(value) != nullptr ||
+        value_as_native_function(value) != nullptr ||
+        value_as_generic_alias(value) != nullptr ||
+        instance_get_native_data(value, "typing.TypeAliasType") != nullptr ||
+        instance_get_native_data(value, "typing._Alias") != nullptr) {
+      return true;
+    }
+    // Runtime type parameters expose the substitution protocol used by
+    // typing.py. They are valid operands of PEP 604 unions even though they
+    // are instances rather than classes.
+    Value substitution;
+    std::string ignored;
+    if (value_as_instance(value) != nullptr &&
+        object_get_attr(value, "__typing_subst__", substitution, ignored)) {
+      return true;
+    }
+    return false;
+  };
+  const auto* left_alias = value_as_generic_alias(lhs);
+  const auto* right_alias = value_as_generic_alias(rhs);
+  const bool has_union_operand =
+      (left_alias != nullptr && left_alias->is_union) ||
+      (right_alias != nullptr && right_alias->is_union);
+  if ((lhs.tag != ValueTag::Int64 || rhs.tag != ValueTag::Int64) &&
+      (has_union_operand || (type_like(lhs) && type_like(rhs)))) {
+    std::vector<Value> members;
+    const auto append_members = [&members](const Value& value) {
+      const auto* alias = value_as_generic_alias(value);
+      const auto* args = alias != nullptr && alias->is_union ? value_as_tuple(alias->args) : nullptr;
+      if (args != nullptr) {
+        for (const auto& item : args->items) {
+          if (std::none_of(members.begin(), members.end(), [&](const Value& current) {
+                return value_is(current, item);
+              })) {
+            members.push_back(item);
+          }
+        }
+        return;
+      }
+      if (std::none_of(members.begin(), members.end(), [&](const Value& current) {
+            return value_is(current, value);
+          })) {
+        members.push_back(value);
+      }
+    };
+    append_members(lhs);
+    append_members(rhs);
+    out = Value::union_type(std::move(members));
+    return true;
+  }
+  if (lhs.tag != ValueTag::Int64 || rhs.tag != ValueTag::Int64) {
+    error = "unsupported operands for |";
+    return false;
+  }
+  value_set_int64(out, lhs.as.i64 | rhs.as.i64);
+  return true;
+}
+
+bool value_bit_xor(const Value& lhs, const Value& rhs, Value& out, std::string& error) {
+  if (value_as_bigint(lhs) != nullptr || value_as_bigint(rhs) != nullptr) {
+    if (value_int_like_bit_xor(lhs, rhs, out)) {
+      return true;
+    }
+  }
+  auto int_payload = [](const Value& value, int64_t& payload) {
+    if (value.tag == ValueTag::Int64) {
+      payload = value.as.i64;
+      return true;
+    }
+    if (value.tag == ValueTag::Bool) {
+      payload = value.as.b ? 1 : 0;
+      return true;
+    }
+    Value attr;
+    std::string ignored;
+    if (object_get_attr(value, "__xlang3_int_value__", attr, ignored) && attr.tag == ValueTag::Int64) {
+      payload = attr.as.i64;
+      return true;
+    }
+    if (object_get_attr(value, "_value_", attr, ignored) && attr.tag == ValueTag::Int64) {
+      payload = attr.as.i64;
+      return true;
+    }
+    return false;
+  };
+  int64_t left_payload = 0;
+  int64_t right_payload = 0;
+  if ((lhs.tag != ValueTag::Int64 || rhs.tag != ValueTag::Int64) &&
+      int_payload(lhs, left_payload) && int_payload(rhs, right_payload)) {
+    out = Value::int64(left_payload ^ right_payload);
+    return true;
+  }
+  if (value_is_set_like_operand(lhs)) {
+    Value left_set;
+    if (!value_materialize_set_like(lhs, left_set, error)) {
+      return false;
+    }
+    return set_symmetric_difference_value(left_set, rhs, out, error);
+  }
+  if (value_as_set(lhs) != nullptr) {
+    return set_symmetric_difference_value(lhs, rhs, out, error);
+  }
+  const bool lhs_int = lhs.tag == ValueTag::Int64 || lhs.tag == ValueTag::Bool;
+  const bool rhs_int = rhs.tag == ValueTag::Int64 || rhs.tag == ValueTag::Bool;
+  if (!lhs_int || !rhs_int) {
+    error = "unsupported operands for ^";
+    return false;
+  }
+  const int64_t lhs_value = lhs.tag == ValueTag::Bool ? (lhs.as.b ? 1 : 0) : lhs.as.i64;
+  const int64_t rhs_value = rhs.tag == ValueTag::Bool ? (rhs.as.b ? 1 : 0) : rhs.as.i64;
+  if (lhs.tag == ValueTag::Bool && rhs.tag == ValueTag::Bool) {
+    value_set_bool(out, (lhs_value ^ rhs_value) != 0);
+  } else {
+    value_set_int64(out, lhs_value ^ rhs_value);
+  }
+  return true;
+}
+
+bool value_shift_left(const Value& lhs, const Value& rhs, Value& out, std::string& error) {
+  if (value_as_bigint(lhs) != nullptr || value_as_bigint(rhs) != nullptr) {
+    if (value_int_like_shift_left(lhs, rhs, out, error)) {
+      return true;
+    }
+    if (!error.empty()) {
+      return false;
+    }
+  }
+  if (lhs.tag != ValueTag::Int64 || rhs.tag != ValueTag::Int64) {
+    error = "unsupported operands for <<";
+    return false;
+  }
+  if (rhs.as.i64 < 0) {
+    error = "negative shift count";
+    return false;
+  }
+  if (lhs.as.i64 == 0) {
+    value_set_int64(out, 0);
+    return true;
+  }
+  if (lhs.as.i64 < 0) {
+    return value_int_like_shift_left(lhs, rhs, out, error);
+  }
+  if (rhs.as.i64 >= 63 ||
+      lhs.as.i64 > (std::numeric_limits<int64_t>::max() >> rhs.as.i64) ||
+      lhs.as.i64 < (std::numeric_limits<int64_t>::min() >> rhs.as.i64)) {
+    return value_int_like_shift_left(lhs, rhs, out, error);
+  }
+  value_set_int64(out, lhs.as.i64 << rhs.as.i64);
+  return true;
+}
+
+bool value_shift_right(const Value& lhs, const Value& rhs, Value& out, std::string& error) {
+  if (value_as_bigint(lhs) != nullptr || value_as_bigint(rhs) != nullptr) {
+    if (value_int_like_shift_right(lhs, rhs, out, error)) {
+      return true;
+    }
+    if (!error.empty()) {
+      return false;
+    }
+  }
+  if (lhs.tag != ValueTag::Int64 || rhs.tag != ValueTag::Int64) {
+    error = "unsupported operands for >>";
+    return false;
+  }
+  if (rhs.as.i64 < 0) {
+    error = "negative shift count";
+    return false;
+  }
+  if (rhs.as.i64 >= 63) {
+    value_set_int64(out, lhs.as.i64 < 0 ? -1 : 0);
+    return true;
+  }
+  value_set_int64(out, lhs.as.i64 >> rhs.as.i64);
+  return true;
+}
+
+bool value_invert(const Value& value, Value& out, std::string& error) {
+  if (value_as_bigint(value) != nullptr) {
+    if (value_int_like_invert(value, out)) {
+      return true;
+    }
+  }
+  if (value.tag != ValueTag::Int64) {
+    error = "unsupported operand for unary ~";
+    return false;
+  }
+  value_set_int64(out, ~value.as.i64);
+  return true;
+}
+
+bool value_compare(const std::string& op, const Value& lhs, const Value& rhs, Value& out, std::string& error) {
+  bool result = false;
+  const auto string_subclass_value = [](const Value& value, Value& text) {
+    auto* instance = value_as_instance(value);
+    auto* klass = instance == nullptr ? nullptr : value_as_class(instance->klass);
+    if (klass == nullptr || !class_has_builtin_base_name(klass, "str")) {
+      return false;
+    }
+    Value stored;
+    std::string ignored;
+    if (object_get_attr(value, "__xlang3_string_value__", stored, ignored) &&
+        value_as_string(stored) != nullptr) {
+      text = std::move(stored);
+      return true;
+    }
+    return false;
+  };
+  Value string_lhs;
+  Value string_rhs;
+  const bool lhs_is_string_subclass = string_subclass_value(lhs, string_lhs);
+  const bool rhs_is_string_subclass = string_subclass_value(rhs, string_rhs);
+  if (lhs_is_string_subclass || rhs_is_string_subclass) {
+    return value_compare(
+        op, lhs_is_string_subclass ? string_lhs : lhs,
+        rhs_is_string_subclass ? string_rhs : rhs, out, error);
+  }
+  Value numeric_lhs;
+  Value numeric_rhs;
+  const bool lhs_is_numeric_subclass = numeric_subclass_value(lhs, numeric_lhs);
+  const bool rhs_is_numeric_subclass = numeric_subclass_value(rhs, numeric_rhs);
+  if (lhs_is_numeric_subclass || rhs_is_numeric_subclass) {
+    return value_compare(
+        op, lhs_is_numeric_subclass ? numeric_lhs : lhs,
+        rhs_is_numeric_subclass ? numeric_rhs : rhs, out, error);
+  }
+  if (auto* left_proxy = value_as_mapping_proxy(lhs)) {
+    if (auto* right_proxy = value_as_mapping_proxy(rhs)) {
+      return value_compare(op, left_proxy->source, right_proxy->source, out, error);
+    }
+    return value_compare(op, left_proxy->source, rhs, out, error);
+  }
+  if (auto* right_proxy = value_as_mapping_proxy(rhs)) {
+    return value_compare(op, lhs, right_proxy->source, out, error);
+  }
+  if ((value_as_bigint(lhs) != nullptr && rhs.tag == ValueTag::Double) ||
+      (lhs.tag == ValueTag::Double && value_as_bigint(rhs) != nullptr)) {
+    const bool bigint_on_left = value_as_bigint(lhs) != nullptr;
+    const Value& integer = bigint_on_left ? lhs : rhs;
+    const double number = bigint_on_left ? rhs.as.f64 : lhs.as.f64;
+    int comparison = 0;
+    if (std::isnan(number)) {
+      comparison = 2;
+    } else if (std::isinf(number)) {
+      comparison = number > 0.0 ? -1 : 1;
+    } else {
+      std::array<char, 512> buffer{};
+      const auto rendered = std::to_chars(
+          buffer.data(), buffer.data() + buffer.size(), std::trunc(number),
+          std::chars_format::fixed, 0);
+      std::string parse_error;
+      Value truncated = rendered.ec == std::errc{}
+          ? value_bigint_from_decimal(
+                std::string_view(buffer.data(), rendered.ptr - buffer.data()),
+                10, parse_error)
+          : Value::invalid();
+      Value comparison_value;
+      if (truncated.tag == ValueTag::Invalid ||
+          !value_int_like_compare("==", integer, truncated, comparison_value)) {
+        error = "failed to compare integer and float";
+        return false;
+      }
+      if (comparison_value.as.b) {
+        if (number == std::trunc(number)) comparison = 0;
+        else comparison = number > 0.0 ? -1 : 1;
+      } else if (value_int_like_compare(
+                     "<", integer, truncated, comparison_value)) {
+        comparison = comparison_value.as.b ? -1 : 1;
+      } else {
+        error = "failed to compare integer and float";
+        return false;
+      }
+    }
+    if (!bigint_on_left && comparison != 2) comparison = -comparison;
+    if (op == "==") result = comparison == 0;
+    else if (op == "!=") result = comparison != 0;
+    else if (op == "<") result = comparison != 2 && comparison < 0;
+    else if (op == "<=") result = comparison != 2 && comparison <= 0;
+    else if (op == ">") result = comparison != 2 && comparison > 0;
+    else if (op == ">=") result = comparison != 2 && comparison >= 0;
+    else {
+      error = "unsupported comparison";
+      return false;
+    }
+    value_set_bool(out, result);
+    return true;
+  }
+  if (value_as_bigint(lhs) != nullptr || value_as_bigint(rhs) != nullptr) {
+    if (value_int_like_compare(op, lhs, rhs, out)) {
+      return true;
+    }
+  }
+  auto* left_view = value_as_dict_view(lhs);
+  auto* right_view = value_as_dict_view(rhs);
+  if ((left_view != nullptr && left_view->kind == DictIterationKind::Values) ||
+      (right_view != nullptr && right_view->kind == DictIterationKind::Values)) {
+    if (op == "==" || op == "!=") {
+      result = lhs.tag == ValueTag::Object && rhs.tag == ValueTag::Object && lhs.as.obj == rhs.as.obj;
+      value_set_bool(out, op == "==" ? result : !result);
+      return true;
+    }
+    error = "unsupported comparison";
+    return false;
+  }
+  if (auto* left_dict = value_as_dict(lhs)) {
+    if (auto* right_dict = value_as_dict(rhs)) {
+      if (op != "==" && op != "!=") {
+        error = "unsupported comparison";
+        return false;
+      }
+      if (left_dict->entries.size() != right_dict->entries.size()) {
+        value_set_bool(out, op == "!=");
+        return true;
+      }
+      for (const auto& entry : left_dict->entries) {
+        Value right_value;
+        std::string get_error;
+        if (!mapping_get_item(rhs, entry.first, right_value, get_error)) {
+          value_set_bool(out, op == "!=");
+          return true;
+        }
+        if (value_is(entry.second, right_value)) continue;
+        Value equal;
+        if (!value_compare("==", entry.second, right_value, equal, error)) {
+          return false;
+        }
+        if (equal.tag != ValueTag::Bool || !equal.as.b) {
+          value_set_bool(out, op == "!=");
+          return true;
+        }
+      }
+      value_set_bool(out, op == "==");
+      return true;
+    }
+  }
+  if (value_is_set_like_operand(lhs) && value_is_set_like_operand(rhs)) {
+    return set_like_compare_value(op, lhs, rhs, out, error);
+  }
+  if (auto* left = value_as_list(lhs)) {
+    if (auto* right = value_as_list(rhs)) {
+      const size_t common = std::min(left->items.size(), right->items.size());
+      int ordering = 0;
+      for (size_t i = 0; i < common; ++i) {
+        if (value_is(left->items[i], right->items[i])) continue;
+        Value equal;
+        if (!value_compare("==", left->items[i], right->items[i], equal, error)) {
+          return false;
+        }
+        if (equal.tag == ValueTag::Bool && equal.as.b) {
+          continue;
+        }
+        if (op == "==" || op == "!=") {
+          value_set_bool(out, op == "!=");
+          return true;
+        }
+        Value less;
+        if (!value_compare("<", left->items[i], right->items[i], less, error)) {
+          return false;
+        }
+        ordering = (less.tag == ValueTag::Bool && less.as.b) ? -1 : 1;
+        break;
+      }
+      if (ordering == 0 && left->items.size() != right->items.size()) {
+        ordering = left->items.size() < right->items.size() ? -1 : 1;
+      }
+      if (op == "==") result = ordering == 0;
+      else if (op == "!=") result = ordering != 0;
+      else if (op == "<") result = ordering < 0;
+      else if (op == "<=") result = ordering <= 0;
+      else if (op == ">") result = ordering > 0;
+      else if (op == ">=") result = ordering >= 0;
+      else {
+        error = "unknown comparison operator";
+        return false;
+      }
+      value_set_bool(out, result);
+      return true;
+    }
+  }
+  Value left_tuple_compare_scratch;
+  Value right_tuple_compare_scratch;
+  const auto* left_tuple_compare = value_as_tuple_or_tuple_backed(lhs, left_tuple_compare_scratch);
+  const auto* right_tuple_compare = value_as_tuple_or_tuple_backed(rhs, right_tuple_compare_scratch);
+  if (left_tuple_compare != nullptr && right_tuple_compare != nullptr) {
+    const auto* left = left_tuple_compare;
+    const auto* right = right_tuple_compare;
+    const size_t common = std::min(left->items.size(), right->items.size());
+    int ordering = 0;
+    for (size_t i = 0; i < common; ++i) {
+      if (value_is(left->items[i], right->items[i])) continue;
+      Value equal;
+      if (!value_compare("==", left->items[i], right->items[i], equal, error)) {
+        return false;
+      }
+      if (equal.tag == ValueTag::Bool && equal.as.b) {
+        continue;
+      }
+      if (op == "==" || op == "!=") {
+        value_set_bool(out, op == "!=");
+        return true;
+      }
+      Value less;
+      if (!value_compare("<", left->items[i], right->items[i], less, error)) {
+        return false;
+      }
+      ordering = (less.tag == ValueTag::Bool && less.as.b) ? -1 : 1;
+      break;
+    }
+    if (ordering == 0 && left->items.size() != right->items.size()) {
+      ordering = left->items.size() < right->items.size() ? -1 : 1;
+    }
+    if (op == "==") result = ordering == 0;
+    else if (op == "!=") result = ordering != 0;
+    else if (op == "<") result = ordering < 0;
+    else if (op == "<=") result = ordering <= 0;
+    else if (op == ">") result = ordering > 0;
+    else if (op == ">=") result = ordering >= 0;
+    else {
+      error = "unknown comparison operator";
+      return false;
+    }
+    value_set_bool(out, result);
+    return true;
+  }
+  if (auto* left = value_as_complex(lhs)) {
+    if (auto* right = value_as_complex(rhs)) {
+      if (op == "==" || op == "!=") {
+        const bool equal = left->real == right->real && left->imag == right->imag;
+        value_set_bool(out, op == "==" ? equal : !equal);
+        return true;
+      }
+      error = "'" + op + "' not supported between instances of 'complex' and 'complex'";
+      return false;
+    }
+  }
+  auto int_payload = [](const Value& value, int64_t& payload) {
+    if (value.tag == ValueTag::Int64) {
+      payload = value.as.i64;
+      return true;
+    }
+    Value attr;
+    std::string ignored;
+    if (object_get_attr(value, "__xlang3_int_value__", attr, ignored) && attr.tag == ValueTag::Int64) {
+      payload = attr.as.i64;
+      return true;
+    }
+    if (object_get_attr(value, "_value_", attr, ignored) && attr.tag == ValueTag::Int64) {
+      payload = attr.as.i64;
+      return true;
+    }
+    return false;
+  };
+  int64_t left_payload = 0;
+  int64_t right_payload = 0;
+  if (int_payload(lhs, left_payload) && int_payload(rhs, right_payload)) {
+    if (op == "==") result = left_payload == right_payload;
+    else if (op == "!=") result = left_payload != right_payload;
+    else if (op == "<") result = left_payload < right_payload;
+    else if (op == "<=") result = left_payload <= right_payload;
+    else if (op == ">") result = left_payload > right_payload;
+    else if (op == ">=") result = left_payload >= right_payload;
+    else {
+      error = "unknown comparison operator";
+      return false;
+    }
+    value_set_bool(out, result);
+    return true;
+  }
+  if (is_number(lhs) && is_number(rhs)) {
+    const double a = as_double(lhs);
+    const double b = as_double(rhs);
+    if (op == "==") result = a == b;
+    else if (op == "!=") result = a != b;
+    else if (op == "<") result = a < b;
+    else if (op == "<=") result = a <= b;
+    else if (op == ">") result = a > b;
+    else if (op == ">=") result = a >= b;
+    else {
+      error = "unknown comparison operator";
+      return false;
+    }
+    value_set_bool(out, result);
+    return true;
+  }
+  if (auto* left_string = value_as_string(lhs)) {
+    if (auto* right_string = value_as_string(rhs)) {
+      const auto ordering = string_object_view(*left_string).compare(string_object_view(*right_string));
+      if (op == "==") result = ordering == 0;
+      else if (op == "!=") result = ordering != 0;
+      else if (op == "<") result = ordering < 0;
+      else if (op == "<=") result = ordering <= 0;
+      else if (op == ">") result = ordering > 0;
+      else if (op == ">=") result = ordering >= 0;
+      else {
+        error = "unknown comparison operator";
+        return false;
+      }
+      value_set_bool(out, result);
+      return true;
+    }
+  }
+  std::string left_binary_scratch, right_binary_scratch;
+  const auto left_binary_order = binary_compare_view(lhs, left_binary_scratch);
+  const auto right_binary_order = binary_compare_view(rhs, right_binary_scratch);
+  if (left_binary_order.data != nullptr && right_binary_order.data != nullptr) {
+    const int cmp = std::memcmp(
+        left_binary_order.data,
+        right_binary_order.data,
+        std::min(left_binary_order.size, right_binary_order.size));
+    const int ordering = cmp != 0 ? cmp :
+        (left_binary_order.size < right_binary_order.size ? -1 :
+            (left_binary_order.size > right_binary_order.size ? 1 : 0));
+    if (op == "==") result = ordering == 0;
+    else if (op == "!=") result = ordering != 0;
+    else if (op == "<") result = ordering < 0;
+    else if (op == "<=") result = ordering <= 0;
+    else if (op == ">") result = ordering > 0;
+    else if (op == ">=") result = ordering >= 0;
+    else {
+      error = "unknown comparison operator";
+      return false;
+    }
+    value_set_bool(out, result);
+    return true;
+  }
+  if (op == "==" || op == "!=") {
+    const auto left_binary = binary_compare_view(lhs, left_binary_scratch);
+    const auto right_binary = binary_compare_view(rhs, right_binary_scratch);
+    if (left_binary.data != nullptr && right_binary.data != nullptr) {
+      result = left_binary.size == right_binary.size &&
+               (left_binary.size == 0 || std::memcmp(left_binary.data, right_binary.data, left_binary.size) == 0);
+    } else {
+      result = value_is(lhs, rhs);
+    }
+    value_set_bool(out, op == "==" ? result : !result);
+    return true;
+  }
+  error = "unsupported comparison";
+  return false;
+}
+
+bool value_is(const Value& lhs, const Value& rhs) {
+  if (lhs.tag != rhs.tag) {
+    return false;
+  }
+  switch (lhs.tag) {
+    case ValueTag::Invalid:
+    case ValueTag::None:
+      return true;
+    case ValueTag::Bool:
+      return lhs.as.b == rhs.as.b;
+    case ValueTag::Int64:
+      return lhs.as.i64 == rhs.as.i64;
+    case ValueTag::Double:
+      return lhs.flags != 0 && lhs.flags == rhs.flags;
+    case ValueTag::Object:
+      if (auto* left_code = value_as_code(lhs)) {
+        auto* right_code = value_as_code(rhs);
+        return right_code != nullptr &&
+            left_code->module.get() == right_code->module.get() &&
+            left_code->function_id == right_code->function_id &&
+            left_code->mode == right_code->mode &&
+            left_code->filename_override == right_code->filename_override &&
+            left_code->name_override == right_code->name_override &&
+            left_code->qualname_override == right_code->qualname_override &&
+            left_code->first_line_override == right_code->first_line_override &&
+            left_code->flags_override == right_code->flags_override;
+      }
+      if (auto* left_frame = value_as_frame(lhs)) {
+        auto* right_frame = value_as_frame(rhs);
+        return right_frame != nullptr && left_frame->activation_id != 0 &&
+            left_frame->activation_id == right_frame->activation_id &&
+            left_frame->module.get() == right_frame->module.get() &&
+            left_frame->function_id == right_frame->function_id;
+      }
+      return lhs.as.obj == rhs.as.obj;
+  }
+  return false;
+}
+
+bool value_contains(const Value& container, const Value& item, bool& out, std::string& error) {
+  out = false;
+  if (auto* list = value_as_list(container)) {
+    for (const auto& candidate : list->items) {
+      if (value_key_equal(candidate, item)) {
+        out = true;
+        return true;
+      }
+    }
+    return true;
+  }
+  if (container.tag == ValueTag::Object && container.as.obj != nullptr && container.as.obj->kind == ObjectKind::Tuple) {
+    auto* tuple = reinterpret_cast<TupleObject*>(container.as.obj);
+    for (const auto& candidate : tuple->items) {
+      if (value_key_equal(candidate, item)) {
+        out = true;
+        return true;
+      }
+    }
+    return true;
+  }
+  if (container.tag == ValueTag::Object && container.as.obj != nullptr && container.as.obj->kind == ObjectKind::String) {
+    auto* haystack = reinterpret_cast<StringObject*>(container.as.obj);
+    auto* needle = value_as_string(item);
+    if (needle == nullptr) {
+      error = "'in <string>' requires string as left operand";
+      return false;
+    }
+    out = string_object_view(*haystack).find(string_object_view(*needle)) != std::string_view::npos;
+    return true;
+  }
+  if (container.tag == ValueTag::Object && container.as.obj != nullptr && container.as.obj->kind == ObjectKind::Bytes) {
+    auto* haystack = as_bytes(container.as.obj);
+    if (item.tag == ValueTag::Int64) {
+      if (item.as.i64 < 0 || item.as.i64 > 255) {
+        out = false;
+        return true;
+      }
+      out = bytes_object_view(*haystack).find(static_cast<char>(item.as.i64)) != std::string_view::npos;
+      return true;
+    }
+    if (item.tag == ValueTag::Object && item.as.obj != nullptr && item.as.obj->kind == ObjectKind::Bytes) {
+      out = bytes_object_view(*haystack).find(bytes_object_view(*as_bytes(item.as.obj))) != std::string_view::npos;
+      return true;
+    }
+    error = "'in <bytes>' requires int or bytes as left operand";
+    return false;
+  }
+  if (auto* dict = value_as_dict(container)) {
+    (void)dict;
+    return mapping_contains(container, item, out, error);
+  }
+  if (auto* instance = value_as_instance(container)) {
+    if (value_as_dict(instance->mapping_storage) != nullptr) {
+      return mapping_contains(instance->mapping_storage, item, out, error);
+    }
+  }
+  if (value_as_mapping_proxy(container) != nullptr || value_as_dict_view(container) != nullptr || value_as_module(container) != nullptr) {
+    return mapping_contains(container, item, out, error);
+  }
+  if (auto* set = value_as_set(container)) {
+    for (const auto& candidate : set->items) {
+      if (value_key_equal(candidate, item)) {
+        out = true;
+        return true;
+      }
+    }
+    return true;
+  }
+  if (auto* range = value_as_range(container)) {
+    if (item.tag != ValueTag::Int64 || range->step == 0) {
+      return true;
+    }
+    const int64_t value = item.as.i64;
+    const bool in_bounds = range->step > 0 ? (value >= range->start && value < range->stop)
+                                           : (value <= range->start && value > range->stop);
+    out = in_bounds && ((value - range->start) % range->step == 0);
+    return true;
+  }
+  error = "object is not a container";
+  return false;
+}
+
+} // namespace xlang3

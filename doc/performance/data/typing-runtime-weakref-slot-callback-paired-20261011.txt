@@ -1,0 +1,17 @@
+Paired A/B at unchanged fixed Release executable path, alternating parent/candidate runtime snapshots; 20,000 warmed operations per primitive.
+
+=== parent ===
+runtime SHA256=3D5FA7C2F8484E9841142C807EFD02C409C9E54BFBB48A189F2B7BFFB1300B64
+{"purpose": "diagnostic only, includes loop/call overhead", "mro_identity_stable": true, "rows": [{"case": "python_call", "loops": 20000, "seconds": 0.001837100018747151}, {"case": "native_mro_getter", "loops": 20000, "seconds": 0.003687500022351742}, {"case": "native_weakref_create", "loops": 20000, "seconds": 0.018777400022372603}, {"case": "native_weakref_deref", "loops": 20000, "seconds": 0.002730900072492659}, {"case": "inspect_shadowed_dict", "loops": 20000, "seconds": 0.09667609992902726}]}
+
+=== candidate ===
+runtime SHA256=A2029D6FF027958F61012917673E92C47FDD230C85F8883830B477B0C4EFC29D
+{"purpose": "diagnostic only, includes loop/call overhead", "mro_identity_stable": true, "rows": [{"case": "python_call", "loops": 20000, "seconds": 0.0021011000499129295}, {"case": "native_mro_getter", "loops": 20000, "seconds": 0.0036470999475568533}, {"case": "native_weakref_create", "loops": 20000, "seconds": 0.01739100005943328}, {"case": "native_weakref_deref", "loops": 20000, "seconds": 0.002646900014951825}, {"case": "inspect_shadowed_dict", "loops": 20000, "seconds": 0.09132080001290888}]}
+
+=== candidate ===
+runtime SHA256=A2029D6FF027958F61012917673E92C47FDD230C85F8883830B477B0C4EFC29D
+{"purpose": "diagnostic only, includes loop/call overhead", "mro_identity_stable": true, "rows": [{"case": "python_call", "loops": 20000, "seconds": 0.0017003000248223543}, {"case": "native_mro_getter", "loops": 20000, "seconds": 0.004032399971038103}, {"case": "native_weakref_create", "loops": 20000, "seconds": 0.017751900013536215}, {"case": "native_weakref_deref", "loops": 20000, "seconds": 0.0026518000522628427}, {"case": "inspect_shadowed_dict", "loops": 20000, "seconds": 0.09018609998747706}]}
+
+=== parent ===
+runtime SHA256=3D5FA7C2F8484E9841142C807EFD02C409C9E54BFBB48A189F2B7BFFB1300B64
+{"purpose": "diagnostic only, includes loop/call overhead", "mro_identity_stable": true, "rows": [{"case": "python_call", "loops": 20000, "seconds": 0.0016799999866634607}, {"case": "native_mro_getter", "loops": 20000, "seconds": 0.0036903000436723232}, {"case": "native_weakref_create", "loops": 20000, "seconds": 0.0184352999785915}, {"case": "native_weakref_deref", "loops": 20000, "seconds": 0.002722300007008016}, {"case": "inspect_shadowed_dict", "loops": 20000, "seconds": 0.09594650007784367}]}

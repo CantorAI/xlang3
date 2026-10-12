@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="420" viewBox="0 0 900 420" role="img" aria-labelledby="title desc">
+  <title id="title">Async tree native sample counts</title>
+  <desc id="desc">Horizontal bars show sampled instruction-pointer counts inside xlang3_runtime.dll. Value release has 52 samples; MSVC string hashing 38; unordered-map string lookup 28; interpreter run_function 26; object_get_attr 22; call_method 18; Value copy assignment 17; string equality 16; and gc_untrack_object 15.</desc>
+  <rect width="900" height="420" fill="#fff"/>
+  <text x="28" y="34" font-family="Segoe UI, Arial, sans-serif" font-size="21" font-weight="700" fill="#172b4d">async_tree_none: native instruction-pointer samples</text>
+  <text x="28" y="58" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#52647a">786 samples in xlang3_runtime.dll; bars show sample counts, not CPU-time shares</text>
+  <g font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#24364b">
+    <text x="28" y="105">release(Value)</text><rect x="260" y="88" width="338" height="23" rx="4" fill="#2866a6"/><text x="610" y="105">52</text>
+    <text x="28" y="140">MSVC string hash</text><rect x="260" y="123" width="247" height="23" rx="4" fill="#2866a6"/><text x="519" y="140">38</text>
+    <text x="28" y="175">unordered_map string lookup</text><rect x="260" y="158" width="182" height="23" rx="4" fill="#2866a6"/><text x="454" y="175">28</text>
+    <text x="28" y="210">Interpreter::run_function</text><rect x="260" y="193" width="169" height="23" rx="4" fill="#2866a6"/><text x="441" y="210">26</text>
+    <text x="28" y="245">object_get_attr</text><rect x="260" y="228" width="143" height="23" rx="4" fill="#2866a6"/><text x="415" y="245">22</text>
+    <text x="28" y="280">call_method</text><rect x="260" y="263" width="117" height="23" rx="4" fill="#2866a6"/><text x="389" y="280">18</text>
+    <text x="28" y="315">Value::operator=</text><rect x="260" y="298" width="111" height="23" rx="4" fill="#2866a6"/><text x="383" y="315">17</text>
+    <text x="28" y="350">string equality</text><rect x="260" y="333" width="104" height="23" rx="4" fill="#2866a6"/><text x="376" y="350">16</text>
+    <text x="28" y="385">gc_untrack_object</text><rect x="260" y="368" width="97" height="23" rx="4" fill="#2866a6"/><text x="369" y="385">15</text>
+  </g>
+</svg>

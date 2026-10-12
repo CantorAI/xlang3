@@ -1,0 +1,29 @@
+Benchmark dependency sites: D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages
+Python benchmark suite 1.14.0
+
+
+==================================================
+( 1/2) creating venv for benchmark (pickle_pure_python)
+
+(trying common venv first)
+
+==================================================
+( 2/2) creating venv for benchmark (unpickle_pure_python)
+
+(trying common venv first)
+
+[1/2] pickle_pure_python...
+...........
+pickle_pure_python: Mean +- std dev: 5.13 ms +- 0.04 ms
+[2/2] unpickle_pure_python...
+...........
+unpickle_pure_python: Mean +- std dev: 3.09 ms +- 0.02 ms
+
+Performance version: 1.14.0
+
+### pickle_pure_python ###
+Mean +- std dev: 5.13 ms +- 0.04 ms
+
+### unpickle_pure_python ###
+Mean +- std dev: 3.09 ms +- 0.02 ms
+

@@ -1,0 +1,57 @@
+Benchmark dependency sites: D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages
+Full-case timeout overrides: networkx*=600s
+Python benchmark suite 1.14.0
+
+
+==================================================
+( 1/1) creating venv for benchmark (mako)
+
+(trying common venv first)
+
+[1/1] mako...
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\data-files\benchmarks\bm_mako\run_benchmark.py", line 19, in <module>
+    from mako.template import Template   # noqa
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\mako\template.py", line 20, in <module>
+    from mako import codegen
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\mako\codegen.py", line 14, in <module>
+    from mako import ast
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\mako\ast.py", line 13, in <module>
+    from mako import exceptions
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\mako\exceptions.py", line 305, in <module>
+    _install_highlighting()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\mako\exceptions.py", line 300, in _install_highlighting
+    _install_pygments()
+    ~~~~~~~~~~~~~~~~~^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\mako\exceptions.py", line 284, in _install_pygments
+    from mako.ext.pygmentplugin import syntax_highlight  # noqa
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\mako\ext\pygmentplugin.py", line 14, in <module>
+    from pygments.lexers.agile import Python3Lexer
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pygments\lexers\agile.py", line 13, in <module>
+    from pygments.lexers.lisp import SchemeLexer
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pygments\lexers\lisp.py", line 221, in <module>
+    (number_rules[2], Number.Bin, '#pop'),
+     ~~~~~~~~~~~~^^^
+KeyError: '2'
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\run.py", line 171, in run_benchmarks
+    result = bench.run(
+        bench_venv.python,
+    ...<3 lines>...
+        verbose=options.verbose,
+    )
+  File "D:\CantorAI\xlang3\benchmarks\diagnostics\run_pyperformance_xlang3_shimmed.py", line 157, in run_named_benchmark
+    return original_benchmark_run(benchmark, *positional, **keywords)
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 193, in run
+    bench = _run_perf_script(
+        python,
+    ...<4 lines>...
+        verbose=verbose,
+    )
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 250, in _run_perf_script
+    raise RuntimeError("Benchmark died")
+RuntimeError: Benchmark died
+ERROR: Benchmark mako failed: Benchmark died
+
+ERROR: No benchmark was run

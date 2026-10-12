@@ -52,6 +52,7 @@ struct CryptographyNativeState {
   X3Value cipher_context_class = x3_value_invalid();
   X3Value aead_encrypt_class = x3_value_invalid();
   X3Value aead_decrypt_class = x3_value_invalid();
+  X3Value aesgcm_class = x3_value_invalid();
 };
 
 X3Status register_oid_class(X3Module* root, CryptographyNativeState* state);
@@ -67,3 +68,4 @@ X3Status register_openssl_dsa_module(X3Module* openssl, CryptographyNativeState*
 X3Status register_openssl_ed25519_module(X3Module* openssl, CryptographyNativeState* state);
 X3Status register_openssl_x25519_module(X3Module* openssl, CryptographyNativeState* state);
 X3Status register_openssl_ciphers_module(X3Module* openssl, CryptographyNativeState* state);
+X3Status register_openssl_aead_module(X3Module* openssl, CryptographyNativeState* state);

@@ -1,0 +1,5 @@
+benchmark,runtime,complete,exit_code,mean_seconds,time_x_over_cp,stderr_log
+sqlalchemy_declarative,cpython3147,True,0,0.09238214749930193,,
+sqlalchemy_declarative,xlang3,True,0,1.3031659400032367,14.106252942572956,
+sqlalchemy_imperative,cpython3147,True,0,0.011189017499600596,,
+sqlalchemy_imperative,xlang3,True,0,0.22415616500074975,20.03358784707873,

@@ -1,0 +1,1 @@
+dataclass-slots-weakref-field 7 False False True ['key', 'done', '__weakref__'] [True, True, False]

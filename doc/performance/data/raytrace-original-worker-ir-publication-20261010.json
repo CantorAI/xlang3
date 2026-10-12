@@ -1,0 +1,17 @@
+{
+  "status": "unscored_original_ir_preserved",
+  "origin_receipt_sha256": "d77f921ef071dce2e6c52b9fd7a66d13fd2df873c9cacd0bc91eb21444241a6e",
+  "files": {
+    "doc/performance/data/raytrace-original-worker-ir-20261009-receipt.json": "d77f921ef071dce2e6c52b9fd7a66d13fd2df873c9cacd0bc91eb21444241a6e",
+    "doc/performance/data/raytrace-original-worker-ir-20261009-stdout.log": "24c7810796c034106c1afec96d7c0eb68038828a394c1c1e03997b20c36de03d",
+    "doc/performance/data/raytrace-original-worker-ir-20261009-stderr.log": "b2059ef166b011bc005ba853045bab6300f1ccb28e20ecfb8dd856e6e1173b53",
+    "doc/performance/data/raytrace-original-worker-ir-20261009-worker.pyperf.json": "b8ee8dd7ca834c9b79a1986e36c3d958e4cc6facf7b90d9b52e8e3f31314b719",
+    "doc/performance/data/raytrace-original-worker-ir-20261009-run_benchmark.ir.txt": "7444541dfca8181685ffb6ee47ac0a37fb8a1e2a71d09345283afa16eca2c5f2",
+    "doc/performance/data/raytrace-original-worker-ir-20261009-Vector.dot.ir.txt": "961328dcbb170793917ac5b84497732a6d68a4ba93fb850067c892957607228f",
+    "doc/performance/data/raytrace-original-worker-ir-reproduction-observe-raytrace-original-worker-ir-proposed-20261009.py": "5cd4cf0b4d5367d57fcfb73b8ef8110576e7a009bbc34df831b632bf9594d0d8",
+    "doc/performance/data/raytrace-original-worker-ir-reproduction-raytrace-original-worker-ir-proposed-20261009-provenance.json": "d3b680b79e919d702f1f550f9eff0a71bf81b65d0019973b00d69fabc5aff6b5",
+    "doc/performance/data/raytrace-original-worker-ir-reproduction-raytrace-original-worker-ir-proposed-20261009-design.md": "5e4d1dc3c1f65f512d8f0f254bb1470d7f9d3f16be9dbc3643e0f5725c67d74f",
+    "doc/performance/data/raytrace-original-worker-ir-reproduction-preserve-raytrace-original-ir-20261010.py": "976d0545c275a1f0bc711141131101e7cae2bb77ba07df568ac94e524ac2f09e"
+  },
+  "limitations": "Compile IR before execution; no adaptive-cache, CPU-share or speedup claim."
+}

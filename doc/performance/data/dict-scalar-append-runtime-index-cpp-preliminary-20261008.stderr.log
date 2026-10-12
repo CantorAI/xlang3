@@ -1,0 +1,1 @@
+scalar append must own borrowed/entry-aliased inputs before storage reallocates

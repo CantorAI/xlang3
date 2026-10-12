@@ -1,0 +1,93 @@
+Benchmark dependency sites: C:\Python\Python314\Lib\site-packages
+Python benchmark suite 1.14.0
+
+
+==================================================
+( 1/4) creating venv for benchmark (argparse_subparsers)
+
+(trying common venv first)
+
+==================================================
+( 2/4) creating venv for benchmark (async_tree_eager)
+
+(trying common venv first)
+
+==================================================
+( 3/4) creating venv for benchmark (deepcopy)
+
+(trying common venv first)
+
+==================================================
+( 4/4) creating venv for benchmark (pickle_pure_python)
+
+(trying common venv first)
+
+[1/4] argparse_subparsers...
+...........
+subparsers: Mean +- std dev: 144 ms +- 1 ms
+[2/4] async_tree_eager...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'control-xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+async_tree_eager: Mean +- std dev: 2.83 sec +- 0.03 sec
+[3/4] deepcopy...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'control-xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+deepcopy: Mean +- std dev: 2.87 ms +- 0.22 ms
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'control-xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+deepcopy_reduce: Mean +- std dev: 29.8 us +- 0.3 us
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'control-xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+deepcopy_memo: Mean +- std dev: 310 us +- 5 us
+[4/4] pickle_pure_python...
+...........
+pickle_pure_python: Mean +- std dev: 5.22 ms +- 0.04 ms
+
+Performance version: 1.14.0
+
+### subparsers ###
+Mean +- std dev: 144 ms +- 1 ms
+
+### async_tree_eager ###
+Mean +- std dev: 2.83 sec +- 0.03 sec
+
+### deepcopy ###
+Mean +- std dev: 2.87 ms +- 0.22 ms
+
+### deepcopy_reduce ###
+Mean +- std dev: 29.8 us +- 0.3 us
+
+### deepcopy_memo ###
+Mean +- std dev: 310 us +- 5 us
+
+### pickle_pure_python ###
+Mean +- std dev: 5.22 ms +- 0.04 ms
+

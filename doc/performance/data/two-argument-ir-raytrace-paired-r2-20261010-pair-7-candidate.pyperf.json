@@ -1,0 +1,1 @@
+{"benchmarks":[{"runs":[{"values":[2.004496300010942]}]}],"metadata":{"description":"Simple raytracer","duration":2.004683999984991,"loops":1,"name":"raytrace","raytrace_height":100,"raytrace_width":100,"unit":"second"},"version":"1.0"}

@@ -1,0 +1,71 @@
+entry: #2
+
+module_slots: %0=__name__ %1=__doc__ %2=__file__ %3=__package__ %4=__path__ %5=outer
+
+function #0 floatstr
+  qualname: outer.<locals>.floatstr
+  first_line: 2
+  generator: false
+  async: false
+  coroutine: false
+  params: %0=o %1=allow_nan %2=_repr %3=_inf %4=_neginf
+  signature: %0=o/poskw/d4294967295 %1=allow_nan/poskw/d0 %2=_repr/poskw/d1 %3=_inf/poskw/d2 %4=_neginf/poskw/d3
+  locals: %0=o %1=allow_nan %2=_repr %3=_inf %4=_neginf
+  cells:
+  free_vars:
+  registers: 4
+  constants: 1
+  names:
+  call_args #0: r1
+  0: LoadLocalPair line=3 pos=3:16-3:24 dst=0 a=2 b=1 c=0
+  1: Call line=3 pos=3:16-3:24 dst=2 a=0 b=0 c=0
+  2: Return line=3 pos=3:9-3:24 dst=0 a=2 b=0 c=0
+  3: ReturnConst line=0 pos=0:0-0:0 dst=0 a=0 b=0 c=0
+
+function #1 outer
+  first_line: 1
+  generator: false
+  async: false
+  coroutine: false
+  params: %0=owner %1=inf
+  signature: %0=owner/poskw/d4294967295 %1=inf/poskw/d4294967295
+  locals: %0=owner %1=inf %2=floatstr
+  cells:
+  free_vars:
+  registers: 9
+  constants: 1
+  names: #0=float #1=__repr__
+  function_defaults #0: r0 r1 r3 r5
+  function_closure #0:
+  0: LoadLocalGlobal line=2 pos=2:5-4:5 dst=0 a=0 b=2 c=0
+  1: LoadAttr line=2 pos=2:44-2:58 dst=1 a=2 b=1 c=0
+  2: LoadLocalPair line=2 pos=2:5-4:5 dst=3 a=1 b=4 c=1
+  3: Neg line=2 pos=2:5-4:5 dst=5 a=4 b=0 c=0
+  4: MakeFunction line=2 pos=2:5-4:5 dst=6 a=0 b=0 c=0
+  5: StoreLocal line=2 pos=2:5-4:5 dst=2 a=6 b=0 c=0
+  6: ReturnLocal line=4 pos=4:5-4:20 dst=0 a=2 b=0 c=0
+  7: ReturnConst line=0 pos=0:0-0:0 dst=0 a=0 b=0 c=0
+
+function #2 <module>
+  first_line: 1
+  generator: false
+  async: false
+  coroutine: false
+  params:
+  signature:
+  locals:
+  cells:
+  free_vars:
+  registers: 6
+  constants: 3
+  names:
+  call_args #0: r2 r3
+  function_closure #0:
+  0: MakeFunction line=1 pos=1:1-6:1 dst=0 a=1 b=0 c=4294967295
+  1: StoreModuleSlot line=1 pos=1:1-6:1 dst=5 a=0 b=0 c=0
+  2: LoadModuleSlot line=6 pos=6:1-6:15 dst=1 a=5 b=0 c=0
+  3: LoadConstPair line=6 pos=6:1-6:15 dst=2 a=0 b=3 c=1
+  4: Call line=6 pos=6:1-6:15 dst=4 a=1 b=0 c=0
+  5: Pop line=6 pos=6:1-6:15 dst=0 a=4 b=0 c=0
+  6: ReturnConst line=0 pos=0:0-0:0 dst=0 a=2 b=0 c=0
+

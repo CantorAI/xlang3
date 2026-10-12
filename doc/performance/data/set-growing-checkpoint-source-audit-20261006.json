@@ -1,0 +1,18 @@
+{
+  "head": "e7611cb368ae6fcd76d8ebe733f137a7555b2f12",
+  "checkpoint_tracked_files": [
+    "src/executor/xlang_vm/ops/xlang_vm_ops_call.h",
+    "src/executor/xlang_vm/xlang_vm_attr.cpp",
+    "src/executor/xlang_vm/xlang_vm_attr.h",
+    "src/internal/xlang3/set_object.h",
+    "src/runtime/modules/system/io_module.cpp",
+    "src/runtime/object_model.cpp",
+    "src/runtime/set_object.cpp",
+    "tests/run_fixtures.py"
+  ],
+  "other_normalized_tracked_changes": {
+    "benchmarks/diagnostics/native_vm_opcode_timer.h": "diff --git a/benchmarks/diagnostics/native_vm_opcode_timer.h b/benchmarks/diagnostics/native_vm_opcode_timer.h\nindex 2d1f1232..0c4ff5e6 100644\n--- a/benchmarks/diagnostics/native_vm_opcode_timer.h\n+++ b/benchmarks/diagnostics/native_vm_opcode_timer.h\n@@ -11,6 +11,9 @@ Licensed under the Apache License, Version 2.0.\n // separately built probe to\n // locate native costs. A parent scope excludes nested execution and its probe\n // recording overhead, so recursive interpreter calls are not counted twice.\n+// pyperf filters worker environments: when using run_pyperformance_xlang3_shimmed.py,\n+// also pass --inherit-worker-env XLANG3_VM_OPCODE_TIMING. Setting it only in the\n+// outer shell enables setup-process probes but leaves timed workers uninstrumented.\n \n #include <algorithm>\n #include <array>\n",
+    "tests/cpp/runtime_value_tests.cpp": "diff --git a/tests/cpp/runtime_value_tests.cpp b/tests/cpp/runtime_value_tests.cpp\nindex 17e6fd0d..92349c3f 100644\n--- a/tests/cpp/runtime_value_tests.cpp\n+++ b/tests/cpp/runtime_value_tests.cpp\n@@ -72,7 +72,6 @@ int main() {\n                             \"None should be falsey\");\n   xlang3::test::expect_true(result, xlang3::value_to_string(xlang3::Value::tuple({xlang3::Value::int64(1)})) == \"(1,)\",\n                             \"single item tuple should print with trailing comma\");\n-\n   {\n     std::ostringstream output;\n     xlang3::Runtime runtime(output);\n"
+  },
+  "conclusion": "Every executable runtime change belongs to this checkpoint. Other normalized changes are a diagnostic-only header comment and a blank test line. Other dirty status entries have no normalized content diff."
+}

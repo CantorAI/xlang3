@@ -1,0 +1,241 @@
+diff --git a/tests/cpp/observable_builtin_method_cases.h b/tests/cpp/observable_builtin_method_cases.h
+index 2da6768e..ac0890fc 100644
+--- a/tests/cpp/observable_builtin_method_cases.h
++++ b/tests/cpp/observable_builtin_method_cases.h
+@@ -1,6 +1,8 @@
+ #pragma once
+ #include "test_harness.h"
+-#include "executor/xlang_vm/ops/xlang_vm_ops_call.h"
++#include "xlang3/functional_iterators.h"
++#include "xlang3/module_object.h"
++#include "xlang3/object_model.h"
+ #include <memory>
+ 
+ namespace xlang3::test {
+@@ -9,6 +11,7 @@ struct State {
+   std::vector<std::string> events;
+   Object* expected_self = nullptr;
+   const ir::Module* expected_module = nullptr;
++  uint32_t expected_function = 1;
+   Value native_exception;
+   Value observer_exception;
+   std::string fail_event;
+@@ -47,18 +50,25 @@ inline bool hash_key(Runtime& runtime, const Value*, uint32_t argc, Value& out,
+ inline bool profile(Runtime& runtime, const Value* args, uint32_t argc,
+     Value& out, std::string& error, void* context) {
+   auto& state = **static_cast<std::shared_ptr<State>*>(context);
+-  auto* frame = argc == 3 ? value_as_frame(args[0]) : nullptr;
+   auto* event = argc == 3 ? value_as_string(args[1]) : nullptr;
+-  auto* bound = argc == 3 ? value_as_bound_method(args[2]) : nullptr;
+-  std::string event_name = event == nullptr ? "invalid" : std::string(string_object_view(*event));
+-  state.events.push_back(event_name);
++  const std::string event_name = event == nullptr ? "invalid" : std::string(string_object_view(*event));
++  // The public interpreter also emits Python call/return/exception events.
++  // This proof checks the native get events inside that real DLL activation.
++  if (event_name == "call" || event_name == "return" || event_name == "exception") {
++    error.clear(); out = Value::none(); return true;
++  }
+   Value name;
+   std::string name_error;
++  if (argc != 3 || !object_get_attr(args[2], "__name__", name, name_error) ||
++      value_as_string(name) == nullptr || string_object_view(*value_as_string(name)) != "get") {
++    error.clear(); out = Value::none(); return true;
++  }
++  auto* frame = argc == 3 ? value_as_frame(args[0]) : nullptr;
++  auto* bound = argc == 3 ? value_as_bound_method(args[2]) : nullptr;
++  state.events.push_back(event_name);
+   state.identity_ok &= frame != nullptr && frame->module.get() == state.expected_module &&
+-      frame->function_id == 1 && bound != nullptr &&
+-      bound->self.tag == ValueTag::Object && bound->self.as.obj == state.expected_self &&
+-      object_get_attr(args[2], "__name__", name, name_error) &&
+-      value_as_string(name) != nullptr && string_object_view(*value_as_string(name)) == "get";
++      frame->function_id == state.expected_function && bound != nullptr &&
++      bound->self.tag == ValueTag::Object && bound->self.as.obj == state.expected_self;
+   state.receiver_alive &= state.receiver_cleanup == 0;
+   if (state.collect_in_observer) {
+     Value gc, collect, ignored;
+@@ -104,58 +114,72 @@ struct ResetRuntimeView {
+ 
+ inline void check_observable_builtin_method_cases(CaseResult& result) {
+   using namespace observable_builtin_method_cases;
++  // Execute the DLL's actual opcode dispatcher through an already exported
++  // Interpreter entry. Never instantiate private VM/monitor/lock templates in
++  // the test executable: that would either fail linking or test another state.
+   auto mutable_module = std::make_shared<ir::Module>();
+-  mutable_module->functions.resize(2);
++  mutable_module->source_file = "<observable-native-cpp>";
++  mutable_module->global_slots = {"receiver", "key", "default"};
++  mutable_module->functions.resize(3);
+   mutable_module->functions[0].name = "<module>";
+-  mutable_module->functions[1].name = "observable_invoke";
+-  mutable_module->functions[1].code.push_back({ir::Op::Return, 0, 0, 0, 0});
++  for (uint32_t id : {1u, 2u}) {
++    auto& fn = mutable_module->functions[id];
++    fn.name = id == 1 ? "observable_invoke" : "observable_alias";
++    fn.register_count = 4;
++    fn.names = {"get"};
++    fn.call_args = {{1, 2}};
++    fn.code = {{ir::Op::LoadModuleSlot, 0, 0, 0, 0},
++        {ir::Op::LoadModuleSlot, 1, 1, 0, 0},
++        {ir::Op::LoadModuleSlot, 2, 2, 0, 0}};
++    if (id == 2) fn.code.push_back({ir::Op::DeleteModuleSlot, 0, 0, 0, 0});
++    fn.code.push_back({ir::Op::CallMethod, 0, 0, 0, 0});
++    fn.code.push_back({ir::Op::Return, 0, 0, 0, 0});
++  }
+   std::shared_ptr<const ir::Module> module = mutable_module;
+-  Value globals = Value::none();
++  Value globals = Value::module("observable_native_cpp");
+   std::ostringstream output;
+   Runtime runtime(output);
+   ResetRuntimeView reset{runtime};
+-  runtime.set_current_frame(&module, 1, &globals, 0);
+-  XlangRuntimeExecutionGuard lock;
+-  Value table = Value::dict({{Value::string("present"), Value::int64(17)}});
+-  const auto* spec = dict_find_method_spec(table, "get");
+-  expect_true(result, spec != nullptr && spec->callback != nullptr && spec->fast_callback != nullptr,
+-      "observer proof requires the real registered ordinary/fast dict.get specification");
+-  if (spec == nullptr || spec->callback == nullptr || spec->fast_callback == nullptr) return;
+-  std::vector<Value> native_args;
+-  std::vector<uint32_t> arg_regs{0, 1};
+-  Value registers[2] = {Value::string("present"), Value::int64(903)};
+-  CallArgsView args;
+-  args.registers = registers;
+-  args.register_args = &arg_regs;
+-  Value caught;
+-  unsigned diagnostic_raises = 0;
+-  auto raise_error = [&](const std::string&) { ++diagnostic_raises; return true; };
+-  auto raise_value = [&](Value exception) { caught = std::move(exception); return true; };
+-  auto invoke = [&](Value& receiver, Value& out) {
+-    return xlang_vm::ops::call_builtin_method_spec(runtime, *spec, receiver, args,
+-        native_args, lock, out, raise_error, raise_value);
++  Interpreter interpreter(runtime);
++  std::string error;
++  const bool slots_ready = module_ensure_attr_slots(globals, module->global_slots, error);
++  expect_true(result, slots_ready, "observer proof binds its real module slots through the public API");
++  if (!slots_ready) return;
++  Value functions[2] = {Value::function(1, {}, globals, module), Value::function(2, {}, globals, module)};
++  auto invoke = [&](uint32_t id) {
++    return interpreter.run_function_value(value_as_function(functions[id - 1]), CallArgsView{});
++  };
++  auto install = [&](const char* name, const Value& value) {
++    error.clear();
++    const bool ok = module_set_attr(globals, name, value, error);
++    expect_true(result, ok, std::string("observer proof installs ") + name);
++    return ok;
+   };
+   auto state = std::make_shared<State>();
+   state->expected_module = module.get();
+-  state->expected_self = table.as.obj;
+   state->native_exception = runtime.make_exception("LookupError", "native marker");
+   state->observer_exception = runtime.make_exception("LookupError", "observer marker");
+   Value hook = callback("observable_profile", profile, state);
++  Value table = Value::dict({{Value::string("present"), Value::int64(17)}});
++  state->expected_self = table.as.obj;
++  if (!install("receiver", table) || !install("default", Value::int64(903))) return;
+   runtime.set_profile_function(hook);
+-  Value out;
++  RuntimeResult answer;
+   for (const char* key : {"present", "missing"}) {
+-    registers[0] = Value::string(key);
+-    expect_true(result, invoke(table, out) && out.tag == ValueTag::Int64 &&
+-        out.as.i64 == (std::string(key) == "present" ? 17 : 903),
+-        "profiled real get retains hit/default semantics");
++    if (!install("key", Value::string(key))) return;
++    answer = invoke(1);
++    expect_true(result, answer.errors.empty() && answer.exception.tag == ValueTag::Invalid &&
++        answer.value.tag == ValueTag::Int64 && answer.value.as.i64 == (std::string(key) == "present" ? 17 : 903),
++        "profiled DLL get retains hit/default semantics");
+   }
+   expect_true(result, state->events == std::vector<std::string>{"c_call", "c_return", "c_call", "c_return"} &&
+-      state->identity_ok && state->receiver_alive && diagnostic_raises == 0,
+-      "profile sees owning real bound get and the actual caller frame for success/return");
++      state->identity_ok && state->receiver_alive,
++      "profile sees owning real bound get and its actual DLL caller for success/return");
+ 
+-  // The receiver is also the output and its dictionary is the last owner of
+-  // the token. Observer reentry/GC and the return event must still see it alive.
+-  state->events.clear(); state->collect_in_observer = true;
++  // Move the receiver into the namespace, drop its host owner, then let the
++  // real IR load-and-delete remove the namespace owner before dst==receiver.
++  // Only the VM operand and the observed bound callable can now retain it.
++  state->events.clear(); state->collect_in_observer = true; state->expected_function = 2;
+   auto token_context = std::make_unique<std::shared_ptr<State>>(state);
+   Value token = Value::native_function(0, "observable_receiver_token", lifetime_token,
+       token_context.get(), receiver_cleanup);
+@@ -163,41 +187,55 @@ inline void check_observable_builtin_method_cases(CaseResult& result) {
+   table = Value::dict({{Value::string("present"), Value::int64(17)},
+       {Value::string("lifetime"), std::move(token)}});
+   state->expected_self = table.as.obj;
+-  registers[0] = Value::string("present");
+-  expect_true(result, invoke(table, table) && table.tag == ValueTag::Int64 && table.as.i64 == 17 &&
+-      state->events == std::vector<std::string>{"c_call", "c_return"} &&
+-      state->identity_ok && state->receiver_alive && state->receiver_cleanup == 1,
+-      "profiled output/receiver alias retains self through observers then releases its last owner");
+-  state->collect_in_observer = false; state->receiver_cleanup = 0;
++  if (!install("receiver", table) || !install("key", Value::string("present"))) return;
++  value_set_invalid(table);
++  answer = invoke(2);
++  expect_true(result, answer.errors.empty() && answer.value.tag == ValueTag::Int64 && answer.value.as.i64 == 17 &&
++      state->events == std::vector<std::string>{"c_call", "c_return"} && state->identity_ok &&
++      state->receiver_alive && state->receiver_cleanup == 1,
++      "DLL dst/receiver alias owns self through observer GC and releases its last owner after events");
++  state->collect_in_observer = false; state->receiver_cleanup = 0; state->expected_function = 1;
+ 
+   Value hash = callback("ObservableKey.__hash__", hash_key, state);
+   Value key_class = Value::class_object("ObservableKey", {{"__hash__", hash}});
+-  registers[0] = Value::instance(key_class);
++  Value key = Value::instance(key_class);
+   table = Value::dict({}); state->expected_self = table.as.obj;
++  if (!install("receiver", table) || !install("key", key)) return;
+   state->events.clear(); state->hash_calls = 0; state->hash_fails = true; state->replace_pending = true;
+-  value_set_invalid(caught); out = Value::int64(887);
+-  expect_true(result, !invoke(table, out) && value_is(caught, state->native_exception) &&
+-      state->hash_calls == 1 && out.tag == ValueTag::Int64 && out.as.i64 == 887 &&
+-      state->events == std::vector<std::string>{"c_call", "c_exception"} &&
+-      !state->observer_saw_native_pending && diagnostic_raises == 0,
+-      "failed get pins its native pending owner before observer replacement/drain and raises original identity");
++  answer = invoke(1);
++  expect_true(result, !answer.errors.empty() && value_is(answer.exception, state->native_exception) &&
++      state->hash_calls == 1 && state->events == std::vector<std::string>{"c_call", "c_exception"} &&
++      !state->observer_saw_native_pending && state->identity_ok,
++      "DLL failure pins native pending before observer replacement/drain and returns original exception identity");
+   Value pending;
+-  expect_true(result, !runtime.take_pending_exception(pending), "failed dispatch consumes exactly one original pending owner");
++  expect_true(result, runtime.take_pending_exception(pending) && value_is(pending, state->native_exception),
++      "public DLL entry transports one pending owner equal to its returned native exception");
++  value_set_invalid(pending);
++  expect_true(result, !runtime.take_pending_exception(pending), "DLL native failure leaves no second pending owner");
+   state->hash_fails = false; state->replace_pending = false;
+   for (const char* failed_event : {"c_call", "c_return"}) {
+     runtime.set_profile_function(hook);
+     state->fail_event = failed_event; state->events.clear(); state->hash_calls = 0;
+-    value_set_invalid(caught); out = Value::int64(887);
+-    expect_true(result, !invoke(table, out) && value_is(caught, state->observer_exception) &&
+-        state->hash_calls == (state->fail_event == "c_call" ? 0u : 1u) && diagnostic_raises == 0,
+-        "observer failures preserve exact pending identity and do not retry or invoke get after c_call failure");
+-    expect_true(result, !runtime.take_pending_exception(pending), "observer failure transfers its pending owner once");
++    answer = invoke(1);
++    expect_true(result, !answer.errors.empty() && value_is(answer.exception, state->observer_exception) &&
++        state->hash_calls == (state->fail_event == "c_call" ? 0u : 1u),
++        "DLL observer failure preserves exact pending identity without retry or get after c_call failure");
++    expect_true(result, runtime.take_pending_exception(pending) && value_is(pending, state->observer_exception),
++        "public DLL entry transports exactly its returned observer exception identity");
++    value_set_invalid(pending);
++    expect_true(result, !runtime.take_pending_exception(pending), "DLL observer failure transfers its pending owner once");
+   }
+   state->fail_event.clear(); state->events.clear();
+   runtime.set_profile_function(Value::none()); state->hash_calls = 0;
+-  expect_true(result, invoke(table, out) && out.tag == ValueTag::Int64 && out.as.i64 == 903 &&
++  answer = invoke(1);
++  expect_true(result, answer.errors.empty() && answer.value.tag == ValueTag::Int64 && answer.value.as.i64 == 903 &&
+       state->hash_calls == 1 && state->events.empty(),
+-      "disabled profile retains the existing direct native specification path without C events");
++      "disabled profiling retains ordinary DLL native get without C events");
++  // Exception tracebacks can retain the module namespace. Remove its callback
++  // edges while all heap contexts remain valid, including failed-probe unwind.
++  error.clear(); (void)module_delete_attr(globals, "receiver", error);
++  error.clear(); (void)module_delete_attr(globals, "key", error);
++  error.clear(); (void)module_delete_attr(globals, "default", error);
+   value_set_invalid(hook);
+ }
+ } // namespace xlang3::test

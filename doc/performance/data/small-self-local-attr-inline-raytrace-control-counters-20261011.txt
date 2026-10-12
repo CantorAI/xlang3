@@ -1,0 +1,246 @@
+perf: native_calls=225912 fast=224148 cached_fast=132182
+perf: native min slow=1 fast=35810
+perf: native max slow=1 fast=30026
+perf: native __xlang3_build_class_from_namespace__ slow=15 fast=256
+perf: native type.__prepare__ slow=13 fast=226
+perf: native int.__new__ slow=112 fast=85
+perf: native object.__init__ slow=77 fast=50
+perf: native type.__new__ slow=97 fast=2
+perf: native _operator.index slow=35 fast=0
+perf: native itertools.product slow=33 fast=0
+perf: native _sre.unicode_iscased slow=31 fast=0
+perf: native itertools.permutations slow=24 fast=0
+perf: native str.format slow=24 fast=0
+perf: native bytearray.translate slow=23 fast=0
+perf: native _sre.unicode_tolower slow=22 fast=0
+perf: native _functools._lru_cache_wrapper slow=18 fast=0
+perf: native nt._getfinalpathname slow=16 fast=0
+perf: native _typing.TypeVar.__init__ slow=15 fast=0
+perf: native object.__init_subclass__ slow=14 fast=0
+perf: native sorted slow=11 fast=0
+perf: native tuple.__new__ slow=11 fast=0
+perf: native type.__init__ slow=11 fast=0
+perf: native _typing.Generic.__init_subclass__ slow=10 fast=0
+perf: native _winapi.LCMapStringEx slow=9 fast=0
+perf: native property.setter slow=8 fast=0
+perf: native KeyError.__init__ slow=7 fast=0
+perf: native nt.getcwd slow=7 fast=0
+perf: native str.__new__ slow=7 fast=0
+perf: native _codecs.lookup_error slow=6 fast=0
+perf: native _winapi.CloseHandle slow=6 fast=0
+perf: native _winapi.GetCurrentProcess slow=6 fast=0
+perf: native list.sort slow=6 fast=0
+perf: native functools._lru_cache_wrapper slow=5 fast=0
+perf: native _typing.TypeVar.has_default slow=3 fast=0
+perf: native _winapi.DuplicateHandle slow=3 fast=0
+perf: native OSError.__init__ slow=2 fast=0
+perf: native _codecs.register slow=2 fast=0
+perf: native _collections.defaultdict.__init__ slow=2 fast=0
+perf: native _collections.deque.__init__ slow=2 fast=0
+perf: native _io.TextIOWrapper.close slow=2 fast=0
+perf: native _thread.RLock.__init__ slow=2 fast=0
+perf: native itertools.count slow=2 fast=0
+perf: native msvcrt.get_osfhandle slow=2 fast=0
+perf: native type.__or__ slow=2 fast=0
+perf: native __import__ slow=1 fast=0
+perf: native __xlang3_template_literal__ slow=1 fast=0
+perf: native _io.TextIOWrapper.read slow=1 fast=0
+perf: native _io.open slow=1 fast=0
+perf: native _json.make_scanner slow=1 fast=0
+perf: native _opcode.get_intrinsic1_descs slow=1 fast=0
+perf: native _opcode.get_intrinsic2_descs slow=1 fast=0
+perf: native _opcode.get_nb_ops slow=1 fast=0
+perf: native _random.Random.seed slow=1 fast=0
+perf: native _socket.gethostname slow=1 fast=0
+perf: native _sysconfig.config_vars slow=1 fast=0
+perf: native _thread.LockType.__exit__ slow=1 fast=0
+perf: native _thread._local.__init__ slow=1 fast=0
+perf: native _thread._make_thread_handle slow=1 fast=0
+perf: native _typing._make_type_alias slow=1 fast=0
+perf: native _winapi.CreatePipe slow=1 fast=0
+perf: native _winapi.CreateProcess slow=1 fast=0
+perf: native _winapi.GetExitCodeProcess slow=1 fast=0
+perf: native _winapi.GetModuleFileName slow=1 fast=0
+perf: native _winapi.WaitForSingleObject slow=1 fast=0
+perf: native _zstd.set_parameter_types slow=1 fast=0
+perf: native array.array.__init__ slow=1 fast=0
+perf: native generator.close slow=1 fast=0
+perf: native math.tan slow=1 fast=0
+perf: native msvcrt.open_osfhandle slow=1 fast=0
+perf: native nt.close slow=1 fast=0
+perf: native nt.open slow=1 fast=0
+perf: native nt.readlink slow=1 fast=0
+perf: native sys.audit slow=1 fast=0
+perf: native sys.exception slow=1 fast=0
+perf: native sys.getfilesystemencodeerrors slow=1 fast=0
+perf: native sys.getfilesystemencoding slow=1 fast=0
+perf: native sys.getwindowsversion slow=1 fast=0
+perf: native tuple.index slow=1 fast=0
+perf: native winreg.HKEYType.__enter__ slow=1 fast=0
+perf: native winreg.HKEYType.__exit__ slow=1 fast=0
+perf: native winreg.OpenKeyEx slow=1 fast=0
+perf: native winreg.QueryValueEx slow=1 fast=0
+perf: store_local moves=904099 copies=549402
+perf: call argument register transfers=432262
+perf: CALL_FUNCTION_EX single-star varargs direct bindings=3
+perf: frame_snapshots calls=53 frames=107 locals=0 refresh_calls=173 refresh_items=325
+perf: opcode 0 335503
+perf: opcode 1 38037
+perf: opcode 2 640605
+perf: opcode 3 1146840
+perf: opcode 4 5547
+perf: opcode 5 296
+perf: opcode 6 9246
+perf: opcode 7 908
+perf: opcode 8 1015
+perf: opcode 9 855
+perf: opcode 10 354
+perf: opcode 11 9
+perf: opcode 12 38
+perf: opcode 13 73666
+perf: opcode 14 1
+perf: opcode 15 31129
+perf: opcode 17 48
+perf: opcode 18 636470
+perf: opcode 19 3667
+perf: opcode 20 371
+perf: opcode 22 570
+perf: opcode 23 21
+perf: opcode 25 696188
+perf: opcode 26 237665
+perf: opcode 27 3
+perf: opcode 30 106
+perf: opcode 31 4432
+perf: opcode 32 64
+perf: opcode 33 156
+perf: opcode 35 157694
+perf: opcode 36 21932
+perf: opcode 37 1145
+perf: opcode 38 339
+perf: opcode 39 1130
+perf: opcode 40 123049
+perf: opcode 41 21
+perf: opcode 42 5011
+perf: opcode 43 29
+perf: opcode 45 11
+perf: opcode 46 3352
+perf: opcode 47 228424
+perf: opcode 48 43337
+perf: opcode 49 1
+perf: opcode 50 214508
+perf: opcode 51 54340
+perf: opcode 52 27470
+perf: opcode 53 7
+perf: opcode 54 510629
+perf: opcode 55 1555410
+perf: opcode 56 1362020
+perf: opcode 58 139267
+perf: opcode 59 10
+perf: opcode 60 589
+perf: opcode 61 3858
+perf: opcode 62 26
+perf: opcode 63 1344
+perf: opcode 64 204
+perf: opcode 65 17
+perf: opcode 66 34
+perf: opcode 70 36735
+perf: opcode 71 212867
+perf: opcode 72 6717
+perf: opcode 73 881
+perf: opcode 74 45470
+perf: opcode 75 109
+perf: opcode 76 404662
+perf: opcode 77 570836
+perf: opcode 78 194961
+perf: opcode 79 35531
+perf: opcode 80 11
+perf: opcode 81 4598
+perf: opcode 82 21
+perf: opcode 83 7
+perf: opcode 84 75
+perf: opcode 85 151
+perf: opcode 86 6
+perf: opcode 87 1
+perf: opcode 88 271
+perf: opcode 89 117313
+perf: opcode 90 1051388
+perf: opcode 91 59
+perf: opcode 92 10744
+perf: opcode 93 725339
+perf: opcode 95 381
+perf: opcode 96 13
+perf: opcode 97 186585
+perf: opcode 98 893358
+perf: opcode 99 81
+perf: opcode 101 195
+perf: opcode 102 126
+perf: opcode 105 1701414
+perf: opcode 106 587035
+perf: opcode 107 21919
+perf: opcode 108 123361
+perf: opcode 109 1797
+perf: opcode 110 3657677
+perf: opcode 111 2720
+perf: opcode 112 563252
+perf: opcode 113 34156
+perf: opcode 114 4319
+perf: opcode 115 211302
+perf: opcode 116 424
+perf: opcode 117 8649
+perf: opcode 118 298323
+perf: opcode 119 45166
+perf: opcode 120 16617
+perf: opcode 121 48919
+perf: opcode 122 2750
+perf: opcode 123 7
+perf: opcode 125 27213
+perf: opcode 126 2210
+perf: opcode 127 4924
+perf: opcode 129 456
+perf: opcode 130 365
+perf: opcode 131 19067
+perf: opcode 139 702
+perf: opcode 141 222214
+perf: opcode 146 27
+perf: opcode 148 490
+perf: objects kind alloc final_release incref decref
+perf: String 18629 6111 26399 30007
+perf: BigInt 137 119 2097 2216
+perf: Bytes 130 11 167 146
+perf: ByteArray 336 336 265 601
+perf: Slice 1132 1130 127 1255
+perf: Tuple 161966 160968 654840 815226
+perf: List 22597 22119 125515 147542
+perf: Dict 2588 1635 23829 25283
+perf: Unknown 613 589 127 716
+perf: Set 725 604 2692 3284
+perf: DictKeysView 3 3 0 3
+perf: DictValuesView 86 86 1 87
+perf: DictItemsView 82 82 1 83
+perf: DictIterator 542 542 10 552
+perf: SetIterator 35 35 0 35
+perf: Range 428 428 0 428
+perf: RangeIterator 291 291 0 291
+perf: SequenceIterator 54719 54719 10 54729
+perf: Unknown 60 60 60 120
+perf: Unknown 14 14 14 28
+perf: Unknown 114 114 114 228
+perf: Unknown 2 0 3 3
+perf: Generator 111 111 154 265
+perf: Module 110 4 1345298 1336127
+perf: Cell 1206 492 2386 2830
+perf: Function 4432 254 2195708 2194656
+perf: NativeFunction 506 44 706768 705953
+perf: Class 587 20 2153876 2149639
+perf: Instance 558581 557885 8082840 8639335
+perf: BoundMethod 324215 324162 1172 325321
+perf: StaticMethod 144 4 476446 476450
+perf: ClassMethod 158 2 1225 1215
+perf: Super 792 792 0 792
+perf: SlotDescriptor 162 3 3324 3324
+perf: Property 430 14 2420 2429
+perf: Unknown 219 215 5 220
+perf: Unknown 713 713 3848 4561
+perf: Unknown 295 295 367 662
+perf: File 1 1 24 25
+perf: Unknown 4 4 0 4

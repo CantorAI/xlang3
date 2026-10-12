@@ -287,7 +287,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow set_class_base(
     XlangVMSmallRegisterBuffer& regs,
     RaiseRuntimeError&& raise_runtime_error) {
   std::string error;
-  if (!class_set_base(regs[in.dst], regs[in.a], error)) {
+  if (!class_set_base_for_construction(regs[in.dst], regs[in.a], error)) {
     return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
   }
   Value hook;

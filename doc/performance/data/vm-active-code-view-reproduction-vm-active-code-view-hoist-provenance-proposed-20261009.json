@@ -1,0 +1,55 @@
+{
+  "created_utc": "2026-10-10T02:32:07.1922899+00:00",
+  "status": "static_review_ready_controlled_trial_not_applied_or_executed",
+  "accepted_head": "21e2eadaba7d317932374a63d3c2d70dff4e25c1",
+  "sampled_runtime_sha256": "5dfa38e5a3730e2d31665ef66f662fae3835f14c27434167e766dbdcd6f370f8",
+  "source_count": 143,
+  "release_count": 178,
+  "baseline_count": 177,
+  "evidence": {
+    "related_rejected_target": "Memoryview sweep at current RVA7a3710 matches Oct6 rejected call-site gating; excluded",
+    "sample_index": 91,
+    "rva": "0x7aa5ac",
+    "scope": "One location among142 diagnostic leaf samples; no CPU share or gain estimate",
+    "disassembly": "Full actual exported function range0x7a6d80..0x7bf3f4 at preferred image base0x180000000, dumpbin14.51, sampled image hash checked before/after",
+    "actual_code": "fn.code vector size recomputed using end-base and signed division-by20 multiplier6666666666666667 before bounds comparison"
+  },
+  "change": "Capture code_data/code_size after active fn selection at every frame switch; retain bounds and empty-frame finish behavior; use captured data only for original fetch",
+  "lifetime_basis": [
+    "Frame ctor/reset retain const IR module owner",
+    "Function __code__ mutation replaces FunctionObject module/id/version without mutating active frame IR",
+    "Monitoring/trace alter side state or ip, not code vector",
+    "Push/pop/unwind exit through switch_frame; generator resume selects active frame again"
+  ],
+  "history_audit": "Matching Markdown plus top-level preserved patches reviewed; no matching bounds/data hoist found; earlier bare dispatch deletes observers and L9 changes cache layout, neither is this mechanism",
+  "root_static_review": true,
+  "independent_agent_static_review": true,
+  "git_apply_check_passed": true,
+  "fixture": "Three active-code cases: self replacement with nested new call, generator continuing old code, trace replacement preserving current old frame",
+  "source_mutation": false,
+  "python_ast_or_fixture_execution": false,
+  "build_or_benchmark": false,
+  "gain_claim": false,
+  "root_execution_requirements": [
+    "Current capture27292 authoritative terminal and current pins/cleanup verified",
+    "CPython3.14.7 AST and fixture/reference first, then unchanged current-X control",
+    "Preserve current validated Release and target; use same fixed VC/build path",
+    "Apply only frozen patch plus meaningful fixture/expected/registration as required; build without configure",
+    "Full correctness, check compiled bounds change, unchanged complete11-case fixed gate21repeats5warmups0.10",
+    "Affected unchanged original json_dumps compared to preserved current control; CP3.14.7 only",
+    "Retain only measured pass; otherwise restore exact engine/binaries and preserve rejected evidence",
+    "Goal remains full pyperformance performance/failure improvement; one modest candidate is not completion"
+  ],
+  "input_sha256": {
+    "src/executor/xlang_vm/xlang_vm_loop.cpp": "065cd6cb30b757d0674ca9326706f792e7aa7d824746314656b2205c00c83b51",
+    "src/executor/xlang_vm/xlang_frame.h": "d7854b3fad57ff873110891bc0c8f286cabe9fadafa1ffbbf0763267500166e4",
+    "src/internal/xlang3/ir.h": "b6417aea98ee8169aa551d849492fd2dfdfca6300a6b491fe7cce85c3242f064",
+    "src/runtime/object_model.cpp": "10806dd37498170b7172f469ca44d190698f85c0a6adb2bed104053df1c0fedc",
+    "scratch/performance/vm-active-code-view-hoist-proposed-20261009.patch": "4dfd157ff5f3b356cab010be278233644eb19843b8327cd5dd76a56634eeb6a9",
+    "scratch/performance/vm-active-code-view-fixture-proposed-20261009.py": "549b33469a72b797964045ebb5a9b7c9e99ec8fc45949d03e082a29e321505a1",
+    "scratch/performance/json-r7b-run-function-current-disassembly-20261009.txt": "2bd3e30bfbbcd829894a34ae5081fe59b5fe3112cbd3b15f76b398070fdcaeb8",
+    "doc/performance/data/json-dumps-r7b-current-native-coff-attribution-20261009.json": "a766040ef14e1c0f4ddb3747c5e2ddc1d8e4e912ae98c1da62ba9f58d027b403",
+    "doc/performance/data/json-dumps-r7b-current-diagnostics-20261009-receipt.json": "0f8057ec944fadf648f0cfe72d3fcfcc50d5a4f2182785902a43cba3b8fc70a6",
+    "doc/performance/memoryview-empty-sweep-trial-20261006.md": "40c9b6621152be6d4124320b7d1e5421de844c9477a3c62a687abab57510b5fc"
+  }
+}

@@ -1,0 +1,111 @@
+/*
+Copyright (C) 2026 CantorAI Inc. and The XLang Foundation
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+#include "xlang3/builtins.h"
+
+namespace xlang3 {
+
+void register_tokenize_module(Runtime& runtime);
+#ifndef XLANG3_EMBEDDED
+namespace tensor { void register_module(Runtime&); }
+#endif
+
+void register_core_builtins(Runtime& runtime) {
+  register_object_type_builtins(runtime);
+  register_exception_builtins(runtime);
+  register_functional_builtins(runtime);
+  register_io_builtins(runtime);
+  register_sequence_builtins(runtime);
+  register_raw_block_builtins(runtime);
+  register_ipc_builtins(runtime);
+  register_builtin_modules(runtime);
+  register_math_module(runtime);
+#ifndef XLANG3_EMBEDDED
+  tensor::register_module(runtime);
+  // sys creates its console stream adapters from the native _io hierarchy.
+  // Register _io first so those adapters retain their dedicated console
+  // operations while satisfying the real TextIOWrapper/BufferedIOBase
+  // relationships required by source-backed CPython modules.
+  register_io_module(runtime);
+  register_sys_module(runtime);
+  register_time_module(runtime);
+  register_abc_module(runtime);
+  register_atexit_module(runtime);
+  register_ast_module(runtime);
+  register_binascii_module(runtime);
+  register_bz2_module(runtime);
+  register_cmath_module(runtime);
+  register_json_module(runtime);
+  register_decimal_module(runtime);
+  register_functools_module(runtime);
+  register_csv_module(runtime);
+  register_os_module(runtime);
+#if !defined(_WIN32)
+  register_posix_process_module(runtime);
+#endif
+  register_stat_module(runtime);
+  register_string_module(runtime);
+  register_imp_module(runtime);
+  register_sysconfig_native_module(runtime);
+  register_warnings_module(runtime);
+  register_errno_module(runtime);
+  register_faulthandler_module(runtime);
+  register_gc_module(runtime);
+  register_lsprof_module(runtime);
+  register_array_module(runtime);
+  register_bisect_module(runtime);
+  register_heapq_module(runtime);
+  register_itertools_module(runtime);
+  register_codecs_module(runtime);
+  register_locale_module(runtime);
+  register_multibytecodec_module(runtime);
+  register_contextvars_module(runtime);
+  register_ctypes_module(runtime);
+  register_unicodedata_module(runtime);
+  register_struct_module(runtime);
+  register_signal_module(runtime);
+  register_sha2_module(runtime);
+  register_sre_module(runtime);
+  register_tokenize_module(runtime);
+  register_collections_module(runtime);
+  register_typing_module(runtime);
+  register_queue_module(runtime);
+  register_importlib_module(runtime);
+  register_interpreter_modules(runtime);
+  register_random_module(runtime);
+  register_weakref_module(runtime);
+  register_marshal_module(runtime);
+  register_opcode_module(runtime);
+  register_operator_module(runtime);
+  register_pickle_module(runtime);
+  register_pyexpat_module(runtime);
+  register_asyncio_module(runtime);
+#if defined(_WIN32)
+  register_msvcrt_module(runtime);
+  register_overlapped_module(runtime);
+  register_multiprocessing_module(runtime);
+  register_winapi_module(runtime);
+  register_winreg_module(runtime);
+#endif
+  register_zlib_module(runtime);
+  register_zipimport_module(runtime);
+  register_socket_modules(runtime);
+#endif
+  register_thread_modules(runtime);
+#ifndef XLANG3_EMBEDDED
+  register_task_modules(runtime);
+#endif
+}
+
+} // namespace xlang3

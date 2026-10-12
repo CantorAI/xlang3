@@ -1,0 +1,3 @@
+PASS temporary inputs retire in caller before assignment
+PASS aliased receiver and argument retire once
+PASS displaced output sees published arithmetic result

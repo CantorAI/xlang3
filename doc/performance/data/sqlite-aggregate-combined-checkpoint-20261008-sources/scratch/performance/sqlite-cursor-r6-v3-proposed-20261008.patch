@@ -1,0 +1,482 @@
+--- a/modules/sqlite/sqlite_handles.h
++++ b/modules/sqlite/sqlite_handles.h
+@@ -18,6 +18,9 @@
+ 
+ #include "sqlite3.h"
+ 
++#include <string>
++#include <vector>
++
+ namespace xlang3_sqlite {
+ 
+ constexpr const char* kConnectionType = "xlang3.sqlite.Connection";
+@@ -31,6 +34,12 @@
+ };
+ 
+ struct CursorHandle {
++  // A current SQLite row is primed by execute, then advanced before each
++  // fetch returns. Description must outlive the completed statement.
++  bool has_row = false;
++  bool locked = false;
++  bool write_statement = false;
++  std::vector<std::string> column_names;
+   ConnectionHandle* connection = nullptr;
+   sqlite3_stmt* stmt = nullptr;
+   sqlite3_int64 lastrowid = 0;
+--- a/modules/sqlite/sqlite_package.cpp
++++ b/modules/sqlite/sqlite_package.cpp
+@@ -1043,6 +1043,34 @@
+   return X3_STATUS_OK;
+ }
+ 
++// Completed statements must release their SQLite resources even while a
++// Python cursor remains live. Reset-only cursors can keep a close-v2 zombie DB
++// and its registered factories alive; cached column names preserve description.
++struct CursorCallLock {
++  xlang3_sqlite::CursorHandle* cursor;
++  explicit CursorCallLock(xlang3_sqlite::CursorHandle* value) : cursor(value) {
++    cursor->locked = true;
++  }
++  ~CursorCallLock() { cursor->locked = false; }
++};
++
++bool check_cursor_unlocked(PackageState* state, X3CallContext* context,
++    const xlang3_sqlite::CursorHandle* cursor) {
++  if (cursor != nullptr && cursor->locked) {
++    state->host->raise_error(context, state->programming_error_class,
++        "Recursive use of cursors not allowed.");
++    return false;
++  }
++  return true;
++}
++
++void finish_cursor_statement(xlang3_sqlite::CursorHandle* cursor) {
++  sqlite3_stmt* statement = cursor->stmt;
++  cursor->stmt = nullptr;
++  cursor->has_row = false;
++  if (statement != nullptr) sqlite3_finalize(statement);
++}
++
+ X3Status cursor_close(
+     X3CallContext* context,
+     X3Runtime*,
+@@ -1053,9 +1081,10 @@
+   auto* host = state_from(user_data)->host;
+   if (!check_argc(host, context, argc, 1, "Cursor.close()")) return X3_STATUS_ERROR;
+   auto* cursor = xlang3_sqlite::cursor_from(host, args[0]);
+-  if (cursor != nullptr && cursor->stmt != nullptr) {
+-    sqlite3_finalize(cursor->stmt);
+-    cursor->stmt = nullptr;
++  if (!check_cursor_unlocked(state_from(user_data), context, cursor)) return X3_STATUS_ERROR;
++  if (cursor != nullptr) {
++    CursorCallLock lock(cursor);
++    finish_cursor_statement(cursor);
+   }
+   *result = x3_value_none();
+   return X3_STATUS_OK;
+@@ -1100,56 +1129,94 @@
+     const X3Value* args,
+     uint32_t argc,
+     X3Value* result) {
+-  auto* host = state_from(user_data)->host;
++  auto* state = state_from(user_data);
++  auto* host = state->host;
+   if (argc != 2 && argc != 3) {
+     host->raise_class_error(context, "TypeError", "Cursor.execute() expected 1 or 2 arguments");
+     return X3_STATUS_ERROR;
+   }
+   auto* cursor = xlang3_sqlite::cursor_from(host, args[0]);
+   if (cursor == nullptr || cursor->connection == nullptr || cursor->connection->db == nullptr || cursor->connection->closed) {
+-    host->raise_error(context, state_from(user_data)->programming_error_class, "sqlite cursor is closed");
+-    return X3_STATUS_ERROR;
+-  }
++    host->raise_error(context, state->programming_error_class, "sqlite cursor is closed");
++    return X3_STATUS_ERROR;
++  }
++  if (!check_cursor_unlocked(state, context, cursor)) return X3_STATUS_ERROR;
++  CursorCallLock lock(cursor);
+   const char* sql = nullptr;
+-  if (!xlang3_sqlite::require_string(host, context, runtime, args[1], "Cursor.execute() SQL must be a string", &sql)) {
+-    return X3_STATUS_ERROR;
+-  }
+-  if (cursor->stmt != nullptr) {
+-    sqlite3_finalize(cursor->stmt);
+-    cursor->stmt = nullptr;
+-  }
++  if (!xlang3_sqlite::require_string(host, context, runtime, args[1], "Cursor.execute() SQL must be a string", &sql))
++    return X3_STATUS_ERROR;
++  // value_to_cstr uses a thread-local rendered buffer. Finalizing the previous
++  // statement or binding/stepping can reenter Python and overwrite that buffer.
++  const std::string owned_sql(sql);
++  sql = owned_sql.c_str();
++  finish_cursor_statement(cursor);
++  // A finalize callback may close this connection. Do not prepare on its old DB.
++  if (cursor->connection->db == nullptr || cursor->connection->closed) {
++    host->raise_error(context, state->programming_error_class, "sqlite cursor is closed");
++    return X3_STATUS_ERROR;
++  }
++  cursor->column_names.clear();
+   cursor->rowcount = -1;
++  cursor->write_statement = is_write_sql(sql);
++  // Derive operation metadata before any SQLite callback can execute Python.
++  const char* statement = sql;
++  while (*statement != '\0' && std::isspace(static_cast<unsigned char>(*statement))) ++statement;
++  std::string operation;
++  while (*statement != '\0' && std::isalpha(static_cast<unsigned char>(*statement)) && operation.size() < 8)
++    operation.push_back(static_cast<char>(std::tolower(static_cast<unsigned char>(*statement++))));
+   if (!begin_python_transaction(cursor->connection, sql)) {
+-    raise_sqlite_error(state_from(user_data), context, cursor->connection->db, "begin transaction failed");
++    raise_sqlite_error(state, context, cursor->connection->db, "begin transaction failed");
+     return X3_STATUS_ERROR;
+   }
+   if (sqlite3_prepare_v2(cursor->connection->db, sql, -1, &cursor->stmt, nullptr) != SQLITE_OK) {
+-    raise_sqlite_error(state_from(user_data), context, cursor->connection->db, "prepare failed");
+-    return X3_STATUS_ERROR;
+-  }
++    raise_sqlite_error(state, context, cursor->connection->db, "prepare failed");
++    finish_cursor_statement(cursor);
++    return X3_STATUS_ERROR;
++  }
++  if (cursor->stmt == nullptr) { *result = args[0]; return X3_STATUS_OK; }
+   if (argc == 3 && !xlang3_sqlite::bind_params(host, runtime, cursor->stmt, args[2])) {
+-    raise_sqlite_error(state_from(user_data), context, cursor->connection->db, "bind failed");
+-    return X3_STATUS_ERROR;
+-  }
+-  if (sqlite3_column_count(cursor->stmt) == 0) {
+-    const int rc = sqlite3_step(cursor->stmt);
+-    if (rc != SQLITE_DONE) {
+-      raise_sqlite_error(state_from(user_data), context, cursor->connection->db, "execute failed");
+-      return X3_STATUS_ERROR;
+-    }
+-    if (is_write_sql(sql)) {
+-      cursor->rowcount = sqlite3_changes64(cursor->connection->db);
+-      const char* statement = sql;
+-      while (*statement != '\0' && std::isspace(static_cast<unsigned char>(*statement))) ++statement;
+-      std::string operation;
+-      while (*statement != '\0' && std::isalpha(static_cast<unsigned char>(*statement)) && operation.size() < 8) {
+-        operation.push_back(static_cast<char>(std::tolower(static_cast<unsigned char>(*statement++))));
++    raise_sqlite_error(state, context, sqlite3_db_handle(cursor->stmt), "bind failed");
++    finish_cursor_statement(cursor);
++    return X3_STATUS_ERROR;
++  }
++  sqlite3* db = sqlite3_db_handle(cursor->stmt);
++  cursor->rowcount = cursor->write_statement ? 0 : -1;
++  // CPython's native cursor primes the first row in execute. Fetch consumes
++  // this row, then advances before returning, rather than leaving SQL active.
++  const int rc = sqlite3_step(cursor->stmt);
++  if (rc != SQLITE_ROW && rc != SQLITE_DONE) {
++    raise_sqlite_error(state, context, db, "execute failed");
++    finish_cursor_statement(cursor);
++    cursor->rowcount = -1;
++    return X3_STATUS_ERROR;
++  }
++  try {
++    const int count = sqlite3_column_count(cursor->stmt);
++    cursor->column_names.reserve(static_cast<size_t>(count));
++    for (int index = 0; index < count; ++index) {
++      const char* name = sqlite3_column_name(cursor->stmt, index);
++      if (name == nullptr) {
++        host->raise_class_error(context, "MemoryError", "cannot read SQLite column name");
++        finish_cursor_statement(cursor);
++        cursor->column_names.clear();
++        return X3_STATUS_ERROR;
+       }
+-      if (operation == "insert" || operation == "replace") {
+-        cursor->lastrowid = sqlite3_last_insert_rowid(cursor->connection->db);
+-        cursor->has_lastrowid = true;
+-      }
+-    }
++      cursor->column_names.emplace_back(name);
++    }
++  } catch (const std::bad_alloc&) {
++    finish_cursor_statement(cursor);
++    cursor->column_names.clear();
++    host->raise_class_error(context, "MemoryError", "cannot cache SQLite column names");
++    return X3_STATUS_ERROR;
++  }
++  cursor->has_row = rc == SQLITE_ROW;
++  if (cursor->write_statement && (operation == "insert" || operation == "replace")) {
++    cursor->lastrowid = sqlite3_last_insert_rowid(db);
++    cursor->has_lastrowid = true;
++  }
++  if (rc == SQLITE_DONE) {
++    if (cursor->write_statement) cursor->rowcount = sqlite3_changes64(db);
++    finish_cursor_statement(cursor);
+   }
+   *result = args[0];
+   return X3_STATUS_OK;
+@@ -1233,18 +1300,20 @@
+     host->raise_error(context, state->programming_error_class, "sqlite cursor is closed");
+     return X3_STATUS_ERROR;
+   }
++  if (!check_cursor_unlocked(state, context, cursor)) return X3_STATUS_ERROR;
++  CursorCallLock lock(cursor);
+   const char* script = nullptr;
+   if (!xlang3_sqlite::require_string(
+           host, context, runtime, args[1],
+           "Cursor.executescript() SQL must be a string", &script)) {
+     return X3_STATUS_ERROR;
+   }
+-  if (cursor->stmt != nullptr) {
+-    sqlite3_finalize(cursor->stmt);
+-    cursor->stmt = nullptr;
+-  }
++  // Finishing the old statement can run Python callbacks and reuse the SDK
++  // string buffer. Keep script bytes owned before that cleanup, and detach first.
++  const std::string owned_script(script);
++  finish_cursor_statement(cursor);
+   cursor->rowcount = -1;
+-  if (execute_script_on_connection(state, context, cursor->connection, script) !=
++  if (execute_script_on_connection(state, context, cursor->connection, owned_script.c_str()) !=
+       X3_STATUS_OK) {
+     return X3_STATUS_ERROR;
+   }
+@@ -1296,6 +1365,7 @@
+     host->raise_error(context, state->programming_error_class, "sqlite cursor is closed");
+     return X3_STATUS_ERROR;
+   }
++  if (!check_cursor_unlocked(state, context, cursor)) return X3_STATUS_ERROR;
+   uint64_t count = 0;
+   if (host->len(runtime, args[2], &count) != X3_STATUS_OK) {
+     return X3_STATUS_ERROR;
+@@ -1357,24 +1427,38 @@
+     const X3Value* args,
+     uint32_t argc,
+     X3Value* result) {
+-  auto* host = state_from(user_data)->host;
++  auto* state = state_from(user_data);
++  auto* host = state->host;
+   if (!check_argc(host, context, argc, 1, "Cursor.fetchone()")) return X3_STATUS_ERROR;
+   auto* cursor = xlang3_sqlite::cursor_from(host, args[0]);
+-  if (cursor == nullptr || cursor->stmt == nullptr) {
++  if (cursor == nullptr || cursor->connection == nullptr || cursor->connection->db == nullptr || cursor->connection->closed) {
++    host->raise_error(context, state->programming_error_class, "sqlite cursor is closed");
++    return X3_STATUS_ERROR;
++  }
++  if (!check_cursor_unlocked(state, context, cursor)) return X3_STATUS_ERROR;
++  if (cursor->stmt == nullptr || !cursor->has_row) {
+     *result = x3_value_none();
+     return X3_STATUS_OK;
+   }
++  // Same-cursor callbacks must not finalize/reuse the raw active statement.
++  // Unrelated cursors and connection close remain allowed; stmt pins its DB.
++  CursorCallLock lock(cursor);
++  // Own the current row before stepping: SQLite's next row/reset can overwrite
++  // its column buffers. A lookahead error discards this row, as CPython does.
++  X3Value row = xlang3_sqlite::row_list(host, runtime, cursor->stmt);
++  sqlite3* db = sqlite3_db_handle(cursor->stmt);
+   const int rc = sqlite3_step(cursor->stmt);
+-  if (rc == SQLITE_ROW) {
+-    *result = xlang3_sqlite::row_list(host, runtime, cursor->stmt);
+-    return X3_STATUS_OK;
+-  }
+   if (rc == SQLITE_DONE) {
+-    *result = x3_value_none();
+-    return X3_STATUS_OK;
+-  }
+-  raise_sqlite_error(state_from(user_data), context, cursor->connection->db, "fetchone failed");
+-  return X3_STATUS_ERROR;
++    if (cursor->write_statement) cursor->rowcount = sqlite3_changes64(db);
++    finish_cursor_statement(cursor);
++  } else if (rc != SQLITE_ROW) {
++    raise_sqlite_error(state, context, db, "fetchone failed");
++    finish_cursor_statement(cursor);
++    host->value_release(row);
++    return X3_STATUS_ERROR;
++  }
++  *result = row;
++  return X3_STATUS_OK;
+ }
+ 
+ X3Status cursor_iter(
+@@ -1424,26 +1508,17 @@
+     X3Value* result) {
+   auto* host = state_from(user_data)->host;
+   if (!check_argc(host, context, argc, 1, "Cursor.fetchall()")) return X3_STATUS_ERROR;
+-  auto* cursor = xlang3_sqlite::cursor_from(host, args[0]);
+   X3Value rows = host->value_list(runtime);
+-  if (cursor == nullptr || cursor->stmt == nullptr) {
+-    *result = rows;
+-    return X3_STATUS_OK;
+-  }
+   while (true) {
+-    const int rc = sqlite3_step(cursor->stmt);
+-    if (rc == SQLITE_DONE) {
+-      *result = rows;
+-      return X3_STATUS_OK;
+-    }
+-    if (rc != SQLITE_ROW) {
++    X3Value row = x3_value_invalid();
++    if (cursor_fetchone(context, runtime, user_data, args, 1, &row) != X3_STATUS_OK) {
+       host->value_release(rows);
+-      raise_sqlite_error(state_from(user_data), context, cursor->connection->db, "fetchall failed");
+       return X3_STATUS_ERROR;
+     }
+-    X3Value row = xlang3_sqlite::row_list(host, runtime, cursor->stmt);
+-    host->list_append(runtime, rows, row);
++    if (row.tag == X3_TAG_NONE) { *result = rows; return X3_STATUS_OK; }
++    const X3Status status = host->list_append(runtime, rows, row);
+     host->value_release(row);
++    if (status != X3_STATUS_OK) { host->value_release(rows); return X3_STATUS_ERROR; }
+   }
+ }
+ 
+@@ -1747,7 +1822,7 @@
+     return X3_STATUS_ERROR;
+   }
+   auto* cursor = xlang3_sqlite::cursor_from(state->host, args[0]);
+-  if (cursor == nullptr || cursor->stmt == nullptr || sqlite3_column_count(cursor->stmt) == 0) {
++  if (cursor == nullptr || cursor->column_names.empty()) {
+     *result = x3_value_none();
+     return X3_STATUS_OK;
+   }
+@@ -1758,11 +1833,10 @@
+     state->host->set_error(context, "tuple type is unavailable");
+     return X3_STATUS_ERROR;
+   }
+-  const int count = sqlite3_column_count(cursor->stmt);
+-  for (int index = 0; index < count; ++index) {
++  for (const auto& column_name : cursor->column_names) {
+     X3Value field = state->host->value_list(runtime);
+     X3Value name = state->host->value_string(
+-        runtime, sqlite3_column_name(cursor->stmt, index));
++        runtime, column_name.c_str());
+     state->host->list_append(runtime, field, name);
+     state->host->value_release(name);
+     for (int metadata = 0; metadata < 6; ++metadata) {
+--- a/tests/run_fixtures.py
++++ b/tests/run_fixtures.py
+@@ -9,6 +9,7 @@
+ 
+ 
+ CORE_CASES = """
++sqlite_cursor_completion
+ sqlite_native_aggregate
+ canonical_slot_reads
+ vm_captured_lookup
+--- a/tests/run_fixtures.ps1
++++ b/tests/run_fixtures.ps1
+@@ -22,6 +22,7 @@
+ 
+ $root = $PSScriptRoot
+ $cases = @(
++    "sqlite_cursor_completion",
+     "sqlite_native_aggregate",
+     "scalar_loop",
+     "functions",
+--- /dev/null
++++ b/tests/fixtures/core/sqlite_cursor_completion.py
+@@ -0,0 +1,102 @@
++"""Native cursor progression fixture; capture exact CPython 3.14.7 first."""
++import sqlite3
++
++con = sqlite3.connect(":memory:")
++calls = []
++
++
++def mark(value):
++    calls.append(value)
++    return value
++
++
++con.create_function("mark", 1, mark)
++cur = con.execute("SELECT mark(x) AS marked FROM (SELECT 1 AS x UNION ALL SELECT 2 UNION ALL SELECT 3)")
++assert calls == [1]
++assert tuple(cur.fetchone()) == (1,) and calls == [1, 2]
++assert [tuple(row) for row in cur.fetchall()] == [(2,), (3,)]
++assert calls == [1, 2, 3]
++print("cursor-initial-step-and-lookahead")
++for unused in range(3):
++    assert cur.fetchone() is None and cur.fetchall() == []
++assert calls == [1, 2, 3]
++assert cur.description == (("marked", None, None, None, None, None, None),)
++empty = con.execute("SELECT 1 AS empty_column WHERE 0")
++assert empty.fetchone() is None and empty.fetchall() == []
++assert empty.description[0][0] == "empty_column"
++print("cursor-exhaustion-description")
++
++
++class Sum:
++    def __init__(self):
++        self.total = 0
++
++    def step(self, value):
++        self.total += value
++
++    def finalize(self):
++        return self.total
++
++
++con.create_aggregate("own_sum", 1, Sum)
++retained = con.execute("SELECT own_sum(x) AS total FROM (SELECT 1 AS x UNION ALL SELECT 2)")
++assert tuple(retained.fetchone()) == (3,)
++# Keep the cursor alive; the final fetch must already have finished SQL.
++con.create_aggregate("own_sum", 1, Sum)
++assert retained.fetchone() is None and retained.description[0][0] == "total"
++print("cursor-retained-aggregate-replacement")
++busy = con.execute("SELECT g, own_sum(x) FROM (SELECT 0 AS g, 1 AS x UNION ALL SELECT 1, 2) GROUP BY g ORDER BY g")
++assert tuple(busy.fetchone()) == (0, 1)
++try:
++    con.create_aggregate("own_sum", 1, Sum)
++except sqlite3.OperationalError:
++    pass
++else:
++    raise AssertionError("unfinished SELECT must still block registration replacement")
++assert tuple(busy.fetchone()) == (1, 2)
++con.create_aggregate("own_sum", 1, Sum)
++print("cursor-unfinished-query-stays-busy")
++
++text = "first\x00text"
++blob = b"\x00\xff"
++rows = con.execute("SELECT ? AS payload UNION ALL SELECT ?", (text, blob))
++first = rows.fetchone()
++second = rows.fetchone()
++assert first[0] == text and second[0] == blob
++assert rows.fetchone() is None and first[0] == text and second[0] == blob
++print("cursor-row-buffer-ownership")
++
++
++def fail_second(value):
++    if value == 2:
++        raise ValueError("lookahead failure")
++    return value
++
++
++con.create_function("fail_second", 1, fail_second)
++error_cursor = con.execute("SELECT fail_second(x) FROM (SELECT 1 AS x UNION ALL SELECT 2)")
++try:
++    error_cursor.fetchone()
++except sqlite3.OperationalError:
++    pass
++else:
++    raise AssertionError("lookahead failure must discard the copied current row")
++assert error_cursor.fetchone() is None and error_cursor.fetchall() == []
++assert tuple(error_cursor.execute("SELECT 7 AS recovered").fetchone()) == (7,)
++print("cursor-lookahead-error-cleanup")
++try:
++    con.execute("SELECT fail_second(2)")
++except sqlite3.OperationalError:
++    pass
++else:
++    raise AssertionError("execute must perform the initial step")
++print("cursor-execute-error-timing")
++
++con.execute("CREATE TABLE returning_rows (x INTEGER)")
++returning = con.execute("INSERT INTO returning_rows VALUES (8), (9) RETURNING x")
++assert returning.rowcount == 0
++assert tuple(returning.fetchone()) == (8,) and returning.rowcount == 0
++assert tuple(returning.fetchone()) == (9,) and returning.rowcount == 2
++assert returning.fetchone() is None and returning.description[0][0] == "x"
++print("cursor-returning-completion")
++con.close()
+--- /dev/null
++++ b/tests/fixtures/expected/sqlite_cursor_completion.out
+@@ -0,0 +1,8 @@
++cursor-initial-step-and-lookahead
++cursor-exhaustion-description
++cursor-retained-aggregate-replacement
++cursor-unfinished-query-stays-busy
++cursor-row-buffer-ownership
++cursor-lookahead-error-cleanup
++cursor-execute-error-timing
++cursor-returning-completion

@@ -1,0 +1,52 @@
+{
+  "purpose": "Diagnostic timing of inspect.getattr_static building blocks; includes Python call and loop overhead.",
+  "loops": 20000,
+  "cpython_version": "3.14.7",
+  "seconds": {
+    "cpython3147": {
+      "object_getattribute_dict": 0.0013767000054940581,
+      "dict_get": 0.0012838999973610044,
+      "inspect_check_instance": 0.0025489000836387277,
+      "inspect_check_class": 0.013800400076434016,
+      "inspect_getattr_static": 0.02343439997639507,
+      "inspect_shadowed_dict": 0.00496050005313009,
+      "class_dict_proxy_getter": 0.001255700015462935,
+      "class_dict_contains_fresh_proxy": 0.0013240000698715448,
+      "class_dict_contains_cached_proxy": 0.0007229000329971313,
+      "class_dict_get_fresh_proxy": 0.0013149000005796552,
+      "class_dict_get_cached_proxy": 0.0007538999198004603,
+      "inspect_static_getmro": 0.0012553000124171376
+    },
+    "xlang3_control": {
+      "object_getattribute_dict": 0.01943420001771301,
+      "dict_get": 0.0207205000333488,
+      "inspect_check_instance": 0.04143570002634078,
+      "inspect_check_class": 0.22652170003857464,
+      "inspect_getattr_static": 0.4388459000037983,
+      "inspect_shadowed_dict": 0.08673179999459535,
+      "class_dict_proxy_getter": 0.021331900032237172,
+      "class_dict_contains_fresh_proxy": 0.023513799998909235,
+      "class_dict_contains_cached_proxy": 0.008255099994130433,
+      "class_dict_get_fresh_proxy": 0.02966630004812055,
+      "class_dict_get_cached_proxy": 0.01458940003067255,
+      "inspect_static_getmro": 0.01570280003067255
+    },
+    "xlang3_candidate": {
+      "dict_get": 0.020012799999676645,
+      "inspect_check_instance": 0.03826909989584237,
+      "inspect_check_class": 0.22369030001573265,
+      "inspect_getattr_static": 0.4266690999502316,
+      "inspect_shadowed_dict": 0.08931870001833886,
+      "class_dict_proxy_getter": 0.023541999980807304,
+      "class_dict_contains_fresh_proxy": 0.025037200073711574,
+      "class_dict_contains_cached_proxy": 0.009350899956189096,
+      "class_dict_get_fresh_proxy": 0.0329943000106141,
+      "class_dict_get_cached_proxy": 0.01660460000857711,
+      "inspect_static_getmro": 0.016979599953629076
+    }
+  },
+  "limitations": [
+    "These are diagnostic primitives, not official pyperformance scores.",
+    "Samples were single-process observations and not statistically paired."
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "common_subtests": 87,
+  "before_cpython_speed_geomean": 0.12922340450086833,
+  "after_cpython_speed_geomean": 0.12774547796011376,
+  "before_over_after_speed_geomean": 0.9885630118904298,
+  "before_nominal_cpython_wins": 2,
+  "after_nominal_cpython_wins": 1,
+  "after_cpython_matched_outside_common": [
+    "mako"
+  ],
+  "before_cpython_matched_outside_common": [],
+  "inputs": {
+    "doc\\performance\\data\\pyperformance-xlang3-fixed-release-full-fast-shimmed-20261011-r2.json": "4dc147938c533c7ffb4b042568e37d0dbb088821180a516bc1be50ac6a499570",
+    "doc\\performance\\data\\pyperformance-xlang3-getitem-inline-full-fast-20261011-r2-combined.pyperf.json": "ebfc4bcca6d4666f45d74b0a8234eed2d0759359a2baca682c8a14aba19e2147",
+    "doc\\performance\\data\\pyperformance-cpython3147-live-eval-full-fast-20261007.json": "ac474df5576ac85f6f5350363affecc439d4f658b4dfa3dbe291b46964276eb0",
+    "doc\\performance\\data\\pyperformance-xlang3-getitem-inline-full-fast-20261011-r2-combined.provenance.json": "5a3418f350749867b272c0a4ea967629f5a1fa725f85a815f638335970a3114f"
+  }
+}

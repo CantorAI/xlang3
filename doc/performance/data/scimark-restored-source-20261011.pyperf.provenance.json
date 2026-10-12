@@ -1,0 +1,9 @@
+{
+  "benchmark_suite": "pyperformance 1.14.0",
+  "python": "C:\\Python\\Python314\\python.exe (Python 3.14.7)",
+  "command": "python benchmarks/diagnostics/run_pyperformance_xlang3_shimmed.py --runtime build-repro/main-verify-20261006/Release/xlang3.exe --benchmarks scimark --mode fast --case-timeout 300 --output doc/performance/data/scimark-restored-source-20261011.pyperf.json --dependency-site C:\\Python\\Python314\\Lib\\site-packages",
+  "runtime_executable_sha256": "6633C0A520DABCECA4DA4046F78243569045FFDEFA51160C3883A4CB0C6DF590",
+  "runtime_dll_sha256": "D5A0A11C84A8C9090AAFCB87591B245FD6589DE4690D27101C7A2980BC5E6CC6",
+  "correctness": "55/55 CTest checks passed after rebuilding with the candidate source changes removed",
+  "comparison": "Compared with scimark-current-fixed-release-full-fast-20261011.pyperf.json, pyperf found no significant change in four of five cases; LU was 1.02x slower, for a 1.01x slower geometric mean."
+}

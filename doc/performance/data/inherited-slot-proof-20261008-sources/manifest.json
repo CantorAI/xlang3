@@ -1,0 +1,1478 @@
+{
+  "status": "terminal evidence archive",
+  "raw_files": {
+    "doc/performance/data/inherited-slot-proof-early-20261008.json": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-early-20261008.json",
+      "sha256": "0d54b0e6e8b3110e1e34abfa58c5115dcd9604b78f7ca8eb0f83c43254980b39",
+      "raw_bytes": 46188
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008.json": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008.json",
+      "sha256": "b3bad5b00a8e143771193c41ef9787b0382d3a4fcc16d8517dfacd536c3d7ebf",
+      "raw_bytes": 135003
+    },
+    "doc/performance/data/inherited-slot-proof-early-20261008-idle-start-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-early-20261008-idle-start-stdout.log",
+      "sha256": "071697d6e74807993d5a7f66597936d601060392a20e52f28fbc317f3277213b",
+      "raw_bytes": 26332
+    },
+    "doc/performance/data/inherited-slot-proof-early-20261008-idle-start-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-early-20261008-idle-start-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-early-20261008-cpython3147-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-early-20261008-cpython3147-stdout.log",
+      "sha256": "4431256ca567eba259d62a08db78fcb63fd429ac7ec79a68a3a8dd438c826359",
+      "raw_bytes": 984
+    },
+    "doc/performance/data/inherited-slot-proof-early-20261008-cpython3147-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-early-20261008-cpython3147-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-early-20261008-control-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-early-20261008-control-stdout.log",
+      "sha256": "4431256ca567eba259d62a08db78fcb63fd429ac7ec79a68a3a8dd438c826359",
+      "raw_bytes": 984
+    },
+    "doc/performance/data/inherited-slot-proof-early-20261008-control-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-early-20261008-control-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-early-20261008-candidate-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-early-20261008-candidate-stdout.log",
+      "sha256": "4431256ca567eba259d62a08db78fcb63fd429ac7ec79a68a3a8dd438c826359",
+      "raw_bytes": 984
+    },
+    "doc/performance/data/inherited-slot-proof-early-20261008-candidate-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-early-20261008-candidate-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-early-20261008-cpp-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-early-20261008-cpp-stdout.log",
+      "sha256": "c972fc2c277da716c8beb801809389704d9360422cfcca5195fd88665d517c82",
+      "raw_bytes": 255
+    },
+    "doc/performance/data/inherited-slot-proof-early-20261008-cpp-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-early-20261008-cpp-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-early-20261008-idle-before-paired-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-early-20261008-idle-before-paired-stdout.log",
+      "sha256": "a365791f88c5133ebd0c9cd8f28677bdc6a5f423e880002d4e627410de27ab49",
+      "raw_bytes": 26331
+    },
+    "doc/performance/data/inherited-slot-proof-early-20261008-idle-before-paired-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-early-20261008-idle-before-paired-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-early-20261008-paired-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-early-20261008-paired-stdout.log",
+      "sha256": "faddb4ed0d8bde7cd8f0b9dc918be7cdde84886ec4bd9881f3c399dd00169f26",
+      "raw_bytes": 1797
+    },
+    "doc/performance/data/inherited-slot-proof-early-20261008-paired-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-early-20261008-paired-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-idle-start-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-idle-start-stdout.log",
+      "sha256": "32424dc7cb820dec1c7ba11a6978a027f7a9dc0a6f223b4e71c77e2ef10313ad",
+      "raw_bytes": 26394
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-idle-start-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-idle-start-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-idle-slot-before-reference-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-idle-slot-before-reference-stdout.log",
+      "sha256": "6cb2939f48179926af171ae7dafcf0a38d551230c7204e9dc2132fe6fe106521",
+      "raw_bytes": 26393
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-idle-slot-before-reference-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-idle-slot-before-reference-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-slot-cpython3147-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-slot-cpython3147-stdout.log",
+      "sha256": "4ab1489afe5f0212acb4d5e3314fc4ad59d6ac4abece197916a20609c154f2ae",
+      "raw_bytes": 693
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-slot-cpython3147-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-slot-cpython3147-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-idle-slot-before-pair-1-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-idle-slot-before-pair-1-stdout.log",
+      "sha256": "12c358b5a528f8ce298b60c0365fde1364d85b2770894f2ab76d509d2d4085ec",
+      "raw_bytes": 26393
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-idle-slot-before-pair-1-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-idle-slot-before-pair-1-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-slot-pair-1-control-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-slot-pair-1-control-stdout.log",
+      "sha256": "2790280f95f5f308d002abeb11d4632c9a3ff0a5d634f2d740d28d8df5b606c4",
+      "raw_bytes": 682
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-slot-pair-1-control-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-slot-pair-1-control-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-slot-pair-1-candidate-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-slot-pair-1-candidate-stdout.log",
+      "sha256": "49c9f9f6eef8e59aa36c8d4b7902eb60278f58b3f0f5bcbafb031eea8580da86",
+      "raw_bytes": 679
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-slot-pair-1-candidate-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-slot-pair-1-candidate-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-idle-slot-after-pair-1-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-idle-slot-after-pair-1-stdout.log",
+      "sha256": "77ea8f1a86aa0743cc7fca1fa14a464fc884d28af4cafdaf78eee50beb6f9881",
+      "raw_bytes": 26394
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-idle-slot-after-pair-1-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-idle-slot-after-pair-1-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-idle-slot-before-pair-2-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-idle-slot-before-pair-2-stdout.log",
+      "sha256": "1239d0eca8bacfe3aec9cba59473622d96e3d9b29fe5768ffde0be2cdc8bb75b",
+      "raw_bytes": 26393
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-idle-slot-before-pair-2-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-idle-slot-before-pair-2-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-slot-pair-2-candidate-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-slot-pair-2-candidate-stdout.log",
+      "sha256": "1595ec46b61e8bf994ca94991ccdac5ae3bcd87f8e96107bf7a3bf93422dc0fa",
+      "raw_bytes": 681
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-slot-pair-2-candidate-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-slot-pair-2-candidate-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-slot-pair-2-control-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-slot-pair-2-control-stdout.log",
+      "sha256": "2a965167fbac3697d5d5318aa8355426587e12be92e3e926a88d6599e9b837db",
+      "raw_bytes": 679
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-slot-pair-2-control-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-slot-pair-2-control-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-idle-slot-after-pair-2-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-idle-slot-after-pair-2-stdout.log",
+      "sha256": "905e692aa4dc922b7a30ac613a43b2236c3afb10b7398840e4a6a872e390e006",
+      "raw_bytes": 26393
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-idle-slot-after-pair-2-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-idle-slot-after-pair-2-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-idle-slot-before-pair-3-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-idle-slot-before-pair-3-stdout.log",
+      "sha256": "894ee50dc9d5d417cff0e1bfe542c849437d1ecd4b4135493ee07394824fb996",
+      "raw_bytes": 26394
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-idle-slot-before-pair-3-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-idle-slot-before-pair-3-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-slot-pair-3-control-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-slot-pair-3-control-stdout.log",
+      "sha256": "b2c175a5a44745a1e50c5875f4c2cfb61fa07d42346f56935d3a8393a3ffecf2",
+      "raw_bytes": 680
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-slot-pair-3-control-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-slot-pair-3-control-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-slot-pair-3-candidate-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-slot-pair-3-candidate-stdout.log",
+      "sha256": "bdabe102d0d1c4026c9507c3cb19d987dbe5e0b6c8695343048e9ab70c812098",
+      "raw_bytes": 679
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-slot-pair-3-candidate-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-slot-pair-3-candidate-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-idle-slot-after-pair-3-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-idle-slot-after-pair-3-stdout.log",
+      "sha256": "9a849f81b4f4a6784d25fd0ef5ea428c94660b9ca6ee58779fc92a4641a668ca",
+      "raw_bytes": 26394
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-idle-slot-after-pair-3-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-idle-slot-after-pair-3-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-idle-slot-before-pair-4-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-idle-slot-before-pair-4-stdout.log",
+      "sha256": "1d94e2c75fc9fb88ddd06192ecef78bacad9a1e475bc6d1fde16c31942fcc56d",
+      "raw_bytes": 26394
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-idle-slot-before-pair-4-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-idle-slot-before-pair-4-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-slot-pair-4-candidate-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-slot-pair-4-candidate-stdout.log",
+      "sha256": "dc2cb213e7c4ce1bf9682f7012870182382efce4e997f650c7d38fdd2cf79cee",
+      "raw_bytes": 677
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-slot-pair-4-candidate-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-slot-pair-4-candidate-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-slot-pair-4-control-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-slot-pair-4-control-stdout.log",
+      "sha256": "c3679ba5d12c76ab1807b19be3676734edc4ea45c6c10dd8e508b4f6bb4bf10c",
+      "raw_bytes": 681
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-slot-pair-4-control-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-slot-pair-4-control-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-idle-slot-after-pair-4-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-idle-slot-after-pair-4-stdout.log",
+      "sha256": "01d18692ff7dc245ad374751509cda6275737c418441a9c8824ea965709a449a",
+      "raw_bytes": 26394
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-idle-slot-after-pair-4-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-idle-slot-after-pair-4-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-idle-slot-before-pair-5-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-idle-slot-before-pair-5-stdout.log",
+      "sha256": "e268ad353d4075ff18aa3d9cd6b0e027bc38cad7dbde684f0acd0e4f85c146bc",
+      "raw_bytes": 26647
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-idle-slot-before-pair-5-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-idle-slot-before-pair-5-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-slot-pair-5-control-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-slot-pair-5-control-stdout.log",
+      "sha256": "8c49e4f9e0eabe1471f71f84c0a7c363061a6b87f7257f474a5dac0fd7bef1cd",
+      "raw_bytes": 682
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-slot-pair-5-control-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-slot-pair-5-control-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-slot-pair-5-candidate-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-slot-pair-5-candidate-stdout.log",
+      "sha256": "ff0b336045fff4c3ae37454d5c80d3cc1303fe08a8f25e47c87de81ac2fa8c2e",
+      "raw_bytes": 678
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-slot-pair-5-candidate-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-slot-pair-5-candidate-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-idle-slot-after-pair-5-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-idle-slot-after-pair-5-stdout.log",
+      "sha256": "cc0464012ff814a86491bfffa7224afff7343a07bc29bd9f303ef8618af00140",
+      "raw_bytes": 26394
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-idle-slot-after-pair-5-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-idle-slot-after-pair-5-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-idle-slot-before-pair-6-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-idle-slot-before-pair-6-stdout.log",
+      "sha256": "4a3bcb83c07200ff24c982a9704879b89d639958c0b0ca7399a745146f208dad",
+      "raw_bytes": 26394
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-idle-slot-before-pair-6-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-idle-slot-before-pair-6-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-slot-pair-6-candidate-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-slot-pair-6-candidate-stdout.log",
+      "sha256": "2a4b4a501ae497dacc52c8074af852cb3d3e878673eb879d1bd9aeb316458f9f",
+      "raw_bytes": 681
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-slot-pair-6-candidate-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-slot-pair-6-candidate-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-slot-pair-6-control-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-slot-pair-6-control-stdout.log",
+      "sha256": "e9d28d33f6c9571cdac30b3a4677cbbd9aa0ecd59b41dd8052ee0b9d98c1bfbe",
+      "raw_bytes": 680
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-slot-pair-6-control-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-slot-pair-6-control-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-idle-slot-after-pair-6-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-idle-slot-after-pair-6-stdout.log",
+      "sha256": "595a6b914bc6d53bc4d5d4e83ed7c518a5de37a444fabd9772807efa0e4f0241",
+      "raw_bytes": 26394
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-idle-slot-after-pair-6-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-idle-slot-after-pair-6-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-idle-slot-before-pair-7-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-idle-slot-before-pair-7-stdout.log",
+      "sha256": "12d21ea283f8bbbc29a5f49e12ca42778245344d8143de354c282750e19a9880",
+      "raw_bytes": 26394
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-idle-slot-before-pair-7-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-idle-slot-before-pair-7-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-slot-pair-7-control-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-slot-pair-7-control-stdout.log",
+      "sha256": "76eff2944b2c15e2c3b4bf16bdd27233ddd4f843917bd8e4079a07fae623439a",
+      "raw_bytes": 680
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-slot-pair-7-control-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-slot-pair-7-control-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-slot-pair-7-candidate-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-slot-pair-7-candidate-stdout.log",
+      "sha256": "f6d3353f826652a3f7b5be7a2c5af024ed65cc0c65fcace79bc803087d5297f2",
+      "raw_bytes": 682
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-slot-pair-7-candidate-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-slot-pair-7-candidate-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-idle-slot-after-pair-7-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-idle-slot-after-pair-7-stdout.log",
+      "sha256": "5ec90e1698dc8986be2d92c4d8516264e7b1642ed85bfae5a5562901e3141274",
+      "raw_bytes": 26394
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-idle-slot-after-pair-7-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-idle-slot-after-pair-7-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-idle-sqlglot_parse-before-reference-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-idle-sqlglot_parse-before-reference-stdout.log",
+      "sha256": "16b986f2ac2bdce9f8cecb5439ca7498d1792515be2ef119c39c43210b58c0d7",
+      "raw_bytes": 26394
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-idle-sqlglot_parse-before-reference-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-idle-sqlglot_parse-before-reference-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-sqlglot_parse-cpython3147-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-sqlglot_parse-cpython3147-stdout.log",
+      "sha256": "f4527fc5d705a378704598512ba9f52471e6eedeca62852cbb7bfa11e904155f",
+      "raw_bytes": 594
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-sqlglot_parse-cpython3147-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-sqlglot_parse-cpython3147-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-idle-sqlglot_parse-before-pair-1-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-idle-sqlglot_parse-before-pair-1-stdout.log",
+      "sha256": "f5127be09f1cd3e2bb969f6e9dcd6aa74718f16696263f04138771f9893838a8",
+      "raw_bytes": 26394
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-idle-sqlglot_parse-before-pair-1-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-idle-sqlglot_parse-before-pair-1-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-sqlglot_parse-pair-1-control-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-sqlglot_parse-pair-1-control-stdout.log",
+      "sha256": "b285831dd8989b1c2f693ffe7b1d4587a6fa41f9bc09fe5e67d791ab0b734a37",
+      "raw_bytes": 592
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-sqlglot_parse-pair-1-control-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-sqlglot_parse-pair-1-control-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-sqlglot_parse-pair-1-candidate-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-sqlglot_parse-pair-1-candidate-stdout.log",
+      "sha256": "7f6e5dca9fe476913b501786829974896b37f7a47d3416a92341ef7a018490f2",
+      "raw_bytes": 591
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-sqlglot_parse-pair-1-candidate-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-sqlglot_parse-pair-1-candidate-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-idle-sqlglot_parse-after-pair-1-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-idle-sqlglot_parse-after-pair-1-stdout.log",
+      "sha256": "594894b922fcc39a87cbc3a9a5fa959cd7437a60f32c1aef1f4537522fa3412b",
+      "raw_bytes": 26394
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-idle-sqlglot_parse-after-pair-1-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-idle-sqlglot_parse-after-pair-1-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-idle-sqlglot_parse-before-pair-2-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-idle-sqlglot_parse-before-pair-2-stdout.log",
+      "sha256": "f69a13aa9abe4c06da1db91712f744ffc6d6fab204709acf318c8888f59dbf48",
+      "raw_bytes": 26394
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-idle-sqlglot_parse-before-pair-2-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-idle-sqlglot_parse-before-pair-2-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-sqlglot_parse-pair-2-candidate-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-sqlglot_parse-pair-2-candidate-stdout.log",
+      "sha256": "736c8baa4494c670443001ad6456c9d9be5acdbeb04d6b538ef228867d92b264",
+      "raw_bytes": 588
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-sqlglot_parse-pair-2-candidate-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-sqlglot_parse-pair-2-candidate-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-sqlglot_parse-pair-2-control-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-sqlglot_parse-pair-2-control-stdout.log",
+      "sha256": "caf2f5bd4ab23fce0c94e95e3b15d76fe67afc8b0b55dee24107181f4566e9c8",
+      "raw_bytes": 592
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-sqlglot_parse-pair-2-control-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-sqlglot_parse-pair-2-control-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-idle-sqlglot_parse-after-pair-2-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-idle-sqlglot_parse-after-pair-2-stdout.log",
+      "sha256": "0805b70976721b1112019e04cdf16d00ed1c8507f66d6f541c3282e95a5b2471",
+      "raw_bytes": 26394
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-idle-sqlglot_parse-after-pair-2-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-idle-sqlglot_parse-after-pair-2-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-idle-sqlglot_parse-before-pair-3-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-idle-sqlglot_parse-before-pair-3-stdout.log",
+      "sha256": "d9022138dc24897468e3bcbc229e064196248e43778d1bc6958a49f2a90da934",
+      "raw_bytes": 26394
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-idle-sqlglot_parse-before-pair-3-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-idle-sqlglot_parse-before-pair-3-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-sqlglot_parse-pair-3-control-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-sqlglot_parse-pair-3-control-stdout.log",
+      "sha256": "ac4998dea45a0fbebd2365d96f43b4bb2cbabd9599a3cbd3253056899eb68a49",
+      "raw_bytes": 589
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-sqlglot_parse-pair-3-control-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-sqlglot_parse-pair-3-control-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-sqlglot_parse-pair-3-candidate-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-sqlglot_parse-pair-3-candidate-stdout.log",
+      "sha256": "95a9cccfb50dbdea797684196ce1f4195a4fecf4ac3d38574c3db0fc04d12e7d",
+      "raw_bytes": 590
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-sqlglot_parse-pair-3-candidate-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-sqlglot_parse-pair-3-candidate-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-idle-sqlglot_parse-after-pair-3-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-idle-sqlglot_parse-after-pair-3-stdout.log",
+      "sha256": "231976ad7fd66b7f8370eca0ce44308f79405dda852676bd4c0fe67675b1f568",
+      "raw_bytes": 26393
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-idle-sqlglot_parse-after-pair-3-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-idle-sqlglot_parse-after-pair-3-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-idle-sqlglot_parse-before-pair-4-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-idle-sqlglot_parse-before-pair-4-stdout.log",
+      "sha256": "58c8cbdc5c189b9b8fbc67772d817744b74693bd86a8ff6130ead95cb67aed21",
+      "raw_bytes": 26394
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-idle-sqlglot_parse-before-pair-4-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-idle-sqlglot_parse-before-pair-4-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-sqlglot_parse-pair-4-candidate-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-sqlglot_parse-pair-4-candidate-stdout.log",
+      "sha256": "0c99eb0eed9ac6907822f51a6fdee4b1fc88a0648da93c9167f75f2bd6da18f9",
+      "raw_bytes": 589
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-sqlglot_parse-pair-4-candidate-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-sqlglot_parse-pair-4-candidate-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-sqlglot_parse-pair-4-control-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-sqlglot_parse-pair-4-control-stdout.log",
+      "sha256": "d5f699a3248738760ad006692973035f1b58e9ce45990b0a68e5879a4d8d0af4",
+      "raw_bytes": 590
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-sqlglot_parse-pair-4-control-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-sqlglot_parse-pair-4-control-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-idle-sqlglot_parse-after-pair-4-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-idle-sqlglot_parse-after-pair-4-stdout.log",
+      "sha256": "e1c69b55e8900b2cec1a6fbc201f42ceb8091d04388b936039c590cac0da6063",
+      "raw_bytes": 26394
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-idle-sqlglot_parse-after-pair-4-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-idle-sqlglot_parse-after-pair-4-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-idle-sqlglot_parse-before-pair-5-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-idle-sqlglot_parse-before-pair-5-stdout.log",
+      "sha256": "43a92019a037eacb92ede2ff109b7150e134b0f856857336bdafc63b2c2730ee",
+      "raw_bytes": 26394
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-idle-sqlglot_parse-before-pair-5-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-idle-sqlglot_parse-before-pair-5-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-sqlglot_parse-pair-5-control-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-sqlglot_parse-pair-5-control-stdout.log",
+      "sha256": "5924e9f35a1b609a79cc5f3ce541d02533b6b6312476480bd3c5c7d97d2d1d26",
+      "raw_bytes": 589
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-sqlglot_parse-pair-5-control-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-sqlglot_parse-pair-5-control-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-sqlglot_parse-pair-5-candidate-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-sqlglot_parse-pair-5-candidate-stdout.log",
+      "sha256": "7be373565a34dca3a3effbecd08bf346b76eebd8052b09451e7346739ba74da3",
+      "raw_bytes": 590
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-sqlglot_parse-pair-5-candidate-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-sqlglot_parse-pair-5-candidate-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-idle-sqlglot_parse-after-pair-5-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-idle-sqlglot_parse-after-pair-5-stdout.log",
+      "sha256": "df415dd158954b13f2ec1ca024c2b55a8c82a6f01179b7a24857b79bcab2b9c0",
+      "raw_bytes": 26646
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-idle-sqlglot_parse-after-pair-5-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-idle-sqlglot_parse-after-pair-5-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-idle-sqlglot_parse-before-pair-6-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-idle-sqlglot_parse-before-pair-6-stdout.log",
+      "sha256": "2092accbf7a7f04644f31a5da7c5f51a1b2f526fbd35aa941129949f8c65f431",
+      "raw_bytes": 26394
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-idle-sqlglot_parse-before-pair-6-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-idle-sqlglot_parse-before-pair-6-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-sqlglot_parse-pair-6-candidate-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-sqlglot_parse-pair-6-candidate-stdout.log",
+      "sha256": "fb65bf3f1d99f6f62f5d96fc45a9a1a52f679eff5587b7374b5124371994c080",
+      "raw_bytes": 591
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-sqlglot_parse-pair-6-candidate-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-sqlglot_parse-pair-6-candidate-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-sqlglot_parse-pair-6-control-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-sqlglot_parse-pair-6-control-stdout.log",
+      "sha256": "26f7eee56e6f1768dade5ce732a39c342683502196638d5f12382def96c8b273",
+      "raw_bytes": 592
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-sqlglot_parse-pair-6-control-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-sqlglot_parse-pair-6-control-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-idle-sqlglot_parse-after-pair-6-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-idle-sqlglot_parse-after-pair-6-stdout.log",
+      "sha256": "0d9560c315789bf2a8ab290378462bb3ec99c6e76f2b78f71d1a5118e966ae0e",
+      "raw_bytes": 26393
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-idle-sqlglot_parse-after-pair-6-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-idle-sqlglot_parse-after-pair-6-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-idle-sqlglot_parse-before-pair-7-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-idle-sqlglot_parse-before-pair-7-stdout.log",
+      "sha256": "595a6b914bc6d53bc4d5d4e83ed7c518a5de37a444fabd9772807efa0e4f0241",
+      "raw_bytes": 26394
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-idle-sqlglot_parse-before-pair-7-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-idle-sqlglot_parse-before-pair-7-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-sqlglot_parse-pair-7-control-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-sqlglot_parse-pair-7-control-stdout.log",
+      "sha256": "0a78915afbf6a713ce4a40b1dc571615a6df5bd6c15d170b49eb4c2e710a7961",
+      "raw_bytes": 591
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-sqlglot_parse-pair-7-control-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-sqlglot_parse-pair-7-control-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-sqlglot_parse-pair-7-candidate-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-sqlglot_parse-pair-7-candidate-stdout.log",
+      "sha256": "6cdebf44e45d5f899a0bb7820d45b710bb24f0956e5588ff601e44c63a609a19",
+      "raw_bytes": 590
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-sqlglot_parse-pair-7-candidate-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-sqlglot_parse-pair-7-candidate-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-idle-sqlglot_parse-after-pair-7-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-idle-sqlglot_parse-after-pair-7-stdout.log",
+      "sha256": "e27ae1b7d07093f2059b060e8cd0e003cb96f42f3d2ffa3d17988909199f401e",
+      "raw_bytes": 26394
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-idle-sqlglot_parse-after-pair-7-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-idle-sqlglot_parse-after-pair-7-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-idle-terminal-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-idle-terminal-stdout.log",
+      "sha256": "21b0323628d629e4c8c721156f47cf8354864d07364ca877636a5e4db1c7ec50",
+      "raw_bytes": 26394
+    },
+    "doc/performance/data/inherited-slot-proof-paired-20261008-idle-terminal-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-paired-20261008-idle-terminal-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "r3-tested-inputs/src/internal/xlang3/object_model.h": {
+      "source": "D:\\CantorAI\\xlang3\\src\\internal\\xlang3\\object_model.h",
+      "sha256": "7a7e767de9ac93bc83992cb2367cc0cf15353f8da54326e867297bbcef1eec03",
+      "raw_bytes": 14971
+    },
+    "r3-tested-inputs/src/runtime/object_model.cpp": {
+      "source": "D:\\CantorAI\\xlang3\\src\\runtime\\object_model.cpp",
+      "sha256": "835996e3db255ec24112fe93d9438df4c05d281befd502c306a3df2c1ffd1556",
+      "raw_bytes": 232582
+    },
+    "r3-tested-inputs/src/builtins/object_type_builtins.cpp": {
+      "source": "D:\\CantorAI\\xlang3\\src\\builtins\\object_type_builtins.cpp",
+      "sha256": "171aafd05b11396b5522a2a45d490b37dbce0924c00b661b4f2e1ba41fa7a3d3",
+      "raw_bytes": 175832
+    },
+    "r3-tested-inputs/src/executor/xlang_vm/ops/xlang_vm_ops_construct.h": {
+      "source": "D:\\CantorAI\\xlang3\\src\\executor\\xlang_vm\\ops\\xlang_vm_ops_construct.h",
+      "sha256": "a5e192e82b37a6545b7988395dc5324b9e0381d280ad5ee7d2c4dcca8b592c42",
+      "raw_bytes": 11950
+    },
+    "r3-tested-inputs/src/executor/xlang_vm/xlang_vm_inline_support.h": {
+      "source": "D:\\CantorAI\\xlang3\\src\\executor\\xlang_vm\\xlang_vm_inline_support.h",
+      "sha256": "63eb38f507193ccabd852b261eb84299d2a05dacb8cd1999760e8c7121a4d4b0",
+      "raw_bytes": 123899
+    },
+    "r3-tested-inputs/src/executor/xlang_vm/xlang_vm_attr.cpp": {
+      "source": "D:\\CantorAI\\xlang3\\src\\executor\\xlang_vm\\xlang_vm_attr.cpp",
+      "sha256": "264a0d6c78dc4b946fe4b1f00dd7dd6d52581589a6950d4ecaf394d312994c7a",
+      "raw_bytes": 19693
+    },
+    "r3-tested-inputs/src/serialize/value_graph_reader.cpp": {
+      "source": "D:\\CantorAI\\xlang3\\src\\serialize\\value_graph_reader.cpp",
+      "sha256": "33e783e7508adaca6372383fc9b5b593509a7dc66669168ee3116a58ef90d662",
+      "raw_bytes": 20248
+    },
+    "r3-tested-inputs/src/runtime/modules/system/weakref_module.cpp": {
+      "source": "D:\\CantorAI\\xlang3\\src\\runtime\\modules\\system\\weakref_module.cpp",
+      "sha256": "a4d0a52d7ffa14f48c9c0226c71c80b635720f4b7153658b2e6da25be269cb73",
+      "raw_bytes": 90156
+    },
+    "r3-tested-inputs/tests/cpp/canonical_slot_read_cases.h": {
+      "source": "D:\\CantorAI\\xlang3\\tests\\cpp\\canonical_slot_read_cases.h",
+      "sha256": "6b6e18371c686021f1626293f7afd7733039bd216fae7878e42363bc410f63de",
+      "raw_bytes": 44818
+    },
+    "r3-tested-inputs/tests/fixtures/core/canonical_slot_reads.py": {
+      "source": "D:\\CantorAI\\xlang3\\tests\\fixtures\\core\\canonical_slot_reads.py",
+      "sha256": "7efadaea716e73e987a0ee35a2110f44ab91dec1e0d75ddb40ad627b582f918b",
+      "raw_bytes": 5653
+    },
+    "r3-tested-inputs/tests/fixtures/expected/canonical_slot_reads.out": {
+      "source": "D:\\CantorAI\\xlang3\\tests\\fixtures\\expected\\canonical_slot_reads.out",
+      "sha256": "5fb63eb109aee4d367d06c636db3d30bea771a8c13a8819a985c43fc43bd24a2",
+      "raw_bytes": 970
+    },
+    "r3-tested-inputs/tests/cpp/interpreter_tests.cpp": {
+      "source": "D:\\CantorAI\\xlang3\\tests\\cpp\\interpreter_tests.cpp",
+      "sha256": "2e1c801963399e23f02d5f35e198949f102a8b665eebe3fcdcfebd453ce2342c",
+      "raw_bytes": 29186
+    },
+    "r3-tested-inputs/tests/run_fixtures.py": {
+      "source": "D:\\CantorAI\\xlang3\\tests\\run_fixtures.py",
+      "sha256": "b0c4703154a9fc647ed7a37d83f28a6efd9ca6e9053c74c1362912105ed4d61b",
+      "raw_bytes": 12407
+    },
+    "r3-tested-inputs/src/executor/xlang_vm/ops/xlang_vm_ops_attr.h": {
+      "source": "D:\\CantorAI\\xlang3\\src\\executor\\xlang_vm\\ops\\xlang_vm_ops_attr.h",
+      "sha256": "f29726b53a7e0538b65d5a860b39927c3b598d285e678c6b19e0f7fbfdd0e60f",
+      "raw_bytes": 76596
+    },
+    "r3-tested-inputs/scratch/performance/canonical-slot-probe-20261008.py": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-probe-20261008.py",
+      "sha256": "f2cda8eff1ed7ab9ded5ab7daeefee8d0b7909b4b3974fcda06e48a706d994d2",
+      "raw_bytes": 931
+    },
+    "r3-tested-inputs/scratch/performance/canonical-slot-sqlglot-probe-20261008.py": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-sqlglot-probe-20261008.py",
+      "sha256": "2a0eabce26935cfd46517486c52d6d4cc95154b60b55e187c9bd607a0f5a23ae",
+      "raw_bytes": 1009
+    },
+    "r3-tested-inputs/scratch/performance/check-inherited-slot-proof-20261008.py": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\check-inherited-slot-proof-20261008.py",
+      "sha256": "41c4edb898761603479b8aadae19afa4bfe38e5c793a1079a60015b72fbc285d",
+      "raw_bytes": 2492
+    },
+    "r3-tested-inputs/scratch/performance/compare-inherited-slot-proof-20261008.py": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\compare-inherited-slot-proof-20261008.py",
+      "sha256": "6c6ece259c4e3e498831d8f5aebe1e4c3f6d806ad09b6c31165f1a985946d089",
+      "raw_bytes": 5127
+    },
+    "r3-tested-inputs/scratch/performance/inherited_slot_proof_support_20261008.py": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited_slot_proof_support_20261008.py",
+      "sha256": "ccdd2cd93ba4ed77395c7f33df9efe3fceeadef89adc78bf877c57f64e09975e",
+      "raw_bytes": 10234
+    },
+    "scratch/performance/inherited-slot-proof-git-lf-20261008-provenance.json": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-git-lf-20261008-provenance.json",
+      "sha256": "9f43ce2c3fc56a046b4ea9f326e1de3c082e7c8070317bff86ded7977995d720",
+      "raw_bytes": 6948
+    },
+    "git-normalized-lf/src/internal/xlang3/object_model.h": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-git-lf-20261008-sources\\src\\internal\\xlang3\\object_model.h",
+      "sha256": "e8642394a719f68c9666517c3a24d7487e30d088fa3ea4f9961d86bd36fd4023",
+      "raw_bytes": 14616
+    },
+    "git-normalized-lf/src/runtime/object_model.cpp": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-git-lf-20261008-sources\\src\\runtime\\object_model.cpp",
+      "sha256": "038a27578a9f907c3987c0470a89663a7feee7d4bf0838afb9fd46f0c6c63e18",
+      "raw_bytes": 226342
+    },
+    "git-normalized-lf/src/builtins/object_type_builtins.cpp": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-git-lf-20261008-sources\\src\\builtins\\object_type_builtins.cpp",
+      "sha256": "58d6eb52e7fd0a92e290bbf1bd28da659cdc5b612747797ffe22cfa7f5477b6c",
+      "raw_bytes": 171038
+    },
+    "git-normalized-lf/src/executor/xlang_vm/ops/xlang_vm_ops_construct.h": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-git-lf-20261008-sources\\src\\executor\\xlang_vm\\ops\\xlang_vm_ops_construct.h",
+      "sha256": "16b01e2eaf7889fd9d23e7b5d247b251671393e19bf745f489aac865838c8ef8",
+      "raw_bytes": 11633
+    },
+    "git-normalized-lf/src/executor/xlang_vm/xlang_vm_inline_support.h": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-git-lf-20261008-sources\\src\\executor\\xlang_vm\\xlang_vm_inline_support.h",
+      "sha256": "d321762ea5e78dfe5a0dcd37f8969beb63fe37fc3f852c898b94ecaad74fc538",
+      "raw_bytes": 120659
+    },
+    "git-normalized-lf/src/executor/xlang_vm/xlang_vm_attr.cpp": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-git-lf-20261008-sources\\src\\executor\\xlang_vm\\xlang_vm_attr.cpp",
+      "sha256": "a65817da76f797cfaf3a35b3fbf9eddf30ae0aefa8514aea22b9fd031914e7a8",
+      "raw_bytes": 19276
+    },
+    "git-normalized-lf/src/serialize/value_graph_reader.cpp": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-git-lf-20261008-sources\\src\\serialize\\value_graph_reader.cpp",
+      "sha256": "02b48bde31a254cb3e95eacc0e6215dc495c829fcf9f83a84071b245e8e0ec56",
+      "raw_bytes": 19886
+    },
+    "git-normalized-lf/src/runtime/modules/system/weakref_module.cpp": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-git-lf-20261008-sources\\src\\runtime\\modules\\system\\weakref_module.cpp",
+      "sha256": "bc28da2f808fb50597e6e05f8704f2f0e0091142afd9f1890505ee5249e7b05b",
+      "raw_bytes": 88103
+    },
+    "git-normalized-lf/tests/cpp/canonical_slot_read_cases.h": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-git-lf-20261008-sources\\tests\\cpp\\canonical_slot_read_cases.h",
+      "sha256": "69ea4cad0d2a500ef863ecd0122665286f8a0490be9e5fceec41805e19d4e2a1",
+      "raw_bytes": 44023
+    },
+    "git-normalized-lf/tests/fixtures/core/canonical_slot_reads.py": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-git-lf-20261008-sources\\tests\\fixtures\\core\\canonical_slot_reads.py",
+      "sha256": "7efadaea716e73e987a0ee35a2110f44ab91dec1e0d75ddb40ad627b582f918b",
+      "raw_bytes": 5653
+    },
+    "git-normalized-lf/tests/fixtures/expected/canonical_slot_reads.out": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-git-lf-20261008-sources\\tests\\fixtures\\expected\\canonical_slot_reads.out",
+      "sha256": "5fb63eb109aee4d367d06c636db3d30bea771a8c13a8819a985c43fc43bd24a2",
+      "raw_bytes": 970
+    },
+    "external/python314/bm_sqlglot_v2/run_benchmark.py": {
+      "source": "C:\\Python\\Python314\\Lib\\site-packages\\pyperformance\\data-files\\benchmarks\\bm_sqlglot_v2\\run_benchmark.py",
+      "sha256": "d97aaba24f8c49f2afe5c5c740c568be6e89dde3364d5a964a4b72e5a4768a9b",
+      "raw_bytes": 5220
+    },
+    "benchmarks/diagnostics/pyperf_compat/sitecustomize.py": {
+      "source": "D:\\CantorAI\\xlang3\\benchmarks\\diagnostics\\pyperf_compat\\sitecustomize.py",
+      "sha256": "2ffc217fe20497156bfcb1cebc7fb87203f33c6d4d3dbb6ecbcbcf91ea4cb317",
+      "raw_bytes": 1266
+    },
+    "benchmarks/diagnostics/run_pyperformance_xlang3_shimmed.py": {
+      "source": "D:\\CantorAI\\xlang3\\benchmarks\\diagnostics\\run_pyperformance_xlang3_shimmed.py",
+      "sha256": "c078ee77d5d66165f0bf4b2d782df56e71868ada827c81c5c53516c8d017ceaf",
+      "raw_bytes": 12642
+    },
+    "benchmarks/check_regression.py": {
+      "source": "D:\\CantorAI\\xlang3\\benchmarks\\check_regression.py",
+      "sha256": "579934598caddc37409fed03181b0cd42408853a34bde65dff48b777e4e8ffef",
+      "raw_bytes": 10569
+    },
+    "build-repro/controls/canonical-slot-checkpoint-20261008/preserved-release-provenance.json": {
+      "source": "D:\\CantorAI\\xlang3\\build-repro\\controls\\canonical-slot-checkpoint-20261008\\preserved-release-provenance.json",
+      "sha256": "833d8c1208d54a63d63ff56edd34fd67e3dc0aabe34c86b79c5f460f429426da",
+      "raw_bytes": 16402
+    },
+    "doc/performance/data/pyperformance-cpython3147-live-eval-full-fast-20261007.json": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\pyperformance-cpython3147-live-eval-full-fast-20261007.json",
+      "sha256": "ac474df5576ac85f6f5350363affecc439d4f658b4dfa3dbe291b46964276eb0",
+      "raw_bytes": 217975
+    },
+    "doc/performance/data/pyperformance-cpython3147-live-eval-full-fast-20261007-provenance.json": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\pyperformance-cpython3147-live-eval-full-fast-20261007-provenance.json",
+      "sha256": "3d6c8cb2c72c786583c382b835e8e411f56ca285963bc2835f757a13f399f85c",
+      "raw_bytes": 41162
+    },
+    "doc/performance/data/pyperformance-cpython3147-live-eval-full-fast-20261007.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\pyperformance-cpython3147-live-eval-full-fast-20261007.log",
+      "sha256": "6a1824eed3abad4cebae80356f0f600f1a8728755730d2f64c0bd7d4b3ca9e6c",
+      "raw_bytes": 71763
+    },
+    "doc/performance/data/pyperformance-canonical-slot-r4-sqlglot-parse-fast-20261008.json": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\pyperformance-canonical-slot-r4-sqlglot-parse-fast-20261008.json",
+      "sha256": "a3a841f120a719aa06f0f964b19af1630e35d321560081800ca34c843dd9b0b6",
+      "raw_bytes": 1756
+    },
+    "doc/performance/data/canonical-slot-r4-validation-20261008-official-sqlglot-parse.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-validation-20261008-official-sqlglot-parse.log",
+      "sha256": "713a4ce3bad7ac68e05d653147049e8d03ffc701c87bb8db8571a8c17552751e",
+      "raw_bytes": 872
+    },
+    "doc/performance/data/canonical-slot-r4-validation-20261008.json": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-r4-validation-20261008.json",
+      "sha256": "4e32beb6246af96507739ec9c5dc861dadb0e18a5ecd2d5fdec4827f8f977eab",
+      "raw_bytes": 10664
+    },
+    "doc/performance/data/canonical-slot-20261008-sources/manifest.json": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-20261008-sources\\manifest.json",
+      "sha256": "c2725543c3e247a9e9b8668c14152ee4835c57bb56af5662c6b45139a1c5d8d5",
+      "raw_bytes": 89796
+    },
+    "accepted-r4-tested-inputs/src/executor/xlang_vm/xlang_vm_attr.cpp": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-20261008-sources\\r4-tested-inputs\\src\\executor\\xlang_vm\\xlang_vm_attr.cpp",
+      "sha256": "5f09f741ceab8f72c2b918912ba30e12f12bcde91988097d056ae3f20a62bb64",
+      "raw_bytes": 18030
+    },
+    "accepted-r4-tested-inputs/src/executor/xlang_vm/ops/xlang_vm_ops_attr.h": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-20261008-sources\\r4-tested-inputs\\src\\executor\\xlang_vm\\ops\\xlang_vm_ops_attr.h",
+      "sha256": "f29726b53a7e0538b65d5a860b39927c3b598d285e678c6b19e0f7fbfdd0e60f",
+      "raw_bytes": 76596
+    },
+    "accepted-r4-tested-inputs/tests/cpp/canonical_slot_read_cases.h": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-20261008-sources\\r4-tested-inputs\\tests\\cpp\\canonical_slot_read_cases.h",
+      "sha256": "cb8346950866fade0435e2fadcac56ff1eb403995dc4648f24d3ed7be89f7e50",
+      "raw_bytes": 27086
+    },
+    "accepted-r4-tested-inputs/tests/cpp/interpreter_tests.cpp": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-20261008-sources\\r4-tested-inputs\\tests\\cpp\\interpreter_tests.cpp",
+      "sha256": "2e1c801963399e23f02d5f35e198949f102a8b665eebe3fcdcfebd453ce2342c",
+      "raw_bytes": 29186
+    },
+    "accepted-r4-tested-inputs/tests/run_fixtures.py": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-20261008-sources\\r4-tested-inputs\\tests\\run_fixtures.py",
+      "sha256": "b0c4703154a9fc647ed7a37d83f28a6efd9ca6e9053c74c1362912105ed4d61b",
+      "raw_bytes": 12407
+    },
+    "accepted-r4-tested-inputs/tests/fixtures/core/canonical_slot_reads.py": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-20261008-sources\\r4-tested-inputs\\tests\\fixtures\\core\\canonical_slot_reads.py",
+      "sha256": "67cbbbfcb4fe02ad07f7da7ead051998b3735d547f52e5843fef6102cbe97006",
+      "raw_bytes": 4052
+    },
+    "accepted-r4-tested-inputs/tests/fixtures/expected/canonical_slot_reads.out": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-20261008-sources\\r4-tested-inputs\\tests\\fixtures\\expected\\canonical_slot_reads.out",
+      "sha256": "7aea1a5b5fe9833fc9102b3174361061593048ab6cc70ce168ab685c5a8d4c5a",
+      "raw_bytes": 674
+    },
+    "accepted-r4-tested-inputs/scratch/performance/canonical-slot-probe-20261008.py": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-20261008-sources\\r4-tested-inputs\\scratch\\performance\\canonical-slot-probe-20261008.py",
+      "sha256": "f2cda8eff1ed7ab9ded5ab7daeefee8d0b7909b4b3974fcda06e48a706d994d2",
+      "raw_bytes": 931
+    },
+    "accepted-r4-tested-inputs/scratch/performance/canonical-slot-sqlglot-probe-20261008.py": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-20261008-sources\\r4-tested-inputs\\scratch\\performance\\canonical-slot-sqlglot-probe-20261008.py",
+      "sha256": "2a0eabce26935cfd46517486c52d6d4cc95154b60b55e187c9bd607a0f5a23ae",
+      "raw_bytes": 1009
+    },
+    "accepted-r4-tested-inputs/scratch/performance/check-canonical-slot-r4-20261008.py": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-20261008-sources\\r4-tested-inputs\\scratch\\performance\\check-canonical-slot-r4-20261008.py",
+      "sha256": "1ca75f92cf61bad84c98d05db3cfda9a3099f1116016d6902ea685990d56e3fe",
+      "raw_bytes": 2444
+    },
+    "accepted-r4-tested-inputs/scratch/performance/compare-canonical-slot-r4-20261008.py": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-20261008-sources\\r4-tested-inputs\\scratch\\performance\\compare-canonical-slot-r4-20261008.py",
+      "sha256": "2eba18fbeba42ceb4d828da1eaa2cd0721892df618b87e9dca95498f89d792ec",
+      "raw_bytes": 5118
+    },
+    "accepted-r4-tested-inputs/scratch/performance/canonical_slot_r4_support_20261008.py": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\canonical-slot-20261008-sources\\r4-tested-inputs\\scratch\\performance\\canonical_slot_r4_support_20261008.py",
+      "sha256": "bd06e6fd7e78b1106d6f0eef01a3fac68f0996395e36ea5ebccfb7ec5decb831",
+      "raw_bytes": 9077
+    },
+    "doc/performance/data/inherited-slot-proof-validation-20261008.json": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-validation-20261008.json",
+      "sha256": "44687bc547c96b3d32eb98a8884719ed317ddcfafffa147db7922c599cb6fa67",
+      "raw_bytes": 46857
+    },
+    "doc/performance/data/inherited-slot-proof-validation-20261008-fixtures.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-validation-20261008-fixtures.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-validation-20261008-cpp.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-validation-20261008-cpp.log",
+      "sha256": "eb3d758b8f5a5a95d234882bf7013ea0546cfdcaf88a215dc3b0d642faade53e",
+      "raw_bytes": 1044
+    },
+    "doc/performance/data/inherited-slot-proof-validation-20261008-gate.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-validation-20261008-gate.log",
+      "sha256": "a1b171463e21ca55faef32447041731630e6515378c07cd871ba315a782650e6",
+      "raw_bytes": 634
+    },
+    "doc/performance/data/inherited-slot-proof-validation-20261008-official-sqlglot-parse.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-validation-20261008-official-sqlglot-parse.log",
+      "sha256": "39f2da2e84c9f4eaf27c954489ed0b38b7436d51f14773e172ab189715df7fb3",
+      "raw_bytes": 914
+    },
+    "doc/performance/data/release-inherited-slot-proof-fixed-gate-20261008.json": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\release-inherited-slot-proof-fixed-gate-20261008.json",
+      "sha256": "d04ab8fdf059c5ae3b00496c8730830cd2335dd2b15e17ca686f60924b582e72",
+      "raw_bytes": 62474
+    },
+    "doc/performance/data/pyperformance-inherited-slot-proof-sqlglot-parse-fast-20261008.json": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\pyperformance-inherited-slot-proof-sqlglot-parse-fast-20261008.json",
+      "sha256": "2a82282849c72bf15bba75764dd8b0a82112c03535dc97c48ed805705ba4ba58",
+      "raw_bytes": 1762
+    },
+    "doc/performance/data/inherited-slot-proof-cpython3147-20261008-stderr.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-cpython3147-20261008-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    },
+    "doc/performance/data/inherited-slot-proof-cpython3147-20261008-stdout.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-cpython3147-20261008-stdout.log",
+      "sha256": "4431256ca567eba259d62a08db78fcb63fd429ac7ec79a68a3a8dd438c826359",
+      "raw_bytes": 984
+    },
+    "doc/performance/data/inherited-slot-proof-cpython3147-20261008.json": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\inherited-slot-proof-cpython3147-20261008.json",
+      "sha256": "cfa39e1326eb27e581aa91af3927e6f1281b1f1bde5b76f51adda4546ba4b922",
+      "raw_bytes": 567
+    },
+    "doc/performance/data/build-inherited-slot-proof-r3-Release-20261008.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\build-inherited-slot-proof-r3-Release-20261008.log",
+      "sha256": "df372131bcd2fe43c62ae53b2edf1c65cf3d4bdd54726d0150e5828fd37626a5",
+      "raw_bytes": 452
+    },
+    "doc/performance/data/build-inherited-slot-proof-Release-20261008.log": {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\build-inherited-slot-proof-Release-20261008.log",
+      "sha256": "5b99fb40f6f24b750a382f2d88a7ef7f8f569ee30a54113470a722154175bccd",
+      "raw_bytes": 12839
+    },
+    "scratch/performance/inherited-slot-declaration-proof-20261008-provenance.json": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-declaration-proof-20261008-provenance.json",
+      "sha256": "179490025632effea25c2402c36892182058c81c306d95ef21336e6182a2b94c",
+      "raw_bytes": 1333
+    },
+    "scratch/performance/inherited-slot-declaration-proof-20261008.md": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-declaration-proof-20261008.md",
+      "sha256": "0e1f885697a605a8ba1a0df523e0f215e9d04baeb9955063bf71b9f7b6a3fd77",
+      "raw_bytes": 10047
+    },
+    "scratch/performance/inherited-slot-proof-CPP-insert-20261008.h": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-CPP-insert-20261008.h",
+      "sha256": "52601cbcf2c84c52d4dd806eca7a8686ea194fb1130374147a64cbf42bd2d2e7",
+      "raw_bytes": 12966
+    },
+    "scratch/performance/inherited-slot-proof-diagnostic-scripts-20261008-provenance.json": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-diagnostic-scripts-20261008-provenance.json",
+      "sha256": "a189932fef8509fca61b7625eaac57d4f280dfb48763ebeb616f08838aadf4d1",
+      "raw_bytes": 2268
+    },
+    "scratch/performance/inherited-slot-proof-displaced-CPP-20261008.h": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-displaced-CPP-20261008.h",
+      "sha256": "dc2882e1145cd8595105049bed21a4243545843764c3bdec6a1a1967eb8c0e4f",
+      "raw_bytes": 3716
+    },
+    "scratch/performance/inherited-slot-proof-export-main-20261008.py": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-export-main-20261008.py",
+      "sha256": "943d8740d5374ae7b65a32fc831436a6b530ce5ec1f9535f338e3f2489dcf398",
+      "raw_bytes": 26325
+    },
+    "scratch/performance/inherited-slot-proof-exporter-20261008-provenance.json": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-exporter-20261008-provenance.json",
+      "sha256": "6816b91660350a2088e02b5c246c97ffa3facd2740cece7498ca2bf50d07aedd",
+      "raw_bytes": 1239
+    },
+    "scratch/performance/inherited-slot-proof-exporter-final-20261008-failed-provenance.json": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-exporter-final-20261008-failed-provenance.json",
+      "sha256": "38e0b9de817f645c4bec37c0d4a3e58baecccb040f5718dc069a72c7385a0bed",
+      "raw_bytes": 5
+    },
+    "scratch/performance/inherited-slot-proof-exporter-final-20261008-provenance.json": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-exporter-final-20261008-provenance.json",
+      "sha256": "90c49e5c6b739f91e383207048e8d4054419fe137f71edf433b34d184890b24f",
+      "raw_bytes": 1637
+    },
+    "scratch/performance/inherited-slot-proof-exporter-r1-20261008-sources/scratch/performance/export-inherited-slot-proof-checkpoint-20261008.py": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-exporter-r1-20261008-sources\\scratch\\performance\\export-inherited-slot-proof-checkpoint-20261008.py",
+      "sha256": "6777f6bbbd9e95cfd3969fbfd57b057bcd6089bbf03873948b79d787ee548a7f",
+      "raw_bytes": 33925
+    },
+    "scratch/performance/inherited-slot-proof-exporter-r1-20261008-sources/scratch/performance/inherited-slot-proof-export-main-20261008.py": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-exporter-r1-20261008-sources\\scratch\\performance\\inherited-slot-proof-export-main-20261008.py",
+      "sha256": "a63bdd455bd8f4441c3eeac2e6dc996500ea452f9057da98ce1919b87d2f23dd",
+      "raw_bytes": 23605
+    },
+    "scratch/performance/inherited-slot-proof-exporter-r1-20261008-sources/scratch/performance/inherited-slot-proof-exporter-20261008-provenance.json": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-exporter-r1-20261008-sources\\scratch\\performance\\inherited-slot-proof-exporter-20261008-provenance.json",
+      "sha256": "6816b91660350a2088e02b5c246c97ffa3facd2740cece7498ca2bf50d07aedd",
+      "raw_bytes": 1239
+    },
+    "scratch/performance/inherited-slot-proof-exporter-r1-20261008-sources/scratch/performance/prepare-inherited-slot-proof-exporter-20261008.ps1": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-exporter-r1-20261008-sources\\scratch\\performance\\prepare-inherited-slot-proof-exporter-20261008.ps1",
+      "sha256": "e1f3e5af0d2cde9e42a585fa6bee3e4aeccc5dbbc72007e3324602d21fbc73ad",
+      "raw_bytes": 2957
+    },
+    "scratch/performance/inherited-slot-proof-git-lf-20261008-sources/src/builtins/object_type_builtins.cpp": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-git-lf-20261008-sources\\src\\builtins\\object_type_builtins.cpp",
+      "sha256": "58d6eb52e7fd0a92e290bbf1bd28da659cdc5b612747797ffe22cfa7f5477b6c",
+      "raw_bytes": 171038
+    },
+    "scratch/performance/inherited-slot-proof-git-lf-20261008-sources/src/executor/xlang_vm/ops/xlang_vm_ops_construct.h": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-git-lf-20261008-sources\\src\\executor\\xlang_vm\\ops\\xlang_vm_ops_construct.h",
+      "sha256": "16b01e2eaf7889fd9d23e7b5d247b251671393e19bf745f489aac865838c8ef8",
+      "raw_bytes": 11633
+    },
+    "scratch/performance/inherited-slot-proof-git-lf-20261008-sources/src/executor/xlang_vm/xlang_vm_attr.cpp": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-git-lf-20261008-sources\\src\\executor\\xlang_vm\\xlang_vm_attr.cpp",
+      "sha256": "a65817da76f797cfaf3a35b3fbf9eddf30ae0aefa8514aea22b9fd031914e7a8",
+      "raw_bytes": 19276
+    },
+    "scratch/performance/inherited-slot-proof-git-lf-20261008-sources/src/executor/xlang_vm/xlang_vm_inline_support.h": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-git-lf-20261008-sources\\src\\executor\\xlang_vm\\xlang_vm_inline_support.h",
+      "sha256": "d321762ea5e78dfe5a0dcd37f8969beb63fe37fc3f852c898b94ecaad74fc538",
+      "raw_bytes": 120659
+    },
+    "scratch/performance/inherited-slot-proof-git-lf-20261008-sources/src/internal/xlang3/object_model.h": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-git-lf-20261008-sources\\src\\internal\\xlang3\\object_model.h",
+      "sha256": "e8642394a719f68c9666517c3a24d7487e30d088fa3ea4f9961d86bd36fd4023",
+      "raw_bytes": 14616
+    },
+    "scratch/performance/inherited-slot-proof-git-lf-20261008-sources/src/runtime/modules/system/weakref_module.cpp": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-git-lf-20261008-sources\\src\\runtime\\modules\\system\\weakref_module.cpp",
+      "sha256": "bc28da2f808fb50597e6e05f8704f2f0e0091142afd9f1890505ee5249e7b05b",
+      "raw_bytes": 88103
+    },
+    "scratch/performance/inherited-slot-proof-git-lf-20261008-sources/src/runtime/object_model.cpp": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-git-lf-20261008-sources\\src\\runtime\\object_model.cpp",
+      "sha256": "038a27578a9f907c3987c0470a89663a7feee7d4bf0838afb9fd46f0c6c63e18",
+      "raw_bytes": 226342
+    },
+    "scratch/performance/inherited-slot-proof-git-lf-20261008-sources/src/serialize/value_graph_reader.cpp": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-git-lf-20261008-sources\\src\\serialize\\value_graph_reader.cpp",
+      "sha256": "02b48bde31a254cb3e95eacc0e6215dc495c829fcf9f83a84071b245e8e0ec56",
+      "raw_bytes": 19886
+    },
+    "scratch/performance/inherited-slot-proof-git-lf-20261008-sources/tests/cpp/canonical_slot_read_cases.h": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-git-lf-20261008-sources\\tests\\cpp\\canonical_slot_read_cases.h",
+      "sha256": "69ea4cad0d2a500ef863ecd0122665286f8a0490be9e5fceec41805e19d4e2a1",
+      "raw_bytes": 44023
+    },
+    "scratch/performance/inherited-slot-proof-git-lf-20261008-sources/tests/fixtures/core/canonical_slot_reads.py": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-git-lf-20261008-sources\\tests\\fixtures\\core\\canonical_slot_reads.py",
+      "sha256": "7efadaea716e73e987a0ee35a2110f44ab91dec1e0d75ddb40ad627b582f918b",
+      "raw_bytes": 5653
+    },
+    "scratch/performance/inherited-slot-proof-git-lf-20261008-sources/tests/fixtures/expected/canonical_slot_reads.out": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-git-lf-20261008-sources\\tests\\fixtures\\expected\\canonical_slot_reads.out",
+      "sha256": "5fb63eb109aee4d367d06c636db3d30bea771a8c13a8819a985c43fc43bd24a2",
+      "raw_bytes": 970
+    },
+    "scratch/performance/inherited-slot-proof-proposal-20261008-sources/src/builtins/object_type_builtins.cpp": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-proposal-20261008-sources\\src\\builtins\\object_type_builtins.cpp",
+      "sha256": "6c9c022a4b7eba99ac41b01197950f2dd2860dfee7d8901675fd62986e466b99",
+      "raw_bytes": 170837
+    },
+    "scratch/performance/inherited-slot-proof-proposal-20261008-sources/src/executor/xlang_vm/ops/xlang_vm_ops_construct.h": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-proposal-20261008-sources\\src\\executor\\xlang_vm\\ops\\xlang_vm_ops_construct.h",
+      "sha256": "4248dd0bfcb5baf02be21726c795de0ac6d155c9778dc0297b488c2d6ff0ebb0",
+      "raw_bytes": 11881
+    },
+    "scratch/performance/inherited-slot-proof-proposal-20261008-sources/src/executor/xlang_vm/xlang_vm_attr.cpp": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-proposal-20261008-sources\\src\\executor\\xlang_vm\\xlang_vm_attr.cpp",
+      "sha256": "5f09f741ceab8f72c2b918912ba30e12f12bcde91988097d056ae3f20a62bb64",
+      "raw_bytes": 18030
+    },
+    "scratch/performance/inherited-slot-proof-proposal-20261008-sources/src/executor/xlang_vm/xlang_vm_inline_support.h": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-proposal-20261008-sources\\src\\executor\\xlang_vm\\xlang_vm_inline_support.h",
+      "sha256": "d642d3faf503302ba670b1d322f3d9ac2ac5f4a9fe098b02fa97cd0a97ba647c",
+      "raw_bytes": 123869
+    },
+    "scratch/performance/inherited-slot-proof-proposal-20261008-sources/src/internal/xlang3/object_model.h": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-proposal-20261008-sources\\src\\internal\\xlang3\\object_model.h",
+      "sha256": "c19265954e6c941c62ceeecdc362f51144210c1cadf612949fbb981737b50b79",
+      "raw_bytes": 14233
+    },
+    "scratch/performance/inherited-slot-proof-proposal-20261008-sources/src/runtime/modules/system/weakref_module.cpp": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-proposal-20261008-sources\\src\\runtime\\modules\\system\\weakref_module.cpp",
+      "sha256": "b17237a4f270ac911b4679c8892642667c9dae41d2938c4799d232cab0ad65ae",
+      "raw_bytes": 88050
+    },
+    "scratch/performance/inherited-slot-proof-proposal-20261008-sources/src/runtime/object_model.cpp": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-proposal-20261008-sources\\src\\runtime\\object_model.cpp",
+      "sha256": "b52bb39cf25c68d88dd24b063bc530052469b6d7eedf9a1081aefb90ea5fa7bd",
+      "raw_bytes": 230594
+    },
+    "scratch/performance/inherited-slot-proof-proposal-20261008-sources/src/serialize/value_graph_reader.cpp": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-proposal-20261008-sources\\src\\serialize\\value_graph_reader.cpp",
+      "sha256": "7e96a6a6d248a54525cea52a2397833a5b33fc4a0500a862eaff06c73cf52729",
+      "raw_bytes": 19969
+    },
+    "scratch/performance/inherited-slot-proof-proposal-20261008-sources/tests/cpp/canonical_slot_read_cases.h": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-proposal-20261008-sources\\tests\\cpp\\canonical_slot_read_cases.h",
+      "sha256": "cb8346950866fade0435e2fadcac56ff1eb403995dc4648f24d3ed7be89f7e50",
+      "raw_bytes": 27086
+    },
+    "scratch/performance/inherited-slot-proof-proposal-20261008-sources/tests/fixtures/core/canonical_slot_reads.py": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-proposal-20261008-sources\\tests\\fixtures\\core\\canonical_slot_reads.py",
+      "sha256": "67cbbbfcb4fe02ad07f7da7ead051998b3735d547f52e5843fef6102cbe97006",
+      "raw_bytes": 4052
+    },
+    "scratch/performance/inherited-slot-proof-proposal-20261008-sources/tests/fixtures/expected/canonical_slot_reads.out": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-proposal-20261008-sources\\tests\\fixtures\\expected\\canonical_slot_reads.out",
+      "sha256": "7aea1a5b5fe9833fc9102b3174361061593048ab6cc70ce168ab685c5a8d4c5a",
+      "raw_bytes": 674
+    },
+    "scratch/performance/inherited-slot-proof-proposal-r2-20261008-apply-check.log": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-proposal-r2-20261008-apply-check.log",
+      "sha256": "51c46540f18e3ee496c5832fb754e14e8c0210762b7e9a2662a0734da707487c",
+      "raw_bytes": 107
+    },
+    "scratch/performance/inherited-slot-proof-proposal-r2-20261008-candidates/src/builtins/object_type_builtins.cpp": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-proposal-r2-20261008-candidates\\src\\builtins\\object_type_builtins.cpp",
+      "sha256": "58d6eb52e7fd0a92e290bbf1bd28da659cdc5b612747797ffe22cfa7f5477b6c",
+      "raw_bytes": 171038
+    },
+    "scratch/performance/inherited-slot-proof-proposal-r2-20261008-candidates/src/executor/xlang_vm/ops/xlang_vm_ops_construct.h": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-proposal-r2-20261008-candidates\\src\\executor\\xlang_vm\\ops\\xlang_vm_ops_construct.h",
+      "sha256": "16b01e2eaf7889fd9d23e7b5d247b251671393e19bf745f489aac865838c8ef8",
+      "raw_bytes": 11633
+    },
+    "scratch/performance/inherited-slot-proof-proposal-r2-20261008-candidates/src/executor/xlang_vm/xlang_vm_attr.cpp": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-proposal-r2-20261008-candidates\\src\\executor\\xlang_vm\\xlang_vm_attr.cpp",
+      "sha256": "ab7cb758c6da247c0aab1cc449ee62206ea187773e51d01ba5690f44dfdbac73",
+      "raw_bytes": 19036
+    },
+    "scratch/performance/inherited-slot-proof-proposal-r2-20261008-candidates/src/executor/xlang_vm/xlang_vm_inline_support.h": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-proposal-r2-20261008-candidates\\src\\executor\\xlang_vm\\xlang_vm_inline_support.h",
+      "sha256": "d321762ea5e78dfe5a0dcd37f8969beb63fe37fc3f852c898b94ecaad74fc538",
+      "raw_bytes": 120659
+    },
+    "scratch/performance/inherited-slot-proof-proposal-r2-20261008-candidates/src/internal/xlang3/object_model.h": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-proposal-r2-20261008-candidates\\src\\internal\\xlang3\\object_model.h",
+      "sha256": "e8642394a719f68c9666517c3a24d7487e30d088fa3ea4f9961d86bd36fd4023",
+      "raw_bytes": 14616
+    },
+    "scratch/performance/inherited-slot-proof-proposal-r2-20261008-candidates/src/runtime/modules/system/weakref_module.cpp": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-proposal-r2-20261008-candidates\\src\\runtime\\modules\\system\\weakref_module.cpp",
+      "sha256": "bc28da2f808fb50597e6e05f8704f2f0e0091142afd9f1890505ee5249e7b05b",
+      "raw_bytes": 88103
+    },
+    "scratch/performance/inherited-slot-proof-proposal-r2-20261008-candidates/src/runtime/object_model.cpp": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-proposal-r2-20261008-candidates\\src\\runtime\\object_model.cpp",
+      "sha256": "038a27578a9f907c3987c0470a89663a7feee7d4bf0838afb9fd46f0c6c63e18",
+      "raw_bytes": 226342
+    },
+    "scratch/performance/inherited-slot-proof-proposal-r2-20261008-candidates/src/serialize/value_graph_reader.cpp": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-proposal-r2-20261008-candidates\\src\\serialize\\value_graph_reader.cpp",
+      "sha256": "02b48bde31a254cb3e95eacc0e6215dc495c829fcf9f83a84071b245e8e0ec56",
+      "raw_bytes": 19886
+    },
+    "scratch/performance/inherited-slot-proof-proposal-r2-20261008-candidates/tests/cpp/canonical_slot_read_cases.h": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-proposal-r2-20261008-candidates\\tests\\cpp\\canonical_slot_read_cases.h",
+      "sha256": "9ef825d80b7080a53ff999e4447d0d5566ee85b63f84113de480712bc8fde516",
+      "raw_bytes": 40256
+    },
+    "scratch/performance/inherited-slot-proof-proposal-r2-20261008-candidates/tests/fixtures/core/canonical_slot_reads.py": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-proposal-r2-20261008-candidates\\tests\\fixtures\\core\\canonical_slot_reads.py",
+      "sha256": "7efadaea716e73e987a0ee35a2110f44ab91dec1e0d75ddb40ad627b582f918b",
+      "raw_bytes": 5653
+    },
+    "scratch/performance/inherited-slot-proof-proposal-r2-20261008-candidates/tests/fixtures/expected/canonical_slot_reads.out": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-proposal-r2-20261008-candidates\\tests\\fixtures\\expected\\canonical_slot_reads.out",
+      "sha256": "5fb63eb109aee4d367d06c636db3d30bea771a8c13a8819a985c43fc43bd24a2",
+      "raw_bytes": 970
+    },
+    "scratch/performance/inherited-slot-proof-proposal-r2-20261008-provenance.json": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-proposal-r2-20261008-provenance.json",
+      "sha256": "80354dacdc8e03b24294c51d72cf3d068fda4de8edad4f8acc61983391549014",
+      "raw_bytes": 8330
+    },
+    "scratch/performance/inherited-slot-proof-proposal-r2-20261008-sources/src/builtins/object_type_builtins.cpp": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-proposal-r2-20261008-sources\\src\\builtins\\object_type_builtins.cpp",
+      "sha256": "6c9c022a4b7eba99ac41b01197950f2dd2860dfee7d8901675fd62986e466b99",
+      "raw_bytes": 170837
+    },
+    "scratch/performance/inherited-slot-proof-proposal-r2-20261008-sources/src/executor/xlang_vm/ops/xlang_vm_ops_construct.h": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-proposal-r2-20261008-sources\\src\\executor\\xlang_vm\\ops\\xlang_vm_ops_construct.h",
+      "sha256": "4248dd0bfcb5baf02be21726c795de0ac6d155c9778dc0297b488c2d6ff0ebb0",
+      "raw_bytes": 11881
+    },
+    "scratch/performance/inherited-slot-proof-proposal-r2-20261008-sources/src/executor/xlang_vm/xlang_vm_attr.cpp": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-proposal-r2-20261008-sources\\src\\executor\\xlang_vm\\xlang_vm_attr.cpp",
+      "sha256": "5f09f741ceab8f72c2b918912ba30e12f12bcde91988097d056ae3f20a62bb64",
+      "raw_bytes": 18030
+    },
+    "scratch/performance/inherited-slot-proof-proposal-r2-20261008-sources/src/executor/xlang_vm/xlang_vm_inline_support.h": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-proposal-r2-20261008-sources\\src\\executor\\xlang_vm\\xlang_vm_inline_support.h",
+      "sha256": "d642d3faf503302ba670b1d322f3d9ac2ac5f4a9fe098b02fa97cd0a97ba647c",
+      "raw_bytes": 123869
+    },
+    "scratch/performance/inherited-slot-proof-proposal-r2-20261008-sources/src/internal/xlang3/object_model.h": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-proposal-r2-20261008-sources\\src\\internal\\xlang3\\object_model.h",
+      "sha256": "c19265954e6c941c62ceeecdc362f51144210c1cadf612949fbb981737b50b79",
+      "raw_bytes": 14233
+    },
+    "scratch/performance/inherited-slot-proof-proposal-r2-20261008-sources/src/runtime/modules/system/weakref_module.cpp": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-proposal-r2-20261008-sources\\src\\runtime\\modules\\system\\weakref_module.cpp",
+      "sha256": "b17237a4f270ac911b4679c8892642667c9dae41d2938c4799d232cab0ad65ae",
+      "raw_bytes": 88050
+    },
+    "scratch/performance/inherited-slot-proof-proposal-r2-20261008-sources/src/runtime/object_model.cpp": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-proposal-r2-20261008-sources\\src\\runtime\\object_model.cpp",
+      "sha256": "b52bb39cf25c68d88dd24b063bc530052469b6d7eedf9a1081aefb90ea5fa7bd",
+      "raw_bytes": 230594
+    },
+    "scratch/performance/inherited-slot-proof-proposal-r2-20261008-sources/src/serialize/value_graph_reader.cpp": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-proposal-r2-20261008-sources\\src\\serialize\\value_graph_reader.cpp",
+      "sha256": "7e96a6a6d248a54525cea52a2397833a5b33fc4a0500a862eaff06c73cf52729",
+      "raw_bytes": 19969
+    },
+    "scratch/performance/inherited-slot-proof-proposal-r2-20261008-sources/tests/cpp/canonical_slot_read_cases.h": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-proposal-r2-20261008-sources\\tests\\cpp\\canonical_slot_read_cases.h",
+      "sha256": "cb8346950866fade0435e2fadcac56ff1eb403995dc4648f24d3ed7be89f7e50",
+      "raw_bytes": 27086
+    },
+    "scratch/performance/inherited-slot-proof-proposal-r2-20261008-sources/tests/fixtures/core/canonical_slot_reads.py": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-proposal-r2-20261008-sources\\tests\\fixtures\\core\\canonical_slot_reads.py",
+      "sha256": "67cbbbfcb4fe02ad07f7da7ead051998b3735d547f52e5843fef6102cbe97006",
+      "raw_bytes": 4052
+    },
+    "scratch/performance/inherited-slot-proof-proposal-r2-20261008-sources/tests/fixtures/expected/canonical_slot_reads.out": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-proposal-r2-20261008-sources\\tests\\fixtures\\expected\\canonical_slot_reads.out",
+      "sha256": "7aea1a5b5fe9833fc9102b3174361061593048ab6cc70ce168ab685c5a8d4c5a",
+      "raw_bytes": 674
+    },
+    "scratch/performance/inherited-slot-proof-proposal-r2-20261008.patch": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-proposal-r2-20261008.patch",
+      "sha256": "1452f7291f98998e765ab764010e8a5f0fc7f6038ee30b5fc5a090ee63e53e71",
+      "raw_bytes": 39426
+    },
+    "scratch/performance/inherited-slot-proof-Python-insert-20261008.py": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-Python-insert-20261008.py",
+      "sha256": "512b7e0a97a0b9e8deac863e38673049a14c80228d6e0a5fe6efcc10940377c8",
+      "raw_bytes": 2139
+    },
+    "scratch/performance/inherited-slot-proof-r2-independent-review-20261008.md": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-r2-independent-review-20261008.md",
+      "sha256": "d513ebb0524099bea57d08cf3977e630c8435ecace0c594e8d523c385984c365",
+      "raw_bytes": 2417
+    },
+    "scratch/performance/inherited-slot-proof-r3-incremental-20261008-apply-check.log": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-r3-incremental-20261008-apply-check.log",
+      "sha256": "4d57fe326f3370bc96451f21345307282a75bd16960248badc3101bbebf52465",
+      "raw_bytes": 110
+    },
+    "scratch/performance/inherited-slot-proof-r3-incremental-20261008-candidates/src/executor/xlang_vm/xlang_vm_attr.cpp": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-r3-incremental-20261008-candidates\\src\\executor\\xlang_vm\\xlang_vm_attr.cpp",
+      "sha256": "a65817da76f797cfaf3a35b3fbf9eddf30ae0aefa8514aea22b9fd031914e7a8",
+      "raw_bytes": 19276
+    },
+    "scratch/performance/inherited-slot-proof-r3-incremental-20261008-candidates/tests/cpp/canonical_slot_read_cases.h": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-r3-incremental-20261008-candidates\\tests\\cpp\\canonical_slot_read_cases.h",
+      "sha256": "69ea4cad0d2a500ef863ecd0122665286f8a0490be9e5fceec41805e19d4e2a1",
+      "raw_bytes": 44023
+    },
+    "scratch/performance/inherited-slot-proof-r3-incremental-20261008-provenance.json": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-r3-incremental-20261008-provenance.json",
+      "sha256": "78da362de2e6897e941b5babf85e27323861179c0ed0ceaee6cd5c93a946b912",
+      "raw_bytes": 2518
+    },
+    "scratch/performance/inherited-slot-proof-r3-incremental-20261008-sources/src/executor/xlang_vm/xlang_vm_attr.cpp": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-r3-incremental-20261008-sources\\src\\executor\\xlang_vm\\xlang_vm_attr.cpp",
+      "sha256": "e46f56b0abefa21760a65fa18e9e81dcdf7dcd892f38ea58d59b567108704f2f",
+      "raw_bytes": 19450
+    },
+    "scratch/performance/inherited-slot-proof-r3-incremental-20261008-sources/tests/cpp/canonical_slot_read_cases.h": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-r3-incremental-20261008-sources\\tests\\cpp\\canonical_slot_read_cases.h",
+      "sha256": "b2c25865e6d0335b7cd3ba28cfca544c04af503c9262838a32a2973a37a2ba2e",
+      "raw_bytes": 40981
+    },
+    "scratch/performance/inherited-slot-proof-r3-incremental-20261008.patch": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-r3-incremental-20261008.patch",
+      "sha256": "1cd96169bcd6bdd46d7d5ac8b2d34abfb11d2e74ea37ab19d59018df99e8ab24",
+      "raw_bytes": 5464
+    },
+    "scratch/performance/inherited-slot-proof-r3-independent-review-20261008.md": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited-slot-proof-r3-independent-review-20261008.md",
+      "sha256": "854fcd6509a5b4407f5fae3d5281d0253d124a0d6c266b8a3999e730031053ee",
+      "raw_bytes": 1169
+    },
+    "scratch/performance/inherited_slot_proof_support_20261008.py": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\inherited_slot_proof_support_20261008.py",
+      "sha256": "ccdd2cd93ba4ed77395c7f33df9efe3fceeadef89adc78bf877c57f64e09975e",
+      "raw_bytes": 10234
+    },
+    "scratch/performance/check-inherited-slot-proof-20261008.py": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\check-inherited-slot-proof-20261008.py",
+      "sha256": "41c4edb898761603479b8aadae19afa4bfe38e5c793a1079a60015b72fbc285d",
+      "raw_bytes": 2492
+    },
+    "scratch/performance/compare-inherited-slot-proof-20261008.py": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\compare-inherited-slot-proof-20261008.py",
+      "sha256": "6c6ece259c4e3e498831d8f5aebe1e4c3f6d806ad09b6c31165f1a985946d089",
+      "raw_bytes": 5127
+    },
+    "scratch/performance/export-inherited-slot-proof-checkpoint-20261008.py": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\export-inherited-slot-proof-checkpoint-20261008.py",
+      "sha256": "db1582ad7327ff4df2aa68705423a4454235d068bcc348497cfea44b8ffcf36f",
+      "raw_bytes": 36810
+    },
+    "scratch/performance/precheck-inherited-slot-proof-20261008.py": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\precheck-inherited-slot-proof-20261008.py",
+      "sha256": "7713d64674c0cd6c13238c80d12bc56ffe56994a59ff28bda9b0f3e10a41b684",
+      "raw_bytes": 3112
+    },
+    "scratch/performance/prepare-inherited-slot-stager-20261008.py": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\prepare-inherited-slot-stager-20261008.py",
+      "sha256": "115c641bbdaaebe40016cf71497cbb80320ea73c43d6c05f2c6058e36f856d95",
+      "raw_bytes": 1752
+    },
+    "scratch/performance/publish-inherited-slot-proof-preview-20261008.py": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\publish-inherited-slot-proof-preview-20261008.py",
+      "sha256": "a0d8d45c77d256c9439bc2e6333f92a8883ea5cfa7bbb70dee8a86555d3f79cf",
+      "raw_bytes": 1424
+    },
+    "scratch/performance/stage-inherited-slot-proof-checkpoint-20261008.py": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\stage-inherited-slot-proof-checkpoint-20261008.py",
+      "sha256": "c06b762bccdd7ca6b8c1cc5ac5f7d5a8e9cc7afdcc0bacb51a61c4c65b455770",
+      "raw_bytes": 4677
+    },
+    "scratch/performance/validate-inherited-slot-proof-20261008.py": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\validate-inherited-slot-proof-20261008.py",
+      "sha256": "051d47d7509ee125694b3828c5c1f902ef7d452f0652ffc4243e1c90703860d5",
+      "raw_bytes": 6639
+    },
+    "scratch/performance/prepare-inherited-slot-proof-20261008.ps1": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\prepare-inherited-slot-proof-20261008.ps1",
+      "sha256": "41650d266c9206fdf896344e0dfbf05d8a51109d2c83f52600a9791d216ee7f9",
+      "raw_bytes": 20250
+    },
+    "scratch/performance/prepare-inherited-slot-proof-diagnostics-20261008.ps1": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\prepare-inherited-slot-proof-diagnostics-20261008.ps1",
+      "sha256": "db871e427c08bc79e96c74acd86784e430c6bf4300e5f12e034af765a9e83b0f",
+      "raw_bytes": 6397
+    },
+    "scratch/performance/prepare-inherited-slot-proof-exporter-20261008.ps1": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\prepare-inherited-slot-proof-exporter-20261008.ps1",
+      "sha256": "6e89f85b0d3f1fefec25723e284f7f26ce0d39f787cfb4575e96fbc0c77266da",
+      "raw_bytes": 3455
+    },
+    "scratch/performance/prepare-inherited-slot-proof-git-lf-20261008.ps1": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\prepare-inherited-slot-proof-git-lf-20261008.ps1",
+      "sha256": "351ec3ef701905b6748d947fe720972cd49ccd9d5eeb1cb0474d7012d39036dd",
+      "raw_bytes": 3107
+    },
+    "scratch/performance/prepare-inherited-slot-proof-r2-20261008.ps1": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\prepare-inherited-slot-proof-r2-20261008.ps1",
+      "sha256": "07fb122ff744fa1505259ff353b98c2ef7236da4e2a6182ffdc8dd3f302bdfbc",
+      "raw_bytes": 20616
+    },
+    "scratch/performance/prepare-inherited-slot-proof-r3-incremental-20261008.ps1": {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\prepare-inherited-slot-proof-r3-incremental-20261008.ps1",
+      "sha256": "a3c9abee299619c028ab4785030cb20d35556a9e6b00abb57bbff74d61e150a3",
+      "raw_bytes": 4885
+    }
+  },
+  "copy_policy": "Full original bytes; no trimming or encoding/line-ending normalization",
+  "control_binary_copy_policy": "Existing preserved Release verified; documentation archives its manifest, not binaries",
+  "exporter_sha256": "db1582ad7327ff4df2aa68705423a4454235d068bcc348497cfea44b8ffcf36f",
+  "generated_files": {
+    "inherited-slot-proof-checkpoint-20261008.md": "8e615a10568330784795ccfb8047882992a35a0148cc6f0b75c0c5e0a8791d2f",
+    "inherited-slot-proof-diagnostic-speed-20261008.svg": "c7f1657c688e558d901fe90e0ee0d3935bce48faa11df23093bc989e3febedb9",
+    "inherited-slot-proof-official-speed-20261008.svg": "a6dbe99fdda6cab9210a2d403381eeeb12743fe51d1e858ea64101e378873927",
+    "data/inherited-slot-proof-comparison-20261008.json": "fc4ab23e438e3762848eaa2e86bfde4f7c85249f2b78b38e77d0aed80ab89ef3",
+    "data/inherited-slot-proof-official-samples-20261008.csv": "4288327517524cd26e4eaa82008fc4a3f8e975d3e949abbd238cb9e9bf504e5c",
+    "data/inherited-slot-proof-official-summary-20261008.csv": "3f7fa5bd602d1917c38e8cd85bdd379d3aa9f318b9effb89aa36ae8ae1f5c18d",
+    "data/inherited-slot-proof-paired-samples-20261008.csv": "9f2491f8627dc4efbe55fac406763fba860585ec664c0f4b20a9aba67c15fafd",
+    "data/inherited-slot-proof-paired-summary-20261008.csv": "61932a575b98d19f2974a58e296a23c6186a0abf00369059c87845fbc0b6e422"
+  }
+}

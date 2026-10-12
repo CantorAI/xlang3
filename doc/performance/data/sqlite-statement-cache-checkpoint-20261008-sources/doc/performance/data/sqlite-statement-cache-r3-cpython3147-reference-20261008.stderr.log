@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\scratch\performance\sqlite-statement-cache-fixture-r3-20261008.py", line 187, in <module>
+    active.close()
+    ~~~~~~~~~~~~^^
+sqlite3.ProgrammingError: Cannot operate on a closed database.

@@ -1,0 +1,4 @@
+first-row (3,)
+replace-after-first OperationalError Error creating aggregate
+second-row None
+replace-after-end ok

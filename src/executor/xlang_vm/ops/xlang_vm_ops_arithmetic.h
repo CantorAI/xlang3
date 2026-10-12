@@ -20,6 +20,7 @@ limitations under the License.
 #include "xlang_vm_ops_call.h"
 
 #include "xlang3/attribute.h"
+#include "xlang3/decimal_runtime.h"
 #include "xlang3/functional_iterators.h"
 #include "xlang3/object_model.h"
 #include "xlang3/runtime.h"
@@ -342,6 +343,13 @@ XLANG3_HOT_INLINE XlangVMOpFlow mod(
     }
     std::string error;
     if (!value_mod_runtime(runtime, lhs, rhs, regs[in.dst], error)) {
+      // Formatting can call Python __repr__. Preserve its actual exception;
+      // converting it to RuntimeError would hide user errors and type checks.
+      Value pending;
+      if (runtime.take_pending_exception(pending)) {
+        return raise_exception_value(std::move(pending))
+            ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+      }
       if (error == "integer modulo by zero" || error == "float modulo by zero") {
         return raise_zero_division(runtime, error.c_str(), std::forward<RaiseExceptionValue>(raise_exception_value));
       }
@@ -409,6 +417,13 @@ XLANG3_HOT_INLINE XlangVMOpFlow mod_const(
     }
     std::string error;
     if (!value_mod_runtime(runtime, lhs, rhs, regs[in.dst], error)) {
+      // Formatting can call Python __repr__. Preserve its actual exception;
+      // converting it to RuntimeError would hide user errors and type checks.
+      Value pending;
+      if (runtime.take_pending_exception(pending)) {
+        return raise_exception_value(std::move(pending))
+            ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+      }
       if (error == "integer modulo by zero" || error == "float modulo by zero") {
         return raise_zero_division(runtime, error.c_str(), std::forward<RaiseExceptionValue>(raise_exception_value));
       }
@@ -465,6 +480,12 @@ XLANG3_HOT_INLINE XlangVMOpFlow binary_arithmetic_with_special_method(
   if (fast_op(lhs, rhs, regs[in.dst])) {
     return XlangVMOpFlow::Next;
   }
+  // CPython's native _decimal avoids Python bound-method allocation for each
+  // arithmetic opcode. Mirror that boundary for exact XLang3 Decimal methods;
+  // the guard sends subclasses and edited descriptors through regular lookup.
+  if (decimal_try_fast_binary(runtime, lhs, rhs, special_method_name, regs[in.dst])) {
+    return XlangVMOpFlow::Next;
+  }
   if (lhs.tag == ValueTag::Object && lhs.as.obj != nullptr) {
     const auto flow = call_binary_special_method(
         runtime,
@@ -486,6 +507,9 @@ XLANG3_HOT_INLINE XlangVMOpFlow binary_arithmetic_with_special_method(
     if (flow != XlangVMOpFlow::Next) {
       return flow;
     }
+  }
+  if (decimal_try_fast_binary(runtime, rhs, lhs, reflected_method_name, regs[in.dst])) {
+    return XlangVMOpFlow::Next;
   }
   if (rhs.tag == ValueTag::Object && rhs.as.obj != nullptr) {
     const auto flow = call_binary_special_method(
@@ -901,20 +925,50 @@ XLANG3_HOT_INLINE XlangVMOpFlow compare_jump_if_false(
   return XlangVMOpFlow::Next;
 }
 
-XLANG3_HOT_INLINE void is_op(const ir::Instr& in, XlangVMSmallRegisterBuffer& regs) {
-  value_set_bool(regs[in.dst], value_is(regs[in.a], regs[in.b]) != (in.c != 0));
+template <typename RefreshMonitoring>
+XLANG3_HOT_INLINE void is_op(
+    const ir::Instr& in, XlangVMFrame& frame, size_t ip,
+    RefreshMonitoring&& refresh_monitoring) {
+  auto& regs = frame.regs;
+  const bool condition = value_is(regs[in.a], regs[in.b]) != (in.c != 0);
+  Value previous_output;
+  // Publish the scalar result before replacing an owning output can reenter.
+  // An output/operand alias must keep the bool rather than be retired again.
+  if (regs[in.dst].tag == ValueTag::Object) {
+    previous_output = std::move(regs[in.dst]);
+  }
+  value_set_bool(regs[in.dst], condition);
+  if (frame.release_identity_operands_last_used_at(
+          in.a, in.b, ip, in.dst, &previous_output)) {
+    refresh_monitoring();
+  }
 }
 
-template <typename EmitMonitoringEvent>
+template <typename EmitMonitoringEvent, typename RefreshMonitoring>
 XLANG3_HOT_INLINE XlangVMOpFlow is_jump_if_false(
     const ir::Instr& in,
-    XlangVMSmallRegisterBuffer& regs,
+    XlangVMFrame& frame,
     size_t& ip,
-    EmitMonitoringEvent&& emit_monitoring_event) {
+    EmitMonitoringEvent&& emit_monitoring_event,
+    RefreshMonitoring&& refresh_monitoring,
+    bool literal_none_rhs = false) {
+  auto& regs = frame.regs;
+  const bool taken_branch_instrumented =
+      (frame.monitoring_events & kSysMonitoringEventBranchRight) != 0;
   const bool condition = value_is(regs[in.a], regs[in.b]) != (in.c != 0);
+  if (frame.release_identity_operands_last_used_at(in.a, in.b, ip)) {
+    // Finalizers may enable the following branch or return instruction.
+    // Refresh even on taken paths that skip common post-instruction cleanup.
+    refresh_monitoring();
+  }
   const uint32_t destination_offset = condition ? static_cast<uint32_t>(ip + 1) : in.dst;
   Value destination = Value::int64(static_cast<int64_t>(destination_offset));
-  if (!emit_monitoring_event(
+  // CPython's combined RHS-None opcode cannot retroactively instrument its
+  // taken RIGHT path. Fallthrough LEFT lives in the following NOT_TAKEN,
+  // while general identity uses IS_OP then a separate conditional branch.
+  // The source-proven new opcode preserves those distinct dispatch points.
+  const bool dispatch_branch = condition || !literal_none_rhs || taken_branch_instrumented;
+  if (dispatch_branch && !emit_monitoring_event(
           condition ? kSysMonitoringEventBranchLeft : kSysMonitoringEventBranchRight,
           &destination)) {
     return XlangVMOpFlow::ReturnResult;
@@ -925,7 +979,6 @@ XLANG3_HOT_INLINE XlangVMOpFlow is_jump_if_false(
   }
   return XlangVMOpFlow::Next;
 }
-
 template <typename RaiseUnboundLocalError, typename EmitMonitoringEvent>
 XLANG3_HOT_INLINE XlangVMOpFlow is_local_const_jump_if_false(
     const ir::Instr& in,

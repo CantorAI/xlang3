@@ -1,0 +1,8 @@
+native-callback-slot-compare [1.0, 2.0, 3.0, 5.0, 6.0, 8.0]
+native-callback-noninstance True
+native-callback-code-rebind True
+native-callback-method-rebind True
+native-callback-global-rebind TypeError
+native-callback-subclass [1.0, 3.0, 4.0]
+native-callback-descriptor True
+native-callback-custom-isinstance True

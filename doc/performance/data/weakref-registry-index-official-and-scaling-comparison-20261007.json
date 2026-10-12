@@ -1,0 +1,173 @@
+{
+  "scope": "Nominal fast-mode official results and diagnostic scaling; no full-suite replacement or significance claim",
+  "official": [
+    {
+      "benchmark": "typing_runtime_protocols",
+      "saved_cpython3147": {
+        "seconds": 0.00013239447754074263,
+        "measurements": 20
+      },
+      "previous_candidate": {
+        "seconds": 0.003349023750070046,
+        "measurements": 20
+      },
+      "current_candidate": {
+        "seconds": 0.003174969218662227,
+        "measurements": 20
+      },
+      "cpython_over_xlang3_speed": 0.04169945231674625,
+      "prior_over_current_speed": 1.0548208563360992,
+      "xlang3_time_reduction_fraction": 0.051971722029196976
+    },
+    {
+      "benchmark": "gc_traversal",
+      "saved_cpython3147": {
+        "seconds": 0.002332445936917793,
+        "measurements": 20
+      },
+      "previous_candidate": {
+        "seconds": 0.0007775858789159429,
+        "measurements": 20
+      },
+      "current_candidate": {
+        "seconds": 0.0007465385549437542,
+        "measurements": 20
+      },
+      "cpython_over_xlang3_speed": 3.124347592594899,
+      "prior_over_current_speed": 1.0415883731209674,
+      "xlang3_time_reduction_fraction": 0.03992783924455101
+    }
+  ],
+  "weakref_scaling_before": {
+    "purpose": "diagnostic scaling only; includes loop overhead",
+    "rows": [
+      {
+        "unrelated_live_refs": 0,
+        "loops": 5000,
+        "create_seconds": 0.005333199980668724,
+        "deref_seconds": 0.0017077999946195632
+      },
+      {
+        "unrelated_live_refs": 100,
+        "loops": 5000,
+        "create_seconds": 0.006214100023498759,
+        "deref_seconds": 0.0017575000238139182
+      },
+      {
+        "unrelated_live_refs": 1000,
+        "loops": 5000,
+        "create_seconds": 0.009393800020916387,
+        "deref_seconds": 0.0029150999907869846
+      },
+      {
+        "unrelated_live_refs": 5000,
+        "loops": 5000,
+        "create_seconds": 0.020323900011135265,
+        "deref_seconds": 0.0073339999944437295
+      }
+    ]
+  },
+  "weakref_scaling_after": {
+    "purpose": "diagnostic scaling only; includes loop overhead",
+    "rows": [
+      {
+        "unrelated_live_refs": 0,
+        "loops": 5000,
+        "create_seconds": 0.004534200008492917,
+        "deref_seconds": 0.0015713000029791147
+      },
+      {
+        "unrelated_live_refs": 100,
+        "loops": 5000,
+        "create_seconds": 0.0054259000171441585,
+        "deref_seconds": 0.0015130999963730574
+      },
+      {
+        "unrelated_live_refs": 1000,
+        "loops": 5000,
+        "create_seconds": 0.004785400000400841,
+        "deref_seconds": 0.0013149000005796552
+      },
+      {
+        "unrelated_live_refs": 5000,
+        "loops": 5000,
+        "create_seconds": 0.005250399990472943,
+        "deref_seconds": 0.0014035999774932861
+      }
+    ]
+  },
+  "primitives_before": {
+    "purpose": "diagnostic only, includes loop/call overhead",
+    "mro_identity_stable": false,
+    "rows": [
+      {
+        "case": "python_call",
+        "loops": 20000,
+        "seconds": 0.0020158000115770847
+      },
+      {
+        "case": "native_mro_getter",
+        "loops": 20000,
+        "seconds": 0.007062099990434945
+      },
+      {
+        "case": "native_weakref_create",
+        "loops": 20000,
+        "seconds": 0.020155200007138774
+      },
+      {
+        "case": "native_weakref_deref",
+        "loops": 20000,
+        "seconds": 0.00700800001504831
+      },
+      {
+        "case": "inspect_shadowed_dict",
+        "loops": 20000,
+        "seconds": 0.0913447999919299
+      }
+    ]
+  },
+  "primitives_after": {
+    "purpose": "diagnostic only, includes loop/call overhead",
+    "mro_identity_stable": false,
+    "rows": [
+      {
+        "case": "python_call",
+        "loops": 20000,
+        "seconds": 0.0020551000197883695
+      },
+      {
+        "case": "native_mro_getter",
+        "loops": 20000,
+        "seconds": 0.007128199998987839
+      },
+      {
+        "case": "native_weakref_create",
+        "loops": 20000,
+        "seconds": 0.020766800007550046
+      },
+      {
+        "case": "native_weakref_deref",
+        "loops": 20000,
+        "seconds": 0.006482600001618266
+      },
+      {
+        "case": "inspect_shadowed_dict",
+        "loops": 20000,
+        "seconds": 0.10513680000440218
+      }
+    ]
+  },
+  "cpython_reference_provenance_limits": "cpython3147-saved-reference-provenance-audit-20261007.json",
+  "inputs_sha256": {
+    "pyperformance-cpython314-clean-release-full-fast-20261002.json": "0543fa675730f019f2c9b54c18d07ae7777d2edc15e9eed60d98a3179e949dc5",
+    "pyperformance-xlang3-format-repr-runtime-targeted-fast-20261007.json": "0cd49d6075e6cee894f13e982fdca69f2dcc6e088945e301b81e9a9c15bf5e63",
+    "pyperformance-xlang3-native-ast-defaults-owner-targeted-fast-20261007.json": "01c21eec4caeff009cdacc60192339bc27e6e3d0c1343ba64897ab743fc9a5d5",
+    "pyperformance-xlang3-weakref-registry-index-targeted-fast-20261007.json": "2a0649acbc685ae2143e97c3d79f0c4d98fa3774690665a3a35d5fe29fdac338",
+    "pyperformance-xlang3-weakref-registry-index-targeted-fast-20261007-provenance.json": "2135047a4014753f4a64a53675543ab94a9b3bbb2f60e78fd9b0b70e587f7d11",
+    "weakref-registry-scaling-xlang3-control-20261007.log": "671907c2904f7e1f5eee7a591c2aa5fa8526b561f9f6c3c243f1a92139600f3c",
+    "weakref-registry-scaling-xlang3-index-candidate-20261007.log": "6a40f67adf750b44870b5bc2553166d88a2e064eae3576c17febd55b75a7b9cd",
+    "typing-protocol-runtime-primitives-xlang3-20261007.log": "a5138a1c4f162e872ca1363e90b0ec6b6b4728b331a6f0b2ab8a6261074b2976",
+    "typing-protocol-runtime-primitives-xlang3-index-candidate-20261007.log": "08043601fa210cf435d0ffe2c24068a738c6adadb7cc5dc646d6549669f25535"
+  }
+}

@@ -1,0 +1,14 @@
+late-sites 90 234
+method-mutation 42 186
+monitor-late-sites True True
+monitor-restart True True
+owner-released True
+scalar-shapes (2, 8) (2, 4) (2, 26085) (2, 98)
+scalar-method (4, 12)
+scalar-method-mutation (5, 22)
+scalar-error IndexError
+scalar-error IndexError
+scalar-error TypeError
+fused-global-call-owner-released True
+fused-global-attr-owner-released True
+fused-mapping-call-owner-released False

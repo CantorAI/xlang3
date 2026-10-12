@@ -1,0 +1,976 @@
+{
+  "status": "terminal",
+  "candidate_binary_sha256": {
+    "exe": "dbc20688f5363819cb4a539619d28be885c9d0e0e6e3140e24ecb0112c534248",
+    "dll": "10f79613a21077fe280f55477e6f960b0b2484b7b97d395161fc4f66e1d73863"
+  },
+  "scope": "diagnostic timings and semantic observations; never an official score",
+  "observations": [
+    {
+      "probe": "inherited_subscripts",
+      "runtime": "cpython3147",
+      "exit_code": 0,
+      "probe_sha256": "bdd6e1d6b3852e57cb7c9daabdd9f935b1cdd1acdbf021d6e79fe8c431ab8f9c",
+      "log": "dict-native-dispatch-followup-20261007-inherited_subscripts-cpython3147.log",
+      "log_sha256": "189be4f0c50bcfd3f0ccdd4eeae696d6fc19e26a17c47bbe2e8429f29b10742a",
+      "result": {
+        "purpose": "subscript dispatch diagnosis only, never an official score",
+        "rows": [
+          {
+            "path": "exact_dict",
+            "key_count": 256,
+            "updates": 1024,
+            "samples_seconds": [
+              4.919999628327787e-05,
+              4.689997876994312e-05,
+              4.730001091957092e-05,
+              4.650000482797623e-05,
+              4.6600005589425564e-05
+            ],
+            "all_values_verified": true
+          },
+          {
+            "path": "direct_native_dict",
+            "key_count": 256,
+            "updates": 1024,
+            "samples_seconds": [
+              4.919999628327787e-05,
+              4.7699984861537814e-05,
+              4.9299997044727206e-05,
+              4.749998333863914e-05,
+              4.749998333863914e-05
+            ],
+            "all_values_verified": true
+          },
+          {
+            "path": "inherited_native_dict",
+            "key_count": 256,
+            "updates": 1024,
+            "samples_seconds": [
+              4.81999886687845e-05,
+              4.8699992476031184e-05,
+              4.789998638443649e-05,
+              4.789998638443649e-05,
+              4.710000939667225e-05
+            ],
+            "all_values_verified": true
+          },
+          {
+            "path": "inherited_native_counter",
+            "key_count": 256,
+            "updates": 1024,
+            "samples_seconds": [
+              8.930001058615744e-05,
+              8.9599983766675e-05,
+              8.889997843652964e-05,
+              8.979998528957367e-05,
+              9.00000159163028e-05
+            ],
+            "all_values_verified": true
+          },
+          {
+            "path": "direct_native_counter",
+            "key_count": 256,
+            "updates": 1024,
+            "samples_seconds": [
+              9.2999980552122e-05,
+              8.929998148232698e-05,
+              9.019998833537102e-05,
+              8.940001134760678e-05,
+              8.980001439340413e-05
+            ],
+            "all_values_verified": true
+          },
+          {
+            "path": "direct_python",
+            "key_count": 256,
+            "updates": 1024,
+            "samples_seconds": [
+              0.00010980002116411924,
+              0.00011029999586753547,
+              0.00011589998030103743,
+              0.00010930001735687256,
+              0.00010919998749159276
+            ],
+            "all_values_verified": true
+          },
+          {
+            "path": "inherited_python",
+            "key_count": 256,
+            "updates": 1024,
+            "samples_seconds": [
+              0.0001092999882530421,
+              0.00010920001659542322,
+              0.00010870001278817654,
+              0.00010950001887977123,
+              0.00010859998292289674
+            ],
+            "all_values_verified": true
+          },
+          {
+            "path": "exact_dict",
+            "key_count": 1024,
+            "updates": 4096,
+            "samples_seconds": [
+              0.0001914000022225082,
+              0.00018420000560581684,
+              0.00018130001262761652,
+              0.00018099998123943806,
+              0.00018020000425167382
+            ],
+            "all_values_verified": true
+          },
+          {
+            "path": "direct_native_dict",
+            "key_count": 1024,
+            "updates": 4096,
+            "samples_seconds": [
+              0.00018710002768784761,
+              0.00019279998377896845,
+              0.00018619999173097312,
+              0.00018709999858401716,
+              0.00018560001626610756
+            ],
+            "all_values_verified": true
+          },
+          {
+            "path": "inherited_native_dict",
+            "key_count": 1024,
+            "updates": 4096,
+            "samples_seconds": [
+              0.00018619999173097312,
+              0.00019049999536946416,
+              0.00019389999215491116,
+              0.00018690002616494894,
+              0.0001888000115286559
+            ],
+            "all_values_verified": true
+          },
+          {
+            "path": "inherited_native_counter",
+            "key_count": 1024,
+            "updates": 4096,
+            "samples_seconds": [
+              0.0003316999936942011,
+              0.00032610000926069915,
+              0.00032130000181496143,
+              0.00033299997448921204,
+              0.00033599999733269215
+            ],
+            "all_values_verified": true
+          },
+          {
+            "path": "direct_native_counter",
+            "key_count": 1024,
+            "updates": 4096,
+            "samples_seconds": [
+              0.00034389999927952886,
+              0.000322499981848523,
+              0.0003273999900557101,
+              0.0003279000229667872,
+              0.0003321999975014478
+            ],
+            "all_values_verified": true
+          },
+          {
+            "path": "direct_python",
+            "key_count": 1024,
+            "updates": 4096,
+            "samples_seconds": [
+              0.0004375999851617962,
+              0.0004363000043667853,
+              0.0004321000014897436,
+              0.00043310000910423696,
+              0.00043020001612603664
+            ],
+            "all_values_verified": true
+          },
+          {
+            "path": "inherited_python",
+            "key_count": 1024,
+            "updates": 4096,
+            "samples_seconds": [
+              0.00043089999235235155,
+              0.00042990001384168863,
+              0.0004346999921835959,
+              0.000434300018241629,
+              0.00043330001062713563
+            ],
+            "all_values_verified": true
+          }
+        ]
+      }
+    },
+    {
+      "probe": "inherited_subscripts",
+      "runtime": "candidate",
+      "exit_code": 0,
+      "probe_sha256": "bdd6e1d6b3852e57cb7c9daabdd9f935b1cdd1acdbf021d6e79fe8c431ab8f9c",
+      "log": "dict-native-dispatch-followup-20261007-inherited_subscripts-candidate.log",
+      "log_sha256": "2ee8243cbe4f4017655ace49ba96fb704a6721277b22024f0620e148449725a9",
+      "result": {
+        "purpose": "subscript dispatch diagnosis only, never an official score",
+        "rows": [
+          {
+            "path": "exact_dict",
+            "key_count": 256,
+            "updates": 1024,
+            "samples_seconds": [
+              0.0020441999949980527,
+              0.0017995999951381236,
+              0.0017968000029213727,
+              0.0020395999890752137,
+              0.0017888000002130866
+            ],
+            "all_values_verified": true
+          },
+          {
+            "path": "direct_native_dict",
+            "key_count": 256,
+            "updates": 1024,
+            "samples_seconds": [
+              0.0020001000084448606,
+              0.0019804000039584935,
+              0.0019930999842472374,
+              0.001990799995837733,
+              0.002011799981119111
+            ],
+            "all_values_verified": true
+          },
+          {
+            "path": "inherited_native_dict",
+            "key_count": 256,
+            "updates": 1024,
+            "samples_seconds": [
+              0.002435000002151355,
+              0.002386600011959672,
+              0.002359300007810816,
+              0.0023570999910589308,
+              0.0024307999992743134
+            ],
+            "all_values_verified": true
+          },
+          {
+            "path": "inherited_native_counter",
+            "key_count": 256,
+            "updates": 1024,
+            "samples_seconds": [
+              0.002358600002480671,
+              0.002363900013733655,
+              0.002358099998673424,
+              0.0023585000017192215,
+              0.0023469000007025898
+            ],
+            "all_values_verified": true
+          },
+          {
+            "path": "direct_native_counter",
+            "key_count": 256,
+            "updates": 1024,
+            "samples_seconds": [
+              0.0019985999970231205,
+              0.0020164999878033996,
+              0.001988900010474026,
+              0.0020081999828107655,
+              0.0019878000020980835
+            ],
+            "all_values_verified": true
+          },
+          {
+            "path": "direct_python",
+            "key_count": 256,
+            "updates": 1024,
+            "samples_seconds": [
+              0.0026658999850042164,
+              0.002665799984242767,
+              0.0028132999723311514,
+              0.0027389000169932842,
+              0.002663199993548915
+            ],
+            "all_values_verified": true
+          },
+          {
+            "path": "inherited_python",
+            "key_count": 256,
+            "updates": 1024,
+            "samples_seconds": [
+              0.0046098000020720065,
+              0.004451299988431856,
+              0.00444180000340566,
+              0.00445370000670664,
+              0.0044602999987546355
+            ],
+            "all_values_verified": true
+          },
+          {
+            "path": "exact_dict",
+            "key_count": 1024,
+            "updates": 4096,
+            "samples_seconds": [
+              0.0074582000088412315,
+              0.007297899981494993,
+              0.007435500010615215,
+              0.007284500024979934,
+              0.007322399993427098
+            ],
+            "all_values_verified": true
+          },
+          {
+            "path": "direct_native_dict",
+            "key_count": 1024,
+            "updates": 4096,
+            "samples_seconds": [
+              0.007879000011598691,
+              0.007863100006943569,
+              0.007963800017023459,
+              0.00809540000045672,
+              0.007953799999086186
+            ],
+            "all_values_verified": true
+          },
+          {
+            "path": "inherited_native_dict",
+            "key_count": 1024,
+            "updates": 4096,
+            "samples_seconds": [
+              0.009794999990845099,
+              0.009950799983926117,
+              0.009847500012256205,
+              0.00958739998168312,
+              0.010267800011206418
+            ],
+            "all_values_verified": true
+          },
+          {
+            "path": "inherited_native_counter",
+            "key_count": 1024,
+            "updates": 4096,
+            "samples_seconds": [
+              0.00950159999774769,
+              0.00938299999688752,
+              0.009510000003501773,
+              0.009843600011663511,
+              0.0097550000064075
+            ],
+            "all_values_verified": true
+          },
+          {
+            "path": "direct_native_counter",
+            "key_count": 1024,
+            "updates": 4096,
+            "samples_seconds": [
+              0.008512500004144385,
+              0.008290799974929541,
+              0.008560399990528822,
+              0.007965700002387166,
+              0.008154499984811991
+            ],
+            "all_values_verified": true
+          },
+          {
+            "path": "direct_python",
+            "key_count": 1024,
+            "updates": 4096,
+            "samples_seconds": [
+              0.011420499999076128,
+              0.011211800010642037,
+              0.010817900008987635,
+              0.010907699994277209,
+              0.010980599996400997
+            ],
+            "all_values_verified": true
+          },
+          {
+            "path": "inherited_python",
+            "key_count": 1024,
+            "updates": 4096,
+            "samples_seconds": [
+              0.01929930000915192,
+              0.018035000015515834,
+              0.0187187000119593,
+              0.01792150002438575,
+              0.018184900021879002
+            ],
+            "all_values_verified": true
+          }
+        ]
+      }
+    },
+    {
+      "probe": "callback_boundary",
+      "runtime": "cpython3147",
+      "exit_code": 0,
+      "probe_sha256": "4a5cb7358005574fc2426db47c430caac7d7b1b7c453ec386b991c350402a47b",
+      "log": "dict-native-dispatch-followup-20261007-callback_boundary-cpython3147.log",
+      "log_sha256": "86220be88cc050d9457bf569c151fd72d57f03a169adbb259eeb723e25438711",
+      "result": {
+        "purpose": "callback boundary diagnosis only, not an official score",
+        "rows": [
+          {
+            "mapping": "dict",
+            "path": "direct_lookup",
+            "lookups_per_sample": 8192,
+            "samples_seconds": [
+              0.00022149999858811498,
+              0.00022150002769194543,
+              0.00023919998784549534,
+              0.00022230000467970967,
+              0.00022429999080486596
+            ],
+            "checksum": 8184
+          },
+          {
+            "mapping": "dict",
+            "path": "python_call",
+            "lookups_per_sample": 8192,
+            "samples_seconds": [
+              0.00038770001265220344,
+              0.0003859999997075647,
+              0.0003924000193364918,
+              0.0003904000041075051,
+              0.0003969999961555004
+            ],
+            "checksum": 8184
+          },
+          {
+            "mapping": "dict",
+            "path": "native_callback",
+            "lookups_per_sample": 8192,
+            "samples_seconds": [
+              0.00037799999699927866,
+              0.0003819999983534217,
+              0.0003792000061366707,
+              0.00037579998024739325,
+              0.0003743000270333141
+            ],
+            "checksum": 8184
+          },
+          {
+            "mapping": "Counter",
+            "path": "direct_lookup",
+            "lookups_per_sample": 8192,
+            "samples_seconds": [
+              0.000242199981585145,
+              0.00024720001965761185,
+              0.00023979999241419137,
+              0.0002415000053588301,
+              0.0002406999992672354
+            ],
+            "checksum": 8184
+          },
+          {
+            "mapping": "Counter",
+            "path": "python_call",
+            "lookups_per_sample": 8192,
+            "samples_seconds": [
+              0.0003941000031773001,
+              0.0003935999993700534,
+              0.00040210000588558614,
+              0.000395099981687963,
+              0.00040010001976042986
+            ],
+            "checksum": 8184
+          },
+          {
+            "mapping": "Counter",
+            "path": "native_callback",
+            "lookups_per_sample": 8192,
+            "samples_seconds": [
+              0.00039080000715330243,
+              0.00039659999310970306,
+              0.00038670000503771007,
+              0.0003870000073220581,
+              0.0004000999906565994
+            ],
+            "checksum": 8184
+          }
+        ]
+      }
+    },
+    {
+      "probe": "callback_boundary",
+      "runtime": "candidate",
+      "exit_code": 0,
+      "probe_sha256": "4a5cb7358005574fc2426db47c430caac7d7b1b7c453ec386b991c350402a47b",
+      "log": "dict-native-dispatch-followup-20261007-callback_boundary-candidate.log",
+      "log_sha256": "848ab85fe1ef366403cec0691d81ef278d67c47cc52e870c206a50b2d3a8562f",
+      "result": {
+        "purpose": "callback boundary diagnosis only, not an official score",
+        "rows": [
+          {
+            "mapping": "dict",
+            "path": "direct_lookup",
+            "lookups_per_sample": 8192,
+            "samples_seconds": [
+              0.007502499996917322,
+              0.0076849999895785,
+              0.007835199998226017,
+              0.008044299989705905,
+              0.007921000011265278
+            ],
+            "checksum": 8184
+          },
+          {
+            "mapping": "dict",
+            "path": "python_call",
+            "lookups_per_sample": 8192,
+            "samples_seconds": [
+              0.010857399989617988,
+              0.010853100015083328,
+              0.01099050001357682,
+              0.010787899984279647,
+              0.01088099999469705
+            ],
+            "checksum": 8184
+          },
+          {
+            "mapping": "dict",
+            "path": "native_callback",
+            "lookups_per_sample": 8192,
+            "samples_seconds": [
+              0.015506900002947077,
+              0.015450899983989075,
+              0.015911499998765066,
+              0.017697100003715605,
+              0.015524999995250255
+            ],
+            "checksum": 8184
+          },
+          {
+            "mapping": "Counter",
+            "path": "direct_lookup",
+            "lookups_per_sample": 8192,
+            "samples_seconds": [
+              0.01013860001694411,
+              0.009941700001945719,
+              0.010072200006106868,
+              0.009994299995014444,
+              0.009941899974364787
+            ],
+            "checksum": 8184
+          },
+          {
+            "mapping": "Counter",
+            "path": "python_call",
+            "lookups_per_sample": 8192,
+            "samples_seconds": [
+              0.013145700009772554,
+              0.01357900002039969,
+              0.01317300001392141,
+              0.013908900000387803,
+              0.01303949998691678
+            ],
+            "checksum": 8184
+          },
+          {
+            "mapping": "Counter",
+            "path": "native_callback",
+            "lookups_per_sample": 8192,
+            "samples_seconds": [
+              0.018214299983810633,
+              0.018958100001327693,
+              0.01773920000414364,
+              0.0177718999912031,
+              0.017975700000533834
+            ],
+            "checksum": 8184
+          }
+        ]
+      }
+    },
+    {
+      "probe": "minmax_order",
+      "runtime": "cpython3147",
+      "exit_code": 0,
+      "probe_sha256": "2ec2139baa39873d03dc1166a7db6703575e23003b7cc87693df5a73aca7bdc8",
+      "log": "dict-native-dispatch-followup-20261007-minmax_order-cpython3147.log",
+      "log_sha256": "9f778ffb83a15b0a90d6695a9453a0be46fe5d72be10b02b92a51057a3602e57",
+      "result": {
+        "empty_default_invalid_key": "fallback",
+        "list_growth": 3,
+        "max_None": {
+          "events": [
+            [
+              "yield",
+              1
+            ],
+            [
+              "key",
+              1
+            ],
+            [
+              "yield",
+              2
+            ],
+            [
+              "key",
+              2
+            ],
+            [
+              "compare",
+              2,
+              1
+            ],
+            [
+              "yield",
+              3
+            ],
+            [
+              "key",
+              3
+            ],
+            [
+              "compare",
+              3,
+              2
+            ]
+          ],
+          "result": 3
+        },
+        "max_comparison": {
+          "events": [
+            [
+              "yield",
+              1
+            ],
+            [
+              "key",
+              1
+            ],
+            [
+              "yield",
+              2
+            ],
+            [
+              "key",
+              2
+            ],
+            [
+              "compare",
+              2,
+              1
+            ]
+          ],
+          "result": "comparison failed"
+        },
+        "max_key": {
+          "events": [
+            [
+              "yield",
+              1
+            ],
+            [
+              "key",
+              1
+            ],
+            [
+              "yield",
+              2
+            ],
+            [
+              "key",
+              2
+            ]
+          ],
+          "result": "key failed"
+        },
+        "min_None": {
+          "events": [
+            [
+              "yield",
+              1
+            ],
+            [
+              "key",
+              1
+            ],
+            [
+              "yield",
+              2
+            ],
+            [
+              "key",
+              2
+            ],
+            [
+              "compare",
+              2,
+              1
+            ],
+            [
+              "yield",
+              3
+            ],
+            [
+              "key",
+              3
+            ],
+            [
+              "compare",
+              3,
+              1
+            ]
+          ],
+          "result": 1
+        },
+        "min_comparison": {
+          "events": [
+            [
+              "yield",
+              1
+            ],
+            [
+              "key",
+              1
+            ],
+            [
+              "yield",
+              2
+            ],
+            [
+              "key",
+              2
+            ],
+            [
+              "compare",
+              2,
+              1
+            ]
+          ],
+          "result": "comparison failed"
+        },
+        "min_key": {
+          "events": [
+            [
+              "yield",
+              1
+            ],
+            [
+              "key",
+              1
+            ],
+            [
+              "yield",
+              2
+            ],
+            [
+              "key",
+              2
+            ]
+          ],
+          "result": "key failed"
+        },
+        "ties_keep_first": true
+      }
+    },
+    {
+      "probe": "minmax_order",
+      "runtime": "candidate",
+      "exit_code": 0,
+      "probe_sha256": "2ec2139baa39873d03dc1166a7db6703575e23003b7cc87693df5a73aca7bdc8",
+      "log": "dict-native-dispatch-followup-20261007-minmax_order-candidate.log",
+      "log_sha256": "467589e1e57b19c1eda798092e24cd80ffcb893504626429bb773e2ce3f9627a",
+      "result": {
+        "empty_default_invalid_key": "fallback",
+        "list_growth": 2,
+        "max_None": {
+          "events": [
+            [
+              "yield",
+              1
+            ],
+            [
+              "yield",
+              2
+            ],
+            [
+              "yield",
+              3
+            ],
+            [
+              "key",
+              1
+            ],
+            [
+              "key",
+              2
+            ],
+            [
+              "key",
+              3
+            ],
+            [
+              "compare",
+              2,
+              1
+            ],
+            [
+              "compare",
+              3,
+              2
+            ]
+          ],
+          "result": 3
+        },
+        "max_comparison": {
+          "events": [
+            [
+              "yield",
+              1
+            ],
+            [
+              "yield",
+              2
+            ],
+            [
+              "yield",
+              3
+            ],
+            [
+              "key",
+              1
+            ],
+            [
+              "key",
+              2
+            ],
+            [
+              "key",
+              3
+            ],
+            [
+              "compare",
+              2,
+              1
+            ]
+          ],
+          "result": "comparison failed"
+        },
+        "max_key": {
+          "events": [
+            [
+              "yield",
+              1
+            ],
+            [
+              "yield",
+              2
+            ],
+            [
+              "yield",
+              3
+            ],
+            [
+              "key",
+              1
+            ],
+            [
+              "key",
+              2
+            ]
+          ],
+          "result": "key failed"
+        },
+        "min_None": {
+          "events": [
+            [
+              "yield",
+              1
+            ],
+            [
+              "yield",
+              2
+            ],
+            [
+              "yield",
+              3
+            ],
+            [
+              "key",
+              1
+            ],
+            [
+              "key",
+              2
+            ],
+            [
+              "key",
+              3
+            ],
+            [
+              "compare",
+              2,
+              1
+            ],
+            [
+              "compare",
+              3,
+              1
+            ]
+          ],
+          "result": 1
+        },
+        "min_comparison": {
+          "events": [
+            [
+              "yield",
+              1
+            ],
+            [
+              "yield",
+              2
+            ],
+            [
+              "yield",
+              3
+            ],
+            [
+              "key",
+              1
+            ],
+            [
+              "key",
+              2
+            ],
+            [
+              "key",
+              3
+            ],
+            [
+              "compare",
+              2,
+              1
+            ]
+          ],
+          "result": "comparison failed"
+        },
+        "min_key": {
+          "events": [
+            [
+              "yield",
+              1
+            ],
+            [
+              "yield",
+              2
+            ],
+            [
+              "yield",
+              3
+            ],
+            [
+              "key",
+              1
+            ],
+            [
+              "key",
+              2
+            ]
+          ],
+          "result": "key failed"
+        },
+        "ties_keep_first": true
+      }
+    }
+  ]
+}

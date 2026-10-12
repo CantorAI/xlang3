@@ -1,0 +1,7 @@
+cursor-guard-execute
+cursor-guard-fetchone
+cursor-guard-fetchall
+cursor-guard-next
+cursor-guard-close
+cursor-guard-executescript
+cursor-guard-executemany

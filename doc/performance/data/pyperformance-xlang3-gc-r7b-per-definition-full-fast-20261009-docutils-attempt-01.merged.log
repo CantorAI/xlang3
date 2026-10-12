@@ -1,0 +1,143 @@
+Benchmark dependency sites: D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages
+Full-case timeout overrides: networkx*=600s
+Python benchmark suite 1.14.0
+
+
+==================================================
+( 1/1) creating venv for benchmark (docutils)
+
+(trying common venv first)
+
+[1/1] docutils...
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\data-files\benchmarks\bm_docutils\run_benchmark.py", line 54, in <module>
+    runner.bench_time_func("docutils", bench_docutils, DOC_ROOT)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 502, in bench_time_func
+    result = self._main(task)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 463, in _main
+    bench = self._worker(task)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 437, in _worker
+    run = task.create_run()
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 300, in create_run
+    self.compute()
+    ~~~~~~~~~~~~^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 364, in compute
+    WorkerTask.compute(self)
+    ~~~~~~~~~~~~~~~~~~^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 287, in compute
+    self.calibrate_loops()
+    ~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 250, in calibrate_loops
+    self._compute_values(self.warmups, nvalue,
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+                         is_warmup=True,
+                         ^^^^^^^^^^^^^^^
+                         calibrate_loops=True)
+                         ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 76, in _compute_values
+    with contextlib.ExitStack() as stack:
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    raw_value = float(raw_value)
+    
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 79, in _compute_values
+    raw_value = task_func(self, self.loops)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 497, in task_func
+    return time_func(loops, *args)
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\data-files\benchmarks\bm_docutils\run_benchmark.py", line 44, in bench_docutils
+    runs_total += build_html(doc_root)
+                  ~~~~~~~~~~^^^^^^^^^^
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\data-files\benchmarks\bm_docutils\run_benchmark.py", line 27, in build_html
+    with contextlib.suppress(docutils.ApplicationError):
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<9 lines>...
+    elapsed += pyperf.perf_counter() - t0
+    
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\data-files\benchmarks\bm_docutils\run_benchmark.py", line 28, in build_html
+    core.publish_string(source=file_contents,
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+                        reader_name="standalone",
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<5 lines>...
+                            "report_level": 5,
+                            ^^^^^^^^^^^^^^^^^^
+                        })
+                        ^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\docutils\core.py", line 407, in publish_string
+    output, pub = publish_programmatically(
+                  ~~~~~~~~~~~~~~~~~~~~~~~~^
+        source_class=io.StringInput, source=source, source_path=source_path,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<7 lines>...
+        config_section=config_section,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        enable_exit_status=enable_exit_status)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\docutils\core.py", line 660, in publish_programmatically
+    pub.set_components(reader_name, parser_name, writer_name)
+    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\docutils\core.py", line 94, in set_components
+    self.set_reader(reader_name, self.parser, parser_name)
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\docutils\core.py", line 84, in set_reader
+    self.reader = reader_class(parser, parser_name)
+                  ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\docutils\readers\__init__.py", line 52, in __init__
+    self.set_parser(parser_name)
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\docutils\readers\__init__.py", line 63, in set_parser
+    parser_class = parsers.get_parser_class(parser_name)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\docutils\parsers\__init__.py", line 82, in get_parser_class
+    module = import_module('docutils.parsers.'+parser_name)
+  File "C:\Python\Python314\Lib\importlib\__init__.py", line 88, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\docutils\parsers\rst\__init__.py", line 75, in <module>
+    from docutils.parsers.rst import roles, states
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\docutils\parsers\rst\states.py", line 1139, in <module>
+    'enumerator': r'(%(parens)s|%(rparen)s|%(period)s)( +|$)' % pats,
+                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^~~~~~~~~
+KeyError: "format mapping key 'parens' not found"
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\data-files\benchmarks\bm_docutils\run_benchmark.py", line 54, in <module>
+    runner.bench_time_func("docutils", bench_docutils, DOC_ROOT)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 502, in bench_time_func
+    result = self._main(task)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 468, in _main
+    bench = self._manager()
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 681, in _manager
+    bench = Manager(self).create_bench()
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_manager.py", line 243, in create_bench
+    worker_bench, run = self.create_worker_bench()
+                        ~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_manager.py", line 142, in create_worker_bench
+    suite = self.create_suite()
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_manager.py", line 132, in create_suite
+    suite = self.spawn_worker(self.calibrate_loops, 0)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_manager.py", line 118, in spawn_worker
+    raise RuntimeError("%s failed with exit code %s"
+                       % (cmd[0], exitcode))
+RuntimeError: D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3.exe failed with exit code 1
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\run.py", line 171, in run_benchmarks
+    result = bench.run(
+        bench_venv.python,
+    ...<3 lines>...
+        verbose=options.verbose,
+    )
+  File "D:\CantorAI\xlang3\benchmarks\diagnostics\run_pyperformance_xlang3_shimmed.py", line 157, in run_named_benchmark
+    return original_benchmark_run(benchmark, *positional, **keywords)
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 193, in run
+    bench = _run_perf_script(
+        python,
+    ...<4 lines>...
+        verbose=verbose,
+    )
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 250, in _run_perf_script
+    raise RuntimeError("Benchmark died")
+RuntimeError: Benchmark died
+ERROR: Benchmark docutils failed: Benchmark died
+
+ERROR: No benchmark was run

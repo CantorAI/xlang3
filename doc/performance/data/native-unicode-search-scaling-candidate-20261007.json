@@ -1,0 +1,548 @@
+{
+  "diagnostic_only": true,
+  "construction_timed": false,
+  "unmeasured_warmup_passes": 1,
+  "repeats": 5,
+  "records": [
+    {
+      "family": "ascii",
+      "operation": "find_tail",
+      "source_characters": 256,
+      "reads": 64,
+      "checksum": 16320,
+      "samples_seconds": [
+        1.650000922381878e-05,
+        1.3899989426136017e-05,
+        1.2900010915473104e-05,
+        1.270000939257443e-05,
+        1.270000939257443e-05
+      ],
+      "median_seconds": 1.2900010915473104e-05
+    },
+    {
+      "family": "ascii",
+      "operation": "rfind_tail",
+      "source_characters": 256,
+      "reads": 64,
+      "checksum": 16320,
+      "samples_seconds": [
+        1.6900012269616127e-05,
+        1.6300007700920105e-05,
+        1.6300007700920105e-05,
+        1.6400008462369442e-05,
+        1.619997783564031e-05
+      ],
+      "median_seconds": 1.6300007700920105e-05
+    },
+    {
+      "family": "ascii",
+      "operation": "startswith_tail",
+      "source_characters": 256,
+      "reads": 64,
+      "checksum": 64,
+      "samples_seconds": [
+        1.8399994587525725e-05,
+        1.8399994587525725e-05,
+        2.750000567175448e-05,
+        1.8099992303177714e-05,
+        1.7999991541728377e-05
+      ],
+      "median_seconds": 1.8399994587525725e-05
+    },
+    {
+      "family": "ascii",
+      "operation": "count_empty",
+      "source_characters": 256,
+      "reads": 64,
+      "checksum": 16448,
+      "samples_seconds": [
+        1.1199997970834374e-05,
+        1.0899995686486363e-05,
+        1.0799994925037026e-05,
+        1.0799994925037026e-05,
+        1.0599993402138352e-05
+      ],
+      "median_seconds": 1.0799994925037026e-05
+    },
+    {
+      "family": "sparse_multibyte",
+      "operation": "find_tail",
+      "source_characters": 256,
+      "reads": 64,
+      "checksum": 16320,
+      "samples_seconds": [
+        1.4099990949034691e-05,
+        1.3899989426136017e-05,
+        1.37000170070678e-05,
+        1.37000170070678e-05,
+        1.3499986380338669e-05
+      ],
+      "median_seconds": 1.37000170070678e-05
+    },
+    {
+      "family": "sparse_multibyte",
+      "operation": "rfind_tail",
+      "source_characters": 256,
+      "reads": 64,
+      "checksum": 16320,
+      "samples_seconds": [
+        1.7600017599761486e-05,
+        1.7399986973032355e-05,
+        1.719998545013368e-05,
+        1.7300015315413475e-05,
+        1.7699989257380366e-05
+      ],
+      "median_seconds": 1.7399986973032355e-05
+    },
+    {
+      "family": "sparse_multibyte",
+      "operation": "startswith_tail",
+      "source_characters": 256,
+      "reads": 64,
+      "checksum": 64,
+      "samples_seconds": [
+        1.990000600926578e-05,
+        1.9500002963468432e-05,
+        1.920000067912042e-05,
+        1.930000144056976e-05,
+        1.9099999917671084e-05
+      ],
+      "median_seconds": 1.930000144056976e-05
+    },
+    {
+      "family": "sparse_multibyte",
+      "operation": "count_empty",
+      "source_characters": 256,
+      "reads": 64,
+      "checksum": 16448,
+      "samples_seconds": [
+        1.209997572004795e-05,
+        1.1800002539530396e-05,
+        1.1900003300979733e-05,
+        1.1900003300979733e-05,
+        1.1800002539530396e-05
+      ],
+      "median_seconds": 1.1900003300979733e-05
+    },
+    {
+      "family": "dense_multibyte",
+      "operation": "find_tail",
+      "source_characters": 256,
+      "reads": 64,
+      "checksum": 16320,
+      "samples_seconds": [
+        3.5900011425837874e-05,
+        3.580001066438854e-05,
+        3.5900011425837874e-05,
+        3.5699980799108744e-05,
+        3.57000099029392e-05
+      ],
+      "median_seconds": 3.580001066438854e-05
+    },
+    {
+      "family": "dense_multibyte",
+      "operation": "rfind_tail",
+      "source_characters": 256,
+      "reads": 64,
+      "checksum": 16320,
+      "samples_seconds": [
+        3.980001201853156e-05,
+        3.969998215325177e-05,
+        3.960001049563289e-05,
+        3.959998139180243e-05,
+        3.920000744983554e-05
+      ],
+      "median_seconds": 3.960001049563289e-05
+    },
+    {
+      "family": "dense_multibyte",
+      "operation": "startswith_tail",
+      "source_characters": 256,
+      "reads": 64,
+      "checksum": 64,
+      "samples_seconds": [
+        3.060000017285347e-05,
+        3.090000245720148e-05,
+        3.060000017285347e-05,
+        3.050002851523459e-05,
+        3.0499999411404133e-05
+      ],
+      "median_seconds": 3.060000017285347e-05
+    },
+    {
+      "family": "dense_multibyte",
+      "operation": "count_empty",
+      "source_characters": 256,
+      "reads": 64,
+      "checksum": 16448,
+      "samples_seconds": [
+        1.2200005585327744e-05,
+        1.1900003300979733e-05,
+        1.170000177808106e-05,
+        1.170000177808106e-05,
+        1.1800002539530396e-05
+      ],
+      "median_seconds": 1.1800002539530396e-05
+    },
+    {
+      "family": "ascii",
+      "operation": "find_tail",
+      "source_characters": 4096,
+      "reads": 64,
+      "checksum": 262080,
+      "samples_seconds": [
+        1.2800010154023767e-05,
+        1.2600008631125093e-05,
+        1.2600008631125093e-05,
+        1.2600008631125093e-05,
+        1.2500007869675756e-05
+      ],
+      "median_seconds": 1.2600008631125093e-05
+    },
+    {
+      "family": "ascii",
+      "operation": "rfind_tail",
+      "source_characters": 4096,
+      "reads": 64,
+      "checksum": 262080,
+      "samples_seconds": [
+        1.6699981642886996e-05,
+        1.6300007700920105e-05,
+        1.6300007700920105e-05,
+        1.610000617802143e-05,
+        1.610000617802143e-05
+      ],
+      "median_seconds": 1.6300007700920105e-05
+    },
+    {
+      "family": "ascii",
+      "operation": "startswith_tail",
+      "source_characters": 4096,
+      "reads": 64,
+      "checksum": 64,
+      "samples_seconds": [
+        1.8099992303177714e-05,
+        1.789999078027904e-05,
+        1.7999991541728377e-05,
+        1.810002140700817e-05,
+        1.8000020645558834e-05
+      ],
+      "median_seconds": 1.8000020645558834e-05
+    },
+    {
+      "family": "ascii",
+      "operation": "count_empty",
+      "source_characters": 4096,
+      "reads": 64,
+      "checksum": 262208,
+      "samples_seconds": [
+        1.1199997970834374e-05,
+        1.0799994925037026e-05,
+        1.0899995686486363e-05,
+        1.0799994925037026e-05,
+        1.0799994925037026e-05
+      ],
+      "median_seconds": 1.0799994925037026e-05
+    },
+    {
+      "family": "sparse_multibyte",
+      "operation": "find_tail",
+      "source_characters": 4096,
+      "reads": 64,
+      "checksum": 262080,
+      "samples_seconds": [
+        1.3599987141788006e-05,
+        1.3600016245618463e-05,
+        1.3600016245618463e-05,
+        1.3599987141788006e-05,
+        1.3599987141788006e-05
+      ],
+      "median_seconds": 1.3599987141788006e-05
+    },
+    {
+      "family": "sparse_multibyte",
+      "operation": "rfind_tail",
+      "source_characters": 4096,
+      "reads": 64,
+      "checksum": 262080,
+      "samples_seconds": [
+        1.7499987734481692e-05,
+        1.7299986211583018e-05,
+        1.7200014553964138e-05,
+        1.719998545013368e-05,
+        1.719998545013368e-05
+      ],
+      "median_seconds": 1.7200014553964138e-05
+    },
+    {
+      "family": "sparse_multibyte",
+      "operation": "startswith_tail",
+      "source_characters": 4096,
+      "reads": 64,
+      "checksum": 64,
+      "samples_seconds": [
+        1.960000372491777e-05,
+        1.920000067912042e-05,
+        1.9099999917671084e-05,
+        1.8999999156221747e-05,
+        1.8699996871873736e-05
+      ],
+      "median_seconds": 1.9099999917671084e-05
+    },
+    {
+      "family": "sparse_multibyte",
+      "operation": "count_empty",
+      "source_characters": 4096,
+      "reads": 64,
+      "checksum": 262208,
+      "samples_seconds": [
+        1.2100004823878407e-05,
+        1.200000406242907e-05,
+        1.1899974197149277e-05,
+        1.1800002539530396e-05,
+        1.1800002539530396e-05
+      ],
+      "median_seconds": 1.1899974197149277e-05
+    },
+    {
+      "family": "dense_multibyte",
+      "operation": "find_tail",
+      "source_characters": 4096,
+      "reads": 64,
+      "checksum": 262080,
+      "samples_seconds": [
+        3.6200013710185885e-05,
+        3.5999983083456755e-05,
+        3.580001066438854e-05,
+        3.589998232200742e-05,
+        3.580001066438854e-05
+      ],
+      "median_seconds": 3.589998232200742e-05
+    },
+    {
+      "family": "dense_multibyte",
+      "operation": "rfind_tail",
+      "source_characters": 4096,
+      "reads": 64,
+      "checksum": 262080,
+      "samples_seconds": [
+        3.980001201853156e-05,
+        3.959998139180243e-05,
+        3.950000973418355e-05,
+        3.959998139180243e-05,
+        3.950000973418355e-05
+      ],
+      "median_seconds": 3.959998139180243e-05
+    },
+    {
+      "family": "dense_multibyte",
+      "operation": "startswith_tail",
+      "source_characters": 4096,
+      "reads": 64,
+      "checksum": 64,
+      "samples_seconds": [
+        3.0499999411404133e-05,
+        3.0399998649954796e-05,
+        3.0499999411404133e-05,
+        3.060000017285347e-05,
+        3.0499999411404133e-05
+      ],
+      "median_seconds": 3.0499999411404133e-05
+    },
+    {
+      "family": "dense_multibyte",
+      "operation": "count_empty",
+      "source_characters": 4096,
+      "reads": 64,
+      "checksum": 262208,
+      "samples_seconds": [
+        1.2499978765845299e-05,
+        1.2300006346777081e-05,
+        1.2200005585327744e-05,
+        1.209997572004795e-05,
+        1.2200005585327744e-05
+      ],
+      "median_seconds": 1.2200005585327744e-05
+    },
+    {
+      "family": "ascii",
+      "operation": "find_tail",
+      "source_characters": 65536,
+      "reads": 64,
+      "checksum": 4194240,
+      "samples_seconds": [
+        1.300001167692244e-05,
+        1.2699980288743973e-05,
+        1.2400007108226418e-05,
+        1.2400007108226418e-05,
+        1.270000939257443e-05
+      ],
+      "median_seconds": 1.2699980288743973e-05
+    },
+    {
+      "family": "ascii",
+      "operation": "rfind_tail",
+      "source_characters": 65536,
+      "reads": 64,
+      "checksum": 4194240,
+      "samples_seconds": [
+        1.659998088143766e-05,
+        1.6400008462369442e-05,
+        1.6299978597089648e-05,
+        1.6400008462369442e-05,
+        1.6200006939470768e-05
+      ],
+      "median_seconds": 1.6400008462369442e-05
+    },
+    {
+      "family": "ascii",
+      "operation": "startswith_tail",
+      "source_characters": 65536,
+      "reads": 64,
+      "checksum": 64,
+      "samples_seconds": [
+        1.829999382607639e-05,
+        1.7999991541728377e-05,
+        1.789999078027904e-05,
+        1.780001912266016e-05,
+        1.780001912266016e-05
+      ],
+      "median_seconds": 1.789999078027904e-05
+    },
+    {
+      "family": "ascii",
+      "operation": "count_empty",
+      "source_characters": 65536,
+      "reads": 64,
+      "checksum": 4194368,
+      "samples_seconds": [
+        1.1199997970834374e-05,
+        1.069999416358769e-05,
+        1.069999416358769e-05,
+        1.0599993402138352e-05,
+        1.0599993402138352e-05
+      ],
+      "median_seconds": 1.069999416358769e-05
+    },
+    {
+      "family": "sparse_multibyte",
+      "operation": "find_tail",
+      "source_characters": 65536,
+      "reads": 64,
+      "checksum": 4194240,
+      "samples_seconds": [
+        1.3900018529966474e-05,
+        1.3699987903237343e-05,
+        1.3499986380338669e-05,
+        1.3500015484169126e-05,
+        1.3500015484169126e-05
+      ],
+      "median_seconds": 1.3500015484169126e-05
+    },
+    {
+      "family": "sparse_multibyte",
+      "operation": "rfind_tail",
+      "source_characters": 65536,
+      "reads": 64,
+      "checksum": 4194240,
+      "samples_seconds": [
+        1.7699989257380366e-05,
+        1.7400016076862812e-05,
+        1.7200014553964138e-05,
+        1.7399986973032355e-05,
+        1.7200014553964138e-05
+      ],
+      "median_seconds": 1.7399986973032355e-05
+    },
+    {
+      "family": "sparse_multibyte",
+      "operation": "startswith_tail",
+      "source_characters": 65536,
+      "reads": 64,
+      "checksum": 64,
+      "samples_seconds": [
+        1.920000067912042e-05,
+        1.8999999156221747e-05,
+        1.920000067912042e-05,
+        1.920000067912042e-05,
+        1.9099999917671084e-05
+      ],
+      "median_seconds": 1.920000067912042e-05
+    },
+    {
+      "family": "sparse_multibyte",
+      "operation": "count_empty",
+      "source_characters": 65536,
+      "reads": 64,
+      "checksum": 4194368,
+      "samples_seconds": [
+        1.2200005585327744e-05,
+        1.200000406242907e-05,
+        1.1800002539530396e-05,
+        1.1800002539530396e-05,
+        1.1800002539530396e-05
+      ],
+      "median_seconds": 1.1800002539530396e-05
+    },
+    {
+      "family": "dense_multibyte",
+      "operation": "find_tail",
+      "source_characters": 65536,
+      "reads": 64,
+      "checksum": 4194240,
+      "samples_seconds": [
+        3.689998993650079e-05,
+        3.6299985367804766e-05,
+        3.6600016755983233e-05,
+        3.649998689070344e-05,
+        3.649998689070344e-05
+      ],
+      "median_seconds": 3.649998689070344e-05
+    },
+    {
+      "family": "dense_multibyte",
+      "operation": "rfind_tail",
+      "source_characters": 65536,
+      "reads": 64,
+      "checksum": 4194240,
+      "samples_seconds": [
+        4.0000013541430235e-05,
+        3.999998443759978e-05,
+        3.99000127799809e-05,
+        4.0099985199049115e-05,
+        4.0099985199049115e-05
+      ],
+      "median_seconds": 4.0000013541430235e-05
+    },
+    {
+      "family": "dense_multibyte",
+      "operation": "startswith_tail",
+      "source_characters": 65536,
+      "reads": 64,
+      "checksum": 64,
+      "samples_seconds": [
+        3.060000017285347e-05,
+        3.0399998649954796e-05,
+        3.0499999411404133e-05,
+        3.029999788850546e-05,
+        3.0399998649954796e-05
+      ],
+      "median_seconds": 3.0399998649954796e-05
+    },
+    {
+      "family": "dense_multibyte",
+      "operation": "count_empty",
+      "source_characters": 65536,
+      "reads": 64,
+      "checksum": 4194368,
+      "samples_seconds": [
+        1.270000939257443e-05,
+        1.2500007869675756e-05,
+        1.2400007108226418e-05,
+        1.2399978004395962e-05,
+        1.2400007108226418e-05
+      ],
+      "median_seconds": 1.2400007108226418e-05
+    }
+  ]
+}

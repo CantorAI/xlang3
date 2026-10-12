@@ -1,0 +1,30 @@
+{
+  "compiler_input_sha256": {
+    "src/internal/xlang3/value.h": "b3b88f529eb86acc117ccf5fbf61ac44e6572a96189d60389d1c6728c9bf75b1",
+    "src/runtime/value.cpp": "18be33a526dbcc6627490a12a68aefc9e168d42afbf238ce38fa240e74bba0e0",
+    "src/runtime/value_hash.cpp": "15af31213d9f7141f2c20f15dc72508d30443f6a260228507f6a5ca2431abdfa",
+    "src/executor/xlang_vm/ops/xlang_vm_ops_containers.h": "9476cd2e6a84986679844fddb6669a092a5e235b9496523226b1926a9b7c404a",
+    "src/ir/codec.cpp": "2c9fac9dddef37d52a1acd2e249fd91fe93c6fd89274a36bab539c2e5cd038ed",
+    "src/serialize/value_graph_reader.cpp": "7e96a6a6d248a54525cea52a2397833a5b33fc4a0500a862eaff06c73cf52729",
+    "src/serialize/value_graph_lifetime.cpp": "66a56c2b298a5cec161fd41baaf6c97978c5a6e6f9a037d7e9e67edf1c4e09c8",
+    "src/runtime/modules/system/marshal_module.cpp": "9570f9ea055e9dc613617124b7daa7cc1699b466bb338f95b0e34df5207f37af",
+    "tests/cpp/mapping_iterator_ownership_cases.h": "abb53006b112616ea2c470a874c32f9dad5c68287d5a84f2eab1689cd272a7de",
+    "tests/run_fixtures.py": "7b6fcff6325dcea1d0148e57473c7a9f29c1af071ea169d08e27d6ba384c1bc8",
+    "tests/fixtures/core/immutable_key_hash.py": "77205b0cac112abd23a9dea8ef8a9aff27e8c3d0249cd0529d61f4e93e64aa98",
+    "tests/fixtures/expected/immutable_key_hash.out": "a60ac4c02a4e99dd24b2185ec8378f943dc2b20059429230f11fd28440b62e8b"
+  },
+  "repository_lf_sha256": {
+    "src/internal/xlang3/value.h": "c1415ffab8acb276c8688cd2418cd0e22b0688db5f2172a6d40afcc54a9f067b",
+    "src/runtime/value.cpp": "18be33a526dbcc6627490a12a68aefc9e168d42afbf238ce38fa240e74bba0e0",
+    "src/runtime/value_hash.cpp": "9270a7a705093eb790bfa349cd68c47a03c70ad4e058ee136a2d07d6093e51b8",
+    "src/executor/xlang_vm/ops/xlang_vm_ops_containers.h": "39dce80f6f4a2d217d941159e49de9df20fd03a8552c0efa0d28ce7b7f5235da",
+    "src/ir/codec.cpp": "5fab9f4872c632a5e0088108d1d34f1f93808bc6aa076f933f65808947d6d475",
+    "src/serialize/value_graph_reader.cpp": "e75eb03851bc44039430ead187013dc1ca37d190e8bcc68d1f08f588a50eccdf",
+    "src/serialize/value_graph_lifetime.cpp": "0164659fd402977fb5918f7113cf5365237b5a35822083835dfe0d147ee212e9",
+    "src/runtime/modules/system/marshal_module.cpp": "23c6cdcc9f9b611efe7c4f3bd5c762ef0be345c58f8707ccada2098697e450e9",
+    "tests/cpp/mapping_iterator_ownership_cases.h": "abb53006b112616ea2c470a874c32f9dad5c68287d5a84f2eab1689cd272a7de",
+    "tests/run_fixtures.py": "7b6fcff6325dcea1d0148e57473c7a9f29c1af071ea169d08e27d6ba384c1bc8",
+    "tests/fixtures/core/immutable_key_hash.py": "77205b0cac112abd23a9dea8ef8a9aff27e8c3d0249cd0529d61f4e93e64aa98",
+    "tests/fixtures/expected/immutable_key_hash.out": "a60ac4c02a4e99dd24b2185ec8378f943dc2b20059429230f11fd28440b62e8b"
+  }
+}

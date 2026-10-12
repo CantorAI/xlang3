@@ -1,0 +1,155 @@
+{
+  "scope": "Correctness differential, not timing",
+  "commit": "637331e4cd8a1a389226604c7b2ea3cfd1f8c644",
+  "probe_sha256": "2f88e8c942cdc9bfb6dbacf4575d9f269178763522dce4630a342fd76f7a899c",
+  "observations": [
+    {
+      "runtime": "cpython3147",
+      "exit_code": 0,
+      "exe_sha256": "4942b86a6597e5aee0128daa00050ed79bc21f6e709a78eb19cbfeb0c2f39ac9",
+      "stdout": "{\"custom_descriptor_composite\": {\"value\": [\"Custom\", \"composite\"]}, \"custom_descriptor_string\": {\"value\": [\"Custom\", \"string\"]}, \"descriptor_error_composite\": {\"error\": \"LookupError\", \"message\": \"descriptor binding failed\"}, \"descriptor_error_string\": {\"error\": \"LookupError\", \"message\": \"descriptor binding failed\"}, \"getattribute_hook_composite\": {\"value\": [\"type\", \"composite\"]}, \"getattribute_hook_string\": {\"value\": [\"type\", \"string\"]}, \"instance_override_composite\": {\"value\": [\"type\", \"composite\"]}, \"instance_override_string\": {\"value\": [\"type\", \"string\"]}}\r\n{\"contains\": {\"value\": false}, \"explicit_getitem\": {\"value\": [\"type\", \"absent\"]}, \"get\": {\"value\": 7}, \"pop\": {\"value\": 7}, \"setdefault\": {\"value\": 7}}\r\n",
+      "stderr": "",
+      "results": [
+        {
+          "custom_descriptor_composite": {
+            "value": [
+              "Custom",
+              "composite"
+            ]
+          },
+          "custom_descriptor_string": {
+            "value": [
+              "Custom",
+              "string"
+            ]
+          },
+          "descriptor_error_composite": {
+            "error": "LookupError",
+            "message": "descriptor binding failed"
+          },
+          "descriptor_error_string": {
+            "error": "LookupError",
+            "message": "descriptor binding failed"
+          },
+          "getattribute_hook_composite": {
+            "value": [
+              "type",
+              "composite"
+            ]
+          },
+          "getattribute_hook_string": {
+            "value": [
+              "type",
+              "string"
+            ]
+          },
+          "instance_override_composite": {
+            "value": [
+              "type",
+              "composite"
+            ]
+          },
+          "instance_override_string": {
+            "value": [
+              "type",
+              "string"
+            ]
+          }
+        },
+        {
+          "contains": {
+            "value": false
+          },
+          "explicit_getitem": {
+            "value": [
+              "type",
+              "absent"
+            ]
+          },
+          "get": {
+            "value": 7
+          },
+          "pop": {
+            "value": 7
+          },
+          "setdefault": {
+            "value": 7
+          }
+        }
+      ]
+    },
+    {
+      "runtime": "xlang3",
+      "exit_code": 0,
+      "exe_sha256": "e50b773a91aac9a272a7f092e779eec5bca24dfde4b42d76d25c833d8d62b369",
+      "stdout": "{\"custom_descriptor_composite\": {\"error\": \"TypeError\", \"message\": \"object is not callable\"}, \"custom_descriptor_string\": {\"error\": \"TypeError\", \"message\": \"object is not callable\"}, \"descriptor_error_composite\": {\"error\": \"TypeError\", \"message\": \"object is not callable\"}, \"descriptor_error_string\": {\"error\": \"TypeError\", \"message\": \"object is not callable\"}, \"getattribute_hook_composite\": {\"value\": [\"type\", \"composite\"]}, \"getattribute_hook_string\": {\"value\": [\"type\", \"string\"]}, \"instance_override_composite\": {\"value\": [\"instance\", \"composite\"]}, \"instance_override_string\": {\"value\": [\"instance\", \"string\"]}}\r\n{\"contains\": {\"value\": false}, \"explicit_getitem\": {\"value\": [\"instance\", \"absent\"]}, \"get\": {\"value\": 7}, \"pop\": {\"value\": 7}, \"setdefault\": {\"error\": \"TypeError\", \"message\": \"uncaught exception in __getitem__ (D:\\\\CantorAI\\\\xlang3\\\\scratch\\\\performance\\\\dict-missing-special-lookup-probe-20261007.py:61): <class 'AssertionError'>: storage operation called __getitem__\"}}\r\n",
+      "stderr": "",
+      "results": [
+        {
+          "custom_descriptor_composite": {
+            "error": "TypeError",
+            "message": "object is not callable"
+          },
+          "custom_descriptor_string": {
+            "error": "TypeError",
+            "message": "object is not callable"
+          },
+          "descriptor_error_composite": {
+            "error": "TypeError",
+            "message": "object is not callable"
+          },
+          "descriptor_error_string": {
+            "error": "TypeError",
+            "message": "object is not callable"
+          },
+          "getattribute_hook_composite": {
+            "value": [
+              "type",
+              "composite"
+            ]
+          },
+          "getattribute_hook_string": {
+            "value": [
+              "type",
+              "string"
+            ]
+          },
+          "instance_override_composite": {
+            "value": [
+              "instance",
+              "composite"
+            ]
+          },
+          "instance_override_string": {
+            "value": [
+              "instance",
+              "string"
+            ]
+          }
+        },
+        {
+          "contains": {
+            "value": false
+          },
+          "explicit_getitem": {
+            "value": [
+              "instance",
+              "absent"
+            ]
+          },
+          "get": {
+            "value": 7
+          },
+          "pop": {
+            "value": 7
+          },
+          "setdefault": {
+            "error": "TypeError",
+            "message": "uncaught exception in __getitem__ (D:\\CantorAI\\xlang3\\scratch\\performance\\dict-missing-special-lookup-probe-20261007.py:61): <class 'AssertionError'>: storage operation called __getitem__"
+          }
+        }
+      ]
+    }
+  ],
+  "status": "terminal"
+}

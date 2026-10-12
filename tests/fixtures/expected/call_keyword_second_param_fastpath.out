@@ -1,0 +1,4 @@
+('a', 'b')
+('x', 'y')
+TypeError pair() got multiple values for argument 'first'
+TypeError pair() got an unexpected keyword argument 'other'

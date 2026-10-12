@@ -1,0 +1,13 @@
+1.24 True True
+1.26 True True
+1.25 True True
+-1.25 True True
+-1.26 True True
+1.24 True True
+1.23 True True
+0.1 True True
+0.04 True True
+0.06 True True
+1.23 False True
+1.2300 False False
+inexact-trapped True

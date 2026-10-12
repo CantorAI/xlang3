@@ -1,0 +1,9 @@
+{
+  "terminal": true,
+  "owned_waiter_pid": 20740,
+  "reason": "Stopped only the owned pre-timing waiter after verifying it launched no timing. Other project tests finished; orphaned reusable MSBuild node remained with unchanged CPU counters.",
+  "timing_phases_launched": 0,
+  "wait_log_sha256": "14d7acccbaf7f19d5dd497f1748986f037d133e342606d269383f5d67a1b2af2",
+  "other_project_processes_terminated": false,
+  "controller_sha256": "88af62a01471effe65589ea210df83d951a73091b96700b29bc5a3c8f556be0e"
+}

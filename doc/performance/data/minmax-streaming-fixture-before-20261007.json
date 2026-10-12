@@ -1,0 +1,21 @@
+{
+  "probe_sha256": "586a417de0777c39d03fc412d666f3436654696b349727d3a93b70edc47b88c9",
+  "control_binary_sha256": {
+    "exe": "dbc20688f5363819cb4a539619d28be885c9d0e0e6e3140e24ecb0112c534248",
+    "dll": "d640f61da31c3a6486e9eb9c31939fffa52656e4a8b3d8e450d24026aadf2cc2"
+  },
+  "observations": [
+    {
+      "runtime": "cpython3147",
+      "exit_code": 0,
+      "stdout": "streaming iteration, key and comparison order: OK\r\nkey errors stop iteration immediately: OK\r\ncomparison and truth errors stop iteration immediately: OK\r\niterator exceptions survive default handling: OK\r\nmutation, identity, ties, defaults and argument forms: OK\r\ndiscarded and replaced owners released before advancing: OK\r\n",
+      "stderr": ""
+    },
+    {
+      "runtime": "candidate",
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "Traceback (most recent call last):\r\n  File \"D:\\CantorAI\\xlang3\\scratch\\performance\\minmax-streaming-fixture-next-20261007.py\", line 32, in <module>\r\n    assert events == [('yield', 1), ('key', 1), ('yield', 2), ('key', 2),\r\n                      ('compare', 2, 1), ('yield', 3), ('key', 3),\r\n                      ('compare', 3, 1 if operation is min else 2)]\r\nAssertionError\r\n"
+    }
+  ]
+}

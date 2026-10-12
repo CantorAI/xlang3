@@ -1,0 +1,14 @@
+Completed diagnostic pair 1
+Completed diagnostic pair 2
+Completed diagnostic pair 3
+Completed diagnostic pair 4
+Completed diagnostic pair 5
+Completed diagnostic pair 6
+Completed diagnostic pair 7
+exact_dict speedup 1.0211 favorable pairs 5 /7
+direct_native_dict speedup 1.0074 favorable pairs 5 /7
+inherited_native_dict speedup 1.2326 favorable pairs 7 /7
+inherited_native_counter speedup 1.2282 favorable pairs 7 /7
+direct_native_counter speedup 0.987 favorable pairs 0 /7
+direct_python speedup 0.9846 favorable pairs 1 /7
+inherited_python speedup 1.627 favorable pairs 7 /7

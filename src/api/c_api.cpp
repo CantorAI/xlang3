@@ -207,7 +207,7 @@ X3Status x3_runtime_add_import_root(X3Runtime* runtime, const char* path) {
   if (rt == nullptr || path == nullptr) {
     return fail(rt, "runtime/path is null");
   }
-  rt->add_import_root(std::filesystem::path(path));
+  rt->add_import_root(std::filesystem::u8path(path));
   return X3_STATUS_OK;
 }
 
@@ -238,7 +238,7 @@ X3Status x3_runtime_eval_file(X3Runtime* runtime, const char* path, X3Value* res
     return fail(rt, lowered.errors.front());
   }
 
-  rt->prepend_import_root(std::filesystem::path(path).parent_path());
+  rt->prepend_import_root(std::filesystem::u8path(path).parent_path());
   xlang3::Interpreter interpreter(*rt);
   auto module = std::make_shared<xlang3::ir::Module>(std::move(lowered.module));
   auto exec_result = interpreter.run(std::move(module));
@@ -441,10 +441,13 @@ X3Status x3_value_bytes_data(X3Runtime* runtime, X3Value value, const void** dat
     return X3_STATUS_OK;
   }
   if (auto* view = xlang3::value_as_memoryview(internal)) {
-    if (view->released) {
-      return fail(rt, "memoryview is released");
-    }
-    const auto storage = xlang3::memoryview_object_view(*view);
+      if (view->released) {
+        return fail(rt, "memoryview is released");
+      }
+      if (!view->contiguous) {
+        return fail(rt, "memoryview: underlying buffer is not C-contiguous");
+      }
+      const auto storage = xlang3::memoryview_object_view(*view);
     if (storage.data()) {
       *data = storage.data();
       *size = static_cast<uint64_t>(storage.size());

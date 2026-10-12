@@ -1,0 +1,377 @@
+{
+  "backtraceGraph" : 
+  {
+    "commands" : 
+    [
+      "add_test",
+      "add_xlang3_cpp_test"
+    ],
+    "files" : 
+    [
+      "D:/CantorAI/xlang3/CMakeLists.txt"
+    ],
+    "nodes" : 
+    [
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 478,
+        "parent" : 0
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 490,
+        "parent" : 2
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 492,
+        "parent" : 4
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 495,
+        "parent" : 6
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 495,
+        "parent" : 8
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 495,
+        "parent" : 10
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 1,
+        "file" : 0,
+        "line" : 498,
+        "parent" : 12
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 462,
+        "parent" : 13
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 1,
+        "file" : 0,
+        "line" : 518,
+        "parent" : 15
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 462,
+        "parent" : 16
+      },
+      {
+        "file" : 0
+      },
+      {
+        "command" : 0,
+        "file" : 0,
+        "line" : 697,
+        "parent" : 18
+      }
+    ]
+  },
+  "kind" : "ctestInfo",
+  "tests" : 
+  [
+    {
+      "backtrace" : 1,
+      "command" : 
+      [
+        "D:/CantorAI/xlang3/build-repro/main-verify-20261006/Release/xlang3_sdk_stream_call_tests.exe",
+        "D:/CantorAI/xlang3/tests/cpp"
+      ],
+      "config" : "Release",
+      "name" : "xlang3_sdk_stream_call_tests",
+      "properties" : 
+      [
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "D:/CantorAI/xlang3/build-repro/main-verify-20261006"
+        }
+      ]
+    },
+    {
+      "backtrace" : 3,
+      "command" : 
+      [
+        "D:/CantorAI/xlang3/build-repro/main-verify-20261006/Release/xlang3_graph_process_tests.exe",
+        "write",
+        "D:/CantorAI/xlang3/build-repro/main-verify-20261006/graph_payload.bin",
+        "D:/CantorAI/xlang3/tests/serialize/graph_source.py",
+        "D:/CantorAI/xlang3/build-repro/main-verify-20261006/Release/modules"
+      ],
+      "config" : "Release",
+      "name" : "xlang3_graph_producer",
+      "properties" : 
+      [
+        {
+          "name" : "FIXTURES_SETUP",
+          "value" : 
+          [
+            "serialized_graph"
+          ]
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "D:/CantorAI/xlang3/build-repro/main-verify-20261006"
+        }
+      ]
+    },
+    {
+      "backtrace" : 5,
+      "command" : 
+      [
+        "D:/CantorAI/xlang3/build-repro/main-verify-20261006/Release/xlang3_graph_process_tests.exe",
+        "read",
+        "D:/CantorAI/xlang3/build-repro/main-verify-20261006/graph_payload.bin",
+        "D:/CantorAI/xlang3/tests/serialize/graph_source.py",
+        "D:/CantorAI/xlang3/build-repro/main-verify-20261006/Release/modules"
+      ],
+      "config" : "Release",
+      "name" : "xlang3_graph_consumer",
+      "properties" : 
+      [
+        {
+          "name" : "DEPENDS",
+          "value" : 
+          [
+            "xlang3_graph_producer"
+          ]
+        },
+        {
+          "name" : "FIXTURES_REQUIRED",
+          "value" : 
+          [
+            "serialized_graph"
+          ]
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "D:/CantorAI/xlang3/build-repro/main-verify-20261006"
+        }
+      ]
+    },
+    {
+      "backtrace" : 7,
+      "command" : 
+      [
+        "D:/CantorAI/xlang3/build-repro/main-verify-20261006/Release/xlang3_graph_process_tests.exe",
+        "reject",
+        "D:/CantorAI/xlang3/build-repro/main-verify-20261006/graph_payload.bin",
+        "D:/CantorAI/xlang3/tests/serialize/graph_source.py",
+        "D:/CantorAI/xlang3/build-repro/main-verify-20261006/Release/modules"
+      ],
+      "config" : "Release",
+      "name" : "xlang3_graph_reject_BAD_VERSION",
+      "properties" : 
+      [
+        {
+          "name" : "DEPENDS",
+          "value" : 
+          [
+            "xlang3_graph_producer"
+          ]
+        },
+        {
+          "name" : "ENVIRONMENT",
+          "value" : 
+          [
+            "XLANG3_TEST_GRAPH_BAD_VERSION=1"
+          ]
+        },
+        {
+          "name" : "FIXTURES_REQUIRED",
+          "value" : 
+          [
+            "serialized_graph"
+          ]
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "D:/CantorAI/xlang3/build-repro/main-verify-20261006"
+        }
+      ]
+    },
+    {
+      "backtrace" : 9,
+      "command" : 
+      [
+        "D:/CantorAI/xlang3/build-repro/main-verify-20261006/Release/xlang3_graph_process_tests.exe",
+        "reject",
+        "D:/CantorAI/xlang3/build-repro/main-verify-20261006/graph_payload.bin",
+        "D:/CantorAI/xlang3/tests/serialize/graph_source.py",
+        "D:/CantorAI/xlang3/build-repro/main-verify-20261006/Release/modules"
+      ],
+      "config" : "Release",
+      "name" : "xlang3_graph_reject_NO_CODEC",
+      "properties" : 
+      [
+        {
+          "name" : "DEPENDS",
+          "value" : 
+          [
+            "xlang3_graph_producer"
+          ]
+        },
+        {
+          "name" : "ENVIRONMENT",
+          "value" : 
+          [
+            "XLANG3_TEST_GRAPH_NO_CODEC=1"
+          ]
+        },
+        {
+          "name" : "FIXTURES_REQUIRED",
+          "value" : 
+          [
+            "serialized_graph"
+          ]
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "D:/CantorAI/xlang3/build-repro/main-verify-20261006"
+        }
+      ]
+    },
+    {
+      "backtrace" : 11,
+      "command" : 
+      [
+        "D:/CantorAI/xlang3/build-repro/main-verify-20261006/Release/xlang3_graph_process_tests.exe",
+        "reject",
+        "D:/CantorAI/xlang3/build-repro/main-verify-20261006/graph_payload.bin",
+        "D:/CantorAI/xlang3/tests/serialize/graph_source.py",
+        "D:/CantorAI/xlang3/build-repro/main-verify-20261006/Release/modules"
+      ],
+      "config" : "Release",
+      "name" : "xlang3_graph_reject_DECODE_FAIL",
+      "properties" : 
+      [
+        {
+          "name" : "DEPENDS",
+          "value" : 
+          [
+            "xlang3_graph_producer"
+          ]
+        },
+        {
+          "name" : "ENVIRONMENT",
+          "value" : 
+          [
+            "XLANG3_TEST_GRAPH_DECODE_FAIL=1"
+          ]
+        },
+        {
+          "name" : "FIXTURES_REQUIRED",
+          "value" : 
+          [
+            "serialized_graph"
+          ]
+        },
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "D:/CantorAI/xlang3/build-repro/main-verify-20261006"
+        }
+      ]
+    },
+    {
+      "backtrace" : 14,
+      "command" : 
+      [
+        "D:/CantorAI/xlang3/build-repro/main-verify-20261006/Release/xlang3_runtime_value_tests.exe"
+      ],
+      "config" : "Release",
+      "name" : "xlang3_runtime_value_tests",
+      "properties" : 
+      [
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "D:/CantorAI/xlang3/build-repro/main-verify-20261006"
+        }
+      ]
+    },
+    {
+      "backtrace" : 17,
+      "command" : 
+      [
+        "D:/CantorAI/xlang3/build-repro/main-verify-20261006/Release/xlang3_interpreter_tests.exe"
+      ],
+      "config" : "Release",
+      "name" : "xlang3_interpreter_tests",
+      "properties" : 
+      [
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "D:/CantorAI/xlang3/build-repro/main-verify-20261006"
+        }
+      ]
+    },
+    {
+      "backtrace" : 19,
+      "command" : 
+      [
+        "C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe",
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "D:/CantorAI/xlang3/tests/native/sqlite/run_sqlite_tests.ps1",
+        "-XLang3",
+        "D:/CantorAI/xlang3/build-repro/main-verify-20261006/Release/xlang3.exe",
+        "-NativeModules",
+        "D:/CantorAI/xlang3/build-repro/main-verify-20261006/Release/modules"
+      ],
+      "config" : "Release",
+      "name" : "xlang3_cli_sqlite_module_imports",
+      "properties" : 
+      [
+        {
+          "name" : "WORKING_DIRECTORY",
+          "value" : "D:/CantorAI/xlang3/build-repro/main-verify-20261006"
+        }
+      ]
+    }
+  ],
+  "version" : 
+  {
+    "major" : 1,
+    "minor" : 0
+  }
+}

@@ -1,0 +1,6 @@
+PASS binding-warm
+PASS binding-replace-delete-readd
+PASS binding-namespace-growth
+PASS binding-nonmodule-reentry
+PASS binding-local-reassignment
+PASS binding-export-lazy-exception

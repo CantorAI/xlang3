@@ -1,0 +1,3 @@
+vm-time: clock_pair_mean_ns=17
+vm-time: opcode=242 calls=1208 self_ns=185600 total_ns=185600
+vm-time: opcode=240 calls=14 self_ns=3400 total_ns=3400

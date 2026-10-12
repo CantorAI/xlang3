@@ -1,0 +1,39 @@
+{
+  "status": "terminal_all_executed_checks_passed_harness_count_corrected",
+  "scope": "Independent cursor and native ownership checks; original aggregate seven-group failure remains acceptance blocker",
+  "phases": [
+    {
+      "name": "cursor-eight-groups",
+      "command": [
+        "C:\\Python\\Python314\\python.exe",
+        "tests/run_expected.py",
+        "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+        "tests/fixtures/core/sqlite_cursor_completion.py",
+        "tests/fixtures/expected/sqlite_cursor_completion.out"
+      ],
+      "exit_code": 0,
+      "log": "sqlite-cursor-r6-extra-focused-20261008-cursor-eight-groups.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "writer-guards",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+        "scratch/performance/sqlite-cursor-writer-guard-probe-20261008.py"
+      ],
+      "exit_code": 0,
+      "log": "sqlite-cursor-r6-extra-focused-20261008-writer-guards.log",
+      "sha256": "ccdd1a8347641063fbfa3d17641ee8576ce982fcc73b65457240fd7de9715f96"
+    },
+    {
+      "name": "cpp-native-sqlite",
+      "exit_code": 0,
+      "registered_tests_passed": 9,
+      "log": "sqlite-cursor-r6-extra-focused-20261008-cpp-native-sqlite.log",
+      "sha256": "1eaa80f63705b61e335933fe7e2cd420e4fe1f81f2e9b4a15c023be55e39c970"
+    }
+  ],
+  "all_passed": true,
+  "harness_issue": "Controller incorrectly expected 11 registered CTests; actual configured tree has 9 matching tests, all passed. Two API scripts require direct execution because they are not registered in this cached build. Original controller ended with assertion; no test rerun.",
+  "prior_record_sha256": "5dd04f5a0cd1ae6b2bd07179110526c075ff1680aa3600d645315b9a53e1836a"
+}

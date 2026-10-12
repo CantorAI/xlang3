@@ -125,6 +125,122 @@ X3Status pid_exists(X3CallContext* call, X3Runtime*, void* user_data,
   return X3_STATUS_OK;
 }
 
+X3Status check_pid_range(X3CallContext* call, X3Runtime*, void* user_data,
+                         const X3Value* args, uint32_t argc, X3Value* result) {
+  auto* state = static_cast<State*>(user_data);
+  if (argc != 1 || args[0].tag != X3_TAG_INT64)
+    return state->host->raise_class_error(call, "TypeError", "check_pid_range() expects a PID");
+  if (args[0].as.i64 > UINT32_MAX)
+    return state->host->raise_class_error(call, "OverflowError", "PID is outside the Windows process ID range");
+  *result = x3_value_none();
+  return X3_STATUS_OK;
+}
+
+X3Status cpu_count_logical(X3CallContext* call, X3Runtime*, void* user_data,
+                           const X3Value*, uint32_t argc, X3Value* result) {
+  auto* state = static_cast<State*>(user_data);
+  if (argc != 0)
+    return state->host->raise_class_error(call, "TypeError", "cpu_count_logical() takes no arguments");
+  // Match psutil's Windows _psutil_windows ABI. Count processors across all
+  // processor groups so large Windows hosts do not silently report only the
+  // first group's capacity.
+  const DWORD count = GetActiveProcessorCount(ALL_PROCESSOR_GROUPS);
+  if (count == 0) return os_error(state, call, "GetActiveProcessorCount", GetLastError());
+  *result = x3_value_int64(static_cast<int64_t>(count));
+  return X3_STATUS_OK;
+}
+
+X3Status proc_memory_info(X3CallContext* call, X3Runtime*, void* user_data,
+                          const X3Value* args, uint32_t argc, X3Value* result) {
+  auto* state = static_cast<State*>(user_data);
+  if (argc != 1 || args[0].tag != X3_TAG_INT64)
+    return state->host->raise_class_error(call, "TypeError", "proc_memory_info() expects a PID");
+  const int64_t value = args[0].as.i64;
+  if (value < 0 || value > UINT32_MAX)
+    return state->host->raise_class_error(call, "OSError", "invalid process ID");
+  HANDLE process = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE,
+                               static_cast<DWORD>(value));
+  if (!process) return os_error(state, call, "OpenProcess", GetLastError());
+  PROCESS_MEMORY_COUNTERS_EX counters{};
+  counters.cb = sizeof(counters);
+  const BOOL succeeded = GetProcessMemoryInfo(
+      process, reinterpret_cast<PROCESS_MEMORY_COUNTERS*>(&counters),
+      sizeof(counters));
+  const DWORD error = succeeded ? ERROR_SUCCESS : GetLastError();
+  CloseHandle(process);
+  if (!succeeded) return os_error(state, call, "GetProcessMemoryInfo", error);
+
+  // Preserve psutil's native ABI order: page faults, peak/current working set,
+  // paged and nonpaged pool, pagefile usage, and private bytes. _pswindows.py
+  // derives the public pmem tuple (rss, vms, ...) from these ten values.
+  const std::vector<uint64_t> fields = {
+      counters.PageFaultCount,
+      counters.PeakWorkingSetSize,
+      counters.WorkingSetSize,
+      counters.QuotaPeakPagedPoolUsage,
+      counters.QuotaPagedPoolUsage,
+      counters.QuotaPeakNonPagedPoolUsage,
+      counters.QuotaNonPagedPoolUsage,
+      counters.PagefileUsage,
+      counters.PeakPagefileUsage,
+      counters.PrivateUsage,
+  };
+  X3Value values = state->host->value_list(state->host->runtime);
+  if (values.tag == X3_TAG_INVALID) return X3_STATUS_ERROR;
+  for (uint64_t field : fields) {
+    if (append(state, values, x3_value_uint64(field)) != X3_STATUS_OK) {
+      state->host->value_release(values);
+      return X3_STATUS_ERROR;
+    }
+  }
+  *result = as_tuple(state, values);
+  return result->tag == X3_TAG_INVALID ? X3_STATUS_ERROR : X3_STATUS_OK;
+}
+
+X3Status proc_times(X3CallContext* call, X3Runtime*, void* user_data,
+                    const X3Value* args, uint32_t argc, X3Value* result) {
+  auto* state = static_cast<State*>(user_data);
+  if (argc != 1 || args[0].tag != X3_TAG_INT64)
+    return state->host->raise_class_error(call, "TypeError", "proc_times() expects a PID");
+  const int64_t value = args[0].as.i64;
+  if (value < 0 || value > UINT32_MAX)
+    return state->host->raise_class_error(call, "OSError", "invalid process ID");
+
+  HANDLE process = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE,
+                               static_cast<DWORD>(value));
+  if (!process) return os_error(state, call, "OpenProcess", GetLastError());
+  FILETIME created{}, exited{}, kernel{}, user{};
+  const BOOL succeeded = GetProcessTimes(process, &created, &exited, &kernel, &user);
+  const DWORD error = succeeded ? ERROR_SUCCESS : GetLastError();
+  CloseHandle(process);
+  if (!succeeded) return os_error(state, call, "GetProcessTimes", error);
+
+  auto ticks = [](const FILETIME& time) {
+    return (static_cast<uint64_t>(time.dwHighDateTime) << 32) |
+        static_cast<uint64_t>(time.dwLowDateTime);
+  };
+  // psutil's Windows ABI returns user seconds, system seconds, and Unix
+  // creation time. Keep this native-module primitive here so the unchanged
+  // Python psutil layer can calculate Process.create_time/cpu_times normally.
+  constexpr double kTicksPerSecond = 10000000.0;
+  constexpr double kWindowsToUnixEpochSeconds = 11644473600.0;
+  X3Value values = state->host->value_list(state->host->runtime);
+  if (values.tag == X3_TAG_INVALID) return X3_STATUS_ERROR;
+  const bool okay = append(state, values,
+          x3_value_double(static_cast<double>(ticks(user)) / kTicksPerSecond)) == X3_STATUS_OK &&
+      append(state, values,
+          x3_value_double(static_cast<double>(ticks(kernel)) / kTicksPerSecond)) == X3_STATUS_OK &&
+      append(state, values,
+          x3_value_double(static_cast<double>(ticks(created)) / kTicksPerSecond -
+                          kWindowsToUnixEpochSeconds)) == X3_STATUS_OK;
+  if (!okay) {
+    state->host->value_release(values);
+    return X3_STATUS_ERROR;
+  }
+  *result = as_tuple(state, values);
+  return result->tag == X3_TAG_INVALID ? X3_STATUS_ERROR : X3_STATUS_OK;
+}
+
 X3Status ppid_map(X3CallContext* call, X3Runtime*, void* user_data,
                   const X3Value*, uint32_t argc, X3Value* result) {
   auto* state = static_cast<State*>(user_data);
@@ -260,6 +376,40 @@ X3Status heap_info(X3CallContext* call, X3Runtime*, void* user_data,
   return result->tag == X3_TAG_INVALID ? X3_STATUS_ERROR : X3_STATUS_OK;
 }
 
+X3Status virtual_mem(X3CallContext* call, X3Runtime*, void* user_data,
+                     const X3Value*, uint32_t argc, X3Value* result) {
+  auto* state = static_cast<State*>(user_data);
+  if (argc != 0)
+    return state->host->raise_class_error(call, "TypeError", "virtual_mem() takes no arguments");
+
+  // Match psutil's Windows extension contract: physical totals and commit
+  // totals are page counts from GetPerformanceInfo, converted to bytes here.
+  PERFORMANCE_INFORMATION info{};
+  info.cb = sizeof(info);
+  if (!GetPerformanceInfo(&info, sizeof(info)))
+    return os_error(state, call, "GetPerformanceInfo", GetLastError());
+
+  const uint64_t page_size = static_cast<uint64_t>(info.PageSize);
+  const uint64_t total_phys = static_cast<uint64_t>(info.PhysicalTotal) * page_size;
+  const uint64_t avail_phys = static_cast<uint64_t>(info.PhysicalAvailable) * page_size;
+  const uint64_t total_system = static_cast<uint64_t>(info.CommitLimit) * page_size;
+  const uint64_t avail_system = total_system -
+      static_cast<uint64_t>(info.CommitTotal) * page_size;
+
+  X3Value values = state->host->value_list(state->host->runtime);
+  if (values.tag == X3_TAG_INVALID) return X3_STATUS_ERROR;
+  const bool okay = append(state, values, x3_value_uint64(total_phys)) == X3_STATUS_OK &&
+      append(state, values, x3_value_uint64(avail_phys)) == X3_STATUS_OK &&
+      append(state, values, x3_value_uint64(total_system)) == X3_STATUS_OK &&
+      append(state, values, x3_value_uint64(avail_system)) == X3_STATUS_OK;
+  if (!okay) {
+    state->host->value_release(values);
+    return X3_STATUS_ERROR;
+  }
+  *result = as_tuple(state, values);
+  return result->tag == X3_TAG_INVALID ? X3_STATUS_ERROR : X3_STATUS_OK;
+}
+
 X3Status heap_trim(X3CallContext* call, X3Runtime*, void* user_data,
                    const X3Value*, uint32_t argc, X3Value* result) {
   auto* state = static_cast<State*>(user_data);
@@ -320,9 +470,14 @@ X3Status register_module(X3PackageHost* host) {
   const X3NativeFunctionDef functions[] = {
       {sizeof(X3NativeFunctionDef), "pids", pids, state, 0, 0, 0, nullptr},
       {sizeof(X3NativeFunctionDef), "pid_exists", pid_exists, state, 1, 1, 0, nullptr},
+      {sizeof(X3NativeFunctionDef), "check_pid_range", check_pid_range, state, 1, 1, 0, nullptr},
+      {sizeof(X3NativeFunctionDef), "cpu_count_logical", cpu_count_logical, state, 0, 0, 0, nullptr},
+      {sizeof(X3NativeFunctionDef), "proc_memory_info", proc_memory_info, state, 1, 1, 0, nullptr},
+      {sizeof(X3NativeFunctionDef), "proc_times", proc_times, state, 1, 1, 0, nullptr},
       {sizeof(X3NativeFunctionDef), "ppid_map", ppid_map, state, 0, 0, 0, nullptr},
       {sizeof(X3NativeFunctionDef), "net_if_addrs", net_if_addrs, state, 0, 0, 0, nullptr},
       {sizeof(X3NativeFunctionDef), "heap_info", heap_info, state, 0, 0, 0, nullptr},
+      {sizeof(X3NativeFunctionDef), "virtual_mem", virtual_mem, state, 0, 0, 0, nullptr},
       {sizeof(X3NativeFunctionDef), "heap_trim", heap_trim, state, 0, 0, 0, nullptr},
       {sizeof(X3NativeFunctionDef), "disk_io_counters", disk_io_counters, state, 0, 0, 0, nullptr},
   };

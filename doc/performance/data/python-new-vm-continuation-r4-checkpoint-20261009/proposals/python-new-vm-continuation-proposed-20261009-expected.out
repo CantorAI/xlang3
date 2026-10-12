@@ -1,0 +1,8 @@
+PASS python-new defaults and ordinary entry
+PASS python-new tuple expansion and fallbacks
+PASS python-new fresh init and code replacement
+PASS python-new returned type and live MRO
+PASS python-new exceptions traceback and handled context
+PASS python-new frame cleanup before init selection
+PASS python-new temporary owners retire after construction
+PASS python-new observers and nonordinary fallbacks

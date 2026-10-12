@@ -1,0 +1,134 @@
+{
+  "status": "correctness_fixed_gate_and_official_genshi_passed",
+  "source_base_commit": "3755e7ea933905f10df284d7301248d2900fb7db",
+  "binary_sha256": {
+    "xlang3": {
+      "exe": "72dd41692c627ccc5242eda336578cfccc4d404ba63b395cae441698b6ba16a6",
+      "dll": "b0310f599fc7576463dd27c5be00dd96fb7ab9dfe6b11665adb706d8c6114e7d"
+    },
+    "cpython3147": {
+      "exe": "4942b86a6597e5aee0128daa00050ed79bc21f6e709a78eb19cbfeb0c2f39ac9",
+      "dll": "0f9857ffdfe010fe6b99328d58c2e3c7472ce75f336bf9c2ad9bd5bca3bce700"
+    }
+  },
+  "core_fixture_count": 366,
+  "genshi_output": [
+    {
+      "variant": "xml",
+      "characters": 112017,
+      "sha256_utf8": "61096eb9fee3ea72a4615a57e653bca545efacbad8aa8d522bb954d66d9421bc",
+      "table_rows": 1000,
+      "table_cells": 10000,
+      "first_value_cells": 1000,
+      "last_value_cells": 1000,
+      "start": "<table>\n<tr>\n<td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td><td>7</td><td>8</td><td>9</td><td>10</td>\n</tr><tr>\n<td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td><td>7</td><td>8",
+      "end": "d><td>4</td><td>5</td><td>6</td><td>7</td><td>8</td><td>9</td><td>10</td>\n</tr><tr>\n<td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td><td>7</td><td>8</td><td>9</td><td>10</td>\n</tr>\n</table>"
+    },
+    {
+      "variant": "text",
+      "characters": 112018,
+      "sha256_utf8": "c2e6154871cc315eadf1536e6b5f4679e3eee7aa6ed6ac3b9ea2e927ef2de810",
+      "table_rows": 1000,
+      "table_cells": 10000,
+      "first_value_cells": 1000,
+      "last_value_cells": 1000,
+      "start": "<table>\n<tr>\n<td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td><td>7</td><td>8</td><td>9</td><td>10</td>\n</tr><tr>\n<td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td><td>7</td><td>8",
+      "end": "><td>4</td><td>5</td><td>6</td><td>7</td><td>8</td><td>9</td><td>10</td>\n</tr><tr>\n<td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td><td>7</td><td>8</td><td>9</td><td>10</td>\n</tr>\n</table>\n"
+    }
+  ],
+  "timings": [
+    {
+      "benchmark": "genshi_text",
+      "before_xlang3_seconds": 0.4117908500033082,
+      "xlang3_seconds": 0.349833870002476,
+      "cpython3147_seconds": 0.020375349374990036,
+      "nominal_before_over_after": 1.1771040065400005,
+      "nominal_time_reduction_percent": 15.04573984592772,
+      "speed_vs_cpython3147": 0.0582429293505681,
+      "xlang3_time_over_cpython3147": 17.169466081984524
+    },
+    {
+      "benchmark": "genshi_xml",
+      "before_xlang3_seconds": 1.1441914350027218,
+      "xlang3_seconds": 0.9471028250001836,
+      "cpython3147_seconds": 0.044084416250916546,
+      "nominal_before_over_after": 1.2080963173164434,
+      "nominal_time_reduction_percent": 17.22514292392595,
+      "speed_vs_cpython3147": 0.04654659989099705,
+      "xlang3_time_over_cpython3147": 21.483846346280988
+    }
+  ],
+  "source_sha256_raw": {
+    "src/builtins/functional_builtins.cpp": "2944363f9cd78fbbd6f1d9858865f256c5e026f0b10d3b824e9f5d214840da27",
+    "src/executor/xlang_vm/ops/xlang_vm_ops_variables.h": "d2060b7b176f15cc8658e9fb1fafd542b89e49b8d485a5323e5a8dc23adff449",
+    "src/executor/xlang_vm/xlang_frame.h": "187d53a066cd7b491f7bf32c5e0fa68b0212aa20e64a07c49c52f22813216986",
+    "src/executor/xlang_vm/xlang_vm_loop.cpp": "2b95ce5dd9b188fb6a259fee7697942dd04d1b3eb57618230b8cd8e111653ce2",
+    "src/executor/xlang_vm/xlang_vm_op_rows.h": "887f4f069a36fcdfccfdfa101372c33e88f0cdd1e94d93d5dee90f4665765a28",
+    "src/internal/xlang3/interpreter.h": "d16f9cdcca9fc26ba33d8e4a0889ffe00f338fe6be9fb218223a2c0d67ad9bef",
+    "src/internal/xlang3/ir.h": "5fe95e791afd451f674b001638985c3e7b0b2317b7fb9d890284fedd512ec8e1",
+    "src/internal/xlang3/runtime.h": "4fa330fcee0c6c3b89e51c19be729bda0d321352f12fc40cc828ee5448ee8940",
+    "src/internal/xlang3/sema.h": "bd294dd02ae56cec27b964c8a6a580cb305a5b5bb6b7636d05e56eaa4f5a490f",
+    "src/runtime/object_model.cpp": "92d5597f776f74eeff07c1135a9476c8f0727350e70cc9e3f840edc92a40605b",
+    "src/runtime/runtime.cpp": "15025bbe69bcd6de8a9cdf491811155b4ff7badd8e73a78be57fb7d2d4ea05e4",
+    "src/runtime/module_object.cpp": "ff2a6d0bff9d76f47a0d13c09c8927bcc554c9e1cb3ce5abc583f1aa67069da3",
+    "src/sema/lower.cpp": "73eb36ebcba12d09363adb81a361d4ec715a7a78e737c3772b02647d9a89853a",
+    "tests/fixtures/core/eval_live_namespaces.py": "058dbc5c5bb7d224d3d23195fc5ecb982f1ebedf6d923cfc14181c6b8ccbb442",
+    "tests/fixtures/expected/eval_live_namespaces.out": "b28a88b8168069813d6273743e3fee2d8dab5cb3d6173276bb350bf4bb096eed",
+    "tests/run_fixtures.py": "713ae025b99a31f6ba1f2f8b82e7af0d8c6e2dd7227e7ea85bcbc6649911da96"
+  },
+  "source_sha256_canonical_lf": {
+    "src/builtins/functional_builtins.cpp": "2cb78e477a3145a149155abc0dc370b76a40f05ed747c95d422f29a2516cc9da",
+    "src/executor/xlang_vm/ops/xlang_vm_ops_variables.h": "ec783bfd10e967795a2e9eff7c1b237f1500572659e76ff4cf774ce7170f3666",
+    "src/executor/xlang_vm/xlang_frame.h": "cae722c91a2a0b6c928a84a80f16b58270ae828a3f1b23a1a0439ca105ac4118",
+    "src/executor/xlang_vm/xlang_vm_loop.cpp": "86229a917b3838bd3f86a4ffc5ae5a163f91a20b7fe93d9b1e24d252f5942c2d",
+    "src/executor/xlang_vm/xlang_vm_op_rows.h": "c4fa0fdbe5af6f9333804b9e2d3ffafc6763cdf3dd2bb412502c07502c62a06e",
+    "src/internal/xlang3/interpreter.h": "40d4cbbede150e867daa30232540340055a777fa2e436fd332149b0ceb431e75",
+    "src/internal/xlang3/ir.h": "f3952578542791647c38d6f8a9d506ed14a2a0a3554ba24d11f9a0fdb2d18a1f",
+    "src/internal/xlang3/runtime.h": "45f8d4625730bef0eca1dbc12812b904cd3f510da61f6e50d7d233d29c6cf4e6",
+    "src/internal/xlang3/sema.h": "97efd9c4ee52888d63e529fe2d198f5236f7d406a663ad20186a5d12772a878f",
+    "src/runtime/object_model.cpp": "f3182986ac61566217f9ce20bf5257ba38b4c7690d51d131af3d9db7616a5169",
+    "src/runtime/runtime.cpp": "af56795388ebdf0ea0a519363df48957c43af78aaa7e0e198c04a35b5afe2bb7",
+    "src/runtime/module_object.cpp": "89194fc4ac57d9ef48256bd82e0838808d28addda6b0e170d59214aa1517e34c",
+    "src/sema/lower.cpp": "a51452ec58b6be0dfb127797fbc8853a5c5ac4633ecf65fa090b3015be83ead1",
+    "tests/fixtures/core/eval_live_namespaces.py": "058dbc5c5bb7d224d3d23195fc5ecb982f1ebedf6d923cfc14181c6b8ccbb442",
+    "tests/fixtures/expected/eval_live_namespaces.out": "195588e05e7dd88a02aec365b6a70290ea506651e89b8d0ee4dc846a43f2d13f",
+    "tests/run_fixtures.py": "84f6015a1390cf7c5a38532db396ac7ed262f4e0befc639ec5072660060b3cb1"
+  },
+  "input_sha256": {
+    "pyperformance-live-eval-genshi-xlang3-fast-20261007.json": "fcf8b3c351306ed1593eb27347a3ddf178635169af0f8bc273a1a778c1985ace",
+    "pyperformance-live-eval-genshi-xlang3-fast-20261007.log": "c0e0c7958748c9de9d000a78654e1f3d908f56bf47212eaadfe298f48f6ac49b",
+    "pyperformance-live-eval-genshi-xlang3-fast-20261007-provenance.json": "538f6e005eb4eaa5ac0d09f3bf40dc09614f99ddd8247faeedc2c758f69d034d",
+    "pyperformance-live-eval-genshi-cpython3147-fast-20261007.json": "53832858764a34f98d0f5893866c7dbbe74d6f0aa7a8c93c1f4e8312f3f278bc",
+    "pyperformance-live-eval-genshi-cpython3147-fast-20261007.log": "bf1d206a440835e780e5028b725c181de17d1241e73d72293cb2c8ab25e4f3c6",
+    "pyperformance-live-eval-genshi-cpython3147-fast-20261007-provenance.json": "a39c96e03d4194ce0225d0f7ced7a310d9196a2e4e81c53025609c142e7328d2",
+    "eval-live-namespace-validation-r3-20261007.json": "c0b2ee11e4d812725dbf89288980861915ad43286bb343f3c8d44f157ec7b40d",
+    "eval-live-namespace-validation-r3-20261007-fixtures.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "eval-live-namespace-validation-r3-20261007-cpp.log": "4a8d450ad8934d694863dddb5455dd49f26d54df87757a1a59fbba7f4f908655",
+    "release-live-eval-fixed-gate-20261007.json": "7ba61813d2d30da40cfbaa7074f4797eb6604c385e7a18a3a997c25ec8a51b40",
+    "release-live-eval-fixed-gate-20261007.log": "795f2227824e922dd18e199bc8cb050f362be5118b57214643aa72daabcecb1e",
+    "eval-live-namespace-genshi-correctness-20261007.json": "dc67438b781253a8f31a2690865b3c2e2dfdce1f487ef4572bf9230aafdc98ee",
+    "pyperformance-pyexpat-namespace-genshi-final-xlang3-fast-20261007.json": "4899798aa6e885db5f1ac85ae14e7bb7bc00705ae9cdc7383653165ccefe1bbf",
+    "eval-live-namespace-baseline-20261007.json": "ea965f73b3c3f7b9f6869235ad2868b91ad849f6a0cb12e2c97631b90e974997",
+    "eval-live-namespace-trial-precheck-20261007.json": "e14b2325e57487c48b6b136460f2c13df809651f8effd7d3f4ffc483d7c6af3b",
+    "eval-live-namespace-trial-precheck-r2-20261007.json": "8871266a4b2afcc5595cc4e6dae42da92aae7f7bde1ec683fea99e70d92d8e48",
+    "eval-live-namespace-validation-20261007.json": "cf9c84062e87850c9f70cc8894b5cec666380121ac78b7ee5516e88436a33797",
+    "eval-live-namespace-validation-r2-20261007.json": "65f9d908248c45dd90d159ee76df594648087147f93e161e887d100e4360cc93",
+    "eval-live-namespace-genshi-paired-body-20261007.json": "15e46660b71341ee75e7f84c64ae6dee2c00773cd2187605ccb2fcfa16b16f80"
+  },
+  "limitations": [
+    "Independent noisy fast-mode samples; ratios are nominal, not a significance claim",
+    "Only official genshi definition rerun; full 97-case historical data unchanged",
+    "Live explicit-dict eval scope; this does not claim complete eval/exec conformance",
+    "Earlier fixture prechecks failed on custom len, walrus reads, or frame-locals refresh; r3 is the final successful validation"
+  ],
+  "paired_body_summary": {
+    "text": {
+      "median_before_over_after": 1.0913140179555545,
+      "wins": 7
+    },
+    "xml": {
+      "median_before_over_after": 1.04517420945449,
+      "wins": 7
+    }
+  }
+}

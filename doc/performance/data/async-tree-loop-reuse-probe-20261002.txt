@@ -1,0 +1,16 @@
+Async tree repeated-event-loop probe
+Date: 2026-10-02 UTC
+Workload: official pyperformance 1.14.0 bm_async_tree EagerAsyncTree, full 6-level x 6-branch tree.
+Lifecycle reproduced from pyperf 2.10.0 Runner.bench_async_func: new_event_loop(); set_event_loop(loop); run_until_complete(tree.run()); set_event_loop(None); loop.close(). The same EagerAsyncTree instance is reused.
+
+CPython 3.14.7: 11 runs all completed, 0.093-0.095 seconds each.
+
+XLang3 results were intermittent across runs and instrumentation:
+- Saved fast-call control (exe SHA256 3AFB3E841A8BA45AE5CB0DF05A21FA6390C786709A5DAB6B1A11CFAA0906483B; DLL SHA256 EBC04BEF7E3364B7BFCCADBE88F1E5D19690393F41103078E50B713C366088C6): one exact lifecycle trial completed runs 1-6 at 1.79-1.93 seconds, then run 7 made no progress for 30 seconds.
+- Clean Release (exe SHA256 EF20D5E34C5F36F7C7D40FB152311C3449CA505980DAD963CEEBC859578A94A2; DLL SHA256 BD61627CA60E44E870781C9129F9FFFB5EFECA96A14354568024E90ECB99E153): one lifecycle trial completed runs 1-2, then run 3 made no progress for about 40 seconds. A later stage-marked trial completed five runs (1.79-1.85 seconds each), and another completed six (1.84-2.55 seconds each), then stopped during run 7. A per-run gc.collect trial completed five runs but a longer one stopped during run 6.
+- The stage-marked stalled run had completed run_until_complete, unset the running loop, and closed the event loop on all prior runs. The next stalled run did not return from run_until_complete. A wait_for timer and a separate loop.call_later watchdog did not fire in the stalled case.
+- A temporary diagnostic build enabled registry-mutex contention logging and 10,000-operation progress counters. A stalled run emitted no registry-lock contention; task-step/unregister counters stopped at task step 180,000, future callback scheduling 210,000, and unregister 600,000 while working set was about 65 MiB and CPU time stopped increasing.
+
+Controls: clean build completed 30 repeated no-op event loops and 10 repeated 4-level x 4-branch trees. These controls do not reproduce the full-tree stall.
+
+Interpretation: the full official clean `--fast` timeout is confirmed, and full-size repeated task-tree execution can stall in XLang3 while CPython completes the same repeated workload. The XLang3 threshold is variable; forced collection changes some outcomes but does not reliably eliminate the stall. Registry mutex contention was not observed in the instrumented run. The root cause remains unconfirmed; next collect finer scheduler/Task transition evidence and compare it with CPython's task and loop lifecycle.

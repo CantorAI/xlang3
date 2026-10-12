@@ -1,0 +1,1 @@
+{"benchmarks":[{"runs":[{"values":[0.21811490000982303]}]}],"metadata":{"description":"Official bm_base64 b85_decode work isolated by direction","duration":0.21814789999916684,"loops":1,"name":"b85_decode","unit":"second"},"version":"1.0"}

@@ -1,0 +1,525 @@
+diff --git a/src/internal/xlang3/interpreter.h b/src/internal/xlang3/interpreter.h
+index f1a0fa3f..0f1fa6fc 100644
+--- a/src/internal/xlang3/interpreter.h
++++ b/src/internal/xlang3/interpreter.h
+@@ -19,6 +19,7 @@ limitations under the License.
+ #include "xlang3/runtime.h"
+ 
+ #include <memory>
++#include <optional>
+ #include <string>
+ #include <unordered_map>
+ #include <vector>
+@@ -91,6 +92,41 @@ bool runtime_call_builtin_constructor(Runtime& runtime, const ClassObject& klass
+     const std::vector<std::pair<std::string, Value>>& kwargs,
+     bool& handled, Value& out, std::string& error);
+ 
++// Normal Python callbacks carry their real module/dict namespace. MSVC's
++// empty unordered_map still allocates a list sentinel and initial buckets,
++// so keep the legacy per-Interpreter fallback absent until its first store.
++// Never share this state with another Interpreter or reset it at frame pop:
++// direct/SDK IR can reuse the same fallback namespace across activations.
++class InterpreterFallbackGlobals {
++public:
++  const Value* find(const std::string& name) const {
++    if (!storage_) return nullptr;
++    const auto found = storage_->find(name);
++    return found == storage_->end() ? nullptr : &found->second;
++  }
++
++  Value& operator[](const std::string& name) {
++    if (!storage_) storage_.emplace();
++    return (*storage_)[name];
++  }
++
++  Value take(const std::string& name) {
++    if (!storage_) return Value::invalid();
++    const auto found = storage_->find(name);
++    if (found == storage_->end()) return Value::invalid();
++    // Move the Python owner out before erasing. The caller publishes its new
++    // globals version before releasing this owner and allowing finalizers.
++    Value removed = std::move(found->second);
++    storage_->erase(found);
++    return removed;
++  }
++
++  bool materialized() const { return storage_.has_value(); }
++
++private:
++  std::optional<std::unordered_map<std::string, Value>> storage_;
++};
++
+ class Interpreter {
+ public:
+   explicit Interpreter(Runtime& runtime);
+@@ -123,7 +159,7 @@ private:
+       std::shared_ptr<RuntimeDebugPauseState> pause_state = nullptr);
+ 
+   Runtime& runtime_;
+-  std::unordered_map<std::string, Value> globals_;
++  InterpreterFallbackGlobals globals_;
+   uint64_t globals_version_ = 0;
+ };
+ 
+diff --git a/src/executor/xlang_vm/ops/xlang_vm_ops_variables.h b/src/executor/xlang_vm/ops/xlang_vm_ops_variables.h
+index 24501910..8bdd0ae7 100644
+--- a/src/executor/xlang_vm/ops/xlang_vm_ops_variables.h
++++ b/src/executor/xlang_vm/ops/xlang_vm_ops_variables.h
+@@ -290,7 +290,7 @@ inline void release_deleted_global_temporaries(
+ XLANG3_HOT_INLINE void delete_global(
+     const ir::Instr& in,
+     const ir::Function& fn,
+-    std::unordered_map<std::string, Value>& globals,
++    InterpreterFallbackGlobals& globals,
+     uint64_t& globals_version,
+     XlangVMSmallRegisterBuffer& regs,
+     std::vector<Value>& native_call_args,
+@@ -298,12 +298,7 @@ XLANG3_HOT_INLINE void delete_global(
+     const std::vector<size_t>& register_last_use,
+     const std::vector<bool>& register_loop_carried,
+     size_t ip) {
+-  Value deleted_value;
+-  const auto found = globals.find(fn.names[in.dst]);
+-  if (found != globals.end()) {
+-    deleted_value = std::move(found->second);
+-    globals.erase(found);
+-  }
++  Value deleted_value = globals.take(fn.names[in.dst]);
+   ++globals_version;
+   // Publish the absent binding and new version before finalizers reenter.
+   release_deleted_global_temporaries(deleted_value, regs, native_call_args,
+@@ -317,7 +312,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_module_slot(
+     Runtime& runtime,
+     XlangVMSmallRegisterBuffer& regs,
+     Value& globals_module,
+-    std::unordered_map<std::string, Value>& globals,
++    InterpreterFallbackGlobals& globals,
+     XlangVMInstrCache& instr_cache,
+     RuntimeResult& result,
+     RaiseRuntimeError&& raise_runtime_error,
+@@ -404,8 +399,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_module_slot(
+   if (mapping_found) {
+     return XlangVMOpFlow::Next;
+   }
+-  if (auto it = globals.find(name); it != globals.end()) {
+-    value_assign_fast(regs[in.dst], it->second);
++  if (const Value* value = globals.find(name)) {
++    value_assign_fast(regs[in.dst], *value);
+   } else if (Value builtin; runtime.resolve_builtin(name, builtin)) {
+     value_move_assign_fast(regs[in.dst], builtin);
+   } else {
+@@ -421,7 +416,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow store_module_slot(
+     Runtime& runtime,
+     XlangVMSmallRegisterBuffer& regs,
+     Value& globals_module,
+-    std::unordered_map<std::string, Value>& globals,
++    InterpreterFallbackGlobals& globals,
+     uint64_t& globals_version,
+     RuntimeResult& result) {
+   if (in.dst >= module.global_slots.size() || in.a >= regs.size()) {
+@@ -464,7 +459,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_global(
+     Runtime& runtime,
+     XlangVMSmallRegisterBuffer& regs,
+     Value& globals_module,
+-    std::unordered_map<std::string, Value>& globals,
++    InterpreterFallbackGlobals& globals,
+     uint64_t globals_version,
+     XlangVMInstrCache& instr_cache,
+     RuntimeResult& result,
+@@ -560,8 +555,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_global(
+       global_cache.kind = 2;
+       return XlangVMOpFlow::Next;
+     }
+-    if (auto it = globals.find(name); it != globals.end()) {
+-    value_assign_fast(regs[in.dst], it->second);
++    if (const Value* value = globals.find(name)) {
++    value_assign_fast(regs[in.dst], *value);
+     value_assign_fast(global_cache.value, regs[in.dst]);
+     global_cache.version = globals_version;
+     global_cache.kind = 2;
+@@ -582,7 +577,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow store_global(
+     Runtime& runtime,
+     XlangVMSmallRegisterBuffer& regs,
+     Value& globals_module,
+-    std::unordered_map<std::string, Value>& globals,
++    InterpreterFallbackGlobals& globals,
+     uint64_t& globals_version,
+     XlangVMInstrCache& instr_cache,
+     RuntimeResult& result) {
+@@ -677,7 +672,7 @@ template <typename RaiseUnboundLocalError, typename RaiseRuntimeError, typename
+ XLANG3_HOT_INLINE XlangVMOpFlow load_local_global(
+     const ir::Instr& in, const ir::Function& fn, Runtime& runtime,
+     XlangVMSmallRegisterBuffer& regs, XlangVMSmallValueBuffer& locals,
+-    Value& globals_module, std::unordered_map<std::string, Value>& globals,
++    Value& globals_module, InterpreterFallbackGlobals& globals,
+     uint64_t globals_version, XlangVMInstrCache& instr_cache, RuntimeResult& result,
+     RaiseUnboundLocalError&& raise_unbound_local_error,
+     RaiseRuntimeError&& raise_runtime_error, RaiseExceptionValue&& raise_exception_value) {
+@@ -693,7 +688,7 @@ template <typename RaiseUnboundLocalError, typename RaiseRuntimeError, typename
+ XLANG3_HOT_INLINE XlangVMOpFlow load_global_local(
+     const ir::Instr& in, const ir::Function& fn, Runtime& runtime,
+     XlangVMSmallRegisterBuffer& regs, XlangVMSmallValueBuffer& locals,
+-    Value& globals_module, std::unordered_map<std::string, Value>& globals,
++    Value& globals_module, InterpreterFallbackGlobals& globals,
+     uint64_t globals_version, XlangVMInstrCache& instr_cache, RuntimeResult& result,
+     RaiseUnboundLocalError&& raise_unbound_local_error,
+     RaiseRuntimeError&& raise_runtime_error, RaiseExceptionValue&& raise_exception_value) {
+diff --git a/src/executor/xlang_vm/ops/xlang_vm_ops_import_raw.h b/src/executor/xlang_vm/ops/xlang_vm_ops_import_raw.h
+index 6a99a11e..e0f02617 100644
+--- a/src/executor/xlang_vm/ops/xlang_vm_ops_import_raw.h
++++ b/src/executor/xlang_vm/ops/xlang_vm_ops_import_raw.h
+@@ -18,6 +18,7 @@ limitations under the License.
+ 
+ #include "../../../ipc/ipc_runtime.h"
+ 
++#include "xlang3/interpreter.h"
+ #include "xlang3/module_object.h"
+ #include "xlang3/runtime.h"
+ 
+@@ -150,7 +151,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow raw_block(
+     XlangVMSmallValueBuffer& locals,
+     const std::vector<Value>& fn_obj_closure,
+     Value& globals_module,
+-    std::unordered_map<std::string, Value>& globals,
++    InterpreterFallbackGlobals& globals,
+     uint64_t& globals_version,
+     RuntimeResult& result,
+     RaiseRuntimeError&& raise_runtime_error) {
+@@ -180,8 +181,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow raw_block(
+       if (module_get_attr(globals_module, name, out, error)) {
+         return true;
+       }
+-    } else if (auto it = globals.find(name); it != globals.end()) {
+-      value_assign_fast(out, it->second);
++    } else if (const Value* value = globals.find(name)) {
++      value_assign_fast(out, *value);
+       return true;
+     }
+     if (const auto* builtin = runtime.find_builtin(name)) {
+diff --git a/src/executor/xlang_vm/ops/xlang_vm_ops_fused.h b/src/executor/xlang_vm/ops/xlang_vm_ops_fused.h
+index badb3a8a..42ab2799 100644
+--- a/src/executor/xlang_vm/ops/xlang_vm_ops_fused.h
++++ b/src/executor/xlang_vm/ops/xlang_vm_ops_fused.h
+@@ -27,7 +27,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_module_attr(
+     const ir::Instr& in, const ir::Function& fn, const ir::Module& module,
+     const std::shared_ptr<const ir::Module>& module_owner, Runtime& runtime,
+     XlangVMSmallRegisterBuffer& regs, Value& globals_module,
+-    std::unordered_map<std::string, Value>& globals,
++    InterpreterFallbackGlobals& globals,
+     XlangVMInstrCacheStorage& instr_cache,
+     std::vector<Value>& native_call_args, size_t& ip, RuntimeResult& result,
+     XlangRuntimeExecutionGuard& execution_lock,
+diff --git a/src/executor/xlang_vm/ops/xlang_vm_ops_call.h b/src/executor/xlang_vm/ops/xlang_vm_ops_call.h
+index 9f919d74..b6cdece0 100644
+--- a/src/executor/xlang_vm/ops/xlang_vm_ops_call.h
++++ b/src/executor/xlang_vm/ops/xlang_vm_ops_call.h
+@@ -5019,7 +5019,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_global(
+     const ir::Instr& in, const ir::Function& fn, const ir::Module& module,
+     const std::shared_ptr<const ir::Module>& module_owner, Runtime& runtime,
+     XlangVMSmallRegisterBuffer& regs, Value& globals_module,
+-    std::unordered_map<std::string, Value>& globals, uint64_t& globals_version,
++    InterpreterFallbackGlobals& globals, uint64_t& globals_version,
+     XlangVMInstrCacheStorage& instr_cache, std::vector<Value>& native_call_args,
+     size_t& ip, RuntimeResult& result, XlangRuntimeExecutionGuard& execution_lock,
+     MakeGeneratorIfNeeded&& make_generator_if_needed, PushFrame&& push_frame,
+diff --git a/tests/cpp/interpreter_tests.cpp b/tests/cpp/interpreter_tests.cpp
+index 2e9866bd..82fbddf4 100644
+--- a/tests/cpp/interpreter_tests.cpp
++++ b/tests/cpp/interpreter_tests.cpp
+@@ -18,6 +18,7 @@ limitations under the License.
+ #include "native_bound_zero_args_cases.h"
+ #include "identity_last_use_cases.h"
+ #include "hash_exception_cases.h"
++#include "interpreter_lazy_globals_cases.h"
+ 
+ #include "xlang3/object_model.h"
+ #include "xlang3/sequence.h"
+@@ -30,6 +31,7 @@ int main(int argc, char** argv) {
+   xlang3::test::check_native_bound_zero_args(result);
+   xlang3::test::check_identity_last_use_cases(result);
+   xlang3::test::check_hash_exception_cases(result);
++  xlang3::test::check_interpreter_lazy_globals_cases(result);
+ 
+   // Same-object owning copies should avoid refcount churn, while copying into
+   // a borrowed slot must still acquire an independent reference.
+diff --git a/tests/cpp/interpreter_lazy_globals_cases.h b/tests/cpp/interpreter_lazy_globals_cases.h
+new file mode 100644
+index 00000000..8261239f
+--- /dev/null
++++ b/tests/cpp/interpreter_lazy_globals_cases.h
+@@ -0,0 +1,275 @@
++#pragma once
++
++#include "test_harness.h"
++#include "xlang3/functional_iterators.h"
++#include "xlang3/module_object.h"
++
++namespace xlang3::test {
++namespace interpreter_lazy_globals_cases {
++
++inline std::shared_ptr<ir::Module> legacy_module() {
++  auto module = std::make_shared<ir::Module>();
++  module->global_slots = {"fallback_value"};
++  module->functions.resize(8);
++  for (auto& fn : module->functions) {
++    fn.name = "legacy_fallback";
++    fn.register_count = 4;
++    fn.constants = {Value::none()};
++    fn.names = {"fallback_value"};
++  }
++  for (uint32_t index : {0u, 4u}) {
++    auto& fn = module->functions[index];
++    fn.params = {"value"};
++    fn.locals = {"value"};
++    fn.code = {{ir::Op::LoadLocal, 0, 0, 0, 0},
++        {index == 0 ? ir::Op::StoreGlobal : ir::Op::StoreModuleSlot, 0, 0, 0, 0},
++        {ir::Op::ReturnConst, 0, 0, 0, 0}};
++  }
++  module->functions[1].code = {{ir::Op::LoadGlobal, 0, 0, 0, 0},
++      {ir::Op::Return, 0, 0, 0, 0}};
++  module->functions[2].code = {{ir::Op::DeleteGlobal, 0, 0, 0, 0},
++      {ir::Op::ReturnConst, 0, 0, 0, 0}};
++  module->functions[3].names = {"len"};
++  module->functions[3].code = module->functions[1].code;
++  module->functions[5].code = {{ir::Op::LoadModuleSlot, 0, 0, 0, 0},
++      {ir::Op::Return, 0, 0, 0, 0}};
++  auto& nested = module->functions[6];
++  nested.params = {"callback"};
++  nested.locals = {"callback"};
++  nested.call_args = {{}};
++  nested.code = {{ir::Op::LoadGlobal, 0, 0, 0, 0},
++      {ir::Op::LoadLocal, 1, 0, 0, 0}, {ir::Op::Call, 2, 1, 0, 0},
++      {ir::Op::LoadGlobal, 3, 0, 0, 0}, {ir::Op::Return, 0, 3, 0, 0}};
++  module->functions[7].raw_blocks = {{"lazy_test", "fallback", "increment"}};
++  module->functions[7].code = {{ir::Op::RawBlock, 0, 0, 0, 0},
++      {ir::Op::LoadGlobal, 0, 0, 0, 0}, {ir::Op::Return, 0, 0, 0, 0}};
++  return module;
++}
++
++inline RuntimeResult invoke(Interpreter& interpreter, const Value& function,
++                            const Value* arguments = nullptr, uint32_t argc = 0) {
++  CallArgsView view;
++  view.leading = arguments;
++  view.leading_count = argc;
++  return interpreter.run_function_value(value_as_function(function), view);
++}
++
++inline bool increment_raw(Runtime&, RawBlockContext& context,
++                          const std::string&, const std::string&,
++                          const std::string&, std::string& error) {
++  Value value;
++  if (!context.get_var("fallback_value", value, error)) return false;
++  if (value.tag != ValueTag::Int64) { error = "unexpected fallback value"; return false; }
++  return context.set_var("fallback_value", Value::int64(value.as.i64 + 1), error);
++}
++
++struct ReentryState {
++  Interpreter* target = nullptr;
++  Value setter;
++  Value getter;
++  int64_t next = 0;
++  bool observed = false;
++};
++
++inline bool reenter(Runtime&, const Value*, uint32_t argc, Value& out,
++                    std::string& error, void* data) {
++  auto& state = *static_cast<ReentryState*>(data);
++  if (argc != 0) { error = "unexpected reentry arity"; return false; }
++  const Value next = Value::int64(state.next);
++  auto stored = invoke(*state.target, state.setter, &next, 1);
++  auto loaded = invoke(*state.target, state.getter);
++  state.observed = stored.errors.empty() && loaded.errors.empty() &&
++      loaded.value.tag == ValueTag::Int64 && loaded.value.as.i64 == state.next;
++  if (!state.observed) { error = "fallback reentry failed"; return false; }
++  value_set_none(out);
++  return true;
++}
++
++struct CleanupAudit {
++  uint32_t calls = 0;
++  bool absent = false;
++  bool skipped_expired = false;
++};
++struct WrapperLifetime {
++  bool live = true;
++};
++struct WrapperLifetimeGuard {
++  std::shared_ptr<WrapperLifetime> lifetime;
++  ~WrapperLifetimeGuard() { lifetime->live = false; }
++};
++struct CleanupState {
++  std::shared_ptr<CleanupAudit> audit;
++  std::shared_ptr<WrapperLifetime> lifetime;
++  Interpreter* interpreter = nullptr;
++  Runtime* runtime = nullptr;
++  Value getter;
++};
++inline void cleanup(void* data) {
++  std::unique_ptr<CleanupState> state(static_cast<CleanupState*>(data));
++  ++state->audit->calls;
++  // A failed run/traceback or host owner can retain the callback through C++
++  // unwind. Its audit/context remains owned, but wrapper pointers no longer
++  // permit reentry once the guard expires before Interpreter destruction.
++  if (!state->lifetime || !state->lifetime->live) {
++    state->audit->skipped_expired = true;
++    return;
++  }
++  auto missing = invoke(*state->interpreter, state->getter);
++  state->audit->absent = !missing.errors.empty();
++  Value pending;
++  (void)state->runtime->take_pending_exception(pending);
++}
++
++struct UnwindMarker {};
++
++} // namespace interpreter_lazy_globals_cases
++
++inline void check_interpreter_lazy_globals_cases(CaseResult& result) {
++  using namespace interpreter_lazy_globals_cases;
++  // This is an allocation-contract check, not a cross-DLL malloc counter:
++  // disengaged optional storage cannot construct MSVC's allocated map.
++  {
++    InterpreterFallbackGlobals globals;
++    for (uint32_t index = 0; index != 64; ++index) {
++      expect_true(result, globals.find("missing") == nullptr &&
++          globals.take("missing").tag == ValueTag::Invalid && !globals.materialized(),
++          "fallback misses/deletes must leave allocated map storage absent");
++    }
++    Value owner = Value::list({Value::int64(71)});
++    const auto references = owner.as.obj->refcnt.load();
++    value_assign_fast(globals["kept"], owner);
++    expect_true(result, globals.materialized() && globals.find("kept") != nullptr &&
++        value_is(*globals.find("kept"), owner) && owner.as.obj->refcnt.load() == references + 1,
++        "first fallback store must materialize independent owning storage");
++    InterpreterFallbackGlobals copied = globals;
++    Value removed = globals.take("kept");
++    expect_true(result, globals.find("kept") == nullptr && globals.materialized() &&
++        value_is(removed, owner) && copied.find("kept") != nullptr &&
++        value_is(*copied.find("kept"), owner) && owner.as.obj->refcnt.load() == references + 2,
++        "taking a binding must preserve its moved owner and deep-copy namespace isolation");
++  }
++
++  // Force the actual unsafe ordering: a fallback binding and a host owner
++  // retain cleanup through C++ unwind, then its last owner dies after both
++  // the Interpreter and Runtime. Context storage must survive without reentry.
++  {
++    auto late_audit = std::make_shared<CleanupAudit>();
++    Value late_owner;
++    try {
++      std::ostringstream late_output;
++      Runtime late_runtime(late_output);
++      auto late_module = legacy_module();
++      Value setter = Value::function(0, {}, Value::invalid(), late_module);
++      Value getter = Value::function(1, {}, Value::invalid(), late_module);
++      Interpreter late_interpreter(late_runtime);
++      auto late_lifetime = std::make_shared<WrapperLifetime>();
++      WrapperLifetimeGuard guard{late_lifetime};
++      auto late_state = std::make_unique<CleanupState>();
++      late_state->audit = late_audit; late_state->lifetime = late_lifetime;
++      late_state->interpreter = &late_interpreter; late_state->runtime = &late_runtime;
++      late_state->getter = getter;
++      late_owner = Value::native_function(0, "fallback_late_cleanup", nullptr, late_state.get(), cleanup);
++      late_state.release();
++      expect_true(result, invoke(late_interpreter, setter, &late_owner, 1).errors.empty(),
++          "unwind fixture must retain its actual fallback binding");
++      throw UnwindMarker{};
++    } catch (const UnwindMarker&) {
++      expect_true(result, late_audit->calls == 0,
++          "host owner keeps cleanup context alive through wrapper/runtime unwind");
++    }
++    value_set_invalid(late_owner);
++    expect_true(result, late_audit->calls == 1 && late_audit->skipped_expired && !late_audit->absent,
++        "expired wrapper cleanup must release its owned state once without stale reentry");
++  }
++
++  std::ostringstream output;
++  Runtime runtime(output);
++  auto module = legacy_module();
++  std::vector<Value> functions;
++  for (uint32_t index = 0; index != module->functions.size(); ++index)
++    functions.push_back(Value::function(index, {}, Value::invalid(), module));
++  Interpreter first(runtime);
++  Interpreter second(runtime);
++  auto lifetime = std::make_shared<WrapperLifetime>();
++  // Declared after both wrappers: expire before either destructor, even when
++  // a C++ exception skips the explicit cleanup store near the end of the test.
++  WrapperLifetimeGuard lifetime_guard{lifetime};
++  auto store = [&](Interpreter& target, int64_t number, uint32_t function = 0) {
++    const Value argument = Value::int64(number);
++    return invoke(target, functions[function], &argument, 1);
++  };
++  auto is_number = [&](const RuntimeResult& value, int64_t expected) {
++    return value.errors.empty() && value.value.tag == ValueTag::Int64 && value.value.as.i64 == expected;
++  };
++  expect_true(result, store(first, 111).errors.empty() &&
++      is_number(invoke(first, functions[1]), 111) &&
++      is_number(invoke(first, functions[5]), 111),
++      "legacy global and module-slot IR share one persistent Interpreter fallback");
++  auto missing = invoke(second, functions[1]);
++  expect_true(result, !missing.errors.empty(), "a separate Interpreter must not inherit fallback bindings");
++  Value pending;
++  (void)runtime.take_pending_exception(pending);
++  value_set_invalid(pending);
++  expect_true(result, store(second, 222, 4).errors.empty() &&
++      is_number(invoke(second, functions[1]), 222) &&
++      is_number(invoke(first, functions[1]), 111),
++      "separate fallback stores must stay isolated when function IR is shared");
++  auto builtin = invoke(first, functions[3]);
++  const Value* expected_builtin = runtime.find_builtin("len");
++  expect_true(result, builtin.errors.empty() && expected_builtin != nullptr &&
++      value_is(builtin.value, *expected_builtin), "an absent fallback binding must preserve builtin resolution");
++
++  // Callback context is heap-owned; explicit owners keep it alive during each
++  // nested entry and no stored callable can outlive either Interpreter.
++  for (bool same_interpreter : {false, true}) {
++    auto state = std::make_unique<ReentryState>();
++    state->target = same_interpreter ? &first : &second;
++    state->setter = functions[0];
++    state->getter = functions[1];
++    state->next = same_interpreter ? 333 : 444;
++    auto* observed = state.get();
++    Value callback = runtime.make_native_function("lazy_globals_reenter", reenter, state.get(),
++        [](void* data) { delete static_cast<ReentryState*>(data); });
++    state.release();
++    auto loaded = invoke(first, functions[6], &callback, 1);
++    expect_true(result, observed->observed && is_number(loaded, same_interpreter ? 333 : 111),
++        "nested entry preserves wrapper isolation and sees same-wrapper mutation after return");
++  }
++  runtime.register_raw_block_handler("lazy_test", "fallback", increment_raw);
++  expect_true(result, is_number(invoke(first, functions[7]), 334) &&
++      is_number(invoke(first, functions[1]), 334), "RawBlock fallback reads/stores must retain versioned ownership");
++
++  Value module_globals = Value::module("lazy_globals_test");
++  std::string error;
++  expect_true(result, module_set_attr(module_globals, "fallback_value", Value::int64(777), error),
++      "module globals fixture must initialize");
++  Value module_getter = Value::function(1, {}, module_globals, module);
++  Value dict_globals = Value::dict({{Value::string("fallback_value"), Value::int64(888)}});
++  Value dict_getter = Value::function(1, {}, dict_globals, module);
++  expect_true(result, is_number(invoke(first, module_getter), 777) &&
++      is_number(invoke(first, dict_getter), 888) && is_number(invoke(first, functions[1]), 334),
++      "retained module/dict namespaces must resolve before unrelated fallback storage");
++
++  auto audit = std::make_shared<CleanupAudit>();
++  auto state = std::make_unique<CleanupState>();
++  state->audit = audit; state->lifetime = lifetime;
++  state->interpreter = &first; state->runtime = &runtime; state->getter = functions[1];
++  Value owned = Value::native_function(0, "fallback_owned_cleanup", nullptr, state.get(), cleanup);
++  state.release();
++  expect_true(result, invoke(first, functions[0], &owned, 1).errors.empty(), "fallback must own cleanup fixture");
++  value_set_invalid(owned);
++  expect_true(result, audit->calls == 0, "stored fallback owner must survive frame pop");
++  expect_true(result, invoke(first, functions[2]).errors.empty() && audit->calls == 1 &&
++      audit->absent && !audit->skipped_expired,
++      "delete publishes an absent binding before the last owner's nested cleanup");
++  // Also clean an unsuccessful implementation's retained owner while the
++  // wrapper is still fully alive; no cleanup callback may reenter destruction.
++  const Value none = Value::none();
++  (void)invoke(first, functions[0], &none, 1);
++  (void)runtime.take_pending_exception(pending);
++  value_set_invalid(pending);
++  expect_true(result, invoke(first, functions[2]).errors.empty() &&
++      invoke(first, functions[2]).errors.empty(), "deleting an absent legacy fallback remains supported");
++}
++
++} // namespace xlang3::test

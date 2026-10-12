@@ -1,0 +1,37 @@
+{
+  "scope": "Offline provenance audit; no benchmark was run or saved measurements changed",
+  "current_cpython_version": "3.14.7",
+  "current_cpython_sys_version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+  "saved_worker_python_versions": [],
+  "saved_timed_subtests": 105,
+  "dependency_venv_config": "home = C:\\Python\\Python314\ninclude-system-site-packages = false\nversion = 3.14.7\nexecutable = C:\\Python\\Python314\\python.exe\ncommand = C:\\Python\\Python314\\python.exe -m venv --without-pip D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\n",
+  "historical_version_evidence": "Contemporaneous report identifies CPython 3.14.7; dependency venv configuration records 3.14.7 at C:/Python/Python314",
+  "limitation": "Saved JSON has no worker interpreter-version metadata or CPython executable start/end hash. Current executable version/hash is a current observation, not proof of the historical measured binary.",
+  "current_shim_behavior": "WorkerTask and WorkerProcessTask collect_metadata return an empty dictionary for both interpreters; keep shim unchanged during the live full run.",
+  "inputs": {
+    "saved_reference_json": {
+      "path": "doc/performance/data/pyperformance-cpython314-clean-release-full-fast-20261002.json",
+      "sha256": "0543fa675730f019f2c9b54c18d07ae7777d2edc15e9eed60d98a3179e949dc5"
+    },
+    "saved_reference_log": {
+      "path": "doc/performance/data/pyperformance-cpython314-clean-release-full-fast-20261002.log",
+      "sha256": "bb25b39fcb005d63e4177f2cacccf15cddbcdff3e14e8a0f3d826b0e2872705a"
+    },
+    "contemporaneous_report": {
+      "path": "doc/performance/pyperformance-xlang3-clean-release-vs-cpython314-full-fast-20261002.md",
+      "sha256": "8942bb25facab7d724fd87a932eeae5458296c2dd536a79b58120d9d9e4f25e7"
+    },
+    "dependency_venv_config": {
+      "path": "venv/cpython3.14-a6792301b742-compat-31b33d68c68a/pyvenv.cfg",
+      "sha256": "9ab315c8f68e09f4b3e30646cdcd515ebcaacace8fe7cd9d896d00a01c1878c9"
+    },
+    "current_cpython_executable": {
+      "path": "C:/Python/Python314/python.exe",
+      "sha256": "4942b86a6597e5aee0128daa00050ed79bc21f6e709a78eb19cbfeb0c2f39ac9"
+    },
+    "current_compatibility_shim": {
+      "path": "benchmarks/diagnostics/pyperf_compat/sitecustomize.py",
+      "sha256": "2ffc217fe20497156bfcb1cebc7fb87203f33c6d4d3dbb6ecbcbcf91ea4cb317"
+    }
+  }
+}

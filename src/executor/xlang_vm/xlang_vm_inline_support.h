@@ -19,7 +19,7 @@ limitations under the License.
 #include "xlang_vm_inline_call.h"
 #include "xlang_vm_names.h"
 #include "xlang_vm_property_inline.h"
-#include "runtime_lock.h"
+#include "runtime/modules/thread/runtime_lock.h"
 
 #include "xlang3/compiler.h"
 #include "xlang3/attribute.h"
@@ -239,6 +239,87 @@ XLANG3_HOT_INLINE bool execute_inline_small_self_method(
           return false;
         }
         value_assign_fast(temp_regs[op.dst], slot);
+        break;
+      }
+      case ir::Op::LoadLocalAttr: {
+        if (op.a != 0 || op.b >= function.names.size() ||
+            op.c >= temp_regs.size() || op.c == op.dst) {
+          supported = false;
+          return false;
+        }
+        auto* instance = value_as_instance(self);
+        auto* klass = instance != nullptr ? value_as_class(instance->klass) : nullptr;
+        if (instance == nullptr || klass == nullptr ||
+            instance->native_get_attr != nullptr ||
+            instance->native_set_attr != nullptr ||
+            instance->native_delete_attr != nullptr ||
+            klass->has_getattribute_hook || klass->has_getattr_hook) {
+          supported = false;
+          return false;
+        }
+
+        const auto& name = function.names[op.b];
+        const Value* stored = nullptr;
+        Value class_value;
+        std::string lookup_error;
+        // This is the hot shape in ordinary Python methods like
+        // `def get(self): return self.value`: after proving the exact instance
+        // has no attribute hooks or class descriptor, read its live instance
+        // storage directly and avoid both a general LOAD_ATTR lookup and the
+        // callee VM frame. Re-resolve every execution so mutations stay visible.
+        if (object_lookup_inherited_class_attr(
+                instance->klass, name, class_value, lookup_error)) {
+          // Explicit __slots__ methods retain LoadLocalAttr because type
+          // creation finalizes their layout. Inline only the exact built-in
+          // member descriptor that owns this slot; properties and all other
+          // descriptors continue through the ordinary Python function.
+          auto* descriptor = value_as_slot_descriptor(class_value);
+          const auto slot = klass->instance_slot_indices.find(name);
+          if (descriptor == nullptr || descriptor->name != name ||
+              slot == klass->instance_slot_indices.end() ||
+              slot->second != descriptor->index ||
+              descriptor->index >= instance_slot_count(instance)) {
+            supported = false;
+            return false;
+          }
+          const auto& value = instance_slot_at(instance, descriptor->index);
+          if (value.tag == ValueTag::Invalid) {
+            supported = false;
+            return false;
+          }
+          stored = &value;
+        } else {
+          if (!lookup_error.empty()) {
+            supported = false;
+            return false;
+          }
+          for (const auto& attr : instance->attrs) {
+            if (attr.first == name) {
+              stored = &attr.second;
+              break;
+            }
+          }
+          if (stored == nullptr) {
+            if (auto* dict = value_as_dict(instance_attribute_storage(*instance))) {
+              for (const auto& entry : dict->entries) {
+                const auto* key = value_as_string(entry.first);
+                if (key != nullptr && string_object_view(*key) == name) {
+                  stored = &entry.second;
+                  break;
+                }
+              }
+            }
+          }
+          if (stored == nullptr || stored->tag == ValueTag::Invalid) {
+            supported = false;
+            return false;
+          }
+        }
+
+        // Mirror LOAD_LOCAL_ATTR's receiver scratch register before returning
+        // the direct value. This preserves the IR's declared register effects.
+        value_assign_fast(temp_regs[op.c], self);
+        value_assign_fast(temp_regs[op.dst], *stored);
         break;
       }
       case ir::Op::LoadAttr: {
@@ -975,6 +1056,7 @@ struct XlangVMBuiltinConstructorSpec {
 struct XlangVMBuiltinConstructorError {
   std::string message;
   const char* type = "TypeError";
+  bool fully_handled = false;
 
   XLANG3_HOT_INLINE void set(const char* error_type, std::string text) {
     type = error_type;
@@ -1550,6 +1632,26 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
     XlangRuntimeExecutionGuard& execution_lock,
     Value& out,
     XlangVMBuiltinConstructorError& constructor_error) {
+  // CPython native heap types can keep a direct constructor beside their
+  // native payload implementation. Run it only while the exact class layout
+  // and its __new__/__init__ methods remain unchanged; subclasses and patched
+  // classes continue through normal class construction below.
+  if (klass.native_type_constructor != nullptr &&
+      klass.native_type_constructor_version == klass.version) {
+    bool handled = false;
+    std::string native_error;
+    const bool succeeded = klass.native_type_constructor(
+        runtime, klass, args, handled, out, native_error);
+    if (handled) {
+      constructor_error.fully_handled = true;
+      if (!succeeded) {
+        constructor_error.set("RuntimeError", native_error.empty()
+            ? "native type constructor failed" : std::move(native_error));
+      }
+      return true;
+    }
+  }
+
   auto constructor = xlang_vm_find_builtin_constructor(klass.name);
   bool exact_builtin_constructor = constructor != XlangVMBuiltinConstructor::Unknown;
   if (constructor != XlangVMBuiltinConstructor::Unknown && !xlang_vm_class_is_builtin_module_class(klass)) {
@@ -1627,7 +1729,7 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
       }
     }
     auto expand_kw_star_arg = [&](uint32_t kw_star_reg) -> bool {
-      auto* kwargs = value_as_dict(args.registers[kw_star_reg]);
+      auto* kwargs = mapping_dict_storage(args.registers[kw_star_reg]);
       if (kwargs == nullptr) {
         error = "** argument must be dict";
         return false;
@@ -1778,18 +1880,9 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
 
     std::vector<std::pair<std::string, Value>> kwdefaults;
     if (kwdefaults_value != nullptr && kwdefaults_value->tag != ValueTag::None) {
-      auto* dict = value_as_dict(*kwdefaults_value);
-      if (dict == nullptr) {
+      if (!mapping_is_dict(*kwdefaults_value)) {
         error = "function() argument 'kwdefaults' must be a dict";
         return false;
-      }
-      for (const auto& entry : dict->entries) {
-        auto* key = value_as_string(entry.first);
-        if (key == nullptr) {
-          error = "function() keyword-default names must be strings";
-          return false;
-        }
-        kwdefaults.push_back({string_object_to_string(*key), entry.second});
       }
     }
 
@@ -1800,7 +1893,12 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
         code->module,
         std::move(defaults),
         std::move(kwdefaults));
+    if (kwdefaults_value != nullptr &&
+        !object_set_attr(out, "__kwdefaults__", *kwdefaults_value, error)) {
+      return false;
+    }
     if (auto* function = value_as_function(out)) {
+      value_assign_fast(function->code_object, constructor_args.get(0));
       function_capture_builtins(runtime, *function, globals_value);
     }
     std::string ignored;
@@ -1936,7 +2034,7 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
     }
     if (bases->items.size() > 1) {
       for (size_t i = 1; i < bases->items.size(); ++i) {
-        if (!class_set_base(out, bases->items[i], error)) {
+        if (!class_set_base_for_construction(out, bases->items[i], error)) {
           return false;
         }
       }
@@ -2628,8 +2726,7 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
         local_error = "operation forbidden on released memoryview object";
         return false;
       }
-      bytes.assign(memoryview_object_view(*view));
-      return true;
+      return memoryview_copy_bytes(*view, bytes, local_error);
     }
     if (auto* string = value_as_string(arg)) {
       local_error = "string argument without an encoding";
@@ -2648,8 +2745,7 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
           return true;
         }
         if (auto* source = value_as_memoryview(payload)) {
-          bytes.assign(memoryview_object_view(*source));
-          return true;
+          return memoryview_copy_bytes(*source, bytes, local_error);
         }
       }
     }
@@ -3058,7 +3154,12 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
         constructor_error.set("ValueError", "operation forbidden on released PickleBuffer object");
         return false;
       }
-      if (object_get_attr(source, "__xlang3_bytes_value__", payload, ignored)) {
+      auto* source_instance = value_as_instance(source);
+      const bool native_array = instance_get_native_data(source, "array.array") != nullptr;
+      const bool have_payload = native_array && source_instance->native_get_attr != nullptr
+          ? source_instance->native_get_attr(source, "__xlang3_bytes_value__", payload, ignored)
+          : object_get_attr(source, "__xlang3_bytes_value__", payload, ignored);
+      if (have_payload) {
         const auto* bytes = value_as_bytes(payload);
         const auto* bytearray = value_as_bytearray(payload);
         const auto* payload_view = value_as_memoryview(payload);
@@ -3067,9 +3168,12 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
           return false;
         }
         if (bytes != nullptr || bytearray != nullptr || payload_view != nullptr) {
-          Value owner = source;
+          // Array operations and every derived view must export the same
+          // physical bytearray. Retain the logical array separately for .obj;
+          // leaving owner as an instance bypasses bytearray resize protection.
+          Value owner = native_array ? payload : source;
           Value exported_owner;
-          if (object_get_attr(source, "__xlang3_memoryview_owner__", exported_owner, ignored) &&
+          if (!native_array && object_get_attr(source, "__xlang3_memoryview_owner__", exported_owner, ignored) &&
               exported_owner.tag != ValueTag::None) {
             owner = std::move(exported_owner);
           }
@@ -3078,10 +3182,21 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
                   bytearray != nullptr ? bytearray->value.size() : payload_view->size,
               bytes != nullptr || (payload_view != nullptr && payload_view->readonly));
           Value format;
-          if (object_get_attr(source, "typecode", format, ignored)) {
+          const bool have_format = native_array && source_instance->native_get_attr != nullptr
+              ? source_instance->native_get_attr(source, "__xlang3_array_format__", format, ignored)
+              : object_get_attr(source, "typecode", format, ignored);
+          if (have_format) {
             if (auto* text = value_as_string(format)) {
               if (auto* result = value_as_memoryview(out)) {
                 result->format = string_object_to_string(*text);
+                if (native_array) {
+                  result->exporter = source;
+                  const size_t itemsize = memoryview_format_itemsize(result->format);
+                  if (itemsize != 0) {
+                    result->shape = {static_cast<int64_t>(result->size / itemsize)};
+                    result->strides = {static_cast<int64_t>(itemsize)};
+                  }
+                }
               }
             }
           }
@@ -3150,9 +3265,16 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
       value_assign_fast(klass, constructor_args.get(0));
       value_assign_fast(self, constructor_args.get(1));
     } else {
-      Value locals = runtime.current_locals_snapshot();
-      if (!xlang_vm_current_super_first_argument(runtime, locals, self)) {
-        error = "super(): no current instance or class";
+      if (!runtime.try_current_frame_first_argument(self)) {
+        Value locals = runtime.current_locals_snapshot();
+        if (!xlang_vm_current_super_first_argument(runtime, locals, self)) {
+          error = "super(): no current instance or class";
+          return false;
+        }
+      }
+      if (self.tag == ValueTag::Invalid) {
+        error = "super(): arg[0] deleted";
+        runtime.raise_class_error("RuntimeError", error);
         return false;
       }
       if (!xlang_vm_infer_super_defining_class(runtime, self, klass, error)) {

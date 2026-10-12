@@ -1,0 +1,5782 @@
+{
+  "command": [
+    "build-repro\\RelWithDebInfo\\xlang3.exe",
+    "benchmarks\\diagnostics\\run_pyperformance_case_for_sampling.py",
+    "venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages\\pyperformance\\data-files\\benchmarks\\bm_sqlglot_v2\\run_benchmark.py",
+    "parse",
+    "--repeat",
+    "500"
+  ],
+  "return_code": 0,
+  "sample_interval_ms": 5.0,
+  "modules": [
+    {
+      "path": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3.exe",
+      "base": 140694929932288,
+      "size": 684032
+    },
+    {
+      "path": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "base": 140725774450688,
+      "size": 2519040
+    },
+    {
+      "path": "C:\\WINDOWS\\System32\\KERNEL32.DLL",
+      "base": 140725766914048,
+      "size": 831488
+    },
+    {
+      "path": "C:\\WINDOWS\\System32\\KERNELBASE.dll",
+      "base": 140725729427456,
+      "size": 4202496
+    },
+    {
+      "path": "C:\\WINDOWS\\System32\\ucrtbase.dll",
+      "base": 140725727002624,
+      "size": 1359872
+    },
+    {
+      "path": "C:\\WINDOWS\\SYSTEM32\\MSVCP140.dll",
+      "base": 140725445066752,
+      "size": 643072
+    },
+    {
+      "path": "C:\\WINDOWS\\SYSTEM32\\VCRUNTIME140.dll",
+      "base": 140725435564032,
+      "size": 180224
+    },
+    {
+      "path": "C:\\WINDOWS\\SYSTEM32\\VCRUNTIME140_1.dll",
+      "base": 140725435498496,
+      "size": 49152
+    },
+    {
+      "path": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "base": 140722441814016,
+      "size": 25329664
+    },
+    {
+      "path": "C:\\WINDOWS\\System32\\WS2_32.dll",
+      "base": 140725768945664,
+      "size": 524288
+    },
+    {
+      "path": "C:\\WINDOWS\\System32\\RPCRT4.dll",
+      "base": 140725767766016,
+      "size": 1146880
+    },
+    {
+      "path": "C:\\WINDOWS\\System32\\ADVAPI32.dll",
+      "base": 140725740830720,
+      "size": 770048
+    },
+    {
+      "path": "C:\\WINDOWS\\System32\\msvcrt.dll",
+      "base": 140725766062080,
+      "size": 692224
+    },
+    {
+      "path": "C:\\WINDOWS\\System32\\sechost.dll",
+      "base": 140725750530048,
+      "size": 692224
+    },
+    {
+      "path": "C:\\WINDOWS\\System32\\SHELL32.dll",
+      "base": 140725755904000,
+      "size": 7962624
+    },
+    {
+      "path": "C:\\WINDOWS\\System32\\msvcp_win.dll",
+      "base": 140725733687296,
+      "size": 667648
+    },
+    {
+      "path": "C:\\WINDOWS\\System32\\USER32.dll",
+      "base": 140725763899392,
+      "size": 1896448
+    },
+    {
+      "path": "C:\\WINDOWS\\System32\\win32u.dll",
+      "base": 140725728444416,
+      "size": 159744
+    },
+    {
+      "path": "C:\\WINDOWS\\System32\\GDI32.dll",
+      "base": 140725765865472,
+      "size": 176128
+    },
+    {
+      "path": "C:\\WINDOWS\\System32\\gdi32full.dll",
+      "base": 140725734408192,
+      "size": 1216512
+    },
+    {
+      "path": "C:\\WINDOWS\\System32\\Normaliz.dll",
+      "base": 140725739323392,
+      "size": 32768
+    },
+    {
+      "path": "C:\\WINDOWS\\System32\\IMM32.DLL",
+      "base": 140725739388928,
+      "size": 200704
+    }
+  ],
+  "sample_count": 1742,
+  "failures": {
+    "context_unavailable": 18
+  },
+  "samples": [
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4930f",
+      "samples": 45
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x42939",
+      "samples": 41
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x6829f",
+      "samples": 36
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x67616",
+      "samples": 31
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x274bd",
+      "samples": 22
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x42950",
+      "samples": 21
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x504687",
+      "samples": 20
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x67655",
+      "samples": 19
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x275fc",
+      "samples": 16
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x188e5",
+      "samples": 15
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0xabb664",
+      "samples": 14
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x1cd63",
+      "samples": 14
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x6829b",
+      "samples": 12
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x1979",
+      "samples": 12
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x222b10",
+      "samples": 12
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x504692",
+      "samples": 10
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\VCRUNTIME140.dll",
+      "rva": "0x1da37",
+      "samples": 10
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x429e3",
+      "samples": 10
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x492cd",
+      "samples": 10
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x27f9b7",
+      "samples": 9
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x47e3a6",
+      "samples": 9
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4e3f56",
+      "samples": 9
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4fec3c",
+      "samples": 9
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x3a14e",
+      "samples": 8
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\System32\\ucrtbase.dll",
+      "rva": "0xed924",
+      "samples": 7
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4e287a",
+      "samples": 7
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x1f7a8",
+      "samples": 7
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x80ee",
+      "samples": 7
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4fec53",
+      "samples": 7
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\System32\\ucrtbase.dll",
+      "rva": "0xed921",
+      "samples": 7
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0xd1d32",
+      "samples": 6
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x26fbd",
+      "samples": 6
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0xabb60a",
+      "samples": 6
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0xfa06",
+      "samples": 6
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4cc851",
+      "samples": 6
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0xc2fc8",
+      "samples": 6
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x25c50",
+      "samples": 6
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x433560",
+      "samples": 6
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0xb6d6",
+      "samples": 6
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x161564",
+      "samples": 5
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x222b35",
+      "samples": 5
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x1ccd4",
+      "samples": 5
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x47e6bb",
+      "samples": 5
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x40ecf",
+      "samples": 5
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\System32\\ucrtbase.dll",
+      "rva": "0xed939",
+      "samples": 5
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x7d299e",
+      "samples": 5
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\System32\\ucrtbase.dll",
+      "rva": "0xed943",
+      "samples": 5
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0xab9267",
+      "samples": 5
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x45f662",
+      "samples": 5
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x3940b",
+      "samples": 5
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\VCRUNTIME140.dll",
+      "rva": "0x1da30",
+      "samples": 5
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\System32\\ucrtbase.dll",
+      "rva": "0xed934",
+      "samples": 4
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4931e",
+      "samples": 4
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x48251c",
+      "samples": 4
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x67632",
+      "samples": 4
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x27fad7",
+      "samples": 4
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x1598d",
+      "samples": 4
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x50462e",
+      "samples": 4
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4abd2f",
+      "samples": 4
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x433557",
+      "samples": 4
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x5046a8",
+      "samples": 4
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x29c1a4",
+      "samples": 4
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x1ccd8",
+      "samples": 4
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x26eb1",
+      "samples": 4
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x67604",
+      "samples": 4
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x1347b",
+      "samples": 4
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\VCRUNTIME140.dll",
+      "rva": "0x1da32",
+      "samples": 4
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x1de76",
+      "samples": 4
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\System32\\ucrtbase.dll",
+      "rva": "0xed95d",
+      "samples": 4
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x45f622",
+      "samples": 4
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4f29db",
+      "samples": 4
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x1bc43",
+      "samples": 4
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4f6533",
+      "samples": 3
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4cc72f",
+      "samples": 3
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x428f3",
+      "samples": 3
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x428d9",
+      "samples": 3
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x1cf68",
+      "samples": 3
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x432d6",
+      "samples": 3
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\System32\\ucrtbase.dll",
+      "rva": "0xed94f",
+      "samples": 3
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4e3f6f",
+      "samples": 3
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4e2603",
+      "samples": 3
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x492a5",
+      "samples": 3
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x109b0",
+      "samples": 3
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4fedf1",
+      "samples": 3
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x494a25",
+      "samples": 3
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x272fe1",
+      "samples": 3
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4cdc",
+      "samples": 3
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x68295",
+      "samples": 3
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x27ff73",
+      "samples": 3
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x27fe86",
+      "samples": 3
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4cae3e",
+      "samples": 3
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x27eff5",
+      "samples": 3
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x222b2c",
+      "samples": 3
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x267f5",
+      "samples": 3
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4cae67",
+      "samples": 3
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x44f02d",
+      "samples": 3
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x393f7",
+      "samples": 3
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4e748e",
+      "samples": 3
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x26ffe",
+      "samples": 3
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x6761b",
+      "samples": 3
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4e3c8a",
+      "samples": 3
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x34366e",
+      "samples": 3
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x1ce79",
+      "samples": 3
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x275a5",
+      "samples": 3
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4b32d8",
+      "samples": 3
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x48a55",
+      "samples": 3
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x267e1",
+      "samples": 3
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x27fa53",
+      "samples": 3
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x26fd4",
+      "samples": 3
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x28041e",
+      "samples": 3
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x482513",
+      "samples": 3
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x27fa7e",
+      "samples": 3
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x492a7",
+      "samples": 3
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x438d22",
+      "samples": 3
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x3276bf",
+      "samples": 3
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x42989",
+      "samples": 3
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4968da",
+      "samples": 3
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4cae3b",
+      "samples": 3
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\System32\\ucrtbase.dll",
+      "rva": "0xed945",
+      "samples": 3
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\System32\\ucrtbase.dll",
+      "rva": "0xed951",
+      "samples": 3
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x6763b",
+      "samples": 3
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x47e39e",
+      "samples": 3
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x6765e",
+      "samples": 3
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x43b7d1",
+      "samples": 3
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\VCRUNTIME140.dll",
+      "rva": "0x1c78b",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\VCRUNTIME140.dll",
+      "rva": "0x1da48",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x2753c",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4cc875",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x47f92f",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x166cfa",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x222b07",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4e2607",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x1cbf5",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4785b1",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x496208",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x166df0",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x428e7",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4930c",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x492db",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4fcf",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4e4452",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4abd14",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4b56ab",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x43905",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4cbfc0",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0xab944b",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x393d0",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4cc719",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x47f80f",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x26fb5",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4b0b",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x47fa23",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x320eda",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2526d2",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x7d2981",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2900",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x48150e",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x1d214",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4dc693",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4fec25",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4932e",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4f6551",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x432c8",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x481369",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0xab9292",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4879ee",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x222b45",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x1cbe0",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x489161",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4dc8bf",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x5ea1c",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4e2611",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4e7701",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4cc723",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4ed0aa",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x25c7e",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x27fa45",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4dc8e6",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4cd3b4",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x45098b",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\System32\\ucrtbase.dll",
+      "rva": "0x50ce",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4cc853",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4294b",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\System32\\ucrtbase.dll",
+      "rva": "0xed902",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0xe2272",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x273fa",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4a7ca0",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4814d5",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x5bd03",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\VCRUNTIME140.dll",
+      "rva": "0x1da2b",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x27f9c1",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x28044b",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0xab9590",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4980ee",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x27fa20",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x15875",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x27b419",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4e2aaf",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x275bc",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x280456",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4a25c6",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x437c9",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\System32\\ucrtbase.dll",
+      "rva": "0xed964",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x50461e",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4932b",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x428ee",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0xab9260",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4abca0",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x487a3c",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x2683f",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4cbfae",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x10172",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4f332f",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4dced5",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\VCRUNTIME140.dll",
+      "rva": "0x1cb68",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x343420",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\System32\\ucrtbase.dll",
+      "rva": "0xdc0b",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\VCRUNTIME140.dll",
+      "rva": "0x1da3a",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x26760",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x40e8f",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x679fd0",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x29bd76",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x47e321",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4cc736",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x478a7b",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\System32\\ucrtbase.dll",
+      "rva": "0xed92e",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x48147c",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x5bdf7",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x17dcd",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x27fa63",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4cbfa6",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x29f569",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x49484d",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x15479",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4a7c3d",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x5bd07",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x428d2",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x29cc12",
+      "samples": 2
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x42997",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4ca183",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\VCRUNTIME140.dll",
+      "rva": "0x19c00",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\System32\\ucrtbase.dll",
+      "rva": "0xed974",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x29fc85",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x413c20",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x67545",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x356e39",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x67573",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x1627d4",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x160e84",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x161864",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2a8580",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4391c",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x43f930",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x275b0",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x267bf",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x327835",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x29560b",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x435d81",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x27590",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x217fb2",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x3f94",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x863e",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x1ccee",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x485431",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x2704f",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x222b53",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x40e76",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4b3699",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4813a3",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x2691f",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\System32\\ucrtbase.dll",
+      "rva": "0xed959",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4cc73d",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x45fc45",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4e5bf9",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2590cb",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2a04cc",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x8a6c",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0xac1d",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\VCRUNTIME140.dll",
+      "rva": "0x1dac3",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x23ec19",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x118276",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x5046c8",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x487a21",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x45baed",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x47e531",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4b6d60",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4ac9c9",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2970ab",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x49635b",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4dd05e",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2e82fb",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x41d0cf",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x481895",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x43335c",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4c0db7",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4b3533",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x5bdfa",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x14b0",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x166a4c",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x8b2f",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2fbb52",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x1cc15",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4dd9b1",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x414c4",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2573b1",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4ac64a",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x45fbf5",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4e3ccb",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4ddd0b",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\System32\\ucrtbase.dll",
+      "rva": "0xed941",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4813a5",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x227a01",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x67698",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4abcda",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4a7cca",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4a5820",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\MSVCP140.dll",
+      "rva": "0x17d98",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4933f",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x46013a",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2a90f2",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4c134a",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x48640",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4caf38",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x489ac5",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x42923",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x1f3ed",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4b34e7",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x31f7e2",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4dd9c3",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4dd87c",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x27fa67",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4e971c",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x27fa55",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4f4e0d",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x3474f0",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x27ff69",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2527f6",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0xc2fbf",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x26764",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0xab9269",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x47f6b9",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x29c17e",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x480116",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x508c62",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x487a65",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0xd517",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x217fd2",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x1ce73",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x2763f",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x28887d",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2a7277",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4e0339",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x27fe47",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4e25ef",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x231746",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x343012",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x450751",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x29c69a",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4b32ea",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4c0bf1",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0xaba2c9",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x20833",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4851f9",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x1cf72",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x29c6bb",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4dce44",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\VCRUNTIME140.dll",
+      "rva": "0x1cc5a",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4a7c09",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x272f99",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4e3c9d",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x5046b1",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4dd1c2",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4e9743",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x474358",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4a7cb2",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0xab9426",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x490e8f",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\System32\\ucrtbase.dll",
+      "rva": "0xed968",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x40e79",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x29c6b4",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x166aba",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4dc645",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4e7991",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4952fb",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x1669ec",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\VCRUNTIME140.dll",
+      "rva": "0x1db2b",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x48732b",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x256d4d",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4876e0",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x432e7",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x29fc3b",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x486d0",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x28045c",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4818ae",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2aca41",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x26f26",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x471cb4",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x47f675",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4b34c4",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x44042b",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x495f49",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x48f496",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x27fad2",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x49631c",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x166b8b",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x43121b",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4a7bd7",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4cb0ce",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x43539",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x275f8",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x29c1ab",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x432fd",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x1669c5",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\System32\\ucrtbase.dll",
+      "rva": "0xed8f0",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x1cc67",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x29bf97",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4a7f82",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x490eac",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x3276f3",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x27fa40",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x489459",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4e37c1",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4800e7",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0xc2fb4",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4504b0",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x49686f",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x504618",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x47ee33",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4dda10",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x17080",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2a706f",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x1cc4c",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2ac9b4",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4cc7a0",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2a7138",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4824bf",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x26e55",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0xab92bc",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0xc59f",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4cb0a6",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x5bd25",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2bf1d4",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x26eaa",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4cc680",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x288983",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x49260",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4e7cb7",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x432b5",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x47e2d0",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x222b3d",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x166db7",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2fcddb",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4385c",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x299389",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x47883a",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x343320",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x43420",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x492ca",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x290b9d",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x26e5f",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x507c77",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4787dd",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\VCRUNTIME140.dll",
+      "rva": "0x1da45",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0xd1d61",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x1ee076",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x1a114e",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4e2aaa",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x166b62",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x27545",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x2750a",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4c12f0",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x67688",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4b56ee",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x67672",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4c577e",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x43f970",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2db060",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x438ceb",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x45099d",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4ccabe",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x44ef6a",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4e9823",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x8386a",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x295629",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x327690",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2a7318",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x27ff39",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x10507d",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x1d426",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x166e78",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4b5570",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x47eafc",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x489469",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x495bb6",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x7d2974",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x27ff80",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x42911",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4dd6e8",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x67506",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0xc9cd",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x5046dd",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0xc2fac",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x5bb03",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4ac69e",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4876b0",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x47eb2a",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x23e960",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x682a4",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x20649",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4ccae1",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x34af00",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x44f058",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4350b",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x191a7b",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x29c46f",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x432d3",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4cb094",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x27ff20",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4e6d93",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4dd9fa",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x276e1",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4824d6",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x27fff9",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0xe2025",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x1cc406",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x611a69",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x491e6",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2a727b",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4400c4",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x428d0",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2d6f71",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x48dfb8",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2e7aff",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2a051e",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x27404",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x30d8d2",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x481959",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x28888e",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x43881",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x47eff6",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x3276ab",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x1cc2a",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2970b5",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4dce5b",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x273c35",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x444310",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x34af88",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\VCRUNTIME140.dll",
+      "rva": "0x1db00",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x1a636",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x7d27fc",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x43f8fd",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4e1622",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x32cd08",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x29c5ff",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x47e2dd",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4dd9dd",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4824f4",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x23ec80",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x7d2999",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x3275df",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x11834c",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x45d03e",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4c131d",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x432e2",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4f2583",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4c11ec",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x43328f",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x27ffc5",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x3940d",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x47eba1",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x25939c",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2bbff8",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x2763c",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4cb596",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x493ab",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x47f658",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4fe24c",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x5bd37",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2573b9",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2d40e8",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x26844",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x504610",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4b6e4e",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0xd1d57",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2d6f60",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2507e4",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4cae38",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x23a001",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x50467f",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\MSVCP140.dll",
+      "rva": "0x17eab",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x29c476",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x496b85",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4b361d",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x16900",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\VCRUNTIME140.dll",
+      "rva": "0x1da3f",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x481508",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2c1189",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x39413",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x487b4d",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x232296",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0xaba288",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x50754e",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x29c5ed",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2528f0",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x495556",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4ab823",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4cc85d",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0xe227f",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2d314c",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2a85e7",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\VCRUNTIME140.dll",
+      "rva": "0x1cc57",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x489385",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x166c60",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x39405",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4e3edc",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x43330b",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x29fc82",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x461259",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x27ea01",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4557af",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x480108",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0xa83e5a",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4e7cb2",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x48f410",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x483cb9",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x26f43",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x27ff85",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2f847e",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2a0539",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4cbf9e",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x98fd7",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0xabb610",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x40b10",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4dd9cb",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4f4ded",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x487254",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x1ebd46",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x267bb",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2a89c4",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x29ab48",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x29f557",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x17b585",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x1cce2",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4c1252",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x481386",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x1a0baf",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\VCRUNTIME140.dll",
+      "rva": "0x1da03",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x23e6ff",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x47e57e",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x67155",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4339e1",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4cb59f",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0xe22b2",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2a9e85",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x29bd66",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x256e00",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x933738",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x507a42",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2ce8de",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4fe1fa",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x27408a",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4875be",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2376ae",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0xab9274",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2a7036",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x327676",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x26910",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x26721",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4b056b",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x1c4cc4",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x410d0",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4b78b6",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x5bde0",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x29c6f4",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\VCRUNTIME140.dll",
+      "rva": "0x1cc75",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x70807",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0xab9585",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x2758d",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2f84b9",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0xc2fb8",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x28045b",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4acc5d",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2e7b6f",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x479c16",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4abdce",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x27fa59",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x6bafd",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x3433d5",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4c4907",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x483b99",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x477a8c",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\VCRUNTIME140.dll",
+      "rva": "0x1dab4",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x437ad",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4c57ed",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x7f3b",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2bea48",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x49d016",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2376c7",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x48187c",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\System32\\ucrtbase.dll",
+      "rva": "0xed931",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x483cbb",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4e79ad",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x487785",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x12808b",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4caf4d",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4cb28b",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2582fd",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x47cd4a",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4897ab",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x17b1f9",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x5bcf5",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x67694",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2fbb5b",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4dbdee",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x27012",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x272928",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4caf50",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4c0f14",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x31f7e0",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x17d07f",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4ac699",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4b563f",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x67637",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4b5686",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\System32\\ucrtbase.dll",
+      "rva": "0xad8c",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2d0842",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0xab9596",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4e9ca6",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x438cfe",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\VCRUNTIME140.dll",
+      "rva": "0x1f010",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4400dc",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4b6b89",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x166ea4",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x432d1",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4b32a0",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x166c15",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0xab93e5",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4f1ee7",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4efc1f",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x288bc0",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x48f4a8",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4dda00",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x27e92d",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x166e2e",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x68298",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0xd1d35",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x45f5f0",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x29be06",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2a0517",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x240c44",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x496177",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x24c6b1",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x83762",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4e25f6",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2f84d2",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\VCRUNTIME140.dll",
+      "rva": "0x1e583",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2f84cb",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2ab7f6",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4c17af",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2e7c62",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0xc2fcd",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x47ee46",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x27f9b0",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x3319",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x492df",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x46085f",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x47f6ca",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x29cda9",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x47e308",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4cad35",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2a01ea",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x44e1af",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x43f8a0",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4ac62a",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x166f02",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x40e69",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x481880",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4dcea8",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4dd0b4",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4ac9a2",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x5ea74",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x46f444",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x447a89",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4d5699",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x490e50",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x5bdf2",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x47e6c4",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x47eb3b",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4cb5af",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x508b2e",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4b6dd9",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2e7fa0",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2fc1e4",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x45bee9",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x343344",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2f3a67",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\System32\\ucrtbase.dll",
+      "rva": "0xed905",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4c17ac",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x487a78",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x27ff87",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x473f3d",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4f6549",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x47e4fb",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\MSVCP140.dll",
+      "rva": "0x17d65",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4dd086",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x8f0d",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4a585c",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4e1759",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4961e4",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x29a48f",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4cc672",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x496d87",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x26fc7",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4dd63b",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x47026",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4aca7e",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4601a4",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x25005b",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x1ee49c",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4466d5",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x26f2b",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4e7c2d",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x154c9",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2a8947",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x43432",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x3457d2",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0xabb5e6",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x67abf5",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2ad2c2",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x5eacb",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x47f66f",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x3a275",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x29bd8e",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x1b8f6",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2d30c3",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x1ccd1",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x5be34",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x274096",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2fd14a",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2526b0",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x1cc8e",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4dbc7c",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x48f69e",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x2692c",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x45fd02",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x268fb",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x495571",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4403f8",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x26fef",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4cba04",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x5046c3",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4e2354",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x484b65",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2a0514",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x490e81",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4279ec",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x29c70e",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x125a8",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4dc9bb",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x47fa01",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0xab95ad",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2572f4",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4ab725",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4cca95",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x428f0",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x327662",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0xe7f5",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x27ffc9",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2a0572",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x27f9ff",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4fec42",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4bdad4",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x438cf3",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4b576e",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x27efb0",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x3474ea",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4ccaeb",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4c1344",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4a7bea",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2f84bc",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x27fa47",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x47f010",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\System32\\KERNEL32.DLL",
+      "rva": "0x18620",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4cc717",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2a056e",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x5046b6",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x496ba3",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x43311b",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x23bb40",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x166add",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x166ec1",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x227838",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\System32\\ucrtbase.dll",
+      "rva": "0xada0",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x266da3",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4e3f74",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2fbb89",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x27ffea",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2a71f8",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4980a8",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x29bcbf",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x485deb",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4a707f",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4e7c3a",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x45f684",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x42982",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x273ed",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x47f690",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x45fcdb",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x144a52",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x288906",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4400cd",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2434fb",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x273fe",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x27ffb7",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4c14ae",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x2f8474",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4cc881",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x7d29b7",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\VCRUNTIME140.dll",
+      "rva": "0x1da93",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x1ccdf",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x478543",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4dd7b0",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x5150",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x26e62",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x481cdf",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x49e99a",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x166c6c",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4a7c22",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4b334c",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x44c7ec",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x496d63",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x47e397",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4961f9",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x67669",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x12a3d5",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4caf3d",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4922e",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x47f5ce",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x489ab1",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x4e7ca2",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "D:\\CantorAI\\xlang3\\build-repro\\RelWithDebInfo\\xlang3_runtime.dll",
+      "rva": "0x486b2",
+      "samples": 1
+    },
+    {
+      "thread_id": 24580,
+      "module": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll",
+      "rva": "0x724b9",
+      "samples": 1
+    }
+  ]
+}

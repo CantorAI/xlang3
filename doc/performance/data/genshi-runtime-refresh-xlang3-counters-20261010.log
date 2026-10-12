@@ -1,0 +1,237 @@
+D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\genshi\template\astutil.py:799: DeprecationWarning: Expression.__init__ missing 1 required positional argument: 'body'. This will become an error in Python 3.15.
+  return visitor(node)
+D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\genshi\template\eval.py:589: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.
+  name = _new(_ast.Name, '_lookup_name', _ast.Load())
+D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\genshi\template\eval.py:590: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.
+  namearg = _new(_ast.Name, '__data__', _ast.Load())
+D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\genshi\template\eval.py:591: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.
+  strarg = _new(_ast_Str, node.id)
+D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\genshi\template\eval.py:592: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.
+  node = _new(_ast.Call, name, [namearg, strarg], [])
+D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\genshi\template\astutil.py:799: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.
+  return visitor(node)
+D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\genshi\template\eval.py:609: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.
+  func = _new(_ast.Name, '_lookup_attr', _ast.Load())
+D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\genshi\template\eval.py:610: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.
+  args = [self.visit(node.value), _new(_ast_Str, node.attr)]
+D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\genshi\template\eval.py:611: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.
+  return _new(_ast.Call, func, args, [])
+perf: native_calls=513695 fast=388404 cached_fast=3163
+perf: native eval slow=108009 fast=0
+perf: native iter slow=16061 fast=0
+perf: native min slow=4 fast=1425
+perf: native max slow=4 fast=305
+perf: native weakref.ProxyType.__setattr__ slow=172 fast=0
+perf: native weakref.ProxyType.__getattr__ slow=86 fast=0
+perf: native weakref.proxy slow=86 fast=0
+perf: native _ast.AST.__init__ slow=67 fast=0
+perf: native DeprecationWarning.__init__ slow=63 fast=0
+perf: native _warnings._acquire_lock slow=63 fast=0
+perf: native _warnings._release_lock slow=63 fast=0
+perf: native _warnings.warn_explicit slow=63 fast=0
+perf: native zip slow=7 fast=56
+perf: native bytearray.translate slow=40 fast=0
+perf: native str.__new__ slow=27 fast=0
+perf: native type.__new__ slow=5 fast=18
+perf: native sys.getrecursionlimit slow=20 fast=0
+perf: native compile slow=19 fast=0
+perf: native functools._lru_cache_wrapper slow=12 fast=0
+perf: native itertools.chain slow=10 fast=0
+perf: native KeyError.__init__ slow=9 fast=0
+{"diagnostic_only": true, "rows": [{"phase": "text_generate_events", "elapsed_per_pass": 0.32703799998853356, "events": 32002}, {"phase": "xml_generate_events", "elapsed_per_pass": 0.3821798999949048, "events": 34004}, {"phase": "context_get", "elapsed_per_pass": 0.025615000049583614, "calls": 10000, "checksum": 10000}, {"phase": "lookup_name", "elapsed_per_pass": 0.03286910004680976, "calls": 10000, "checksum": 10000}, {"phase": "compiled_eval", "elapsed_per_pass": 0.0648520000395365, "calls": 10000, "checksum": 10000}, {"phase": "expression_evaluate", "elapsed_per_pass": 0.10768000001553446, "calls": 10000, "checksum": 10000}]}
+perf: native _collections.deque.__init__ slow=9 fast=0
+perf: native _io.TextIOWrapper.write slow=9 fast=0
+perf: native code.replace slow=7 fast=0
+perf: native exec slow=7 fast=0
+perf: native module.__init__ slow=6 fast=0
+perf: native NotImplementedError.__init__ slow=4 fast=0
+perf: native _sre.Match.span slow=4 fast=0
+perf: native bytes.decode slow=4 fast=0
+perf: native function.__get__ slow=4 fast=0
+perf: native sorted slow=4 fast=0
+perf: native types.GenericAlias.__new__ slow=4 fast=0
+perf: native FileNotFoundError.__init__ slow=3 fast=0
+perf: native __import__ slow=3 fast=0
+perf: native _io.StringIO.read slow=3 fast=0
+perf: native _codecs.lookup slow=2 fast=0
+perf: native _io.StringIO.__init__ slow=2 fast=0
+perf: native _io.TextIOWrapper.__enter__ slow=2 fast=0
+perf: native _io.TextIOWrapper.__exit__ slow=2 fast=0
+perf: native _io.TextIOWrapper.readlines slow=2 fast=0
+perf: native _thread.RLock.__init__ slow=2 fast=0
+perf: native bytes.startswith slow=2 fast=0
+perf: native file.__enter__ slow=2 fast=0
+perf: native file.__exit__ slow=2 fast=0
+perf: native file.read slow=2 fast=0
+perf: native file.readline slow=2 fast=0
+perf: native file.seek slow=2 fast=0
+perf: native io.open_code slow=2 fast=0
+perf: native list.sort slow=2 fast=0
+perf: native open slow=2 fast=0
+perf: native os.stat slow=2 fast=0
+perf: native pyexpat.XMLParserType.Parse slow=2 fast=0
+perf: native FileFinder.path_hook slow=1 fast=0
+perf: native _frozen_importlib.spec_from_loader slow=1 fast=0
+perf: native _io.TextIOWrapper.fileno slow=1 fast=0
+perf: native _operator.or_ slow=1 fast=0
+perf: native _sre.Pattern.finditer slow=1 fast=0
+perf: native dict.update slow=1 fast=0
+perf: native os.get_terminal_size slow=1 fast=0
+perf: native print slow=1 fast=0
+perf: native pyexpat.ParserCreate slow=1 fast=0
+perf: native pyexpat.XMLParserType.SetParamEntityParsing slow=1 fast=0
+perf: native pyexpat.XMLParserType.UseForeignDTD slow=1 fast=0
+perf: native zipimport.zipimporter.__init__ slow=1 fast=0
+perf: store_local moves=767169 copies=925199
+perf: call argument register transfers=99501
+perf: CALL_FUNCTION_EX varargs+kwonly direct bindings=0
+perf: frame_snapshots calls=127 frames=128 locals=0 refresh_calls=368 refresh_items=3760
+perf: opcode 0 810497
+perf: opcode 1 46926
+perf: opcode 2 2825197
+perf: opcode 3 1046552
+perf: opcode 4 354
+perf: opcode 5 1350
+perf: opcode 6 214
+perf: opcode 7 193
+perf: opcode 8 246
+perf: opcode 9 306
+perf: opcode 10 282
+perf: opcode 12 6
+perf: opcode 13 347305
+perf: opcode 15 413
+perf: opcode 17 16
+perf: opcode 18 1945884
+perf: opcode 19 81427
+perf: opcode 20 109
+perf: opcode 22 199
+perf: opcode 23 4
+perf: opcode 25 101627
+perf: opcode 26 11909
+perf: opcode 27 1
+perf: opcode 30 11
+perf: opcode 31 1091
+perf: opcode 33 17
+perf: opcode 35 312912
+perf: opcode 36 46015
+perf: opcode 37 204615
+perf: opcode 38 14
+perf: opcode 39 9129
+perf: opcode 40 2067
+perf: opcode 41 4
+perf: opcode 42 1795
+perf: opcode 45 4
+perf: opcode 46 3703
+perf: opcode 47 472710
+perf: opcode 48 92304
+perf: opcode 49 33
+perf: opcode 50 322103
+perf: opcode 51 295332
+perf: opcode 52 62296
+perf: opcode 53 1001
+perf: opcode 54 5744
+perf: opcode 55 2540
+perf: opcode 56 391
+perf: opcode 58 2
+perf: opcode 60 379
+perf: opcode 63 1966
+perf: opcode 64 141
+perf: opcode 66 18
+perf: opcode 70 2046
+perf: opcode 71 273810
+perf: opcode 72 152155
+perf: opcode 73 136910
+perf: opcode 74 1029
+perf: opcode 75 74
+perf: opcode 76 1141908
+perf: opcode 77 1024954
+perf: opcode 78 5572
+perf: opcode 79 12638
+perf: opcode 80 69
+perf: opcode 81 12268
+perf: opcode 82 16
+perf: opcode 83 9
+perf: opcode 84 8
+perf: opcode 85 156
+perf: opcode 88 218
+perf: opcode 89 243
+perf: opcode 90 434273
+perf: opcode 91 219
+perf: opcode 92 9407
+perf: opcode 93 959436
+perf: opcode 95 936508
+perf: opcode 97 1223896
+perf: opcode 98 438747
+perf: opcode 99 13
+perf: opcode 101 40417
+perf: opcode 102 248
+perf: opcode 105 1438230
+perf: opcode 106 541960
+perf: opcode 107 17756
+perf: opcode 108 1452
+perf: opcode 109 309
+perf: opcode 110 472848
+perf: opcode 111 10775
+perf: opcode 112 92373
+perf: opcode 113 4934
+perf: opcode 114 1010006
+perf: opcode 115 276405
+perf: opcode 116 735
+perf: opcode 117 138134
+perf: opcode 118 104686
+perf: opcode 119 330310
+perf: opcode 120 11261
+perf: opcode 121 377711
+perf: opcode 122 950
+perf: opcode 125 233231
+perf: opcode 126 10554
+perf: opcode 127 81091
+perf: opcode 129 158
+perf: opcode 130 190
+perf: opcode 131 92791
+perf: opcode 139 853
+perf: opcode 141 465942
+perf: opcode 146 64
+perf: opcode 148 881
+perf: objects kind alloc final_release incref decref
+perf: String 140318 122156 460071 578823
+perf: BigInt 135 135 4741 4876
+perf: Bytes 145083 145078 96866 241944
+perf: ByteArray 552 552 432 984
+perf: Slice 9129 9129 339 9468
+perf: Tuple 367141 310770 4218288 4494834
+perf: List 62574 62378 646936 709275
+perf: Dict 214378 213172 3756534 3969671
+perf: Unknown 126 89 237 285
+perf: Set 52 33 3675 3701
+perf: DictKeysView 5 5 0 5
+perf: DictValuesView 8022 8022 8000 16022
+perf: DictItemsView 60 60 0 60
+perf: DictIterator 8418 8418 88000 96418
+perf: SetIterator 20 20 0 20
+perf: Range 1041 1041 0 1041
+perf: RangeIterator 637 637 0 637
+perf: SequenceIterator 187009 186999 68218 255217
+perf: Unknown 13 13 13 26
+perf: Unknown 63 63 63 126
+perf: Unknown 8 8 8 16
+perf: Unknown 10 10 10 20
+perf: Unknown 136017 136017 0 136017
+perf: Generator 8171 8161 56525 64686
+perf: Module 50 6 7515711 7513630
+perf: Cell 475 343 89081 89394
+perf: Function 1095 161 394358 394267
+perf: NativeFunction 44 22 2220256 2220158
+perf: Class 200 1 2314779 2155617
+perf: Instance 230153 72690 5268038 5148492
+perf: BoundMethod 699150 699102 967134 1666232
+perf: StaticMethod 9 0 1554 1554
+perf: ClassMethod 28 0 294453 294451
+perf: Super 176 176 0 176
+perf: SlotDescriptor 103 0 125555 125555
+perf: Property 7 0 1030 1030
+perf: Unknown 183 171 322348 322517
+perf: Unknown 2626 2626 18460 21086
+perf: Unknown 264 264 270 534
+perf: File 4 4 193461 193465
+perf: Unknown 13 12 133 145

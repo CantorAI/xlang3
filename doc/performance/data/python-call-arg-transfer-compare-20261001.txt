@@ -1,0 +1,9 @@
+﻿Benchmarks with tag 'serialize':
+================================
+
+Benchmark hidden because not significant (2): pickle_pure_python, unpickle_pure_python
+
+All benchmarks:
+===============
+
+Benchmark hidden because not significant (5): deepcopy, deepcopy_reduce, deepcopy_memo, pickle_pure_python, unpickle_pure_python

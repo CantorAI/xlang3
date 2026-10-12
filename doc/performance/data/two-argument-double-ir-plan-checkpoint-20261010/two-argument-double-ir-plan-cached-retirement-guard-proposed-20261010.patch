@@ -1,0 +1,25 @@
+diff --git a/src/executor/xlang_vm/xlang_vm_inline_call.h b/src/executor/xlang_vm/xlang_vm_inline_call.h
+--- a/src/executor/xlang_vm/xlang_vm_inline_call.h
++++ b/src/executor/xlang_vm/xlang_vm_inline_call.h
+@@ -566,6 +566,12 @@ inline bool xlang_vm_try_two_argument_double_method(
+         value_as_dict(instance_attribute_storage(*instance)) != nullptr) return false;
+     const auto* klass = value_as_class(instance->klass);
+     if (klass == nullptr || klass->has_getattribute_hook) return false;
++    // A frame-elided call cannot move observable input retirement. Reuse the
++    // version-cached release-finalizer predicate; weakref roles need only an
++    // atomic header check, without locking or consulting the weakref registry.
++    if ((instance->header.gc_tracking_state.load(std::memory_order_relaxed) &
++         kObjectWeakrefFlagsMask) != 0 ||
++        class_has_release_finalizer(instance->klass)) return false;
+   }
+   auto* guarded_instance = instances[guard_call.a];
+   const auto& guard_name = method.names[guard_call.b];
+diff --git a/src/internal/xlang3/value.h b/src/internal/xlang3/value.h
+--- a/src/internal/xlang3/value.h
++++ b/src/internal/xlang3/value.h
+@@ -1243,3 +1243,5 @@
+ bool value_truthy(const Value& value);
+ bool value_finalize_temporary_instance(Runtime& runtime, const Value& value);
++// Shared version-cached finalizer predicate used by release and guarded execution.
++bool class_has_release_finalizer(const Value& klass_value);
+ const char* value_binary_type_name(const Value& value);

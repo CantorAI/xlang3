@@ -1,0 +1,42 @@
+{
+  "schema": "numeric-ir-r6-fixed-gate-controller-generic-proof",
+  "status": "scratch_frozen_pending_root_AST_and_independent_static_review",
+  "controller": "scratch/performance/validate-two-argument-double-ir-plan-r2-trial-r6-gate-proposed-20261010.py",
+  "controller_sha256": "3594485de646a5754d80734c01b4c6ad0bbcac5d2d637ab54330b61033957d63",
+  "input_sha256": {
+    "scratch/performance/validate-two-argument-double-ir-plan-r2-trial-r4-proposed-20261010.py": "cb4ab8ceba90b041b50d75326fc9af31e4a029672ec6a723b17d1c4cc5652de0",
+    "scratch/performance/validate-two-argument-double-ir-plan-r2-trial-r4-proposed-20261010-provenance.json": "e190c543cd375e203cac890fc5797b94169cc97eb580a745b7b5541074e242d7",
+    "scratch/performance/gc-phase-dormant-msbuild-activity-watch-20261009.py": "6dea8abf4f66ff0d2a95830e4c560202359c57502f0f635ecf9e1dda5494bd48",
+    "benchmarks/check_regression.py": "579934598caddc37409fed03181b0cd42408853a34bde65dff48b777e4e8ffef",
+    "doc/performance/data/two-argument-double-ir-plan-r6-correctness-20261010.json": "7a801dbc1c39e3156d24096a2f2fec80e7857519808ce313b65db99392346e85",
+    "doc/performance/data/two-argument-ir-known-dormant-worker-12776-20261010-proof.json": "4be3d5c129a42bc093cde60d6682a562b9f90a2be590fb0061c4e29b53607cd6",
+    "doc/performance/data/two-argument-ir-known-dormant-worker-12776-20261010-snapshot-1.json": "c43e3d5fe703554acff4c934a65101a68d4b68cd640d37f9de54c8ecff16c477",
+    "doc/performance/data/two-argument-ir-known-dormant-worker-12776-20261010-snapshot-2.json": "b1de1320f7706011aae7a9bc0f0b0cd2a58f7a197efdebe7c0337be0bbdf4d27",
+    "scratch/performance/two-argument-double-ir-plan-engine-r3-fixture-r3-proposed-20261010-provenance.json": "02733fe724675f78ac123c7b10ce9f702a04385e31ad5172dc47d1e4eb36104d",
+    "scratch/performance/validate-two-argument-double-ir-plan-r2-trial-r5-gate-proposed-20261010.py": "fe784978cebb3211ca64f3321e83e1de5779e89580d5211868c44cb61bdcec05",
+    "scratch/performance/validate-two-argument-double-ir-plan-r2-trial-r5-gate-proposed-20261010-provenance.json": "31e2d991a104c3d5283f523ef25e060166e0df47c20d7bd6e636c7e8be23fd76",
+    "scratch/performance/validate-two-argument-double-ir-plan-r2-trial-r5-gate-r2-proposed-20261010.py": "cef5a5f70d4d0b47f248c506bcaebe56b69fc088da6f986eee60065df4d93b2a",
+    "scratch/performance/validate-two-argument-double-ir-plan-r2-trial-r5-gate-r2-proposed-20261010-provenance.json": "81efc2d45eecec055f1c571a7a49fb9526e0c1e0aac7b1bd59f9dabdd4dc5b5e"
+  },
+  "execution_by_author": false,
+  "ast_or_compile_by_author": false,
+  "scope": "Gate-only continuation of exact current candidate R4 fresh407/11/3/all55/API2; no correctness repeat, engine edit, retry, commit or affected-benchmark claim.",
+  "correctness": "Only exact7a801 receipt from cb4ab8ce accepted; actual application/build/semantic/source145/current178/baseline177 and complete fresh raw logs/55 results/API2 remain authenticated. No inherited Python exception.",
+  "source_ownership": "Current merged02733 proof owns four engine headers including value.h plus two runner changes; two new fixture/output paths. Parent143 plus PS overlay plus two new paths yields145. Previous R4 proof description of three engine headers is historical metadata; current controller and this proof use actual dynamic4-engine mapping.",
+  "worker_admission": "Optional ONE explicit path/SHA-pinned numeric-ir-dormant-msbuild-proof-v1 document, with all seven native helper fields, complete direct conhost children, two complete raw inventories≥2s apart, absent parent, identical exact integer CPU counters and creation identities. Positive distinct worker/parent PIDs and valid child birth/parent links are required. Immutable worker/children baseline is loaded into helper._admission once; no phase reset, admit call or reload. Fresh pre/during/post scans enforce admitted PID absence or exact helper._same_dormant before name classification. All other tools/CTest/runtime/survivor/scanner rules unchanged. Permission follows only this explicit proof, not a name/PID ignore list.",
+  "limits": [
+    "Known-worker proof is not a machine-idle or launch certificate; active foreign CTest still blocks preflight.",
+    "One-second snapshots can miss unrelated short-lived processes wholly between observations.",
+    "No measured result is created until root executes."
+  ],
+  "gate": "Existing complete default11 gate unchanged:21 repeats,5 warmup,.10 threshold, fixed baseline177, all arrays retained and no case filtering. Canonical confirmation behavior unchanged.",
+  "bounded_delta": [
+    "Remove only hardcoded12776/34884/4be3 proof path+hash constraints from prior cef5. Root must instead supply a new actual proof path and SHA.",
+    "Add generic positive distinct integer PID, non-controller worker and conhost creation/parent checks, preserving the same exact seven-field/raw-snapshot/CPU/timing constraints.",
+    "R4 correctness7a801/auth/current145/178/baseline177, gate11/21/5/.10, raw handling, ownership/cleanup and strict other-process monitoring unchanged.",
+    "Old12776 proof/raws remain immutable ancestry. New36344 observations are pending root capture and are not represented by old pins."
+  ],
+  "commands": [
+    "C:/Python/Python314/python.exe -I scratch/performance/validate-two-argument-double-ir-plan-r2-trial-r6-gate-proposed-20261010.py --application ROOT_GUARDED_APP_PATH --application-sha256 b6aec3660100c754eff3dea59a67ddd42f92842f57138cfe17fde7594181e02a --build ROOT_GUARDED_BUILD_PATH --build-sha256 0e24b3ff4053f049c1febb43e49a22b3a9d8c99447839dac0e58af1b184eba0f --application-controller ROOT_GUARDED_APP_PRODUCER --build-controller ROOT_GUARDED_BUILD_PRODUCER --semantic-receipt doc/performance/data/two-argument-double-ir-plan-r3-candidate-semantic-20261010.json --semantic-sha256 f7b2dfc47d8ce356b819f68d69d0dde46081fcb9866178c34ff37208359bc474 --correctness-receipt doc/performance/data/two-argument-double-ir-plan-r6-correctness-20261010.json --correctness-sha256 7a801dbc1c39e3156d24096a2f2fec80e7857519808ce313b65db99392346e85 --known-worker-proof ROOT_NEW_WORKER_PROOF_PATH --known-worker-sha256 ROOT_NEW_WORKER_PROOF_SHA --prefix two-argument-double-ir-plan-r6-fixed-gate-20261010"
+  ]
+}

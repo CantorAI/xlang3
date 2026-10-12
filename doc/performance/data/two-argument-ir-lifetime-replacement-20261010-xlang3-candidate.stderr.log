@@ -1,0 +1,11 @@
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\scratch\performance\two-argument-ir-lifetime-selections-proposed-20261010.py", line 61, in <module>
+    invoke_replacement(first, second)
+    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\scratch\performance\two-argument-ir-lifetime-selections-proposed-20261010.py", line 51, in invoke_replacement
+    assert events == [('displaced', 'invoke_replacement', 32.0)], events
+AssertionError: [('displaced', 'invoke_replacement', <__main__.Components object at 0x164cd136cd0>)]
+Exception ignored while calling deallocator <function Components.__del__>:
+uncaught exception in __del__ (D:\CantorAI\xlang3\scratch\performance\two-argument-ir-lifetime-selections-proposed-20261010.py:32): <class 'ValueError'>: call stack is not deep enough
+Exception ignored while calling deallocator <function Components.__del__>:
+uncaught exception in __del__ (D:\CantorAI\xlang3\scratch\performance\two-argument-ir-lifetime-selections-proposed-20261010.py:32): <class 'ValueError'>: call stack is not deep enough

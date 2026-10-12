@@ -86,7 +86,9 @@ std::string module_leaf_name(const std::string& name) {
 }
 
 std::string python_path_string(const std::filesystem::path& path) {
-  return path.lexically_normal().string();
+  const auto normalized = path.lexically_normal();
+  const auto encoded = normalized.u8string();
+  return {reinterpret_cast<const char*>(encoded.data()), encoded.size()};
 }
 
 bool get_cached_sys_module(Runtime& runtime, Value& sys, std::string& error) {
@@ -103,7 +105,7 @@ bool get_cached_sys_module(Runtime& runtime, Value& sys, std::string& error) {
 }
 
 std::string bytecode_cache_path(Runtime& runtime, const std::string& source) {
-  const std::filesystem::path source_path(source);
+  const std::filesystem::path source_path = std::filesystem::u8path(source);
   Value sys;
   Value prefix;
   std::string ignored;
@@ -112,17 +114,17 @@ std::string bytecode_cache_path(Runtime& runtime, const std::string& source) {
     if (auto* prefix_string = value_as_string(prefix);
         prefix_string != nullptr && !string_object_view(*prefix_string).empty()) {
       auto absolute_source = std::filesystem::absolute(source_path).lexically_normal();
-      std::string root_name = absolute_source.root_name().string();
+      std::string root_name = python_path_string(absolute_source.root_name());
       root_name.erase(std::remove(root_name.begin(), root_name.end(), ':'), root_name.end());
-      std::filesystem::path mirrored(string_object_view(*prefix_string));
+      std::filesystem::path mirrored = std::filesystem::u8path(string_object_view(*prefix_string));
       if (!root_name.empty()) mirrored /= root_name;
       mirrored /= absolute_source.relative_path().parent_path();
       mirrored /= source_path.stem().string() + ".xlang3-314.pyc";
-      return mirrored.string();
+      return python_path_string(mirrored);
     }
   }
-  return (source_path.parent_path() / "__pycache__" /
-          (source_path.stem().string() + ".xlang3-314.pyc")).string();
+  return python_path_string(source_path.parent_path() / "__pycache__" /
+          (source_path.stem().string() + ".xlang3-314.pyc"));
 }
 
 std::string module_member_base(const std::vector<std::string>& parts) {
@@ -223,18 +225,19 @@ void raise_zipimport_bytecode_error(Runtime& runtime, const std::string& message
 }
 
 bool find_zip_module_file(Runtime& runtime, const std::filesystem::path& archive_path, const std::vector<std::string>& parts, ModuleFile& out) {
-  std::string path_entry = archive_path.string();
+  std::string path_entry = python_path_string(archive_path);
   std::string archive_name;
   std::vector<uint8_t> archive;
   for (auto candidate = archive_path; !candidate.empty(); candidate = candidate.parent_path()) {
     VfsNodeKind kind = VfsNodeKind::Missing;
     std::string candidate_error;
-    if (runtime.vfs().kind(candidate.string(), kind, candidate_error) &&
+    const auto candidate_text = python_path_string(candidate);
+    if (runtime.vfs().kind(candidate_text, kind, candidate_error) &&
         kind == VfsNodeKind::File &&
-        runtime.vfs().read_file(candidate.string(), archive, candidate_error)) {
+        runtime.vfs().read_file(candidate_text, archive, candidate_error)) {
       std::vector<ZipArchiveEntry> entries;
       if (zip_archive_list_entries(archive, entries, candidate_error)) {
-        archive_name = candidate.string();
+        archive_name = candidate_text;
         break;
       }
     }
@@ -253,9 +256,9 @@ bool find_zip_module_file(Runtime& runtime, const std::filesystem::path& archive
   const auto archive_string = python_path_string(archive_name);
   const auto importer_path = python_path_string(path_entry);
   auto virtual_path = [&](const std::string& member) {
-    auto result = std::filesystem::path(archive_string) / std::filesystem::path(member);
+    auto result = std::filesystem::u8path(archive_string) / std::filesystem::u8path(member);
     result.make_preferred();
-    return result.string();
+    return python_path_string(result);
   };
   auto base = module_member_base(parts);
   if (!prefix.empty()) base = prefix + "/" + base;
@@ -382,7 +385,7 @@ bool find_filesystem_module_in_directory(
     ModuleFile& out,
     std::vector<std::filesystem::path>& namespace_dirs) {
   std::string error;
-  auto entries = runtime.python_import_directory_entries(directory.string(), error);
+  auto entries = runtime.python_import_directory_entries(python_path_string(directory), error);
   if (entries == nullptr) return false;
 
   VfsNodeKind kind = VfsNodeKind::Missing;
@@ -392,7 +395,7 @@ bool find_filesystem_module_in_directory(
     if (available->find(filename) == available->end()) return false;
     const auto path = base / filename;
     error.clear();
-    if (!runtime.vfs().kind(path.string(), kind, error) || kind != VfsNodeKind::File) return false;
+    if (!runtime.vfs().kind(python_path_string(path), kind, error) || kind != VfsNodeKind::File) return false;
     out.path = python_path_string(path);
     out.is_package = package;
     out.is_namespace_package = false;
@@ -408,7 +411,7 @@ bool find_filesystem_module_in_directory(
 
   if (entries->find(leaf) == entries->end()) return false;
   const auto package_dir = directory / leaf;
-  auto package_entries = runtime.python_import_directory_entries(package_dir.string(), error);
+  auto package_entries = runtime.python_import_directory_entries(python_path_string(package_dir), error);
   if (package_entries == nullptr) return false;
   if (use_file(package_dir, package_entries, "__init__.py", false, true) ||
       use_file(package_dir, package_entries, "__init__.pyc", true, true)) {
@@ -483,7 +486,7 @@ bool find_module_file(Runtime& runtime, const std::string& name, ModuleFile& out
   std::vector<std::filesystem::path> roots;
   std::unordered_set<std::string> root_keys;
   auto append_root = [&](std::filesystem::path root) {
-    std::string key = root.lexically_normal().generic_string();
+    std::string key = python_path_string(root);
 #if defined(_WIN32)
     std::transform(key.begin(), key.end(), key.begin(), [](unsigned char ch) {
       return static_cast<char>(std::tolower(ch));
@@ -500,7 +503,7 @@ bool find_module_file(Runtime& runtime, const std::string& name, ModuleFile& out
         roots.reserve(list->items.size() + runtime.import_roots().size());
         for (const auto& item : list->items) {
           if (auto* string = value_as_string(item)) {
-            append_root(std::filesystem::path(string_object_view(*string)));
+            append_root(std::filesystem::u8path(string_object_view(*string)));
           }
         }
       }
@@ -651,11 +654,11 @@ void write_source_bytecode_cache(
 
   const std::filesystem::path cache_path(bytecode_cache_path(runtime, module_file.path));
   const std::filesystem::path cache_dir = cache_path.parent_path();
-  if (!runtime.vfs().make_dirs(cache_dir.string(), true, ignored)) {
+  if (!runtime.vfs().make_dirs(python_path_string(cache_dir), true, ignored)) {
     return;
   }
   (void)runtime.vfs().write_file(
-      cache_path.string(),
+      python_path_string(cache_path),
       reinterpret_cast<const uint8_t*>(pyc.data()),
       pyc.size(),
       ignored);

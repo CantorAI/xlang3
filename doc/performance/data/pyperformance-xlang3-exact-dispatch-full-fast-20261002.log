@@ -1,0 +1,529 @@
+Benchmark dependency sites: D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages
+Python benchmark suite 1.14.0
+
+
+==================================================
+( 1/97) creating venv for benchmark (2to3)
+
+(trying common venv first)
+
+==================================================
+( 2/97) creating venv for benchmark (argparse)
+
+(trying common venv first)
+
+==================================================
+( 3/97) creating venv for benchmark (argparse_subparsers)
+
+(trying common venv first)
+
+==================================================
+( 4/97) creating venv for benchmark (async_generators)
+
+(trying common venv first)
+
+==================================================
+( 5/97) creating venv for benchmark (async_tree)
+
+(trying common venv first)
+
+==================================================
+( 6/97) creating venv for benchmark (async_tree_cpu_io_mixed)
+
+(trying common venv first)
+
+==================================================
+( 7/97) creating venv for benchmark (async_tree_cpu_io_mixed_tg)
+
+(trying common venv first)
+
+==================================================
+( 8/97) creating venv for benchmark (async_tree_eager)
+
+(trying common venv first)
+
+==================================================
+( 9/97) creating venv for benchmark (async_tree_eager_cpu_io_mixed)
+
+(trying common venv first)
+
+==================================================
+(10/97) creating venv for benchmark (async_tree_eager_cpu_io_mixed_tg)
+
+(trying common venv first)
+
+==================================================
+(11/97) creating venv for benchmark (async_tree_eager_io)
+
+(trying common venv first)
+
+==================================================
+(12/97) creating venv for benchmark (async_tree_eager_io_tg)
+
+(trying common venv first)
+
+==================================================
+(13/97) creating venv for benchmark (async_tree_eager_memoization)
+
+(trying common venv first)
+
+==================================================
+(14/97) creating venv for benchmark (async_tree_eager_memoization_tg)
+
+(trying common venv first)
+
+==================================================
+(15/97) creating venv for benchmark (async_tree_eager_tg)
+
+(trying common venv first)
+
+==================================================
+(16/97) creating venv for benchmark (async_tree_io)
+
+(trying common venv first)
+
+==================================================
+(17/97) creating venv for benchmark (async_tree_io_tg)
+
+(trying common venv first)
+
+==================================================
+(18/97) creating venv for benchmark (async_tree_memoization)
+
+(trying common venv first)
+
+==================================================
+(19/97) creating venv for benchmark (async_tree_memoization_tg)
+
+(trying common venv first)
+
+==================================================
+(20/97) creating venv for benchmark (async_tree_tg)
+
+(trying common venv first)
+
+==================================================
+(21/97) creating venv for benchmark (asyncio_tcp)
+
+(trying common venv first)
+
+==================================================
+(22/97) creating venv for benchmark (asyncio_tcp_ssl)
+
+(trying common venv first)
+
+==================================================
+(23/97) creating venv for benchmark (asyncio_websockets)
+
+(trying common venv first)
+
+==================================================
+(24/97) creating venv for benchmark (base64)
+
+(trying common venv first)
+
+==================================================
+(25/97) creating venv for benchmark (bpe_tokeniser)
+
+(trying common venv first)
+
+==================================================
+(26/97) creating venv for benchmark (chameleon)
+
+(trying common venv first)
+
+==================================================
+(27/97) creating venv for benchmark (chaos)
+
+(trying common venv first)
+
+==================================================
+(28/97) creating venv for benchmark (comprehensions)
+
+(trying common venv first)
+
+==================================================
+(29/97) creating venv for benchmark (concurrent_imap)
+
+(trying common venv first)
+
+==================================================
+(30/97) creating venv for benchmark (coroutines)
+
+(trying common venv first)
+
+==================================================
+(31/97) creating venv for benchmark (coverage)
+
+(trying common venv first)
+
+==================================================
+(32/97) creating venv for benchmark (crypto_pyaes)
+
+(trying common venv first)
+
+==================================================
+(33/97) creating venv for benchmark (dask)
+
+(trying common venv first)
+
+==================================================
+(34/97) creating venv for benchmark (deepcopy)
+
+(trying common venv first)
+
+==================================================
+(35/97) creating venv for benchmark (deltablue)
+
+(trying common venv first)
+
+==================================================
+(36/97) creating venv for benchmark (django_template)
+
+(trying common venv first)
+
+==================================================
+(37/97) creating venv for benchmark (docutils)
+
+(trying common venv first)
+
+==================================================
+(38/97) creating venv for benchmark (dulwich_log)
+
+(trying common venv first)
+
+==================================================
+(39/97) creating venv for benchmark (fannkuch)
+
+(trying common venv first)
+
+==================================================
+(40/97) creating venv for benchmark (fastapi)
+
+(trying common venv first)
+
+==================================================
+(41/97) creating venv for benchmark (float)
+
+(trying common venv first)
+
+==================================================
+(42/97) creating venv for benchmark (gc_collect)
+
+(trying common venv first)
+
+==================================================
+(43/97) creating venv for benchmark (gc_traversal)
+
+(trying common venv first)
+
+==================================================
+(44/97) creating venv for benchmark (generators)
+
+(trying common venv first)
+
+==================================================
+(45/97) creating venv for benchmark (genshi)
+
+(trying common venv first)
+
+==================================================
+(46/97) creating venv for benchmark (go)
+
+(trying common venv first)
+
+==================================================
+(47/97) creating venv for benchmark (hexiom)
+
+(trying common venv first)
+
+==================================================
+(48/97) creating venv for benchmark (html5lib)
+
+(trying common venv first)
+
+==================================================
+(49/97) creating venv for benchmark (json_dumps)
+
+(trying common venv first)
+
+==================================================
+(50/97) creating venv for benchmark (json_loads)
+
+(trying common venv first)
+
+==================================================
+(51/97) creating venv for benchmark (logging)
+
+(trying common venv first)
+
+==================================================
+(52/97) creating venv for benchmark (mako)
+
+(trying common venv first)
+
+==================================================
+(53/97) creating venv for benchmark (mdp)
+
+(trying common venv first)
+
+==================================================
+(54/97) creating venv for benchmark (meteor_contest)
+
+(trying common venv first)
+
+==================================================
+(55/97) creating venv for benchmark (nbody)
+
+(trying common venv first)
+
+==================================================
+(56/97) creating venv for benchmark (networkx)
+
+(trying common venv first)
+
+==================================================
+(57/97) creating venv for benchmark (networkx_connected_components)
+
+(trying common venv first)
+
+==================================================
+(58/97) creating venv for benchmark (networkx_k_core)
+
+(trying common venv first)
+
+==================================================
+(59/97) creating venv for benchmark (nqueens)
+
+(trying common venv first)
+
+==================================================
+(60/97) creating venv for benchmark (pathlib)
+
+(trying common venv first)
+
+==================================================
+(61/97) creating venv for benchmark (pickle)
+
+(trying common venv first)
+
+==================================================
+(62/97) creating venv for benchmark (pickle_dict)
+
+(trying common venv first)
+
+==================================================
+(63/97) creating venv for benchmark (pickle_list)
+
+(trying common venv first)
+
+==================================================
+(64/97) creating venv for benchmark (pickle_pure_python)
+
+(trying common venv first)
+
+==================================================
+(65/97) creating venv for benchmark (pidigits)
+
+(trying common venv first)
+
+==================================================
+(66/97) creating venv for benchmark (pprint)
+
+(trying common venv first)
+
+==================================================
+(67/97) creating venv for benchmark (pyflate)
+
+(trying common venv first)
+
+==================================================
+(68/97) creating venv for benchmark (python_startup)
+
+(trying common venv first)
+
+==================================================
+(69/97) creating venv for benchmark (python_startup_no_site)
+
+(trying common venv first)
+
+==================================================
+(70/97) creating venv for benchmark (raytrace)
+
+(trying common venv first)
+
+==================================================
+(71/97) creating venv for benchmark (regex_compile)
+
+(trying common venv first)
+
+==================================================
+(72/97) creating venv for benchmark (regex_dna)
+
+(trying common venv first)
+
+==================================================
+(73/97) creating venv for benchmark (regex_effbot)
+
+(trying common venv first)
+
+==================================================
+(74/97) creating venv for benchmark (regex_v8)
+
+(trying common venv first)
+
+==================================================
+(75/97) creating venv for benchmark (richards)
+
+(trying common venv first)
+
+==================================================
+(76/97) creating venv for benchmark (richards_super)
+
+(trying common venv first)
+
+==================================================
+(77/97) creating venv for benchmark (scimark)
+
+(trying common venv first)
+
+==================================================
+(78/97) creating venv for benchmark (spectral_norm)
+
+(trying common venv first)
+
+==================================================
+(79/97) creating venv for benchmark (sphinx)
+
+(trying common venv first)
+
+==================================================
+(80/97) creating venv for benchmark (sqlalchemy_declarative)
+
+(trying common venv first)
+
+==================================================
+(81/97) creating venv for benchmark (sqlalchemy_imperative)
+
+(trying common venv first)
+
+==================================================
+(82/97) creating venv for benchmark (sqlglot_v2)
+
+(trying common venv first)
+
+==================================================
+(83/97) creating venv for benchmark (sqlglot_v2_optimize)
+
+(trying common venv first)
+
+==================================================
+(84/97) creating venv for benchmark (sqlglot_v2_parse)
+
+(trying common venv first)
+
+==================================================
+(85/97) creating venv for benchmark (sqlglot_v2_transpile)
+
+(trying common venv first)
+
+==================================================
+(86/97) creating venv for benchmark (sqlite_synth)
+
+(trying common venv first)
+
+==================================================
+(87/97) creating venv for benchmark (sympy)
+
+(trying common venv first)
+
+==================================================
+(88/97) creating venv for benchmark (telco)
+
+(trying common venv first)
+
+==================================================
+(89/97) creating venv for benchmark (tomli_loads)
+
+(trying common venv first)
+
+==================================================
+(90/97) creating venv for benchmark (tornado_http)
+
+(trying common venv first)
+
+==================================================
+(91/97) creating venv for benchmark (typing_runtime_protocols)
+
+(trying common venv first)
+
+==================================================
+(92/97) creating venv for benchmark (unpack_sequence)
+
+(trying common venv first)
+
+==================================================
+(93/97) creating venv for benchmark (unpickle)
+
+(trying common venv first)
+
+==================================================
+(94/97) creating venv for benchmark (unpickle_list)
+
+(trying common venv first)
+
+==================================================
+(95/97) creating venv for benchmark (unpickle_pure_python)
+
+(trying common venv first)
+
+==================================================
+(96/97) creating venv for benchmark (xdsl)
+
+(trying common venv first)
+
+==================================================
+(97/97) creating venv for benchmark (xml_etree)
+
+(trying common venv first)
+
+[ 1/97] 2to3...
+........Full-case timeout: 2to3 exceeded 120 seconds
+ERROR: Benchmark 2to3 timed out
+[ 2/97] argparse...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+many_optionals: Mean +- std dev: 8.24 ms +- 0.22 ms
+[ 3/97] argparse_subparsers...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+subparsers: Mean +- std dev: 257 ms +- 6 ms
+[ 4/97] async_generators...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+async_generators: Mean +- std dev: 2.59 sec +- 0.11 sec
+[ 5/97] async_tree...
+Full-case timeout: async_tree exceeded 120 seconds
+ERROR: Benchmark async_tree timed out
+[ 6/97] async_tree_cpu_io_mixed...

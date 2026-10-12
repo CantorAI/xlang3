@@ -1,0 +1,27 @@
+{
+  "status": "terminal_failed_index_state_diagnostic",
+  "terminal": true,
+  "scored": false,
+  "build_changes": false,
+  "engine_changes": false,
+  "source_count": 111,
+  "release_count": 178,
+  "fixed_baseline_count": 177,
+  "busy": [],
+  "input_hashes": {
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\dict-scalar-append-freshness-diagnostic-r2-root-20261008.exe": "cfe518a5d5676398bd0a1f3c64775459ed66a73b3ea207a4adac98930d024078",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\dict-scalar-append-freshness-diagnostic-r2-root-20261008.cpp": "f386044e223385b6cf95980525399a990580a4689c02ad75901fea5eca67bf75",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\dict-scalar-append-freshness-diagnostic-r2-root-20261008.obj": "912e28f5d74771b17fd9909235a8e85f598af0ca21e78d380cd5d54bec16a1ec",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\build-dict-scalar-append-freshness-diagnostic-r2-root-20261008.cmd": "1392db95d3422d6953da61bf9c83fbe7e7059d7dad41ba56e5cee0e3a3d1294d",
+    "D:\\CantorAI\\xlang3\\doc\\performance\\data\\dict-scalar-append-freshness-diagnostic-build-r2-20261008.log": "d0731b48be4dfda49e7d96a50eea65e9f56a0f4fa63a40c978d32d88ad91a415",
+    "D:\\CantorAI\\xlang3\\doc\\performance\\data\\frame-locals-retirement-r4-full-validation-20261008.json": "b28809dcfc420906e3c3f656fdd9584140d0a80d778673a43342799ea64e75ec"
+  },
+  "started_utc": "2026-10-09T00:05:16.735533+00:00",
+  "exit_code": 1,
+  "stdout_log": "dict-scalar-append-freshness-diagnostic-r2-20261008.stdout.log",
+  "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "stderr_log": "dict-scalar-append-freshness-diagnostic-r2-20261008.stderr.log",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "hashes_unchanged": true,
+  "completed_utc": "2026-10-09T00:05:18.008023+00:00"
+}

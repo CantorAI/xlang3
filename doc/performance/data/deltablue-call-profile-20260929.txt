@@ -1,0 +1,38 @@
+profiled workload deltablue None
+profiled Python calls, grouped by source/function
+[[["run_benchmark.py","output"],14054],[["run_benchmark.py","execute"],12903],[["run_benchmark.py","input"],11707],[["run_benchmark.py","is_satisfied"],1846],[["run_benchmark.py","add_constraint"],1319],[["run_benchmark.py","weaker"],1205],[["run_benchmark.py","__init__"],1128],[["run_benchmark.py","add_constraints_consuming_to"],1015],[["run_benchmark.py","recalculate"],910],[["run_benchmark.py","weakest_of"],804],[["run_benchmark.py","stronger"],708],[["run_benchmark.py","mark_inputs"],608],[["run_benchmark.py","choose_method"],509],[["run_benchmark.py","satisfy"],509],[["run_benchmark.py","add_propagate"],507],[["run_benchmark.py","add_to_graph"],406],[["run_benchmark.py","new_mark"],311],[["run_benchmark.py","inputs_known"],307],[["run_benchmark.py","incremental_add"],306],[["run_benchmark.py","mark_unsatisfied"],207],[["run_benchmark.py","is_input"],111],[["run_benchmark.py","make_plan"],5],[["run_benchmark.py","extract_plan_from_constraints"],5],[["run_benchmark.py","remove_constraint"],4],[["run_benchmark.py","remove_from_graph"],4],[["run_benchmark.py","remove_propagate_from"],4],[["run_benchmark.py","next_weaker"],4],[["run_benchmark.py","incremental_remove"],4],[["run_benchmark.py","destroy_constraint"],4],[["run_benchmark.py","change"],4],[["run_benchmark.py","chain_test"],1],[["run_benchmark.py","projection_test"],1],[["run_benchmark.py","delta_blue"],1]]
+profiled benchmark function times (inclusive/self seconds)
+run_benchmark.py delta_blue 1 2.686291 0.000224
+run_benchmark.py execute 12903 2.661639 1.325107
+run_benchmark.py chain_test 1 1.909581 0.009515
+run_benchmark.py __init__ 1128 1.525662 0.070763
+run_benchmark.py add_constraint 1319 0.811409 0.058699
+run_benchmark.py projection_test 1 0.776487 0.012952
+run_benchmark.py incremental_add 306 0.699494 0.035524
+run_benchmark.py satisfy 509 0.659909 0.112233
+run_benchmark.py change 4 0.449607 0.002322
+run_benchmark.py add_propagate 507 0.435019 0.183872
+run_benchmark.py recalculate 910 0.24715 0.138156
+run_benchmark.py output 14054 0.179812 0.179812
+run_benchmark.py input 11707 0.148789 0.148789
+run_benchmark.py extract_plan_from_constraints 5 0.147455 0.000946
+run_benchmark.py make_plan 5 0.146388 0.080648
+run_benchmark.py destroy_constraint 4 0.119494 0.000477
+run_benchmark.py incremental_remove 4 0.118968 0.00121
+run_benchmark.py remove_propagate_from 4 0.116599 0.049895
+run_benchmark.py add_to_graph 406 0.067073 0.030083
+run_benchmark.py add_constraints_consuming_to 1015 0.063909 0.053394
+run_benchmark.py choose_method 509 0.060727 0.044727
+run_benchmark.py weakest_of 804 0.051659 0.039076
+run_benchmark.py mark_inputs 608 0.041873 0.02903
+run_benchmark.py is_satisfied 1846 0.026021 0.026021
+run_benchmark.py inputs_known 307 0.018564 0.014539
+run_benchmark.py weaker 1205 0.018364 0.018364
+run_benchmark.py stronger 708 0.010219 0.010219
+run_benchmark.py new_mark 311 0.004128 0.004128
+run_benchmark.py mark_unsatisfied 207 0.002879 0.002879
+run_benchmark.py is_input 111 0.001636 0.001636
+run_benchmark.py remove_from_graph 4 0.000978 0.000299
+run_benchmark.py remove_constraint 4 0.000679 0.000679
+run_benchmark.py next_weaker 4 7.5e-05 7.5e-05
+profiled benchmark-frame calls 51421

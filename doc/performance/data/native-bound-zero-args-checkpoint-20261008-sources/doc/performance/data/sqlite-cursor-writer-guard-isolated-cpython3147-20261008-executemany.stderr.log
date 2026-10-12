@@ -1,0 +1,8 @@
+Windows fatal exception: access violation
+
+Current thread 0x00006894 (most recent call first):
+  File "D:\CantorAI\xlang3\scratch\performance\sqlite-cursor-writer-guard-isolated-probe-20261008.py", line 79 in main
+  File "D:\CantorAI\xlang3\scratch\performance\sqlite-cursor-writer-guard-isolated-probe-20261008.py", line 97 in <module>
+
+Current thread's C stack trace (most recent call first):
+  <cannot get C stack on this system>

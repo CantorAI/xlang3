@@ -1,0 +1,517 @@
+diff --git a/src/executor/xlang_vm/xlang_frame.h b/src/executor/xlang_vm/xlang_frame.h
+index af3f4237..a13582f9 100644
+--- a/src/executor/xlang_vm/xlang_frame.h
++++ b/src/executor/xlang_vm/xlang_frame.h
+@@ -938,6 +938,9 @@ private:
+     }
+   }
+ 
++  // Prepared metadata remains an inline atomic-load/owner check. Keep the
++  // cold liveness proof in a separate compilation unit so proof growth does
++  // not reshape the VM dispatch translation unit. No per-opcode work is added.
+   void compute_register_last_use() {
+     auto prepared = std::atomic_load_explicit(
+         &fn->execution_metadata, std::memory_order_acquire);
+@@ -945,240 +948,12 @@ private:
+       execution_metadata = std::move(prepared);
+       return;
+     }
+-    auto computed = std::make_shared<ir::FunctionExecutionMetadata>();
+-    computed->owner = fn;
+-    bool has_identity_instructions = false;
+-    bool has_module_slot_loads = false;
+-    bool has_exception_loads = false;
+-    bool has_ordinary_backedge = false;
+-    computed->cache_cleanup_instructions.reserve(fn->code.size() / 8);
+-    for (size_t ip = 0; ip < fn->code.size(); ++ip) {
+-      if (fn->code[ip].op == ir::Op::Is || fn->code[ip].op == ir::Op::IsJumpIfFalse ||
+-          fn->code[ip].op == ir::Op::IsNoneJumpIfFalse)
+-        has_identity_instructions = true;
+-      if (fn->code[ip].op == ir::Op::LoadModuleSlot) has_module_slot_loads = true;
+-      if (fn->code[ip].op == ir::Op::LoadException) has_exception_loads = true;
+-      if ((fn->code[ip].op == ir::Op::Jump || fn->code[ip].op == ir::Op::JumpIfFalse) &&
+-          fn->code[ip].dst < ip) has_ordinary_backedge = true;
+-      if (instruction_may_own_inline_cache(fn->code[ip].op)) {
+-        computed->cache_cleanup_instructions.push_back(static_cast<uint32_t>(ip));
+-      }
+-    }
+-    computed->register_last_use.assign(
+-        fn->register_count, std::numeric_limits<size_t>::max());
+-    computed->register_loop_carried.assign(fn->register_count, false);
+-    for (size_t i = 0; i < fn->code.size(); ++i) {
+-      for_each_register_read(fn->code[i], [&](uint32_t reg) {
+-        if (reg < computed->register_last_use.size()) {
+-          computed->register_last_use[reg] = i;
+-        }
+-      });
+-    }
+-    // Owning module/exception loads need a linear-use snapshot only in loops.
+-    // Keep this cold proof/storage out of callbacks without either load kind.
+-    const bool need_module_load_loop_proof =
+-        (has_module_slot_loads || has_exception_loads) && has_ordinary_backedge;
+-    std::vector<size_t> linear_register_last_use;
+-    if (need_module_load_loop_proof) linear_register_last_use = computed->register_last_use;
+-    // Cache identity-only proofs separately from existing call-transfer
+-    // liveness. Incoming edges can bypass a loop's temporary producer even
+-    // though the old loop analysis sees some Call writing that register.
+-    std::vector<std::pair<size_t, uint32_t>> incoming_edges;
+-    // Functions without identity instructions allocate no new proof storage.
+-    if (has_identity_instructions)
+-      computed->identity_operand_retirement_safe.assign(fn->register_count, true);
+-    for (size_t source = 0; (has_identity_instructions || need_module_load_loop_proof) && source < fn->code.size(); ++source) {
+-      const auto& branch = fn->code[source];
+-      uint32_t target = UINT32_MAX;
+-      switch (branch.op) {
+-        case ir::Op::Jump:
+-        case ir::Op::JumpIfFalse:
+-        case ir::Op::JumpIfLocalConstFalse:
+-        case ir::Op::CompareJumpIfFalse:
+-        case ir::Op::IsJumpIfFalse:
+-        case ir::Op::IsNoneJumpIfFalse:
+-        case ir::Op::NotJumpIfFalse:
+-        case ir::Op::JumpIfLocalLocalFalse:
+-        case ir::Op::IsLocalConstJumpIfFalse:
+-        case ir::Op::ForRangeConstLocalNext:
+-        case ir::Op::ForRangeConstLocalSum:
+-        case ir::Op::ForLocalMoveAddLoop:
+-        case ir::Op::ForCallAccumulateLoop:
+-        case ir::Op::ForConstructMethodAccumulateLoop:
+-        case ir::Op::ForScalarArithmeticLoop:
+-        case ir::Op::ForPropertyAccessLoop:
+-        case ir::Op::SetupExcept:
+-        case ir::Op::SetupWith:
+-          target = branch.dst;
+-          break;
+-        case ir::Op::MoveJumpIfFalse:
+-        case ir::Op::MoveJumpIfTrue:
+-        case ir::Op::JumpIfFalseLoadLocal:
+-        case ir::Op::IterNext:
+-        case ir::Op::IterNextLocal:
+-          target = branch.b;
+-          break;
+-        default:
+-          break;
+-      }
+-      if (target == UINT32_MAX) continue;
+-      incoming_edges.emplace_back(source, target);
+-      // SDK IR may encode a backward fused/exception/iterator edge outside
+-      // the ordinary analysis below. Retain only that region's read owners;
+-      // an unrelated earlier loop must not disable later expression cleanup.
+-      if (target <= source && branch.op != ir::Op::Jump && branch.op != ir::Op::JumpIfFalse) {
+-        for (size_t loop_ip = target; loop_ip <= source; ++loop_ip) {
+-          for_each_register_read(fn->code[loop_ip], [&](uint32_t reg) {
+-            if (reg < computed->identity_operand_retirement_safe.size())
+-              computed->identity_operand_retirement_safe[reg] = false;
+-          });
+-        }
+-      }
+-    }
+-    // Values read in a loop may be needed again after a backward edge. Keep
+-    // those registers for the frame lifetime; the linear last-use index alone
+-    // cannot express loop-carried liveness.
+-    for (size_t i = 0; i < fn->code.size(); ++i) {
+-      const auto& instr = fn->code[i];
+-      if ((instr.op != ir::Op::Jump && instr.op != ir::Op::JumpIfFalse) ||
+-          instr.dst >= i) {
+-        continue;
+-      }
+-      // Call results and container literals produced inside a loop are
+-      // overwritten on every iteration, so their registers are not roots
+-      // carried into the next iteration.
+-      std::vector<bool> temporary_defined_in_loop(fn->register_count, false);
+-      std::vector<size_t> temporary_definition_in_loop((has_identity_instructions || need_module_load_loop_proof) ? fn->register_count : 0, SIZE_MAX);
+-      for (size_t loop_ip = instr.dst; loop_ip <= i; ++loop_ip) {
+-        const auto& loop_instr = fn->code[loop_ip];
+-        switch (loop_instr.op) {
+-          case ir::Op::LoadModuleSlot:
+-          case ir::Op::LoadException:
+-            if (need_module_load_loop_proof && loop_instr.dst < temporary_definition_in_loop.size() &&
+-                !temporary_defined_in_loop[loop_instr.dst] && temporary_definition_in_loop[loop_instr.dst] == SIZE_MAX)
+-              temporary_definition_in_loop[loop_instr.dst] = loop_ip;
+-            break;
+-          case ir::Op::Call:
+-          case ir::Op::CallEx:
+-          case ir::Op::CallMethod:
+-          case ir::Op::CallMethodEx:
+-          case ir::Op::CallLocal:
+-          case ir::Op::CallLocalMethod:
+-          case ir::Op::CallModuleMethod:
+-          case ir::Op::CallGlobal:
+-          case ir::Op::MakeDict:
+-          case ir::Op::MakeList:
+-          case ir::Op::MakeSet:
+-          case ir::Op::MakeTuple:
+-            if (loop_instr.dst < temporary_defined_in_loop.size()) {
+-              temporary_defined_in_loop[loop_instr.dst] = true;
+-              if (has_identity_instructions || need_module_load_loop_proof)
+-                temporary_definition_in_loop[loop_instr.dst] = loop_ip;
+-            }
+-            break;
+-          default:
+-            break;
+-        }
+-      }
+-      if (need_module_load_loop_proof) {
+-        // These loads create owning snapshots, unlike borrowed local reads.
+-        // Prove recreation before every read so StoreLocal can move a handled
+-        // exception snapshot instead of retaining its traceback/frame graph
+-        // until function return. Bypass and nested-loop owners remain live.
+-        for (size_t loop_ip = instr.dst; loop_ip <= i; ++loop_ip) {
+-          for_each_register_read(fn->code[loop_ip], [&](uint32_t reg) {
+-            if (reg >= temporary_definition_in_loop.size() || temporary_defined_in_loop[reg]) return;
+-            const size_t producer = temporary_definition_in_loop[reg];
+-            if (producer != SIZE_MAX &&
+-                (fn->code[producer].op == ir::Op::LoadModuleSlot ||
+-                 fn->code[producer].op == ir::Op::LoadException) && loop_ip <= producer)
+-              temporary_definition_in_loop[reg] = SIZE_MAX;
+-          });
+-        }
+-        for (uint32_t reg = 0; reg < temporary_definition_in_loop.size(); ++reg) {
+-          const size_t producer = temporary_definition_in_loop[reg];
+-          if (temporary_defined_in_loop[reg] || producer == SIZE_MAX ||
+-              (fn->code[producer].op != ir::Op::LoadModuleSlot &&
+-               fn->code[producer].op != ir::Op::LoadException)) continue;
+-          const size_t consumer = std::min(linear_register_last_use[reg], i);
+-          if (consumer <= producer) continue;
+-          bool dominates_reads = true;
+-          for (const auto& edge : incoming_edges) {
+-            // A handler's installation IP is not its throw origin. A later
+-            // failure can enter after the load even when setup is inside this
+-            // interval; do not move that exception snapshot out of its register.
+-            const bool exception_handler_target =
+-                fn->code[producer].op == ir::Op::LoadException &&
+-                (fn->code[edge.first].op == ir::Op::SetupExcept ||
+-                 fn->code[edge.first].op == ir::Op::SetupWith);
+-            if (edge.second > producer && edge.second <= consumer &&
+-                (exception_handler_target || edge.first < producer || edge.first > consumer)) {
+-              dominates_reads = false;
+-              break;
+-            }
+-          }
+-          if (dominates_reads) temporary_defined_in_loop[reg] = true;
+-          // Never clear a carried flag/MAX established by a narrower loop.
+-        }
+-      }
+-      for (uint32_t reg = 0; has_identity_instructions && reg < computed->register_last_use.size(); ++reg) {
+-        const size_t consumer = computed->register_last_use[reg];
+-        if (!temporary_defined_in_loop[reg] || consumer < instr.dst || consumer > i ||
+-            (fn->code[consumer].op != ir::Op::Is && fn->code[consumer].op != ir::Op::IsJumpIfFalse &&
+-             fn->code[consumer].op != ir::Op::IsNoneJumpIfFalse)) {
+-          continue;
+-        }
+-        const size_t producer = temporary_definition_in_loop[reg];
+-        if (producer >= consumer) {
+-          computed->identity_operand_retirement_safe[reg] = false;
+-          continue;
+-        }
+-        for (const auto& edge : incoming_edges) {
+-          if (edge.second > producer && edge.second <= consumer &&
+-              (edge.first < producer || edge.first > consumer)) {
+-            computed->identity_operand_retirement_safe[reg] = false;
+-            break;
+-          }
+-        }
+-      }
+-      for (size_t loop_ip = instr.dst; loop_ip <= i; ++loop_ip) {
+-        for_each_register_read(fn->code[loop_ip], [&](uint32_t reg) {
+-          // LoadModuleAttr writes its receiver scratch register from the live
+-          // module slot before reading it internally. That read is not a root
+-          // carried from the previous iteration. Keep its linear last-use for
+-          // cleanup, and let any later external read establish real liveness.
+-          // Otherwise `del obj` in a loop retains obj in this fused temporary.
+-          const auto& loop_instr = fn->code[loop_ip];
+-          if (loop_instr.op == ir::Op::LoadModuleAttr && reg == loop_instr.c) return;
+-          if (reg < computed->register_last_use.size() &&
+-              !temporary_defined_in_loop[reg]) {
+-            computed->register_loop_carried[reg] = true;
+-            computed->register_last_use[reg] = std::numeric_limits<size_t>::max();
+-          }
+-        });
+-      }
+-    }
+-    // Function copies inherit the source's cache pointer. Replace metadata
+-    // whose owner is a different Function object instead of using stale
+-    // register indices from that source object.
+-    std::shared_ptr<const ir::FunctionExecutionMetadata> expected = prepared;
+-    std::shared_ptr<const ir::FunctionExecutionMetadata> immutable = std::move(computed);
+-    if (!std::atomic_compare_exchange_strong_explicit(
+-            &fn->execution_metadata,
+-            &expected,
+-            immutable,
+-            std::memory_order_release,
+-            std::memory_order_acquire)) {
+-      if (expected != nullptr && expected->owner == fn) {
+-        execution_metadata = std::move(expected);
+-      } else {
+-        compute_register_last_use();
+-      }
+-    } else {
+-      execution_metadata = std::move(immutable);
+-    }
++    compute_register_last_use_slow(std::move(prepared));
+   }
+ 
++  XLANG3_NOINLINE void compute_register_last_use_slow(
++      std::shared_ptr<const ir::FunctionExecutionMetadata> prepared);
++
+ public:
+   // Identity comparisons consume expression temporaries without calling Python.
+   // Retire their final owning reads here instead of keeping weakref results alive
+diff --git a/src/executor/xlang_vm/xlang_interpreter.cpp b/src/executor/xlang_vm/xlang_interpreter.cpp
+index 72acb5e2..798e5fea 100644
+--- a/src/executor/xlang_vm/xlang_interpreter.cpp
++++ b/src/executor/xlang_vm/xlang_interpreter.cpp
+@@ -14,6 +14,7 @@ limitations under the License.
+ */
+ #include "xlang3/interpreter.h"
+ 
++#include "xlang_frame.h"
+ #include "xlang_vm_inline_support.h"
+ 
+ #include "xlang3/generator.h"
+@@ -21,6 +22,245 @@ limitations under the License.
+ 
+ namespace xlang3 {
+ 
++// This is the same liveness/ownership proof used by XlangVMFrame. Leave its
++// cold construction/CAS retry semantics here and retain the cached fast check
++// in the frame header. The shared runtime already compiles this separate TU.
++void XlangVMFrame::compute_register_last_use_slow(
++    std::shared_ptr<const ir::FunctionExecutionMetadata> prepared) {
++  auto computed = std::make_shared<ir::FunctionExecutionMetadata>();
++  computed->owner = fn;
++  bool has_identity_instructions = false;
++  bool has_module_slot_loads = false;
++  bool has_exception_loads = false;
++  bool has_ordinary_backedge = false;
++  computed->cache_cleanup_instructions.reserve(fn->code.size() / 8);
++  for (size_t ip = 0; ip < fn->code.size(); ++ip) {
++    if (fn->code[ip].op == ir::Op::Is || fn->code[ip].op == ir::Op::IsJumpIfFalse ||
++        fn->code[ip].op == ir::Op::IsNoneJumpIfFalse)
++      has_identity_instructions = true;
++    if (fn->code[ip].op == ir::Op::LoadModuleSlot) has_module_slot_loads = true;
++    if (fn->code[ip].op == ir::Op::LoadException) has_exception_loads = true;
++    if ((fn->code[ip].op == ir::Op::Jump || fn->code[ip].op == ir::Op::JumpIfFalse) &&
++        fn->code[ip].dst < ip) has_ordinary_backedge = true;
++    if (instruction_may_own_inline_cache(fn->code[ip].op)) {
++      computed->cache_cleanup_instructions.push_back(static_cast<uint32_t>(ip));
++    }
++  }
++  computed->register_last_use.assign(
++      fn->register_count, std::numeric_limits<size_t>::max());
++  computed->register_loop_carried.assign(fn->register_count, false);
++  for (size_t i = 0; i < fn->code.size(); ++i) {
++    for_each_register_read(fn->code[i], [&](uint32_t reg) {
++      if (reg < computed->register_last_use.size()) {
++        computed->register_last_use[reg] = i;
++      }
++    });
++  }
++  // Owning module/exception loads need a linear-use snapshot only in loops.
++  // Keep this cold proof/storage out of callbacks without either load kind.
++  const bool need_module_load_loop_proof =
++      (has_module_slot_loads || has_exception_loads) && has_ordinary_backedge;
++  std::vector<size_t> linear_register_last_use;
++  if (need_module_load_loop_proof) linear_register_last_use = computed->register_last_use;
++  // Cache identity-only proofs separately from existing call-transfer
++  // liveness. Incoming edges can bypass a loop's temporary producer even
++  // though the old loop analysis sees some Call writing that register.
++  std::vector<std::pair<size_t, uint32_t>> incoming_edges;
++  // Functions without identity instructions allocate no new proof storage.
++  if (has_identity_instructions)
++    computed->identity_operand_retirement_safe.assign(fn->register_count, true);
++  for (size_t source = 0; (has_identity_instructions || need_module_load_loop_proof) && source < fn->code.size(); ++source) {
++    const auto& branch = fn->code[source];
++    uint32_t target = UINT32_MAX;
++    switch (branch.op) {
++      case ir::Op::Jump:
++      case ir::Op::JumpIfFalse:
++      case ir::Op::JumpIfLocalConstFalse:
++      case ir::Op::CompareJumpIfFalse:
++      case ir::Op::IsJumpIfFalse:
++      case ir::Op::IsNoneJumpIfFalse:
++      case ir::Op::NotJumpIfFalse:
++      case ir::Op::JumpIfLocalLocalFalse:
++      case ir::Op::IsLocalConstJumpIfFalse:
++      case ir::Op::ForRangeConstLocalNext:
++      case ir::Op::ForRangeConstLocalSum:
++      case ir::Op::ForLocalMoveAddLoop:
++      case ir::Op::ForCallAccumulateLoop:
++      case ir::Op::ForConstructMethodAccumulateLoop:
++      case ir::Op::ForScalarArithmeticLoop:
++      case ir::Op::ForPropertyAccessLoop:
++      case ir::Op::SetupExcept:
++      case ir::Op::SetupWith:
++        target = branch.dst;
++        break;
++      case ir::Op::MoveJumpIfFalse:
++      case ir::Op::MoveJumpIfTrue:
++      case ir::Op::JumpIfFalseLoadLocal:
++      case ir::Op::IterNext:
++      case ir::Op::IterNextLocal:
++        target = branch.b;
++        break;
++      default:
++        break;
++    }
++    if (target == UINT32_MAX) continue;
++    incoming_edges.emplace_back(source, target);
++    // SDK IR may encode a backward fused/exception/iterator edge outside
++    // the ordinary analysis below. Retain only that region's read owners;
++    // an unrelated earlier loop must not disable later expression cleanup.
++    if (target <= source && branch.op != ir::Op::Jump && branch.op != ir::Op::JumpIfFalse) {
++      for (size_t loop_ip = target; loop_ip <= source; ++loop_ip) {
++        for_each_register_read(fn->code[loop_ip], [&](uint32_t reg) {
++          if (reg < computed->identity_operand_retirement_safe.size())
++            computed->identity_operand_retirement_safe[reg] = false;
++        });
++      }
++    }
++  }
++  // Values read in a loop may be needed again after a backward edge. Keep
++  // those registers for the frame lifetime; the linear last-use index alone
++  // cannot express loop-carried liveness.
++  for (size_t i = 0; i < fn->code.size(); ++i) {
++    const auto& instr = fn->code[i];
++    if ((instr.op != ir::Op::Jump && instr.op != ir::Op::JumpIfFalse) ||
++        instr.dst >= i) {
++      continue;
++    }
++    // Call results and container literals produced inside a loop are
++    // overwritten on every iteration, so their registers are not roots
++    // carried into the next iteration.
++    std::vector<bool> temporary_defined_in_loop(fn->register_count, false);
++    std::vector<size_t> temporary_definition_in_loop((has_identity_instructions || need_module_load_loop_proof) ? fn->register_count : 0, SIZE_MAX);
++    for (size_t loop_ip = instr.dst; loop_ip <= i; ++loop_ip) {
++      const auto& loop_instr = fn->code[loop_ip];
++      switch (loop_instr.op) {
++        case ir::Op::LoadModuleSlot:
++        case ir::Op::LoadException:
++          if (need_module_load_loop_proof && loop_instr.dst < temporary_definition_in_loop.size() &&
++              !temporary_defined_in_loop[loop_instr.dst] && temporary_definition_in_loop[loop_instr.dst] == SIZE_MAX)
++            temporary_definition_in_loop[loop_instr.dst] = loop_ip;
++          break;
++        case ir::Op::Call:
++        case ir::Op::CallEx:
++        case ir::Op::CallMethod:
++        case ir::Op::CallMethodEx:
++        case ir::Op::CallLocal:
++        case ir::Op::CallLocalMethod:
++        case ir::Op::CallModuleMethod:
++        case ir::Op::CallGlobal:
++        case ir::Op::MakeDict:
++        case ir::Op::MakeList:
++        case ir::Op::MakeSet:
++        case ir::Op::MakeTuple:
++          if (loop_instr.dst < temporary_defined_in_loop.size()) {
++            temporary_defined_in_loop[loop_instr.dst] = true;
++            if (has_identity_instructions || need_module_load_loop_proof)
++              temporary_definition_in_loop[loop_instr.dst] = loop_ip;
++          }
++          break;
++        default:
++          break;
++      }
++    }
++    if (need_module_load_loop_proof) {
++      // These loads create owning snapshots, unlike borrowed local reads.
++      // Prove recreation before every read so StoreLocal can move a handled
++      // exception snapshot instead of retaining its traceback/frame graph
++      // until function return. Bypass and nested-loop owners remain live.
++      for (size_t loop_ip = instr.dst; loop_ip <= i; ++loop_ip) {
++        for_each_register_read(fn->code[loop_ip], [&](uint32_t reg) {
++          if (reg >= temporary_definition_in_loop.size() || temporary_defined_in_loop[reg]) return;
++          const size_t producer = temporary_definition_in_loop[reg];
++          if (producer != SIZE_MAX &&
++              (fn->code[producer].op == ir::Op::LoadModuleSlot ||
++               fn->code[producer].op == ir::Op::LoadException) && loop_ip <= producer)
++            temporary_definition_in_loop[reg] = SIZE_MAX;
++        });
++      }
++      for (uint32_t reg = 0; reg < temporary_definition_in_loop.size(); ++reg) {
++        const size_t producer = temporary_definition_in_loop[reg];
++        if (temporary_defined_in_loop[reg] || producer == SIZE_MAX ||
++            (fn->code[producer].op != ir::Op::LoadModuleSlot &&
++             fn->code[producer].op != ir::Op::LoadException)) continue;
++        const size_t consumer = std::min(linear_register_last_use[reg], i);
++        if (consumer <= producer) continue;
++        bool dominates_reads = true;
++        for (const auto& edge : incoming_edges) {
++          // A handler's installation IP is not its throw origin. A later
++          // failure can enter after the load even when setup is inside this
++          // interval; do not move that exception snapshot out of its register.
++          const bool exception_handler_target =
++              fn->code[producer].op == ir::Op::LoadException &&
++              (fn->code[edge.first].op == ir::Op::SetupExcept ||
++               fn->code[edge.first].op == ir::Op::SetupWith);
++          if (edge.second > producer && edge.second <= consumer &&
++              (exception_handler_target || edge.first < producer || edge.first > consumer)) {
++            dominates_reads = false;
++            break;
++          }
++        }
++        if (dominates_reads) temporary_defined_in_loop[reg] = true;
++        // Never clear a carried flag/MAX established by a narrower loop.
++      }
++    }
++    for (uint32_t reg = 0; has_identity_instructions && reg < computed->register_last_use.size(); ++reg) {
++      const size_t consumer = computed->register_last_use[reg];
++      if (!temporary_defined_in_loop[reg] || consumer < instr.dst || consumer > i ||
++          (fn->code[consumer].op != ir::Op::Is && fn->code[consumer].op != ir::Op::IsJumpIfFalse &&
++           fn->code[consumer].op != ir::Op::IsNoneJumpIfFalse)) {
++        continue;
++      }
++      const size_t producer = temporary_definition_in_loop[reg];
++      if (producer >= consumer) {
++        computed->identity_operand_retirement_safe[reg] = false;
++        continue;
++      }
++      for (const auto& edge : incoming_edges) {
++        if (edge.second > producer && edge.second <= consumer &&
++            (edge.first < producer || edge.first > consumer)) {
++          computed->identity_operand_retirement_safe[reg] = false;
++          break;
++        }
++      }
++    }
++    for (size_t loop_ip = instr.dst; loop_ip <= i; ++loop_ip) {
++      for_each_register_read(fn->code[loop_ip], [&](uint32_t reg) {
++        // LoadModuleAttr writes its receiver scratch register from the live
++        // module slot before reading it internally. That read is not a root
++        // carried from the previous iteration. Keep its linear last-use for
++        // cleanup, and let any later external read establish real liveness.
++        // Otherwise `del obj` in a loop retains obj in this fused temporary.
++        const auto& loop_instr = fn->code[loop_ip];
++        if (loop_instr.op == ir::Op::LoadModuleAttr && reg == loop_instr.c) return;
++        if (reg < computed->register_last_use.size() &&
++            !temporary_defined_in_loop[reg]) {
++          computed->register_loop_carried[reg] = true;
++          computed->register_last_use[reg] = std::numeric_limits<size_t>::max();
++        }
++      });
++    }
++  }
++  // Function copies inherit the source's cache pointer. Replace metadata
++  // whose owner is a different Function object instead of using stale
++  // register indices from that source object.
++  std::shared_ptr<const ir::FunctionExecutionMetadata> expected = prepared;
++  std::shared_ptr<const ir::FunctionExecutionMetadata> immutable = std::move(computed);
++  if (!std::atomic_compare_exchange_strong_explicit(
++          &fn->execution_metadata,
++          &expected,
++          immutable,
++          std::memory_order_release,
++          std::memory_order_acquire)) {
++    if (expected != nullptr && expected->owner == fn) {
++      execution_metadata = std::move(expected);
++    } else {
++      compute_register_last_use();
++    }
++  } else {
++    execution_metadata = std::move(immutable);
++  }
++}
++
+ namespace {
+ thread_local uint32_t g_nested_interpreter_depth = 0;
+ 

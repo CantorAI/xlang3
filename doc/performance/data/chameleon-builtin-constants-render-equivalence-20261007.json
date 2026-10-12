@@ -1,0 +1,10 @@
+{
+  "render_output_identical": true,
+  "characters": 222553,
+  "utf8_sha256": "ee20adc6250db78d5443e8d50cc9e940f448151dab8ce51e5d83aea93531616c",
+  "profile_inputs": {
+    "chameleon-builtin-constants-xlang3-callprofile-20261007.log": "4faf45fb1fe817b176847fc29140f40cc0da311151a1ed62cf4d9fa311ccf7b8",
+    "chameleon-builtin-constants-cpython3147-callprofile-20261007.log": "f7cbecf1dca37ad54678ec77758d6a553137083105c18ee360f3009f48a1d7d9"
+  },
+  "profile_limits": "Profiling disables optimizations and changes timings. Call counts guide diagnosis; inclusive/self timings are not official performance scores. XLang3 adds a Python functools partial call event absent in CPython."
+}

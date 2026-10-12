@@ -1,0 +1,761 @@
+diff --git a/src/executor/xlang_vm/ops/xlang_vm_ops_call.h b/src/executor/xlang_vm/ops/xlang_vm_ops_call.h
+index 1a29c1f7..8998f378 100644
+--- a/src/executor/xlang_vm/ops/xlang_vm_ops_call.h
++++ b/src/executor/xlang_vm/ops/xlang_vm_ops_call.h
+@@ -76,6 +76,47 @@ XLANG3_HOT_INLINE void initialize_exception_call_args(
+       runtime, instance, values.data(), static_cast<uint32_t>(values.size()));
+ }
+ 
++XLANG3_HOT_INLINE bool call_ex_constructor_args_callback_free(
++    const CallArgsView& args, size_t register_count) {
++  const auto check_star = [&](uint32_t reg) {
++    return args.registers != nullptr && reg < register_count &&
++        (value_as_tuple(args.registers[reg]) != nullptr ||
++         value_as_list(args.registers[reg]) != nullptr);
++  };
++  if (args.star_args != nullptr && !args.star_args->empty()) {
++    for (uint32_t reg : *args.star_args) if (!check_star(reg)) return false;
++  } else if (args.star_arg != UINT32_MAX && !check_star(args.star_arg)) {
++    return false;
++  }
++  // Restrict persistence to a single completed exact mapping. The generic
++  // binder currently performs custom protocols after selecting __init__;
++  // declining this proof leaves that separate ordering work visible.
++  uint32_t mapping_reg = args.kw_star_arg;
++  if (args.kw_star_args != nullptr && !args.kw_star_args->empty()) {
++    if (args.kw_star_args->size() != 1) return false;
++    mapping_reg = args.kw_star_args->front();
++  }
++  const DictObject* mapping = nullptr;
++  if (mapping_reg != UINT32_MAX) {
++    if (args.registers == nullptr || mapping_reg >= register_count) return false;
++    mapping = value_as_dict(args.registers[mapping_reg]);
++    if (mapping == nullptr) return false;
++    for (const auto& entry : mapping->entries)
++      if (value_as_string(entry.first) == nullptr) return false;
++  }
++  if (args.keyword_args != nullptr) {
++    for (size_t index = 0; index < args.keyword_args->size(); ++index) {
++      const auto& name = (*args.keyword_args)[index].name;
++      for (size_t earlier = 0; earlier < index; ++earlier)
++        if ((*args.keyword_args)[earlier].name == name) return false;
++      if (mapping != nullptr)
++        for (const auto& entry : mapping->entries)
++          if (string_object_view(*value_as_string(entry.first)) == name) return false;
++    }
++  }
++  return true;
++}
++
+ XLANG3_HOT_INLINE bool inline_calls_allowed(Runtime& runtime) {
+   const auto active_hook = [](const Value& hook) {
+     return hook.tag != ValueTag::Invalid && hook.tag != ValueTag::None;
+@@ -2521,25 +2562,41 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_ex(
+     // still runs for every call.
+     if (cache.callee_object == callee.as.obj &&
+         (cache.kind == CallSiteKind::UserConstructor ||
++         cache.kind == CallSiteKind::GuardedUserConstructorEx ||
+          cache.kind == CallSiteKind::NativeConstructor)) {
+       auto* cached_class = value_as_class(callee);
+       auto* metaclass = cached_class == nullptr
+           ? nullptr : value_as_class(cached_class->metaclass);
+       if (cached_class != nullptr && metaclass != nullptr &&
++          (cache.kind != CallSiteKind::GuardedUserConstructorEx ||
++           (cached_class->native_type_constructor == nullptr &&
++            module_owner != nullptr &&
++            call_ex_constructor_args_callback_free(call_args, regs.size()))) &&
+           cache.class_version == cached_class->version &&
+           cache.arg0_object == &metaclass->header &&
+           cache.secondary_class_version == metaclass->version &&
+           // Class/MRO and metaclass guards precede the weak function pointer.
+           // __code__ mutation can turn an ordinary initializer into a generator.
+-          (cache.kind != CallSiteKind::UserConstructor ||
++          ((cache.kind != CallSiteKind::UserConstructor &&
++            cache.kind != CallSiteKind::GuardedUserConstructorEx) ||
+            (cache.function != nullptr &&
+             cache.function_code_version == cache.function->code_version))) {
++        Value initializer_owner;
++        if (cache.kind == CallSiteKind::GuardedUserConstructorEx) {
++          // The persistent plan is ownerless. Pin the proved live initializer
++          // through binder scratch cleanup and frame publication, which can
++          // reenter via finalizers, without allocating another bound method.
++          initializer_owner.tag = ValueTag::Object;
++          initializer_owner.as.obj = &cache.function->header;
++          retain(initializer_owner);
++        }
+         Value instance = Value::instance(callee);
+         initialize_exception_call_args(runtime, instance, call_args);
+         CallArgsView init_args = call_args;
+         init_args.leading = &instance;
+         init_args.leading_count = 1;
+-        if (cache.kind == CallSiteKind::UserConstructor &&
++        if ((cache.kind == CallSiteKind::UserConstructor ||
++             cache.kind == CallSiteKind::GuardedUserConstructorEx) &&
+             cache.function != nullptr) {
+           auto* fn_obj = cache.function;
+           const ir::Module* call_module = &module;
+@@ -2859,17 +2916,55 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_ex(
+         auto& cache = instr_cache[ip].call;
+         if (auto* init_function = value_as_function(raw_init);
+             init_function != nullptr && init_function == value_as_function(bound->function)) {
+-          cache.callee_object = callee.as.obj;
+-          value_assign_fast(cache.retained_callee, callee);
+-          cache.kind = CallSiteKind::UserConstructor;
+-          cache.function = init_function;
+-          cache.function_code_version = init_function->code_version;
+-          cache.inline_function_id = UINT32_MAX;
+-          cache.native = nullptr;
+-          cache.class_version = klass->version;
+-          if (auto* metaclass = value_as_class(klass->metaclass)) {
+-            cache.arg0_object = &metaclass->header;
+-            cache.secondary_class_version = metaclass->version;
++          auto* metaclass = value_as_class(klass->metaclass);
++          const ir::Function* init_ir = init_function->module != nullptr &&
++              init_function->function_id < init_function->module->functions.size()
++              ? &init_function->module->functions[init_function->function_id] : nullptr;
++          const bool persistent = module_owner != nullptr && metaclass != nullptr &&
++              klass->native_type_constructor == nullptr && init_ir != nullptr &&
++              !init_ir->is_generator && !init_ir->is_async && !init_ir->is_coroutine &&
++              call_ex_constructor_args_callback_free(call_args, regs.size());
++          if (persistent) {
++            // Snapshot the proof while raw_init/bound_init own the target.
++            // Releasing a previous cache owner can mutate class/meta/code.
++            // Never pair the held old function with fresh post-cleanup tags.
++            const uint64_t class_version = klass->version;
++            const uint64_t meta_version = metaclass->version;
++            const uint64_t code_version = init_function->code_version;
++            Object* meta_identity = &metaclass->header;
++            CallSiteCache retired = std::move(cache);
++            cache = CallSiteCache{};
++            retired = CallSiteCache{};
++            auto* live_meta = value_as_class(klass->metaclass);
++            if (class_version != 0 && meta_version != 0 &&
++                klass->version == class_version &&
++                klass->native_type_constructor == nullptr &&
++                live_meta != nullptr && &live_meta->header == meta_identity &&
++                live_meta->version == meta_version &&
++                init_function->code_version == code_version) {
++              cache.callee_object = callee.as.obj;
++              cache.kind = CallSiteKind::GuardedUserConstructorEx;
++              cache.function = init_function;
++              cache.function_code_version = code_version;
++              cache.class_version = class_version;
++              cache.arg0_object = meta_identity;
++              cache.secondary_class_version = meta_version;
++            }
++          } else {
++            // Unknown/custom expansion, native hooks and nonordinary IR retain
++            // the existing owning, per-activation constructor cache policy.
++            cache.callee_object = callee.as.obj;
++            value_assign_fast(cache.retained_callee, callee);
++            cache.kind = CallSiteKind::UserConstructor;
++            cache.function = init_function;
++            cache.function_code_version = init_function->code_version;
++            cache.inline_function_id = UINT32_MAX;
++            cache.native = nullptr;
++            cache.class_version = klass->version;
++            if (metaclass != nullptr) {
++              cache.arg0_object = &metaclass->header;
++              cache.secondary_class_version = metaclass->version;
++            }
+           }
+         } else if (auto* init_native = value_as_native_function(raw_init);
+                    init_native != nullptr && init_native->bind_as_descriptor &&
+diff --git a/src/executor/xlang_vm/xlang_frame.h b/src/executor/xlang_vm/xlang_frame.h
+index e6816de4..f8d35f0a 100644
+--- a/src/executor/xlang_vm/xlang_frame.h
++++ b/src/executor/xlang_vm/xlang_frame.h
+@@ -83,6 +83,9 @@ enum class CallSiteKind : uint8_t {
+   InlineCachedStringMethod,
+   InlineCachedLen,
+   BuiltinMethodSpec,
++  // CallEx-only plain initializer plan with class/metaclass/code guards.
++  // Its scalar proof may survive inner frame pop; it owns no Python values.
++  GuardedUserConstructorEx,
+ };
+ 
+ enum class AttrSiteKind : uint8_t {
+@@ -574,6 +577,18 @@ private:
+       }
+       case XlangVMCacheDomain::Call:
+         cache.global = GlobalSiteCache{};
++        // Short wrappers often execute one expanded class call then return.
++        // Retain only the dedicated CallEx proof, whose consumer checks the
++        // currently live class/metaclass generations before its weak target.
++        // Every owning payload must stay empty; other Call/constructor kinds
++        // still release completely. No weak pointer is dereferenced here.
++        if (cache.call.kind == CallSiteKind::GuardedUserConstructorEx &&
++            cache.call.retained_callee.tag == ValueTag::Invalid &&
++            cache.call.inline_const.tag == ValueTag::Invalid &&
++            cache.call.slot_constructor_args.empty() &&
++            cache.call.cached_values.empty()) {
++          break;
++        }
+         cache.call = CallSiteCache{};
+         break;
+       case XlangVMCacheDomain::CallMethod: {
+diff --git a/tests/cpp/inherited_call_ex_constructor_cases.h b/tests/cpp/inherited_call_ex_constructor_cases.h
+index e2ff0f09..9a266165 100644
+--- a/tests/cpp/inherited_call_ex_constructor_cases.h
++++ b/tests/cpp/inherited_call_ex_constructor_cases.h
+@@ -7,7 +7,245 @@
+ 
+ namespace xlang3::test {
+ 
++namespace cross_activation_constructor_cases {
++struct ProfileState {
++  std::shared_ptr<const ir::Module> module;
++  uint32_t function_id = UINT32_MAX;
++  uint32_t calls = 0;
++  uint32_t returns = 0;
++};
++inline void destroy_profile(void* data) {
++  delete static_cast<std::shared_ptr<ProfileState>*>(data);
++}
++inline bool profile(Runtime&, const Value* args, uint32_t argc, Value& out,
++    std::string& error, void* data) {
++  auto& state = **static_cast<std::shared_ptr<ProfileState>*>(data);
++  auto* frame = argc == 3 ? value_as_frame(args[0]) : nullptr;
++  auto* event = argc == 3 ? value_as_string(args[1]) : nullptr;
++  if (frame != nullptr && event != nullptr &&
++      frame->module.get() == state.module.get() && frame->function_id == state.function_id) {
++    const auto name = string_object_view(*event);
++    if (name == "call") ++state.calls;
++    else if (name == "return") ++state.returns;
++  }
++  error.clear(); out = Value::none(); return true;
++}
++inline bool handle_native(Runtime&, const ClassObject& klass, const CallArgsView&,
++    bool& handled, Value& out, std::string& error) {
++  Value retained_class;
++  retained_class.tag = ValueTag::Object;
++  retained_class.as.obj = const_cast<Object*>(&klass.header);
++  retain(retained_class);
++  out = Value::instance(retained_class);
++  handled = true;
++  return object_set_attr(out, "value", Value::int64(500), error);
++}
++inline bool decline_native(Runtime&, const ClassObject&, const CallArgsView&,
++    bool& handled, Value&, std::string& error) {
++  handled = false; error.clear(); return true;
++}
++inline bool install_native(Runtime&, const Value* args, uint32_t argc, Value& out,
++    std::string& error, void*) {
++  auto* klass = argc == 1 ? value_as_class(args[0]) : nullptr;
++  if (klass == nullptr) { error = "expected a class for native-hook proof"; return false; }
++  // A native registration can publish a hook without changing Python attrs or
++  // the class version. This deliberately tests the live warm-hook exclusion.
++  klass->native_type_constructor = handle_native;
++  klass->native_type_constructor_version = klass->version;
++  error.clear(); out = Value::none(); return true;
++}
++struct RuntimeProfileReset {
++  Runtime& runtime;
++  ~RuntimeProfileReset() { runtime.set_profile_function(Value::none()); }
++};
++} // namespace cross_activation_constructor_cases
++
++inline void check_cross_activation_constructor(CaseResult& result) {
++  using namespace cross_activation_constructor_cases;
++  const char* source = R"PY(
++class CrossBase:
++    def __init__(self, value=0):
++        self.value = value
++
++class CrossOwn(CrossBase):
++    def __init__(self, value=0):
++        self.value = value
++
++class CrossInherited(CrossBase):
++    pass
++
++class CrossMeta(type):
++    pass
++
++class CrossMetaInherited(CrossBase, metaclass=CrossMeta):
++    pass
++
++class CrossNativeDeclines(CrossBase):
++    pass
++
++class CrossNativeLater(CrossBase):
++    pass
++
++class CrossLegacy(CrossBase):
++    def __init__(self, value=0):
++        self.value = value
++
++def construct_once(cls, value):
++    return cls(*(), **{'value': value})
++
++def outer_driver(cls, count, install=False):
++    total = 0
++    for value in range(count):
++        if install and value == 16:
++            install_native(cls)
++        obj = construct_once(cls, value)
++        total += obj.value
++    return total
++)PY";
++  auto parsed = parse_source(source);
++  expect_true(result, parsed.errors.empty(), "cross-activation constructor proof parses");
++  if (!parsed.errors.empty()) return;
++  auto lowered = lower_to_ir(parsed.module);
++  expect_true(result, lowered.errors.empty(), "cross-activation constructor proof lowers");
++  if (!lowered.errors.empty()) return;
++  uint32_t wrapper_id = UINT32_MAX;
++  size_t expanded_calls = 0, returns = 0;
++  for (uint32_t id = 0; id < lowered.module.functions.size(); ++id) {
++    const auto& function = lowered.module.functions[id];
++    if (function.name != "construct_once") continue;
++    wrapper_id = id;
++    for (const auto& instruction : function.code) {
++      expanded_calls += instruction.op == ir::Op::CallEx;
++      returns += instruction.op == ir::Op::Return || instruction.op == ir::Op::ReturnLocal ||
++          instruction.op == ir::Op::ReturnConst;
++    }
++  }
++  expect_true(result, wrapper_id != UINT32_MAX && expanded_calls == 1 && returns == 1,
++      "one CallEx then Return must occur in each completed inner wrapper activation");
++  if (wrapper_id == UINT32_MAX || expanded_calls != 1 || returns != 1) return;
++  std::ostringstream output;
++  // Module owners outlive Runtime, and native profile state holds no raw
++  // Runtime/Interpreter pointer. Failure/unwind cannot leave stale cleanup.
++  Value globals = Value::module("cross_activation_constructor_audit");
++  std::shared_ptr<const ir::Module> module =
++      std::make_shared<ir::Module>(std::move(lowered.module));
++  auto state = std::make_shared<ProfileState>();
++  state->module = module;
++  state->function_id = wrapper_id;
++  Runtime runtime(output);
++  Interpreter interpreter(runtime);
++  RuntimeProfileReset reset{runtime};
++  auto setup = interpreter.run_module(*module, globals, module);
++  expect_true(result, setup.errors.empty(), "cross-activation setup uses actual DLL entry");
++  if (!setup.errors.empty()) return;
++  Value install = Value::native_function(0, "install_native", install_native);
++  std::string error;
++  expect_true(result, module_set_attr(globals, "install_native", install, error),
++      "native hook proof registers its public callable");
++  Value driver, wrapper;
++  if (!module_get_attr(globals, "outer_driver", driver, error) ||
++      !module_get_attr(globals, "construct_once", wrapper, error)) {
++    expect_true(result, false, "cross-activation proof obtains its live functions"); return;
++  }
++  auto profile_context = std::make_unique<std::shared_ptr<ProfileState>>(state);
++  Value observer = Value::native_function(0, "cross_activation_profile", profile,
++      profile_context.get(), destroy_profile);
++  profile_context.release();
++  runtime.set_profile_function(observer);
++  struct CounterScope {
++    bool previous = xlang_perf_counters().enabled.load(std::memory_order_relaxed);
++    CounterScope() { xlang_perf_set_enabled(true); }
++    ~CounterScope() { xlang_perf_set_enabled(previous); }
++  } counters;
++  const auto kind = xlang_perf_kind_index(ObjectKind::BoundMethod);
++  const auto allocations = [&] {
++    return xlang_perf_counters().object_allocations[kind].load(std::memory_order_relaxed);
++  };
++  for (const char* name : {"CrossOwn", "CrossInherited", "CrossMetaInherited"}) {
++    Value klass;
++    if (!module_get_attr(globals, name, klass, error)) {
++      expect_true(result, false, std::string("cross-activation missing class ") + name); continue;
++    }
++    state->calls = state->returns = 0;
++    const auto before = allocations();
++    const Value args[] = {klass, Value::int64(32)};
++    Value answer;
++    const bool ok = runtime_call_callable(runtime, driver, args, 2, answer, error);
++    const auto after = allocations();
++    expect_true(result, ok && answer.tag == ValueTag::Int64 && answer.as.i64 == 496,
++        std::string("all 32 returned-wrapper initialized values match: ") + name);
++    expect_true(result, state->calls == 32 && state->returns == 32,
++        std::string("actual profile proves 32 separate inner call/return activations: ") + name);
++    expect_true(result, after == before + 1,
++        std::string("one cold bound initializer across 32 returned activations: ") + name);
++  }
++  Value klass;
++  if (!module_get_attr(globals, "CrossInherited", klass, error)) {
++    expect_true(result, false, "host-entry negative obtains class"); return;
++  }
++  const auto before_hosts = allocations();
++  int64_t host_sum = 0;
++  for (int64_t value = 0; value < 32; ++value) {
++    const Value args[] = {klass, Value::int64(value)};
++    Value answer, member;
++    const bool ok = runtime_call_callable(runtime, wrapper, args, 2, answer, error) &&
++        object_get_attr(answer, "value", member, error) && member.tag == ValueTag::Int64;
++    expect_true(result, ok, "each separate host entry uses actual wrapper dispatch");
++    if (ok) host_sum += member.as.i64;
++  }
++  expect_true(result, host_sum == 496 && allocations() == before_hosts + 32,
++      "outer-entry teardown intentionally clears all prepared weak constructor associations");
++
++  if (!module_get_attr(globals, "CrossNativeDeclines", klass, error)) {
++    expect_true(result, false, "declining native hook proof obtains class"); return;
++  }
++  value_as_class(klass)->native_type_constructor = decline_native;
++  value_as_class(klass)->native_type_constructor_version = value_as_class(klass)->version;
++  const auto before_decline = allocations();
++  const Value decline_args[] = {klass, Value::int64(32)};
++  Value answer;
++  const bool decline_ok = runtime_call_callable(runtime, driver, decline_args, 2, answer, error);
++  expect_true(result, decline_ok && answer.tag == ValueTag::Int64 && answer.as.i64 == 496 &&
++      allocations() == before_decline + 32,
++      "a registered native hook's transient decline never certifies a persistent Python plan");
++
++  if (!module_get_attr(globals, "CrossNativeLater", klass, error)) {
++    expect_true(result, false, "new native hook proof obtains class"); return;
++  }
++  const uint64_t class_version = value_as_class(klass)->version;
++  const auto before_install = allocations();
++  const Value install_args[] = {klass, Value::int64(32), Value::boolean(true)};
++  const bool install_ok = runtime_call_callable(runtime, driver, install_args, 3, answer, error);
++  expect_true(result, install_ok && answer.tag == ValueTag::Int64 && answer.as.i64 == 8120 &&
++      value_as_class(klass)->version == class_version && allocations() == before_install + 1,
++      "a live newly registered hook handles calls despite unchanged cached class generation");
++
++  if (!module_get_attr(globals, "CrossLegacy", klass, error)) {
++    expect_true(result, false, "legacy nonowning-IR proof obtains class"); return;
++  }
++  auto* legacy_class = value_as_class(klass);
++  if (legacy_class == nullptr || legacy_class->attrs.find("__init__") == legacy_class->attrs.end()) {
++    expect_true(result, false, "legacy proof owns a declared initializer"); return;
++  }
++  Value original = legacy_class->attrs.find("__init__")->second;
++  auto* original_function = value_as_function(original);
++  if (original_function == nullptr) {
++    expect_true(result, false, "legacy declared initializer is an actual Python function"); return;
++  }
++  Value legacy = Value::function(original_function->function_id,
++      original_function->closure, original_function->globals_module);
++  expect_true(result, object_set_attr(klass, "__init__", legacy, error),
++      "legacy initializer is installed through the actual class mutation API");
++  const auto before_legacy = allocations();
++  const Value legacy_args[] = {klass, Value::int64(32)};
++  const bool legacy_ok = runtime_call_callable(runtime, driver, legacy_args, 2, answer, error);
++  expect_true(result, legacy_ok && answer.tag == ValueTag::Int64 && answer.as.i64 == 496 &&
++      allocations() == before_legacy + 32,
++      "legacy initializer without owned IR remains correct and cold after every inner return");
++}
++
+ inline void check_inherited_call_ex_constructor(CaseResult& result) {
++  check_cross_activation_constructor(result);
+   const char* source = R"PY(
+ class AuditBase:
+     def __init__(self, x=0, *, flag=1):
+diff --git a/tests/fixtures/core/call_ex_cross_activation_constructor.py b/tests/fixtures/core/call_ex_cross_activation_constructor.py
+new file mode 100644
+index 00000000..6b4571c0
+--- /dev/null
++++ b/tests/fixtures/core/call_ex_cross_activation_constructor.py
+@@ -0,0 +1,272 @@
++"""Returned CallEx wrappers must preserve dynamic dispatch and object lifetime.
++
++The C++ companion counts actual bound initializer allocations. This fixture
++checks Python semantics; it does not claim a timing score or fix the separate
++custom argument-expansion ordering issue.
++"""
++
++import gc
++import sys
++import weakref
++
++
++class Base:
++    def __init__(self, value=0):
++        self.value = value
++
++
++class Own(Base):
++    def __init__(self, value=0):
++        self.value = value
++
++
++class Child(Base):
++    pass
++
++
++class Meta(type):
++    pass
++
++
++class MetaChild(Base, metaclass=Meta):
++    pass
++
++
++def construct(cls, value):
++    # Exactly one expanded class call, followed by a returned wrapper frame.
++    return cls(*(), **{"value": value})
++
++
++def driver(cls, action=None):
++    total = 0
++    for value in range(32):
++        if value == 16 and action is not None:
++            action()
++        item = construct(cls, value)
++        total += item.value
++    return total
++
++
++for cls in (Own, Child, MetaChild):
++    assert driver(cls) == 496
++print("returned wrappers")
++
++
++original_init = Base.__init__
++
++
++def replacement(self, value=0):
++    self.value = value + 100
++
++
++def replace_base():
++    Base.__init__ = replacement
++
++
++assert driver(Child, replace_base) == 2096
++Base.__init__ = original_init
++
++
++class Override(Base):
++    def __init__(self, value=0):
++        self.value = value + 10
++
++
++def delete_override():
++    del Override.__init__
++
++
++assert driver(Override, delete_override) == 656
++
++
++def rename_base():
++    Base.__name__ = "RenamedBase"
++
++
++assert driver(Child, rename_base) == 496
++assert Base.__name__ == "RenamedBase"
++Base.__name__ = "Base"
++print("initializer and name mutation")
++
++
++class OtherBase:
++    def __init__(self, value=0):
++        self.value = value + 100
++
++
++class Moving(Base):
++    pass
++
++
++def move_base():
++    Moving.__bases__ = (OtherBase,)
++
++
++assert driver(Moving, move_base) == 2096
++
++
++def meta_call(cls, *args, **kwargs):
++    return Own(value=kwargs["value"] + 1000)
++
++
++def replace_meta_call():
++    Meta.__call__ = meta_call
++
++
++assert driver(MetaChild, replace_meta_call) == 16496
++del Meta.__call__
++assert driver(MetaChild) == 496
++print("bases and metaclass mutation")
++
++
++class CodeBase:
++    def __init__(self, value=0):
++        self.value = value
++
++
++class CodeChild(CodeBase):
++    pass
++
++
++def replace_code():
++    CodeBase.__init__.__code__ = replacement.__code__
++
++
++assert driver(CodeChild, replace_code) == 2096
++
++
++def construct_default(cls):
++    return cls(*(), **{})
++
++
++CodeBase.__init__.__defaults__ = (7,)
++assert construct_default(CodeChild).value == 107
++CodeBase.__init__.__defaults__ = (9,)
++assert construct_default(CodeChild).value == 109
++
++
++class KeywordBase:
++    def __init__(self, *, value=2):
++        self.value = value
++
++
++class KeywordChild(KeywordBase):
++    pass
++
++
++assert construct_default(KeywordChild).value == 2
++KeywordBase.__init__.__kwdefaults__ = {"value": 11}
++assert construct_default(KeywordChild).value == 11
++print("code and live defaults")
++
++
++def lifetime(raises):
++    def initializer(self, value=0):
++        self.value = value
++        if raises:
++            raise RuntimeError("initializer marker")
++
++    class Ephemeral:
++        pass
++
++    Ephemeral.__init__ = initializer
++    class_ref = weakref.ref(Ephemeral)
++    function_ref = weakref.ref(initializer)
++    for value in range(3):
++        try:
++            construct(Ephemeral, value)
++        except RuntimeError as error:
++            assert str(error) == "initializer marker"
++    del Ephemeral
++    del initializer
++    gc.collect()
++    assert class_ref() is None
++    assert function_ref() is None
++
++
++lifetime(False)
++try:
++    raise LookupError("outer handler")
++except LookupError:
++    lifetime(True)
++print("no retained class or initializer")
++
++
++class Required:
++    def __init__(self, value, *, required):
++        self.value = value
++
++
++for value in range(3):
++    try:
++        construct(Required, value)
++    except TypeError as error:
++        assert "required" in str(error)
++    else:
++        raise AssertionError("missing keyword-only argument must fail")
++marker = LookupError("original init failure")
++
++
++class Raising:
++    def __init__(self, value=0):
++        raise marker
++
++
++for value in range(3):
++    try:
++        construct(Raising, value)
++    except LookupError as error:
++        assert error is marker
++        names = []
++        tb = error.__traceback__
++        while tb is not None:
++            names.append(tb.tb_frame.f_code.co_name)
++            tb = tb.tb_next
++        assert "construct" in names and "__init__" in names
++    else:
++        raise AssertionError("initializer exception must propagate")
++print("binding and original exceptions")
++
++
++events = []
++
++
++def profile(frame, event, arg):
++    if frame.f_code.co_name == "construct" and event in ("call", "return"):
++        events.append(event)
++
++
++sys.setprofile(profile)
++try:
++    assert driver(Child) == 496
++finally:
++    sys.setprofile(None)
++assert events == [event for _ in range(32) for event in ("call", "return")]
++
++
++class TraceBase:
++    def __init__(self, value=0):
++        self.value = value
++
++
++class TraceChild(TraceBase):
++    pass
++
++
++changed = False
++
++
++def mutate_on_call(frame, event, arg):
++    global changed
++    if event == "call" and frame.f_code.co_name == "__init__" and not changed:
++        changed = True
++        TraceBase.__init__.__code__ = replacement.__code__
++
++
++sys.setprofile(mutate_on_call)
++try:
++    values = [construct(TraceChild, value).value for value in range(32)]
++finally:
++    sys.setprofile(None)
++assert changed and values == [0] + [value + 100 for value in range(1, 32)]
++print("profile and reentrant code mutation")
+diff --git a/tests/fixtures/expected/call_ex_cross_activation_constructor.out b/tests/fixtures/expected/call_ex_cross_activation_constructor.out
+new file mode 100644
+index 00000000..c00b7abf
+--- /dev/null
++++ b/tests/fixtures/expected/call_ex_cross_activation_constructor.out
+@@ -0,0 +1,7 @@
++returned wrappers
++initializer and name mutation
++bases and metaclass mutation
++code and live defaults
++no retained class or initializer
++binding and original exceptions
++profile and reentrant code mutation
+diff --git a/tests/run_fixtures.ps1 b/tests/run_fixtures.ps1
+index fe2523e8..4381e964 100644
+--- a/tests/run_fixtures.ps1
++++ b/tests/run_fixtures.ps1
+@@ -25,6 +25,7 @@ $cases = @(
+     "dict_get_exception_preservation",
+     "call_method_dict_cache_touch",
+     "inherited_call_ex_constructor",
++    "call_ex_cross_activation_constructor",
+     "sqlite_statement_cache",
+     "native_bound_zero_args",
+     "identity_last_use",
+diff --git a/tests/run_fixtures.py b/tests/run_fixtures.py
+index 068e01b5..b5483bff 100644
+--- a/tests/run_fixtures.py
++++ b/tests/run_fixtures.py
+@@ -12,6 +12,7 @@ CORE_CASES = """
+ dict_get_exception_preservation
+ call_method_dict_cache_touch
+ inherited_call_ex_constructor
++call_ex_cross_activation_constructor
+ sqlite_statement_cache
+ native_bound_zero_args
+ hash_exception_preservation

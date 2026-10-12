@@ -1,0 +1,104 @@
+perf: native_calls=8507 fast=8500 cached_fast=251
+perf: native type.__new__ slow=2 fast=0
+perf: native type.__or__ slow=2 fast=0
+perf: native generator.close slow=1 fast=0
+perf: native itertools.count slow=1 fast=0
+perf: native property.setter slow=1 fast=0
+perf: store_local moves=11319 copies=328
+perf: frame_snapshots calls=0 frames=0 locals=0 refresh_calls=1 refresh_items=1
+perf: opcode 0 294
+perf: opcode 1 1
+perf: opcode 2 9059
+perf: opcode 3 11358
+perf: opcode 8 14
+perf: opcode 9 3
+perf: opcode 13 147
+perf: opcode 15 27
+perf: opcode 17 11
+perf: opcode 18 5700
+perf: opcode 19 81
+perf: opcode 20 7
+perf: opcode 22 12
+perf: opcode 23 1
+perf: opcode 25 16
+perf: opcode 30 6
+perf: opcode 31 144
+perf: opcode 33 1
+perf: opcode 35 14
+perf: opcode 36 113
+perf: opcode 37 76
+perf: opcode 38 3
+perf: opcode 40 110
+perf: opcode 42 186
+perf: opcode 47 131
+perf: opcode 48 267
+perf: opcode 50 78
+perf: opcode 51 131
+perf: opcode 52 79
+perf: opcode 53 26
+perf: opcode 56 2
+perf: opcode 64 2
+perf: opcode 66 1
+perf: opcode 71 4
+perf: opcode 72 5408
+perf: opcode 76 5795
+perf: opcode 77 5466
+perf: opcode 79 133
+perf: opcode 81 79
+perf: opcode 82 1
+perf: opcode 85 54
+perf: opcode 86 1
+perf: opcode 88 54
+perf: opcode 89 25
+perf: opcode 90 2959
+perf: opcode 92 2
+perf: opcode 93 19297
+perf: opcode 97 5422
+perf: opcode 98 2
+perf: opcode 105 16544
+perf: opcode 106 4
+perf: opcode 107 45
+perf: opcode 108 133
+perf: opcode 110 54
+perf: opcode 112 26
+perf: opcode 114 2861
+perf: opcode 115 1
+perf: opcode 118 115
+perf: opcode 119 5514
+perf: opcode 120 234
+perf: opcode 121 8220
+perf: opcode 122 23
+perf: opcode 125 52
+perf: opcode 126 47
+perf: opcode 127 25
+perf: opcode 131 2863
+perf: opcode 139 18
+perf: objects kind alloc final_release incref decref
+perf: String 181 4 367 345
+perf: Tuple 193 172 748 910
+perf: List 121 105 31212 31111
+perf: Dict 94 79 11799 11876
+perf: Unknown 2 2 2 4
+perf: Set 7 2 5421 5423
+perf: DictItemsView 26 26 0 26
+perf: DictIterator 27 27 0 27
+perf: SequenceIterator 156 156 0 156
+perf: Unknown 26 26 26 52
+perf: Unknown 1 0 2 2
+perf: Generator 3 3 8 11
+perf: Module 6 0 6336 6042
+perf: Cell 14 12 12 24
+perf: Function 144 8 1307 1286
+perf: NativeFunction 5 0 6215 6208
+perf: Class 16 1 67074 66892
+perf: Instance 78 66 272 331
+perf: BoundMethod 78 78 0 78
+perf: StaticMethod 2 0 11 11
+perf: ClassMethod 3 0 13 13
+perf: Super 2 2 0 2
+perf: SlotDescriptor 10 0 10 10
+perf: Property 8 1 66 62
+perf: Unknown 6 6 0 6
+perf: Unknown 54 54 162 216
+perf: Unknown 54 54 56 110
+perf: Unknown 3 3 0 3

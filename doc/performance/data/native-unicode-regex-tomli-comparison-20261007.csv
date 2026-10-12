@@ -1,0 +1,3 @@
+runtime,benchmark,mean_seconds,stddev_seconds,measurement_values,case_timeout_seconds,json_file,speed_relative_to_cpython3147
+cpython3147,tomli_loads,1.8700113500017324,0.05188650729551129,20,900,pyperformance-cpython3147-native-unicode-regex-tomli-fast-cap900-20261007.json,1.0
+xlang3,tomli_loads,22.254785084999458,0.6500223760000782,20,900,pyperformance-xlang3-native-unicode-regex-tomli-fast-cap900-20261007.json,0.0840273830036754

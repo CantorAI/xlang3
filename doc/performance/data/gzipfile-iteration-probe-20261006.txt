@@ -1,0 +1,10 @@
+CPython 3.14.7
+exit=0
+decompression works: True
+line iteration works: True
+
+XLang3 defaults-precedence candidate
+exit=0
+decompression works: True
+line iteration works: False
+iteration failure: object is not iterable

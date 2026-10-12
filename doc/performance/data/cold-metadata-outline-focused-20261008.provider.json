@@ -1,0 +1,67 @@
+{
+  "status": "fixture_returned",
+  "runtime": "xlang3",
+  "executable": "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+  "optimize": 0,
+  "version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+  "provider_module": "_heapq",
+  "provider_file": null,
+  "provider_origin": "built-in",
+  "heapq_file": "C:\\Python\\Python314\\Lib\\heapq.py",
+  "heapq_sha256": "827843053934cdb09ab4f4093ecdf494d09266153e43349c846828698d7b62e3",
+  "fixture": "D:\\CantorAI\\xlang3\\scratch\\performance\\heapq-native-fixture-r2-proposed-20261008.py",
+  "fixture_sha256": "63c2083937a4d9139532e43cbc3d09c91d1c38e5923ef75d23f1cbfb52c42d3b",
+  "native_functions": {
+    "heappush": {
+      "module": "_heapq",
+      "is_builtin": true,
+      "has_python_code": false
+    },
+    "heappop": {
+      "module": "_heapq",
+      "is_builtin": true,
+      "has_python_code": false
+    },
+    "heapreplace": {
+      "module": "_heapq",
+      "is_builtin": true,
+      "has_python_code": false
+    },
+    "heappushpop": {
+      "module": "_heapq",
+      "is_builtin": true,
+      "has_python_code": false
+    },
+    "heapify": {
+      "module": "_heapq",
+      "is_builtin": true,
+      "has_python_code": false
+    },
+    "heappush_max": {
+      "module": "_heapq",
+      "is_builtin": true,
+      "has_python_code": false
+    },
+    "heappop_max": {
+      "module": "_heapq",
+      "is_builtin": true,
+      "has_python_code": false
+    },
+    "heapreplace_max": {
+      "module": "_heapq",
+      "is_builtin": true,
+      "has_python_code": false
+    },
+    "heappushpop_max": {
+      "module": "_heapq",
+      "is_builtin": true,
+      "has_python_code": false
+    },
+    "heapify_max": {
+      "module": "_heapq",
+      "is_builtin": true,
+      "has_python_code": false
+    }
+  },
+  "proof_scope": "Builtin native provider plus pinned own runtime/source/CPP proofs; no CPython native module imported"
+}

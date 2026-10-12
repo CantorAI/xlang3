@@ -1,0 +1,2968 @@
+Benchmark dependency sites: D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages
+Full-case timeout overrides: async_tree*=30s, async_tree_eager=300s
+Python benchmark suite 1.14.0
+
+
+==================================================
+( 1/97) creating venv for benchmark (2to3)
+
+(trying common venv first)
+
+==================================================
+( 2/97) creating venv for benchmark (argparse)
+
+(trying common venv first)
+
+==================================================
+( 3/97) creating venv for benchmark (argparse_subparsers)
+
+(trying common venv first)
+
+==================================================
+( 4/97) creating venv for benchmark (async_generators)
+
+(trying common venv first)
+
+==================================================
+( 5/97) creating venv for benchmark (async_tree)
+
+(trying common venv first)
+
+==================================================
+( 6/97) creating venv for benchmark (async_tree_cpu_io_mixed)
+
+(trying common venv first)
+
+==================================================
+( 7/97) creating venv for benchmark (async_tree_cpu_io_mixed_tg)
+
+(trying common venv first)
+
+==================================================
+( 8/97) creating venv for benchmark (async_tree_eager)
+
+(trying common venv first)
+
+==================================================
+( 9/97) creating venv for benchmark (async_tree_eager_cpu_io_mixed)
+
+(trying common venv first)
+
+==================================================
+(10/97) creating venv for benchmark (async_tree_eager_cpu_io_mixed_tg)
+
+(trying common venv first)
+
+==================================================
+(11/97) creating venv for benchmark (async_tree_eager_io)
+
+(trying common venv first)
+
+==================================================
+(12/97) creating venv for benchmark (async_tree_eager_io_tg)
+
+(trying common venv first)
+
+==================================================
+(13/97) creating venv for benchmark (async_tree_eager_memoization)
+
+(trying common venv first)
+
+==================================================
+(14/97) creating venv for benchmark (async_tree_eager_memoization_tg)
+
+(trying common venv first)
+
+==================================================
+(15/97) creating venv for benchmark (async_tree_eager_tg)
+
+(trying common venv first)
+
+==================================================
+(16/97) creating venv for benchmark (async_tree_io)
+
+(trying common venv first)
+
+==================================================
+(17/97) creating venv for benchmark (async_tree_io_tg)
+
+(trying common venv first)
+
+==================================================
+(18/97) creating venv for benchmark (async_tree_memoization)
+
+(trying common venv first)
+
+==================================================
+(19/97) creating venv for benchmark (async_tree_memoization_tg)
+
+(trying common venv first)
+
+==================================================
+(20/97) creating venv for benchmark (async_tree_tg)
+
+(trying common venv first)
+
+==================================================
+(21/97) creating venv for benchmark (asyncio_tcp)
+
+(trying common venv first)
+
+==================================================
+(22/97) creating venv for benchmark (asyncio_tcp_ssl)
+
+(trying common venv first)
+
+==================================================
+(23/97) creating venv for benchmark (asyncio_websockets)
+
+(trying common venv first)
+
+==================================================
+(24/97) creating venv for benchmark (base64)
+
+(trying common venv first)
+
+==================================================
+(25/97) creating venv for benchmark (bpe_tokeniser)
+
+(trying common venv first)
+
+==================================================
+(26/97) creating venv for benchmark (chameleon)
+
+(trying common venv first)
+
+==================================================
+(27/97) creating venv for benchmark (chaos)
+
+(trying common venv first)
+
+==================================================
+(28/97) creating venv for benchmark (comprehensions)
+
+(trying common venv first)
+
+==================================================
+(29/97) creating venv for benchmark (concurrent_imap)
+
+(trying common venv first)
+
+==================================================
+(30/97) creating venv for benchmark (coroutines)
+
+(trying common venv first)
+
+==================================================
+(31/97) creating venv for benchmark (coverage)
+
+(trying common venv first)
+
+==================================================
+(32/97) creating venv for benchmark (crypto_pyaes)
+
+(trying common venv first)
+
+==================================================
+(33/97) creating venv for benchmark (dask)
+
+(trying common venv first)
+
+==================================================
+(34/97) creating venv for benchmark (deepcopy)
+
+(trying common venv first)
+
+==================================================
+(35/97) creating venv for benchmark (deltablue)
+
+(trying common venv first)
+
+==================================================
+(36/97) creating venv for benchmark (django_template)
+
+(trying common venv first)
+
+==================================================
+(37/97) creating venv for benchmark (docutils)
+
+(trying common venv first)
+
+==================================================
+(38/97) creating venv for benchmark (dulwich_log)
+
+(trying common venv first)
+
+==================================================
+(39/97) creating venv for benchmark (fannkuch)
+
+(trying common venv first)
+
+==================================================
+(40/97) creating venv for benchmark (fastapi)
+
+(trying common venv first)
+
+==================================================
+(41/97) creating venv for benchmark (float)
+
+(trying common venv first)
+
+==================================================
+(42/97) creating venv for benchmark (gc_collect)
+
+(trying common venv first)
+
+==================================================
+(43/97) creating venv for benchmark (gc_traversal)
+
+(trying common venv first)
+
+==================================================
+(44/97) creating venv for benchmark (generators)
+
+(trying common venv first)
+
+==================================================
+(45/97) creating venv for benchmark (genshi)
+
+(trying common venv first)
+
+==================================================
+(46/97) creating venv for benchmark (go)
+
+(trying common venv first)
+
+==================================================
+(47/97) creating venv for benchmark (hexiom)
+
+(trying common venv first)
+
+==================================================
+(48/97) creating venv for benchmark (html5lib)
+
+(trying common venv first)
+
+==================================================
+(49/97) creating venv for benchmark (json_dumps)
+
+(trying common venv first)
+
+==================================================
+(50/97) creating venv for benchmark (json_loads)
+
+(trying common venv first)
+
+==================================================
+(51/97) creating venv for benchmark (logging)
+
+(trying common venv first)
+
+==================================================
+(52/97) creating venv for benchmark (mako)
+
+(trying common venv first)
+
+==================================================
+(53/97) creating venv for benchmark (mdp)
+
+(trying common venv first)
+
+==================================================
+(54/97) creating venv for benchmark (meteor_contest)
+
+(trying common venv first)
+
+==================================================
+(55/97) creating venv for benchmark (nbody)
+
+(trying common venv first)
+
+==================================================
+(56/97) creating venv for benchmark (networkx)
+
+(trying common venv first)
+
+==================================================
+(57/97) creating venv for benchmark (networkx_connected_components)
+
+(trying common venv first)
+
+==================================================
+(58/97) creating venv for benchmark (networkx_k_core)
+
+(trying common venv first)
+
+==================================================
+(59/97) creating venv for benchmark (nqueens)
+
+(trying common venv first)
+
+==================================================
+(60/97) creating venv for benchmark (pathlib)
+
+(trying common venv first)
+
+==================================================
+(61/97) creating venv for benchmark (pickle)
+
+(trying common venv first)
+
+==================================================
+(62/97) creating venv for benchmark (pickle_dict)
+
+(trying common venv first)
+
+==================================================
+(63/97) creating venv for benchmark (pickle_list)
+
+(trying common venv first)
+
+==================================================
+(64/97) creating venv for benchmark (pickle_pure_python)
+
+(trying common venv first)
+
+==================================================
+(65/97) creating venv for benchmark (pidigits)
+
+(trying common venv first)
+
+==================================================
+(66/97) creating venv for benchmark (pprint)
+
+(trying common venv first)
+
+==================================================
+(67/97) creating venv for benchmark (pyflate)
+
+(trying common venv first)
+
+==================================================
+(68/97) creating venv for benchmark (python_startup)
+
+(trying common venv first)
+
+==================================================
+(69/97) creating venv for benchmark (python_startup_no_site)
+
+(trying common venv first)
+
+==================================================
+(70/97) creating venv for benchmark (raytrace)
+
+(trying common venv first)
+
+==================================================
+(71/97) creating venv for benchmark (regex_compile)
+
+(trying common venv first)
+
+==================================================
+(72/97) creating venv for benchmark (regex_dna)
+
+(trying common venv first)
+
+==================================================
+(73/97) creating venv for benchmark (regex_effbot)
+
+(trying common venv first)
+
+==================================================
+(74/97) creating venv for benchmark (regex_v8)
+
+(trying common venv first)
+
+==================================================
+(75/97) creating venv for benchmark (richards)
+
+(trying common venv first)
+
+==================================================
+(76/97) creating venv for benchmark (richards_super)
+
+(trying common venv first)
+
+==================================================
+(77/97) creating venv for benchmark (scimark)
+
+(trying common venv first)
+
+==================================================
+(78/97) creating venv for benchmark (spectral_norm)
+
+(trying common venv first)
+
+==================================================
+(79/97) creating venv for benchmark (sphinx)
+
+(trying common venv first)
+
+==================================================
+(80/97) creating venv for benchmark (sqlalchemy_declarative)
+
+(trying common venv first)
+
+==================================================
+(81/97) creating venv for benchmark (sqlalchemy_imperative)
+
+(trying common venv first)
+
+==================================================
+(82/97) creating venv for benchmark (sqlglot_v2)
+
+(trying common venv first)
+
+==================================================
+(83/97) creating venv for benchmark (sqlglot_v2_optimize)
+
+(trying common venv first)
+
+==================================================
+(84/97) creating venv for benchmark (sqlglot_v2_parse)
+
+(trying common venv first)
+
+==================================================
+(85/97) creating venv for benchmark (sqlglot_v2_transpile)
+
+(trying common venv first)
+
+==================================================
+(86/97) creating venv for benchmark (sqlite_synth)
+
+(trying common venv first)
+
+==================================================
+(87/97) creating venv for benchmark (sympy)
+
+(trying common venv first)
+
+==================================================
+(88/97) creating venv for benchmark (telco)
+
+(trying common venv first)
+
+==================================================
+(89/97) creating venv for benchmark (tomli_loads)
+
+(trying common venv first)
+
+==================================================
+(90/97) creating venv for benchmark (tornado_http)
+
+(trying common venv first)
+
+==================================================
+(91/97) creating venv for benchmark (typing_runtime_protocols)
+
+(trying common venv first)
+
+==================================================
+(92/97) creating venv for benchmark (unpack_sequence)
+
+(trying common venv first)
+
+==================================================
+(93/97) creating venv for benchmark (unpickle)
+
+(trying common venv first)
+
+==================================================
+(94/97) creating venv for benchmark (unpickle_list)
+
+(trying common venv first)
+
+==================================================
+(95/97) creating venv for benchmark (unpickle_pure_python)
+
+(trying common venv first)
+
+==================================================
+(96/97) creating venv for benchmark (xdsl)
+
+(trying common venv first)
+
+==================================================
+(97/97) creating venv for benchmark (xml_etree)
+
+(trying common venv first)
+
+[ 1/97] 2to3...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+2to3: Mean +- std dev: 2.99 sec +- 0.03 sec
+[ 2/97] argparse...
+...........
+many_optionals: Mean +- std dev: 8.27 ms +- 0.09 ms
+[ 3/97] argparse_subparsers...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+subparsers: Mean +- std dev: 153 ms +- 2 ms
+[ 4/97] async_generators...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+async_generators: Mean +- std dev: 2.37 sec +- 0.03 sec
+[ 5/97] async_tree...
+Full-case timeout: async_tree exceeded 30 seconds
+ERROR: Benchmark async_tree timed out
+[ 6/97] async_tree_cpu_io_mixed...
+Full-case timeout: async_tree_cpu_io_mixed exceeded 30 seconds
+ERROR: Benchmark async_tree_cpu_io_mixed timed out
+[ 7/97] async_tree_cpu_io_mixed_tg...
+Full-case timeout: async_tree_cpu_io_mixed_tg exceeded 30 seconds
+ERROR: Benchmark async_tree_cpu_io_mixed_tg timed out
+[ 8/97] async_tree_eager...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+async_tree_eager: Mean +- std dev: 3.11 sec +- 0.10 sec
+[ 9/97] async_tree_eager_cpu_io_mixed...
+Full-case timeout: async_tree_eager_cpu_io_mixed exceeded 30 seconds
+ERROR: Benchmark async_tree_eager_cpu_io_mixed timed out
+[10/97] async_tree_eager_cpu_io_mixed_tg...
+Full-case timeout: async_tree_eager_cpu_io_mixed_tg exceeded 30 seconds
+ERROR: Benchmark async_tree_eager_cpu_io_mixed_tg timed out
+[11/97] async_tree_eager_io...
+Full-case timeout: async_tree_eager_io exceeded 30 seconds
+ERROR: Benchmark async_tree_eager_io timed out
+[12/97] async_tree_eager_io_tg...
+Full-case timeout: async_tree_eager_io_tg exceeded 30 seconds
+ERROR: Benchmark async_tree_eager_io_tg timed out
+[13/97] async_tree_eager_memoization...
+Full-case timeout: async_tree_eager_memoization exceeded 30 seconds
+ERROR: Benchmark async_tree_eager_memoization timed out
+[14/97] async_tree_eager_memoization_tg...
+Full-case timeout: async_tree_eager_memoization_tg exceeded 30 seconds
+ERROR: Benchmark async_tree_eager_memoization_tg timed out
+[15/97] async_tree_eager_tg...
+Full-case timeout: async_tree_eager_tg exceeded 30 seconds
+ERROR: Benchmark async_tree_eager_tg timed out
+[16/97] async_tree_io...
+Full-case timeout: async_tree_io exceeded 30 seconds
+ERROR: Benchmark async_tree_io timed out
+[17/97] async_tree_io_tg...
+Full-case timeout: async_tree_io_tg exceeded 30 seconds
+ERROR: Benchmark async_tree_io_tg timed out
+[18/97] async_tree_memoization...
+Full-case timeout: async_tree_memoization exceeded 30 seconds
+ERROR: Benchmark async_tree_memoization timed out
+[19/97] async_tree_memoization_tg...
+Full-case timeout: async_tree_memoization_tg exceeded 30 seconds
+ERROR: Benchmark async_tree_memoization_tg timed out
+[20/97] async_tree_tg...
+Full-case timeout: async_tree_tg exceeded 30 seconds
+ERROR: Benchmark async_tree_tg timed out
+[21/97] asyncio_tcp...
+..........Full-case timeout: asyncio_tcp exceeded 120 seconds
+ERROR: Benchmark asyncio_tcp timed out
+[22/97] asyncio_tcp_ssl...
+....Full-case timeout: asyncio_tcp_ssl exceeded 120 seconds
+ERROR: Benchmark asyncio_tcp_ssl timed out
+[23/97] asyncio_websockets...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+asyncio_websockets: Mean +- std dev: 483 ms +- 5 ms
+[24/97] base64...
+...Full-case timeout: base64 exceeded 120 seconds
+ERROR: Benchmark base64 timed out
+[25/97] bpe_tokeniser...
+Full-case timeout: bpe_tokeniser exceeded 120 seconds
+ERROR: Benchmark bpe_tokeniser timed out
+[26/97] chameleon...
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\data-files\benchmarks\bm_chameleon\run_benchmark.py", line 35, in <module>
+    main()
+    ~~~~^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\data-files\benchmarks\bm_chameleon\run_benchmark.py", line 25, in main
+    tmpl = PageTemplate(BIGTABLE_ZPT)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\zpt\template.py", line 249, in __init__
+    super().__init__(body, **config)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\template.py", line 175, in __init__
+    self.write(body)
+    ~~~~~~~~~~^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\template.py", line 293, in write
+    self.cook(body)
+    ~~~~~~~~~^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\template.py", line 211, in cook
+    program = self._cook(body, digest, names)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\template.py", line 308, in _cook
+    source = self._compile(body, builtins)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\template.py", line 342, in _compile
+    program = self.parse(body)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\zpt\template.py", line 282, in parse
+    return MacroProgram(  # type: ignore[no-untyped-call]
+        body, self.mode, self.filename,
+    ...<9 lines>...
+        tokenizer=self.tokenizer
+    )
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\zpt\program.py", line 157, in __init__
+    super().__init__(*args, **kwargs)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\program.py", line 36, in __init__
+    node = self.visit(kind, args)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\program.py", line 42, in visit
+    return visitor(*args)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\zpt\program.py", line 303, in visit_element
+    STATIC_ATTRIBUTES = self._create_static_attributes(prepared)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\zpt\program.py", line 888, in _create_static_attributes
+    return Static(parse(repr(static_attrs)).body)
+                  ~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\astutil.py", line 26, in parse
+    return compile(source, '', mode, ast.PyCF_ONLY_AST)
+SyntaxError: line 1, column 13: expected '}' after dict literal
+Traceback (most recent call last):
+ERROR: Benchmark chameleon failed: Benchmark died
+[27/97] chaos...
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\run.py", line 171, in run_benchmarks
+    result = bench.run(
+        bench_venv.python,
+    ...<3 lines>...
+        verbose=options.verbose,
+    )
+  File "D:\CantorAI\xlang3\benchmarks\diagnostics\run_pyperformance_xlang3_shimmed.py", line 145, in run_named_benchmark
+    return original_benchmark_run(benchmark, *positional, **keywords)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\_benchmark.py", line 193, in run
+    bench = _run_perf_script(
+        python,
+    ...<4 lines>...
+        verbose=verbose,
+    )
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\_benchmark.py", line 250, in _run_perf_script
+    raise RuntimeError("Benchmark died")
+RuntimeError: Benchmark died
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+chaos: Mean +- std dev: 426 ms +- 5 ms
+[28/97] comprehensions...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+comprehensions: Mean +- std dev: 179 us +- 2 us
+[29/97] concurrent_imap...
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+    from multiprocessing.spawn import spawn_main; spawn_main(parent_pid=12216, pipe_handle=544)
+                                                  ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python\Python314\Lib\multiprocessing\spawn.py", line 122, in spawn_main
+    exitcode = _main(fd, parent_sentinel)
+  File "C:\Python\Python314\Lib\multiprocessing\spawn.py", line 127, in _main
+    with os.fdopen(fd, 'rb', closefd=True) as from_parent:
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<7 lines>...
+    return self._bootstrap(parent_sentinel)
+    
+  File "C:\Python\Python314\Lib\multiprocessing\spawn.py", line 132, in _main
+    self = reduction.pickle.load(from_parent)
+  File "C:\Python\Python314\Lib\pickle.py", line 1875, in _load
+    return _Unpickler(file, fix_imports=fix_imports, buffers=buffers,
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                     encoding=encoding, errors=errors).load()
+                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python\Python314\Lib\pickle.py", line 1318, in load
+    raise EOFError
+EOFError
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\data-files\benchmarks\bm_concurrent_imap\run_benchmark.py", line 31, in <module>
+    runner.bench_func("bench_mp_pool", bench_mp_pool, num_core, count, chunk)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 545, in bench_func
+    result = self._main(task)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 463, in _main
+    bench = self._worker(task)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 437, in _worker
+    run = task.create_run()
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 300, in create_run
+    self.compute()
+    ~~~~~~~~~~~~^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 364, in compute
+    WorkerTask.compute(self)
+    ~~~~~~~~~~~~~~~~~~^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 287, in compute
+    self.calibrate_loops()
+    ~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 250, in calibrate_loops
+    self._compute_values(self.warmups, nvalue,
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+                         is_warmup=True,
+                         ^^^^^^^^^^^^^^^
+                         calibrate_loops=True)
+                         ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 76, in _compute_values
+    with contextlib.ExitStack() as stack:
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    raw_value = float(raw_value)
+    
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 79, in _compute_values
+    raw_value = task_func(self, self.loops)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 538, in task_func
+    local_func()
+    ~~~~~~~~~~^^
+  File "C:\Python\Python314\Lib\functools.py", line 393, in __call__
+    return self.func(*pto_args, *args, **keywords)
+           ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\data-files\benchmarks\bm_concurrent_imap\run_benchmark.py", line 14, in bench_mp_pool
+    with Pool(p) as pool:
+         ~~~~^^^
+  File "C:\Python\Python314\Lib\multiprocessing\pool.py", line 215, in __init__
+    self._repopulate_pool()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python\Python314\Lib\multiprocessing\pool.py", line 306, in _repopulate_pool
+    return self._repopulate_pool_static(self._ctx, self.Process,
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+                                        self._processes,
+                                        ^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+                                        self._maxtasksperchild,
+                                        ^^^^^^^^^^^^^^^^^^^^^^^
+                                        self._wrap_exception)
+                                        ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python\Python314\Lib\multiprocessing\pool.py", line 329, in _repopulate_pool_static
+    w.start()
+    ~~~~~~~^^
+  File "C:\Python\Python314\Lib\multiprocessing\process.py", line 121, in start
+    self._popen = self._Popen(self)
+                  ~~~~~~~~~~~^^^^^^
+  File "C:\Python\Python314\Lib\multiprocessing\context.py", line 343, in _Popen
+    return Popen(process_obj)
+  File "C:\Python\Python314\Lib\multiprocessing\popen_spawn_win32.py", line 73, in __init__
+        with open(wfd, 'wb', closefd=True) as to_child:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<27 lines>...
+    def duplicate_for_child(self, handle):
+    ^^^^
+  File "C:\Python\Python314\Lib\multiprocessing\popen_spawn_win32.py", line 97, in __init__
+    reduction.dump(process_obj, to_child)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python\Python314\Lib\multiprocessing\reduction.py", line 60, in dump
+    ForkingPickler(file, protocol).dump(obj)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Python\Python314\Lib\pickle.py", line 498, in dump
+    self.save(obj)
+    ~~~~~~~~~^^^^^
+  File "C:\Python\Python314\Lib\pickle.py", line 615, in save
+    self.save_reduce(obj=obj, *rv)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "C:\Python\Python314\Lib\pickle.py", line 761, in save_reduce
+    save(state)
+    ~~~~^^^^^^^
+  File "C:\Python\Python314\Lib\pickle.py", line 572, in save
+    f(self, obj)  # Call unbound method with explicit self
+    ~^^^^^^^^^^^
+  File "C:\Python\Python314\Lib\pickle.py", line 1058, in save_dict
+    self._batch_setitems(obj.items(), obj)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "C:\Python\Python314\Lib\pickle.py", line 1084, in _batch_setitems
+    save(v)
+    ~~~~^^^
+  File "C:\Python\Python314\Lib\pickle.py", line 572, in save
+    f(self, obj)  # Call unbound method with explicit self
+    ~^^^^^^^^^^^
+  File "C:\Python\Python314\Lib\pickle.py", line 976, in save_tuple
+    save(element)
+    ~~~~^^^^^^^^^
+  File "C:\Python\Python314\Lib\pickle.py", line 615, in save
+    self.save_reduce(obj=obj, *rv)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "C:\Python\Python314\Lib\pickle.py", line 761, in save_reduce
+    save(state)
+    ~~~~^^^^^^^
+  File "C:\Python\Python314\Lib\pickle.py", line 572, in save
+    f(self, obj)  # Call unbound method with explicit self
+    ~^^^^^^^^^^^
+  File "C:\Python\Python314\Lib\pickle.py", line 976, in save_tuple
+    save(element)
+    ~~~~^^^^^^^^^
+  File "C:\Python\Python314\Lib\pickle.py", line 590, in save
+    rv = reduce(self.proto)
+  File "C:\Python\Python314\Lib\multiprocessing\synchronize.py", line 106, in __getstate__
+    h = context.get_spawning_popen().duplicate_for_child(sl.handle)
+  File "C:\Python\Python314\Lib\multiprocessing\popen_spawn_win32.py", line 103, in duplicate_for_child
+    return reduction.duplicate(handle, self.sentinel)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python\Python314\Lib\multiprocessing\reduction.py", line 79, in duplicate
+    return _winapi.DuplicateHandle(
+           ~~~~~~~~~~~~~~~~~~~~~~~^
+        source_process, handle, target_process,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        0, inheritable, _winapi.DUPLICATE_SAME_ACCESS)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+OSError: DuplicateHandle failed with Win32 error 6
+when serializing tuple item 2
+when serializing multiprocessing.queues.SimpleQueue state
+when serializing multiprocessing.queues.SimpleQueue object
+when serializing tuple item 0
+when serializing dict item '_args'
+when serializing multiprocessing.context.SpawnProcess state
+when serializing multiprocessing.context.SpawnProcess object
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\data-files\benchmarks\bm_concurrent_imap\run_benchmark.py", line 31, in <module>
+    runner.bench_func("bench_mp_pool", bench_mp_pool, num_core, count, chunk)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 545, in bench_func
+    result = self._main(task)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 468, in _main
+    bench = self._manager()
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 681, in _manager
+    bench = Manager(self).create_bench()
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_manager.py", line 243, in create_bench
+    worker_bench, run = self.create_worker_bench()
+                        ~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_manager.py", line 142, in create_worker_bench
+    suite = self.create_suite()
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_manager.py", line 132, in create_suite
+    suite = self.spawn_worker(self.calibrate_loops, 0)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_manager.py", line 118, in spawn_worker
+    raise RuntimeError("%s failed with exit code %s"
+                       % (cmd[0], exitcode))
+RuntimeError: D:\CantorAI\xlang3\build-repro\Release\xlang3.exe failed with exit code 1
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\run.py", line 171, in run_benchmarks
+    result = bench.run(
+        bench_venv.python,
+    ...<3 lines>...
+        verbose=options.verbose,
+    )
+  File "D:\CantorAI\xlang3\benchmarks\diagnostics\run_pyperformance_xlang3_shimmed.py", line 145, in run_named_benchmark
+    return original_benchmark_run(benchmark, *positional, **keywords)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\_benchmark.py", line 193, in run
+    bench = _run_perf_script(
+        python,
+    ...<4 lines>...
+        verbose=verbose,
+    )
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\_benchmark.py", line 250, in _run_perf_script
+    raise RuntimeError("Benchmark died")
+RuntimeError: Benchmark died
+ERROR: Benchmark concurrent_imap failed: Benchmark died
+[30/97] coroutines...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+coroutines: Mean +- std dev: 145 ms +- 2 ms
+[31/97] coverage...
+TypeError: print_exception(): Exception expected for value, object found
+D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\coverage\pytracer.py:320: CoverageWarning: Trace function changed, data is likely wrong: None != <bound method> (trace-changed)
+  self.warn(
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\data-files\benchmarks\bm_coverage\run_benchmark.py", line 29, in <module>
+    runner.bench_time_func('coverage', bench_coverage)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 502, in bench_time_func
+    result = self._main(task)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 468, in _main
+    bench = self._manager()
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 681, in _manager
+    bench = Manager(self).create_bench()
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_manager.py", line 243, in create_bench
+    worker_bench, run = self.create_worker_bench()
+                        ~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_manager.py", line 142, in create_worker_bench
+    suite = self.create_suite()
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_manager.py", line 132, in create_suite
+    suite = self.spawn_worker(self.calibrate_loops, 0)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_manager.py", line 118, in spawn_worker
+    raise RuntimeError("%s failed with exit code %s"
+                       % (cmd[0], exitcode))
+RuntimeError: D:\CantorAI\xlang3\build-repro\Release\xlang3.exe failed with exit code 1
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\run.py", line 171, in run_benchmarks
+    result = bench.run(
+        bench_venv.python,
+    ...<3 lines>...
+        verbose=options.verbose,
+    )
+ERROR: Benchmark coverage failed: Benchmark died
+[32/97] crypto_pyaes...
+  File "D:\CantorAI\xlang3\benchmarks\diagnostics\run_pyperformance_xlang3_shimmed.py", line 145, in run_named_benchmark
+    return original_benchmark_run(benchmark, *positional, **keywords)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\_benchmark.py", line 193, in run
+    bench = _run_perf_script(
+        python,
+    ...<4 lines>...
+        verbose=verbose,
+    )
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\_benchmark.py", line 250, in _run_perf_script
+    raise RuntimeError("Benchmark died")
+RuntimeError: Benchmark died
+...........
+crypto_pyaes: Mean +- std dev: 333 ms +- 1 ms
+[33/97] dask...
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\data-files\benchmarks\bm_dask\run_benchmark.py", line 7, in <module>
+    from dask.distributed import Client, Worker, Scheduler, wait
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\dask\distributed.py", line 13, in <module>
+    from distributed import *
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\distributed\__init__.py", line 23, in <module>
+    from distributed.actor import Actor, ActorFuture, BaseActorFuture
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\distributed\actor.py", line 11, in <module>
+    from tornado.ioloop import IOLoop
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\tornado\ioloop.py", line 39, in <module>
+    from tornado.concurrent import (
+    ...<5 lines>...
+    )
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\tornado\concurrent.py", line 34, in <module>
+    from tornado.log import app_log
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\tornado\log.py", line 34, in <module>
+    from tornado.escape import _unicode
+ImportError: parse error importing module 'tornado.escape': line 294: unterminated string
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\run.py", line 171, in run_benchmarks
+    result = bench.run(
+        bench_venv.python,
+    ...<3 lines>...
+        verbose=options.verbose,
+    )
+  File "D:\CantorAI\xlang3\benchmarks\diagnostics\run_pyperformance_xlang3_shimmed.py", line 145, in run_named_benchmark
+    return original_benchmark_run(benchmark, *positional, **keywords)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\_benchmark.py", line 193, in run
+    bench = _run_perf_script(
+        python,
+    ...<4 lines>...
+        verbose=verbose,
+    )
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\_benchmark.py", line 250, in _run_perf_script
+    raise RuntimeError("Benchmark died")
+RuntimeError: Benchmark died
+ERROR: Benchmark dask failed: Benchmark died
+[34/97] deepcopy...
+...........
+deepcopy: Mean +- std dev: 2.75 ms +- 0.02 ms
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+deepcopy_reduce: Mean +- std dev: 29.1 us +- 0.3 us
+...........
+deepcopy_memo: Mean +- std dev: 305 us +- 2 us
+[35/97] deltablue...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+deltablue: Mean +- std dev: 35.9 ms +- 0.4 ms
+[36/97] django_template...
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\data-files\benchmarks\bm_django_template\run_benchmark.py", line 8, in <module>
+    import django.conf
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\django\__init__.py", line 1, in <module>
+    from django.utils.version import get_version
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\django\utils\version.py", line 6, in <module>
+    from distutils.version import LooseVersion
+ModuleNotFoundError: No module named 'distutils'
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\run.py", line 171, in run_benchmarks
+    result = bench.run(
+        bench_venv.python,
+    ...<3 lines>...
+        verbose=options.verbose,
+    )
+  File "D:\CantorAI\xlang3\benchmarks\diagnostics\run_pyperformance_xlang3_shimmed.py", line 145, in run_named_benchmark
+    return original_benchmark_run(benchmark, *positional, **keywords)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\_benchmark.py", line 193, in run
+    bench = _run_perf_script(
+        python,
+    ...<4 lines>...
+        verbose=verbose,
+    )
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\_benchmark.py", line 250, in _run_perf_script
+    raise RuntimeError("Benchmark died")
+RuntimeError: Benchmark died
+ERROR: Benchmark django_template failed: Benchmark died
+[37/97] docutils...
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\data-files\benchmarks\bm_docutils\run_benchmark.py", line 9, in <module>
+    from docutils import core
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\docutils\core.py", line 21, in <module>
+    from docutils import frontend, io, utils, readers, writers
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\docutils\readers\__init__.py", line 15, in <module>
+    from docutils.transforms import universal
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\docutils\transforms\universal.py", line 29, in <module>
+    from docutils.utils import smartquotes
+ImportError: parse error importing module 'docutils.utils.smartquotes': line 641: unterminated string
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\run.py", line 171, in run_benchmarks
+    result = bench.run(
+        bench_venv.python,
+    ...<3 lines>...
+        verbose=options.verbose,
+    )
+ERROR: Benchmark docutils failed: Benchmark died
+[38/97] dulwich_log...
+  File "D:\CantorAI\xlang3\benchmarks\diagnostics\run_pyperformance_xlang3_shimmed.py", line 145, in run_named_benchmark
+    return original_benchmark_run(benchmark, *positional, **keywords)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\_benchmark.py", line 193, in run
+    bench = _run_perf_script(
+        python,
+    ...<4 lines>...
+        verbose=verbose,
+    )
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\_benchmark.py", line 250, in _run_perf_script
+    raise RuntimeError("Benchmark died")
+RuntimeError: Benchmark died
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\data-files\benchmarks\bm_dulwich_log\run_benchmark.py", line 27, in <module>
+    runner.bench_func('dulwich_log', iter_all_commits, repo)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 545, in bench_func
+    result = self._main(task)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 463, in _main
+    bench = self._worker(task)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 437, in _worker
+    run = task.create_run()
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 300, in create_run
+    self.compute()
+    ~~~~~~~~~~~~^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 364, in compute
+    WorkerTask.compute(self)
+    ~~~~~~~~~~~~~~~~~~^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 287, in compute
+    self.calibrate_loops()
+    ~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 250, in calibrate_loops
+    self._compute_values(self.warmups, nvalue,
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+                         is_warmup=True,
+                         ^^^^^^^^^^^^^^^
+                         calibrate_loops=True)
+                         ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 76, in _compute_values
+    with contextlib.ExitStack() as stack:
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    raw_value = float(raw_value)
+    
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 79, in _compute_values
+    raw_value = task_func(self, self.loops)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 538, in task_func
+    local_func()
+    ~~~~~~~~~~^^
+  File "C:\Python\Python314\Lib\functools.py", line 393, in __call__
+    return self.func(*pto_args, *args, **keywords)
+           ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\data-files\benchmarks\bm_dulwich_log\run_benchmark.py", line 14, in iter_all_commits
+    for entry in repo.get_walker(head):
+                 ~~~~~~~~~~~~~~~^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\dulwich\repo.py", line 757, in get_walker
+    return Walker(self.object_store, include, *args, **kwargs)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\dulwich\walk.py", line 305, in __init__
+    self._queue = queue_cls(self)
+                  ~~~~~~~~~^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\dulwich\walk.py", line 146, in __init__
+    self._push(commit_id)
+    ~~~~~~~~~~^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\dulwich\walk.py", line 150, in _push
+    obj = self._store[object_id]
+          ~~~~~~~~~~~^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\dulwich\object_store.py", line 133, in __getitem__
+    type_num, uncomp = self.get_raw(sha)
+                       ~~~~~~~~~~~~^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\dulwich\object_store.py", line 571, in get_raw
+    return pack.get_raw(sha)
+           ~~~~~~~~~~~~^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\dulwich\pack.py", line 2097, in get_raw
+    offset = self.index.object_index(sha1)
+             ^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\dulwich\pack.py", line 2018, in index
+    self._idx = self._idx_load()
+                ~~~~~~~~~~~~~~^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\dulwich\pack.py", line 1974, in <lambda>
+    self._idx_load = lambda: load_pack_index(self._idx_path)
+                             ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\dulwich\pack.py", line 280, in load_pack_index
+        with GitFile(path, "rb") as f:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+    def _load_file_contents(f, size=None):
+    ^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\dulwich\pack.py", line 281, in load_pack_index
+    return load_pack_index_file(path, f)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\dulwich\pack.py", line 315, in load_pack_index_file
+    if contents[:4] == b"\377tOc":
+       ~~~~~~~~^^^^
+TypeError: object is not subscriptable
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\data-files\benchmarks\bm_dulwich_log\run_benchmark.py", line 27, in <module>
+    runner.bench_func('dulwich_log', iter_all_commits, repo)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 545, in bench_func
+    result = self._main(task)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 468, in _main
+    bench = self._manager()
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 681, in _manager
+    bench = Manager(self).create_bench()
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_manager.py", line 243, in create_bench
+    worker_bench, run = self.create_worker_bench()
+                        ~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_manager.py", line 142, in create_worker_bench
+    suite = self.create_suite()
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_manager.py", line 132, in create_suite
+    suite = self.spawn_worker(self.calibrate_loops, 0)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_manager.py", line 118, in spawn_worker
+    raise RuntimeError("%s failed with exit code %s"
+                       % (cmd[0], exitcode))
+RuntimeError: D:\CantorAI\xlang3\build-repro\Release\xlang3.exe failed with exit code 1
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\run.py", line 171, in run_benchmarks
+    result = bench.run(
+        bench_venv.python,
+    ...<3 lines>...
+        verbose=options.verbose,
+    )
+  File "D:\CantorAI\xlang3\benchmarks\diagnostics\run_pyperformance_xlang3_shimmed.py", line 145, in run_named_benchmark
+    return original_benchmark_run(benchmark, *positional, **keywords)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\_benchmark.py", line 193, in run
+    bench = _run_perf_script(
+        python,
+    ...<4 lines>...
+        verbose=verbose,
+    )
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\_benchmark.py", line 250, in _run_perf_script
+    raise RuntimeError("Benchmark died")
+ERROR: Benchmark dulwich_log failed: Benchmark died
+[39/97] fannkuch...
+RuntimeError: Benchmark died
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+fannkuch: Mean +- std dev: 276 ms +- 3 ms
+[40/97] fastapi...
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\data-files\benchmarks\bm_fastapi\run_benchmark.py", line 18, in <module>
+    import httpx
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\httpx\__init__.py", line 15, in <module>
+    from ._main import main
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\httpx\_main.py", line 8, in <module>
+    import click
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\click\__init__.py", line 10, in <module>
+    from .core import Argument as Argument
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\click\core.py", line 23, in <module>
+    from . import types
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\click\types.py", line 15, in <module>
+    from ._compat import _get_argv_encoding
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\click\_compat.py", line 518, in <module>
+    from ._winconsole import _get_windows_console_stream
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\click\_winconsole.py", line 54, in <module>
+    STDIN_HANDLE = GetStdHandle(-10)
+NotImplementedError: libffi is unavailable for ctypes
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\run.py", line 171, in run_benchmarks
+    result = bench.run(
+        bench_venv.python,
+    ...<3 lines>...
+        verbose=options.verbose,
+    )
+  File "D:\CantorAI\xlang3\benchmarks\diagnostics\run_pyperformance_xlang3_shimmed.py", line 145, in run_named_benchmark
+    return original_benchmark_run(benchmark, *positional, **keywords)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\_benchmark.py", line 193, in run
+    bench = _run_perf_script(
+        python,
+    ...<4 lines>...
+        verbose=verbose,
+    )
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\_benchmark.py", line 250, in _run_perf_script
+    raise RuntimeError("Benchmark died")
+RuntimeError: Benchmark died
+ERROR: Benchmark fastapi failed: Benchmark died
+[41/97] float...
+...........
+float: Mean +- std dev: 73.2 ms +- 0.7 ms
+[42/97] gc_collect...
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\data-files\benchmarks\bm_gc_collect\run_benchmark.py", line 64, in <module>
+    runner.bench_time_func("create_gc_cycles", benchamark_collection, CYCLES, LINKS)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 502, in bench_time_func
+    result = self._main(task)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 463, in _main
+    bench = self._worker(task)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 437, in _worker
+    run = task.create_run()
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 300, in create_run
+    self.compute()
+    ~~~~~~~~~~~~^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 364, in compute
+    WorkerTask.compute(self)
+    ~~~~~~~~~~~~~~~~~~^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 287, in compute
+    self.calibrate_loops()
+    ~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 250, in calibrate_loops
+    self._compute_values(self.warmups, nvalue,
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+                         is_warmup=True,
+                         ^^^^^^^^^^^^^^^
+                         calibrate_loops=True)
+                         ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 76, in _compute_values
+    with contextlib.ExitStack() as stack:
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    raw_value = float(raw_value)
+    
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 79, in _compute_values
+    raw_value = task_func(self, self.loops)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 497, in task_func
+    return time_func(loops, *args)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\data-files\benchmarks\bm_gc_collect\run_benchmark.py", line 56, in benchamark_collection
+    assert collected is None or collected >= cycles * (links + 1)
+AssertionError
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\data-files\benchmarks\bm_gc_collect\run_benchmark.py", line 64, in <module>
+    runner.bench_time_func("create_gc_cycles", benchamark_collection, CYCLES, LINKS)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 502, in bench_time_func
+    result = self._main(task)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 468, in _main
+    bench = self._manager()
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 681, in _manager
+    bench = Manager(self).create_bench()
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_manager.py", line 243, in create_bench
+    worker_bench, run = self.create_worker_bench()
+                        ~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_manager.py", line 142, in create_worker_bench
+    suite = self.create_suite()
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_manager.py", line 132, in create_suite
+    suite = self.spawn_worker(self.calibrate_loops, 0)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_manager.py", line 118, in spawn_worker
+    raise RuntimeError("%s failed with exit code %s"
+                       % (cmd[0], exitcode))
+RuntimeError: D:\CantorAI\xlang3\build-repro\Release\xlang3.exe failed with exit code 1
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\run.py", line 171, in run_benchmarks
+    result = bench.run(
+        bench_venv.python,
+    ...<3 lines>...
+        verbose=options.verbose,
+    )
+  File "D:\CantorAI\xlang3\benchmarks\diagnostics\run_pyperformance_xlang3_shimmed.py", line 145, in run_named_benchmark
+    return original_benchmark_run(benchmark, *positional, **keywords)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\_benchmark.py", line 193, in run
+    bench = _run_perf_script(
+        python,
+    ...<4 lines>...
+        verbose=verbose,
+    )
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\_benchmark.py", line 250, in _run_perf_script
+    raise RuntimeError("Benchmark died")
+RuntimeError: Benchmark died
+ERROR: Benchmark gc_collect failed: Benchmark died
+[43/97] gc_traversal...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+gc_traversal: Mean +- std dev: 1.21 ms +- 0.01 ms
+[44/97] generators...
+...........
+generators: Mean +- std dev: 338 ms +- 3 ms
+[45/97] genshi...
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\data-files\benchmarks\bm_genshi\run_benchmark.py", line 67, in <module>
+    runner.bench_time_func(name, bench_genshi, tmpl_cls, tmpl_str)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 502, in bench_time_func
+    result = self._main(task)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 463, in _main
+    bench = self._worker(task)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 437, in _worker
+    run = task.create_run()
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 300, in create_run
+    self.compute()
+    ~~~~~~~~~~~~^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 364, in compute
+    WorkerTask.compute(self)
+    ~~~~~~~~~~~~~~~~~~^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 287, in compute
+    self.calibrate_loops()
+    ~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 250, in calibrate_loops
+    self._compute_values(self.warmups, nvalue,
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+                         is_warmup=True,
+                         ^^^^^^^^^^^^^^^
+                         calibrate_loops=True)
+                         ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 76, in _compute_values
+    with contextlib.ExitStack() as stack:
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    raw_value = float(raw_value)
+    
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 79, in _compute_values
+    raw_value = task_func(self, self.loops)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 497, in task_func
+    return time_func(loops, *args)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\data-files\benchmarks\bm_genshi\run_benchmark.py", line 36, in bench_genshi
+    stream.render()
+    ~~~~~~~~~~~~~^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\genshi\core.py", line 184, in render
+    return encode(generator, method=method, encoding=encoding, out=out)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\genshi\output.py", line 59, in encode
+    return _encode(''.join(list(iterator)))
+                           ~~~~^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\genshi\output.py", line 581, in __call__
+            for event in stream:
+            ^^^^^^^^^^^^^^^^^^^^
+    ...<7 lines>...
+    class EmptyTagFilter(object):
+    ^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\genshi\core.py", line 292, in _ensure
+        for event in stream:
+        ^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+    class Attrs(tuple):
+    ^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\genshi\template\base.py", line 641, in _include
+            for event in stream:
+            ^^^^^^^^^^^^^^^^^^^^
+    ...<25 lines>...
+    EXEC = Template.EXEC
+    ^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\genshi\template\base.py", line 581, in _flatten
+            for kind, data, pos in stream:
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<53 lines>...
+    def _include(self, stream, ctxt, **vars):
+    ^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\genshi\template\directives.py", line 369, in __call__
+    iterable = _eval_expr(self.expr, ctxt, vars)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\genshi\template\base.py", line 290, in _eval_expr
+    retval = expr.evaluate(ctxt)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\genshi\template\eval.py", line 160, in evaluate
+    return eval(self.code, _globals, {'__data__': data})
+  File "<string>", line 1, in <module>
+TypeError: iter() expected 1 or 2 arguments
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\data-files\benchmarks\bm_genshi\run_benchmark.py", line 67, in <module>
+    runner.bench_time_func(name, bench_genshi, tmpl_cls, tmpl_str)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 502, in bench_time_func
+    result = self._main(task)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 468, in _main
+    bench = self._manager()
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 681, in _manager
+    bench = Manager(self).create_bench()
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_manager.py", line 243, in create_bench
+    worker_bench, run = self.create_worker_bench()
+                        ~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_manager.py", line 142, in create_worker_bench
+    suite = self.create_suite()
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_manager.py", line 132, in create_suite
+    suite = self.spawn_worker(self.calibrate_loops, 0)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_manager.py", line 118, in spawn_worker
+    raise RuntimeError("%s failed with exit code %s"
+                       % (cmd[0], exitcode))
+RuntimeError: D:\CantorAI\xlang3\build-repro\Release\xlang3.exe failed with exit code 1
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\run.py", line 171, in run_benchmarks
+    result = bench.run(
+        bench_venv.python,
+    ...<3 lines>...
+        verbose=options.verbose,
+    )
+  File "D:\CantorAI\xlang3\benchmarks\diagnostics\run_pyperformance_xlang3_shimmed.py", line 145, in run_named_benchmark
+    return original_benchmark_run(benchmark, *positional, **keywords)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\_benchmark.py", line 193, in run
+    bench = _run_perf_script(
+        python,
+    ...<4 lines>...
+        verbose=verbose,
+    )
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\_benchmark.py", line 250, in _run_perf_script
+    raise RuntimeError("Benchmark died")
+RuntimeError: Benchmark died
+ERROR: Benchmark genshi failed: Benchmark died
+[46/97] go...
+...........
+go: Mean +- std dev: 852 ms +- 6 ms
+[47/97] hexiom...
+...........
+hexiom: Mean +- std dev: 60.0 ms +- 0.4 ms
+[48/97] html5lib...
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\html5lib\html5parser.py", line 133, in _parse
+    self.mainLoop()
+    ~~~~~~~~~~~~~^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\html5lib\html5parser.py", line 240, in mainLoop
+    new_token = phase.processStartTag(new_token)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\html5lib\html5parser.py", line 469, in processStartTag
+    return func(token)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\html5lib\html5parser.py", line 741, in startTagMeta
+    self.parser.tokenizer.stream.changeEncoding(attributes["charset"])
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\html5lib\_inputstream.py", line 527, in changeEncoding
+    raise _ReparseException("Encoding changed from %s to %s" % (self.charEncoding[0], newEncoding))
+html5lib.constants._ReparseException: Encoding changed from <Encoding utf-8> to <Encoding utf-8>
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\data-files\benchmarks\bm_html5lib\run_benchmark.py", line 33, in <module>
+    runner.bench_func('html5lib', bench_html5lib, html_file)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 545, in bench_func
+    result = self._main(task)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 463, in _main
+    bench = self._worker(task)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 437, in _worker
+    run = task.create_run()
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 300, in create_run
+    self.compute()
+    ~~~~~~~~~~~~^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 364, in compute
+    WorkerTask.compute(self)
+    ~~~~~~~~~~~~~~~~~~^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 287, in compute
+    self.calibrate_loops()
+    ~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 250, in calibrate_loops
+    self._compute_values(self.warmups, nvalue,
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+                         is_warmup=True,
+                         ^^^^^^^^^^^^^^^
+                         calibrate_loops=True)
+                         ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 76, in _compute_values
+    with contextlib.ExitStack() as stack:
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    raw_value = float(raw_value)
+    
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 79, in _compute_values
+    raw_value = task_func(self, self.loops)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 538, in task_func
+    local_func()
+    ~~~~~~~~~~^^
+  File "C:\Python\Python314\Lib\functools.py", line 393, in __call__
+    return self.func(*pto_args, *args, **keywords)
+           ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\data-files\benchmarks\bm_html5lib\run_benchmark.py", line 18, in bench_html5lib
+    html5lib.parse(html_file)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\html5lib\html5parser.py", line 46, in parse
+    return p.parse(doc, **kwargs)
+           ~~~~~~~^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\html5lib\html5parser.py", line 284, in parse
+    self._parse(stream, False, None, *args, **kwargs)
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\html5lib\html5parser.py", line 136, in _parse
+    self.mainLoop()
+    ~~~~~~~~~~~~~^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\html5lib\html5parser.py", line 240, in mainLoop
+    new_token = phase.processStartTag(new_token)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\html5lib\html5parser.py", line 469, in processStartTag
+    return func(token)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\html5lib\html5parser.py", line 1109, in startTagA
+    self.addFormattingElement(token)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\html5lib\html5parser.py", line 971, in addFormattingElement
+    self.tree.activeFormattingElements.append(element)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\html5lib\treebuilders\base.py", line 134, in append
+    list.append(self, node)
+    ~~~~~~~~~~~^^^^^^^^^^^^
+RuntimeError: list.append expected 1 argument
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\data-files\benchmarks\bm_html5lib\run_benchmark.py", line 33, in <module>
+    runner.bench_func('html5lib', bench_html5lib, html_file)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 545, in bench_func
+    result = self._main(task)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 468, in _main
+    bench = self._manager()
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 681, in _manager
+    bench = Manager(self).create_bench()
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_manager.py", line 243, in create_bench
+    worker_bench, run = self.create_worker_bench()
+                        ~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_manager.py", line 142, in create_worker_bench
+    suite = self.create_suite()
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_manager.py", line 132, in create_suite
+    suite = self.spawn_worker(self.calibrate_loops, 0)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_manager.py", line 118, in spawn_worker
+    raise RuntimeError("%s failed with exit code %s"
+                       % (cmd[0], exitcode))
+RuntimeError: D:\CantorAI\xlang3\build-repro\Release\xlang3.exe failed with exit code 1
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\run.py", line 171, in run_benchmarks
+    result = bench.run(
+        bench_venv.python,
+    ...<3 lines>...
+        verbose=options.verbose,
+    )
+  File "D:\CantorAI\xlang3\benchmarks\diagnostics\run_pyperformance_xlang3_shimmed.py", line 145, in run_named_benchmark
+    return original_benchmark_run(benchmark, *positional, **keywords)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\_benchmark.py", line 193, in run
+    bench = _run_perf_script(
+        python,
+    ...<4 lines>...
+        verbose=verbose,
+    )
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\_benchmark.py", line 250, in _run_perf_script
+    raise RuntimeError("Benchmark died")
+RuntimeError: Benchmark died
+ERROR: Benchmark html5lib failed: Benchmark died
+[49/97] json_dumps...
+...........
+json_dumps: Mean +- std dev: 33.5 ms +- 0.2 ms
+[50/97] json_loads...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+json_loads: Mean +- std dev: 95.9 us +- 1.4 us
+[51/97] logging...
+...........
+logging_format: Mean +- std dev: 89.2 us +- 0.6 us
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+logging_silent: Mean +- std dev: 1.10 us +- 0.01 us
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+logging_simple: Mean +- std dev: 82.9 us +- 0.9 us
+[52/97] mako...
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\data-files\benchmarks\bm_mako\run_benchmark.py", line 19, in <module>
+    from mako.template import Template   # noqa
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\mako\template.py", line 20, in <module>
+    from mako import codegen
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\mako\codegen.py", line 14, in <module>
+    from mako import ast
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\mako\ast.py", line 13, in <module>
+    from mako import exceptions
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\mako\exceptions.py", line 305, in <module>
+    _install_highlighting()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\mako\exceptions.py", line 300, in _install_highlighting
+    _install_pygments()
+    ~~~~~~~~~~~~~~~~~^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\mako\exceptions.py", line 284, in _install_pygments
+    from mako.ext.pygmentplugin import syntax_highlight  # noqa
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\mako\ext\pygmentplugin.py", line 14, in <module>
+    from pygments.lexers.agile import Python3Lexer
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pygments\lexers\agile.py", line 13, in <module>
+    from pygments.lexers.lisp import SchemeLexer
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pygments\lexers\lisp.py", line 221, in <module>
+    (number_rules[2], Number.Bin, '#pop'),
+     ~~~~~~~~~~~~^^^
+KeyError: '2'
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\run.py", line 171, in run_benchmarks
+    result = bench.run(
+        bench_venv.python,
+    ...<3 lines>...
+        verbose=options.verbose,
+    )
+  File "D:\CantorAI\xlang3\benchmarks\diagnostics\run_pyperformance_xlang3_shimmed.py", line 145, in run_named_benchmark
+    return original_benchmark_run(benchmark, *positional, **keywords)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\_benchmark.py", line 193, in run
+    bench = _run_perf_script(
+        python,
+    ...<4 lines>...
+        verbose=verbose,
+    )
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\_benchmark.py", line 250, in _run_perf_script
+    raise RuntimeError("Benchmark died")
+RuntimeError: Benchmark died
+ERROR: Benchmark mako failed: Benchmark died
+[53/97] mdp...
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\data-files\benchmarks\bm_mdp\run_benchmark.py", line 267, in <module>
+    runner.bench_time_func('mdp', bench_mdp)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 502, in bench_time_func
+    result = self._main(task)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 463, in _main
+    bench = self._worker(task)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 437, in _worker
+    run = task.create_run()
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 300, in create_run
+    self.compute()
+    ~~~~~~~~~~~~^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 364, in compute
+    WorkerTask.compute(self)
+    ~~~~~~~~~~~~~~~~~~^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 287, in compute
+    self.calibrate_loops()
+    ~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 250, in calibrate_loops
+    self._compute_values(self.warmups, nvalue,
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+                         is_warmup=True,
+                         ^^^^^^^^^^^^^^^
+                         calibrate_loops=True)
+                         ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 76, in _compute_values
+    with contextlib.ExitStack() as stack:
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    raw_value = float(raw_value)
+    
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 79, in _compute_values
+    raw_value = task_func(self, self.loops)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 497, in task_func
+    return time_func(loops, *args)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\data-files\benchmarks\bm_mdp\run_benchmark.py", line 254, in bench_mdp
+    result = Battle().evaluate(0.192)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\data-files\benchmarks\bm_mdp\run_benchmark.py", line 221, in evaluate
+    stateps = topoSort([initial_statep], self.getSuccessorsList)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\data-files\benchmarks\bm_mdp\run_benchmark.py", line 30, in topoSort
+    assert(current in visited)
+    ~~~~~~^^^^^^^^^^^^^^^^^^^^
+AssertionError
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\data-files\benchmarks\bm_mdp\run_benchmark.py", line 267, in <module>
+    runner.bench_time_func('mdp', bench_mdp)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 502, in bench_time_func
+    result = self._main(task)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 468, in _main
+    bench = self._manager()
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 681, in _manager
+    bench = Manager(self).create_bench()
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_manager.py", line 243, in create_bench
+    worker_bench, run = self.create_worker_bench()
+                        ~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_manager.py", line 142, in create_worker_bench
+    suite = self.create_suite()
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_manager.py", line 132, in create_suite
+    suite = self.spawn_worker(self.calibrate_loops, 0)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_manager.py", line 118, in spawn_worker
+    raise RuntimeError("%s failed with exit code %s"
+                       % (cmd[0], exitcode))
+RuntimeError: D:\CantorAI\xlang3\build-repro\Release\xlang3.exe failed with exit code 1
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\run.py", line 171, in run_benchmarks
+    result = bench.run(
+        bench_venv.python,
+    ...<3 lines>...
+        verbose=options.verbose,
+    )
+  File "D:\CantorAI\xlang3\benchmarks\diagnostics\run_pyperformance_xlang3_shimmed.py", line 145, in run_named_benchmark
+    return original_benchmark_run(benchmark, *positional, **keywords)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\_benchmark.py", line 193, in run
+    bench = _run_perf_script(
+        python,
+    ...<4 lines>...
+        verbose=verbose,
+    )
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\_benchmark.py", line 250, in _run_perf_script
+    raise RuntimeError("Benchmark died")
+RuntimeError: Benchmark died
+ERROR: Benchmark mdp failed: Benchmark died
+[54/97] meteor_contest...
+...........
+meteor_contest: Mean +- std dev: 1.24 sec +- 0.01 sec
+[55/97] nbody...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+nbody: Mean +- std dev: 285 ms +- 6 ms
+[56/97] networkx...
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\data-files\benchmarks\bm_networkx\run_benchmark.py", line 24, in <module>
+    graph = networkx.read_adjlist(DATA_FILE)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\networkx\utils\decorators.py", line 788, in func
+    return argmap._lazy_compile(__wrapper)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\networkx\utils\decorators.py", line 760, in _lazy_compile
+    real_func = func.__argmap__.compile(func.__wrapped__)
+                ^^^^^^^^^^^^^^^
+AttributeError: object has no attribute '__argmap__'
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\run.py", line 171, in run_benchmarks
+    result = bench.run(
+        bench_venv.python,
+    ...<3 lines>...
+        verbose=options.verbose,
+    )
+  File "D:\CantorAI\xlang3\benchmarks\diagnostics\run_pyperformance_xlang3_shimmed.py", line 145, in run_named_benchmark
+    return original_benchmark_run(benchmark, *positional, **keywords)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\_benchmark.py", line 193, in run
+    bench = _run_perf_script(
+        python,
+    ...<4 lines>...
+        verbose=verbose,
+    )
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\_benchmark.py", line 250, in _run_perf_script
+    raise RuntimeError("Benchmark died")
+ERROR: Benchmark networkx failed: Benchmark died
+[57/97] networkx_connected_components...
+RuntimeError: Benchmark died
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\data-files\benchmarks\bm_networkx\run_benchmark.py", line 24, in <module>
+    graph = networkx.read_adjlist(DATA_FILE)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\networkx\utils\decorators.py", line 788, in func
+    return argmap._lazy_compile(__wrapper)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\networkx\utils\decorators.py", line 760, in _lazy_compile
+    real_func = func.__argmap__.compile(func.__wrapped__)
+                ^^^^^^^^^^^^^^^
+AttributeError: object has no attribute '__argmap__'
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\run.py", line 171, in run_benchmarks
+    result = bench.run(
+        bench_venv.python,
+    ...<3 lines>...
+        verbose=options.verbose,
+    )
+  File "D:\CantorAI\xlang3\benchmarks\diagnostics\run_pyperformance_xlang3_shimmed.py", line 145, in run_named_benchmark
+    return original_benchmark_run(benchmark, *positional, **keywords)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\_benchmark.py", line 193, in run
+    bench = _run_perf_script(
+        python,
+    ...<4 lines>...
+        verbose=verbose,
+    )
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\_benchmark.py", line 250, in _run_perf_script
+    raise RuntimeError("Benchmark died")
+RuntimeError: Benchmark died
+ERROR: Benchmark networkx_connected_components failed: Benchmark died
+[58/97] networkx_k_core...
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\data-files\benchmarks\bm_networkx\run_benchmark.py", line 24, in <module>
+    graph = networkx.read_adjlist(DATA_FILE)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\networkx\utils\decorators.py", line 788, in func
+    return argmap._lazy_compile(__wrapper)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\networkx\utils\decorators.py", line 760, in _lazy_compile
+    real_func = func.__argmap__.compile(func.__wrapped__)
+                ^^^^^^^^^^^^^^^
+AttributeError: object has no attribute '__argmap__'
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\run.py", line 171, in run_benchmarks
+    result = bench.run(
+        bench_venv.python,
+    ...<3 lines>...
+        verbose=options.verbose,
+    )
+  File "D:\CantorAI\xlang3\benchmarks\diagnostics\run_pyperformance_xlang3_shimmed.py", line 145, in run_named_benchmark
+    return original_benchmark_run(benchmark, *positional, **keywords)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\_benchmark.py", line 193, in run
+    bench = _run_perf_script(
+        python,
+    ...<4 lines>...
+        verbose=verbose,
+    )
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\_benchmark.py", line 250, in _run_perf_script
+    raise RuntimeError("Benchmark died")
+RuntimeError: Benchmark died
+ERROR: Benchmark networkx_k_core failed: Benchmark died
+[59/97] nqueens...
+...........
+nqueens: Mean +- std dev: 826 ms +- 5 ms
+[60/97] pathlib...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+pathlib: Mean +- std dev: 546 ms +- 7 ms
+[61/97] pickle...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+pickle: Mean +- std dev: 18.5 us +- 1.0 us
+[62/97] pickle_dict...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+pickle_dict: Mean +- std dev: 25.2 us +- 1.1 us
+[63/97] pickle_list...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+pickle_list: Mean +- std dev: 3.94 us +- 0.11 us
+[64/97] pickle_pure_python...
+...........
+pickle_pure_python: Mean +- std dev: 5.15 ms +- 0.04 ms
+[65/97] pidigits...
+...........
+pidigits: Mean +- std dev: 370 ms +- 3 ms
+[66/97] pprint...
+...Full-case timeout: pprint exceeded 120 seconds
+ERROR: Benchmark pprint timed out
+[67/97] pyflate...
+...........
+pyflate: Mean +- std dev: 2.78 sec +- 0.02 sec
+[68/97] python_startup...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+python_startup: Mean +- std dev: 246 ms +- 6 ms
+[69/97] python_startup_no_site...
+...........
+python_startup_no_site: Mean +- std dev: 17.7 ms +- 0.4 ms
+[70/97] raytrace...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+raytrace: Mean +- std dev: 2.09 sec +- 0.02 sec
+[71/97] regex_compile...
+...........
+regex_compile: Mean +- std dev: 1.19 sec +- 0.01 sec
+[72/97] regex_dna...
+...........
+regex_dna: Mean +- std dev: 205 ms +- 3 ms
+[73/97] regex_effbot...
+...........
+regex_effbot: Mean +- std dev: 12.3 ms +- 0.1 ms
+[74/97] regex_v8...
+...........
+regex_v8: Mean +- std dev: 63.1 ms +- 0.7 ms
+[75/97] richards...
+...........
+richards: Mean +- std dev: 333 ms +- 2 ms
+[76/97] richards_super...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+richards_super: Mean +- std dev: 448 ms +- 5 ms
+[77/97] scimark...
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\data-files\benchmarks\bm_scimark\run_benchmark.py", line 415, in <module>
+    runner.bench_time_func(name, *args)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 502, in bench_time_func
+    result = self._main(task)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 463, in _main
+    bench = self._worker(task)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 437, in _worker
+    run = task.create_run()
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 300, in create_run
+    self.compute()
+    ~~~~~~~~~~~~^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 364, in compute
+    WorkerTask.compute(self)
+    ~~~~~~~~~~~~~~~~~~^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 287, in compute
+    self.calibrate_loops()
+    ~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 250, in calibrate_loops
+    self._compute_values(self.warmups, nvalue,
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+                         is_warmup=True,
+                         ^^^^^^^^^^^^^^^
+                         calibrate_loops=True)
+                         ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 76, in _compute_values
+    with contextlib.ExitStack() as stack:
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    raw_value = float(raw_value)
+    
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 79, in _compute_values
+    raw_value = task_func(self, self.loops)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 497, in task_func
+    return time_func(loops, *args)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\data-files\benchmarks\bm_scimark\run_benchmark.py", line 378, in bench_FFT
+    x = copy_vector(init_vec)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\data-files\benchmarks\bm_scimark\run_benchmark.py", line 114, in copy_vector
+    vec2[:] = vec[:]
+              ~~~^^^
+TypeError: object cannot be interpreted as an integer
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\data-files\benchmarks\bm_scimark\run_benchmark.py", line 415, in <module>
+    runner.bench_time_func(name, *args)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 502, in bench_time_func
+    result = self._main(task)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 468, in _main
+    bench = self._manager()
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 681, in _manager
+    bench = Manager(self).create_bench()
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_manager.py", line 243, in create_bench
+    worker_bench, run = self.create_worker_bench()
+                        ~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_manager.py", line 142, in create_worker_bench
+    suite = self.create_suite()
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_manager.py", line 132, in create_suite
+    suite = self.spawn_worker(self.calibrate_loops, 0)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_manager.py", line 118, in spawn_worker
+    raise RuntimeError("%s failed with exit code %s"
+                       % (cmd[0], exitcode))
+RuntimeError: D:\CantorAI\xlang3\build-repro\Release\xlang3.exe failed with exit code 1
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\run.py", line 171, in run_benchmarks
+    result = bench.run(
+        bench_venv.python,
+    ...<3 lines>...
+        verbose=options.verbose,
+    )
+  File "D:\CantorAI\xlang3\benchmarks\diagnostics\run_pyperformance_xlang3_shimmed.py", line 145, in run_named_benchmark
+    return original_benchmark_run(benchmark, *positional, **keywords)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\_benchmark.py", line 193, in run
+    bench = _run_perf_script(
+        python,
+    ...<4 lines>...
+        verbose=verbose,
+    )
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\_benchmark.py", line 250, in _run_perf_script
+    raise RuntimeError("Benchmark died")
+RuntimeError: Benchmark died
+ERROR: Benchmark scimark failed: Benchmark died
+[78/97] spectral_norm...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+spectral_norm: Mean +- std dev: 466 ms +- 7 ms
+[79/97] sphinx...
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\data-files\benchmarks\bm_sphinx\run_benchmark.py", line 11, in <module>
+    from sphinx.cmd.build import main as sphinx_main
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sphinx\cmd\build.py", line 21, in <module>
+    from sphinx.application import Sphinx
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sphinx\application.py", line 19, in <module>
+    from docutils.parsers.rst import Directive, roles
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\docutils\parsers\rst\__init__.py", line 75, in <module>
+    from docutils.parsers.rst import roles, states
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\docutils\parsers\rst\states.py", line 1139, in <module>
+    'enumerator': r'(%(parens)s|%(rparen)s|%(period)s)( +|$)' % pats,
+                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^~~~~~~~~
+KeyError: "format mapping key 'parens' not found"
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\run.py", line 171, in run_benchmarks
+    result = bench.run(
+        bench_venv.python,
+    ...<3 lines>...
+        verbose=options.verbose,
+    )
+  File "D:\CantorAI\xlang3\benchmarks\diagnostics\run_pyperformance_xlang3_shimmed.py", line 145, in run_named_benchmark
+    return original_benchmark_run(benchmark, *positional, **keywords)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\_benchmark.py", line 193, in run
+    bench = _run_perf_script(
+        python,
+    ...<4 lines>...
+        verbose=verbose,
+    )
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\_benchmark.py", line 250, in _run_perf_script
+    raise RuntimeError("Benchmark died")
+RuntimeError: Benchmark died
+ERROR: Benchmark sphinx failed: Benchmark died
+[80/97] sqlalchemy_declarative...
+D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlalchemy\sql\sqltypes.py:2030: DeprecationWarning: datetime.datetime.utcfromtimestamp() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.fromtimestamp(t, datetime.UTC).
+  epoch = dt.datetime.utcfromtimestamp(0)
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\data-files\benchmarks\bm_sqlalchemy_declarative\run_benchmark.py", line 3, in <module>
+    from sqlalchemy import Column, ForeignKey, Integer, String
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlalchemy\__init__.py", line 9, in <module>
+    from .engine import create_engine
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlalchemy\engine\__init__.py", line 18, in <module>
+    from . import events
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlalchemy\engine\events.py", line 9, in <module>
+    from .base import Engine
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlalchemy\engine\base.py", line 12, in <module>
+    from .interfaces import Connectable
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlalchemy\engine\interfaces.py", line 11, in <module>
+    from ..sql.compiler import Compiled  # noqa
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlalchemy\sql\__init__.py", line 9, in <module>
+    from .compiler import COLLECT_CARTESIAN_PRODUCTS
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlalchemy\sql\compiler.py", line 34, in <module>
+    from . import crud
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlalchemy\sql\crud.py", line 16, in <module>
+    from . import dml
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlalchemy\sql\dml.py", line 15, in <module>
+    from . import util as sql_util
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlalchemy\sql\util.py", line 36, in <module>
+    from .schema import Column
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlalchemy\sql\schema.py", line 51, in <module>
+    from .selectable import TableClause
+ImportError: parse error importing module 'sqlalchemy.sql.selectable': line 2601, column 23: invalid syntax. Did you mean 'if'?
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\run.py", line 171, in run_benchmarks
+    result = bench.run(
+        bench_venv.python,
+    ...<3 lines>...
+        verbose=options.verbose,
+    )
+  File "D:\CantorAI\xlang3\benchmarks\diagnostics\run_pyperformance_xlang3_shimmed.py", line 145, in run_named_benchmark
+    return original_benchmark_run(benchmark, *positional, **keywords)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\_benchmark.py", line 193, in run
+    bench = _run_perf_script(
+        python,
+    ...<4 lines>...
+        verbose=verbose,
+    )
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\_benchmark.py", line 250, in _run_perf_script
+    raise RuntimeError("Benchmark died")
+RuntimeError: Benchmark died
+ERROR: Benchmark sqlalchemy_declarative failed: Benchmark died
+[81/97] sqlalchemy_imperative...
+D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlalchemy\sql\sqltypes.py:2030: DeprecationWarning: datetime.datetime.utcfromtimestamp() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.fromtimestamp(t, datetime.UTC).
+  epoch = dt.datetime.utcfromtimestamp(0)
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\data-files\benchmarks\bm_sqlalchemy_imperative\run_benchmark.py", line 3, in <module>
+    from sqlalchemy import Column, ForeignKey, Integer, String, Table, MetaData
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlalchemy\__init__.py", line 9, in <module>
+    from .engine import create_engine
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlalchemy\engine\__init__.py", line 18, in <module>
+    from . import events
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlalchemy\engine\events.py", line 9, in <module>
+    from .base import Engine
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlalchemy\engine\base.py", line 12, in <module>
+    from .interfaces import Connectable
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlalchemy\engine\interfaces.py", line 11, in <module>
+    from ..sql.compiler import Compiled  # noqa
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlalchemy\sql\__init__.py", line 9, in <module>
+    from .compiler import COLLECT_CARTESIAN_PRODUCTS
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlalchemy\sql\compiler.py", line 34, in <module>
+    from . import crud
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlalchemy\sql\crud.py", line 16, in <module>
+    from . import dml
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlalchemy\sql\dml.py", line 15, in <module>
+    from . import util as sql_util
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlalchemy\sql\util.py", line 36, in <module>
+    from .schema import Column
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlalchemy\sql\schema.py", line 51, in <module>
+    from .selectable import TableClause
+ImportError: parse error importing module 'sqlalchemy.sql.selectable': line 2601, column 23: invalid syntax. Did you mean 'if'?
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\run.py", line 171, in run_benchmarks
+    result = bench.run(
+        bench_venv.python,
+    ...<3 lines>...
+        verbose=options.verbose,
+    )
+  File "D:\CantorAI\xlang3\benchmarks\diagnostics\run_pyperformance_xlang3_shimmed.py", line 145, in run_named_benchmark
+    return original_benchmark_run(benchmark, *positional, **keywords)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\_benchmark.py", line 193, in run
+    bench = _run_perf_script(
+        python,
+    ...<4 lines>...
+        verbose=verbose,
+    )
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\_benchmark.py", line 250, in _run_perf_script
+    raise RuntimeError("Benchmark died")
+RuntimeError: Benchmark died
+ERROR: Benchmark sqlalchemy_imperative failed: Benchmark died
+[82/97] sqlglot_v2...
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\data-files\benchmarks\bm_sqlglot_v2\run_benchmark.py", line 3, in <module>
+    from sqlglot import parse_one, transpile
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlglot\__init__.py", line 2, in <module>
+    from sqlglot.dialects import Dialect, Dialects
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlglot\dialects\__init__.py", line 1, in <module>
+    from sqlglot.dialects.bigquery import BigQuery
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlglot\dialects\bigquery.py", line 2, in <module>
+    from sqlglot.dialects.dialect import Dialect
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlglot\dialects\dialect.py", line 4, in <module>
+    from sqlglot.generator import Generator
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlglot\generator.py", line 7, in <module>
+    from sqlglot.tokens import TokenType, Tokenizer
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlglot\tokens.py", line 283, in <module>
+    class Tokenizer(metaclass=_Tokenizer):
+    ...<529 lines>...
+    
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlglot\tokens.py", line 269, in __new__
+    klass.KEYWORD_TRIE = new_trie(
+                         ~~~~~~~~^
+        key.upper()
+        ^^^^^^^^^^^
+    ...<6 lines>...
+        or any(single in key for single in klass.SINGLE_TOKENS)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlglot\trie.py", line 4, in new_trie
+    for key in keywords:
+    ^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    return trie
+    
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlglot\tokens.py", line 277, in #genexpr
+    or any(single in key for single in klass.SINGLE_TOKENS)
+       ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: uncaught exception in #genexpr (D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlglot\tokens.py:0): <class 'NameError'>: free variable '#comp.0.key' is not defined
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\run.py", line 171, in run_benchmarks
+    result = bench.run(
+        bench_venv.python,
+    ...<3 lines>...
+        verbose=options.verbose,
+    )
+  File "D:\CantorAI\xlang3\benchmarks\diagnostics\run_pyperformance_xlang3_shimmed.py", line 145, in run_named_benchmark
+    return original_benchmark_run(benchmark, *positional, **keywords)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\_benchmark.py", line 193, in run
+    bench = _run_perf_script(
+        python,
+    ...<4 lines>...
+        verbose=verbose,
+    )
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\_benchmark.py", line 250, in _run_perf_script
+    raise RuntimeError("Benchmark died")
+RuntimeError: Benchmark died
+ERROR: Benchmark sqlglot_v2 failed: Benchmark died
+[83/97] sqlglot_v2_optimize...
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\data-files\benchmarks\bm_sqlglot_v2\run_benchmark.py", line 3, in <module>
+    from sqlglot import parse_one, transpile
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlglot\__init__.py", line 2, in <module>
+    from sqlglot.dialects import Dialect, Dialects
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlglot\dialects\__init__.py", line 1, in <module>
+    from sqlglot.dialects.bigquery import BigQuery
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlglot\dialects\bigquery.py", line 2, in <module>
+    from sqlglot.dialects.dialect import Dialect
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlglot\dialects\dialect.py", line 4, in <module>
+    from sqlglot.generator import Generator
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlglot\generator.py", line 7, in <module>
+    from sqlglot.tokens import TokenType, Tokenizer
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlglot\tokens.py", line 283, in <module>
+    class Tokenizer(metaclass=_Tokenizer):
+    ...<529 lines>...
+    
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlglot\tokens.py", line 269, in __new__
+    klass.KEYWORD_TRIE = new_trie(
+                         ~~~~~~~~^
+        key.upper()
+        ^^^^^^^^^^^
+    ...<6 lines>...
+        or any(single in key for single in klass.SINGLE_TOKENS)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlglot\trie.py", line 4, in new_trie
+    for key in keywords:
+    ^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    return trie
+    
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlglot\tokens.py", line 277, in #genexpr
+    or any(single in key for single in klass.SINGLE_TOKENS)
+       ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: uncaught exception in #genexpr (D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlglot\tokens.py:0): <class 'NameError'>: free variable '#comp.0.key' is not defined
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\run.py", line 171, in run_benchmarks
+    result = bench.run(
+        bench_venv.python,
+    ...<3 lines>...
+        verbose=options.verbose,
+    )
+  File "D:\CantorAI\xlang3\benchmarks\diagnostics\run_pyperformance_xlang3_shimmed.py", line 145, in run_named_benchmark
+    return original_benchmark_run(benchmark, *positional, **keywords)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\_benchmark.py", line 193, in run
+    bench = _run_perf_script(
+        python,
+    ...<4 lines>...
+        verbose=verbose,
+    )
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\_benchmark.py", line 250, in _run_perf_script
+    raise RuntimeError("Benchmark died")
+RuntimeError: Benchmark died
+ERROR: Benchmark sqlglot_v2_optimize failed: Benchmark died
+[84/97] sqlglot_v2_parse...
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\data-files\benchmarks\bm_sqlglot_v2\run_benchmark.py", line 3, in <module>
+    from sqlglot import parse_one, transpile
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlglot\__init__.py", line 2, in <module>
+    from sqlglot.dialects import Dialect, Dialects
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlglot\dialects\__init__.py", line 1, in <module>
+    from sqlglot.dialects.bigquery import BigQuery
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlglot\dialects\bigquery.py", line 2, in <module>
+    from sqlglot.dialects.dialect import Dialect
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlglot\dialects\dialect.py", line 4, in <module>
+    from sqlglot.generator import Generator
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlglot\generator.py", line 7, in <module>
+    from sqlglot.tokens import TokenType, Tokenizer
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlglot\tokens.py", line 283, in <module>
+    class Tokenizer(metaclass=_Tokenizer):
+    ...<529 lines>...
+    
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlglot\tokens.py", line 269, in __new__
+    klass.KEYWORD_TRIE = new_trie(
+                         ~~~~~~~~^
+        key.upper()
+        ^^^^^^^^^^^
+    ...<6 lines>...
+        or any(single in key for single in klass.SINGLE_TOKENS)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlglot\trie.py", line 4, in new_trie
+    for key in keywords:
+    ^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    return trie
+    
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlglot\tokens.py", line 277, in #genexpr
+    or any(single in key for single in klass.SINGLE_TOKENS)
+       ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: uncaught exception in #genexpr (D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlglot\tokens.py:0): <class 'NameError'>: free variable '#comp.0.key' is not defined
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\run.py", line 171, in run_benchmarks
+    result = bench.run(
+        bench_venv.python,
+    ...<3 lines>...
+        verbose=options.verbose,
+    )
+  File "D:\CantorAI\xlang3\benchmarks\diagnostics\run_pyperformance_xlang3_shimmed.py", line 145, in run_named_benchmark
+    return original_benchmark_run(benchmark, *positional, **keywords)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\_benchmark.py", line 193, in run
+    bench = _run_perf_script(
+        python,
+    ...<4 lines>...
+        verbose=verbose,
+    )
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\_benchmark.py", line 250, in _run_perf_script
+    raise RuntimeError("Benchmark died")
+RuntimeError: Benchmark died
+ERROR: Benchmark sqlglot_v2_parse failed: Benchmark died
+[85/97] sqlglot_v2_transpile...
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\data-files\benchmarks\bm_sqlglot_v2\run_benchmark.py", line 3, in <module>
+    from sqlglot import parse_one, transpile
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlglot\__init__.py", line 2, in <module>
+    from sqlglot.dialects import Dialect, Dialects
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlglot\dialects\__init__.py", line 1, in <module>
+    from sqlglot.dialects.bigquery import BigQuery
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlglot\dialects\bigquery.py", line 2, in <module>
+    from sqlglot.dialects.dialect import Dialect
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlglot\dialects\dialect.py", line 4, in <module>
+    from sqlglot.generator import Generator
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlglot\generator.py", line 7, in <module>
+    from sqlglot.tokens import TokenType, Tokenizer
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlglot\tokens.py", line 283, in <module>
+    class Tokenizer(metaclass=_Tokenizer):
+    ...<529 lines>...
+    
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlglot\tokens.py", line 269, in __new__
+    klass.KEYWORD_TRIE = new_trie(
+                         ~~~~~~~~^
+        key.upper()
+        ^^^^^^^^^^^
+    ...<6 lines>...
+        or any(single in key for single in klass.SINGLE_TOKENS)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlglot\trie.py", line 4, in new_trie
+    for key in keywords:
+    ^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    return trie
+    
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlglot\tokens.py", line 277, in #genexpr
+    or any(single in key for single in klass.SINGLE_TOKENS)
+       ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: uncaught exception in #genexpr (D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlglot\tokens.py:0): <class 'NameError'>: free variable '#comp.0.key' is not defined
+Traceback (most recent call last):
+ERROR: Benchmark sqlglot_v2_transpile failed: Benchmark died
+[86/97] sqlite_synth...
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\run.py", line 171, in run_benchmarks
+    result = bench.run(
+        bench_venv.python,
+    ...<3 lines>...
+        verbose=options.verbose,
+    )
+  File "D:\CantorAI\xlang3\benchmarks\diagnostics\run_pyperformance_xlang3_shimmed.py", line 145, in run_named_benchmark
+    return original_benchmark_run(benchmark, *positional, **keywords)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\_benchmark.py", line 193, in run
+    bench = _run_perf_script(
+        python,
+    ...<4 lines>...
+        verbose=verbose,
+    )
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\_benchmark.py", line 250, in _run_perf_script
+    raise RuntimeError("Benchmark died")
+RuntimeError: Benchmark died
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\data-files\benchmarks\bm_sqlite_synth\run_benchmark.py", line 57, in <module>
+    runner.bench_time_func('sqlite_synth', bench_sqlite)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 502, in bench_time_func
+    result = self._main(task)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 463, in _main
+    bench = self._worker(task)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 437, in _worker
+    run = task.create_run()
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 300, in create_run
+    self.compute()
+    ~~~~~~~~~~~~^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 364, in compute
+    WorkerTask.compute(self)
+    ~~~~~~~~~~~~~~~~~~^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 287, in compute
+    self.calibrate_loops()
+    ~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 250, in calibrate_loops
+    self._compute_values(self.warmups, nvalue,
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+                         is_warmup=True,
+                         ^^^^^^^^^^^^^^^
+                         calibrate_loops=True)
+                         ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 76, in _compute_values
+    with contextlib.ExitStack() as stack:
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    raw_value = float(raw_value)
+    
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 79, in _compute_values
+    raw_value = task_func(self, self.loops)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 497, in task_func
+    return time_func(loops, *args)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\data-files\benchmarks\bm_sqlite_synth\run_benchmark.py", line 44, in bench_sqlite
+    conn.create_aggregate("avglength", 1, AvgLength)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'Connection' object has no attribute 'create_aggregate'
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\data-files\benchmarks\bm_sqlite_synth\run_benchmark.py", line 57, in <module>
+    runner.bench_time_func('sqlite_synth', bench_sqlite)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 502, in bench_time_func
+    result = self._main(task)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 468, in _main
+    bench = self._manager()
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 681, in _manager
+    bench = Manager(self).create_bench()
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_manager.py", line 243, in create_bench
+    worker_bench, run = self.create_worker_bench()
+                        ~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_manager.py", line 142, in create_worker_bench
+    suite = self.create_suite()
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_manager.py", line 132, in create_suite
+    suite = self.spawn_worker(self.calibrate_loops, 0)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_manager.py", line 118, in spawn_worker
+    raise RuntimeError("%s failed with exit code %s"
+                       % (cmd[0], exitcode))
+RuntimeError: D:\CantorAI\xlang3\build-repro\Release\xlang3.exe failed with exit code 1
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\run.py", line 171, in run_benchmarks
+    result = bench.run(
+        bench_venv.python,
+    ...<3 lines>...
+        verbose=options.verbose,
+    )
+ERROR: Benchmark sqlite_synth failed: Benchmark died
+[87/97] sympy...
+  File "D:\CantorAI\xlang3\benchmarks\diagnostics\run_pyperformance_xlang3_shimmed.py", line 145, in run_named_benchmark
+    return original_benchmark_run(benchmark, *positional, **keywords)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\_benchmark.py", line 193, in run
+    bench = _run_perf_script(
+        python,
+    ...<4 lines>...
+        verbose=verbose,
+    )
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\_benchmark.py", line 250, in _run_perf_script
+    raise RuntimeError("Benchmark died")
+RuntimeError: Benchmark died
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\data-files\benchmarks\bm_sympy\run_benchmark.py", line 3, in <module>
+    from sympy import expand, symbols, integrate, tan, summation
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sympy\__init__.py", line 22, in <module>
+    import mpmath
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\mpmath\__init__.py", line 5, in <module>
+    from .ctx_fp import FPContext
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\mpmath\ctx_fp.py", line 1, in <module>
+    from .ctx_base import StandardBaseContext
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\mpmath\ctx_base.py", line 3, in <module>
+    from .libmp.backend import xrange
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\mpmath\libmp\__init__.py", line 40, in <module>
+    from .libhyper import (NoConvergence, make_hyp_summator,
+    ...<3 lines>...
+      mpf_ellipk, mpc_ellipk, mpf_ellipe, mpc_ellipe)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\mpmath\libmp\libhyper.py", line 41, in <module>
+    from .gammazeta import mpf_gamma_int, mpf_euler, euler_fixed
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\mpmath\libmp\gammazeta.py", line 1371, in <module>
+    small_factorial_cache = [from_int(ifac(n)) for \
+                             ~~~~~~~~^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\mpmath\libmp\libmpf.py", line 336, in from_int
+    return from_man_exp(n, 0, prec, rnd)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\mpmath\libmp\libmpf.py", line 302, in from_man_exp
+    bc = bitcount(man)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\mpmath\libmp\libintmath.py", line 96, in python_bitcount
+    bc = int(math.log(n, 2)) - 4
+             ~~~~~~~~^^^^^^
+RuntimeError: log() argument must be a number
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\run.py", line 171, in run_benchmarks
+    result = bench.run(
+        bench_venv.python,
+    ...<3 lines>...
+        verbose=options.verbose,
+    )
+  File "D:\CantorAI\xlang3\benchmarks\diagnostics\run_pyperformance_xlang3_shimmed.py", line 145, in run_named_benchmark
+    return original_benchmark_run(benchmark, *positional, **keywords)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\_benchmark.py", line 193, in run
+    bench = _run_perf_script(
+        python,
+    ...<4 lines>...
+        verbose=verbose,
+    )
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\_benchmark.py", line 250, in _run_perf_script
+    raise RuntimeError("Benchmark died")
+ERROR: Benchmark sympy failed: Benchmark died
+[88/97] telco...
+RuntimeError: Benchmark died
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+telco: Mean +- std dev: 247 ms +- 6 ms
+[89/97] tomli_loads...
+Full-case timeout: tomli_loads exceeded 120 seconds
+ERROR: Benchmark tomli_loads timed out
+[90/97] tornado_http...
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\data-files\benchmarks\bm_tornado_http\run_benchmark.py", line 14, in <module>
+    from tornado.httpclient import AsyncHTTPClient
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\tornado\httpclient.py", line 46, in <module>
+    from tornado.concurrent import (
+    ...<3 lines>...
+    )
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\tornado\concurrent.py", line 34, in <module>
+    from tornado.log import app_log
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\tornado\log.py", line 34, in <module>
+    from tornado.escape import _unicode
+ImportError: parse error importing module 'tornado.escape': line 294: unterminated string
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\run.py", line 171, in run_benchmarks
+    result = bench.run(
+        bench_venv.python,
+    ...<3 lines>...
+        verbose=options.verbose,
+    )
+  File "D:\CantorAI\xlang3\benchmarks\diagnostics\run_pyperformance_xlang3_shimmed.py", line 145, in run_named_benchmark
+    return original_benchmark_run(benchmark, *positional, **keywords)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\_benchmark.py", line 193, in run
+    bench = _run_perf_script(
+        python,
+    ...<4 lines>...
+        verbose=verbose,
+    )
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\_benchmark.py", line 250, in _run_perf_script
+    raise RuntimeError("Benchmark died")
+RuntimeError: Benchmark died
+ERROR: Benchmark tornado_http failed: Benchmark died
+[91/97] typing_runtime_protocols...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+typing_runtime_protocols: Mean +- std dev: 244 us +- 3 us
+[92/97] unpack_sequence...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+unpack_sequence: Mean +- std dev: 151 ns +- 5 ns
+[93/97] unpickle...
+...........
+unpickle: Mean +- std dev: 64.3 us +- 0.5 us
+[94/97] unpickle_list...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+unpickle_list: Mean +- std dev: 11.0 us +- 0.2 us
+[95/97] unpickle_pure_python...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+unpickle_pure_python: Mean +- std dev: 3.14 ms +- 0.04 ms
+[96/97] xdsl...
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\data-files\benchmarks\bm_xdsl\run_benchmark.py", line 29, in <module>
+    from xdsl.dialects.arith import AddiOp, Arith, ConstantOp
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\xdsl\dialects\arith.py", line 10, in <module>
+    from xdsl.dialects.builtin import (
+    ...<20 lines>...
+    )
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\xdsl\dialects\builtin.py", line 1334, in <module>
+    types: ArrayAttr[TypeAttribute] = param_def(converter=ArrayAttr[TypeAttribute].get)
+                                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: GenericAlias object has no attribute 'get'
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\run.py", line 171, in run_benchmarks
+ERROR: Benchmark xdsl failed: Benchmark died
+[97/97] xml_etree...
+    result = bench.run(
+        bench_venv.python,
+    ...<3 lines>...
+        verbose=options.verbose,
+    )
+  File "D:\CantorAI\xlang3\benchmarks\diagnostics\run_pyperformance_xlang3_shimmed.py", line 145, in run_named_benchmark
+    return original_benchmark_run(benchmark, *positional, **keywords)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\_benchmark.py", line 193, in run
+    bench = _run_perf_script(
+        python,
+    ...<4 lines>...
+        verbose=verbose,
+    )
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\_benchmark.py", line 250, in _run_perf_script
+    raise RuntimeError("Benchmark died")
+RuntimeError: Benchmark died
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\data-files\benchmarks\bm_xml_etree\run_benchmark.py", line 292, in <module>
+    runner.bench_time_func(name, bench_etree, etree_module, bench_func)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 502, in bench_time_func
+    result = self._main(task)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 463, in _main
+    bench = self._worker(task)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 437, in _worker
+    run = task.create_run()
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 300, in create_run
+    self.compute()
+    ~~~~~~~~~~~~^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 364, in compute
+    WorkerTask.compute(self)
+    ~~~~~~~~~~~~~~~~~~^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 287, in compute
+    self.calibrate_loops()
+    ~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 250, in calibrate_loops
+    self._compute_values(self.warmups, nvalue,
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+                         is_warmup=True,
+                         ^^^^^^^^^^^^^^^
+                         calibrate_loops=True)
+                         ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 76, in _compute_values
+    with contextlib.ExitStack() as stack:
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    raw_value = float(raw_value)
+    
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 79, in _compute_values
+    raw_value = task_func(self, self.loops)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 497, in task_func
+    return time_func(loops, *args)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\data-files\benchmarks\bm_xml_etree\run_benchmark.py", line 190, in bench_etree
+    bench_func(etree, file_path, xml_data, xml_root)
+    ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\data-files\benchmarks\bm_xml_etree\run_benchmark.py", line 147, in bench_parse
+    root1 = etree.parse(xml_file).getroot()
+            ~~~~~~~~~~~^^^^^^^^^^
+  File "C:\Python\Python314\Lib\xml\etree\ElementTree.py", line 1227, in parse
+    tree.parse(source, parser)
+    ~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "C:\Python\Python314\Lib\xml\etree\ElementTree.py", line 585, in parse
+    self._root = parser.close()
+                 ~~~~~~~~~~~~^^
+  File "C:\Python\Python314\Lib\xml\etree\ElementTree.py", line 1752, in close
+    return close_handler()
+  File "C:\Python\Python314\Lib\xml\etree\ElementTree.py", line 1454, in close
+    assert len(self._elem) == 0, "missing end tags"
+AssertionError: missing end tags
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\data-files\benchmarks\bm_xml_etree\run_benchmark.py", line 292, in <module>
+    runner.bench_time_func(name, bench_etree, etree_module, bench_func)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 502, in bench_time_func
+    result = self._main(task)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 468, in _main
+    bench = self._manager()
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 681, in _manager
+    bench = Manager(self).create_bench()
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_manager.py", line 243, in create_bench
+    worker_bench, run = self.create_worker_bench()
+                        ~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_manager.py", line 142, in create_worker_bench
+    suite = self.create_suite()
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_manager.py", line 132, in create_suite
+    suite = self.spawn_worker(self.calibrate_loops, 0)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_manager.py", line 118, in spawn_worker
+    raise RuntimeError("%s failed with exit code %s"
+                       % (cmd[0], exitcode))
+RuntimeError: D:\CantorAI\xlang3\build-repro\Release\xlang3.exe failed with exit code 1
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\run.py", line 171, in run_benchmarks
+    result = bench.run(
+        bench_venv.python,
+    ...<3 lines>...
+        verbose=options.verbose,
+    )
+  File "D:\CantorAI\xlang3\benchmarks\diagnostics\run_pyperformance_xlang3_shimmed.py", line 145, in run_named_benchmark
+    return original_benchmark_run(benchmark, *positional, **keywords)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\_benchmark.py", line 193, in run
+    bench = _run_perf_script(
+        python,
+    ...<4 lines>...
+        verbose=verbose,
+    )
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperformance\_benchmark.py", line 250, in _run_perf_script
+    raise RuntimeError("Benchmark died")
+RuntimeError: Benchmark died
+ERROR: Benchmark xml_etree failed: Benchmark died
+
+Performance version: 1.14.0
+
+### 2to3 ###
+Mean +- std dev: 2.99 sec +- 0.03 sec
+
+### many_optionals ###
+Mean +- std dev: 8.27 ms +- 0.09 ms
+
+### subparsers ###
+Mean +- std dev: 153 ms +- 2 ms
+
+### async_generators ###
+Mean +- std dev: 2.37 sec +- 0.03 sec
+
+### async_tree_eager ###
+Mean +- std dev: 3.11 sec +- 0.10 sec
+
+### asyncio_websockets ###
+Mean +- std dev: 483 ms +- 5 ms
+
+### chaos ###
+Mean +- std dev: 426 ms +- 5 ms
+
+### comprehensions ###
+Mean +- std dev: 179 us +- 2 us
+
+### coroutines ###
+Mean +- std dev: 145 ms +- 2 ms
+
+### crypto_pyaes ###
+Mean +- std dev: 333 ms +- 1 ms
+
+### deepcopy ###
+Mean +- std dev: 2.75 ms +- 0.02 ms
+
+### deepcopy_reduce ###
+Mean +- std dev: 29.1 us +- 0.3 us
+
+### deepcopy_memo ###
+Mean +- std dev: 305 us +- 2 us
+
+### deltablue ###
+Mean +- std dev: 35.9 ms +- 0.4 ms
+
+### fannkuch ###
+Mean +- std dev: 276 ms +- 3 ms
+
+### float ###
+Mean +- std dev: 73.2 ms +- 0.7 ms
+
+### gc_traversal ###
+Mean +- std dev: 1.21 ms +- 0.01 ms
+
+### generators ###
+Mean +- std dev: 338 ms +- 3 ms
+
+### go ###
+Mean +- std dev: 852 ms +- 6 ms
+
+### hexiom ###
+Mean +- std dev: 60.0 ms +- 0.4 ms
+
+### json_dumps ###
+Mean +- std dev: 33.5 ms +- 0.2 ms
+
+### json_loads ###
+Mean +- std dev: 95.9 us +- 1.4 us
+
+### logging_format ###
+Mean +- std dev: 89.2 us +- 0.6 us
+
+### logging_silent ###
+Mean +- std dev: 1.10 us +- 0.01 us
+
+### logging_simple ###
+Mean +- std dev: 82.9 us +- 0.9 us
+
+### meteor_contest ###
+Mean +- std dev: 1.24 sec +- 0.01 sec
+
+### nbody ###
+Mean +- std dev: 285 ms +- 6 ms
+
+### nqueens ###
+Mean +- std dev: 826 ms +- 5 ms
+
+### pathlib ###
+Mean +- std dev: 546 ms +- 7 ms
+
+### pickle ###
+Mean +- std dev: 18.5 us +- 1.0 us
+
+### pickle_dict ###
+Mean +- std dev: 25.2 us +- 1.1 us
+
+### pickle_list ###
+Mean +- std dev: 3.94 us +- 0.11 us
+
+### pickle_pure_python ###
+Mean +- std dev: 5.15 ms +- 0.04 ms
+
+### pidigits ###
+Mean +- std dev: 370 ms +- 3 ms
+
+### pyflate ###
+Mean +- std dev: 2.78 sec +- 0.02 sec
+
+### python_startup ###
+Mean +- std dev: 246 ms +- 6 ms
+
+### python_startup_no_site ###
+Mean +- std dev: 17.7 ms +- 0.4 ms
+
+### raytrace ###
+Mean +- std dev: 2.09 sec +- 0.02 sec
+
+### regex_compile ###
+Mean +- std dev: 1.19 sec +- 0.01 sec
+
+### regex_dna ###
+Mean +- std dev: 205 ms +- 3 ms
+
+### regex_effbot ###
+Mean +- std dev: 12.3 ms +- 0.1 ms
+
+### regex_v8 ###
+Mean +- std dev: 63.1 ms +- 0.7 ms
+
+### richards ###
+Mean +- std dev: 333 ms +- 2 ms
+
+### richards_super ###
+Mean +- std dev: 448 ms +- 5 ms
+
+### spectral_norm ###
+Mean +- std dev: 466 ms +- 7 ms
+
+### telco ###
+Mean +- std dev: 247 ms +- 6 ms
+
+### typing_runtime_protocols ###
+Mean +- std dev: 244 us +- 3 us
+
+### unpack_sequence ###
+Mean +- std dev: 151 ns +- 5 ns
+
+### unpickle ###
+Mean +- std dev: 64.3 us +- 0.5 us
+
+### unpickle_list ###
+Mean +- std dev: 11.0 us +- 0.2 us
+
+### unpickle_pure_python ###
+Mean +- std dev: 3.14 ms +- 0.04 ms
+
+50 benchmarks failed:
+- async_tree (Benchmark timed out)
+- async_tree_cpu_io_mixed (Benchmark timed out)
+- async_tree_cpu_io_mixed_tg (Benchmark timed out)
+- async_tree_eager_cpu_io_mixed (Benchmark timed out)
+- async_tree_eager_cpu_io_mixed_tg (Benchmark timed out)
+- async_tree_eager_io (Benchmark timed out)
+- async_tree_eager_io_tg (Benchmark timed out)
+- async_tree_eager_memoization (Benchmark timed out)
+- async_tree_eager_memoization_tg (Benchmark timed out)
+- async_tree_eager_tg (Benchmark timed out)
+- async_tree_io (Benchmark timed out)
+- async_tree_io_tg (Benchmark timed out)
+- async_tree_memoization (Benchmark timed out)
+- async_tree_memoization_tg (Benchmark timed out)
+- async_tree_tg (Benchmark timed out)
+- asyncio_tcp (Benchmark timed out)
+- asyncio_tcp_ssl (Benchmark timed out)
+- base64 (Benchmark timed out)
+- bpe_tokeniser (Benchmark timed out)
+- chameleon (Benchmark died)
+- concurrent_imap (Benchmark died)
+- coverage (Benchmark died)
+- dask (Benchmark died)
+- django_template (Benchmark died)
+- docutils (Benchmark died)
+- dulwich_log (Benchmark died)
+- fastapi (Benchmark died)
+- gc_collect (Benchmark died)
+- genshi (Benchmark died)
+- html5lib (Benchmark died)
+- mako (Benchmark died)
+- mdp (Benchmark died)
+- networkx (Benchmark died)
+- networkx_connected_components (Benchmark died)
+- networkx_k_core (Benchmark died)
+- pprint (Benchmark timed out)
+- scimark (Benchmark died)
+- sphinx (Benchmark died)
+- sqlalchemy_declarative (Benchmark died)
+- sqlalchemy_imperative (Benchmark died)
+- sqlglot_v2 (Benchmark died)
+- sqlglot_v2_optimize (Benchmark died)
+- sqlglot_v2_parse (Benchmark died)
+- sqlglot_v2_transpile (Benchmark died)
+- sqlite_synth (Benchmark died)
+- sympy (Benchmark died)
+- tomli_loads (Benchmark timed out)
+- tornado_http (Benchmark died)
+- xdsl (Benchmark died)
+- xml_etree (Benchmark died)
+

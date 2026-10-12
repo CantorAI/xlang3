@@ -29,9 +29,11 @@ limitations under the License.
 #include "xlang3/set_object.h"
 #include "xlang3/value.h"
 #include "xlang3/value_hash.h"
+#include "../executor/xlang_vm/xlang_vm_inline_call.h"
 
 #include <algorithm>
 #include <cctype>
+#include <cstring>
 #include <iomanip>
 #include <mutex>
 #include <sstream>
@@ -46,6 +48,22 @@ uint64_t next_class_version_tag() noexcept {
 }
 
 namespace {
+
+void function_clear_indexed_keyword_defaults(FunctionObject& function) {
+  if (function.module == nullptr || function.function_id >= function.module->functions.size()) return;
+  const auto& fn = function.module->functions[function.function_id];
+  const bool dynamic_defaults = function.defaults.size() == fn.signature.size() + 1 &&
+      !function.defaults.empty() && function.defaults.back().tag == ValueTag::Invalid;
+  for (size_t i = 0; i < fn.signature.size(); ++i) {
+    if (fn.signature[i].kind != ir::ParamKind::KeywordOnly) continue;
+    const size_t index = dynamic_defaults ? i : fn.signature[i].default_reg;
+    if (index < function.defaults.size()) value_set_invalid(function.defaults[index]);
+  }
+  // After materialization, only the live dict owns these defaults. Keeping
+  // stale copies would retain values removed by del/clear and break lifetime
+  // semantics even though the argument binder already ignores those slots.
+  function.kwdefaults.clear();
+}
 
 std::vector<Value> function_positional_defaults_for_introspection(
     const FunctionObject& function) {
@@ -91,6 +109,37 @@ std::vector<Value> function_positional_defaults_for_introspection(
     }
   }
   return defaults;
+}
+
+void function_rebuild_indexed_defaults(FunctionObject& function) {
+  if (function.module == nullptr || function.function_id >= function.module->functions.size()) return;
+  const auto& fn = function.module->functions[function.function_id];
+  // The trailing invalid entry marks a defaults vector indexed by parameter.
+  // Rebuild only after defaults/code mutation; ordinary calls reuse this layout.
+  function.defaults.assign(fn.signature.size() + 1, Value::invalid());
+  std::vector<size_t> positional_params;
+  for (size_t i = 0; i < fn.signature.size(); ++i) {
+    if (fn.signature[i].kind == ir::ParamKind::PosOnly ||
+        fn.signature[i].kind == ir::ParamKind::PosOrKeyword) {
+      positional_params.push_back(i);
+    }
+  }
+  const size_t copy_count = std::min(positional_params.size(), function.positional_defaults.size());
+  const size_t param_start = positional_params.size() - copy_count;
+  const size_t value_start = function.positional_defaults.size() - copy_count;
+  for (size_t i = 0; i < copy_count; ++i) {
+    value_assign_fast(function.defaults[positional_params[param_start + i]],
+                      function.positional_defaults[value_start + i]);
+  }
+  for (size_t i = 0; i < fn.signature.size(); ++i) {
+    if (fn.signature[i].kind != ir::ParamKind::KeywordOnly) continue;
+    for (const auto& item : function.kwdefaults) {
+      if (item.first == fn.signature[i].name) {
+        value_assign_fast(function.defaults[i], item.second);
+        break;
+      }
+    }
+  }
 }
 
 std::unordered_set<Object*>& native_gc_instances() {
@@ -333,7 +382,8 @@ InstanceObject* allocate_instance_object() {
     gc_track_object(&obj->header);
     return obj;
   }
-  return allocate_object_model<InstanceObject>(ObjectKind::Instance);
+  auto* obj = allocate_object_model<InstanceObject>(ObjectKind::Instance);
+  return obj;
 }
 
 BoundMethodObject* allocate_bound_method_object() {
@@ -407,11 +457,13 @@ void recycle_instance_object(InstanceObject* instance) {
   instance->native_owner = nullptr;
   instance->native_data_cleanup = nullptr;
   instance->native_gc_references.clear();
+  instance->native_gc_traverse = nullptr;
   instance->native_data_clear = nullptr;
   instance->native_data_truthy = nullptr;
   instance->native_get_attr = nullptr;
   instance->native_set_attr = nullptr;
   instance->native_delete_attr = nullptr;
+  instance->native_trace_hook = nullptr;
   instance->finalizer_started = false;
   for (uint32_t i = 0; i < instance->slot_count && i < 8; ++i) {
     value_set_invalid(instance->inline_slots[i]);
@@ -510,6 +562,7 @@ void invalidate_class_lookup_caches(ClassObject* klass, std::unordered_set<Class
   }
   klass->mro_cache.clear();
   klass->mro_cache_version = 0;
+  klass->mro_values_view.clear();
   klass->version = next_class_version_tag();
   for (auto* subclass : klass->subclasses) {
     invalidate_class_lookup_caches(subclass, visited);
@@ -519,6 +572,73 @@ void invalidate_class_lookup_caches(ClassObject* klass, std::unordered_set<Class
 void invalidate_class_lookup_caches(ClassObject* klass) {
   std::unordered_set<ClassObject*> visited;
   invalidate_class_lookup_caches(klass, visited);
+}
+
+void invalidate_public_mro_caches(ClassObject* klass) {
+  if (klass == nullptr) return;
+  // Pin the affected hierarchy first and move every old tuple aside before
+  // releasing any owner. A tuple destructor can retire class values, so all
+  // caches and hierarchy links must already describe the new MRO then.
+  std::vector<ClassObject*> pending{klass};
+  std::unordered_set<ClassObject*> visited;
+  std::vector<Value> owners;
+  while (!pending.empty()) {
+    auto* current = pending.back();
+    pending.pop_back();
+    if (current == nullptr || !visited.insert(current).second) continue;
+    current->mro_values_view.clear();
+    owners.push_back(class_value(current));
+    pending.insert(pending.end(), current->subclasses.begin(), current->subclasses.end());
+  }
+  std::vector<Value> retired;
+  retired.reserve(owners.size());
+  for (const auto& owner : owners) {
+    auto* current = value_as_class(owner);
+    if (current != nullptr && current->public_mro_cache.tag != ValueTag::Invalid) {
+      retired.push_back(std::move(current->public_mro_cache));
+    }
+  }
+}
+
+void invalidate_descriptor_client_caches(ClassObject* descriptor_class, const std::string& name) {
+  if (name != "__get__" && name != "__set__" && name != "__delete__") return;
+  // Descriptor-type mutation changes read precedence in unrelated owner
+  // classes. Invalidate those owners on this cold write path, rather than
+  // adding a global generation check to every cached instance-attribute read.
+  // Hold owning Values outside the registry lock while refreshing MRO caches.
+  std::vector<Value> owners;
+  {
+    std::lock_guard lock(live_classes_mutex());
+    owners.reserve(live_classes().size());
+    for (const auto* owner : live_classes()) owners.push_back(class_value(owner));
+  }
+  std::unordered_set<ClassObject*> visited;
+  for (const auto& owner_value : owners) {
+    auto* owner = value_as_class(owner_value);
+    bool dependent = false;
+    for (const auto& attr : owner->attrs) {
+      const auto* descriptor = value_as_instance(attr.second);
+      const auto* type = descriptor == nullptr ? nullptr : value_as_class(descriptor->klass);
+      if (type != nullptr && class_is_subclass(type, descriptor_class)) {
+        dependent = true;
+        break;
+      }
+    }
+    if (!dependent) continue;
+    std::vector<ClassObject*> descendants{owner};
+    for (size_t i = 0; i < descendants.size(); ++i) {
+      auto* current = descendants[i];
+      if (current == nullptr || !visited.insert(current).second) continue;
+      // Conservative after deletion: the ordinary lookup decides whether a
+      // getter still exists. A false flag would skip a newly added descriptor.
+      current->has_descriptors = true;
+      current->mro_cache.clear();
+      current->mro_cache_version = 0;
+      current->mro_values_view.clear();
+      current->version = next_class_version_tag();
+      descendants.insert(descendants.end(), current->subclasses.begin(), current->subclasses.end());
+    }
+  }
 }
 
 std::string class_display_name(const ClassObject& klass) {
@@ -551,7 +671,7 @@ bool contains_class(const std::vector<const ClassObject*>& classes, const ClassO
 
 bool build_class_mro_classes(const ClassObject* klass, std::vector<const ClassObject*>& out, std::string& error);
 
-bool class_mro_values(ClassObject* klass, const std::vector<Value>*& out, std::string& error);
+bool class_mro_values(ClassObject* klass, const ClassMroValues*& out, std::string& error);
 bool class_lookup_attr(ClassObject* klass, const std::string& name, Value& out, std::string& error);
 
 bool attr_truthy_marker(ClassObject* klass, const std::string& name) {
@@ -720,7 +840,7 @@ bool finalize_enum_class(ClassObject& klass) {
 }
 
 bool class_mro_classes(ClassObject* klass, std::vector<const ClassObject*>& out, std::string& error) {
-  const std::vector<Value>* values = nullptr;
+  const ClassMroValues* values = nullptr;
   if (!class_mro_values(klass, values, error)) {
     return false;
   }
@@ -800,9 +920,15 @@ bool build_class_mro_classes(const ClassObject* klass, std::vector<const ClassOb
   return true;
 }
 
-bool class_mro_values(ClassObject* klass, const std::vector<Value>*& out, std::string& error) {
+bool class_mro_values(ClassObject* klass, const ClassMroValues*& out, std::string& error) {
+  if (auto* public_mro = value_as_tuple(klass->public_mro_cache)) {
+    klass->mro_values_view.bind(&public_mro->items);
+    out = &klass->mro_values_view;
+    return true;
+  }
   if (klass->mro_cache_version == klass->version && !klass->mro_cache.empty()) {
-    out = &klass->mro_cache;
+    klass->mro_values_view.bind(&klass->mro_cache);
+    out = &klass->mro_values_view;
     return true;
   }
 
@@ -825,7 +951,8 @@ bool class_mro_values(ClassObject* klass, const std::vector<Value>*& out, std::s
   }
   klass->mro_cache = std::move(values);
   klass->mro_cache_version = klass->version;
-  out = &klass->mro_cache;
+  klass->mro_values_view.bind(&klass->mro_cache);
+  out = &klass->mro_values_view;
   return true;
 }
 
@@ -875,7 +1002,7 @@ bool class_has_builtin_base_name_impl(ClassObject* klass, std::string_view name)
   // Instance creation asks this for several builtin container bases. Read the
   // cached Value MRO directly instead of materializing a temporary vector of
   // class pointers for each query (and each new instance).
-  const std::vector<Value>* mro = nullptr;
+  const ClassMroValues* mro = nullptr;
   std::string ignored;
   if (!class_mro_values(klass, mro, ignored)) {
     return false;
@@ -890,7 +1017,7 @@ bool class_has_builtin_base_name_impl(ClassObject* klass, std::string_view name)
 }
 
 bool class_lookup_attr(ClassObject* klass, const std::string& name, Value& out, std::string& error) {
-  const std::vector<Value>* mro = nullptr;
+  const ClassMroValues* mro = nullptr;
   if (!class_mro_values(klass, mro, error)) {
     return false;
   }
@@ -1034,7 +1161,7 @@ bool object_model_inherited_concrete_attr(ClassObject& klass, const std::string&
     if (base_class == nullptr) {
       continue;
     }
-    const std::vector<Value>* mro = nullptr;
+    const ClassMroValues* mro = nullptr;
     std::string ignored;
     if (!class_mro_values(base_class, mro, ignored)) {
       auto it = base_class->attrs.find(name);
@@ -1135,7 +1262,8 @@ bool collect_slot_names_from_value(
     std::vector<std::string>& slots,
     bool& allow_instance_dict,
     bool& allow_weakref,
-    std::string_view private_class_name = {}) {
+    std::string_view private_class_name = {},
+    std::vector<std::string>* own_declarations = nullptr) {
   if (auto* string = value_as_string(value)) {
     const auto name = string_object_to_string(*string);
     if (name == "__dict__") {
@@ -1143,15 +1271,16 @@ bool collect_slot_names_from_value(
     } else if (name == "__weakref__") {
       allow_weakref = true;
     } else {
-      add_unique_slot_name(
-          slots,
-          private_class_name.empty() ? name : mangle_instance_slot_name(private_class_name, name));
+      const auto normalized = private_class_name.empty()
+          ? name : mangle_instance_slot_name(private_class_name, name);
+      if (own_declarations != nullptr) own_declarations->push_back(normalized);
+      add_unique_slot_name(slots, normalized);
     }
     return true;
   }
   if (auto* tuple = value_as_tuple(value)) {
     for (const auto& item : tuple->items) {
-      if (!collect_slot_names_from_value(item, slots, allow_instance_dict, allow_weakref, private_class_name)) {
+      if (!collect_slot_names_from_value(item, slots, allow_instance_dict, allow_weakref, private_class_name, own_declarations)) {
         return false;
       }
     }
@@ -1159,7 +1288,7 @@ bool collect_slot_names_from_value(
   }
   if (auto* list = value_as_list(value)) {
     for (const auto& item : list->items) {
-      if (!collect_slot_names_from_value(item, slots, allow_instance_dict, allow_weakref, private_class_name)) {
+      if (!collect_slot_names_from_value(item, slots, allow_instance_dict, allow_weakref, private_class_name, own_declarations)) {
         return false;
       }
     }
@@ -1167,7 +1296,7 @@ bool collect_slot_names_from_value(
   }
   if (auto* set = value_as_set(value)) {
     for (const auto& item : set->items) {
-      if (!collect_slot_names_from_value(item, slots, allow_instance_dict, allow_weakref, private_class_name)) {
+      if (!collect_slot_names_from_value(item, slots, allow_instance_dict, allow_weakref, private_class_name, own_declarations)) {
         return false;
       }
     }
@@ -1175,7 +1304,7 @@ bool collect_slot_names_from_value(
   }
   if (auto* dict = value_as_dict(value)) {
     for (const auto& entry : dict->entries) {
-      if (!collect_slot_names_from_value(entry.first, slots, allow_instance_dict, allow_weakref, private_class_name)) {
+      if (!collect_slot_names_from_value(entry.first, slots, allow_instance_dict, allow_weakref, private_class_name, own_declarations)) {
         return false;
       }
     }
@@ -1390,6 +1519,10 @@ bool slot_descriptor_get_method(
     return object_get_attr(args[1], slot->name, out, error);
   }
   auto* instance = value_as_instance(args[1]);
+  if (!slot_descriptor_validate_receiver_owner(*slot, args[1], error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
   if (instance == nullptr || slot->index >= instance_slot_count(instance)) {
     if (instance != nullptr) {
       for (const auto& attr : instance->attrs) {
@@ -1448,6 +1581,10 @@ bool slot_descriptor_set_method(
     runtime.raise_class_error("TypeError", error);
     return false;
   }
+  if (!slot_descriptor_validate_receiver_owner(*slot, args[1], error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
   if (instance == nullptr || slot->index >= instance_slot_count(instance)) {
     if (slot_descriptor_applies_to_tuple_backed_object(*slot, args[1])) {
       error = "readonly attribute";
@@ -1479,6 +1616,10 @@ bool slot_descriptor_delete_method(
   auto* instance = value_as_instance(args[1]);
   if (slot == nullptr) {
     error = "member_descriptor.__delete__ expected descriptor self";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (!slot_descriptor_validate_receiver_owner(*slot, args[1], error)) {
     runtime.raise_class_error("TypeError", error);
     return false;
   }
@@ -1873,7 +2014,7 @@ uint8_t class_instance_container_traits(ClassObject* klass) {
     return klass->instance_container_traits;
   }
   uint8_t traits = 0;
-  const std::vector<Value>* mro = nullptr;
+  const ClassMroValues* mro = nullptr;
   std::string ignored;
   if (class_mro_values(klass, mro, ignored)) {
     for (const auto& value : *mro) {
@@ -1954,6 +2095,7 @@ Value Value::class_object(
   const size_t inherited_slot_count = obj->instance_slot_names.size();
   const bool inherited_instance_dict = obj->allow_instance_dict;
   const bool inherited_weakref = obj->allow_weakref;
+  obj->own_instance_slot_declarations_known = true;
   bool has_explicit_slots = false;
   bool inferred_storage_mutation = false;
   for (auto& attr : attrs) {
@@ -1966,11 +2108,15 @@ Value Value::class_object(
     }
     if (attr.first == "__slots__") {
       has_explicit_slots = true;
+      obj->own_explicit_instance_slots = true;
       obj->restrict_instance_attrs = true;
       obj->allow_instance_dict = false;
       obj->allow_weakref = false;
-      collect_slot_names_from_value(
-          attr.second, obj->instance_slot_names, obj->allow_instance_dict, obj->allow_weakref, obj->name);
+      if (!collect_slot_names_from_value(
+              attr.second, obj->instance_slot_names, obj->allow_instance_dict,
+              obj->allow_weakref, obj->name, &obj->own_instance_slot_declarations)) {
+        obj->own_instance_slot_declarations_known = false;
+      }
     }
     if (attr.first == "__static_attributes__") {
       std::vector<std::string> static_attributes;
@@ -2012,6 +2158,10 @@ Value Value::class_object(
     if (!obj->restrict_instance_attrs ||
         std::find(obj->instance_slot_names.begin(), obj->instance_slot_names.end(), slot) !=
             obj->instance_slot_names.end()) {
+      // Explicit __slots__ has already recorded these compiler-provided names.
+      // Native/compiler own layouts without __slots__ retain every occurrence.
+      if (!has_explicit_slots && slot != "__dict__" && slot != "__weakref__")
+        obj->own_instance_slot_declarations.push_back(slot);
       add_unique_slot_name(obj->instance_slot_names, slot);
     }
   }
@@ -2106,33 +2256,101 @@ bool runtime_value_compare(
     if (instance == nullptr || method_name == nullptr) return true;
     auto* klass = value_as_class(instance->klass);
     bool invert_result = false;
-    Value overridden_eq;
-    Value overridden_ne;
-    std::string lookup_error;
-    const bool has_overridden_eq = klass != nullptr &&
-        object_lookup_class_attr_before_base(instance->klass, "__eq__",
-                                             "object", overridden_eq,
-                                             lookup_error);
-    lookup_error.clear();
-    const bool has_overridden_ne = klass != nullptr &&
-        object_lookup_class_attr_before_base(instance->klass, "__ne__",
-                                             "object", overridden_ne,
-                                             lookup_error);
+    // Only != may fall back from __ne__ to __eq__. Ordering operations such as
+    // __lt__ are common in native heap algorithms and must not walk the class
+    // hierarchy for equality methods on every comparison.
+    bool has_overridden_eq = false;
+    bool has_overridden_ne = false;
+    if (op == "!=" && klass != nullptr) {
+      Value overridden_eq;
+      Value overridden_ne;
+      std::string lookup_error;
+      has_overridden_eq = object_lookup_class_attr_before_base(
+          instance->klass, "__eq__", "object", overridden_eq, lookup_error);
+      lookup_error.clear();
+      has_overridden_ne = object_lookup_class_attr_before_base(
+          instance->klass, "__ne__", "object", overridden_ne, lookup_error);
+    }
     if (op == "!=" && !has_overridden_ne && has_overridden_eq) {
       method_name = "__eq__";
       invert_result = true;
     }
+    const bool has_direct_comparison =
+        klass != nullptr && klass->attrs.find(method_name) != klass->attrs.end();
+    // Builtin-base checks matter only when lookup would inherit the comparison.
+    // Check the common direct-method case first so rich comparisons from native
+    // algorithms do not scan the MRO four times for an answer already known.
     const bool inherited_numeric_comparison =
-        klass != nullptr &&
+        klass != nullptr && !has_direct_comparison &&
         (class_has_builtin_base_name(klass, "int") ||
-         class_has_builtin_base_name(klass, "float")) &&
-        klass->attrs.find(method_name) == klass->attrs.end();
+         class_has_builtin_base_name(klass, "float"));
     const bool inherited_container_comparison =
-        klass != nullptr &&
+        klass != nullptr && !has_direct_comparison &&
         (class_has_builtin_base_name(klass, "list") ||
-         class_has_builtin_base_name(klass, "dict")) &&
-        klass->attrs.find(method_name) == klass->attrs.end();
+         class_has_builtin_base_name(klass, "dict"));
     if (inherited_numeric_comparison || inherited_container_comparison) return true;
+
+    // Native algorithms such as _heapq enter rich comparison from C++ rather
+    // than an IR CALL instruction, so per-callsite caches cannot help here.
+    // For ordering, cache only raw Python __lt__/__gt__ functions on the live
+    // receiver class and invoke them with the explicit receiver. This skips a
+    // repeated MRO walk and temporary bound-method allocation while retaining
+    // the ordinary Python frame, monitoring, exceptions, and NotImplemented
+    // fallback. The class version is checked before touching the weak pointer;
+    // descriptor and native-method cases stay on the generic path.
+    if (op == "<" && method_name != nullptr) {
+      auto* instance = value_as_instance(target);
+      auto* receiver_class = instance == nullptr ? nullptr : value_as_class(instance->klass);
+      ClassRichCompareFunctionCache* cache = nullptr;
+      if (receiver_class != nullptr) {
+        if (std::strcmp(method_name, "__lt__") == 0) {
+          cache = &receiver_class->rich_compare_lt_cache;
+        } else if (std::strcmp(method_name, "__gt__") == 0) {
+          cache = &receiver_class->rich_compare_gt_cache;
+        }
+      }
+
+      Value raw_function;
+      if (cache != nullptr && cache->class_version == receiver_class->version &&
+          cache->function != nullptr) {
+        raw_function.tag = ValueTag::Object;
+        raw_function.as.obj = &cache->function->header;
+        retain(raw_function);
+      } else if (receiver_class != nullptr && cache != nullptr) {
+        Value resolved;
+        std::string lookup_error;
+        if (class_lookup_attr(receiver_class, method_name, resolved, lookup_error)) {
+          if (auto* function = value_as_function(resolved)) {
+            cache->function = function;
+            cache->class_version = receiver_class->version;
+            raw_function = std::move(resolved);
+          }
+        }
+      }
+
+      if (raw_function.tag != ValueTag::Invalid) {
+        // The operands remain owned by the comparison caller through this
+        // synchronous call. Borrowing avoids two refcount retain/release pairs
+        // per native rich-comparison callback; a normal Python frame takes
+        // ownership when it binds the arguments.
+        if (cache != nullptr && cache->class_version == receiver_class->version &&
+            cache->function != nullptr && cache->function->module != nullptr &&
+            xlang_vm_try_cached_slot_double_compare(
+                runtime, *cache->function->module, *cache->function,
+                *receiver_class, target, argument, *cache, out)) {
+          handled = true;
+          return true;
+        }
+        Value call_args[2];
+        value_borrow_assign_fast(call_args[0], target);
+        value_borrow_assign_fast(call_args[1], argument);
+        if (!runtime_call_callable(runtime, raw_function, call_args, 2, out, error)) return false;
+        const Value* not_implemented = runtime.find_builtin("NotImplemented");
+        handled = not_implemented == nullptr || !value_is(out, *not_implemented);
+        return true;
+      }
+    }
+
     Value method;
     std::string ignored;
     if (!object_get_special_method(runtime, target, method_name, method, ignored)) return true;
@@ -2647,7 +2865,10 @@ bool runtime_value_contains(
         }
       }
       size_t raw = 0;
-      if (!value_hash_key(value, raw, error)) return false;
+      // Set insertion records hashes through runtime_value_hash_key. Use the
+      // same recursive path here so tuples containing user-hashable values
+      // probe the bucket chosen at insertion rather than an identity hash.
+      if (!runtime_value_hash_key(runtime, value, raw, error)) return false;
       hash = static_cast<int64_t>(raw);
       return true;
     };
@@ -2859,8 +3080,72 @@ Value slot_descriptor(std::string owner_name, std::string name, uint32_t index) 
 
 void slot_descriptor_set_owner_class(Value& descriptor, const Value& owner_class) {
   if (auto* slot = value_as_slot_descriptor(descriptor)) {
+    auto* previous = value_as_class(slot->owner_class);
+    auto* next = value_as_class(owner_class);
+    if (previous != nullptr && previous != next) {
+      // Fresh descriptors have no existing proof. Rebinding a live shared
+      // descriptor must invalidate all inherited caches before old-owner release.
+      class_forget_slot_declarations(previous);
+      class_forget_slot_declarations(next);
+    }
     value_assign_fast(slot->owner_class, owner_class);
   }
+}
+
+void class_forget_slot_declarations(ClassObject* klass) {
+  if (klass == nullptr) return;
+  klass->own_instance_slot_declarations_known = false;
+  invalidate_class_lookup_caches(klass);
+}
+
+bool slot_descriptor_validate_receiver_owner(
+    const SlotDescriptorObject& descriptor, const Value& receiver, std::string& error) {
+  const auto* owner = value_as_class(descriptor.owner_class);
+  // Legacy native/restored descriptors can have no class identity. Preserve
+  // their existing bounds/payload checks; known Python owners are authoritative.
+  if (owner == nullptr) return true;
+  const auto* instance = value_as_instance(receiver);
+  const auto* receiver_class = instance == nullptr ? nullptr : value_as_class(instance->klass);
+  if (receiver_class != nullptr && class_is_subclass(receiver_class, owner)) return true;
+  error = slot_descriptor_wrong_receiver_error(descriptor, receiver);
+  return false;
+}
+
+bool class_allows_raw_instance_slot_fallback(
+    ClassObject* klass, const std::string& name, std::string* owner_error) {
+  const ClassMroValues* mro = nullptr;
+  std::string ignored;
+  if (klass == nullptr || !class_mro_values(klass, mro, ignored)) return true;
+  bool explicit_name = false;
+  for (const auto& value : *mro) {
+    auto* candidate = value_as_class(value);
+    if (candidate == nullptr || !candidate->own_explicit_instance_slots ||
+        std::find(candidate->own_instance_slot_declarations.begin(),
+                  candidate->own_instance_slot_declarations.end(), name) ==
+            candidate->own_instance_slot_declarations.end()) continue;
+    // Explicit __slots__ reserves memory, not an independent attribute name.
+    // Only a live member descriptor exposes that memory. After deletion or
+    // replacement, normal __dict__/missing-attribute fallback must take over;
+    // a saved descriptor still addresses its physical slot directly.
+    explicit_name = true;
+    break;
+  }
+  Value descriptor;
+  const auto* slot = class_lookup_attr(klass, name, descriptor, ignored)
+      ? value_as_slot_descriptor(descriptor) : nullptr;
+  if (slot != nullptr) {
+    const auto* owner = value_as_class(slot->owner_class);
+    if (owner != nullptr && !class_is_subclass(klass, owner)) {
+      if (owner_error != nullptr)
+        *owner_error = "descriptor '" + slot->name + "' for '" + slot->owner_name +
+            "' objects doesn't apply to a '" + klass->name + "' object";
+      return false;
+    }
+    // A valid alias is still a descriptor access to its original field, not
+    // permission to use the requested alias's independently inferred storage.
+    return slot->name == name;
+  }
+  return !explicit_name;
 }
 
 bool object_model_class_is_live(const ClassObject* klass) {
@@ -3209,7 +3494,7 @@ void function_capture_builtins(Runtime& runtime, FunctionObject& function, const
   bool found = false;
   if (value_as_module(globals) != nullptr) {
     found = module_get_attr(globals, "__builtins__", builtins, ignored);
-  } else if (value_as_dict(globals) != nullptr) {
+  } else if (mapping_is_dict(globals)) {
     found = mapping_get_string_item(globals, "__builtins__", builtins, ignored);
   }
   if (!found) {
@@ -3222,6 +3507,121 @@ void function_capture_builtins(Runtime& runtime, FunctionObject& function, const
   if (builtins.tag != ValueTag::Invalid) {
     value_assign_fast(function.builtins, builtins);
   }
+}
+
+namespace {
+
+bool lookup_super_attribute(
+    const SuperObject& super, const std::string& name,
+    Value& out, bool& class_attribute, std::string& error) {
+  class_attribute = false;
+  auto* klass = value_as_class(super.klass);
+  if (klass == nullptr) {
+    error = "super object has invalid class";
+    return false;
+  }
+  ClassObject* lookup_klass = klass;
+  if (auto* self_instance = value_as_instance(super.self)) {
+    if (auto* self_klass = value_as_class(self_instance->klass)) {
+      lookup_klass = self_klass;
+    }
+  } else if (super.self.tag == ValueTag::Object && super.self.as.obj != nullptr &&
+             super.self.as.obj->kind == ObjectKind::File) {
+    auto* file = reinterpret_cast<FileObject*>(super.self.as.obj);
+    if (auto* self_klass = value_as_class(file->klass)) {
+      lookup_klass = self_klass;
+    }
+  } else if (auto* self_klass = value_as_class(super.self)) {
+    lookup_klass = self_klass;
+    const ClassMroValues* self_mro = nullptr;
+    std::string self_mro_error;
+    if (class_mro_values(self_klass, self_mro, self_mro_error)) {
+      const bool target_in_class_mro = std::any_of(
+          self_mro->begin(), self_mro->end(),
+          [klass](const Value& value) { return value_as_class(value) == klass; });
+      if (!target_in_class_mro) {
+        if (auto* metaclass = value_as_class(self_klass->metaclass)) {
+          lookup_klass = metaclass;
+        }
+      }
+    }
+  }
+  const ClassMroValues* mro = nullptr;
+  if (!class_mro_values(lookup_klass, mro, error)) {
+    return false;
+  }
+  bool start_class_in_mro = false;
+  for (const auto& class_value : *mro) {
+    if (value_as_class(class_value) == klass) {
+      start_class_in_mro = true;
+      break;
+    }
+  }
+  if (!start_class_in_mro && lookup_klass != klass && !class_mro_values(klass, mro, error)) {
+    return false;
+  }
+  bool use_next = false;
+  Value attr;
+  bool found = false;
+  for (const auto& class_value : *mro) {
+    auto* candidate = value_as_class(class_value);
+    if (candidate == nullptr) {
+      continue;
+    }
+    if (!use_next) {
+      if (candidate == klass) {
+        use_next = true;
+      }
+      continue;
+    }
+    auto it = candidate->attrs.find(name);
+    if (it != candidate->attrs.end()) {
+      value_assign_fast(attr, it->second);
+      found = true;
+      break;
+    }
+  }
+  if (!found) {
+    if (auto* instance = value_as_instance(super.self)) {
+      for (const auto& instance_attr : instance->attrs) {
+        if (instance_attr.first == name) {
+          value_assign_fast(out, instance_attr.second);
+          return true;
+        }
+      }
+    }
+    error = "super object has no attribute '" + name + "'";
+    return false;
+  }
+  class_attribute = true;
+  value_assign_fast(out, attr);
+  return true;
+}
+
+} // namespace
+
+bool object_get_super_method_for_call(
+    const Value& object, const std::string& name, Value& method, Value& receiver) {
+  auto* super = value_as_super(object);
+  if (super == nullptr || name == "__new__" || name == "__self__" ||
+      name == "__self_class__" || name == "__thisclass__" ||
+      (value_as_instance(super->self) == nullptr &&
+       (super->self.tag != ValueTag::Object || super->self.as.obj == nullptr ||
+        super->self.as.obj->kind != ObjectKind::File))) return false;
+  Value attribute;
+  bool class_attribute = false;
+  std::string ignored;
+  if (!lookup_super_attribute(*super, name, attribute, class_attribute, ignored) ||
+      !class_attribute) return false;
+  auto* native = value_as_native_function(attribute);
+  if (value_as_function(attribute) == nullptr &&
+      (native == nullptr || !native->bind_as_descriptor)) return false;
+  // Share full attribute lookup's MRO selection; never bind an instance-stored
+  // callable or execute an arbitrary descriptor in this shortcut. No lookup
+  // result is cached across class mutation. Saved attributes still bind normally.
+  value_assign_fast(method, attribute);
+  value_assign_fast(receiver, super->self);
+  return true;
 }
 
 bool object_get_attr(const Value& object, const std::string& name, Value& out, std::string& error) {
@@ -3497,7 +3897,8 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       return true;
     }
     if (name == "obj") {
-      value_assign_fast(out, view->owner);
+      const bool array_exporter = instance_get_native_data(view->exporter, "array.array") != nullptr;
+      value_assign_fast(out, array_exporter ? view->exporter : view->owner);
       return true;
     }
     if (name == "c_contiguous" || name == "f_contiguous" || name == "contiguous") {
@@ -3509,6 +3910,15 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
   }
 
   if (auto* function = value_as_function(object)) {
+    if (name == "__code__") {
+      if (function->code_object.tag == ValueTag::Invalid && function->module != nullptr &&
+          function->function_id < function->module->functions.size()) {
+        function->code_object = Value::code(function->module, function->function_id);
+      }
+      if (function->code_object.tag == ValueTag::Invalid) value_set_none(out);
+      else value_assign_fast(out, function->code_object);
+      return true;
+    }
     // CPython exposes the builtins mapping captured at function creation as a
     // read-only data attribute. Store it directly instead of in __dict__, so
     // ordinary defs need no per-function attribute-dict allocation.
@@ -3521,6 +3931,38 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
         value_assign_fast(out, module_namespace_dict(function->builtins));
       } else {
         value_assign_fast(out, function->builtins);
+      }
+      return true;
+    }
+    // Function defaults are data attributes: decorators can copy same-named
+    // entries into __dict__, but those entries must not shadow the real storage.
+    // In particular, mutating __kwdefaults__ must always reach the binder's dict.
+    if (name == "__defaults__") {
+      if (function->positional_defaults.empty()) {
+        auto defaults = function_positional_defaults_for_introspection(*function);
+        if (defaults.empty()) value_set_none(out);
+        else out = Value::tuple(std::move(defaults));
+      } else {
+        out = Value::tuple(function->positional_defaults);
+      }
+      return true;
+    }
+    if (name == "__kwdefaults__") {
+      if (function->kwdefaults_dict.tag != ValueTag::Invalid) {
+        value_assign_fast(out, function->kwdefaults_dict);
+        return true;
+      }
+      if (function->kwdefaults.empty()) {
+        value_set_none(out);
+      } else {
+        std::vector<std::pair<Value, Value>> entries;
+        entries.reserve(function->kwdefaults.size());
+        for (const auto& entry : function->kwdefaults) {
+          entries.push_back({Value::string(entry.first), entry.second});
+        }
+        function->kwdefaults_dict = Value::dict(std::move(entries));
+        function_clear_indexed_keyword_defaults(*function);
+        value_assign_fast(out, function->kwdefaults_dict);
       }
       return true;
     }
@@ -3581,29 +4023,6 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       }
       return true;
     }
-    if (name == "__defaults__") {
-      if (function->positional_defaults.empty()) {
-        auto defaults = function_positional_defaults_for_introspection(*function);
-        if (defaults.empty()) value_set_none(out);
-        else out = Value::tuple(std::move(defaults));
-      } else {
-        out = Value::tuple(function->positional_defaults);
-      }
-      return true;
-    }
-    if (name == "__kwdefaults__") {
-      if (function->kwdefaults.empty()) {
-        value_set_none(out);
-      } else {
-        std::vector<std::pair<Value, Value>> entries;
-        entries.reserve(function->kwdefaults.size());
-        for (const auto& entry : function->kwdefaults) {
-          entries.push_back({Value::string(entry.first), entry.second});
-        }
-        out = Value::dict(std::move(entries));
-      }
-      return true;
-    }
     if (name == "__type_params__") {
       if (function->attrs_dict.tag != ValueTag::Invalid) {
         std::string ignored;
@@ -3642,17 +4061,11 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
           function_annotate_cleanup);
       return true;
     }
-    if (name == "__code__") {
-      if (function->module == nullptr || function->function_id >= function->module->functions.size()) {
-        value_set_none(out);
-      } else {
-        out = Value::code(function->module, function->function_id);
-      }
-      return true;
-    }
     if (name == "__globals__") {
       if (function->globals_dict.tag != ValueTag::Invalid) {
         value_assign_fast(out, function->globals_dict);
+      } else if (mapping_is_dict(function->globals_module)) {
+        value_assign_fast(out, function->globals_module);
       } else {
         out = module_namespace_dict(function->globals_module);
       }
@@ -3909,7 +4322,13 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       if (frame->module == nullptr) {
         value_set_none(out);
       } else {
-        out = Value::code(frame->module, frame->function_id);
+        // A frame retains its original IR across function.__code__ writes and
+        // suspension. Cache only its existing materialization; do not consult
+        // the mutated function or introduce a Runtime-wide owning code cache.
+        if (frame->code_object.tag == ValueTag::Invalid) {
+          frame->code_object = Value::code(frame->module, frame->function_id);
+        }
+        value_assign_fast(out, frame->code_object);
       }
       return true;
     }
@@ -4275,83 +4694,12 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       value_assign_fast(out, super->klass);
       return true;
     }
-    auto* klass = value_as_class(super->klass);
-    if (klass == nullptr) {
-      error = "super object has invalid class";
-      return false;
-    }
-    ClassObject* lookup_klass = klass;
-    if (auto* self_instance = value_as_instance(super->self)) {
-      if (auto* self_klass = value_as_class(self_instance->klass)) {
-        lookup_klass = self_klass;
-      }
-    } else if (super->self.tag == ValueTag::Object && super->self.as.obj != nullptr &&
-               super->self.as.obj->kind == ObjectKind::File) {
-      auto* file = reinterpret_cast<FileObject*>(super->self.as.obj);
-      if (auto* self_klass = value_as_class(file->klass)) {
-        lookup_klass = self_klass;
-      }
-    } else if (auto* self_klass = value_as_class(super->self)) {
-      lookup_klass = self_klass;
-      const std::vector<Value>* self_mro = nullptr;
-      std::string self_mro_error;
-      if (class_mro_values(self_klass, self_mro, self_mro_error)) {
-        const bool target_in_class_mro = std::any_of(
-            self_mro->begin(), self_mro->end(),
-            [klass](const Value& value) { return value_as_class(value) == klass; });
-        if (!target_in_class_mro) {
-          if (auto* metaclass = value_as_class(self_klass->metaclass)) {
-            lookup_klass = metaclass;
-          }
-        }
-      }
-    }
-    const std::vector<Value>* mro = nullptr;
-    if (!class_mro_values(lookup_klass, mro, error)) {
-      return false;
-    }
-    bool start_class_in_mro = false;
-    for (const auto& class_value : *mro) {
-      if (value_as_class(class_value) == klass) {
-        start_class_in_mro = true;
-        break;
-      }
-    }
-    if (!start_class_in_mro && lookup_klass != klass && !class_mro_values(klass, mro, error)) {
-      return false;
-    }
-    bool use_next = false;
     Value attr;
-    bool found = false;
-    for (const auto& class_value : *mro) {
-      auto* candidate = value_as_class(class_value);
-      if (candidate == nullptr) {
-        continue;
-      }
-      if (!use_next) {
-        if (candidate == klass) {
-          use_next = true;
-        }
-        continue;
-      }
-      auto it = candidate->attrs.find(name);
-      if (it != candidate->attrs.end()) {
-        value_assign_fast(attr, it->second);
-        found = true;
-        break;
-      }
-    }
-    if (!found) {
-      if (auto* instance = value_as_instance(super->self)) {
-        for (const auto& instance_attr : instance->attrs) {
-          if (instance_attr.first == name) {
-            value_assign_fast(out, instance_attr.second);
-            return true;
-          }
-        }
-      }
-      error = "super object has no attribute '" + name + "'";
-      return false;
+    bool class_attribute = false;
+    if (!lookup_super_attribute(*super, name, attr, class_attribute, error)) return false;
+    if (!class_attribute) {
+      value_assign_fast(out, attr);
+      return true;
     }
     Value descriptor_owner;
     if (auto* self_instance = value_as_instance(super->self)) {
@@ -4410,11 +4758,22 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       return true;
     }
     if (name == "__mro__") {
-      const std::vector<Value>* mro = nullptr;
+      if (klass->public_mro_cache.tag != ValueTag::Invalid) {
+        value_assign_fast(out, klass->public_mro_cache);
+        return true;
+      }
+      const ClassMroValues* mro = nullptr;
       if (!class_mro_values(klass, mro, error)) {
         return false;
       }
-      out = Value::tuple(*mro);
+      out = Value::tuple(mro->to_vector());
+      value_assign_fast(klass->public_mro_cache, out);
+      auto* public_tuple = value_as_tuple(klass->public_mro_cache);
+      klass->mro_values_view.bind(&public_tuple->items);
+      // The published tuple now owns the canonical MRO references. Release
+      // the duplicate lookup vector only after replacing its storage view.
+      std::vector<Value> retired_mro = std::move(klass->mro_cache);
+      klass->mro_cache_version = 0;
       return true;
     }
     if (name == "__flags__") {
@@ -4445,6 +4804,17 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
     if (name == "__dict__") {
       out = mapping_proxy(object);
       return true;
+    }
+    if (name == "__weakref__") {
+      // A class-body value takes precedence over the implicit weakref
+      // descriptor. dataclasses.field(init=False) uses this to declare its
+      // generated weakref slot, so hiding the value makes it look like a
+      // defaulted constructor argument during dataclass processing.
+      const auto explicit_weakref = klass->attrs.find(name);
+      if (explicit_weakref != klass->attrs.end()) {
+        value_assign_fast(out, explicit_weakref->second);
+        return true;
+      }
     }
     if (name == "__weakref__" && klass->allow_weakref) {
       out = slot_descriptor(klass->name, "__weakref__", UINT32_MAX);
@@ -4601,14 +4971,19 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
     }
     auto slot_it = klass->instance_slot_indices.find(name);
     if (slot_it != klass->instance_slot_indices.end() && slot_it->second < instance_slot_count(instance)) {
-      const auto& slot_value = instance_slot_at(instance, slot_it->second);
-      if (slot_value.tag != ValueTag::Invalid) {
-        value_assign_fast(out, slot_value);
-        return true;
-      }
-      if (value_as_dict(instance_attribute_storage(*instance)) != nullptr &&
-          mapping_get_item(instance_attribute_storage(*instance), Value::string(name), out, error)) {
-        return true;
+      std::string slot_owner_error;
+      const bool raw_slot_allowed = class_allows_raw_instance_slot_fallback(klass, name, &slot_owner_error);
+      if (!slot_owner_error.empty()) { error = std::move(slot_owner_error); return false; }
+      if (raw_slot_allowed) {
+        const auto& slot_value = instance_slot_at(instance, slot_it->second);
+        if (slot_value.tag != ValueTag::Invalid) {
+          value_assign_fast(out, slot_value);
+          return true;
+        }
+        if (value_as_dict(instance_attribute_storage(*instance)) != nullptr &&
+            mapping_get_item(instance_attribute_storage(*instance), Value::string(name), out, error)) {
+          return true;
+        }
       }
     }
     const bool has_attribute_dict = value_as_dict(instance_attribute_storage(*instance)) != nullptr;
@@ -4662,7 +5037,7 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       }
     }
     if (name == "__text_signature__") {
-      const std::vector<Value>* mro = nullptr;
+      const ClassMroValues* mro = nullptr;
       if (!class_mro_values(klass, mro, error)) {
         return false;
       }
@@ -4728,6 +5103,7 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       return false;
     }
     if (auto* slot = value_as_slot_descriptor(class_attr)) {
+      if (!slot_descriptor_validate_receiver_owner(*slot, object, error)) return false;
       if (slot->index >= instance_slot_count(instance)) {
         for (const auto& instance_attr : instance->attrs) {
           if (instance_attr.first == slot->name) {
@@ -4838,114 +5214,69 @@ bool object_set_attr(Value& object, const std::string& name, const Value& value,
       function->qualname = string_object_to_string(*string);
       return true;
     }
-    if (name == "__defaults__") {
-      if (value.tag == ValueTag::None) {
-        function->positional_defaults.clear();
-        function->defaults.clear();
-        return true;
+    if (name == "__code__") {
+      auto* code = value_as_code(value);
+      if (code == nullptr || code->module == nullptr ||
+          code->function_id >= code->module->functions.size()) {
+        error = "__code__ must be set to a code object";
+        return false;
       }
+      const auto& replacement = code->module->functions[code->function_id];
+      if (replacement.free_vars.size() != function->closure.size()) {
+        error = "__code__ requires a matching number of free variables";
+        return false;
+      }
+      // Defaults and globals belong to the function, not the replacement code.
+      // Reindex the positional defaults against the new signature only on this
+      // cold mutation path; ordinary calls keep their existing indexed binder.
+      if (function->positional_defaults.empty()) {
+        function->positional_defaults = function_positional_defaults_for_introspection(*function);
+      }
+      Value old_kwdefaults;
+      if (!object_get_attr(object, "__kwdefaults__", old_kwdefaults, error)) return false;
+      if (function->kwdefaults_dict.tag == ValueTag::Invalid) {
+        value_assign_fast(function->kwdefaults_dict, old_kwdefaults);
+      }
+      // Preserve metadata that ordinary defs lazily read from their original IR.
+      // Existing frames keep their own shared module owner and finish the old body.
+      for (const auto* attribute : {"__name__", "__qualname__", "__doc__"}) {
+        Value existing;
+        if (!object_get_attr(object, attribute, existing, error) ||
+            !object_set_attr(object, attribute, existing, error)) return false;
+      }
+      value_assign_fast(function->code_object, value);
+      function->module = code->module;
+      function->function_id = code->function_id;
+      ++function->code_version;
+      function_rebuild_indexed_defaults(*function);
+      return true;
+    }
+    if (name == "__defaults__") {
       auto* tuple = value_as_tuple(value);
-      if (tuple == nullptr) {
+      if (value.tag != ValueTag::None && tuple == nullptr) {
         error = "__defaults__ must be set to a tuple or None";
         return false;
       }
       function->positional_defaults.clear();
-      function->positional_defaults.reserve(tuple->items.size());
-      for (const auto& item : tuple->items) {
-        function->positional_defaults.push_back(item);
-      }
-      if (function->module != nullptr && function->function_id < function->module->functions.size()) {
-        const auto& fn = function->module->functions[function->function_id];
-        // A trailing invalid entry identifies defaults assigned through the
-        // writable function.__defaults__ attribute.  The preceding entries
-        // are indexed by parameter, allowing defaults to be added to a
-        // function whose original code signature had none.
-        function->defaults.assign(fn.signature.size() + 1, Value::invalid());
-        std::vector<size_t> positional_params;
-        for (size_t i = 0; i < fn.signature.size(); ++i) {
-          if (fn.signature[i].kind == ir::ParamKind::PosOnly ||
-              fn.signature[i].kind == ir::ParamKind::PosOrKeyword) {
-            positional_params.push_back(i);
-          }
-        }
-        const size_t copy_count = std::min(positional_params.size(), function->positional_defaults.size());
-        const size_t param_start = positional_params.size() - copy_count;
-        const size_t value_start = function->positional_defaults.size() - copy_count;
-        for (size_t i = 0; i < copy_count; ++i) {
-          value_assign_fast(function->defaults[positional_params[param_start + i]],
-                            function->positional_defaults[value_start + i]);
-        }
-        for (size_t i = 0; i < fn.signature.size(); ++i) {
-          if (fn.signature[i].kind != ir::ParamKind::KeywordOnly) {
-            continue;
-          }
-          for (const auto& item : function->kwdefaults) {
-            if (item.first == fn.signature[i].name) {
-              value_assign_fast(function->defaults[i], item.second);
-              break;
-            }
-          }
+      if (tuple != nullptr) {
+        function->positional_defaults.reserve(tuple->items.size());
+        for (const auto& item : tuple->items) {
+          function->positional_defaults.push_back(item);
         }
       }
+      function_rebuild_indexed_defaults(*function);
       return true;
     }
     if (name == "__kwdefaults__") {
-      if (value.tag == ValueTag::None) {
-        function->kwdefaults.clear();
-        if (function->module != nullptr && function->function_id < function->module->functions.size()) {
-          const auto& fn = function->module->functions[function->function_id];
-          const bool dynamic_defaults =
-              function->defaults.size() == fn.signature.size() + 1 &&
-              !function->defaults.empty() && function->defaults.back().tag == ValueTag::Invalid;
-          for (size_t i = 0; i < fn.signature.size(); ++i) {
-            const auto& param = fn.signature[i];
-            const size_t default_index = dynamic_defaults ? i : param.default_reg;
-            if (param.kind == ir::ParamKind::KeywordOnly &&
-                param.default_reg != UINT32_MAX &&
-                default_index < function->defaults.size()) {
-              value_set_invalid(function->defaults[default_index]);
-            }
-          }
-        }
-        return true;
-      }
-      auto* dict = value_as_dict(value);
-      if (dict == nullptr) {
+      if (value.tag != ValueTag::None && !mapping_is_dict(value)) {
         error = "__kwdefaults__ must be set to a dict or None";
         return false;
       }
-      function->kwdefaults.clear();
-      function->kwdefaults.reserve(dict->entries.size());
-      for (const auto& entry : dict->entries) {
-        auto* key = value_as_string(entry.first);
-        if (key == nullptr) {
-          error = "__kwdefaults__ keys must be strings";
-          return false;
-        }
-        function->kwdefaults.push_back({string_object_to_string(*key), entry.second});
-      }
-      if (function->module != nullptr && function->function_id < function->module->functions.size()) {
-        const auto& fn = function->module->functions[function->function_id];
-        const bool dynamic_defaults =
-            function->defaults.size() == fn.signature.size() + 1 &&
-            !function->defaults.empty() && function->defaults.back().tag == ValueTag::Invalid;
-        for (size_t i = 0; i < fn.signature.size(); ++i) {
-          const auto& param = fn.signature[i];
-          const size_t default_index = dynamic_defaults ? i : param.default_reg;
-          if (param.kind != ir::ParamKind::KeywordOnly ||
-              param.default_reg == UINT32_MAX ||
-              default_index >= function->defaults.size()) {
-            continue;
-          }
-          value_set_invalid(function->defaults[default_index]);
-          for (const auto& item : function->kwdefaults) {
-            if (item.first == param.name) {
-              value_assign_fast(function->defaults[default_index], item.second);
-              break;
-            }
-          }
-        }
-      }
+      // Keep dictionary identity and avoid copying its entries on assignment.
+      // The binder reads this live dict for keyword-only defaults; stale
+      // indexed keyword slots must never be used after it is made observable.
+      value_assign_fast(function->kwdefaults_dict, value);
+      function_clear_indexed_keyword_defaults(*function);
       return true;
     }
     if (name == "__annotations__") {
@@ -5136,8 +5467,13 @@ bool object_set_attr(Value& object, const std::string& name, const Value& value,
     if (klass != nullptr) {
       auto slot_it = klass->instance_slot_indices.find(name);
       if (slot_it != klass->instance_slot_indices.end() && slot_it->second < instance_slot_count(instance)) {
-        value_assign_fast(instance_slot_at(instance, slot_it->second), value);
-        return true;
+        std::string slot_owner_error;
+        const bool raw_slot_allowed = class_allows_raw_instance_slot_fallback(klass, name, &slot_owner_error);
+        if (!slot_owner_error.empty()) { error = std::move(slot_owner_error); return false; }
+        if (raw_slot_allowed) {
+          value_assign_fast(instance_slot_at(instance, slot_it->second), value);
+          return true;
+        }
       }
     }
     for (auto& attr : instance->attrs) {
@@ -5194,6 +5530,10 @@ bool object_set_attr(Value& object, const std::string& name, const Value& value,
         return false;
       }
       klass->name = string_object_to_string(*new_name);
+      // Generic constructor/payload classification reads MRO class names.
+      // Invalidate this class and descendants before retiring a name owner:
+      // its finalizer may reenter a cached inherited constructor immediately.
+      invalidate_class_lookup_caches(klass);
       klass->attrs.erase("__name__");
       auto& order = klass->definition_attr_order;
       order.erase(std::remove(order.begin(), order.end(), "__name__"), order.end());
@@ -5219,6 +5559,10 @@ bool object_set_attr(Value& object, const std::string& name, const Value& value,
 
       const auto previous_bases = klass->bases;
       const Value previous_base = klass->base;
+      // Validate against the prospective hierarchy, but retain the old public
+      // tuple so failed C3 validation can restore its stable identity.
+      Value previous_public_mro = std::move(klass->public_mro_cache);
+      klass->mro_values_view.clear();
       for (const auto& previous : klass->bases) {
         class_unregister_subclass(value_as_class(previous), klass);
       }
@@ -5229,7 +5573,7 @@ bool object_set_attr(Value& object, const std::string& name, const Value& value,
       }
       invalidate_class_lookup_caches(klass);
 
-      const std::vector<Value>* validated_mro = nullptr;
+      const ClassMroValues* validated_mro = nullptr;
       if (!class_mro_values(klass, validated_mro, error)) {
         for (const auto& requested : klass->bases) {
           class_unregister_subclass(value_as_class(requested), klass);
@@ -5240,8 +5584,10 @@ bool object_set_attr(Value& object, const std::string& name, const Value& value,
           class_register_subclass(value_as_class(previous), klass);
         }
         invalidate_class_lookup_caches(klass);
+        klass->public_mro_cache = std::move(previous_public_mro);
         return false;
       }
+      invalidate_public_mro_caches(klass);
       return true;
     }
     if (name == "__isabstractmethod__") {
@@ -5263,12 +5609,18 @@ bool object_set_attr(Value& object, const std::string& name, const Value& value,
     if (klass->attrs.find(name) == klass->attrs.end()) {
       klass->definition_attr_order.push_back(name);
     }
-    klass->attrs[name] = value;
+    // Publish the replacement and invalidate weak method-cache targets before
+    // releasing the old owner. A descriptor finalizer or function weakref
+    // callback can reenter a subclass's subscript operation during decref.
+    Value incoming = value;
+    Value replaced = std::move(klass->attrs[name]);
+    klass->attrs[name] = std::move(incoming);
     if (object_value_is_descriptor(value)) {
       klass->has_descriptors = true;
     }
     update_special_attr_flags(*klass, name);
     invalidate_class_lookup_caches(klass);
+    invalidate_descriptor_client_caches(klass, name);
     return true;
   }
   error = "object does not support attribute assignment";
@@ -5293,6 +5645,13 @@ bool object_delete_attr(Value& object, const std::string& name, std::string& err
     if (name == "__builtins__") {
       error = "attribute '__builtins__' of 'function' objects is not writable";
       return false;
+    }
+    if (name == "__code__") {
+      error = "__code__ must be set to a code object";
+      return false;
+    }
+    if (name == "__defaults__" || name == "__kwdefaults__") {
+      return object_set_attr(object, name, Value::none(), error);
     }
     if (name == "__module__") {
       if (function->attrs_dict.tag == ValueTag::Invalid) {
@@ -5360,12 +5719,17 @@ bool object_delete_attr(Value& object, const std::string& name, std::string& err
     if (klass != nullptr) {
       auto slot_it = klass->instance_slot_indices.find(name);
       if (slot_it != klass->instance_slot_indices.end() && slot_it->second < instance_slot_count(instance)) {
-        value_set_invalid(instance_slot_at(instance, slot_it->second));
-        if (value_as_dict(instance_attribute_storage(*instance)) != nullptr) {
-          std::string ignored;
-          (void)mapping_delete_item(instance_attribute_storage(*instance), Value::string(name), ignored);
+        std::string slot_owner_error;
+        const bool raw_slot_allowed = class_allows_raw_instance_slot_fallback(klass, name, &slot_owner_error);
+        if (!slot_owner_error.empty()) { error = std::move(slot_owner_error); return false; }
+        if (raw_slot_allowed) {
+          value_set_invalid(instance_slot_at(instance, slot_it->second));
+          if (value_as_dict(instance_attribute_storage(*instance)) != nullptr) {
+            std::string ignored;
+            (void)mapping_delete_item(instance_attribute_storage(*instance), Value::string(name), ignored);
+          }
+          return true;
         }
-        return true;
       }
     }
     for (auto it = instance->attrs.begin(); it != instance->attrs.end(); ++it) {
@@ -5399,10 +5763,14 @@ bool object_delete_attr(Value& object, const std::string& name, std::string& err
       error = "type object '" + klass->name + "' has no attribute '" + name + "'";
       return false;
     }
+    // Detach first so reentrant decref observes both the new attribute set and
+    // invalidated subclass caches, rather than a dead cached function pointer.
+    Value removed = std::move(it->second);
     klass->attrs.erase(it);
     auto& order = klass->definition_attr_order;
     order.erase(std::remove(order.begin(), order.end(), name), order.end());
     invalidate_class_lookup_caches(klass);
+    invalidate_descriptor_client_caches(klass, name);
     return true;
   }
   error = "object does not support attribute deletion";
@@ -5422,7 +5790,8 @@ bool object_construct(Value klass, const Value* args, uint32_t argc, Value& out,
   return true;
 }
 
-bool class_set_base(Value klass, Value base, std::string& error) {
+static bool class_set_base_impl(
+    Value klass, Value base, std::string& error, bool construction) {
   auto* klass_obj = value_as_class(klass);
   if (klass_obj == nullptr) {
     error = "object is not a class";
@@ -5437,6 +5806,14 @@ bool class_set_base(Value klass, Value base, std::string& error) {
     error = "type '" + added_base_class->name + "' is not an acceptable base type";
     return false;
   }
+  // SDK/native base mutation cannot certify the historical layout. Python
+  // construction alone preserves metadata captured before descriptor dedup.
+  if (!construction) klass_obj->own_instance_slot_declarations_known = false;
+  // Do not let a previously exposed tuple describe the prospective hierarchy.
+  // Keep its owner alive through the change; successful invalidation retires it.
+  [[maybe_unused]] Value previous_public_mro = std::move(klass_obj->public_mro_cache);
+  klass_obj->mro_values_view.clear();
+  invalidate_class_lookup_caches(klass_obj);
   std::vector<std::string> own_slots;
   for (const auto& attr : klass_obj->attrs) {
     auto* descriptor = value_as_slot_descriptor(attr.second);
@@ -5467,6 +5844,7 @@ bool class_set_base(Value klass, Value base, std::string& error) {
   klass_obj->bases.push_back(base);
   if (auto* base_class = added_base_class) {
     if (!choose_compatible_metaclass(klass_obj->metaclass, base_class->metaclass, error)) {
+      invalidate_public_mro_caches(klass_obj);
       return false;
     }
     klass_obj->has_descriptors = klass_obj->has_descriptors || class_or_bases_have_descriptors(base_class);
@@ -5522,11 +5900,21 @@ bool class_set_base(Value klass, Value base, std::string& error) {
   update_abc_abstract_methods_for_class(*klass_obj);
   if (!finalize_enum_class(*klass_obj)) {
     error = "enum class finalization failed";
+    invalidate_public_mro_caches(klass_obj);
     return false;
   }
   class_register_subclass(added_base_class, klass_obj);
-  klass_obj->version = next_class_version_tag();
+  invalidate_class_lookup_caches(klass_obj);
+  invalidate_public_mro_caches(klass_obj);
   return true;
+}
+
+bool class_set_base(Value klass, Value base, std::string& error) {
+  return class_set_base_impl(std::move(klass), std::move(base), error, false);
+}
+
+bool class_set_base_for_construction(Value klass, Value base, std::string& error) {
+  return class_set_base_impl(std::move(klass), std::move(base), error, true);
 }
 
 bool class_get_subclasses(const Value& klass, Value& out, std::string& error) {
@@ -5546,6 +5934,10 @@ bool class_get_subclasses(const Value& klass, Value& out, std::string& error) {
   return true;
 }
 
+bool class_get_mro_values(ClassObject* klass, const ClassMroValues*& out, std::string& error) {
+  return class_mro_values(klass, out, error);
+}
+
 // Preserve this call boundary: focused Release A/B favored the outlined form
 // for function-call fast paths; small workloads are sensitive to code layout.
 // Recheck the official workload and full Release gate before changing inlining.
@@ -5554,7 +5946,7 @@ XLANG3_NOINLINE bool class_is_subclass(const ClassObject* klass, const ClassObje
   // classes. Reading the version-guarded Value MRO directly avoids allocating
   // a temporary pointer vector for every query. Class/base mutations
   // invalidate the same MRO cache, so dynamic inheritance remains observable.
-  const std::vector<Value>* mro = nullptr;
+  const ClassMroValues* mro = nullptr;
   std::string error;
   if (!class_mro_values(const_cast<ClassObject*>(klass), mro, error)) {
     return false;
@@ -5617,6 +6009,19 @@ bool class_get_bound_attr(
       (value_as_native_function(out) != nullptr && value_as_native_function(out)->bind_as_descriptor)) {
     out = Value::bound_method(instance, out);
     return true;
+  }
+  if (auto* property = value_as_property(out)) {
+    // Native property objects expose __get__ through the builtin-method API,
+    // rather than object_get_attr. Bind their real Python getter directly,
+    // retaining it while callbacks can mutate the descriptor's owning class.
+    Value getter;
+    value_assign_fast(getter, property->fget);
+    if (getter.tag == ValueTag::None || getter.tag == ValueTag::Invalid) {
+      error = "unreadable attribute";
+      runtime.raise_class_error("AttributeError", error);
+      return false;
+    }
+    return runtime_call_callable(runtime, getter, &instance, 1, out, error);
   }
   if (!object_value_has_descriptor_get(out)) {
     return true;
@@ -5765,7 +6170,7 @@ bool object_lookup_class_attr_before_base(
     error = "object is not a class";
     return false;
   }
-  const std::vector<Value>* mro = nullptr;
+  const ClassMroValues* mro = nullptr;
   if (!class_mro_values(klass_obj, mro, error)) return false;
   for (const auto& class_value : *mro) {
     auto* candidate = value_as_class(class_value);
@@ -5790,7 +6195,7 @@ bool object_lookup_inherited_class_attr(
     error = "object is not a class";
     return false;
   }
-  const std::vector<Value>* mro = nullptr;
+  const ClassMroValues* mro = nullptr;
   if (!class_mro_values(klass_obj, mro, error)) {
     return false;
   }
@@ -5872,11 +6277,13 @@ bool instance_set_native_owner(Value instance, std::string native_type, void* na
   instance_obj->native_owner = owner;
   instance_obj->native_data_cleanup = native_data_cleanup;
   instance_obj->native_gc_references.clear();
+  instance_obj->native_gc_traverse = nullptr;
   instance_obj->native_data_clear = nullptr;
   instance_obj->native_data_truthy = nullptr;
   instance_obj->native_get_attr = nullptr;
   instance_obj->native_set_attr = nullptr;
   instance_obj->native_delete_attr = nullptr;
+  instance_obj->native_trace_hook = nullptr;
   return true;
 }
 
@@ -5891,11 +6298,14 @@ bool instance_set_native_gc_references(Value instance, const Value* references,
     error = "native GC references are null";
     return false;
   }
-  if (instance_obj->native_gc_registered) {
-    native_gc_instances().erase(&instance_obj->header);
-    instance_obj->native_gc_registered = false;
-  }
-  std::vector<Object*> objects;
+  // Native payloads refresh tracing edges on hot state transitions such as
+  // every asyncio Task step. The mirror contains non-owning Object pointers,
+  // so replacing it does not decref Values or reenter Python; keep stable
+  // candidates registered and avoid an unordered_set erase/insert (and its
+  // node allocation) on every transition. Reuse vector capacity as well.
+  auto& objects = instance_obj->native_gc_references;
+  instance_obj->native_gc_traverse = nullptr;
+  objects.clear();
   objects.reserve(reference_count);
   for (uint32_t index = 0; index < reference_count; ++index) {
     if (references[index].tag == ValueTag::Object && references[index].as.obj != nullptr) {
@@ -5904,11 +6314,41 @@ bool instance_set_native_gc_references(Value instance, const Value* references,
       objects.push_back(references[index].as.obj);
     }
   }
-  instance_obj->native_gc_references = std::move(objects);
   instance_obj->native_data_clear = clear;
-  if (clear != nullptr && !instance_obj->native_gc_references.empty()) {
-    native_gc_instances().insert(&instance_obj->header);
-    instance_obj->native_gc_registered = true;
+  if (clear != nullptr && !objects.empty()) {
+    if (!instance_obj->native_gc_registered) {
+      native_gc_instances().insert(&instance_obj->header);
+      instance_obj->native_gc_registered = true;
+    }
+  } else if (instance_obj->native_gc_registered) {
+    native_gc_instances().erase(&instance_obj->header);
+    instance_obj->native_gc_registered = false;
+  }
+  return true;
+}
+
+bool instance_set_native_gc_traversal(Value instance,
+    NativeGCTraverse traverse, void (*clear)(void*), std::string& error) {
+  auto* instance_obj = value_as_instance(instance);
+  if (instance_obj == nullptr) {
+    error = "object is not an instance";
+    return false;
+  }
+  if (traverse != nullptr && clear == nullptr) {
+    error = "native GC traversal requires a clear callback";
+    return false;
+  }
+  instance_obj->native_gc_references.clear();
+  instance_obj->native_gc_traverse = traverse;
+  instance_obj->native_data_clear = clear;
+  if (traverse != nullptr) {
+    if (!instance_obj->native_gc_registered) {
+      native_gc_instances().insert(&instance_obj->header);
+      instance_obj->native_gc_registered = true;
+    }
+  } else if (instance_obj->native_gc_registered) {
+    native_gc_instances().erase(&instance_obj->header);
+    instance_obj->native_gc_registered = false;
   }
   return true;
 }

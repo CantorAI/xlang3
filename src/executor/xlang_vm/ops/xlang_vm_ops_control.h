@@ -32,6 +32,7 @@ limitations under the License.
 #include <string>
 #include <utility>
 #include <vector>
+#include <limits>
 
 namespace xlang3::xlang_vm::ops {
 
@@ -475,7 +476,7 @@ XLANG3_NOINLINE inline XlangVMOpFlow for_property_access_loop(
     XlangVMFrame& frame,
     Runtime& runtime,
     XlangVMSmallValueBuffer& locals,
-    std::vector<XlangVMInstrCache>& instr_cache,
+    XlangVMInstrCacheStorage& instr_cache,
     size_t& ip,
     bool allow_guarded_fast_path,
     RuntimeResult& result,
@@ -620,7 +621,7 @@ XLANG3_NOINLINE inline XlangVMOpFlow for_construct_method_accumulate_loop(
     Runtime& runtime,
     XlangVMSmallRegisterBuffer& regs,
     XlangVMSmallValueBuffer& locals,
-    std::vector<XlangVMInstrCache>& instr_cache,
+    XlangVMInstrCacheStorage& instr_cache,
     size_t& ip,
     bool allow_guarded_fast_path,
     RuntimeResult& result,
@@ -869,7 +870,7 @@ XLANG3_NOINLINE inline XlangVMOpFlow for_call_accumulate_loop(
     Runtime& runtime,
     XlangVMSmallRegisterBuffer& regs,
     XlangVMSmallValueBuffer& locals,
-    std::vector<XlangVMInstrCache>& instr_cache,
+    XlangVMInstrCacheStorage& instr_cache,
     size_t& ip,
     bool allow_guarded_fast_path,
     RuntimeResult& result,
@@ -1020,7 +1021,7 @@ XLANG3_NOINLINE inline XlangVMOpFlow for_local_move_add_loop(
     Runtime& runtime,
     XlangVMSmallRegisterBuffer& regs,
     XlangVMSmallValueBuffer& locals,
-    std::vector<XlangVMInstrCache>& instr_cache,
+    XlangVMInstrCacheStorage& instr_cache,
     size_t& ip,
     bool allow_guarded_fast_path,
     RuntimeResult& result,
@@ -1425,6 +1426,7 @@ XLANG3_HOT_INLINE void match_exception(
 template <typename EmitMonitoringEvent, typename EmitTraceEvent, typename EmitProfileEvent, typename RaiseRuntimeError>
 XLANG3_HOT_INLINE XlangVMOpFlow yield_op(
     const ir::Instr& in,
+    Runtime& runtime,
     XlangVMSmallRegisterBuffer& regs,
     size_t& ip,
     VMFrame& frame,
@@ -1441,12 +1443,46 @@ XLANG3_HOT_INLINE XlangVMOpFlow yield_op(
                                                               : XlangVMOpFlow::ReturnResult;
   }
 
+  if (generator->consume_int_sum != nullptr) {
+    const bool can_absorb_yield =
+        regs[in.a].tag == ValueTag::Int64 && !xlang_perf_enabled() &&
+        !generator_continuation_has_observers(runtime, frames, frame_count) &&
+        !generator_continuation_has_active_exception_handlers(frames, frame_count);
+    if (can_absorb_yield) {
+      const int64_t current = *generator->consume_int_sum;
+      const int64_t item = regs[in.a].as.i64;
+      // Keep exact-int overflow on the ordinary yield path so builtin sum's
+      // existing addition promotes to BigInt at precisely the same point.
+      if (!((item > 0 && current > std::numeric_limits<int64_t>::max() - item) ||
+            (item < 0 && current < std::numeric_limits<int64_t>::min() - item))) {
+        *generator->consume_int_sum = current + item;
+        value_set_none(regs[in.dst]);
+        return XlangVMOpFlow::Next;
+      }
+    }
+    // A non-int, overflow, or newly active observer needs the ordinary yield
+    // result; permanently leave this narrow mode before exposing that value.
+    generator->consume_int_sum = nullptr;
+  }
+
+  // For an unobserved generator consumed by native any(), false values cannot
+  // affect the result. Continue this VM activation in place instead of saving
+  // a continuation and re-entering the interpreter for each false yield.
+  // The full guards retain normal suspension whenever Python can observe a
+  // yield, exception handler, trace/monitoring hook, or profiling counter.
+  if (generator->consume_for_any && !value_truthy(regs[in.a]) &&
+      !xlang_perf_enabled() &&
+      !generator_continuation_has_observers(runtime, frames, frame_count) &&
+      !generator_continuation_has_active_exception_handlers(frames, frame_count)) {
+    value_set_none(regs[in.dst]);
+    return XlangVMOpFlow::Next;
+  }
   Value yielded_value;
   value_assign_fast(yielded_value, regs[in.a]);
   if (!emit_monitoring_event(frame, kSysMonitoringEventPyYield, &yielded_value)) {
     return XlangVMOpFlow::ReturnResult;
   }
-  if (!emit_trace_event(frame, "return", yielded_value) ||
+  if (!emit_trace_event(frame, "return", yielded_value, kNativeTraceSuspended) ||
       !emit_profile_event(frame, "return", yielded_value)) {
     return XlangVMOpFlow::ReturnResult;
   }

@@ -15,6 +15,8 @@ limitations under the License.
 #include "xlang3/native_package_loader.h"
 
 #include "xlang3/attribute.h"
+#include "xlang3/builtins.h"
+#include "xlang3/functional_iterators.h"
 #include "xlang3/c_api_bridge.h"
 #include "xlang3/module_object.h"
 #include "xlang3/mapping.h"
@@ -59,6 +61,11 @@ struct X3Package {
 namespace xlang3 {
 
 namespace {
+
+std::string path_utf8(const std::filesystem::path& path) {
+  const auto encoded = path.u8string();
+  return {reinterpret_cast<const char*>(encoded.data()), encoded.size()};
+}
 
 struct NativeThunk {
   X3NativeFn callback = nullptr;
@@ -120,11 +127,11 @@ std::vector<std::filesystem::path> native_library_candidates(const std::filesyst
 }
 
 bool is_python_source_root(const std::filesystem::path& root) {
-  const auto leaf = root.filename().string();
+  const auto leaf = path_utf8(root.filename());
   if (leaf == "Lib" || leaf == "lib" || leaf == "site-packages") {
     return true;
   }
-  const auto parent = root.parent_path().filename().string();
+  const auto parent = path_utf8(root.parent_path().filename());
   return parent == "site-packages";
 }
 
@@ -156,15 +163,16 @@ void* open_library(const std::filesystem::path& path, std::string& error) {
   HMODULE handle = LoadLibraryExW(absolute.c_str(), nullptr,
       LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR | LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
   if (handle == nullptr) {
-    error = "cannot load native package " + path.string() +
+    error = "cannot load native package " + path_utf8(path) +
         " (Windows error " + std::to_string(GetLastError()) + ")";
   }
   return reinterpret_cast<void*>(handle);
 #else
-  void* handle = dlopen(path.string().c_str(), RTLD_NOW | RTLD_LOCAL);
+  const auto encoded = path_utf8(path);
+  void* handle = dlopen(encoded.c_str(), RTLD_NOW | RTLD_LOCAL);
   if (handle == nullptr) {
     const char* dl_error = dlerror();
-    error = "cannot load native package " + path.string();
+    error = "cannot load native package " + path_utf8(path);
     if (dl_error != nullptr) {
       error += ": ";
       error += dl_error;
@@ -786,6 +794,82 @@ X3Status host_take_exception(X3CallContext* context, X3Value* out) {
   return X3_STATUS_OK;
 }
 
+// Native library callbacks can run during payload cleanup without a call
+// context. Transport the existing exception identity through the package ABI;
+// do not manufacture a replacement from its rendered error message.
+X3Status host_runtime_take_exception(X3Runtime* runtime, X3Value* out) {
+  XlangRuntimeExecutionGuard guard;
+  if (runtime == nullptr || out == nullptr) return X3_STATUS_ERROR;
+  auto* rt = reinterpret_cast<Runtime*>(runtime);
+  Value exception;
+  (void)rt->take_pending_exception(exception);
+  *out = to_c_value(exception);
+  return X3_STATUS_OK;
+}
+
+X3Status host_runtime_restore_exception(X3Runtime* runtime, X3Value raw) {
+  XlangRuntimeExecutionGuard guard;
+  if (runtime == nullptr) return X3_STATUS_ERROR;
+  auto* rt = reinterpret_cast<Runtime*>(runtime);
+  if (raw.tag == X3_TAG_INVALID) {
+    rt->set_pending_exception(Value());
+    return X3_STATUS_OK;
+  }
+  std::string error;
+  Value exception = from_c_value(raw, error);
+  if (!error.empty() || value_as_instance(exception) == nullptr) return X3_STATUS_ERROR;
+  rt->set_pending_exception(std::move(exception));
+  return X3_STATUS_OK;
+}
+
+// Intrinsic native-to-Python integer-index conversion. Public operator.index,
+// instance attributes and __getattribute__ overrides do not define this
+// protocol; use the runtime's existing type-level special-method binding.
+X3Status host_value_index(X3Runtime* runtime, X3Value raw, X3Value* out) {
+  XlangRuntimeExecutionGuard guard;
+  if (runtime == nullptr || out == nullptr) return X3_STATUS_ERROR;
+  auto* rt = reinterpret_cast<Runtime*>(runtime);
+  std::string error;
+  Value input = from_c_value(raw, error);
+  if (!error.empty()) { rt->set_last_error(error); return X3_STATUS_ERROR; }
+  Value integer;
+  if (input.tag == ValueTag::Bool) integer = Value::int64(input.as.b ? 1 : 0);
+  else if (input.tag == ValueTag::Int64 || value_as_bigint(input) != nullptr) integer = input;
+  else {
+    Value method;
+    if (!object_get_special_method(*rt, input, "__index__", method, error)) {
+      Value pending;
+      if (rt->take_pending_exception(pending)) rt->set_pending_exception(std::move(pending));
+      else {
+        error = "'" + std::string(value_binary_type_name(input)) + "' object cannot be interpreted as an integer";
+        rt->raise_class_error("TypeError", error);
+      }
+      rt->set_last_error(error);
+      return X3_STATUS_ERROR;
+    }
+    if (!runtime_call_callable(*rt, method, nullptr, 0, integer, error)) {
+      rt->set_last_error(error);
+      return X3_STATUS_ERROR;
+    }
+    if (integer.tag == ValueTag::Bool) {
+      const auto* category = rt->find_builtin("DeprecationWarning");
+      const Value message = Value::string("__index__ returned non-int (type bool).  The ability to return an instance of a strict subclass of int is deprecated, and may be removed in a future version of Python.");
+      if (category == nullptr || !runtime_warn(*rt, message, *category, 1, error)) {
+        rt->set_last_error(error);
+        return X3_STATUS_ERROR;
+      }
+      integer = Value::int64(integer.as.b ? 1 : 0);
+    } else if (integer.tag != ValueTag::Int64 && value_as_bigint(integer) == nullptr) {
+      error = "__index__ returned non-int (type " + std::string(value_binary_type_name(integer)) + ")";
+      rt->raise_class_error("TypeError", error);
+      rt->set_last_error(error);
+      return X3_STATUS_ERROR;
+    }
+  }
+  *out = to_c_value(integer); // an owned ABI result; callback exceptions stay pending on failure
+  return X3_STATUS_OK;
+}
+
 const X3PackageHost kPackageHostTemplate = {
     X3_ABI_VERSION,
     sizeof(X3PackageHost),
@@ -870,6 +954,9 @@ const X3PackageHost kPackageHostTemplate = {
     host_instance_set_native_gc_references,
     x3_buffer_acquire,
     x3_buffer_release,
+    host_runtime_take_exception,
+    host_runtime_restore_exception,
+    host_value_index,
 };
 
 std::vector<std::filesystem::path> collect_native_library_candidates(
@@ -892,7 +979,7 @@ std::vector<std::filesystem::path> collect_native_library_candidates(
       if (auto* list = value_as_list(path)) {
         for (const auto& item : list->items) {
           if (auto* string = value_as_string(item)) {
-            roots.emplace_back(string_object_view(*string));
+            roots.emplace_back(std::filesystem::u8path(string_object_view(*string)));
           }
         }
       }
@@ -946,7 +1033,7 @@ std::string format_native_not_found(const std::string& name, const std::vector<s
     return os.str();
   }
   for (const auto& candidate : candidates) {
-    os << "\n  " << candidate.string();
+    os << "\n  " << path_utf8(candidate);
   }
   return os.str();
 }
@@ -977,14 +1064,14 @@ static bool initialize_native_package(
   package.root_module = Value::module(package_name);
   package.requested_module = Value::invalid();
   module_set_attr(package.root_module, "__name__", Value::string(package_name), error);
-  module_set_attr(package.root_module, "__file__", Value::string(library_path.string()), error);
-  module_set_attr(package.root_module, "__xlang3_file__", Value::string(library_path.string()), error);
+  module_set_attr(package.root_module, "__file__", Value::string(path_utf8(library_path)), error);
+  module_set_attr(package.root_module, "__xlang3_file__", Value::string(path_utf8(library_path)), error);
 
   auto* host = new X3PackageHost(kPackageHostTemplate);
   host->package_context = &package;
   host->runtime = reinterpret_cast<X3Runtime*>(&runtime);
   host->package_name = package.name.c_str();
-  const std::string library_path_text = library_path.string();
+  const std::string library_path_text = path_utf8(library_path);
   host->library_path = library_path_text.c_str();
 
   X3Value cur_module = to_c_value(runtime.current_globals_module());
@@ -1059,15 +1146,15 @@ bool import_native_package(Runtime& runtime, const std::string& package_name,
   auto init = reinterpret_cast<X3PackageInitFn>(find_symbol(handle, "Load"));
   auto* abi = static_cast<const uint32_t*>(find_symbol(handle, "xlang3_package_abi_version"));
   if (!init) {
-    error = "native package " + library_path.string() + " does not export Load";
+    error = "native package " + path_utf8(library_path) + " does not export Load";
     return false;
   }
   if (!abi) {
-    error = "native package " + library_path.string() + " does not export xlang3_package_abi_version";
+    error = "native package " + path_utf8(library_path) + " does not export xlang3_package_abi_version";
     return false;
   }
   if (*abi != X3_ABI_VERSION) {
-    error = "native package " + library_path.string() + " has xlang3 ABI " + std::to_string(*abi) +
+    error = "native package " + path_utf8(library_path) + " has xlang3 ABI " + std::to_string(*abi) +
         ", runtime expects " + std::to_string(X3_ABI_VERSION);
     return false;
   }

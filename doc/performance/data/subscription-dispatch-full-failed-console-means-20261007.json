@@ -1,0 +1,63 @@
+{
+  "scope": "Failed-definition console-only observations, not successful suite measurements or synthetic raw samples",
+  "source_log": "pyperformance-xlang3-subscription-dispatch-full-fast-20261007.log",
+  "source_log_sha256": "103dd28d5367ed89f1e28dffab912af829fa70210db39267bfbd84ce9a0a58c9",
+  "observations": [
+    {
+      "benchmark": "base64",
+      "subtest": "base64_small",
+      "console_mean_and_stddev": "2.98 ms +- 0.07 ms",
+      "definition_status": "Benchmark timed out",
+      "evidence": "rounded console output; raw worker values unavailable; excluded from speed aggregates"
+    },
+    {
+      "benchmark": "base64",
+      "subtest": "base64_large",
+      "console_mean_and_stddev": "14.5 ms +- 0.2 ms",
+      "definition_status": "Benchmark timed out",
+      "evidence": "rounded console output; raw worker values unavailable; excluded from speed aggregates"
+    },
+    {
+      "benchmark": "base64",
+      "subtest": "urlsafe_base64_small",
+      "console_mean_and_stddev": "6.32 ms +- 0.26 ms",
+      "definition_status": "Benchmark timed out",
+      "evidence": "rounded console output; raw worker values unavailable; excluded from speed aggregates"
+    },
+    {
+      "benchmark": "base64",
+      "subtest": "base32_small",
+      "console_mean_and_stddev": "43.4 ms +- 1.7 ms",
+      "definition_status": "Benchmark timed out",
+      "evidence": "rounded console output; raw worker values unavailable; excluded from speed aggregates"
+    },
+    {
+      "benchmark": "base64",
+      "subtest": "base32_large",
+      "console_mean_and_stddev": "1.88 sec +- 0.06 sec",
+      "definition_status": "Benchmark timed out",
+      "evidence": "rounded console output; raw worker values unavailable; excluded from speed aggregates"
+    },
+    {
+      "benchmark": "base64",
+      "subtest": "base16_small",
+      "console_mean_and_stddev": "3.78 ms +- 0.18 ms",
+      "definition_status": "Benchmark timed out",
+      "evidence": "rounded console output; raw worker values unavailable; excluded from speed aggregates"
+    },
+    {
+      "benchmark": "base64",
+      "subtest": "base16_large",
+      "console_mean_and_stddev": "41.8 ms +- 0.8 ms",
+      "definition_status": "Benchmark timed out",
+      "evidence": "rounded console output; raw worker values unavailable; excluded from speed aggregates"
+    },
+    {
+      "benchmark": "base64",
+      "subtest": "ascii85_small",
+      "console_mean_and_stddev": "102 ms +- 4 ms",
+      "definition_status": "Benchmark timed out",
+      "evidence": "rounded console output; raw worker values unavailable; excluded from speed aggregates"
+    }
+  ]
+}

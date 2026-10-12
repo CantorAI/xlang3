@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\scratch\performance\two-argument-ir-lifetime-probe-proposed-20261010.py", line 49, in <module>
+    invoke_temporary()
+    ~~~~~~~~~~~~~~~~^^
+  File "D:\CantorAI\xlang3\scratch\performance\two-argument-ir-lifetime-probe-proposed-20261010.py", line 45, in invoke_temporary
+    assert sorted(events) == [('other', 'invoke_temporary', -999.0),
+                              ('self', 'invoke_temporary', -999.0)], events
+AssertionError: [('self', 'invoke_temporary', 'missing'), ('other', 'invoke_temporary', 'missing')]

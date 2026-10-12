@@ -1,0 +1,12 @@
+local_slots              pass         0.996x
+scalar_arithmetic        pass         1.002x
+range_for                pass         1.005x
+function_calls           pass         1.024x
+class_construct          pass         1.015x
+list_append              pass         1.027x
+property_access          pass         0.961x
+deepcopy_memo            pass         0.914x
+json_dumps               pass         1.024x
+gc_traversal             pass         0.754x
+subparsers               pass         0.930x
+Performance check: pass. Report: D:\CantorAI\xlang3\doc\performance\data\triple-string-closing-comment-validation-20261008-fixed-gate.json

@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="238" viewBox="0 0 760 238" role="img" aria-labelledby="title desc">
+  <title id="title">async_tree_eager time, fixed control versus candidate</title>
+  <desc id="desc">Horizontal bars show the candidate at 1.40 seconds and the fixed control at 1.52 seconds. Lower is faster; the candidate is 1.08 times faster.</desc>
+  <style>
+    text { font-family: Segoe UI, Arial, sans-serif; fill: #18212b; }
+    .title { font-size: 18px; font-weight: 650; }
+    .label { font-size: 14px; }
+    .tick { font-size: 12px; fill: #56616c; }
+    .grid { stroke: #d7dde3; stroke-width: 1; }
+    .axis { stroke: #56616c; stroke-width: 1.2; }
+    .candidate { fill: #167d65; }
+    .control { fill: #8996a3; }
+    .value { font-size: 14px; font-weight: 600; }
+  </style>
+  <text x="22" y="30" class="title">async_tree_eager — elapsed time (lower is faster)</text>
+  <line x1="170" y1="57" x2="170" y2="190" class="axis"/>
+  <line x1="170" y1="190" x2="650" y2="190" class="axis"/>
+  <g class="grid">
+    <line x1="290" y1="57" x2="290" y2="190"/>
+    <line x1="410" y1="57" x2="410" y2="190"/>
+    <line x1="530" y1="57" x2="530" y2="190"/>
+    <line x1="650" y1="57" x2="650" y2="190"/>
+  </g>
+  <text x="22" y="105" class="label">Candidate</text>
+  <rect x="170" y="82" width="420" height="32" rx="4" class="candidate"/>
+  <text x="600" y="103" class="value">1.40 s</text>
+  <text x="22" y="157" class="label">Fixed control</text>
+  <rect x="170" y="134" width="456" height="32" rx="4" class="control"/>
+  <text x="636" y="155" class="value">1.52 s</text>
+  <text x="166" y="211" class="tick">0</text>
+  <text x="282" y="211" class="tick">0.4</text>
+  <text x="402" y="211" class="tick">0.8</text>
+  <text x="522" y="211" class="tick">1.2</text>
+  <text x="642" y="211" class="tick">1.6 s</text>
+  <text x="170" y="231" class="tick">Candidate/control: 1.08× faster</text>
+</svg>

@@ -230,9 +230,18 @@ private:
       node.kind = Kind::ByteArray; node.payload = std::string_view(bytes->value.data(), bytes->value.size());
     } else if (auto* view = value_as_memoryview(value)) {
       IO::require(!view->released, "cannot serialize a released memoryview");
+      node.kind = Kind::Bytes;
+      if (!view->contiguous) {
+        std::string error;
+        const bool copied = memoryview_copy_bytes(*view, node.owned_payload, error);
+        IO::require(copied, error.c_str());
+        // Nodes move while the graph grows. Keep packed bytes owned here and
+        // form their view only when writing, including small-string storage.
+        return;
+      }
       const auto storage = memoryview_object_view(*view);
       IO::require(storage.data() != nullptr, "invalid memoryview bounds");
-      node.kind = Kind::Bytes; node.payload = storage;
+      node.payload = storage;
     } else if (auto* list = value_as_list(value)) {
       node.kind = Kind::List; node.refs = list->items;
     } else if (auto* tuple = value_as_tuple(value)) {
@@ -242,6 +251,15 @@ private:
       for (const auto& entry : dict->entries) { node.refs.push_back(entry.first); node.refs.push_back(entry.second); }
     } else if (auto* cell = value_as_cell(value)) {
       node.kind = Kind::Cell; node.refs = {cell->value};
+    } else if (auto* code = value_as_code(value)) {
+      IO::require(code->module && code->function_id < code->module->functions.size(), "code has no executable IR");
+      node.kind = Kind::Code;
+      auto [it, added] = module_ids.emplace(code->module.get(), static_cast<uint32_t>(modules.size()));
+      if (added) modules.push_back(code->module);
+      node.numbers = {code->function_id, it->second,
+                      static_cast<uint64_t>(code->first_line_override),
+                      static_cast<uint64_t>(code->flags_override)};
+      node.names = {code->mode, code->filename_override, code->name_override, code->qualname_override};
     } else if (auto* function = value_as_function(value)) {
       IO::require(function->module && function->function_id < function->module->functions.size(), "function has no executable IR");
       node.kind = Kind::Function;
@@ -252,7 +270,7 @@ private:
       for (const auto& item : function->kwdefaults) node.names.push_back(item.first);
       node.names.insert(node.names.end(), function->type_params.begin(), function->type_params.end());
       node.refs = {function->globals_module, function->builtins, function->annotations,
-                   function->doc, function->attrs_dict};
+                   function->doc, function->attrs_dict, function->kwdefaults_dict, function->code_object};
       node.refs.insert(node.refs.end(), function->closure.begin(), function->closure.end());
       node.refs.insert(node.refs.end(), function->defaults.begin(), function->defaults.end());
       node.refs.insert(node.refs.end(), function->positional_defaults.begin(), function->positional_defaults.end());

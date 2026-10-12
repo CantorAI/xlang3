@@ -1,0 +1,5 @@
+runtime,path,median_us_per_load,loops,samples
+xlang3,json.loads,31.486,30,9
+xlang3,JSONDecoder.decode,25.427,30,9
+xlang3,JSONDecoder.raw_decode,22.322,30,9
+xlang3,direct scan_once,21.637,30,9

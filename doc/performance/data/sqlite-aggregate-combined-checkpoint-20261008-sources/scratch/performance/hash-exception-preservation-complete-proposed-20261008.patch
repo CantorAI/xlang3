@@ -1,0 +1,268 @@
+diff --git a/src/builtins/functional_builtins.cpp b/src/builtins/functional_builtins.cpp
+--- a/src/builtins/functional_builtins.cpp
++++ b/src/builtins/functional_builtins.cpp
+@@ -5251,9 +5251,17 @@ bool builtin_hash(Runtime& runtime, const Value* args, uint32_t argc, Value& out, st
+   }
+   size_t hash = 0;
+   if (!runtime_hash_value(runtime, args[0], hash, error)) {
+-    runtime.raise_class_error(
+-        error == "operation forbidden on released memoryview object" ? "ValueError" : "TypeError",
+-        error);
++    // __hash__ may fail through a nested Python/native callback. Keep that
++    // exact pending exception (and its traceback/cause) instead of replacing
++    // it with the fallback TypeError for values that are merely unhashable.
++    Value pending;
++    if (runtime.take_pending_exception(pending)) {
++      runtime.set_pending_exception(std::move(pending));
++    } else {
++      runtime.raise_class_error(
++          error == "operation forbidden on released memoryview object" ? "ValueError" : "TypeError",
++          error);
++    }
+     return false;
+   }
+   out = Value::int64(static_cast<int64_t>(hash));
+diff --git a/tests/cpp/interpreter_tests.cpp b/tests/cpp/interpreter_tests.cpp
+--- a/tests/cpp/interpreter_tests.cpp
++++ b/tests/cpp/interpreter_tests.cpp
+@@ -17,6 +17,7 @@
+ #include "test_harness.h"
++#include "hash_exception_cases.h"
+ #include "sqlite_aggregate_abi_cases.h"
+ #include "canonical_slot_read_cases.h"
+ 
+ #include "xlang3/object_model.h"
+ #include "xlang3/sequence.h"
+@@ -25,6 +26,7 @@ int main(int argc, char** argv) {
+   xlang3::test::CaseResult result;
++  xlang3::test::check_hash_exception_cases(result);
+   xlang3::test::check_sqlite_aggregate_abi(result, argc > 0 ? argv[0] : nullptr);
+   xlang3::test::check_canonical_slot_read_cases(result);
+ 
+   // Same-object owning copies should avoid refcount churn, while copying into
+   // a borrowed slot must still acquire an independent reference.
+diff --git a/tests/cpp/hash_exception_cases.h b/tests/cpp/hash_exception_cases.h
+new file mode 100644
+--- /dev/null
++++ b/tests/cpp/hash_exception_cases.h
+@@ -0,0 +1,115 @@
++#pragma once
++
++#include "test_harness.h"
++#include "xlang3/functional_iterators.h"
++#include "xlang3/object_model.h"
++
++#include <memory>
++#include <sstream>
++#include <utility>
++
++namespace xlang3::test {
++
++namespace hash_exception_cases {
++
++struct CallbackState {
++  Value exception;
++  bool publish_exception = true;
++  uint32_t calls = 0;
++};
++
++inline bool fail_hash(Runtime& runtime, const Value*, uint32_t argc,
++                      Value&, std::string& error, void* user_data) {
++  auto& state = *static_cast<CallbackState*>(user_data);
++  if (argc != 1) {
++    error = "unexpected native __hash__ arity";
++    return false;
++  }
++  ++state.calls;
++  error = "native hash diagnostic";
++  if (state.publish_exception) runtime.set_pending_exception(state.exception);
++  return false;
++}
++
++inline void destroy_state(void* user_data) {
++  delete static_cast<CallbackState*>(user_data);
++}
++
++} // namespace hash_exception_cases
++
++inline void check_hash_exception_cases(CaseResult& result) {
++  std::ostringstream output;
++  Runtime runtime(output);
++  const Value* registered_hash = runtime.find_builtin("hash");
++  auto* native_hash = registered_hash == nullptr
++      ? nullptr : value_as_native_function(*registered_hash);
++  expect_true(result, native_hash != nullptr && native_hash->fast_callback != nullptr,
++              "hash exception checks require the ordinary and fast builtin callbacks");
++  if (native_hash == nullptr || native_hash->fast_callback == nullptr) return;
++  Value builtin_hash = *registered_hash;
++  Value original_exception = runtime.make_exception("ValueError", "hash marker");
++  auto state_owner = std::make_unique<hash_exception_cases::CallbackState>();
++  state_owner->exception = original_exception;
++  auto* state = state_owner.get();
++  Value method = runtime.make_native_function(
++      "hash_exception_test.__hash__", hash_exception_cases::fail_hash,
++      state_owner.get(), hash_exception_cases::destroy_state);
++  state_owner.release();
++  Value klass = Value::class_object("HashExceptionTest", {{"__hash__", method}});
++  Value key = Value::instance(klass);
++  Value arguments[1] = {key};
++  const uint32_t argument_registers[1] = {0};
++  const uint32_t original_refs = original_exception.as.obj->refcnt.load();
++
++  for (bool fast : {false, true}) {
++    for (uint32_t repeat = 0; repeat != 12; ++repeat) {
++      std::string error;
++      Value out = Value::int64(887);
++      const bool ok = fast
++          ? native_hash->fast_callback(runtime, nullptr, 0, arguments,
++                argument_registers, 1, out, error, native_hash->user_data)
++          : runtime_call_callable(runtime, builtin_hash, arguments, 1, out, error);
++      Value pending;
++      const bool has_pending = runtime.take_pending_exception(pending);
++      expect_true(result, !ok && has_pending && value_is(pending, original_exception),
++                  "hash must preserve the exact native callback exception object");
++      expect_true(result, out.tag == ValueTag::Int64 && out.as.i64 == 887,
++                  "a failed hash must not publish or overwrite a result");
++      expect_true(result, error == "native hash diagnostic",
++                  "hash must retain diagnostic text without replacing the exception");
++      value_set_invalid(pending);
++      expect_true(result, original_exception.as.obj->refcnt.load() == original_refs,
++                  "repeated pending exception transfer must release its temporary owner");
++      Value extra;
++      expect_true(result, !runtime.take_pending_exception(extra),
++                  "draining the failed hash must leave no second pending owner");
++    }
++  }
++  expect_true(result, state->calls == 24,
++              "hash failure must invoke the callback exactly once per call");
++
++  // A callback failing only with text must still receive the native API's
++  // TypeError fallback. The state is owned by the native function, including
++  // every early assertion-return/unwind path; no callback holds stack counters.
++  state->publish_exception = false;
++  std::string error;
++  Value out = Value::int64(887);
++  const bool text_ok = runtime_call_callable(runtime, builtin_hash, arguments, 1, out, error);
++  Value fallback;
++  const bool has_fallback = runtime.take_pending_exception(fallback);
++  expect_true(result, !text_ok && has_fallback &&
++                  value_is(runtime.exception_type(fallback), *runtime.find_builtin("TypeError")),
++              "a hash callback failure without an exception must retain TypeError fallback");
++  value_set_invalid(fallback);
++
++  arguments[0] = Value::string("SELECT");
++  error.clear();
++  expect_true(result, runtime_call_callable(runtime, builtin_hash, arguments, 1, out, error) &&
++                  out.tag == ValueTag::Int64,
++              "a successful hash must recover after prior exception transfers");
++  Value unexpected;
++  expect_true(result, !runtime.take_pending_exception(unexpected),
++              "successful hashing must not leave an exception owner");
++}
++
++} // namespace xlang3::test
+diff --git a/tests/fixtures/core/hash_exception_preservation.py b/tests/fixtures/core/hash_exception_preservation.py
+new file mode 100644
+--- /dev/null
++++ b/tests/fixtures/core/hash_exception_preservation.py
+@@ -0,0 +1,92 @@
++"""Proposed exception-preservation checks, unrun by the author."""
++import sys
++
++class HashError(Exception):
++    pass
++
++cause = ValueError('cause marker')
++failure = HashError('preserved')
++calls = []
++
++class FailingHash:
++    def __hash__(self):
++        calls.append('hash')
++        raise failure from cause
++
++key = FailingHash()
++saved_hash = hash
++
++def plain_call():
++    return hash(key)
++
++def expanded_call():
++    return hash(*[key])
++
++def saved_call():
++    return saved_hash(key)
++
++def tuple_call():
++    return hash((key, 'SELECT'))
++
++for callback in (plain_call, expanded_call, saved_call, tuple_call):
++    for _ in range(7):
++        before = len(calls)
++        try:
++            callback()
++        except HashError as caught:
++            assert caught is failure
++            assert caught.__cause__ is cause
++            assert caught.__suppress_context__
++            assert sys.exception() is caught
++            traceback = caught.__traceback__
++            found_hash = False
++            while traceback is not None:
++                if traceback.tb_frame.f_code.co_name == '__hash__':
++                    found_hash = True
++                traceback = traceback.tb_next
++            assert found_hash
++        else:
++            raise AssertionError('hash did not preserve its Python exception')
++        assert len(calls) == before + 1
++        assert sys.exception() is None
++        assert isinstance(hash('SELECT'), int)
++print('hash exception identity cause traceback and active context preserved')
++
++class Interrupt(BaseException):
++    pass
++
++interrupt = Interrupt('interrupt marker')
++
++class InterruptingHash:
++    def __hash__(self):
++        raise interrupt
++
++try:
++    hash(InterruptingHash())
++except Interrupt as caught:
++    assert caught is interrupt
++else:
++    raise AssertionError('BaseException was replaced')
++print('hash preserves BaseException callbacks')
++
++class InvalidHash:
++    def __hash__(self):
++        return 'not an integer'
++
++for invalid in ([], InvalidHash()):
++    try:
++        hash(invalid)
++    except TypeError:
++        pass
++    else:
++        raise AssertionError('invalid hash lost TypeError fallback')
++
++released = memoryview(b'abc')
++released.release()
++try:
++    hash(released)
++except ValueError:
++    pass
++else:
++    raise AssertionError('released memoryview lost ValueError fallback')
++print('hash keeps TypeError and ValueError fallbacks')
+diff --git a/tests/fixtures/expected/hash_exception_preservation.out b/tests/fixtures/expected/hash_exception_preservation.out
+new file mode 100644
+--- /dev/null
++++ b/tests/fixtures/expected/hash_exception_preservation.out
+@@ -0,0 +1,3 @@
++hash exception identity cause traceback and active context preserved
++hash preserves BaseException callbacks
++hash keeps TypeError and ValueError fallbacks

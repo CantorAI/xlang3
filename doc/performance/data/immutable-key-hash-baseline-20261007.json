@@ -1,0 +1,369 @@
+{
+  "scope": "Baseline diagnosis only, includes Python loop/assertion overhead; not official scores",
+  "commit": "f0a2f1aa4f4d0723e0b2063ae6cbafc5f1a72da9",
+  "probe_sha256": "2d6202a501022633275a333ca3c2138755ce05813617d18adb53d88e8cd9ca83",
+  "observations": [
+    {
+      "runtime": "cpython3147",
+      "exit_code": 0,
+      "exe_sha256": "4942b86a6597e5aee0128daa00050ed79bc21f6e709a78eb19cbfeb0c2f39ac9",
+      "stdout": "{\"rows\": [{\"bytes_width\": 1, \"checked_hash_calls\": [8192, 8192, 8192, 8192, 8192], \"fresh_tuple\": false, \"hashes_per_key\": 1, \"operations\": 8192, \"samples_seconds\": [0.0010146000131499022, 0.0010080999927595258, 0.0010179000091738999, 0.0010066000104416162, 0.0010029000113718212], \"shape\": \"bytes\"}, {\"bytes_width\": 32, \"checked_hash_calls\": [8192, 8192, 8192, 8192, 8192], \"fresh_tuple\": false, \"hashes_per_key\": 1, \"operations\": 8192, \"samples_seconds\": [0.000999299983959645, 0.0010133000032510608, 0.001052400009939447, 0.0010221000120509416, 0.0010386999929323792], \"shape\": \"bytes\"}, {\"bytes_width\": 256, \"checked_hash_calls\": [8192, 8192, 8192, 8192, 8192], \"fresh_tuple\": false, \"hashes_per_key\": 1, \"operations\": 8192, \"samples_seconds\": [0.001219199999468401, 0.0010811999964062124, 0.0010858000023290515, 0.0010800000163726509, 0.001076799992006272], \"shape\": \"bytes\"}, {\"bytes_width\": 1, \"checked_hash_calls\": [8192, 8192, 8192, 8192, 8192], \"fresh_tuple\": false, \"hashes_per_key\": 1, \"operations\": 8192, \"samples_seconds\": [0.0010859000030905008, 0.0010750000074040145, 0.0010855000000447035, 0.0010820000024978071, 0.0010466999956406653], \"shape\": \"tuple_bytes\"}, {\"bytes_width\": 32, \"checked_hash_calls\": [8192, 8192, 8192, 8192, 8192], \"fresh_tuple\": false, \"hashes_per_key\": 1, \"operations\": 8192, \"samples_seconds\": [0.001066299999365583, 0.0010483000078238547, 0.0010286000033374876, 0.0010283000010531396, 0.0010300999856553972], \"shape\": \"tuple_bytes\"}, {\"bytes_width\": 256, \"checked_hash_calls\": [8192, 8192, 8192, 8192, 8192], \"fresh_tuple\": false, \"hashes_per_key\": 1, \"operations\": 8192, \"samples_seconds\": [0.0010340999870095402, 0.0010368000075686723, 0.0010268999903928488, 0.0010325000039301813, 0.001039499999023974], \"shape\": \"tuple_bytes\"}, {\"bytes_width\": 32, \"checked_hash_calls\": [8192, 8192, 8192, 8192, 8192], \"fresh_tuple\": true, \"hashes_per_key\": 1, \"operations\": 8192, \"samples_seconds\": [0.0013041000056546181, 0.001281300006667152, 0.0013134999899193645, 0.0012692000018432736, 0.0012665999820455909], \"shape\": \"tuple_bytes\"}, {\"bytes_width\": 32, \"checked_hash_calls\": [16384, 16384, 16384, 16384, 16384], \"fresh_tuple\": true, \"hashes_per_key\": 2, \"operations\": 8192, \"samples_seconds\": [0.0017198999994434416, 0.0017319000035058707, 0.001730799995129928, 0.0017213000101037323, 0.001728900009766221], \"shape\": \"tuple_bytes\"}], \"scope\": \"diagnostic, includes shared Python loop/assertion overhead\"}\r\n",
+      "stderr": "",
+      "result": {
+        "rows": [
+          {
+            "bytes_width": 1,
+            "checked_hash_calls": [
+              8192,
+              8192,
+              8192,
+              8192,
+              8192
+            ],
+            "fresh_tuple": false,
+            "hashes_per_key": 1,
+            "operations": 8192,
+            "samples_seconds": [
+              0.0010146000131499022,
+              0.0010080999927595258,
+              0.0010179000091738999,
+              0.0010066000104416162,
+              0.0010029000113718212
+            ],
+            "shape": "bytes"
+          },
+          {
+            "bytes_width": 32,
+            "checked_hash_calls": [
+              8192,
+              8192,
+              8192,
+              8192,
+              8192
+            ],
+            "fresh_tuple": false,
+            "hashes_per_key": 1,
+            "operations": 8192,
+            "samples_seconds": [
+              0.000999299983959645,
+              0.0010133000032510608,
+              0.001052400009939447,
+              0.0010221000120509416,
+              0.0010386999929323792
+            ],
+            "shape": "bytes"
+          },
+          {
+            "bytes_width": 256,
+            "checked_hash_calls": [
+              8192,
+              8192,
+              8192,
+              8192,
+              8192
+            ],
+            "fresh_tuple": false,
+            "hashes_per_key": 1,
+            "operations": 8192,
+            "samples_seconds": [
+              0.001219199999468401,
+              0.0010811999964062124,
+              0.0010858000023290515,
+              0.0010800000163726509,
+              0.001076799992006272
+            ],
+            "shape": "bytes"
+          },
+          {
+            "bytes_width": 1,
+            "checked_hash_calls": [
+              8192,
+              8192,
+              8192,
+              8192,
+              8192
+            ],
+            "fresh_tuple": false,
+            "hashes_per_key": 1,
+            "operations": 8192,
+            "samples_seconds": [
+              0.0010859000030905008,
+              0.0010750000074040145,
+              0.0010855000000447035,
+              0.0010820000024978071,
+              0.0010466999956406653
+            ],
+            "shape": "tuple_bytes"
+          },
+          {
+            "bytes_width": 32,
+            "checked_hash_calls": [
+              8192,
+              8192,
+              8192,
+              8192,
+              8192
+            ],
+            "fresh_tuple": false,
+            "hashes_per_key": 1,
+            "operations": 8192,
+            "samples_seconds": [
+              0.001066299999365583,
+              0.0010483000078238547,
+              0.0010286000033374876,
+              0.0010283000010531396,
+              0.0010300999856553972
+            ],
+            "shape": "tuple_bytes"
+          },
+          {
+            "bytes_width": 256,
+            "checked_hash_calls": [
+              8192,
+              8192,
+              8192,
+              8192,
+              8192
+            ],
+            "fresh_tuple": false,
+            "hashes_per_key": 1,
+            "operations": 8192,
+            "samples_seconds": [
+              0.0010340999870095402,
+              0.0010368000075686723,
+              0.0010268999903928488,
+              0.0010325000039301813,
+              0.001039499999023974
+            ],
+            "shape": "tuple_bytes"
+          },
+          {
+            "bytes_width": 32,
+            "checked_hash_calls": [
+              8192,
+              8192,
+              8192,
+              8192,
+              8192
+            ],
+            "fresh_tuple": true,
+            "hashes_per_key": 1,
+            "operations": 8192,
+            "samples_seconds": [
+              0.0013041000056546181,
+              0.001281300006667152,
+              0.0013134999899193645,
+              0.0012692000018432736,
+              0.0012665999820455909
+            ],
+            "shape": "tuple_bytes"
+          },
+          {
+            "bytes_width": 32,
+            "checked_hash_calls": [
+              16384,
+              16384,
+              16384,
+              16384,
+              16384
+            ],
+            "fresh_tuple": true,
+            "hashes_per_key": 2,
+            "operations": 8192,
+            "samples_seconds": [
+              0.0017198999994434416,
+              0.0017319000035058707,
+              0.001730799995129928,
+              0.0017213000101037323,
+              0.001728900009766221
+            ],
+            "shape": "tuple_bytes"
+          }
+        ],
+        "scope": "diagnostic, includes shared Python loop/assertion overhead"
+      }
+    },
+    {
+      "runtime": "xlang3",
+      "exit_code": 0,
+      "exe_sha256": "86a61b2033c9c7d475e55b7337af559fa0422a57576729dd9a0c411ef3f55ec3",
+      "stdout": "{\"rows\": [{\"bytes_width\": 1, \"checked_hash_calls\": [8192, 8192, 8192, 8192, 8192], \"fresh_tuple\": false, \"hashes_per_key\": 1, \"operations\": 8192, \"samples_seconds\": [0.01117119999253191, 0.01056090000201948, 0.010613699996611103, 0.010622900008456782, 0.01059790002182126], \"shape\": \"bytes\"}, {\"bytes_width\": 32, \"checked_hash_calls\": [8192, 8192, 8192, 8192, 8192], \"fresh_tuple\": false, \"hashes_per_key\": 1, \"operations\": 8192, \"samples_seconds\": [0.010652900004060939, 0.010638200008543208, 0.010626899980707094, 0.010764000006020069, 0.010610099998302758], \"shape\": \"bytes\"}, {\"bytes_width\": 256, \"checked_hash_calls\": [8192, 8192, 8192, 8192, 8192], \"fresh_tuple\": false, \"hashes_per_key\": 1, \"operations\": 8192, \"samples_seconds\": [0.012238800001796335, 0.012225300015415996, 0.012214799993671477, 0.012236899987328798, 0.012160000012954697], \"shape\": \"bytes\"}, {\"bytes_width\": 1, \"checked_hash_calls\": [8192, 8192, 8192, 8192, 8192], \"fresh_tuple\": false, \"hashes_per_key\": 1, \"operations\": 8192, \"samples_seconds\": [0.012738399993395433, 0.012690700008533895, 0.013150100014172494, 0.0127949999878183, 0.012761899997713044], \"shape\": \"tuple_bytes\"}, {\"bytes_width\": 32, \"checked_hash_calls\": [8192, 8192, 8192, 8192, 8192], \"fresh_tuple\": false, \"hashes_per_key\": 1, \"operations\": 8192, \"samples_seconds\": [0.012785099999746308, 0.012810300017008558, 0.01279970002360642, 0.012813599983928725, 0.012782000005245209], \"shape\": \"tuple_bytes\"}, {\"bytes_width\": 256, \"checked_hash_calls\": [8192, 8192, 8192, 8192, 8192], \"fresh_tuple\": false, \"hashes_per_key\": 1, \"operations\": 8192, \"samples_seconds\": [0.014459600002737716, 0.014369000011356547, 0.014313499996205792, 0.014391700009582564, 0.015154399996390566], \"shape\": \"tuple_bytes\"}, {\"bytes_width\": 32, \"checked_hash_calls\": [8192, 8192, 8192, 8192, 8192], \"fresh_tuple\": true, \"hashes_per_key\": 1, \"operations\": 8192, \"samples_seconds\": [0.014397999999346212, 0.014397900027688593, 0.014585500000976026, 0.014418100006878376, 0.014477100019576028], \"shape\": \"tuple_bytes\"}, {\"bytes_width\": 32, \"checked_hash_calls\": [16384, 16384, 16384, 16384, 16384], \"fresh_tuple\": true, \"hashes_per_key\": 2, \"operations\": 8192, \"samples_seconds\": [0.021225000004051253, 0.021251800004392862, 0.021202600008109584, 0.021302799985278398, 0.02161230001365766], \"shape\": \"tuple_bytes\"}], \"scope\": \"diagnostic, includes shared Python loop/assertion overhead\"}\r\n",
+      "stderr": "",
+      "dll_sha256": "52e54c97b0833947a21f5e4f973317e5cfb7a8f6e13983a44ec06295cd2374d7",
+      "result": {
+        "rows": [
+          {
+            "bytes_width": 1,
+            "checked_hash_calls": [
+              8192,
+              8192,
+              8192,
+              8192,
+              8192
+            ],
+            "fresh_tuple": false,
+            "hashes_per_key": 1,
+            "operations": 8192,
+            "samples_seconds": [
+              0.01117119999253191,
+              0.01056090000201948,
+              0.010613699996611103,
+              0.010622900008456782,
+              0.01059790002182126
+            ],
+            "shape": "bytes"
+          },
+          {
+            "bytes_width": 32,
+            "checked_hash_calls": [
+              8192,
+              8192,
+              8192,
+              8192,
+              8192
+            ],
+            "fresh_tuple": false,
+            "hashes_per_key": 1,
+            "operations": 8192,
+            "samples_seconds": [
+              0.010652900004060939,
+              0.010638200008543208,
+              0.010626899980707094,
+              0.010764000006020069,
+              0.010610099998302758
+            ],
+            "shape": "bytes"
+          },
+          {
+            "bytes_width": 256,
+            "checked_hash_calls": [
+              8192,
+              8192,
+              8192,
+              8192,
+              8192
+            ],
+            "fresh_tuple": false,
+            "hashes_per_key": 1,
+            "operations": 8192,
+            "samples_seconds": [
+              0.012238800001796335,
+              0.012225300015415996,
+              0.012214799993671477,
+              0.012236899987328798,
+              0.012160000012954697
+            ],
+            "shape": "bytes"
+          },
+          {
+            "bytes_width": 1,
+            "checked_hash_calls": [
+              8192,
+              8192,
+              8192,
+              8192,
+              8192
+            ],
+            "fresh_tuple": false,
+            "hashes_per_key": 1,
+            "operations": 8192,
+            "samples_seconds": [
+              0.012738399993395433,
+              0.012690700008533895,
+              0.013150100014172494,
+              0.0127949999878183,
+              0.012761899997713044
+            ],
+            "shape": "tuple_bytes"
+          },
+          {
+            "bytes_width": 32,
+            "checked_hash_calls": [
+              8192,
+              8192,
+              8192,
+              8192,
+              8192
+            ],
+            "fresh_tuple": false,
+            "hashes_per_key": 1,
+            "operations": 8192,
+            "samples_seconds": [
+              0.012785099999746308,
+              0.012810300017008558,
+              0.01279970002360642,
+              0.012813599983928725,
+              0.012782000005245209
+            ],
+            "shape": "tuple_bytes"
+          },
+          {
+            "bytes_width": 256,
+            "checked_hash_calls": [
+              8192,
+              8192,
+              8192,
+              8192,
+              8192
+            ],
+            "fresh_tuple": false,
+            "hashes_per_key": 1,
+            "operations": 8192,
+            "samples_seconds": [
+              0.014459600002737716,
+              0.014369000011356547,
+              0.014313499996205792,
+              0.014391700009582564,
+              0.015154399996390566
+            ],
+            "shape": "tuple_bytes"
+          },
+          {
+            "bytes_width": 32,
+            "checked_hash_calls": [
+              8192,
+              8192,
+              8192,
+              8192,
+              8192
+            ],
+            "fresh_tuple": true,
+            "hashes_per_key": 1,
+            "operations": 8192,
+            "samples_seconds": [
+              0.014397999999346212,
+              0.014397900027688593,
+              0.014585500000976026,
+              0.014418100006878376,
+              0.014477100019576028
+            ],
+            "shape": "tuple_bytes"
+          },
+          {
+            "bytes_width": 32,
+            "checked_hash_calls": [
+              16384,
+              16384,
+              16384,
+              16384,
+              16384
+            ],
+            "fresh_tuple": true,
+            "hashes_per_key": 2,
+            "operations": 8192,
+            "samples_seconds": [
+              0.021225000004051253,
+              0.021251800004392862,
+              0.021202600008109584,
+              0.021302799985278398,
+              0.02161230001365766
+            ],
+            "shape": "tuple_bytes"
+          }
+        ],
+        "scope": "diagnostic, includes shared Python loop/assertion overhead"
+      }
+    }
+  ],
+  "status": "terminal"
+}

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="310" viewBox="0 0 1000 310">
+<rect width="1000" height="310" fill="white"/>
+<text x="20" y="27" font-family="Arial" font-size="18">Selected official cases: CPython 3.14.7 = 1×</text>
+<text x="20" y="76" font-family="Arial" font-size="14">sqlite_synth CPython</text>
+<rect x="310" y="55" width="490.000" height="29" fill="#64748b"/>
+<text x="820.000" y="76" font-family="Arial" font-size="14">1.000×</text>
+<text x="20" y="130" font-family="Arial" font-size="14">sqlite_synth XLang3</text>
+<rect x="310" y="109" width="142.436" height="29" fill="#2563eb"/>
+<text x="464.436" y="130" font-family="Arial" font-size="14">0.291×</text>
+<text x="20" y="184" font-family="Arial" font-size="14">sqlglot_v2_parse CPython</text>
+<rect x="310" y="163" width="490.000" height="29" fill="#64748b"/>
+<text x="820.000" y="184" font-family="Arial" font-size="14">1.000×</text>
+<text x="20" y="238" font-family="Arial" font-size="14">sqlglot_v2_parse XLang3</text>
+<rect x="310" y="217" width="25.970" height="29" fill="#2563eb"/>
+<text x="347.970" y="238" font-family="Arial" font-size="14">0.053×</text>
+<text x="20" y="292" font-family="Arial" font-size="12">Saved-reference fast runs; 20 values each. Unpaired; no cache-change attribution or full-suite claim.</text>
+</svg>

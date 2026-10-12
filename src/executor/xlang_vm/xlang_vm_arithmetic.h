@@ -224,6 +224,10 @@ XLANG3_HOT_INLINE bool xlang_vm_fast_floor_div(const Value& lhs, const Value& rh
       divide_by_zero = true;
       return false;
     }
+    // The runtime fallback promotes this exceptional quotient to bigint.
+    if (lhs.as.i64 == std::numeric_limits<int64_t>::min() && rhs.as.i64 == -1) {
+      return false;
+    }
     int64_t q = lhs.as.i64 / rhs.as.i64;
     const int64_t r = lhs.as.i64 % rhs.as.i64;
     if (r != 0 && ((r < 0) != (rhs.as.i64 < 0))) {
@@ -252,6 +256,11 @@ XLANG3_HOT_INLINE bool xlang_vm_fast_mod(const Value& lhs, const Value& rhs, Val
   if (rhs.as.i64 == 0) {
     modulo_by_zero = true;
     return false;
+  }
+  // Remainder also uses a signed divide instruction and must avoid its trap.
+  if (lhs.as.i64 == std::numeric_limits<int64_t>::min() && rhs.as.i64 == -1) {
+    value_set_int64(out, 0);
+    return true;
   }
   int64_t result = lhs.as.i64 % rhs.as.i64;
   if (result != 0 && ((result < 0) != (rhs.as.i64 < 0))) {

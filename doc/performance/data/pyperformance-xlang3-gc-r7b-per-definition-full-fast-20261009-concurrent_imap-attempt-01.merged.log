@@ -1,0 +1,209 @@
+Benchmark dependency sites: D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages
+Full-case timeout overrides: networkx*=600s
+Python benchmark suite 1.14.0
+
+
+==================================================
+( 1/1) creating venv for benchmark (concurrent_imap)
+
+(trying common venv first)
+
+[1/1] concurrent_imap...
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+    from multiprocessing.spawn import spawn_main; spawn_main(parent_pid=22588, pipe_handle=532)
+                                                  ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python\Python314\Lib\multiprocessing\spawn.py", line 122, in spawn_main
+    exitcode = _main(fd, parent_sentinel)
+  File "C:\Python\Python314\Lib\multiprocessing\spawn.py", line 127, in _main
+    with os.fdopen(fd, 'rb', closefd=True) as from_parent:
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<7 lines>...
+    return self._bootstrap(parent_sentinel)
+    
+  File "C:\Python\Python314\Lib\multiprocessing\spawn.py", line 132, in _main
+    self = reduction.pickle.load(from_parent)
+  File "C:\Python\Python314\Lib\pickle.py", line 1875, in _load
+    return _Unpickler(file, fix_imports=fix_imports, buffers=buffers,
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                     encoding=encoding, errors=errors).load()
+                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python\Python314\Lib\pickle.py", line 1318, in load
+    raise EOFError
+EOFError
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\data-files\benchmarks\bm_concurrent_imap\run_benchmark.py", line 31, in <module>
+    runner.bench_func("bench_mp_pool", bench_mp_pool, num_core, count, chunk)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 545, in bench_func
+    result = self._main(task)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 463, in _main
+    bench = self._worker(task)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 437, in _worker
+    run = task.create_run()
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 300, in create_run
+    self.compute()
+    ~~~~~~~~~~~~^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 364, in compute
+    WorkerTask.compute(self)
+    ~~~~~~~~~~~~~~~~~~^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 287, in compute
+    self.calibrate_loops()
+    ~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 250, in calibrate_loops
+    self._compute_values(self.warmups, nvalue,
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+                         is_warmup=True,
+                         ^^^^^^^^^^^^^^^
+                         calibrate_loops=True)
+                         ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 76, in _compute_values
+    with contextlib.ExitStack() as stack:
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    raw_value = float(raw_value)
+    
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_worker.py", line 79, in _compute_values
+    raw_value = task_func(self, self.loops)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 538, in task_func
+    local_func()
+    ~~~~~~~~~~^^
+  File "C:\Python\Python314\Lib\functools.py", line 393, in __call__
+    return self.func(*pto_args, *args, **keywords)
+           ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\data-files\benchmarks\bm_concurrent_imap\run_benchmark.py", line 14, in bench_mp_pool
+    with Pool(p) as pool:
+         ~~~~^^^
+  File "C:\Python\Python314\Lib\multiprocessing\pool.py", line 215, in __init__
+    self._repopulate_pool()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python\Python314\Lib\multiprocessing\pool.py", line 306, in _repopulate_pool
+    return self._repopulate_pool_static(self._ctx, self.Process,
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+                                        self._processes,
+                                        ^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+                                        self._maxtasksperchild,
+                                        ^^^^^^^^^^^^^^^^^^^^^^^
+                                        self._wrap_exception)
+                                        ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python\Python314\Lib\multiprocessing\pool.py", line 329, in _repopulate_pool_static
+    w.start()
+    ~~~~~~~^^
+  File "C:\Python\Python314\Lib\multiprocessing\process.py", line 121, in start
+    self._popen = self._Popen(self)
+                  ~~~~~~~~~~~^^^^^^
+  File "C:\Python\Python314\Lib\multiprocessing\context.py", line 343, in _Popen
+    return Popen(process_obj)
+  File "C:\Python\Python314\Lib\multiprocessing\popen_spawn_win32.py", line 73, in __init__
+        with open(wfd, 'wb', closefd=True) as to_child:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<27 lines>...
+    def duplicate_for_child(self, handle):
+    ^^^^
+  File "C:\Python\Python314\Lib\multiprocessing\popen_spawn_win32.py", line 97, in __init__
+    reduction.dump(process_obj, to_child)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python\Python314\Lib\multiprocessing\reduction.py", line 60, in dump
+    ForkingPickler(file, protocol).dump(obj)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Python\Python314\Lib\pickle.py", line 498, in dump
+    self.save(obj)
+    ~~~~~~~~~^^^^^
+  File "C:\Python\Python314\Lib\pickle.py", line 615, in save
+    self.save_reduce(obj=obj, *rv)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "C:\Python\Python314\Lib\pickle.py", line 761, in save_reduce
+    save(state)
+    ~~~~^^^^^^^
+  File "C:\Python\Python314\Lib\pickle.py", line 572, in save
+    f(self, obj)  # Call unbound method with explicit self
+    ~^^^^^^^^^^^
+  File "C:\Python\Python314\Lib\pickle.py", line 1058, in save_dict
+    self._batch_setitems(obj.items(), obj)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "C:\Python\Python314\Lib\pickle.py", line 1084, in _batch_setitems
+    save(v)
+    ~~~~^^^
+  File "C:\Python\Python314\Lib\pickle.py", line 572, in save
+    f(self, obj)  # Call unbound method with explicit self
+    ~^^^^^^^^^^^
+  File "C:\Python\Python314\Lib\pickle.py", line 976, in save_tuple
+    save(element)
+    ~~~~^^^^^^^^^
+  File "C:\Python\Python314\Lib\pickle.py", line 615, in save
+    self.save_reduce(obj=obj, *rv)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "C:\Python\Python314\Lib\pickle.py", line 761, in save_reduce
+    save(state)
+    ~~~~^^^^^^^
+  File "C:\Python\Python314\Lib\pickle.py", line 572, in save
+    f(self, obj)  # Call unbound method with explicit self
+    ~^^^^^^^^^^^
+  File "C:\Python\Python314\Lib\pickle.py", line 976, in save_tuple
+    save(element)
+    ~~~~^^^^^^^^^
+  File "C:\Python\Python314\Lib\pickle.py", line 590, in save
+    rv = reduce(self.proto)
+  File "C:\Python\Python314\Lib\multiprocessing\synchronize.py", line 106, in __getstate__
+    h = context.get_spawning_popen().duplicate_for_child(sl.handle)
+  File "C:\Python\Python314\Lib\multiprocessing\popen_spawn_win32.py", line 103, in duplicate_for_child
+    return reduction.duplicate(handle, self.sentinel)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python\Python314\Lib\multiprocessing\reduction.py", line 79, in duplicate
+    return _winapi.DuplicateHandle(
+           ~~~~~~~~~~~~~~~~~~~~~~~^
+        source_process, handle, target_process,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        0, inheritable, _winapi.DUPLICATE_SAME_ACCESS)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+OSError: DuplicateHandle failed with Win32 error 6
+when serializing tuple item 2
+when serializing multiprocessing.queues.SimpleQueue state
+when serializing multiprocessing.queues.SimpleQueue object
+when serializing tuple item 0
+when serializing dict item '_args'
+when serializing multiprocessing.context.SpawnProcess state
+when serializing multiprocessing.context.SpawnProcess object
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\data-files\benchmarks\bm_concurrent_imap\run_benchmark.py", line 31, in <module>
+    runner.bench_func("bench_mp_pool", bench_mp_pool, num_core, count, chunk)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 545, in bench_func
+    result = self._main(task)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 468, in _main
+    bench = self._manager()
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_runner.py", line 681, in _manager
+    bench = Manager(self).create_bench()
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_manager.py", line 243, in create_bench
+    worker_bench, run = self.create_worker_bench()
+                        ~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_manager.py", line 142, in create_worker_bench
+    suite = self.create_suite()
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_manager.py", line 132, in create_suite
+    suite = self.spawn_worker(self.calibrate_loops, 0)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\pyperf\_manager.py", line 118, in spawn_worker
+    raise RuntimeError("%s failed with exit code %s"
+                       % (cmd[0], exitcode))
+RuntimeError: D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3.exe failed with exit code 1
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\run.py", line 171, in run_benchmarks
+    result = bench.run(
+        bench_venv.python,
+    ...<3 lines>...
+        verbose=options.verbose,
+    )
+  File "D:\CantorAI\xlang3\benchmarks\diagnostics\run_pyperformance_xlang3_shimmed.py", line 157, in run_named_benchmark
+    return original_benchmark_run(benchmark, *positional, **keywords)
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 193, in run
+    bench = _run_perf_script(
+        python,
+    ...<4 lines>...
+        verbose=verbose,
+    )
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 250, in _run_perf_script
+    raise RuntimeError("Benchmark died")
+RuntimeError: Benchmark died
+ERROR: Benchmark concurrent_imap failed: Benchmark died
+
+ERROR: No benchmark was run

@@ -1,0 +1,7 @@
+direct workload richards: True (0.467959100 s)
+direct workload richards: True (0.496338600 s)
+direct workload richards: True (0.477659500 s)
+direct workload richards: True (0.478494600 s)
+direct workload richards: True (0.469178500 s)
+direct workload richards: True (0.466816500 s)
+direct workload richards: True (0.466832700 s)

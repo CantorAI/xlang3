@@ -1,0 +1,29 @@
+{
+  "status": "finished",
+  "started_utc": "2026-10-07T12:10:07.0353987Z",
+  "sha256_start": {
+    "exe": "DC18F94D37AA662BB4F1BEF4284C79373E784781D74FFFE22205937CC5CB82CF",
+    "dll": "990237AD095D6865F54A0A5974AD94E55B95A5D29E06E3EF59AB80DFE9474FFF"
+  },
+  "runtime_executable": "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+  "source_parent_commit": "e4417566ce6f5db0b2c74cd18f8c8370a56c0d39",
+  "source_change": "Uncommitted guarded native subscription dispatch, Python setter frames with discarded returns, sparse cache allocation/lazy access, property descriptor binding and temporary export retirement",
+  "manager_executable": "C:\\Python\\Python314\\python.exe",
+  "manager_version": "3.14.7",
+  "stdlib": "C:\\Python\\Python314\\Lib",
+  "mode": "fast",
+  "case_timeout_seconds": 300,
+  "benchmarks": "scimark",
+  "expected_subtests": 5,
+  "timing_probe_enabled": false,
+  "dependency_site": "venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages",
+  "control_reference": "pyperformance-xlang3-native-array-final-consumers-scimark-fast-20261007.json",
+  "cpython_reference": "pyperformance-cpython314-clean-release-full-fast-20261002.json",
+  "fixed_gate": "release-subscription-dispatch-lazy-fixed-gate-20261007.json",
+  "completed_utc": "2026-10-07T12:12:54.1270396Z",
+  "exit_code": 0,
+  "sha256_end": {
+    "exe": "DC18F94D37AA662BB4F1BEF4284C79373E784781D74FFFE22205937CC5CB82CF",
+    "dll": "990237AD095D6865F54A0A5974AD94E55B95A5D29E06E3EF59AB80DFE9474FFF"
+  }
+}

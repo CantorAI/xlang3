@@ -1,0 +1,9 @@
+CPython 3.14.7: C:\Python\Python314\python.exe
+before: ('old', 1)
+cached after: ('new', 1)
+new site after: ('new', 2)
+
+XLang3: build-repro\main-verify-20261006\Release\xlang3.exe
+before: ('old', 1)
+cached after: ('old', 1)
+new site after: ('old', 2)

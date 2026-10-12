@@ -1,0 +1,80 @@
+{
+  "status": "completed_with_failures",
+  "started_local": "2026-10-10 13:59:53 America/Los_Angeles",
+  "manager": "C:\\Python\\Python314\\python.exe",
+  "manager_version": "3.14.7",
+  "benchmark_suite": "pyperformance 1.14.0",
+  "runtime": "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+  "comparison_reference": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\pyperformance-cpython3147-live-eval-full-fast-20261007.json",
+  "command_options": [
+    "--benchmarks",
+    "all",
+    "--mode",
+    "fast",
+    "--case-timeout",
+    "300",
+    "--case-timeout-override",
+    "networkx*=600"
+  ],
+  "dependency_site": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages",
+  "artifacts": {
+    "json": "pyperf-full-callpath-candidate-xlang3-20261010.json",
+    "log": "pyperf-full-callpath-candidate-xlang3-20261010.log"
+  },
+  "sha256": {
+    "exe": "b011e72629b08fb9d18106652952175efa5a69a2b9bd53cae0d1b853b9d16ca7",
+    "runtime_dll": "8c4779513ee8359257fdf9d56308447af6fe219a5a3df5419b3024cca4237783",
+    "vm_frame_header": "989f133a63c2eb03974190f496596024e95bcf18f1d2ac0b9b2586c0415fddc2",
+    "vm_loop": "30ce472fc98646bd81c9674efa6ab536e1e2b16fc61ee04a0d131951a6956342",
+    "call_ops": "249413dd21b85725f6f96f5948322b819a550e95879668e7cda0044b2df82d50",
+    "pyperformance_runner": "c078ee77d5d66165f0bf4b2d782df56e71868ada827c81c5c53516c8d017ceaf",
+    "compat_hook": "2ffc217fe20497156bfcb1cebc7fb87203f33c6d4d3dbb6ecbcbcf91ea4cb317"
+  },
+  "sources": {
+    "exe": "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+    "runtime_dll": "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3_runtime.dll",
+    "vm_frame_header": "D:\\CantorAI\\xlang3\\src\\executor\\xlang_vm\\xlang_frame.h",
+    "vm_loop": "D:\\CantorAI\\xlang3\\src\\executor\\xlang_vm\\xlang_vm_loop.cpp",
+    "call_ops": "D:\\CantorAI\\xlang3\\src\\executor\\xlang_vm\\ops\\xlang_vm_ops_call.h",
+    "pyperformance_runner": "D:\\CantorAI\\xlang3\\benchmarks\\diagnostics\\run_pyperformance_xlang3_shimmed.py",
+    "compat_hook": "D:\\CantorAI\\xlang3\\benchmarks\\diagnostics\\pyperf_compat\\sitecustomize.py"
+  },
+  "finished_local": "2026-10-10 16:18:23 America/Los_Angeles",
+  "exit_code": 1,
+  "definitions_total": 97,
+  "definitions_completed": 78,
+  "definitions_failed_or_timed_out": 19,
+  "failed_definitions": [
+    "async_tree_eager_io",
+    "async_tree_eager_io_tg",
+    "async_tree_io",
+    "async_tree_io_tg",
+    "asyncio_tcp_ssl",
+    "base64",
+    "bpe_tokeniser",
+    "dask",
+    "docutils",
+    "dulwich_log",
+    "fastapi",
+    "mako",
+    "mdp",
+    "pprint",
+    "sphinx",
+    "sympy",
+    "tomli_loads",
+    "xdsl",
+    "xml_etree"
+  ],
+  "partial_outputs": [
+    "pyperf-full-callpath-candidate-xlang3-20261010-partial/base64-3d37ddfedfc9aae4.json",
+    "pyperf-full-callpath-candidate-xlang3-20261010-partial/pprint-ceb3faf49631c4f4.json",
+    "pyperf-full-callpath-candidate-xlang3-20261010-partial/xml_etree-31a8db4984955699.json"
+  ],
+  "final_artifact_sha256": {
+    "pyperf-full-callpath-candidate-xlang3-20261010.json": "dcebd0a250143d7e4a9f0a26594a783cfb0e6b645dbf6e4d9bd7e41a47ffc602",
+    "pyperf-full-callpath-candidate-xlang3-20261010.log": "8e8740f8a2445cd780dd55a7d040eca4fbd414a05f864d012ba4aa5caaf46765",
+    "pyperf-full-callpath-candidate-xlang3-20261010-partial/base64-3d37ddfedfc9aae4.json": "3d37ddfedfc9aae4d25ad9c2e3b1cb1036682e2c6924f943711a631bd9e9477a",
+    "pyperf-full-callpath-candidate-xlang3-20261010-partial/pprint-ceb3faf49631c4f4.json": "ceb3faf49631c4f46995c8dce5f753167d8a3059248ecd32b1acf2c9e77f7b8f",
+    "pyperf-full-callpath-candidate-xlang3-20261010-partial/xml_etree-31a8db4984955699.json": "31a8db49849556990c70d9ae1154e2864d7585cfaea123af26bdcf8f12aca27a"
+  }
+}

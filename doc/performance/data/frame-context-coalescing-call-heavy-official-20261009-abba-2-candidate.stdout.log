@@ -1,0 +1,64 @@
+Benchmark dependency sites: D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages
+Python benchmark suite 1.14.0
+
+
+==================================================
+( 1/3) creating venv for benchmark (deltablue)
+
+(trying common venv first)
+
+==================================================
+( 2/3) creating venv for benchmark (hexiom)
+
+(trying common venv first)
+
+==================================================
+( 3/3) creating venv for benchmark (richards)
+
+(trying common venv first)
+
+[1/3] deltablue...
+...........
+WARNING: the benchmark result may be unstable
+* the standard deviation (5.00 ms) is 12% of the mean (40.3 ms)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+deltablue: Mean +- std dev: 40.3 ms +- 5.0 ms
+[2/3] hexiom...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+hexiom: Mean +- std dev: 46.0 ms +- 1.8 ms
+[3/3] richards...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+richards: Mean +- std dev: 351 ms +- 13 ms
+
+Performance version: 1.14.0
+
+### deltablue ###
+Mean +- std dev: 40.3 ms +- 5.0 ms
+
+### hexiom ###
+Mean +- std dev: 46.0 ms +- 1.8 ms
+
+### richards ###
+Mean +- std dev: 351 ms +- 13 ms
+

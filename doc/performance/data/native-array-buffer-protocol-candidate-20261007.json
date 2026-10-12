@@ -1,0 +1,38 @@
+{
+  "diagnostic_only": true,
+  "timing": false,
+  "records": [
+    {
+      "check": "scalar_index_coercion",
+      "ok": true
+    },
+    {
+      "check": "slice_independent_storage",
+      "ok": true
+    },
+    {
+      "check": "slice_assignment_overlap_resize",
+      "ok": true
+    },
+    {
+      "check": "memoryview_element_metadata",
+      "ok": true
+    },
+    {
+      "check": "memoryview_two_way_write",
+      "ok": true
+    },
+    {
+      "check": "exported_resize_transaction",
+      "ok": true
+    },
+    {
+      "check": "derived_view_release_order",
+      "ok": true
+    },
+    {
+      "check": "tolist",
+      "ok": true
+    }
+  ]
+}

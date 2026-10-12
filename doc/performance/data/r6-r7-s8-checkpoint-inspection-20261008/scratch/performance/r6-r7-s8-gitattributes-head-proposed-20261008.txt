@@ -1,0 +1,643 @@
+# Preserve the exact bytes of this checkpoint's hashed benchmark evidence.
+# Historical records are deliberately outside these patterns.
+/doc/performance/data/pyperformance-xlang3-super-method-call-full-fast-20261007* -text
+/doc/performance/data/pyperformance-xlang3-super-method-call-full-fast-20261007-partial/** -text
+/doc/performance/data/pyperformance-cpython3147-super-method-full-fast-20261007* -text
+/doc/performance/data/pyperformance-xlang3-super-method-call-vs-cpython3147-full-fast-20261007* -text
+/doc/performance/data/genshi-render-correctness-20261007.json -text
+/doc/performance/data/super-method-full-common-cpython3147-20261007* -text
+/doc/performance/pyperformance-xlang3-super-method-call-vs-cpython3147-full-fast-20261007.md text eol=lf
+/doc/performance/pyperformance-xlang3-super-method-call-vs-cpython3147-full-fast-20261007.svg text eol=lf
+/benchmarks/diagnostics/summarize_pyperformance_comparison.py text eol=lf
+/benchmarks/diagnostics/genshi_render_correctness.py text eol=lf
+/doc/performance/data/native-arithmetic-baseline-20261007.json -text
+/doc/performance/data/native-factorial-owned-limbs-after-20261007.json -text
+/doc/performance/data/factorial-platform-range-before-20261007.json -text
+/doc/performance/data/factorial-owned-limbs-*-20261007* -text
+/doc/performance/data/release-factorial-owned-limbs-fixed-gate-20261007* -text
+/doc/performance/data/pyperformance-factorial-owned-limbs-async-mixed-fast-20261007* -text
+/benchmarks/diagnostics/native_math_factorial.py text eol=lf
+/benchmarks/diagnostics/generic_bigint_multiply.py text eol=lf
+/tests/fixtures/core/math_factorial_owned_limbs.py text eol=lf
+/tests/fixtures/expected/math_factorial_owned_limbs.out text eol=lf
+/doc/performance/data/bigint-operand-view-*-20261007* -text
+/doc/performance/data/pyperformance-bigint-operand-view-*-20261007* -text
+/doc/performance/data/release-bigint-operand-view-*-20261007* -text
+/doc/performance/data/pidigits-operand-view-*-20261007* -text
+/doc/performance/data/pidigits-shorter-outer-*-20261007* -text
+/benchmarks/diagnostics/pidigits_body_correctness.py text eol=lf
+/tests/cpp/bigint_multiply_operand_view_cases.h text eol=lf
+
+/doc/performance/data/bigint-division-*-20261007* -text
+/doc/performance/data/pyperformance-bigint-division-*-20261007* -text
+/doc/performance/data/release-bigint-division-*-20261007* -text
+/doc/performance/data/pidigits-division-*-20261007* -text
+/benchmarks/diagnostics/generic_bigint_divmod.py text eol=lf
+/tests/cpp/bigint_division_working_buffer_cases.h text eol=lf
+/tests/fixtures/core/bigint_division_working_buffers.py text eol=lf
+/tests/fixtures/expected/bigint_division_working_buffers.out text eol=lf
+/doc/performance/bigint-division-working-buffer-checkpoint-20261007.md text eol=lf
+/doc/performance/bigint-division-working-buffer-checkpoint-20261007.svg text eol=lf
+
+/doc/performance/data/bigint-add-compare-*-20261007* -text
+/doc/performance/data/pyperformance-bigint-add-compare-*-20261007* -text
+/doc/performance/data/release-bigint-add-compare-*-20261007* -text
+/doc/performance/data/pidigits-add-compare-*-20261007* -text
+/benchmarks/diagnostics/generic_bigint_add_compare.py text eol=lf
+/benchmarks/diagnostics/pidigits_body_timing.py text eol=lf
+/tests/cpp/bigint_add_compare_operand_view_cases.h text eol=lf
+/tests/fixtures/core/bigint_add_compare_operand_views.py text eol=lf
+/tests/fixtures/expected/bigint_add_compare_operand_views.out text eol=lf
+/doc/performance/bigint-add-compare-operand-view-checkpoint-20261007.md text eol=lf
+/doc/performance/bigint-add-compare-operand-view-checkpoint-20261007.svg text eol=lf
+/doc/performance/bigint-add-compare-reference-helper-checkpoint-20261007.md text eol=lf
+/doc/performance/bigint-add-compare-reference-helper-checkpoint-20261007.svg text eol=lf
+
+/doc/performance/data/bigint-combined-storage-*-20261007* -text
+/doc/performance/data/pyperformance-bigint-combined-storage-*-20261007* -text
+/doc/performance/data/release-bigint-combined-storage-*-20261007* -text
+/doc/performance/data/pidigits-combined-storage-*-20261007* -text
+/doc/performance/data/pyexpat-namespace-streaming-baseline-20261007.json -text
+/tests/cpp/bigint_storage_lifetime_cases.h text eol=lf
+/benchmarks/diagnostics/bigint_result_allocation.py text eol=lf
+/benchmarks/diagnostics/pyexpat_namespace_streaming.py text eol=lf
+/doc/performance/bigint-combined-storage-checkpoint-20261007.md text eol=lf
+/doc/performance/bigint-combined-storage-checkpoint-20261007.svg text eol=lf
+/doc/performance/pyexpat-namespace-streaming-baseline-20261007.md text eol=lf
+
+/doc/performance/data/pyexpat-namespace-*-20261007* -text
+/doc/performance/data/pyperformance-pyexpat-namespace-*-20261007* -text
+/doc/performance/data/release-pyexpat-namespace-*-20261007* -text
+/tests/fixtures/core/pyexpat_namespace_incremental.py text eol=lf
+/tests/fixtures/expected/pyexpat_namespace_incremental.out text eol=lf
+/doc/performance/pyexpat-namespace-incremental-checkpoint-20261007.md text eol=lf
+/doc/performance/pyexpat-namespace-incremental-checkpoint-20261007.svg text eol=lf
+
+/doc/performance/data/genshi-render-*-20261007* -text
+/doc/performance/data/genshi-runtime-phases-20261007.json -text
+/doc/performance/data/genshi-grouped-profiler-validation-20261007.json -text
+/doc/performance/data/eval-live-namespace-baseline-20261007.json -text
+/benchmarks/diagnostics/genshi_render_profile.py text eol=lf
+/benchmarks/diagnostics/genshi_runtime_phases.py text eol=lf
+/benchmarks/diagnostics/eval_live_namespace.py text eol=lf
+/doc/performance/genshi-runtime-profile-20261007.md text eol=lf
+
+/doc/performance/data/eval-live-namespace-*-20261007* -text
+/doc/performance/data/pyperformance-live-eval-*-20261007* -text
+/doc/performance/data/release-live-eval-*-20261007* -text
+/tests/fixtures/core/eval_live_namespaces.py text eol=lf
+/tests/fixtures/expected/eval_live_namespaces.out text eol=lf
+/doc/performance/eval-live-namespace-checkpoint-20261007.md text eol=lf
+/doc/performance/eval-live-namespace-checkpoint-20261007.svg text eol=lf
+
+/doc/performance/data/pyperformance-xlang3-live-eval-*-20261007* -text
+/doc/performance/data/pyperformance-cpython3147-live-eval-*-20261007* -text
+/doc/performance/data/pyperformance-xlang3-live-eval-full-fast-20261007-partial/** -text
+/doc/performance/data/pyperformance-live-eval-full-*-20261007-controller.py -text
+/doc/performance/data/live-eval-full-common-subtests-20261007.json -text
+/doc/performance/data/gc-traversal-coverage-exclusion-20261007.json -text
+/doc/performance/pyperformance-xlang3-live-eval-vs-cpython3147-full-fast-20261007.md text eol=lf
+/doc/performance/pyperformance-xlang3-live-eval-vs-cpython3147-full-fast-20261007.svg text eol=lf
+
+/doc/performance/data/dict-native-*-20261007* -text
+/doc/performance/data/pyperformance-dict-native-*-20261007* -text
+/doc/performance/data/release-dict-native-*-20261007* -text
+/doc/performance/data/bpe-official-body-dict-index-*-20261007* -text
+/doc/performance/data/bpe-dict-index-*-20261007* -text
+/doc/performance/data/dict-intrinsic-overwrite-*-20261007* -text
+/doc/performance/data/dict-composite-scaling-baseline-20261007.json -text
+/doc/performance/data/dict-intrinsic-index-20261007-sources/** -text
+/doc/performance/data/dict-intrinsic-index-20261007-diagnostic-* -text
+/doc/performance/dict-intrinsic-index-checkpoint-20261007.md text eol=lf
+/tests/fixtures/core/dict_intrinsic_write_index.py text eol=lf
+/tests/fixtures/expected/dict_intrinsic_write_index.out text eol=lf
+
+/doc/performance/data/inherited-subscript-cache-* -text
+/doc/performance/data/inherited-subscript-cache-20261007-sources/** -text
+/doc/performance/data/release-inherited-subscript-cache-fixed-gate-20261007.json -text
+/doc/performance/data/pyperformance-inherited-subscript-cache-bpe-fast-20261007* -text
+/doc/performance/inherited-subscript-cache-checkpoint-20261007.md text eol=lf
+/tests/fixtures/core/inherited_subscript_cache.py text eol=lf
+/tests/fixtures/expected/inherited_subscript_cache.out text eol=lf
+
+/doc/performance/data/minmax-streaming-* -text
+/doc/performance/data/minmax-result-lifetime-observations-20261007.json -text
+/doc/performance/data/minmax-global-delete-r1-lifetime-observations-20261007.json -text
+/doc/performance/data/minmax-streaming-20261007-sources/** -text
+/doc/performance/data/release-minmax-streaming-fixed-gate-20261007.json -text
+/doc/performance/data/pyperformance-minmax-streaming-bpe-fast-20261007* -text
+/doc/performance/minmax-streaming-checkpoint-20261007.md text eol=lf
+/tests/fixtures/core/minmax_streaming.py text eol=lf
+/tests/fixtures/expected/minmax_streaming.out text eol=lf
+/tests/fixtures/core/global_delete_temporaries.py text eol=lf
+/tests/fixtures/expected/global_delete_temporaries.out text eol=lf
+
+/doc/performance/data/native-trivial-callback-* -text
+/doc/performance/data/native-trivial-callback-20261007-sources/** -text
+/doc/performance/data/release-native-trivial-callback-fixed-gate-20261007.json -text
+/doc/performance/data/pyperformance-native-trivial-callback-bpe-fast-20261007* -text
+/doc/performance/native-trivial-callback-checkpoint-20261007.md text eol=lf
+/tests/fixtures/core/native_trivial_callback.py text eol=lf
+/tests/fixtures/expected/native_trivial_callback.out text eol=lf
+
+/doc/performance/data/dict-missing-special-lookup-* -text
+/doc/performance/data/dict-missing-special-lookup-20261007-sources/** -text
+/doc/performance/data/release-dict-missing-special-lookup-fixed-gate-20261007.json -text
+/doc/performance/data/pyperformance-dict-missing-special-lookup-bpe-fast-20261007* -text
+/doc/performance/dict-missing-special-lookup-checkpoint-20261007.md text eol=lf
+/tests/fixtures/core/dict_missing_special_lookup.py text eol=lf
+/tests/fixtures/expected/dict_missing_special_lookup.out text eol=lf
+
+/doc/performance/data/immutable-key-hash-* -text
+/doc/performance/data/immutable-key-hash-20261007-sources/** -text
+/doc/performance/data/release-immutable-key-hash-fixed-gate-20261007.json -text
+/doc/performance/data/pyperformance-immutable-key-hash-bpe-fast-20261007* -text
+/doc/performance/immutable-key-hash-checkpoint-20261007.md text eol=lf
+/tests/fixtures/core/immutable_key_hash.py text eol=lf
+/tests/fixtures/expected/immutable_key_hash.out text eol=lf
+
+/doc/performance/data/captured-lookup-* -text
+/doc/performance/data/captured-lookup-20261007-sources/** -text
+/doc/performance/data/release-captured-lookup-r2-fixed-gate-20261007.json -text
+/doc/performance/data/pyperformance-captured-lookup-r2-bpe-fast-20261007* -text
+/doc/performance/captured-lookup-checkpoint-20261007.md text eol=lf
+/tests/fixtures/core/native_captured_lookup.py text eol=lf
+/tests/fixtures/expected/native_captured_lookup.out text eol=lf
+
+/doc/performance/data/vm-captured-lookup-* -text
+/doc/performance/data/vm-captured-lookup-20261007-sources/** -text
+/doc/performance/data/build-vm-captured-lookup-Release-20261007.log -text
+/doc/performance/data/release-vm-captured-lookup-fixed-gate-20261007.json -text
+/doc/performance/data/pyperformance-vm-captured-lookup-bpe-fast-20261007* -text
+/doc/performance/vm-captured-lookup-checkpoint-20261007.md text eol=lf
+/tests/fixtures/core/vm_captured_lookup.py text eol=lf
+/tests/fixtures/expected/vm_captured_lookup.out text eol=lf
+
+/doc/performance/data/canonical-slot-* -text
+/doc/performance/data/canonical-slot-20261008-sources/** -text
+/doc/performance/data/build-canonical-slot-* -text
+/doc/performance/data/release-canonical-slot-* -text
+/doc/performance/data/pyperformance-canonical-slot-* -text
+/doc/performance/canonical-slot-checkpoint-20261008.md text eol=lf
+/doc/performance/canonical-slot-diagnostic-speed-20261008.svg text eol=lf
+/doc/performance/canonical-slot-official-speed-20261008.svg text eol=lf
+/tests/fixtures/core/canonical_slot_reads.py text eol=lf
+/tests/fixtures/expected/canonical_slot_reads.out text eol=lf
+
+/doc/performance/data/inherited-slot-* -text
+/doc/performance/data/inherited-slot-proof-20261008-sources/** -text
+/doc/performance/data/build-inherited-slot-* -text
+/doc/performance/data/release-inherited-slot-* -text
+/doc/performance/data/pyperformance-inherited-slot-* -text
+/doc/performance/inherited-slot-proof-checkpoint-20261008.md text eol=lf
+/doc/performance/inherited-slot-proof-diagnostic-speed-20261008.svg text eol=lf
+/doc/performance/inherited-slot-proof-official-speed-20261008.svg text eol=lf
+
+# Exact bytes for the string dispatch comparison and its archived source evidence.
+/doc/performance/data/exact-string-hash-dispatch-20261008* -text
+/doc/performance/data/exact-string-hash-dispatch-20261008-sources/** -text
+/doc/performance/exact-string-hash-dispatch-20261008.md text eol=lf
+
+/doc/performance/data/sqlite-aggregate-combined-checkpoint-20261008* -text
+/doc/performance/data/sqlite-aggregate-combined-checkpoint-20261008-sources/** -text
+/doc/performance/sqlite-aggregate-combined-checkpoint-20261008.md text eol=lf
+/doc/performance/charts/sqlite-aggregate-combined-checkpoint-20261008.svg -text
+/doc/performance/data/sqlite-identity-hash-loop-proof-* -text
+/doc/performance/data/sqlite-identity-hash-checkpoint-20261008-summary.json -text
+/doc/performance/sqlite-identity-hash-checkpoint-20261008.md text eol=lf
+
+# Preserve raw callback evidence byte-for-byte while keeping the report editable.
+/doc/performance/data/native-bound-zero-args-checkpoint-20261008* -text
+/doc/performance/data/native-bound-zero-args-checkpoint-20261008-sources/** -text
+/doc/performance/charts/native-bound-zero-args-checkpoint-20261008.svg -text
+/doc/performance/native-bound-zero-args-checkpoint-20261008.md text eol=lf
+/tests/fixtures/core/native_bound_zero_args.py text eol=lf
+/tests/fixtures/expected/native_bound_zero_args.out text eol=lf
+
+/doc/performance/data/interpreter-lazy-globals-trial-20261008* -text
+/doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/** -text
+/doc/performance/data/interpreter-lazy-globals-restoration-20261008.json -text
+/doc/performance/charts/interpreter-lazy-globals-trial-20261008.svg -text
+/doc/performance/interpreter-lazy-globals-trial-20261008.md text eol=lf
+/doc/performance/interpreter-lazy-globals-outcome-20261008.md text eol=lf
+
+/doc/performance/data/sqlite-statement-cache-checkpoint-20261008* -text
+/doc/performance/data/sqlite-statement-cache-checkpoint-20261008-sources/** -text
+/doc/performance/charts/sqlite-statement-cache-checkpoint-20261008.svg -text
+/doc/performance/sqlite-statement-cache-checkpoint-20261008.md text eol=lf
+
+/doc/performance/data/pyperformance-xlang3-full-refresh-vs-cpython3147-fast-20261008* -text
+/doc/performance/data/pyperformance-xlang3-full-refresh-vs-cpython3147-fast-20261008-sources/** -text
+/doc/performance/pyperformance-xlang3-full-refresh-vs-cpython3147-fast-20261008.svg text eol=lf
+/doc/performance/pyperformance-xlang3-full-refresh-vs-cpython3147-fast-20261008.md text eol=lf
+
+# Exact bytes for the own heapq / cold metadata checkpoint evidence.
+/doc/performance/heapq-cold-metadata-checkpoint-20261008.md text eol=lf
+/doc/performance/charts/heapq-cold-metadata-long-dict-20261008.svg text eol=lf
+/doc/performance/charts/heapq-original-io-single-body-20261008.svg text eol=lf
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-evidence.json -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-owned-source-manifest.json -text
+/doc/performance/data/cold-frame-metadata-outline-applied-source-20261008.json -text
+/doc/performance/data/cold-metadata-outline-focused-20261008.json -text
+/doc/performance/data/cold-metadata-outline-long-three-way-20261008.json -text
+/doc/performance/data/heapq-native-original-io-body-20261008.json -text
+/doc/performance/data/heapq-native-r2-cpython3147-reference-20261008.json -text
+/doc/performance/data/cold-metadata-outline-focused-20261008.provider.json -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/scratch/performance/heapq-native-r3-proposal-20261008.patch -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/scratch/performance/heapq-native-r3-proposal-20261008-provenance.json -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/scratch/performance/cold-frame-metadata-outline-proposal-20261008.patch -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/scratch/performance/cold-frame-metadata-outline-proposal-20261008-provenance.json -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/scratch/performance/constructor-owner-repair-compiled-layout-20261008.md -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/scratch/performance/exception-load-owner-string-dict-semantic-review-20261008.md -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/scratch/performance/string-dict-owner-repair-ir-20261008/string-dict-long-negative-control-20261008.ir.txt -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/scratch/performance/string-dict-long-negative-control-20261008.py -text
+/doc/performance/data/cold-metadata-outline-focused-20261008-heapq.stdout.log -text
+/doc/performance/data/cold-metadata-outline-focused-20261008-heapq.stderr.log -text
+/doc/performance/data/cold-metadata-outline-focused-20261008-constructor.stdout.log -text
+/doc/performance/data/cold-metadata-outline-focused-20261008-constructor.stderr.log -text
+/doc/performance/data/cold-metadata-outline-focused-20261008-cpp.stdout.log -text
+/doc/performance/data/cold-metadata-outline-focused-20261008-cpp.stderr.log -text
+/doc/performance/data/cold-metadata-outline-long-three-way-20261008-cycle1-A.stdout.log -text
+/doc/performance/data/cold-metadata-outline-long-three-way-20261008-cycle1-A.stderr.log -text
+/doc/performance/data/cold-metadata-outline-long-three-way-20261008-cycle1-A.log -text
+/doc/performance/data/cold-metadata-outline-long-three-way-20261008-cycle1-E.stdout.log -text
+/doc/performance/data/cold-metadata-outline-long-three-way-20261008-cycle1-E.stderr.log -text
+/doc/performance/data/cold-metadata-outline-long-three-way-20261008-cycle1-E.log -text
+/doc/performance/data/cold-metadata-outline-long-three-way-20261008-cycle1-F.stdout.log -text
+/doc/performance/data/cold-metadata-outline-long-three-way-20261008-cycle1-F.stderr.log -text
+/doc/performance/data/cold-metadata-outline-long-three-way-20261008-cycle1-F.log -text
+/doc/performance/data/cold-metadata-outline-long-three-way-20261008-cycle2-E.stdout.log -text
+/doc/performance/data/cold-metadata-outline-long-three-way-20261008-cycle2-E.stderr.log -text
+/doc/performance/data/cold-metadata-outline-long-three-way-20261008-cycle2-E.log -text
+/doc/performance/data/cold-metadata-outline-long-three-way-20261008-cycle2-F.stdout.log -text
+/doc/performance/data/cold-metadata-outline-long-three-way-20261008-cycle2-F.stderr.log -text
+/doc/performance/data/cold-metadata-outline-long-three-way-20261008-cycle2-F.log -text
+/doc/performance/data/cold-metadata-outline-long-three-way-20261008-cycle2-A.stdout.log -text
+/doc/performance/data/cold-metadata-outline-long-three-way-20261008-cycle2-A.stderr.log -text
+/doc/performance/data/cold-metadata-outline-long-three-way-20261008-cycle2-A.log -text
+/doc/performance/data/cold-metadata-outline-long-three-way-20261008-cycle3-F.stdout.log -text
+/doc/performance/data/cold-metadata-outline-long-three-way-20261008-cycle3-F.stderr.log -text
+/doc/performance/data/cold-metadata-outline-long-three-way-20261008-cycle3-F.log -text
+/doc/performance/data/cold-metadata-outline-long-three-way-20261008-cycle3-A.stdout.log -text
+/doc/performance/data/cold-metadata-outline-long-three-way-20261008-cycle3-A.stderr.log -text
+/doc/performance/data/cold-metadata-outline-long-three-way-20261008-cycle3-A.log -text
+/doc/performance/data/cold-metadata-outline-long-three-way-20261008-cycle3-E.stdout.log -text
+/doc/performance/data/cold-metadata-outline-long-three-way-20261008-cycle3-E.stderr.log -text
+/doc/performance/data/cold-metadata-outline-long-three-way-20261008-cycle3-E.log -text
+/doc/performance/data/heapq-native-original-io-body-20261008.stdout.log -text
+/doc/performance/data/heapq-native-original-io-body-20261008.stderr.log -text
+/doc/performance/data/heapq-native-r2-cpython3147-reference-20261008.stdout.log -text
+/doc/performance/data/heapq-native-r2-cpython3147-reference-20261008.stderr.log -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/scratch/performance/constructor-owner-repair-C-exports-20261008.txt -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/scratch/performance/constructor-owner-repair-C-pdata-20261008.txt -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/scratch/performance/constructor-owner-repair-C-run-function-20261008.asm -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/scratch/performance/constructor-owner-repair-D-exports-20261008.txt -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/scratch/performance/constructor-owner-repair-D-pdata-20261008.txt -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/scratch/performance/constructor-owner-repair-D-run-function-20261008.asm -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/scratch/performance/constructor-owner-repair-run-function-structural-20261008.json -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/scratch/performance/constructor-owner-repair-run-function-switch-bytes-20261008.json -text
+/doc/performance/data/heapq-cold-metadata-outline-full-validation-20261008.json -text
+/doc/performance/data/heapq-cold-metadata-outline-full-validation-20261008-inherited-full.json -text
+/doc/performance/data/heapq-cold-metadata-outline-full-validation-20261008-inherited-full-focused-call-ex-cross-activation-constructor.stdout.log -text
+/doc/performance/data/heapq-cold-metadata-outline-full-validation-20261008-inherited-full-focused-call-ex-cross-activation-constructor.stderr.log -text
+/doc/performance/data/heapq-cold-metadata-outline-full-validation-20261008-inherited-full-focused-call-method-dict-cache-touch.stdout.log -text
+/doc/performance/data/heapq-cold-metadata-outline-full-validation-20261008-inherited-full-focused-call-method-dict-cache-touch.stderr.log -text
+/doc/performance/data/heapq-cold-metadata-outline-full-validation-20261008-inherited-full-focused-inherited-call-ex-constructor.stdout.log -text
+/doc/performance/data/heapq-cold-metadata-outline-full-validation-20261008-inherited-full-focused-inherited-call-ex-constructor.stderr.log -text
+/doc/performance/data/heapq-cold-metadata-outline-full-validation-20261008-inherited-full-focused-native-bound-zero-args.stdout.log -text
+/doc/performance/data/heapq-cold-metadata-outline-full-validation-20261008-inherited-full-focused-native-bound-zero-args.stderr.log -text
+/doc/performance/data/heapq-cold-metadata-outline-full-validation-20261008-inherited-full-focused-sqlite-native-aggregate.stdout.log -text
+/doc/performance/data/heapq-cold-metadata-outline-full-validation-20261008-inherited-full-focused-sqlite-native-aggregate.stderr.log -text
+/doc/performance/data/heapq-cold-metadata-outline-full-validation-20261008-inherited-full-focused-sqlite-cursor-completion.stdout.log -text
+/doc/performance/data/heapq-cold-metadata-outline-full-validation-20261008-inherited-full-focused-sqlite-cursor-completion.stderr.log -text
+/doc/performance/data/heapq-cold-metadata-outline-full-validation-20261008-inherited-full-focused-identity-last-use.stdout.log -text
+/doc/performance/data/heapq-cold-metadata-outline-full-validation-20261008-inherited-full-focused-identity-last-use.stderr.log -text
+/doc/performance/data/heapq-cold-metadata-outline-full-validation-20261008-inherited-full-focused-hash-exception-preservation.stdout.log -text
+/doc/performance/data/heapq-cold-metadata-outline-full-validation-20261008-inherited-full-focused-hash-exception-preservation.stderr.log -text
+/doc/performance/data/heapq-cold-metadata-outline-full-validation-20261008-inherited-full-focused-sqlite-statement-cache.stdout.log -text
+/doc/performance/data/heapq-cold-metadata-outline-full-validation-20261008-inherited-full-focused-sqlite-statement-cache.stderr.log -text
+/doc/performance/data/heapq-cold-metadata-outline-full-validation-20261008-inherited-full-focused-exact-string-hash.stdout.log -text
+/doc/performance/data/heapq-cold-metadata-outline-full-validation-20261008-inherited-full-focused-exact-string-hash.stderr.log -text
+/doc/performance/data/heapq-cold-metadata-outline-full-validation-20261008-inherited-full-focused-cursor-writer-guards.stdout.log -text
+/doc/performance/data/heapq-cold-metadata-outline-full-validation-20261008-inherited-full-focused-cursor-writer-guards.stderr.log -text
+/doc/performance/data/heapq-cold-metadata-outline-full-validation-20261008-inherited-full-ctest-inventory.stdout.log -text
+/doc/performance/data/heapq-cold-metadata-outline-full-validation-20261008-inherited-full-ctest-inventory.stderr.log -text
+/doc/performance/data/heapq-cold-metadata-outline-full-validation-20261008-inherited-full-cpp-native-sqlite.stdout.log -text
+/doc/performance/data/heapq-cold-metadata-outline-full-validation-20261008-inherited-full-cpp-native-sqlite.stderr.log -text
+/doc/performance/data/heapq-cold-metadata-outline-full-resume-r3-20261008.json -text
+/doc/performance/data/heapq-cold-metadata-outline-full-resume-r3-20261008-inherited-full.json -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/scratch/performance/heapq-cold-metadata-checkpoint-20261008/heapq-cold-metadata-checkpoint-evidence-20261008.json -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/scratch/performance/heapq-outline-owned-source-checkpoint-20261008/owned-source-staging-manifest.json -text
+/doc/performance/data/before-heapq-original-io-d-control-20261008.json -text
+/doc/performance/data/before-heapq-original-io-d-control-20261008.stdout.log -text
+/doc/performance/data/before-heapq-original-io-d-control-20261008.stderr.log -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/scratch/performance/sqlite-statement-cache-r4-proposal-20261008-provenance.json -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/scratch/performance/sqlite-statement-cache-r4-proposal-20261008.patch -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/scratch/performance/sqlite-cache-generic-repair-combined-proposal-20261008-provenance.json -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/scratch/performance/sqlite-cache-generic-repair-combined-proposal-20261008.patch -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/scratch/performance/dict-get-exception-r2-proposal-20261008-provenance.json -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/scratch/performance/dict-get-exception-r2-proposal-20261008.patch -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/scratch/performance/observable-builtin-method-r2-proposal-20261008-provenance.json -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/scratch/performance/observable-builtin-method-r2-proposal-20261008.patch -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/scratch/performance/observable-builtin-method-cpp-r3-proposal-20261008-provenance.json -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/scratch/performance/observable-builtin-method-cpp-r3-proposal-20261008.patch -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/scratch/performance/call-ex-cross-activation-constructor-proposal-20261008-provenance.json -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/scratch/performance/call-ex-cross-activation-constructor-proposal-20261008.patch -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/scratch/performance/call-ex-cross-activation-constructor-cpp-r2-proposal-20261008-provenance.json -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/scratch/performance/call-ex-cross-activation-constructor-cpp-r2-proposal-20261008.patch -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/scratch/performance/exception-load-loop-owner-proposal-20261008-provenance.json -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/scratch/performance/exception-load-loop-owner-proposal-20261008.patch -text
+/doc/performance/data/heapq-cold-metadata-outline-full-resume-r3-20261008-inherited-full-manual-old-xlang-sqlite-api.stdout.log -text
+/doc/performance/data/heapq-cold-metadata-outline-full-resume-r3-20261008-inherited-full-manual-old-xlang-sqlite-api.stderr.log -text
+/doc/performance/data/heapq-cold-metadata-outline-full-resume-r3-20261008-inherited-full-manual-python-sqlite3-api.stdout.log -text
+/doc/performance/data/heapq-cold-metadata-outline-full-resume-r3-20261008-inherited-full-manual-python-sqlite3-api.stderr.log -text
+/doc/performance/data/heapq-cold-metadata-outline-full-resume-r3-20261008-inherited-full-full-fixtures-core-compat-expected.stdout.log -text
+/doc/performance/data/heapq-cold-metadata-outline-full-resume-r3-20261008-inherited-full-full-fixtures-core-compat-expected.stderr.log -text
+/doc/performance/data/heapq-cold-metadata-outline-full-resume-r3-20261008-inherited-full-fixed-gate.stdout.log -text
+/doc/performance/data/heapq-cold-metadata-outline-full-resume-r3-20261008-inherited-full-fixed-gate.stderr.log -text
+/doc/performance/data/heapq-cold-metadata-outline-full-resume-r3-20261008-inherited-full-fixed-gate.external-process-observations.jsonl -text
+/doc/performance/data/heapq-cold-metadata-outline-full-resume-r3-20261008-inherited-full-official-sqlite-synth.stdout.log -text
+/doc/performance/data/heapq-cold-metadata-outline-full-resume-r3-20261008-inherited-full-official-sqlite-synth.stderr.log -text
+/doc/performance/data/heapq-cold-metadata-outline-full-resume-r3-20261008-inherited-full-official-sqlite-synth.external-process-observations.jsonl -text
+/doc/performance/data/heapq-cold-metadata-outline-full-resume-r3-20261008-inherited-full-official-sqlglot-v2-parse.stdout.log -text
+/doc/performance/data/heapq-cold-metadata-outline-full-resume-r3-20261008-inherited-full-official-sqlglot-v2-parse.stderr.log -text
+/doc/performance/data/heapq-cold-metadata-outline-full-resume-r3-20261008-inherited-full-official-sqlglot-v2-parse.external-process-observations.jsonl -text
+/doc/performance/data/heapq-cold-metadata-outline-full-resume-r3-20261008-official-async-tree-io.stdout.log -text
+/doc/performance/data/heapq-cold-metadata-outline-full-resume-r3-20261008-official-async-tree-io.stderr.log -text
+/doc/performance/data/heapq-cold-metadata-outline-full-resume-r3-20261008-official-async-tree-io.external-process-observations.jsonl -text
+/doc/performance/data/heapq-cold-metadata-outline-full-resume-r3-20261008-inherited-full-fixed-gate.json -text
+/doc/performance/data/heapq-cold-metadata-outline-full-resume-r3-20261008-inherited-full-official-sqlite-synth-fast.json -text
+/doc/performance/data/heapq-cold-metadata-outline-full-resume-r3-20261008-inherited-full-official-sqlglot-v2-parse-fast.json -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/compiled/CMakeLists.txt -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/owned-stage-blobs/CMakeLists.txt -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/compiled/modules/sqlite/sqlite_handles.cpp -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/compiled/modules/sqlite/sqlite_handles.h -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/compiled/modules/sqlite/sqlite_package.cpp -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/compiled/sdk/xlang3/abi/xmodule.h -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/compiled/src/builtins/builtins.cpp -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/compiled/src/executor/xlang_vm/ops/xlang_vm_ops_call.h -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/compiled/src/executor/xlang_vm/xlang_frame.h -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/compiled/src/executor/xlang_vm/xlang_interpreter.cpp -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/compiled/src/executor/xlang_vm/xlang_vm_op_rows.h -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/compiled/src/import/native_package_loader.cpp -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/compiled/src/internal/xlang3/builtins.h -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/owned-stage-blobs/src/internal/xlang3/builtins.h -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/compiled/src/runtime/methods/dict_methods.cpp -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/compiled/src/runtime/modules/system/heapq_module.cpp -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/compiled/src/runtime/object_model.cpp -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/compiled/tests/cpp/dict_get_exception_cases.h -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/compiled/tests/cpp/exception_loop_owner_cases.h -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/compiled/tests/cpp/heapq_native_cases.h -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/compiled/tests/cpp/inherited_call_ex_constructor_cases.h -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/compiled/tests/cpp/interpreter_tests.cpp -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/owned-stage-blobs/tests/cpp/interpreter_tests.cpp -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/compiled/tests/cpp/observable_builtin_method_cases.h -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/compiled/tests/cpp/sqlite_statement_cache_cases.h -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/compiled/tests/cpp/sqlite_statement_cache_sdk_probe.py -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/compiled/tests/fixtures/core/call_ex_cross_activation_constructor.py -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/compiled/tests/fixtures/core/call_method_dict_cache_touch.py -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/compiled/tests/fixtures/core/dict_get_exception_preservation.py -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/compiled/tests/fixtures/core/inherited_call_ex_constructor.py -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/compiled/tests/fixtures/core/sqlite_statement_cache.py -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/compiled/tests/fixtures/expected/call_ex_cross_activation_constructor.out -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/compiled/tests/fixtures/expected/call_method_dict_cache_touch.out -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/compiled/tests/fixtures/expected/dict_get_exception_preservation.out -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/compiled/tests/fixtures/expected/inherited_call_ex_constructor.out -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/compiled/tests/fixtures/expected/sqlite_statement_cache.out -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/compiled/tests/run_fixtures.ps1 -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/compiled/tests/run_fixtures.py -text
+/doc/performance/data/heapq-cold-metadata-checkpoint-20261008-publication-manifest.json -text
+
+/doc/performance/data/class-canonical-publication-c4-diagnostic-20261008.json -text
+/doc/performance/data/class-canonical-publication-c4-diagnostic-20261008.stderr.log -text
+/doc/performance/data/class-canonical-publication-c4-diagnostic-20261008.stdout.log -text
+/doc/performance/data/class-canonical-publication-c4-diagnostic-build-20261008.log -text
+/doc/performance/data/class-canonical-publication-c4-diagnostic-loader-fixed-20261008.json -text
+/doc/performance/data/class-canonical-publication-c4-diagnostic-loader-fixed-20261008.stderr.log -text
+/doc/performance/data/class-canonical-publication-c4-diagnostic-loader-fixed-20261008.stdout.log -text
+/doc/performance/data/class-constructor-plan-c4-applied-source-20261008.json -text
+/doc/performance/data/class-constructor-plan-c4-build-20261008.log -text
+/doc/performance/data/class-constructor-plan-c4-focused-20261008.json -text
+/doc/performance/data/class-constructor-plan-c4-focused-idle-resume-20261008-annotation2.stderr.log -text
+/doc/performance/data/class-constructor-plan-c4-focused-idle-resume-20261008-annotation2.stdout.log -text
+/doc/performance/data/class-constructor-plan-c4-focused-idle-resume-20261008-canonical10.stderr.log -text
+/doc/performance/data/class-constructor-plan-c4-focused-idle-resume-20261008-canonical10.stdout.log -text
+/doc/performance/data/class-constructor-plan-c4-focused-idle-resume-20261008-cpp.stderr.log -text
+/doc/performance/data/class-constructor-plan-c4-focused-idle-resume-20261008-cpp.stdout.log -text
+/doc/performance/data/class-constructor-plan-c4-focused-idle-resume-20261008-fallback3.stderr.log -text
+/doc/performance/data/class-constructor-plan-c4-focused-idle-resume-20261008-fallback3.stdout.log -text
+/doc/performance/data/class-constructor-plan-c4-focused-idle-resume-20261008-iteration4.stderr.log -text
+/doc/performance/data/class-constructor-plan-c4-focused-idle-resume-20261008-iteration4.stdout.log -text
+/doc/performance/data/class-constructor-plan-c4-focused-idle-resume-20261008-namespace4.stderr.log -text
+/doc/performance/data/class-constructor-plan-c4-focused-idle-resume-20261008-namespace4.stdout.log -text
+/doc/performance/data/class-constructor-plan-c4-focused-idle-resume-20261008-nested1.stderr.log -text
+/doc/performance/data/class-constructor-plan-c4-focused-idle-resume-20261008-nested1.stdout.log -text
+/doc/performance/data/class-constructor-plan-c4-focused-idle-resume-20261008-owner2.stderr.log -text
+/doc/performance/data/class-constructor-plan-c4-focused-idle-resume-20261008-owner2.stdout.log -text
+/doc/performance/data/class-constructor-plan-c4-focused-idle-resume-20261008-ownership2.stderr.log -text
+/doc/performance/data/class-constructor-plan-c4-focused-idle-resume-20261008-ownership2.stdout.log -text
+/doc/performance/data/class-constructor-plan-c4-focused-idle-resume-20261008-profile3.stderr.log -text
+/doc/performance/data/class-constructor-plan-c4-focused-idle-resume-20261008-profile3.stdout.log -text
+/doc/performance/data/class-constructor-plan-c4-focused-idle-resume-20261008-sorted7.stderr.log -text
+/doc/performance/data/class-constructor-plan-c4-focused-idle-resume-20261008-sorted7.stdout.log -text
+/doc/performance/data/class-constructor-plan-c4-focused-idle-resume-20261008.json -text
+/doc/performance/data/class-constructor-plan-c5-applied-source-20261008.json -text
+/doc/performance/data/class-constructor-plan-c5-build-20261008.log -text
+/doc/performance/data/class-constructor-plan-c5-evidence-sources-20261008/attribute-pickle-c5-native-coff-proposed-20261008.py -text
+/doc/performance/data/class-constructor-plan-c5-evidence-sources-20261008/attribute-sqlglot-native-exports-20261008.py -text
+/doc/performance/data/class-constructor-plan-c5-evidence-sources-20261008/c5-engine-performance-comments-audit-20261008.json -text
+/doc/performance/data/class-constructor-plan-c5-evidence-sources-20261008/c5-owned-commit-follow-up-20261008-manifest.json -text
+/doc/performance/data/class-constructor-plan-c5-evidence-sources-20261008/c5-owned-engine-excluded-dependency-audit-20261008.json -text
+/doc/performance/data/class-constructor-plan-c5-evidence-sources-20261008/call-module-global-slot-binding-source-note-20261008.md -text
+/doc/performance/data/class-constructor-plan-c5-evidence-sources-20261008/check-class-constructor-plan-c5-focused-20261008.py -text
+/doc/performance/data/class-constructor-plan-c5-evidence-sources-20261008/match-sqlglot-native-coff-20261008.py -text
+/doc/performance/data/class-constructor-plan-c5-evidence-sources-20261008/pickle-c5-native-cost-source-findings-20261008.md -text
+/doc/performance/data/class-constructor-plan-c5-evidence-sources-20261008/pickle-original-pure-python-diagnostic-proposed-20261008.py -text
+/doc/performance/data/class-constructor-plan-c5-evidence-sources-20261008/pprint-original-safe-repr-r2-diagnostic-20261008.py -text
+/doc/performance/data/class-constructor-plan-c5-evidence-sources-20261008/run-pickle-original-body-and-native-sampling-proposed-20261008.py -text
+/doc/performance/data/class-constructor-plan-c5-evidence-sources-20261008/run-pprint-canonical-constructor-c3-original-body-20261008.py -text
+/doc/performance/data/class-constructor-plan-c5-evidence-sources-20261008/run-pprint-canonical-constructor-c5-original-body-20261008.py -text
+/doc/performance/data/class-constructor-plan-c5-evidence-sources-20261008/run-pprint-canonical-constructor-original-body-20261008.py -text
+/doc/performance/data/class-constructor-plan-c5-evidence-sources-20261008/sample-pprint-native-cpu-proposed-20261008.cpp -text
+/doc/performance/data/class-constructor-plan-c5-evidence-sources-20261008/stage-c5-owned-engine-files-r2-proposed-20261008.ps1 -text
+/doc/performance/data/class-constructor-plan-c5-evidence-sources-20261008/validate-ordinary-canonical-slot-constructor-c5-full-20261008.py -text
+/doc/performance/data/class-constructor-plan-c5-evidence-sources-20261008/validate-ordinary-canonical-slot-constructor-c5-gate-idle-resume-20261008.py -text
+/doc/performance/data/class-constructor-plan-c5-focused-20261008-annotation2.stderr.log -text
+/doc/performance/data/class-constructor-plan-c5-focused-20261008-annotation2.stdout.log -text
+/doc/performance/data/class-constructor-plan-c5-focused-20261008-canonical10.stderr.log -text
+/doc/performance/data/class-constructor-plan-c5-focused-20261008-canonical10.stdout.log -text
+/doc/performance/data/class-constructor-plan-c5-focused-20261008-cpp.stderr.log -text
+/doc/performance/data/class-constructor-plan-c5-focused-20261008-cpp.stdout.log -text
+/doc/performance/data/class-constructor-plan-c5-focused-20261008-fallback3.stderr.log -text
+/doc/performance/data/class-constructor-plan-c5-focused-20261008-fallback3.stdout.log -text
+/doc/performance/data/class-constructor-plan-c5-focused-20261008-iteration4.stderr.log -text
+/doc/performance/data/class-constructor-plan-c5-focused-20261008-iteration4.stdout.log -text
+/doc/performance/data/class-constructor-plan-c5-focused-20261008-namespace4.stderr.log -text
+/doc/performance/data/class-constructor-plan-c5-focused-20261008-namespace4.stdout.log -text
+/doc/performance/data/class-constructor-plan-c5-focused-20261008-nested1.stderr.log -text
+/doc/performance/data/class-constructor-plan-c5-focused-20261008-nested1.stdout.log -text
+/doc/performance/data/class-constructor-plan-c5-focused-20261008-owner2.stderr.log -text
+/doc/performance/data/class-constructor-plan-c5-focused-20261008-owner2.stdout.log -text
+/doc/performance/data/class-constructor-plan-c5-focused-20261008-ownership2.stderr.log -text
+/doc/performance/data/class-constructor-plan-c5-focused-20261008-ownership2.stdout.log -text
+/doc/performance/data/class-constructor-plan-c5-focused-20261008-profile3.stderr.log -text
+/doc/performance/data/class-constructor-plan-c5-focused-20261008-profile3.stdout.log -text
+/doc/performance/data/class-constructor-plan-c5-focused-20261008-sorted7.stderr.log -text
+/doc/performance/data/class-constructor-plan-c5-focused-20261008-sorted7.stdout.log -text
+/doc/performance/data/class-constructor-plan-c5-focused-20261008.json -text
+/doc/performance/data/class-constructor-plan-c5-owned-engine-staging-20261008.json -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-applied-source-20261008.json -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-build-20261008.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-focused-20261008-annotation2.stderr.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-focused-20261008-annotation2.stdout.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-focused-20261008-canonical10.stderr.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-focused-20261008-canonical10.stdout.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-focused-20261008-cpp.stderr.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-focused-20261008-cpp.stdout.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-focused-20261008-fallback3.stderr.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-focused-20261008-fallback3.stdout.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-focused-20261008-iteration4.stderr.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-focused-20261008-iteration4.stdout.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-focused-20261008-namespace4.stderr.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-focused-20261008-namespace4.stdout.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-focused-20261008-nested1.stderr.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-focused-20261008-nested1.stdout.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-focused-20261008-owner2.stderr.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-focused-20261008-owner2.stdout.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-focused-20261008-ownership2.stderr.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-focused-20261008-ownership2.stdout.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-focused-20261008-profile3.stderr.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-focused-20261008-profile3.stdout.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-focused-20261008-sorted7.stderr.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-focused-20261008-sorted7.stdout.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-focused-20261008.json -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-full-validation-20261008-cpp-native-sqlite.stderr.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-full-validation-20261008-cpp-native-sqlite.stdout.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-full-validation-20261008-ctest-inventory.stderr.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-full-validation-20261008-ctest-inventory.stdout.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-full-validation-20261008-fixed-gate.external-process-observations.jsonl -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-full-validation-20261008-fixed-gate.json -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-full-validation-20261008-fixed-gate.stderr.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-full-validation-20261008-fixed-gate.stdout.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-full-validation-20261008-focused-call-ex-cross-activation-constructor.stderr.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-full-validation-20261008-focused-call-ex-cross-activation-constructor.stdout.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-full-validation-20261008-focused-call-method-dict-cache-touch.stderr.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-full-validation-20261008-focused-call-method-dict-cache-touch.stdout.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-full-validation-20261008-focused-cursor-writer-guards.stderr.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-full-validation-20261008-focused-cursor-writer-guards.stdout.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-full-validation-20261008-focused-exact-string-hash.stderr.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-full-validation-20261008-focused-exact-string-hash.stdout.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-full-validation-20261008-focused-hash-exception-preservation.stderr.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-full-validation-20261008-focused-hash-exception-preservation.stdout.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-full-validation-20261008-focused-identity-last-use.stderr.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-full-validation-20261008-focused-identity-last-use.stdout.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-full-validation-20261008-focused-inherited-call-ex-constructor.stderr.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-full-validation-20261008-focused-inherited-call-ex-constructor.stdout.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-full-validation-20261008-focused-native-bound-zero-args.stderr.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-full-validation-20261008-focused-native-bound-zero-args.stdout.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-full-validation-20261008-focused-sqlite-cursor-completion.stderr.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-full-validation-20261008-focused-sqlite-cursor-completion.stdout.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-full-validation-20261008-focused-sqlite-native-aggregate.stderr.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-full-validation-20261008-focused-sqlite-native-aggregate.stdout.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-full-validation-20261008-focused-sqlite-statement-cache.stderr.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-full-validation-20261008-focused-sqlite-statement-cache.stdout.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-full-validation-20261008-full-fixtures-core-compat-expected.stderr.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-full-validation-20261008-full-fixtures-core-compat-expected.stdout.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-full-validation-20261008-manual-old-xlang-sqlite-api.stderr.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-full-validation-20261008-manual-old-xlang-sqlite-api.stdout.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-full-validation-20261008-manual-python-sqlite3-api.stderr.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-full-validation-20261008-manual-python-sqlite3-api.stdout.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-full-validation-20261008-official-pprint.external-process-observations.jsonl -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-full-validation-20261008-official-pprint.stderr.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-full-validation-20261008-official-pprint.stdout.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-full-validation-20261008.json -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c5-full-validation-20261008-cpp-native-sqlite.stderr.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c5-full-validation-20261008-cpp-native-sqlite.stdout.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c5-full-validation-20261008-ctest-inventory.stderr.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c5-full-validation-20261008-ctest-inventory.stdout.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c5-full-validation-20261008-fixed-gate.external-process-observations.jsonl -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c5-full-validation-20261008-fixed-gate.json -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c5-full-validation-20261008-fixed-gate.stderr.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c5-full-validation-20261008-fixed-gate.stdout.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c5-full-validation-20261008-focused-call-ex-cross-activation-constructor.stderr.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c5-full-validation-20261008-focused-call-ex-cross-activation-constructor.stdout.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c5-full-validation-20261008-focused-call-method-dict-cache-touch.stderr.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c5-full-validation-20261008-focused-call-method-dict-cache-touch.stdout.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c5-full-validation-20261008-focused-cursor-writer-guards.stderr.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c5-full-validation-20261008-focused-cursor-writer-guards.stdout.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c5-full-validation-20261008-focused-exact-string-hash.stderr.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c5-full-validation-20261008-focused-exact-string-hash.stdout.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c5-full-validation-20261008-focused-hash-exception-preservation.stderr.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c5-full-validation-20261008-focused-hash-exception-preservation.stdout.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c5-full-validation-20261008-focused-identity-last-use.stderr.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c5-full-validation-20261008-focused-identity-last-use.stdout.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c5-full-validation-20261008-focused-inherited-call-ex-constructor.stderr.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c5-full-validation-20261008-focused-inherited-call-ex-constructor.stdout.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c5-full-validation-20261008-focused-native-bound-zero-args.stderr.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c5-full-validation-20261008-focused-native-bound-zero-args.stdout.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c5-full-validation-20261008-focused-sqlite-cursor-completion.stderr.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c5-full-validation-20261008-focused-sqlite-cursor-completion.stdout.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c5-full-validation-20261008-focused-sqlite-native-aggregate.stderr.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c5-full-validation-20261008-focused-sqlite-native-aggregate.stdout.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c5-full-validation-20261008-focused-sqlite-statement-cache.stderr.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c5-full-validation-20261008-focused-sqlite-statement-cache.stdout.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c5-full-validation-20261008-full-fixtures-core-compat-expected.stderr.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c5-full-validation-20261008-full-fixtures-core-compat-expected.stdout.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c5-full-validation-20261008-manual-old-xlang-sqlite-api.stderr.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c5-full-validation-20261008-manual-old-xlang-sqlite-api.stdout.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c5-full-validation-20261008-manual-python-sqlite3-api.stderr.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c5-full-validation-20261008-manual-python-sqlite3-api.stdout.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c5-full-validation-20261008.json -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c5-gate-idle-resume-20261008-fixed-gate.external-process-observations.jsonl -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c5-gate-idle-resume-20261008-fixed-gate.json -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c5-gate-idle-resume-20261008-fixed-gate.stderr.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c5-gate-idle-resume-20261008-fixed-gate.stdout.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c5-gate-idle-resume-20261008-official-pprint.external-process-observations.jsonl -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c5-gate-idle-resume-20261008-official-pprint.stderr.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c5-gate-idle-resume-20261008-official-pprint.stdout.log -text
+/doc/performance/data/ordinary-canonical-slot-constructor-c5-gate-idle-resume-20261008.json -text
+/doc/performance/data/pickle-original-pure-c5-body-20261008-candidate-xlang3.stderr.log -text
+/doc/performance/data/pickle-original-pure-c5-body-20261008-candidate-xlang3.stdout.log -text
+/doc/performance/data/pickle-original-pure-c5-body-20261008-cpython3147.stderr.log -text
+/doc/performance/data/pickle-original-pure-c5-body-20261008-cpython3147.stdout.log -text
+/doc/performance/data/pickle-original-pure-c5-body-20261008.json -text
+/doc/performance/data/pickle-original-pure-c5-native-coff-attribution-20261008.json -text
+/doc/performance/data/pickle-original-pure-c5-native-sampling-20261008-child.stderr.log -text
+/doc/performance/data/pickle-original-pure-c5-native-sampling-20261008-child.stdout.log -text
+/doc/performance/data/pickle-original-pure-c5-native-sampling-20261008-native-sampling.stderr.log -text
+/doc/performance/data/pickle-original-pure-c5-native-sampling-20261008-native-sampling.stdout.log -text
+/doc/performance/data/pickle-original-pure-c5-native-sampling-20261008-samples.jsonl -text
+/doc/performance/data/pickle-original-pure-c5-native-sampling-20261008.json -text
+/doc/performance/data/pprint-c1-native-cpu-coff-r2-20261008.json -text
+/doc/performance/data/pprint-c1-native-cpu-sampling-20261008-child-stderr.log -text
+/doc/performance/data/pprint-c1-native-cpu-sampling-20261008-child-stdout.log -text
+/doc/performance/data/pprint-c1-native-cpu-sampling-20261008-sampler-stderr.log -text
+/doc/performance/data/pprint-c1-native-cpu-sampling-20261008-sampler-stdout.log -text
+/doc/performance/data/pprint-c1-native-cpu-sampling-20261008-samples.jsonl -text
+/doc/performance/data/pprint-c1-native-cpu-sampling-20261008.json -text
+/doc/performance/data/pprint-canonical-constructor-baseline-original-body-20261008-candidate-xlang3.stderr.log -text
+/doc/performance/data/pprint-canonical-constructor-baseline-original-body-20261008-candidate-xlang3.stdout.log -text
+/doc/performance/data/pprint-canonical-constructor-baseline-original-body-20261008-cpython3147.stderr.log -text
+/doc/performance/data/pprint-canonical-constructor-baseline-original-body-20261008-cpython3147.stdout.log -text
+/doc/performance/data/pprint-canonical-constructor-baseline-original-body-20261008.json -text
+/doc/performance/data/pprint-canonical-constructor-c3-original-body-20261008-candidate-xlang3.stderr.log -text
+/doc/performance/data/pprint-canonical-constructor-c3-original-body-20261008-candidate-xlang3.stdout.log -text
+/doc/performance/data/pprint-canonical-constructor-c3-original-body-20261008-cpython3147.stderr.log -text
+/doc/performance/data/pprint-canonical-constructor-c3-original-body-20261008-cpython3147.stdout.log -text
+/doc/performance/data/pprint-canonical-constructor-c3-original-body-20261008.json -text
+/doc/performance/data/pprint-canonical-constructor-c5-original-body-20261008-candidate-xlang3.stderr.log -text
+/doc/performance/data/pprint-canonical-constructor-c5-original-body-20261008-candidate-xlang3.stdout.log -text
+/doc/performance/data/pprint-canonical-constructor-c5-original-body-20261008-cpython3147.stderr.log -text
+/doc/performance/data/pprint-canonical-constructor-c5-original-body-20261008-cpython3147.stdout.log -text
+/doc/performance/data/pprint-canonical-constructor-c5-original-body-20261008.json -text
+/doc/performance/data/pprint-sorted-key-ownership-r5-applied-source-20261008.json -text
+/doc/performance/data/pprint-sorted-key-ownership-r5-focused-20261008-cpp.stderr.log -text
+/doc/performance/data/pprint-sorted-key-ownership-r5-focused-20261008-cpp.stdout.log -text
+/doc/performance/data/pprint-sorted-key-ownership-r5-focused-20261008-iteration4.stderr.log -text
+/doc/performance/data/pprint-sorted-key-ownership-r5-focused-20261008-iteration4.stdout.log -text
+/doc/performance/data/pprint-sorted-key-ownership-r5-focused-20261008-nested1.stderr.log -text
+/doc/performance/data/pprint-sorted-key-ownership-r5-focused-20261008-nested1.stdout.log -text
+/doc/performance/data/pprint-sorted-key-ownership-r5-focused-20261008-sorted7.stderr.log -text
+/doc/performance/data/pprint-sorted-key-ownership-r5-focused-20261008-sorted7.stdout.log -text
+/doc/performance/data/pprint-sorted-key-ownership-r5-focused-20261008.json -text
+/doc/performance/data/class-constructor-plan-c5-evidence-publication-20261008.json -text

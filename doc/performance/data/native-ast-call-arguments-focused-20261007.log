@@ -1,0 +1,3 @@
+eval and exec preserve call trees True
+Python AST visitors preserve arguments and locations True
+complex empty callees preserve their AST True

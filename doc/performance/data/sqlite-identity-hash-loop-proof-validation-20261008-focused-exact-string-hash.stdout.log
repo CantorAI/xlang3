@@ -1,0 +1,5 @@
+exact text variants pass
+str subclass callback preserved
+Python hash callbacks preserved
+hash failures preserved
+builtin rebinding preserved

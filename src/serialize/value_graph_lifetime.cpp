@@ -15,6 +15,8 @@ template<class Visit> void edges(Value& value, Visit visit) {
     for (auto& v : obj->defaults) visit(v);
     for (auto& v : obj->positional_defaults) visit(v);
     for (auto& v : obj->kwdefaults) visit(v.second);
+    visit(obj->kwdefaults_dict);
+    visit(obj->code_object);
   } else if (auto* obj = value_as_class(value)) {
     visit(obj->base); visit(obj->metaclass);
     for (auto& v : obj->bases) visit(v);
@@ -33,6 +35,7 @@ template<class Visit> void edges(Value& value, Visit visit) {
   }
 }
 void clear_edges(Value& value) {
+  if (auto* tuple = value_as_tuple(value)) tuple_object_begin_construction(*tuple);
   if (auto* instance = value_as_instance(value); instance && instance->native_data_cleanup) {
     auto cleanup = instance->native_data_cleanup;
     auto data = instance->native_owner;

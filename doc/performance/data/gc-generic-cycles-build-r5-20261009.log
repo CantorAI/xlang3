@@ -1,0 +1,28 @@
+[0/2] Re-checking globbed directories...
+[1/28] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\gc_module.cpp.obj
+[2/28] Linking CXX static library Release\xlang3_system_runtime.lib
+[3/28] Building CXX object CMakeFiles\xlang3_interpreter_tests.dir\Release\tests\cpp\interpreter_tests.cpp.obj
+[4/28] Linking CXX shared library Release\xlang3_runtime.dll
+[5/28] Linking CXX executable Release\xlang3_cpp_ipc_client.exe
+[6/28] Linking CXX executable Release\xlang3_abi_ownership.exe
+[7/28] Linking CXX executable Release\xlang3_smoke.exe
+[8/28] Linking CXX executable Release\xlang3_static_runtime_shutdown.exe
+[9/28] Linking CXX executable Release\xlang3_sdk_stream_call_tests.exe
+[10/28] Linking CXX executable Release\xlang3_graph_process_tests.exe
+[11/28] Linking CXX executable Release\xlang3_embedded_package_tests.exe
+[12/28] Linking CXX executable Release\xlang3_ipc_capacity_tests.exe
+[13/28] Linking CXX executable Release\xlang3_tensor_cpu_tests.exe
+[14/28] Linking CXX executable Release\xlang3_runtime_value_tests.exe
+[15/28] Linking CXX executable Release\xlang3_parser_tests.exe
+[16/28] Linking CXX executable Release\xlang3_vfs_tests.exe
+[17/28] Linking CXX executable Release\xlang3_task_tests.exe
+[18/28] Linking CXX executable Release\xlang3_memory_tests.exe
+[19/28] Linking CXX executable Release\xlang3_debug_session_tests.exe
+[20/28] Linking CXX executable Release\xlang3.exe
+[21/28] Linking CXX executable Release\xlang3_ir_codec_tests.exe
+[22/28] Linking CXX executable Release\xlang3_module_slot_tests.exe
+[23/28] Linking CXX executable Release\xlang3_xlang1_compat_package_tests.exe
+[24/28] Linking CXX executable Release\xlang3_native_package_real_tests.exe
+[25/28] Linking CXX executable Release\xlang3_dap_session_tests.exe
+[26/28] Linking CXX executable Release\xlang3_interpreter_tests.exe
+[27/28] Linking CXX executable Release\xlang3_native_path_tests.exe

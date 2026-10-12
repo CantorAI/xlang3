@@ -1,0 +1,46 @@
+{
+  "terminal": true,
+  "passed": true,
+  "observed_unix": 1791609632.8506837,
+  "prior_receipt_sha256": "17d1c5415aeb1f39b9d7ff8f48f42d0abbc89e2179c8cf1510c0432af522b881",
+  "original_owner_identities": [
+    {
+      "Name": "python.exe",
+      "ProcessId": 27852,
+      "ParentProcessId": 32924,
+      "CreationDate": "/Date(1791609294318)/",
+      "KernelModeTime": 781250,
+      "UserModeTime": 312500,
+      "CommandLine": ""
+    },
+    {
+      "Name": "conhost.exe",
+      "ProcessId": 8080,
+      "ParentProcessId": 27852,
+      "CreationDate": "/Date(1791609294331)/",
+      "KernelModeTime": 0,
+      "UserModeTime": 156250,
+      "CommandLine": ""
+    }
+  ],
+  "absent_pids": [
+    27852,
+    8080
+  ],
+  "timing_accepted": false,
+  "process_observations": {
+    "busy": [
+      {
+        "Name": "ctest.exe",
+        "ProcessId": 10560,
+        "ParentProcessId": 25480,
+        "CreationDate": "/Date(1791609440286)/",
+        "KernelModeTime": 2968750,
+        "UserModeTime": 625000,
+        "CommandLine": ""
+      }
+    ],
+    "dormant": []
+  },
+  "scope": "Fresh absence verification only; original failed watch and its false flags are preserved."
+}

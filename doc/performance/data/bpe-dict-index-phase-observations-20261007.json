@@ -1,0 +1,47 @@
+{
+  "status": "terminal_matching_complete_outputs",
+  "probe_sha256": "ee6753946e3f56856f61f10d96b82e0c610fac0416ec38d53057dd6f2aaa6909",
+  "scope": "instrumented full algorithm, phase diagnosis only, no benchmark score",
+  "observations": [
+    {
+      "runtime": "cpython3147",
+      "exit_code": 0,
+      "log": "bpe-dict-index-phase-cpython3147-20261007.log",
+      "log_sha256": "02929800952a6612cefaca41b627e46d730097592af7f7290cc2a51eec4fc973",
+      "result": {
+        "purpose": "instrumented full algorithm phase attribution only, never scored",
+        "phases_seconds": {
+          "setup": 0.004471299995202571,
+          "counting": 2.104130299499957,
+          "selection": 0.10119140017195605,
+          "merging": 1.3262980006693397,
+          "encoding": 0.032529199990676716
+        },
+        "vocab_size": 1024,
+        "ranks_sha256": "886a868d65c2ad4adc851b073091cc364cf39e20691406a6015631468af06fff",
+        "encoded_token_count": 10335,
+        "encoded_tokens_sha256": "a4cce189a198bca69c43894cc135b07acf7936f9c883a07023325cbb34bc0e0d"
+      }
+    },
+    {
+      "runtime": "candidate",
+      "exit_code": 0,
+      "log": "bpe-dict-index-phase-candidate-20261007.log",
+      "log_sha256": "a6f4c35994117320f7cb767fe49c7c7b0c1b2a13ba6b7e4947e5bb09489a2c86",
+      "result": {
+        "purpose": "instrumented full algorithm phase attribution only, never scored",
+        "phases_seconds": {
+          "setup": 0.05815419999998994,
+          "counting": 25.688985999586293,
+          "selection": 4.302969299693359,
+          "merging": 9.036582599888789,
+          "encoding": 0.2802275999856647
+        },
+        "vocab_size": 1024,
+        "ranks_sha256": "886a868d65c2ad4adc851b073091cc364cf39e20691406a6015631468af06fff",
+        "encoded_token_count": 10335,
+        "encoded_tokens_sha256": "a4cce189a198bca69c43894cc135b07acf7936f9c883a07023325cbb34bc0e0d"
+      }
+    }
+  ]
+}

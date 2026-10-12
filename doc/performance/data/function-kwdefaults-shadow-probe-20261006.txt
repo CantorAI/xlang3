@@ -1,0 +1,7 @@
+CPython 3.14.7
+metadata beats dictionary shadow: True
+mutation reaches actual binding: True
+
+XLang3 checkpoint 07749377
+metadata beats dictionary shadow: False
+mutation reaches actual binding: False

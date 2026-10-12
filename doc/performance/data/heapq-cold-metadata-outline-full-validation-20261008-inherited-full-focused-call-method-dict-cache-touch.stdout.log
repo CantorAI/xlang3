@@ -1,0 +1,8 @@
+exact dict hits, misses and default identity: OK
+mixed method site preserves Python replacement and dict overrides: OK
+dynamic method lookup remains fresh across exact dict calls: OK
+generic key hashing and equality can reenter the dict shortcut: OK
+generic key failure preserves identity and active exception state: OK
+cached class method owner is released after a dict-ending activation: OK
+profiling preserves native dict call and return events: OK
+local monitoring preserves native dict call and return events: OK

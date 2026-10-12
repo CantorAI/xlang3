@@ -21,8 +21,10 @@ limitations under the License.
 #include "xlang3/object_model.h"
 #include "xlang3/sequence.h"
 #include "xlang3/set_object.h"
+#include "gc_plain_cycles.h"
 
 #include <algorithm>
+#include <atomic>
 #include <array>
 #include <mutex>
 
@@ -58,6 +60,10 @@ bool gc_kind_may_be_tracked(ObjectKind kind) {
 
 } // namespace
 
+// This registry lock is paid on each newly tracked allocation and final
+// untrack, so it is a potential hot-path cost in allocation-heavy workloads.
+// Any batching or sharding optimization must keep objects visible to collector
+// snapshots and preserve the index encoded in gc_tracking_state.
 void gc_track_object(Object* object) {
   if (object == nullptr || !gc_kind_may_be_tracked(object->kind)) return;
   // Recycled cached objects remain indexed with refcount zero; reuse can
@@ -147,6 +153,15 @@ void emit_pending_file_resource_warnings(Runtime& runtime);
 
 namespace {
 
+std::atomic_bool& gc_collection_active() {
+  static std::atomic_bool active{false};
+  return active;
+}
+
+struct GcCollectionScope {
+  ~GcCollectionScope() { gc_collection_active().store(false, std::memory_order_release); }
+};
+
 struct GcState {
   bool enabled = true;
   std::array<int64_t, 3> thresholds{700, 10, 10};
@@ -186,10 +201,19 @@ bool gc_collect(Runtime& runtime, const Value* args, uint32_t argc, Value& out, 
     error = "gc.collect() generation must be an integer between 0 and 2";
     return false;
   }
+  // Finalizers/native cleanup can call gc.collect recursively or from another
+  // thread. Keep one process-wide collection active through both passes and
+  // snapshot retirement; reentry must not inspect a partly retired graph.
+  if (gc_collection_active().exchange(true, std::memory_order_acq_rel)) {
+    value_set_int64(out, 0);
+    return true;
+  }
+  GcCollectionScope collection_scope;
   runtime.synchronize_modules_from_registry();
   runtime.release_dead_frame_registers();
   emit_pending_socket_resource_warnings(runtime);
-  const uint64_t collected = weakref_collect_cycles(runtime);
+  uint64_t collected = weakref_collect_cycles(runtime);
+  collected += gc_collect_plain_cycles();
   emit_pending_file_resource_warnings(runtime);
   weakref_dispatch_callbacks(runtime);
   value_set_int64(out, static_cast<int64_t>(collected));
@@ -275,6 +299,8 @@ bool gc_object_references_any(Runtime& runtime, const Value& source,
     for (const auto& item : value->defaults) edge(item);
     for (const auto& item : value->positional_defaults) edge(item);
     for (const auto& item : value->kwdefaults) edge(item.second);
+    edge(value->kwdefaults_dict);
+    edge(value->code_object);
   } else if (auto* value = value_as_native_function(source)) {
     if (value->attrs_dict != nullptr) edge(*value->attrs_dict);
   } else if (auto* value = value_as_generic_alias(source)) {
@@ -290,6 +316,7 @@ bool gc_object_references_any(Runtime& runtime, const Value& source,
     edge(value->globals_module);
     for (const auto& item : value->bases) edge(item);
     for (const auto& item : value->mro_cache) edge(item);
+    edge(value->public_mro_cache);
     for (const auto& item : value->attrs) edge(item.second);
   } else if (auto* value = value_as_instance(source)) {
     edge(value->klass);
@@ -298,11 +325,12 @@ bool gc_object_references_any(Runtime& runtime, const Value& source,
     for (uint32_t index = 0; index < value->slot_count; ++index)
       edge(instance_slot_at(value, index));
     for (const auto& item : value->attrs) edge(item.second);
-    for (auto* target : value->native_gc_references)
+    instance_visit_native_gc_references(*value, [&](Object* target) {
       for (uint32_t index = 0; index < target_count; ++index)
         if (targets[index].tag == ValueTag::Object &&
             targets[index].as.obj == target)
           found = true;
+    });
   } else if (auto* value = value_as_bound_method(source)) {
     edge(value->self);
     edge(value->function);
@@ -324,6 +352,8 @@ bool gc_object_references_any(Runtime& runtime, const Value& source,
     edge(value->doc);
     edge(value->name);
   } else if (auto* value = value_as_frame(source)) {
+    // Lazy f_code is an owning Value on observed frames, visible to referrers.
+    edge(value->code_object);
     edge(value->globals_module);
     edge(value->locals);
     if (!value->live)

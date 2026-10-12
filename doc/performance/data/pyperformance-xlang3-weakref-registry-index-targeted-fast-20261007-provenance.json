@@ -1,0 +1,32 @@
+{
+  "status": "finished",
+  "started_utc": "2026-10-07T16:02:38.292604+00:00",
+  "runtime_executable": "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+  "source_base_commit": "41b1091ef7f9e7c05bb0e96be14ea170c27c5812",
+  "engine_source": "Uncommitted native weakref raw-pointer indexes; compiled source identities in weakref-registry-index-validation-20261007.json",
+  "sha256_start": {
+    "exe": "b1e8973ae266243f545920a83a5ac7e1686f56baaf443193514be59f43dd4afb",
+    "dll": "a9e3154ed4361275b5a22f31448812bb889a99295dbc0efa62a876a695e94768",
+    "hashlib": "5910f087e300459b854dca0046ac61125287e7d62bf330a3d626631d9a74b239"
+  },
+  "manager_executable": "C:\\Python\\Python314\\python.exe",
+  "manager_version": "3.14.7",
+  "stdlib": "C:\\Python\\Python314\\Lib",
+  "mode": "fast",
+  "benchmarks": "typing_runtime_protocols,gc_traversal",
+  "expected_definitions": 2,
+  "case_timeout_seconds": 300,
+  "cpython_reference": "pyperformance-cpython314-clean-release-full-fast-20261002.json",
+  "cpython_reference_provenance_limits": "cpython3147-saved-reference-provenance-audit-20261007.json",
+  "fixed_gate": "release-weakref-registry-index-fixed-gate-20261007.json",
+  "fixed_gate_exit_code": 0,
+  "timing_probe_enabled": false,
+  "compatibility_hook_sha256": "2ffc217fe20497156bfcb1cebc7fb87203f33c6d4d3dbb6ecbcbcf91ea4cb317",
+  "completed_utc": "2026-10-07T16:03:06.722703+00:00",
+  "exit_code": 0,
+  "sha256_end": {
+    "exe": "b1e8973ae266243f545920a83a5ac7e1686f56baaf443193514be59f43dd4afb",
+    "dll": "a9e3154ed4361275b5a22f31448812bb889a99295dbc0efa62a876a695e94768",
+    "hashlib": "5910f087e300459b854dca0046ac61125287e7d62bf330a3d626631d9a74b239"
+  }
+}

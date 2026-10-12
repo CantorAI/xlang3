@@ -1,0 +1,2451 @@
+{
+  "status": "terminal",
+  "scope": "Checked paired diagnosis only, never official scores",
+  "binaries_sha256": {
+    "control": {
+      "exe": "e50b773a91aac9a272a7f092e779eec5bca24dfde4b42d76d25c833d8d62b369",
+      "dll": "bd14befff7c0be01820aa59def9652f42e8277eb1c1ec4a73aaf70d38681918d"
+    },
+    "candidate": {
+      "exe": "86a61b2033c9c7d475e55b7337af559fa0422a57576729dd9a0c411ef3f55ec3",
+      "dll": "52e54c97b0833947a21f5e4f973317e5cfb7a8f6e13983a44ec06295cd2374d7"
+    }
+  },
+  "probes": [
+    {
+      "name": "trivial",
+      "probe_sha256": "5e9d74ed22141a9aa96e86293a42cb4d76eb2cb38252330273a87d368cfbcc67",
+      "pairs": [
+        {
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "runs": {
+            "control": {
+              "scope": "Call route diagnosis; distinct loop shapes, never official speed scores",
+              "rows": [
+                {
+                  "path": "direct_constant",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.0008498999814037234,
+                    0.0008477999945171177,
+                    0.0008345999813172966,
+                    0.0008441999962087721,
+                    0.0008433000184595585
+                  ],
+                  "checked_result": 0,
+                  "mapping_stays_empty": true
+                },
+                {
+                  "path": "native_max_constant_key",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.0011070000182371587,
+                    0.0011125999735668302,
+                    0.0012571999977808446,
+                    0.0010914999875240028,
+                    0.0011190999939572066
+                  ],
+                  "checked_result": 32,
+                  "mapping_stays_empty": true
+                },
+                {
+                  "path": "counter_missing",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.010783000005176291,
+                    0.011032400012481958,
+                    0.010718700010329485,
+                    0.010827099991729483,
+                    0.010869399993680418
+                  ],
+                  "checked_result": 0,
+                  "mapping_stays_empty": true
+                },
+                {
+                  "path": "direct_counter_missing",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.002483500022208318,
+                    0.0024751000164542347,
+                    0.0024711999867577106,
+                    0.002493700012564659,
+                    0.0024822000123094767
+                  ],
+                  "checked_result": 0,
+                  "mapping_stays_empty": true
+                },
+                {
+                  "path": "dict_get_default",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.007914399990113452,
+                    0.00730140000814572,
+                    0.007180299988249317,
+                    0.0070238999905996025,
+                    0.007285600004252046
+                  ],
+                  "checked_result": 0,
+                  "mapping_stays_empty": true
+                }
+              ]
+            },
+            "candidate": {
+              "scope": "Call route diagnosis; distinct loop shapes, never official speed scores",
+              "rows": [
+                {
+                  "path": "direct_constant",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.0007899999909568578,
+                    0.0008233000116888434,
+                    0.0007838000019546598,
+                    0.0007915000023785979,
+                    0.0007752999954391271
+                  ],
+                  "checked_result": 0,
+                  "mapping_stays_empty": true
+                },
+                {
+                  "path": "native_max_constant_key",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.0011704000062309206,
+                    0.001165200024843216,
+                    0.0011343000223860145,
+                    0.0011295000149402767,
+                    0.001188700000056997
+                  ],
+                  "checked_result": 32,
+                  "mapping_stays_empty": true
+                },
+                {
+                  "path": "counter_missing",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.008278299996163696,
+                    0.008914200006984174,
+                    0.008031400007894263,
+                    0.008554200001526624,
+                    0.008180100005120039
+                  ],
+                  "checked_result": 0,
+                  "mapping_stays_empty": true
+                },
+                {
+                  "path": "direct_counter_missing",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.002570399985415861,
+                    0.0024544000043533742,
+                    0.0024150000244844705,
+                    0.002418300020508468,
+                    0.0024375999928452075
+                  ],
+                  "checked_result": 0,
+                  "mapping_stays_empty": true
+                },
+                {
+                  "path": "dict_get_default",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.007746999996015802,
+                    0.008389499998884276,
+                    0.007575000025099143,
+                    0.007731600024271756,
+                    0.007682399998884648
+                  ],
+                  "checked_result": 0,
+                  "mapping_stays_empty": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "order": [
+            "candidate",
+            "control"
+          ],
+          "runs": {
+            "candidate": {
+              "scope": "Call route diagnosis; distinct loop shapes, never official speed scores",
+              "rows": [
+                {
+                  "path": "direct_constant",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.0008060999971348792,
+                    0.0007926999824121594,
+                    0.0007833999989088625,
+                    0.0007992000028025359,
+                    0.0008089999901130795
+                  ],
+                  "checked_result": 0,
+                  "mapping_stays_empty": true
+                },
+                {
+                  "path": "native_max_constant_key",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.0013133999891579151,
+                    0.001167700014775619,
+                    0.0012242999800946563,
+                    0.0011304999934509397,
+                    0.001133300014771521
+                  ],
+                  "checked_result": 32,
+                  "mapping_stays_empty": true
+                },
+                {
+                  "path": "counter_missing",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.008658900012960657,
+                    0.008655699988594279,
+                    0.008380399987800047,
+                    0.008278399996925145,
+                    0.00832649998483248
+                  ],
+                  "checked_result": 0,
+                  "mapping_stays_empty": true
+                },
+                {
+                  "path": "direct_counter_missing",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.00261649998719804,
+                    0.0026021999947261065,
+                    0.0025708999892231077,
+                    0.002593000011984259,
+                    0.0025492000277154148
+                  ],
+                  "checked_result": 0,
+                  "mapping_stays_empty": true
+                },
+                {
+                  "path": "dict_get_default",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.007848399982322007,
+                    0.007726200012257323,
+                    0.007732600002782419,
+                    0.007753699988825247,
+                    0.007731499994406477
+                  ],
+                  "checked_result": 0,
+                  "mapping_stays_empty": true
+                }
+              ]
+            },
+            "control": {
+              "scope": "Call route diagnosis; distinct loop shapes, never official speed scores",
+              "rows": [
+                {
+                  "path": "direct_constant",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.0008543999865651131,
+                    0.0008356999896932393,
+                    0.0008407999994233251,
+                    0.0008380000072065741,
+                    0.0008402999956160784
+                  ],
+                  "checked_result": 0,
+                  "mapping_stays_empty": true
+                },
+                {
+                  "path": "native_max_constant_key",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.0011128999758511782,
+                    0.0011131000064779073,
+                    0.0011716999870259315,
+                    0.001264399994397536,
+                    0.0010964999964926392
+                  ],
+                  "checked_result": 32,
+                  "mapping_stays_empty": true
+                },
+                {
+                  "path": "counter_missing",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.010822899988852441,
+                    0.011303800012683496,
+                    0.011355299997376278,
+                    0.01151050001499243,
+                    0.011413900007028133
+                  ],
+                  "checked_result": 0,
+                  "mapping_stays_empty": true
+                },
+                {
+                  "path": "direct_counter_missing",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.0026371000276412815,
+                    0.003111700003501028,
+                    0.002505000011296943,
+                    0.0024816999793983996,
+                    0.0025000000023283064
+                  ],
+                  "checked_result": 0,
+                  "mapping_stays_empty": true
+                },
+                {
+                  "path": "dict_get_default",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.007502699998440221,
+                    0.0074625000124797225,
+                    0.0074844999762717634,
+                    0.007415200001560152,
+                    0.008286099997349083
+                  ],
+                  "checked_result": 0,
+                  "mapping_stays_empty": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "runs": {
+            "control": {
+              "scope": "Call route diagnosis; distinct loop shapes, never official speed scores",
+              "rows": [
+                {
+                  "path": "direct_constant",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.0008709999965503812,
+                    0.0008480999968014657,
+                    0.0008441999962087721,
+                    0.000839299988001585,
+                    0.0008407999994233251
+                  ],
+                  "checked_result": 0,
+                  "mapping_stays_empty": true
+                },
+                {
+                  "path": "native_max_constant_key",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.0011959999974351376,
+                    0.0012156000011600554,
+                    0.0011790000135079026,
+                    0.0011662000033538789,
+                    0.0011393000022508204
+                  ],
+                  "checked_result": 32,
+                  "mapping_stays_empty": true
+                },
+                {
+                  "path": "counter_missing",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.011436100001446903,
+                    0.011284700012765825,
+                    0.011092400003690273,
+                    0.011355299997376278,
+                    0.010938399995211512
+                  ],
+                  "checked_result": 0,
+                  "mapping_stays_empty": true
+                },
+                {
+                  "path": "direct_counter_missing",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.0024763000255916268,
+                    0.0025562999944668263,
+                    0.0024818999809212983,
+                    0.0025556999898981303,
+                    0.002464799996232614
+                  ],
+                  "checked_result": 0,
+                  "mapping_stays_empty": true
+                },
+                {
+                  "path": "dict_get_default",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.007004699989920482,
+                    0.0070152000116650015,
+                    0.007006700005149469,
+                    0.007008999993558973,
+                    0.007500900013837963
+                  ],
+                  "checked_result": 0,
+                  "mapping_stays_empty": true
+                }
+              ]
+            },
+            "candidate": {
+              "scope": "Call route diagnosis; distinct loop shapes, never official speed scores",
+              "rows": [
+                {
+                  "path": "direct_constant",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.0008491000044159591,
+                    0.0008054000209085643,
+                    0.0010738999990280718,
+                    0.0010950000141747296,
+                    0.000818600005004555
+                  ],
+                  "checked_result": 0,
+                  "mapping_stays_empty": true
+                },
+                {
+                  "path": "native_max_constant_key",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.001163899985840544,
+                    0.001123499998357147,
+                    0.0011420999944675714,
+                    0.001135500002419576,
+                    0.0011277000012341887
+                  ],
+                  "checked_result": 32,
+                  "mapping_stays_empty": true
+                },
+                {
+                  "path": "counter_missing",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.007943700009491295,
+                    0.007927100028609857,
+                    0.007893600006354973,
+                    0.008055999991483986,
+                    0.00791760001447983
+                  ],
+                  "checked_result": 0,
+                  "mapping_stays_empty": true
+                },
+                {
+                  "path": "direct_counter_missing",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.0025676000223029405,
+                    0.0025412000250071287,
+                    0.0025366000190842897,
+                    0.0025671999901533127,
+                    0.002594699995825067
+                  ],
+                  "checked_result": 0,
+                  "mapping_stays_empty": true
+                },
+                {
+                  "path": "dict_get_default",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.007708200020715594,
+                    0.007681100018089637,
+                    0.007758199993986636,
+                    0.0077800999861210585,
+                    0.007666999998036772
+                  ],
+                  "checked_result": 0,
+                  "mapping_stays_empty": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "order": [
+            "candidate",
+            "control"
+          ],
+          "runs": {
+            "candidate": {
+              "scope": "Call route diagnosis; distinct loop shapes, never official speed scores",
+              "rows": [
+                {
+                  "path": "direct_constant",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.0007985999982338399,
+                    0.0007962999807205051,
+                    0.0007894999871496111,
+                    0.0007908999978099018,
+                    0.0008262000046670437
+                  ],
+                  "checked_result": 0,
+                  "mapping_stays_empty": true
+                },
+                {
+                  "path": "native_max_constant_key",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.001192099996842444,
+                    0.0011670999811030924,
+                    0.0011564000160433352,
+                    0.0011608000204432756,
+                    0.0013392999826464802
+                  ],
+                  "checked_result": 32,
+                  "mapping_stays_empty": true
+                },
+                {
+                  "path": "counter_missing",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.008048599993344396,
+                    0.008250499988207594,
+                    0.008342499990249053,
+                    0.00833699997747317,
+                    0.008680200000526384
+                  ],
+                  "checked_result": 0,
+                  "mapping_stays_empty": true
+                },
+                {
+                  "path": "direct_counter_missing",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.0024439000117126852,
+                    0.0024295999901369214,
+                    0.002484500000718981,
+                    0.0024271000002045184,
+                    0.0025483999925199896
+                  ],
+                  "checked_result": 0,
+                  "mapping_stays_empty": true
+                },
+                {
+                  "path": "dict_get_default",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.007832500006770715,
+                    0.007535299984738231,
+                    0.007551999995484948,
+                    0.007505099987611175,
+                    0.007903299992904067
+                  ],
+                  "checked_result": 0,
+                  "mapping_stays_empty": true
+                }
+              ]
+            },
+            "control": {
+              "scope": "Call route diagnosis; distinct loop shapes, never official speed scores",
+              "rows": [
+                {
+                  "path": "direct_constant",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.0008552999934181571,
+                    0.000835899991216138,
+                    0.0009571999835316092,
+                    0.0008687000081408769,
+                    0.0008672999974805862
+                  ],
+                  "checked_result": 0,
+                  "mapping_stays_empty": true
+                },
+                {
+                  "path": "native_max_constant_key",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.001426200004061684,
+                    0.0012233000015839934,
+                    0.0011609999928623438,
+                    0.001223200000822544,
+                    0.0011389999999664724
+                  ],
+                  "checked_result": 32,
+                  "mapping_stays_empty": true
+                },
+                {
+                  "path": "counter_missing",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.011176600004546344,
+                    0.011144899995997548,
+                    0.010826299985637888,
+                    0.011348100000759587,
+                    0.011408899998059496
+                  ],
+                  "checked_result": 0,
+                  "mapping_stays_empty": true
+                },
+                {
+                  "path": "direct_counter_missing",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.0025944999943021685,
+                    0.0026068999723065645,
+                    0.0027996000135317445,
+                    0.0026954000059049577,
+                    0.0024911999935284257
+                  ],
+                  "checked_result": 0,
+                  "mapping_stays_empty": true
+                },
+                {
+                  "path": "dict_get_default",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.006998799974098802,
+                    0.007267200009664521,
+                    0.0073577999719418585,
+                    0.007089899998391047,
+                    0.0071724999870639294
+                  ],
+                  "checked_result": 0,
+                  "mapping_stays_empty": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "runs": {
+            "control": {
+              "scope": "Call route diagnosis; distinct loop shapes, never official speed scores",
+              "rows": [
+                {
+                  "path": "direct_constant",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.0008644000045023859,
+                    0.0008335000020451844,
+                    0.0008302000060211867,
+                    0.0008416999771725386,
+                    0.0008399000216741115
+                  ],
+                  "checked_result": 0,
+                  "mapping_stays_empty": true
+                },
+                {
+                  "path": "native_max_constant_key",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.0011072999914176762,
+                    0.0011156999971717596,
+                    0.0011181999871041626,
+                    0.001113600010285154,
+                    0.0011421999952290207
+                  ],
+                  "checked_result": 32,
+                  "mapping_stays_empty": true
+                },
+                {
+                  "path": "counter_missing",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.011339799995766953,
+                    0.01122460002079606,
+                    0.011374500027159229,
+                    0.010865799995372072,
+                    0.010767100000521168
+                  ],
+                  "checked_result": 0,
+                  "mapping_stays_empty": true
+                },
+                {
+                  "path": "direct_counter_missing",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.002644400025019422,
+                    0.0026222000014968216,
+                    0.0025926000089384615,
+                    0.0026797999744303524,
+                    0.0025120000063907355
+                  ],
+                  "checked_result": 0,
+                  "mapping_stays_empty": true
+                },
+                {
+                  "path": "dict_get_default",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.007143700000597164,
+                    0.007662500021979213,
+                    0.007220300001790747,
+                    0.007036900002276525,
+                    0.007036299997707829
+                  ],
+                  "checked_result": 0,
+                  "mapping_stays_empty": true
+                }
+              ]
+            },
+            "candidate": {
+              "scope": "Call route diagnosis; distinct loop shapes, never official speed scores",
+              "rows": [
+                {
+                  "path": "direct_constant",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.0007818999874871224,
+                    0.0007897999894339591,
+                    0.0007884999795351177,
+                    0.0008429000154137611,
+                    0.0007882000063546002
+                  ],
+                  "checked_result": 0,
+                  "mapping_stays_empty": true
+                },
+                {
+                  "path": "native_max_constant_key",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.0011258999875281006,
+                    0.0014549999905284494,
+                    0.0012524999910965562,
+                    0.001225999993039295,
+                    0.001252600020961836
+                  ],
+                  "checked_result": 32,
+                  "mapping_stays_empty": true
+                },
+                {
+                  "path": "counter_missing",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.008127700013574213,
+                    0.00832819999777712,
+                    0.009272099996451288,
+                    0.00815759997931309,
+                    0.008870599995134398
+                  ],
+                  "checked_result": 0,
+                  "mapping_stays_empty": true
+                },
+                {
+                  "path": "direct_counter_missing",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.002545300027122721,
+                    0.0025261999981012195,
+                    0.0024513000098522753,
+                    0.0024361999821849167,
+                    0.002437999995891005
+                  ],
+                  "checked_result": 0,
+                  "mapping_stays_empty": true
+                },
+                {
+                  "path": "dict_get_default",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.00783170000067912,
+                    0.007544899999629706,
+                    0.00823179999133572,
+                    0.00751620001392439,
+                    0.0073862000135704875
+                  ],
+                  "checked_result": 0,
+                  "mapping_stays_empty": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "order": [
+            "candidate",
+            "control"
+          ],
+          "runs": {
+            "candidate": {
+              "scope": "Call route diagnosis; distinct loop shapes, never official speed scores",
+              "rows": [
+                {
+                  "path": "direct_constant",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.0007852000126149505,
+                    0.0007799000013619661,
+                    0.0007794999983161688,
+                    0.0007708999910391867,
+                    0.0007874000002630055
+                  ],
+                  "checked_result": 0,
+                  "mapping_stays_empty": true
+                },
+                {
+                  "path": "native_max_constant_key",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.001219800004037097,
+                    0.0011353000008966774,
+                    0.0011326999810989946,
+                    0.0011071999906562269,
+                    0.0011155999964103103
+                  ],
+                  "checked_result": 32,
+                  "mapping_stays_empty": true
+                },
+                {
+                  "path": "counter_missing",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.007941199990455061,
+                    0.007986299984622747,
+                    0.007947100006276742,
+                    0.008436800009803846,
+                    0.007973799976753071
+                  ],
+                  "checked_result": 0,
+                  "mapping_stays_empty": true
+                },
+                {
+                  "path": "direct_counter_missing",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.0024238000041805208,
+                    0.0024772000033408403,
+                    0.0024341999960597605,
+                    0.002432200009934604,
+                    0.0024778999795671552
+                  ],
+                  "checked_result": 0,
+                  "mapping_stays_empty": true
+                },
+                {
+                  "path": "dict_get_default",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.007376199995633215,
+                    0.0074819999863393605,
+                    0.0073281000077258795,
+                    0.00755019998177886,
+                    0.007473400008166209
+                  ],
+                  "checked_result": 0,
+                  "mapping_stays_empty": true
+                }
+              ]
+            },
+            "control": {
+              "scope": "Call route diagnosis; distinct loop shapes, never official speed scores",
+              "rows": [
+                {
+                  "path": "direct_constant",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.0008575999818276614,
+                    0.0008406999986618757,
+                    0.0008424999832641333,
+                    0.0008431000169366598,
+                    0.0008698999881744385
+                  ],
+                  "checked_result": 0,
+                  "mapping_stays_empty": true
+                },
+                {
+                  "path": "native_max_constant_key",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.0012685999972745776,
+                    0.0011377999908290803,
+                    0.001205000007757917,
+                    0.0011525000154506415,
+                    0.00115709999226965
+                  ],
+                  "checked_result": 32,
+                  "mapping_stays_empty": true
+                },
+                {
+                  "path": "counter_missing",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.011380900017684326,
+                    0.011300800018943846,
+                    0.011371500004315749,
+                    0.011408899998059496,
+                    0.011311299982480705
+                  ],
+                  "checked_result": 0,
+                  "mapping_stays_empty": true
+                },
+                {
+                  "path": "direct_counter_missing",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.0025944999943021685,
+                    0.0027270999853499234,
+                    0.0026270999806001782,
+                    0.0025829000223893672,
+                    0.0025903000205289572
+                  ],
+                  "checked_result": 0,
+                  "mapping_stays_empty": true
+                },
+                {
+                  "path": "dict_get_default",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.007517199992435053,
+                    0.007566799991764128,
+                    0.007530200004111975,
+                    0.00765550002688542,
+                    0.008050800010096282
+                  ],
+                  "checked_result": 0,
+                  "mapping_stays_empty": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "runs": {
+            "control": {
+              "scope": "Call route diagnosis; distinct loop shapes, never official speed scores",
+              "rows": [
+                {
+                  "path": "direct_constant",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.0008471999899484217,
+                    0.0008454000053461641,
+                    0.000832799996715039,
+                    0.0008430999878328294,
+                    0.0008395000186283141
+                  ],
+                  "checked_result": 0,
+                  "mapping_stays_empty": true
+                },
+                {
+                  "path": "native_max_constant_key",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.0011282000050414354,
+                    0.001184099994134158,
+                    0.0011580999998841435,
+                    0.0011614999966695905,
+                    0.0012249000137671828
+                  ],
+                  "checked_result": 32,
+                  "mapping_stays_empty": true
+                },
+                {
+                  "path": "counter_missing",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.01090749999275431,
+                    0.011464200011687353,
+                    0.010983299987856299,
+                    0.012336699990555644,
+                    0.011152500024763867
+                  ],
+                  "checked_result": 0,
+                  "mapping_stays_empty": true
+                },
+                {
+                  "path": "direct_counter_missing",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.0024874999944586307,
+                    0.00247430001036264,
+                    0.002539299981435761,
+                    0.002516500011552125,
+                    0.0026117999805137515
+                  ],
+                  "checked_result": 0,
+                  "mapping_stays_empty": true
+                },
+                {
+                  "path": "dict_get_default",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.007835299998987466,
+                    0.007723300019279122,
+                    0.007241200015414506,
+                    0.007114799984265119,
+                    0.007345699996221811
+                  ],
+                  "checked_result": 0,
+                  "mapping_stays_empty": true
+                }
+              ]
+            },
+            "candidate": {
+              "scope": "Call route diagnosis; distinct loop shapes, never official speed scores",
+              "rows": [
+                {
+                  "path": "direct_constant",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.0007981000235304236,
+                    0.0009263000101782382,
+                    0.0007982999959494919,
+                    0.0008151000074576586,
+                    0.0007969999860506505
+                  ],
+                  "checked_result": 0,
+                  "mapping_stays_empty": true
+                },
+                {
+                  "path": "native_max_constant_key",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.0011255999852437526,
+                    0.0011335000162944198,
+                    0.0011116999958176166,
+                    0.001113300008000806,
+                    0.0011267999943811446
+                  ],
+                  "checked_result": 32,
+                  "mapping_stays_empty": true
+                },
+                {
+                  "path": "counter_missing",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.008431599999312311,
+                    0.008507499995175749,
+                    0.008243999996921048,
+                    0.0083145999815315,
+                    0.008266699995147064
+                  ],
+                  "checked_result": 0,
+                  "mapping_stays_empty": true
+                },
+                {
+                  "path": "direct_counter_missing",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.0026271000097040087,
+                    0.0025867999938782305,
+                    0.002557100000558421,
+                    0.002558300009695813,
+                    0.002564800000982359
+                  ],
+                  "checked_result": 0,
+                  "mapping_stays_empty": true
+                },
+                {
+                  "path": "dict_get_default",
+                  "operations_per_sample": 8192,
+                  "samples_seconds": [
+                    0.007517399993957952,
+                    0.007579800003441051,
+                    0.007340400014072657,
+                    0.007423699978971854,
+                    0.007557900011306629
+                  ],
+                  "checked_result": 0,
+                  "mapping_stays_empty": true
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "summary": [
+        {
+          "path": "direct_constant",
+          "mapping": null,
+          "control_time_over_candidate_time": [
+            1.068607602370054,
+            1.0514264172540266,
+            0.9942291742059789,
+            1.0891623991951362,
+            1.065187119179506,
+            1.08103605008889,
+            1.0561192435308142
+          ],
+          "median_speedup": 1.065187119179506,
+          "pairs_favoring_candidate": 6
+        },
+        {
+          "path": "native_max_constant_key",
+          "mapping": null,
+          "control_time_over_candidate_time": [
+            0.9548574921430649,
+            0.953241408232573,
+            1.0383091246108629,
+            1.0480678781833483,
+            0.8907784471878287,
+            1.021541459855046,
+            1.0318941114929596
+          ],
+          "median_speedup": 1.021541459855046,
+          "pairs_favoring_candidate": 4
+        },
+        {
+          "path": "counter_missing",
+          "mapping": null,
+          "control_time_over_candidate_time": [
+            1.3078893005504686,
+            1.3549830573608668,
+            1.4235596841263496,
+            1.340602139228243,
+            1.3477822367128576,
+            1.426108008411094,
+            1.341315282699823
+          ],
+          "median_speedup": 1.3477822367128576,
+          "pairs_favoring_candidate": 7
+        },
+        {
+          "path": "direct_counter_missing",
+          "mapping": null,
+          "control_time_over_candidate_time": [
+            1.018296693302912,
+            0.9660624757884304,
+            0.9667731343256509,
+            1.0666966569060445,
+            1.069718105069826,
+            1.065853257128373,
+            0.9811681263990432
+          ],
+          "median_speedup": 1.018296693302912,
+          "pairs_favoring_candidate": 4
+        },
+        {
+          "path": "dict_get_default",
+          "mapping": null,
+          "control_time_over_candidate_time": [
+            0.9423146543251609,
+            0.9679150574940664,
+            0.9092914006801148,
+            0.9497484098718343,
+            0.946825007746659,
+            1.0124976561532717,
+            0.9771596565469254
+          ],
+          "median_speedup": 0.9497484098718343,
+          "pairs_favoring_candidate": 1
+        }
+      ]
+    },
+    {
+      "name": "nontrivial",
+      "probe_sha256": "4a5cb7358005574fc2426db47c430caac7d7b1b7c453ec386b991c350402a47b",
+      "pairs": [
+        {
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "runs": {
+            "control": {
+              "purpose": "callback boundary diagnosis only, not an official score",
+              "rows": [
+                {
+                  "mapping": "dict",
+                  "path": "direct_lookup",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.007938100025057793,
+                    0.007967499986989424,
+                    0.007822200015652925,
+                    0.008102100022369996,
+                    0.00780210000812076
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "dict",
+                  "path": "python_call",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.01130759998341091,
+                    0.010819400020409375,
+                    0.01060100001632236,
+                    0.01247360001434572,
+                    0.010929599986411631
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "dict",
+                  "path": "native_callback",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.016328500001691282,
+                    0.01628600002732128,
+                    0.016443500004243106,
+                    0.016886199999134988,
+                    0.016719200008083135
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "Counter",
+                  "path": "direct_lookup",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.00793110000086017,
+                    0.008223699987865984,
+                    0.007844300009310246,
+                    0.008911599987186491,
+                    0.007864999992307276
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "Counter",
+                  "path": "python_call",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.012081499997293577,
+                    0.011563399981241673,
+                    0.011454899999080226,
+                    0.011308100016321987,
+                    0.011320199992042035
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "Counter",
+                  "path": "native_callback",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.017617999983485788,
+                    0.01767870000912808,
+                    0.017592100019101053,
+                    0.017630500020459294,
+                    0.017663100006757304
+                  ],
+                  "checksum": 8184
+                }
+              ]
+            },
+            "candidate": {
+              "purpose": "callback boundary diagnosis only, not an official score",
+              "rows": [
+                {
+                  "mapping": "dict",
+                  "path": "direct_lookup",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.007615899987285957,
+                    0.007764800015138462,
+                    0.007848199980799109,
+                    0.008248900005128235,
+                    0.008113100018817931
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "dict",
+                  "path": "python_call",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.011575499986065552,
+                    0.011076800001319498,
+                    0.010611800011247396,
+                    0.01069140000618063,
+                    0.01087359999655746
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "dict",
+                  "path": "native_callback",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.016221500001847744,
+                    0.016945399984251708,
+                    0.016417299979366362,
+                    0.01643959997454658,
+                    0.016176899982383475
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "Counter",
+                  "path": "direct_lookup",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.008301199995912611,
+                    0.008083199994871393,
+                    0.008332400000654161,
+                    0.00887620000867173,
+                    0.008271600003354251
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "Counter",
+                  "path": "python_call",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.012108200025977567,
+                    0.011508900002809241,
+                    0.011614600021857768,
+                    0.012613400002010167,
+                    0.011416399996960536
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "Counter",
+                  "path": "native_callback",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.016702499997336417,
+                    0.01763730001403019,
+                    0.017499300010968,
+                    0.017430200008675456,
+                    0.01681640002061613
+                  ],
+                  "checksum": 8184
+                }
+              ]
+            }
+          }
+        },
+        {
+          "order": [
+            "candidate",
+            "control"
+          ],
+          "runs": {
+            "candidate": {
+              "purpose": "callback boundary diagnosis only, not an official score",
+              "rows": [
+                {
+                  "mapping": "dict",
+                  "path": "direct_lookup",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.00836209999397397,
+                    0.007989300007466227,
+                    0.008056399994529784,
+                    0.00803779999841936,
+                    0.008040999993681908
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "dict",
+                  "path": "python_call",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.011398599977837875,
+                    0.01123779997578822,
+                    0.011437699984526262,
+                    0.011163399991346523,
+                    0.01112380000995472
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "dict",
+                  "path": "native_callback",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.016095300001325086,
+                    0.0163509999983944,
+                    0.016516300005605444,
+                    0.01677489999565296,
+                    0.01686679999693297
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "Counter",
+                  "path": "direct_lookup",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.00828360000741668,
+                    0.008557099994504824,
+                    0.008605499984696507,
+                    0.008709999994607642,
+                    0.008484699996188283
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "Counter",
+                  "path": "python_call",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.012033300008624792,
+                    0.011541899992153049,
+                    0.0113712000020314,
+                    0.011901299993041903,
+                    0.012099299987312406
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "Counter",
+                  "path": "native_callback",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.016913599974941462,
+                    0.017228999990038574,
+                    0.016821099998196587,
+                    0.017049299989594147,
+                    0.01827110000886023
+                  ],
+                  "checksum": 8184
+                }
+              ]
+            },
+            "control": {
+              "purpose": "callback boundary diagnosis only, not an official score",
+              "rows": [
+                {
+                  "mapping": "dict",
+                  "path": "direct_lookup",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.007395299995550886,
+                    0.007486800022888929,
+                    0.007499300001654774,
+                    0.00735030000214465,
+                    0.007447500014677644
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "dict",
+                  "path": "python_call",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.010762699996121228,
+                    0.01040389999980107,
+                    0.010342900000978261,
+                    0.010533000022405759,
+                    0.010425899992696941
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "dict",
+                  "path": "native_callback",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.016597799985902384,
+                    0.016798999975435436,
+                    0.016458099998999387,
+                    0.01673149998532608,
+                    0.016597199981333688
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "Counter",
+                  "path": "direct_lookup",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.010791000007884577,
+                    0.007969199999934062,
+                    0.008061800006544217,
+                    0.008225099998526275,
+                    0.00782430000253953
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "Counter",
+                  "path": "python_call",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.012240099982591346,
+                    0.011942099983571097,
+                    0.011978399998042732,
+                    0.011916999996174127,
+                    0.011844199994811788
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "Counter",
+                  "path": "native_callback",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.016701400018064305,
+                    0.01699099998222664,
+                    0.01697319999220781,
+                    0.01751559998956509,
+                    0.01759999999194406
+                  ],
+                  "checksum": 8184
+                }
+              ]
+            }
+          }
+        },
+        {
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "runs": {
+            "control": {
+              "purpose": "callback boundary diagnosis only, not an official score",
+              "rows": [
+                {
+                  "mapping": "dict",
+                  "path": "direct_lookup",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.008014299994101748,
+                    0.007894499984104186,
+                    0.007857299991883337,
+                    0.007885600003646687,
+                    0.0077729999902658165
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "dict",
+                  "path": "python_call",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.011036599986255169,
+                    0.011174599989317358,
+                    0.011192400008440018,
+                    0.010937500017462298,
+                    0.010565799981122836
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "dict",
+                  "path": "native_callback",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.0160442000196781,
+                    0.01677750001545064,
+                    0.016194499999983236,
+                    0.016220999998040497,
+                    0.01597330000367947
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "Counter",
+                  "path": "direct_lookup",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.008290099998703226,
+                    0.008874999999534339,
+                    0.008092300005955622,
+                    0.008396099990932271,
+                    0.007883799989940599
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "Counter",
+                  "path": "python_call",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.011855500022647902,
+                    0.011872600007336587,
+                    0.011849400005303323,
+                    0.013024899992160499,
+                    0.011414599983254448
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "Counter",
+                  "path": "native_callback",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.016789300017990172,
+                    0.017021600011503324,
+                    0.01667989999987185,
+                    0.016913600004045293,
+                    0.017535799997858703
+                  ],
+                  "checksum": 8184
+                }
+              ]
+            },
+            "candidate": {
+              "purpose": "callback boundary diagnosis only, not an official score",
+              "rows": [
+                {
+                  "mapping": "dict",
+                  "path": "direct_lookup",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.00760209999862127,
+                    0.007801599975209683,
+                    0.007593899994390085,
+                    0.007650799991097301,
+                    0.007953799999086186
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "dict",
+                  "path": "python_call",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.01114909999887459,
+                    0.011119100003270432,
+                    0.011059600015869364,
+                    0.01118909998331219,
+                    0.01108090000343509
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "dict",
+                  "path": "native_callback",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.01767719999770634,
+                    0.016819499986013398,
+                    0.01689309999346733,
+                    0.016685200011124834,
+                    0.01628730000811629
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "Counter",
+                  "path": "direct_lookup",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.008046800008742139,
+                    0.008537899993825704,
+                    0.008616000006441027,
+                    0.008906899980502203,
+                    0.008513799984939396
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "Counter",
+                  "path": "python_call",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.012343800015514717,
+                    0.012136900011682883,
+                    0.012232699984451756,
+                    0.012007199984509498,
+                    0.012104900000849739
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "Counter",
+                  "path": "native_callback",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.017554799997014925,
+                    0.01755249997950159,
+                    0.0176723999902606,
+                    0.01751529998728074,
+                    0.017555200000060722
+                  ],
+                  "checksum": 8184
+                }
+              ]
+            }
+          }
+        },
+        {
+          "order": [
+            "candidate",
+            "control"
+          ],
+          "runs": {
+            "candidate": {
+              "purpose": "callback boundary diagnosis only, not an official score",
+              "rows": [
+                {
+                  "mapping": "dict",
+                  "path": "direct_lookup",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.008227899990743026,
+                    0.008188199979485944,
+                    0.00801099999807775,
+                    0.00833539999439381,
+                    0.007829800015315413
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "dict",
+                  "path": "python_call",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.011109800019767135,
+                    0.011454499996034428,
+                    0.01081860001431778,
+                    0.011009300011210144,
+                    0.011282699997536838
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "dict",
+                  "path": "native_callback",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.01718660001643002,
+                    0.016765600012149662,
+                    0.0168075000110548,
+                    0.016778000019257888,
+                    0.016794399998616427
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "Counter",
+                  "path": "direct_lookup",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.008736399991903454,
+                    0.008581000001868233,
+                    0.008922699984395877,
+                    0.008722400001715869,
+                    0.00850889997673221
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "Counter",
+                  "path": "python_call",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.011506400012876838,
+                    0.011516999977175146,
+                    0.011940500000491738,
+                    0.011438700021244586,
+                    0.012269300001207739
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "Counter",
+                  "path": "native_callback",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.01781050002318807,
+                    0.01712579999002628,
+                    0.016848400002345443,
+                    0.017522299982374534,
+                    0.0173720000020694
+                  ],
+                  "checksum": 8184
+                }
+              ]
+            },
+            "control": {
+              "purpose": "callback boundary diagnosis only, not an official score",
+              "rows": [
+                {
+                  "mapping": "dict",
+                  "path": "direct_lookup",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.007386900018900633,
+                    0.007915199996205047,
+                    0.00765250000404194,
+                    0.007495600002584979,
+                    0.00742730000638403
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "dict",
+                  "path": "python_call",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.010499099997105077,
+                    0.010494999994989485,
+                    0.010468799999216571,
+                    0.010382200009189546,
+                    0.010934599995380268
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "dict",
+                  "path": "native_callback",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.016747400019085035,
+                    0.017498500004876405,
+                    0.01682790002087131,
+                    0.0164101000118535,
+                    0.01623109998763539
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "Counter",
+                  "path": "direct_lookup",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.008276700013084337,
+                    0.008302100002765656,
+                    0.008444900013273582,
+                    0.008263600000645965,
+                    0.008651900017866865
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "Counter",
+                  "path": "python_call",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.011459200002718717,
+                    0.011693200009176508,
+                    0.012391399999614805,
+                    0.011905299994396046,
+                    0.012127399997552857
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "Counter",
+                  "path": "native_callback",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.017443600023398176,
+                    0.017297099984716624,
+                    0.017351699993014336,
+                    0.017124100006185472,
+                    0.017117499985033646
+                  ],
+                  "checksum": 8184
+                }
+              ]
+            }
+          }
+        },
+        {
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "runs": {
+            "control": {
+              "purpose": "callback boundary diagnosis only, not an official score",
+              "rows": [
+                {
+                  "mapping": "dict",
+                  "path": "direct_lookup",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.007420300011290237,
+                    0.007747600000584498,
+                    0.007498000020859763,
+                    0.007760999986203387,
+                    0.0077179999789223075
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "dict",
+                  "path": "python_call",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.011234000005060807,
+                    0.010941799991996959,
+                    0.011186299991095439,
+                    0.010456799995154142,
+                    0.01102010000613518
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "dict",
+                  "path": "native_callback",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.01668160001281649,
+                    0.01667969999834895,
+                    0.018012899992754683,
+                    0.016711500007659197,
+                    0.016872799984412268
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "Counter",
+                  "path": "direct_lookup",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.008113399991998449,
+                    0.007803399988915771,
+                    0.008305399998789653,
+                    0.0078493999899365,
+                    0.008155699993949383
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "Counter",
+                  "path": "python_call",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.01127950000227429,
+                    0.012068300013197586,
+                    0.011888200009707361,
+                    0.01138310000533238,
+                    0.011463399976491928
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "Counter",
+                  "path": "native_callback",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.01732899999478832,
+                    0.01744759999564849,
+                    0.01706929999636486,
+                    0.01725629999418743,
+                    0.01804429999901913
+                  ],
+                  "checksum": 8184
+                }
+              ]
+            },
+            "candidate": {
+              "purpose": "callback boundary diagnosis only, not an official score",
+              "rows": [
+                {
+                  "mapping": "dict",
+                  "path": "direct_lookup",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.008051200013142079,
+                    0.008001000009244308,
+                    0.008005499985301867,
+                    0.0079828999878373,
+                    0.007973700005095452
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "dict",
+                  "path": "python_call",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.011071199987782165,
+                    0.011159999994561076,
+                    0.011178299988387153,
+                    0.011087699997005984,
+                    0.01116840000031516
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "dict",
+                  "path": "native_callback",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.0167139999975916,
+                    0.016759400023147464,
+                    0.01753899999312125,
+                    0.016833000001497567,
+                    0.016818900010548532
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "Counter",
+                  "path": "direct_lookup",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.008600300003308803,
+                    0.0087682000012137,
+                    0.00836669999989681,
+                    0.00816659998963587,
+                    0.008165400009602308
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "Counter",
+                  "path": "python_call",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.011633100017206743,
+                    0.011414999986300245,
+                    0.011928699997952208,
+                    0.012258000002475455,
+                    0.012343500013230368
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "Counter",
+                  "path": "native_callback",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.017534199985675514,
+                    0.01757480000378564,
+                    0.017663300008280203,
+                    0.017383300000801682,
+                    0.01731100000324659
+                  ],
+                  "checksum": 8184
+                }
+              ]
+            }
+          }
+        },
+        {
+          "order": [
+            "candidate",
+            "control"
+          ],
+          "runs": {
+            "candidate": {
+              "purpose": "callback boundary diagnosis only, not an official score",
+              "rows": [
+                {
+                  "mapping": "dict",
+                  "path": "direct_lookup",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.007779699983075261,
+                    0.008389299997361377,
+                    0.007839400001103058,
+                    0.007648700004210696,
+                    0.007737399981124327
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "dict",
+                  "path": "python_call",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.011611800000537187,
+                    0.01136530001531355,
+                    0.011163299990585074,
+                    0.01206770000862889,
+                    0.010960299987345934
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "dict",
+                  "path": "native_callback",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.01661930000409484,
+                    0.016151999996509403,
+                    0.016968299984000623,
+                    0.01609020002069883,
+                    0.016225700004724786
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "Counter",
+                  "path": "direct_lookup",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.00848059999407269,
+                    0.00881850000587292,
+                    0.008469499996863306,
+                    0.008504199999151751,
+                    0.008590999990701675
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "Counter",
+                  "path": "python_call",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.013517999992473051,
+                    0.012342700007138774,
+                    0.011663499986752868,
+                    0.011564100015675649,
+                    0.012388800008920953
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "Counter",
+                  "path": "native_callback",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.017037399986293167,
+                    0.01726520000374876,
+                    0.0176977000082843,
+                    0.017673499998636544,
+                    0.01778510000440292
+                  ],
+                  "checksum": 8184
+                }
+              ]
+            },
+            "control": {
+              "purpose": "callback boundary diagnosis only, not an official score",
+              "rows": [
+                {
+                  "mapping": "dict",
+                  "path": "direct_lookup",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.007451300014508888,
+                    0.007362499978626147,
+                    0.007415600004605949,
+                    0.007326099992496893,
+                    0.008048899995628744
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "dict",
+                  "path": "python_call",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.010364299989305437,
+                    0.010688499984098598,
+                    0.01097860001027584,
+                    0.010944100009510294,
+                    0.011037399992346764
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "dict",
+                  "path": "native_callback",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.016890600003534928,
+                    0.016788700013421476,
+                    0.017581100022653118,
+                    0.016873699991265312,
+                    0.017215300002135336
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "Counter",
+                  "path": "direct_lookup",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.008395399985602126,
+                    0.008646000002045184,
+                    0.008272100007161498,
+                    0.008435399999143556,
+                    0.008238700014771894
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "Counter",
+                  "path": "python_call",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.012496500014094636,
+                    0.01177290000487119,
+                    0.011878599994815886,
+                    0.0123017999867443,
+                    0.011679299990646541
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "Counter",
+                  "path": "native_callback",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.017598799982806668,
+                    0.01760429999558255,
+                    0.017557299986947328,
+                    0.01772599999094382,
+                    0.01756119998754002
+                  ],
+                  "checksum": 8184
+                }
+              ]
+            }
+          }
+        },
+        {
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "runs": {
+            "control": {
+              "purpose": "callback boundary diagnosis only, not an official score",
+              "rows": [
+                {
+                  "mapping": "dict",
+                  "path": "direct_lookup",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.007889700005762279,
+                    0.007393799984129146,
+                    0.007397200010018423,
+                    0.0075088000157848,
+                    0.007811499992385507
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "dict",
+                  "path": "python_call",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.011167899996507913,
+                    0.011036800016881898,
+                    0.01093290001153946,
+                    0.011013600014848635,
+                    0.012211699999170378
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "dict",
+                  "path": "native_callback",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.016800300014438108,
+                    0.01651839999249205,
+                    0.016146200010553002,
+                    0.016916199994739145,
+                    0.01613629999337718
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "Counter",
+                  "path": "direct_lookup",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.00838730001123622,
+                    0.008291699981782585,
+                    0.008380499988561496,
+                    0.007842599996365607,
+                    0.008090399991488084
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "Counter",
+                  "path": "python_call",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.01174159999936819,
+                    0.012607499986188486,
+                    0.012121499981731176,
+                    0.012164099985966459,
+                    0.01187210000352934
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "Counter",
+                  "path": "native_callback",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.01765940000768751,
+                    0.017542899993713945,
+                    0.017634699994232506,
+                    0.017651000001933426,
+                    0.016954699996858835
+                  ],
+                  "checksum": 8184
+                }
+              ]
+            },
+            "candidate": {
+              "purpose": "callback boundary diagnosis only, not an official score",
+              "rows": [
+                {
+                  "mapping": "dict",
+                  "path": "direct_lookup",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.008276600012322888,
+                    0.007744500006083399,
+                    0.007595600007334724,
+                    0.007961299997987226,
+                    0.008089900016784668
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "dict",
+                  "path": "python_call",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.011065500002587214,
+                    0.010875500011024997,
+                    0.01056970001081936,
+                    0.010682899999665096,
+                    0.010766499995952472
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "dict",
+                  "path": "native_callback",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.017001700005494058,
+                    0.016743999993195757,
+                    0.016836399998283014,
+                    0.017666200001258403,
+                    0.01673460000893101
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "Counter",
+                  "path": "direct_lookup",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.008580800000345334,
+                    0.008625399990705773,
+                    0.008566999982576817,
+                    0.00897850000183098,
+                    0.008158900018315762
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "Counter",
+                  "path": "python_call",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.012399400002323091,
+                    0.014008400001330301,
+                    0.012135400000261143,
+                    0.011708900012308732,
+                    0.012310499994782731
+                  ],
+                  "checksum": 8184
+                },
+                {
+                  "mapping": "Counter",
+                  "path": "native_callback",
+                  "lookups_per_sample": 8192,
+                  "samples_seconds": [
+                    0.016736699995817617,
+                    0.01729489999706857,
+                    0.01749759999802336,
+                    0.017830099997809157,
+                    0.01787140002124943
+                  ],
+                  "checksum": 8184
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "summary": [
+        {
+          "path": "direct_lookup",
+          "mapping": "dict",
+          "control_time_over_candidate_time": [
+            1.0114548615578893,
+            0.9261907748450943,
+            1.0306896027634502,
+            0.9154148679030618,
+            0.9646294175734254,
+            0.9531987121275355,
+            0.9431625510511064
+          ],
+          "median_speedup": 0.9531987121275355,
+          "pairs_favoring_candidate": 2
+        },
+        {
+          "path": "python_call",
+          "mapping": "dict",
+          "control_time_over_candidate_time": [
+            1.0051500873557884,
+            0.9277527643452887,
+            0.9925803332112313,
+            0.9446614679216757,
+            0.9874641587370898,
+            0.9629398251488536,
+            1.0251056537436531
+          ],
+          "median_speedup": 0.9874641587370898,
+          "pairs_favoring_candidate": 2
+        },
+        {
+          "path": "native_callback",
+          "mapping": "dict",
+          "control_time_over_candidate_time": [
+            1.0015958790367279,
+            1.0049345180378946,
+            0.9628407511192429,
+            0.9972014493202934,
+            0.9936143265717748,
+            1.0409782011633721,
+            0.9811123514632942
+          ],
+          "median_speedup": 0.9972014493202934,
+          "pairs_favoring_candidate": 3
+        },
+        {
+          "path": "direct_lookup",
+          "mapping": "Counter",
+          "control_time_over_candidate_time": [
+            0.9554160849955822,
+            0.9421182423626372,
+            0.9709764701739682,
+            0.9518137211240563,
+            0.9697252192738494,
+            0.9872063199877146,
+            0.9663085005417776
+          ],
+          "median_speedup": 0.9663085005417776,
+          "pairs_favoring_candidate": 0
+        },
+        {
+          "path": "python_call",
+          "mapping": "Counter",
+          "control_time_over_candidate_time": [
+            0.9862500626386618,
+            1.0034281961258895,
+            0.9768145087490128,
+            1.0337153788304634,
+            0.960993232997715,
+            0.9623988258602687,
+            0.9846472512788551
+          ],
+          "median_speedup": 0.9846472512788551,
+          "pairs_favoring_candidate": 2
+        },
+        {
+          "path": "native_callback",
+          "mapping": "Counter",
+          "control_time_over_candidate_time": [
+            1.0114915498206642,
+            0.9965805043372403,
+            0.9634743777725372,
+            0.995688463196877,
+            0.9882971569244772,
+            0.9957733320601104,
+            1.007835360062216
+          ],
+          "median_speedup": 0.9957733320601104,
+          "pairs_favoring_candidate": 2
+        }
+      ]
+    }
+  ]
+}

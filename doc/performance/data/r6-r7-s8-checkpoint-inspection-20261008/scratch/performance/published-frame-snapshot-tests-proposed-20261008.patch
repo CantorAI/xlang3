@@ -1,0 +1,374 @@
+diff --git a/tests/cpp/interpreter_tests.cpp b/tests/cpp/interpreter_tests.cpp
+index ef6dda86..2ce39375 100644
+--- a/tests/cpp/interpreter_tests.cpp
++++ b/tests/cpp/interpreter_tests.cpp
+@@ -27,6 +27,7 @@ limitations under the License.
+ #include "scoped_sorted_key_cases.h"
+ #include "ordinary_canonical_slot_constructor_cases.h"
+ #include "class_method_annotation_capture_cases.h"
++#include "published_frame_snapshot_cases.h"
+ 
+ #include "xlang3/object_model.h"
+ #include "xlang3/sequence.h"
+@@ -48,6 +49,7 @@ int main(int argc, char** argv) {
+   xlang3::test::check_scoped_sorted_key_cases(result);
+   xlang3::test::check_ordinary_canonical_slot_constructor(result);
+   xlang3::test::check_class_method_annotation_capture(result);
++  xlang3::test::check_published_frame_same_owner_refresh(result);
+ 
+   // Same-object owning copies should avoid refcount churn, while copying into
+   // a borrowed slot must still acquire an independent reference.
+diff --git a/tests/cpp/published_frame_snapshot_cases.h b/tests/cpp/published_frame_snapshot_cases.h
+new file mode 100644
+--- /dev/null
++++ b/tests/cpp/published_frame_snapshot_cases.h
+@@ -0,0 +1,349 @@
++#pragma once
++#include "test_harness.h"
++#include "xlang3/functional_iterators.h"
++#include "xlang3/mapping.h"
++#include "xlang3/module_object.h"
++#include "xlang3/perf_counters.h"
++#include <array>
++#include <chrono>
++#include <condition_variable>
++#include <mutex>
++#include <stdexcept>
++#include <thread>
++
++namespace xlang3::test {
++namespace published_frame_snapshot_cases {
++struct State {
++  std::mutex mutex;
++  std::condition_variable changed;
++  int requested = -1;
++  int completed = -1;
++  bool stop = false;
++  bool failed = false;
++  int64_t ident = 0;
++  const ir::Module* expected_module = nullptr;
++  Object* expected_globals = nullptr;
++  uint32_t function_id = 0;
++  size_t ip = 0;
++  uint64_t activation = 0;
++  uint32_t back_function = 0;
++  size_t back_ip = 0;
++  uint64_t back_activation = 0;
++  bool no_frame = false;
++  size_t depth = 0;
++  uint64_t cold_retains = 0;
++  uint64_t warm_retains = 0;
++  uint64_t warm_releases = 0;
++  uint64_t distinct_owner_retains = 0;
++  uint64_t distinct_owner_releases = 0;
++  std::array<std::atomic_uint, 6> cleanup{};
++};
++struct Context { std::shared_ptr<State> state; size_t index; };
++inline void destroy_token(void* pointer) {
++  auto* context = static_cast<Context*>(pointer);
++  context->state->cleanup[context->index].fetch_add(1, std::memory_order_relaxed);
++  delete context;
++}
++inline bool token_call(Runtime&, const Value*, uint32_t, Value& out,
++    std::string& error, void*) {
++  out = Value::none(); error.clear(); return true;
++}
++inline Value token(const std::shared_ptr<State>& state, size_t index) {
++  auto context = std::make_unique<Context>(Context{state, index});
++  Value value = Value::native_function(0, "published_frame_lifetime_token",
++      token_call, context.get(), destroy_token);
++  context.release(); return value;
++}
++inline Value globals(const std::shared_ptr<State>& state, size_t index) {
++  Value value = Value::module("published_frame_globals_" + std::to_string(index));
++  std::string error;
++  if (!module_set_attr(value, "lifetime", token(state, index), error))
++    throw std::runtime_error("snapshot proof globals setup: " + error);
++  return value;
++}
++struct CounterScope {
++  bool previous = xlang_perf_counters().enabled.load(std::memory_order_relaxed);
++  CounterScope() { xlang_perf_set_enabled(true); }
++  ~CounterScope() { xlang_perf_set_enabled(previous); }
++};
++inline uint64_t module_retains() {
++  return xlang_perf_counters().value_incref[
++      static_cast<size_t>(ObjectKind::Module)].load(std::memory_order_relaxed);
++}
++inline uint64_t module_releases() {
++  return xlang_perf_counters().value_decref[
++      static_cast<size_t>(ObjectKind::Module)].load(std::memory_order_relaxed);
++}
++struct JoinedWorker {
++  std::shared_ptr<State> state;
++  std::thread thread;
++  ~JoinedWorker() {
++    { std::lock_guard<std::mutex> lock(state->mutex); state->stop = true; }
++    state->changed.notify_all();
++    if (thread.joinable()) thread.join();
++  }
++};
++inline std::shared_ptr<const ir::Module> module(CaseResult& result, const char* filename) {
++  const auto parsed = parse_source(
++      "def first(value):\n    return value + 1\n"
++      "def second(other):\n    return other + 2\n");
++  expect_true(result, parsed.errors.empty(), "snapshot proof source parses");
++  if (!parsed.errors.empty()) return {};
++  auto lowered = lower_to_ir(parsed.module);
++  expect_true(result, lowered.errors.empty(), "snapshot proof source lowers");
++  if (!lowered.errors.empty()) return {};
++  auto value = std::make_shared<ir::Module>(std::move(lowered.module));
++  value->source_file = filename;
++  return value;
++}
++inline uint32_t function_id(const ir::Module& module, const char* name) {
++  for (uint32_t i = 0; i < module.functions.size(); ++i)
++    if (module.functions[i].name == name) return i;
++  return UINT32_MAX;
++}
++} // namespace published_frame_snapshot_cases
++
++inline void check_published_frame_same_owner_refresh(CaseResult& result) {
++  using namespace published_frame_snapshot_cases;
++  auto state = std::make_shared<State>();
++  std::ostringstream output;
++  Runtime runtime(output);
++  auto first_module = module(result, "published_frame_first.py");
++  auto second_module = module(result, "published_frame_second.py");
++  if (!first_module || !second_module) return;
++  const auto first = function_id(*first_module, "first");
++  const auto second = function_id(*first_module, "second");
++  expect_true(result, first != UINT32_MAX && second != UINT32_MAX &&
++      first_module->functions[first].code.size() > 2 &&
++      first_module->functions[second].code.size() > 2,
++      "snapshot proof has two real functions and valid instruction positions");
++  if (first == UINT32_MAX || second == UINT32_MAX ||
++      first_module->functions[first].code.size() <= 2 ||
++      first_module->functions[second].code.size() <= 2) return;
++  std::weak_ptr<const ir::Module> first_weak = first_module;
++  std::weak_ptr<const ir::Module> second_weak = second_module;
++  Value thread_module, get_ident;
++  std::string error;
++  const bool setup = runtime.import_module("_thread", thread_module, error) &&
++      module_get_attr(thread_module, "get_ident", get_ident, error);
++  expect_true(result, setup, "snapshot proof obtains exported native thread identity callable: " + error);
++  if (!setup) return;
++
++  // The observer never inspects during a counter bracket. Source views and
++  // their owners remain alive while the worker waits after each publication.
++  JoinedWorker worker{state, std::thread([&]() {
++    std::shared_ptr<const ir::Module> active_module;
++    std::shared_ptr<const ir::Module> canonical_anchor;
++    Value active_globals;
++    try {
++      Value ident;
++      std::string call_error;
++      if (!runtime_call_callable(runtime, get_ident, nullptr, 0, ident, call_error) ||
++          ident.tag != ValueTag::Int64) throw std::runtime_error("invalid worker identity");
++      active_module = first_module;
++      active_globals = globals(state, 0);
++      runtime.set_current_globals_module(active_globals);
++      runtime.set_profile_function(token(state, 2));
++      runtime.set_trace_function(token(state, 3));
++      std::array<size_t, 2> ips{0, 1};
++      std::array<Value, 1> locals{token(state, 4)};
++      std::array<RuntimeFrameView, 2> views{};
++      auto reset_views = [&]() {
++        for (size_t i = 0; i < views.size(); ++i) {
++          views[i] = RuntimeFrameView{};
++          views[i].module_owner = &active_module;
++          views[i].globals_module = &active_globals;
++          views[i].instruction_index = &ips[i];
++          views[i].function_id = i == 0 ? first : second;
++          views[i].activation_id = 2001 + i;
++        }
++      };
++      reset_views();
++      views[0].local_values = locals.data();
++      views[0].local_count = locals.size();
++      size_t depth = 1;
++      for (int phase = 0; phase <= 13; ++phase) {
++        {
++          std::unique_lock<std::mutex> lock(state->mutex);
++          state->changed.wait(lock, [&]() { return state->stop || state->requested >= phase; });
++          if (state->stop) break;
++        }
++        if (phase == 0) {
++          runtime.set_current_frame(&active_module, first, &active_globals, 0);
++          runtime.set_current_frame_stack(views.data(), depth);
++          CounterScope counters;
++          const auto before = module_retains();
++          runtime.publish_current_frame_for_thread_inspection();
++          state->cold_retains = module_retains() - before;
++        } else if (phase == 1) {
++          CounterScope counters;
++          const auto retains_before = module_retains();
++          const auto releases_before = module_releases();
++          for (uint32_t repeat = 0; repeat < 32; ++repeat) {
++            views[0].function_id = (repeat & 1u) == 0 ? first : second;
++            ips[0] = 1 + (repeat & 1u);
++            views[0].activation_id = 3001 + repeat;
++            runtime.set_current_frame(&active_module, views[0].function_id,
++                &active_globals, static_cast<uint32_t>(ips[0]));
++            runtime.publish_current_frame_for_thread_inspection();
++          }
++          state->warm_retains = module_retains() - retains_before;
++          state->warm_releases = module_releases() - releases_before;
++        } else {
++          if (phase == 2) { reset_views(); depth = 2; }
++          if (phase == 3) { depth = 1; ips[0] = 2; views[0].activation_id = 4001; }
++          if (phase == 4) {
++            active_globals = globals(state, 1);
++            runtime.set_current_globals_module(active_globals);
++          }
++          if (phase == 5) active_module = second_module;
++          if (phase == 6) {
++            // Safe distinct control block for the same pointee: the canonical
++            // anchor owns the Module throughout this temporary alias lease.
++            canonical_anchor = active_module;
++            active_module = std::shared_ptr<const ir::Module>(canonical_anchor.get(),
++                [state](const ir::Module*) {
++                  state->cleanup[5].fetch_add(1, std::memory_order_relaxed);
++                });
++          }
++          if (phase == 7) active_module = canonical_anchor;
++          if (phase == 8) views[0].instruction_index = nullptr;
++          if (phase == 9) { views[0].instruction_index = &ips[0]; views[0].globals_module = nullptr; }
++          if (phase == 10) { views[0].globals_module = &active_globals; views[0].module_owner = nullptr; }
++          if (phase == 11) { depth = 0; runtime.set_current_frame(nullptr, 0, nullptr, 0); }
++          if (phase == 12) {
++            depth = 1; reset_views(); ips[0] = 2; views[0].activation_id = 5001;
++            runtime.set_profile_function(Value::none());
++            runtime.set_trace_function(Value::none());
++          }
++          if (phase == 13) {
++            runtime.clear_current_frame();
++            runtime.set_current_globals_module(Value::invalid());
++            value_set_invalid(active_globals);
++            active_module.reset(); canonical_anchor.reset(); depth = 0;
++          } else {
++            if (depth != 0) runtime.set_current_frame(&active_module, views[depth - 1].function_id,
++                &active_globals, static_cast<uint32_t>(ips[depth - 1]));
++            runtime.set_current_frame_stack(depth == 0 ? nullptr : views.data(), depth);
++            if (phase == 6) {
++              CounterScope counters;
++              const auto retains_before = module_retains();
++              const auto releases_before = module_releases();
++              runtime.publish_current_frame_for_thread_inspection();
++              state->distinct_owner_retains = module_retains() - retains_before;
++              state->distinct_owner_releases = module_releases() - releases_before;
++            } else runtime.publish_current_frame_for_thread_inspection();
++          }
++        }
++        // No arbitrary local value is retained by cross-thread publication.
++        if (phase == 0) value_set_invalid(locals[0]);
++        {
++          std::lock_guard<std::mutex> lock(state->mutex);
++          state->ident = ident.as.i64;
++          state->depth = depth;
++          state->no_frame = phase == 10 || phase == 11 || phase == 13;
++          if (!state->no_frame) {
++            const auto& top = views[depth - 1];
++            state->expected_module = active_module.get();
++            state->expected_globals = top.globals_module == nullptr ? nullptr : active_globals.as.obj;
++            state->function_id = top.function_id;
++            state->ip = top.instruction_index == nullptr ? 0 : *top.instruction_index;
++            state->activation = top.activation_id;
++            if (depth == 2) {
++              state->back_function = views[0].function_id;
++              state->back_ip = ips[0]; state->back_activation = views[0].activation_id;
++            }
++          }
++          state->completed = phase;
++        }
++        state->changed.notify_all();
++      }
++    } catch (...) {
++      { std::lock_guard<std::mutex> lock(state->mutex); state->failed = true; }
++      state->changed.notify_all();
++    }
++    runtime.set_profile_function(Value::none());
++    runtime.set_trace_function(Value::none());
++    runtime.clear_current_frame();
++    runtime.set_current_globals_module(Value::invalid());
++  })};
++
++  for (int phase = 0; phase <= 13; ++phase) {
++    {
++      std::lock_guard<std::mutex> lock(state->mutex); state->requested = phase;
++    }
++    state->changed.notify_all();
++    {
++      std::unique_lock<std::mutex> lock(state->mutex);
++      const bool ready = state->changed.wait_for(lock, std::chrono::seconds(10),
++          [&]() { return state->failed || state->completed >= phase; });
++      expect_true(result, ready && !state->failed,
++          "public snapshot worker completed phase " + std::to_string(phase));
++      if (!ready || state->failed) return;
++    }
++    if (phase == 0) first_module.reset();
++    if (phase == 5) second_module.reset();
++    // All owning materialization is outside the worker's eligibility counters.
++    {
++      Value snapshots = runtime.current_frame_snapshots({state->ident});
++      Value snapshot;
++      error.clear();
++      const bool found = mapping_get_item(snapshots, Value::int64(state->ident), snapshot, error);
++      expect_true(result, found, "snapshot contains the published worker in phase " + std::to_string(phase));
++      auto* frame = found ? value_as_frame(snapshot) : nullptr;
++      if (state->no_frame) {
++        expect_true(result, found && snapshot.tag == ValueTag::None,
++            "null/empty/cleared publication cannot revive a stale worker frame");
++      } else {
++        expect_true(result, frame != nullptr && frame->module.get() == state->expected_module &&
++            frame->function_id == state->function_id && frame->instruction_index == state->ip &&
++            frame->activation_id == state->activation && frame->local_snapshot.empty(),
++            "publication refreshes Module/function/IP/activation without retaining arbitrary locals at phase " +
++                std::to_string(phase));
++        if (frame != nullptr) {
++          expect_true(result,
++              state->expected_globals != nullptr
++                  ? frame->globals_module.tag == ValueTag::Object &&
++                      frame->globals_module.as.obj == state->expected_globals
++                  : frame->globals_module.tag == ValueTag::Invalid,
++              "snapshot uses current globals/null fallback rather than old owners");
++          auto* back = value_as_frame(frame->back);
++          expect_true(result, state->depth == 2
++                  ? back != nullptr && back->module.get() == state->expected_module &&
++                      back->function_id == state->back_function &&
++                      back->instruction_index == state->back_ip &&
++                      back->activation_id == state->back_activation &&
++                      value_as_frame(back->back) == nullptr
++                  : back == nullptr,
++              "count changes refresh the complete frame chain");
++        }
++      }
++    }
++    if (phase == 0) expect_true(result,
++        state->cold_retains > 0 && state->cleanup[4].load() == 1,
++        "cold publication owns its Module globals and never owns arbitrary source locals");
++    if (phase == 1) expect_true(result,
++        state->warm_retains == 0 && state->warm_releases == 0,
++        "32 real same-owner publications refresh scalars with zero Module Value retains/releases: retains=" +
++            std::to_string(state->warm_retains) + ", releases=" + std::to_string(state->warm_releases));
++    if (phase == 4) expect_true(result, state->cleanup[0].load() == 1,
++        "changed-global fallback retires its previous owner after observer snapshots are released");
++    if (phase == 5) expect_true(result, first_weak.expired(),
++        "changed-module fallback retires the previous retained Module");
++    if (phase == 6) expect_true(result,
++        state->distinct_owner_retains > 0 && state->distinct_owner_releases > 0 &&
++            state->cleanup[5].load() == 0,
++        "same Module pointee with distinct live control block follows owning cold fallback");
++    if (phase == 7) expect_true(result, state->cleanup[5].load() == 1,
++        "returning to canonical Module ownership retires the temporary control block exactly once");
++    if (phase == 12) expect_true(result,
++        state->cleanup[2].load() == 1 && state->cleanup[3].load() == 1,
++        "changed profile/trace owners retire after publication without stale snapshot hooks");
++    if (phase == 13) {
++      expect_true(result, second_weak.expired(), "clear unregisters the final retained Module");
++      for (const auto& count : state->cleanup)
++        expect_true(result, count.load() == 1, "every publication/source lifetime token is retired exactly once");
++    }
++  }
++}
++} // namespace xlang3::test

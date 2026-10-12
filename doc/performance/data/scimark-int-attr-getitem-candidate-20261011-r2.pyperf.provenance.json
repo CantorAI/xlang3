@@ -1,0 +1,27 @@
+{
+  "benchmark_suite": "pyperformance 1.14.0",
+  "benchmark_group": "scimark",
+  "definitions_attempted": 1,
+  "subtests_completed": 5,
+  "status": "completed_with_unstable_fast_mode_samples",
+  "python": "3.14.7",
+  "python_executable": "C:\\Python\\Python314\\python.exe",
+  "python_executable_sha256": "4942B86A6597E5AEE0128DAA00050ED79BC21F6E709A78EB19CBFEB0C2F39AC9",
+  "xlang3_executable": "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+  "xlang3_executable_sha256": "163A6D2059F5E5FC7A9EF21D7C9EF901EFC0D32F36BCFF3BDB8397F15C950B93",
+  "xlang3_runtime_dll": "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3_runtime.dll",
+  "xlang3_runtime_dll_sha256": "9E435A106AAB07891757CE155F79FB1783E6E86831771FE6F41D7ECFE7CF67E0",
+  "command": "C:\\Python\\Python314\\python.exe benchmarks\\diagnostics\\run_pyperformance_xlang3_shimmed.py --runtime build-repro\\main-verify-20261006\\Release\\xlang3.exe --benchmarks scimark --mode fast --case-timeout 300 --output doc\\performance\\data\\scimark-int-attr-getitem-candidate-20261011-r2.pyperf.json --dependency-site C:\\Python\\Python314\\Lib\\site-packages",
+  "case_timeout_seconds": 300,
+  "dependency_site": "C:\\Python\\Python314\\Lib\\site-packages",
+  "overrides": [],
+  "elapsed_summaries": {
+    "scimark_fft": "979 ms +- 42 ms",
+    "scimark_lu": "298 ms +- 12 ms",
+    "scimark_monte_carlo": "547 ms +- 6 ms",
+    "scimark_sor": "843 ms +- 8 ms",
+    "scimark_sparse_mat_mult": "17.5 ms +- 0.4 ms"
+  },
+  "json_sha256": "B9CDBF57738510C5FA95AD509E6AE97FE50294FC58FC90DA05B929C9A7797142",
+  "stdout_note": "Fast-mode pyperf marked FFT, LU, Monte Carlo, and sparse matrix multiply potentially unstable; only LU was statistically significant versus the saved XLang3 control. The benchmark completed all five subtests."
+}

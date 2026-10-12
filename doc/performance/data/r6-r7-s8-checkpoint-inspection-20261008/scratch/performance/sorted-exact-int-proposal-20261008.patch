@@ -1,0 +1,49 @@
+diff --git a/src/builtins/functional_builtins.cpp b/src/builtins/functional_builtins.cpp
+index 44cc1337..680580d2 100644
+--- a/src/builtins/functional_builtins.cpp
++++ b/src/builtins/functional_builtins.cpp
+@@ -2982,8 +2982,44 @@ bool collect_sorted_entries(
+   return true;
+ }
+ 
+ bool sort_entries(Runtime& runtime, std::vector<SortEntry>& entries, bool reverse, std::string& error) {
++  // Prove the complete key set before bypassing Python rich comparison. Int64
++  // is an immediate scalar: integer subclasses, bool, bigint, floats and all
++  // user objects retain the generic comparator below. Key calls and iterable
++  // collection have already completed once, with their existing owners intact.
++  const bool exact_integer_keys = std::all_of(
++      entries.begin(), entries.end(), [](const SortEntry& entry) {
++        return entry.key.tag == ValueTag::Int64;
++      });
++  if (exact_integer_keys) {
++    // Already ordered input needs no sort allocation or Value movement. An
++    // opposite run can be reversed only when every adjacent key is distinct;
++    // reversing equal keys would violate sorted's stable reverse ordering.
++    bool ordered = true;
++    bool strictly_opposite = entries.size() > 1;
++    for (size_t i = 1; i < entries.size(); ++i) {
++      const int64_t previous = entries[i - 1].key.as.i64;
++      const int64_t current = entries[i].key.as.i64;
++      ordered = ordered && (reverse ? previous >= current : previous <= current);
++      strictly_opposite = strictly_opposite &&
++          (reverse ? previous < current : previous > current);
++    }
++    if (ordered) return true;
++    if (strictly_opposite) {
++      std::reverse(entries.begin(), entries.end());
++      return true;
++    }
++    // Homogeneous unordered integer keys still use the existing stable sort,
++    // with a callback-free comparator instead of repeated runtime dispatch.
++    std::stable_sort(
++        entries.begin(), entries.end(),
++        [reverse](const SortEntry& lhs, const SortEntry& rhs) {
++          return reverse ? rhs.key.as.i64 < lhs.key.as.i64
++                         : lhs.key.as.i64 < rhs.key.as.i64;
++        });
++    return true;
++  }
+   bool compare_failed = false;
+   std::string compare_error;
+   std::stable_sort(entries.begin(), entries.end(), [&](const SortEntry& lhs, const SortEntry& rhs) {
+     if (compare_failed) {

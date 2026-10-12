@@ -1,0 +1,944 @@
+
+### copy.deepcopy
+110            RESUME_CHECK             0
+
+116            LOAD_GLOBAL_BUILTIN      1 (type + NULL)
+               CACHE                    0 (counter: 832)
+               CACHE                    0 (index: 136)
+               CACHE                    0 (module_keys_version: 49)
+               CACHE                    0 (builtin_keys_version: 78)
+               LOAD_FAST_BORROW         0 (x)
+               CALL_TYPE_1              1
+               CACHE                    0 (counter: 832)
+               CACHE                    0 (func_version: 0)
+               CACHE                    0
+               STORE_FAST               3 (cls)
+
+118            LOAD_FAST_BORROW         3 (cls)
+               LOAD_GLOBAL_MODULE       2 (_atomic_types)
+               CACHE                    0 (counter: 832)
+               CACHE                    0 (index: 136)
+               CACHE                    0 (module_keys_version: 0)
+               CACHE                    0 (builtin_keys_version: 18)
+               CONTAINS_OP_SET          0 (in)
+               CACHE                    0 (counter: 832)
+               POP_JUMP_IF_FALSE        3 (to L1)
+               CACHE                    0 (counter: 2624)
+               NOT_TAKEN
+
+119            LOAD_FAST_BORROW         0 (x)
+               RETURN_VALUE
+
+121    L1:     LOAD_GLOBAL_BUILTIN      5 (id + NULL)
+               CACHE                    0 (counter: 832)
+               CACHE                    0 (index: 136)
+               CACHE                    0 (module_keys_version: 49)
+               CACHE                    0 (builtin_keys_version: 27)
+               LOAD_FAST_BORROW         0 (x)
+               CALL_BUILTIN_O           1
+               CACHE                    0 (counter: 832)
+               CACHE                    0 (func_version: 0)
+               CACHE                    0
+               STORE_FAST               4 (d)
+
+122            LOAD_FAST_BORROW         1 (memo)
+               POP_JUMP_IF_NOT_NONE     4 (to L2)
+               CACHE                    0 (counter: 46811)
+               NOT_TAKEN
+
+123            BUILD_MAP                0
+               STORE_FAST               1 (memo)
+               JUMP_FORWARD            24 (to L3)
+
+125    L2:     LOAD_FAST_BORROW         1 (memo)
+               LOAD_ATTR_METHOD_NO_DICT 7 (get + NULL|self)
+               CACHE                    0 (counter: 832)
+               CACHE                    0 (version: 8)
+               CACHE                    0
+               CACHE                    0 (keys_version: 0)
+               CACHE                    0
+               CACHE                    0 (descr: 2139536854528)
+               CACHE                    0
+               CACHE                    0
+               CACHE                    0
+               LOAD_FAST_BORROW_LOAD_FAST_BORROW 66 (d, _nil)
+               CALL_METHOD_DESCRIPTOR_FAST 2
+               CACHE                    0 (counter: 832)
+               CACHE                    0 (func_version: 0)
+               CACHE                    0
+               STORE_FAST               5 (y)
+
+126            LOAD_FAST_BORROW_LOAD_FAST_BORROW 82 (y, _nil)
+               IS_OP                    1 (is not)
+               POP_JUMP_IF_FALSE        3 (to L3)
+               CACHE                    0 (counter: 65535)
+               NOT_TAKEN
+
+127            LOAD_FAST_BORROW         5 (y)
+               RETURN_VALUE
+
+129    L3:     LOAD_GLOBAL_MODULE       8 (_deepcopy_dispatch)
+               CACHE                    0 (counter: 832)
+               CACHE                    0 (index: 136)
+               CACHE                    0 (module_keys_version: 0)
+               CACHE                    0 (builtin_keys_version: 19)
+               LOAD_ATTR_METHOD_NO_DICT 7 (get + NULL|self)
+               CACHE                    0 (counter: 832)
+               CACHE                    0 (version: 8)
+               CACHE                    0
+               CACHE                    0 (keys_version: 0)
+               CACHE                    0
+               CACHE                    0 (descr: 2139536854528)
+               CACHE                    0
+               CACHE                    0
+               CACHE                    0
+               LOAD_FAST_BORROW         3 (cls)
+               CALL_METHOD_DESCRIPTOR_FAST 1
+               CACHE                    0 (counter: 832)
+               CACHE                    0 (func_version: 0)
+               CACHE                    0
+               STORE_FAST               6 (copier)
+
+130            LOAD_FAST_BORROW         6 (copier)
+               POP_JUMP_IF_NONE        10 (to L4)
+               CACHE                    0 (counter: 18724)
+               NOT_TAKEN
+
+131            LOAD_FAST_BORROW         6 (copier)
+               PUSH_NULL
+               LOAD_FAST_BORROW_LOAD_FAST_BORROW 1 (x, memo)
+               CALL_PY_GENERAL          2
+               CACHE                    0 (counter: 128)
+               CACHE                    0 (func_version: 1478)
+               CACHE                    0
+               STORE_FAST               5 (y)
+               JUMP_FORWARD           201 (to L12)
+
+133    L4:     LOAD_GLOBAL_BUILTIN     11 (issubclass + NULL)
+               CACHE                    0 (counter: 832)
+               CACHE                    0 (index: 136)
+               CACHE                    0 (module_keys_version: 49)
+               CACHE                    0 (builtin_keys_version: 30)
+               LOAD_FAST_BORROW         3 (cls)
+               LOAD_GLOBAL_BUILTIN      0 (type)
+               CACHE                    0 (counter: 832)
+               CACHE                    0 (index: 136)
+               CACHE                    0 (module_keys_version: 49)
+               CACHE                    0 (builtin_keys_version: 78)
+               CALL_BUILTIN_FAST        2
+               CACHE                    0 (counter: 832)
+               CACHE                    0 (func_version: 0)
+               CACHE                    0
+               TO_BOOL_BOOL
+               CACHE                    0 (counter: 832)
+               CACHE                    0 (version: 0)
+               CACHE                    0
+               POP_JUMP_IF_FALSE        4 (to L5)
+               CACHE                    0 (counter: 65535)
+               NOT_TAKEN
+
+134            LOAD_FAST                0 (x)
+               STORE_FAST               5 (y)
+               JUMP_FORWARD           176 (to L12)
+
+136    L5:     LOAD_GLOBAL_BUILTIN     13 (getattr + NULL)
+               CACHE                    0 (counter: 832)
+               CACHE                    0 (index: 136)
+               CACHE                    0 (module_keys_version: 49)
+               CACHE                    0 (builtin_keys_version: 22)
+               LOAD_FAST_BORROW         0 (x)
+               LOAD_CONST_IMMORTAL      2 ('__deepcopy__')
+               LOAD_CONST_IMMORTAL      1 (None)
+               CALL_BUILTIN_FAST        3
+               CACHE                    0 (counter: 832)
+               CACHE                    0 (func_version: 0)
+               CACHE                    0
+               STORE_FAST               6 (copier)
+
+137            LOAD_FAST_BORROW         6 (copier)
+               POP_JUMP_IF_NONE        10 (to L6)
+               CACHE                    0 (counter: 65535)
+               NOT_TAKEN
+
+138            LOAD_FAST_BORROW         6 (copier)
+               PUSH_NULL
+               LOAD_FAST_BORROW         1 (memo)
+               CALL                     1
+               CACHE                    0 (counter: 17)
+               CACHE                    0 (func_version: 0)
+               CACHE                    0
+               STORE_FAST               5 (y)
+               JUMP_FORWARD           150 (to L12)
+
+140    L6:     LOAD_GLOBAL_MODULE      14 (dispatch_table)
+               CACHE                    0 (counter: 832)
+               CACHE                    0 (index: 136)
+               CACHE                    0 (module_keys_version: 0)
+               CACHE                    0 (builtin_keys_version: 10)
+               LOAD_ATTR                6 (get)
+               CACHE                    0 (counter: 52380)
+               CACHE                    0 (version: 0)
+               CACHE                    0
+               CACHE                    0 (keys_version: 0)
+               CACHE                    0
+               CACHE                    0 (descr: 0)
+               CACHE                    0
+               CACHE                    0
+               CACHE                    0
+               PUSH_NULL
+               LOAD_FAST_BORROW         3 (cls)
+               CALL_BUILTIN_FAST        1
+               CACHE                    0 (counter: 832)
+               CACHE                    0 (func_version: 0)
+               CACHE                    0
+               STORE_FAST               7 (reductor)
+
+141            LOAD_FAST_BORROW         7 (reductor)
+               TO_BOOL_NONE
+               CACHE                    0 (counter: 832)
+               CACHE                    0 (version: 0)
+               CACHE                    0
+               POP_JUMP_IF_FALSE       10 (to L7)
+               CACHE                    0 (counter: 65535)
+               NOT_TAKEN
+
+142            LOAD_FAST_BORROW         7 (reductor)
+               PUSH_NULL
+               LOAD_FAST_BORROW         0 (x)
+               CALL                     1
+               CACHE                    0 (counter: 17)
+               CACHE                    0 (func_version: 0)
+               CACHE                    0
+               STORE_FAST               8 (rv)
+               JUMP_FORWARD            73 (to L10)
+
+144    L7:     LOAD_GLOBAL_BUILTIN     13 (getattr + NULL)
+               CACHE                    0 (counter: 832)
+               CACHE                    0 (index: 136)
+               CACHE                    0 (module_keys_version: 49)
+               CACHE                    0 (builtin_keys_version: 22)
+               LOAD_FAST_BORROW         0 (x)
+               LOAD_CONST_IMMORTAL      3 ('__reduce_ex__')
+               LOAD_CONST_IMMORTAL      1 (None)
+               CALL_BUILTIN_FAST        3
+               CACHE                    0 (counter: 832)
+               CACHE                    0 (func_version: 0)
+               CACHE                    0
+               STORE_FAST               7 (reductor)
+
+145            LOAD_FAST_BORROW         7 (reductor)
+               POP_JUMP_IF_NONE        10 (to L8)
+               CACHE                    0 (counter: 0)
+               NOT_TAKEN
+
+146            LOAD_FAST_BORROW         7 (reductor)
+               PUSH_NULL
+               LOAD_SMALL_INT           4
+               CALL_BUILTIN_O           1
+               CACHE                    0 (counter: 832)
+               CACHE                    0 (func_version: 0)
+               CACHE                    0
+               STORE_FAST               8 (rv)
+               JUMP_FORWARD            47 (to L10)
+
+148    L8:     LOAD_GLOBAL             13 (getattr + NULL)
+               CACHE                    0 (counter: 17)
+               CACHE                    0 (index: 0)
+               CACHE                    0 (module_keys_version: 0)
+               CACHE                    0 (builtin_keys_version: 0)
+               LOAD_FAST_BORROW         0 (x)
+               LOAD_CONST               4 ('__reduce__')
+               LOAD_CONST               1 (None)
+               CALL                     3
+               CACHE                    0 (counter: 17)
+               CACHE                    0 (func_version: 0)
+               CACHE                    0
+               STORE_FAST               7 (reductor)
+
+149            LOAD_FAST_BORROW         7 (reductor)
+               TO_BOOL
+               CACHE                    0 (counter: 17)
+               CACHE                    0 (version: 0)
+               CACHE                    0
+               POP_JUMP_IF_FALSE        9 (to L9)
+               CACHE                    0 (counter: 21845)
+               NOT_TAKEN
+
+150            LOAD_FAST_BORROW         7 (reductor)
+               PUSH_NULL
+               CALL                     0
+               CACHE                    0 (counter: 17)
+               CACHE                    0 (func_version: 0)
+               CACHE                    0
+               STORE_FAST               8 (rv)
+               JUMP_FORWARD            18 (to L10)
+
+152    L9:     LOAD_GLOBAL             17 (Error + NULL)
+               CACHE                    0 (counter: 17)
+               CACHE                    0 (index: 0)
+               CACHE                    0 (module_keys_version: 0)
+               CACHE                    0 (builtin_keys_version: 0)
+
+153            LOAD_CONST               5 ('un(deep)copyable object of type %s')
+               LOAD_FAST_BORROW         3 (cls)
+               BINARY_OP                6 (%)
+               CACHE                    0 (counter: 17)
+               CACHE                    0 (descr: 0)
+               CACHE                    0
+               CACHE                    0
+               CACHE                    0
+
+152            CALL                     1
+               CACHE                    0 (counter: 17)
+               CACHE                    0 (func_version: 0)
+               CACHE                    0
+               RAISE_VARARGS            1
+
+154   L10:     LOAD_GLOBAL_BUILTIN     19 (isinstance + NULL)
+               CACHE                    0 (counter: 832)
+               CACHE                    0 (index: 136)
+               CACHE                    0 (module_keys_version: 49)
+               CACHE                    0 (builtin_keys_version: 29)
+               LOAD_FAST_BORROW         8 (rv)
+               LOAD_GLOBAL_BUILTIN     20 (str)
+               CACHE                    0 (counter: 832)
+               CACHE                    0 (index: 136)
+               CACHE                    0 (module_keys_version: 49)
+               CACHE                    0 (builtin_keys_version: 75)
+               CALL_ISINSTANCE          2
+               CACHE                    0 (counter: 832)
+               CACHE                    0 (func_version: 0)
+               CACHE                    0
+               TO_BOOL_BOOL
+               CACHE                    0 (counter: 832)
+               CACHE                    0 (version: 0)
+               CACHE                    0
+               POP_JUMP_IF_FALSE        4 (to L11)
+               CACHE                    0 (counter: 65535)
+               NOT_TAKEN
+
+155            LOAD_FAST                0 (x)
+               STORE_FAST               5 (y)
+               JUMP_FORWARD            13 (to L12)
+
+157   L11:     LOAD_GLOBAL_MODULE      23 (_reconstruct + NULL)
+               CACHE                    0 (counter: 832)
+               CACHE                    0 (index: 136)
+               CACHE                    0 (module_keys_version: 0)
+               CACHE                    0 (builtin_keys_version: 26)
+               LOAD_FAST_BORROW_LOAD_FAST_BORROW 1 (x, memo)
+               BUILD_LIST               2
+               LOAD_FAST_BORROW         8 (rv)
+               LIST_EXTEND              1
+               CALL_INTRINSIC_1         6 (INTRINSIC_LIST_TO_TUPLE)
+               PUSH_NULL
+               CALL_FUNCTION_EX
+               STORE_FAST               5 (y)
+
+160   L12:     LOAD_FAST_BORROW_LOAD_FAST_BORROW 80 (y, x)
+               IS_OP                    1 (is not)
+               POP_JUMP_IF_FALSE       16 (to L13)
+               CACHE                    0 (counter: 0)
+               NOT_TAKEN
+
+161            LOAD_FAST_BORROW_LOAD_FAST_BORROW 81 (y, memo)
+               LOAD_FAST_BORROW         4 (d)
+               STORE_SUBSCR_DICT
+               CACHE                    0 (counter: 832)
+
+162            LOAD_GLOBAL_MODULE      25 (_keep_alive + NULL)
+               CACHE                    0 (counter: 832)
+               CACHE                    0 (index: 136)
+               CACHE                    0 (module_keys_version: 0)
+               CACHE                    0 (builtin_keys_version: 25)
+               LOAD_FAST_BORROW_LOAD_FAST_BORROW 1 (x, memo)
+               CALL_PY_EXACT_ARGS       2
+               CACHE                    0 (counter: 832)
+               CACHE                    0 (func_version: 1480)
+               CACHE                    0
+               POP_TOP
+
+163   L13:     LOAD_FAST_BORROW         5 (y)
+               RETURN_VALUE
+
+### copy._deepcopy_list
+172           RESUME_CHECK             0
+
+173           BUILD_LIST               0
+              STORE_FAST               3 (y)
+
+174           LOAD_FAST_BORROW_LOAD_FAST_BORROW 49 (y, memo)
+              LOAD_GLOBAL_BUILTIN      1 (id + NULL)
+              CACHE                    0 (counter: 832)
+              CACHE                    0 (index: 136)
+              CACHE                    0 (module_keys_version: 49)
+              CACHE                    0 (builtin_keys_version: 27)
+              LOAD_FAST_BORROW         0 (x)
+              CALL_BUILTIN_O           1
+              CACHE                    0 (counter: 832)
+              CACHE                    0 (func_version: 0)
+              CACHE                    0
+              STORE_SUBSCR_DICT
+              CACHE                    0 (counter: 832)
+
+175           LOAD_FAST_BORROW         3 (y)
+              LOAD_ATTR                2 (append)
+              CACHE                    0 (counter: 39420)
+              CACHE                    0 (version: 0)
+              CACHE                    0
+              CACHE                    0 (keys_version: 0)
+              CACHE                    0
+              CACHE                    0 (descr: 0)
+              CACHE                    0
+              CACHE                    0
+              CACHE                    0
+              STORE_FAST               4 (append)
+
+176           LOAD_FAST_BORROW         0 (x)
+              GET_ITER
+      L1:     FOR_ITER_LIST           17 (to L2)
+              CACHE                    0 (counter: 832)
+              STORE_FAST               5 (a)
+
+177           LOAD_FAST_BORROW         4 (append)
+              PUSH_NULL
+              LOAD_FAST_BORROW         2 (deepcopy)
+              PUSH_NULL
+              LOAD_FAST_BORROW_LOAD_FAST_BORROW 81 (a, memo)
+              CALL_PY_GENERAL          2
+              CACHE                    0 (counter: 832)
+              CACHE                    0 (func_version: 1475)
+              CACHE                    0
+              CALL_BUILTIN_O           1
+              CACHE                    0 (counter: 832)
+              CACHE                    0 (func_version: 0)
+              CACHE                    0
+              POP_TOP
+              JUMP_BACKWARD_NO_JIT    19 (to L1)
+              CACHE                    0 (counter: 65532)
+
+176   L2:     END_FOR
+              POP_ITER
+
+178           LOAD_FAST_BORROW         3 (y)
+              RETURN_VALUE
+
+### copy._deepcopy_dict
+198           RESUME_CHECK             0
+
+199           BUILD_MAP                0
+              STORE_FAST               3 (y)
+
+200           LOAD_FAST_BORROW_LOAD_FAST_BORROW 49 (y, memo)
+              LOAD_GLOBAL_BUILTIN      1 (id + NULL)
+              CACHE                    0 (counter: 832)
+              CACHE                    0 (index: 136)
+              CACHE                    0 (module_keys_version: 49)
+              CACHE                    0 (builtin_keys_version: 27)
+              LOAD_FAST_BORROW         0 (x)
+              CALL_BUILTIN_O           1
+              CACHE                    0 (counter: 832)
+              CACHE                    0 (func_version: 0)
+              CACHE                    0
+              STORE_SUBSCR_DICT
+              CACHE                    0 (counter: 832)
+
+201           LOAD_FAST_BORROW         0 (x)
+              LOAD_ATTR_METHOD_NO_DICT 3 (items + NULL|self)
+              CACHE                    0 (counter: 832)
+              CACHE                    0 (version: 8)
+              CACHE                    0
+              CACHE                    0 (keys_version: 0)
+              CACHE                    0
+              CACHE                    0 (descr: 2139536854928)
+              CACHE                    0
+              CACHE                    0
+              CACHE                    0
+              CALL_METHOD_DESCRIPTOR_NOARGS 0
+              CACHE                    0 (counter: 832)
+              CACHE                    0 (func_version: 0)
+              CACHE                    0
+              GET_ITER
+      L1:     FOR_ITER                21 (to L2)
+              CACHE                    0 (counter: 53820)
+              UNPACK_SEQUENCE_TWO_TUPLE 2
+              CACHE                    0 (counter: 832)
+              STORE_FAST_STORE_FAST   69 (key, value)
+
+202           LOAD_FAST_BORROW         2 (deepcopy)
+              PUSH_NULL
+              LOAD_FAST_BORROW_LOAD_FAST_BORROW 81 (value, memo)
+              CALL_PY_GENERAL          2
+              CACHE                    0 (counter: 832)
+              CACHE                    0 (func_version: 1475)
+              CACHE                    0
+              LOAD_FAST_BORROW_LOAD_FAST_BORROW 50 (y, deepcopy)
+              PUSH_NULL
+              LOAD_FAST_BORROW_LOAD_FAST_BORROW 65 (key, memo)
+              CALL_PY_GENERAL          2
+              CACHE                    0 (counter: 832)
+              CACHE                    0 (func_version: 1475)
+              CACHE                    0
+              STORE_SUBSCR_DICT
+              CACHE                    0 (counter: 832)
+              JUMP_BACKWARD_NO_JIT    23 (to L1)
+              CACHE                    0 (counter: 65532)
+
+201   L2:     END_FOR
+              POP_ITER
+
+203           LOAD_FAST_BORROW         3 (y)
+              RETURN_VALUE
+
+### copy._reconstruct
+  --            MAKE_CELL                1 (memo)
+                MAKE_CELL                7 (deepcopy)
+
+ 228            RESUME_CHECK             0
+
+ 231            LOAD_DEREF               1 (memo)
+                LOAD_CONST_IMMORTAL      0 (None)
+                IS_OP                    1 (is not)
+                STORE_FAST               8 (deep)
+
+ 232            LOAD_FAST_BORROW         8 (deep)
+                TO_BOOL_BOOL
+                CACHE                    0 (counter: 832)
+                CACHE                    0 (version: 0)
+                CACHE                    0
+                POP_JUMP_IF_FALSE       22 (to L1)
+                CACHE                    0 (counter: 0)
+                NOT_TAKEN
+                LOAD_FAST_BORROW         3 (args)
+                TO_BOOL
+                CACHE                    0 (counter: 52380)
+                CACHE                    0 (version: 0)
+                CACHE                    0
+                POP_JUMP_IF_FALSE       14 (to L1)
+                CACHE                    0 (counter: 0)
+                NOT_TAKEN
+
+ 233            LOAD_FAST_BORROW         7 (deepcopy)
+                LOAD_FAST_BORROW         1 (memo)
+                BUILD_TUPLE              2
+                LOAD_CONST_MORTAL        1 (<code object <genexpr> at 0x000001F226BC5020, file "C:\Python\Python314\Lib\copy.py", line 233>)
+                MAKE_FUNCTION
+                SET_FUNCTION_ATTRIBUTE   8 (closure)
+                LOAD_FAST_BORROW         3 (args)
+                GET_ITER
+                CALL_PY_EXACT_ARGS       0
+                CACHE                    0 (counter: 832)
+                CACHE                    0 (func_version: 1481)
+                CACHE                    0
+                STORE_FAST               3 (args)
+
+ 234    L1:     LOAD_FAST_BORROW         2 (func)
+                PUSH_NULL
+                LOAD_FAST_BORROW         3 (args)
+                PUSH_NULL
+                CALL_FUNCTION_EX
+                STORE_FAST               9 (y)
+
+ 235            LOAD_FAST_BORROW         8 (deep)
+                TO_BOOL_BOOL
+                CACHE                    0 (counter: 832)
+                CACHE                    0 (version: 0)
+                CACHE                    0
+                POP_JUMP_IF_FALSE       15 (to L2)
+                CACHE                    0 (counter: 0)
+                NOT_TAKEN
+
+ 236            LOAD_FAST_BORROW         9 (y)
+                LOAD_DEREF               1 (memo)
+                LOAD_GLOBAL_BUILTIN      1 (id + NULL)
+                CACHE                    0 (counter: 832)
+                CACHE                    0 (index: 136)
+                CACHE                    0 (module_keys_version: 49)
+                CACHE                    0 (builtin_keys_version: 27)
+                LOAD_FAST_BORROW         0 (x)
+                CALL_BUILTIN_O           1
+                CACHE                    0 (counter: 832)
+                CACHE                    0 (func_version: 0)
+                CACHE                    0
+                STORE_SUBSCR_DICT
+                CACHE                    0 (counter: 832)
+
+ 238    L2:     LOAD_FAST_BORROW         4 (state)
+                POP_JUMP_IF_NONE       171 (to L10)
+                CACHE                    0 (counter: 0)
+                NOT_TAKEN
+
+ 239            LOAD_FAST_BORROW         8 (deep)
+                TO_BOOL_BOOL
+                CACHE                    0 (counter: 832)
+                CACHE                    0 (version: 0)
+                CACHE                    0
+                POP_JUMP_IF_FALSE       10 (to L3)
+                CACHE                    0 (counter: 0)
+                NOT_TAKEN
+
+ 240            LOAD_DEREF               7 (deepcopy)
+                PUSH_NULL
+                LOAD_FAST_BORROW         4 (state)
+                LOAD_DEREF               1 (memo)
+                CALL_PY_GENERAL          2
+                CACHE                    0 (counter: 832)
+                CACHE                    0 (func_version: 1475)
+                CACHE                    0
+                STORE_FAST               4 (state)
+
+ 241    L3:     LOAD_GLOBAL_BUILTIN      3 (hasattr + NULL)
+                CACHE                    0 (counter: 832)
+                CACHE                    0 (index: 136)
+                CACHE                    0 (module_keys_version: 49)
+                CACHE                    0 (builtin_keys_version: 24)
+                LOAD_FAST_BORROW         9 (y)
+                LOAD_CONST_IMMORTAL      2 ('__setstate__')
+                CALL_BUILTIN_FAST        2
+                CACHE                    0 (counter: 832)
+                CACHE                    0 (func_version: 0)
+                CACHE                    0
+                TO_BOOL_BOOL
+                CACHE                    0 (counter: 832)
+                CACHE                    0 (version: 0)
+                CACHE                    0
+                POP_JUMP_IF_FALSE       19 (to L4)
+                CACHE                    0 (counter: 65535)
+                NOT_TAKEN
+
+ 242            LOAD_FAST_BORROW         9 (y)
+                LOAD_ATTR                5 (__setstate__ + NULL|self)
+                CACHE                    0 (counter: 17)
+                CACHE                    0 (version: 0)
+                CACHE                    0
+                CACHE                    0 (keys_version: 0)
+                CACHE                    0
+                CACHE                    0 (descr: 0)
+                CACHE                    0
+                CACHE                    0
+                CACHE                    0
+                LOAD_FAST_BORROW         4 (state)
+                CALL                     1
+                CACHE                    0 (counter: 17)
+                CACHE                    0 (func_version: 0)
+                CACHE                    0
+                POP_TOP
+                JUMP_FORWARD           117 (to L10)
+
+ 244    L4:     LOAD_GLOBAL_BUILTIN      7 (isinstance + NULL)
+                CACHE                    0 (counter: 832)
+                CACHE                    0 (index: 136)
+                CACHE                    0 (module_keys_version: 49)
+                CACHE                    0 (builtin_keys_version: 29)
+                LOAD_FAST_BORROW         4 (state)
+                LOAD_GLOBAL_BUILTIN      8 (tuple)
+                CACHE                    0 (counter: 832)
+                CACHE                    0 (index: 136)
+                CACHE                    0 (module_keys_version: 49)
+                CACHE                    0 (builtin_keys_version: 77)
+                CALL_ISINSTANCE          2
+                CACHE                    0 (counter: 832)
+                CACHE                    0 (func_version: 0)
+                CACHE                    0
+                TO_BOOL_BOOL
+                CACHE                    0 (counter: 832)
+                CACHE                    0 (version: 0)
+                CACHE                    0
+                POP_JUMP_IF_FALSE       22 (to L5)
+                CACHE                    0 (counter: 65535)
+                NOT_TAKEN
+                LOAD_GLOBAL             11 (len + NULL)
+                CACHE                    0 (counter: 17)
+                CACHE                    0 (index: 0)
+                CACHE                    0 (module_keys_version: 0)
+                CACHE                    0 (builtin_keys_version: 0)
+                LOAD_FAST_BORROW         4 (state)
+                CALL                     1
+                CACHE                    0 (counter: 17)
+                CACHE                    0 (func_version: 0)
+                CACHE                    0
+                LOAD_SMALL_INT           2
+                COMPARE_OP              88 (bool(==))
+                CACHE                    0 (counter: 17)
+                POP_JUMP_IF_FALSE        6 (to L5)
+                CACHE                    0 (counter: 21845)
+                NOT_TAKEN
+
+ 245            LOAD_FAST_BORROW         4 (state)
+                UNPACK_SEQUENCE          2
+                CACHE                    0 (counter: 17)
+                STORE_FAST_STORE_FAST   74 (state, slotstate)
+                JUMP_FORWARD             2 (to L6)
+
+ 247    L5:     LOAD_CONST_IMMORTAL      0 (None)
+                STORE_FAST              10 (slotstate)
+
+ 248    L6:     LOAD_FAST_BORROW         4 (state)
+                POP_JUMP_IF_NONE        28 (to L7)
+                CACHE                    0 (counter: 0)
+                NOT_TAKEN
+
+ 249            LOAD_FAST_BORROW         9 (y)
+                LOAD_ATTR               12 (__dict__)
+                CACHE                    0 (counter: 52380)
+                CACHE                    0 (version: 0)
+                CACHE                    0
+                CACHE                    0 (keys_version: 0)
+                CACHE                    0
+                CACHE                    0 (descr: 0)
+                CACHE                    0
+                CACHE                    0
+                CACHE                    0
+                LOAD_ATTR_METHOD_NO_DICT 15 (update + NULL|self)
+                CACHE                    0 (counter: 832)
+                CACHE                    0 (version: 8)
+                CACHE                    0
+                CACHE                    0 (keys_version: 0)
+                CACHE                    0
+                CACHE                    0 (descr: 2139536855088)
+                CACHE                    0
+                CACHE                    0
+                CACHE                    0
+                LOAD_FAST_BORROW         4 (state)
+                CALL_NON_PY_GENERAL      1
+                CACHE                    0 (counter: 832)
+                CACHE                    0 (func_version: 0)
+                CACHE                    0
+                POP_TOP
+
+ 250    L7:     LOAD_FAST_BORROW        10 (slotstate)
+                POP_JUMP_IF_NONE        38 (to L10)
+                CACHE                    0 (counter: 65535)
+                NOT_TAKEN
+
+ 251            LOAD_FAST_BORROW        10 (slotstate)
+                LOAD_ATTR               17 (items + NULL|self)
+                CACHE                    0 (counter: 17)
+                CACHE                    0 (version: 0)
+                CACHE                    0
+                CACHE                    0 (keys_version: 0)
+                CACHE                    0
+                CACHE                    0 (descr: 0)
+                CACHE                    0
+                CACHE                    0
+                CACHE                    0
+                CALL                     0
+                CACHE                    0 (counter: 17)
+                CACHE                    0 (func_version: 0)
+                CACHE                    0
+                GET_ITER
+        L8:     FOR_ITER                17 (to L9)
+                CACHE                    0 (counter: 17)
+                UNPACK_SEQUENCE          2
+                CACHE                    0 (counter: 17)
+                STORE_FAST_STORE_FAST  188 (key, value)
+
+ 252            LOAD_GLOBAL             19 (setattr + NULL)
+                CACHE                    0 (counter: 17)
+                CACHE                    0 (index: 0)
+                CACHE                    0 (module_keys_version: 0)
+                CACHE                    0 (builtin_keys_version: 0)
+                LOAD_FAST_BORROW_LOAD_FAST_BORROW 155 (y, key)
+                LOAD_FAST_BORROW        12 (value)
+                CALL                     3
+                CACHE                    0 (counter: 17)
+                CACHE                    0 (func_version: 0)
+                CACHE                    0
+                POP_TOP
+                JUMP_BACKWARD           19 (to L8)
+                CACHE                    0 (counter: 65532)
+
+ 251    L9:     END_FOR
+                POP_ITER
+
+ 254   L10:     LOAD_FAST_BORROW         5 (listiter)
+                POP_JUMP_IF_NONE        71 (to L16)
+                CACHE                    0 (counter: 65535)
+                NOT_TAKEN
+
+ 255            LOAD_FAST_BORROW         8 (deep)
+                TO_BOOL
+                CACHE                    0 (counter: 17)
+                CACHE                    0 (version: 0)
+                CACHE                    0
+                POP_JUMP_IF_FALSE       37 (to L13)
+                CACHE                    0 (counter: 21845)
+                NOT_TAKEN
+
+ 256            LOAD_FAST_BORROW         5 (listiter)
+                GET_ITER
+       L11:     FOR_ITER                29 (to L12)
+                CACHE                    0 (counter: 17)
+                STORE_FAST              13 (item)
+
+ 257            LOAD_DEREF               7 (deepcopy)
+                PUSH_NULL
+                LOAD_FAST_BORROW        13 (item)
+                LOAD_DEREF               1 (memo)
+                CALL                     2
+                CACHE                    0 (counter: 17)
+                CACHE                    0 (func_version: 0)
+                CACHE                    0
+                STORE_FAST              13 (item)
+
+ 258            LOAD_FAST_BORROW         9 (y)
+                LOAD_ATTR               21 (append + NULL|self)
+                CACHE                    0 (counter: 17)
+                CACHE                    0 (version: 0)
+                CACHE                    0
+                CACHE                    0 (keys_version: 0)
+                CACHE                    0
+                CACHE                    0 (descr: 0)
+                CACHE                    0
+                CACHE                    0
+                CACHE                    0
+                LOAD_FAST_BORROW        13 (item)
+                CALL                     1
+                CACHE                    0 (counter: 17)
+                CACHE                    0 (func_version: 0)
+                CACHE                    0
+                POP_TOP
+                JUMP_BACKWARD           31 (to L11)
+                CACHE                    0 (counter: 65532)
+
+ 256   L12:     END_FOR
+                POP_ITER
+                JUMP_FORWARD            26 (to L16)
+
+ 260   L13:     LOAD_FAST_BORROW         5 (listiter)
+                GET_ITER
+       L14:     FOR_ITER                20 (to L15)
+                CACHE                    0 (counter: 17)
+                STORE_FAST              13 (item)
+
+ 261            LOAD_FAST_BORROW         9 (y)
+                LOAD_ATTR               21 (append + NULL|self)
+                CACHE                    0 (counter: 17)
+                CACHE                    0 (version: 0)
+                CACHE                    0
+                CACHE                    0 (keys_version: 0)
+                CACHE                    0
+                CACHE                    0 (descr: 0)
+                CACHE                    0
+                CACHE                    0
+                CACHE                    0
+                LOAD_FAST_BORROW        13 (item)
+                CALL                     1
+                CACHE                    0 (counter: 17)
+                CACHE                    0 (func_version: 0)
+                CACHE                    0
+                POP_TOP
+                JUMP_BACKWARD           22 (to L14)
+                CACHE                    0 (counter: 65532)
+
+ 260   L15:     END_FOR
+                POP_ITER
+
+ 262   L16:     LOAD_FAST_BORROW         6 (dictiter)
+                POP_JUMP_IF_NONE        59 (to L22)
+                CACHE                    0 (counter: 65535)
+                NOT_TAKEN
+
+ 263            LOAD_FAST_BORROW         8 (deep)
+                TO_BOOL
+                CACHE                    0 (counter: 17)
+                CACHE                    0 (version: 0)
+                CACHE                    0
+                POP_JUMP_IF_FALSE       36 (to L19)
+                CACHE                    0 (counter: 21845)
+                NOT_TAKEN
+
+ 264            LOAD_FAST_BORROW         6 (dictiter)
+                GET_ITER
+       L17:     FOR_ITER                27 (to L18)
+                CACHE                    0 (counter: 17)
+                UNPACK_SEQUENCE          2
+                CACHE                    0 (counter: 17)
+                STORE_FAST_STORE_FAST  188 (key, value)
+
+ 265            LOAD_DEREF               7 (deepcopy)
+                PUSH_NULL
+                LOAD_FAST_BORROW        11 (key)
+                LOAD_DEREF               1 (memo)
+                CALL                     2
+                CACHE                    0 (counter: 17)
+                CACHE                    0 (func_version: 0)
+                CACHE                    0
+                STORE_FAST              11 (key)
+
+ 266            LOAD_DEREF               7 (deepcopy)
+                PUSH_NULL
+                LOAD_FAST_BORROW        12 (value)
+                LOAD_DEREF               1 (memo)
+                CALL                     2
+                CACHE                    0 (counter: 17)
+                CACHE                    0 (func_version: 0)
+                CACHE                    0
+                STORE_FAST              12 (value)
+
+ 267            LOAD_FAST_BORROW_LOAD_FAST_BORROW 201 (value, y)
+                LOAD_FAST_BORROW        11 (key)
+                STORE_SUBSCR
+                CACHE                    0 (counter: 17)
+                JUMP_BACKWARD           29 (to L17)
+                CACHE                    0 (counter: 65532)
+
+ 264   L18:     END_FOR
+                POP_ITER
+
+ 271            LOAD_FAST_BORROW         9 (y)
+                RETURN_VALUE
+
+ 269   L19:     LOAD_FAST_BORROW         6 (dictiter)
+                GET_ITER
+       L20:     FOR_ITER                 9 (to L21)
+                CACHE                    0 (counter: 17)
+                UNPACK_SEQUENCE          2
+                CACHE                    0 (counter: 17)
+                STORE_FAST_STORE_FAST  188 (key, value)
+
+ 270            LOAD_FAST_BORROW_LOAD_FAST_BORROW 201 (value, y)
+                LOAD_FAST_BORROW        11 (key)
+                STORE_SUBSCR
+                CACHE                    0 (counter: 17)
+                JUMP_BACKWARD           11 (to L20)
+                CACHE                    0 (counter: 65532)
+
+ 269   L21:     END_FOR
+                POP_ITER
+
+ 271   L22:     LOAD_FAST_BORROW         9 (y)
+                RETURN_VALUE
+
+Disassembly of <code object <genexpr> at 0x000001F226BC5020, file "C:\Python\Python314\Lib\copy.py", line 233>:
+  --           COPY_FREE_VARS           2
+
+ 233           RETURN_GENERATOR
+               POP_TOP
+       L1:     RESUME_CHECK             0
+               LOAD_FAST                0 (.0)
+       L2:     FOR_ITER_TUPLE          14 (to L3)
+               CACHE                    0 (counter: 832)
+               STORE_FAST               1 (arg)
+               LOAD_DEREF               2 (deepcopy)
+               PUSH_NULL
+               LOAD_FAST_BORROW         1 (arg)
+               LOAD_DEREF               3 (memo)
+               CALL_PY_GENERAL          2
+               CACHE                    0 (counter: 832)
+               CACHE                    0 (func_version: 1475)
+               CACHE                    0
+               YIELD_VALUE              0
+               RESUME_CHECK             5
+               POP_TOP
+               JUMP_BACKWARD_NO_JIT    16 (to L2)
+               CACHE                    0 (counter: 65532)
+       L3:     END_FOR
+               POP_ITER
+               LOAD_CONST_IMMORTAL      0 (None)
+               RETURN_VALUE
+
+  --   L4:     CALL_INTRINSIC_1         3 (INTRINSIC_STOPITERATION_ERROR)
+               RERAISE                  1
+ExceptionTable:
+  L1 to L4 -> L4 [0] lasti

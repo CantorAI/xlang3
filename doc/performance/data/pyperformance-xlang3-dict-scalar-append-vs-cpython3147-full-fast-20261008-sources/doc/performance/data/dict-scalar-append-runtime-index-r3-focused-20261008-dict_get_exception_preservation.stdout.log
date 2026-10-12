@@ -1,0 +1,3 @@
+dict get direct, bound and expanded hash failures preserve identity and traceback: OK
+dict get preserves non-Exception equality failures: OK
+dict get retains TypeError fallback, misses and successful recovery: OK

@@ -1,0 +1,5 @@
+getter-kind python __main__ PythonGetter True
+PASS direct-getter
+PASS explicit-property-get
+PASS builtin-getattr
+PASS ordinary-attribute

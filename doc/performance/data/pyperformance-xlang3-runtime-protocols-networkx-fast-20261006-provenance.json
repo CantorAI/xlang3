@@ -1,0 +1,22 @@
+{
+  "source_checkpoint": "e7611cb3",
+  "candidate_kind": "local worktree with runtime protocol changes; other existing edits remain",
+  "manager_version": "Python 3.14.7",
+  "mode": "fast",
+  "benchmarks": [
+    "networkx",
+    "networkx_connected_components",
+    "networkx_k_core"
+  ],
+  "case_timeout_seconds": 300,
+  "sha256_start": {
+    "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe": "8764D542781B69A7C71D0EAEE94B1FC67F02313B9332D8FEBBE4B1F20F76277E",
+    "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3_runtime.dll": "5C9FD3500EC4B1F278A9BE49D6C864C743FB1922BE1F488770184DE0D922F191"
+  },
+  "sha256_end": {
+    "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe": "8764D542781B69A7C71D0EAEE94B1FC67F02313B9332D8FEBBE4B1F20F76277E",
+    "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3_runtime.dll": "5C9FD3500EC4B1F278A9BE49D6C864C743FB1922BE1F488770184DE0D922F191"
+  },
+  "exit_code": 1,
+  "outcome": "All three cases exceeded the 300-second full-case cap; no completed timing. Executable and DLL unchanged."
+}

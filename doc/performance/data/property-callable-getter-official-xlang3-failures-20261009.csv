@@ -1,0 +1,2 @@
+benchmark,runtime,exit_code,complete_score,error,stdout_log,stderr_log
+sqlalchemy_declarative,xlang3,1,False,NameError: free variable 'getters',property-callable-getter-validation-20261009-official-xlang3-sqlalchemy_declarative.stdout.log,property-callable-getter-validation-20261009-official-xlang3-sqlalchemy_declarative.stderr.log

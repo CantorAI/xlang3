@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="330" viewBox="0 0 960 330" role="img" aria-labelledby="title desc">
+<title id="title">Pure-Python pickle: XLang3 versus CPython 3.14.7</title>
+<desc id="desc">Mean milliseconds, lower is better. CPython 0.270742; XLang3 4.137888. XLang3 takes 15.28 times CPython's time. Fresh unpaired fast-mode results, 20 values per runtime.</desc>
+<rect width="960" height="330" fill="#fff"/>
+<g font-family="Arial, sans-serif" fill="#182332">
+<text x="28" y="36" font-size="22" font-weight="bold">Original pure-Python pickle · protocol 5</text>
+<text x="28" y="63" font-size="15">Mean elapsed milliseconds · shorter bars are faster</text>
+<text x="28" y="122" font-size="16">CPython 3.14.7</text>
+<rect x="215" y="98" width="35.1965" height="34" rx="3" fill="#237a57"/>
+<text x="260.1965" y="121" font-size="16">0.270742 ms</text>
+<text x="28" y="187" font-size="16">XLang3 candidate</text>
+<rect x="215" y="163" width="537.9255" height="34" rx="3" fill="#ba6424"/>
+<text x="762.9255" y="186" font-size="16">4.137888 ms</text>
+<line x1="215" y1="216" x2="800" y2="216" stroke="#687789"/>
+<line x1="215.0" y1="212" x2="215.0" y2="221" stroke="#687789"/><text x="215.0" y="240" text-anchor="middle" font-size="14">0</text>
+<line x1="345.0" y1="212" x2="345.0" y2="221" stroke="#687789"/><text x="345.0" y="240" text-anchor="middle" font-size="14">1</text>
+<line x1="475.0" y1="212" x2="475.0" y2="221" stroke="#687789"/><text x="475.0" y="240" text-anchor="middle" font-size="14">2</text>
+<line x1="605.0" y1="212" x2="605.0" y2="221" stroke="#687789"/><text x="605.0" y="240" text-anchor="middle" font-size="14">3</text>
+<line x1="735.0" y1="212" x2="735.0" y2="221" stroke="#687789"/><text x="735.0" y="240" text-anchor="middle" font-size="14">4</text>
+<text x="800" y="240" font-size="14">ms</text>
+<text x="28" y="278" font-size="17" font-weight="bold">XLang3 speed: 0.06543× CPython · 15.28× longer time</text>
+<text x="28" y="307" font-size="13">20 values each · fresh unpaired fast mode · stability warnings retained · one case, full-suite goal open</text>
+</g></svg>

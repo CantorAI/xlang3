@@ -1,0 +1,4 @@
+decimal native fast/fallback counts: binary=32512/9 quantize=12507/0
+decimal binary fallback right_operand=9
+decimal fast-path stage ns: operands=3934000 context=22557900 arithmetic=5856700 rounding=1006900 result=18763600
+one_telco_loop_seconds 0.6164300000018557

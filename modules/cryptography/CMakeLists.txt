@@ -10,6 +10,7 @@ add_library(xlang_cryptography_rust_native_package SHARED
   ed25519_module.cpp
   x25519_module.cpp
   ciphers_module.cpp
+  aead_module.cpp
   hashes_module.cpp
   hmac_module.cpp
   legacy_openssl_module.cpp

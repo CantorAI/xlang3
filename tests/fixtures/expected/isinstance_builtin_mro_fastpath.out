@@ -1,0 +1,8 @@
+default True False True False True False
+tuple-call-cache True False
+rebound-tuple-call-cache rebound
+patched False False False
+patched-tuple-call-cache False False
+patched-true-tuple-call-cache True
+restored True True True
+restored-tuple-call-cache True False
