@@ -645,6 +645,9 @@ add_test(
 )
 
 if(XLANG3_PYTHON314_EXECUTABLE)
+  add_test(NAME xlang3_cli_cypher_key_persistence
+    COMMAND ${XLANG3_PYTHON314_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/net/run_cypher_key_store.py
+      $<TARGET_FILE:xlang3> $<TARGET_FILE_DIR:xlang_net_native_package>)
   if(WIN32)
     add_test(NAME xlang3_cli_overlapped_completion
       COMMAND ${XLANG3_PYTHON314_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_expected.py
