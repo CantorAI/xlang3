@@ -121,11 +121,12 @@ bool begin_python_transaction(xlang3_sqlite::ConnectionHandle* connection, const
   if (connection == nullptr || connection->db == nullptr || connection->closed) {
     return false;
   }
-  if (!is_write_sql(sql) || !sqlite3_get_autocommit(connection->db)) {
+  if (!connection->implicit_transactions || !is_write_sql(sql) || !sqlite3_get_autocommit(connection->db)) {
     return true;
   }
   char* message = nullptr;
-  const int rc = sqlite3_exec(connection->db, "BEGIN", nullptr, nullptr, &message);
+  const std::string begin = connection->isolation_level.empty() ? "BEGIN" : "BEGIN " + connection->isolation_level;
+  const int rc = sqlite3_exec(connection->db, begin.c_str(), nullptr, nullptr, &message);
   if (message != nullptr) {
     sqlite3_free(message);
   }
@@ -262,9 +263,31 @@ bool sqlite_cache_size(PackageState* state, X3CallContext* context,
   return true;
 }
 
+bool parse_isolation_level(PackageState* state, X3CallContext* context, X3Runtime* runtime,
+    X3Value value, bool* implicit, std::string* level) {
+  if (value.tag == X3_TAG_NONE) { *implicit = false; level->clear(); return true; }
+  auto* host = state->host;
+  if (host->value_object_kind(value) != X3_OBJECT_KIND_STRING) {
+    host->raise_class_error(context, "TypeError", "isolation_level must be str or None");
+    return false;
+  }
+  const char* data = nullptr; uint64_t size = 0;
+  if (host->value_string_data(runtime, value, &data, &size) != X3_STATUS_OK) return false;
+  if (size > 9) {
+    host->raise_class_error(context, "ValueError", "invalid isolation_level"); return false;
+  }
+  std::string mode(data, static_cast<size_t>(size));
+  for (auto& character : mode) character = static_cast<char>(std::toupper(static_cast<unsigned char>(character)));
+  if (mode != "" && mode != "DEFERRED" && mode != "IMMEDIATE" && mode != "EXCLUSIVE") {
+    host->raise_class_error(context, "ValueError", "invalid isolation_level"); return false;
+  }
+  *implicit = true; *level = std::move(mode); return true;
+}
+
 bool sqlite_connect_options(PackageState* state, X3CallContext* context,
-    X3Runtime* runtime, const X3KeywordArg* kwargs, uint32_t kwargc, size_t& capacity) {
-  bool seen_cache_size = false;
+    X3Runtime* runtime, const X3KeywordArg* kwargs, uint32_t kwargc, size_t& capacity,
+    bool& implicit, std::string& level) {
+  bool seen_cache_size = false, seen_thread = false, seen_isolation = false;
   for (uint32_t index = 0; index < kwargc; ++index) {
     const char* name = kwargs[index].name;
     if (name != nullptr && std::string_view(name) == "cached_statements") {
@@ -279,6 +302,18 @@ bool sqlite_connect_options(PackageState* state, X3CallContext* context,
         state->host->raise_class_error(context, "TypeError", "check_same_thread must be a boolean");
         return false;
       }
+      if (seen_thread) {
+        state->host->raise_class_error(context, "TypeError", "duplicate check_same_thread");
+        return false;
+      }
+      seen_thread = true;
+    } else if (name != nullptr && std::string_view(name) == "isolation_level") {
+      if (seen_isolation) {
+        state->host->raise_class_error(context, "TypeError", "duplicate isolation_level");
+        return false;
+      }
+      seen_isolation = true;
+      if (!parse_isolation_level(state, context, runtime, kwargs[index].value, &implicit, &level)) return false;
     } else {
       const std::string message = std::string("'") + (name == nullptr ? "" : name) +
           "' is an invalid keyword argument for Connection()";
@@ -295,10 +330,15 @@ X3Status connection_init_kw(
     uint32_t kwargc, X3Value* result) {
   auto* state = state_from(user_data);
   size_t capacity = 128;
-  if (!sqlite_connect_options(state, context, runtime, kwargs, kwargc, capacity)) return X3_STATUS_ERROR;
+  bool implicit = true; std::string level;
+  if (!sqlite_connect_options(state, context, runtime, kwargs, kwargc, capacity, implicit, level)) return X3_STATUS_ERROR;
   const X3Status status = connection_init(context, runtime, user_data, args, argc, result);
-  if (status == X3_STATUS_OK)
-    xlang3_sqlite::connection_from(state->host, args[0])->statement_cache_capacity = capacity;
+  if (status == X3_STATUS_OK) {
+    auto* connection = xlang3_sqlite::connection_from(state->host, args[0]);
+    connection->statement_cache_capacity = capacity;
+    connection->implicit_transactions = implicit;
+    connection->isolation_level = std::move(level);
+  }
   return status;
 }
 X3Status sqlite3_connect_kw(
@@ -307,11 +347,48 @@ X3Status sqlite3_connect_kw(
     uint32_t kwargc, X3Value* result) {
   auto* state = state_from(user_data);
   size_t capacity = 128;
-  if (!sqlite_connect_options(state, context, runtime, kwargs, kwargc, capacity)) return X3_STATUS_ERROR;
+  bool implicit = true; std::string level;
+  if (!sqlite_connect_options(state, context, runtime, kwargs, kwargc, capacity, implicit, level)) return X3_STATUS_ERROR;
   const X3Status status = sqlite3_connect(context, runtime, user_data, args, argc, result);
-  if (status == X3_STATUS_OK)
-    xlang3_sqlite::connection_from(state->host, *result)->statement_cache_capacity = capacity;
+  if (status == X3_STATUS_OK) {
+    auto* connection = xlang3_sqlite::connection_from(state->host, *result);
+    connection->statement_cache_capacity = capacity;
+    connection->implicit_transactions = implicit;
+    connection->isolation_level = std::move(level);
+  }
   return status;
+}
+
+X3Status connection_isolation_get(X3CallContext* context, X3Runtime* runtime, void* data,
+    const X3Value* args, uint32_t argc, X3Value* result) {
+  auto* state = state_from(data);
+  if (!check_argc(state->host, context, argc, 1, "Connection.isolation_level")) return X3_STATUS_ERROR;
+  auto* connection = xlang3_sqlite::connection_from(state->host, args[0]);
+  if (!connection || connection->closed) { state->host->raise_error(context, state->programming_error_class, "sqlite connection is closed"); return X3_STATUS_ERROR; }
+  *result = connection->implicit_transactions ? state->host->value_string_utf8(runtime, connection->isolation_level.data(), connection->isolation_level.size()) : x3_value_none();
+  return result->tag == X3_TAG_INVALID ? X3_STATUS_ERROR : X3_STATUS_OK;
+}
+X3Status connection_isolation_set(X3CallContext* context, X3Runtime* runtime, void* data,
+    const X3Value* args, uint32_t argc, X3Value* result) {
+  auto* state = state_from(data);
+  if (!check_argc(state->host, context, argc, 2, "Connection.isolation_level")) return X3_STATUS_ERROR;
+  auto* connection = xlang3_sqlite::connection_from(state->host, args[0]);
+  if (!connection || connection->closed) { state->host->raise_error(context, state->programming_error_class, "sqlite connection is closed"); return X3_STATUS_ERROR; }
+  bool implicit = true; std::string level;
+  if (!parse_isolation_level(state, context, runtime, args[1], &implicit, &level)) return X3_STATUS_ERROR;
+  if (!implicit && !sqlite3_get_autocommit(connection->db) && sqlite3_exec(connection->db, "COMMIT", nullptr, nullptr, nullptr) != SQLITE_OK) {
+    raise_sqlite_error(state, context, connection->db, "isolation_level commit failed"); return X3_STATUS_ERROR;
+  }
+  connection->implicit_transactions = implicit; connection->isolation_level = std::move(level);
+  *result = x3_value_none(); return X3_STATUS_OK;
+}
+X3Status connection_transaction_get(X3CallContext* context, X3Runtime*, void* data,
+    const X3Value* args, uint32_t argc, X3Value* result) {
+  auto* state = state_from(data);
+  if (!check_argc(state->host, context, argc, 1, "Connection.in_transaction")) return X3_STATUS_ERROR;
+  auto* connection = xlang3_sqlite::connection_from(state->host, args[0]);
+  if (!connection || connection->closed) { state->host->raise_error(context, state->programming_error_class, "sqlite connection is closed"); return X3_STATUS_ERROR; }
+  *result = x3_value_bool(!sqlite3_get_autocommit(connection->db)); return X3_STATUS_OK;
 }
 struct ScalarFunction {
   const X3PackageHost* host = nullptr;
@@ -2085,6 +2162,14 @@ X3Status register_sqlite_package(X::Package<xlang_sqlite3>* package) {
     return X3_STATUS_ERROR;
   }
   if (!set_public_dbapi_module(host, state->connection_class)) return X3_STATUS_ERROR;
+  X3Value isolation_property = x3_value_invalid();
+  if (host->property_create(host->runtime, "isolation_level", connection_isolation_get,
+          connection_isolation_set, state, &isolation_property) != X3_STATUS_OK) return X3_STATUS_ERROR;
+  const bool isolation_registered = host->class_add_value(state->connection_class,
+      "isolation_level", isolation_property) == X3_STATUS_OK;
+  host->value_release(isolation_property);
+  if (!isolation_registered || !add_readonly_property(state, state->connection_class,
+          "in_transaction", connection_transaction_get)) return X3_STATUS_ERROR;
 
   X3NativeFunctionDef cursor_methods[10]{};
   def_method(cursor_methods[0], "execute", cursor_execute, state);

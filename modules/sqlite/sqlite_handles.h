@@ -44,6 +44,8 @@ struct ConnectionHandle {
   sqlite3* db = nullptr;
   uint32_t refcnt = 1;
   bool closed = false;
+  bool implicit_transactions = true;
+  std::string isolation_level;
   size_t statement_cache_capacity = 128;
   uint64_t statement_cache_generation = 0;
   uint32_t statement_cache_invalidation_depth = 0;
