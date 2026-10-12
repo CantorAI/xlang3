@@ -1,0 +1,90 @@
+{
+  "python_version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+  "checks": [
+    {
+      "case": "context_run_empty_star",
+      "runtime": "xlang3",
+      "passed": true,
+      "returncode": 0,
+      "stdout": "callback ()\ncallback ()\ncallback ('from tuple',)\ncallback ('from list',)\niterated\ncallback ()\nlist iterated\ncallback ()\ntuple iterated\ncallback ()\n",
+      "stderr": ""
+    },
+    {
+      "case": "context_run_empty_star",
+      "runtime": "cpython3147",
+      "passed": true,
+      "returncode": 0,
+      "stdout": "callback ()\ncallback ()\ncallback ('from tuple',)\ncallback ('from list',)\niterated\ncallback ()\nlist iterated\ncallback ()\ntuple iterated\ncallback ()\n",
+      "stderr": ""
+    },
+    {
+      "case": "context_run_bound_callback",
+      "runtime": "xlang3",
+      "passed": true,
+      "returncode": 0,
+      "stdout": "item:9:caller\ncaller\ncaught: boom\nafter:3:inside\ncaller\n",
+      "stderr": ""
+    },
+    {
+      "case": "context_run_bound_callback",
+      "runtime": "cpython3147",
+      "passed": true,
+      "returncode": 0,
+      "stdout": "item:9:caller\ncaller\ncaught: boom\nafter:3:inside\ncaller\n",
+      "stderr": ""
+    },
+    {
+      "case": "context_run_same_context_reentry",
+      "runtime": "xlang3",
+      "passed": true,
+      "returncode": 0,
+      "stdout": "same context re-entry rejected\nouter\n",
+      "stderr": ""
+    },
+    {
+      "case": "context_run_same_context_reentry",
+      "runtime": "cpython3147",
+      "passed": true,
+      "returncode": 0,
+      "stdout": "same context re-entry rejected\nouter\n",
+      "stderr": ""
+    },
+    {
+      "case": "context_run_keywords",
+      "runtime": "xlang3",
+      "passed": true,
+      "returncode": 0,
+      "stdout": "(5, 'inside')\noutside inside\n('outside', 'outside nested', 'outside')\noutside nested updated outer\nValueError boom\noutside nested after failure\n",
+      "stderr": ""
+    },
+    {
+      "case": "context_run_keywords",
+      "runtime": "cpython3147",
+      "passed": true,
+      "returncode": 0,
+      "stdout": "(5, 'inside')\noutside inside\n('outside', 'outside nested', 'outside')\noutside nested updated outer\nValueError boom\noutside nested after failure\n",
+      "stderr": ""
+    },
+    {
+      "case": "context_run_tuple_star_exception",
+      "runtime": "xlang3",
+      "passed": true,
+      "returncode": 0,
+      "stdout": "('tuple',):outside\noutside\ncaught: tuple star failed\n('after',):inside\noutside\n",
+      "stderr": ""
+    },
+    {
+      "case": "context_run_tuple_star_exception",
+      "runtime": "cpython3147",
+      "passed": true,
+      "returncode": 0,
+      "stdout": "('tuple',):outside\noutside\ncaught: tuple star failed\n('after',):inside\noutside\n",
+      "stderr": ""
+    }
+  ],
+  "status": "pass",
+  "binary_sha256": {
+    "xlang3.exe": "5731c010c761f1cd7d784ee6a9671e7ad923f3f2789cc9359f046176cb67d9ce",
+    "xlang3_runtime.dll": "6c2c7431a9143b39d964c4e911daddf3f9cb4ac1005bbb1c11bf0b9e07612fd0"
+  }
+}

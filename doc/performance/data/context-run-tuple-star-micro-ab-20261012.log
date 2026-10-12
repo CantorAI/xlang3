@@ -1,0 +1,16 @@
+iterations=100000; same Context.run(callback, *exact_tuple) script; XLang baseline/candidate alternate at unchanged fixed executable path; CPython 3.14.7 is an unpaired reference.
+xlang_pair=1 baseline context_run_tuple_star_seconds=0.171341200 iterations=100000
+xlang_pair=1 candidate context_run_tuple_star_seconds=0.142206700 iterations=100000
+xlang_pair=2 baseline context_run_tuple_star_seconds=0.172015300 iterations=100000
+xlang_pair=2 candidate context_run_tuple_star_seconds=0.134571000 iterations=100000
+xlang_pair=3 baseline context_run_tuple_star_seconds=0.166450300 iterations=100000
+xlang_pair=3 candidate context_run_tuple_star_seconds=0.133441100 iterations=100000
+xlang_pair=4 baseline context_run_tuple_star_seconds=0.168623000 iterations=100000
+xlang_pair=4 candidate context_run_tuple_star_seconds=0.134724600 iterations=100000
+xlang_pair=5 baseline context_run_tuple_star_seconds=0.172142700 iterations=100000
+xlang_pair=5 candidate context_run_tuple_star_seconds=0.133248100 iterations=100000
+cpython3147=context_run_tuple_star_seconds=0.017522000 iterations=100000
+cpython3147=context_run_tuple_star_seconds=0.017765900 iterations=100000
+cpython3147=context_run_tuple_star_seconds=0.017162200 iterations=100000
+cpython3147=context_run_tuple_star_seconds=0.018509400 iterations=100000
+cpython3147=context_run_tuple_star_seconds=0.018086100 iterations=100000

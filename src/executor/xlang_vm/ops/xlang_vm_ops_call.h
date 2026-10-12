@@ -4349,6 +4349,10 @@ XLANG3_HOT_INLINE bool call_native_function_ex(
   const bool needs_materialized_ex = values.has_keywords() || values.has_expansion();
   const bool use_fast_keyword = native->fast_keyword_predicate != nullptr &&
       native->fast_keyword_callback != nullptr &&
+      // These predicates specialize keyword or expanded argument shapes;
+      // ordinary register-backed calls should not pay an indirect predicate
+      // call just because this native function has a keyword fast path.
+      needs_materialized_ex &&
       native->fast_keyword_predicate(values);
   CallArgsView fast_values = values;
   bool fast_empty_star_expansion = false;
